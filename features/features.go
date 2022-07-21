@@ -25,6 +25,7 @@ type Features struct {
 	NoImplicitIgnore           bool `long:"no-implicit-ignore" description:"disable implicit ignore rules to exclude .tmp-earthly-out/, build.earth, Earthfile, .earthignore and .earthlyignore when resolving local context"`
 	CheckDuplicateImages       bool `long:"check-duplicate-images" description:"check for duplicate images during output"`
 	EarthlyVersionArg          bool `long:"earthly-version-arg" description:"includes EARTHLY_VERSION and EARTHLY_BUILD_SHA ARGs"`
+	EarthlyLocallyArg          bool `long:"earthly-locally-arg" description:"includes EARTHLY_LOCALLY ARG"`
 	ExplicitGlobal             bool `long:"explicit-global" description:"require base target args to have explicit settings to be considered global args"`
 	UseCacheCommand            bool `long:"use-cache-command" description:"allow use of CACHE command in Earthfiles"`
 	UseHostCommand             bool `long:"use-host-command" description:"allow use of HOST command in Earthfiles"`

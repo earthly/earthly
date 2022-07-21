@@ -10,6 +10,7 @@ const (
 	EarthlyGitProjectName       = "EARTHLY_GIT_PROJECT_NAME"
 	EarthlyGitShortHash         = "EARTHLY_GIT_SHORT_HASH"
 	EarthlyGitTag               = "EARTHLY_GIT_TAG"
+	EarthlyLocally              = "EARTHLY_LOCALLY"
 	EarthlyPush                 = "EARTHLY_PUSH"
 	EarthlySourceDateEpoch      = "EARTHLY_SOURCE_DATE_EPOCH"
 	EarthlyTarget               = "EARTHLY_TARGET"
@@ -19,6 +20,10 @@ const (
 	EarthlyTargetTag            = "EARTHLY_TARGET_TAG"
 	EarthlyTargetTagDocker      = "EARTHLY_TARGET_TAG_DOCKER"
 	EarthlyVersion              = "EARTHLY_VERSION"
+	NativeArch                  = "NATIVEARCH"
+	NativeOS                    = "NATIVEOS"
+	NativePlatform              = "NATIVEPLATFORM"
+	NativeVariant               = "NATIVEVARIANT"
 	TargetArch                  = "TARGETARCH"
 	TargetOS                    = "TARGETOS"
 	TargetPlatform              = "TARGETPLATFORM"
@@ -27,10 +32,6 @@ const (
 	UserOS                      = "USEROS"
 	UserPlatform                = "USERPLATFORM"
 	UserVariant                 = "USERVARIANT"
-	NativeArch                  = "NATIVEARCH"
-	NativeOS                    = "NATIVEOS"
-	NativePlatform              = "NATIVEPLATFORM"
-	NativeVariant               = "NATIVEVARIANT"
 )
 
 var args map[string]struct{}
@@ -46,6 +47,7 @@ func init() {
 		EarthlyGitProjectName:       struct{}{},
 		EarthlyGitShortHash:         struct{}{},
 		EarthlyGitTag:               struct{}{},
+		EarthlyLocally:              struct{}{},
 		EarthlyPush:                 struct{}{},
 		EarthlySourceDateEpoch:      struct{}{},
 		EarthlyTarget:               struct{}{},
@@ -55,6 +57,10 @@ func init() {
 		EarthlyTargetTag:            struct{}{},
 		EarthlyTargetTagDocker:      struct{}{},
 		EarthlyVersion:              struct{}{},
+		NativeArch:                  struct{}{},
+		NativeOS:                    struct{}{},
+		NativePlatform:              struct{}{},
+		NativeVariant:               struct{}{},
 		TargetArch:                  struct{}{},
 		TargetOS:                    struct{}{},
 		TargetPlatform:              struct{}{},
@@ -63,10 +69,6 @@ func init() {
 		UserOS:                      struct{}{},
 		UserPlatform:                struct{}{},
 		UserVariant:                 struct{}{},
-		NativeArch:                  struct{}{},
-		NativeOS:                    struct{}{},
-		NativePlatform:              struct{}{},
-		NativeVariant:               struct{}{},
 	}
 }
 
