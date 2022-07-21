@@ -54,7 +54,7 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 	}
 
 	// When using a satellite, interactive and local do not work; as they are not SSL nor routable yet.
-	app.console.Warnf("Note: the interactive debugger, interactive RUN commands, and fast output via embedded registry do not yet work on Earthly Satellites.")
+	app.console.Warnf("Note: the interactive debugger, interactive RUN commands, and inline caching do not yet work on Earthly Satellites.")
 
 	// Set up extra settings needed for buildkit RPC metadata
 	if app.satelliteName == "" {
@@ -81,18 +81,6 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 	app.console.Warnf("The following feature flags are recommended for use with Satellites and will be auto-enabled:")
 	app.console.Warnf("  --new-platform, --use-registry-for-with-docker")
 	app.console.Warnf("") // newline
-
-	if app.ci {
-		app.console.Warnf("When using Satellites, the --ci flag is an alias for:")
-		app.console.Warnf("  --strict --no-output when running earthly in target mode.")
-		app.console.Warnf("  --strict when running earthly in artifact or image mode.")
-		app.console.Warnf("") // newline
-		if !app.imageMode && !app.artifactMode {
-			app.noOutput = true
-		}
-		app.strict = true
-		app.ci = false
-	}
 
 	if app.featureFlagOverrides != "" {
 		app.featureFlagOverrides += ","

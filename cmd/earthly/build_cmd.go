@@ -199,12 +199,29 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
 	app.warnIfArgContainsBuildArg(flagArgs)
 
-	bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
+	err = app.configureSatellite(cliCtx, cloudClient)
+	if err != nil {
+		return errors.Wrapf(err, "could not construct new buildkit client")
+	}
+
+	isLocal := containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress)
+
+	if !isLocal && app.ci {
+		app.console.Warnf("Please note that --use-inline-cache and --save-inline-cache are currently disabled when using --ci on Satellites or remote Buildkit.")
+		app.console.Warnf("") // newline
+		if !app.imageMode && !app.artifactMode {
+			app.noOutput = true
+		}
+		app.strict = true
+		app.useInlineCache = false
+		app.saveInlineCache = false
+	}
+
+	bkClient, err := buildkitd.NewClient(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, Version, app.buildkitdSettings)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
-	isLocal := containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress)
 	app.analyticsMetadata.isRemoteBuildkit = !isLocal
 
 	bkIP, err := buildkitd.GetContainerIP(cliCtx.Context, app.containerName, app.containerFrontend, app.buildkitdSettings)
