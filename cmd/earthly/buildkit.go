@@ -1,13 +1,12 @@
 package main
 
 import (
-	"github.com/moby/buildkit/client"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
-
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/util/containerutil"
+	"github.com/moby/buildkit/client"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
 )
 
 func (app *earthlyApp) getBuildkitClient(cliCtx *cli.Context, cloudClient cloud.Client) (*client.Client, error) {
