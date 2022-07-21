@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/earthly/earthly/buildkitd"
-	"github.com/earthly/earthly/cloud"
-	"github.com/earthly/earthly/util/containerutil"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+
+	"github.com/earthly/earthly/buildkitd"
+	"github.com/earthly/earthly/cloud"
+	"github.com/earthly/earthly/util/containerutil"
 )
 
 func (app *earthlyApp) getBuildkitClient(cliCtx *cli.Context, cloudClient cloud.Client) (*client.Client, error) {
@@ -79,8 +80,20 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 
 	app.console.Warnf("") // newline
 	app.console.Warnf("The following feature flags are recommended for use with Satellites and will be auto-enabled:")
-	app.console.Warnf("--new-platform, --use-registry-for-with-docker")
+	app.console.Warnf("  --new-platform, --use-registry-for-with-docker")
 	app.console.Warnf("") // newline
+
+	if app.ci {
+		app.console.Warnf("When using Satellites, the --ci flag is an alias for:")
+		app.console.Warnf("  --strict --no-output when running earthly in target mode.")
+		app.console.Warnf("  --strict when running earthly in artifact or image mode.")
+		app.console.Warnf("") // newline
+		if !app.imageMode && !app.artifactMode {
+			app.noOutput = true
+		}
+		app.strict = true
+		app.ci = false
+	}
 
 	if app.featureFlagOverrides != "" {
 		app.featureFlagOverrides += ","
