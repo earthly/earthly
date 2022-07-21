@@ -5,14 +5,13 @@ package provider
 
 import (
 	"os"
-	"path"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/util/fsutilprogress"
 
-	"github.com/dustin/go-humanize"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/filesync"
 	"github.com/pkg/errors"
@@ -145,37 +144,7 @@ func (bcp *BuildContextProvider) handle(method string, stream grpc.ServerStream)
 
 	followPaths := opts[keyFollowPaths]
 
-	var mutex sync.Mutex
-	console := bcp.console.WithPrefixAndSalt("context", dir.Dir)
-	numStats := 0
-	numSends := 0
-	verboseProgressCB := func(relPath string, status fsutil.VerboseProgressStatus, numBytes int) {
-		mutex.Lock()
-		defer mutex.Unlock()
-		fullPath := path.Join(dir.Dir, relPath)
-		switch status {
-		case fsutil.StatusStat:
-			numStats++
-			//console.VerbosePrintf("sent file stat for %s\n", fullPath) ignored as it is too verbose. TODO add different verbose levels to support ExtraVerbosePrintf
-		case fsutil.StatusSent:
-			console.VerbosePrintf("sent data for %s (%s)\n", fullPath, humanize.Bytes(uint64(numBytes)))
-			numSends++
-		case fsutil.StatusFailed:
-			console.VerbosePrintf("sent data for %s failed\n", fullPath)
-		case fsutil.StatusSkipped:
-			console.VerbosePrintf("ignoring %s\n", fullPath)
-		default:
-			console.Warnf("unhandled progress status %v (path=%s, numBytes=%d)\n", status, fullPath, numBytes)
-		}
-	}
-
-	progress := func(numBytes int, last bool) {
-		mutex.Lock()
-		defer mutex.Unlock()
-		if last {
-			console.Printf("transferred %d file(s) for context %s (%s, %d file/dir stats)", numSends, dir.Dir, humanize.Bytes(uint64(numBytes)), numStats)
-		}
-	}
+	progressCB := fsutilprogress.New(dir.Dir, bcp.console.WithPrefixAndSalt("context", dir.Dir))
 
 	var doneCh chan error
 	if bcp.doneCh != nil {
@@ -187,8 +156,8 @@ func (bcp *BuildContextProvider) handle(method string, stream grpc.ServerStream)
 		IncludePatterns:   includes,
 		FollowPaths:       followPaths,
 		Map:               dir.Map,
-		VerboseProgressCB: verboseProgressCB,
-	}), progress, verboseProgressCB)
+		VerboseProgressCB: progressCB.Verbose,
+	}), progressCB.Info, progressCB.Verbose)
 	if doneCh != nil {
 		if err != nil {
 			doneCh <- err

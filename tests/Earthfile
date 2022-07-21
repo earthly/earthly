@@ -230,8 +230,8 @@ copy-test-verbose-output:
     # the shared cache key.
     RUN echo "#!/bin/sh
 set -x
-earthly --config \$earthly_config --verbose +all 2>output.txt;
-earthly --config \$earthly_config --verbose +all 2>output2.txt;
+earthly --config \$earthly_config --verbose +copy 2>output.txt;
+earthly --config \$earthly_config --verbose +copy 2>output2.txt;
 " >/tmp/multiple-earthly-script && chmod +x /tmp/multiple-earthly-script
 
     DO +RUN_EARTHLY --earthfile=copy-verbose.earth --exec_cmd=/tmp/multiple-earthly-script
@@ -247,6 +247,10 @@ earthly --config \$earthly_config --verbose +all 2>output2.txt;
     RUN if grep "sent data for a.txt" output2.txt >/dev/null; then echo "a.txt should not have been sent"; exit 1; fi
     RUN if grep "sent data for alpha.txt" output2.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
     RUN if grep "sent data for .*beta.txt" output2.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
+
+    # test SAVE ARTIFACT AS LOCAL texts is output
+    DO +RUN_EARTHLY --earthfile=copy-verbose.earth --extra_args="--verbose" --target=+save --output_contains="received data for important-data .12 B."
+    RUN ls -la important-data
 
 cache-test:
     # Test that a file can be passed between runs through the mounted cache.

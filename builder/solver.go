@@ -5,9 +5,11 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/fsutilprogress"
 	"github.com/moby/buildkit/client"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session"
@@ -32,12 +34,12 @@ type solver struct {
 	saveInlineCache bool
 }
 
-func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback pullping.PullCallback, phaseText string) error {
+func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback pullping.PullCallback, phaseText string, console conslogging.ConsoleLogger) error {
 	ch := make(chan *client.SolveStatus)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	eg, ctx := errgroup.WithContext(ctx)
-	solveOpt, err := s.newSolveOptMulti(ctx, eg, onImage, onArtifact, onFinalArtifact, onPullCallback)
+	solveOpt, err := s.newSolveOptMulti(ctx, eg, onImage, onArtifact, onFinalArtifact, onPullCallback, console)
 	if err != nil {
 		return errors.Wrap(err, "new solve opt")
 	}
@@ -69,7 +71,7 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 	return nil
 }
 
-func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback pullping.PullCallback) (*client.SolveOpt, error) {
+func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback pullping.PullCallback, console conslogging.ConsoleLogger) (*client.SolveOpt, error) {
 	var cacheImports []client.CacheOptionsEntry
 	for ci := range s.cacheImports.AsMap() {
 		cacheImports = append(cacheImports, newCacheImportOpt(ci))
@@ -84,6 +86,11 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 	if s.saveInlineCache {
 		cacheExports = append(cacheExports, newInlineCacheOpt())
 	}
+
+	verboseProgressConsole := console.WithPrefixAndSalt("output",
+		"local context .", // TODO this salt must be the same as the salt used in SolverMonitor.processStatus
+	)
+	progressCB := fsutilprogress.New("", verboseProgressConsole)
 
 	return &client.SolveOpt{
 		Exports: []client.ExportEntry{
@@ -120,6 +127,7 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 					return onArtifact(ctx, index, artifact, srcPath, destPath)
 				},
 				OutputPullCallback: pullping.PullCallback(onPullCallback),
+				VerboseProgressCB:  progressCB.Verbose,
 			},
 		},
 		CacheImports:        cacheImports,
