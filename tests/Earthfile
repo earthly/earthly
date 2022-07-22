@@ -689,7 +689,7 @@ save-artifact-dont-overwrite:
 save-artifact-force-overwrite:
     RUN --no-cache echo hello > /root/important-data
     DO +RUN_EARTHLY --earthfile=save-artifact-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" --target=+overwrite-root
-    RUN cat /root/base | grep 88716877-039f-4dea-8ec3-84eb64f326c5
+    RUN cat /root/base | grep 88716877-039f-4dea-8ec3-84eb64f326c5nopenopenope
     RUN cat /root/sub/data1 | grep ff42c40d-034a-4855-8db7-febfa7322576
     RUN cat /root/sub/data2 | grep 2b4a653d-cdf6-4574-ac5e-f02bb6993365
     RUN ! ls /root/important-data
@@ -714,7 +714,7 @@ run-no-cache:
     DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test-from
     # Fail if we cached any of the COPY motd2 lines, which are after the --no-cache
     DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test-from \
-        --grep_flags="-v" --output_contains="\\\*cachednopenopenope\\\* --> .*motd2 \\\.\\\//"
+        --grep_flags="-v" --output_contains="\\\*cached\\\* --> .*motd2 \\\.\\\//"
 
 save-artifact-after-push:
     # test that save after push is a thing
