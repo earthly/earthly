@@ -80,6 +80,14 @@
         {
           "command": {
             "args": [
+              "EARTHLY_LOCALLY"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
               "echo",
               "\"$EARTHLY_TARGET\""
             ],
@@ -210,6 +218,17 @@
               "test",
               "-n",
               "\"$EARTHLY_BUILD_SHA\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_LOCALLY\"",
+              "=",
+              "\"false\""
             ],
             "name": "RUN"
           }

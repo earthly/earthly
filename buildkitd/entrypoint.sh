@@ -195,12 +195,17 @@ if [ "$CACHE_SIZE_MB" -gt "0" ]; then
 fi
 export CACHE_SETTINGS
 
-# Set up TCP feature flag
+# Set up TCP feature flag, and  also profiling (which has TCP as prerequisite)
 TCP_TRANSPORT=
+PPROF_SETTINGS=
 if [ "$BUILDKIT_TCP_TRANSPORT_ENABLED" = "true" ]; then
     TCP_TRANSPORT="$(cat /etc/buildkitd.tcp.template)"
+    if [ "$BUILDKIT_PPROF_ENABLED" = "true" ]; then
+        PPROF_SETTINGS="$(cat /etc/buildkitd.pprof.template)"
+    fi
 fi
 export TCP_TRANSPORT
+export PPROF_SETTINGS
 
 # Set up TLS feature flag
 TLS_ENABLED=

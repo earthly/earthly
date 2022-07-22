@@ -9,6 +9,7 @@ builtin-args-test:
     ARG EARTHLY_GIT_COMMIT_TIMESTAMP
     ARG EARTHLY_VERSION
     ARG EARTHLY_BUILD_SHA
+    ARG EARTHLY_LOCALLY
     RUN echo "$EARTHLY_TARGET"
     RUN echo "$EARTHLY_TARGET_PROJECT"
     RUN echo "$EARTHLY_TARGET_NAME"
@@ -23,3 +24,4 @@ builtin-args-test:
     RUN test -z "$EARTHLY_GIT_COMMIT_TIMESTAMP"
     RUN test -n "$EARTHLY_VERSION"
     RUN test -n "$EARTHLY_BUILD_SHA"
+    RUN test "$EARTHLY_LOCALLY" = "false"

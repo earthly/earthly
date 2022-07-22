@@ -149,6 +149,7 @@ func (c *Converter) From(ctx context.Context, imageName string, platform platuti
 	if err != nil {
 		return err
 	}
+	c.varCollection.SetArg(reserved.EarthlyLocally, "false") // FIXME this will have to change once https://github.com/earthly/earthly/issues/2044 is fixed
 	platform = c.setPlatform(platform)
 	if strings.Contains(imageName, "+") {
 		// Target-based FROM.
@@ -380,6 +381,8 @@ func (c *Converter) Locally(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "unable to get abs path of %s", c.localWorkingDir)
 	}
+
+	c.varCollection.SetArg(reserved.EarthlyLocally, "true")
 
 	// reset WORKDIR to current directory where Earthfile is
 	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workingDir)

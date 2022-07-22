@@ -359,6 +359,14 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 				ContainerPort: 8372,
 				Protocol:      containerutil.ProtocolTCP,
 			})
+			if settings.EnableProfiler {
+				portOpts = append(portOpts, containerutil.Port{
+					IP:            "127.0.0.1",
+					HostPort:      6061, // 6060 is reserved for earthly client
+					ContainerPort: 6060,
+					Protocol:      containerutil.ProtocolTCP,
+				})
+			}
 			if settings.UseTLS {
 				if settings.TLSCA != "" {
 					caPath, err := makeTLSPath(settings.TLSCA)
@@ -412,6 +420,10 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 
 	if settings.CacheSizePct > 0 {
 		envOpts["CACHE_SIZE_PCT"] = strconv.FormatInt(int64(settings.CacheSizePct), 10)
+	}
+
+	if settings.EnableProfiler {
+		envOpts["BUILDKIT_PPROF_ENABLED"] = strconv.FormatBool(true)
 	}
 
 	// Apply reset.
