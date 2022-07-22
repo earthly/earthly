@@ -74,7 +74,7 @@ test3:
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- --ci --push +test3
+        -- --no-output --strict --use-inline-cache --save-inline-cache --push +test3
 
 # Work around the lack of variable overriding, since the base image already includes EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
 DO_REMOTE_CACHE_EARTHLY:
@@ -88,7 +88,7 @@ DO_REMOTE_CACHE_EARTHLY:
         --mount=type=tmpfs,target=/tmp/earthly \
         -- \
         EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG$REGISTRY_CONFIG \
-        /usr/bin/earthly-entrypoint.sh --ci --push \
+        /usr/bin/earthly-entrypoint.sh --use-inline-cache --save-inline-cache --strict --no-output --push \
             --build-arg REGISTRY=$REGISTRY \
             --build-arg DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
             --build-arg DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \

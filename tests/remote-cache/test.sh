@@ -26,7 +26,10 @@ export REGISTRY="$REGISTRY_IP:5000"
 # Test.
 set +e
 "$earthly" --allow-privileged \
-    --ci \
+    --no-output \
+    --strict \
+    --use-inline-cache \
+    --save-inline-cache \
     --build-arg REGISTRY \
     "$@" \
     +all
