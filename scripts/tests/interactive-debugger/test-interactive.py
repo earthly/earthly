@@ -6,7 +6,7 @@ import sys
 import io
 import os
 import shlex
-import importlib
+import importlib.util
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 

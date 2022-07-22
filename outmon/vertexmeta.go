@@ -101,8 +101,14 @@ func (vm *VertexMeta) Salt() string {
 	default:
 		name = "unknown"
 	}
+
+	overridingArgsString := vm.OverridingArgsString()
+	if vm.Platform == "" && overridingArgsString == "" {
+		return name // don't hash when unmarshalling VertexMeta failed
+	}
+
 	h := fnv.New32a()
 	h.Write([]byte(vm.Platform))
-	h.Write([]byte(vm.OverridingArgsString()))
+	h.Write([]byte(overridingArgsString))
 	return fmt.Sprintf("%s-%d", name, h.Sum32())
 }

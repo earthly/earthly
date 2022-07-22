@@ -42,9 +42,13 @@ func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gituti
 		ret.AddInactive(arg.EarthlyPush, fmt.Sprintf("%t", push))
 	}
 
-	if ftrs != nil && ftrs.EarthlyVersionArg {
+	if ftrs.EarthlyVersionArg {
 		ret.AddInactive(arg.EarthlyVersion, defaultArgs.EarthlyVersion)
 		ret.AddInactive(arg.EarthlyBuildSha, defaultArgs.EarthlyBuildSha)
+	}
+
+	if ftrs.EarthlyLocallyArg {
+		ret.AddInactive(arg.EarthlyLocally, "false")
 	}
 
 	if gitMeta != nil {

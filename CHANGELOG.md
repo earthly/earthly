@@ -4,6 +4,11 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- `EARTHLY_LOCALLY` arg which is set to `true` or `false` when executing locally or within a container, respectively. This ARG must be enabled with
+  the `VERSION --earthly-locally-arg` feature flag.
+
 ### Fixed
 
 - Fixed an incompatibility with older versions of remote BuildKits and Satellites, which was resulting in Earthly crashing.

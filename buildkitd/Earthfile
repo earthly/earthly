@@ -12,7 +12,7 @@ buildkitd:
             ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
         END
     ELSE
-        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:47e36164897b179f905c2852259308dfac0c3f93+build
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:7a6f9e1ab2a3a3ddec5f9e612ef390af218a32bd+build
     END
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
@@ -38,6 +38,7 @@ buildkitd:
     COPY ./buildkitd.toml.template /etc/buildkitd.toml.template
     COPY ./buildkitd.cache.template /etc/buildkitd.cache.template
     COPY ./buildkitd.tcp.template /etc/buildkitd.tcp.template
+    COPY ./buildkitd.pprof.template /etc/buildkitd.pprof.template
     COPY ./buildkitd.tls.template /etc/buildkitd.tls.template
     COPY ./cni-conf.json.template /etc/cni/cni-conf.json.template
 
