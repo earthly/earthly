@@ -714,7 +714,7 @@ run-no-cache:
     DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test-from
     # Fail if we cached any of the COPY motd2 lines, which are after the --no-cache
     DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test-from \
-        --grep_flags="-v" --output_contains="\\\*cached\\\* --> .*motd2 \\\.\\\//"
+        --grep_flags="-v" --output_contains="\\\*cachednopenopenope\\\* --> .*motd2 \\\.\\\//"
 
 save-artifact-after-push:
     # test that save after push is a thing
