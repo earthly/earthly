@@ -209,10 +209,6 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if !isLocal && app.ci {
 		app.console.Warnf("Please note that --use-inline-cache and --save-inline-cache are currently disabled when using --ci on Satellites or remote Buildkit.")
 		app.console.Warnf("") // newline
-		if !app.imageMode && !app.artifactMode {
-			app.noOutput = true
-		}
-		app.strict = true
 		app.useInlineCache = false
 		app.saveInlineCache = false
 	}
