@@ -159,8 +159,8 @@ var (
 	BuiltBy string
 )
 
-func main() 
-	startTime := time.Now()
+func main() {
+	startTime         :=        time.Now()
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	sigChan := make(chan os.Signal, 1)
