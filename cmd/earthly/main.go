@@ -159,7 +159,7 @@ var (
 	BuiltBy string
 )
 
-func main() {
+func main() 
 	startTime := time.Now()
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
