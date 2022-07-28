@@ -84,7 +84,7 @@ func (c *client) ListOrgMembers(ctx context.Context, orgName string) ([]*OrgMemb
 
 // UpdateOrgMember updates a member's permission in an org.
 func (c *client) UpdateOrgMember(ctx context.Context, orgName, userEmail, permission string) error {
-	u := fmt.Sprintf("/api/v1/organization/%s/members/%s", orgName, userEmail)
+	u := fmt.Sprintf("/api/v1/organizations/%s/members/%s", orgName, userEmail)
 
 	req := &secretsapi.UpdateOrgMemberRequest{
 		Member: &secretsapi.OrgMember{
