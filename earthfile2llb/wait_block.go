@@ -233,13 +233,13 @@ func (wb *waitBlock) waitStates(ctx context.Context) error {
 
 	errGroup, ctx := serrgroup.WithContext(ctx)
 	for _, item := range stateItems {
+		item := item // must create a new instance here for use in the threaded function
 		errGroup.Go(func() error {
 			rel, err := sem.Acquire(ctx, 1)
 			if err != nil {
 				return errors.Wrapf(err, "acquiring parallelism semaphore during waitStates for %s", item.c.target.String())
 			}
 			defer rel()
-
 			return item.c.forceExecution(ctx, *item.state, item.c.platr)
 		})
 	}
