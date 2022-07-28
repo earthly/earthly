@@ -42,8 +42,10 @@ const (
 	Warn
 	// Info displays info and higher priority log messages
 	Info
-	// Verbose displays all log messages
+	// Verbose displays verbose and higher priority log messages
 	Verbose
+	// Debug displays all log messages
+	Debug
 )
 
 const barWidth = 80
@@ -362,6 +364,22 @@ func (cl ConsoleLogger) VerbosePrintf(format string, args ...interface{}) {
 // VerboseBytes prints bytes directly to the console when verbose flag is set.
 func (cl ConsoleLogger) VerboseBytes(data []byte) {
 	if cl.logLevel < Verbose {
+		return
+	}
+	cl.WithMetadataMode(true).PrintBytes(data)
+}
+
+// DebugPrintf prints formatted text to the console when debug flag is set.
+func (cl ConsoleLogger) DebugPrintf(format string, args ...interface{}) {
+	if cl.logLevel < Debug {
+		return
+	}
+	cl.WithMetadataMode(true).Printf(format, args...)
+}
+
+// DebugBytes prints bytes directly to the console when debug flag is set.
+func (cl ConsoleLogger) DebugBytes(data []byte) {
+	if cl.logLevel < Debug {
 		return
 	}
 	cl.WithMetadataMode(true).PrintBytes(data)
