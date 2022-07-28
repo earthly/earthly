@@ -1,0 +1,12 @@
+VERSION 0.6
+# This tests that the env variables with quotes are not throwing errors
+FROM alpine:3.15
+test:
+    ENV mid'quote' yes
+    ENV 'My-Key' 'My-Value'
+    ENV my"key"=myvalue
+    ENV 'really"weird"-key' 'yes'
+    RUN env | grep "midquote=yes"
+    RUN test "${MY-KEY}" = "MY-VALUE"
+    RUN env | grep "mykey=myvalue"
+    RUN test "$(env | grep weird)" = "really\"weird\"-key=yes"

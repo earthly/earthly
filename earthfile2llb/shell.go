@@ -76,11 +76,35 @@ func strWithEnvVarsAndDocker(args []string, envVars []string, withShell, withDeb
 
 type shellWrapFun func(args []string, envVars []string, withShell, withDebugger, forceDebugger bool) []string
 
-func withShellAndEnvVars(args []string, envVars []string, withShell, withDebugger, forceDebugger bool) []string {
-	return []string{
-		"/bin/sh", "-c",
-		strWithEnvVarsAndDocker(args, envVars, withShell, withDebugger, forceDebugger, false, false, "", ""),
+func checkEnvPresent(envSlice []string) bool {
+	for _, element := range envSlice {
+		if element == "env" {
+			return true
+		}
 	}
+	return false
+}
+func withShellAndEnvVars(args []string, envVars []string, withShell, withDebugger, forceDebugger bool) []string {
+	envSlice := []string{"/bin/sh", "-c"}
+
+	for index, env := range envVars {
+		parts := strings.SplitN(env, "=", 2)
+		if strings.Contains(parts[0], "'") {
+			if parts[0][0] == '\'' || parts[0][0] == '"' {
+				if !checkEnvPresent(envSlice) {
+					envSlice = append(envSlice, "env")
+				}
+			} else {
+				key := strings.ReplaceAll(parts[0], "'", "")
+				key = strings.ReplaceAll(key, "\"", "")
+				envVars[index] = key + "=" + parts[1]
+			}
+		}
+	}
+	envSlice = append(envSlice,
+		strWithEnvVarsAndDocker(args, envVars, withShell, withDebugger, forceDebugger, false, false, "", ""),
+	)
+	return envSlice
 }
 
 func withShellAndEnvVarsExitCode(exitCodeFile string) shellWrapFun {

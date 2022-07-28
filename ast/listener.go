@@ -569,7 +569,7 @@ func (l *listener) EnterStmtWord(c *parser.StmtWordContext) {
 
 // ----------------------------------------------------------------------------
 
-var envVarNameRegexp = regexp.MustCompile(`^[a-zA-Z_]+[a-zA-Z0-9_]*$`)
+var envVarNameRegexp = regexp.MustCompile(`^['"a-zA-Z_]+[a-zA-Z0-9_\-'"]*$`)
 
 func checkEnvVarName(str string) error {
 	itMatch := envVarNameRegexp.MatchString(str)

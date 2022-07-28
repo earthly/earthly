@@ -136,6 +136,7 @@ ga:
     BUILD +chown-test
     BUILD +dotenv-test
     BUILD +env-test
+    BUILD +env-quote-test
     BUILD +no-cache-local-artifact-test
     BUILD +empty-git-test
     BUILD +escape-test
@@ -544,6 +545,9 @@ dotenv-test:
 
 env-test:
     DO +RUN_EARTHLY --earthfile=env.earth --extra_args="--no-output" --target=+test
+
+env-quote-test:
+    DO +RUN_EARTHLY --earthfile=env-quote.earth --extra_args="--no-output" --target=+test
 
 no-cache-local-artifact-test:
     DO +RUN_EARTHLY --earthfile=no-cache-local-artifact.earth --use_tmpfs=false --extra_args="--no-cache" --target=+test
