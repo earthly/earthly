@@ -47,3 +47,19 @@ func (c *client) InviteToOrg(ctx context.Context, invite *OrgInvitation) (string
 
 	return res.Token, nil
 }
+
+// AcceptInvite accepts the org invitation and adds the user to the org.
+func (c *client) AcceptInvite(ctx context.Context, inviteCode string) error {
+	u := "/api/v0/invitations/" + inviteCode
+
+	status, body, err := c.doCall(ctx, http.MethodPost, u, withAuth())
+	if err != nil {
+		return err
+	}
+
+	if status != http.StatusOK {
+		return errors.Errorf("failed to accept invite: %s", body)
+	}
+
+	return nil
+}

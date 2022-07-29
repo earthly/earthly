@@ -42,6 +42,7 @@ type Client interface {
 	CreateOrg(ctx context.Context, org string) error
 	Invite(ctx context.Context, org, user string, write bool) error
 	InviteToOrg(ctx context.Context, invite *OrgInvitation) (string, error)
+	AcceptInvite(ctx context.Context, inviteCode string) error
 	ListOrgs(ctx context.Context) ([]*OrgDetail, error)
 	ListOrgPermissions(ctx context.Context, path string) ([]*OrgPermissions, error)
 	RevokePermission(ctx context.Context, path, user string) error

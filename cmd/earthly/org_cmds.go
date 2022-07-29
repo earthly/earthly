@@ -79,6 +79,15 @@ func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
 					Required: false,
 				},
 			},
+			Subcommands: []*cli.Command{
+				{
+					Name:        "accept",
+					Usage:       "Accept an invitation to join an organization",
+					Description: "Accept an invitation to join an organization",
+					UsageText:   "earthly org invite accept <invite-code>",
+					Action:      app.actionOrgInviteAccept,
+				},
+			},
 		},
 	}
 }
@@ -177,6 +186,31 @@ func (app *earthlyApp) actionOrgInvite(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to invite user into org")
 	}
+	return nil
+}
+
+func (app *earthlyApp) actionOrgInviteAccept(cliCtx *cli.Context) error {
+	app.commandName = "orgInviteAccept"
+
+	if cliCtx.NArg() != 1 {
+		return errors.New("invite code is required")
+	}
+
+	code := cliCtx.Args().Get(0)
+	if code == "" {
+		return errors.New("invite code is required")
+	}
+
+	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	err = cloudClient.AcceptInvite(cliCtx.Context, code)
+	if err != nil {
+		return errors.Wrap(err, "failed to accept invite")
+	}
+
 	return nil
 }
 
