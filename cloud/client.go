@@ -83,6 +83,8 @@ type Client interface {
 	ListSecretPermissions(ctx context.Context, path string) ([]*SecretPermission, error)
 	SetSecretPermission(ctx context.Context, path, userEmail, permission string) error
 	RemoveSecretPermission(ctx context.Context, path, userEmail string) error
+	AccountResetReqestToken(ctx context.Context, userEmail string) error
+	AccountReset(ctx context.Context, userEmail, token, password string) error
 }
 
 type request struct {

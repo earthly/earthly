@@ -272,3 +272,31 @@ func (c *client) ping(ctx context.Context) (email string, writeAccess bool, err 
 	}
 	return resp.Email, resp.WriteAccess, nil
 }
+
+func (c *client) AccountResetReqestToken(ctx context.Context, email string) error {
+	email = url.QueryEscape(email)
+	status, _, err := c.doCall(ctx, "PUT", "/api/v0/account/reset/"+email)
+	if err != nil {
+		return errors.Wrap(err, "failed executing account reset token request")
+	}
+	if status != http.StatusCreated {
+		return errors.Errorf("unexpected status code from account reset token request: %d", status)
+	}
+	return nil
+}
+
+func (c *client) AccountReset(ctx context.Context, email, token, password string) error {
+	createAccountRequest := secretsapi.ResetPasswordRequest{
+		Email:             email,
+		VerificationToken: token,
+		Password:          password,
+	}
+	status, _, err := c.doCall(ctx, "PUT", "/api/v0/account/reset", withJSONBody(&createAccountRequest))
+	if err != nil {
+		return errors.Wrap(err, "failed executing account reset request")
+	}
+	if status != http.StatusOK {
+		return errors.Errorf("unexpected status code from account reset request: %d", status)
+	}
+	return nil
+}
