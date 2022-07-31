@@ -51,7 +51,7 @@ func (s *tarImageSolver) newSolveOpt(img *image.Image, dockerTag string, w io.Wr
 		return nil, errors.Wrap(err, "image json marshal")
 	}
 	var cacheImports []client.CacheOptionsEntry
-	for ci := range s.cacheImports.AsMap() {
+	for _, ci := range s.cacheImports.AsSlice() {
 		cacheImports = append(cacheImports, newCacheImportOpt(ci))
 	}
 	return &client.SolveOpt{
@@ -285,7 +285,7 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 	)
 
 	var cacheImports []client.CacheOptionsEntry
-	for ci := range m.cacheImports.AsMap() {
+	for _, ci := range m.cacheImports.AsSlice() {
 		cacheImports = append(cacheImports, newCacheImportOpt(ci))
 	}
 
@@ -340,7 +340,7 @@ func (m *multiImageSolver) addRefToResult(ctx context.Context, gwClient gwclient
 		imageDef.ImageName += ":latest"
 	}
 
-	ref, err := llbutil.StateToRef(ctx, gwClient, saveImage.State, false, imageDef.MTS.Final.PlatformResolver, m.cacheImports.AsMap())
+	ref, err := llbutil.StateToRef(ctx, gwClient, saveImage.State, false, imageDef.MTS.Final.PlatformResolver, m.cacheImports.AsSlice())
 	if err != nil {
 		return errors.Wrap(err, "initial state to ref conversion")
 	}

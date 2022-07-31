@@ -4,35 +4,35 @@ import "sync"
 
 // CacheImports is a synchronized set of cache imports.
 type CacheImports struct {
-	mu    sync.Mutex
-	store map[string]bool
+	mu    sync.RWMutex
+	store []string
 }
 
 // NewCacheImports creates a new cache imports structure.
-func NewCacheImports(imports map[string]bool) *CacheImports {
-	store := make(map[string]bool)
-	for k, v := range imports {
-		store[k] = v
-	}
+func NewCacheImports(imports []string) *CacheImports {
+	clone := make([]string, len(imports))
+	copy(clone, imports)
+
 	return &CacheImports{
-		store: store,
+		store: clone,
 	}
 }
 
-// Add adds an import to the set.
-func (ci *CacheImports) Add(tag string) {
+// Add adds imports to the set.
+func (ci *CacheImports) Add(tags ...string) {
 	ci.mu.Lock()
 	defer ci.mu.Unlock()
-	ci.store[tag] = true
+
+	ci.store = append(ci.store, tags...)
 }
 
-// AsMap returns the cache imports contents as a map.
-func (ci *CacheImports) AsMap() map[string]bool {
-	ci.mu.Lock()
-	defer ci.mu.Unlock()
-	copy := make(map[string]bool)
-	for k, v := range ci.store {
-		copy[k] = v
-	}
-	return copy
+// AsSlice returns the cache imports contents as a slice.
+func (ci *CacheImports) AsSlice() []string {
+	ci.mu.RLock()
+	defer ci.mu.RUnlock()
+
+	clone := make([]string, len(ci.store))
+	copy(clone, ci.store)
+
+	return clone
 }

@@ -73,7 +73,7 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 
 func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback pullping.PullCallback, console conslogging.ConsoleLogger) (*client.SolveOpt, error) {
 	var cacheImports []client.CacheOptionsEntry
-	for ci := range s.cacheImports.AsMap() {
+	for _, ci := range s.cacheImports.AsSlice() {
 		cacheImports = append(cacheImports, newCacheImportOpt(ci))
 	}
 	var cacheExports []client.CacheOptionsEntry

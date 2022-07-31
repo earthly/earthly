@@ -599,7 +599,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 	} else {
 		ref, err := llbutil.StateToRef(
 			ctx, c.opt.GwClient, state, c.opt.NoCache,
-			c.platr, c.opt.CacheImports.AsMap())
+			c.platr, c.opt.CacheImports.AsSlice())
 		if err != nil {
 			return 0, errors.Wrap(err, "run exit code state to ref")
 		}
@@ -689,7 +689,7 @@ func (c *Converter) runCommand(ctx context.Context, outputFileName string, isExp
 	} else {
 		ref, err := llbutil.StateToRef(
 			ctx, c.opt.GwClient, state, c.opt.NoCache,
-			c.platr, c.opt.CacheImports.AsMap())
+			c.platr, c.opt.CacheImports.AsSlice())
 		if err != nil {
 			return "", errors.Wrapf(err, "build arg state to ref")
 		}
@@ -946,9 +946,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 	if noManifestList && !c.ftrs.UseNoManifestList {
 		return fmt.Errorf("SAVE IMAGE --no-manifest-list is not supported in this version")
 	}
-	for _, cf := range cacheFrom {
-		c.opt.CacheImports.Add(cf)
-	}
+	c.opt.CacheImports.Add(cacheFrom...)
 	justCacheHint := false
 	if len(imageNames) == 0 && cacheHint {
 		imageNames = []string{""}
@@ -1844,7 +1842,7 @@ func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr 
 	}
 	ref, err := llbutil.StateToRef(
 		ctx, c.opt.GwClient, state, c.opt.NoCache,
-		platr, c.opt.CacheImports.AsMap())
+		platr, c.opt.CacheImports.AsSlice())
 	if err != nil {
 		return errors.Wrap(err, "force execution state to ref")
 	}
@@ -1867,7 +1865,7 @@ func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, a
 	}
 	ref, err := llbutil.StateToRef(
 		ctx, c.opt.GwClient, mts.Final.ArtifactsState, c.opt.NoCache,
-		mts.Final.PlatformResolver, c.opt.CacheImports.AsMap())
+		mts.Final.PlatformResolver, c.opt.CacheImports.AsSlice())
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref solve artifact")
 	}
