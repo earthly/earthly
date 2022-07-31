@@ -85,6 +85,7 @@ type cliFlags struct {
 	buildkitdImage            string
 	containerName             string
 	volumeName                string
+	cacheFrom                 cli.StringSlice
 	remoteCache               string
 	maxRemoteCache            bool
 	saveInlineCache           bool

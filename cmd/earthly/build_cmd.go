@@ -375,8 +375,12 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	}
 
 	cacheImports := make(map[string]bool)
-	if app.remoteCache != "" {
+	if app.remoteCache != "" || len(app.cacheFrom.Value()) > 0 {
 		cacheImports[app.remoteCache] = true
+
+		for _, c := range app.cacheFrom.Value() {
+			cacheImports[c] = true
+		}
 	}
 	var cacheExport string
 	var maxCacheExport string
