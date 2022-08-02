@@ -75,8 +75,14 @@ func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
 					Name:        "update",
 					Usage:       "Update an organization member's permission",
 					Description: "Update an organization member's permission",
-					UsageText:   "earthly org [--org organization] members update <user-email> <permission>",
+					UsageText:   "earthly org [--org organization] members update --permission <permission> <user-email>",
 					Action:      app.actionOrgMemberUpdate,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:  "permission",
+							Usage: "Update an organization member's permission.",
+						},
+					},
 				},
 				{
 					Name:        "rm",
@@ -350,7 +356,7 @@ func (app *earthlyApp) actionOrgMemberUpdate(cliCtx *cli.Context) error {
 		return errors.New("member email required")
 	}
 
-	permission := cliCtx.Args().Get(1)
+	permission := cliCtx.String("permission")
 	if permission == "" {
 		return errors.New("permission required")
 	}
