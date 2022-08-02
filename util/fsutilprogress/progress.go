@@ -49,7 +49,7 @@ func (s *progressCallback) Verbose(relPath string, status fsutil.VerboseProgress
 	switch status {
 	case fsutil.StatusStat:
 		s.numStats++
-		//s.console.VerbosePrintf("sent file stat for %s\n", fullPath) ignored as it is too verbose. TODO add different verbose levels to support ExtraVerbosePrintf
+		s.console.DebugPrintf("sent file stat for %s\n", fullPath)
 	case fsutil.StatusSent:
 		s.console.VerbosePrintf("sent data for %s (%s)\n", fullPath, humanize.Bytes(uint64(numBytes)))
 		s.numSent++

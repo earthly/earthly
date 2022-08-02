@@ -16,7 +16,16 @@ For a primer into Dockerfile caching see [this article](https://pythonspeed.com/
 
 Earthly cache is persisted in a docker volume called `earthly-cache` on your system. When Earthly starts for the first time, it brings up a BuildKit daemon in a Docker container, which initializes the `earthly-cache` volume. The volume is managed by Earthly's BuildKit daemon and there is a regular garbage-collection for old cache.
 
-## Specifying cache size
+{% hint style='info' %}
+### Checking current cache size
+You can check the current size of the cache by running:
+
+```bash
+sudo du -h /var/lib/docker/volumes/earthly-cache | tail -n 1
+```
+{% endhint %}
+
+## Specifying cache size limit
 
 The default cache size is adaptable depending on available space on your system. If you would like to limit the cache size more aggressively, you can specify a different limit by modifying the `cache_size_mb` and/or `cache_size_pct` settings in the [configuration](../earthly-config/earthly-config.md). For example:
 

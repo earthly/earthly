@@ -359,7 +359,9 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		go profhandler()
 	}
 
-	if app.verbose {
+	if app.debug {
+		app.console = app.console.WithLogLevel(conslogging.Debug)
+	} else if app.verbose {
 		app.console = app.console.WithLogLevel(conslogging.Verbose)
 	}
 
