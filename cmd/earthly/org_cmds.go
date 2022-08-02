@@ -356,12 +356,11 @@ func (app *earthlyApp) actionOrgMemberUpdate(cliCtx *cli.Context) error {
 		return errors.New("member email required")
 	}
 
-	permission := cliCtx.String("permission")
-	if permission == "" {
+	if app.userPermission == "" {
 		return errors.New("permission required")
 	}
 
-	err = cloudClient.UpdateOrgMember(cliCtx.Context, orgName, userEmail, permission)
+	err = cloudClient.UpdateOrgMember(cliCtx.Context, orgName, userEmail, app.userPermission)
 	if err != nil {
 		return err
 	}
