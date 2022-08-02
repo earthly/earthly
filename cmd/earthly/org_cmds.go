@@ -57,8 +57,8 @@ func (app *earthlyApp) orgCmds() []*cli.Command {
 func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
 	return []*cli.Command{
 		{
-			Name:        "members",
-			Aliases:     []string{"member"},
+			Name:        "member",
+			Aliases:     []string{"members"},
 			Usage:       "Add and modify organization members",
 			Description: "Add and modify organization members",
 			UsageText:   "earthly org [--org <organization-name>] members (ls|update|rm)",
