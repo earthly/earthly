@@ -43,9 +43,9 @@ test-not-committed:
     RUN diff -qr ./locally ./generated
 
 rrd-antlr4:
-    FROM maven:3.6.3-jdk-11
+    FROM maven:3.8.6-jdk-11
     WORKDIR /rrd-antlr4
-    ENV RRD_SHA 4cedafca603f64ae1e26b597444a7bfd33d0f37e
+    ENV RRD_SHA c41b36b68fa29d2ba82847395caf87c8c1da4efc
     RUN curl -L https://github.com/bkiers/rrd-antlr4/archive/$RRD_SHA.zip > rrdantlr4.zip
     RUN unzip rrdantlr4.zip
     WORKDIR rrd-antlr4-$RRD_SHA
