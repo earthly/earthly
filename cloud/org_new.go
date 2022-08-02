@@ -111,7 +111,6 @@ func (c *client) RemoveOrgMember(ctx context.Context, orgName, userEmail string)
 	u := fmt.Sprintf("/api/v1/organizations/%s/members/%s", orgName, userEmail)
 
 	status, body, err := c.doCall(ctx, http.MethodDelete, u, withAuth())
-
 	if err != nil {
 		return err
 	}
@@ -128,6 +127,10 @@ func (c *client) AcceptInvite(ctx context.Context, inviteCode string) error {
 	u := "/api/v0/invitations/" + inviteCode
 
 	status, body, err := c.doCall(ctx, http.MethodPost, u, withAuth())
+	if err != nil {
+		return err
+	}
+
 	if status != http.StatusOK {
 		return errors.Errorf("failed to remove member: %s", body)
 	}
