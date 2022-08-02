@@ -45,6 +45,9 @@ type Client interface {
 	AcceptInvite(ctx context.Context, inviteCode string) error
 	ListOrgs(ctx context.Context) ([]*OrgDetail, error)
 	ListOrgPermissions(ctx context.Context, path string) ([]*OrgPermissions, error)
+	ListOrgMembers(ctx context.Context, orgName string) ([]*OrgMember, error)
+	UpdateOrgMember(ctx context.Context, orgName, userEmail, permission string) error
+	RemoveOrgMember(ctx context.Context, orgName, userEmail string) error
 	RevokePermission(ctx context.Context, path, user string) error
 	ListPublicKeys(ctx context.Context) ([]string, error)
 	AddPublickKey(ctx context.Context, key string) error

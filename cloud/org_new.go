@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	secretsapi "github.com/earthly/cloud-api/secrets"
@@ -48,6 +49,79 @@ func (c *client) InviteToOrg(ctx context.Context, invite *OrgInvitation) (string
 	return res.Token, nil
 }
 
+// ListOrgMembers returns a collection of org members.
+func (c *client) ListOrgMembers(ctx context.Context, orgName string) ([]*OrgMember, error) {
+	u := fmt.Sprintf("/api/v1/organizations/%s/members", orgName)
+
+	status, body, err := c.doCall(ctx, http.MethodGet, u, withAuth())
+	if err != nil {
+		return nil, err
+	}
+
+	if status != http.StatusOK {
+		return nil, errors.Errorf("failed to list org members: %s", body)
+	}
+
+	res := &secretsapi.ListOrgMembersResponse{}
+
+	err = jsonpb.UnmarshalString(body, res)
+	if err != nil {
+		return nil, err
+	}
+
+	var members []*OrgMember
+
+	for _, m := range res.Members {
+		members = append(members, &OrgMember{
+			UserEmail:  m.Email,
+			OrgName:    m.OrgName,
+			Permission: m.Permission,
+		})
+	}
+
+	return members, nil
+}
+
+// UpdateOrgMember updates a member's permission in an org.
+func (c *client) UpdateOrgMember(ctx context.Context, orgName, userEmail, permission string) error {
+	u := fmt.Sprintf("/api/v1/organizations/%s/members/%s", orgName, userEmail)
+
+	req := &secretsapi.UpdateOrgMemberRequest{
+		Member: &secretsapi.OrgMember{
+			Email:      userEmail,
+			OrgName:    orgName,
+			Permission: permission,
+		},
+	}
+
+	status, body, err := c.doCall(ctx, http.MethodPut, u, withAuth(), withJSONBody(req))
+	if err != nil {
+		return err
+	}
+
+	if status != http.StatusOK {
+		return errors.Errorf("failed to update member: %s", body)
+	}
+
+	return nil
+}
+
+// RemoveOrgMember removes a member from the org.
+func (c *client) RemoveOrgMember(ctx context.Context, orgName, userEmail string) error {
+	u := fmt.Sprintf("/api/v1/organizations/%s/members/%s", orgName, userEmail)
+
+	status, body, err := c.doCall(ctx, http.MethodDelete, u, withAuth())
+	if err != nil {
+		return err
+	}
+
+	if status != http.StatusOK {
+		return errors.Errorf("failed to remove member: %s", body)
+	}
+
+	return nil
+}
+
 // AcceptInvite accepts the org invitation and adds the user to the org.
 func (c *client) AcceptInvite(ctx context.Context, inviteCode string) error {
 	u := "/api/v0/invitations/" + inviteCode
@@ -58,7 +132,7 @@ func (c *client) AcceptInvite(ctx context.Context, inviteCode string) error {
 	}
 
 	if status != http.StatusOK {
-		return errors.Errorf("failed to accept invite: %s", body)
+		return errors.Errorf("failed to remove member: %s", body)
 	}
 
 	return nil

@@ -135,6 +135,7 @@ type cliFlags struct {
 	satelliteName             string
 	satelliteOrg              string
 	noSatellite               bool
+	userPermission            string
 }
 
 type analyticsMetadata struct {
