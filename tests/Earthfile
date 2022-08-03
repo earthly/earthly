@@ -229,21 +229,19 @@ copy-test-verbose-output:
     # back to back as the file caching logic references the directories inode ID while constructing
     # the shared cache key.
     RUN echo "#!/bin/sh
-set -x
-earthly --config \$earthly_config --verbose +copy 2>output.txt;
-earthly --config \$earthly_config --verbose +copy 2>output2.txt;
+set -ex
+earthly --config \$earthly_config --verbose +copy 2>&1 | tee output.txt;
+earthly --config \$earthly_config --verbose +copy 2>&1 | tee output2.txt;
 " >/tmp/multiple-earthly-script && chmod +x /tmp/multiple-earthly-script
 
     DO +RUN_EARTHLY --earthfile=copy-verbose.earth --exec_cmd=/tmp/multiple-earthly-script
 
     # test that the first run sends a.txt and doesn't send any non-referenced files
-    RUN cat output.txt
     RUN cat output.txt | grep 'sent data for a.txt (1 B)'
     RUN if grep "sent data for alpha.txt" output.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
     RUN if grep "sent data for .*beta.txt" output.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
 
     # test that the second run did not resend a.txt (or any other non-referenced files)
-    RUN cat output2.txt
     RUN if grep "sent data for a.txt" output2.txt >/dev/null; then echo "a.txt should not have been sent"; exit 1; fi
     RUN if grep "sent data for alpha.txt" output2.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
     RUN if grep "sent data for .*beta.txt" output2.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
