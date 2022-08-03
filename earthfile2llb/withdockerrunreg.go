@@ -207,20 +207,15 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 			"EARTHLY_DOCKER_LOAD_REGISTRY",
 			llb.SecretID(dockerLoadRegistrySecretID),
 			llb.SecretAsEnv(true),
-		),
-	)
+		))
 	err = w.c.opt.InternalSecretStore.SetSecret(
 		ctx, dockerLoadRegistrySecretID, []byte(strings.Join(pullImages, " ")))
 	if err != nil {
 		return errors.Wrap(err, "set docker load registry secret")
 	}
 	w.c.opt.CleanCollection.Add(func() error {
-		err = w.c.opt.InternalSecretStore.DeleteSecret(
+		return w.c.opt.InternalSecretStore.DeleteSecret(
 			context.TODO(), dockerLoadRegistrySecretID)
-		if err != nil {
-			return err
-		}
-		return nil
 	})
 
 	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, nil, imgsWithDigests, opt)
