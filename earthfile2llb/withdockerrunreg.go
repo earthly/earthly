@@ -163,7 +163,13 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 	var pullImages []string
 	var imgsWithDigests []string
 	for _, result := range results {
-		pullImages = append(pullImages, result.IntermediateImageName)
+		// This will be decoded in the wrapper.
+		if result.NewInterImgFormat {
+			pullImages = append(
+				pullImages, fmt.Sprintf("%s|%s", result.IntermediateImageName, result.FinalImageName))
+		} else {
+			pullImages = append(pullImages, result.IntermediateImageName)
+		}
 		imgsWithDigests = append(imgsWithDigests, result.FinalImageNameWithDigest)
 	}
 
@@ -193,22 +199,28 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 	// We will pass along the variable EARTHLY_DOCKER_LOAD_REGISTRY via a secret
 	// to prevent busting the cache, as the intermediate image names are
 	// different every time.
-	dockerLoadRegistrySecretID := fmt.Sprintf("%s-%s", internalWithDockerSecretPrefix, dindID)
+	dockerLoadRegistrySecretID := fmt.Sprintf(
+		"%s-%s-EARTHLY_DOCKER_LOAD_REGISTRY", internalWithDockerSecretPrefix, dindID)
 	crOpts.extraRunOpts = append(
 		crOpts.extraRunOpts,
 		llb.AddSecret(
 			"EARTHLY_DOCKER_LOAD_REGISTRY",
 			llb.SecretID(dockerLoadRegistrySecretID),
 			llb.SecretAsEnv(true),
-		))
+		),
+	)
 	err = w.c.opt.InternalSecretStore.SetSecret(
 		ctx, dockerLoadRegistrySecretID, []byte(strings.Join(pullImages, " ")))
 	if err != nil {
 		return errors.Wrap(err, "set docker load registry secret")
 	}
 	w.c.opt.CleanCollection.Add(func() error {
-		return w.c.opt.InternalSecretStore.DeleteSecret(
+		err = w.c.opt.InternalSecretStore.DeleteSecret(
 			context.TODO(), dockerLoadRegistrySecretID)
+		if err != nil {
+			return err
+		}
+		return nil
 	})
 
 	crOpts.shellWrap = makeWithDockerdWrapFun(dindID, nil, imgsWithDigests, opt)

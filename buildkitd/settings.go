@@ -35,6 +35,7 @@ type Settings struct {
 	SatelliteOrgID       string `hash:"ignore"`
 	SatelliteToken       string `hash:"ignore"`
 	EnableProfiler       bool
+	NoUpdate             bool `hash:"ignore"`
 }
 
 // Hash returns a secure hash of the settings.
