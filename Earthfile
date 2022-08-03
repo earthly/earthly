@@ -195,7 +195,7 @@ unit-test:
     COPY podman-setup.sh .
     WITH DOCKER
         RUN ./podman-setup.sh && \
-            go test ./...
+            go test -timeout 20m ./...
     END
 
 changelog:
