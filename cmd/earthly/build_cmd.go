@@ -375,8 +375,10 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	}
 
 	cacheImports := make([]string, 0)
-	if app.remoteCache != "" || len(app.cacheFrom.Value()) > 0 {
+	if app.remoteCache != "" {
 		cacheImports = append(cacheImports, app.remoteCache)
+	}
+	if len(app.cacheFrom.Value()) > 0 {
 		cacheImports = append(cacheImports, app.cacheFrom.Value()...)
 	}
 	var cacheExport string
