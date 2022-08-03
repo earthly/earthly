@@ -11,30 +11,35 @@ type CacheImports struct {
 
 // NewCacheImports creates a new cache imports structure.
 func NewCacheImports(imports []string) *CacheImports {
-	clone := make([]string, len(imports))
-	copy(clone, imports)
-
+	slice := make([]string, 0, len(imports))
 	store := make(map[string]bool)
+
 	for _, tag := range imports {
+		if _, exists := store[tag]; exists {
+			continue
+		}
+
 		store[tag] = true
+		slice = append(slice, tag)
 	}
 
 	return &CacheImports{
-		slice: clone,
+		slice: slice,
 		store: store,
 	}
 }
 
-// Add adds imports to the set.
-func (ci *CacheImports) Add(tags ...string) {
+// Add adds import to the set.
+func (ci *CacheImports) Add(tag string) {
 	ci.mu.Lock()
 	defer ci.mu.Unlock()
 
-	ci.slice = append(ci.slice, tags...)
-
-	for _, tag := range tags {
-		ci.store[tag] = true
+	if _, exists := ci.store[tag]; exists {
+		return
 	}
+
+	ci.store[tag] = true
+	ci.slice = append(ci.slice, tag)
 }
 
 // Has checks if a passed tag is added.
@@ -42,9 +47,9 @@ func (ci *CacheImports) Has(tag string) bool {
 	ci.mu.RLock()
 	defer ci.mu.RUnlock()
 
-	_, ok := ci.store[tag]
+	_, exists := ci.store[tag]
 
-	return ok
+	return exists
 }
 
 // AsSlice returns the cache imports contents as a slice.

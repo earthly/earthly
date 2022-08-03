@@ -946,7 +946,9 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 	if noManifestList && !c.ftrs.UseNoManifestList {
 		return fmt.Errorf("SAVE IMAGE --no-manifest-list is not supported in this version")
 	}
-	c.opt.CacheImports.Add(cacheFrom...)
+	for _, cf := range cacheFrom {
+		c.opt.CacheImports.Add(cf)
+	}
 	justCacheHint := false
 	if len(imageNames) == 0 && cacheHint {
 		imageNames = []string{""}
