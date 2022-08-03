@@ -195,13 +195,13 @@ load_registry_images() {
         for img in $EARTHLY_DOCKER_LOAD_REGISTRY; do
             case "$img" in
                 *'|'*)
-                    with_reg="$buildkit_docker_registry"/$(printf '%s' "$img" | cut -d'|' -f1)
-                    user_tag=$(printf '%s' "$img" | cut -d'|' -f2-)
+                    with_reg="$buildkit_docker_registry/$(printf '%s' "$img" | cut -d'|' -f1)"
+                    user_tag="$(printf '%s' "$img" | cut -d'|' -f2-)"
                     ;;
                 *)
                     # Old format before v0.6.21.
                     with_reg="$buildkit_docker_registry/$img"
-                    user_tag=$(printf '%s' "$img" | cut -d'/' -f2-)
+                    user_tag="$(printf '%s' "$img" | cut -d'/' -f2-)"
                     echo "Detected old format"
                     ;;
             esac
