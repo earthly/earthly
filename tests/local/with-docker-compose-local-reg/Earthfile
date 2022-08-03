@@ -15,5 +15,5 @@ test:
             --compose docker-compose.yml \
             --service webserver \
             --load fetch:latest=+fetch
-        RUN docker-compose up --exit-code-from fetch fetch | grep 'Hello World'
+        RUN docker compose up --exit-code-from fetch fetch | grep 'Hello World'
     END
