@@ -73,6 +73,7 @@ buildkit-sha:
     RUN apk add git
     ARG BUILDKIT_GIT_SHA
     ARG BUILDKIT_GIT_BRANCH=earthly-main
+    ARG --required BUILDKIT_GIT_ORG
     RUN --no-cache set -e; \
         if [ "$(echo -n $BUILDKIT_GIT_SHA | wc -c)" = 40 ]; then \
             echo "pinning github.com/earthly/buildkit to reference git sha1: $BUILDKIT_GIT_SHA"; \
@@ -80,7 +81,7 @@ buildkit-sha:
         else \
             test -z "$BUILDKIT_GIT_SHA"; \
             echo "looking up branch $BUILDKIT_GIT_BRANCH"; \
-            buildkit_sha1=$(git ls-remote --refs -q https://github.com/earthly/buildkit.git "$BUILDKIT_GIT_BRANCH" | awk 'BEGIN { FS = "[ \t]+" } {print $1}'); \
+            buildkit_sha1=$(git ls-remote --refs -q https://github.com/$BUILDKIT_GIT_ORG/buildkit.git "$BUILDKIT_GIT_BRANCH" | awk 'BEGIN { FS = "[ \t]+" } {print $1}'); \
             echo "pinning github.com/earthly/buildkit@${BUILDKIT_BRANCH} to reference git sha1: $buildkit_sha1"; \
         fi && \
         test -n "$buildkit_sha1" && \
@@ -90,4 +91,5 @@ buildkit-sha:
 update-buildkit:
     LOCALLY
     ARG --required BUILDKIT_GIT_SHA
-    RUN sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE=github.com\/earthly\/buildkit\).*/\1:'$BUILDKIT_GIT_SHA'+build/g' Earthfile
+    ARG --required BUILDKIT_GIT_ORG
+    RUN sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit\).*/\1:'$BUILDKIT_GIT_SHA'+build/g' Earthfile
