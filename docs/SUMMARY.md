@@ -66,5 +66,5 @@
 ## ☁️ Earthly Cloud
 
 * [Overview](cloud/overview.md)
-* [Cloud secrets](guides/cloud-secrets.md)
-* [Satellites](guides/satellites.md)
+* [Cloud secrets](cloud/cloud-secrets.md)
+* [Satellites](cloud/satellites.md)
