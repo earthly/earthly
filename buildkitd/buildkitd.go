@@ -204,6 +204,14 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image,
 		}
 		bkCons.Printf("Settings do not match. Restarting buildkit daemon with updated settings...\n")
 	} else {
+		if settings.NoUpdate {
+			bkCons.Printf("Updated image available. But update was inhibited.\n")
+			info, workerInfo, err := checkConnection(ctx, settings.BuildkitAddress, opts...)
+			if err != nil {
+				return nil, nil, err
+			}
+			return info, workerInfo, nil
+		}
 		bkCons.Printf("Updated image available. Restarting buildkit daemon...\n")
 	}
 

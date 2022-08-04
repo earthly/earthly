@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/earthly/earthly/dockertar"
@@ -394,42 +393,4 @@ func (w *withDockerRunTar) solveImage(ctx context.Context, mts *states.MultiTarg
 		state:    tarContext,
 	})
 	return nil
-}
-
-func makeWithDockerdWrapFun(dindID string, tarPaths []string, imgsWithDigests []string, opt WithDockerOpt) shellWrapFun {
-	dockerRoot := path.Join("/var/earthly/dind", dindID)
-	params := []string{
-		fmt.Sprintf("EARTHLY_DOCKERD_DATA_ROOT=\"%s\"", dockerRoot),
-		fmt.Sprintf("EARTHLY_DOCKER_LOAD_FILES=\"%s\"", strings.Join(tarPaths, " ")),
-		// This is not actually used, but it is needed in order to bust the cache
-		// in case an image is updated.
-		fmt.Sprintf("EARTHLY_IMAGES_WITH_DIGESTS=\"%s\"", strings.Join(imgsWithDigests, " ")),
-	}
-	params = append(params, composeParams(opt)...)
-	return func(args []string, envVars []string, isWithShell, withDebugger, forceDebugger bool) []string {
-		envVars2 := append(params, envVars...)
-		return []string{
-			"/bin/sh", "-c",
-			strWithEnvVarsAndDocker(args, envVars2, isWithShell, withDebugger, forceDebugger, true, false, "", ""),
-		}
-	}
-}
-
-func composeParams(opt WithDockerOpt) []string {
-	return []string{
-		fmt.Sprintf("EARTHLY_START_COMPOSE=\"%t\"", (len(opt.ComposeFiles) > 0)),
-		fmt.Sprintf("EARTHLY_COMPOSE_FILES=\"%s\"", strings.Join(opt.ComposeFiles, " ")),
-		fmt.Sprintf("EARTHLY_COMPOSE_SERVICES=\"%s\"", strings.Join(opt.ComposeServices, " ")),
-		// fmt.Sprintf("EARTHLY_DEBUG=\"true\""),
-	}
-}
-
-func platformIncompatMsg(platr *platutil.Resolver) string {
-	currentPlatStr := platr.Materialize(platr.Current()).String()
-	nativePlatStr := platr.Materialize(platutil.NativePlatform).String()
-	return "running WITH DOCKER as a non-native CPU architecture. This is not supported.\n" +
-		fmt.Sprintf("Current platform: %s\n", currentPlatStr) +
-		fmt.Sprintf("Native platform of the worker: %s\n", nativePlatStr) +
-		"Try using\n\n\tFROM --platform=native earthly/dind:alpine\n\ninstead.\n" +
-		"You may still --load and --pull images of a different platform.\n"
 }

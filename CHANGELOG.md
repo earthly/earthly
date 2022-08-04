@@ -12,6 +12,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Fixed
 
 - Fixed an incompatibility with older versions of remote BuildKits and Satellites, which was resulting in Earthly crashing.
+- Fixed `WITH DOCKER` not loading correctly when the image name contained a port number under `VERSION --use-registry-for-with-docker`. [#2071](https://github.com/earthly/earthly/issues/2071)
 
 ### Changed
 
