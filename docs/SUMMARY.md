@@ -24,11 +24,9 @@
     * [Advanced local caching](guides/advanced-local-caching.md)
     * [Shared cache](guides/shared-cache.md)
     * [Using Docker in Earthly](guides/docker-in-earthly.md)
-    * [Cloud secrets](guides/cloud-secrets.md)
     * [Integration Testing](guides/integration.md)
     * [Debugging techniques](guides/debugging.md)
     * [Multi-platform builds](guides/multi-platform.md)
-    * [Satellites](guides/satellites.md)
     * Configuring registries
         * [AWS ECR](guides/registries/aws-ecr.md)
         * [GCP Artifact Registry](guides/registries/gcp-artifact-registry.md)
@@ -64,3 +62,9 @@
     * [Kubernetes](ci-integration/guides/kubernetes.md)
     * [Google Cloud Build](ci-integration/guides/google-cloud-build.md)
     * [GitLab CI/CD](ci-integration/guides/gitlab-integration.md)
+
+## ☁️ Earthly Cloud
+
+* [Overview](cloud/overview.md)
+* [Cloud secrets](guides/cloud-secrets.md)
+* [Satellites](guides/satellites.md)

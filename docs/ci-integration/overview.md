@@ -81,7 +81,7 @@ Earthly also has a special [`--push`](../earthfile/earthfile.md#push) option tha
 
 If you would like to do cross-platform builds, you will need to install some [`binfmt_misc`](https://github.com/multiarch/qemu-user-static) entries. This can be done by running: `docker run --rm --privileged multiarch/qemu-user-static --reset -p yes`. This installs the needed entries and `qemue-user-static` binaries on your system. This will need to be repeated on each physical box (only once, since its a kernel level change, and the kernel is shared across containers).
 
-To share secrets with `earthly`, use the [`--secret`](../earthfile/earthfile.md#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than) option to inject secrets into your builds. You could also use our [cloud secrets](../guides/cloud-secrets.md), for a more seamless experience.
+To share secrets with `earthly`, use the [`--secret`](../earthfile/earthfile.md#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than) option to inject secrets into your builds. You could also use our [cloud secrets](../cloud/cloud-secrets.md), for a more seamless experience.
 
 ### Networking & Security
 

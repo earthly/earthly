@@ -8,7 +8,10 @@ This feature is part of the Earthly Satellites paid plan.
 This feature is currently in **Beta** stage
 
 * The feature may break or change significantly in future versions of Earthly.
-* Give us feedback on [Slack](https://earthly.dev/slack) or via GitHub issues
+* Give us feedback on
+  * [Slack](https://earthly.dev/slack)
+  * [GitHub issues](https://github.com/earthly/earthly/issues)
+  * [Emailing support](mailto:support+satellite@earthly.dev)
 {% endhint %}
 
 Earthly Satellites are remote Buildkit instances managed by the Earthly team. They allow you to perform builds in the cloud, while retaining cache between runs.
@@ -18,9 +21,10 @@ TODO: Diagram!
 When using Earthly Satellites, even though the build executes remotely, the following pieces of functionality are still available:
 
 * Build logs are streamed to your local machine in real-time, just as if you were running the build locally
-* Outputs (images and artifacts) resulting from the build are transferred back to your local machine
+* Outputs (images and artifacts) resulting from the build, if any, are transferred back to your local machine
 * Commands under `LOCALLY` execute on your local machine
 * Secrets available locally, including Docker/Podman credentials are passed to the satellite whenever needed by the build
+* Any images to be pushed are pushed directly from the satellite, using any Docker/Podman credentials available on the local system.
 
 ## Benefits
 
@@ -39,47 +43,32 @@ As builds often handle sensitive pieces of data, Satellites are designed with se
 * Satellite instances run in isolated VMs, with restricted local networking, and are only accessible by users you invite onto the platform.
 * Network communication and data at rest is secured using industry state of the art practices.
 * The cache is not shared between satellites.
-* Secrets used as part of the build are only kept in-memory temporarily, unless they are part of the [Earthly Cloud Secrets storage](../cloud-secrets.md), in which case they are encrypted at rest.
-* In addition, Earthly is pursuing SOC 2 compliance. Type I ETA Fall 2022, Type II ETA Summer 2023.
+* Secrets used as part of the build are only kept in-memory temporarily, unless they are part of the [Earthly Cloud Secrets storage](./cloud-secrets.md), in which case they are encrypted at rest.
+* In addition, Earthly is pursuing SOC 2 compliance. SOC 2 Type I ETA Fall 2022, SOC 2 Type II ETA Summer 2023.
 * To read more about Earthly's security practices please see the [Security page](https://earthly.dev/security).
 
 ## Getting started
 
-### 1. Request access
+### 1. Register an account and create an org
 
-Satellites is currently a private beta feature. Please [contact us](mailto:support+satellite@earthly.dev) to join the beta.
+Follow the steps in the [Earthly Cloud overview](../overview.md#getting-started) to register an account and create an org.
 
-### 2. Register an account
+### 2. Request access
 
-To get started with Satellites, you'll need to register an Earthly account, if you haven't already. You can do so by visiting [Earthly CI](https://ci.earthly.dev), or by using the CLI as described below.
+Satellites is currently a private beta feature. Please [contact us](mailto:support+satellite@earthly.dev) to join the beta. Please mention your org name when requesting access.
 
-```bash
-earthly account register --email <email>
-```
+### 3. Ensure that you have the latest version of Earthly
 
-An email will be sent to you containing a verification token. Next run:
+Because this feature is under heavy development right now, it is very important that you use the latest version of Earthly available.
 
-```bash
-earthly account register --email <email> --token <token>
-```
+**On Linux**, simply repeat the installation steps to upgrade: https://earthly.dev/get-earthly.
 
-This command will prompt you to set a password, and to optionally register a public-key for password-less authentication.
-
-### 3. Create or join an Earthly org
-
-If you haven't already, create an Earthly org by running:
+**On Mac**, you can perform:
 
 ```bash
-earthly org create <org-name>
+brew update
+brew upgrade earthly/earthly/earthly
 ```
-
-To invite another user to join your org, run:
-
-```bash
-earthly org invite /<org-name>/ <email>
-```
-
-Note the slashes around the org name. Also, please note that the user must have an account on Earthly before they can be invited. (This is a temporary limitation which will be addressed in the future.)
 
 ### 4. Launch a new satellite
 
@@ -203,3 +192,5 @@ before running your Earthly targets.
 * A user can only be invited into an Earthly org if they already have a user account. This is a temporary limitation which will be addressed in the future.
 * Satellites in conjunction with `--save-inline-cache` or `--use-inline-cache` is currently unsupported. When using `--ci`, `--save-inline-cache` and `--use-inline-cache` will not be implicitly enabled when using Satellites.
 * Running Earthly `v0.6.20` against an older satellite causes an Earthly crash. We have fixed this issue and will be available in a future release, but until then you can upgrade your satellite (remove and re-launch) to work around this problem.
+
+If you run into any issues please let us know either via [Slack](https://earthly.dev/slack), [GitHub issues](https://github.com/earthly/earthly/issues) or by [emailing support](mailto:support+satellite@earthly.dev).

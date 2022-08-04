@@ -20,27 +20,7 @@ This document covers the use of cloud-hosted secrets. It builds upon the underst
 
 ## Managing secrets
 
-In order to be able to use cloud secrets, you need to first register an Earthly cloud account.
-
-```bash
-earthly account register --email <email>
-```
-
-An email will be sent to you containing a verification token, next run:
-
-```bash
-earthly account register --email <email> --token <token>
-```
-
-This command will prompt you to set a password, and to optionally register a public-key for password-less authentication.
-
-### Login / Logout
-
-It is recommended that you register a public RSA key during registration; if this is done, you will be logged in automatically whenever
-earthly needs to authenticate you. If you did not supply a public key, then your plain-text password will be cached on your local disk under
-`~/.earthly/auth-token`, which will be used to log you in. If this file is deleted, you will need to run `earthly account login` to re-create it.
-
-To logout, you can run `earthly account logout`, which deletes the `~/.earthly/auth-token` file from your disk.
+In order to be able to use cloud secrets, you need to first register an Earthly cloud account and create an Earthly org. Follow the steps in the [Earthly Cloud overview](../overview.md#getting-started) to get started.
 
 ### Interacting with the private user secret store from the command line
 
@@ -100,7 +80,6 @@ The only difference between the naming of locally-supplied and cloud-based secre
 two or more slashes since all cloud secrets must start with a `+secrets/<user or organization>/` prefix, whereas locally-defined secrets
 will only start with the `+secrets/` suffix, followed by a single name which cannot contain slashes.
 {% endhint %}
-
 
 ## Sharing secrets
 
@@ -170,18 +149,15 @@ earthly account create-token [--write] <token-name>
 
 This token can then be exported as
 
-```
+```bash
 EARTHLY_TOKEN=...
 ```
 
-Which will then force Earthly to use that token when accessing secrets. This is useful for cases
-where running an ssh-agent is impractical.
+Which will then force Earthly to use that token when accessing secrets. This is useful for cases where running an ssh-agent is impractical.
 
 # Security Details
 
-The Earthly command uses HTTPS to communicate with the cloud secrets server. The server encrypts all
-secrets using OpenPGP's implementation of AES256 before storing it in a database.
-We use industry-standard security practices for managing our encryption keys in the cloud.
+The Earthly command uses HTTPS to communicate with the cloud secrets server. The server encrypts all secrets using OpenPGP's implementation of AES256 before storing it in a database. We use industry-standard security practices for managing our encryption keys in the cloud. For more information see our [Security page](https://earthly.dev/security).
 
 Secrets are presented to BuildKit in a similar fashion as [locally-supplied secrets](build-args.md#storage-of-secrets):
 When BuildKit encounters a `RUN` command that requires a secret, the BuildKit daemon will request the secret
@@ -190,5 +166,4 @@ from the earthly command-line process -- `earthly` will then make a request to e
 
 # Feedback
 
-The secrets store is still an experimental feature, we would love to hear feedback in our 
-[Slack](https://earthly.dev/slack) community.
+The secrets store is still an experimental feature, we would love to hear feedback in our  [Slack](https://earthly.dev/slack) community.
