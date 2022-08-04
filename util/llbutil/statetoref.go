@@ -2,7 +2,6 @@ package llbutil
 
 import (
 	"context"
-	"sort"
 
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/platutil"
@@ -12,18 +11,13 @@ import (
 )
 
 // StateToRef takes an LLB state, solves it using gateway and returns the ref.
-func StateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, noCache bool, platr *platutil.Resolver, cacheImports map[string]bool) (gwclient.Reference, error) {
+func StateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, noCache bool, platr *platutil.Resolver, cacheImports []string) (gwclient.Reference, error) {
 	platform := platr.SubPlatform(platr.Current())
 	if noCache {
 		state = state.SetMarshalDefaults(llb.IgnoreCache)
 	}
-	cacheImportsSlice := make([]string, 0, len(cacheImports))
-	for ci := range cacheImports {
-		cacheImportsSlice = append(cacheImportsSlice, ci)
-	}
-	sort.Strings(cacheImportsSlice)
 	var coes []gwclient.CacheOptionsEntry
-	for _, ci := range cacheImportsSlice {
+	for _, ci := range cacheImports {
 		coe := gwclient.CacheOptionsEntry{
 			Type:  "registry",
 			Attrs: map[string]string{"ref": ci},

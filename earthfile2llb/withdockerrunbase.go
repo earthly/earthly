@@ -118,7 +118,7 @@ func (w *withDockerRunBase) getComposeConfig(ctx context.Context, opt WithDocker
 	state := w.c.mts.Final.MainState.Run(runOpts...).Root()
 	ref, err := llbutil.StateToRef(
 		ctx, w.c.opt.GwClient, state, w.c.opt.NoCache,
-		w.c.platr, w.c.opt.CacheImports.AsMap())
+		w.c.platr, w.c.opt.CacheImports.AsSlice())
 	if err != nil {
 		return nil, errors.Wrap(err, "state to ref compose config")
 	}

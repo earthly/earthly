@@ -267,6 +267,13 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			Destination: &app.buildkitdSettings.VolumeName,
 			Hidden:      true,
 		},
+		&cli.StringSliceFlag{
+			Name:    "cache-from",
+			EnvVars: []string{"EARTHLY_CACHE_FROM"},
+			Usage:   "Remote docker image tags to use as readonly explicit cache (experimental)",
+			Value:   &app.cacheFrom,
+			Hidden:  true, // Experimental
+		},
 		&cli.StringFlag{
 			Name:        "remote-cache",
 			EnvVars:     []string{"EARTHLY_REMOTE_CACHE"},

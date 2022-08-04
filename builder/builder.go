@@ -627,14 +627,14 @@ func (b *Builder) stateToRef(ctx context.Context, gwClient gwclient.Client, stat
 	noCache := b.opt.NoCache && !b.builtMain
 	return llbutil.StateToRef(
 		ctx, gwClient, state, noCache,
-		platr, b.opt.CacheImports.AsMap())
+		platr, b.opt.CacheImports.AsSlice())
 }
 
 func (b *Builder) artifactStateToRef(ctx context.Context, gwClient gwclient.Client, state pllb.State, platr *platutil.Resolver) (gwclient.Reference, error) {
 	noCache := b.opt.NoCache || b.builtMain
 	return llbutil.StateToRef(
 		ctx, gwClient, state, noCache,
-		platr, b.opt.CacheImports.AsMap())
+		platr, b.opt.CacheImports.AsSlice())
 }
 
 func (b *Builder) saveArtifactLocally(ctx context.Context, console *conslogging.BufferedLogger, artifact domain.Artifact, indexOutDir string, destPath string, salt string, opt BuildOpt, ifExists bool) error {

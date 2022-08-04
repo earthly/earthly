@@ -127,7 +127,7 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 		pullPingMap := item.c.opt.PullPingMap
 		ref, err := llbutil.StateToRef(
 			ctx, item.c.opt.GwClient, item.si.State, item.c.opt.NoCache,
-			item.c.platr, item.c.opt.CacheImports.AsMap())
+			item.c.platr, item.c.opt.CacheImports.AsSlice())
 		if err != nil {
 			return errors.Wrapf(err, "failed to solve image required for %s", item.si.DockerTag)
 		}
