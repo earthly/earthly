@@ -28,6 +28,7 @@
     * [Integration Testing](guides/integration.md)
     * [Debugging techniques](guides/debugging.md)
     * [Multi-platform builds](guides/multi-platform.md)
+    * [Satellites](guides/satellites.md)
     * Configuring registries
         * [AWS ECR](guides/registries/aws-ecr.md)
         * [GCP Artifact Registry](guides/registries/gcp-artifact-registry.md)
