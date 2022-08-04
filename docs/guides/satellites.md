@@ -11,13 +11,13 @@ This feature is currently in **Beta** stage
 * Give us feedback on [Slack](https://earthly.dev/slack) or via GitHub issues
 {% endhint %}
 
-Earthly Satellites are remote Buildkit instances managed by the Earthly team. They allow you to perform builds remotely, retaining cache between runs.
+Earthly Satellites are remote Buildkit instances managed by the Earthly team. They allow you to perform builds in the cloud, while retaining cache between runs.
 
 TODO: Diagram!
 
 When using Earthly Satellites, even though the build executes remotely, the following pieces of functionality are still available:
 
-* Build logs are streamed in real-time
+* Build logs are streamed to your local machine in real-time, just as if you were running the build locally
 * Outputs (images and artifacts) resulting from the build are transferred back to your local machine
 * Commands under `LOCALLY` execute on your local machine
 * Secrets available locally, including Docker/Podman credentials are passed to the satellite whenever needed by the build
@@ -28,7 +28,7 @@ Typical use cases for Earthly Satellites include:
 
 * Speeding up CI builds in sandboxed CI environments such as GitHub Actions, GitLab, CircleCI, and others. Most CI build times are improved by 20-80% via Satellites.
 * Executing builds on AMD64/Intel architecture natively when working from an Apple Silicon machine (Apple M1/M2).
-* Sharing compute and cache with coworkers.
+* Sharing compute and cache with coworkers or with the CI.
 * Benefiting from high-bandwidth internet access from the satellite, thus allowing for fast downloads of dependencies and fast pushes for deployments. This is particularly useful if operating from a location with slow internet.
 * Using Earthly in environments where privileged access or docker-in-docker are not supported.
 
@@ -36,11 +36,11 @@ Typical use cases for Earthly Satellites include:
 
 As builds often handle sensitive pieces of data, Satellites are designed with security in mind. Here are some of Earthly's security considerations:
 
+* Satellite instances run in isolated VMs, with restricted local networking, and are only accessible by users you invite onto the platform.
 * Network communication and data at rest is secured using industry state of the art practices.
-* Satellite instances run in sandboxed, isolated environments are are only accessible by users you invite onto the platform.
 * The cache is not shared between satellites.
 * Secrets used as part of the build are only kept in-memory temporarily, unless they are part of the [Earthly Cloud Secrets storage](../cloud-secrets.md), in which case they are encrypted at rest.
-* In addition, Earthly is pursuing SOC 2 compliance.
+* In addition, Earthly is pursuing SOC 2 compliance. Type I ETA Fall 2022, Type II ETA Summer 2023.
 * To read more about Earthly's security practices please see the [Security page](https://earthly.dev/security).
 
 ## Getting started
@@ -94,7 +94,7 @@ The Satellite name can be any arbitrary string.
 If you are part of multiple Earthly organizations, you may have to specify the org name under which you would like to launch the satellite:
 
 ```bash
-earthly sat --org <org-name> launch <name>
+earthly sat --org <org-name> launch <satellite-name>
 ```
 
 Once the satellite is created it will be automatically selected for use as part of your builds. The selection takes place by Earthly adding some information in your Earthly config file (usually located under `~/.earthly/config.yml`).
@@ -187,7 +187,7 @@ Copy and paste the value into an environment variable called `EARTHLY_TOKEN` in 
 Then as part of your CI script, just run
 
 ```bash
-earthly satellite select <name>
+earthly sat select <satellite-name>
 ```
 
 before running your Earthly targets.
@@ -196,8 +196,8 @@ before running your Earthly targets.
 
 * Satellites currently require a manual re-launch in order to get updated to the latest version available.
   ```bash
-  earthly satellite rm <name>
-  earthly satellite launch <name>
+  earthly sat rm <satellite-name>
+  earthly sat launch <satellite-name>
   ```
 * The output phase (the phase in which a satellite outputs build results back to the local machine) is slower than it could be. To work around this issue, you can make use of the `--no-output` flag (assuming that local outputs are not needed). Note that the `--no-ouptut` flag works in conjunction with `--push`, as the pushing takes place from the satellite. We are working on ways in which local outputs can be synchronized more intelligently such that only a diff is transferred over the network.
 * A user can only be invited into an Earthly org if they already have a user account. This is a temporary limitation which will be addressed in the future.
