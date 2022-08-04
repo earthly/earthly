@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- `--cache-from` earthly flag, which allows defining multiple ordered caches. [#1693](https://github.com/earthly/earthly/issues/1693)
+
 ## v0.6.21 - 2022-08-04
 
 ### Added
