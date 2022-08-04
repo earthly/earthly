@@ -13,7 +13,7 @@ services:
 
 before_script:
     - apk update && apk add git
-    - wget https://github.com/earthly/earthly/releases/download/v0.6.20/earthly-linux-amd64 -O /usr/local/bin/earthly
+    - wget https://github.com/earthly/earthly/releases/download/v0.6.21/earthly-linux-amd64 -O /usr/local/bin/earthly
     - chmod +x /usr/local/bin/earthly
     - export FORCE_COLOR=1
     - /usr/local/bin/earthly bootstrap
