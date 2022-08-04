@@ -17,16 +17,16 @@ terraform {
 
 data "aws_ami" "ecs_ami" {
   most_recent = true
-  owners      = ["amazon"]
+  owners      = ["aws-marketplace"]
 
   filter {
     name   = "name"
-    values = ["amzn2-ami-ecs-hvm-*-x86_64-ebs"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
   }
 }
 
 data "aws_imagebuilder_component" "docker" {
-  arn = "arn:aws:imagebuilder:us-west-2:aws:component/docker-ce-linux/1.0.0"
+  arn = "arn:aws:imagebuilder:us-west-2:aws:component/docker-ce-ubuntu/1.0.0"
 }
 
 resource "aws_imagebuilder_component" "earthly" {
