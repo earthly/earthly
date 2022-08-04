@@ -4,19 +4,23 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.21 - 2022-08-04
+
 ### Added
 
-- `EARTHLY_LOCALLY` arg which is set to `true` or `false` when executing locally or within a container, respectively. This ARG must be enabled with
+- `EARTHLY_LOCALLY` builtin arg which is set to `true` or `false` when executing locally or within a container, respectively. This ARG must be enabled with
   the `VERSION --earthly-locally-arg` feature flag.
 
 ### Fixed
 
 - Fixed an incompatibility with older versions of remote BuildKits and Satellites, which was resulting in Earthly crashing.
 - Fixed `WITH DOCKER` not loading correctly when the image name contained a port number under `VERSION --use-registry-for-with-docker`. [#2071](https://github.com/earthly/earthly/issues/2071)
+- Race condition in WAIT / END block, which prevented waiting on some BUILD commands.
 
 ### Changed
 
 - Added a deprecation warning for secrets using a `+secrets/` prefix. Support for this prefix will be removed in a future release.
+- per-file stat transfers are now logged when running under `--debug` mode.
 
 ## v0.6.20 - 2022-07-18
 
