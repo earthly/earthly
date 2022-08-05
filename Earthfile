@@ -51,9 +51,10 @@ update-buildkit:
     FROM +code # if we use deps, go mod tidy will remove a bunch of requirements since it won't have access to our codebase.
     ARG BUILDKIT_GIT_SHA
     ARG BUILDKIT_GIT_BRANCH=earthly-main
-    COPY (./buildkitd+buildkit-sha/buildkit_sha --BUILDKIT_GIT_SHA="$BUILDKIT_GIT_SHA" --BUILDKIT_GIT_BRANCH="$BUILDKIT_GIT_BRANCH") buildkit_sha
-    BUILD  ./buildkitd+update-buildkit --BUILDKIT_GIT_SHA="$(cat buildkit_sha)"
-    RUN --no-cache go mod edit -replace "github.com/moby/buildkit=github.com/earthly/buildkit@$(cat buildkit_sha)"
+    ARG BUILDKIT_GIT_ORG=earthly
+    COPY (./buildkitd+buildkit-sha/buildkit_sha --BUILDKIT_GIT_ORG="$BUILDKIT_GIT_ORG" --BUILDKIT_GIT_SHA="$BUILDKIT_GIT_SHA" --BUILDKIT_GIT_BRANCH="$BUILDKIT_GIT_BRANCH") buildkit_sha
+    BUILD  ./buildkitd+update-buildkit --BUILDKIT_GIT_ORG="$BUILDKIT_GIT_ORG" --BUILDKIT_GIT_SHA="$(cat buildkit_sha)"
+    RUN --no-cache go mod edit -replace "github.com/moby/buildkit=github.com/$BUILDKIT_GIT_ORG/buildkit@$(cat buildkit_sha)"
     RUN --no-cache go mod tidy
     SAVE ARTIFACT go.mod AS LOCAL go.mod
     SAVE ARTIFACT go.sum AS LOCAL go.sum
@@ -195,7 +196,7 @@ unit-test:
     COPY podman-setup.sh .
     WITH DOCKER
         RUN ./podman-setup.sh && \
-            go test ./...
+            go test -timeout 20m ./...
     END
 
 changelog:

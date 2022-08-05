@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -157,6 +158,25 @@ func (app *earthlyApp) accountCmds() []*cli.Command {
 			UsageText: "earthly [options] account remove-token <token>",
 			Action:    app.actionAccountRemoveToken,
 		},
+		{
+			Name:  "reset",
+			Usage: "Reset Earthly account password",
+			UsageText: "earthly [options] account reset --email <email>\n" +
+				"   earthly [options] account reset --email <email> --token <token>\n",
+			Action: app.actionAccountReset,
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "email",
+					Usage:       "Email address",
+					Destination: &app.email,
+				},
+				&cli.StringFlag{
+					Name:        "token",
+					Usage:       "Authentication token",
+					Destination: &app.token,
+				},
+			},
+		},
 	}
 }
 
@@ -199,22 +219,10 @@ func (app *earthlyApp) actionAccountRegister(cliCtx *cli.Context) error {
 
 	pword := app.password
 	if app.password == "" {
-		fmt.Printf("pick a password: ")
-		enteredPassword, err := term.ReadPassword(int(syscall.Stdin))
+		pword, err = promptPassword()
 		if err != nil {
 			return err
 		}
-		fmt.Println("")
-		fmt.Printf("confirm password: ")
-		enteredPassword2, err := term.ReadPassword(int(syscall.Stdin))
-		if err != nil {
-			return err
-		}
-		fmt.Println("")
-		if string(enteredPassword) != string(enteredPassword2) {
-			return errors.Errorf("passwords do not match")
-		}
-		pword = string(enteredPassword)
 	}
 
 	var interactiveAccept bool
@@ -293,6 +301,25 @@ func (app *earthlyApp) actionAccountRegister(cliCtx *cli.Context) error {
 
 	fmt.Println("Account registration complete")
 	return nil
+}
+
+func promptPassword() (string, error) {
+	fmt.Printf("New password: ")
+	enteredPassword, err := term.ReadPassword(int(syscall.Stdin))
+	if err != nil {
+		return "", err
+	}
+	fmt.Println("")
+	fmt.Printf("Confirm password: ")
+	enteredPassword2, err := term.ReadPassword(int(syscall.Stdin))
+	if err != nil {
+		return "", err
+	}
+	fmt.Println("")
+	if string(enteredPassword) != string(enteredPassword2) {
+		return "", errors.Errorf("passwords do not match")
+	}
+	return string(enteredPassword), nil
 }
 
 func (app *earthlyApp) actionAccountListKeys(cliCtx *cli.Context) error {
@@ -595,11 +622,16 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 	}
 
 	if email != "" && pass == "" {
-		app.console.Printf("enter your password: \n")
+		// Our signal handling under main() doesn't cause reading from stdin to cancel
+		// as there's no way to pass app.ctx to stdin read calls.
+		signal.Reset(syscall.SIGINT, syscall.SIGTERM)
+
+		fmt.Printf("enter your password: ")
 		passwordBytes, err := term.ReadPassword(int(syscall.Stdin))
 		if err != nil {
 			return err
 		}
+		fmt.Println("")
 		pass = string(passwordBytes)
 		if pass == "" {
 			return errors.Errorf("no password entered")
@@ -614,12 +646,10 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 		app.console.Printf("Logged in as %q using token auth\n", email) // TODO display if using read-only token
 		app.printLogSharingMessage()
 	} else {
-		err = cloudClient.SetPasswordCredentials(cliCtx.Context, email, string(pass))
+		err = app.loginAndSavePasswordCredentials(cliCtx.Context, cloudClient, email, string(pass))
 		if err != nil {
 			return err
 		}
-		app.console.Printf("Logged in as %q using password auth\n", email)
-		app.console.Printf("Warning unencrypted password has been stored under ~/.earthly/auth.credentials; consider using ssh-based auth to prevent this.\n")
 		app.printLogSharingMessage()
 	}
 	err = cloudClient.Authenticate(cliCtx.Context)
@@ -633,6 +663,16 @@ func (app *earthlyApp) printLogSharingMessage() {
 	app.console.Printf("Log sharing is enabled by default. If you would like to disable it, run:\n" +
 		"\n" +
 		"\tearthly config global.disable_log_sharing true")
+}
+
+func (app *earthlyApp) loginAndSavePasswordCredentials(ctx context.Context, cloudClient cloud.Client, email, password string) error {
+	err := cloudClient.SetPasswordCredentials(ctx, email, password)
+	if err != nil {
+		return err
+	}
+	app.console.Printf("Logged in as %q using password auth\n", email)
+	app.console.Printf("Warning unencrypted password has been stored under ~/.earthly/auth.credentials; consider using ssh-based auth to prevent this.\n")
+	return nil
 }
 
 func (app *earthlyApp) actionAccountLogout(cliCtx *cli.Context) error {
@@ -650,5 +690,48 @@ func (app *earthlyApp) actionAccountLogout(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to logout")
 	}
+	return nil
+}
+
+func (app *earthlyApp) actionAccountReset(cliCtx *cli.Context) error {
+	app.commandName = "accountReset"
+
+	if app.email == "" {
+		return errors.New("no email given")
+	}
+
+	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return err
+	}
+
+	if app.token == "" {
+		err = cloudClient.AccountResetReqestToken(cliCtx.Context, app.email)
+		if err != nil {
+			return errors.Wrap(err, "failed to request account reset token")
+		}
+		app.console.Printf("An account reset token has been emailed to %q\n", app.email)
+		return nil
+	}
+
+	// Our signal handling under main() doesn't cause reading from stdin to cancel
+	// as there's no way to pass app.ctx to stdin read calls.
+	signal.Reset(syscall.SIGINT, syscall.SIGTERM)
+
+	pword, err := promptPassword()
+	if err != nil {
+		return err
+	}
+
+	err = cloudClient.AccountReset(cliCtx.Context, app.email, app.token, pword)
+	if err != nil {
+		return errors.Wrap(err, "failed to reset account")
+	}
+	app.console.Printf("Account password has been reset\n")
+	err = app.loginAndSavePasswordCredentials(cliCtx.Context, cloudClient, app.email, pword)
+	if err != nil {
+		return err
+	}
+	app.printLogSharingMessage()
 	return nil
 }

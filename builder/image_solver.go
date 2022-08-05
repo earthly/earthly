@@ -51,7 +51,7 @@ func (s *tarImageSolver) newSolveOpt(img *image.Image, dockerTag string, w io.Wr
 		return nil, errors.Wrap(err, "image json marshal")
 	}
 	var cacheImports []client.CacheOptionsEntry
-	for ci := range s.cacheImports.AsMap() {
+	for _, ci := range s.cacheImports.AsSlice() {
 		cacheImports = append(cacheImports, newCacheImportOpt(ci))
 	}
 	return &client.SolveOpt{
@@ -198,6 +198,20 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 		return ret, nil
 	}
 
+	newInterImgFormat := false
+	info, err := m.bkClient.Info(ctx)
+	if err != nil {
+		// Maybe older buildkit.
+	} else {
+		switch info.BuildkitVersion.Version {
+		case "v0.6.19":
+		case "v0.6.20":
+		default:
+			newInterImgFormat = true
+		}
+	}
+
+	onPullMap := make(map[string]string) // intermediate image name -> final image name
 	// This func is executed when the image create/push process is complete.
 	onPull := func(ctx context.Context, images []string, resp map[string]string) error {
 		if resp == nil {
@@ -205,17 +219,15 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 		}
 		results := make([]*states.ImageResult, len(images))
 		for i, img := range images {
-			// Note that this img split by / algo is also repeated in the
-			// dockerd wrapper.
-			imgParts := strings.SplitN(img, "/", 2)
-			if len(imgParts) != 2 {
-				return errors.Errorf(
-					"invalid image name: %s. Was expecting sess prefix", img)
+			finalImageName, ok := onPullMap[img]
+			if !ok {
+				return errors.Errorf("image %s not found in onPullMap", img)
 			}
 			result := &states.ImageResult{
 				IntermediateImageName: img,
-				FinalImageName:        imgParts[1],
+				FinalImageName:        finalImageName,
 				Annotations:           make(map[string]string),
+				NewInterImgFormat:     newInterImgFormat,
 			}
 
 			for k, v := range resp {
@@ -270,7 +282,7 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 		gwCrafter := gatewaycrafter.NewGatewayCrafter()
 
 		for i, imageDef := range imageDefs {
-			err := m.addRefToResult(childCtx, gwClient, gwCrafter, imageDef, i)
+			err := m.addRefToResult(childCtx, gwClient, gwCrafter, imageDef, i, onPullMap, newInterImgFormat)
 			if err != nil {
 				return nil, err
 			}
@@ -285,7 +297,7 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 	)
 
 	var cacheImports []client.CacheOptionsEntry
-	for ci := range m.cacheImports.AsMap() {
+	for _, ci := range m.cacheImports.AsSlice() {
 		cacheImports = append(cacheImports, newCacheImportOpt(ci))
 	}
 
@@ -333,14 +345,14 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 	return ret, nil
 }
 
-func (m *multiImageSolver) addRefToResult(ctx context.Context, gwClient gwclient.Client, gwCrafter *gatewaycrafter.GatewayCrafter, imageDef *states.ImageDef, imageIndex int) error {
+func (m *multiImageSolver) addRefToResult(ctx context.Context, gwClient gwclient.Client, gwCrafter *gatewaycrafter.GatewayCrafter, imageDef *states.ImageDef, imageIndex int, onPullMap map[string]string, newInterImgFormat bool) error {
 	saveImage := imageDef.MTS.Final.LastSaveImage()
 
 	if !strings.Contains(imageDef.ImageName, ":") {
 		imageDef.ImageName += ":latest"
 	}
 
-	ref, err := llbutil.StateToRef(ctx, gwClient, saveImage.State, false, imageDef.MTS.Final.PlatformResolver, m.cacheImports.AsMap())
+	ref, err := llbutil.StateToRef(ctx, gwClient, saveImage.State, false, imageDef.MTS.Final.PlatformResolver, m.cacheImports.AsSlice())
 	if err != nil {
 		return errors.Wrap(err, "initial state to ref conversion")
 	}
@@ -350,8 +362,13 @@ func (m *multiImageSolver) addRefToResult(ctx context.Context, gwClient gwclient
 		return err
 	}
 
-	localRegPullID := fmt.Sprintf("sess-%s/%s", gwClient.BuildOpts().SessionID, imageDef.ImageName)
+	var localRegPullID string
+	if newInterImgFormat {
+		localRegPullID = fmt.Sprintf("sess-%s:img-%d", gwClient.BuildOpts().SessionID, imageIndex)
+	} else {
+		localRegPullID = fmt.Sprintf("sess-%s/%s", gwClient.BuildOpts().SessionID, imageDef.ImageName)
+	}
 	gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
-
+	onPullMap[localRegPullID] = imageDef.ImageName
 	return nil
 }

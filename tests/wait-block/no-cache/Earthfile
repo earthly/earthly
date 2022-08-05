@@ -1,0 +1,21 @@
+VERSION --wait-block 0.6
+
+a:
+    FROM alpine:3.15
+    RUN --no-cache sleep 1 && echo YWxwaGEK | base64 -d
+
+b:
+    FROM alpine:3.15
+    RUN --no-cache echo YnJhdm8K | base64 -d && sleep 1
+
+test:
+    WAIT
+        BUILD +a
+    END
+    WAIT
+        BUILD +b
+    END
+    # TODO: this should cause a second build of +a, but doesn't
+    #WAIT
+    #    BUILD +a
+    #END

@@ -85,6 +85,7 @@ type cliFlags struct {
 	buildkitdImage            string
 	containerName             string
 	volumeName                string
+	cacheFrom                 cli.StringSlice
 	remoteCache               string
 	maxRemoteCache            bool
 	saveInlineCache           bool
@@ -135,6 +136,8 @@ type cliFlags struct {
 	satelliteName             string
 	satelliteOrg              string
 	noSatellite               bool
+	userPermission            string
+	noBuildkitUpdate          bool
 }
 
 type analyticsMetadata struct {
@@ -454,6 +457,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	app.buildkitdSettings.CacheSizeMb = app.cfg.Global.BuildkitCacheSizeMb
 	app.buildkitdSettings.CacheSizePct = app.cfg.Global.BuildkitCacheSizePct
 	app.buildkitdSettings.EnableProfiler = app.enableProfiler
+	app.buildkitdSettings.NoUpdate = app.noBuildkitUpdate
 
 	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
 	if app.cfg.Global.CniMtu != 0 && app.cfg.Global.CniMtu < 68 {

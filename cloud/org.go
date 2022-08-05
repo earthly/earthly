@@ -26,6 +26,13 @@ type OrgPermissions struct {
 	Write bool
 }
 
+// OrgMember represents a user that belongs to an org
+type OrgMember struct {
+	UserEmail  string
+	Permission string
+	OrgName    string
+}
+
 // ListOrgs lists all orgs a user has permission to view.
 func (c *client) ListOrgs(ctx context.Context) ([]*OrgDetail, error) {
 	status, body, err := c.doCall(ctx, "GET", "/api/v0/admin/organizations", withAuth())

@@ -30,6 +30,7 @@ type ImageResult struct {
 	ConfigDigest             string
 	ImageDescriptor          *ocispecs.Descriptor
 	Annotations              map[string]string
+	NewInterImgFormat        bool
 }
 
 // ImageDef includes the information required to build an image in BuildKit.

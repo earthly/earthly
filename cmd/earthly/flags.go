@@ -87,6 +87,13 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Hidden:      true, // Internal.
 		},
 		&cli.BoolFlag{
+			Name:        "no-buildkit-update",
+			EnvVars:     []string{"EARTHLY_NO_BUILDKIT_UPDATE"},
+			Usage:       "Disable the automatic update of buildkitd",
+			Destination: &app.noBuildkitUpdate,
+			Hidden:      true, // Internal.
+		},
+		&cli.BoolFlag{
 			EnvVars:     []string{"EARTHLY_DISABLE_ANALYTICS", "DO_NOT_TRACK"},
 			Usage:       "Disable collection of analytics",
 			Destination: &app.disableAnalytics,
@@ -259,6 +266,13 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			Usage:       "The docker volume name to use for the buildkit daemon cache",
 			Destination: &app.buildkitdSettings.VolumeName,
 			Hidden:      true,
+		},
+		&cli.StringSliceFlag{
+			Name:    "cache-from",
+			EnvVars: []string{"EARTHLY_CACHE_FROM"},
+			Usage:   "Remote docker image tags to use as readonly explicit cache (experimental)",
+			Value:   &app.cacheFrom,
+			Hidden:  true, // Experimental
 		},
 		&cli.StringFlag{
 			Name:        "remote-cache",

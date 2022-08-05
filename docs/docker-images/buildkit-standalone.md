@@ -5,9 +5,9 @@ This image contains `buildkit` with some Earthly-specific setup. This is what Ea
 ## Tags
 
 * `prerelase`
-* `v0.6.20`, `latest`
+* `v0.6.21`, `latest`
+* `v0.6.20`
 * `v0.6.19`
-* `v0.6.18`
 
 ## Quickstart
 
@@ -16,7 +16,7 @@ Want to just get started? Here are a couple sample `docker run` commands that co
 ### Simple Usage (Use Locally)
 
 ```bash
-docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw earthly/buildkitd:v0.6.20
+docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw earthly/buildkitd:v0.6.21
 ```
 
 Heres a quick breakdown:
@@ -30,7 +30,7 @@ Assuming you are running this on your machine, you could use this `buildkitd` by
 ### Usage (Use As Remote)
 
 ```bash
-docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw -e BUILDKIT_TCP_TRANSPORT_ENABLED=true -p 8372:8372 earthly/buildkitd:v0.6.20
+docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw -e BUILDKIT_TCP_TRANSPORT_ENABLED=true -p 8372:8372 earthly/buildkitd:v0.6.21
 ```
 
 Omitting the options already discussed from the simple example:

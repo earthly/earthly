@@ -374,9 +374,12 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		imageResolveMode = llb.ResolveModeForcePull
 	}
 
-	cacheImports := make(map[string]bool)
+	cacheImports := make([]string, 0)
 	if app.remoteCache != "" {
-		cacheImports[app.remoteCache] = true
+		cacheImports = append(cacheImports, app.remoteCache)
+	}
+	if len(app.cacheFrom.Value()) > 0 {
+		cacheImports = append(cacheImports, app.cacheFrom.Value()...)
 	}
 	var cacheExport string
 	var maxCacheExport string

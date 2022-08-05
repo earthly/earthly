@@ -259,6 +259,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 				},
 				{
 					Name:        "project",
+					Aliases:     []string{"projects"},
 					Description: "Create and manage Earthly projects",
 					Usage:       "Create and manage Earthly projects",
 					UsageText:   "earthly project (ls|rm|create|member)",

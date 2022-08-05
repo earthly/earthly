@@ -7,6 +7,7 @@ all:
     BUILD +docker-pull-test
     BUILD +docker-pull-test-long
     BUILD +docker-load-test-long
+    BUILD +docker-load-test-long-with-port
     BUILD +docker-load-shellout-test
     BUILD +load-parallel-test
     BUILD +docker-load-multi-test
@@ -66,6 +67,11 @@ docker-pull-test-long:
 docker-load-test-long:
     WITH DOCKER --load foo.example.com/bar/buz:abc=+a-test-image
         RUN docker images | grep foo.example.com/bar/buz | grep abc
+    END
+
+docker-load-test-long-with-port:
+    WITH DOCKER --load foo.example.com:9999/bar/buz:abc=+a-test-image
+        RUN docker images | grep foo.example.com:9999/bar/buz | grep abc
     END
 
 docker-load-shellout-test:

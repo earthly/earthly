@@ -42,8 +42,12 @@ type Client interface {
 	CreateOrg(ctx context.Context, org string) error
 	Invite(ctx context.Context, org, user string, write bool) error
 	InviteToOrg(ctx context.Context, invite *OrgInvitation) (string, error)
+	AcceptInvite(ctx context.Context, inviteCode string) error
 	ListOrgs(ctx context.Context) ([]*OrgDetail, error)
 	ListOrgPermissions(ctx context.Context, path string) ([]*OrgPermissions, error)
+	ListOrgMembers(ctx context.Context, orgName string) ([]*OrgMember, error)
+	UpdateOrgMember(ctx context.Context, orgName, userEmail, permission string) error
+	RemoveOrgMember(ctx context.Context, orgName, userEmail string) error
 	RevokePermission(ctx context.Context, path, user string) error
 	ListPublicKeys(ctx context.Context) ([]string, error)
 	AddPublickKey(ctx context.Context, key string) error
@@ -83,6 +87,8 @@ type Client interface {
 	ListSecretPermissions(ctx context.Context, path string) ([]*SecretPermission, error)
 	SetSecretPermission(ctx context.Context, path, userEmail, permission string) error
 	RemoveSecretPermission(ctx context.Context, path, userEmail string) error
+	AccountResetReqestToken(ctx context.Context, userEmail string) error
+	AccountReset(ctx context.Context, userEmail, token, password string) error
 }
 
 type request struct {
