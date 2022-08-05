@@ -141,6 +141,8 @@ ga:
     BUILD +escape-test
     BUILD +escape-test --EARTHFILE=escape-v0.5.earth
     BUILD +escape-dir-test
+    BUILD ./expose-test+all
+    BUILD +expose-fail-test
     BUILD +fail-invalid-artifact-test
     BUILD +target-first-line
     BUILD +absolute-reference-with-relative
@@ -567,6 +569,9 @@ escape-dir-test:
     RUN mkdir ./dir-with-+-in-it
     COPY escape-dir2.earth ./dir-with-+-in-it/Earthfile
     DO +RUN_EARTHLY --earthfile=escape-dir1.earth --extra_args="--no-output" --target=+test
+
+expose-fail-test:
+    DO +RUN_EARTHLY --earthfile=expose-fail-test.earth --should_fail=true --target=+test --output_contains="failed to parse EXPOSE 8084/idp: invalid protocol idp"
 
 eine-test-base:
     FROM docker:19.03.12-dind

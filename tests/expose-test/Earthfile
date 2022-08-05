@@ -1,0 +1,29 @@
+VERSION 0.6
+FROM earthly/dind:alpine
+
+all:
+    BUILD +test
+
+build-image:
+    FROM alpine:3.15
+    EXPOSE 8080
+    EXPOSE 8081:8082/tcp
+    EXPOSE 8083/udp
+    EXPOSE 8084-8086
+    EXPOSE 8087 8088
+    SAVE IMAGE expose-image:latest
+
+test:
+    WITH DOCKER --load=+build-image
+        RUN docker inspect expose-image:latest | jq '.[].Config.ExposedPorts' > inspect.txt
+    END
+    RUN test -f inspect.txt
+    RUN cat inspect.txt
+    RUN cat inspect.txt | grep "8080/tcp"
+    RUN cat inspect.txt | grep "8082/tcp"
+    RUN cat inspect.txt | grep "8083/udp"
+    RUN cat inspect.txt | grep "8084/tcp"
+    RUN cat inspect.txt | grep "8085/tcp"
+    RUN cat inspect.txt | grep "8086/tcp"
+    RUN cat inspect.txt | grep "8087/tcp"
+    RUN cat inspect.txt | grep "8088/tcp"

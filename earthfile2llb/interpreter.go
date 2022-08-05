@@ -1132,18 +1132,69 @@ func (i *Interpreter) handleExpose(ctx context.Context, cmd spec.Command) error 
 		return i.errorf(cmd.SourceLocation, "no arguments provided to the EXPOSE command")
 	}
 	ports := getArgsCopy(cmd)
-	for index, port := range ports {
+	var exposedPorts = []string{}
+	var portList = []string{}
+	for _, port := range ports {
 		expandedPort, err := i.expandArgs(ctx, port, false, false)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "failed to expand EXPOSE %s", port)
 		}
-		ports[index] = expandedPort
+		if strings.Contains(expandedPort, ":") {
+			expandedPort = strings.SplitN(expandedPort, ":", 2)[1]
+		}
+		if strings.Contains(expandedPort, "-") {
+			portList, err = i.getListOfPorts(expandedPort)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "apply EXPOSE")
+			}
+		} else {
+			portList = append(portList, expandedPort)
+		}
+		exposedPorts, err = i.handleSlashInPort(portList)
+		if err != nil {
+			return i.errorf(cmd.SourceLocation, err.Error())
+		}
 	}
-	err := i.converter.Expose(ctx, ports)
+	err := i.converter.Expose(ctx, exposedPorts)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply EXPOSE")
 	}
 	return nil
+}
+
+func (i *Interpreter) getListOfPorts(expandedPort string) ([]string, error) {
+	portList := []string{}
+	parts := strings.Split(expandedPort, "-")
+	startPort, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return portList, err
+	}
+	endPort, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return portList, err
+	}
+	for startPort <= endPort {
+		portList = append(portList, strconv.Itoa(startPort))
+		startPort += 1
+	}
+	return portList, nil
+}
+
+func (i *Interpreter) handleSlashInPort(portList []string) ([]string, error) {
+	var exposedPorts = []string{}
+	for _, port := range portList {
+		if strings.Contains(port, "/") {
+			protocol := strings.SplitN(port, "/", 2)[1]
+			if protocol != "tcp" && protocol != "udp" {
+				return exposedPorts, errors.New(
+					fmt.Sprintf("failed to parse EXPOSE %s: invalid protocol %s", port, protocol))
+			}
+			exposedPorts = append(exposedPorts, port)
+		} else {
+			exposedPorts = append(exposedPorts, port+"/tcp")
+		}
+	}
+	return exposedPorts, nil
 }
 
 func (i *Interpreter) handleVolume(ctx context.Context, cmd spec.Command) error {
