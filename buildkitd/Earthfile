@@ -88,7 +88,7 @@ buildkit-sha:
         echo "$buildkit_sha1" > buildkit_sha
     SAVE ARTIFACT buildkit_sha buildkit_sha
 
-update-buildkit:
+update-buildkit-earthfile:
     LOCALLY
     ARG --required BUILDKIT_GIT_SHA
     ARG --required BUILDKIT_GIT_ORG
