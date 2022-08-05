@@ -42,6 +42,7 @@ require (
 replace (
 	github.com/docker/docker => github.com/docker/docker v20.10.3-0.20220414164044-61404de7df1a+incompatible
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20220721222420-7a6f9e1ab2a3
+
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20220804190543-691e73074e69
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20220719234708-392da7eebeb5
 )
