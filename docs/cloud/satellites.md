@@ -16,8 +16,6 @@ This feature is currently in **Beta** stage
 
 Earthly Satellites are remote Buildkit instances managed by the Earthly team. They allow you to perform builds in the cloud, while retaining cache between runs.
 
-TODO: Diagram!
-
 When using Earthly Satellites, even though the build executes remotely, the following pieces of functionality are still available:
 
 * Build logs are streamed to your local machine in real-time, just as if you were running the build locally
@@ -25,6 +23,8 @@ When using Earthly Satellites, even though the build executes remotely, the foll
 * Commands under `LOCALLY` execute on your local machine
 * Secrets available locally, including Docker/Podman credentials are passed to the satellite whenever needed by the build
 * Any images to be pushed are pushed directly from the satellite, using any Docker/Podman credentials available on the local system.
+
+![Satellite workflow](./img/satellite-workflow.png)
 
 ## Benefits
 
