@@ -188,9 +188,8 @@ before running your Earthly targets.
   earthly sat rm <satellite-name>
   earthly sat launch <satellite-name>
   ```
-* The output phase (the phase in which a satellite outputs build results back to the local machine) is slower than it could be. To work around this issue, you can make use of the `--no-output` flag (assuming that local outputs are not needed). Note that the `--no-ouptut` flag works in conjunction with `--push`, as the pushing takes place from the satellite. We are working on ways in which local outputs can be synchronized more intelligently such that only a diff is transferred over the network.
+* The output phase (the phase in which a satellite outputs build results back to the local machine) is slower than it could be. To work around this issue, you can make use of the `--no-output` flag (assuming that local outputs are not needed). You can even use `--no-ouptut` in conjunction with `--push`. We are working on ways in which local outputs can be synchronized more intelligently such that only a diff is transferred over the network.
 * A user can only be invited into an Earthly org if they already have a user account. This is a temporary limitation which will be addressed in the future.
-* Satellites in conjunction with `--save-inline-cache` or `--use-inline-cache` is currently unsupported. When using `--ci`, `--save-inline-cache` and `--use-inline-cache` will not be implicitly enabled when using Satellites.
-* Running Earthly `v0.6.20` against an older satellite causes an Earthly crash. We have fixed this issue and will be available in a future release, but until then you can upgrade your satellite (remove and re-launch) to work around this problem.
+* Satellites in conjunction with `--save-inline-cache` or `--use-inline-cache` is currently unsupported. When using `--ci`, the options `--save-inline-cache` and `--use-inline-cache` will not be implicitly enabled when using Satellites.
 
 If you run into any issues please let us know either via [Slack](https://earthly.dev/slack), [GitHub issues](https://github.com/earthly/earthly/issues) or by [emailing support](mailto:support+satellite@earthly.dev).
