@@ -31,6 +31,7 @@ import (
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session"
+	"github.com/moby/buildkit/session/secrets"
 	"github.com/moby/buildkit/util/entitlements"
 	reccopy "github.com/otiai10/copy"
 	"github.com/pkg/errors"
@@ -76,6 +77,7 @@ type Opt struct {
 	FeatureFlagOverrides   string
 	ContainerFrontend      containerutil.ContainerFrontend
 	InternalSecretStore    *secretprovider.MutableMapStore
+	SecretProviders        []secrets.SecretStore
 }
 
 // BuildOpt is a collection of build options.
@@ -185,6 +187,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				DoPushes:              opt.Push,
 				PullPingMap:           pullPingMap,
 				InternalSecretStore:   b.opt.InternalSecretStore,
+				SecretProviders:       b.opt.SecretProviders,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {

@@ -919,6 +919,12 @@ from-dockerfile-arg:
     RUN test "$(cat ./arg-value-foo)" = "foo"
     RUN test "$(cat ./arg-value-bar)" = "bar"
 
+from-dockerfile-secrets:
+    ENV TEST_SECRET_2="this is secret from ENV"
+    DO +RUN_EARTHLY --earthfile=from-dockerfile-secrets.earth \
+    --extra_args="--secret TEST_SECRET_2 --secret SUPER_SECRET=foosecret" \
+    --target=+test
+
 cache-mount-arg:
     DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b-nomount --MYARG=123"
     DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b-nomount --MYARG=1234" --post_command="2>output-nomount.txt"

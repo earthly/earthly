@@ -10,6 +10,7 @@ import (
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	"github.com/moby/buildkit/session/secrets"
 	"github.com/pkg/errors"
 
 	"github.com/earthly/earthly/ast/spec"
@@ -133,6 +134,10 @@ type ConvertOpt struct {
 	// It is mainly used to pass along parameters to buildkit processes without
 	// invalidating the cache.
 	InternalSecretStore *secretprovider.MutableMapStore
+
+	// SecretProviders is a list of secretStores
+	// It provides access to secrets
+	SecretProviders []secrets.SecretStore
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.

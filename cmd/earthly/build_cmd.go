@@ -31,6 +31,7 @@ import (
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
 	"github.com/moby/buildkit/session/localhost/localhostprovider"
+	"github.com/moby/buildkit/session/secrets"
 	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
 	"github.com/pkg/errors"
@@ -298,17 +299,24 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if err != nil {
 		return errors.Wrap(err, "NewSecretProviderCmd")
 	}
+	secretStoreMap := secretprovider.NewMapStore(secretsMap)
+	cloudSecretStore := secretprovider.NewCloudStore(cloudClient)
 	secretProvider := secretprovider.New(
 		internalSecretStore,
-		secretprovider.NewMapStore(secretsMap),
+		secretStoreMap,
 		customSecretProviderCmd,
-		secretprovider.NewCloudStore(cloudClient),
+		cloudSecretStore,
 	)
-
 	attachables := []session.Attachable{
 		secretProvider,
 		buildContextProvider,
 		localhostProvider,
+	}
+	secretProviders := []secrets.SecretStore{
+		internalSecretStore,
+		secretStoreMap,
+		cloudSecretStore,
+		customSecretProviderCmd,
 	}
 
 	switch app.containerFrontend.Config().Setting {
@@ -429,6 +437,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		FeatureFlagOverrides:   app.featureFlagOverrides,
 		ContainerFrontend:      app.containerFrontend,
 		InternalSecretStore:    internalSecretStore,
+		SecretProviders:        secretProviders,
 	}
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
 	if err != nil {

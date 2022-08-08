@@ -18,6 +18,7 @@ import (
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
 	"github.com/earthly/earthly/variables"
+	"github.com/moby/buildkit/session/secrets"
 
 	flags "github.com/jessevdk/go-flags"
 	"github.com/pkg/errors"
@@ -652,6 +653,30 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid FROM DOCKERFILE arguments %v", cmd.Args)
 	}
+
+	for _, secretKeyValue := range opts.Secrets {
+		secretPath, secretName, err := i.converter.parseSecretFlag(secretKeyValue)
+		if err != nil {
+			return err
+		}
+		for _, secretProvider := range i.converter.opt.SecretProviders {
+			secretVal, err := secretProvider.GetSecret(ctx, i.converter.secretID(secretPath))
+			if err != nil {
+				if errors.Is(err, secrets.ErrNotFound) {
+					continue
+				}
+				return errors.Wrap(err, fmt.Sprintf("set InternalSecretStore secret {%s}", secretKeyValue))
+			}
+			if err := i.converter.opt.InternalSecretStore.SetSecret(ctx, secretName, []byte(secretVal)); err != nil {
+				return errors.Wrap(err, fmt.Sprintf("set InternalSecretStore secret {%s}", secretKeyValue))
+			}
+			i.converter.opt.CleanCollection.Add(func() error {
+				return i.converter.opt.InternalSecretStore.DeleteSecret(context.TODO(), string(secretKeyValue))
+			})
+			break
+		}
+	}
+
 	if len(args) < 1 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for FROM DOCKERFILE")
 	}
