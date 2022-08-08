@@ -249,7 +249,7 @@ This is possible in a few ways:
    earthly +hello
    ```
 
-5. Via cloud-based secrets. This option helps share secrets within a wider team. To read more about this see the [cloud-based secrets guide](cloud-secrets.md).
+5. Via cloud-based secrets. This option helps share secrets within a wider team. To read more about this see the [cloud-based secrets guide](../cloud/cloud-secrets.md).
 
 Regardless of the approach chosen from above, once earthly is invoked, in our example, it will output:
 
@@ -278,4 +278,4 @@ until the earthly command exits.
 
 Earthly also supports cloud-based shared secrets which can be stored in the cloud. Secrets are never stored in the cloud unless a user creates an earthly account and
 explicitly calls the `earthly secrets set ...` command to transmit the secret to the earthly cloud-based secrets server.
-For more information about cloud-based secrets, check out our [cloud-based secrets management guide](cloud-secrets.md).
+For more information about cloud-based secrets, check out our [cloud-based secrets management guide](../cloud/cloud-secrets.md).
