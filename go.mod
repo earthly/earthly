@@ -10,6 +10,7 @@ require (
 	github.com/creack/pty v1.1.11
 	github.com/docker/cli v20.10.14+incompatible
 	github.com/docker/distribution v2.8.1+incompatible
+	github.com/docker/go-connections v0.4.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/earthly/cloud-api v1.0.1-0.20220728160826-b477d75c55f6
 	github.com/elastic/go-sysinfo v1.7.1

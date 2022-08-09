@@ -38,6 +38,7 @@ ga:
     BUILD ./with-docker-registry+all
     BUILD ./with-docker-compose+all
     BUILD ./with-docker-via-command+test
+    BUILD ./with-docker-expose+all
     BUILD ./dockerfile+test
     BUILD ./dockerfile2/subdir+test
     BUILD ./version+test-all \
