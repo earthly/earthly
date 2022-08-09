@@ -19,6 +19,7 @@ import (
 	"github.com/earthly/earthly/util/shell"
 	"github.com/earthly/earthly/variables"
 
+	"github.com/docker/go-connections/nat"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/pkg/errors"
 )
@@ -1137,9 +1138,22 @@ func (i *Interpreter) handleExpose(ctx context.Context, cmd spec.Command) error 
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "failed to expand EXPOSE %s", port)
 		}
+
 		ports[index] = expandedPort
 	}
-	err := i.converter.Expose(ctx, ports)
+
+	// Dockerfile syntax allows defining host bindings; however, they are ignored when generating the image
+	// see: https://github.com/earthly/buildkit/blob/dad0cead57a2d92d43e44c9212153ffe53d9ebc9/frontend/dockerfile/dockerfile2llb/convert.go#L1207
+	ps, _, err := nat.ParsePortSpecs(ports)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to parse EXPOSE command")
+	}
+	parsedPorts := []string{}
+	for p := range ps {
+		parsedPorts = append(parsedPorts, string(p))
+	}
+
+	err = i.converter.Expose(ctx, parsedPorts)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply EXPOSE")
 	}
