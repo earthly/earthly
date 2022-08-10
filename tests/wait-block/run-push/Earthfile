@@ -1,0 +1,9 @@
+VERSION --wait-block 0.6
+
+test:
+    FROM debian:11.4
+    ARG --required echoserver_ip
+    ARG --required echoserver_port
+    RUN --no-cache /bin/bash -c "echo no-cache-1 > /dev/tcp/$echoserver_ip/$echoserver_port"
+    RUN --push /bin/bash -c "echo run-push > /dev/tcp/$echoserver_ip/$echoserver_port"
+    RUN --no-cache /bin/bash -c "echo no-cache-2 > /dev/tcp/$echoserver_ip/$echoserver_port"
