@@ -61,7 +61,7 @@ Satellites is currently a private beta feature. Please [contact us](mailto:suppo
 
 Because this feature is under heavy development right now, it is very important that you use the latest version of Earthly available.
 
-**On Linux**, simply repeat the installation steps to upgrade: https://earthly.dev/get-earthly.
+**On Linux**, simply repeat the [installation steps](https://earthly.dev/get-earthly) to upgrade.
 
 **On Mac**, you can perform:
 
