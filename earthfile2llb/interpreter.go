@@ -420,6 +420,10 @@ func (i *Interpreter) handleWait(ctx context.Context, waitStmt spec.WaitStatemen
 		return i.errorf(waitStmt.SourceLocation, "the WAIT command is not supported in this version")
 	}
 
+	if !i.converter.ftrs.ReferencedSaveOnly {
+		return i.errorf(waitStmt.SourceLocation, "the WAIT command requires the --referenced-save-only feature")
+	}
+
 	if len(waitStmt.Args) != 0 {
 		return i.errorf(waitStmt.SourceLocation, "WAIT does not accept any options")
 	}
@@ -810,6 +814,11 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "failed to expand COPY src %s", src)
 			}
+
+			if i.converter.opt.LocalArtifactWhiteList.Exists(expandedSrc) {
+				return i.errorf(cmd.SourceLocation, "unable to copy file %s, which has is outputted elsewhere by SAVE ARTIFACT AS LOCAL", expandedSrc)
+			}
+
 			srcs[index] = expandedSrc
 			allArtifacts = false
 		}

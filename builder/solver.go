@@ -3,7 +3,6 @@ package builder
 import (
 	"context"
 	"io"
-	"strconv"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
@@ -20,7 +19,7 @@ import (
 )
 
 type onImageFunc func(context.Context, *errgroup.Group, string) (io.WriteCloser, error)
-type onArtifactFunc func(context.Context, int, domain.Artifact, string, string) (string, error)
+type onArtifactFunc func(context.Context, string, domain.Artifact, string, string) (string, error)
 type onFinalArtifactFunc func(context.Context) (string, error)
 
 type solver struct {
@@ -109,11 +108,7 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 					if md["final-artifact"] == "true" {
 						return onFinalArtifact(ctx)
 					}
-					indexStr := md["dir-index"]
-					index, err := strconv.Atoi(indexStr)
-					if err != nil {
-						return "", errors.Wrapf(err, "parse dir-index %s", indexStr)
-					}
+					indexStr := md["dir-id"]
 					artifactStr := md["artifact"]
 					srcPath := md["src-path"]
 					destPath := md["dest-path"]
@@ -121,7 +116,7 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 					if err != nil {
 						return "", errors.Wrapf(err, "parse artifact %s", artifactStr)
 					}
-					return onArtifact(ctx, index, artifact, srcPath, destPath)
+					return onArtifact(ctx, indexStr, artifact, srcPath, destPath)
 				},
 				OutputPullCallback: pullping.PullCallback(onPullCallback),
 				VerboseProgressCB:  progressCB.Verbose,
