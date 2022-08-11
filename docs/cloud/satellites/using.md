@@ -75,7 +75,7 @@ In order to start using satellites, you can select one for use. Selecting a sate
 earthly sat select <satellite-name>
 ```
 
-Any build performed after selecting a satellite will be performed in the cloud on that satellite. You will notice that the output of build contains information about the satellite that is being used as part of the build:
+Any build performed after selecting a satellite will be performed in the cloud on that satellite. You will notice that the output of the build contains information about the satellite that is being used:
 
 ```
 $ earthly +build
@@ -123,6 +123,6 @@ earthly --no-sat +build
 
 As satellites run the execution in the cloud, behind the scenes, they require upload of the current directory contents that may be needed as part of the build, and download of the results of the build. This is performed automatically by Earthly, however, if the file transfers are large and/or if the network bandwidth is low, the performance impact can be noticeable.
 
-Oftentimes, you will find that running a build with the flag `--no-output` runs significantly faster. This flag disables downloading the build results from the satellite at the end of a build.
+Oftentimes, you will find that running a build with the flag `--no-output` executes significantly faster. This flag disables downloading the build results from the satellite at the end of a build.
 
 The `--no-output` flag can still be combined with `--push`, thus allowing Earthly Satellites to be used as a highly performant deployment tool.
