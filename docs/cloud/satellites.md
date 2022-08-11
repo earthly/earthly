@@ -51,7 +51,7 @@ As builds often handle sensitive pieces of data, Satellites are designed with se
 
 ### 1. Register an account and create an org
 
-Follow the steps in the [Earthly Cloud overview](../overview.md#getting-started) to register an account and create an org.
+Follow the steps in the [Earthly Cloud overview](./overview.md#getting-started) to register an account and create an org.
 
 ### 2. Request access
 
