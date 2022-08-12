@@ -252,13 +252,18 @@ while true
 do
     if [ "$shellrepeaterpid" != "0" ]; then
         if ! kill -0 "$shellrepeaterpid" >/dev/null 2>&1; then
-            echo "Error: shellrepeater process has exited"
-            exit 1
+            wait "$shellrepeaterpid"
+            echo "Error: shellrepeater process has exited with code $?"
+            exit 20
         fi
     fi
     if ! kill -0 "$execpid" >/dev/null 2>&1; then
-        echo "Error: buildkit process has exited"
-        exit 1
+        wait "$execpid"
+        code="$?"
+        if [ "$code" != "0" ]; then
+            echo "Error: buildkit process has exited with code $code"
+        fi
+        exit "$code"
     fi
     sleep 1
 done

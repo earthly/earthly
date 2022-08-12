@@ -50,6 +50,12 @@ func (app *earthlyApp) debugCmds() []*cli.Command {
 			UsageText: "earthly [options] debug buildkit-workers",
 			Action:    app.actionDebugBuildkitWorkers,
 		},
+		{
+			Name:      "buildkit-shutdown-if-idle",
+			Usage:     "Shutdown the buildkit if it is idle",
+			UsageText: "earthly [options] debug buildkit-shutdown-if-idle",
+			Action:    app.actionDebugBuildkitShutdownIfIdle,
+		},
 	}
 }
 
@@ -221,6 +227,28 @@ func (app *earthlyApp) actionDebugBuildkitWorkers(cliCtx *cli.Context) error {
 			fmt.Printf("\tGC has not run yet\n")
 		}
 	}
+	return nil
+}
+
+func (app *earthlyApp) actionDebugBuildkitShutdownIfIdle(cliCtx *cli.Context) error {
+	app.commandName = "debugBuildkitShutdownIfIdle"
+
+	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+	bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
+	if err != nil {
+		return errors.Wrap(err, "build new buildkitd client")
+	}
+	defer bkClient.Close()
+
+	ok, numSessions, err := bkClient.ShutdownIfIdle(cliCtx.Context)
+	if err != nil {
+		return errors.Wrap(err, "shutdown buildkit if idle")
+	}
+	fmt.Printf("Shutting down: %t\n", ok)
+	fmt.Printf("Num sessions: %d\n", numSessions)
 	return nil
 }
 
