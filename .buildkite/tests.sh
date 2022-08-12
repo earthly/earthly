@@ -2,6 +2,7 @@
 set -xeu
 
 function cleanup() {
+    status="$?"
     jobs="$(jobs -p)"
     if [ -n "$jobs" ]
     then
@@ -9,6 +10,11 @@ function cleanup() {
         kill $jobs
     fi
     wait
+    if [ "$status" = "0" ]; then
+      echo "buildkite-test passed"
+    else
+      echo "buildkite-test failed with $status"
+    fi
 }
 trap cleanup EXIT
 
