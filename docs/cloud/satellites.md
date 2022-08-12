@@ -51,7 +51,7 @@ As builds often handle sensitive pieces of data, Satellites are designed with se
 
 ### 1. Register an account and create an org
 
-Follow the steps in the [Earthly Cloud overview](../overview.md#getting-started) to register an account and create an org.
+Follow the steps in the [Earthly Cloud overview](./overview.md#getting-started) to register an account and create an org.
 
 ### 2. Request access
 
@@ -122,25 +122,23 @@ Conversely, if a satellite is currently selected, but you want to execute a buil
 earthly --no-sat +my-target
 ```
 
-## Working with Satellites
+For more information on using satellites, see the [Using satellites page](../satellites/using.md).
 
-To list the satellites available in your organization, run:
+### 6. Invite your team
 
-```bash
-earthly sat ls
-```
-
-To check the status of a satellite, you can run:
+A final optional step is to invite your team to use the satellite. This can be done by running:
 
 ```bash
-earthly sat inspect <satellite-name>
+earthly org invite /<org-name>/ <email>
 ```
 
-To clear a satellite's cache, run the following command after selecting the satellite:
+Note the slashes around the org name. Also, please note that **the user must have an account on Earthly before they can be invited**. (This is a temporary limitation which will be addressed in the future.)
 
-```bash
-earthly purge -a
-```
+Once a user has been invited, you can forward them a link to the page [Using Satellites](./using.md) for them to get started.
+
+## Managing Satellites
+
+For more information on managing satellites, see the [Managing Satellites page](./satellites/managing.md).
 
 ## Satellite specs
 

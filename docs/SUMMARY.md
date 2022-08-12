@@ -68,3 +68,5 @@
 * [Overview](cloud/overview.md)
 * [Cloud secrets](cloud/cloud-secrets.md)
 * [Satellites](cloud/satellites.md)
+    * [Managing Satellites](cloud/satellites/managing.md)
+    * [Using Satellites](cloud/satellites/using.md)
