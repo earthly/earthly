@@ -194,9 +194,11 @@ markdown-spellcheck:
 unit-test:
     FROM +code
     COPY podman-setup.sh .
+    ARG testname # when specified, only run specific unit-test, otherwise run all.
     WITH DOCKER
         RUN ./podman-setup.sh && \
-            go test -timeout 20m ./...
+            if [ -n "$testname" ]; then testarg="-run $testname"; fi && \
+            go test -timeout 20m $testarg ./...
     END
 
 changelog:
