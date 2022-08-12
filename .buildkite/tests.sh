@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -xeu
 
 function cleanup() {
@@ -13,27 +12,34 @@ function cleanup() {
 }
 trap cleanup EXIT
 
-case "$EARTHLY_OS" in
-    darwin)
-        download_url="https://github.com/earthly/earthly/releases/latest/download/earthly-darwin-amd64"
-        earthly="./build/darwin/amd64/earthly"
-        ;;
+os="$(uname)"
+arch="$(uname -m)"
 
-    darwin-m1)
+if [ "$os" = "Darwin" ]; then
+    if [ "$arch" = "arm64" ]; then
+        EARTHLY_OS="darwin-m1"
         download_url="https://github.com/earthly/earthly/releases/latest/download/earthly-darwin-arm64"
         earthly="./build/darwin/arm64/earthly"
-        ;;
-
-    linux)
-        download_url="https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64"
-        earthly="./build/linux/amd64/earthly"
-        ;;
-esac
+    else
+        EARTHLY_OS="darwin"
+        download_url="https://github.com/earthly/earthly/releases/latest/download/earthly-darwin-amd64"
+        earthly="./build/darwin/amd64/earthly"
+    fi
+elif [ "$os" = "Linux" ]; then
+    EARTHLY_OS="linux"
+    download_url="https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64"
+    earthly="./build/linux/amd64/earthly"
+else
+    echo "failed to handle $os, $arch"
+    exit 1
+fi
 
 echo "The detected architecture of the runner is $(uname -m)"
 
-echo "Add branch info back to git (Earthly uses it for tagging)"
-git checkout -B "$BUILDKITE_BRANCH" || true
+if ! git symbolic-ref -q HEAD >/dev/null; then
+    echo "Add branch info back to git (Earthly uses it for tagging)"
+    git checkout -B "$BUILDKITE_BRANCH" || true
+fi
 
 echo "Download latest Earthly binary"
 if [ -n "$download_url" ]; then
