@@ -604,7 +604,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "apply RUN")
 		}
-		if opts.Push {
+		if opts.Push && !i.converter.ftrs.WaitBlock {
 			i.pushOnlyAllowed = true
 		}
 	} else {
@@ -968,7 +968,7 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "save image")
 	}
-	if opts.Push {
+	if opts.Push && !i.converter.ftrs.WaitBlock {
 		i.pushOnlyAllowed = true
 	}
 	return nil

@@ -1627,10 +1627,6 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		opts.shellWrap = withShellAndEnvVars
 	}
 
-	if c.ftrs.WaitBlock && opts.Push {
-		return pllb.State{}, errors.New("RUN --push is not currently supported with --wait-block, you must rewrite it as IF ... RUN --no-cache END") // TODO this will be done automatically
-	}
-
 	finalArgs := opts.Args[:]
 	if opts.WithEntrypoint {
 		if len(finalArgs) == 0 {
@@ -1711,6 +1707,21 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		finalArgs = append(
 			[]string{localhost.RunOnLocalHostMagicStr},
 			finalArgs...)
+	}
+
+	if c.ftrs.WaitBlock && opts.Push {
+		// The WAIT / END feature treats a --push as syntatic sugar for
+		// IF [ "$EARTHLY_PUSH" = "true" ]
+		//    RUN --no-cache ...
+		// END
+		if !c.opt.DoPushes {
+			// quick return when EARTHLY_PUSH != true
+			return c.mts.Final.MainState, nil
+		}
+
+		// convert "push" to "no-cache"
+		opts.Push = false
+		opts.NoCache = true
 	}
 
 	runOpts = append(runOpts, llb.Args(finalArgs))
