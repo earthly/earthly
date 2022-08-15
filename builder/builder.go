@@ -88,6 +88,7 @@ type BuildOpt struct {
 	OnlyArtifactDestPath       string
 	EnableGatewayClientLogging bool
 	BuiltinArgs                variables.DefaultArgs
+	GlobalWaitBlockFtr         bool
 }
 
 // Builder executes Earthly builds.
@@ -189,12 +190,24 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				LocalArtifactWhiteList: localArtifactWhiteList,
 				InternalSecretStore:    b.opt.InternalSecretStore,
 				TempEarthlyOutDir:      b.tempEarthlyOutDir,
+				GlobalWaitBlockFtr:     opt.GlobalWaitBlockFtr,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
 				return nil, err
 			}
 		}
+		if opt.GlobalWaitBlockFtr {
+			b.opt.Console.Printf("skipping builder.go bf code due to GlobalWaitBlockFtr\n")
+			return nil, nil
+		}
+
+		// WARNING: the code below is deprecated, and will eventually be removed, in favour of wait_block.go
+		// This code is only used when dealing with VERISON 0.5 and 0.6; once these reach end-of-life, we can
+		// delete the code below.
+
+		// *** DO NOT ADD CODE TO THE bf BELOW ***
+
 		gwCrafter := gatewaycrafter.NewGatewayCrafter()
 		if !b.builtMain {
 			ref, err := b.stateToRef(childCtx, gwClient, mts.Final.MainState, mts.Final.PlatformResolver)

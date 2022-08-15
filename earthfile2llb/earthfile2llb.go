@@ -126,6 +126,10 @@ type ConvertOpt struct {
 	// waitBlock references the current WAIT/END scope
 	waitBlock *waitBlock
 
+	// GlobalWaitBlockFtr, when true, forces all Earthfiles to add entries into the WAIT/END block
+	// this is to facilitate de-duplicating code from builder.go
+	GlobalWaitBlockFtr bool
+
 	// PullPingMap points to the per-connection map used by the builder's onPull callback
 	PullPingMap *gatewaycrafter.PullPingMap
 

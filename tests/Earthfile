@@ -37,7 +37,6 @@ ga:
     BUILD ./with-docker+all
     BUILD ./with-docker-registry+all
     BUILD ./with-docker-compose+all
-    BUILD ./with-docker-via-command+test
     BUILD ./with-docker-expose+all
     BUILD ./dockerfile+test
     BUILD ./dockerfile2/subdir+test
@@ -153,7 +152,6 @@ ga:
     BUILD +save-artifact-dir-as-dot
     BUILD +save-artifact-dont-overwrite
     BUILD +save-artifact-force-overwrite
-    BUILD +save-artifact-after-push
     BUILD +save-artifact-selective
     BUILD +save-artifact-selective-legacy
     BUILD +save-artifact-selective-referencing-remote
@@ -191,6 +189,19 @@ ga:
     BUILD +mtime
     BUILD +server
     BUILD +build-after-from
+
+    # Forcing the implicit global wait/end block, causes some tests, which rely
+    # on the ability to have two different targets issue the same SAVE IMAGE tag name
+    # (with the last SAVE IMAGE command taking presidence)
+    # Earthly, when using the wait-end feature, will return an error for such cases.
+    # As a result, the following tests are incompatible with WAIT/END block.
+    # Once version 0.7 is released AND support for 0.6 has been dropped,
+    # these tests can be removed, along with deprecated code from the builder.go's bf.
+    ARG GLOBAL_WAIT_END="false"
+    IF [ "$GLOBAL_WAIT_END" = "false" ]
+        BUILD +save-artifact-after-push
+        BUILD ./with-docker-via-command+test
+    END
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,

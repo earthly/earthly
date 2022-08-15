@@ -452,6 +452,11 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		EnableGatewayClientLogging: app.debug,
 		BuiltinArgs:                builtinArgs,
 
+		// feature-flip the removal of builder.go code
+		// once VERSION 0.7 is released AND support for 0.6 is dropped,
+		// we can remove this flag along with code from builder.go.
+		GlobalWaitBlockFtr: app.globalWaitEnd,
+
 		// explicitly set this to true at the top level (without granting the entitlements.EntitlementSecurityInsecure buildkit option),
 		// to differentiate between a user forgetting to run earthly -P, versus a remotely referening an earthfile that requires privileged.
 		AllowPrivileged: true,
