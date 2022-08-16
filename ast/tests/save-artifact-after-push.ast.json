@@ -59,7 +59,7 @@
             "args": [
               "--push",
               "echo",
-              "\"suprise\"",
+              "\"surprise\"",
               ">",
               "1"
             ],
@@ -72,7 +72,7 @@
               "1",
               "AS",
               "LOCAL",
-              "suprise"
+              "surprise"
             ],
             "name": "SAVE ARTIFACT"
           }

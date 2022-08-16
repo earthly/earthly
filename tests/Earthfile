@@ -720,10 +720,13 @@ run-no-cache:
         --grep_flags="-v" --output_contains="\\\*cached\\\* --> .*motd2 \\\.\\\//"
 
 save-artifact-after-push:
-    # test that save after push is a thing
+    # test that save after push only outputs files before the RUN --push
     DO +RUN_EARTHLY --earthfile=save-artifact-after-push.earth --target=+test
+    RUN test -f 1 && test "$(cat 1)" = "1"
+    RUN ! test -f 2
+    RUN ! test -f surprise
 
-    # test that cant copy saved after push
+    # test it is not possible to copy from a target containing a RUN --push
     DO +RUN_EARTHLY --earthfile=save-artifact-after-push.earth --should_fail="true" --target=+copy-test \
         --output_contains="not found"
 
