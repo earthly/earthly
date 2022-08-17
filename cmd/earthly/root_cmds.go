@@ -622,7 +622,11 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 		if app.isUsingSatellite(cliCtx) {
 			return errors.New("Cannot prune --reset when using a satellite. Try without --reset")
 		}
-		err := buildkitd.ResetCache(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
+		err := app.initFrontend(cliCtx)
+		if err != nil {
+			return err
+		}
+		err = buildkitd.ResetCache(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
 		if err != nil {
 			return errors.Wrap(err, "reset cache")
 		}
