@@ -26,6 +26,17 @@ When using Earthly Satellites, even though the build executes remotely, the foll
 
 ![Satellite workflow](./img/satellite-workflow.png)
 
+Earthly Satellite instances come with their own cache volume. This means that performing builds repeatedly on the same satellite will result in faster builds. This can be especially useful when using Satellites from a sandboxed CI environment, where cache from previous builds would not otherwise be available. Below is a comparison with Earthly's [Shared remote cache features](../guides/shared-cache.md).
+
+| Cache characteristic | Satellite | Shared Cache |
+| --- | --- | --- |
+| Storage location | Satellite | A container registry of your choice |
+| Proximity to compute | ✔️ Same machine | ❌ Performing upload/download is required |
+| Just works, no configuration necessary | ✔️ Yes | ❌ Requires experimentation with the various settings |
+| Concurrent access | ✔️ Yes | 🟡 Concurrent read access only |
+| Retains entire cache of the build | ✔️ Yes | ❌ Usually no, due to prohibitive upload time |
+| Retains cache for multiple historical builds | ✔️ Yes | ❌ No, only one build retained |
+
 ## Benefits
 
 Typical use cases for Earthly Satellites include:
