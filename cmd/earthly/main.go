@@ -263,7 +263,7 @@ func main() {
 	// however in all other regular commands app.cfg will be set in app.Before
 	if !app.disableAnalytics && app.cfg != nil && !app.cfg.Global.DisableAnalytics {
 		// Use a new context, in case the original context is cancelled due to sigint.
-		ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
+		ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		displayErrors := app.verbose
 		cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
