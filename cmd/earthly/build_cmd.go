@@ -199,13 +199,9 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
 	app.warnIfArgContainsBuildArg(flagArgs)
 
-	// Init frontend only if we either need to run buildkit on it, or if there might be
-	// images to output to it.
-	if !app.isUsingSatellite(cliCtx) || !app.noOutput {
-		err = app.initFrontend(cliCtx)
-		if err != nil {
-			return err
-		}
+	err = app.initFrontend(cliCtx)
+	if err != nil {
+		return err
 	}
 
 	err = app.configureSatellite(cliCtx, cloudClient)

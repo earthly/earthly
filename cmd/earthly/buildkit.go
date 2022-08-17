@@ -13,6 +13,7 @@ import (
 )
 
 func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
+	console := app.console.WithPrefix("frontend")
 	feConfig := &containerutil.FrontendConfig{
 		BuildkitHostCLIValue:       app.buildkitHost,
 		BuildkitHostFileValue:      app.cfg.Global.BuildkitHost,
@@ -20,7 +21,7 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 		DebuggerHostFileValue:      app.cfg.Global.DebuggerHost,
 		DebuggerPortFileValue:      app.cfg.Global.DebuggerPort,
 		LocalRegistryHostFileValue: app.cfg.Global.LocalRegistryHost,
-		Console:                    app.console,
+		Console:                    console,
 	}
 	fe, err := containerutil.FrontendForSetting(cliCtx.Context, app.cfg.Global.ContainerFrontend, feConfig)
 	if err != nil {
@@ -29,7 +30,11 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "failed frontend initialization")
 		}
-		app.console.Warnf("%s frontend initialization failed due to %s; but will try anyway", app.cfg.Global.ContainerFrontend, origErr.Error())
+
+		console.Printf("No frontend initialized.\n")
+		console.VerbosePrintf("%s frontend initialization failed due to %s", app.cfg.Global.ContainerFrontend, origErr.Error())
+	} else {
+		console.VerbosePrintf("%s frontend initialized.\n", fe.Config().Setting)
 	}
 	app.containerFrontend = fe
 
