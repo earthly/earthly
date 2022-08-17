@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	_ "net/http/pprof" // enable pprof handlers on net/http listener
-	"net/url"
 	"os"
 	"os/signal"
 	"path"
@@ -402,73 +401,6 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	if err != nil {
 		return err
 	}
-
-	feConfig := &containerutil.FrontendConfig{
-		BuildkitHostCLIValue:       app.buildkitHost,
-		BuildkitHostFileValue:      app.cfg.Global.BuildkitHost,
-		DebuggerHostCLIValue:       app.debuggerHost,
-		DebuggerHostFileValue:      app.cfg.Global.DebuggerHost,
-		DebuggerPortFileValue:      app.cfg.Global.DebuggerPort,
-		LocalRegistryHostFileValue: app.cfg.Global.LocalRegistryHost,
-		Console:                    app.console,
-	}
-	fe, err := containerutil.FrontendForSetting(context.Context, app.cfg.Global.ContainerFrontend, feConfig)
-	if err != nil {
-		origErr := err
-		fe, err = containerutil.NewStubFrontend(context.Context, feConfig)
-		if err != nil {
-			return errors.Wrap(err, "failed frontend initialization")
-		}
-		app.console.Warnf("%s frontend initialization failed due to %s; but will try anyway", app.cfg.Global.ContainerFrontend, origErr.Error())
-	}
-	app.containerFrontend = fe
-
-	// command line option overrides the config which overrides the default value
-	if !context.IsSet("buildkit-image") && app.cfg.Global.BuildkitImage != "" {
-		app.buildkitdImage = app.cfg.Global.BuildkitImage
-	}
-
-	// These URLs were calculated relative to the configured frontend. In the case of an automatically detected frontend,
-	// they are calculated according to the first selected one in order of precedence.
-	buildkitURLs := fe.Config().FrontendURLs
-	app.buildkitHost = buildkitURLs.BuildkitHost.String()
-	app.debuggerHost = buildkitURLs.DebuggerHost.String()
-	app.localRegistryHost = buildkitURLs.LocalRegistryHost.String()
-
-	bkURL, err := url.Parse(app.buildkitHost) // Not validated because we already did that when we calculated it.
-	if err != nil {
-		return errors.Wrap(err, "failed to parse generated buildkit URL")
-	}
-
-	if bkURL.Scheme == "tcp" {
-		app.handleTLSCertificateSettings(context)
-	}
-
-	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
-	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
-	app.buildkitdSettings.Timeout = time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
-	app.buildkitdSettings.Debug = app.debug
-	app.buildkitdSettings.BuildkitAddress = app.buildkitHost
-	app.buildkitdSettings.DebuggerAddress = app.debuggerHost
-	app.buildkitdSettings.LocalRegistryAddress = app.localRegistryHost
-	app.buildkitdSettings.UseTCP = bkURL.Scheme == "tcp"
-	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
-	app.buildkitdSettings.MaxParallelism = app.cfg.Global.BuildkitMaxParallelism
-	app.buildkitdSettings.CacheSizeMb = app.cfg.Global.BuildkitCacheSizeMb
-	app.buildkitdSettings.CacheSizePct = app.cfg.Global.BuildkitCacheSizePct
-	app.buildkitdSettings.EnableProfiler = app.enableProfiler
-	app.buildkitdSettings.NoUpdate = app.noBuildkitUpdate
-
-	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
-	if app.cfg.Global.CniMtu != 0 && app.cfg.Global.CniMtu < 68 {
-		return errors.New("invalid overridden MTU size")
-	}
-	app.buildkitdSettings.CniMtu = app.cfg.Global.CniMtu
-
-	if app.cfg.Global.IPTables != "" && app.cfg.Global.IPTables != "iptables-legacy" && app.cfg.Global.IPTables != "iptables-nft" {
-		return errors.New(`invalid overridden iptables name. Valid values are "iptables-legacy" or "iptables-nft"`)
-	}
-	app.buildkitdSettings.IPTables = app.cfg.Global.IPTables
 
 	// Make a small attempt to check if we are not bootstrapped. If not, then do that before we do anything else.
 	isBootstrapCmd := false

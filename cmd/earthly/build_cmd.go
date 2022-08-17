@@ -52,14 +52,6 @@ func (app *earthlyApp) actionBuild(cliCtx *cli.Context) error {
 			return errors.New("unable to use --ci flag in combination with --interactive flag")
 		}
 	}
-	if app.interactiveDebugging {
-		if !termutil.IsTTY() {
-			return errors.New("A tty-terminal must be present in order to the --interactive flag")
-		}
-		if !containerutil.IsLocal(app.buildkitHost) {
-			return errors.New("the --interactive flag is not currently supported with non-local buildkit servers")
-		}
-	}
 
 	if app.imageMode && app.artifactMode {
 		return errors.New("both image and artifact modes cannot be active at the same time")
@@ -70,6 +62,9 @@ func (app *earthlyApp) actionBuild(cliCtx *cli.Context) error {
 		} else {
 			return errors.New("cannot use --no-output with image or artifact modes")
 		}
+	}
+	if app.interactiveDebugging && !termutil.IsTTY() {
+		return errors.New("A tty-terminal must be present in order to use the --interactive flag")
 	}
 
 	flagArgs, nonFlagArgs, err := variables.ParseFlagArgsWithNonFlags(cliCtx.Args().Slice())
@@ -199,18 +194,25 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
 	app.warnIfArgContainsBuildArg(flagArgs)
 
+	err = app.initFrontend(cliCtx)
+	if err != nil {
+		return err
+	}
+
 	err = app.configureSatellite(cliCtx, cloudClient)
 	if err != nil {
 		return errors.Wrapf(err, "could not construct new buildkit client")
 	}
 
 	isLocal := containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress)
-
 	if !isLocal && app.ci {
 		app.console.Warnf("Please note that --use-inline-cache and --save-inline-cache are currently disabled when using --ci on Satellites or remote Buildkit.")
 		app.console.Warnf("") // newline
 		app.useInlineCache = false
 		app.saveInlineCache = false
+	}
+	if app.interactiveDebugging && !isLocal {
+		return errors.New("the --interactive flag is not currently supported with non-local buildkit servers")
 	}
 
 	bkClient, err := buildkitd.NewClient(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, Version, app.buildkitdSettings)
