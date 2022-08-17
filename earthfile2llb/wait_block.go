@@ -51,6 +51,9 @@ func newWaitBlock() *waitBlock {
 }
 
 func (wb *waitBlock) addSaveImage(si states.SaveImage, c *Converter, push, localExport bool) {
+	if !push && !localExport {
+		return
+	}
 	wb.mu.Lock()
 	defer wb.mu.Unlock()
 	item := saveImageWaitItem{

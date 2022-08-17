@@ -1007,10 +1007,10 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 				shouldPush := pushImages && si.DockerTag != "" && c.opt.DoSaves
 				shouldExportLocally := si.DockerTag != "" && c.opt.DoSaves
 				c.waitBlock().addSaveImage(si, c, shouldPush, shouldExportLocally)
-			} else {
-				c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, si)
-			}
 
+				si.SkipBuilder = true
+			}
+			c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, si)
 		}
 
 		if pushImages && imageName != "" && c.opt.UseInlineCache {

@@ -283,6 +283,8 @@ type SaveImage struct {
 
 	Platform    platutil.Platform
 	HasPlatform bool // true when the --platform value was set (either on cli, or via FROM --platform=..., or BUILD --platform=...)
+
+	SkipBuilder bool // for use with WAIT/END
 }
 
 // RunPush is a series of RUN --push commands to be run after the build has been deemed as
