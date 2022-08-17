@@ -63,6 +63,9 @@ func (app *earthlyApp) actionBuild(cliCtx *cli.Context) error {
 			return errors.New("cannot use --no-output with image or artifact modes")
 		}
 	}
+	if app.interactiveDebugging && !termutil.IsTTY() {
+		return errors.New("A tty-terminal must be present in order to use the --interactive flag")
+	}
 
 	flagArgs, nonFlagArgs, err := variables.ParseFlagArgsWithNonFlags(cliCtx.Args().Slice())
 	if err != nil {
@@ -208,13 +211,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		app.useInlineCache = false
 		app.saveInlineCache = false
 	}
-	if app.interactiveDebugging {
-		if !termutil.IsTTY() {
-			return errors.New("A tty-terminal must be present in order to the --interactive flag")
-		}
-		if !isLocal {
-			return errors.New("the --interactive flag is not currently supported with non-local buildkit servers")
-		}
+	if app.interactiveDebugging && !isLocal {
+		return errors.New("the --interactive flag is not currently supported with non-local buildkit servers")
 	}
 
 	bkClient, err := buildkitd.NewClient(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, Version, app.buildkitdSettings)
