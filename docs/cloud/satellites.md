@@ -31,12 +31,12 @@ Earthly Satellite instances come with their own cache volume. This means that pe
 | Cache characteristic | Satellite | Shared Cache |
 | --- | --- | --- |
 | Storage location | Satellite | A container registry of your choice |
-| Proximity to compute | ✔️ Same machine | ❌ Performing upload/download is required |
-| Just works, no configuration necessary | ✔️ Yes | ❌ Requires experimentation with the various settings |
-| Concurrent access | ✔️ Yes | 🟡 Concurrent read access only |
-| Retains entire cache of the build | ✔️ Yes | ❌ Usually no, due to prohibitive upload time |
-| Retains cache for multiple historical builds | ✔️ Yes | ❌ No, only one build retained |
-| Cache mounts (`RUN --mount type=cache` and `CACHE`) included | ✔️ Yes | ❌ No |
+| Proximity to compute | ✅ Same machine | ❌ Performing upload/download is required |
+| Just works, no configuration necessary | ✅ Yes | ❌ Requires experimentation with the various settings |
+| Concurrent access | ✅ Yes | 🟡 Concurrent read access only |
+| Retains entire cache of the build | ✅ Yes | ❌ Usually no, due to prohibitive upload time |
+| Retains cache for multiple historical builds | ✅ Yes | ❌ No, only one build retained |
+| Cache mounts (`RUN --mount type=cache` and `CACHE`) included | ✅ Yes | ❌ No |
 
 ## Benefits
 

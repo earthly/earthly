@@ -4,6 +4,8 @@ Earthly has the ability to share cache between different isolated CI runs and ev
 
 Shared caching is made possible by storing intermediate steps of a build in a cloud-based Docker registry. This cache can then be downloaded on another machine in order to skip common parts.
 
+Note that there is yet another way to share cache between builds, via [Earthly Satellites (beta)](../cloud/satellites.md). This page only covers remote shared caching through the use of a registry.
+
 ## Types of shared cache
 
 Earthly makes available two types of shared caches:
@@ -228,3 +230,7 @@ If, however, you are using a CI which reuses the same environment (e.g. Jenkins,
 It is possible to use cache in read-only mode for developers to speed up local development. This can be achieved by enabling read-write shared caching in CI and read-only cache for individual developers. Since all Earthly cache is kept in Docker registries, managing access to the cache can be controlled by managing access to individual Docker images.
 
 Note however that there is small performance penalty for regularly checking the remote registry on every run.
+
+## Alternatives
+
+An alternative to using shared cache is to use [Earthly Satellites (beta)](../cloud/satellites.md). Satellites execute the build remotely, and this allows the cache to be located in close proximity to the execution, making the process very efficient. Satellites are also significantly easier to set up, as the caching just works and there is no need for additional experimentation.
