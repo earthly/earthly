@@ -223,7 +223,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 			for _, saveImage := range b.targetPhaseImages(sts) {
 				doSaveOrPush := (sts.GetDoSaves() || sts.GetDoPushes() || saveImage.ForceSave)
-				if saveImage.DockerTag != "" && doSaveOrPush {
+				if !saveImage.SkipBuilder && saveImage.DockerTag != "" && doSaveOrPush {
 					if saveImage.NoManifestList {
 						noManifestListImgs[saveImage.DockerTag] = true
 					} else {
@@ -253,7 +253,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				shouldExport := !opt.NoOutput && opt.OnlyArtifact == nil && !(opt.OnlyFinalTargetImages && sts != mts.Final) && saveImage.DockerTag != "" && doSave
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != "" && sts.GetDoPushes()
 				useCacheHint := saveImage.CacheHint && b.opt.CacheExport != ""
-				if (!shouldPush && !shouldExport && !useCacheHint) || (!shouldPush && saveImage.HasPushDependencies) {
+				if (saveImage.SkipBuilder || !shouldPush && !shouldExport && !useCacheHint) || (!shouldPush && saveImage.HasPushDependencies) {
 					// Short-circuit.
 					continue
 				}
@@ -478,7 +478,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			doSave := (mts.Final.GetDoSaves() || saveImage.ForceSave)
 			shouldExport := !opt.NoOutput && saveImage.DockerTag != "" && doSave
 			shouldPush := opt.Push && saveImage.Push && saveImage.DockerTag != "" && mts.Final.GetDoPushes()
-			if !shouldPush && !shouldExport {
+			if saveImage.SkipBuilder || !shouldPush && !shouldExport {
 				continue
 			}
 			targetStr := b.opt.Console.PrefixColor().Sprintf("%s", mts.Final.Target.StringCanonical())
@@ -500,7 +500,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				doSave := (sts.GetDoSaves() || saveImage.ForceSave)
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != "" && sts.GetDoPushes()
 				shouldExport := !opt.NoOutput && saveImage.DockerTag != "" && doSave
-				if !shouldPush && !shouldExport {
+				if saveImage.SkipBuilder || !shouldPush && !shouldExport {
 					continue
 				}
 				targetStr := console.PrefixColor().Sprintf("%s", sts.Target.StringCanonical())
