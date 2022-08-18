@@ -10,11 +10,12 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/dustin/go-humanize"
-	"github.com/earthly/earthly/ast"
-	"github.com/earthly/earthly/cloud"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+
+	"github.com/earthly/earthly/ast"
+	"github.com/earthly/earthly/cloud"
 )
 
 func (app *earthlyApp) debugCmds() []*cli.Command {
