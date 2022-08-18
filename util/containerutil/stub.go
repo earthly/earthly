@@ -8,7 +8,6 @@ import (
 )
 
 // This is a stub for use when a proper frontend is not available.
-// Should never be used IRL.
 type stubFrontend struct {
 	*shellFrontend
 }
