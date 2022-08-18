@@ -97,6 +97,8 @@ To update earthly's reference to buildkit, you may run `earthly +update-buildkit
 
 Updates to fsutils must first be vendored into buildkit, then updated under `go.mod`; additional docs and scripts exist in the buildkit repo.
 
+Note that for record-keeping purposes, contributors are encouraged to manually sqaush their commits before merging a PR on our buildkit fork, as well as leave a comment showing a corresponding PR in `earthly/earthly` using that buildkit version with passing test cases.
+
 ## Gotchas
 
 ### Auth
