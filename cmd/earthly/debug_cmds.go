@@ -103,7 +103,7 @@ func (app *earthlyApp) actionDebugBuildkitInfo(cliCtx *cli.Context) error {
 	fmt.Printf("Buildkit revision: %s\n", info.BuildkitVersion.Revision)
 	fmt.Printf("Buildkit package: %s\n", info.BuildkitVersion.Package)
 	fmt.Printf("Num sessions: %d\n", info.NumSessions)
-	fmt.Printf("Seconds since last run: %d\n", info.SecondsSinceLastRun)
+	fmt.Printf("Seconds idle: %d\n", info.SecondsIdle)
 	return nil
 }
 
