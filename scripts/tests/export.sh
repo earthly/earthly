@@ -87,7 +87,9 @@ cat >> Earthfile <<EOF
 VERSION 0.6
 
 multi4:
-    BUILD --platform=linux/amd64 --platform=linux/arm64 --platform=linux/arm/v7 +test4
+    # NOTE: keep amd64 in the middle, since earthly will fallback to the first defined platform
+    # in case loadDockerManifest fails
+    BUILD --platform=linux/arm/v7 --platform=linux/amd64 --platform=linux/arm64 +test4
 
 test4:
     FROM busybox:latest
