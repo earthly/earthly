@@ -23,12 +23,31 @@ func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, 
 	if len(children) == 0 {
 		return errors.Errorf("no images in manifest list for %s", parentImageName)
 	}
-	// Check if any child has the platform as the default platform (use the first one if none found).
+
+	// Check if any child has the platform as the default platform
 	defaultChild := 0
+	foundPlatform := false
 	for i, child := range children {
 		if child.platform == platutil.DefaultPlatform {
 			defaultChild = i
+			foundPlatform = true
 			break
+		}
+	}
+	if !foundPlatform {
+		// otherwise, look for a platform matching the user's platform
+		for i, child := range children {
+			if child.platform == platutil.UserPlatform {
+				defaultChild = i
+				foundPlatform = true
+				break
+			}
+		}
+		if !foundPlatform {
+			// fall back to using first defined platform (and display a warning)
+			console.Warnf(
+				"Failed to find default, or user-specific platform (%s) of multi-platform image %s; defaulting to the first platform type: %s\n",
+				platutil.UserPlatform, parentImageName, children[defaultChild].platform)
 		}
 	}
 

@@ -10,7 +10,7 @@ echo "running tests with $earthly"
 date +%s > /tmp/last-earthly-prerelease-check
 
 # ensure earthly login works (and print out who gets logged in)
-test -n "$EARTHLY_TOKEN"
+#test -n "$EARTHLY_TOKEN"
 "$earthly" account login
 
 # Test 1: export without anything
@@ -87,7 +87,7 @@ cat >> Earthfile <<EOF
 VERSION 0.6
 
 multi4:
-    BUILD --platform=linux/amd64 --platform=linux/arm64 --platform=linux/arm/v7 +test4
+    BUILD --platform=linux/arm/v7 --platform=linux/amd64 --platform=linux/arm64 +test4
 
 test4:
     FROM busybox:latest
