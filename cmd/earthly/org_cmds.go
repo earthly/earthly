@@ -281,15 +281,6 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 		OrgName: orgName,
 	}
 
-	name := cliCtx.String("name")
-	if name == "" {
-		name, err = promptInput(cliCtx.Context, "New user's name: ")
-		if err != nil {
-			return errors.Wrap(err, "failed to read name")
-		}
-	}
-	invite.Name = name
-
 	permission := cliCtx.String("permission")
 	if permission == "" {
 		permission, err = promptInput(cliCtx.Context, "New user's permission (read, write, admin): ")
