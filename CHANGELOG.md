@@ -4,9 +4,22 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.22 - 2022-08-19
+
 ### Added
 
 - `--cache-from` earthly flag, which allows defining multiple ordered caches. [#1693](https://github.com/earthly/earthly/issues/1693)
+- WAIT/END support for saving artifacts to local host.
+- WAIT/END support for `RUN --push` commands.
+
+### Fixed
+
+- Updated `EXPOSE` parsing to accept (and ignore) host IP prefix, as well as expose udp ports; this should be fully-compatible with dockerfile's format. [#1986](https://github.com/earthly/earthly/issues/1986)
+- The earthly-buildkit container is now only initialized when required.
+
+### Changed
+
+- The earthly-buildkit container is now only initialized when required.
 
 ## v0.6.21 - 2022-08-04
 
