@@ -374,8 +374,12 @@ func (app *earthlyApp) actionOrgMemberList(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionOrgMemberUpdate(cliCtx *cli.Context) error {
 	app.commandName = "orgMemberUpdate"
 
-	if cliCtx.NArg() != 1 {
+	if cliCtx.NArg() < 1 {
 		return errors.New("member email required")
+	}
+
+	if cliCtx.NArg() > 1 {
+		return errors.New("too many arguments provided")
 	}
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
