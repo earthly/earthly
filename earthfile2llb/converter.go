@@ -117,7 +117,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		GlobalImports:    opt.GlobalImports,
 		Features:         opt.Features,
 	}
-	return &Converter{
+	c := &Converter{
 		target:              target,
 		gitMeta:             bc.GitMetadata,
 		platr:               opt.PlatformResolver,
@@ -131,7 +131,12 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		localWorkingDir:     filepath.Dir(bc.BuildFilePath),
 		containerFrontend:   opt.ContainerFrontend,
 		waitBlockStack:      []*waitBlock{opt.waitBlock},
-	}, nil
+	}
+
+	if c.opt.GlobalWaitBlockFtr {
+		c.ftrs.WaitBlock = true
+	}
+	return c, nil
 }
 
 // From applies the earthly FROM command.
@@ -495,9 +500,6 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		srcStateFactory := addIncludePathAndSharedKeyHint(c.buildContextFactory, srcs)
 		srcState = c.opt.LocalStateCache.getOrConstruct(srcStateFactory)
 	} else {
-		if c.ftrs.WaitBlock {
-			return fmt.Errorf("wait-block feature requires use-copy-include-patterns feature")
-		}
 		srcState = c.buildContextFactory.Construct()
 	}
 

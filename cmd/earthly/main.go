@@ -137,6 +137,7 @@ type cliFlags struct {
 	noSatellite               bool
 	userPermission            string
 	noBuildkitUpdate          bool
+	globalWaitEnd             bool // for feature-flipping builder.go code removal
 }
 
 type analyticsMetadata struct {

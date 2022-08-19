@@ -318,6 +318,13 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			Usage:       "Disallow usage of features that may create unrepeatable builds",
 			Destination: &app.strict,
 		},
+		&cli.BoolFlag{
+			Name:        "global-wait-end",
+			EnvVars:     []string{"EARTHLY_GLOBAL_WAIT_END"},
+			Usage:       "enables global wait-end code in place of builder code",
+			Destination: &app.globalWaitEnd,
+			Hidden:      true, // used to force code-coverage of future builder.go refactor (once we remove support for 0.6)
+		},
 	}
 }
 

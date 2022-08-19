@@ -277,17 +277,17 @@ jobs:
       - name: Execute wait-block test (Fork Only)
         run: ./tests/wait-block/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
-      - name: Execute with-docker test using wait-block override (Earthly Only)
+      - name: Execute +test using wait-block override (Earthly Only)
         run: |-
-          ./build/linux/amd64/earthly --ci -P --version-flag-overrides="wait-block,use-copy-include-patterns" \
+          ./build/linux/amd64/earthly --ci -P --global-wait-end \
               --build-arg DOCKERHUB_AUTH=true \
               --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
               --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
               --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-          ./tests/with-docker+all
+           +test --GLOBAL_WAIT_END=true
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Execute wait-block test (Fork Only)
-        run: ./build/linux/amd64/earthly --ci -P --version-flag-overrides="wait-block,use-copy-include-patterns" ./tests/with-docker+all
+      - name: Execute +test using wait-block override (Fork Only)
+        run: ./build/linux/amd64/earthly --ci -P --global-wait-end +test --GLOBAL_WAIT_END=true
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute local buildkit with mTLS test
         run: ./tests/remote-buildkit/remote-buildkit-test.sh
