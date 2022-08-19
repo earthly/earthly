@@ -24,7 +24,6 @@ func (c *client) InviteToOrg(ctx context.Context, invite *OrgInvitation) (string
 	u := "/api/v0/invitations"
 
 	req := &secretsapi.CreateInvitationRequest{
-		Name:       invite.Name,
 		OrgName:    invite.OrgName,
 		Email:      invite.Email,
 		Permission: invite.Permission,
