@@ -7,6 +7,13 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Fixed
 
 - Using `--remote-cache` on a target that contains only `BUILD` instructions caused a hang. [#1945](https://github.com/earthly/earthly/issues/1945)
+- Fixed WAIT/END related bug which prevent `WITH DOCKER --load` from building referenced target.
+- Images and artifacts which are output (or pushed), are now displayed in the final earthly output.
+
+### Changed
+
+- Removed warning stating that `WAIT/END code is experimental and may be incomplete` -- it is still experimental; however, it now has a higher degree
+  of test-coverage. It can be enabled with `VERSION --wait-block 0.6`.
 
 ## v0.6.22 - 2022-08-19
 
