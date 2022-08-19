@@ -59,8 +59,8 @@ func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
 		{
 			Name:        "member",
 			Aliases:     []string{"members"},
-			Usage:       "Add and modify organization members",
-			Description: "Add and modify organization members",
+			Usage:       "Manage organization members",
+			Description: "Manage organization members",
 			UsageText:   "earthly org [--org <organization-name>] members (ls|update|rm)",
 			Subcommands: []*cli.Command{
 				{
@@ -79,8 +79,9 @@ func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
 					Action:      app.actionOrgMemberUpdate,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
-							Name:  "permission",
-							Usage: "Update an organization member's permission.",
+							Name:        "permission",
+							Usage:       "Update an organization member's permission.",
+							Destination: &app.userPermission,
 						},
 					},
 				},
@@ -95,9 +96,9 @@ func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
 		},
 		{
 			Name:        "invite",
-			Usage:       "Invite accounts to your organization",
-			Description: "Invite accounts to your organization",
-			UsageText:   "earthly org [--org <organization-name>] invite <email> [--name <recipient-name>] [--permission <permission>] [--message <message>]",
+			Usage:       "Invite users",
+			Description: "Invite users",
+			UsageText:   "earthly org [--org <organization-name>] invite [--name <recipient-name>] [--permission <permission>] [--message <message>] <email>",
 			Action:      app.actionOrgInviteEmail,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
@@ -248,6 +249,8 @@ func (app *earthlyApp) actionOrgInviteAccept(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to accept invite")
 	}
 
+	app.console.Printf("Invite accepted!\n")
+
 	return nil
 }
 
@@ -371,8 +374,12 @@ func (app *earthlyApp) actionOrgMemberList(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionOrgMemberUpdate(cliCtx *cli.Context) error {
 	app.commandName = "orgMemberUpdate"
 
-	if cliCtx.NArg() != 2 {
-		return errors.New("member email and new permission required")
+	if cliCtx.NArg() < 1 {
+		return errors.New("member email required")
+	}
+
+	if cliCtx.NArg() > 1 {
+		return errors.New("too many arguments provided")
 	}
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)

@@ -240,13 +240,17 @@ Set up a whole custom git repository for a server called example.com, using a si
 			Subcommands: app.satelliteCmds(),
 		},
 		{
-			Name: "preview",
+			Name:        "preview",
+			Usage:       "Experimental commands that will likely appear in a future release.",
+			Description: "Experimental commands that will likely appear in a future release.",
+			UsageText:   "earthly preview (org|project|secret)",
 			Subcommands: []*cli.Command{
 				{
 					Name:        "org",
 					Aliases:     []string{"orgs"},
 					Usage:       "Earthly organization administration *experimental*",
 					Description: "Earthly organization administration *experimental*",
+					UsageText:   "earthly org (member|invite)",
 					Flags: []cli.Flag{
 						&cli.StringFlag{
 							Name:     "org",
@@ -260,8 +264,8 @@ Set up a whole custom git repository for a server called example.com, using a si
 				{
 					Name:        "project",
 					Aliases:     []string{"projects"},
-					Description: "Create and manage Earthly projects",
-					Usage:       "Create and manage Earthly projects",
+					Description: "Manage Earthly projects *experimental*",
+					Usage:       "Manage Earthly projects *experimental*",
 					UsageText:   "earthly project (ls|rm|create|member)",
 					Flags: []cli.Flag{
 						&cli.StringFlag{
