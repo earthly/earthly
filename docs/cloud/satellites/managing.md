@@ -126,3 +126,7 @@ earthly org invite /<org-name>/ <email>
 Note the slashes around the org name. Also, please note that **the user must have an account on Earthly before they can be invited**. (This is a temporary limitation which will be addressed in the future.)
 
 Once a user has been invited, you can forward them a link to the page [Using Satellites](./using.md) for them to get started.
+
+### Satellite IP address
+
+The source IP address of the satellite for all internet traffic is `35.160.176.56`. This can be used for granting access to private resources or to production environments.
