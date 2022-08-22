@@ -27,7 +27,7 @@ type shellFrontend struct {
 	urls *FrontendURLs
 }
 
-func (sf *shellFrontend) IsAvaliable(ctx context.Context) bool {
+func (sf *shellFrontend) IsAvailable(ctx context.Context) bool {
 	args := append(sf.globalCompatibilityArgs, "ps")
 	cmd := exec.CommandContext(ctx, sf.binaryName, args...)
 	err := cmd.Run()
