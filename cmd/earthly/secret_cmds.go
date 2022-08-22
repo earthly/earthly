@@ -117,7 +117,7 @@ func (app *earthlyApp) secretCmdsPreview() []*cli.Command {
 		{
 			Name:      "migrate",
 			Usage:     "Migrate existing secrets into the new project-based structure",
-			UsageText: "earthly [options] secret migrate --org <organization> --project <project> <source-organization>",
+			UsageText: "earthly [options] secret --org <organization> --project <project> migrate <source-organization>",
 			Action:    app.actionSecretsMigrate,
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
@@ -291,7 +291,12 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 	}
 
 	for _, secret := range secrets {
-		fmt.Println(secret.Path)
+		display := secret.Path
+		if !strings.HasPrefix(display, "/user") {
+			prefix := fmt.Sprintf("/%s/%s/", cliCtx.String("org"), cliCtx.String("project"))
+			display = strings.Replace(display, prefix, "", 1)
+		}
+		app.console.Printf(display)
 	}
 
 	return nil
@@ -322,7 +327,7 @@ func (app *earthlyApp) actionSecretsGetV2(cliCtx *cli.Context) error {
 		return errors.New("no secret found for that path")
 	}
 
-	fmt.Printf("%s", secrets[0].Value)
+	fmt.Print(secrets[0].Value)
 	if !app.disableNewLine {
 		fmt.Printf("\n")
 	}
@@ -446,6 +451,10 @@ func (app *earthlyApp) actionSecretPermsList(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to list permissions")
 	}
 
+	if len(perms) == 0 {
+		return nil
+	}
+
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintf(w, "User Email\tPermission\tCreated\n")
 	for _, perm := range perms {
@@ -460,7 +469,7 @@ func (app *earthlyApp) actionSecretPermsRemove(cliCtx *cli.Context) error {
 	app.commandName = "secretPermissionRemove"
 
 	if cliCtx.NArg() != 2 {
-		return errors.New("secret path and user ID are required")
+		return errors.New("secret path and user email are required")
 	}
 
 	path := cliCtx.Args().Get(0)
@@ -492,7 +501,7 @@ func (app *earthlyApp) actionSecretPermsSet(cliCtx *cli.Context) error {
 	app.commandName = "secretPermissionSet"
 
 	if cliCtx.NArg() != 3 {
-		return errors.New("secret path, user ID, and permission are required")
+		return errors.New("secret path, user email, and permission are required")
 	}
 
 	path := cliCtx.Args().Get(0)
