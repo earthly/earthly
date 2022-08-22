@@ -292,7 +292,7 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 
 	for _, secret := range secrets {
 		display := secret.Path
-		if !strings.HasPrefix(display, "/user") {
+		if !strings.HasPrefix(display, "/user/") {
 			prefix := fmt.Sprintf("/%s/%s/", cliCtx.String("org"), cliCtx.String("project"))
 			display = strings.TrimPrefix(display, prefix)
 		}
