@@ -12,7 +12,7 @@ require (
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/dustin/go-humanize v1.0.0
-	github.com/earthly/cloud-api v1.0.1-0.20220728160826-b477d75c55f6
+	github.com/earthly/cloud-api v1.0.1-0.20220819185746-bab168ecbbf9
 	github.com/elastic/go-sysinfo v1.7.1
 	github.com/fatih/color v1.9.0
 	github.com/golang/protobuf v1.5.2
@@ -44,6 +44,6 @@ replace (
 	github.com/docker/docker => github.com/docker/docker v20.10.3-0.20220414164044-61404de7df1a+incompatible
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20220818002838-fd74555d900a
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20220818191106-3b049bfd9c25
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20220719234708-392da7eebeb5
 )

@@ -19,17 +19,25 @@ type manifest struct {
 	platform  platutil.Platform
 }
 
-func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, fe containerutil.ContainerFrontend, parentImageName string, children []manifest) error {
+func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, fe containerutil.ContainerFrontend, parentImageName string, children []manifest, platr *platutil.Resolver) error {
 	if len(children) == 0 {
 		return errors.Errorf("no images in manifest list for %s", parentImageName)
 	}
-	// Check if any child has the platform as the default platform (use the first one if none found).
+	// Check if any child has the platform as the default platform
 	defaultChild := 0
+	foundPlatform := false
 	for i, child := range children {
-		if child.platform == platutil.DefaultPlatform {
+		if platr.PlatformEquals(child.platform, platutil.DefaultPlatform) {
 			defaultChild = i
+			foundPlatform = true
 			break
 		}
+	}
+	if !foundPlatform {
+		// fall back to using first defined platform (and display a warning)
+		console.Warnf(
+			"Failed to find default platform (%s) of multi-platform image %s; defaulting to the first platform type: %s\n",
+			platr.Materialize(platutil.DefaultPlatform).String(), parentImageName, children[defaultChild].platform)
 	}
 
 	var childImgs []string

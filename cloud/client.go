@@ -183,27 +183,24 @@ func (c *client) doCall(ctx context.Context, method, url string, opts ...request
 
 	var status int
 	var body string
-	var err error
+	var callErr error
 	duration := time.Millisecond * 100
 	for attempt := 0; attempt < maxAttempt; attempt++ {
-		status, body, err = c.doCallImp(ctx, r, method, url, opts...)
-
-		if err != nil && strings.Contains(err.Error(), "context canceled") {
-			// Some operations can be canceled gracefully, so we can signal this to higher-level functions.
-			// Note the actual error caught here is not an instance of context.Canceled,
-			// but is an error message that contains the HTTP call plus the string "context canceled".
-			return status, body, context.Canceled
-		}
-
-		if !shouldRetry(status, body, err, c.warnFunc) {
+		status, body, callErr = c.doCallImp(ctx, r, method, url, opts...)
+		retry, err := shouldRetry(status, body, callErr, c.warnFunc)
+		if err != nil {
 			return status, body, err
+		}
+		if !retry {
+			return status, body, nil
 		}
 
 		if status == http.StatusUnauthorized {
 			if !r.hasAuth || alreadyReAuthed {
 				return status, body, ErrUnauthorized
 			}
-			if err = c.Authenticate(ctx); err != nil {
+			err := c.Authenticate(ctx)
+			if err != nil {
 				return status, body, errors.Wrap(err, "auth credentials not valid")
 			}
 			alreadyReAuthed = true
@@ -217,12 +214,12 @@ func (c *client) doCall(ctx context.Context, method, url string, opts ...request
 		duration *= 2
 	}
 
-	return status, body, err
+	return status, body, callErr
 }
 
-func shouldRetry(status int, body string, err error, warnFunc func(string, ...interface{})) bool {
+func shouldRetry(status int, body string, callErr error, warnFunc func(string, ...interface{})) (bool, error) {
 	if status == http.StatusUnauthorized {
-		return true
+		return true, nil
 	}
 	if 500 <= status && status <= 599 {
 		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
@@ -231,18 +228,32 @@ func shouldRetry(status int, body string, err error, warnFunc func(string, ...in
 		} else {
 			warnFunc("retrying http request due to unexpected status code %v: %v", status, msg)
 		}
-		return true
+		return true, nil
 	}
-	if err != nil {
-		if errors.Cause(err) == ErrNoAuthorizedPublicKeys ||
-			errors.Cause(err) == ErrNoSSHAgent ||
-			strings.Contains(err.Error(), "failed to connect to ssh-agent") {
-			return false
-		}
-		warnFunc("retrying http request due to unexpected error %v", err)
-		return true
+	switch {
+	case callErr == nil:
+		return false, nil
+	case errors.Is(callErr, ErrNoAuthorizedPublicKeys):
+		return false, callErr
+	case errors.Is(callErr, ErrNoSSHAgent):
+		return false, callErr
+	case errors.Is(callErr, context.Canceled):
+		return false, callErr
+	case errors.Is(callErr, context.DeadlineExceeded):
+		return false, callErr
+	case strings.Contains(callErr.Error(), "failed to connect to ssh-agent"):
+		return false, callErr
+	case strings.Contains(callErr.Error(), "context canceled"):
+		// Note the actual error caught here is not an instance of context.Canceled,
+		// but is an error message that contains the HTTP call plus the string "context canceled".
+		return false, context.Canceled
+	case strings.Contains(callErr.Error(), "context deadline exceeded"):
+		// Similarly here.
+		return false, context.DeadlineExceeded
+	default:
+		warnFunc("retrying http request due to unexpected error %v", callErr)
+		return true, nil
 	}
-	return false
 }
 
 func (c *client) doCallImp(ctx context.Context, r request, method, url string, opts ...requestOpt) (int, string, error) {

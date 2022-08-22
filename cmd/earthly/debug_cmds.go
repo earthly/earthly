@@ -10,11 +10,12 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/dustin/go-humanize"
-	"github.com/earthly/earthly/ast"
-	"github.com/earthly/earthly/cloud"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+
+	"github.com/earthly/earthly/ast"
+	"github.com/earthly/earthly/cloud"
 )
 
 func (app *earthlyApp) debugCmds() []*cli.Command {
@@ -103,6 +104,7 @@ func (app *earthlyApp) actionDebugBuildkitInfo(cliCtx *cli.Context) error {
 	fmt.Printf("Buildkit revision: %s\n", info.BuildkitVersion.Revision)
 	fmt.Printf("Buildkit package: %s\n", info.BuildkitVersion.Package)
 	fmt.Printf("Num sessions: %d\n", info.NumSessions)
+	fmt.Printf("Seconds idle: %d\n", info.SecondsIdle)
 	return nil
 }
 
