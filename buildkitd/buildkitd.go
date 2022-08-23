@@ -594,6 +594,15 @@ func checkConnection(ctx context.Context, address string, opts ...client.ClientO
 			return
 		}
 		defer bkClient.Close()
+		err = bkClient.Reserve(ctxTimeout, 5*time.Second)
+		if err != nil {
+			s, ok := status.FromError(errors.Cause(err))
+			if ok && s.Code() != codes.Unimplemented {
+				mu.Lock()
+				connErr = err
+				mu.Unlock()
+			}
+		}
 		// Use ListWorkers for backwards compatibility. (Info is relatively new)
 		ws, err := bkClient.ListWorkers(ctxTimeout)
 		if err != nil {
