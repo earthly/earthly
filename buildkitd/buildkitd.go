@@ -597,7 +597,12 @@ func checkConnection(ctx context.Context, address string, opts ...client.ClientO
 		err = bkClient.Reserve(ctxTimeout, 5*time.Second)
 		if err != nil {
 			s, ok := status.FromError(errors.Cause(err))
-			if ok && s.Code() != codes.Unimplemented {
+			if !ok {
+				mu.Lock()
+				connErr = errors.New("unexpected error from buildkit reserve endpoint")
+				mu.Unlock()
+			}
+			if s.Code() != codes.Unimplemented {
 				mu.Lock()
 				connErr = err
 				mu.Unlock()
