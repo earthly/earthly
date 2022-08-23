@@ -84,7 +84,7 @@ func (app *earthlyApp) actionProjectList(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgName, err := projectOrgName(cliCtx.Context, app, cloudClient)
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func (app *earthlyApp) actionProjectRemove(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgName, err := projectOrgName(cliCtx.Context, app, cloudClient)
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func (app *earthlyApp) actionProjectCreate(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgName, err := projectOrgName(cliCtx.Context, app, cloudClient)
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func (app *earthlyApp) actionProjectMemberList(cliCtx *cli.Context) error {
 		return errors.New("project name is required")
 	}
 
-	orgName, err := projectOrgName(cliCtx.Context, app, cloudClient)
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -204,7 +204,7 @@ func (app *earthlyApp) actionProjectMemberRemove(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgName, err := projectOrgName(cliCtx.Context, app, cloudClient)
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -238,7 +238,7 @@ func (app *earthlyApp) actionProjectMemberAdd(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgName, err := projectOrgName(cliCtx.Context, app, cloudClient)
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -277,7 +277,7 @@ func (app *earthlyApp) actionProjectMemberUpdate(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgName, err := projectOrgName(cliCtx.Context, app, cloudClient)
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -305,7 +305,7 @@ func (app *earthlyApp) actionProjectMemberUpdate(cliCtx *cli.Context) error {
 }
 
 // projectOrgName returns the specified org or retrieves the default org from the API.
-func projectOrgName(ctx context.Context, app *earthlyApp, cloudClient cloud.Client) (string, error) {
+func (app *earthlyApp) projectOrgName(ctx context.Context, cloudClient cloud.Client) (string, error) {
 
 	if app.orgName != "" {
 		return app.orgName, nil
