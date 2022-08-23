@@ -594,6 +594,26 @@ func checkConnection(ctx context.Context, address string, opts ...client.ClientO
 			return
 		}
 		defer bkClient.Close()
+		err = bkClient.Reserve(ctxTimeout, 5*time.Second)
+		if err != nil {
+			s, ok := status.FromError(errors.Cause(err))
+			// Note that if err == codes.Unimplemented,
+			// we assume an older version of buildkit and continue to call ListWorkers.
+			switch {
+			case !ok:
+				mu.Lock()
+				connErr = errors.New("unexpected error from buildkit reserve endpoint")
+				mu.Unlock()
+			case s.Code() == codes.Unavailable:
+				mu.Lock()
+				connErr = errors.New("buildkit is currently shutting down")
+				mu.Unlock()
+			case s.Code() != codes.Unimplemented:
+				mu.Lock()
+				connErr = err
+				mu.Unlock()
+			}
+		}
 		// Use ListWorkers for backwards compatibility. (Info is relatively new)
 		ws, err := bkClient.ListWorkers(ctxTimeout)
 		if err != nil {
