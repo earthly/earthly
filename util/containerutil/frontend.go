@@ -16,7 +16,7 @@ import (
 type ContainerFrontend interface {
 	Scheme() string
 
-	IsAvaliable(ctx context.Context) bool
+	IsAvailable(ctx context.Context) bool
 	Config() *CurrentFrontend
 	Information(ctx context.Context) (*FrontendInfo, error)
 
@@ -92,7 +92,7 @@ func frontendIfAvaliable(ctx context.Context, feType string, cfg *FrontendConfig
 	if err != nil {
 		return nil, errors.Wrapf(err, "%s frontend failed to initalize", feType)
 	}
-	if !fe.IsAvaliable(ctx) {
+	if !fe.IsAvailable(ctx) {
 		return nil, fmt.Errorf("%s frontend not avaliable", feType)
 	}
 

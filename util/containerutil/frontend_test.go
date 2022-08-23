@@ -61,7 +61,7 @@ func TestFrontendScheme(t *testing.T) {
 	}
 }
 
-func TestFrontendIsAvaliable(t *testing.T) {
+func TestFrontendIsAvailable(t *testing.T) {
 	testCases := []struct {
 		binary  string
 		newFunc func(context.Context, *containerutil.FrontendConfig) (containerutil.ContainerFrontend, error)
@@ -77,7 +77,7 @@ func TestFrontendIsAvaliable(t *testing.T) {
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
 			assert.NoError(t, err)
 
-			avaliable := fe.IsAvaliable(ctx)
+			avaliable := fe.IsAvailable(ctx)
 			assert.True(t, avaliable)
 		})
 	}
@@ -586,7 +586,7 @@ func onlyIfBinaryIsInstalled(ctx context.Context, t *testing.T, binary string) {
 }
 
 func isBinaryInstalled(ctx context.Context, binary string) bool {
-	// This is almost a re-implementation of IsAvaliable... but relying on that presupposes the
+	// This is almost a re-implementation of IsAvailable... but relying on that presupposes the
 	// binary exists to allow the New**** to run (it gathers info from the CLI).
 	cmd := exec.CommandContext(ctx, binary, "--help")
 	return cmd.Run() == nil
