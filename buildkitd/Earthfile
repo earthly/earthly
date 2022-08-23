@@ -12,7 +12,7 @@ buildkitd:
             ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
         END
     ELSE
-        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:589427304182d42b8214d07dab4f9264db141922+build
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:8f5d2d7e8db1d2a056e66dadc67aef5965ee811c+build
     END
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
