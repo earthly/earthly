@@ -793,7 +793,7 @@ func isContainerRunning(ctx context.Context, containerName string, fe containeru
 }
 
 func isDockerAvailable(ctx context.Context, fe containerutil.ContainerFrontend) bool {
-	return fe.IsAvaliable(ctx)
+	return fe.IsAvailable(ctx)
 }
 
 func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, workerInfo *client.WorkerInfo, earthlyVersion string, isLocal bool) {
