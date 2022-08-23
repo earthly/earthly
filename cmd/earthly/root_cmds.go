@@ -269,10 +269,18 @@ Set up a whole custom git repository for a server called example.com, using a si
 					UsageText:   "earthly project (ls|rm|create|member)",
 					Flags: []cli.Flag{
 						&cli.StringFlag{
-							Name:     "org",
-							EnvVars:  []string{"EARTHLY_ORG"},
-							Usage:    "The name of the organization to which the project belongs. Required when user is a member of multiple.",
-							Required: false,
+							Name:        "org",
+							EnvVars:     []string{"EARTHLY_ORG"},
+							Usage:       "The name of the organization to which the project belongs. Required when user is a member of multiple.",
+							Required:    false,
+							Destination: &app.orgName,
+						},
+						&cli.StringFlag{
+							Name:        "project",
+							EnvVars:     []string{"EARTHLY_PROJECT"},
+							Usage:       "The project to act on.",
+							Required:    false,
+							Destination: &app.projectName,
 						},
 					},
 					Subcommands: app.projectCmds(),

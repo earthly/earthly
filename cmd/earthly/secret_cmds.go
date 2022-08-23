@@ -278,7 +278,7 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 		path = cliCtx.Args().Get(0)
 	}
 
-	path = fullSecretPath(cliCtx, path)
+	path = app.fullSecretPath(path)
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -316,7 +316,7 @@ func (app *earthlyApp) actionSecretsGetV2(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	path = fullSecretPath(cliCtx, path)
+	path = app.fullSecretPath(path)
 
 	secrets, err := cloudClient.ListSecrets(cliCtx.Context, path)
 	if err != nil {
@@ -349,7 +349,7 @@ func (app *earthlyApp) actionSecretsRemoveV2(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	path = fullSecretPath(cliCtx, path)
+	path = app.fullSecretPath(path)
 
 	err = cloudClient.RemoveSecret(cliCtx.Context, path)
 	if err != nil {
@@ -399,7 +399,7 @@ func (app *earthlyApp) actionSecretsSetV2(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	path = fullSecretPath(cliCtx, path)
+	path = app.fullSecretPath(path)
 
 	err = cloudClient.SetSecret(cliCtx.Context, path, []byte(value))
 	if err != nil {
@@ -409,7 +409,7 @@ func (app *earthlyApp) actionSecretsSetV2(cliCtx *cli.Context) error {
 	return nil
 }
 
-func fullSecretPath(cliCtx *cli.Context, path string) string {
+func (app *earthlyApp) fullSecretPath(path string) string {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
@@ -421,10 +421,7 @@ func fullSecretPath(cliCtx *cli.Context, path string) string {
 	// TODO: These values will eventually come from the new PROJECT command (if
 	// one is present). For now, we can use the flag/env values as a temporary
 	// measure.
-	org := cliCtx.String("org")
-	project := cliCtx.String("project")
-
-	return fmt.Sprintf("/%s/%s%s", org, project, path)
+	return fmt.Sprintf("/%s/%s%s", app.orgName, app.projectName, path)
 }
 
 func (app *earthlyApp) actionSecretPermsList(cliCtx *cli.Context) error {
@@ -435,7 +432,7 @@ func (app *earthlyApp) actionSecretPermsList(cliCtx *cli.Context) error {
 	}
 
 	path := cliCtx.Args().Get(0)
-	path = fullSecretPath(cliCtx, path)
+	path = app.fullSecretPath(path)
 
 	if strings.Contains(path, "/user") {
 		return errors.New("user secrets don't support permissions")
@@ -473,7 +470,7 @@ func (app *earthlyApp) actionSecretPermsRemove(cliCtx *cli.Context) error {
 	}
 
 	path := cliCtx.Args().Get(0)
-	path = fullSecretPath(cliCtx, path)
+	path = app.fullSecretPath(path)
 
 	if strings.Contains(path, "/user") {
 		return errors.New("user secrets don't support permissions")
@@ -505,7 +502,7 @@ func (app *earthlyApp) actionSecretPermsSet(cliCtx *cli.Context) error {
 	}
 
 	path := cliCtx.Args().Get(0)
-	path = fullSecretPath(cliCtx, path)
+	path = app.fullSecretPath(path)
 
 	if strings.Contains(path, "/user") {
 		return errors.New("user secrets don't support permissions")
