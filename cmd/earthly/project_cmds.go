@@ -38,8 +38,8 @@ func (app *earthlyApp) projectCmds() []*cli.Command {
 		{
 			Name:        "member",
 			Aliases:     []string{"members"},
-			Usage:       "Create, list, and edit project members",
-			Description: "Create, list, and edit project members",
+			Usage:       "Manage project members",
+			Description: "Manage project members",
 			UsageText:   "earthly project member (ls|rm|add|update)",
 			Subcommands: []*cli.Command{
 				{
