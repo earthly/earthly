@@ -108,6 +108,13 @@ jobs:
     steps:
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v3
+      - name: Set up QEMU (Forks Only)
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
       - name: Configure Satellites (Earthly Only)
         run: earthly satellite select core-examples
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
