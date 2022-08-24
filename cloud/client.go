@@ -243,13 +243,6 @@ func shouldRetry(status int, body string, callErr error, warnFunc func(string, .
 		return false, callErr
 	case strings.Contains(callErr.Error(), "failed to connect to ssh-agent"):
 		return false, callErr
-	case strings.Contains(callErr.Error(), "context canceled"):
-		// Note the actual error caught here is not an instance of context.Canceled,
-		// but is an error message that contains the HTTP call plus the string "context canceled".
-		return false, context.Canceled
-	case strings.Contains(callErr.Error(), "context deadline exceeded"):
-		// Similarly here.
-		return false, context.DeadlineExceeded
 	default:
 		warnFunc("retrying http request due to unexpected error %v", callErr)
 		return true, nil
