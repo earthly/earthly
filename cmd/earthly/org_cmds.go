@@ -266,7 +266,7 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgName, err := projectOrgName(cliCtx, cloudClient)
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -343,7 +343,7 @@ func (app *earthlyApp) actionOrgMemberList(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgName, err := projectOrgName(cliCtx, cloudClient)
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -378,7 +378,7 @@ func (app *earthlyApp) actionOrgMemberUpdate(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgName, err := projectOrgName(cliCtx, cloudClient)
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -414,7 +414,7 @@ func (app *earthlyApp) actionOrgMemberRemove(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgName, err := projectOrgName(cliCtx, cloudClient)
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
