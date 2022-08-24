@@ -25,7 +25,7 @@ docker:
 release-tag:
     FROM golang:1.17-alpine
     RUN go install github.com/maykonlf/semver-cli/cmd/semver@v1.0.2
-    COPY .semver.yatwo.
+    COPY .semver.yaml .
     RUN semver get release > version
     SAVE ARTIFACT version
 
