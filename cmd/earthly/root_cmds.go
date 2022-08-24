@@ -234,7 +234,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 					EnvVars:     []string{"EARTHLY_ORG"},
 					Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
 					Required:    false,
-					Destination: &app.satelliteOrg,
+					Destination: &app.orgName,
 				},
 			},
 			Subcommands: app.satelliteCmds(),
