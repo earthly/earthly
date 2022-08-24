@@ -133,7 +133,6 @@ type cliFlags struct {
 	containerFrontend         containerutil.ContainerFrontend
 	logSharing                bool
 	satelliteName             string
-	satelliteOrg              string
 	noSatellite               bool
 	userPermission            string
 	noBuildkitUpdate          bool
