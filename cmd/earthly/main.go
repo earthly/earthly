@@ -139,6 +139,8 @@ type cliFlags struct {
 	globalWaitEnd             bool // for feature-flipping builder.go code removal
 	projectName               string
 	orgName                   string
+	invitePermission          string
+	inviteMessage             string
 }
 
 type analyticsMetadata struct {

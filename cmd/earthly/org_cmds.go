@@ -102,19 +102,16 @@ func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
 			Action:      app.actionOrgInviteEmail,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
-					Name:     "permission",
-					Usage:    "The access level the new organization member will have. Can be one of: read, write, or admin.",
-					Required: false,
+					Name:        "permission",
+					Usage:       "The access level the new organization member will have. Can be one of: read, write, or admin.",
+					Required:    false,
+					Destination: &app.invitePermission,
 				},
 				&cli.StringFlag{
-					Name:     "message",
-					Usage:    "An optional message to send with the invitation email.",
-					Required: false,
-				},
-				&cli.StringFlag{
-					Name:     "name",
-					Usage:    "The invite recipient's name (optional).",
-					Required: false,
+					Name:        "message",
+					Usage:       "An optional message to send with the invitation email.",
+					Required:    false,
+					Destination: &app.inviteMessage,
 				},
 			},
 			Subcommands: []*cli.Command{
@@ -281,23 +278,32 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 		OrgName: orgName,
 	}
 
-	permission := cliCtx.String("permission")
+	permission := app.invitePermission
 	if permission == "" {
-		permission, err = promptInput(cliCtx.Context, "New user's permission (read, write, admin): ")
+		permission, err = promptInput(cliCtx.Context, "New user's permission [read/write/admin] (default=read): ")
 		if err != nil {
 			return errors.Wrap(err, "failed to read permission")
 		}
 	}
-	invite.Permission = permission
-
-	message := cliCtx.String("message")
-	if message == "" {
-		message, err = promptInput(cliCtx.Context, "Message to user: ")
-		if err != nil {
-			return errors.Wrap(err, "failed to read message")
-		}
+	permission = strings.ToLower(permission)
+	switch permission {
+	case "":
+		permission = "read"
+	case "r":
+		permission = "read"
+	case "w":
+		permission = "write"
+	case "a":
+		permission = "admin"
+	default:
 	}
-	invite.Message = message
+	switch permission {
+	case "read", "write", "admin":
+	default:
+		return fmt.Errorf("invalid permission %s", permission)
+	}
+	invite.Permission = permission
+	invite.Message = app.inviteMessage
 
 	_, err = cloudClient.InviteToOrg(cliCtx.Context, invite)
 	if err != nil {
