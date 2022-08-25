@@ -297,6 +297,11 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 		permission = "admin"
 	default:
 	}
+	switch permission {
+	case "read", "write", "admin":
+	default:
+		return fmt.Errorf("invalid permission %s", permission)
+	}
 	invite.Permission = permission
 	invite.Message = app.inviteMessage
 
