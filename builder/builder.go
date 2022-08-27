@@ -446,7 +446,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	if opt.PrintPhases {
 		b.opt.Console.PrintPhaseHeader(PhasePush, !opt.Push, "")
 		if !opt.Push {
-			b.opt.Console.Printf("To enable pushing use `earthly --push ...`.\n")
+			b.opt.Console.Printf("To enable pushing use earthly --push\n")
 		}
 	}
 	if opt.Push && opt.OnlyArtifact == nil && !opt.OnlyFinalTargetImages {
