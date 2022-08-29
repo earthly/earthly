@@ -580,3 +580,24 @@ examples2:
 license:
     COPY LICENSE ./
     SAVE ARTIFACT LICENSE
+
+# This target is to help keep all node package-lock.json files up to date
+npm-update-all:
+    FROM node:16.16.0-alpine3.15
+    COPY . /code
+    WORKDIR /code
+    FOR nodepath IN \
+            contrib/earthfile-syntax-highlighting \
+            examples/cache-command/npm \
+            examples/js \
+            examples/react \
+            examples/ruby-on-rails \
+            examples/tutorial/js/part3 \
+            examples/tutorial/js/part4 \
+            examples/tutorial/js/part5/services/service-one \
+            examples/tutorial/js/part6/api \
+            examples/tutorial/js/part6/app \
+            tests/remote-cache/test2
+        RUN cd $nodepath && npm update
+        SAVE ARTIFACT --if-exists $nodepath/package-lock.json AS LOCAL $nodepath/package-lock.json
+    END
