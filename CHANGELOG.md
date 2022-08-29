@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Fixed
+
+- Using `--remote-cache` on a target that contains only `BUILD` instructions caused a hang. [#1945](https://github.com/earthly/earthly/issues/1945)
+
 ## v0.6.22 - 2022-08-19
 
 ### Added
