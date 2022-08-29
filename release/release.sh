@@ -106,7 +106,7 @@ if [ "$existing_release" != "null" ]; then
 fi
 
 PUSH_LATEST_TAG="true"
-if [ "$PRERELEASE" != "true" ] || [ "$PRODUCTION_RELEASE" != "true" ]; then
+if [ "$PRERELEASE" = "true" ] || [ "$PRODUCTION_RELEASE" != "true" ]; then
     PUSH_LATEST_TAG="false"
 fi
 
