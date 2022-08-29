@@ -1,4 +1,4 @@
-package builder
+package dockerutil
 
 import (
 	"context"
@@ -14,12 +14,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-type manifest struct {
-	imageName string
-	platform  platutil.Platform
+// Manifest contains docker manifest data
+type Manifest struct {
+	ImageName string
+	Platform  platutil.Platform
 }
 
-func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, fe containerutil.ContainerFrontend, parentImageName string, children []manifest, platr *platutil.Resolver) error {
+// LoadDockerManifest loads docker manifests
+func LoadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, fe containerutil.ContainerFrontend, parentImageName string, children []Manifest, platr *platutil.Resolver) error {
 	if len(children) == 0 {
 		return errors.Errorf("no images in manifest list for %s", parentImageName)
 	}
@@ -27,7 +29,7 @@ func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, 
 	defaultChild := 0
 	foundPlatform := false
 	for i, child := range children {
-		if platr.PlatformEquals(child.platform, platutil.DefaultPlatform) {
+		if platr.PlatformEquals(child.Platform, platutil.DefaultPlatform) {
 			defaultChild = i
 			foundPlatform = true
 			break
@@ -37,15 +39,15 @@ func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, 
 		// fall back to using first defined platform (and display a warning)
 		console.Warnf(
 			"Failed to find default platform (%s) of multi-platform image %s; defaulting to the first platform type: %s\n",
-			platr.Materialize(platutil.DefaultPlatform).String(), parentImageName, children[defaultChild].platform)
+			platr.Materialize(platutil.DefaultPlatform).String(), parentImageName, children[defaultChild].Platform)
 	}
 
 	var childImgs []string
 	for i, child := range children {
 		if i == defaultChild {
-			childImgs = append(childImgs, fmt.Sprintf("%s (=%s)", child.imageName, parentImageName))
+			childImgs = append(childImgs, fmt.Sprintf("%s (=%s)", child.ImageName, parentImageName))
 		} else {
-			childImgs = append(childImgs, child.imageName)
+			childImgs = append(childImgs, child.ImageName)
 		}
 	}
 	const noteDetail = "Note that when pushing a multi-platform image, " +
@@ -56,7 +58,7 @@ func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, 
 		parentImageName, strings.Join(childImgs, "\n\t"), noteDetail)
 
 	err := fe.ImageTag(ctx, containerutil.ImageTag{
-		SourceRef: children[defaultChild].imageName,
+		SourceRef: children[defaultChild].ImageName,
 		TargetRef: parentImageName,
 	})
 	if err != nil {
@@ -65,7 +67,8 @@ func loadDockerManifest(ctx context.Context, console conslogging.ConsoleLogger, 
 	return nil
 }
 
-func loadDockerTar(ctx context.Context, fe containerutil.ContainerFrontend, r io.ReadCloser) error {
+// LoadDockerTar loads a docker image via a tar
+func LoadDockerTar(ctx context.Context, fe containerutil.ContainerFrontend, r io.ReadCloser) error {
 	err := fe.ImageLoad(ctx, r)
 	if err != nil {
 		return errors.Wrapf(err, "load tar")
@@ -73,7 +76,8 @@ func loadDockerTar(ctx context.Context, fe containerutil.ContainerFrontend, r io
 	return nil
 }
 
-func dockerPullLocalImages(ctx context.Context, fe containerutil.ContainerFrontend, localRegistryAddr string, pullMap map[string]string) error {
+// DockerPullLocalImages pulls a docker image from a local registry
+func DockerPullLocalImages(ctx context.Context, fe containerutil.ContainerFrontend, localRegistryAddr string, pullMap map[string]string) error {
 	eg, ctx := errgroup.WithContext(ctx)
 	for pullName, finalName := range pullMap {
 		pn := pullName

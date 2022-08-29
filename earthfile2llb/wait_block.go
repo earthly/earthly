@@ -9,6 +9,7 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/dockerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
@@ -198,16 +199,19 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 				if err != nil {
 					return err
 				}
-				if item.c.opt.UseLocalRegistry {
-					localRegPullID := pullPingMap.Insert(sessionID, platformImgName)
-					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
-				} else {
-					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
+				if !item.c.opt.UseLocalRegistry {
+					return errors.Errorf(
+						"the --uselocalregistry feature must also be enabled in order to use multi-platform images in combination with the --wait-block feature")
 				}
+				localRegPullID := pullPingMap.Insert(sessionID, item.si.DockerTag, &dockerutil.Manifest{
+					ImageName: platformImgName,
+					Platform:  item.si.Platform,
+				})
+				gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 				refID++
 			} else {
 				if item.c.opt.UseLocalRegistry {
-					localRegPullID := pullPingMap.Insert(sessionID, item.si.DockerTag)
+					localRegPullID := pullPingMap.Insert(sessionID, item.si.DockerTag, nil)
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 				} else {
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
