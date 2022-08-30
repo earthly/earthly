@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/earthly/earthly/buildcontext"
@@ -388,7 +389,38 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		return gwCrafter.GetResult(), nil
 	}
-	onImage := func(childCtx context.Context, eg *errgroup.Group, imageName string) (io.WriteCloser, error) {
+	exportedTarImageManifestKeys := map[string]struct{}{}
+	var exportedImagesMutex sync.Mutex
+	onImageDone := func(manifestKey, waitFor string) error {
+		exportedImagesMutex.Lock()
+		defer exportedImagesMutex.Unlock()
+		exportedTarImageManifestKeys[manifestKey] = struct{}{}
+		manifests := make(map[string][]dockerutil.Manifest)
+		for _, manifestKey := range strings.Split(waitFor, " ") {
+			_, ok := exportedTarImageManifestKeys[manifestKey]
+			if !ok {
+				return nil
+			}
+			// pullping map is abused here as a way to pass in manifest data from wait_block.go
+			// even though it's referenced via a docker tar export (rather than onPull)
+			manifest, dockerTag, ok := pullPingMap.Get(manifestKey)
+			if !ok {
+				return fmt.Errorf("failed to lookup %s in onImageDone", manifestKey)
+			}
+			manifests[dockerTag] = append(manifests[dockerTag], *manifest)
+		}
+		for parentImageName, children := range manifests {
+			if opt.PlatformResolver == nil {
+				panic("platform resolver is nil")
+			}
+			err := dockerutil.LoadDockerManifest(ctx, b.opt.Console, b.opt.ContainerFrontend, parentImageName, children, opt.PlatformResolver)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	onImage := func(childCtx context.Context, eg *errgroup.Group, imageName, waitFor, manifestKey string) (io.WriteCloser, error) {
 		pipeR, pipeW := io.Pipe()
 		eg.Go(func() error {
 			defer pipeR.Close()
@@ -396,7 +428,10 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			if err != nil {
 				return errors.Wrapf(err, "load docker tar")
 			}
-			return nil
+			if manifestKey == "" {
+				return nil
+			}
+			return onImageDone(manifestKey, waitFor)
 		})
 		return pipeW, nil
 	}
