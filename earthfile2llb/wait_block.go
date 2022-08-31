@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/dockerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
@@ -146,6 +148,10 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 
 	gwCrafter := gatewaycrafter.NewGatewayCrafter()
 
+	// these are used to pass manifest data to the onImage function in builder.go; this only applies to non-local-registry exports (e.g. satellites)
+	var tarImagesInWaitBlockRefPrefixes []string
+	var tarImagesInWaitBlock []string
+
 	refID := 0
 	for _, item := range imageWaitItems {
 		sessionID := item.c.opt.GwClient.BuildOpts().SessionID
@@ -198,22 +204,39 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 				if err != nil {
 					return err
 				}
+
+				localRegPullID := pullPingMap.Insert(sessionID, item.si.DockerTag, &dockerutil.Manifest{
+					ImageName: platformImgName,
+					Platform:  item.si.Platform,
+				})
+
 				if item.c.opt.UseLocalRegistry {
-					localRegPullID := pullPingMap.Insert(sessionID, platformImgName)
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 				} else {
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
+
+					// the tar exporter abuses the pullping map as a way to pass manifest data to the onImage function in builder.go
+					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-manifest-key", refPrefix), []byte(localRegPullID))
+					tarImagesInWaitBlockRefPrefixes = append(tarImagesInWaitBlockRefPrefixes, refPrefix)
+					tarImagesInWaitBlock = append(tarImagesInWaitBlock, localRegPullID)
 				}
 				refID++
 			} else {
 				if item.c.opt.UseLocalRegistry {
-					localRegPullID := pullPingMap.Insert(sessionID, item.si.DockerTag)
+					localRegPullID := pullPingMap.Insert(sessionID, item.si.DockerTag, nil)
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 				} else {
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
 				}
 			}
 
+		}
+	}
+	if len(tarImagesInWaitBlockRefPrefixes) != 0 {
+		waitFor := strings.Join(tarImagesInWaitBlock, " ")
+		// the wait-for entry is used to know when all multiplatform images have been exported, thus making it safe to load manifests
+		for _, refPrefix := range tarImagesInWaitBlockRefPrefixes {
+			gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-wait-for", refPrefix), []byte(waitFor))
 		}
 	}
 

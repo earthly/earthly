@@ -1,18 +1,18 @@
 VERSION --wait-block 0.6
 
-myimg-amd64:
+earthly-multiplatform-wait-test-amd64:
     FROM --platform=linux/amd64 alpine:3.15
-    RUN echo amd64 > /contrived-platform-data
+    RUN echo x86_64 > /contrived-platform-data
     ARG --required REGISTRY
     ARG --required tag
-    SAVE IMAGE $REGISTRY/myuser/myimg:$tag
+    SAVE IMAGE $REGISTRY/myuser/earthly-multiplatform-wait-test:$tag
 
-myimg-arm64:
+earthly-multiplatform-wait-test-arm64:
     FROM --platform=linux/arm64 alpine:3.15
-    RUN echo arm64 > /contrived-platform-data
+    RUN echo aarch64 > /contrived-platform-data
     ARG --required REGISTRY
     ARG --required tag
-    SAVE IMAGE $REGISTRY/myuser/myimg:$tag
+    SAVE IMAGE $REGISTRY/myuser/earthly-multiplatform-wait-test:$tag
 
 deps:
     FROM alpine:3.15
@@ -22,23 +22,28 @@ check-tag-does-not-exist-in-registry:
     FROM +deps
     ARG --required REGISTRY
     ARG --required tag
-    RUN curl -k "https://$REGISTRY/v2/myuser/myimg/manifests/$tag" > output && \
+    RUN curl -k "https://$REGISTRY/v2/myuser/earthly-multiplatform-wait-test/manifests/$tag" > output && \
         test "$(cat output | jq -r .errors[0].code)" = "MANIFEST_UNKNOWN" && echo "verified $tag was not pushed"
 
 check-tag-exists-locally:
     LOCALLY
     ARG --required REGISTRY
     ARG --required tag
-    #RUN docker images "$REGISTRY/myuser/myimg:$tag" | grep "$tag"
-    RUN docker images | grep "${tag}_linux_amd64"
-    RUN docker images | grep "${tag}_linux_arm64"
+
+    RUN docker images | grep -w "${tag}"
+    RUN docker images | grep -w "${tag}_linux_amd64"
+    RUN docker images | grep -w "${tag}_linux_arm64"
+
+    RUN test "$(docker run --rm "$REGISTRY/myuser/earthly-multiplatform-wait-test:$tag" cat /contrived-platform-data)" = "$(uname -m)"
+    RUN test "$(docker run --rm "$REGISTRY/myuser/earthly-multiplatform-wait-test:${tag}_linux_amd64" cat /contrived-platform-data)" = "x86_64"
+    RUN test "$(docker run --rm "$REGISTRY/myuser/earthly-multiplatform-wait-test:${tag}_linux_arm64" cat /contrived-platform-data)" = "aarch64"
 
 test:
     ARG --required REGISTRY
     ARG --required tag
     WAIT
-        BUILD +myimg-amd64 --REGISTRY=$REGISTRY --tag=$tag
-        BUILD +myimg-arm64 --REGISTRY=$REGISTRY --tag=$tag
+        BUILD +earthly-multiplatform-wait-test-amd64 --REGISTRY=$REGISTRY --tag=$tag
+        BUILD +earthly-multiplatform-wait-test-arm64 --REGISTRY=$REGISTRY --tag=$tag
     END
     BUILD +check-tag-does-not-exist-in-registry --REGISTRY=$REGISTRY --tag=$tag
     BUILD +check-tag-exists-locally --REGISTRY=$REGISTRY --tag=$tag

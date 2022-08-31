@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/earthly/earthly/buildcontext"
@@ -17,6 +18,7 @@ import (
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
+	"github.com/earthly/earthly/util/dockerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/gwclientlogger"
 	"github.com/earthly/earthly/util/llbutil"
@@ -135,9 +137,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	var (
 		sharedLocalStateCache  = earthfile2llb.NewSharedLocalStateCache()
 		featureFlagOverrides   = b.opt.FeatureFlagOverrides
-		manifestLists          = make(map[string][]manifest) // parent image -> child images
-		platformImgNames       = make(map[string]bool)       // ensure that these are unique
-		singPlatImgNames       = make(map[string]bool)       // ensure that these are unique
+		manifestLists          = make(map[string][]dockerutil.Manifest) // parent image -> child images
+		platformImgNames       = make(map[string]bool)                  // ensure that these are unique
+		singPlatImgNames       = make(map[string]bool)                  // ensure that these are unique
 		pullPingMap            = gatewaycrafter.NewPullPingMap()
 		localArtifactWhiteList = gatewaycrafter.NewLocalArtifactWhiteList()
 
@@ -284,7 +286,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						}
 						singPlatImgNames[saveImage.DockerTag] = true
 					}
-					localRegPullID := pullPingMap.Insert(gwClient.BuildOpts().SessionID, saveImage.DockerTag)
+					localRegPullID := pullPingMap.Insert(gwClient.BuildOpts().SessionID, saveImage.DockerTag, nil)
 					refPrefix, err := gwCrafter.AddPushImageEntry(ref, imageIndex, saveImage.DockerTag, shouldPush, saveImage.InsecurePush, saveImage.Image, nil)
 					if err != nil {
 						return nil, err
@@ -335,7 +337,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						}
 						imageIndex++
 
-						localRegPullID := pullPingMap.Insert(gwClient.BuildOpts().SessionID, platformImgName)
+						localRegPullID := pullPingMap.Insert(gwClient.BuildOpts().SessionID, platformImgName, nil)
 						if b.opt.LocalRegistryAddr != "" {
 							gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 						} else {
@@ -343,9 +345,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						}
 
 						manifestLists[saveImage.DockerTag] = append(
-							manifestLists[saveImage.DockerTag], manifest{
-								imageName: platformImgName,
-								platform:  resolvedPlat,
+							manifestLists[saveImage.DockerTag], dockerutil.Manifest{
+								ImageName: platformImgName,
+								Platform:  resolvedPlat,
 							})
 					}
 				}
@@ -387,15 +389,49 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		return gwCrafter.GetResult(), nil
 	}
-	onImage := func(childCtx context.Context, eg *errgroup.Group, imageName string) (io.WriteCloser, error) {
+	exportedTarImageManifestKeys := map[string]struct{}{}
+	var exportedImagesMutex sync.Mutex
+	onImageDone := func(manifestKey, waitFor string) error {
+		exportedImagesMutex.Lock()
+		defer exportedImagesMutex.Unlock()
+		exportedTarImageManifestKeys[manifestKey] = struct{}{}
+		manifests := make(map[string][]dockerutil.Manifest)
+		for _, manifestKey := range strings.Split(waitFor, " ") {
+			_, ok := exportedTarImageManifestKeys[manifestKey]
+			if !ok {
+				return nil
+			}
+			// pullping map is abused here as a way to pass in manifest data from wait_block.go
+			// even though it's referenced via a docker tar export (rather than onPull)
+			manifest, dockerTag, ok := pullPingMap.Get(manifestKey)
+			if !ok {
+				return fmt.Errorf("failed to lookup %s in onImageDone", manifestKey)
+			}
+			manifests[dockerTag] = append(manifests[dockerTag], *manifest)
+		}
+		for parentImageName, children := range manifests {
+			if opt.PlatformResolver == nil {
+				panic("platform resolver is nil")
+			}
+			err := dockerutil.LoadDockerManifest(ctx, b.opt.Console, b.opt.ContainerFrontend, parentImageName, children, opt.PlatformResolver)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	onImage := func(childCtx context.Context, eg *errgroup.Group, imageName, waitFor, manifestKey string) (io.WriteCloser, error) {
 		pipeR, pipeW := io.Pipe()
 		eg.Go(func() error {
 			defer pipeR.Close()
-			err := loadDockerTar(childCtx, b.opt.ContainerFrontend, pipeR)
+			err := dockerutil.LoadDockerTar(childCtx, b.opt.ContainerFrontend, pipeR)
 			if err != nil {
 				return errors.Wrapf(err, "load docker tar")
 			}
-			return nil
+			if manifestKey == "" {
+				return nil
+			}
+			return onImageDone(manifestKey, waitFor)
 		})
 		return pipeW, nil
 	}
@@ -421,15 +457,34 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		if b.opt.LocalRegistryAddr == "" {
 			return nil
 		}
+		manifests := make(map[string][]dockerutil.Manifest)
 		pullMap := make(map[string]string)
 		for _, imgToPull := range imagesToPull {
-			finalName, ok := pullPingMap.Get(imgToPull)
+			manifest, dockerTag, ok := pullPingMap.Get(imgToPull)
 			if !ok {
 				return errors.Errorf("unrecognized image to pull %s", imgToPull)
 			}
-			pullMap[imgToPull] = finalName
+			if manifest != nil {
+				manifests[dockerTag] = append(manifests[dockerTag], *manifest)
+				pullMap[imgToPull] = manifest.ImageName
+			} else {
+				pullMap[imgToPull] = dockerTag
+			}
 		}
-		return dockerPullLocalImages(childCtx, b.opt.ContainerFrontend, b.opt.LocalRegistryAddr, pullMap)
+		err := dockerutil.DockerPullLocalImages(childCtx, b.opt.ContainerFrontend, b.opt.LocalRegistryAddr, pullMap)
+		if err != nil {
+			return err
+		}
+		for parentImageName, children := range manifests {
+			if opt.PlatformResolver == nil {
+				panic("platform resolver is nil")
+			}
+			err = dockerutil.LoadDockerManifest(ctx, b.opt.Console, b.opt.ContainerFrontend, parentImageName, children, opt.PlatformResolver)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 	if opt.PrintPhases {
 		b.opt.Console.PrintPhaseHeader(PhaseBuild, false, "")
@@ -605,7 +660,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	outputConsole.Flush()
 
 	for parentImageName, children := range manifestLists {
-		err = loadDockerManifest(ctx, b.opt.Console, b.opt.ContainerFrontend, parentImageName, children, opt.PlatformResolver)
+		err = dockerutil.LoadDockerManifest(ctx, b.opt.Console, b.opt.ContainerFrontend, parentImageName, children, opt.PlatformResolver)
 		if err != nil {
 			return nil, err
 		}
