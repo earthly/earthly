@@ -35,18 +35,21 @@ if ! cat multi_output | grep "Did not push image earthly/sap:after-push"; then
     exit 1
 fi
 
-if ! cat multi_output | grep "Did not output image earthly/sap:after-push"; then
-    echo "Invalid push text (expected: Did not output image earthly/sap:after-push)"
-    cat multi_output
-    exit 1
-fi
-
 docker images --format "{{.Repository}}:{{.Tag}}" | grep "earthly/sap:" > multi_images
 
-if cat multi_images | grep "earthly/sap:after-push"; then
-    echo "Saved invalid image"
-    docker images --format "{{.Repository}}:{{.Tag}}" | grep "sap:"
-    exit 1
+if echo "$EARTHLY_VERSION_FLAG_OVERRIDES" | grep "wait-block" >/dev/null; then
+    echo "skipping non-output after push test; --wait-block feature does not impose such a limitation"
+else
+    if ! cat multi_output | grep "Did not output image earthly/sap:after-push"; then
+        echo "Invalid push text (expected: Did not output image earthly/sap:after-push)"
+        cat multi_output
+        exit 1
+    fi
+    if cat multi_images | grep "earthly/sap:after-push"; then
+        echo "Saved invalid image"
+        docker images --format "{{.Repository}}:{{.Tag}}" | grep "sap:"
+        exit 1
+    fi
 fi
 
 if  ! cat multi_images | grep -q "earthly/sap:empty" || \
