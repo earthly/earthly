@@ -4,7 +4,6 @@ This image contains `buildkit` with some Earthly-specific setup. This is what Ea
 
 ## Tags
 
-* `prerelease`
 * `v0.6.22`, `latest`
 * `v0.6.21`
 * `v0.6.20`

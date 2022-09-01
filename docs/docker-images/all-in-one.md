@@ -2,7 +2,6 @@ This image contains `earthly`, `buildkit`, and some extra configuration to enabl
 
 ## Tags
 
-* `prerelease`
 * `v0.6.22`, `latest`
 * `v0.6.21`
 * `v0.6.20`
