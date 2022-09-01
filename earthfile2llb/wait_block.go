@@ -214,8 +214,6 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(exportCoordinatorImageID))
 				} else {
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
-
-					// the tar exporter abuses the pullping map as a way to pass manifest data to the onImage function in builder.go
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-manifest-key", refPrefix), []byte(exportCoordinatorImageID))
 					tarImagesInWaitBlockRefPrefixes = append(tarImagesInWaitBlockRefPrefixes, refPrefix)
 					tarImagesInWaitBlock = append(tarImagesInWaitBlock, exportCoordinatorImageID)
@@ -229,7 +227,7 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
 				}
 			}
-
+			exportCoordinator.AddLocalOutputSummary(item.c.target.String(), item.si.DockerTag, item.c.mts.Final.ID)
 		}
 	}
 	if len(tarImagesInWaitBlockRefPrefixes) != 0 {
@@ -307,6 +305,7 @@ func (wb *waitBlock) saveArtifactLocal(ctx context.Context) error {
 
 	var gatewayClient gwclient.Client
 	var console conslogging.ConsoleLogger
+	var exportCoordinator *gatewaycrafter.ExportCoordinator
 	artifacts := []saveArtifactLocalEntry{}
 
 	for refID, item := range wb.items {
@@ -319,6 +318,7 @@ func (wb *waitBlock) saveArtifactLocal(ctx context.Context) error {
 		i := saveLocalItem.saveLocal.Index
 		gatewayClient = c.opt.GwClient
 		console = c.opt.Console
+		exportCoordinator = c.opt.ExportCoordinator
 
 		state := c.mts.Final.SeparateArtifactsState[i]
 
@@ -368,13 +368,9 @@ func (wb *waitBlock) saveArtifactLocal(ctx context.Context) error {
 		return err
 	}
 
-	outputConsole := conslogging.NewBufferedLogger(&console)
-	defer outputConsole.Flush()
-
 	for _, entry := range artifacts {
 		err = saveartifactlocally.SaveArtifactLocally(
-			ctx, console, outputConsole, entry.artifact, entry.artifactDir, entry.destPath,
-			entry.salt, true, entry.ifExists)
+			ctx, exportCoordinator, console, entry.artifact, entry.artifactDir, entry.destPath, entry.salt, entry.ifExists)
 		if err != nil {
 			return err
 		}
