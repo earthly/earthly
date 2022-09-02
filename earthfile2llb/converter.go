@@ -1009,6 +1009,10 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 				shouldPush := pushImages && si.DockerTag != "" && c.opt.DoPushes
 				shouldExportLocally := si.DockerTag != "" && c.opt.DoSaves
 				c.waitBlock().addSaveImage(si, c, shouldPush, shouldExportLocally)
+				if pushImages {
+					// only add summay for `SAVE IMAGE --push` commands
+					c.opt.ExportCoordinator.AddPushedImageSummary(c.target.StringCanonical(), si.DockerTag, c.mts.Final.ID, c.opt.DoPushes)
+				}
 
 				si.SkipBuilder = true
 			}
