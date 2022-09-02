@@ -12,7 +12,7 @@ require (
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/dustin/go-humanize v1.0.0
-	github.com/earthly/cloud-api v1.0.1-0.20220819185746-bab168ecbbf9
+	github.com/earthly/cloud-api v1.0.1-0.20220901205940-19f57fdc4d9c
 	github.com/elastic/go-sysinfo v1.7.1
 	github.com/fatih/color v1.9.0
 	github.com/golang/protobuf v1.5.2

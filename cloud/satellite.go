@@ -98,11 +98,12 @@ func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error 
 	return nil
 }
 
-func (c *client) LaunchSatellite(ctx context.Context, name, orgID string) error {
+func (c *client) LaunchSatellite(ctx context.Context, name, orgID string, features []string) error {
 	req := pipelinesapi.LaunchSatelliteRequest{
-		OrgId:    orgID,
-		Name:     name,
-		Platform: "linux/amd64", // TODO support arm64 as well
+		OrgId:        orgID,
+		Name:         name,
+		Platform:     "linux/amd64", // TODO support arm64 as well
+		FeatureFlags: features,
 	}
 	status, body, err := c.doCall(ctx, "POST", "/api/v0/satellites",
 		withAuth(), withHeader("Grpc-Timeout", satelliteMgmtTimeout), withJSONBody(&req))
