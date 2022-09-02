@@ -155,7 +155,7 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 	refID := 0
 	for _, item := range imageWaitItems {
 		sessionID := item.c.opt.GwClient.BuildOpts().SessionID
-		pullPingMap := item.c.opt.PullPingMap
+		exportCoordinator := item.c.opt.ExportCoordinator
 		ref, err := llbutil.StateToRef(
 			ctx, item.c.opt.GwClient, item.si.State, item.c.opt.NoCache,
 			item.c.platr, item.c.opt.CacheImports.AsSlice())
@@ -205,26 +205,26 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 					return err
 				}
 
-				localRegPullID := pullPingMap.Insert(sessionID, item.si.DockerTag, &dockerutil.Manifest{
+				exportCoordinatorImageID := exportCoordinator.AddImage(sessionID, item.si.DockerTag, &dockerutil.Manifest{
 					ImageName: platformImgName,
 					Platform:  item.si.Platform,
 				})
 
 				if item.c.opt.UseLocalRegistry {
-					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
+					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(exportCoordinatorImageID))
 				} else {
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
 
 					// the tar exporter abuses the pullping map as a way to pass manifest data to the onImage function in builder.go
-					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-manifest-key", refPrefix), []byte(localRegPullID))
+					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-manifest-key", refPrefix), []byte(exportCoordinatorImageID))
 					tarImagesInWaitBlockRefPrefixes = append(tarImagesInWaitBlockRefPrefixes, refPrefix)
-					tarImagesInWaitBlock = append(tarImagesInWaitBlock, localRegPullID)
+					tarImagesInWaitBlock = append(tarImagesInWaitBlock, exportCoordinatorImageID)
 				}
 				refID++
 			} else {
 				if item.c.opt.UseLocalRegistry {
-					localRegPullID := pullPingMap.Insert(sessionID, item.si.DockerTag, nil)
-					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
+					exportCoordinatorImageID := exportCoordinator.AddImage(sessionID, item.si.DockerTag, nil)
+					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(exportCoordinatorImageID))
 				} else {
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
 				}

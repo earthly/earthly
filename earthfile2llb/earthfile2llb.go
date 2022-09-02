@@ -130,8 +130,8 @@ type ConvertOpt struct {
 	// this is to facilitate de-duplicating code from builder.go
 	GlobalWaitBlockFtr bool
 
-	// PullPingMap points to the per-connection map used by the builder's onPull callback
-	PullPingMap *gatewaycrafter.PullPingMap
+	// ExportCoordinator points to the per-connection map used by the builder's onPull callback
+	ExportCoordinator *gatewaycrafter.ExportCoordinator
 
 	// LocalArtifactWhiteList points to the per-connection list of seen SAVE ARTIFACT ... AS LOCAL entries
 	LocalArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList

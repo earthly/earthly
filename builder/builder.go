@@ -140,7 +140,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		manifestLists          = make(map[string][]dockerutil.Manifest) // parent image -> child images
 		platformImgNames       = make(map[string]bool)                  // ensure that these are unique
 		singPlatImgNames       = make(map[string]bool)                  // ensure that these are unique
-		pullPingMap            = gatewaycrafter.NewPullPingMap()
+		exportCoordinator      = gatewaycrafter.NewExportCoordinator()
 		localArtifactWhiteList = gatewaycrafter.NewLocalArtifactWhiteList()
 
 		// dirIDs maps a dirIndex to a dirID; the "dir-id" field was introduced
@@ -188,7 +188,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				DoSaves:                !opt.NoOutput,
 				OnlyFinalTargetImages:  opt.OnlyFinalTargetImages,
 				DoPushes:               opt.Push,
-				PullPingMap:            pullPingMap,
+				ExportCoordinator:      exportCoordinator,
 				LocalArtifactWhiteList: localArtifactWhiteList,
 				InternalSecretStore:    b.opt.InternalSecretStore,
 				TempEarthlyOutDir:      b.tempEarthlyOutDir,
@@ -286,7 +286,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						}
 						singPlatImgNames[saveImage.DockerTag] = true
 					}
-					localRegPullID := pullPingMap.Insert(gwClient.BuildOpts().SessionID, saveImage.DockerTag, nil)
+					localRegPullID := exportCoordinator.AddImage(gwClient.BuildOpts().SessionID, saveImage.DockerTag, nil)
 					refPrefix, err := gwCrafter.AddPushImageEntry(ref, imageIndex, saveImage.DockerTag, shouldPush, saveImage.InsecurePush, saveImage.Image, nil)
 					if err != nil {
 						return nil, err
@@ -337,7 +337,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						}
 						imageIndex++
 
-						localRegPullID := pullPingMap.Insert(gwClient.BuildOpts().SessionID, platformImgName, nil)
+						localRegPullID := exportCoordinator.AddImage(gwClient.BuildOpts().SessionID, platformImgName, nil)
 						if b.opt.LocalRegistryAddr != "" {
 							gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 						} else {
@@ -403,7 +403,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 			// pullping map is abused here as a way to pass in manifest data from wait_block.go
 			// even though it's referenced via a docker tar export (rather than onPull)
-			manifest, dockerTag, ok := pullPingMap.Get(manifestKey)
+			manifest, dockerTag, ok := exportCoordinator.GetImage(manifestKey)
 			if !ok {
 				return fmt.Errorf("failed to lookup %s in onImageDone", manifestKey)
 			}
@@ -460,7 +460,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		manifests := make(map[string][]dockerutil.Manifest)
 		pullMap := make(map[string]string)
 		for _, imgToPull := range imagesToPull {
-			manifest, dockerTag, ok := pullPingMap.Get(imgToPull)
+			manifest, dockerTag, ok := exportCoordinator.GetImage(imgToPull)
 			if !ok {
 				return errors.Errorf("unrecognized image to pull %s", imgToPull)
 			}
