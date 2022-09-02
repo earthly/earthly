@@ -923,7 +923,6 @@ func (c *Converter) waitBlock() *waitBlock {
 
 // PushWaitBlock should be called when a WAIT block starts, all commands will be added to this new block
 func (c *Converter) PushWaitBlock(ctx context.Context) error {
-	c.opt.Console.Warnf("WAIT/END code is experimental and may be incomplete")
 	c.waitBlockStack = append(c.waitBlockStack, newWaitBlock())
 	return nil
 }
