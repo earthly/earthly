@@ -46,4 +46,6 @@ replace (
 
 	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20220824153500-64d715da40d6
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20220719234708-392da7eebeb5
+
+	github.com/earthly/cloud-api => ../cloud-api
 )

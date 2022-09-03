@@ -122,6 +122,14 @@ func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
 					UsageText:   "earthly org invite accept <invite-code>",
 					Action:      app.actionOrgInviteAccept,
 				},
+				{
+					Name:        "ls",
+					Aliases:     []string{"list"},
+					Usage:       "List all pending and accepted invitations",
+					Description: "List all pending and accepted invitations",
+					UsageText:   "earthly org [--org <organization>] invite ls",
+					Action:      app.actionOrgInviteList,
+				},
 			},
 		},
 	}
@@ -247,6 +255,43 @@ func (app *earthlyApp) actionOrgInviteAccept(cliCtx *cli.Context) error {
 	}
 
 	app.console.Printf("Invite accepted!\n")
+
+	return nil
+}
+
+func (app *earthlyApp) actionOrgInviteList(cliCtx *cli.Context) error {
+	app.commandName = "orgInviteList"
+
+	code := cliCtx.Args().Get(0)
+	if code == "" {
+		return errors.New("invite code is required")
+	}
+
+	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
+	if err != nil {
+		return err
+	}
+
+	invites, err := cloudClient.ListInvites(cliCtx.Context, orgName)
+	if err != nil {
+		return errors.Wrap(err, "failed to accept invite")
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintf(w, "User Email\tPermission\tCreated\tAccepted\n")
+	for _, invite := range invites {
+		accepted := "No"
+		if !invite.AcceptedAt.IsZero() {
+			accepted = invite.AcceptedAt.Format(dateFormat)
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", invite.Email, invite.Permission, invite.CreatedAt.Format(dateFormat), accepted)
+	}
+	w.Flush()
 
 	return nil
 }
