@@ -138,7 +138,8 @@ func (app *earthlyApp) actionProjectCreate(cliCtx *cli.Context) error {
 		return errors.New("project name is required")
 	}
 
-	if app.projectName == "" {
+	projectName := cliCtx.Args().Get(0)
+	if projectName == "" {
 		return errors.New("project name is required")
 	}
 
