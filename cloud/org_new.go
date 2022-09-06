@@ -150,7 +150,7 @@ func (c *client) ListInvites(ctx context.Context, org string) ([]*OrgInvitation,
 	}
 
 	if status != http.StatusOK {
-		return nil, errors.Errorf("failed to remove member: %s", body)
+		return nil, errors.Errorf("failed to list invites: %s", body)
 	}
 
 	res := &secretsapi.ListInvitationsResponse{}
