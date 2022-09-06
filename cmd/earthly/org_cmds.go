@@ -282,6 +282,10 @@ func (app *earthlyApp) actionOrgInviteList(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to accept invite")
 	}
 
+	if len(invites) == 0 {
+		return nil
+	}
+
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintf(w, "User Email\tPermission\tCreated\tAccepted\n")
 	for _, invite := range invites {
