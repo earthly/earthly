@@ -262,11 +262,6 @@ func (app *earthlyApp) actionOrgInviteAccept(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionOrgInviteList(cliCtx *cli.Context) error {
 	app.commandName = "orgInviteList"
 
-	code := cliCtx.Args().Get(0)
-	if code == "" {
-		return errors.New("invite code is required")
-	}
-
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
@@ -279,7 +274,7 @@ func (app *earthlyApp) actionOrgInviteList(cliCtx *cli.Context) error {
 
 	invites, err := cloudClient.ListInvites(cliCtx.Context, orgName)
 	if err != nil {
-		return errors.Wrap(err, "failed to accept invite")
+		return errors.Wrap(err, "failed to list invites")
 	}
 
 	if len(invites) == 0 {
