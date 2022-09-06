@@ -233,30 +233,13 @@ echo "======== End buildkitd config =========="
 
 echo "Detected container architecture is $(uname -m)"
 
-# start shell repeater server
-if [ "$DISABLE_SHELL_REPEATER" = "true" ]; then
-    echo shellrepeater is disabled
-    shellrepeaterpid=0
-else
-    echo starting shellrepeater
-    shellrepeater &
-    shellrepeaterpid=$!
-fi
-
 "$@" &
 execpid=$!
 
-# quit if either buildkit or shellrepeater die
+# quit if buildkit dies
 set +x
 while true
 do
-    if [ "$shellrepeaterpid" != "0" ]; then
-        if ! kill -0 "$shellrepeaterpid" >/dev/null 2>&1; then
-            wait "$shellrepeaterpid"
-            echo "Error: shellrepeater process has exited with code $?"
-            exit 20
-        fi
-    fi
     if ! kill -0 "$execpid" >/dev/null 2>&1; then
         wait "$execpid"
         code="$?"
