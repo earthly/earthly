@@ -4,16 +4,21 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.23 - 2022-09-06
+
 ### Fixed
 
 - Using `--remote-cache` on a target that contains only `BUILD` instructions caused a hang. [#1945](https://github.com/earthly/earthly/issues/1945)
 - Fixed WAIT/END related bug which prevent `WITH DOCKER --load` from building referenced target.
 - Images and artifacts which are output (or pushed), are now displayed in the final earthly output.
+- `ssh: parse error in message type 27` error when using OpenSSH 8.9; fixed by upstream in [golang/go#51689](https://github.com/golang/go/issues/51689).
 
 ### Changed
 
 - Removed warning stating that `WAIT/END code is experimental and may be incomplete` -- it is still experimental; however, it now has a higher degree
   of test-coverage. It can be enabled with `VERSION --wait-block 0.6`.
+- A warning is now displayed during exporting a multi-platform image to the local host if no platform is found that matches the host's platform type.
+- Reduced verbosity of `To enable pushing use earthly --push` message.
 
 ## v0.6.22 - 2022-08-19
 
