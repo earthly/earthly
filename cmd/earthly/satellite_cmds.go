@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
@@ -25,10 +24,10 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 				"	earthly satellite [--org <organization-name>] launch <satellite-name>",
 			Action: app.actionSatelliteLaunch,
 			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:        "feature-flags",
+				&cli.StringSliceFlag{
+					Name:        "feature-flag",
 					EnvVars:     []string{"EARTHLY_SATELLITE_FEATURE_FLAGS"},
-					Usage:       "Comma-separated list of experimental features to enable on a new satellite",
+					Usage:       "One or more of experimental features to enable on a new satellite",
 					Required:    false,
 					Hidden:      true,
 					Destination: &app.satelliteFeatureFlags,
@@ -160,11 +159,6 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 
 	app.satelliteName = cliCtx.Args().Get(0)
 
-	var featureFlags []string
-	if app.satelliteFeatureFlags != "" {
-		featureFlags = strings.Split(strings.ReplaceAll(app.satelliteFeatureFlags, " ", ""), ",")
-	}
-
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
@@ -176,7 +170,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	}
 
 	app.console.Printf("Launching Satellite. This could take a moment...\n")
-	err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID, featureFlags)
+	err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID, app.satelliteFeatureFlags.Value())
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			app.console.Printf("Operation interrupted. Satellite should finish launching in background (if server received request).\n")
