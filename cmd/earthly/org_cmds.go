@@ -246,7 +246,7 @@ func (app *earthlyApp) actionOrgInviteAccept(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to accept invite")
 	}
 
-	app.console.Printf("Invite accepted!\n")
+	app.console.Printf("Invite accepted!")
 
 	return nil
 }
@@ -310,7 +310,7 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to invite user into org")
 	}
 
-	app.console.Printf("Invite sent!\n")
+	app.console.Printf("Invite sent to %s", userEmail)
 
 	return nil
 }
@@ -357,6 +357,11 @@ func (app *earthlyApp) actionOrgMemberList(cliCtx *cli.Context) error {
 	members, err := cloudClient.ListOrgMembers(cliCtx.Context, orgName)
 	if err != nil {
 		return err
+	}
+
+	if len(members) == 0 {
+		app.console.Printf("No members in %s", orgName)
+		return nil
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)

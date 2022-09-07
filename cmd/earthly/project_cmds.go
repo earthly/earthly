@@ -128,6 +128,8 @@ func (app *earthlyApp) actionProjectRemove(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to remove project")
 	}
 
+	app.console.Printf("Project %s removed from %s", projectName, orgName)
+
 	return nil
 }
 
@@ -158,6 +160,8 @@ func (app *earthlyApp) actionProjectCreate(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create project")
 	}
 
+	app.console.Printf("Project %s created in %s", projectName, orgName)
+
 	return nil
 }
 
@@ -181,6 +185,11 @@ func (app *earthlyApp) actionProjectMemberList(cliCtx *cli.Context) error {
 	members, err := cloudClient.ListProjectMembers(cliCtx.Context, orgName, app.projectName)
 	if err != nil {
 		return errors.Wrap(err, "failed to list project members")
+	}
+
+	if len(members) == 0 {
+		app.console.Printf("No permissions found for this secret")
+		return nil
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
@@ -224,6 +233,8 @@ func (app *earthlyApp) actionProjectMemberRemove(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to remove project member")
 	}
 
+	app.console.Printf("%s was removed from %s", userEmail, orgName)
+
 	return nil
 }
 
@@ -263,6 +274,8 @@ func (app *earthlyApp) actionProjectMemberAdd(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to add project member")
 	}
 
+	app.console.Printf("%s has been added to %s with %s permission", userEmail, orgName, permission)
+
 	return nil
 }
 
@@ -301,6 +314,8 @@ func (app *earthlyApp) actionProjectMemberUpdate(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to update project member")
 	}
+
+	app.console.Printf("%s now has %s permission in %s", userEmail, permission, orgName)
 
 	return nil
 }
