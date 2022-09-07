@@ -125,7 +125,7 @@ func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
 				{
 					Name:        "ls",
 					Aliases:     []string{"list"},
-					Usage:       "List all pending and accepted invitations",
+					Usage:       "List all sent invitations (both pending and accepted)",
 					Description: "List all pending and accepted invitations",
 					UsageText:   "earthly org [--org <organization>] invite ls",
 					Action:      app.actionOrgInviteList,
