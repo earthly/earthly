@@ -278,6 +278,14 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 		path = cliCtx.Args().Get(0)
 	}
 
+	if app.orgName == "" {
+		return errors.New("invalid organization name")
+	}
+
+	if app.projectName == "" {
+		return errors.New("invalid project name")
+	}
+
 	path = app.fullSecretPath(path)
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
@@ -293,7 +301,7 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 	for _, secret := range secrets {
 		display := secret.Path
 		if !strings.HasPrefix(display, "/user/") {
-			prefix := fmt.Sprintf("/%s/%s/", cliCtx.String("org"), cliCtx.String("project"))
+			prefix := fmt.Sprintf("/%s/%s/", app.orgName, app.projectName)
 			display = strings.TrimPrefix(display, prefix)
 		}
 		app.console.Printf(display)

@@ -401,8 +401,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			if !ok {
 				return nil
 			}
-			// pullping map is abused here as a way to pass in manifest data from wait_block.go
-			// even though it's referenced via a docker tar export (rather than onPull)
 			manifest, dockerTag, ok := exportCoordinator.GetImage(manifestKey)
 			if !ok {
 				return fmt.Errorf("failed to lookup %s in onImageDone", manifestKey)
@@ -534,8 +532,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				return nil, err
 			}
 			err = saveartifactlocally.SaveArtifactLocally(
-				ctx, b.opt.Console, outputConsole, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath,
-				mts.Final.ID, opt.PrintPhases, false)
+				ctx, exportCoordinator, b.opt.Console, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath, mts.Final.ID, false)
 			if err != nil {
 				return nil, err
 			}
@@ -549,21 +546,20 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			if saveImage.SkipBuilder || !shouldPush && !shouldExport {
 				continue
 			}
-			targetStr := b.opt.Console.PrefixColor().Sprintf("%s", mts.Final.Target.StringCanonical())
+
 			if shouldPush {
-				pushConsole.Printf("Pushed image %s as %s\n", targetStr, saveImage.DockerTag)
+				exportCoordinator.AddPushedImageSummary(mts.Final.Target.StringCanonical(), saveImage.DockerTag, b.opt.Console.Salt(), true)
 			}
 			if saveImage.Push && !opt.Push {
-				pushConsole.Printf("Did not push image %s\n", saveImage.DockerTag)
+				exportCoordinator.AddPushedImageSummary(mts.Final.Target.StringCanonical(), saveImage.DockerTag, b.opt.Console.Salt(), false)
 			}
-			outputConsole.Printf("Image %s output as %s\n", targetStr, saveImage.DockerTag)
+			exportCoordinator.AddLocalOutputSummary(mts.Final.Target.StringCanonical(), saveImage.DockerTag, b.opt.Console.Salt())
 		}
 	} else {
 		// This needs to match with the same index used during output.
 		// TODO: This is a little brittle to future code changes.
 		dirIndex := 0
 		for _, sts := range mts.All() {
-			console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.ID)
 			for _, saveImage := range sts.SaveImages {
 				doSave := (sts.GetDoSaves() || saveImage.ForceSave)
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != "" && sts.GetDoPushes()
@@ -571,14 +567,13 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				if saveImage.SkipBuilder || !shouldPush && !shouldExport {
 					continue
 				}
-				targetStr := console.PrefixColor().Sprintf("%s", sts.Target.StringCanonical())
 				if shouldPush {
-					pushConsole.Printf("Pushed image %s as %s\n", targetStr, saveImage.DockerTag)
+					exportCoordinator.AddPushedImageSummary(sts.Target.StringCanonical(), saveImage.DockerTag, sts.ID, true)
 				}
 				if saveImage.Push && !opt.Push && !sts.Target.IsRemote() {
-					pushConsole.Printf("Did not push image %s\n", saveImage.DockerTag)
+					exportCoordinator.AddPushedImageSummary(sts.Target.StringCanonical(), saveImage.DockerTag, sts.ID, false)
 				}
-				outputConsole.Printf("Image %s output as %s\n", targetStr, saveImage.DockerTag)
+				exportCoordinator.AddLocalOutputSummary(sts.Target.StringCanonical(), saveImage.DockerTag, sts.ID)
 			}
 			if sts.GetDoSaves() {
 				for _, saveLocal := range sts.SaveLocals {
@@ -596,8 +591,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						Artifact: saveLocal.ArtifactPath,
 					}
 					err = saveartifactlocally.SaveArtifactLocally(
-						ctx, b.opt.Console, outputConsole, artifact, artifactDir, saveLocal.DestPath,
-						sts.ID, opt.PrintPhases, saveLocal.IfExists)
+						ctx, exportCoordinator, b.opt.Console, artifact, artifactDir, saveLocal.DestPath, sts.ID, saveLocal.IfExists)
 					if err != nil {
 						return nil, err
 					}
@@ -622,8 +616,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 							Artifact: saveLocal.ArtifactPath,
 						}
 						err = saveartifactlocally.SaveArtifactLocally(
-							ctx, b.opt.Console, outputConsole, artifact, artifactDir, saveLocal.DestPath,
-							sts.ID, opt.PrintPhases, saveLocal.IfExists)
+							ctx, exportCoordinator, b.opt.Console, artifact, artifactDir, saveLocal.DestPath, sts.ID, saveLocal.IfExists)
 						if err != nil {
 							return nil, err
 						}
@@ -652,6 +645,27 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 		}
 	}
+
+	for _, artifactEntry := range exportCoordinator.GetArtifactSummary() {
+		console := b.opt.Console.WithPrefixAndSalt(artifactEntry.Target, artifactEntry.Salt)
+		targetStr := console.PrefixColor().Sprintf("%s", artifactEntry.Target)
+		outputConsole.Printf("Artifact %s output as %s\n", targetStr, artifactEntry.Path)
+	}
+	for _, outputEntry := range exportCoordinator.GetLocalOutputSummary() {
+		console := b.opt.Console.WithPrefixAndSalt(outputEntry.Target, outputEntry.Salt)
+		targetStr := console.PrefixColor().Sprintf("%s", outputEntry.Target)
+		outputConsole.Printf("Image %s output as %s\n", targetStr, outputEntry.DockerTag)
+	}
+	for _, pushEntry := range exportCoordinator.GetPushedImageSummary() {
+		console := b.opt.Console.WithPrefixAndSalt(pushEntry.Target, pushEntry.Salt)
+		targetStr := console.PrefixColor().Sprintf("%s", pushEntry.Target)
+		if pushEntry.Pushed {
+			pushConsole.Printf("Pushed image %s as %s\n", targetStr, pushEntry.DockerTag)
+		} else {
+			pushConsole.Printf("Did not push image %s\n", pushEntry.DockerTag)
+		}
+	}
+
 	pushConsole.Flush()
 	if opt.PrintPhases {
 		b.opt.Console.PrintPhaseFooter(PhasePush, !opt.Push, "")

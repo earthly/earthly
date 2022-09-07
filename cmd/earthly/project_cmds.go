@@ -138,7 +138,8 @@ func (app *earthlyApp) actionProjectCreate(cliCtx *cli.Context) error {
 		return errors.New("project name is required")
 	}
 
-	if app.projectName == "" {
+	projectName := cliCtx.Args().Get(0)
+	if projectName == "" {
 		return errors.New("project name is required")
 	}
 
@@ -152,7 +153,7 @@ func (app *earthlyApp) actionProjectCreate(cliCtx *cli.Context) error {
 		return err
 	}
 
-	_, err = cloudClient.CreateProject(cliCtx.Context, app.projectName, orgName)
+	_, err = cloudClient.CreateProject(cliCtx.Context, projectName, orgName)
 	if err != nil {
 		return errors.Wrap(err, "failed to create project")
 	}

@@ -1,1 +1,1 @@
-referenced-save-only,use-copy-include-patterns,earthly-version-arg,use-cache-command,use-host-command,check-duplicate-images,use-copy-link,parallel-load,shell-out-anywhere,new-platform,no-tar-build-output
+referenced-save-only,use-copy-include-patterns,earthly-version-arg,use-cache-command,use-host-command,check-duplicate-images,use-copy-link,parallel-load,shell-out-anywhere,new-platform,no-tar-build-output,wait-block
