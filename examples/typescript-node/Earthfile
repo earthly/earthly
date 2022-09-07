@@ -1,0 +1,34 @@
+VERSION 0.6
+FROM node:latest
+
+WORKDIR typescript-node-example
+
+deps:
+    COPY package.json package-lock.json ./
+    RUN npm install
+
+build:
+    FROM +deps
+    COPY app app
+    COPY tsconfig.json tsconfig.json
+    RUN npx tsc
+    SAVE ARTIFACT dist /dist AS LOCAL dist
+
+docker:
+      FROM +deps
+      COPY +build/dist dist
+      ENTRYPOINT ["node", "/typescript-node-example/dist/index.js"]
+      SAVE IMAGE typescript-node-example:latest
+
+unit-test:
+    RUN echo "todo"
+
+integration-test:
+    RUN echo "todo"
+
+all:
+    BUILD +deps
+    BUILD +build
+    BUILD +docker
+    BUILD +unit-test
+    BUILD +integration-test
