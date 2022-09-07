@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	secretsapi "github.com/earthly/cloud-api/secrets"
 	"github.com/golang/protobuf/jsonpb"
@@ -17,6 +18,8 @@ type OrgInvitation struct {
 	Permission string
 	Message    string
 	OrgName    string
+	CreatedAt  time.Time
+	AcceptedAt time.Time
 }
 
 // InviteToOrg sends an email invitation to a user and asks for them to join an org.
@@ -135,4 +138,42 @@ func (c *client) AcceptInvite(ctx context.Context, inviteCode string) error {
 	}
 
 	return nil
+}
+
+// ListInvites returns a collection of organization invites and their status.
+func (c *client) ListInvites(ctx context.Context, org string) ([]*OrgInvitation, error) {
+	u := "/api/v0/invitations?org=" + org
+
+	status, body, err := c.doCall(ctx, http.MethodGet, u, withAuth())
+	if err != nil {
+		return nil, err
+	}
+
+	if status != http.StatusOK {
+		return nil, errors.Errorf("failed to list invites: %s", body)
+	}
+
+	res := &secretsapi.ListInvitationsResponse{}
+
+	err = jsonpb.UnmarshalString(body, res)
+	if err != nil {
+		return nil, err
+	}
+
+	var invites []*OrgInvitation
+
+	for _, invite := range res.Invitations {
+		in := &OrgInvitation{
+			Email:      invite.RecipientEmail,
+			OrgName:    org,
+			Permission: invite.Permission,
+			CreatedAt:  invite.CreatedAt.AsTime(),
+		}
+		if invite.AcceptedAt != nil {
+			in.AcceptedAt = invite.AcceptedAt.AsTime()
+		}
+		invites = append(invites, in)
+	}
+
+	return invites, nil
 }
