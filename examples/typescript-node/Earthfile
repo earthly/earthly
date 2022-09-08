@@ -6,10 +6,11 @@ WORKDIR typescript-node-example
 deps:
     COPY package.json package-lock.json ./
     RUN npm install
+    COPY jest.config.ts tsconfig.json ./
+    COPY src src
 
 build:
     FROM +deps
-    COPY app app
     COPY tsconfig.json tsconfig.json
     RUN npx tsc
     SAVE ARTIFACT dist /dist AS LOCAL dist
@@ -21,7 +22,8 @@ docker:
       SAVE IMAGE typescript-node-example:latest
 
 unit-test:
-    RUN echo "todo"
+    FROM +deps
+    RUN npm run test
 
 integration-test:
     RUN echo "todo"
