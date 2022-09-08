@@ -31,7 +31,6 @@ unit-test:
 
 integration-test:
     FROM +test-setup
-    COPY docker-compose.yml ./
     COPY +build/dist dist
     WITH DOCKER --load typescript-node-example:latest=+docker
         RUN docker run --rm -d -p 8080:8080 typescript-node-example:latest && npm run test:integration
