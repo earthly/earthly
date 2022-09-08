@@ -32,7 +32,7 @@ In this case `my-new-image-tag` will override the default value and become the n
 
 ```bash
 earthly +docker
-# tag for image will be 'latests'
+# tag for image will be 'latest'
 ```
 
 ### Passing ARGs in FROM, BUILD, and COPY
