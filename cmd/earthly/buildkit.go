@@ -28,10 +28,12 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 		origErr := err
 		fe, err = containerutil.NewStubFrontend(cliCtx.Context, feConfig)
 		if err != nil {
-			return errors.Wrap(err, "failed frontend initialization")
+			return errors.Wrap(err, "failed stub frontend initialization")
 		}
 
-		console.Printf("No frontend initialized.\n")
+		if !app.verbose {
+			console.Printf("No frontend initialized. Use --verbose to see details\n")
+		}
 		console.VerbosePrintf("%s frontend initialization failed due to %s", app.cfg.Global.ContainerFrontend, origErr.Error())
 	} else {
 		console.VerbosePrintf("%s frontend initialized.\n", fe.Config().Setting)
