@@ -187,18 +187,26 @@ func renderEntryTemplate(template string) (string, error) {
 
 // If debugging this, it might be required to run `rm ~/.zcompdump*` to remove the cache
 func (app *earthlyApp) insertZSHCompleteEntry() error {
-	// should be the same on linux and macOS
-	path := "/usr/local/share/zsh/site-functions/_earthly"
-	dirPath := filepath.Dir(path)
+	potentialPaths := []string{
+		"/usr/local/share/zsh/site-functions",
+		"/usr/share/zsh/site-functions",
+	}
+	for _, dirPath := range potentialPaths {
+		dirPathExists, err := fileutil.DirExists(dirPath)
+		if err != nil {
+			return errors.Wrapf(err, "failed to check if %s exists", dirPath)
+		}
+		if dirPathExists {
+			return app.insertZSHCompleteEntryUnderPath(dirPath)
+		}
+	}
 
-	dirPathExists, err := fileutil.DirExists(dirPath)
-	if err != nil {
-		return errors.Wrapf(err, "failed to check if %s exists", dirPath)
-	}
-	if !dirPathExists {
-		fmt.Fprintf(os.Stderr, "Warning: unable to enable zsh-completion: %s does not exist\n", dirPath)
-		return nil // zsh-completion isn't available, silently fail.
-	}
+	fmt.Fprintf(os.Stderr, "Warning: unable to enable zsh-completion: none of %s does not exist\n", strings.Join(potentialPaths, ", "))
+	return nil // zsh-completion isn't available, silently fail.
+}
+
+func (app *earthlyApp) insertZSHCompleteEntryUnderPath(dirPath string) error {
+	path := filepath.Join(dirPath, "_earthly")
 
 	pathExists, err := fileutil.FileExists(path)
 	if err != nil {
