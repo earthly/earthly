@@ -396,9 +396,11 @@ func (app *earthlyApp) bootstrap(cliCtx *cli.Context) error {
 		// Bootstrap buildkit - pulls image and starts daemon.
 		bkClient, err := app.getBuildkitClient(cliCtx, nil)
 		if err != nil {
-			return errors.Wrap(err, "bootstrap new buildkitd client")
+			console.Warnf("Warning: Bootstrapping buildkit failed: %v", err)
+			// Keep going.
+		} else {
+			defer bkClient.Close()
 		}
-		defer bkClient.Close()
 	}
 
 	console.Printf("Bootstrapping successful.\n")
