@@ -34,6 +34,7 @@ Please note that these examples, although similar, are distinct from the ones us
 * [ruby-on-rails](./ruby-on-rails)
 * [rust](./rust)
 * [scala](./scala)
+* [typescript-node](./typescript-node)
 <!-- vale HouseStyle.Spelling = YES -->
 
 ## Examples by use-cases
