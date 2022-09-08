@@ -38,7 +38,6 @@ integration-test:
 
 
 all:
-    BUILD +deps
     BUILD +build
     BUILD +docker
     BUILD +unit-test
