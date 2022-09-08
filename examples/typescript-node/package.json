@@ -4,7 +4,9 @@
   "description": "Hello Earthly",
   "main": "dist/index.js",
   "scripts": {
-    "test": "jest"
+    "build": "tsc",
+    "test": "jest",
+    "test:integration": "jest -c jest.config.integration.ts"
   },
   "author": "",
   "license": "ISC",

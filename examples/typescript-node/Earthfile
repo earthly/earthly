@@ -6,27 +6,37 @@ WORKDIR typescript-node-example
 deps:
     COPY package.json package-lock.json ./
     RUN npm install
-    COPY jest.config.ts tsconfig.json ./
+    COPY tsconfig.json ./
     COPY src src
 
 build:
     FROM +deps
-    COPY tsconfig.json tsconfig.json
     RUN npx tsc
     SAVE ARTIFACT dist /dist AS LOCAL dist
 
 docker:
-      FROM +deps
-      COPY +build/dist dist
+      FROM +build
+      EXPOSE 8080
       ENTRYPOINT ["node", "/typescript-node-example/dist/index.js"]
       SAVE IMAGE typescript-node-example:latest
 
-unit-test:
+test-setup:
     FROM +deps
+    COPY jest.config.ts jest.config.integration.ts ./
+    COPY integration integration
+
+unit-test:
+    FROM +test-setup
     RUN npm run test
 
 integration-test:
-    RUN echo "todo"
+    FROM +test-setup
+    COPY docker-compose.yml ./
+    COPY +build/dist dist
+    WITH DOCKER --load typescript-node-example:latest=+docker
+        RUN docker run --rm -d -p 8080:8080 typescript-node-example:latest && npm run test:integration
+    END
+
 
 all:
     BUILD +deps

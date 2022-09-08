@@ -1,8 +1,7 @@
 {
   "compilerOptions": {
-    "target": "es2017",
+    "target": "es2020",
     "types": ["node", "jest"],
-    "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -14,8 +13,12 @@
     "isolatedModules": true,
     "baseUrl": ".",
     "noFallthroughCasesInSwitch": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
   },
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts"
+  ],
+  "include": ["src/**/*"],
   "compileOnSave": true,
-  "include": ["."]
 }
