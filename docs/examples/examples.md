@@ -49,6 +49,7 @@ Please note that these examples, although similar, are distinct from the ones us
 * [ruby-on-rails](https://github.com/earthly/earthly/tree/main/examples/ruby-on-rails)
 * [rust](https://github.com/earthly/earthly/tree/main/examples/rust)
 * [scala](https://github.com/earthly/earthly/tree/main/examples/scala)
+* [typescript-node](https://github.com/earthly/earthly/tree/main/examples/typescript-node)
 <!-- vale HouseStyle.Spelling = YES -->
 
 ### Examples by use-cases

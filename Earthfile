@@ -576,6 +576,7 @@ examples2:
     BUILD github.com/earthly/hello-world:main+hello
     BUILD ./examples/cache-command/npm+docker
     BUILD ./examples/cache-command/mvn+docker
+    BUILD ./examples/typescript-node+docker
 
 license:
     COPY LICENSE ./
