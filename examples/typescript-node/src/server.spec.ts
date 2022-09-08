@@ -8,4 +8,4 @@ describe('sayHello', () => {
     it('should say Hello World if World is passed', () => {
         expect(sayHello('World')).toBe('Hello World');
     });
-})
+});
