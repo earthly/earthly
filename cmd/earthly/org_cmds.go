@@ -300,7 +300,7 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 	if cliCtx.NArg() == 0 {
 		return errors.New("user email address required")
 	}
-	emails := cliCtx.Args()
+	emails := cliCtx.Args().Slice()
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -336,12 +336,12 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 		return fmt.Errorf("invalid permission %s", permission)
 	}
 
-	for _, userEmail := range emails.Slice() {
+	for _, userEmail := range emails {
 		if !strings.Contains(userEmail, "@") {
 			return fmt.Errorf("invalid email address %s", userEmail)
 		}
 	}
-	for _, userEmail := range emails.Slice() {
+	for _, userEmail := range emails {
 		invite := &cloud.OrgInvitation{
 			Email:      userEmail,
 			OrgName:    orgName,
