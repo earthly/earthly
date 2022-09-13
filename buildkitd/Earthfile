@@ -12,7 +12,7 @@ buildkitd:
             ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
         END
     ELSE
-        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:64d715da40d63b0977b471acb1fc1b00910db82a+build
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:9c256c19c5397aee1ba0379590d685c2e87ff17c+build
     END
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
@@ -43,7 +43,6 @@ buildkitd:
     COPY ./cni-conf.json.template /etc/cni/cni-conf.json.template
 
     # Scripts and binaries used for the builds.
-    COPY ../+shellrepeater/shellrepeater /usr/bin/shellrepeater
     COPY ../+debugger/earth_debugger /usr/bin/earth_debugger
     COPY ./dockerd-wrapper.sh /var/earthly/dockerd-wrapper.sh
     COPY ./docker-auto-install.sh /var/earthly/docker-auto-install.sh

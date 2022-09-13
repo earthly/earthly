@@ -158,6 +158,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			gwClient = gwclientlogger.New(gwClient)
 		}
 		var err error
+		caps := gwClient.BuildOpts().LLBCaps
 		if !b.builtMain {
 			opt := earthfile2llb.ConvertOpt{
 				GwClient:               gwClient,
@@ -193,6 +194,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				InternalSecretStore:    b.opt.InternalSecretStore,
 				TempEarthlyOutDir:      b.tempEarthlyOutDir,
 				GlobalWaitBlockFtr:     opt.GlobalWaitBlockFtr,
+				LLBCaps:                &caps,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
