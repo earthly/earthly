@@ -923,7 +923,6 @@ func (c *Converter) waitBlock() *waitBlock {
 
 // PushWaitBlock should be called when a WAIT block starts, all commands will be added to this new block
 func (c *Converter) PushWaitBlock(ctx context.Context) error {
-	c.opt.Console.Warnf("WAIT/END code is experimental and may be incomplete")
 	c.waitBlockStack = append(c.waitBlockStack, newWaitBlock())
 	return nil
 }
@@ -1009,6 +1008,10 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 				shouldPush := pushImages && si.DockerTag != "" && c.opt.DoPushes
 				shouldExportLocally := si.DockerTag != "" && c.opt.DoSaves
 				c.waitBlock().addSaveImage(si, c, shouldPush, shouldExportLocally)
+				if pushImages {
+					// only add summay for `SAVE IMAGE --push` commands
+					c.opt.ExportCoordinator.AddPushedImageSummary(c.target.StringCanonical(), si.DockerTag, c.mts.Final.ID, c.opt.DoPushes)
+				}
 
 				si.SkipBuilder = true
 			}

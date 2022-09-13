@@ -73,7 +73,7 @@ build-ami:
 
 ADD_YUM_REQS:
     COMMAND
-    RUN yum update && \
+    RUN yum update -y && \
         yum install -y \
            curl \
            unzip \
