@@ -23,6 +23,16 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 			UsageText: "earthly satellite launch <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] launch <satellite-name>",
 			Action: app.actionSatelliteLaunch,
+			Flags: []cli.Flag{
+				&cli.StringSliceFlag{
+					Name:        "feature-flag",
+					EnvVars:     []string{"EARTHLY_SATELLITE_FEATURE_FLAGS"},
+					Usage:       "One or more of experimental features to enable on a new satellite",
+					Required:    false,
+					Hidden:      true,
+					Destination: &app.satelliteFeatureFlags,
+				},
+			},
 		},
 		{
 			Name:        "rm",
@@ -160,7 +170,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	}
 
 	app.console.Printf("Launching Satellite. This could take a moment...\n")
-	err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID)
+	err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID, app.satelliteFeatureFlags.Value())
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			app.console.Printf("Operation interrupted. Satellite should finish launching in background (if server received request).\n")

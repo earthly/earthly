@@ -134,6 +134,7 @@ type cliFlags struct {
 	logSharing                bool
 	satelliteName             string
 	noSatellite               bool
+	satelliteFeatureFlags     cli.StringSlice
 	userPermission            string
 	noBuildkitUpdate          bool
 	globalWaitEnd             bool // for feature-flipping builder.go code removal

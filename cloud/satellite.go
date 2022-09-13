@@ -41,7 +41,7 @@ func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteI
 			Org:      orgID,
 			Version:  s.Version,
 			Platform: s.Platform,
-			Status:   s.Status.String(),
+			Status:   satelliteStatus(s.Status),
 		}
 	}
 	return instances, nil
@@ -61,25 +61,10 @@ func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*Satelli
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal listTokens response")
 	}
-	var satelliteStatus string
-	switch resp.Status {
-	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_OPERATIONAL:
-		satelliteStatus = "Operational"
-	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_CREATING:
-		satelliteStatus = "Creating"
-	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_FAILED:
-		satelliteStatus = "Failed"
-	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_DESTROYING:
-		satelliteStatus = "Destroying"
-	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_OFFLINE:
-		satelliteStatus = "Offline"
-	default:
-		satelliteStatus = "Unknown"
-	}
 	return &SatelliteInstance{
 		Name:     name,
 		Org:      orgID,
-		Status:   satelliteStatus,
+		Status:   satelliteStatus(resp.Status),
 		Version:  resp.Version,
 		Platform: resp.Platform,
 	}, nil
@@ -98,11 +83,12 @@ func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error 
 	return nil
 }
 
-func (c *client) LaunchSatellite(ctx context.Context, name, orgID string) error {
+func (c *client) LaunchSatellite(ctx context.Context, name, orgID string, features []string) error {
 	req := pipelinesapi.LaunchSatelliteRequest{
-		OrgId:    orgID,
-		Name:     name,
-		Platform: "linux/amd64", // TODO support arm64 as well
+		OrgId:        orgID,
+		Name:         name,
+		Platform:     "linux/amd64", // TODO support arm64 as well
+		FeatureFlags: features,
 	}
 	status, body, err := c.doCall(ctx, "POST", "/api/v0/satellites",
 		withAuth(), withHeader("Grpc-Timeout", satelliteMgmtTimeout), withJSONBody(&req))
@@ -113,4 +99,23 @@ func (c *client) LaunchSatellite(ctx context.Context, name, orgID string) error 
 		return errors.Errorf("failed launching satellite: %s", body)
 	}
 	return nil
+}
+
+func satelliteStatus(status pipelinesapi.SatelliteStatus) string {
+	switch status {
+	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_OPERATIONAL:
+		return "Operational"
+	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_SLEEP:
+		return "Sleep"
+	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_CREATING:
+		return "Creating"
+	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_FAILED:
+		return "Failed"
+	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_DESTROYING:
+		return "Destroying"
+	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_OFFLINE:
+		return "Offline"
+	default:
+		return "Unknown"
+	}
 }
