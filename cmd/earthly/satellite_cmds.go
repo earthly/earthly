@@ -14,9 +14,6 @@ import (
 	"github.com/earthly/earthly/util/containerutil"
 )
 
-const selectUsageText = "earthly satellite select <satellite-name>\n" +
-	"	earthly satellite [--org <organization-name>] select <satellite-name>"
-
 func (app *earthlyApp) satelliteCmds() []*cli.Command {
 	return []*cli.Command{
 		{
@@ -56,8 +53,9 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 			Aliases:     []string{"s"},
 			Usage:       "Choose which satellite to use to build your app",
 			Description: "Choose which satellite to use to build your app",
-			UsageText:   selectUsageText,
-			Action:      app.actionSatelliteSelect,
+			UsageText: "earthly satellite select <satellite-name>\n" +
+				"	earthly satellite [--org <organization-name>] select <satellite-name>",
+			Action: app.actionSatelliteSelect,
 		},
 		{
 			Name:        "unselect",
@@ -303,15 +301,19 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 	app.commandName = "satelliteSelect"
 
-	if cliCtx.NArg() != 1 {
+	if cliCtx.NArg() == 0 {
 		if app.cfg.Satellite.Name == "" {
 			app.console.Printf("No satellite selected\n\n")
-			app.console.Printf("To select a satellite:\n\t%s\n", selectUsageText)
 		} else {
 			app.console.Printf("Selected satellite: %s\n\n", app.cfg.Satellite.Name)
-			app.console.Printf("To select a different satellite:\n\t%s\n", selectUsageText)
 		}
+		_ = cli.ShowCommandHelp(cliCtx, cliCtx.Command.Name)
 		return errors.New("satellite name is required")
+	}
+
+	if cliCtx.NArg() > 1 {
+		_ = cli.ShowCommandHelp(cliCtx, cliCtx.Command.Name)
+		return errors.New(fmt.Sprintf("can only provide 1 satellite name, %d provided", cliCtx.NArg()))
 	}
 
 	app.satelliteName = cliCtx.Args().Get(0)
