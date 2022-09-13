@@ -310,9 +310,8 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 		} else {
 			app.console.Printf("Selected satellite: %s\n\n", app.cfg.Satellite.Name)
 			app.console.Printf("To select a different satellite:\n\t%s\n", selectUsageText)
-
 		}
-		return nil
+		return errors.New("satellite name is required")
 	}
 
 	app.satelliteName = cliCtx.Args().Get(0)
