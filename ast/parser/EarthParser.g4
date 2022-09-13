@@ -51,8 +51,8 @@ commandStmt:
 	| cacheStmt
 	| hostStmt
 	| projectStmt
-    | pipelineStmt
-    | triggerStmt;
+	| pipelineStmt
+	| triggerStmt;
 
 // version --------------------------------------------------------------------
 version: VERSION WS stmtWords NL+;
