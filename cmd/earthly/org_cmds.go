@@ -122,6 +122,14 @@ func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
 					UsageText:   "earthly org invite accept <invite-code>",
 					Action:      app.actionOrgInviteAccept,
 				},
+				{
+					Name:        "ls",
+					Aliases:     []string{"list"},
+					Usage:       "List all sent invitations (both pending and accepted)",
+					Description: "List all pending and accepted invitations",
+					UsageText:   "earthly org [--org <organization>] invite ls",
+					Action:      app.actionOrgInviteList,
+				},
 			},
 		},
 	}
@@ -246,17 +254,13 @@ func (app *earthlyApp) actionOrgInviteAccept(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to accept invite")
 	}
 
-	app.console.Printf("Invite accepted!\n")
+	app.console.Printf("Invite accepted!")
 
 	return nil
 }
 
-func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
-	app.commandName = "orgInviteEmail"
-
-	if cliCtx.NArg() != 1 {
-		return errors.New("user email address required")
-	}
+func (app *earthlyApp) actionOrgInviteList(cliCtx *cli.Context) error {
+	app.commandName = "orgInviteList"
 
 	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
@@ -268,16 +272,45 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 		return err
 	}
 
-	userEmail := cliCtx.Args().Get(0)
-	if !strings.Contains(userEmail, "@") {
-		return errors.New("invalid email address")
+	invites, err := cloudClient.ListInvites(cliCtx.Context, orgName)
+	if err != nil {
+		return errors.Wrap(err, "failed to list invites")
 	}
 
-	invite := &cloud.OrgInvitation{
-		Email:   userEmail,
-		OrgName: orgName,
+	if len(invites) == 0 {
+		return nil
 	}
 
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintf(w, "User Email\tPermission\tCreated\tAccepted\n")
+	for _, invite := range invites {
+		accepted := "No"
+		if !invite.AcceptedAt.IsZero() {
+			accepted = invite.AcceptedAt.Format(dateFormat)
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", invite.Email, invite.Permission, invite.CreatedAt.Format(dateFormat), accepted)
+	}
+	w.Flush()
+
+	return nil
+}
+
+func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
+	app.commandName = "orgInviteEmail"
+	if cliCtx.NArg() == 0 {
+		return errors.New("user email address required")
+	}
+	emails := cliCtx.Args().Slice()
+
+	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
+	if err != nil {
+		return err
+	}
 	permission := app.invitePermission
 	if permission == "" {
 		permission, err = promptInput(cliCtx.Context, "New user's permission [read/write/admin] (default=read): ")
@@ -302,15 +335,25 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 	default:
 		return fmt.Errorf("invalid permission %s", permission)
 	}
-	invite.Permission = permission
-	invite.Message = app.inviteMessage
 
-	_, err = cloudClient.InviteToOrg(cliCtx.Context, invite)
-	if err != nil {
-		return errors.Wrap(err, "failed to invite user into org")
+	for _, userEmail := range emails {
+		if !strings.Contains(userEmail, "@") {
+			return fmt.Errorf("invalid email address %s", userEmail)
+		}
 	}
-
-	app.console.Printf("Invite sent!\n")
+	for _, userEmail := range emails {
+		invite := &cloud.OrgInvitation{
+			Email:      userEmail,
+			OrgName:    orgName,
+			Permission: permission,
+			Message:    app.inviteMessage,
+		}
+		_, err = cloudClient.InviteToOrg(cliCtx.Context, invite)
+		if err != nil {
+			return errors.Wrapf(err, "failed to invite user %s into org", userEmail)
+		}
+		app.console.Printf("Invite sent to %s", userEmail)
+	}
 
 	return nil
 }
@@ -357,6 +400,11 @@ func (app *earthlyApp) actionOrgMemberList(cliCtx *cli.Context) error {
 	members, err := cloudClient.ListOrgMembers(cliCtx.Context, orgName)
 	if err != nil {
 		return err
+	}
+
+	if len(members) == 0 {
+		app.console.Printf("No members in %s", orgName)
+		return nil
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)

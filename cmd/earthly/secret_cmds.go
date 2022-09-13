@@ -298,6 +298,11 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to list secrets")
 	}
 
+	if len(secrets) == 0 {
+		app.console.Printf("No secrets found")
+		return nil
+	}
+
 	for _, secret := range secrets {
 		display := secret.Path
 		if !strings.HasPrefix(display, "/user/") {
@@ -363,6 +368,8 @@ func (app *earthlyApp) actionSecretsRemoveV2(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to remove secret")
 	}
+
+	app.console.Printf("Secret successfully deleted")
 
 	return nil
 }
@@ -457,6 +464,7 @@ func (app *earthlyApp) actionSecretPermsList(cliCtx *cli.Context) error {
 	}
 
 	if len(perms) == 0 {
+		app.console.Printf("No permissions found for this secret")
 		return nil
 	}
 
@@ -499,6 +507,8 @@ func (app *earthlyApp) actionSecretPermsRemove(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to remove permission")
 	}
 
+	app.console.Printf("Permission removed successfully")
+
 	return nil
 }
 
@@ -535,6 +545,8 @@ func (app *earthlyApp) actionSecretPermsSet(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to set permission")
 	}
+
+	app.console.Printf("%s was granted %s permission on the secret", userEmail, perm)
 
 	return nil
 }

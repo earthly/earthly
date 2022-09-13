@@ -214,6 +214,9 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if app.interactiveDebugging && !isLocal {
 		return errors.New("the --interactive flag is not currently supported with non-local buildkit servers")
 	}
+	if isLocal && !app.containerFrontend.IsAvailable(cliCtx.Context) {
+		return errors.New("Frontend is not available to perform the build. Is Docker installed and running?")
+	}
 
 	bkClient, err := buildkitd.NewClient(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, Version, app.buildkitdSettings)
 	if err != nil {
