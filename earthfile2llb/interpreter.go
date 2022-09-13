@@ -252,6 +252,10 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 		return i.handleHost(ctx, cmd)
 	case "PROJECT":
 		return i.handleProject(ctx, cmd)
+	case "PIPELINE":
+		return i.handlePipeline(ctx, cmd)
+	case "TRIGGER":
+		return i.handleTrigger(ctx, cmd)
 	default:
 		return i.errorf(cmd.SourceLocation, "unexpected command %s", cmd.Name)
 	}
@@ -1628,6 +1632,15 @@ func (i *Interpreter) handleProject(ctx context.Context, cmd spec.Command) error
 		return i.wrapError(err, cmd.SourceLocation, "failed to process PROJECT")
 	}
 
+	return nil
+}
+
+func (i *Interpreter) handlePipeline(ctx context.Context, cmd spec.Command) error {
+	return nil
+}
+
+func (i *Interpreter) handleTrigger(ctx context.Context, cmd spec.Command) error {
+	fmt.Printf("%+v", cmd)
 	return nil
 }
 
