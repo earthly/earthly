@@ -1833,24 +1833,41 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 		return "", "", nil
 	}
 	parts := strings.SplitN(secretKeyValue, "=", 2)
-	if len(parts) == 2 {
-		secretID := parts[1]
-		if secretID == "" {
-			// If empty string, don't use (used for optional secrets).
-			// TODO: This should be an actual secret (with an empty value),
-			//       so that the cache works correctly.
-			return "", "", nil
+
+	if len(parts) == 1 {
+		return parts[0], parts[0], nil
+	}
+
+	if len(parts) != 2 {
+		if c.ftrs.UseProjectSecrets {
+			return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=<secret-id>, or <secret-id>", secretKeyValue)
 		}
+		return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=+secrets/<secret-id> or <secret-id>", secretKeyValue)
+	}
+
+	secretID = parts[1]
+
+	if secretID == "" {
+		// If empty string, don't use (used for optional secrets).
+		// TODO: This should be an actual secret (with an empty value),
+		//       so that the cache works correctly.
+		return "", "", nil
+	}
+
+	if c.ftrs.UseProjectSecrets {
 		if strings.HasPrefix(secretID, "+secrets/") {
-			c.opt.Console.Printf("Deprecation: the '+secrets/' prefix is not required and support for it will be removed in an upcoming release")
 			secretID = strings.TrimPrefix(secretID, "+secrets/")
+			c.opt.Console.Printf("Deprecation: the '+secrets/' prefix is not required and support for it will be removed in an upcoming release")
 		}
 		return secretID, parts[0], nil
-	} else if len(parts) == 1 {
-		return parts[0], parts[0], nil
-	} else {
-		return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=+secrets/<secret-id>, <env-var>=<secret-id>, or <secret-id>", secretKeyValue)
 	}
+
+	if strings.HasPrefix(secretID, "+secrets/") {
+		secretID = strings.TrimPrefix(secretID, "+secrets/")
+		return secretID, parts[0], nil
+	}
+
+	return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=+secrets/<secret-id> or <secret-id>", secretKeyValue)
 }
 
 func (c *Converter) forceExecutionWithSemaphore(ctx context.Context, state pllb.State, platr *platutil.Resolver) error {
