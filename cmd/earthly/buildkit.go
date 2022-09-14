@@ -139,8 +139,7 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 		return nil
 	}
 
-	// When using a satellite, interactive and local do not work; as they are not SSL nor routable yet.
-	app.console.Warnf("Note: the interactive debugger, interactive RUN commands, and inline caching do not yet work on Earthly Satellites.")
+	app.console.Warnf("Note: inline caching do not yet work on Earthly Satellites.")
 
 	// Set up extra settings needed for buildkit RPC metadata
 	if app.satelliteName == "" {
