@@ -109,6 +109,7 @@ ga:
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
     BUILD +excludes-test
     BUILD +secrets-test
+    BUILD +secrets-optional-prefix-test
     BUILD +project-secrets-test
     BUILD +build-arg-test
     BUILD +build-arg-explicit-global-test
@@ -299,6 +300,15 @@ excludes-test:
     RUN touch do-not-exclude-me.txt
     RUN echo 'exclude-me.txt' > .earthlyignore
     DO +RUN_EARTHLY --earthfile=excludes.earth --target=+test
+
+secrets-optional-prefix-test:
+    ENV SECRET1=foo
+    ENV SECRET2=wrong
+    RUN echo -n "secretfilecontents" > /root/my-secret-file
+    DO +RUN_EARTHLY \
+        --earthfile=secrets.earth \
+        --extra_args="--secret SECRET1 --secret SECRET2=bar --secret-file SECRET3=~/my-secret-file --build-arg SECRET_ID=\"\" --build-arg SECRET_ID_2=\"\"" \
+        --target=+test
 
 secrets-test:
     ENV SECRET1=foo
