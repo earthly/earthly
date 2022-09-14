@@ -1838,13 +1838,6 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 		return parts[0], parts[0], nil
 	}
 
-	if len(parts) != 2 {
-		if c.ftrs.UseProjectSecrets {
-			return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=<secret-id>, or <secret-id>", secretKeyValue)
-		}
-		return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=+secrets/<secret-id> or <secret-id>", secretKeyValue)
-	}
-
 	secretID = parts[1]
 
 	if secretID == "" {
