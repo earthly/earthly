@@ -185,8 +185,10 @@ func (sf *shellFrontend) ContainerRun(ctx context.Context, containers ...Contain
 			args = append(args, "--publish", port)
 		}
 
-		if sf.supportsPlatformArg(ctx) {
-			args = append(args, "--platform", getPlatform())
+		// TODO rlaforge: this is wrong - we should instead be checking the platform / arch for the frontend host
+		platform := getPlatform()
+		if sf.supportsPlatformArg(ctx, platform) {
+			args = append(args, "--platform", platform)
 		}
 
 		args = append(args, "-d") // Run detached, this feels implied by the API
@@ -291,11 +293,12 @@ func (sf *shellFrontend) commandContextOutput(ctx context.Context, args ...strin
 	return output, nil
 }
 
-func (sf *shellFrontend) supportsPlatformArg(ctx context.Context) bool {
+func (sf *shellFrontend) supportsPlatformArg(ctx context.Context, platform string) bool {
 	// We can't run scratch, but the error is different depending on whether
 	// --platform is supported or not. This is faster than attempting to run
 	// an actual image which may require downloading.
-	output, _ := sf.commandContextOutput(ctx, "run", "--rm", "--platform", getPlatform(), "scratch")
+
+	output, _ := sf.commandContextOutput(ctx, "run", "--rm", "--platform", platform, "scratch")
 	return strings.Contains(output.string(), "Unable to find image")
 }
 
