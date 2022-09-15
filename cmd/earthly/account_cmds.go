@@ -12,12 +12,13 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
-	"github.com/earthly/earthly/cloud"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/term"
+
+	"github.com/earthly/earthly/cloud"
 )
 
 var (
@@ -190,7 +191,7 @@ func (app *earthlyApp) actionAccountRegister(cliCtx *cli.Context) error {
 		return errors.New("email is invalid")
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHttpAddr, app.cloudGrpcAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -324,7 +325,7 @@ func promptPassword() (string, error) {
 
 func (app *earthlyApp) actionAccountListKeys(cliCtx *cli.Context) error {
 	app.commandName = "accountListKeys"
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHttpAddr, app.cloudGrpcAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -340,7 +341,7 @@ func (app *earthlyApp) actionAccountListKeys(cliCtx *cli.Context) error {
 
 func (app *earthlyApp) actionAccountAddKey(cliCtx *cli.Context) error {
 	app.commandName = "accountAddKey"
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHttpAddr, app.cloudGrpcAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -410,7 +411,7 @@ func (app *earthlyApp) actionAccountAddKey(cliCtx *cli.Context) error {
 
 func (app *earthlyApp) actionAccountRemoveKey(cliCtx *cli.Context) error {
 	app.commandName = "accountRemoveKey"
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHttpAddr, app.cloudGrpcAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -424,7 +425,7 @@ func (app *earthlyApp) actionAccountRemoveKey(cliCtx *cli.Context) error {
 }
 func (app *earthlyApp) actionAccountListTokens(cliCtx *cli.Context) error {
 	app.commandName = "accountListTokens"
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHttpAddr, app.cloudGrpcAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -486,7 +487,7 @@ func (app *earthlyApp) actionAccountCreateToken(cliCtx *cli.Context) error {
 		}
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHttpAddr, app.cloudGrpcAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -505,7 +506,7 @@ func (app *earthlyApp) actionAccountRemoveToken(cliCtx *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	name := cliCtx.Args().First()
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHttpAddr, app.cloudGrpcAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -541,7 +542,7 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 	if token != "" && (email != "" || pass != "") {
 		return errors.New("--token cannot be used in conjuction with --email or --password")
 	}
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHttpAddr, app.cloudGrpcAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -682,7 +683,7 @@ func (app *earthlyApp) actionAccountLogout(cliCtx *cli.Context) error {
 		return errLogoutHasNoEffectWhenAuthTokenSet
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHttpAddr, app.cloudGrpcAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return err
 	}
@@ -700,7 +701,7 @@ func (app *earthlyApp) actionAccountReset(cliCtx *cli.Context) error {
 		return errors.New("no email given")
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHttpAddr, app.cloudGrpcAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return err
 	}
