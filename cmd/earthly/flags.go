@@ -76,7 +76,7 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Value:       "https://api.earthly.dev",
 			EnvVars:     []string{"EARTHLY_SERVER_ADDRESS"},
 			Usage:       "API server override for dev purposes",
-			Destination: &app.cloudHttpAddr,
+			Destination: &app.cloudHTTPAddr,
 			Hidden:      true, // Internal.
 		},
 		&cli.StringFlag{
@@ -84,7 +84,7 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Value:       "ci.earthly.dev:443",
 			EnvVars:     []string{"EARTHLY_GRPC_ADDRESS"},
 			Usage:       "gRPC server override for dev purposes",
-			Destination: &app.cloudGrpcAddr,
+			Destination: &app.cloudGRPCAddr,
 			Hidden:      true, // Internal.
 		},
 		&cli.StringFlag{

@@ -27,6 +27,7 @@ const (
 	satelliteMgmtTimeout = "5M" // 5 minute timeout when launching or deleting a Satellite
 )
 
+// Client contains gRPC and REST endpoints to the Earthly Cloud backend.
 type Client interface {
 	RegisterEmail(ctx context.Context, email string) error
 	CreateAccount(ctx context.Context, email, verificationToken, password, publicKey string, termsConditionsPrivacy bool) error

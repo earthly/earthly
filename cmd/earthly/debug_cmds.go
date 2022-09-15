@@ -85,7 +85,7 @@ func (app *earthlyApp) actionDebugAst(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionDebugBuildkitInfo(cliCtx *cli.Context) error {
 	app.commandName = "debugBuildkitInfo"
 
-	cloudClient, err := cloud.NewClient(app.cloudHttpAddr, app.cloudGrpcAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -110,7 +110,7 @@ func (app *earthlyApp) actionDebugBuildkitInfo(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionDebugBuildkitDiskUsage(cliCtx *cli.Context) error {
 	app.commandName = "debugBuildkitDiskUsage"
 
-	cloudClient, err := cloud.NewClient(app.cloudHttpAddr, app.cloudGrpcAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -161,7 +161,7 @@ func (app *earthlyApp) actionDebugBuildkitDiskUsage(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionDebugBuildkitWorkers(cliCtx *cli.Context) error {
 	app.commandName = "debugBuildkitWorkers"
 
-	cloudClient, err := cloud.NewClient(app.cloudHttpAddr, app.cloudGrpcAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -234,7 +234,7 @@ func (app *earthlyApp) actionDebugBuildkitWorkers(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionDebugBuildkitShutdownIfIdle(cliCtx *cli.Context) error {
 	app.commandName = "debugBuildkitShutdownIfIdle"
 
-	cloudClient, err := cloud.NewClient(app.cloudHttpAddr, app.cloudGrpcAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
