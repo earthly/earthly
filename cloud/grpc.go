@@ -38,8 +38,6 @@ func (c *client) UnaryAuthInterceptor() grpc.UnaryClientInterceptor {
 				}
 				md.Delete("authorization")
 				ctx = metadata.NewOutgoingContext(ctx, md)
-				ctx = c.withAuth(ctx)
-				md, _ = metadata.FromOutgoingContext(ctx)
 				return invoker(c.withAuth(ctx), method, req, reply, cc, opts...)
 			}
 		}
