@@ -298,18 +298,26 @@ func (sf *shellFrontend) commandContextOutput(ctx context.Context, args ...strin
 	return output, nil
 }
 
-func (sf *shellFrontend) supportsPlatform(ctx context.Context, platform string) (bool, error) {
+func normalizePlatform(platform string) (string, error) {
 	parsedPlatform, err := platforms.Parse(platform)
 	if err != nil {
-		return false, errors.Wrapf(err, "failed to parse platform %s", platform)
+		return "", errors.Wrapf(err, "failed to parse platform %s", platform)
 	}
 	platformSpec := platforms.Normalize(parsedPlatform)
-	platformNormalized := platforms.Format(platformSpec)
+	return platforms.Format(platformSpec), nil
+}
+
+func (sf *shellFrontend) supportsPlatform(ctx context.Context, platform string) (bool, error) {
+	normalizedPlatform, err := normalizePlatform(platform)
 	frontendInfo, err := sf.FrontendInformation(ctx)
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to get platform information")
 	}
-	return frontendInfo.ServerPlatform == platformNormalized, nil
+	normalizedServerPlatform, err := normalizePlatform(frontendInfo.ServerPlatform)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to normalize server platform")
+	}
+	return normalizedServerPlatform == normalizedPlatform, nil
 }
 
 func (sf *shellFrontend) setupAndValidateAddresses(feType string, cfg *FrontendConfig) (*FrontendURLs, error) {
