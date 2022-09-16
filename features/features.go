@@ -40,7 +40,7 @@ type Features struct {
 	UseRegistryForWithDocker   bool `long:"use-registry-for-with-docker" description:"use embedded Docker registry for WITH DOCKER load operations"`
 	WaitBlock                  bool `long:"wait-block" description:"enable WITH/END feature, also allows RUN --push mixed with non-push commands"`
 	UseProjectSecrets          bool `long:"use-project-secrets" description:"enable project-based secret resolution"`
-	Pipelines                  bool `long:"pipelines" description:"enable the PIPELINE and TRIGGER commands"`
+	UsePipelines               bool `long:"use-pipelines" description:"enable the PIPELINE and TRIGGER commands"`
 
 	Major int
 	Minor int

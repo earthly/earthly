@@ -2132,7 +2132,7 @@ func (c *Converter) checkAllowed(command cmdType) error {
 		return errors.New("--use-project-secrets must be enabled in order to use PROJECT")
 	}
 
-	if (command == pipelineCmd || command == triggerCmd) && !c.ftrs.Pipelines {
+	if (command == pipelineCmd || command == triggerCmd) && !c.ftrs.UsePipelines {
 		return errors.New("--use-pipelines must be enabled in order to use PIPELINE or TRIGGER")
 	}
 
