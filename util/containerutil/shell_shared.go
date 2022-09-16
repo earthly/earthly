@@ -187,7 +187,7 @@ func (sf *shellFrontend) ContainerRun(ctx context.Context, containers ...Contain
 		}
 
 		platform := getPlatform()
-		supportsPlatform, err := sf.supportsPlatformArg(ctx, platform)
+		supportsPlatform, err := sf.supportsPlatform(ctx, platform)
 		if err != nil {
 			return errors.Wrapf(err, "failed in run container")
 		}
@@ -297,7 +297,7 @@ func (sf *shellFrontend) commandContextOutput(ctx context.Context, args ...strin
 	return output, nil
 }
 
-func (sf *shellFrontend) supportsPlatformArg(ctx context.Context, platform string) (bool, error) {
+func (sf *shellFrontend) supportsPlatform(ctx context.Context, platform string) (bool, error) {
 	frontendInfo, err := sf.FrontendInformation(ctx)
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to get platform information")
