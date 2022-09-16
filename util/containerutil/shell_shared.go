@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/containerd/containerd/platforms"
 	"net"
 	"net/url"
 	"os"
@@ -298,11 +299,17 @@ func (sf *shellFrontend) commandContextOutput(ctx context.Context, args ...strin
 }
 
 func (sf *shellFrontend) supportsPlatform(ctx context.Context, platform string) (bool, error) {
+	parsedPlatform, err := platforms.Parse(platform)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to parse platform %s", platform)
+	}
+	platformSpec := platforms.Normalize(parsedPlatform)
+	platformNormalized := platforms.Format(platformSpec)
 	frontendInfo, err := sf.FrontendInformation(ctx)
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to get platform information")
 	}
-	return frontendInfo.ServerPlatform == platform, nil
+	return frontendInfo.ServerPlatform == platformNormalized, nil
 }
 
 func (sf *shellFrontend) setupAndValidateAddresses(feType string, cfg *FrontendConfig) (*FrontendURLs, error) {
