@@ -309,6 +309,9 @@ func normalizePlatform(platform string) (string, error) {
 
 func (sf *shellFrontend) supportsPlatform(ctx context.Context, platform string) (bool, error) {
 	normalizedPlatform, err := normalizePlatform(platform)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to normalize platform")
+	}
 	frontendInfo, err := sf.FrontendInformation(ctx)
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to get platform information")
