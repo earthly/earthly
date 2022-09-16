@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/containerd/containerd/platforms"
 	"net"
 	"net/url"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/containerd/containerd/platforms"
 
 	"github.com/hashicorp/go-multierror"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
