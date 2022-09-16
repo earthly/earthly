@@ -41,6 +41,11 @@ For development purposes, you may use the built `earthly` binary to rebuild itse
     ./build/darwin/amd64/earthly +for-darwin
     ```
 
+* Mac with M1 chip
+    ```bash
+    ./build/darwin/amd64/earthly +for-darwin-m1
+    ```
+  
 ## Running tests
 
 To run most tests you can issue
