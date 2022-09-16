@@ -12,6 +12,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 - Bootstraping zsh autocompletion will first attempt to install under `/usr/local/share/zsh/site-functions`, and will now
   fallback to `/usr/share/zsh/site-functions`.
+- `earthly sat select` with no arguments now prints the current satellite and the usage text.
 
 ## v0.6.23 - 2022-09-06
 
