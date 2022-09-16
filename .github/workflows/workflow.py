@@ -10,7 +10,7 @@ class DockerWorkflowRunner:
     def login(self):
         output = io.StringIO()
         print('running docker login')
-        cmd = pexpect.spawn(f'login registry-1.docker.io.mirror.corp.earthly.dev --username "{DOCKERHUB_MIRROR_USERNAME}" --password "{ DOCKERHUB_MIRROR_PASSWORD }"', encoding='utf-8')
+        cmd = pexpect.spawn(f'docker login registry-1.docker.io.mirror.corp.earthly.dev --username "{DOCKERHUB_MIRROR_USERNAME}" --password "{ DOCKERHUB_MIRROR_PASSWORD }"', encoding='utf-8')
         cmd.logfile_read = output
         status = cmd.wait()
         print('docker finished')
@@ -34,7 +34,7 @@ class PodmanWorkflowRunner:
     def login(self):
         output = io.StringIO()
         print('running podman login')
-        cmd = pexpect.spawn(f'login registry-1.docker.io.mirror.corp.earthly.dev --username "{DOCKERHUB_MIRROR_USERNAME}" --password "{ DOCKERHUB_MIRROR_PASSWORD }"', encoding='utf-8')
+        cmd = pexpect.spawn(f'podman login registry-1.docker.io.mirror.corp.earthly.dev --username "{DOCKERHUB_MIRROR_USERNAME}" --password "{ DOCKERHUB_MIRROR_PASSWORD }"', encoding='utf-8')
         cmd.logfile_read = output
         status = cmd.wait()
         print('podman finished')
