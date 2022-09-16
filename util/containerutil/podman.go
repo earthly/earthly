@@ -29,6 +29,8 @@ func NewPodmanShellFrontend(ctx context.Context, cfg *FrontendConfig) (Container
 			globalCompatibilityArgs: make([]string, 0),
 		},
 	}
+	// TODO: Find a cleaner way to pass down information to the shellFrontend
+	fe.FrontendInformation = fe.Information
 
 	output, err := fe.commandContextOutput(ctx, "info", "--format={{.Host.Security.Rootless}}")
 	if err != nil {

@@ -24,7 +24,8 @@ type shellFrontend struct {
 	runCompatibilityArgs    []string
 	globalCompatibilityArgs []string
 
-	urls *FrontendURLs
+	FrontendInformation func(ctx context.Context) (*FrontendInfo, error)
+	urls                *FrontendURLs
 }
 
 func (sf *shellFrontend) IsAvailable(ctx context.Context) bool {
@@ -185,9 +186,12 @@ func (sf *shellFrontend) ContainerRun(ctx context.Context, containers ...Contain
 			args = append(args, "--publish", port)
 		}
 
-		// TODO rlaforge: this is wrong - we should instead be checking the platform / arch for the frontend host
 		platform := getPlatform()
-		if sf.supportsPlatformArg(ctx, platform) {
+		supportsPlatform, err := sf.supportsPlatformArg(ctx, platform)
+		if err != nil {
+			return errors.Wrapf(err, "failed in run container")
+		}
+		if supportsPlatform {
 			args = append(args, "--platform", platform)
 		}
 
@@ -293,13 +297,12 @@ func (sf *shellFrontend) commandContextOutput(ctx context.Context, args ...strin
 	return output, nil
 }
 
-func (sf *shellFrontend) supportsPlatformArg(ctx context.Context, platform string) bool {
-	// We can't run scratch, but the error is different depending on whether
-	// --platform is supported or not. This is faster than attempting to run
-	// an actual image which may require downloading.
-
-	output, _ := sf.commandContextOutput(ctx, "run", "--rm", "--platform", platform, "scratch")
-	return strings.Contains(output.string(), "Unable to find image")
+func (sf *shellFrontend) supportsPlatformArg(ctx context.Context, platform string) (bool, error) {
+	frontendInfo, err := sf.FrontendInformation(ctx)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to get platform information")
+	}
+	return frontendInfo.ServerPlatform == platform, nil
 }
 
 func (sf *shellFrontend) setupAndValidateAddresses(feType string, cfg *FrontendConfig) (*FrontendURLs, error) {
