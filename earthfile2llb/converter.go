@@ -1405,6 +1405,7 @@ func (c *Converter) Pipeline(ctx context.Context) error {
 		return err
 	}
 	c.isPipeline = true
+	c.mts.Final.RanFromLike = true
 	return nil
 }
 
