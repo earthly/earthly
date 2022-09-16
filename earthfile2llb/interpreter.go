@@ -77,16 +77,11 @@ func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
 }
 
 func (i *Interpreter) isPipelineTarget(ctx context.Context, t spec.Target) bool {
-	if len(t.Recipe) == 0 {
-		return false
-	}
-
 	for _, stmt := range t.Recipe {
 		if stmt.Command != nil && stmt.Command.Name == "PIPELINE" {
 			return true
 		}
 	}
-
 	return false
 }
 
@@ -1693,10 +1688,10 @@ func (i *Interpreter) handlePipeline(ctx context.Context, cmd spec.Command) erro
 		return i.errorf(cmd.SourceLocation, "invalid number of PIPELINE arguments")
 	}
 
-	for _, arg := range cmd.Args {
-		if arg != "--push" {
-			return i.errorf(cmd.SourceLocation, "--push is the only supported PIPELINE argument")
-		}
+	opts := &pipelineOpts{}
+	_, err := parseArgs("PIPELINE", opts, getArgsCopy(cmd))
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "invalid PIPELINE arguments")
 	}
 
 	return i.converter.Pipeline(ctx)
@@ -1710,6 +1705,9 @@ func (i *Interpreter) handleTrigger(ctx context.Context, cmd spec.Command) error
 
 	switch cmd.Args[0] {
 	case "manual":
+		if len(cmd.Args) != 1 {
+			return i.errorf(cmd.SourceLocation, "invalid argument")
+		}
 	case "pr", "push":
 		if len(cmd.Args) != 2 {
 			return i.errorf(cmd.SourceLocation, "'pr' and 'push' triggers require a branch name")

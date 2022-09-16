@@ -2146,7 +2146,7 @@ func (c *Converter) checkAllowed(command cmdType) error {
 
 	if !c.mts.Final.RanFromLike {
 		switch command {
-		case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, importCmd, projectCmd:
+		case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, importCmd, projectCmd, pipelineCmd:
 			return nil
 		default:
 			return errors.New("the first command has to be FROM, FROM DOCKERFILE, LOCALLY, ARG, BUILD or IMPORT")
