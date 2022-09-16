@@ -4,7 +4,7 @@
 Here is an example a GitHub Actions build, where we build the Earthly target `+build`.
 
 ```yml
-# .github/workflows/ci.yml
+# .github/workflows.bak/ci.yml
 
 name: CI
 
