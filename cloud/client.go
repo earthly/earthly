@@ -131,7 +131,7 @@ func NewClient(httpAddr, grpcAddr, agentSockPath, authCredsOverride string, warn
 	tlsConfig := credentials.NewTLS(&tls.Config{})
 	ctx := context.Background()
 	retryOpts := []grpc_retry.CallOption{
-		grpc_retry.WithBackoff(grpc_retry.BackoffLinear(100 * time.Millisecond)),
+		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)),
 		grpc_retry.WithCodes(codes.Internal, codes.Unavailable),
 	}
 	conn, err := grpc.DialContext(ctx, grpcAddr,
