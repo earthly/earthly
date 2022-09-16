@@ -189,7 +189,7 @@ func (sf *shellFrontend) ContainerRun(ctx context.Context, containers ...Contain
 		platform := getPlatform()
 		supportsPlatform, platformCheckErr := sf.supportsPlatform(ctx, platform)
 		if platformCheckErr != nil {
-			return errors.Wrapf(err, "failed to run container")
+			err = multierror.Append(err, platformCheckErr)
 		}
 		if supportsPlatform {
 			args = append(args, "--platform", platform)
