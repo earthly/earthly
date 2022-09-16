@@ -28,4 +28,5 @@ jobs:
         run: ./.github/scripts/workflow.py ${{ matrix.binary }} ensureSingleInstallation
       - name: Docker mirror login (Earthly Only)
         run: ./.github/scripts/workflow.py ${{ matrix.binary }} login
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        # TODO: Add back this if statement
+        # if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
