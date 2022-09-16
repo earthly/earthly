@@ -26,6 +26,7 @@ deps:
     RUN go install golang.org/x/lint/golint@latest
     RUN go install github.com/gordonklaus/ineffassign@latest
     COPY go.mod go.sum ./
+    COPY --dir ast ./
     RUN go mod download
     SAVE ARTIFACT go.mod AS LOCAL go.mod
     SAVE ARTIFACT go.sum AS LOCAL go.sum
