@@ -3,8 +3,8 @@ import pexpect
 import os
 import io
 
-DOCKERHUB_MIRROR_USERNAME = os.getenv('API_USER')
-DOCKERHUB_MIRROR_PASSWORD = os.environ.get('API_PASSWORD')
+DOCKERHUB_MIRROR_USERNAME = os.environ.get('DOCKERHUB_MIRROR_USERNAME')
+DOCKERHUB_MIRROR_PASSWORD = os.environ.get('DOCKERHUB_MIRROR_PASSWORD')
 
 class DockerWorkflowRunner:
     def login(self):
