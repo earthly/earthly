@@ -76,12 +76,26 @@ func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
 	return i.errorf(ef.SourceLocation, "target %s not found", i.target.Target)
 }
 
+func (i *Interpreter) isPipelineTarget(ctx context.Context, t spec.Target) bool {
+	for _, stmt := range t.Recipe {
+		if stmt.Command != nil && stmt.Command.Name == "PIPELINE" {
+			return true
+		}
+	}
+	return false
+}
+
 func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
 	// Apply implicit FROM +base
 	err := i.converter.From(ctx, "+base", platutil.DefaultPlatform, i.allowPrivileged, nil)
 	if err != nil {
 		return i.wrapError(err, t.SourceLocation, "apply FROM")
 	}
+
+	if i.isPipelineTarget(ctx, t) {
+		return i.handlePipelineBlock(ctx, t.Name, t.Recipe)
+	}
+
 	return i.handleBlock(ctx, t.Recipe)
 }
 
@@ -252,6 +266,8 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 		return i.handleHost(ctx, cmd)
 	case "PROJECT":
 		return i.handleProject(ctx, cmd)
+	case "TRIGGER":
+		return i.handleTrigger(ctx, cmd)
 	default:
 		return i.errorf(cmd.SourceLocation, "unexpected command %s", cmd.Name)
 	}
@@ -1626,6 +1642,78 @@ func (i *Interpreter) handleProject(ctx context.Context, cmd spec.Command) error
 	err = i.converter.Project(ctx, parts[0], parts[1])
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to process PROJECT")
+	}
+
+	return nil
+}
+
+func (i *Interpreter) handlePipelineBlock(ctx context.Context, name string, block spec.Block) error {
+	if len(block) == 0 {
+		return errors.New("pipeline targets require sub-commands")
+	}
+
+	if block[0].Command == nil || block[0].Command.Name != "PIPELINE" {
+		return i.errorf(block[0].Command.SourceLocation, "PIPELINE must be the first command in a pipeline target")
+	}
+
+	for _, stmt := range block {
+		if stmt.Command == nil {
+			return errors.New("pipeline targets do not support IF, WITH, FOR, or WAIT commands")
+		}
+		cmd := *stmt.Command
+		var err error
+		switch cmd.Name {
+		case "PIPELINE":
+			err = i.handlePipeline(ctx, cmd)
+		case "TRIGGER":
+			err = i.handleTrigger(ctx, cmd)
+		case "ARG":
+			err = i.handleArg(ctx, cmd)
+		case "BUILD":
+			err = i.handleBuild(ctx, cmd, false)
+		default:
+			return i.errorf(cmd.SourceLocation, "pipeline targets only support PIPELINE, TRIGGER, ARG, and BUILD commands")
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (i *Interpreter) handlePipeline(ctx context.Context, cmd spec.Command) error {
+
+	if len(cmd.Args) > 1 {
+		return i.errorf(cmd.SourceLocation, "invalid number of PIPELINE arguments")
+	}
+
+	opts := &pipelineOpts{}
+	_, err := parseArgs("PIPELINE", opts, getArgsCopy(cmd))
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "invalid PIPELINE arguments")
+	}
+
+	return i.converter.Pipeline(ctx)
+}
+
+func (i *Interpreter) handleTrigger(ctx context.Context, cmd spec.Command) error {
+
+	if len(cmd.Args) < 1 {
+		return i.errorf(cmd.SourceLocation, "TRIGGER requires at least 1 argument")
+	}
+
+	switch cmd.Args[0] {
+	case "manual":
+		if len(cmd.Args) != 1 {
+			return i.errorf(cmd.SourceLocation, "invalid argument")
+		}
+	case "pr", "push":
+		if len(cmd.Args) != 2 {
+			return i.errorf(cmd.SourceLocation, "'pr' and 'push' triggers require a branch name")
+		}
+	default:
+		return i.errorf(cmd.SourceLocation, "valid triggers include: 'manual', 'pr', or 'push'")
 	}
 
 	return nil
