@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/containerd/containerd/platforms"
-
+	"github.com/earthly/earthly/conslogging"
 	"github.com/hashicorp/go-multierror"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
@@ -28,6 +28,7 @@ type shellFrontend struct {
 
 	FrontendInformation func(ctx context.Context) (*FrontendInfo, error)
 	urls                *FrontendURLs
+	Console             conslogging.ConsoleLogger
 }
 
 func (sf *shellFrontend) IsAvailable(ctx context.Context) bool {
@@ -311,7 +312,9 @@ func normalizePlatform(platform string) (string, error) {
 func (sf *shellFrontend) supportsPlatform(ctx context.Context, platform string) (bool, error) {
 	normalizedPlatform, err := normalizePlatform(platform)
 	if err != nil {
-		return false, errors.Wrapf(err, "failed to normalize platform")
+		// Failing to normalize the platform means it may not be valid, so return false
+		sf.Console.VerbosePrintf("failed to normalize platform %s", platform)
+		return false, nil
 	}
 	frontendInfo, err := sf.FrontendInformation(ctx)
 	if err != nil {
@@ -319,7 +322,9 @@ func (sf *shellFrontend) supportsPlatform(ctx context.Context, platform string) 
 	}
 	normalizedServerPlatform, err := normalizePlatform(frontendInfo.ServerPlatform)
 	if err != nil {
-		return false, errors.Wrapf(err, "failed to normalize server platform")
+		// Failing to normalize the platform could mean its invalid, so return false
+		sf.Console.VerbosePrintf("failed to normalize server platform %s", frontendInfo.ServerPlatform)
+		return false, nil
 	}
 	return normalizedServerPlatform == normalizedPlatform, nil
 }

@@ -29,6 +29,7 @@ func NewDockerShellFrontend(ctx context.Context, cfg *FrontendConfig) (Container
 			binaryName:              "docker",
 			runCompatibilityArgs:    make([]string, 0),
 			globalCompatibilityArgs: make([]string, 0),
+			Console:                 cfg.Console,
 		},
 	}
 	// TODO: Find a cleaner way to pass down information to the shellFrontend
