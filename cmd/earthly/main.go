@@ -106,7 +106,8 @@ type cliFlags struct {
 	disableNewLine            bool
 	secretFile                string
 	secretStdin               bool
-	apiServer                 string
+	cloudHTTPAddr             string
+	cloudGRPCAddr             string
 	satelliteAddress          string
 	writePermission           bool
 	registrationPublicKey     string
@@ -134,6 +135,7 @@ type cliFlags struct {
 	logSharing                bool
 	satelliteName             string
 	noSatellite               bool
+	satelliteFeatureFlags     cli.StringSlice
 	userPermission            string
 	noBuildkitUpdate          bool
 	globalWaitEnd             bool // for feature-flipping builder.go code removal
@@ -269,7 +271,7 @@ func main() {
 		ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		displayErrors := app.verbose
-		cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+		cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 		if err != nil && displayErrors {
 			app.console.Warnf("unable to start cloud client: %s", err)
 		} else if err == nil {

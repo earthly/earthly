@@ -17,7 +17,7 @@ import (
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
-	"github.com/earthly/earthly/debugger/common"
+	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/outmon"
@@ -44,6 +44,7 @@ import (
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session/localhost"
 	solverpb "github.com/moby/buildkit/solver/pb"
+	"github.com/moby/buildkit/util/apicaps"
 	"github.com/pkg/errors"
 )
 
@@ -332,7 +333,6 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	if err != nil {
 		return err
 	}
-	caps := solverpb.Caps.CapSet(solverpb.Caps.All())
 	bcRawState, done := BuildContextFactory.Construct().RawState()
 	state, dfImg, _, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
 		BuildContext:     &bcRawState,
@@ -341,7 +341,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		ImageResolveMode: c.opt.ImageResolveMode,
 		Target:           dfTarget,
 		TargetPlatform:   &plat,
-		LLBCaps:          &caps,
+		LLBCaps:          c.opt.LLBCaps,
 		BuildArgs:        overriding.AllValueMap(),
 		Excludes:         nil, // TODO: Need to process this correctly.
 	})
@@ -1651,6 +1651,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	if err != nil {
 		return pllb.State{}, errors.Wrap(err, "parse mounts")
 	}
+
 	runOpts = append(runOpts, mountRunOpts...)
 	commandStr := fmt.Sprintf(
 		"%s %s%s%s%s%s%s",
@@ -1691,12 +1692,25 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 	if !opts.Locally {
 		// Debugger.
+		err := c.opt.LLBCaps.Supports(solverpb.CapExecMountSock)
+		if err != nil {
+			_, isCapError := err.(*apicaps.CapError)
+			if !isCapError {
+				c.opt.Console.Warnf("failed to check LLBCaps for CapExecMountSock: %v", err) // keep going
+			} else if opts.Interactive {
+				// only display warning when user supplies --interactive to an older buildkit version
+				c.opt.Console.Warnf("interactive debugger requires a newer version of buildkit: %v", err)
+			}
+		} else {
+			runOpts = append(runOpts, llb.SocketTarget("earthly_interactive", debuggercommon.DebuggerDefaultSocketPath, 0666, 0, 0))
+		}
+
 		secretOpts := []llb.SecretOption{
-			llb.SecretID(c.secretID(common.DebuggerSettingsSecretsKey)),
+			llb.SecretID(c.secretID(debuggercommon.DebuggerSettingsSecretsKey)),
 			llb.SecretFileOpt(0, 0, 0444),
 		}
 		debuggerSecretMount := llb.AddSecret(
-			fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey), secretOpts...)
+			fmt.Sprintf("/run/secrets/%s", debuggercommon.DebuggerSettingsSecretsKey), secretOpts...)
 		debuggerMount := pllb.AddMount(debuggerPath, pllb.Scratch(),
 			llb.HostBind(), llb.SourcePath("/usr/bin/earth_debugger"))
 		runOpts = append(runOpts, debuggerSecretMount, debuggerMount)
@@ -1826,31 +1840,41 @@ func (c *Converter) secretID(name string) string {
 }
 
 func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, envVar string, err error) {
-	parts := strings.SplitN(secretKeyValue, "=", 2)
-	if len(parts) == 2 {
-		if strings.HasPrefix(parts[1], "+secrets/") {
-			c.opt.Console.Printf("Deprecation: the '+secrets/' prefix is not required and support for it will be removed in an upcoming release")
-			secretID := strings.TrimPrefix(parts[1], "+secrets/")
-			return secretID, parts[0], nil
-		} else if parts[1] == "" {
-			// If empty string, don't use (used for optional secrets).
-			// TODO: This should be an actual secret (with an empty value),
-			//       so that the cache works correctly.
-			return "", "", nil
-		} else {
-			return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=+secrets/<secret-id> or <secret-id>", secretKeyValue)
-		}
-	} else if len(parts) == 1 {
-		if secretKeyValue == "" {
-			// If empty string, don't use (used for optional secrets).
-			// TODO: This should be an actual secret (with an empty value),
-			//       so that the cache works correctly.
-			return "", "", nil
-		}
-		return parts[0], parts[0], nil
-	} else {
-		return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=+secrets/<secret-id> or <secret-id>", secretKeyValue)
+	if secretKeyValue == "" {
+		// If empty string, don't use (used for optional secrets).
+		// TODO: This should be an actual secret (with an empty value),
+		//       so that the cache works correctly.
+		return "", "", nil
 	}
+	parts := strings.SplitN(secretKeyValue, "=", 2)
+
+	if len(parts) == 1 {
+		return parts[0], parts[0], nil
+	}
+
+	secretID = parts[1]
+
+	if secretID == "" {
+		// If empty string, don't use (used for optional secrets).
+		// TODO: This should be an actual secret (with an empty value),
+		//       so that the cache works correctly.
+		return "", "", nil
+	}
+
+	if c.ftrs.UseProjectSecrets {
+		if strings.HasPrefix(secretID, "+secrets/") {
+			secretID = strings.TrimPrefix(secretID, "+secrets/")
+			c.opt.Console.Printf("Deprecation: the '+secrets/' prefix is not required and support for it will be removed in an upcoming release")
+		}
+		return secretID, parts[0], nil
+	}
+
+	if strings.HasPrefix(secretID, "+secrets/") {
+		secretID = strings.TrimPrefix(secretID, "+secrets/")
+		return secretID, parts[0], nil
+	}
+
+	return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=+secrets/<secret-id> or <secret-id>", secretKeyValue)
 }
 
 func (c *Converter) forceExecutionWithSemaphore(ctx context.Context, state pllb.State, platr *platutil.Resolver) error {

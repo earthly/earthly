@@ -1,14 +1,27 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"strings"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
+	"github.com/joho/godotenv"
+	"github.com/moby/buildkit/client/llb"
+	"github.com/moby/buildkit/session"
+	"github.com/moby/buildkit/session/auth/authprovider"
+	"github.com/moby/buildkit/session/localhost/localhostprovider"
+	"github.com/moby/buildkit/session/socketforward/socketprovider"
+	"github.com/moby/buildkit/session/sshforward/sshprovider"
+	"github.com/moby/buildkit/util/entitlements"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
+
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
@@ -26,15 +39,6 @@ import (
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
-	"github.com/joho/godotenv"
-	"github.com/moby/buildkit/client/llb"
-	"github.com/moby/buildkit/session"
-	"github.com/moby/buildkit/session/auth/authprovider"
-	"github.com/moby/buildkit/session/localhost/localhostprovider"
-	"github.com/moby/buildkit/session/sshforward/sshprovider"
-	"github.com/moby/buildkit/util/entitlements"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
 )
 
 func (app *earthlyApp) actionBuild(cliCtx *cli.Context) error {
@@ -157,7 +161,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -225,11 +229,6 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	defer bkClient.Close()
 	app.analyticsMetadata.isRemoteBuildkit = !isLocal
 
-	bkIP, err := buildkitd.GetContainerIP(cliCtx.Context, app.containerName, app.containerFrontend, app.buildkitdSettings)
-	if err != nil {
-		return errors.Wrap(err, "get buildkit container IP")
-	}
-
 	nativePlatform, err := platutil.GetNativePlatformViaBkClient(cliCtx.Context, bkClient)
 	if err != nil {
 		return errors.Wrap(err, "get native platform via buildkit client")
@@ -270,7 +269,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	debuggerSettings := debuggercommon.DebuggerSettings{
 		DebugLevelLogging: app.debug,
 		Enabled:           app.interactiveDebugging,
-		RepeaterAddr:      fmt.Sprintf("%s:8373", bkIP),
+		SocketPath:        debuggercommon.DebuggerDefaultSocketPath,
 		Term:              os.Getenv("TERM"),
 	}
 	if app.interactiveDebugging {
@@ -346,27 +345,27 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		attachables = append(attachables, ssh)
 	}
 
+	sockHack, err := socketprovider.NewSocketProvider(map[string]socketprovider.SocketAcceptCb{
+		"earthly_interactive": func(ctx context.Context, conn io.ReadWriteCloser) error {
+			if !termutil.IsTTY() {
+				return fmt.Errorf("interactive mode unavailable due to terminal not being tty")
+			}
+			debugTermConsole := app.console.WithPrefix("internal-term")
+			err := terminal.ConnectTerm(cliCtx.Context, conn, debugTermConsole)
+			if err != nil {
+				return errors.Wrap(err, "interactive terminal")
+			}
+			return nil
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "ssh agent provider")
+	}
+	attachables = append(attachables, sockHack)
+
 	var enttlmnts []entitlements.Entitlement
 	if app.allowPrivileged {
 		enttlmnts = append(enttlmnts, entitlements.EntitlementSecurityInsecure)
-	}
-
-	if termutil.IsTTY() {
-		go func() {
-			// Dialing does not accept URLs, it accepts an address and a "network". These cannot be handled as URL schemes.
-			// Since Shellrepeater hard-codes TCP, we drop it here and log the error if we fail to connect.
-
-			u, err := url.Parse(app.debuggerHost)
-			if err != nil {
-				panic("debugger host was not a URL")
-			}
-
-			debugTermConsole := app.console.WithPrefix("internal-term")
-			err = terminal.ConnectTerm(cliCtx.Context, u.Host, debugTermConsole)
-			if err != nil {
-				debugTermConsole.VerbosePrintf("unable to connect to terminal: %s", err.Error())
-			}
-		}()
 	}
 
 	overridingVars, err := app.combineVariables(dotEnvMap, flagArgs)

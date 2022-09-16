@@ -10,6 +10,7 @@ import (
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	"github.com/moby/buildkit/util/apicaps"
 	"github.com/pkg/errors"
 
 	"github.com/earthly/earthly/ast/spec"
@@ -143,6 +144,9 @@ type ConvertOpt struct {
 
 	// TempEarthlyOutDir is a path to a temp dir where artifacts are temporarily saved
 	TempEarthlyOutDir func() (string, error)
+
+	// LLBCaps indicates that builder's capabilities
+	LLBCaps *apicaps.CapSet
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.

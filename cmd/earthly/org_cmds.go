@@ -6,9 +6,10 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/earthly/earthly/cloud"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+
+	"github.com/earthly/earthly/cloud"
 )
 
 func (app *earthlyApp) orgCmds() []*cli.Command {
@@ -141,7 +142,7 @@ func (app *earthlyApp) actionOrgCreate(cliCtx *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	org := cliCtx.Args().Get(0)
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -154,7 +155,7 @@ func (app *earthlyApp) actionOrgCreate(cliCtx *cli.Context) error {
 
 func (app *earthlyApp) actionOrgList(cliCtx *cli.Context) error {
 	app.commandName = "orgList"
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -187,7 +188,7 @@ func (app *earthlyApp) actionOrgListPermissions(cliCtx *cli.Context) error {
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -220,7 +221,7 @@ func (app *earthlyApp) actionOrgInvite(cliCtx *cli.Context) error {
 		return errors.New("invitation paths must end with a slash (/)")
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -244,7 +245,7 @@ func (app *earthlyApp) actionOrgInviteAccept(cliCtx *cli.Context) error {
 		return errors.New("invite code is required")
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -262,7 +263,7 @@ func (app *earthlyApp) actionOrgInviteAccept(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionOrgInviteList(cliCtx *cli.Context) error {
 	app.commandName = "orgInviteList"
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -297,12 +298,12 @@ func (app *earthlyApp) actionOrgInviteList(cliCtx *cli.Context) error {
 
 func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 	app.commandName = "orgInviteEmail"
-
-	if cliCtx.NArg() != 1 {
+	if cliCtx.NArg() == 0 {
 		return errors.New("user email address required")
 	}
+	emails := cliCtx.Args().Slice()
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -311,17 +312,6 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-
-	userEmail := cliCtx.Args().Get(0)
-	if !strings.Contains(userEmail, "@") {
-		return errors.New("invalid email address")
-	}
-
-	invite := &cloud.OrgInvitation{
-		Email:   userEmail,
-		OrgName: orgName,
-	}
-
 	permission := app.invitePermission
 	if permission == "" {
 		permission, err = promptInput(cliCtx.Context, "New user's permission [read/write/admin] (default=read): ")
@@ -346,15 +336,25 @@ func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 	default:
 		return fmt.Errorf("invalid permission %s", permission)
 	}
-	invite.Permission = permission
-	invite.Message = app.inviteMessage
 
-	_, err = cloudClient.InviteToOrg(cliCtx.Context, invite)
-	if err != nil {
-		return errors.Wrap(err, "failed to invite user into org")
+	for _, userEmail := range emails {
+		if !strings.Contains(userEmail, "@") {
+			return fmt.Errorf("invalid email address %s", userEmail)
+		}
 	}
-
-	app.console.Printf("Invite sent to %s", userEmail)
+	for _, userEmail := range emails {
+		invite := &cloud.OrgInvitation{
+			Email:      userEmail,
+			OrgName:    orgName,
+			Permission: permission,
+			Message:    app.inviteMessage,
+		}
+		_, err = cloudClient.InviteToOrg(cliCtx.Context, invite)
+		if err != nil {
+			return errors.Wrapf(err, "failed to invite user %s into org", userEmail)
+		}
+		app.console.Printf("Invite sent to %s", userEmail)
+	}
 
 	return nil
 }
@@ -369,7 +369,7 @@ func (app *earthlyApp) actionOrgRevoke(cliCtx *cli.Context) error {
 		return errors.New("revoked paths must end with a slash (/)")
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -388,7 +388,7 @@ func (app *earthlyApp) actionOrgMemberList(cliCtx *cli.Context) error {
 		return errors.New("expected no arguments")
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -428,7 +428,7 @@ func (app *earthlyApp) actionOrgMemberUpdate(cliCtx *cli.Context) error {
 		return errors.New("too many arguments provided")
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -464,7 +464,7 @@ func (app *earthlyApp) actionOrgMemberRemove(cliCtx *cli.Context) error {
 		return errors.New("member email required")
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}

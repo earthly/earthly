@@ -6,7 +6,7 @@ package terminal
 import (
 	"context"
 	"encoding/json"
-	"net"
+	"io"
 	"os"
 	"os/signal"
 	"sync"
@@ -41,21 +41,7 @@ func getWindowSizePayload() ([]byte, error) {
 }
 
 // ConnectTerm presents a terminal to the shell repeater
-func ConnectTerm(ctx context.Context, addr string, console conslogging.ConsoleLogger) error {
-	var d net.Dialer
-
-	console.VerbosePrintf("connecting to shellrepeater on %v\n", addr)
-	conn, err := d.DialContext(ctx, "tcp", addr)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	_, err = conn.Write([]byte{common.TermID})
-	if err != nil {
-		return errors.Wrap(err, "failed to write TermID connection")
-	}
-
+func ConnectTerm(ctx context.Context, conn io.ReadWriteCloser, console conslogging.ConsoleLogger) error {
 	sigs := make(chan os.Signal, 10)
 	signal.Notify(sigs, syscall.SIGWINCH)
 
@@ -150,7 +136,7 @@ func ConnectTerm(ctx context.Context, addr string, console conslogging.ConsoleLo
 	<-ctx.Done()
 
 	console.VerbosePrintf("exiting interactive debugger shell\n")
-	err = ts.restore()
+	err := ts.restore()
 	if err != nil {
 		return err
 	}

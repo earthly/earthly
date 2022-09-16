@@ -1,20 +1,18 @@
 package cloud
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"strings"
+	"crypto/tls"
 	"time"
 
+	"github.com/earthly/cloud-api/pipelines"
 	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh/agent"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 )
 
 var (
@@ -29,7 +27,7 @@ const (
 	satelliteMgmtTimeout = "5M" // 5 minute timeout when launching or deleting a Satellite
 )
 
-// Client provides a client to the shared secrets service
+// Client contains gRPC and REST endpoints to the Earthly Cloud backend.
 type Client interface {
 	RegisterEmail(ctx context.Context, email string) error
 	CreateAccount(ctx context.Context, email, verificationToken, password, publicKey string, termsConditionsPrivacy bool) error
@@ -69,7 +67,7 @@ type Client interface {
 	SendAnalytics(ctx context.Context, data *EarthlyAnalytics) error
 	IsLoggedIn(ctx context.Context) bool
 	GetAuthToken(ctx context.Context) (string, error)
-	LaunchSatellite(ctx context.Context, name, org string) error
+	LaunchSatellite(ctx context.Context, name, org string, features []string) error
 	GetOrgID(ctx context.Context, name string) (string, error)
 	ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error)
 	GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error)
@@ -92,218 +90,8 @@ type Client interface {
 	AccountReset(ctx context.Context, userEmail, token, password string) error
 }
 
-type request struct {
-	hasBody bool
-	body    []byte
-	headers http.Header
-
-	hasAuth    bool
-	hasHeaders bool
-}
-
-type requestOpt func(*request) error
-
-func withAuth() requestOpt {
-	return func(r *request) error {
-		r.hasAuth = true
-		return nil
-	}
-}
-
-func withHeader(key, value string) requestOpt {
-	return func(r *request) error {
-		r.hasHeaders = true
-		r.headers = http.Header{}
-		r.headers.Add(key, value)
-		return nil
-	}
-}
-
-func withJSONBody(body proto.Message) requestOpt {
-	return func(r *request) error {
-		marshaler := jsonpb.Marshaler{}
-		encodedBody, err := marshaler.MarshalToString(body)
-		if err != nil {
-			return err
-		}
-
-		r.hasBody = true
-		r.body = []byte(encodedBody)
-		return nil
-	}
-}
-
-func withFileBody(pathOnDisk string) requestOpt {
-	return func(r *request) error {
-		_, err := os.Stat(pathOnDisk)
-		if err != nil {
-			return errors.Wrapf(err, "could not stat file at %s", pathOnDisk)
-		}
-
-		contents, err := os.ReadFile(pathOnDisk)
-		if err != nil {
-			return errors.Wrapf(err, "could not add file %s to request body", pathOnDisk)
-		}
-
-		r.hasBody = true
-		r.body = contents
-		return nil
-	}
-}
-
-func withBody(body string) requestOpt {
-	return func(r *request) error {
-		r.hasBody = true
-		r.body = []byte(body)
-		return nil
-	}
-}
-
-func (c *client) doCall(ctx context.Context, method, url string, opts ...requestOpt) (int, string, error) {
-	const maxAttempt = 10
-	const maxSleepBeforeRetry = time.Second * 3
-
-	var r request
-	for _, opt := range opts {
-		err := opt(&r)
-		if err != nil {
-			return 0, "", err
-		}
-	}
-
-	alreadyReAuthed := false
-	if r.hasAuth && time.Now().UTC().After(c.authTokenExpiry) {
-		if err := c.Authenticate(ctx); err != nil {
-			if errors.Is(err, ErrUnauthorized) {
-				return 0, "", ErrUnauthorized
-			}
-			return 0, "", errors.Wrap(err, "failed refreshing expired auth token")
-		}
-		alreadyReAuthed = true
-	}
-
-	var status int
-	var body string
-	var callErr error
-	duration := time.Millisecond * 100
-	for attempt := 0; attempt < maxAttempt; attempt++ {
-		status, body, callErr = c.doCallImp(ctx, r, method, url, opts...)
-		retry, err := shouldRetry(status, body, callErr, c.warnFunc)
-		if err != nil {
-			return status, body, err
-		}
-		if !retry {
-			return status, body, nil
-		}
-
-		if status == http.StatusUnauthorized {
-			if !r.hasAuth || alreadyReAuthed {
-				return status, body, ErrUnauthorized
-			}
-			err := c.Authenticate(ctx)
-			if err != nil {
-				return status, body, errors.Wrap(err, "auth credentials not valid")
-			}
-			alreadyReAuthed = true
-		}
-
-		if duration > maxSleepBeforeRetry {
-			duration = maxSleepBeforeRetry
-		}
-
-		time.Sleep(duration)
-		duration *= 2
-	}
-
-	return status, body, callErr
-}
-
-func shouldRetry(status int, body string, callErr error, warnFunc func(string, ...interface{})) (bool, error) {
-	if status == http.StatusUnauthorized {
-		return true, nil
-	}
-	if 500 <= status && status <= 599 {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
-		if err != nil {
-			warnFunc("retrying http request due to unexpected status code %v", status)
-		} else {
-			warnFunc("retrying http request due to unexpected status code %v: %v", status, msg)
-		}
-		return true, nil
-	}
-	switch {
-	case callErr == nil:
-		return false, nil
-	case errors.Is(callErr, ErrNoAuthorizedPublicKeys):
-		return false, callErr
-	case errors.Is(callErr, ErrNoSSHAgent):
-		return false, callErr
-	case errors.Is(callErr, context.Canceled):
-		return false, callErr
-	case errors.Is(callErr, context.DeadlineExceeded):
-		return false, callErr
-	case strings.Contains(callErr.Error(), "failed to connect to ssh-agent"):
-		return false, callErr
-	default:
-		warnFunc("retrying http request due to unexpected error %v", callErr)
-		return true, nil
-	}
-}
-
-func (c *client) doCallImp(ctx context.Context, r request, method, url string, opts ...requestOpt) (int, string, error) {
-	var bodyReader io.Reader
-	var bodyLen int64
-	if r.hasBody {
-		bodyReader = bytes.NewReader(r.body)
-		bodyLen = int64(len(r.body))
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, c.host+url, bodyReader)
-	if err != nil {
-		return 0, "", err
-	}
-	if bodyReader != nil {
-		req.ContentLength = bodyLen
-	}
-	if r.hasHeaders {
-		req.Header = r.headers.Clone()
-	}
-	if r.hasAuth {
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
-	}
-
-	client := &http.Client{}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return 0, "", err
-	}
-
-	respBody, err := readAllWithContext(ctx, resp.Body)
-	if err != nil {
-		return 0, "", err
-	}
-	return resp.StatusCode, string(respBody), nil
-}
-
-func readAllWithContext(ctx context.Context, r io.Reader) ([]byte, error) {
-	var dt []byte
-	var readErr error
-	ch := make(chan struct{})
-	go func() {
-		dt, readErr = io.ReadAll(r)
-		close(ch)
-	}()
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-ch:
-		return dt, readErr
-	}
-}
-
 type client struct {
-	host                  string
+	httpAddr              string
 	sshKeyBlob            []byte // sshKey to use
 	forceSSHKey           bool   // if true only use the above ssh key, don't attempt to guess others
 	sshAgent              agent.ExtendedAgent
@@ -316,14 +104,15 @@ type client struct {
 	authDir               string
 	disableSSHKeyGuessing bool
 	jm                    *jsonpb.Unmarshaler
+	pipelines             pipelines.PipelinesClient
 }
 
 var _ Client = &client{}
 
 // NewClient provides a new Earthly Cloud client
-func NewClient(host, agentSockPath, authCredsOverride string, warnFunc func(string, ...interface{})) (Client, error) {
+func NewClient(httpAddr, grpcAddr, agentSockPath, authCredsOverride string, warnFunc func(string, ...interface{})) (Client, error) {
 	c := &client{
-		host: host,
+		httpAddr: httpAddr,
 		sshAgent: &lazySSHAgent{
 			sockPath: agentSockPath,
 		},
@@ -339,17 +128,19 @@ func NewClient(host, agentSockPath, authCredsOverride string, warnFunc func(stri
 			return nil, err
 		}
 	}
-	return c, nil
-}
-
-func getMessageFromJSON(r io.Reader) (string, error) {
-	decoder := json.NewDecoder(r)
-	msg := struct {
-		Message string `json:"message"`
-	}{}
-	err := decoder.Decode(&msg)
-	if err != nil {
-		return "", err
+	tlsConfig := credentials.NewTLS(&tls.Config{})
+	ctx := context.Background()
+	retryOpts := []grpc_retry.CallOption{
+		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)),
+		grpc_retry.WithCodes(codes.Internal, codes.Unavailable),
 	}
-	return msg.Message, nil
+	conn, err := grpc.DialContext(ctx, grpcAddr,
+		grpc.WithTransportCredentials(tlsConfig),
+		grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...), c.StreamAuthInterceptor()),
+		grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...), c.UnaryAuthInterceptor()))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed dialing pipelines grpc")
+	}
+	c.pipelines = pipelines.NewPipelinesClient(conn)
+	return c, nil
 }

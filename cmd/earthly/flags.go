@@ -3,8 +3,9 @@ package main
 import (
 	"os"
 
-	"github.com/earthly/earthly/util/containerutil"
 	"github.com/urfave/cli/v2"
+
+	"github.com/earthly/earthly/util/containerutil"
 )
 
 func (app *earthlyApp) rootFlags() []cli.Flag {
@@ -75,7 +76,15 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Value:       "https://api.earthly.dev",
 			EnvVars:     []string{"EARTHLY_SERVER_ADDRESS"},
 			Usage:       "API server override for dev purposes",
-			Destination: &app.apiServer,
+			Destination: &app.cloudHTTPAddr,
+			Hidden:      true, // Internal.
+		},
+		&cli.StringFlag{
+			Name:        "grpc",
+			Value:       "ci.earthly.dev:443",
+			EnvVars:     []string{"EARTHLY_GRPC_ADDRESS"},
+			Usage:       "gRPC server override for dev purposes",
+			Destination: &app.cloudGRPCAddr,
 			Hidden:      true, // Internal.
 		},
 		&cli.StringFlag{
