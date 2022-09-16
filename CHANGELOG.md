@@ -7,6 +7,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Added
 
 - The new `earthly preview org invite` command now has the ability to invite multiple email addresses at once.
+- Additional support for Podman through better error messaging and increased test coverage
 
 ### Changed
 
