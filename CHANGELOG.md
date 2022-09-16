@@ -14,7 +14,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
   fallback to `/usr/share/zsh/site-functions`.
 
 ### Fixed
-Fixed Earthly failing when using a remote docker host from a machine with an incompatible architecture. Fixes (#1895)[https://github.com/earthly/earthly/issues/1895]
+- Fixed Earthly failing when using a remote docker host from a machine with an incompatible architecture. Fixes (#1895)[https://github.com/earthly/earthly/issues/1895]
 
 ## v0.6.23 - 2022-09-06
 
