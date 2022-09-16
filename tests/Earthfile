@@ -1106,7 +1106,7 @@ pipelines:
         --earthfile=pipelines.earth \
         --target=+test-invalid-pipeline-arg \
         --should_fail=true \
-        --output_contains="push is the only supported"
+        --output_contains="invalid PIPELINE arguments"
     DO +RUN_EARTHLY \
         --earthfile=pipelines.earth \
         --target=+test-invalid-trigger-type \
