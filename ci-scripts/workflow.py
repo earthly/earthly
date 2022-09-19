@@ -33,17 +33,20 @@ class DockerWorkflowRunner(FrontendCommon):
         FrontendCommon._login("docker")
 
     def ensure_single_install(self):
-        status = run("podman --version", "podman --version")
-        if status:
-            # Assume podman is NOT installed and return
-            return
-        # Uninstall podman, Assuming Ubuntu, ignore error because it may not be installed
-        run("apt-get purge podman -y", "apt-get purge podman -y")
-        status = run("podman --version", "podman --version")
-        if status:
-            # podman uninstalled successfully
-            return
-        raise RuntimeError("still detected Podman after purge command")
+        pass
+        # status = run("podman --version", "podman --version")
+        # if status:
+        #     # Assume podman is NOT installed and return
+        #     print("podman may already be removed...", flush=True)
+        #     return
+        # # Uninstall podman, Assuming Ubuntu, ignore error because it may not be installed
+        # run("apt-get purge podman -y", "apt-get purge podman -y")
+        # status = run("podman --version", "podman --version")
+        # if status:
+        #     # podman uninstalled successfully
+        #     return
+        # run("which podman", "which podman")
+        # raise RuntimeError("still detected Podman after purge command")
 
 
 class PodmanWorkflowRunner(FrontendCommon):
@@ -56,10 +59,12 @@ class PodmanWorkflowRunner(FrontendCommon):
         # Uninstall docker completely, ignore errors because some stuff may not be installed
         for uninstall in ["docker-engine", "docker", "docker.io", "docker-ce", "docker-ce-cli"]:
             run(f"apt-get purge -y {uninstall}", f"apt-get purge -y {uninstall}")
+            run(f"apt-get autoremove -y --purge {uninstall}", f"apt-get autoremove -y --purge {uninstall}")
         status = run("docker --version", "docker --version")
         if status:
             # docker uninstalled successfully
             return
+        run("which docker", "which docker")
         raise RuntimeError(f"docker still detected after uninstall commands > {status}")
 
     def login(self):
