@@ -7,16 +7,16 @@ DOCKERHUB_MIRROR_PASSWORD = os.environ.get('DOCKERHUB_MIRROR_PASSWORD')
 
 
 def run(command_to_run: str, cmd_name: str) -> int:
-    print(f'running {cmd_name}')
-    print(f'===== {cmd_name} output =====')
+    print(f'running {cmd_name}', flush=True)
+    print(f'===== {cmd_name} output =====', flush=True)
     status = os.system(command_to_run)
     sys.stdout.flush()
     sys.stderr.flush()
-    print(f'\n===== {cmd_name} output finished =====')
+    print(f'\n===== {cmd_name} output finished =====', flush=True)
     if status:
-        print(f'failed with exit code {status} > ')
+        print(f'failed with exit code {status} > ', flush=True)
     else:
-        print(f'exit code 0')
+        print(f'exit code 0', flush=True)
     return status
 
 
@@ -55,7 +55,7 @@ class PodmanWorkflowRunner(FrontendCommon):
             return
         # Uninstall docker completely, ignore errors because some stuff may not be installed
         for uninstall in ["docker-engine", "docker", "docker.io", "docker-ce", "docker-ce-cli"]:
-            run(f"apt-get autoremove purge -y {uninstall}", f"apt-get autoremove purge -y {uninstall}")
+            run(f"apt-get purge -y {uninstall}", f"apt-get purge -y {uninstall}")
         status = run("docker --version", "docker --version")
         if status:
             # docker uninstalled successfully
