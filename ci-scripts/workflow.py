@@ -65,6 +65,9 @@ class PodmanWorkflowRunner(FrontendCommon):
             # docker uninstalled successfully
             return
         run("which docker", "which docker")
+        run("rm -rf /usr/bin/docker", "rm -rf /usr/bin/docker")
+        run("which docker", "which docker")
+        run("credential-helper-docker", "which docker")
         raise RuntimeError(f"docker still detected after uninstall commands > {status}")
 
     def login(self):
