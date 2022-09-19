@@ -506,6 +506,10 @@ List account tokens associated with Earthly account. A token is useful for envir
 Creates a new authentication token. A read-only token is created by default, If the `--write` flag is specified the token will have read+write access.
 The token will expire in 1 year from creation date unless a different date is supplied via the `--expiry` option.
 
+{% hint style='info' %}
+It is then possible to `EXPORT EARTHLY_TOKEN=...`, which will force earthly to use this token for all authentication (overridding any other currently-logged in sessions).
+{% endhint %}
+
 #### earthly account remove-token
 
 ###### Synopsis
