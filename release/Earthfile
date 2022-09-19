@@ -34,9 +34,13 @@ release-dockerhub:
     ARG --required RELEASE_TAG
     ARG DOCKERHUB_USER="earthly"
     ARG PUSH_LATEST_TAG="false"
+    ARG PUSH_PRERELEASE_TAG="false"
     BUILD +perform-release-dockerhub --RELEASE_TAG="$RELEASE_TAG" --DOCKERHUB_USER="$DOCKERHUB_USER"
     IF [ "$PUSH_LATEST_TAG" = "true" ]
       BUILD +perform-release-dockerhub --RELEASE_TAG="latest" --DOCKERHUB_USER="$DOCKERHUB_USER"
+    END
+    IF [ "$PUSH_PRERELEASE_TAG" = "true" ]
+      BUILD +perform-release-dockerhub --RELEASE_TAG="prerelease" --DOCKERHUB_USER="$DOCKERHUB_USER"
     END
 
 perform-release-dockerhub:
