@@ -77,6 +77,7 @@ class PodmanWorkflowRunner(FrontendCommon):
 
 
 if __name__ == "__main__":
+    sys.exit(3)
     if len(sys.argv) < 3:
         raise RuntimeError("workflow.py must be called like: workflow.py {binary} {command}")
     binary: str = sys.argv[1]
