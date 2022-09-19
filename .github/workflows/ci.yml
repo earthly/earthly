@@ -25,10 +25,10 @@ jobs:
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v3
       - name: Ensure only Podman is installed
-        run: apt-get purge -y docker-engine docker docker.io docker-ce docker-ce-cli \
-          && apt-get purge -y docker-engine docker docker.io docker-ce docker-ce-cli \
-          && apt-get autoremove -y --purge docker-engine docker docker.io docker-ce \
-          && apt-get autoremove -y --purge docker-engine docker docker.io docker-ce \
+        run: sudo apt-get purge -y docker-engine docker docker.io docker-ce docker-ce-cli \
+          && sudo apt-get purge -y docker-engine docker docker.io docker-ce docker-ce-cli \
+          && sudo apt-get autoremove -y --purge docker-engine docker docker.io docker-ce \
+          && sudo apt-get autoremove -y --purge docker-engine docker docker.io docker-ce \
           && apt-get -y install podman
         if: ${{matrix.binary}} == 'podman'
       - name: Docker mirror login (Earthly Only)
