@@ -96,8 +96,11 @@ if __name__ == "__main__":
 
     commands = {
         "login": runner.login,
-        "ensureSingleInstallation": runner.ensure_single_install
+        "ensure_single_install": runner.ensure_single_install
     }
+
+    if command not in commands:
+        raise RuntimeError(f"invalid command given {command}, must be one of {commands.keys()}")
 
     command_to_run = commands[command]
     if command_to_run is None:
