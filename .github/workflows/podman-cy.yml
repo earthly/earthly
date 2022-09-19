@@ -27,7 +27,7 @@ jobs:
         run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
       - name: Install podman
         run: brew install podman
-      - name: init podman machine
+      - name: Init podman machine
         run: podman machine init && podman machine start
       - name: Docker mirror login via Podman (Earthly Only)
         run: podman login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
