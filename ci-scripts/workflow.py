@@ -10,6 +10,8 @@ def run(command_to_run: str, cmd_name: str) -> int:
     print(f'running {cmd_name}')
     print(f'===== {cmd_name} output =====')
     status = os.system(command_to_run)
+    sys.stdout.flush()
+    sys.stderr.flush()
     print(f'\n===== {cmd_name} output finished =====')
     if status:
         print(f'failed with exit code {status} > ')
