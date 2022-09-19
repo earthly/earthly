@@ -23,6 +23,10 @@ jobs:
       - uses: ./.github/actions/setup-earthly
       - name: Ensure only set frontend is installed
         run: sudo ./ci-scripts/workflow.py podman ensure_single_install
+      - name: Install brew
+        run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      - name: Install podman
+        run: brew install podman
       - name: Docker mirror login via Podman (Earthly Only)
         run: podman login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         # TODO: Add back this if statement
