@@ -26,12 +26,10 @@ jobs:
       - uses: actions/checkout@v3
       - name: Hello world
         run: ./test.py
-      - name: Execute interactive debugger test
-        run: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ./build/linux/amd64/earthly --timeout 180
       - name: Ensure only set frontend is installed
-        run: ./.github/scripts/workflow.py ${{ matrix.binary }} ensure_single_install
+        run: ./ci-scripts/workflow.py ${{ matrix.binary }} ensure_single_install
       - name: Docker mirror login (Earthly Only)
-        run: ./.github/scripts/workflow.py ${{ matrix.binary }} login
+        run: ./ci-scripts/workflow.py ${{ matrix.binary }} login
         # TODO: Add back this if statement
         # if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Configure Earthly to use mirror (Earthly Only)
