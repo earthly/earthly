@@ -8,21 +8,19 @@ DOCKERHUB_MIRROR_USERNAME = os.environ.get('DOCKERHUB_MIRROR_USERNAME')
 DOCKERHUB_MIRROR_PASSWORD = os.environ.get('DOCKERHUB_MIRROR_PASSWORD')
 
 
-def run(command_to_run: str, cmd_name: str, **kwargs) -> (int, str):
+def run(command_to_run: str, cmd_name: str, **kwargs) -> int:
     print(f'running {cmd_name}')
-    output = io.StringIO()
-    cmd = pexpect.spawn(command_to_run, **kwargs)
-    cmd.logfile = output
-    cmd.expect(pexpect.EOF)
-    s = output.getvalue()
-    status = cmd.wait()
     print(f'===== {cmd_name} output =====')
-    print(f'===== {cmd_name} output =====\n', s, f'\n===== {cmd_name} output finished =====')
+    cmd = pexpect.spawn(command_to_run, **kwargs)
+    cmd.logfile = sys.stdout
+    cmd.expect(pexpect.EOF)
+    status = cmd.wait()
+    print(f'\n===== {cmd_name} output finished =====')
     if status:
         print(f'failed with exit code {status} > ')
     else:
         print(f'exit code 0')
-    return status, s
+    return status
 
 
 class FrontendCommon:
@@ -39,13 +37,13 @@ class DockerWorkflowRunner(FrontendCommon):
         FrontendCommon._login("docker")
 
     def ensure_single_install(self):
-        status, output = run("podman --version", "podman --version")
+        status = run("podman --version", "podman --version")
         if status:
             # Assume podman is NOT installed and return
             return
         # Uninstall podman, Assuming Ubuntu, ignore error because it may not be installed
         run("sudo apt-get purge podman -y", "apt-get purge podman -y")
-        status, output = run("podman --version", "podman --version")
+        status = run("podman --version", "podman --version")
         if status:
             # podman uninstalled successfully
             return
@@ -55,14 +53,14 @@ class DockerWorkflowRunner(FrontendCommon):
 class PodmanWorkflowRunner(FrontendCommon):
 
     def ensure_single_install(self):
-        status, output = run("docker --version", "docker --version")
+        status = run("docker --version", "docker --version")
         if status:
             # Assume Docker is NOT installed and return
             return
         # Uninstall docker completely, ignore errors because some stuff may not be installed
         for uninstall in ["docker-engine", "docker", "docker.io", "docker-ce", "docker-ce-cli"]:
             run(f"sudo apt-get autoremove purge -y {uninstall}", f"apt-get autoremove purge -y {uninstall}")
-        status, output = run("docker --version", "docker --version")
+        status = run("docker --version", "docker --version")
         if status:
             # docker uninstalled successfully
             return
