@@ -42,7 +42,7 @@ class DockerWorkflowRunner(FrontendCommon):
             # Assume podman is NOT installed and return
             return
         # Uninstall podman, Assuming Ubuntu, ignore error because it may not be installed
-        run("sudo apt-get purge podman -y", "apt-get purge podman -y")
+        run("apt-get purge podman -y", "apt-get purge podman -y")
         status = run("podman --version", "podman --version")
         if status:
             # podman uninstalled successfully
@@ -59,7 +59,7 @@ class PodmanWorkflowRunner(FrontendCommon):
             return
         # Uninstall docker completely, ignore errors because some stuff may not be installed
         for uninstall in ["docker-engine", "docker", "docker.io", "docker-ce", "docker-ce-cli"]:
-            run(f"sudo apt-get autoremove purge -y {uninstall}", f"apt-get autoremove purge -y {uninstall}")
+            run(f"apt-get autoremove purge -y {uninstall}", f"apt-get autoremove purge -y {uninstall}")
         status = run("docker --version", "docker --version")
         if status:
             # docker uninstalled successfully

@@ -25,9 +25,9 @@ jobs:
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v3
       - name: Ensure only set frontend is installed
-        run: ./ci-scripts/workflow.py ${{ matrix.binary }} ensure_single_install
+        run: sudo ./ci-scripts/workflow.py ${{ matrix.binary }} ensure_single_install
       - name: Docker mirror login (Earthly Only)
-        run: ./ci-scripts/workflow.py ${{ matrix.binary }} login
+        run: sudo ./ci-scripts/workflow.py ${{ matrix.binary }} login
         # TODO: Add back this if statement
         # if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Configure Earthly to use mirror (Earthly Only)
