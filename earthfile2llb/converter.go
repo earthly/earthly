@@ -1709,12 +1709,13 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		// Debugger.
 		err := c.opt.LLBCaps.Supports(solverpb.CapExecMountSock)
 		if err != nil {
-			_, isCapError := err.(*apicaps.CapError)
-			if !isCapError {
+			switch errors.Cause(err).(type) {
+			case *apicaps.CapError:
+				if c.opt.InteractiveDebuggerEnabled || isInteractive {
+					return pllb.State{}, errors.Wrap(err, "interactive debugger requires a newer version of buildkit")
+				}
+			default:
 				c.opt.Console.Warnf("failed to check LLBCaps for CapExecMountSock: %v", err) // keep going
-			} else if opts.Interactive {
-				// only display warning when user supplies --interactive to an older buildkit version
-				c.opt.Console.Warnf("interactive debugger requires a newer version of buildkit: %v", err)
 			}
 		} else {
 			runOpts = append(runOpts, llb.SocketTarget("earthly_interactive", debuggercommon.DebuggerDefaultSocketPath, 0666, 0, 0))
