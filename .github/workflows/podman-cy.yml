@@ -19,8 +19,8 @@ jobs:
       DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
       DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
     steps:
-      - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v3
+      - uses: ./.github/actions-setup-earthly
       - name: Ensure only set frontend is installed
         run: sudo ./ci-scripts/workflow.py podman ensure_single_install
       - name: Docker mirror login via Podman (Earthly Only)

@@ -1,0 +1,14 @@
+name: Setup earthly
+description: Installs the Earthly binary
+branding:
+  icon: "sunrise"
+  color: "green"
+author: Earthly technologies
+inputs:
+  version:
+    description: "version of earthly to use."
+    default: "latest"
+runs:
+  using: node16
+  main: dist/setup/index.js
+  post: "dist/cache-save/index.js"
