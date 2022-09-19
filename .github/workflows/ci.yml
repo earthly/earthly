@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         binary: [docker, podman]
-    name: +test +test-fail
+    name: +testing-gha
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
@@ -24,6 +24,8 @@ jobs:
     steps:
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v3
+      - name: Execute interactive debugger test
+        run: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ./build/linux/amd64/earthly --timeout 180
       - name: Ensure only set frontend is installed
         run: ./.github/scripts/workflow.py ${{ matrix.binary }} ensure_single_install
       - name: Docker mirror login (Earthly Only)
