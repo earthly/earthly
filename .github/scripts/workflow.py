@@ -58,7 +58,7 @@ class DockerWorkflowRunner(FrontendCommon):
 
 class PodmanWorkflowRunner(FrontendCommon):
 
-    def ensureSingleInstallation(self):
+    def ensure_single_install(self):
         status, output = run("docker --version", "docker --version")
         if status:
             # Assume Docker is NOT installed and return
@@ -109,4 +109,6 @@ if __name__ == "__main__":
         work()
     except Exception as e:
         sys.stderr.write(f"failed to run cmd > {e}")
+        sys.stdout.flush()
+        sys.stderr.flush()
         sys.exit(1)
