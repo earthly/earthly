@@ -24,13 +24,19 @@ jobs:
     steps:
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v3
+      - name: Set up QEMU
+#      id: qemu
+#      uses: docker/setup-qemu-action@v1
+#      with:
+#        image: tonistiigi/binfmt:latest
+#        platforms: all
       - name: Ensure only Podman is installed
         run: sudo apt-get purge -y docker-engine docker docker.io docker-ce docker-ce-cli \
           && sudo apt-get purge -y docker-engine docker docker.io docker-ce docker-ce-cli \
           && sudo apt-get autoremove -y --purge docker-engine docker docker.io docker-ce \
           && sudo apt-get autoremove -y --purge docker-engine docker docker.io docker-ce \
           && apt-get -y install podman
-        if: ${{matrix.binary}} == 'podman'
+        if: "${{ matrix.binary }}" == "podman"
       - name: Docker mirror login (Earthly Only)
         run: ${{ matrix.binary }} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         # TODO: Add back this if statement
