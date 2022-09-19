@@ -139,7 +139,7 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 		return nil
 	}
 
-	app.console.Warnf("Note: inline caching do not yet work on Earthly Satellites.")
+	app.console.Warnf("Note: inline caching does not yet work on Earthly Satellites.")
 
 	// Set up extra settings needed for buildkit RPC metadata
 	if app.satelliteName == "" {
