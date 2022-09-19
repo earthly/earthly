@@ -83,30 +83,22 @@ class PodmanWorkflowRunner(FrontendCommon):
 
 
 if __name__ == "__main__":
-    def work():
-        if len(sys.argv) < 3:
-            raise RuntimeError("workflow.py must be called like: workflow.py {binary} {command}")
-        binary: str = sys.argv[1]
-        command: str = sys.argv[2]
-        if binary.lower() == "docker":
-            runner = DockerWorkflowRunner()
-        elif binary.lower() == "podman":
-            runner = PodmanWorkflowRunner()
-        else:
-            raise RuntimeError(f"binary {binary} is invalid")
+    if len(sys.argv) < 3:
+        raise RuntimeError("workflow.py must be called like: workflow.py {binary} {command}")
+    binary: str = sys.argv[1]
+    command: str = sys.argv[2]
+    if binary.lower() == "docker":
+        runner = DockerWorkflowRunner()
+    elif binary.lower() == "podman":
+        runner = PodmanWorkflowRunner()
+    else:
+        raise RuntimeError(f"binary {binary} is invalid")
 
-        commands = {
-            "login": runner.login,
-            "ensureSingleInstallation": runner.ensure_single_install
-        }
+    commands = {
+        "login": runner.login,
+        "ensureSingleInstallation": runner.ensure_single_install
+    }
 
-        command_to_run = commands[command]
-        if command_to_run is None:
-            raise RuntimeError(f'got invalid command {command_to_run}')
-
-
-    try:
-        work()
-    except Exception as e:
-        print(f"failed to run cmd > {e}", flush=True)
-        sys.exit(1)
+    command_to_run = commands[command]
+    if command_to_run is None:
+        raise RuntimeError(f'got invalid command {command_to_run}')
