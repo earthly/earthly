@@ -24,10 +24,15 @@ jobs:
     steps:
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v3
-      - name: Ensure only set frontend is installed
-        run: ./.github/scripts/workflow.py ${{ matrix.binary }} ensure_single_install
+      - name: Ensure only Podman is installed
+        run: apt-get purge -y docker-engine docker docker.io docker-ce docker-ce-cli \
+          && apt-get purge -y docker-engine docker docker.io docker-ce docker-ce-cli \
+          && apt-get autoremove -y --purge docker-engine docker docker.io docker-ce \
+          && apt-get autoremove -y --purge docker-engine docker docker.io docker-ce \
+          && apt-get -y install podman
+        if: ${{matrix.binary}} == 'podman'
       - name: Docker mirror login (Earthly Only)
-        run: ./.github/scripts/workflow.py ${{ matrix.binary }} login
+        run: ${{ matrix.binary }} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         # TODO: Add back this if statement
         # if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Configure Earthly to use mirror (Earthly Only)
