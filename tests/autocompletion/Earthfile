@@ -216,6 +216,13 @@ test-targets-in-two-subdirs-that-are-similar:
     RUN COMP_LINE="earthly ./foo" COMP_POINT=13 earthly > actual
     RUN diff expected actual
 
+test-no-errors-are-displayed:
+    COPY bad-version-flag.earth ./Earthfile
+
+    RUN > expected
+    RUN ! COMP_LINE="earthly +" COMP_POINT=9 earthly > actual
+    RUN diff expected actual
+
 test-all:
     BUILD +test-root-commands
     BUILD +test-hidden-root-commands
@@ -232,3 +239,4 @@ test-all:
     BUILD +test-no-parent-at-root-from-home
     BUILD +test-targets-in-dir-and-subdir
     BUILD +test-targets-in-two-subdirs-that-are-similar
+    BUILD +test-no-errors-are-displayed
