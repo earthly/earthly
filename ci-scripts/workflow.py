@@ -101,7 +101,6 @@ if __name__ == "__main__":
 
     if command not in commands:
         raise RuntimeError(f"invalid command given {command}, must be one of {commands.keys()}")
+    commands[command]()
 
-    command_to_run = commands[command]
-    if command_to_run is None:
-        raise RuntimeError(f'got invalid command {command_to_run}')
+
