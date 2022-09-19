@@ -9,20 +9,20 @@ DOCKERHUB_MIRROR_PASSWORD = os.environ.get('DOCKERHUB_MIRROR_PASSWORD')
 
 
 def run(command_to_run: str, cmd_name: str, **kwargs) -> (int, str):
-    sys.stdout.write(f'running {cmd_name}')
+    print(f'running {cmd_name}', flush=True)
     output = io.StringIO()
     cmd = pexpect.spawn(command_to_run, **kwargs)
     cmd.logfile_read = output
     status = cmd.wait()
-    sys.stdout.write(f'{cmd_name} finished')
+    print(f'{cmd_name} finished', flush=True)
     s = ''.join(ch for ch in output.getvalue() if ch.isprintable() or ch == '\n')
     if status:
-        sys.stdout.write(f'{cmd_name} failed with exit code {status} > ')
+        print(f'{cmd_name} failed with exit code {status} > ', flush=True)
     else:
-        sys.stdout.write(f'{cmd_name} exit code 0')
-    sys.stdout.write(f'===== {cmd_name} login output =====')
-    sys.stdout.write(s)
-    sys.stdout.write(f'===== {cmd_name} login output finished =====')
+        print(f'{cmd_name} exit code 0', flush=True)
+    print(f'===== {cmd_name} login output =====', flush=True)
+    print(s)
+    print(f'===== {cmd_name} login output finished =====', flush=True)
     return status, s
 
 
@@ -108,7 +108,5 @@ if __name__ == "__main__":
     try:
         work()
     except Exception as e:
-        sys.stderr.write(f"failed to run cmd > {e}")
-        sys.stdout.flush()
-        sys.stderr.flush()
+        print(f"failed to run cmd > {e}", flush=True)
         sys.exit(1)
