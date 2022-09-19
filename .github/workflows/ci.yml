@@ -24,8 +24,6 @@ jobs:
     steps:
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v3
-      - name: Hello world
-        run: ./test.py
       - name: Ensure only set frontend is installed
         run: ./ci-scripts/workflow.py ${{ matrix.binary }} ensure_single_install
       - name: Docker mirror login (Earthly Only)
