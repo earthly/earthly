@@ -21,10 +21,8 @@ jobs:
     steps:
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v3
-      - name: Ensure only set frontend is installed
-        run: sudo ./ci-scripts/workflow.py docker ensure_single_install
       - name: Docker mirror login (Earthly Only)
-        run: sudo ./ci-scripts/workflow.py docker login
+        run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         # TODO: Add back this if statement
         # if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Configure Earthly to use mirror (Earthly Only)

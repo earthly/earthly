@@ -11,7 +11,7 @@ on:
 jobs:
   tests:
     name: +testing-gha-podman
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
@@ -23,8 +23,8 @@ jobs:
       - uses: actions/checkout@v3
       - name: Ensure only set frontend is installed
         run: sudo ./ci-scripts/workflow.py podman ensure_single_install
-      - name: Docker mirror login (Earthly Only)
-        run: sudo ./ci-scripts/workflow.py podman login
+      - name: Docker mirror login via Podman (Earthly Only)
+        run: podman login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         # TODO: Add back this if statement
         # if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Configure Earthly to use mirror (Earthly Only)
@@ -44,7 +44,7 @@ jobs:
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
-        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8372'
+        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
 #      - name: Execute tests (Earthly Only)
