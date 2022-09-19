@@ -8,26 +8,27 @@ DOCKERHUB_MIRROR_USERNAME = os.environ.get('DOCKERHUB_MIRROR_USERNAME')
 DOCKERHUB_MIRROR_PASSWORD = os.environ.get('DOCKERHUB_MIRROR_PASSWORD')
 
 
-def run(run: str, cmdName: str, **kwargs) -> (int, str):
-    sys.stdout.write(f'running {cmdName}')
+def run(command_to_run: str, cmd_name: str, **kwargs) -> (int, str):
+    sys.stdout.write(f'running {cmd_name}')
     output = io.StringIO()
-    cmd = pexpect.spawn(run, **kwargs)
+    cmd = pexpect.spawn(command_to_run, **kwargs)
     cmd.logfile_read = output
     status = cmd.wait()
-    sys.stdout.write(f'{cmdName} finished')
+    sys.stdout.write(f'{cmd_name} finished')
     s = ''.join(ch for ch in output.getvalue() if ch.isprintable() or ch == '\n')
     if status:
-        sys.stdout.write(f'{cmdName} failed with exit code {status} > ')
+        sys.stdout.write(f'{cmd_name} failed with exit code {status} > ')
     else:
-        sys.stdout.write(f'{cmdName} exit code 0')
-    sys.stdout.write(f'===== {cmdName} login output =====')
+        sys.stdout.write(f'{cmd_name} exit code 0')
+    sys.stdout.write(f'===== {cmd_name} login output =====')
     sys.stdout.write(s)
-    sys.stdout.write(f'===== {cmdName} login output finished =====')
+    sys.stdout.write(f'===== {cmd_name} login output finished =====')
     return status, s
 
 
 class FrontendCommon:
-    def _login(self, binary):
+    @staticmethod
+    def _login(binary):
         run(
             f'{binary} login registry-1.docker.io.mirror.corp.earthly.dev --username "{DOCKERHUB_MIRROR_USERNAME}" --password "{DOCKERHUB_MIRROR_PASSWORD}"',
             f'{binary} login',
@@ -36,9 +37,9 @@ class FrontendCommon:
 
 class DockerWorkflowRunner(FrontendCommon):
     def login(self):
-        super(DockerWorkflowRunner, self)._login("docker")
+        FrontendCommon._login("docker")
 
-    def ensureSingleInstallation(self):
+    def ensure_single_install(self):
         status, output = run("podman --version", "podman --version")
         if status:
             # Assume podman is NOT installed and return
@@ -58,25 +59,27 @@ class DockerWorkflowRunner(FrontendCommon):
 class PodmanWorkflowRunner(FrontendCommon):
 
     def ensureSingleInstallation(self):
-        status, output = run("docker --version")
+        status, output = run("docker --version", "docker --version")
         if status:
             # Assume Docker is NOT installed and return
             return
         # Uninstall docker completely
-        status, output = run("apt-get purge -y docker-engine docker docker.io docker-ce docker-ce-cli")
+        status, output = run("apt-get purge -y docker-engine docker docker.io docker-ce docker-ce-cli",
+                             "apt-get purge -y docker-engine docker docker.io docker-ce docker-ce-cli")
         if status:
             raise RuntimeError(f"failed to uninstall docker first step > {status} > {output}")
-        status, output = run("apt-get autoremove -y --purge docker-engine docker docker.io docker-ce")
+        status, output = run("apt-get autoremove -y --purge docker-engine docker docker.io docker-ce",
+                             "apt-get autoremove -y --purge docker-engine docker docker.io docker-ce")
         if status:
             raise RuntimeError(f"failed to uninstall docker second step > {status} > {output}")
-        status, output = run("docker --version")
+        status, output = run("docker --version", "docker --version")
         if status:
             # docker uninstalled successfully
             return
         raise RuntimeError(f"docker still detected after uninstall commands > {status} > {output}")
 
     def login(self):
-        super(PodmanWorkflowRunner, self)._login("podman")
+        FrontendCommon._login("podman")
 
 
 if __name__ == "__main__":
@@ -94,15 +97,16 @@ if __name__ == "__main__":
 
         commands = {
             "login": runner.login,
-            "ensureSingleInstallation": runner.ensureSingleInstallation
+            "ensureSingleInstallation": runner.ensure_single_install
         }
 
-        commandToRun = commands[command]
-        if commandToRun is None:
-            raise RuntimeError(f'got invalid command {commandToRun}')
+        command_to_run = commands[command]
+        if command_to_run is None:
+            raise RuntimeError(f'got invalid command {command_to_run}')
+
 
     try:
         work()
     except Exception as e:
         sys.stderr.write(f"failed to run cmd > {e}")
-
+        sys.exit(1)
