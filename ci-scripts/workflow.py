@@ -64,7 +64,7 @@ class PodmanWorkflowRunner(FrontendCommon):
         if status:
             # docker uninstalled successfully
             return
-        raise RuntimeError(f"docker still detected after uninstall commands > {status} > {output}")
+        raise RuntimeError(f"docker still detected after uninstall commands > {status}")
 
     def login(self):
         FrontendCommon._login("podman")
