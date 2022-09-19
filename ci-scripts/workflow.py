@@ -1,20 +1,15 @@
 #!/usr/bin/env python3
 import sys
-import pexpect
 import os
-import io
 
 DOCKERHUB_MIRROR_USERNAME = os.environ.get('DOCKERHUB_MIRROR_USERNAME')
 DOCKERHUB_MIRROR_PASSWORD = os.environ.get('DOCKERHUB_MIRROR_PASSWORD')
 
 
-def run(command_to_run: str, cmd_name: str, **kwargs) -> int:
+def run(command_to_run: str, cmd_name: str) -> int:
     print(f'running {cmd_name}')
     print(f'===== {cmd_name} output =====')
-    cmd = pexpect.spawn(command_to_run, **kwargs)
-    cmd.logfile = sys.stdout
-    cmd.expect(pexpect.EOF)
-    status = cmd.wait()
+    status = os.system(command_to_run)
     print(f'\n===== {cmd_name} output finished =====')
     if status:
         print(f'failed with exit code {status} > ')
@@ -28,8 +23,7 @@ class FrontendCommon:
     def _login(binary):
         run(
             f'{binary} login registry-1.docker.io.mirror.corp.earthly.dev --username "{DOCKERHUB_MIRROR_USERNAME}" --password "{DOCKERHUB_MIRROR_PASSWORD}"',
-            f'{binary} login',
-            encoding='utf-8')
+            f'{binary} login')
 
 
 class DockerWorkflowRunner(FrontendCommon):
