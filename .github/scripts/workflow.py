@@ -7,44 +7,39 @@ import io
 DOCKERHUB_MIRROR_USERNAME = os.environ.get('DOCKERHUB_MIRROR_USERNAME')
 DOCKERHUB_MIRROR_PASSWORD = os.environ.get('DOCKERHUB_MIRROR_PASSWORD')
 
-class DockerWorkflowRunner:
-    def login(self):
+class FrontendCommon:
+    def _login(self, binary):
         output = io.StringIO()
-        print('running docker login')
-        cmd = pexpect.spawn(f'docker login registry-1.docker.io.mirror.corp.earthly.dev --username "{DOCKERHUB_MIRROR_USERNAME}" --password "{ DOCKERHUB_MIRROR_PASSWORD }"', encoding='utf-8')
+        print(f'running {binary} login')
+        cmd = pexpect.spawn(
+            f'{binary} login registry-1.docker.io.mirror.corp.earthly.dev --username "{DOCKERHUB_MIRROR_USERNAME}" --password "{DOCKERHUB_MIRROR_PASSWORD}"',
+            encoding='utf-8')
         cmd.logfile_read = output
         status = cmd.wait()
-        print('docker finished')
+        print(f'{binary} finished')
         if status:
-            print(f'docker login failed with exit code {status} > ')
-            print('===== docker login output =====')
+            print(f'{binary} login failed with exit code {status} > ')
+            print(f'===== {binary} login output =====')
             s = ''.join(ch for ch in output.getvalue() if ch.isprintable() or ch == '\n')
             print(s)
-            print('===== docker login output finished =====')
+            print(f'===== {binary} login output finished =====')
+
+class DockerWorkflowRunner(FrontendCommon):
+    def login(self):
+        super(DockerWorkflowRunner, self)._login("docker")
 
     def ensureSingleInstallation(self):
         # todo: make sure only docker is installed?
         pass
 
-class PodmanWorkflowRunner:
+class PodmanWorkflowRunner(FrontendCommon):
 
     def ensureSingleInstallation(self):
         # todo: make sure only podman is installed?
         pass
 
     def login(self):
-        output = io.StringIO()
-        print('running podman login')
-        cmd = pexpect.spawn(f'podman login registry-1.docker.io.mirror.corp.earthly.dev --username "{DOCKERHUB_MIRROR_USERNAME}" --password "{ DOCKERHUB_MIRROR_PASSWORD }"', encoding='utf-8')
-        cmd.logfile_read = output
-        status = cmd.wait()
-        print('podman finished')
-        if status:
-            print(f'podman login failed with exit code {status} > ')
-            print('===== podman login output =====')
-            s = ''.join(ch for ch in output.getvalue() if ch.isprintable() or ch == '\n')
-            print(s)
-            print('===== podman login output finished =====')
+        super(PodmanWorkflowRunner, self)._login("podman")
 
 
 
