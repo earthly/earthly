@@ -20,9 +20,9 @@ def run(command_to_run: str, cmd_name: str, **kwargs) -> (int, str):
         print(f'{cmd_name} failed with exit code {status} > ', flush=True)
     else:
         print(f'{cmd_name} exit code 0', flush=True)
-    print(f'===== {cmd_name} login output =====', flush=True)
+    print(f'===== {cmd_name} output =====', flush=True)
     print(s)
-    print(f'===== {cmd_name} login output finished =====', flush=True)
+    print(f'===== {cmd_name} output finished =====', flush=True)
     return status, s
 
 
@@ -44,16 +44,13 @@ class DockerWorkflowRunner(FrontendCommon):
         if status:
             # Assume podman is NOT installed and return
             return
-        # Uninstall podman, Assuming Ubuntu
-        status, output = run("apt-get purge podman -y", "apt-get purge podman -y")
-        if status == 0:
-            status, output = run("podman --version", "podman --version")
-            if status:
-                # podman uninstalled successfully
-                return
-            raise RuntimeError("still detected Podman after purge command")
-
-        raise RuntimeError(f"failed to uninstall Podman > {status} > {output}")
+        # Uninstall podman, Assuming Ubuntu, ignore error because it may not be installed
+        run("apt-get purge podman -y", "apt-get purge podman -y")
+        status, output = run("podman --version", "podman --version")
+        if status:
+            # podman uninstalled successfully
+            return
+        raise RuntimeError("still detected Podman after purge command")
 
 
 class PodmanWorkflowRunner(FrontendCommon):
@@ -63,15 +60,9 @@ class PodmanWorkflowRunner(FrontendCommon):
         if status:
             # Assume Docker is NOT installed and return
             return
-        # Uninstall docker completely
-        status, output = run("apt-get purge -y docker-engine docker docker.io docker-ce docker-ce-cli",
-                             "apt-get purge -y docker-engine docker docker.io docker-ce docker-ce-cli")
-        if status:
-            raise RuntimeError(f"failed to uninstall docker first step > {status} > {output}")
-        status, output = run("apt-get autoremove -y --purge docker-engine docker docker.io docker-ce",
-                             "apt-get autoremove -y --purge docker-engine docker docker.io docker-ce")
-        if status:
-            raise RuntimeError(f"failed to uninstall docker second step > {status} > {output}")
+        # Uninstall docker completely, ignore errors because some stuff may not be installed
+        for uninstall in ["docker-engine", "docker", "docker.io", "docker-ce", "docker-ce-cli"]:
+            run(f"apt-get autoremove purge -y {uninstall}", f"apt-get autoremove purge -y {uninstall}")
         status, output = run("docker --version", "docker --version")
         if status:
             # docker uninstalled successfully
@@ -102,5 +93,3 @@ if __name__ == "__main__":
     if command not in commands:
         raise RuntimeError(f"invalid command given {command}, must be one of {commands.keys()}")
     commands[command]()
-
-
