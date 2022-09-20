@@ -24,8 +24,6 @@ jobs:
         with:
           token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
       - uses: earthly/actions-setup@main
-      - name: Ensure only set frontend is installed
-        run: sudo ./ci-scripts/workflow.py podman ensure_single_install
       - name: Install brew
         run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
       - name: Install podman
