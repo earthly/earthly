@@ -21,6 +21,8 @@ jobs:
       DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
     steps:
       - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
       - uses: earthly/actions-setup@main
       - name: Ensure only set frontend is installed
         run: sudo ./ci-scripts/workflow.py podman ensure_single_install
