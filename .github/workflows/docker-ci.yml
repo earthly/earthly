@@ -12,6 +12,9 @@ jobs:
   tests:
     name: +testing-gha-docker
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        satellite: [true, false]
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
@@ -25,6 +28,9 @@ jobs:
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         # TODO: Add back this if statement
         # if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Configure Satellites (Earthly Only)
+        run: earthly satellite select core-test
+        if: "${{ matrix.satellite }}" == "true" && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
