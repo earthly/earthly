@@ -698,3 +698,9 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	app.console.Printf("Freed %s\n", humanize.Bytes(total))
 	return nil
 }
+
+func (app *earthlyApp) actionPreviewPromoted(name, dest string) cli.ActionFunc {
+	return func(*cli.Context) error {
+		return errors.Errorf("the %q command has been moved out of \"preview\" is now available under %q", name, dest)
+	}
+}
