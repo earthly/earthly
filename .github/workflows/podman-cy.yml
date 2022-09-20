@@ -44,19 +44,19 @@ jobs:
       - name: Build latest earthly using released earthly
         run: earthly --use-inline-cache +for-darwin
       - name: rebuild earthly using latest earthly build
-        run: ${{ BUILT_EARTHLY_PATH }} --use-inline-cache +for-darwin
+        run: ${{ env.BUILT_EARTHLY_PATH }} --use-inline-cache +for-darwin
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
-        run: ${{ BUILT_EARTHLY_PATH }} config global.local_registry_host 'tcp://127.0.0.1:8371'
+        run: ${{ env.BUILT_EARTHLY_PATH }} config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
-        run: ${{ BUILT_EARTHLY_PATH }} config global.conversion_parallelism 5
+        run: ${{ env.BUILT_EARTHLY_PATH }} config global.conversion_parallelism 5
       - name: Execute tests (Earthly Only)
         run: |-
-          ${{ BUILT_EARTHLY_PATH }} --ci -P \
+          ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
             --build-arg DOCKERHUB_AUTH=true \
             --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
             --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
@@ -66,13 +66,13 @@ jobs:
         # if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute tests (Fork)
         run: |-
-          ${{ BUILT_EARTHLY_PATH }} --ci -P \
+          ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
             --build-arg DOCKERHUB_AUTH=false \
           +test
       # TODO: Uncomment if block
       #  if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute fail test
-        run: "! ${{ BUILT_EARTHLY_PATH }} --ci ./tests/fail+test-fail"
+        run: "! ${{ env.BUILT_EARTHLY_PATH }} --ci ./tests/fail+test-fail"
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
