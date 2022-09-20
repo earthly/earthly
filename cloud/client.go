@@ -72,6 +72,7 @@ type Client interface {
 	ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error)
 	GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error)
 	DeleteSatellite(ctx context.Context, name, orgID string) error
+	ReserveSatellite(ctx context.Context, name, orgID string, out chan<- string) error
 	CreateProject(ctx context.Context, name, orgName string) (*Project, error)
 	ListProjects(ctx context.Context, orgName string) ([]*Project, error)
 	GetProject(ctx context.Context, orgName, name string) (*Project, error)
@@ -131,6 +132,7 @@ func NewClient(httpAddr, grpcAddr, agentSockPath, authCredsOverride string, warn
 	tlsConfig := credentials.NewTLS(&tls.Config{})
 	ctx := context.Background()
 	retryOpts := []grpc_retry.CallOption{
+		grpc_retry.WithMax(10),
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)),
 		grpc_retry.WithCodes(codes.Internal, codes.Unavailable),
 	}

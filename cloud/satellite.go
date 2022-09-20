@@ -2,9 +2,22 @@ package cloud
 
 import (
 	"context"
+	"io"
+	"time"
 
 	pb "github.com/earthly/cloud-api/pipelines"
 	"github.com/pkg/errors"
+)
+
+const (
+	SatelliteStatusOperational = "Operational"
+	SatelliteStatusSleep       = "Sleeping"
+	SatelliteStatusStarting    = "Starting"
+	SatelliteStatusCreating    = "Creating"
+	SatelliteStatusFailed      = "Failed"
+	SatelliteStatusDestroying  = "Destroying"
+	SatelliteStatusOffline     = "Offline"
+	SatelliteStatusUnknown     = "Unknown"
 )
 
 // SatelliteInstance contains details about a remote Buildkit instance.
@@ -74,21 +87,47 @@ func (c *client) LaunchSatellite(ctx context.Context, name, orgID string, featur
 	return nil
 }
 
+func (c *client) ReserveSatellite(ctx context.Context, name, orgID string, out chan<- string) error {
+	defer close(out)
+	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	stream, err := c.pipelines.ReserveSatellite(c.withAuth(ctxTimeout), &pb.ReserveSatelliteRequest{
+		OrgId: orgID,
+		Name:  name,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed opening satellite reserve stream")
+	}
+	var update *pb.ReserveSatelliteResponse
+	for {
+		update, err = stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return errors.Wrap(err, "failed receiving satellite reserve update")
+		}
+		out <- satelliteStatus(update.Status)
+	}
+}
+
 func satelliteStatus(status pb.SatelliteStatus) string {
 	switch status {
 	case pb.SatelliteStatus_SATELLITE_STATUS_OPERATIONAL:
-		return "Operational"
+		return SatelliteStatusOperational
 	case pb.SatelliteStatus_SATELLITE_STATUS_SLEEP:
-		return "Sleeping"
+		return SatelliteStatusSleep
+	case pb.SatelliteStatus_SATELLITE_STATUS_STARTING:
+		return SatelliteStatusStarting
 	case pb.SatelliteStatus_SATELLITE_STATUS_CREATING:
-		return "Creating"
+		return SatelliteStatusCreating
 	case pb.SatelliteStatus_SATELLITE_STATUS_FAILED:
-		return "Failed"
+		return SatelliteStatusFailed
 	case pb.SatelliteStatus_SATELLITE_STATUS_DESTROYING:
-		return "Destroying"
+		return SatelliteStatusDestroying
 	case pb.SatelliteStatus_SATELLITE_STATUS_OFFLINE:
-		return "Offline"
+		return SatelliteStatusOffline
 	default:
-		return "Unknown"
+		return SatelliteStatusUnknown
 	}
 }

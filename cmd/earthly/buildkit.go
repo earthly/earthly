@@ -4,12 +4,13 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/earthly/earthly/buildkitd"
-	"github.com/earthly/earthly/cloud"
-	"github.com/earthly/earthly/util/containerutil"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+
+	"github.com/earthly/earthly/buildkitd"
+	"github.com/earthly/earthly/cloud"
+	"github.com/earthly/earthly/util/containerutil"
 )
 
 func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
@@ -177,6 +178,22 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 		return errors.Wrap(err, "failed to get auth token")
 	}
 	app.buildkitdSettings.SatelliteToken = token
+
+	// Reserve the satellite for the upcoming build.
+	// This operation can take a moment if the satellite is asleep.
+	console := app.console.WithPrefix("satellite")
+	out := make(chan string)
+	go func() { err = cloudClient.ReserveSatellite(cliCtx.Context, app.satelliteName, orgID, out) }()
+	var loggedWakeUp bool
+	for status := range out {
+		if err != nil {
+			return errors.Wrap(err, "failed reserving satellite for build")
+		}
+		if status == cloud.SatelliteStatusStarting && !loggedWakeUp {
+			console.Printf("%s is waking up. Please wait...", app.satelliteName)
+			loggedWakeUp = true
+		}
+	}
 
 	// TODO (dchw) what other settings might we want to override here?
 	return nil
