@@ -183,16 +183,22 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 	// This operation can take a moment if the satellite is asleep.
 	console := app.console.WithPrefix("satellite")
 	out := make(chan string)
-	go func() { err = cloudClient.ReserveSatellite(cliCtx.Context, app.satelliteName, orgID, out) }()
-	var loggedWakeUp bool
+	var reserveErr error
+	go func() { reserveErr = cloudClient.ReserveSatellite(cliCtx.Context, app.satelliteName, orgID, out) }()
 	for status := range out {
-		if err != nil {
-			return errors.Wrap(err, "failed reserving satellite for build")
-		}
-		if status == cloud.SatelliteStatusStarting && !loggedWakeUp {
+		switch status {
+		case cloud.SatelliteStatusSleep:
 			console.Printf("%s is waking up. Please wait...", app.satelliteName)
-			loggedWakeUp = true
+		case cloud.SatelliteStatusStarting:
+			console.VerbosePrintf("...Still waking up...")
+		case cloud.SatelliteStatusOperational:
+			console.VerbosePrintf("...Done")
+		default:
+			console.VerbosePrintf("Unexpected satellite state: %s", status)
 		}
+	}
+	if reserveErr != nil {
+		return errors.Wrap(reserveErr, "failed reserving satellite for build")
 	}
 
 	// TODO (dchw) what other settings might we want to override here?
