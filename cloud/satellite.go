@@ -10,14 +10,22 @@ import (
 )
 
 const (
+	// SatelliteStatusOperational indicates an on satellite that is ready to accept connections.
 	SatelliteStatusOperational = "Operational"
-	SatelliteStatusSleep       = "Sleeping"
-	SatelliteStatusStarting    = "Starting"
-	SatelliteStatusCreating    = "Creating"
-	SatelliteStatusFailed      = "Failed"
-	SatelliteStatusDestroying  = "Destroying"
-	SatelliteStatusOffline     = "Offline"
-	SatelliteStatusUnknown     = "Unknown"
+	// SatelliteStatusSleep indicates a satellite that is in a sleep state.
+	SatelliteStatusSleep = "Sleeping"
+	// SatelliteStatusStarting indicates a satellite that is waking from a sleep state.
+	SatelliteStatusStarting = "Starting"
+	// SatelliteStatusCreating indicates a new satellite that is currently being launched.
+	SatelliteStatusCreating = "Creating"
+	// SatelliteStatusFailed indicates a satellite that has crashed and cannot be used.
+	SatelliteStatusFailed = "Failed"
+	// SatelliteStatusDestroying indicates a satellite that is actively being deleted.
+	SatelliteStatusDestroying = "Destroying"
+	// SatelliteStatusOffline indicates a satellite that has been stopped and will not be woken up normally via build.
+	SatelliteStatusOffline = "Offline"
+	// SatelliteStatusUnknown is used when an unexpected satellite status is returned by the server.
+	SatelliteStatusUnknown = "Unknown"
 )
 
 // SatelliteInstance contains details about a remote Buildkit instance.
