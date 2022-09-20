@@ -118,10 +118,6 @@ func (app *earthlyApp) orgCmds() []*cli.Command {
 	}
 }
 
-func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
-	return []*cli.Command{}
-}
-
 func (app *earthlyApp) actionOrgCreate(cliCtx *cli.Context) error {
 	app.commandName = "orgCreate"
 	if cliCtx.NArg() != 1 {
