@@ -30,7 +30,7 @@ jobs:
         # if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Configure Satellites
         run: earthly satellite select core-test
-        if: "${{ matrix.satellite }}" == "true" && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+        if: ${{ matrix.satellite }} == true && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
