@@ -247,6 +247,23 @@ Set up a whole custom git repository for a server called example.com, using a si
 			UsageText:   "earthly preview (org|project|secret)",
 			Subcommands: []*cli.Command{
 				{
+					Name:        "org",
+					Aliases:     []string{"orgs"},
+					Usage:       "Earthly organization administration *experimental*",
+					Description: "Earthly organization administration *experimental*",
+					UsageText:   "earthly org (member|invite)",
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "org",
+							EnvVars:     []string{"EARTHLY_ORG"},
+							Usage:       "The name of the organization to which the project belongs. Required when user is a member of multiple.",
+							Required:    false,
+							Destination: &app.orgName,
+						},
+					},
+					Subcommands: app.orgCmdsPreview(),
+				},
+				{
 					Name:        "project",
 					Aliases:     []string{"projects"},
 					Description: "Manage Earthly projects *experimental*",
@@ -680,4 +697,10 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	}
 	app.console.Printf("Freed %s\n", humanize.Bytes(total))
 	return nil
+}
+
+func (app *earthlyApp) actionPreviewPromoted(name, dest string) cli.ActionFunc {
+	return func(*cli.Context) error {
+		return errors.Errorf("the %q command has been moved out of \"preview\" is now available under %q", name, dest)
+	}
 }

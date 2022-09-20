@@ -118,6 +118,24 @@ func (app *earthlyApp) orgCmds() []*cli.Command {
 	}
 }
 
+func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
+	return []*cli.Command{
+		{
+			Name:        "invite",
+			Usage:       "Invite users",
+			Description: "Invite users",
+			Action:      app.actionPreviewPromoted("invite", "org"),
+		},
+		{
+			Name:        "member",
+			Aliases:     []string{"members"},
+			Usage:       "Manage organization members",
+			Description: "Manage organization members",
+			Action:      app.actionPreviewPromoted("member", "org"),
+		},
+	}
+}
+
 func (app *earthlyApp) actionOrgCreate(cliCtx *cli.Context) error {
 	app.commandName = "orgCreate"
 	if cliCtx.NArg() != 1 {
