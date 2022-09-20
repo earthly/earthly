@@ -158,7 +158,7 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 		return nil, false, errUnexpectedArgs
 	}
 
-	parsedArgs, err := flagutil.ParseArgsWithValueModifier("VERSION", &ftrs, version.Args, instrumentVersion)
+	parsedArgs, err := flagutil.ParseArgsWithValueModifierAndOptions("VERSION", &ftrs, version.Args, instrumentVersion, goflags.PassDoubleDash|goflags.PassAfterNonOption|goflags.AllowBoolValues)
 	if err != nil {
 		return nil, false, err
 	}
