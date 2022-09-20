@@ -21,7 +21,7 @@ jobs:
       DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
     steps:
       - uses: actions/checkout@v3
-      - uses: ./.github/actions/setup-earthly
+      - uses: earthly/actions-setup@main
       - name: Ensure only set frontend is installed
         run: sudo ./ci-scripts/workflow.py podman ensure_single_install
       - name: Install brew

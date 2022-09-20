@@ -19,7 +19,7 @@ jobs:
       DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
       DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
     steps:
-      - uses: earthly/actions-setup@v1.0.1
+      - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
