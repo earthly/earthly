@@ -1143,9 +1143,12 @@ Same as [`RUN --mount <mount-spec>`](#mount-less-than-mount-spec-greater-than).
 
 Same as [`RUN --secret <env-var>=<secret-ref>`](#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than).
 
-## WAIT
+## WAIT (experimental)
 
-Enable via `VERSION --wait-block 0.6`.
+{% hint style='info' %}
+##### Note
+The `WAIT` command is experimental and must be enabled via `VERSION --wait-block 0.6`.
+{% endhint %}
 
 #### Synopsis
 
