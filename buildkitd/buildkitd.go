@@ -30,8 +30,8 @@ var (
 	// ErrBuildkitCrashed is an error returned when buildkit has terminated unexpectedly.
 	ErrBuildkitCrashed = errors.New("buildkitd crashed")
 
-	// ErrBuildkitStartFailure is an error returned when buildkit has failed to start in time.
-	ErrBuildkitStartFailure = errors.New("buildkitd failed to start (in time)")
+	// ErrBuildkitConnectionFailure is an error returned when buildkit has failed to respond.
+	ErrBuildkitConnectionFailure = errors.New("buildkitd did not respond (in time)")
 )
 
 // NewClient returns a new buildkitd client. If the buildkitd daemon is local, this function
@@ -504,7 +504,7 @@ ContainerRunningLoop:
 	// Wait for the connection to be available.
 	info, workerInfo, err := waitForConnection(ctx, containerName, address, opTimeout, fe, opts...)
 	if err != nil {
-		if !errors.Is(err, ErrBuildkitStartFailure) {
+		if !errors.Is(err, ErrBuildkitConnectionFailure) {
 			return nil, nil, err
 		}
 		// We timed out. Check if the user has a lot of cache and give buildkit another chance.
@@ -567,7 +567,7 @@ func waitForConnection(ctx context.Context, containerName, address string, opTim
 			info, workerInfo, err := checkConnection(ctx, address, opts...)
 			if err != nil {
 				// We give up.
-				return nil, nil, errors.Wrapf(ErrBuildkitStartFailure, "timeout %s: buildkitd did not make connection available after start with error: %s", opTimeout, err.Error())
+				return nil, nil, errors.Wrapf(ErrBuildkitConnectionFailure, "timeout %s: could not connect to buildkit: %s", opTimeout, err.Error())
 			}
 			return info, workerInfo, nil
 		}

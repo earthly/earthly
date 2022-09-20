@@ -17,6 +17,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Fixed
 
 - Fixed Earthly failing when using a remote docker host from a machine with an incompatible architecture. [#1895](https://github.com/earthly/earthly/issues/1895)
+- The error reported when failing to initiate a connection to buildkit has been reworded to account for the remote buildkit/satellite case too.
 
 ## v0.6.23 - 2022-09-06
 
