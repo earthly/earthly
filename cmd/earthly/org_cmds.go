@@ -34,66 +34,10 @@ func (app *earthlyApp) orgCmds() []*cli.Command {
 			Action:    app.actionOrgListPermissions,
 		},
 		{
-			Name:      "invite",
-			Usage:     "Invite accounts to your organization",
-			UsageText: "earthly [options] org invite [options] <path> <email> [<email> ...]",
-			Action:    app.actionOrgInvite,
-			Flags: []cli.Flag{
-				&cli.BoolFlag{
-					Name:        "write",
-					Usage:       "Grant write permissions in addition to read",
-					Destination: &app.writePermission,
-				},
-			},
-		},
-		{
 			Name:      "revoke",
 			Usage:     "Remove accounts from your organization",
 			UsageText: "earthly [options] org revoke <path> <email> [<email> ...]",
 			Action:    app.actionOrgRevoke,
-		},
-	}
-}
-
-func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
-	return []*cli.Command{
-		{
-			Name:        "member",
-			Aliases:     []string{"members"},
-			Usage:       "Manage organization members",
-			Description: "Manage organization members",
-			UsageText:   "earthly org [--org <organization-name>] members (ls|update|rm)",
-			Subcommands: []*cli.Command{
-				{
-					Name:        "ls",
-					Aliases:     []string{"list"},
-					Usage:       "List organization members and their permission level",
-					Description: "List organization members and their permission level",
-					UsageText:   "earthly org [--org organization] members ls",
-					Action:      app.actionOrgMemberList,
-				},
-				{
-					Name:        "update",
-					Usage:       "Update an organization member's permission",
-					Description: "Update an organization member's permission",
-					UsageText:   "earthly org [--org organization] members update --permission <permission> <user-email>",
-					Action:      app.actionOrgMemberUpdate,
-					Flags: []cli.Flag{
-						&cli.StringFlag{
-							Name:        "permission",
-							Usage:       "Update an organization member's permission.",
-							Destination: &app.userPermission,
-						},
-					},
-				},
-				{
-					Name:        "rm",
-					Usage:       "Remove a user from the organization",
-					Description: "Remove a user from the organization",
-					UsageText:   "earthly org [--org organization] members rm <user-email>",
-					Action:      app.actionOrgMemberRemove,
-				},
-			},
 		},
 		{
 			Name:        "invite",
@@ -133,7 +77,49 @@ func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
 				},
 			},
 		},
+		{
+			Name:        "member",
+			Aliases:     []string{"members"},
+			Usage:       "Manage organization members",
+			Description: "Manage organization members",
+			UsageText:   "earthly org [--org <organization-name>] members (ls|update|rm)",
+			Subcommands: []*cli.Command{
+				{
+					Name:        "ls",
+					Aliases:     []string{"list"},
+					Usage:       "List organization members and their permission level",
+					Description: "List organization members and their permission level",
+					UsageText:   "earthly org [--org organization] members ls",
+					Action:      app.actionOrgMemberList,
+				},
+				{
+					Name:        "update",
+					Usage:       "Update an organization member's permission",
+					Description: "Update an organization member's permission",
+					UsageText:   "earthly org [--org organization] members update --permission <permission> <user-email>",
+					Action:      app.actionOrgMemberUpdate,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "permission",
+							Usage:       "Update an organization member's permission.",
+							Destination: &app.userPermission,
+						},
+					},
+				},
+				{
+					Name:        "rm",
+					Usage:       "Remove a user from the organization",
+					Description: "Remove a user from the organization",
+					UsageText:   "earthly org [--org organization] members rm <user-email>",
+					Action:      app.actionOrgMemberRemove,
+				},
+			},
+		},
 	}
+}
+
+func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
+	return []*cli.Command{}
 }
 
 func (app *earthlyApp) actionOrgCreate(cliCtx *cli.Context) error {
@@ -208,28 +194,6 @@ func (app *earthlyApp) actionOrgListPermissions(cliCtx *cli.Context) error {
 		fmt.Fprintf(w, "\n")
 	}
 	w.Flush()
-	return nil
-}
-
-func (app *earthlyApp) actionOrgInvite(cliCtx *cli.Context) error {
-	app.commandName = "orgInvite"
-	if cliCtx.NArg() < 2 {
-		return errors.New("invalid number of arguments provided")
-	}
-	path := cliCtx.Args().Get(0)
-	if !strings.HasSuffix(path, "/") {
-		return errors.New("invitation paths must end with a slash (/)")
-	}
-
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
-	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
-	}
-	userEmail := cliCtx.Args().Get(1)
-	err = cloudClient.Invite(cliCtx.Context, path, userEmail, app.writePermission)
-	if err != nil {
-		return errors.Wrap(err, "failed to invite user into org")
-	}
 	return nil
 }
 
