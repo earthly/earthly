@@ -28,7 +28,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
       - uses: actions/checkout@v3
-      - uses: earthly/actions-setup@ryan/main
+      - uses: earthly/actions-setup@main
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
