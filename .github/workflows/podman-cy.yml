@@ -24,6 +24,8 @@ jobs:
       BUILT_EARTHLY_PATH: ./build/darwin/amd64/earthly
       BUILD_EARTHLY_TARGET: +for-darwin
     secrets:
+      EARTHLY_INSTALL_ID: ${{ secrets.EARTHLY_INSTALL_ID }}
+      EARTHLY_TOKEN: ${{ secrets.EARTHLY_TOKEN }}
       DOCKERHUB_MIRROR_USERNAME: ${{ secrets.DOCKERHUB_MIRROR_USERNAME }}
       DOCKERHUB_MIRROR_PASSWORD: ${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}
     name: Check for binary
