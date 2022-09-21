@@ -35,8 +35,8 @@ jobs:
       - uses: earthly/actions-setup@main
       - name: Install podman
         run: brew install podman
-      - name: Init podman machine
-        run: podman machine init --cpus ${{ env.PODMAN_CPUS }} --disk-size ${{ env.PODMAN_DISK_SPACE_GB }} --memory ${{ env.PODMAN_MEMORY_MB }} --rootful=true && podman machine start
+      - name: Init and start podman machine
+        run: podman machine init --now --cpus ${{ env.PODMAN_CPUS }} --disk-size ${{ env.PODMAN_DISK_SPACE_GB }} --memory ${{ env.PODMAN_MEMORY_MB }} --rootful=true
       - name: Podman machine ls
         run: podman machine ls
       - name: Podman machine inspect
