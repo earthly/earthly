@@ -39,9 +39,9 @@ jobs:
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
-        run: earthly -P --use-inline-cache +for-darwin
+        run: sudo earthly -P --use-inline-cache +for-darwin
       - name: rebuild earthly using latest earthly build
-        run: ${{ env.BUILT_EARTHLY_PATH }} -P --use-inline-cache +for-darwin
+        run: sudo ${{ env.BUILT_EARTHLY_PATH }} -P --use-inline-cache +for-darwin
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
