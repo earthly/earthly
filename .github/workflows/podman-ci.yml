@@ -34,11 +34,10 @@ jobs:
           token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
       - uses: earthly/actions-setup@main
       - name: Install podman
-        run: brew install podman@4.2.1
+        run: brew install podman
       - name: Podman Mac Helper
-        run: sudo /usr/local/Cellar/podman/4.2.1/bin/podman-mac-helper install \
-          && export DOCKER_HOST='unix:///Users/runner/.local/share/containers/podman/machine/podman-machine-default/podman.sock' \
-          && echo "{DOCKER_HOST}={unix:///Users/runner/.local/share/containers/podman/machine/podman-machine-default/podman.sock}" >> $GITHUB_ENV
+        # the $(ls /usr/local/Cellar/podman) fills in the version number
+        run: sudo /usr/local/Cellar/podman/$(ls /usr/local/Cellar/podman)/bin/podman-mac-helper install
       - name: Init and start podman machine
         run: podman machine init --now --cpus ${{ env.PODMAN_CPUS }} --disk-size ${{ env.PODMAN_DISK_SPACE_GB }} --memory ${{ env.PODMAN_MEMORY_MB }} --rootful=true
       - name: Podman machine ls
