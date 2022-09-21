@@ -9,22 +9,16 @@ on:
     paths-ignore: [ docs/** ]
 
 jobs:
-  check-brew:
-    name: Check brew
+  tests:
+    name: +testing-gha-podman
     runs-on: macos-12
+    env:
+      FORCE_COLOR: 1
     steps:
+      - uses: earthly/actions-setup@main
+      - uses: actions/checkout@v3
       - name: Brew version
         run: brew --version
-
-#  tests:
-#    name: +testing-gha-podman
-#    runs-on: macos-12
-#    env:
-#      FORCE_COLOR: 1
-#    steps:
-#      - uses: earthly/actions-setup@main
-#      - uses: actions/checkout@v3
-
 
 
 #  build:
