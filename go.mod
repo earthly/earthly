@@ -15,6 +15,7 @@ require (
 	github.com/earthly/earthly/ast v0.0.0-00010101000000-000000000000
 	github.com/elastic/go-sysinfo v1.7.1
 	github.com/fatih/color v1.9.0
+	github.com/gofrs/flock v0.8.1
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
@@ -36,6 +37,7 @@ require (
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/crypto v0.0.0-20220826181053-bd7e27e6170d
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	google.golang.org/grpc v1.47.0
 	gopkg.in/yaml.v3 v3.0.1

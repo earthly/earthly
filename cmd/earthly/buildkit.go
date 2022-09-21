@@ -2,10 +2,12 @@ package main
 
 import (
 	"net/url"
+	"path/filepath"
 	"time"
 
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
+	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
@@ -86,6 +88,11 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 		return errors.New(`invalid overridden iptables name. Valid values are "iptables-legacy" or "iptables-nft"`)
 	}
 	app.buildkitdSettings.IPTables = app.cfg.Global.IPTables
+	earthlyDir, err := cliutil.GetOrCreateEarthlyDir()
+	if err != nil {
+		return errors.Wrap(err, "failed to get earthly dir")
+	}
+	app.buildkitdSettings.StartUpLockPath = filepath.Join(earthlyDir, "buildkitd-startup.lock")
 	return nil
 }
 
