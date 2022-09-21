@@ -26,8 +26,8 @@ jobs:
       # matches hardware specs of macos-12 self hosted machine
       # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
       PODMAN_CPUS: 3
-      PODMAN_MEMORY_MB: 14000
-      PODMAN_DISK_SPACE_GB: 14
+      PODMAN_MEMORY_MB: 10000
+      PODMAN_DISK_SPACE_GB: 10
     steps:
       - uses: actions/checkout@v3
         with:
@@ -37,6 +37,10 @@ jobs:
         run: brew install podman
       - name: Init podman machine
         run: podman machine init --cpus ${{ env.PODMAN_CPUS }} --disk-size ${{ env.PODMAN_DISK_SPACE_GB }} --memory ${{ env.PODMAN_MEMORY_MB }}
+      - name: Podman machine ls
+        run: podman machine ls
+      - name: Podman machine inspect
+        run: podman machine inspect podman-machine-default
       - name: Start podman machine
         run: podman machine start
       - uses: ./.github/workflows/build-earthly.yml
