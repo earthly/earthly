@@ -45,6 +45,8 @@ jobs:
         run: podman info
       - name: Podman info debug
         run: podman info --debug
+      - name: Virtualization check
+        run: sysctl -a | grep machdep.cpu.features
       - name: Docker mirror login via Podman (Earthly Only)
         run: podman login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
