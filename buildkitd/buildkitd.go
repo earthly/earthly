@@ -14,6 +14,7 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/dustin/go-humanize"
+	"github.com/gofrs/flock"
 	"github.com/moby/buildkit/client"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
@@ -135,6 +136,20 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image, c
 // MaybeStart ensures that the buildkitd daemon is started. It returns the URL
 // that can be used to connect to it.
 func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, containerName string, fe containerutil.ContainerFrontend, settings Settings, opts ...client.ClientOpt) (*client.Info, *client.WorkerInfo, error) {
+	var startLock *flock.Flock
+	if settings.StartUpLockPath != "" {
+		startLock = flock.New(settings.StartUpLockPath)
+		timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		defer cancel()
+		_, err := startLock.TryLockContext(timeoutCtx, 200*time.Millisecond)
+		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				return nil, nil, errors.Errorf("timeout waiting for other process to start buildkitd")
+			}
+			return nil, nil, errors.Wrapf(err, "try flock context %s", settings.StartUpLockPath)
+		}
+		defer startLock.Unlock()
+	}
 	isStarted, err := IsStarted(ctx, containerName, fe)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "check is started buildkitd")
@@ -483,7 +498,7 @@ func WaitUntilStarted(ctx context.Context, console conslogging.ConsoleLogger, co
 ContainerRunningLoop:
 	for {
 		select {
-		case <-time.After(1 * time.Second):
+		case <-time.After(200 * time.Millisecond):
 			isRunning, err := isContainerRunning(ctxTimeout, containerName, fe)
 			if err != nil {
 				// Has not yet started. Keep waiting.
@@ -539,18 +554,21 @@ ContainerRunningLoop:
 }
 
 func waitForConnection(ctx context.Context, containerName, address string, opTimeout time.Duration, fe containerutil.ContainerFrontend, opts ...client.ClientOpt) (*client.Info, *client.WorkerInfo, error) {
+	retryInterval := 200 * time.Millisecond
+	if !containerutil.IsLocal(address) {
+		retryInterval = 1 * time.Second
+	}
 	ctxTimeout, cancel := context.WithTimeout(ctx, opTimeout)
 	defer cancel()
 	for {
 		select {
-		case <-time.After(1 * time.Second):
+		case <-time.After(retryInterval):
 			if containerutil.IsLocal(address) {
 				// Make sure that our managed buildkit has not crashed on startup.
 				isRunning, err := isContainerRunning(ctxTimeout, containerName, fe)
 				if err != nil {
 					return nil, nil, err
 				}
-
 				if !isRunning {
 					return nil, nil, ErrBuildkitCrashed
 				}
@@ -577,7 +595,11 @@ func waitForConnection(ctx context.Context, containerName, address string, opTim
 func checkConnection(ctx context.Context, address string, opts ...client.ClientOpt) (*client.Info, *client.WorkerInfo, error) {
 	// Each attempt has limited time to succeed, to prevent hanging for too long
 	// here.
-	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
+	timeoutInterval := 500 * time.Millisecond
+	if !containerutil.IsLocal(address) {
+		timeoutInterval = 15 * time.Second
+	}
+	ctxTimeout, cancel := context.WithTimeout(ctx, timeoutInterval)
 	var (
 		mu         sync.Mutex // protects the vars below
 		connErr    error      = errors.New("timeout")
@@ -862,7 +884,7 @@ func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, work
 		ld,
 		humanize.Bytes(uint64(workerInfo.GCAnalytics.LastSizeCleared)))
 	if workerInfo.GCAnalytics.CurrentStartTime != nil {
-		d := time.Now().Sub(*workerInfo.GCAnalytics.CurrentStartTime).Round(time.Second)
+		d := time.Since(*workerInfo.GCAnalytics.CurrentStartTime).Round(time.Second)
 		switch {
 		case d > 5*time.Minute:
 			bkCons.Warnf("Warning: GC has been running for a long time, started %v ago", d)

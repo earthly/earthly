@@ -17,6 +17,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Fixed
 
 - Fixed Earthly failing when using a remote docker host from a machine with an incompatible architecture. [#1895](https://github.com/earthly/earthly/issues/1895)
+- Earthly will no longer race with itself when starting up buildkit. [#2194](https://github.com/earthly/earthly/issues/2194)
 
 ## v0.6.23 - 2022-09-06
 
