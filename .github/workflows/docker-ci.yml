@@ -16,41 +16,16 @@ jobs:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
-      DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
-      DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
     steps:
-      - uses: earthly/actions-setup@ryan/enable-running-gha-manually
+      - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
-      - name: Docker mirror login (Earthly Only)
-        run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-        # TODO: Add back this if statement
-        # if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Configure Earthly to use mirror (Earthly Only)
-        run: |-
-          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+      - uses: ./.github/workflows/reuse-ci.yml
+        with:
+          BUILT_EARTHLY_PATH: ./build/linux/amd64/earthly
+          BUILD_EARTHLY_TARGET: +for-linux
+          secrets:
+            DOCKERHUB_MIRROR_USERNAME: ${{ secrets.DOCKERHUB_MIRROR_USERNAME }}
+            DOCKERHUB_MIRROR_PASSWORD: ${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}
+      - name: Check for binary
+        run: ls -al ./build/linux/amd64
 
-          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
-        # TODO: Add back this if statement
-        # if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Build latest earthly using released earthly
-        run: earthly --use-inline-cache +for-linux
-      - name: rebuild earthly using latest earthly build
-        run: ./build/linux/amd64/earthly --use-inline-cache +for-linux
-      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
-        run: |-
-          set -euo pipefail
-          EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
-          echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-      - name: Enable local registry-based exporter
-        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
-      - name: Configure Earthly Conversion Parallelism
-        run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
-#      - name: Execute tests (Earthly Only)
-#        run: |-
-#          ./build/linux/amd64/earthly --ci -P \
-#            --build-arg DOCKERHUB_AUTH=true \
-#            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-#            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-#            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-#          +test
-#        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository

@@ -1,0 +1,44 @@
+name: Build Earthly
+
+on:
+  workflow_call:
+    secrets:
+      EARTHLY_TOKEN:
+        required: true
+      EARTHLY_INSTALL_ID:
+        required: true
+      DOCKERHUB_MIRROR_USERNAME:
+        required: true
+      DOCKERHUB_MIRROR_PASSWORD:
+        required: true
+    inputs:
+      BUILT_EARTHLY_PATH:
+        required: true
+        type: string
+      BUILD_EARTHLY_TARGET:
+        required: true
+        type: string
+
+jobs:
+  build-earthly:
+    name: +build-earthly
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: earthly/actions-setup@ryan/main
+      - name: Docker mirror login (Earthly Only)
+        run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Configure Earthly to use mirror (Earthly Only)
+        run: |-
+          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+
+          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Build latest earthly using released earthly
+        run: earthly --use-inline-cache ${{ inputs.BUILD_EARTHLY_TARGET }}
+      - name: rebuild earthly using latest earthly build
+        run: ${{ inputs.BUILT_EARTHLY_PATH }} --use-inline-cache ${{ inputs.BUILD_EARTHLY_TARGET }}
