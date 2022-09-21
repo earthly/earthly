@@ -44,6 +44,7 @@ TRIGGER: 'TRIGGER' -> pushMode(COMMAND_ARGS);
 WITH: 'WITH';
 DOCKER: 'DOCKER' -> pushMode(BLOCK), pushMode(COMMAND_ARGS);
 IF: 'IF' -> pushMode(BLOCK), pushMode(COMMAND_ARGS);
+TRY: 'TRY' -> pushMode(BLOCK), pushMode(COMMAND_ARGS);
 FOR: 'FOR' -> pushMode(BLOCK), pushMode(COMMAND_ARGS);
 WAIT: 'WAIT' -> pushMode(BLOCK), pushMode(COMMAND_ARGS);
 
@@ -97,6 +98,7 @@ TRIGGER_R: TRIGGER -> type(TRIGGER), pushMode(COMMAND_ARGS);
 WITH_R: WITH -> type(WITH);
 DOCKER_R: DOCKER -> type(DOCKER), pushMode(BLOCK), pushMode(COMMAND_ARGS);
 IF_R: IF -> type(IF), pushMode(BLOCK), pushMode(COMMAND_ARGS);
+TRY_R: TRY -> type(TRY), pushMode(BLOCK), pushMode(COMMAND_ARGS);
 FOR_R: FOR -> type(FOR), pushMode(BLOCK), pushMode(COMMAND_ARGS);
 WAIT_R: WAIT -> type(WAIT), pushMode(BLOCK), pushMode(COMMAND_ARGS);
 
@@ -141,6 +143,9 @@ DOCKER_B: DOCKER -> type(DOCKER), pushMode(BLOCK), pushMode(COMMAND_ARGS);
 IF_B: IF -> type(IF), pushMode(BLOCK), pushMode(COMMAND_ARGS);
 ELSE: 'ELSE' -> pushMode(COMMAND_ARGS);
 ELSE_IF: 'ELSE IF' -> pushMode(COMMAND_ARGS);
+TRY_B: TRY -> type(TRY), pushMode(BLOCK), pushMode(COMMAND_ARGS);
+CATCH: 'CATCH' -> pushMode(COMMAND_ARGS);
+FINALLY: 'FINALLY' -> pushMode(COMMAND_ARGS);
 FOR_B: FOR -> type(FOR), pushMode(BLOCK), pushMode(COMMAND_ARGS);
 WAIT_B: WAIT -> type(WAIT), pushMode(BLOCK);
 END: 'END' -> popMode, pushMode(COMMAND_ARGS);

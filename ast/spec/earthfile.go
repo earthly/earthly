@@ -38,6 +38,7 @@ type Statement struct {
 	Command        *Command        `json:"command,omitempty"`
 	With           *WithStatement  `json:"with,omitempty"`
 	If             *IfStatement    `json:"if,omitempty"`
+	Try            *TryStatement   `json:"try,omitempty"`
 	For            *ForStatement   `json:"for,omitempty"`
 	Wait           *WaitStatement  `json:"wait,omitempty"`
 	SourceLocation *SourceLocation `json:"sourceLocation,omitempty"`
@@ -65,6 +66,14 @@ type IfStatement struct {
 	IfBody         Block           `json:"ifBody"`
 	ElseIf         []ElseIf        `json:"elseIf,omitempty"`
 	ElseBody       *Block          `json:"elseBody,omitempty"`
+	SourceLocation *SourceLocation `json:"sourceLocation,omitempty"`
+}
+
+// TryStatement is the AST representation of a try statement.
+type TryStatement struct {
+	TryBody        Block           `json:"tryBody"`
+	CatchBody      *Block          `json:"catchBody,omitempty"`
+	FinallyBody    *Block          `json:"finallyBody,omitempty"`
 	SourceLocation *SourceLocation `json:"sourceLocation,omitempty"`
 }
 

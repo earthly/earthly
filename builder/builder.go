@@ -50,33 +50,34 @@ const (
 
 // Opt represent builder options.
 type Opt struct {
-	SessionID              string
-	BkClient               *client.Client
-	Console                conslogging.ConsoleLogger
-	Verbose                bool
-	Attachables            []session.Attachable
-	Enttlmnts              []entitlements.Entitlement
-	NoCache                bool
-	CacheImports           *states.CacheImports
-	CacheExport            string
-	MaxCacheExport         string
-	UseInlineCache         bool
-	SaveInlineCache        bool
-	ImageResolveMode       llb.ResolveMode
-	CleanCollection        *cleanup.Collection
-	OverridingVars         *variables.Scope
-	BuildContextProvider   *provider.BuildContextProvider
-	GitLookup              *buildcontext.GitLookup
-	UseFakeDep             bool
-	Strict                 bool
-	DisableNoOutputUpdates bool
-	ParallelConversion     bool
-	Parallelism            semutil.Semaphore
-	LocalRegistryAddr      string
-	FeatureFlagOverrides   string
-	ContainerFrontend      containerutil.ContainerFrontend
-	InternalSecretStore    *secretprovider.MutableMapStore
-	InteractiveDebugging   bool
+	SessionID                             string
+	BkClient                              *client.Client
+	Console                               conslogging.ConsoleLogger
+	Verbose                               bool
+	Attachables                           []session.Attachable
+	Enttlmnts                             []entitlements.Entitlement
+	NoCache                               bool
+	CacheImports                          *states.CacheImports
+	CacheExport                           string
+	MaxCacheExport                        string
+	UseInlineCache                        bool
+	SaveInlineCache                       bool
+	ImageResolveMode                      llb.ResolveMode
+	CleanCollection                       *cleanup.Collection
+	OverridingVars                        *variables.Scope
+	BuildContextProvider                  *provider.BuildContextProvider
+	GitLookup                             *buildcontext.GitLookup
+	UseFakeDep                            bool
+	Strict                                bool
+	DisableNoOutputUpdates                bool
+	ParallelConversion                    bool
+	Parallelism                           semutil.Semaphore
+	LocalRegistryAddr                     string
+	FeatureFlagOverrides                  string
+	ContainerFrontend                     containerutil.ContainerFrontend
+	InternalSecretStore                   *secretprovider.MutableMapStore
+	InteractiveDebugging                  bool
+	InteractiveDebuggingDebugLevelLogging bool
 }
 
 // BuildOpt is a collection of build options.
@@ -92,6 +93,7 @@ type BuildOpt struct {
 	EnableGatewayClientLogging bool
 	BuiltinArgs                variables.DefaultArgs
 	GlobalWaitBlockFtr         bool
+	LocalArtifactWhiteList     *gatewaycrafter.LocalArtifactWhiteList
 }
 
 // Builder executes Earthly builds.
@@ -136,13 +138,12 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
 	var (
-		sharedLocalStateCache  = earthfile2llb.NewSharedLocalStateCache()
-		featureFlagOverrides   = b.opt.FeatureFlagOverrides
-		manifestLists          = make(map[string][]dockerutil.Manifest) // parent image -> child images
-		platformImgNames       = make(map[string]bool)                  // ensure that these are unique
-		singPlatImgNames       = make(map[string]bool)                  // ensure that these are unique
-		exportCoordinator      = gatewaycrafter.NewExportCoordinator()
-		localArtifactWhiteList = gatewaycrafter.NewLocalArtifactWhiteList()
+		sharedLocalStateCache = earthfile2llb.NewSharedLocalStateCache()
+		featureFlagOverrides  = b.opt.FeatureFlagOverrides
+		manifestLists         = make(map[string][]dockerutil.Manifest) // parent image -> child images
+		platformImgNames      = make(map[string]bool)                  // ensure that these are unique
+		singPlatImgNames      = make(map[string]bool)                  // ensure that these are unique
+		exportCoordinator     = gatewaycrafter.NewExportCoordinator()
 
 		// dirIDs maps a dirIndex to a dirID; the "dir-id" field was introduced
 		// to accomodate parallelism in the WAIT/END PopWaitBlock handling
@@ -162,41 +163,42 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		caps := gwClient.BuildOpts().LLBCaps
 		if !b.builtMain {
 			opt := earthfile2llb.ConvertOpt{
-				GwClient:                   gwClient,
-				Resolver:                   b.resolver,
-				ImageResolveMode:           b.opt.ImageResolveMode,
-				CleanCollection:            b.opt.CleanCollection,
-				PlatformResolver:           opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
-				DockerImageSolverTar:       newTarImageSolver(b.opt, b.s.sm),
-				MultiImageSolver:           newMultiImageSolver(b.opt, b.s.sm),
-				OverridingVars:             b.opt.OverridingVars,
-				BuildContextProvider:       b.opt.BuildContextProvider,
-				CacheImports:               b.opt.CacheImports,
-				UseInlineCache:             b.opt.UseInlineCache,
-				UseFakeDep:                 b.opt.UseFakeDep,
-				AllowLocally:               !b.opt.Strict,
-				AllowInteractive:           !b.opt.Strict,
-				AllowPrivileged:            opt.AllowPrivileged,
-				ParallelConversion:         b.opt.ParallelConversion,
-				Parallelism:                b.opt.Parallelism,
-				Console:                    b.opt.Console,
-				GitLookup:                  b.opt.GitLookup,
-				FeatureFlagOverrides:       featureFlagOverrides,
-				LocalStateCache:            sharedLocalStateCache,
-				BuiltinArgs:                opt.BuiltinArgs,
-				NoCache:                    b.opt.NoCache,
-				ContainerFrontend:          b.opt.ContainerFrontend,
-				UseLocalRegistry:           (b.opt.LocalRegistryAddr != ""),
-				DoSaves:                    !opt.NoOutput,
-				OnlyFinalTargetImages:      opt.OnlyFinalTargetImages,
-				DoPushes:                   opt.Push,
-				ExportCoordinator:          exportCoordinator,
-				LocalArtifactWhiteList:     localArtifactWhiteList,
-				InternalSecretStore:        b.opt.InternalSecretStore,
-				TempEarthlyOutDir:          b.tempEarthlyOutDir,
-				GlobalWaitBlockFtr:         opt.GlobalWaitBlockFtr,
-				LLBCaps:                    &caps,
-				InteractiveDebuggerEnabled: b.opt.InteractiveDebugging,
+				GwClient:                             gwClient,
+				Resolver:                             b.resolver,
+				ImageResolveMode:                     b.opt.ImageResolveMode,
+				CleanCollection:                      b.opt.CleanCollection,
+				PlatformResolver:                     opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
+				DockerImageSolverTar:                 newTarImageSolver(b.opt, b.s.sm),
+				MultiImageSolver:                     newMultiImageSolver(b.opt, b.s.sm),
+				OverridingVars:                       b.opt.OverridingVars,
+				BuildContextProvider:                 b.opt.BuildContextProvider,
+				CacheImports:                         b.opt.CacheImports,
+				UseInlineCache:                       b.opt.UseInlineCache,
+				UseFakeDep:                           b.opt.UseFakeDep,
+				AllowLocally:                         !b.opt.Strict,
+				AllowInteractive:                     !b.opt.Strict,
+				AllowPrivileged:                      opt.AllowPrivileged,
+				ParallelConversion:                   b.opt.ParallelConversion,
+				Parallelism:                          b.opt.Parallelism,
+				Console:                              b.opt.Console,
+				GitLookup:                            b.opt.GitLookup,
+				FeatureFlagOverrides:                 featureFlagOverrides,
+				LocalStateCache:                      sharedLocalStateCache,
+				BuiltinArgs:                          opt.BuiltinArgs,
+				NoCache:                              b.opt.NoCache,
+				ContainerFrontend:                    b.opt.ContainerFrontend,
+				UseLocalRegistry:                     (b.opt.LocalRegistryAddr != ""),
+				DoSaves:                              !opt.NoOutput,
+				OnlyFinalTargetImages:                opt.OnlyFinalTargetImages,
+				DoPushes:                             opt.Push,
+				ExportCoordinator:                    exportCoordinator,
+				LocalArtifactWhiteList:               opt.LocalArtifactWhiteList,
+				InternalSecretStore:                  b.opt.InternalSecretStore,
+				TempEarthlyOutDir:                    b.tempEarthlyOutDir,
+				GlobalWaitBlockFtr:                   opt.GlobalWaitBlockFtr,
+				LLBCaps:                              &caps,
+				InteractiveDebuggerEnabled:           b.opt.InteractiveDebugging,
+				InteractiveDebuggerDebugLevelLogging: b.opt.InteractiveDebuggingDebugLevelLogging,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
@@ -377,7 +379,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						return nil, err
 					}
 					dirIDs[dirIndex] = dirID
-					localArtifactWhiteList.Add(saveLocal.DestPath)
+					opt.LocalArtifactWhiteList.Add(saveLocal.DestPath)
 					dirIndex++
 				}
 			}
@@ -438,8 +440,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		return pipeW, nil
 	}
 	onArtifact := func(childCtx context.Context, index string, artifact domain.Artifact, artifactPath string, destPath string) (string, error) {
-		if !localArtifactWhiteList.Exists(destPath) {
-			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, localArtifactWhiteList.AsList())
+		if !opt.LocalArtifactWhiteList.Exists(destPath) {
+			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, opt.LocalArtifactWhiteList.AsList())
 		}
 		outDir, err := b.tempEarthlyOutDir()
 		if err != nil {

@@ -83,6 +83,27 @@ type EarthParserListener interface {
 	// EnterElseIfExpr is called when entering the elseIfExpr production.
 	EnterElseIfExpr(c *ElseIfExprContext)
 
+	// EnterTryStmt is called when entering the tryStmt production.
+	EnterTryStmt(c *TryStmtContext)
+
+	// EnterTryClause is called when entering the tryClause production.
+	EnterTryClause(c *TryClauseContext)
+
+	// EnterTryBlock is called when entering the tryBlock production.
+	EnterTryBlock(c *TryBlockContext)
+
+	// EnterCatchClause is called when entering the catchClause production.
+	EnterCatchClause(c *CatchClauseContext)
+
+	// EnterCatchBlock is called when entering the catchBlock production.
+	EnterCatchBlock(c *CatchBlockContext)
+
+	// EnterFinallyClause is called when entering the finallyClause production.
+	EnterFinallyClause(c *FinallyClauseContext)
+
+	// EnterFinallyBlock is called when entering the finallyBlock production.
+	EnterFinallyBlock(c *FinallyBlockContext)
+
 	// EnterForStmt is called when entering the forStmt production.
 	EnterForStmt(c *ForStmtContext)
 
@@ -304,6 +325,27 @@ type EarthParserListener interface {
 
 	// ExitElseIfExpr is called when exiting the elseIfExpr production.
 	ExitElseIfExpr(c *ElseIfExprContext)
+
+	// ExitTryStmt is called when exiting the tryStmt production.
+	ExitTryStmt(c *TryStmtContext)
+
+	// ExitTryClause is called when exiting the tryClause production.
+	ExitTryClause(c *TryClauseContext)
+
+	// ExitTryBlock is called when exiting the tryBlock production.
+	ExitTryBlock(c *TryBlockContext)
+
+	// ExitCatchClause is called when exiting the catchClause production.
+	ExitCatchClause(c *CatchClauseContext)
+
+	// ExitCatchBlock is called when exiting the catchBlock production.
+	ExitCatchBlock(c *CatchBlockContext)
+
+	// ExitFinallyClause is called when exiting the finallyClause production.
+	ExitFinallyClause(c *FinallyClauseContext)
+
+	// ExitFinallyBlock is called when exiting the finallyBlock production.
+	ExitFinallyBlock(c *FinallyBlockContext)
 
 	// ExitForStmt is called when exiting the forStmt production.
 	ExitForStmt(c *ForStmtContext)
