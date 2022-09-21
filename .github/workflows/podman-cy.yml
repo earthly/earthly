@@ -11,7 +11,7 @@ on:
 jobs:
   tests:
     name: +testing-gha-podman
-    runs-on: macos-latest
+    runs-on: macos-12
     env:
       FORCE_COLOR: 1
     steps:
