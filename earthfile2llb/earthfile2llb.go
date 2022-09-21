@@ -71,6 +71,8 @@ type ConvertOpt struct {
 	AllowLocally bool
 	// AllowInteractive is an internal feature flag for controlling if interactive sessions can be initiated.
 	AllowInteractive bool
+	// EnableInteractiveDebugger is set to true when earthly is run with the --interactive cli flag
+	InteractiveDebuggerEnabled bool
 	// HasDangling represents whether the target has dangling instructions -
 	// ie if there are any non-SAVE commands after the first SAVE command,
 	// or if the target is invoked via BUILD command (not COPY nor FROM).

@@ -29,7 +29,12 @@ func ParseArgs(command string, data interface{}, args []string) ([]string, error
 // which is called before each flag value is parsed, and allows one to change the value.
 // if the flag value
 func ParseArgsWithValueModifier(command string, data interface{}, args []string, argumentModFunc ArgumentModFunc) ([]string, error) {
-	p := flags.NewNamedParser("", flags.PrintErrors|flags.PassDoubleDash|flags.PassAfterNonOption|flags.AllowBoolValues)
+	return ParseArgsWithValueModifierAndOptions(command, data, args, argumentModFunc, flags.PrintErrors|flags.PassDoubleDash|flags.PassAfterNonOption|flags.AllowBoolValues)
+}
+
+// ParseArgsWithValueModifierAndOptions is similar to ParseArgsWithValueModifier, but allows changing the parser options.
+func ParseArgsWithValueModifierAndOptions(command string, data interface{}, args []string, argumentModFunc ArgumentModFunc, parserOptions flags.Options) ([]string, error) {
+	p := flags.NewNamedParser("", parserOptions)
 	var modFuncErr error
 	modFunc := func(flagName string, opt *flags.Option, flagVal *string) *string {
 		p, err := argumentModFunc(flagName, opt, flagVal)
@@ -45,7 +50,9 @@ func ParseArgsWithValueModifier(command string, data interface{}, args []string,
 	}
 	res, err := p.ParseArgs(args)
 	if err != nil {
-		p.WriteHelp(os.Stderr)
+		if parserOptions&flags.PrintErrors != flags.None {
+			p.WriteHelp(os.Stderr)
+		}
 		return nil, err
 	}
 	if modFuncErr != nil {

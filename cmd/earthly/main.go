@@ -597,7 +597,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
 			app.printCrashLogs(ctx)
 			return 7
-		} else if errors.Is(err, buildkitd.ErrBuildkitStartFailure) {
+		} else if errors.Is(err, buildkitd.ErrBuildkitConnectionFailure) && containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress) {
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Warnf(
 				"It seems that buildkitd had an issue. " +

@@ -246,6 +246,13 @@ jobs:
         run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
+      - name: Run parallel buildkit start test. It ensures that earthly starting up buildkit does not race with itself.
+        run: |-
+          docker stop earthly-buildkitd && \
+          ./build/linux/amd64/earthly github.com/earthly/hello-world+hello & \
+          ./build/linux/amd64/earthly github.com/earthly/hello-world+hello & \
+          ./build/linux/amd64/earthly github.com/earthly/hello-world+hello & \
+          ./build/linux/amd64/earthly github.com/earthly/hello-world+hello
       - name: Execute interactive debugger test
         run: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ./build/linux/amd64/earthly --timeout 180
       - name: Execute version test
