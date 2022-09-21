@@ -136,9 +136,8 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image, c
 // MaybeStart ensures that the buildkitd daemon is started. It returns the URL
 // that can be used to connect to it.
 func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, containerName string, fe containerutil.ContainerFrontend, settings Settings, opts ...client.ClientOpt) (*client.Info, *client.WorkerInfo, error) {
-	var startLock *flock.Flock
 	if settings.StartUpLockPath != "" {
-		startLock = flock.New(settings.StartUpLockPath)
+		startLock := flock.New(settings.StartUpLockPath)
 		timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 		_, err := startLock.TryLockContext(timeoutCtx, 200*time.Millisecond)
