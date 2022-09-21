@@ -41,6 +41,10 @@ jobs:
         run: podman machine ls
       - name: Podman machine inspect
         run: podman machine inspect podman-machine-default
+      - name: Podman info
+        run: podman info
+      - name: Podman info debug
+        run: podman info --debug
       - name: Start podman machine
         run: podman machine start
       - uses: ./.github/workflows/build-earthly.yml
