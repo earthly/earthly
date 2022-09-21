@@ -1,0 +1,26 @@
+VERSION --use-pipelines 0.6
+
+FROM alpine:3.15
+
+foo:
+    RUN echo "run"
+
+test:
+    PIPELINE
+    TRIGGER manual
+    BUILD +foo
+
+test-invalid-order:
+    TRIGGER manual
+    PIPELINE
+    BUILD +foo
+
+test-invalid-pipeline-arg:
+    PIPELINE --foo
+    TRIGGER manual
+    BUILD +foo
+
+test-invalid-trigger-type:
+    PIPELINE
+    TRIGGER foo
+    BUILD +foo

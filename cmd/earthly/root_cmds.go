@@ -10,6 +10,12 @@ import (
 	"strings"
 
 	"github.com/dustin/go-humanize"
+	"github.com/moby/buildkit/client"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
@@ -20,11 +26,6 @@ import (
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/termutil"
-	"github.com/moby/buildkit/client"
-	gwclient "github.com/moby/buildkit/frontend/gateway/client"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
-	"golang.org/x/sync/errgroup"
 )
 
 func (app *earthlyApp) rootCmds() []*cli.Command {
@@ -651,7 +652,7 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	}
 
 	// Prune via API.
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -696,4 +697,10 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	}
 	app.console.Printf("Freed %s\n", humanize.Bytes(total))
 	return nil
+}
+
+func (app *earthlyApp) actionPreviewPromoted(name, dest string) cli.ActionFunc {
+	return func(*cli.Context) error {
+		return errors.Errorf("the %q command has been moved out of \"preview\" is now available under %q", name, dest)
+	}
 }

@@ -76,6 +76,8 @@ const (
 	cacheCmd                             // "CACHE"
 	hostCmd                              // "HOST"
 	projectCmd                           // "PROJECT"
+	pipelineCmd                          // "PIPELINE"
+	triggerCmd                           // "TRIGGER"
 )
 
 // Converter turns earthly commands to buildkit LLB representation.
@@ -96,6 +98,7 @@ type Converter struct {
 	localWorkingDir     string
 	containerFrontend   containerutil.ContainerFrontend
 	waitBlockStack      []*waitBlock
+	isPipeline          bool
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -1385,12 +1388,24 @@ func (c *Converter) Host(ctx context.Context, hostname string, ip net.IP) error 
 
 // Project handles a "PROJECT" command in base target.
 func (c *Converter) Project(ctx context.Context, org, project string) error {
-	if !c.ftrs.UseProjectSecrets {
-		return errors.New("--use-project-secrets must be enabled in order to use PROJECT")
+	err := c.checkAllowed(projectCmd)
+	if err != nil {
+		return err
 	}
 	c.nonSaveCommand()
 	c.varCollection.SetOrg(org)
 	c.varCollection.SetProject(project)
+	return nil
+}
+
+// Pipeline handles a "PIPELINE" command.
+func (c *Converter) Pipeline(ctx context.Context) error {
+	err := c.checkAllowed(pipelineCmd)
+	if err != nil {
+		return err
+	}
+	c.isPipeline = true
+	c.mts.Final.RanFromLike = true
 	return nil
 }
 
@@ -1694,12 +1709,13 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		// Debugger.
 		err := c.opt.LLBCaps.Supports(solverpb.CapExecMountSock)
 		if err != nil {
-			_, isCapError := err.(*apicaps.CapError)
-			if !isCapError {
+			switch errors.Cause(err).(type) {
+			case *apicaps.CapError:
+				if c.opt.InteractiveDebuggerEnabled || isInteractive {
+					return pllb.State{}, errors.Wrap(err, "interactive debugger requires a newer version of buildkit")
+				}
+			default:
 				c.opt.Console.Warnf("failed to check LLBCaps for CapExecMountSock: %v", err) // keep going
-			} else if opts.Interactive {
-				// only display warning when user supplies --interactive to an older buildkit version
-				c.opt.Console.Warnf("interactive debugger requires a newer version of buildkit: %v", err)
 			}
 		} else {
 			runOpts = append(runOpts, llb.SocketTarget("earthly_interactive", debuggercommon.DebuggerDefaultSocketPath, 0666, 0, 0))
@@ -2124,20 +2140,32 @@ func (c *Converter) joinRefs(relRef domain.Reference) (domain.Reference, error) 
 }
 
 func (c *Converter) checkAllowed(command cmdType) error {
+	if command == projectCmd && !c.ftrs.UseProjectSecrets {
+		return errors.New("--use-project-secrets must be enabled in order to use PROJECT")
+	}
+
+	if (command == pipelineCmd || command == triggerCmd) && !c.ftrs.UsePipelines {
+		return errors.New("--use-pipelines must be enabled in order to use PIPELINE or TRIGGER")
+	}
+
 	if c.mts.Final.RanInteractive && !(command == saveImageCmd || command == saveArtifactCmd) {
 		return errors.New("If present, a single --interactive command must be the last command in a target")
 	}
 
-	if c.mts.Final.RanFromLike {
-		return nil
+	if command == pipelineCmd && c.isPipeline {
+		return errors.New("only 1 PIPELINE command is allowed")
 	}
 
-	switch command {
-	case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, importCmd:
-		return nil
-	default:
-		return errors.New("the first command has to be FROM, FROM DOCKERFILE, LOCALLY, ARG, BUILD or IMPORT")
+	if !c.mts.Final.RanFromLike {
+		switch command {
+		case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, importCmd, projectCmd, pipelineCmd:
+			return nil
+		default:
+			return errors.New("the first command has to be FROM, FROM DOCKERFILE, LOCALLY, ARG, BUILD or IMPORT")
+		}
 	}
+
+	return nil
 }
 
 func (c *Converter) targetInputActiveOnly() dedup.TargetInput {

@@ -11,6 +11,17 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
+	"github.com/joho/godotenv"
+	"github.com/moby/buildkit/client/llb"
+	"github.com/moby/buildkit/session"
+	"github.com/moby/buildkit/session/auth/authprovider"
+	"github.com/moby/buildkit/session/localhost/localhostprovider"
+	"github.com/moby/buildkit/session/socketforward/socketprovider"
+	"github.com/moby/buildkit/session/sshforward/sshprovider"
+	"github.com/moby/buildkit/util/entitlements"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
+
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
@@ -28,16 +39,6 @@ import (
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
-	"github.com/joho/godotenv"
-	"github.com/moby/buildkit/client/llb"
-	"github.com/moby/buildkit/session"
-	"github.com/moby/buildkit/session/auth/authprovider"
-	"github.com/moby/buildkit/session/localhost/localhostprovider"
-	"github.com/moby/buildkit/session/socketforward/socketprovider"
-	"github.com/moby/buildkit/session/sshforward/sshprovider"
-	"github.com/moby/buildkit/util/entitlements"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
 )
 
 func (app *earthlyApp) actionBuild(cliCtx *cli.Context) error {
@@ -160,7 +161,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -213,9 +214,6 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		app.console.Warnf("") // newline
 		app.useInlineCache = false
 		app.saveInlineCache = false
-	}
-	if app.interactiveDebugging && !isLocal {
-		return errors.New("the --interactive flag is not currently supported with non-local buildkit servers")
 	}
 	if isLocal && !app.containerFrontend.IsAvailable(cliCtx.Context) {
 		return errors.New("Frontend is not available to perform the build. Is Docker installed and running?")
@@ -432,6 +430,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		FeatureFlagOverrides:   app.featureFlagOverrides,
 		ContainerFrontend:      app.containerFrontend,
 		InternalSecretStore:    internalSecretStore,
+		InteractiveDebugging:   app.interactiveDebugging,
 	}
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
 	if err != nil {

@@ -1,0 +1,5 @@
+VERSION --this-flag-does-not-exist 0.6
+
+test:
+    FROM alpine
+    RUN echo "auto-completion shouldn't work here, but don't display errors when a user hits tab-tab"

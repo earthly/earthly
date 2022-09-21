@@ -19,8 +19,9 @@ var ErrFrontendNotInitialized = errors.New("frontend (e.g. docker/podman) not in
 // Examples include earthly/earthly, or integration tests. It is currently only used as a fallback when docker or other frontends are missing.
 func NewStubFrontend(ctx context.Context, cfg *FrontendConfig) (ContainerFrontend, error) {
 	fe := &stubFrontend{
-		shellFrontend: &shellFrontend{},
+		shellFrontend: &shellFrontend{Console: cfg.Console},
 	}
+	fe.shellFrontend.FrontendInformation = fe.Information
 
 	var err error
 	fe.urls, err = fe.setupAndValidateAddresses(FrontendStub, cfg)

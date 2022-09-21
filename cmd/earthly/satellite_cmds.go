@@ -159,7 +159,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 
 	app.satelliteName = cliCtx.Args().Get(0)
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -196,7 +196,7 @@ func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 		return errors.New("command does not accept any arguments")
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -224,7 +224,7 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 
 	app.satelliteName = cliCtx.Args().Get(0)
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -265,7 +265,7 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	satelliteToInspect := cliCtx.Args().Get(0)
 	selectedSatellite := app.cfg.Satellite.Name
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -311,13 +311,24 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 	app.commandName = "satelliteSelect"
 
-	if cliCtx.NArg() != 1 {
+	if cliCtx.NArg() == 0 {
+		if app.cfg.Satellite.Name == "" {
+			app.console.Printf("No satellite selected\n\n")
+		} else {
+			app.console.Printf("Selected satellite: %s\n\n", app.cfg.Satellite.Name)
+		}
+		_ = cli.ShowCommandHelp(cliCtx, cliCtx.Command.Name)
 		return errors.New("satellite name is required")
+	}
+
+	if cliCtx.NArg() > 1 {
+		_ = cli.ShowCommandHelp(cliCtx, cliCtx.Command.Name)
+		return errors.New(fmt.Sprintf("can only provide 1 satellite name, %d provided", cliCtx.NArg()))
 	}
 
 	app.satelliteName = cliCtx.Args().Get(0)
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
