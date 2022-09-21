@@ -79,16 +79,17 @@ func (wdrl *withDockerRunLocal) Run(ctx context.Context, args []string, opt With
 	}
 
 	crOpts := ConvertRunOpts{
-		CommandName:     "WITH DOCKER RUN",
-		Locally:         true,
-		Args:            args,
-		Mounts:          opt.Mounts,
-		Secrets:         opt.Secrets,
-		WithEntrypoint:  opt.WithEntrypoint,
-		WithShell:       opt.WithShell,
-		NoCache:         opt.NoCache,
-		Interactive:     opt.Interactive,
-		InteractiveKeep: opt.interactiveKeep,
+		CommandName:          "WITH DOCKER RUN",
+		Locally:              true,
+		Args:                 args,
+		Mounts:               opt.Mounts,
+		Secrets:              opt.Secrets,
+		WithEntrypoint:       opt.WithEntrypoint,
+		WithShell:            opt.WithShell,
+		NoCache:              opt.NoCache,
+		Interactive:          opt.Interactive,
+		InteractiveKeep:      opt.interactiveKeep,
+		InteractiveSaveFiles: opt.TryCatchSaveArtifacts,
 	}
 
 	// then finally run the command

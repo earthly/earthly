@@ -73,6 +73,8 @@ type ConvertOpt struct {
 	AllowInteractive bool
 	// EnableInteractiveDebugger is set to true when earthly is run with the --interactive cli flag
 	InteractiveDebuggerEnabled bool
+	// InteractiveDebuggerDebugLevelLogging controls if debug-level-logging is enabled within the interactive-debugger
+	InteractiveDebuggerDebugLevelLogging bool
 	// HasDangling represents whether the target has dangling instructions -
 	// ie if there are any non-SAVE commands after the first SAVE command,
 	// or if the target is invoked via BUILD command (not COPY nor FROM).

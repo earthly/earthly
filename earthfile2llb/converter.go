@@ -3,6 +3,9 @@ package earthfile2llb
 import (
 	"bytes"
 	"context"
+	"crypto/sha1"
+	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -27,6 +30,7 @@ import (
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/gitutil"
+	"github.com/earthly/earthly/util/inodeutil"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/llbutil/pllb"
@@ -524,20 +528,21 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 
 // ConvertRunOpts represents a set of options needed for the RUN command.
 type ConvertRunOpts struct {
-	CommandName     string
-	Args            []string
-	Locally         bool
-	Mounts          []string
-	Secrets         []string
-	WithEntrypoint  bool
-	WithShell       bool
-	Privileged      bool
-	Push            bool
-	Transient       bool
-	WithSSH         bool
-	NoCache         bool
-	Interactive     bool
-	InteractiveKeep bool
+	CommandName          string
+	Args                 []string
+	Locally              bool
+	Mounts               []string
+	Secrets              []string
+	WithEntrypoint       bool
+	WithShell            bool
+	Privileged           bool
+	Push                 bool
+	Transient            bool
+	WithSSH              bool
+	NoCache              bool
+	Interactive          bool
+	InteractiveKeep      bool
+	InteractiveSaveFiles []debuggercommon.SaveFilesSettings
 
 	// Internal.
 	shellWrap    shellWrapFun
@@ -1615,6 +1620,25 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	return mts, nil
 }
 
+func getDebuggerSecretKey(saveFilesSettings []debuggercommon.SaveFilesSettings) string {
+	h := sha1.New()
+	b := make([]byte, 8)
+
+	addToHash := func(path string) {
+		h.Write([]byte(path))
+		inode := inodeutil.GetInodeBestEffort(path)
+		binary.LittleEndian.PutUint64(b, inode)
+		h.Write(b)
+	}
+
+	for _, saveFile := range saveFilesSettings {
+		addToHash(saveFile.Src)
+		addToHash(saveFile.Dst)
+	}
+	return hex.EncodeToString(h.Sum(nil))
+
+}
+
 func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.State, error) {
 	isInteractive := (opts.Interactive || opts.InteractiveKeep)
 	if !c.opt.AllowInteractive && isInteractive {
@@ -1719,10 +1743,52 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 			}
 		} else {
 			runOpts = append(runOpts, llb.SocketTarget("earthly_interactive", debuggercommon.DebuggerDefaultSocketPath, 0666, 0, 0))
+			runOpts = append(runOpts, llb.SocketTarget("earthly_save_file", debuggercommon.DefaultSaveFileSocketPath, 0666, 0, 0))
+		}
+
+		localPathAbs, err := filepath.Abs(c.target.LocalPath)
+		if err != nil {
+			return pllb.State{}, errors.Wrapf(err, "unable to determine absolute path of %s", c.target.LocalPath)
+		}
+		saveFiles := []debuggercommon.SaveFilesSettings{}
+		for _, interactiveSaveFile := range opts.InteractiveSaveFiles {
+
+			canSave, err := c.canSave(ctx, interactiveSaveFile.Dst)
+			if err != nil {
+				return pllb.State{}, err
+			}
+			if !canSave {
+				return pllb.State{}, fmt.Errorf("unable to save to %s; path must be located under %s", interactiveSaveFile.Dst, c.target.LocalPath)
+			}
+			dst := path.Join(localPathAbs, interactiveSaveFile.Dst)
+			c.opt.LocalArtifactWhiteList.Add(dst)
+
+			saveFiles = append(saveFiles, debuggercommon.SaveFilesSettings{
+				Src:      interactiveSaveFile.Src,
+				Dst:      interactiveSaveFile.Dst,
+				IfExists: interactiveSaveFile.IfExists,
+			})
+		}
+
+		debuggerSettingsSecretsKey := getDebuggerSecretKey(saveFiles)
+		debuggerSettings := debuggercommon.DebuggerSettings{
+			DebugLevelLogging: c.opt.InteractiveDebuggerDebugLevelLogging,
+			Enabled:           c.opt.InteractiveDebuggerEnabled,
+			SocketPath:        debuggercommon.DebuggerDefaultSocketPath,
+			Term:              os.Getenv("TERM"),
+			SaveFiles:         saveFiles,
+		}
+		debuggerSettingsData, err := json.Marshal(&debuggerSettings)
+		if err != nil {
+			return pllb.State{}, errors.Wrap(err, "debugger settings json marshal")
+		}
+		err = c.opt.InternalSecretStore.SetSecret(ctx, c.secretID(debuggerSettingsSecretsKey), debuggerSettingsData)
+		if err != nil {
+			return pllb.State{}, errors.Wrap(err, "InternalSecretStore.SetSecret")
 		}
 
 		secretOpts := []llb.SecretOption{
-			llb.SecretID(c.secretID(debuggercommon.DebuggerSettingsSecretsKey)),
+			llb.SecretID(c.secretID(debuggerSettingsSecretsKey)),
 			llb.SecretFileOpt(0, 0, 0444),
 		}
 		debuggerSecretMount := llb.AddSecret(

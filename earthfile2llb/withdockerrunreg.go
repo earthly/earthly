@@ -175,17 +175,18 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 
 	// Construct run command with all options and images.
 	crOpts := ConvertRunOpts{
-		CommandName:     "WITH DOCKER RUN",
-		Args:            args,
-		Mounts:          opt.Mounts,
-		Secrets:         opt.Secrets,
-		WithEntrypoint:  opt.WithEntrypoint,
-		WithShell:       opt.WithShell,
-		Privileged:      true, // needed for dockerd
-		WithSSH:         opt.WithSSH,
-		NoCache:         opt.NoCache,
-		Interactive:     opt.Interactive,
-		InteractiveKeep: opt.interactiveKeep,
+		CommandName:          "WITH DOCKER RUN",
+		Args:                 args,
+		Mounts:               opt.Mounts,
+		Secrets:              opt.Secrets,
+		WithEntrypoint:       opt.WithEntrypoint,
+		WithShell:            opt.WithShell,
+		Privileged:           true, // needed for dockerd
+		WithSSH:              opt.WithSSH,
+		NoCache:              opt.NoCache,
+		Interactive:          opt.Interactive,
+		InteractiveKeep:      opt.interactiveKeep,
+		InteractiveSaveFiles: opt.TryCatchSaveArtifacts,
 	}
 
 	crOpts.extraRunOpts = append(crOpts.extraRunOpts, pllb.AddMount(

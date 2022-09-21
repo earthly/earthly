@@ -10,6 +10,7 @@ import (
 	"sort"
 	"sync"
 
+	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/dockertar"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
@@ -43,18 +44,19 @@ type DockerPullOpt struct {
 
 // WithDockerOpt holds parameters for WITH DOCKER run.
 type WithDockerOpt struct {
-	Mounts          []string
-	Secrets         []string
-	WithShell       bool
-	WithEntrypoint  bool
-	WithSSH         bool
-	NoCache         bool
-	Interactive     bool
-	interactiveKeep bool
-	Pulls           []DockerPullOpt
-	Loads           []DockerLoadOpt
-	ComposeFiles    []string
-	ComposeServices []string
+	Mounts                []string
+	Secrets               []string
+	WithShell             bool
+	WithEntrypoint        bool
+	WithSSH               bool
+	NoCache               bool
+	Interactive           bool
+	interactiveKeep       bool
+	Pulls                 []DockerPullOpt
+	Loads                 []DockerLoadOpt
+	ComposeFiles          []string
+	ComposeServices       []string
+	TryCatchSaveArtifacts []debuggercommon.SaveFilesSettings
 }
 
 type withDockerRunTar struct {
@@ -195,17 +197,18 @@ func (w *withDockerRunTar) Run(ctx context.Context, args []string, opt WithDocke
 	})
 
 	crOpts := ConvertRunOpts{
-		CommandName:     "WITH DOCKER RUN",
-		Args:            args,
-		Mounts:          opt.Mounts,
-		Secrets:         opt.Secrets,
-		WithEntrypoint:  opt.WithEntrypoint,
-		WithShell:       opt.WithShell,
-		Privileged:      true, // needed for dockerd
-		WithSSH:         opt.WithSSH,
-		NoCache:         opt.NoCache,
-		Interactive:     opt.Interactive,
-		InteractiveKeep: opt.interactiveKeep,
+		CommandName:          "WITH DOCKER RUN",
+		Args:                 args,
+		Mounts:               opt.Mounts,
+		Secrets:              opt.Secrets,
+		WithEntrypoint:       opt.WithEntrypoint,
+		WithShell:            opt.WithShell,
+		Privileged:           true, // needed for dockerd
+		WithSSH:              opt.WithSSH,
+		NoCache:              opt.NoCache,
+		Interactive:          opt.Interactive,
+		InteractiveKeep:      opt.interactiveKeep,
+		InteractiveSaveFiles: opt.TryCatchSaveArtifacts,
 	}
 
 	// TODO: /tmp/earthly should not be hard-coded here. It should match whatever

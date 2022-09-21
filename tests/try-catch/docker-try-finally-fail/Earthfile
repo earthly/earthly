@@ -1,0 +1,10 @@
+VERSION --try 0.6
+test:
+    FROM alpine:3.15
+    TRY
+        WITH DOCKER
+            RUN docker ps > docker-ps && false
+        END
+    FINALLY
+        SAVE ARTIFACT docker-ps AS LOCAL .testdata
+    END
