@@ -21,6 +21,7 @@ jobs:
       DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
 
       # matches hardware specs of macos-12 self hosted machine
+      # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
       PODMAN_CPUS: 3
       PODMAN_MEMORY_MB: 14000
       PODMAN_DISK_SPACE_GB: 14
