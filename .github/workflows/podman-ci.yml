@@ -39,14 +39,14 @@ jobs:
         run: podman machine init --cpus ${{ env.PODMAN_CPUS }} --disk-size ${{ env.PODMAN_DISK_SPACE_GB }} --memory ${{ env.PODMAN_MEMORY_MB }}
       - name: Podman machine ls
         run: podman machine ls
+      - name: Start podman machine
+        run: podman machine start
       - name: Podman machine inspect
         run: podman machine inspect podman-machine-default
       - name: Podman info
         run: podman info
       - name: Podman info debug
         run: podman info --debug
-      - name: Start podman machine
-        run: podman machine start
       - uses: ./.github/workflows/build-earthly.yml
         with:
           BUILT_EARTHLY_PATH: ./build/darwin/amd64/earthly
