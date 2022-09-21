@@ -34,7 +34,11 @@ jobs:
           token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
       - uses: earthly/actions-setup@main
       - name: Install podman
-        run: brew install podman
+        run: brew install podman@4.2.1
+      - name: Podman Mac Helper
+        run: sudo /usr/local/Cellar/podman/4.2.1/bin/podman-mac-helper install \
+          && export DOCKER_HOST='unix:///Users/runner/.local/share/containers/podman/machine/podman-machine-default/podman.sock' \
+          && echo "{DOCKER_HOST}={unix:///Users/runner/.local/share/containers/podman/machine/podman-machine-default/podman.sock}" >> $GITHUB_ENV
       - name: Init and start podman machine
         run: podman machine init --now --cpus ${{ env.PODMAN_CPUS }} --disk-size ${{ env.PODMAN_DISK_SPACE_GB }} --memory ${{ env.PODMAN_MEMORY_MB }} --rootful=true
       - name: Podman machine ls
@@ -45,6 +49,8 @@ jobs:
         run: podman info
       - name: Podman info debug
         run: podman info --debug
+      - name: Podman version
+        run: podman version
       - name: Virtualization check
         run: sysctl -a | grep machdep.cpu.features
       - name: Docker mirror login via Podman (Earthly Only)
