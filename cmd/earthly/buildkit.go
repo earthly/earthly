@@ -214,7 +214,7 @@ func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.C
 		switch status {
 		case cloud.SatelliteStatusSleep:
 			wasAsleep = true
-			console.Printf("%s is starting. Please wait...", name)
+			console.Printf("%s is booting up. Please wait...", name)
 		case cloud.SatelliteStatusStarting:
 			var msg string
 			msg, loadingMsgs = nextSatelliteLoadingMessage(loadingMsgs)
