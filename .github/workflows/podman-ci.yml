@@ -36,11 +36,9 @@ jobs:
       - name: Install podman
         run: brew install podman
       - name: Init podman machine
-        run: podman machine init --cpus ${{ env.PODMAN_CPUS }} --disk-size ${{ env.PODMAN_DISK_SPACE_GB }} --memory ${{ env.PODMAN_MEMORY_MB }}
+        run: podman machine init --cpus ${{ env.PODMAN_CPUS }} --disk-size ${{ env.PODMAN_DISK_SPACE_GB }} --memory ${{ env.PODMAN_MEMORY_MB }} --rootful=true && podman machine start
       - name: Podman machine ls
         run: podman machine ls
-      - name: Start podman machine
-        run: podman machine start
       - name: Podman machine inspect
         run: podman machine inspect podman-machine-default
       - name: Podman info
