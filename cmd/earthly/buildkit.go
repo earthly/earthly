@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"math/rand"
 	"net/url"
 	"time"
 
@@ -181,24 +183,9 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 
 	// Reserve the satellite for the upcoming build.
 	// This operation can take a moment if the satellite is asleep.
-	console := app.console.WithPrefix("satellite")
-	out := make(chan string)
-	var reserveErr error
-	go func() { reserveErr = cloudClient.ReserveSatellite(cliCtx.Context, app.satelliteName, orgID, out) }()
-	for status := range out {
-		switch status {
-		case cloud.SatelliteStatusSleep:
-			console.Printf("%s is waking up. Please wait...", app.satelliteName)
-		case cloud.SatelliteStatusStarting:
-			console.VerbosePrintf("...Still waking up...")
-		case cloud.SatelliteStatusOperational:
-			console.VerbosePrintf("...Done")
-		default:
-			console.VerbosePrintf("Unexpected satellite state: %s", status)
-		}
-	}
-	if reserveErr != nil {
-		return errors.Wrap(reserveErr, "failed reserving satellite for build")
+	err = app.reserveSatellite(cliCtx.Context, cloudClient, app.satelliteName, orgID)
+	if err != nil {
+		return err
 	}
 
 	// TODO (dchw) what other settings might we want to override here?
@@ -214,4 +201,72 @@ func (app *earthlyApp) isUsingSatellite(cliCtx *cli.Context) bool {
 		return false
 	}
 	return app.cfg.Satellite.Name != "" || app.satelliteName != ""
+}
+
+func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.Client, name, orgID string) error {
+	console := app.console.WithPrefix("satellite")
+	out := make(chan string)
+	var reserveErr error
+	go func() { reserveErr = cloudClient.ReserveSatellite(ctx, name, orgID, out) }()
+	loadingMsgs := getSatelliteLoadingMessages()
+	var wasAsleep = false
+	for status := range out {
+		switch status {
+		case cloud.SatelliteStatusSleep:
+			wasAsleep = true
+			console.Printf("%s is starting. Please wait...", name)
+		case cloud.SatelliteStatusStarting:
+			var msg string
+			msg, loadingMsgs = nextSatelliteLoadingMessage(loadingMsgs)
+			console.Printf("...%s...", msg)
+		case cloud.SatelliteStatusOperational:
+			if wasAsleep {
+				console.Printf("...System online.")
+			}
+		default:
+			console.VerbosePrintf("Unexpected satellite state: %s", status)
+		}
+	}
+	if reserveErr != nil {
+		return errors.Wrap(reserveErr, "failed reserving satellite for build")
+	}
+	return nil
+}
+
+func nextSatelliteLoadingMessage(msgs []string) (nextMsg string, remainingMsgs []string) {
+	if len(msgs) == 0 {
+		msgs = getSatelliteLoadingMessages()
+	}
+	return msgs[0], msgs[1:]
+}
+
+func getSatelliteLoadingMessages() []string {
+	baseMessages := []string{
+		"tracking orbit",
+		"adjusting course",
+		"deploying solar array",
+		"aligning solar panels",
+		"calibrating guidance system",
+		"establishing transponder uplink",
+		"testing signal quality",
+		"fueling thrusters",
+		"amplifying transmission signal",
+		"checking thermal controls",
+		"stabilizing trajectory",
+		"contacting mission control",
+		"testing antennas",
+		"reporting fuel levels",
+		"scanning surroundings",
+		"avoiding debris",
+		"taking solar reading",
+		"reporting thermal conditions",
+		"testing system integrity",
+		"checking battery levels",
+		"calibrating transponders",
+		"modifying downlink frequency",
+	}
+	msgs := baseMessages
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(msgs), func(i, j int) { msgs[i], msgs[j] = msgs[j], msgs[i] })
+	return msgs
 }

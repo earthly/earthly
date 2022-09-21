@@ -115,7 +115,11 @@ func (c *client) ReserveSatellite(ctx context.Context, name, orgID string, out c
 		if err != nil {
 			return errors.Wrap(err, "failed receiving satellite reserve update")
 		}
-		out <- satelliteStatus(update.Status)
+		status := satelliteStatus(update.Status)
+		if status == SatelliteStatusFailed {
+			return errors.New("satellite is in failed state")
+		}
+		out <- status
 	}
 }
 
