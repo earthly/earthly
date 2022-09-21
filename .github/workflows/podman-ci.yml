@@ -11,7 +11,7 @@ on:
 jobs:
   tests:
     name: +testing-gha-podman
-    runs-on: macos-latest
+    runs-on: macos-12 # Github Actions latest tag still uses macos-11, which does not have brew installed by default
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
@@ -19,17 +19,22 @@ jobs:
       BUILT_EARTHLY_PATH: build/darwin/amd64/earthly
       DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
       DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+
+      # matches hardware specs of macos-12 self hosted machine
+      PODMAN_CPUS: 3
+      PODMAN_MEMORY_MB: 14000
+      PODMAN_DISK_SPACE_GB: 14
     steps:
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
       - uses: earthly/actions-setup@main
-      - name: Install brew
-        run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
       - name: Install podman
         run: brew install podman
       - name: Init podman machine
-        run: podman machine init && podman machine start
+        run: podman machine init --cpus ${{ env.PODMAN_CPUS }} --disk-size ${{ PODMAN_DISK_SPACE_GB }} --memory {{ env.PODMAN_MEMORY_MB }}
+      - name: Start podman machine
+        run: podman machine start
       - name: Docker mirror login via Podman (Earthly Only)
         run: podman login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -39,9 +44,9 @@ jobs:
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
-        run: sudo earthly -P --use-inline-cache +for-darwin
+        run: earthly -P --use-inline-cache +for-darwin
       - name: rebuild earthly using latest earthly build
-        run: sudo ${{ env.BUILT_EARTHLY_PATH }} -P --use-inline-cache +for-darwin
+        run: ${{ env.BUILT_EARTHLY_PATH }} -P --use-inline-cache +for-darwin
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
