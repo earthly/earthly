@@ -19,13 +19,20 @@ jobs:
     steps:
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
-      - uses: ./.github/workflows/reuse-ci.yml
-        with:
-          BUILT_EARTHLY_PATH: ./build/linux/amd64/earthly
-          BUILD_EARTHLY_TARGET: +for-linux
-          secrets:
-            DOCKERHUB_MIRROR_USERNAME: ${{ secrets.DOCKERHUB_MIRROR_USERNAME }}
-            DOCKERHUB_MIRROR_PASSWORD: ${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}
+
+  build:
+    uses: ./.github/workflows/reuse-ci.yml
+    with:
+      BUILT_EARTHLY_PATH: ./build/linux/amd64/earthly
+      BUILD_EARTHLY_TARGET: +for-linux
+    secrets:
+      DOCKERHUB_MIRROR_USERNAME: ${{ secrets.DOCKERHUB_MIRROR_USERNAME }}
+      DOCKERHUB_MIRROR_PASSWORD: ${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}
+    name: Check for binary
+
+  check:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
       - name: Check for binary
         run: ls -al ./build/linux/amd64
-
