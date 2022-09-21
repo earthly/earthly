@@ -749,7 +749,7 @@ func WaitUntilStopped(ctx context.Context, containerName string, opTimeout time.
 	defer cancel()
 	for {
 		select {
-		case <-time.After(1 * time.Second):
+		case <-time.After(200 * time.Millisecond):
 			isRunning, err := isContainerRunning(ctxTimeout, containerName, fe)
 			if err != nil {
 				// The container can no longer be found at all.
