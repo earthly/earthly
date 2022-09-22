@@ -22,7 +22,7 @@ jobs:
   examples1:
     name: +examples1 (Podman)
     runs-on: ubuntu-latest
-    needs: tests
+    needs: podman-tests
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
