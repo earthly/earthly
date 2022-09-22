@@ -8,7 +8,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Added
 
-- The new `earthly preview org invite` command now has the ability to invite multiple email addresses at once.
+- The `earthly org invite` command now has the ability to invite multiple email addresses at once.
 - Experimental support for `TRY/FINALLY`, which allows saving artifacts upon failure. [#988](https://github.com/earthly/earthly/issues/988), [#587](https://github.com/earthly/earthly/issues/587).
   Not that this is only a partial implementation, and only accepts a *single* RUN command in the `TRY`, and only `SAVE ARTIFACT` commands in the `FINALLY` block.
 - Ability to enable specific satellite features via cli flags, e.g. the new experimental sleep feature can be enabled with
@@ -18,6 +18,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 - Bootstraping zsh autocompletion will first attempt to install under `/usr/local/share/zsh/site-functions`, and will now
   fallback to `/usr/share/zsh/site-functions`.
+- The `earthly preview org` command has been promoted to GA, and is now available under `earthly org`.
 - `earthly sat select` with no arguments now prints the current satellite and the usage text.
 - The interactive debugger now connects over the buildkit session connection rather than an unencrypted tcp connection; this makes it possible
   to use the interactive debugger with remote buildkit instances.
