@@ -21,7 +21,10 @@ all:
     BUILD +ga
     BUILD +experimental
 
-ga:
+ga-qemu:
+    BUILD ./platform+test
+
+ga-no-qemu:
     BUILD ./autocompletion+test-all \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
@@ -54,7 +57,6 @@ ga:
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
     BUILD ./import+build
     BUILD ./import+build-imported
-    BUILD ./platform+test
     BUILD +privileged-test
     BUILD +copy-test
     BUILD +copy-test-verbose-output

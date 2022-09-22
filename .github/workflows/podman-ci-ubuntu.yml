@@ -36,7 +36,7 @@ jobs:
       - name: remove docker
         run: sudo apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; sudo rm -rf /usr/bin/docker
       - name: Install Podman
-        run: sudo apt-get -y update && sudo apt-get install -y qemu-system-aarch64 && sudo apt-get install xz-utils && sudo apt-get -y install podman
+        run: brew install podman
 #      - name: Init and start podman machine
 #        run: podman machine init --now --cpus ${{ env.PODMAN_CPUS }} --disk-size ${{ env.PODMAN_DISK_SPACE_GB }} --memory ${{ env.PODMAN_MEMORY_MB }} --rootful=true
       - name: Podman machine ls
@@ -70,25 +70,50 @@ jobs:
         run: ${{ env.BUILT_EARTHLY_PATH }} config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ${{ env.BUILT_EARTHLY_PATH }} config global.conversion_parallelism 5
-      - name: Execute tests (Earthly Only)
+      - name: Execute lint (Earthly Only)
         run: |-
           sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
             --build-arg DOCKERHUB_AUTH=true \
             --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
             --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
             --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-          +test
+          +lint-all
+      - name: Execute tests-no-qemu (Earthly Only)
+        run: |-
+          sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
+            --build-arg DOCKERHUB_AUTH=true \
+            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
+          +test-no-qemu
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Execute tests (Fork)
+      - name: Execute tests-no-qemu (Fork)
         run: |-
           sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
             --build-arg DOCKERHUB_AUTH=false \
-          +test
+          +test-no-qemu
+        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+      - name: Install Podman QEMU
+        run: sudp apt-get update && sudo apt-get install -y qemu-system-aarch64 && sudo apt-get install xz-utils &&
+      - name: Init Podman Machine
+        run: podman machine init --cpus ${{ env.PODMAN_CPUS }} --disk-size ${{ env.PODMAN_DISK_SPACE_GB }} --memory ${{ env.PODMAN_MEMORY_MB }}
+      - name: Execute tests-qemu (Earthly Only)
+        run: |-
+          sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
+            --build-arg DOCKERHUB_AUTH=true \
+            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
+          +test-qemu
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Execute tests-qemu (Fork)
+        run: |-
+          sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
+            --build-arg DOCKERHUB_AUTH=false \
+          +test-qemu
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute fail test
         run: "! ${{ env.BUILT_EARTHLY_PATH }} --ci ./tests/fail+test-fail"
       - name: Buildkit logs (runs on failure)
         run: sudo podman logs earthly-buildkitd
         if: ${{ failure() }}
-
-
