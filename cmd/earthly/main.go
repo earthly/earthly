@@ -559,7 +559,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		}
 
 		if strings.Contains(err.Error(), "security.insecure is not allowed") {
-			app.console.Warnf("Error: --allow-privileged (-P) flag is required\n")
+			app.console.Warnf("Error: earthly --allow-privileged (earthly -P) flag is required\n")
 		} else if strings.Contains(err.Error(), "failed to fetch remote") {
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Printf(
