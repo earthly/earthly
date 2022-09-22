@@ -22,12 +22,6 @@ jobs:
 
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
-
-      # matches hardware specs of self hosted machine
-      # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
-      PODMAN_CPUS: 2
-      PODMAN_MEMORY_MB: 6500
-      PODMAN_DISK_SPACE_GB: 13
     steps:
       - uses: actions/checkout@v3
         with:
@@ -37,12 +31,8 @@ jobs:
         run: sudo apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; sudo rm -rf /usr/bin/docker
       - name: Install Podman (with apt-get)
         run: sudo apt-get update && sudo apt-get install -y podman
-      - name: Podman info
-        run: podman info
-      - name: Podman info debug
-        run: podman info --debug
-      - name: Podman version
-        run: podman version
+      - name: Podman debug info
+        run: podman version && podman info && podman info --debug
       - name: Docker mirror login via Podman (Earthly Only)
         run: sudo podman login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -110,3 +100,141 @@ jobs:
       - name: Buildkit logs (runs on failure)
         run: sudo podman logs earthly-buildkitd
         if: ${{ failure() }}
+
+  examples1:
+    name: +examples1 (Podman)
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+      BUILT_EARTHLY_PATH: build/linux/amd64/earthly
+      DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
+      DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+
+      # Used in our github action as the token - TODO: look to change it into an input
+      GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+    steps:
+      - uses: earthly/actions-setup@v1.0.1
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+      - name: remove docker
+        run: sudo apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; sudo rm -rf /usr/bin/docker
+      - name: Install Podman (with apt-get)
+        run: sudo apt-get update && sudo apt-get install -y podman
+      - name: Podman debug info
+        run: podman version && podman info && podman info --debug
+      - name: Docker mirror login via Podman (Earthly Only)
+        run: sudo podman login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Configure Earthly to use mirror (Earthly Only)
+        run: |-
+          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+
+          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Docker Login (main build)
+        run: sudo podman login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event_name == 'push'
+      - name: Build latest earthly using released earthly
+        run: sudo $(which earthly) +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+          set -euo pipefail
+          EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+          echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
+      - name: Enable local registry-based exporter
+        run: ${{ env.BUILT_EARTHLY_PATH }} config global.local_registry_host 'tcp://127.0.0.1:8371'
+      - name: Build examples1 (PR build)
+        run: sudo ${{ env.BUILT_EARTHLY_PATH }} -P --strict --no-output +examples1
+        if: github.event_name != 'push'
+      - name: Build examples1 (main build)
+        run: sudo ${{ env.BUILT_EARTHLY_PATH }} -P --strict --no-output --push +examples1
+        if: github.event_name == 'push'
+
+  examples2:
+    name: +examples2 (Podman)
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+      BUILT_EARTHLY_PATH: build/linux/amd64/earthly
+      DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
+      DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+
+      # Used in our github action as the token - TODO: look to change it into an input
+      GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+    steps:
+      - uses: earthly/actions-setup@v1.0.1
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+      - name: remove docker
+        run: sudo apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; sudo rm -rf /usr/bin/docker
+      - name: Install Podman (with apt-get)
+        run: sudo apt-get update && sudo apt-get install -y podman
+      - name: Podman debug info
+        run: podman version && podman info && podman info --debug
+      - name: Docker mirror login via Podman (Earthly Only)
+        run: sudo podman login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Configure Earthly to use mirror (Earthly Only)
+        run: |-
+          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+
+          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Docker Login (main build)
+        run: sudo podman login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event_name == 'push'
+      - name: Build latest earthly using released earthly
+        run: sudo $(which earthly) +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+          set -euo pipefail
+          EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+          echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
+      - name: Enable local registry-based exporter
+        run: sudo build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
+      - name: Build examples2 (PR build)
+        run: sudo build/linux/amd64/earthly -P --strict --no-output +examples2
+        if: github.event_name != 'push'
+      - name: Build examples2 (main build)
+        run: sudo build/linux/amd64/earthly -P --strict --no-output --push +examples2
+        if: github.event_name == 'push'
+
+  test-local:
+    name: +test-local (Podman)
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+      BUILT_EARTHLY_PATH: build/linux/amd64/earthly
+      DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
+      DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+
+      # Used in our github action as the token - TODO: look to change it into an input
+      GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+    steps:
+      - uses: earthly/actions-setup@v1.0.1
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+      - name: remove docker
+        run: sudo apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; sudo rm -rf /usr/bin/docker
+      - name: Install Podman (with apt-get)
+        run: sudo apt-get update && sudo apt-get install -y podman
+      - name: Podman debug info
+        run: podman version && podman info && podman info --debug
+      - name: Build latest earthly using released earthly
+        run: sudo $(which earthly) --use-inline-cache +for-linux
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+          set -euo pipefail
+          EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+          echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
+      - name: Run general local tests
+        run: "sudo ${{ env.BUILT_EARTHLY_PATH }} --no-output ./tests/local+all"
