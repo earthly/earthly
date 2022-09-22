@@ -18,7 +18,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 - Bootstraping zsh autocompletion will first attempt to install under `/usr/local/share/zsh/site-functions`, and will now
   fallback to `/usr/share/zsh/site-functions`.
-- The earthly preview org command has been promoted to GA, and is now available under earthly org.
+- The `earthly preview org` command has been promoted to GA, and is now available under `earthly org`.
 - `earthly sat select` with no arguments now prints the current satellite and the usage text.
 - The interactive debugger now connects over the buildkit session connection rather than an unencrypted tcp connection; this makes it possible
   to use the interactive debugger with remote buildkit instances.
