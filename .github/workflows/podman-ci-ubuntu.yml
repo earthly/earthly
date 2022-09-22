@@ -37,8 +37,6 @@ jobs:
         run: sudo apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; sudo rm -rf /usr/bin/docker
       - name: Install Podman (with apt-get)
         run: sudo apt-get update && sudo apt-get install -y podman
-      - name: Install QEMU for Podman multi-arch building
-        run: sudo apt-get update && sudo apt-get install -y qemu-user-static
       - name: Podman info
         run: podman info
       - name: Podman info debug
@@ -55,8 +53,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: sudo $(which earthly) -P --use-inline-cache +for-linux
-#      - name: rebuild earthly using latest earthly build
-#        run: sudo ${{ env.BUILT_EARTHLY_PATH }} -P --use-inline-cache +for-linux
+      - name: rebuild earthly using latest earthly build
+        run: sudo ${{ env.BUILT_EARTHLY_PATH }} -P --use-inline-cache +for-linux
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
@@ -66,29 +64,32 @@ jobs:
         run: ${{ env.BUILT_EARTHLY_PATH }} config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ${{ env.BUILT_EARTHLY_PATH }} config global.conversion_parallelism 5
-#      - name: Execute lint (Earthly Only)
-#        run: |-
-#          sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
-#            --build-arg DOCKERHUB_AUTH=true \
-#            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-#            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-#            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-#          +lint-all
-#      - name: Execute tests-no-qemu (Earthly Only)
-#        run: |-
-#          sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
-#            --build-arg DOCKERHUB_AUTH=true \
-#            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-#            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-#            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-#          +test-no-qemu
-#        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-#      - name: Execute tests-no-qemu (Fork)
-#        run: |-
-#          sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
-#            --build-arg DOCKERHUB_AUTH=false \
-#          +test-no-qemu
-#        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+      - name: Execute lint (Earthly Only)
+        run: |-
+          sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
+            --build-arg DOCKERHUB_AUTH=true \
+            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
+          +lint-all
+      - name: Execute tests-no-qemu (Earthly Only)
+        run: |-
+          sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
+            --build-arg DOCKERHUB_AUTH=true \
+            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
+          +test-no-qemu
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Execute tests-no-qemu (Fork)
+        run: |-
+          sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
+            --build-arg DOCKERHUB_AUTH=false \
+          +test-no-qemu
+        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+      - name: Install QEMU for Podman multi-arch building
+        # qemu-user-static needed for cross-compilation (--platform) targets
+        run: sudo apt-get update && sudo apt-get install -y qemu-user-static
       - name: Execute tests-qemu (Earthly Only)
         run: |-
           sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
