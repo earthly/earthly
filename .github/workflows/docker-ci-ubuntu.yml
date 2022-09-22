@@ -1,0 +1,20 @@
+name: Docker CI Ubuntu
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore: [ docs/** ]
+  pull_request:
+    branches: [ main ]
+    paths-ignore: [ docs/** ]
+
+jobs:
+  docker-tests:
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
