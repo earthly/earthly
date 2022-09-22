@@ -87,6 +87,8 @@ jobs:
             --build-arg DOCKERHUB_AUTH=false \
           +test-no-qemu
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+      - name: Install QEMU for Podman multi-arch building
+        run: yum install qemu-user-static
       - name: Execute tests-qemu (Earthly Only)
         run: |-
           sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
