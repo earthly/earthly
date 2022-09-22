@@ -2,9 +2,9 @@ This image contains `earthly`, `buildkit`, and some extra configuration to enabl
 
 ## Tags
 
-* `v0.6.23`, `latest`
+* `v0.6.24`, `latest`
+* `v0.6.23`
 * `v0.6.22`
-* `v0.6.21`
 
 ## Quickstart
 
@@ -13,7 +13,7 @@ Want to just get started? Here are a couple sample `docker run` commands that co
 ### Simple Usage
 
 ```bash
-docker run --privileged -t -e NO_DOCKER=1 -v $(pwd):/workspace -v earthly-tmp:/tmp/earthly:rw earthly/earthly:v0.6.23 +for-linux
+docker run --privileged -t -e NO_DOCKER=1 -v $(pwd):/workspace -v earthly-tmp:/tmp/earthly:rw earthly/earthly:v0.6.24 +for-linux
 ```
 
 Heres a quick breakdown:
@@ -28,7 +28,7 @@ Heres a quick breakdown:
 ### More Complicated Usage
 
 ```bash
-docker run -t --privileged -v $(pwd):/workspace:rw -v earthly-tmp:/tmp/earthly:rw --network=host -v ~/.earthly/config.yml:/etc/.earthly/config.yml -e DOCKER_HOST="tcp://192.168.1.234:2375" earthly/earthly:v0.6.23 --ci -P +for-linux
+docker run -t --privileged -v $(pwd):/workspace:rw -v earthly-tmp:/tmp/earthly:rw --network=host -v ~/.earthly/config.yml:/etc/.earthly/config.yml -e DOCKER_HOST="tcp://192.168.1.234:2375" earthly/earthly:v0.6.24 --ci -P +for-linux
 ```
 
 Omitting the options already discussed from the simple example:
