@@ -33,11 +33,6 @@ jobs:
         with:
           token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
       - uses: earthly/actions-setup@main
-        # Some of this may not exist, so we don't want to error. Hench the ";"
-      - name: Which Earthly
-        run: which earthly
-      - name: sudo Which Earthly
-        run: sudo which earthly
       - name: remove docker
         run: sudo apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; sudo rm -rf /usr/bin/docker
       - name: Install Podman
