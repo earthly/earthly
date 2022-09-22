@@ -46,7 +46,7 @@ jobs:
       BUILT_EARTHLY_PATH: build/linux/amd64/earthly
       DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
       DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-      EARTHLY_BUILDKIT_HOST: "127.0.0.1:8373"
+      EARTHLY_BUILDKIT_HOST: "tcp://127.0.0.1:8373"
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
     steps:
@@ -139,7 +139,7 @@ jobs:
       BUILT_EARTHLY_PATH: build/linux/amd64/earthly
       DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
       DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-      EARTHLY_BUILDKIT_HOST: "127.0.0.1:8373"
+      EARTHLY_BUILDKIT_HOST: "tcp://127.0.0.1:8373"
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
     steps:
@@ -192,7 +192,7 @@ jobs:
       BUILT_EARTHLY_PATH: build/linux/amd64/earthly
       DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
       DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-      EARTHLY_BUILDKIT_HOST: "127.0.0.1:8373"
+      EARTHLY_BUILDKIT_HOST: "tcp://127.0.0.1:8373"
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
     steps:
@@ -245,7 +245,7 @@ jobs:
       BUILT_EARTHLY_PATH: build/linux/amd64/earthly
       DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
       DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-      EARTHLY_BUILDKIT_HOST: "127.0.0.1:8373"
+      EARTHLY_BUILDKIT_HOST: "tcp://127.0.0.1:8373"
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
     steps:
