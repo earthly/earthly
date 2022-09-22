@@ -10,7 +10,7 @@ on:
 
 jobs:
   podman-tests:
-    uses: ./.github/workflows/reusable/reusable-test.yml
+    uses: ./.github/workflows/reusable-test.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       BUILD_EARTHLY_TARGET: "+for-linux"
