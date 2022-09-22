@@ -23,7 +23,7 @@ on:
         type: string
 
 jobs:
-  test:
+  example:
     name: ${{inputs.EXAMPLE_NAME}}-${{inputs.RUNS_ON}}-${{inputs.binary}}
     runs-on: ${{inputs.RUNS_ON}}
     env:

@@ -40,3 +40,13 @@ jobs:
       SUDO: ""
       EXAMPLE_NAME: "+examples2"
     secrets: inherit
+
+  docker-test-local:
+    uses: ./.github/workflows/reusable-test-local.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit

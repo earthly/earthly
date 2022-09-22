@@ -43,37 +43,13 @@ jobs:
       EXAMPLE_NAME: "+examples2"
     secrets: inherit
 
-#  test-local:
-#    name: +test-local (Podman)
-#    runs-on: ubuntu-latest
-#    needs: examples2
-#    env:
-#      FORCE_COLOR: 1
-#      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
-#      EARTHLY_INSTALL_ID: "earthly-githubactions"
-#      BUILT_EARTHLY_PATH: build/linux/amd64/earthly
-#      DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
-#      DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-#      EARTHLY_BUILDKIT_HOST: "tcp://127.0.0.1:8373"
-#      # Used in our github action as the token - TODO: look to change it into an input
-#      GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
-#    steps:
-#      - uses: earthly/actions-setup@v1.0.1
-#      - uses: actions/checkout@v3
-#        with:
-#          token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
-#      - name: remove docker
-#        run: sudo apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; sudo rm -rf /usr/bin/docker
-#      - name: Install Podman (with apt-get)
-#        run: sudo apt-get update && sudo apt-get install -y podman
-#      - name: Podman debug info
-#        run: podman version && podman info && podman info --debug
-#      - name: Build latest earthly using released earthly
-#        run: sudo $(which earthly) --use-inline-cache +for-linux
-#      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
-#        run: |-
-#          set -euo pipefail
-#          EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
-#          echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-#      - name: Run general local tests
-#        run: "sudo ${{ env.BUILT_EARTHLY_PATH }} --no-output ./tests/local+all"
+  podman-test-local:
+    needs: podman-examples-2
+    uses: ./.github/workflows/reusable-test-local.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "podman"
+      SUDO: "sudo"
+    secrets: inherit
