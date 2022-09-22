@@ -18,3 +18,25 @@ jobs:
       BINARY: "docker"
       SUDO: ""
     secrets: inherit
+
+  docker-examples-1:
+    uses: ./.github/workflows/reusable-example.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      EXAMPLE_NAME: "+examples1"
+    secrets: inherit
+
+  docker-examples-2:
+    uses: ./.github/workflows/reusable-example.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      EXAMPLE_NAME: "+examples2"
+    secrets: inherit

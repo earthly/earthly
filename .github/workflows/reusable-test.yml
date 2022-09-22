@@ -14,6 +14,7 @@ on:
         type: string
       SUDO:
         type: string
+        required: false
       RUNS_ON:
         required: true
         type: string
