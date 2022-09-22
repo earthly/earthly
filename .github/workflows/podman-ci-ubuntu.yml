@@ -16,7 +16,7 @@ jobs:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
-      BUILT_EARTHLY_PATH: build/linux/arm64/earthly
+      BUILT_EARTHLY_PATH: build/linux/amd64/earthly
       DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
       DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
 
@@ -51,7 +51,7 @@ jobs:
       - name: Podman version
         run: podman version
       - name: Docker mirror login via Podman (Earthly Only)
-        run: podman login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+        run: sudo podman login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
@@ -59,9 +59,9 @@ jobs:
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
-        run: earthly -P --use-inline-cache +for-darwin
+        run: sudo earthly -P --use-inline-cache +for-darwin
       - name: rebuild earthly using latest earthly build
-        run: ${{ env.BUILT_EARTHLY_PATH }} -P --use-inline-cache +for-darwin
+        run: sudo ${{ env.BUILT_EARTHLY_PATH }} -P --use-inline-cache +for-darwin
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
@@ -82,14 +82,14 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute tests (Fork)
         run: |-
-          ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
+          sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
             --build-arg DOCKERHUB_AUTH=false \
           +test
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute fail test
         run: "! ${{ env.BUILT_EARTHLY_PATH }} --ci ./tests/fail+test-fail"
       - name: Buildkit logs (runs on failure)
-        run: podman logs earthly-buildkitd
+        run: sudo podman logs earthly-buildkitd
         if: ${{ failure() }}
 
 
