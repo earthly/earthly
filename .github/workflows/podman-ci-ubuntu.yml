@@ -73,3 +73,13 @@ jobs:
       BINARY: "podman"
       SUDO: ""
     secrets: inherit
+
+  podman-boostrap-integrations:
+    uses: ./.github/workflows/reusable-bootstrap-integrations.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "podman"
+      SUDO: ""
+    secrets: inherit

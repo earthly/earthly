@@ -606,7 +606,7 @@ jobs:
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
       - name: Run bootstrap-integration
-        run: ./tests/bootstrap/test-bootstrap.sh
+        run: ./tests/bootstrap/test-bootstrap.sh docker
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
