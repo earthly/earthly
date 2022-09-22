@@ -21,6 +21,10 @@ all:
     BUILD +ga
     BUILD +experimental
 
+ga:
+    BUILD +ga-no-qemu
+    BUILD +ga-qemu
+
 ga-qemu:
     BUILD ./platform+test
 
