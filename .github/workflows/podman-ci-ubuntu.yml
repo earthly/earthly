@@ -37,6 +37,8 @@ jobs:
         run: sudo apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; sudo rm -rf /usr/bin/docker
       - name: Install Podman (with apt-get)
         run: sudo apt-get update && sudo apt-get install -y podman
+      - name: Install QEMU for Podman multi-arch building
+        run: sudo apt-get -y update && sudo apt-get install -y install qemu-user-static
       - name: Podman info
         run: podman info
       - name: Podman info debug
@@ -87,8 +89,6 @@ jobs:
 #            --build-arg DOCKERHUB_AUTH=false \
 #          +test-no-qemu
 #        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
-      - name: Install QEMU for Podman multi-arch building
-        run: sudo apt-get -y install yum && yum install qemu-user-static
       - name: Execute tests-qemu (Earthly Only)
         run: |-
           sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
