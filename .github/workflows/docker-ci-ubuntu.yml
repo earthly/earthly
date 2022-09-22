@@ -50,3 +50,13 @@ jobs:
       BINARY: "docker"
       SUDO: ""
     secrets: inherit
+
+  docker-push-integrations:
+    uses: ./.github/workflows/reusable-test-local.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
