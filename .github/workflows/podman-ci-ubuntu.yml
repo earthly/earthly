@@ -34,7 +34,7 @@ jobs:
           token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
       - uses: earthly/actions-setup@main
       - name: Install Podman
-        run: apt-get -y update && apt-get install -y qemu-system-aarch64 && apt-get install xz-utils && apt-get -y install podman
+        run: sudo apt-get -y update && sudo apt-get install -y qemu-system-aarch64 && sudo apt-get install xz-utils && sudo apt-get -y install podman
 #      - name: Init and start podman machine
 #        run: podman machine init --now --cpus ${{ env.PODMAN_CPUS }} --disk-size ${{ env.PODMAN_DISK_SPACE_GB }} --memory ${{ env.PODMAN_MEMORY_MB }} --rootful=true
       - name: Podman machine ls
