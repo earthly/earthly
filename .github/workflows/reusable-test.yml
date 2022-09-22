@@ -14,7 +14,7 @@ on:
         type: string
       SUDO:
         type: string
-      OS:
+      RUNS_ON:
         required: true
         type: string
 
