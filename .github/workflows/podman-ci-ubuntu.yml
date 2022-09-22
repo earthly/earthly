@@ -38,7 +38,7 @@ jobs:
       - name: Install Podman (with apt-get)
         run: sudo apt-get update && sudo apt-get install -y podman
       - name: Install QEMU for Podman multi-arch building
-        run: sudo apt-get -y update && sudo apt-get install -y install qemu-user-static
+        run: sudo apt-get update && sudo apt-get install -y qemu-user-static
       - name: Podman info
         run: podman info
       - name: Podman info debug
