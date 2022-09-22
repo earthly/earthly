@@ -9,9 +9,36 @@ on:
     paths-ignore: [ docs/** ]
 
 jobs:
+  start-buildkitd:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+      BUILT_EARTHLY_PATH: build/linux/amd64/earthly
+      DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
+      DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+
+      # Used in our github action as the token - TODO: look to change it into an input
+      GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+      - uses: earthly/actions-setup@main
+      - name: remove docker
+        run: sudo apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; sudo rm -rf /usr/bin/docker
+      - name: Install Podman (with apt-get)
+        run: sudo apt-get update && sudo apt-get install -y podman
+      - name: Podman debug info
+        run: podman version && podman info && podman info --debug
+      - name: Run hello-world to start the buildkitd container
+        run: sudo $(which earthly) github.com/earthly/hello-world:main+hello
+
   tests:
     name: +testing-gha-ubuntu-podman
     runs-on: ubuntu-latest
+    needs: start-buildkitd
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
@@ -104,6 +131,7 @@ jobs:
   examples1:
     name: +examples1 (Podman)
     runs-on: ubuntu-latest
+    needs: start-buildkitd
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
@@ -156,6 +184,7 @@ jobs:
   examples2:
     name: +examples2 (Podman)
     runs-on: ubuntu-latest
+    needs: start-buildkitd
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
@@ -197,17 +226,18 @@ jobs:
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
-        run: sudo build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
+        run: sudo ${{ env.BUILT_EARTHLY_PATH }} config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Build examples2 (PR build)
-        run: sudo build/linux/amd64/earthly -P --strict --no-output +examples2
+        run: sudo ${{ env.BUILT_EARTHLY_PATH }} -P --strict --no-output +examples2
         if: github.event_name != 'push'
       - name: Build examples2 (main build)
-        run: sudo build/linux/amd64/earthly -P --strict --no-output --push +examples2
+        run: sudo ${{ env.BUILT_EARTHLY_PATH }} -P --strict --no-output --push +examples2
         if: github.event_name == 'push'
 
   test-local:
     name: +test-local (Podman)
     runs-on: ubuntu-latest
+    needs: start-buildkitd
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
