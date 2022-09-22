@@ -99,7 +99,7 @@ jobs:
       - name: Install QEMU for Podman multi-arch building
         # qemu-user-static needed for cross-compilation (--platform) targets
         run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y qemu-user-static
-        if: ${{inputs.BINARY}} == 'podman'
+        if: inputs.BINARY == 'podman'
       - name: Execute tests-qemu (Earthly Only)
         run: |-
           ${{inputs.SUDO}} ${{ inputs.BUILT_EARTHLY_PATH }} --ci -P \
