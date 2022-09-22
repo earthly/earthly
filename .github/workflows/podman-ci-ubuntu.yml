@@ -36,6 +36,8 @@ jobs:
         # Some of this may not exist, so we don't want to error. Hench the ";"
       - name: Which Earthly
         run: which earthly
+      - name: sudo Which Earthly
+        run: sudo which earthly
       - name: remove docker
         run: sudo apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; sudo rm -rf /usr/bin/docker
       - name: Install Podman
@@ -61,9 +63,9 @@ jobs:
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
-        run: sudo earthly -P --use-inline-cache +for-darwin
+        run: earthly -P --use-inline-cache +for-darwin
       - name: rebuild earthly using latest earthly build
-        run: sudo ${{ env.BUILT_EARTHLY_PATH }} -P --use-inline-cache +for-darwin
+        run: ${{ env.BUILT_EARTHLY_PATH }} -P --use-inline-cache +for-darwin
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
@@ -75,7 +77,7 @@ jobs:
         run: ${{ env.BUILT_EARTHLY_PATH }} config global.conversion_parallelism 5
       - name: Execute tests (Earthly Only)
         run: |-
-          ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
+          sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
             --build-arg DOCKERHUB_AUTH=true \
             --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
             --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
