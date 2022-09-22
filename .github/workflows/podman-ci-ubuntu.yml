@@ -1,0 +1,94 @@
+name: GitHub Actions CI
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore: [ docs/** ]
+  pull_request:
+    branches: [ main ]
+    paths-ignore: [ docs/** ]
+
+jobs:
+  tests:
+    name: +testing-gha-ubuntu-podman
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+      BUILT_EARTHLY_PATH: build/linux/arm64/earthly
+      DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
+      DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+
+      # Used in our github action as the token - TODO: look to change it into an input
+      GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+
+      # matches hardware specs of self hosted machine
+      # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
+      PODMAN_CPUS: 2
+      PODMAN_MEMORY_MB: 6500
+      PODMAN_DISK_SPACE_GB: 13
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+      - uses: earthly/actions-setup@main
+      - name: Install Podman
+        run: apt-get -y update && apt-get install -y qemu-system-aarch64 && apt-get install xz-utils && apt-get -y install podman
+#      - name: Init and start podman machine
+#        run: podman machine init --now --cpus ${{ env.PODMAN_CPUS }} --disk-size ${{ env.PODMAN_DISK_SPACE_GB }} --memory ${{ env.PODMAN_MEMORY_MB }} --rootful=true
+      - name: Podman machine ls
+        run: podman machine ls
+#      - name: Podman machine inspect
+#        run: podman machine inspect podman-machine-default
+      - name: Podman info
+        run: podman info
+      - name: Podman info debug
+        run: podman info --debug
+      - name: Podman version
+        run: podman version
+      - name: Virtualization check
+        run: sysctl -a | grep machdep.cpu.features
+      - name: Docker mirror login via Podman (Earthly Only)
+        run: podman login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Configure Earthly to use mirror (Earthly Only)
+        run: |-
+          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Build latest earthly using released earthly
+        run: earthly -P --use-inline-cache +for-darwin
+      - name: rebuild earthly using latest earthly build
+        run: ${{ env.BUILT_EARTHLY_PATH }} -P --use-inline-cache +for-darwin
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+          set -euo pipefail
+          EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+          echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
+      - name: Enable local registry-based exporter
+        run: ${{ env.BUILT_EARTHLY_PATH }} config global.local_registry_host 'tcp://127.0.0.1:8371'
+      - name: Configure Earthly Conversion Parallelism
+        run: ${{ env.BUILT_EARTHLY_PATH }} config global.conversion_parallelism 5
+      - name: Execute tests (Earthly Only)
+        run: |-
+          ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
+            --build-arg DOCKERHUB_AUTH=true \
+            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
+          +test
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Execute tests (Fork)
+        run: |-
+          ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
+            --build-arg DOCKERHUB_AUTH=false \
+          +test
+        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+      - name: Execute fail test
+        run: "! ${{ env.BUILT_EARTHLY_PATH }} --ci ./tests/fail+test-fail"
+      - name: Buildkit logs (runs on failure)
+        run: podman logs earthly-buildkitd
+        if: ${{ failure() }}
+
+
