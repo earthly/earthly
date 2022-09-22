@@ -91,7 +91,7 @@ jobs:
       - name: Execute fail test
         run: "! ${{ env.BUILT_EARTHLY_PATH }} --ci ./tests/fail+test-fail"
       - name: Buildkit logs (runs on failure)
-        run: docker logs earthly-buildkitd
+        run: podman logs earthly-buildkitd
         if: ${{ failure() }}
 
 
