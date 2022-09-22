@@ -35,15 +35,8 @@ jobs:
       - uses: earthly/actions-setup@main
       - name: remove docker
         run: sudo apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; sudo rm -rf /usr/bin/docker
-      - name: Install Podman
-        # HOMEBREW_NO_INSTALL_CLEANUP because we don't care about cleaning up inside of the runner
-        run: export HOMEBREW_NO_INSTALL_CLEANUP=TRUE && brew install podman
-#      - name: Init and start podman machine
-#        run: podman machine init --now --cpus ${{ env.PODMAN_CPUS }} --disk-size ${{ env.PODMAN_DISK_SPACE_GB }} --memory ${{ env.PODMAN_MEMORY_MB }} --rootful=true
-      - name: Podman machine ls
-        run: podman machine ls
-#      - name: Podman machine inspect
-#        run: podman machine inspect podman-machine-default
+      - name: Install Podman (with apt-get)
+        run: sudo apt-get update && sudo apt-get install -y podman
       - name: Podman info
         run: podman info
       - name: Podman info debug
@@ -94,10 +87,24 @@ jobs:
             --build-arg DOCKERHUB_AUTH=false \
           +test-no-qemu
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+      - name: Uninstall Podman (apt-get)
+        run: sudo apt-get purge -y podman
+      - name: Install Podman (with brew)
+        # HOMEBREW_NO_INSTALL_CLEANUP because we don't care about cleaning up inside of the runner
+        # Using brew is considerably slower, but also installs the tools we need for starting a podman machine later on for our qemu tests
+        run: export HOMEBREW_NO_INSTALL_CLEANUP=TRUE && brew install podman
       - name: Init Podman Machine
         run: podman machine init --cpus ${{ env.PODMAN_CPUS }} --disk-size ${{ env.PODMAN_DISK_SPACE_GB }} --memory ${{ env.PODMAN_MEMORY_MB }}
-      - name: Init Podman Machine
+      - name: Start Podman Machine
         run: podman machine start
+      - name: Podman version
+        run: podman version
+      - name: podman info
+        run: podman info
+      - name: Podman machine ls
+        run: podman machine ls
+      - name: Podman machine inspect
+        run: podman machine inspect podman-machine-default ; echo skip-fail
       - name: Execute tests-qemu (Earthly Only)
         run: |-
           sudo ${{ env.BUILT_EARTHLY_PATH }} --ci -P \
