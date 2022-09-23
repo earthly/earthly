@@ -9,32 +9,7 @@ on:
     paths-ignore: [ docs/** ]
 
 jobs:
-  docker-build-earthly-latest:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
-      - uses: earthly/actions-setup@main
-      - name: Docker mirror login via docker (Earthly Only)
-        run: sudo docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Configure Earthly to use mirror (Earthly Only)
-        run: |-
-          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
-          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Build latest earthly using released earthly
-        run: sudo $(which earthly) -P --use-inline-cache +for-linux
-      - name: Upload Earthly Latest
-        uses: actions/upload-artifact@v3
-        with:
-          name: docker-earthly-latest
-          path: ./build/linux/amd64/earthly
-          retention-days: 1
-
   docker-tests:
-    needs: docker-build-earthly-latest
     uses: ./.github/workflows/reusable-test.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -42,12 +17,9 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: docker-earthly-latest
     secrets: inherit
 
   docker-examples-1:
-    needs: docker-build-earthly-latest
     uses: ./.github/workflows/reusable-example.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -56,12 +28,9 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       EXAMPLE_NAME: "+examples1"
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: docker-earthly-latest
     secrets: inherit
 
   docker-examples-2:
-    needs: docker-build-earthly-latest
     uses: ./.github/workflows/reusable-example.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -70,12 +39,9 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       EXAMPLE_NAME: "+examples2"
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: docker-earthly-latest
     secrets: inherit
 
   docker-test-local:
-    needs: docker-build-earthly-latest
     uses: ./.github/workflows/reusable-test-local.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -83,12 +49,9 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: docker-earthly-latest
     secrets: inherit
 
   docker-push-integrations:
-    needs: docker-build-earthly-latest
     uses: ./.github/workflows/reusable-push-integrations.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -96,12 +59,9 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: docker-earthly-latest
     secrets: inherit
 
   docker-secret-integrations:
-    needs: docker-build-earthly-latest
     uses: ./.github/workflows/reusable-secrets-integrations.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -109,12 +69,9 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: docker-earthly-latest
     secrets: inherit
 
   docker-bootstrap-integrations:
-    needs: docker-build-earthly-latest
     uses: ./.github/workflows/reusable-bootstrap-integrations.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -122,12 +79,9 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: docker-earthly-latest
     secrets: inherit
 
   docker-repo-auth-tests:
-    needs: docker-build-earthly-latest
     uses: ./.github/workflows/reusable-repo-auth-tests.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -135,12 +89,9 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: docker-earthly-latest
     secrets: inherit
 
   docker-export-test:
-    needs: docker-build-earthly-latest
     uses: ./.github/workflows/reusable-export-test.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -148,6 +99,4 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: docker-earthly-latest
     secrets: inherit

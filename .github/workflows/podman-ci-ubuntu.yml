@@ -9,39 +9,7 @@ on:
     paths-ignore: [ docs/** ]
 
 jobs:
-  podman-build-earthly-latest:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
-      - uses: earthly/actions-setup@main
-      - name: remove Docker
-        run: sudo apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; sudo rm -rf /usr/bin/docker
-      - name: Install Podman (with apt-get)
-        run: sudo apt-get update && sudo apt-get install -y podman
-      - name: Podman debug info
-        run: podman version && podman info && podman info --debug
-      - name: Docker mirror login via podman (Earthly Only)
-        run: sudo podman login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Configure Earthly to use mirror (Earthly Only)
-        run: |-
-          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
-          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Build latest earthly using released earthly
-        run: sudo $(which earthly) -P --use-inline-cache +for-linux
-      - name: Upload Earthly Latest
-        uses: actions/upload-artifact@v3
-        with:
-          name: podman-earthly-latest
-          path: ./build/linux/amd64/earthly
-          retention-days: 1
-
-
   podman-tests:
-    needs: podman-build-earthly-latest
     uses: ./.github/workflows/reusable-test.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -49,8 +17,6 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
   podman-examples-1:
@@ -63,8 +29,6 @@ jobs:
       BINARY: "podman"
       SUDO: "sudo"
       EXAMPLE_NAME: "+examples1"
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
   podman-examples-2:
@@ -77,8 +41,6 @@ jobs:
       BINARY: "podman"
       SUDO: "sudo"
       EXAMPLE_NAME: "+examples2"
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
   podman-test-local:
@@ -90,8 +52,6 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
   podman-push-integrations:
@@ -103,8 +63,6 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
   podman-secret-integrations:
@@ -116,8 +74,6 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
   podman-boostrap-integrations:
@@ -129,8 +85,6 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
   podman-repo-auth-tests:
@@ -142,8 +96,6 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
   podman-export-tests:
@@ -155,6 +107,4 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
-      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
-      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit

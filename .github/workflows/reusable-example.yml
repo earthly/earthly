@@ -9,9 +9,6 @@ on:
       BUILD_EARTHLY_TARGET:
         required: true
         type: string
-      DOWNLOAD_EARTHLY_PATH:
-        required: true
-        type: string
       BINARY:
         required: true
         type: string
@@ -24,9 +21,7 @@ on:
       EXAMPLE_NAME:
         required: true
         type: string
-      EARTHLY_ARTIFACT_NAME:
-        required: true
-        type: string
+
 
 jobs:
   example:
@@ -77,13 +72,8 @@ jobs:
       - name: Docker Login (main build)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
         if: github.event_name == 'push'
-      - name: Download earthly latest
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{inputs.EARTHLY_ARTIFACT_NAME}}
-          path: ${{inputs.DOWNLOAD_EARTHLY_PATH}}
-      - name: Set earthly executable
-        run: chmod a+x ${{inputs.BUILT_EARTHLY_PATH}}
+      - name: Build latest earthly using released earthly
+        run: ${{inputs.SUDO}} $(which earthly) -P --use-inline-cache ${{inputs.BUILT_EARTHLY_PATH}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail

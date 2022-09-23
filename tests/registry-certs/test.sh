@@ -8,17 +8,19 @@ set -o pipefail
 cd "$(dirname "$0")"
 
 earthly=${earthly-"../../build/linux/amd64/earthly"}
+# docker / podman
+frontend=$1
 
 # Cleanup previous run.
-docker stop registry || true
-docker rm registry || true
+"$frontend" stop registry || true
+"$frontend" rm registry || true
 rm -rf ./certs || true
 
 # Start registry to get its IP address.
-docker run --rm -d --name registry registry:2
-export REGISTRY_IP="$(docker inspect -f {{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}} registry)"
+"$frontend" run --rm -d --name registry registry:2
+export REGISTRY_IP="$("$frontend" inspect -f {{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}} registry)"
 export REGISTRY="$REGISTRY_IP"
-docker stop registry
+"$frontend" stop registry
 
 # Generate certs.
 "$earthly" \
@@ -27,7 +29,7 @@ docker stop registry
      +certs
 
 # Run registry. This will use the same IP address as allocated above.
-docker run --rm -d \
+"$frontend" run --rm -d \
     --ip "$REGISTRY_IP" \
     -v "$(pwd)"/certs:/certs \
     -e REGISTRY_HTTP_ADDR=0.0.0.0:443 \
@@ -48,6 +50,6 @@ exit_code="$?"
 set -e
 
 # Cleanup.
-docker stop registry || true
+"$frontend" stop registry || true
 
 exit "$exit_code"

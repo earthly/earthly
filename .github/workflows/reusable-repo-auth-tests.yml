@@ -9,9 +9,6 @@ on:
       BUILD_EARTHLY_TARGET:
         required: true
         type: string
-      DOWNLOAD_EARTHLY_PATH:
-        required: true
-        type: string
       BINARY:
         required: true
         type: string
@@ -21,9 +18,7 @@ on:
       RUNS_ON:
         required: true
         type: string
-      EARTHLY_ARTIFACT_NAME:
-        required: true
-        type: string
+
 jobs:
   repo-auth-test:
     name: repo auth tests
@@ -64,13 +59,8 @@ jobs:
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
-      - name: Download earthly latest
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{inputs.EARTHLY_ARTIFACT_NAME}}
-          path: ${{inputs.DOWNLOAD_EARTHLY_PATH}}
-      - name: Set earthly executable
-        run: chmod a+x ${{inputs.BUILT_EARTHLY_PATH}}
+      - name: Build latest earthly using released earthly
+        run: ${{inputs.SUDO}} $(which earthly) -P --use-inline-cache ${{inputs.BUILT_EARTHLY_PATH}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
             set -euo pipefail

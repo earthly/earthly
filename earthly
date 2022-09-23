@@ -60,7 +60,7 @@ get_latest_binary() {
     fi
 
     $frontend_bin pull --platform="$bk_platform" docker.io/earthly/buildkitd:prerelease >&2
-    $frontend_bin cp earthly_binary:"$earth_bin_path" "$bindir/earthly-prerelease" >&2
+    $frontend_bin cp earthly_"$earth_bin_path" "$bindir/earthly-prerelease" >&2
     $frontend_bin rm earthly_binary >&2
 }
 
