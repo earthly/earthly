@@ -32,7 +32,7 @@ saved:
 # will save a file under ./output/testfile; this should NOT be saved
 # when referenced by savee.
 savee:
-    FROM github.com/earthly/test-remote/output/no-version:main+savelocal
+    FROM github.com/earthly/test-remote/output/v0.5:main+savelocal
     RUN echo elderberry > e
     SAVE ARTIFACT e AS LOCAL e
 
@@ -40,7 +40,7 @@ savee:
 # references github.com/earthly/test-remote/output+savelocal via a COPY
 # this also should not produce the ./output/testfile
 savef:
-    FROM github.com/earthly/test-remote/output/no-version:main+copy-from-savelocal
+    FROM github.com/earthly/test-remote/output/v0.5:main+copy-from-savelocal
     RUN echo fig > f
     SAVE ARTIFACT f AS LOCAL f
 

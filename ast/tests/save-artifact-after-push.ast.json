@@ -69,23 +69,44 @@
         {
           "command": {
             "args": [
-              "1",
-              "AS",
-              "LOCAL",
-              "surprise"
+              "EARTHLY_PUSH"
             ],
-            "name": "SAVE ARTIFACT"
+            "name": "ARG"
           }
         },
         {
-          "command": {
-            "args": [
-              "2",
-              "AS",
-              "LOCAL",
-              "2"
+          "if": {
+            "expression": [
+              "[",
+              "\"$EARTHLY_PUSH\"",
+              "=",
+              "\"true\"",
+              "]"
             ],
-            "name": "SAVE ARTIFACT"
+            "ifBody": [
+              {
+                "command": {
+                  "args": [
+                    "1",
+                    "AS",
+                    "LOCAL",
+                    "surprise"
+                  ],
+                  "name": "SAVE ARTIFACT"
+                }
+              },
+              {
+                "command": {
+                  "args": [
+                    "2",
+                    "AS",
+                    "LOCAL",
+                    "2"
+                  ],
+                  "name": "SAVE ARTIFACT"
+                }
+              }
+            ]
           }
         }
       ]
@@ -123,7 +144,7 @@
   ],
   "version": {
     "args": [
-      "0.6"
+      "0.7"
     ]
   }
 }

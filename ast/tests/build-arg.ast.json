@@ -19,6 +19,17 @@
     {
       "command": {
         "args": [
+          "notaglobal",
+          "=",
+          "this-only-exists-in-base"
+        ],
+        "name": "ARG"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "--global",
           "global1",
           "=",
           "abc"
@@ -29,6 +40,7 @@
     {
       "command": {
         "args": [
+          "--global",
           "global2",
           "=",
           "def"
@@ -109,6 +121,14 @@
           "command": {
             "args": [
               "+test-non-root"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-not-a-global"
             ],
             "name": "BUILD"
           }
@@ -556,11 +576,28 @@
           }
         }
       ]
+    },
+    {
+      "name": "test-not-a-global",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "env",
+              "|",
+              "grep",
+              "-v",
+              "notaglobal"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
     }
   ],
   "version": {
     "args": [
-      "0.6"
+      "0.7"
     ]
   }
 }

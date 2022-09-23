@@ -1,9 +1,28 @@
-VERSION 0.6
-ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-ARG DOCKERHUB_MIRROR
-ARG DOCKERHUB_MIRROR_INSECURE=false
-ARG DOCKERHUB_AUTH=true
+VERSION                             \
+--check-duplicate-images            \
+--ci-arg                            \
+--earthly-git-author-args           \
+--earthly-locally-arg               \
+--earthly-version-arg               \
+--explicit-global                   \
+--git-commit-author-timestamp       \
+--new-platform                      \
+--no-tar-build-output               \
+--shell-out-anywhere                \
+--use-cache-command                 \
+--use-chmod                         \
+--use-copy-link                     \
+--use-host-command                  \
+--use-no-manifest-list              \
+--use-pipelines                     \
+--use-project-secrets               \
+#--wait-block                        \
+0.6
+ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+ARG --global DOCKERHUB_MIRROR
+ARG --global DOCKERHUB_MIRROR_INSECURE=false
+ARG --global DOCKERHUB_AUTH=true
 FROM ../..+earthly-integration-test-base \
     --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
     --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
@@ -12,9 +31,9 @@ FROM ../..+earthly-integration-test-base \
     --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
 
 WORKDIR /test
-ARG REGISTRY
-ARG EARTHLY_BUILD_ARGS="REGISTRY"
-ARG REGISTRY_CONFIG="
+ARG --global REGISTRY
+ARG --global EARTHLY_BUILD_ARGS="REGISTRY"
+ARG --global REGISTRY_CONFIG="
 [registry.\"$REGISTRY\"]
   http = true
   insecure = true
@@ -24,8 +43,8 @@ COPY test.earth ./Earthfile
 
 all:
     BUILD +test1
-    BUILD +test2
-    BUILD +test3
+    #BUILD +test2
+    #BUILD +test3
 
 test1:
     RUN echo "content" >./input
@@ -33,7 +52,7 @@ test1:
     DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
 
     # Not cached - before copy.
-    RUN cat ./output
+    #RUN cat ./output && cat /var/log/buildkitd.log && exit 1
     RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && test "$nl" -eq 2
 
     # Not cached - after copy.
@@ -43,7 +62,7 @@ test1:
     # No change & re-run - should only have 1 line output and not re-echo.
     DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
 
-    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && test "$nl" -eq 1
+    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && cat /var/log/buildkitd.log && test "$nl" -eq 1
 
     # Cached - should only have 1 line output and not re-echo.
     RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && test "$nl" -eq 1

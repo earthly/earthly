@@ -1,4 +1,4 @@
-VERSION 0.6
+VERSION 0.7
 target:
     FROM alpine:3.15
     RUN echo "cnVubmluZyB1bmRlciByZW1vdGUtYnVpbGRraXQgdGVzdAo=" | base64 -d

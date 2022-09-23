@@ -1,4 +1,4 @@
-VERSION --wait-block 0.6
+VERSION 0.7
 
 myimg:
     FROM alpine:3.15

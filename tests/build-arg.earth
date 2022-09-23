@@ -1,9 +1,11 @@
-VERSION 0.6
+VERSION 0.7
 FROM alpine:3.15
 WORKDIR /test
 
-ARG global1=abc
-ARG global2=def
+ARG notaglobal=this-only-exists-in-base
+
+ARG --global global1=abc
+ARG --global global2=def
 
 all:
     BUILD +test1
@@ -15,6 +17,7 @@ all:
     BUILD +test-global2
     BUILD +test-global3
     BUILD +test-non-root
+    BUILD +test-not-a-global
 
 file-exists:
     ARG VAR1=nope.txt
@@ -77,3 +80,6 @@ test-non-root:
     USER weeheavy
     ARG foo=$(echo bar)
     RUN test "$foo" == "bar"
+
+test-not-a-global:
+    RUN env | grep -v notaglobal

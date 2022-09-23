@@ -1,19 +1,19 @@
 VERSION --referenced-save-only 0.5
 
 savea:
-    FROM github.com/earthly/test-remote/output/versioned:main+savelocal
+    FROM github.com/earthly/test-remote/output/versioned:45359a92acdd7ef27d561d0836099cdacc508e40+savelocal
     RUN echo apple > a
     SAVE ARTIFACT a AS LOCAL a
 
 saveb:
     FROM alpine:3.15
-    COPY github.com/earthly/test-remote/output/versioned:main+savelocal/data .
+    COPY github.com/earthly/test-remote/output/versioned:45359a92acdd7ef27d561d0836099cdacc508e40+savelocal/data .
     RUN echo bannan > b
     SAVE ARTIFACT b AS LOCAL b
 
 savec:
     FROM alpine:3.15
-    BUILD github.com/earthly/test-remote/output/versioned:main+savelocal
+    BUILD github.com/earthly/test-remote/output/versioned:45359a92acdd7ef27d561d0836099cdacc508e40+savelocal
     RUN echo cherry > c
     SAVE ARTIFACT c AS LOCAL c
 
