@@ -9,7 +9,32 @@ on:
     paths-ignore: [ docs/** ]
 
 jobs:
+  docker-build-earthly-latest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+      - uses: earthly/actions-setup@main
+      - name: Docker mirror login via docker (Earthly Only)
+        run: sudo docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Configure Earthly to use mirror (Earthly Only)
+        run: |-
+          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Build latest earthly using released earthly
+        run: sudo $(which earthly) -P --use-inline-cache +for-linux
+      - name: rebuild earthly using latest earthly build
+      - name: Upload Earthly Latest
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-earthly-latest
+          path: ./build/linux/amd64/earthly
+
   docker-tests:
+    needs: docker-build-earthly-latest
     uses: ./.github/workflows/reusable-test.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -17,6 +42,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
+      EARTHLY_ARTIFACT_NAME: docker-earthly-latest
     secrets: inherit
 
   docker-examples-1:
