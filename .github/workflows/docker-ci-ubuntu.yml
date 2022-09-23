@@ -62,7 +62,7 @@ jobs:
     secrets: inherit
 
   docker-secret-integrations:
-    uses: ./.github/workflows/reusable-secret-integrations.yml
+    uses: ./.github/workflows/reusable-secrets-integrations.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       BUILD_EARTHLY_TARGET: "+for-linux"
