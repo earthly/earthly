@@ -1,0 +1,9 @@
+VERSION --try 0.6
+
+test:
+    FROM alpine:3.15
+    TRY
+        RUN echo pocus > data
+    FINALLY
+        SAVE ARTIFACT data AS LOCAL .testdata
+    END

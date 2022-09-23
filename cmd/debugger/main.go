@@ -84,6 +84,45 @@ func populateShellHistory(cmd string) error {
 	return result
 }
 
+func sendFile(ctx context.Context, sockAddr, src, dst string) error {
+	log := slog.GetLogger(ctx)
+
+	conn, err := net.Dial("unix", sockAddr)
+	if err != nil {
+		return errors.Wrap(err, "failed to connect to remote debugger")
+	}
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			log.Error(errors.Wrap(err, "error closing"))
+		}
+	}()
+
+	// send a protocol version
+	err = common.WriteDataPacket(conn, 0x01, nil)
+	if err != nil {
+		return err
+	}
+
+	err = common.WriteDataPacket(conn, len(dst), []byte(dst))
+	if err != nil {
+		return err
+	}
+
+	b, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+
+	err = common.WriteDataPacket(conn, len(b), b)
+	if err != nil {
+		return err
+	}
+
+	// send end of file packet
+	return common.WriteDataPacket(conn, 0x00, nil)
+}
+
 func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder func() (*exec.Cmd, error)) error {
 	log := slog.GetLogger(ctx)
 
@@ -298,6 +337,17 @@ func main() {
 				log.Error(err)
 			}
 		}
+
+		for _, saveFile := range debuggerSettings.SaveFiles {
+			err = sendFile(ctx, common.DefaultSaveFileSocketPath, saveFile.Src, saveFile.Dst)
+			if err != nil {
+				if !errors.Is(err, os.ErrNotExist) || !saveFile.IfExists {
+					// treat it as a warning (we will exit due to RUN failure)
+					conslogger.Warnf("failed to save %s: %s\n", saveFile.Src, err)
+				}
+			}
+		}
+
 		// ensure that this always exits with an error status; otherwise it will be cached by earthly
 		if exitCode == 0 {
 			exitCode = 1

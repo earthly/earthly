@@ -1,0 +1,71 @@
+name: Satellites Docker CI Ubuntu
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore: [ docs/** ]
+  pull_request:
+    branches: [ main ]
+    paths-ignore: [ docs/** ]
+
+jobs:
+  docker-satellites-tests:
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      BUILD_EARTHLY_ARGS: " " # empty
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      USE_SATELLITE: true
+      SATELLITE_NAME: "core-test"
+      EARTHLY_ORG: "earthly-technologies"
+    secrets: inherit
+
+  docker-satellites-examples-1:
+    needs: docker-satellites-tests
+    uses: ./.github/workflows/reusable-example.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      BUILD_EARTHLY_ARGS: " " # empty
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      EXAMPLE_NAME: "+examples1"
+      USE_SATELLITE: true
+      SATELLITE_NAME: "core-test"
+      EARTHLY_ORG: "earthly-technologies"
+    secrets: inherit
+
+  docker-satellites-examples-2:
+    needs: docker-satellites-examples-1
+    uses: ./.github/workflows/reusable-example.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      BUILD_EARTHLY_ARGS: " " # empty
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      EXAMPLE_NAME: "+examples2"
+      USE_SATELLITE: true
+      SATELLITE_NAME: "core-test"
+      EARTHLY_ORG: "earthly-technologies"
+    secrets: inherit
+
+  docker-satellites-test-local:
+    needs: docker-satellites-examples-2
+    uses: ./.github/workflows/reusable-test-local.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      BUILD_EARTHLY_ARGS: " " # empty
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      USE_SATELLITE: true
+      SATELLITE_NAME: "core-test"
+      EARTHLY_ORG: "earthly-technologies"
+    secrets: inherit

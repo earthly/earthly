@@ -62,6 +62,8 @@ git config --global user.email "inigo@montoya.com"
 git config --global user.name "my name is Inigo Montoya"
 
 # create an Earthfile for our new private git repo
+# docker / podman
+frontend=$1
 mkdir -p ~/odd-project
 cd ~/odd-project
 git init
@@ -117,7 +119,7 @@ echo "=== Test remote build under repo subdir ==="
 $earthly -V myserver/project/weirdcommands:trunk+target
 
 # test that the container was built and runs
-docker run --rm weirdrepo:latest | grep "hello weird world"
+"$frontend" run --rm weirdrepo:latest | grep "hello weird world"
 
 # next test that we can reference commands in the weird repo;
 # create a local Earthfile (that wont be saved to git)
