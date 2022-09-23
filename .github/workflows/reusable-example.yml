@@ -21,6 +21,9 @@ on:
       EXAMPLE_NAME:
         required: true
         type: string
+      EARTHLY_ARTIFACT_NAME:
+        required: true
+        type: string
 
 jobs:
   example:
@@ -71,8 +74,11 @@ jobs:
       - name: Docker Login (main build)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
         if: github.event_name == 'push'
-      - name: Build latest earthly using released earthly
-        run: ${{inputs.SUDO}} $(which earthly) --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
+      - name: Download earthly latest
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{inputs.EARTHLY_ARTIFACT_NAME}}
+          path: ${{inputs.BUILT_EARTHLY+PATH}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail

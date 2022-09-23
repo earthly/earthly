@@ -69,6 +69,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: ${{inputs.EARTHLY_ARTIFACT_NAME}}
+          path: ${{inputs.BUILT_EARTHLY_PATH}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail

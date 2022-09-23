@@ -18,6 +18,9 @@ on:
       RUNS_ON:
         required: true
         type: string
+      EARTHLY_ARTIFACT_NAME:
+        required: true
+        type: string
 
 jobs:
   push-integrations:
@@ -46,8 +49,11 @@ jobs:
       - name: Docker mirror login via ${{inputs.BINARY}} (Earthly Only)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Build latest earthly using released earthly
-        run: ${{inputs.SUDO}} $(which earthly) --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
+      - name: Download earthly latest
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{inputs.EARTHLY_ARTIFACT_NAME}}
+          path: ${{inputs.BUILT_EARTHLY+PATH}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail

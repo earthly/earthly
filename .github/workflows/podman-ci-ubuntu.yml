@@ -62,6 +62,7 @@ jobs:
       BINARY: "podman"
       SUDO: "sudo"
       EXAMPLE_NAME: "+examples1"
+      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
   podman-examples-2:
@@ -74,6 +75,7 @@ jobs:
       BINARY: "podman"
       SUDO: "sudo"
       EXAMPLE_NAME: "+examples2"
+      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
   podman-test-local:
@@ -85,6 +87,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
+      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
   podman-push-integrations:
@@ -96,6 +99,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
+      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
   podman-secret-integrations:
@@ -107,6 +111,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
+      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
   podman-boostrap-integrations:
@@ -118,6 +123,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
+      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
   podman-repo-auth-tests:
@@ -129,6 +135,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
+      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
   podman-export-tests:
@@ -140,4 +147,5 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
+      EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
