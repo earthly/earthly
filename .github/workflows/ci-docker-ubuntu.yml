@@ -205,7 +205,7 @@ jobs:
         if: ${{ failure() }}
 
   buildkitd-amd64:
-    name: +all-buildkitd
+    name: +all-buildkitd-amd64
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
@@ -260,7 +260,7 @@ jobs:
         if: ${{ failure() }}
 
   buildkitd-arm64:
-    name: +all-buildkitd
+    name: +all-buildkitd-arm64
     runs-on: ubuntu-latest
     env:
       FORCE_COLOR: 1
