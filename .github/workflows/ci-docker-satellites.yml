@@ -24,6 +24,8 @@ jobs:
     secrets: inherit
 
   docker-satellites-examples-1:
+    # TODO: Remove after we fix race conditions with multiple things waking the satellite
+    needs: docker-satellites-tests
     uses: ./.github/workflows/reusable-example.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -39,6 +41,8 @@ jobs:
     secrets: inherit
 
   docker-satellites-examples-2:
+    # TODO: Remove after we fix race conditions with multiple things waking the satellite
+    needs: docker-satellites-examples-1
     uses: ./.github/workflows/reusable-example.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -54,6 +58,8 @@ jobs:
     secrets: inherit
 
   docker-satellites-test-local:
+    # TODO: Remove after we fix race conditions with multiple things waking the satellite
+    needs: docker-satellites-examples-2
     uses: ./.github/workflows/reusable-test-local.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
