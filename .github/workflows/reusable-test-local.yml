@@ -42,8 +42,10 @@ jobs:
         if: inputs.binary == 'podman'
       - name: Install Podman (with apt-get)
         run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman
+        if: inputs.binary == 'podman'
       - name: Podman debug info
         run: podman version && podman info && podman info --debug
+        if: inputs.binary == 'podman'
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
