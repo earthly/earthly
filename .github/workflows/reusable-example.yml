@@ -52,10 +52,6 @@ jobs:
       - name: Install Podman (with apt-get)
         run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman
         if: inputs.binary == 'podman'
-      - name: Install QEMU for Podman multi-arch building
-        # qemu-user-static needed for cross-compilation (--platform) targets
-        run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y qemu-user-static
-        if: ${{inputs.BINARY}} == 'podman'
       - name: Podman debug info
         run: podman version && podman info && podman info --debug
         if: inputs.binary == 'podman'

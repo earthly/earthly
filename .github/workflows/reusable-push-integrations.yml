@@ -57,7 +57,7 @@ jobs:
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.conversion_parallelism 5
       - name: Push and Pull Cloud Images
         run: |-
-          ${{inputs.SUDO}} ${{inputs.BUILD_EARTHLY_PATH}} --ci -P  \
+          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P  \
            --build-arg DOCKERHUB_AUTH=true \
            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
