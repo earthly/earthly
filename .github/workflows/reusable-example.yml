@@ -21,6 +21,13 @@ on:
       EXAMPLE_NAME:
         required: true
         type: string
+      USE_SATELLITE:
+        required: false
+        type: boolean
+        default: false
+      SATELLITE_NAME:
+        required: false
+        type: string
 
 
 jobs:
