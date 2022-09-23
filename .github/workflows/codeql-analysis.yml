@@ -39,6 +39,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
