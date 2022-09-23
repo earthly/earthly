@@ -2,9 +2,30 @@ package cloud
 
 import (
 	"context"
+	"io"
+	"time"
 
 	pb "github.com/earthly/cloud-api/pipelines"
 	"github.com/pkg/errors"
+)
+
+const (
+	// SatelliteStatusOperational indicates an on satellite that is ready to accept connections.
+	SatelliteStatusOperational = "Operational"
+	// SatelliteStatusSleep indicates a satellite that is in a sleep state.
+	SatelliteStatusSleep = "Sleeping"
+	// SatelliteStatusStarting indicates a satellite that is waking from a sleep state.
+	SatelliteStatusStarting = "Starting"
+	// SatelliteStatusCreating indicates a new satellite that is currently being launched.
+	SatelliteStatusCreating = "Creating"
+	// SatelliteStatusFailed indicates a satellite that has crashed and cannot be used.
+	SatelliteStatusFailed = "Failed"
+	// SatelliteStatusDestroying indicates a satellite that is actively being deleted.
+	SatelliteStatusDestroying = "Destroying"
+	// SatelliteStatusOffline indicates a satellite that has been stopped and will not be woken up normally via build.
+	SatelliteStatusOffline = "Offline"
+	// SatelliteStatusUnknown is used when an unexpected satellite status is returned by the server.
+	SatelliteStatusUnknown = "Unknown"
 )
 
 // SatelliteInstance contains details about a remote Buildkit instance.
@@ -74,21 +95,51 @@ func (c *client) LaunchSatellite(ctx context.Context, name, orgID string, featur
 	return nil
 }
 
+func (c *client) ReserveSatellite(ctx context.Context, name, orgID string, out chan<- string) error {
+	defer close(out)
+	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	stream, err := c.pipelines.ReserveSatellite(c.withAuth(ctxTimeout), &pb.ReserveSatelliteRequest{
+		OrgId: orgID,
+		Name:  name,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed opening satellite reserve stream")
+	}
+	var update *pb.ReserveSatelliteResponse
+	for {
+		update, err = stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return errors.Wrap(err, "failed receiving satellite reserve update")
+		}
+		status := satelliteStatus(update.Status)
+		if status == SatelliteStatusFailed {
+			return errors.New("satellite is in failed state")
+		}
+		out <- status
+	}
+}
+
 func satelliteStatus(status pb.SatelliteStatus) string {
 	switch status {
 	case pb.SatelliteStatus_SATELLITE_STATUS_OPERATIONAL:
-		return "Operational"
+		return SatelliteStatusOperational
 	case pb.SatelliteStatus_SATELLITE_STATUS_SLEEP:
-		return "Sleeping"
+		return SatelliteStatusSleep
+	case pb.SatelliteStatus_SATELLITE_STATUS_STARTING:
+		return SatelliteStatusStarting
 	case pb.SatelliteStatus_SATELLITE_STATUS_CREATING:
-		return "Creating"
+		return SatelliteStatusCreating
 	case pb.SatelliteStatus_SATELLITE_STATUS_FAILED:
-		return "Failed"
+		return SatelliteStatusFailed
 	case pb.SatelliteStatus_SATELLITE_STATUS_DESTROYING:
-		return "Destroying"
+		return SatelliteStatusDestroying
 	case pb.SatelliteStatus_SATELLITE_STATUS_OFFLINE:
-		return "Offline"
+		return SatelliteStatusOffline
 	default:
-		return "Unknown"
+		return SatelliteStatusUnknown
 	}
 }
