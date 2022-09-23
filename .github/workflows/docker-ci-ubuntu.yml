@@ -26,7 +26,6 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: sudo $(which earthly) -P --use-inline-cache +for-linux
-      - name: rebuild earthly using latest earthly build
       - name: Upload Earthly Latest
         uses: actions/upload-artifact@v3
         with:
