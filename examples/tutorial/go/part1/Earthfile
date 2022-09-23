@@ -1,13 +1,13 @@
 VERSION 0.6
 FROM golang:1.15-alpine3.13
-WORKDIR /go-example
+WORKDIR /go-workdir
 
 build:
     COPY main.go .
-    RUN go build -o build/go-example main.go
-    SAVE ARTIFACT build/go-example /go-example
+    RUN go build -o my_go_build/go-example main.go
+    SAVE ARTIFACT my_go_build/go-example /saved_go_artifact AS LOCAL local_go_build/go-example
 
 docker:
-    COPY +build/go-example .
-    ENTRYPOINT ["/go-example/go-example"]
+    COPY +build/saved_go_artifact .
+    ENTRYPOINT ["/go-workdir/saved_go_artifact"]
     SAVE IMAGE go-example:latest
