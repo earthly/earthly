@@ -102,8 +102,8 @@ start_dockerd() {
 }
 EOF
 
-    # Start with a rm -rf to make sure a previous interrupted build did not leave its state around.
-    rm -rf "$data_root"
+    # Start with wiping the dir to make sure a previous interrupted build did not leave its state around.
+    wipe_data_root "$data_root"
     mkdir -p "$data_root"
     dockerd >/var/log/docker.log 2>&1 &
     dockerd_pid="$!"
@@ -133,7 +133,7 @@ EOF
 print_dockerd_logs() {
   echo "Architecture: $(uname -m)"
   echo "==== Begin dockerd logs ===="
-  cat /var/log/docker.log
+  cat /var/log/docker.log || true
   echo "==== End dockerd logs ===="
 }
 
@@ -158,19 +158,24 @@ stop_dockerd() {
     fi
 
     # Wipe dockerd data when done.
-    if ! rm -rf "$data_root"; then
-        # We have some issues about failing to delete files. If we fail, list the processes keeping it open for results.
+    wipe_data_root "$data_root"
+}
+
+wipe_data_root() {
+    if ! rm -rf "$1" && [ -n "$(ls -A "$1")" ]; then
+        # We have some issues about failing to delete files.
+        # If we fail, list the processes keeping it open for results.
         echo "==== Begin file lsof info ===="
-        if ! lsof +D "$data_root"; then
-            echo "Failed to run lsof +D $data_root. Trying lsof $data_root"
-            if ! lsof "$data_root"; then
-                echo "Failed to run lsof $data_root"
+        if ! lsof +D "$1" ; then
+            echo "Failed to run lsof +D $1. Trying lsof $1"
+            if ! lsof "$1"; then
+                echo "Failed to run lsof $1"
             fi
         fi
         echo "==== End file lsof info ===="
         echo "==== Begin file ls info ===="
-        if ! ls -Ral "$data_root"; then
-            echo "Failed to run ls -Ral $data_root"
+        if ! ls -Ral "$1"; then
+            echo "Failed to run ls -Ral $1"
         fi
         echo "==== End file ls info ===="
         echo "" # Add space between above and docker logs
