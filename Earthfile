@@ -513,6 +513,10 @@ test-qemu:
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
+test:
+    BUILD +test-no-qemu
+    BUILD +test-qemu
+
 test-all:
     BUILD +examples
     ARG DOCKERHUB_MIRROR
