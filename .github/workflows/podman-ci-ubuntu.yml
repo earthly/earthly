@@ -38,6 +38,7 @@ jobs:
         with:
           name: podman-earthly-latest
           path: ./build/linux/amd64/earthly
+          retention-days: 1
 
 
   podman-tests:

@@ -32,6 +32,7 @@ jobs:
         with:
           name: docker-earthly-latest
           path: ./build/linux/amd64/earthly
+          retention-days: 1
 
   docker-tests:
     needs: docker-build-earthly-latest
