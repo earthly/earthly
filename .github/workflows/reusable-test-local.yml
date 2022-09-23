@@ -24,14 +24,13 @@ jobs:
     name: test-local ${{inputs.BINARY}}
     runs-on: ${{inputs.RUNS_ON}}
     env:
-          FORCE_COLOR: 1
-          EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
-          EARTHLY_INSTALL_ID: "earthly-githubactions"
-          DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
-          DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-          EARTHLY_BUILDKIT_HOST: "tcp://127.0.0.1:8373"
-          # Used in our github action as the token - TODO: look to change it into an input
-          GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+      DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
+      DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+      # Used in our github action as the token - TODO: look to change it into an input
+      GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
     steps:
       - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v3
