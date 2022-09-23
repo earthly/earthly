@@ -83,7 +83,7 @@ build:
 ```
 
 ## Importing Whole Projects
-In addition to importing targets from other files, we can also import an entire file with the `IMPORT` command.
+In addition to importing single targets from other files, we can also import an entire Earthfile with the `IMPORT` command. This is helpful if there are several targets in a separate Earthfile that you want access to in your current file. It also allows you to create an alias.
 
 ```Dockerfile
 VERSION 0.6
