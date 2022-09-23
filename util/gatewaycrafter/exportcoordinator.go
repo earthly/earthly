@@ -6,10 +6,9 @@ import (
 	"sync"
 
 	"github.com/earthly/earthly/util/dockerutil"
-	"github.com/earthly/earthly/util/stringutil"
 )
 
-// ExportCoordinator is a thread-save data-store used for coordinating the export
+// ExportCoordinator is a thread-safe data-store used for coordinating the export
 // of images, and artifacts (e.g. OnPull, OnImage, and Artifact summaries)
 type ExportCoordinator struct {
 	m                     sync.Mutex
@@ -17,6 +16,7 @@ type ExportCoordinator struct {
 	localOutputSummary    []LocalOutputSummaryEntry
 	artifactOutputSummary []ArtifactOutputSummaryEntry
 	pushedImageSummary    []PushedImageSummaryEntry
+	imgIndex              int
 }
 
 type imageEntry struct {
@@ -64,9 +64,10 @@ func (ec *ExportCoordinator) GetImage(k string) (*dockerutil.Manifest, string, b
 // AddImage creates a new entry for the value under sessionID/<v'>-<uuid>
 // Where v' is v without special chars
 func (ec *ExportCoordinator) AddImage(sessionID, localImage string, manifest *dockerutil.Manifest) string {
-	k := fmt.Sprintf("sess-%s/pullping:%s-%s", sessionID, stringutil.AlphanumericOnly(localImage), stringutil.RandomAlphanumeric(32))
 	ec.m.Lock()
 	defer ec.m.Unlock()
+	k := fmt.Sprintf("sess-%s/pullping:img-%d", sessionID, ec.imgIndex)
+	ec.imgIndex++
 	ec.imageEntries[k] = imageEntry{
 		localImage: localImage,
 		manifest:   manifest,
