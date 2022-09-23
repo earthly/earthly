@@ -76,7 +76,7 @@ jobs:
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.conversion_parallelism 5
       - name: Run parallel buildkit start test. It ensures that earthly starting up buildkit does not race with itself.
         run: |-
-          docker stop earthly-buildkitd && \
+          ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd && \
           ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
           ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
           ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \

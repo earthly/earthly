@@ -101,6 +101,16 @@ jobs:
       SUDO: ""
     secrets: inherit
 
+  docker-misc-test:
+    uses: ./.github/workflows/reusable-misc-tests.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
   race-tests:
     name: +test (-race)
     runs-on: ubuntu-latest
@@ -491,6 +501,7 @@ jobs:
       - docker-bootstrap-integrations
       - docker-repo-auth-tests
       - docker-export-test
+      - docker-misc-test
       - race-tests
       - tutorial
       - buildkitd-amd64
