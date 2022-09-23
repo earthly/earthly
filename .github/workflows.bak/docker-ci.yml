@@ -741,7 +741,7 @@ jobs:
       - name: Configure Earthly Conversion Parallelism
         run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
       - name: run export tests
-        run: env earthly=./build/linux/amd64/earthly scripts/tests/export.sh
+        run: env earthly=./build/linux/amd64/earthly scripts/tests/export.sh docker
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}

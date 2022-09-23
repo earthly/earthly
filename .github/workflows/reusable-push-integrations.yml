@@ -28,6 +28,10 @@ jobs:
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
+      - uses: earthly/actions-setup@v1.0.1
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
       - name: remove docker
         run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
         if: inputs.binary == 'podman'
@@ -37,6 +41,9 @@ jobs:
       - name: Podman debug info
         run: podman version && podman info && podman info --debug
         if: inputs.binary == 'podman'
+      - name: Docker mirror login via ${{inputs.BINARY}} (Earthly Only)
+        run: ${{inputs.SUDO}} ${{inputs.BINARY}} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env

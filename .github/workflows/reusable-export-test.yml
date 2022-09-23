@@ -1,4 +1,4 @@
-name: Bootstrap Integrations
+name: Repo Auth Tests
 
 on:
   workflow_call:
@@ -19,15 +19,27 @@ on:
         required: true
         type: string
 jobs:
-  secret-integration:
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+  export-test:
+    name: Export tests
     runs-on: ${{inputs.RUNS_ON}}
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
     steps:
-      - uses: earthly/actions-setup@v1.0.1
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
-      - name: remove docker
+      - uses: earthly/actions-setup@main
+      - name: Set up Docker QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
+        if: inputs.BINARY == 'docker'
+      - name: remove Docker
         run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
         if: inputs.binary == 'podman'
       - name: Install Podman (with apt-get)
@@ -38,10 +50,11 @@ jobs:
         if: inputs.binary == 'podman'
       - name: Docker mirror login via ${{inputs.BINARY}} (Earthly Only)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-      - name: Configure Earthly to use mirror (Earthly Only)
-        run: |-
-          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
-          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Install QEMU for Podman multi-arch building
+        # qemu-user-static needed for cross-compilation (--platform) targets
+        run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y qemu-user-static
+        if: inputs.BINARY == 'podman'
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) -P --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
@@ -53,8 +66,8 @@ jobs:
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.conversion_parallelism 5
-      - name: Run bootstrap-integration
-        run: ./tests/bootstrap/test-bootstrap.sh ${{inputs.BINARY}}
+      - name: run export tests
+        run: env earthly=${{inputs.BUILT_EARTHLY_PATH}} scripts/tests/export.sh ${{inputs.BINARY}}
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
         if: ${{ failure() }}

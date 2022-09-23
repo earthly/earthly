@@ -80,3 +80,23 @@ jobs:
       BINARY: "docker"
       SUDO: ""
     secrets: inherit
+
+  docker-repo-auth-tests:
+    uses: ./.github/workflows/reusable-repo-auth-tests.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
+  docker-export-test:
+    uses: ./.github/workflows/reusable-export-test.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
