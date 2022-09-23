@@ -49,6 +49,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
+      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
       EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
@@ -62,6 +63,7 @@ jobs:
       BINARY: "podman"
       SUDO: "sudo"
       EXAMPLE_NAME: "+examples1"
+      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
       EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
@@ -75,6 +77,7 @@ jobs:
       BINARY: "podman"
       SUDO: "sudo"
       EXAMPLE_NAME: "+examples2"
+      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
       EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
@@ -87,6 +90,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
+      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
       EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
@@ -99,6 +103,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
+      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
       EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
@@ -111,6 +116,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
+      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
       EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
@@ -123,6 +129,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
+      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
       EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
@@ -135,6 +142,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
+      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
       EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit
 
@@ -147,5 +155,6 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo"
+      DOWNLOAD_EARTHLY_PATH: "./build/linux/amd64/"
       EARTHLY_ARTIFACT_NAME: podman-earthly-latest
     secrets: inherit

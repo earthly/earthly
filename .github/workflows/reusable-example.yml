@@ -9,6 +9,9 @@ on:
       BUILD_EARTHLY_TARGET:
         required: true
         type: string
+      DOWNLOAD_EARTHLY_PATH:
+        required: true
+        type: string
       BINARY:
         required: true
         type: string
@@ -78,7 +81,9 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: ${{inputs.EARTHLY_ARTIFACT_NAME}}
-          path: ${{inputs.BUILT_EARTHLY_PATH}}
+          path: ${{inputs.DOWNLOAD_EARTHLY_PATH}}
+      - name: Set earthly executable
+        run: chmod a+x ${{inputs.BUILT_EARTHLY_PATH}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
