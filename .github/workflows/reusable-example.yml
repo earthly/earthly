@@ -43,7 +43,7 @@ jobs:
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
     steps:
-      - uses: earthly/actions-setup@v1.0.1
+      - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
