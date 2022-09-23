@@ -1,4 +1,4 @@
-name: Docker CI Ubuntu
+name: Docker CI Satellites Ubuntu
 
 on:
   push:
@@ -14,6 +14,7 @@ jobs:
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       BUILD_EARTHLY_TARGET: "+for-linux"
+      BUILD_EARTHLY_ARGS: ""
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
@@ -27,6 +28,7 @@ jobs:
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       BUILD_EARTHLY_TARGET: "+for-linux"
+      BUILD_EARTHLY_ARGS: ""
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
@@ -41,6 +43,7 @@ jobs:
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       BUILD_EARTHLY_TARGET: "+for-linux"
+      BUILD_EARTHLY_ARGS: ""
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
@@ -55,6 +58,7 @@ jobs:
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       BUILD_EARTHLY_TARGET: "+for-linux"
+      BUILD_EARTHLY_ARGS: ""
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""

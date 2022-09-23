@@ -9,6 +9,10 @@ on:
       BUILD_EARTHLY_TARGET:
         required: true
         type: string
+      BUILD_EARTHLY_ARGS:
+        required: false
+        type: string
+        default: "--use-inline-cache"
       BINARY:
         required: true
         type: string
@@ -76,7 +80,9 @@ jobs:
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
-        run: ${{inputs.SUDO}} $(which earthly) -P --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
+        run: ${{inputs.SUDO}} $(which earthly) ${{inputs.BUILD_EARTHLY_ARGS}} ${{inputs.BUILD_EARTHLY_TARGET}}
+      - name: rebuild earthly using latest earthly build
+        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.BUILD_EARTHLY_ARGS}} ${{BUILD_EARTHLY_TARGET}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
