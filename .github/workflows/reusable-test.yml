@@ -82,7 +82,7 @@ jobs:
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) ${{inputs.BUILD_EARTHLY_ARGS}} ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: rebuild earthly using latest earthly build
-        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.BUILD_EARTHLY_ARGS}} ${{BUILD_EARTHLY_TARGET}}
+        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.BUILD_EARTHLY_ARGS}} ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
