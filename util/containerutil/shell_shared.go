@@ -39,23 +39,8 @@ func (sf *shellFrontend) IsAvailable(ctx context.Context) bool {
 }
 
 func (sf *shellFrontend) ContainerInfo(ctx context.Context, namesOrIDs ...string) (map[string]*ContainerInfo, error) {
-	args := append([]string{"container", "inspect"}, namesOrIDs...)
-
-	// Ignore the error. This is because one or more of the provided names or IDs could be missing.
-	// This allows for Info to report that the container itself is missing.
-	output, _ := sf.commandContextOutput(ctx, args...)
-
-	infos := map[string]*ContainerInfo{}
-	for _, nameOrID := range namesOrIDs {
-		// Preinitialize all as missing. It will get overwritten when we encounter a real one from the actual output.
-		infos[nameOrID] = &ContainerInfo{
-			Name:   nameOrID,
-			Status: StatusMissing,
-		}
-	}
-
-	// Anonymous struct to just pick out what we need
-	containers := []struct {
+	// struct to just pick out what we need for docker-compatible container info
+	type frontendContainerInfo struct {
 		ID    string `json:"Id"`
 		Name  string `json:"Name"`
 		State struct {
@@ -71,23 +56,48 @@ func (sf *shellFrontend) ContainerInfo(ctx context.Context, namesOrIDs ...string
 			Labels map[string]string `json:"Labels"`
 		} `json:"Config"`
 		Image string `json:"Image"`
-	}{}
-	json.Unmarshal([]byte(output.stdout.String()), &containers)
+	}
 
-	for i, container := range containers {
-		ipAddresses := map[string]string{}
-		for k, v := range container.NetworkSettings.Networks {
-			ipAddresses[k] = v.IPAddress
+	infos := map[string]*ContainerInfo{}
+
+	for _, nameOrID := range namesOrIDs {
+		// Preinitialize all as missing. It will get overwritten when we encounter a real one from the actual output.
+		infos[nameOrID] = &ContainerInfo{
+			Name:   nameOrID,
+			Status: StatusMissing,
 		}
 
-		infos[namesOrIDs[i]] = &ContainerInfo{
-			ID:      container.ID,
-			Name:    container.Name,
-			Status:  container.State.Status,
-			IPs:     ipAddresses,
-			Image:   container.Config.Image,
-			ImageID: container.Image,
-			Labels:  container.Config.Labels,
+		args := []string{"container", "inspect", nameOrID}
+
+		// Ignore the error. This is because one or more of the provided names or IDs could be missing.
+		// This allows for Info to report that the container itself is missing.
+		output, err := sf.commandContextOutput(ctx, args...)
+		if err != nil {
+			// Some shell frontends (nerdctl, in particular) exit early if there is a single missing container in a
+			// list when extracting data. Assume an error is missing and continue.
+			continue
+		}
+
+		containers := make([]frontendContainerInfo, 1)
+		json.Unmarshal([]byte(output.stdout.String()), &containers)
+
+		// Its an array that comes back. I don't know if/how you could manage to get more than one back? But if we
+		// somehow do, last one wins I guess. Technically correct is the best correct.
+		for _, container := range containers {
+			ipAddresses := map[string]string{}
+			for k, v := range container.NetworkSettings.Networks {
+				ipAddresses[k] = v.IPAddress
+			}
+
+			infos[nameOrID] = &ContainerInfo{
+				ID:      container.ID,
+				Name:    container.Name,
+				Status:  container.State.Status,
+				IPs:     ipAddresses,
+				Image:   container.Config.Image,
+				ImageID: container.Image,
+				Labels:  container.Config.Labels,
+			}
 		}
 	}
 
@@ -407,6 +417,9 @@ func DefaultAddressForSetting(setting string) (string, error) {
 	case FrontendPodmanShell:
 		return TCPAddress, nil // Right now, podman only works over TCP. There are weird errors when trying to use the provided helper from buildkit.
 
+	case FrontendNerdctlShell:
+		return TCPAddress, nil
+
 	case FrontendStub:
 		return DockerAddress, nil // Maintiain old behavior
 	}
@@ -420,8 +433,8 @@ func parseAndValidateURL(addr string) (*url.URL, error) {
 		return nil, fmt.Errorf("%s: %w", addr, errURLParseFailure)
 	}
 
-	if parsed.Scheme != "tcp" && parsed.Scheme != "docker-container" && parsed.Scheme != "podman-container" {
-		return nil, fmt.Errorf("%s is not a valid scheme. Only tcp or docker-container is allowed at this time: %w", parsed.Scheme, errURLValidationFailure)
+	if parsed.Scheme != "tcp" && parsed.Scheme != "docker-container" && parsed.Scheme != "podman-container" && parsed.Scheme != "nerdctl-container" {
+		return nil, fmt.Errorf("%s is not a valid scheme. Only tcp or (docker | podman | nerdctl)-container is allowed at this time: %w", parsed.Scheme, errURLValidationFailure)
 	}
 
 	if parsed.Port() == "" && parsed.Scheme == "tcp" {
@@ -445,5 +458,6 @@ func IsLocal(addr string) bool {
 		hostname == net.IPv6loopback.String() ||
 		hostname == "localhost" || // Convention. Users hostname omitted; this is only really here for convenience.
 		parsed.Scheme == "docker-container" || // Accomodate feature flagging during transition. This will have omitted TLS?
-		parsed.Scheme == "podman-container"
+		parsed.Scheme == "podman-container" ||
+		parsed.Scheme == "nerdctl-container"
 }
