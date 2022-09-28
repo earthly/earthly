@@ -24,7 +24,6 @@ jobs:
     secrets: inherit
 
   docker-satellites-examples-1:
-    needs: docker-satellites-tests
     uses: ./.github/workflows/reusable-example.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -40,7 +39,6 @@ jobs:
     secrets: inherit
 
   docker-satellites-examples-2:
-    needs: docker-satellites-examples-1
     uses: ./.github/workflows/reusable-example.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -56,7 +54,6 @@ jobs:
     secrets: inherit
 
   docker-satellites-test-local:
-    needs: docker-satellites-examples-2
     uses: ./.github/workflows/reusable-test-local.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
