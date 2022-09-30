@@ -310,7 +310,7 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 			prefix := fmt.Sprintf("/%s/%s/", app.orgName, app.projectName)
 			display = strings.TrimPrefix(display, prefix)
 		}
-		app.console.Printf(display)
+		fmt.Println(display)
 	}
 
 	return nil
