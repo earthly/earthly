@@ -210,7 +210,7 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image,
 		if ok {
 			// No need to replace: images are the same and settings are the same.
 			bkCons.VerbosePrintf("Settings hashes match (%q), no restart required\n", hash)
-			info, workerInfo, err := checkConnection(ctx, settings.BuildkitAddress, opts...)
+			info, workerInfo, err := checkConnection(ctx, settings.BuildkitAddress, 5*time.Second, opts...)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -220,7 +220,7 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image,
 	} else {
 		if settings.NoUpdate {
 			bkCons.Printf("Updated image available. But update was inhibited.\n")
-			info, workerInfo, err := checkConnection(ctx, settings.BuildkitAddress, opts...)
+			info, workerInfo, err := checkConnection(ctx, settings.BuildkitAddress, 5*time.Second, opts...)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -559,6 +559,10 @@ func waitForConnection(ctx context.Context, containerName, address string, opTim
 	}
 	ctxTimeout, cancel := context.WithTimeout(ctx, opTimeout)
 	defer cancel()
+	attemptTimeout := 500 * time.Millisecond
+	if !containerutil.IsLocal(address) {
+		attemptTimeout = 1 * time.Second
+	}
 	for {
 		select {
 		case <-time.After(retryInterval):
@@ -573,15 +577,16 @@ func waitForConnection(ctx context.Context, containerName, address string, opTim
 				}
 			}
 
-			info, workerInfo, err := checkConnection(ctxTimeout, address, opts...)
+			info, workerInfo, err := checkConnection(ctxTimeout, address, attemptTimeout, opts...)
 			if err != nil {
 				// Try again.
+				attemptTimeout *= 2
 				continue
 			}
 			return info, workerInfo, nil
 		case <-ctxTimeout.Done():
 			// Try one last time.
-			info, workerInfo, err := checkConnection(ctx, address, opts...)
+			info, workerInfo, err := checkConnection(ctx, address, attemptTimeout, opts...)
 			if err != nil {
 				// We give up.
 				return nil, nil, errors.Wrapf(ErrBuildkitConnectionFailure, "timeout %s: could not connect to buildkit: %s", opTimeout, err.Error())
@@ -591,14 +596,10 @@ func waitForConnection(ctx context.Context, containerName, address string, opTim
 	}
 }
 
-func checkConnection(ctx context.Context, address string, opts ...client.ClientOpt) (*client.Info, *client.WorkerInfo, error) {
+func checkConnection(ctx context.Context, address string, timeout time.Duration, opts ...client.ClientOpt) (*client.Info, *client.WorkerInfo, error) {
 	// Each attempt has limited time to succeed, to prevent hanging for too long
 	// here.
-	timeoutInterval := 500 * time.Millisecond
-	if !containerutil.IsLocal(address) {
-		timeoutInterval = 15 * time.Second
-	}
-	ctxTimeout, cancel := context.WithTimeout(ctx, timeoutInterval)
+	ctxTimeout, cancel := context.WithTimeout(ctx, timeout)
 	var (
 		mu         sync.Mutex // protects the vars below
 		connErr    error      = errors.New("timeout")
