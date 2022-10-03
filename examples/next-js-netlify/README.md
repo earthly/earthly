@@ -57,9 +57,10 @@ deps:
     # Set environment variables required for building and deploying to Netlify
     ENV NETLIFY_AUTH_TOKEN=$auth_token
     ENV NETLIFY_SITE_ID=$site_id
+    # Install the Netlify CLI
+    RUN npm install netlify-cli -g
     # Copy files required for building and deploying to Netlify
     COPY netlify.toml ./
-    RUN npm install netlify-cli -g
 
 build:
     FROM +deps
