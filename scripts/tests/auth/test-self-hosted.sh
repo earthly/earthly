@@ -23,6 +23,8 @@ fi
 earthly=${earthly:=earthly}
 earthly=$(realpath "$earthly")
 echo "running tests with $earthly"
+echo "using frontend $frontend"
+frontend=${frontend-"docker"}
 
 # use host IP, otherwise earthly-buildkit won't be able to connect to it
 ip=$(ifconfig eth0 | grep -w 'inet' | awk '{print $2}')
@@ -63,7 +65,6 @@ git config --global user.name "my name is Inigo Montoya"
 
 # create an Earthfile for our new private git repo
 # docker / podman
-frontend=$1
 mkdir -p ~/odd-project
 cd ~/odd-project
 git init

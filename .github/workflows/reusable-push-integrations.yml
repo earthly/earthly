@@ -67,7 +67,7 @@ jobs:
            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
           ./tests/cloud-push-pull+all
       - name: Push Images after RUN --push
-        run: ${{inputs.SUDO}} ./tests/push-images/test.sh ${{inputs.BINARY}}
+        run: ${{inputs.SUDO}} frontend=${{inputs.BINARY}} ./tests/push-images/test.sh
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
         if: ${{ failure() }}

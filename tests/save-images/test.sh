@@ -10,7 +10,7 @@ cd "$(dirname "$0")"
 earthly=${earthly-"../../build/linux/amd64/earthly"}
 "$earthly" --version
 # docker / podman
-frontend=$1
+frontend=${frontend-"docker"}
 echo "=== ($LINENO): Test Old Copy Behaviour ==="
 
 "$frontend" rmi -f myimage:copytest

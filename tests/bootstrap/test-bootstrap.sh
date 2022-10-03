@@ -9,7 +9,7 @@ earthly=${earthly-"../../build/linux/amd64/earthly"}
 earthly=$(realpath "$earthly")
 
 # docker / podman
-frontend=$1
+frontend=${frontend-"docker"}
 
 echo "=== Test 1: Hand Bootstrapped ==="
 

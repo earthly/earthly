@@ -93,25 +93,25 @@ jobs:
         run: "./tests/docker2earth/test.sh"
       - name: Execute remote-cache test (Earthly Only)
         run: |-
-          ./tests/remote-cache/test.sh ${{inputs.BINARY}} \
+          frontend=${{inputs.BINARY}} ./tests/remote-cache/test.sh \
               --build-arg DOCKERHUB_AUTH=true \
               --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
               --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
               --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute remote-cache test (Fork Only)
-        run: ./tests/remote-cache/test.sh ${{inputs.BINARY}} --build-arg DOCKERHUB_AUTH=false
+        run: frontend=${{inputs.BINARY}} ./tests/remote-cache/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute registry-certs test (Earthly Only)
         run: |-
-          ./tests/registry-certs/test.sh ${{inputs.BINARY}} \
+          frontend=${{inputs.BINARY}} ./tests/registry-certs/test.sh \
               --build-arg DOCKERHUB_AUTH=true \
               --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
               --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
               --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute registry-certs test (Fork Only)
-        run: ./tests/registry-certs/test.sh ${{inputs.BINARY}} --build-arg DOCKERHUB_AUTH=false
+        run: frontend=${{inputs.BINARY}} ./tests/registry-certs/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute wait-block test (Earthly Only)
         run: |-
@@ -169,7 +169,7 @@ jobs:
           ./tests+private-image-test
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute save images test
-        run: ./tests/save-images/test.sh ${{inputs.BINARY}}
+        run: frontend=${{inputs.BINARY}} ./tests/save-images/test.sh
       - name: Experimental tests (Earthly Only)
         run: |-
           ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P \

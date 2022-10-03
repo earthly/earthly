@@ -10,7 +10,7 @@ set -o pipefail
 cd "$(dirname "$0")"
 
 # docker / podman
-frontend=$1
+frontend=${frontend-"docker"}
 earthly=${earthly-"../../build/linux/amd64/earthly"}
 
 # Cleanup previous run.

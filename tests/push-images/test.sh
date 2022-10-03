@@ -7,7 +7,7 @@ cd "$(dirname "$0")"
 
 earthly=${earthly-"../../build/linux/amd64/earthly"}
 # docker or podman
-frontend=$1
+frontend=${frontend-"docker"}
 
 echo "=== Test Single --push ==="
 

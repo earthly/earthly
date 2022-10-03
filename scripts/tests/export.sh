@@ -2,10 +2,11 @@
 set -xeu
 
 # "$frontend" / podman
-frontend=$1
 earthly=${earthly:=earthly}
 earthly=$(realpath "$earthly")
 echo "running tests with $earthly"
+frontend=${frontend-"docker"}
+echo "using frontend $frontend"
 
 # prevent the self-update of earthly from running (this ensures no bogus data is printed to stdout,
 # which would mess with the secrets data being fetched)

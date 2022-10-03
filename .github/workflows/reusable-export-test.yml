@@ -83,7 +83,7 @@ jobs:
       - name: Configure Earthly Conversion Parallelism
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.conversion_parallelism 5
       - name: run export tests
-        run: env earthly=${{inputs.BUILT_EARTHLY_PATH}} scripts/tests/export.sh ${{inputs.BINARY}}
+        run: env earthly=${{inputs.BUILT_EARTHLY_PATH}} frontend=${{inputs.BINARY}} scripts/tests/export.sh
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
         if: ${{ failure() }}

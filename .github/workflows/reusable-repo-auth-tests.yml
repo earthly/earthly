@@ -79,7 +79,7 @@ jobs:
       - name: run test-hello-world-with-non-authorized-key.sh
         run: env earthly=${{inputs.BUILT_EARTHLY_PATH}} scripts/tests/auth/test-hello-world-with-non-authorized-key.sh
       - name: run test-self-hosted.sh
-        run: env earthly=${{inputs.BUILT_EARTHLY_PATH}} scripts/tests/auth/test-self-hosted.sh ${{inputs.BINARY}}
+        run: env earthly=${{inputs.BUILT_EARTHLY_PATH}} frontend=${{inputs.BINARY}} scripts/tests/auth/test-self-hosted.sh
 # auto-generated-entries end
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
