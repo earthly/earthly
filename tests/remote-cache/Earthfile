@@ -28,6 +28,10 @@ all:
     BUILD +test3
 
 test1:
+    # Break cache everytime - to ensure testing the caching below works correctly
+    ARG EARTHLY_GIT_HASH
+    RUN echo EARTHLY_GIT_HASH
+
     RUN echo "content" >./input
     # Running with tmpfs mount = no local cache.
     DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
@@ -35,16 +39,16 @@ test1:
     RUN cat ./output
     RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
         test "$nl" -eq 2
-    # Not cached.
+    # Re-Run Not cached.
     RUN cat ./output
     RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && \
         test "$nl" -eq 2
     # No change & re-run.
     DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
-    # Cached.
+    # Cached - should only have 1 line output and not re-echo.
     RUN echo "step 1" && cat ./output | grep "execute-test1-run-before-copy" && cat ./output | grep "execute-test1-run-before-copy" | wc -l  && nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
         test "$nl" -eq 1
-    # Cached.
+    # Cached - should only have 1 line output and not re-echo.
     RUN echo "step 2" && cat ./output | grep "execute-test1-run-before-copy" && nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && \
         test "$nl" -eq 1
     # Change input & re-run.
