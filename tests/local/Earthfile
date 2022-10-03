@@ -166,9 +166,8 @@ mycontainer2:
 test-with-docker:
     LOCALLY
     ARG FRONTEND=docker
-    RUN $FRONTEND images -q mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744 | xargs -n 1 -r $frontend rmi
-    WITH DOCKER \
-            --load mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest=+mycontainer
+    RUN $FRONTEND images -q mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744 | xargs -n 1 -r $FRONTEND rmi
+    WITH DOCKER --load mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest=+mycontainer
         RUN docker run --rm mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest | grep "hello world"
     END
 
