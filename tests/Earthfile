@@ -1071,7 +1071,7 @@ set -e
 eval \"\$(ssh-agent)\"
 ssh-add /root/rsa-key
 earthly --config \$earthly_config +test
-earthly --config \$earthly_config -P --FRONTEND=$FRONTEND +test-with-docker
+earthly --FRONTEND=$FRONTEND --config \$earthly_config -P +test-with-docker
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
     ENV EARTHLY_EXEC_CMD="/tmp/test-earthly-script"
     RUN --privileged \
