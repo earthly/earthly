@@ -80,7 +80,7 @@ jobs:
       - name: Execute test-local --push
         run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache --save-inline-cache --no-output --push ./tests/local+test-local"
       - name: Run general local tests (TODO this is re-testing the +test-local target)
-        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --FRONTEND=${{inputs.BINARY}} --use-inline-cache --save-inline-cache --no-output ./tests/local+all"
+        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache --save-inline-cache --no-output ./tests/local+all --FRONTEND=${{inputs.BINARY}}"
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd 2>&1
         if: ${{ failure() }}
