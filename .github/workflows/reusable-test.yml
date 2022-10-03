@@ -69,7 +69,7 @@ jobs:
         run: podman version && podman info && podman info --debug
         if: inputs.binary == 'podman'
       - name: Configure Satellites (Earthly Only)
-        run: earthly satellite select ${{inputs.SATELLITE_NAME}}
+        run: earthly sat ls && earthly satellite select ${{inputs.SATELLITE_NAME}}
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository && inputs.USE_SATELLITE
       - name: Docker mirror login via ${{inputs.BINARY}} (Earthly Only)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"

@@ -62,7 +62,7 @@ jobs:
         run: podman version && podman info && podman info --debug
         if: inputs.binary == 'podman'
       - name: Configure Satellites (Earthly Only)
-        run: earthly satellite select ${{inputs.SATELLITE_NAME}}
+        run: earthly sat ls && earthly satellite select ${{inputs.SATELLITE_NAME}}
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository && inputs.USE_SATELLITE
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) ${{inputs.BUILD_EARTHLY_ARGS}} ${{inputs.BUILD_EARTHLY_TARGET}}
