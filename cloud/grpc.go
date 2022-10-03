@@ -41,7 +41,7 @@ func (c *client) UnaryAuthInterceptor() grpc.UnaryClientInterceptor {
 				return invoker(c.withAuth(ctx), method, req, reply, cc, opts...)
 			}
 		}
-		return nil
+		return err
 	}
 }
 
