@@ -42,7 +42,7 @@ test1:
     # No change & re-run.
     DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
     # Cached.
-    RUN echo "step 1" && cat ./output | grep "execute-test1-run-before-copy" && nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
+    RUN echo "step 1" && cat ./output | grep "execute-test1-run-before-copy" && cat ./output | grep "execute-test1-run-before-copy" | wc -l  && nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
         test "$nl" -eq 1
     # Cached.
     RUN echo "step 2" && cat ./output | grep "execute-test1-run-before-copy" && nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && \

@@ -39,7 +39,7 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{inputs.RUNS_ON}}
     steps:
-      - uses: earthly/actions-setup@ryan/dont-error-if-cache-dir-missing
+      - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
