@@ -16,6 +16,9 @@ on:
       BINARY:
         required: true
         type: string
+      BINARY_COMPOSE:
+        required: true
+        type: string
       SUDO:
         type: string
         required: false
@@ -58,6 +61,9 @@ jobs:
       - name: Install Podman (with apt-get)
         run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman
         if: inputs.binary == 'podman'
+      - name: Install Podman Compose
+        run: pip3 install podman-compose
+        if: inputs.binary == 'podman'
       - name: Podman debug info
         run: podman version && podman info && podman info --debug
         if: inputs.binary == 'podman'
@@ -76,11 +82,11 @@ jobs:
       - name: Configure Earthly Conversion Parallelism
         run: ${{inputs.SUDO}} $(which earthly) config global.conversion_parallelism 5
 #      - name: Execute test-local
-#        run: "${{inputs.SUDO}} $(which earthly) --use-inline-cache --save-inline-cache --no-output ./tests/local+test-local --FRONTEND=${{inputs.BINARY}}"
+#        run: "${{inputs.SUDO}} $(which earthly) --use-inline-cache --save-inline-cache --no-output ./tests/local+test-local --FRONTEND=${{inputs.BINARY}} --FRONTEND_COMPOSE=${{inputs.BINARY_COMPOSE}}"
 #      - name: Execute test-local --push
-#        run: "${{inputs.SUDO}} $(which earthly) --use-inline-cache --save-inline-cache --no-output --push ./tests/local+test-local --FRONTEND=${{inputs.BINARY}}"
+#        run: "${{inputs.SUDO}} $(which earthly) --use-inline-cache --save-inline-cache --no-output --push ./tests/local+test-local --FRONTEND=${{inputs.BINARY}} --FRONTEND_COMPOSE=${{inputs.BINARY_COMPOSE}}"
       - name: Run general local tests (TODO this is re-testing the +test-local target)
-        run: "${{inputs.SUDO}} $(which earthly) --use-inline-cache --save-inline-cache --no-output ./tests/local+all --FRONTEND=${{inputs.BINARY}}"
+        run: "${{inputs.SUDO}} $(which earthly) --use-inline-cache --save-inline-cache --no-output ./tests/local+all --FRONTEND=${{inputs.BINARY}} --FRONTEND_COMPOSE=${{inputs.BINARY_COMPOSE}}"
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd 2>&1
         if: ${{ failure() }}

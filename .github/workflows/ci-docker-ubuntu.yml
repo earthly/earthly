@@ -48,6 +48,7 @@ jobs:
 #      BUILD_EARTHLY_TARGET: "+for-linux"
 #      RUNS_ON: "ubuntu-latest"
 #      BINARY: "docker"
+#      BINARY_COMPOSE: "docker compose"
 #      SUDO: ""
 #    secrets: inherit
 #

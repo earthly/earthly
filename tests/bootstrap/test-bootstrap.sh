@@ -181,7 +181,7 @@ if [[ "$zsh" != *"complete -o nospace"* ]]; then
 fi
 
 if "$frontend" container ls | grep earthly-buildkitd; then
-  echo "--source created a \"$frontend\" container"
+  echo "--source created a $frontend container"
   exit 1
 fi
 
@@ -189,8 +189,8 @@ if [[ -f ../../build/linux/amd64/earth ]]; then
   echo "--source symlinked earthly to earth"
 fi
 
-if ! DOCKER_HOST="\"$frontend\" is missing" "$earthly" bootstrap --source zsh > /dev/null 2>&1; then
-  echo "--source failed when \"$frontend\" was missing"
+if ! DOCKER_HOST="$frontend is missing" "$earthly" bootstrap --source zsh > /dev/null 2>&1; then
+  echo "--source failed when $frontend was missing"
   exit 1
 fi
 
@@ -200,12 +200,12 @@ echo "=== Test 8: No Buildkit ==="
 
 "$earthly" bootstrap --no-buildkit
 if "$frontend" container ls | grep earthly-buildkitd; then
-  echo "--no-buildkit created a \"$frontend\" container"
+  echo "--no-buildkit created a $frontend container"
   exit 1
 fi
 
-if ! DOCKER_HOST="\"$frontend\" is missing" "$earthly" bootstrap --no-buildkit; then
-  echo "--no-buildkit fails when \"$frontend\" is missing"
+if ! DOCKER_HOST="$frontend is missing" "$earthly" bootstrap --no-buildkit; then
+  echo "--no-buildkit fails when $frontend is missing"
   exit 1
 fi
 
