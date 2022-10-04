@@ -59,6 +59,7 @@ jobs:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       BUILD_EARTHLY_TARGET: "+for-linux"
       BUILD_EARTHLY_ARGS: " " # empty
+      RUN_EARTHLY_TEST_ARGS: "--no-output"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       BINARY_COMPOSE: "\"docker compose\""
