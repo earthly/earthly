@@ -5,7 +5,8 @@ set -xeu
 earthly=${earthly:=earthly}
 earthly=$(realpath "$earthly")
 echo "running tests with $earthly"
-frontend=${frontend-"docker"}
+frontend="${frontend:-$(which docker || which podman)}"
+test -n "$frontend" || (>&2 echo "Error: frontend is empty" && exit 1)
 echo "using frontend $frontend"
 
 # prevent the self-update of earthly from running (this ensures no bogus data is printed to stdout,

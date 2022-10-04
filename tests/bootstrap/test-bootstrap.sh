@@ -9,7 +9,8 @@ earthly=${earthly-"../../build/linux/amd64/earthly"}
 earthly=$(realpath "$earthly")
 
 # docker / podman
-frontend=${frontend-"docker"}
+frontend="${frontend:-$(which docker || which podman)}"
+test -n "$frontend" || (>&2 echo "Error: frontend is empty" && exit 1)
 
 echo "=== Test 1: Hand Bootstrapped ==="
 

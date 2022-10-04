@@ -24,7 +24,8 @@ earthly=${earthly:=earthly}
 earthly=$(realpath "$earthly")
 echo "running tests with $earthly"
 echo "using frontend $frontend"
-frontend=${frontend-"docker"}
+frontend="${frontend:-$(which docker || which podman)}"
+test -n "$frontend" || (>&2 echo "Error: frontend is empty" && exit 1)
 
 # use host IP, otherwise earthly-buildkit won't be able to connect to it
 ip=$(ifconfig eth0 | grep -w 'inet' | awk '{print $2}')

@@ -10,7 +10,8 @@ set -o pipefail
 cd "$(dirname "$0")"
 
 # docker / podman
-frontend=${frontend-"docker"}
+frontend="${frontend:-$(which docker || which podman)}"
+test -n "$frontend" || (>&2 echo "Error: frontend is empty" && exit 1)
 earthly=${earthly-"../../build/linux/amd64/earthly"}
 
 # Cleanup previous run.
