@@ -45,23 +45,22 @@ jobs:
       EXAMPLE_NAME: "+examples2"
     secrets: inherit
 
-# TODO: Bring this back once we fix the docker-archive issue
-#  podman-test-local:
-#    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
-#    needs: podman-examples-2
-#    uses: ./.github/workflows/reusable-test-local.yml
-#    with:
-#      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      BUILD_EARTHLY_TARGET: "+for-linux"
-#      RUNS_ON: "ubuntu-latest"
-#      BINARY: "podman"
-#      BINARY_COMPOSE: "\"sudo podman-compose\""
-#      SUDO: "sudo"
-#    secrets: inherit
+  podman-test-local:
+    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
+    needs: podman-examples-2
+    uses: ./.github/workflows/reusable-test-local.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "podman"
+      BINARY_COMPOSE: "\"sudo podman-compose\""
+      SUDO: "sudo"
+    secrets: inherit
 
   podman-push-integrations:
     # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
-    needs: podman-examples-1
+    needs: podman-test-local
     uses: ./.github/workflows/reusable-push-integrations.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
