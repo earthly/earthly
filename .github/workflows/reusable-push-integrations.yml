@@ -53,12 +53,12 @@ jobs:
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
-        run: ${{inputs.SUDO}} (which earthly) config global.local_registry_host 'tcp://127.0.0.1:8371'
+        run: ${{inputs.SUDO}} $(which earthly) config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
-        run: ${{inputs.SUDO}} (which earthly) config global.conversion_parallelism 5
+        run: ${{inputs.SUDO}} $(which earthly) config global.conversion_parallelism 5
       - name: Push and Pull Cloud Images
         run: |-
-          ${{inputs.SUDO}} (which earthly) --ci -P  \
+          ${{inputs.SUDO}} $(which earthly) --ci -P  \
            --build-arg DOCKERHUB_AUTH=true \
            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
