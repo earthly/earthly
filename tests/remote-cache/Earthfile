@@ -51,7 +51,7 @@ test1:
         test "$nl" -eq 1
 
     RUN echo "other content" >./input
-   DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
+    DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
 
     # Cached.
     RUN echo "step 3" && cat ./output | grep "execute-test1-run-before-copy" && nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \

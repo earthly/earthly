@@ -22,7 +22,7 @@ earthly=${earthly-"../../build/linux/amd64/earthly"}
     -p "127.0.0.1:5000:5000" \
     --name registry registry:2
 
-export REGISTRY_IP="$(\"$frontend\" inspect -f {{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}} registry)"
+export REGISTRY_IP="$($frontend inspect -f {{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}} registry)"
 export REGISTRY="$REGISTRY_IP:5000"
 
 # Test.

@@ -64,23 +64,23 @@ jobs:
       - name: Configure Satellites (Earthly Only)
         run: earthly sat ls && earthly satellite select ${{inputs.SATELLITE_NAME}}
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository && inputs.USE_SATELLITE
-      - name: Build latest earthly using released earthly
-        run: ${{inputs.SUDO}} $(which earthly) ${{inputs.BUILD_EARTHLY_ARGS}} ${{inputs.BUILD_EARTHLY_TARGET}}
+#      - name: Build latest earthly using released earthly
+#        run: ${{inputs.SUDO}} $(which earthly) ${{inputs.BUILD_EARTHLY_ARGS}} ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
             set -euo pipefail
             EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
             echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Enable local registry-based exporter
-        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.local_registry_host 'tcp://127.0.0.1:8371'
+        run: ${{inputs.SUDO}} $(which earthly) config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
-        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.conversion_parallelism 5
+        run: ${{inputs.SUDO}} $(which earthly) config global.conversion_parallelism 5
 #      - name: Execute test-local
-#        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache --save-inline-cache --no-output ./tests/local+test-local"
+#        run: "${{inputs.SUDO}} $(which earthly) --use-inline-cache --save-inline-cache --no-output ./tests/local+test-local --FRONTEND=${{inputs.BINARY}}"
 #      - name: Execute test-local --push
-#        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache --save-inline-cache --no-output --push ./tests/local+test-local"
+#        run: "${{inputs.SUDO}} $(which earthly) --use-inline-cache --save-inline-cache --no-output --push ./tests/local+test-local --FRONTEND=${{inputs.BINARY}}"
       - name: Run general local tests (TODO this is re-testing the +test-local target)
-        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache --save-inline-cache --no-output ./tests/local+all"
+        run: "${{inputs.SUDO}} $(which earthly) --use-inline-cache --save-inline-cache --no-output ./tests/local+all --FRONTEND=${{inputs.BINARY}}"
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd 2>&1
         if: ${{ failure() }}
