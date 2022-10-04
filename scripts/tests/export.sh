@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -xeu
 
-# "$frontend" / podman
 earthly=${earthly:=earthly}
 earthly=$(realpath "$earthly")
 echo "running tests with $earthly"
