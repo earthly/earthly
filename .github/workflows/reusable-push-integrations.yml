@@ -65,7 +65,7 @@ jobs:
            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-          ./tests/cloud-push-pull+all
+          ./tests/cloud-push-pull+all --FRONTEND="${{inputs.SUDO}} ${{inputs.BINARY}}"
       - name: Push Images after RUN --push
         run: ${{inputs.SUDO}} frontend=${{inputs.BINARY}} ./tests/push-images/test.sh
       - name: Buildkit logs (runs on failure)

@@ -18,6 +18,7 @@ RUN apk update && \
 all:
     BUILD +google-artifact-registry
     BUILD +google-container-repository
+    ARG FRONTEND=docker
     BUILD +azure-container-registry
     BUILD +amazon-elastic-container-registry
 
@@ -68,11 +69,11 @@ google-container-repository:
 
 azure-container-registry:
     COPY azure-container-registry.earth ./Earthfile
-   
+    ARG FRONTEND=docker
    # Note that we dont have to install a cred helper here, also the cred helper wouldnt help here anyways
     RUN --secret AZ_USERNAME=+secrets/earthly-technologies/azure/ci-cd-username \
         --secret AZ_PASSWORD=+secrets/earthly-technologies/azure/ci-cd-password \
-        docker login earthlyintegrationtest.azurecr.io --username $AZ_USERNAME --password $AZ_PASSWORD
+        $FRONTEND login earthlyintegrationtest.azurecr.io --username $AZ_USERNAME --password $AZ_PASSWORD
 
     RUN --privileged \
     --entrypoint \
@@ -129,13 +130,13 @@ amazon-elastic-container-registry:
     #    mkdir -p /root/.docker && \
     #    echo "{\"credHelpers\":{\"$ACCT_ID.dkr.ecr.us-west-2.amazonaws.com\": \"ecr-login\"}}" > /root/.docker/config.json
 
-
+    ARG FRONTEND=docker
     # Do a manual login, since the credential helper doesn't work with a pull-through cache.
     RUN --secret AWS_ACCESS_KEY_ID=+secrets/earthly-technologies/aws/ci-cd-access-key \
         --secret AWS_SECRET_ACCESS_KEY=+secrets/earthly-technologies/aws/ci-cd-access-secret \
         --secret ACCT_ID=+secrets/earthly-technologies/aws/account-id \
         --privileged \
-        -- aws ecr get-login-password | docker login --username AWS --password-stdin 404851345508.dkr.ecr.us-west-2.amazonaws.com
+        -- aws ecr get-login-password | $FRONTEND login --username AWS --password-stdin 404851345508.dkr.ecr.us-west-2.amazonaws.com
 
     # Pass through Account ID this way to avoid checking it in to GitHub;
     # its not strictly secret this way but its secret enough
