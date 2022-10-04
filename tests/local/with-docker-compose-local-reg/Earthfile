@@ -13,6 +13,7 @@ fetch:
 test:
     LOCALLY
     ARG FRONTEND=docker
+    ARG FRONTEND_COMPOSE="docker compose"
     WITH DOCKER \
             --compose docker-compose.yml \
             --service webserver \
