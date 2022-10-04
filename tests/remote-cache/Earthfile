@@ -29,21 +29,19 @@ all:
 
 test1:
     RUN echo "content" >./input
-    WAIT
-        # Running with tmpfs mount = no local cache.
-        DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
-    END
+    # Running with tmpfs mount = no local cache.
+    DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
+
     # Not cached - before copy.
     RUN cat ./output
     RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && test "$nl" -eq 2
+
     # Not cached - after copy.
     RUN cat ./output
     RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && test "$nl" -eq 2
 
-    WAIT
-        # No change & re-run - should only have 1 line output and not re-echo.
-        DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
-    END
+    # No change & re-run - should only have 1 line output and not re-echo.
+    DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
 
     RUN echo "step 1" && cat ./output | grep "execute-test1-run-before-copy" && cat ./output | grep "execute-test1-run-before-copy" | wc -l  && nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
         test "$nl" -eq 1
@@ -53,9 +51,7 @@ test1:
         test "$nl" -eq 1
 
     RUN echo "other content" >./input
-    WAIT
-       DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
-    END
+   DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
 
     # Cached.
     RUN echo "step 3" && cat ./output | grep "execute-test1-run-before-copy" && nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \

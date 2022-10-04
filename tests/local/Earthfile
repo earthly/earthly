@@ -188,21 +188,21 @@ test-with-two-dockers:
 
 all:
     ARG FRONTEND=docker
-    BUILD +test-copy-dir-from-local
-    BUILD +test-copy-file-from-local
-    BUILD +test-copy-from-busybox-to-local
-    BUILD +test-copy-from-busybox-to-local-with-workdir
-    BUILD +test-local
-    BUILD +test-local-with-arg --pattern=memory
-    BUILD +test-locally-can-copy-dir
-    BUILD +test-locally-can-copy-dir-contents
-    BUILD +test-locally-workdir
-    BUILD +test-locally-workdir
-    BUILD +test-multi-copy-from-alpine-to-local
-    BUILD +test-save-unnamed-local-artifact
-    BUILD +test-save-unnamed-local-artifact-dir
-    BUILD +test-save-unnamed-local-artifact-dir2
-    BUILD +test-with-docker
-    BUILD +test-with-two-dockers
+    BUILD +test-copy-dir-from-local --FRONTEND=$FRONTEND
+    BUILD +test-copy-file-from-local --FRONTEND=$FRONTEND
+    BUILD +test-copy-from-busybox-to-local --FRONTEND=$FRONTEND
+    BUILD +test-copy-from-busybox-to-local-with-workdir --FRONTEND=$FRONTEND
+    BUILD +test-local --FRONTEND=$FRONTEND
+    BUILD +test-local-with-arg --pattern=memory --FRONTEND=$FRONTEND
+    BUILD +test-locally-can-copy-dir --FRONTEND=$FRONTEND
+    BUILD +test-locally-can-copy-dir-contents --FRONTEND=$FRONTEND
+    BUILD +test-locally-workdir --FRONTEND=$FRONTEND
+    BUILD +test-locally-workdir --FRONTEND=$FRONTEND
+    BUILD +test-multi-copy-from-alpine-to-local --FRONTEND=$FRONTEND
+    BUILD +test-save-unnamed-local-artifact --FRONTEND=$FRONTEND
+    BUILD +test-save-unnamed-local-artifact-dir --FRONTEND=$FRONTEND
+    BUILD +test-save-unnamed-local-artifact-dir2 --FRONTEND=$FRONTEND
+    BUILD +test-with-docker --FRONTEND=$FRONTEND
+    BUILD +test-with-two-dockers --FRONTEND=$FRONTEND
     BUILD ./with-docker-compose-local+all --FRONTEND=$FRONTEND
     BUILD ./with-docker-compose-local-reg+all --FRONTEND=$FRONTEND

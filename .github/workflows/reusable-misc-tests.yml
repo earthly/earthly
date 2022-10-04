@@ -92,11 +92,7 @@ jobs:
 #      - name: Execute docker2earth test
 #        run: "./tests/docker2earth/test.sh"
       - name: Execute remote-cache test (Earthly Only)
-        uses: nick-fields/retry@v2
-        with:
-          timeout_minutes: 3
-          max_attempts: 3
-          command: |-
+        run: |-
             frontend=${{inputs.BINARY}} ./tests/remote-cache/test.sh \
               --build-arg DOCKERHUB_AUTH=true \
               --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
