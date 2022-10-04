@@ -6,12 +6,13 @@ FROM alpine:3.15
 
 test-local-with-arg:
     LOCALLY
+    ARG FRONTEND=docker
     ARG pattern
     RUN set -e; \
         if [ "$(uname -s)" = "Darwin" ]; then \
             echo "locally must be working"; \
         else \
-            cat /proc/1/cgroup | grep -v docker | grep $pattern; \
+            cat /proc/1/cgroup | grep -v $FRONTEND | grep $pattern; \
         fi
 
 test-local:
@@ -168,17 +169,18 @@ test-with-docker:
     ARG FRONTEND=docker
     RUN $FRONTEND images -q mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744 | xargs -n 1 -r $FRONTEND rmi
     WITH DOCKER --load mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest=+mycontainer
-        RUN docker run --rm mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest | grep "hello world"
+        RUN $FRONTEND run --rm mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest | grep "hello world"
     END
 
 test-with-two-dockers:
     LOCALLY
-    RUN docker images -q mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75 | xargs -n 1 -r docker rmi
+    ARG FRONTEND=docker
+    RUN $FRONTEND images -q mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75 | xargs -n 1 -r $FRONTEND rmi
     WITH DOCKER \
             --load mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:latest=+mycontainer \
             --load mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:hyperlatest=+mycontainer2
-        RUN (docker run --rm mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:latest | grep "hello world" ) && \
-            (docker run --rm mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:hyperlatest | grep "fizzbuzz" )
+        RUN ($FRONTEND run --rm mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:latest | grep "hello world" ) && \
+            ($FRONTEND run --rm mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:hyperlatest | grep "fizzbuzz" )
     END
 
 #################################################################################################################
@@ -190,6 +192,7 @@ all:
     BUILD +test-copy-from-busybox-to-local
     BUILD +test-copy-from-busybox-to-local-with-workdir
     BUILD +test-local
+    ARG FRONTEND=docker
     BUILD +test-local-with-arg --pattern=memory
     BUILD +test-locally-can-copy-dir
     BUILD +test-locally-can-copy-dir-contents
@@ -199,7 +202,6 @@ all:
     BUILD +test-save-unnamed-local-artifact
     BUILD +test-save-unnamed-local-artifact-dir
     BUILD +test-save-unnamed-local-artifact-dir2
-    ARG FRONTEND=docker
     BUILD +test-with-docker
     BUILD +test-with-two-dockers
     BUILD ./with-docker-compose-local+all

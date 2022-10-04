@@ -30,7 +30,7 @@ all:
 test1:
     # Break cache everytime - to ensure testing the caching below works correctly
     ARG EARTHLY_GIT_HASH
-    RUN echo EARTHLY_GIT_HASH
+    RUN echo $EARTHLY_GIT_HASH
 
     RUN echo "content" >./input
     # Running with tmpfs mount = no local cache.
