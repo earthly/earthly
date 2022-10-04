@@ -16,13 +16,13 @@ This gives us the ability to copy files between targets, **but it does not allow
 ```Dockerfile
 build:
     COPY main.go .
-    RUN go build -o build/go-example main.go
-    SAVE ARTIFACT build/go-example /go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example /saved_go_artifact
 
 docker:
     #  COPY command copies files from the +build target
-    COPY +build/go-example .
-    ENTRYPOINT ["/go-example/go-example"]
+    COPY +build/saved_go_artifact .
+    ENTRYPOINT ["/go-workdir/saved_go_artifact"]
     SAVE IMAGE go-example:latest
 ```
 In order to **save the file locally** , we need to add `AS LOCAL` to the command.
@@ -30,8 +30,8 @@ In order to **save the file locally** , we need to add `AS LOCAL` to the command
 ```Dockerfile
 build:
     COPY main.go .
-    RUN go build -o build/go-example main.go
-    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example /saved_go_artifact AS LOCAL local_go_build/go-example
 ```
 
 If we run this example with `earthly +build`, we'll see a `build` directory show up locally with a `go-example` file inside of it.
@@ -42,12 +42,12 @@ Saving Docker images to your local machine is easy with the `SAVE IMAGE` command
 ```Dockerfile
 build:
     COPY main.go .
-    RUN go build -o build/go-example main.go
-    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example /saved_go_artifact
 
 docker:
-    COPY +build/go-example .
-    ENTRYPOINT ["/go-example/go-example"]
+    COPY +build/saved_go_artifact .
+    ENTRYPOINT ["/go-workdir/saved_go_artifact"]
     SAVE IMAGE go-example:latest
 ```
 In this example, running `earthly +docker` will save an image named `go-example` with the tag `latest`.

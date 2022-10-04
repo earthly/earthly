@@ -7,12 +7,12 @@ WORKDIR /go-workdir
 
 build:
     COPY main.go .
-    RUN go build -o my_go_build/go-example main.go
-    SAVE ARTIFACT my_go_build/go-example /saved_go_artifact AS LOCAL local_go_build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example AS LOCAL local_go_build/go-example
 
 docker:
-    COPY +build/saved_go_artifact .
-    ENTRYPOINT ["/go-workdir/saved_go_artifact"]
+    COPY +build/example .
+    ENTRYPOINT ["/go-workdir/example"]
     SAVE IMAGE go-example:latest
 ```
 
@@ -64,31 +64,31 @@ Let's start by defining a target to build our simple Go app. **When we run Earth
 ```Dockerfile
 build:
     COPY main.go .
-    RUN go build -o my_go_build/go-example main.go
-    SAVE ARTIFACT my_go_build/go-example /saved_go_artifact AS LOCAL local_go_build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example AS LOCAL local_go_build/go-example
 ```
 
 The first thing we do is copy our `main.go` from the **build context** (the directory where the Earthfile resides) to the **build environment** (the containerized environment where Earthly commands are run).
 
 Next, we run a go build command against the previously copied `main.go` file.
 
-Finally, we save the output of the build command as an artifact called `/saved_go_artifact` (it can be later referenced as `+build/saved_go_artifact`).
+Finally, we save the output of the build command as an artifact called `/example` (it can be later referenced as `+build/example`).
 
 Now let's create a new target called `+docker`.
 
 ```Dockerfile
 docker:
-    COPY +build/saved_go_artifact .
-    ENTRYPOINT ["/go-workdir/saved_go_artifact"]
+    COPY +build/example .
+    ENTRYPOINT ["/go-workdir/example"]
     SAVE IMAGE go-example:latest
 ```
-Here we copy the artifact `/saved_go_artifact` produced by another target, `+build`, to the current directory within the build environment. Again this will be the working directory we set up in the `base` target at the beginning of the file. Lastly, we set the entrypoint for the resulting docker image, and then save the image.
+Here we copy the artifact `/example` produced by another target, `+build`, to the current directory within the build environment. Again this will be the working directory we set up in the `base` target at the beginning of the file. Lastly, we set the entrypoint for the resulting docker image, and then save the image.
 
 You may notice the command `COPY +build/... ...`, which has an unfamiliar form. This is a special type of `COPY`, which can be used to pass artifacts from one target to another. In this case, the target `build` (referenced as `+build`) produces an artifact, which has been declared with `SAVE ARTIFACT`, and the target `docker` copies that artifact in its build environment.
 
 With Earthly you have the ability to pass such artifacts or images between targets within the same Earthfile, but also across different Earthfiles across directories or even across repositories. To read more about this, see the [target, artifact and image referencing guide](../guides/target-ref.md) or jump to [part 5](./part-5-importing.md) of this guide.
 
-Lastly, we save the current state as a docker image, which will have the docker tag `go-example:latest`. This image is only made available to the host's docker if the entire build succeeds.
+Lastly, we save the current state as a docker image, which will have the docker tag `example:latest`. This image is only made available to the host's docker if the entire build succeeds.
 
 ## Target Environments
 
@@ -101,8 +101,8 @@ WORKDIR /go-workdir
 
 build:
     COPY main.go .
-    RUN go build -o my_go_build/go-example main.go
-    SAVE ARTIFACT my_go_build/go-example /saved_go_artifact AS LOCAL local_go_build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example AS LOCAL local_go_build/go-example
 
 npm:
     FROM node:12-alpine3.12
@@ -125,7 +125,7 @@ earthly +docker
 ```
 The output might look like this:
 
-![Earthly build output](../guides/img/go-example.png)
+![Earthly build output](../guides/img/example.png)
 
 Notice how to the left of `|`, within the output, we can see some targets like `+base`, `+build` and `+docker` . Notice how the output is interleaved between `+docker` and `+build`. This is because the system executes independent build steps in parallel. The reason this is possible effortlessly is because only very few things are shared between the builds of the recipes and those things are declared and obvious. The rest is completely isolated.
 
@@ -138,7 +138,7 @@ Finally, notice how the output of the build (the docker image and the files) are
 Once the build has executed, we can run the resulting docker image to try it out:
 
 ```
-docker run --rm go-example:latest
+docker run --rm example:latest
 ```
 
 ### More Examples

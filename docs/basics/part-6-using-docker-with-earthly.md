@@ -145,7 +145,7 @@ integration-tests:
 ```
 When we use the `--compose` flag, Earthly will start up the services defined in the `docker-compose` file for us. In this case, we built a separate image that copies in our test files and uses the command to run the tests as its `ENTRYPOINT`. We can then load this image into our `WITH DOCKER` command. Note that loading an image will not run it by default, we need to explicitly run the image after we load it.
 
-You'll need to use `--allow-privileged` to run this example. 
+You'll need to use `--allow-privileged` (or `-P` for short) to run this example. 
 
 ```
 earthly --allow-privileged +integration-tests
