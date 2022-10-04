@@ -47,7 +47,7 @@ jobs:
 
   podman-test-local:
     # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
-    needs: podman-examples-2
+#    needs: podman-examples-2
     uses: ./.github/workflows/reusable-test-local.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
