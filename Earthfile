@@ -341,7 +341,6 @@ earthly-integration-test-base:
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
     ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-    ARG FRONTEND=docker
 
     IF [ -z $DOCKERHUB_MIRROR ]
         # No mirror, easy CI and local use by all
@@ -349,7 +348,7 @@ earthly-integration-test-base:
         IF [ "$DOCKERHUB_AUTH" = "true" ]
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
                 --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
-                $FRONTEND login --username="$USERNAME" --password="$TOKEN"
+                docker login --username="$USERNAME" --password="$TOKEN"
         END
     ELSE
         # Use a mirror, supports mirroring Docker Hub only.
@@ -374,7 +373,7 @@ $(echo "$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG" | sed "s/^/  /g")
         IF [ "$DOCKERHUB_AUTH" = "true" ]
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
                 --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
-                $FRONTEND login $DOCKERHUB_MIRROR --username="$USERNAME" --password="$TOKEN"
+                docker login $DOCKERHUB_MIRROR --username="$USERNAME" --password="$TOKEN"
         END
     END
 
@@ -540,7 +539,6 @@ test-all:
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
     ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-    ARG FRONTEND=docker
     BUILD +test-no-qemu \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \

@@ -1,0 +1,69 @@
+name: staging release
+
+on:
+  push:
+    branches:
+      - 'main'
+      - '**-staging-test'
+    paths-ignore:
+      - 'docs/**'
+
+jobs:
+  tests:
+    name: staging release
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+      GITHUB_USER: "earthly"
+      EARTHLY_REPO: "earthly-staging"
+      BREW_REPO: "homebrew-earthly-staging"
+      DOCKERHUB_USER: "earthly"
+      # Used in our github action as the token - TODO: look to change it into an input
+      GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+    steps:
+      - uses: earthly/actions/setup-earthly@main
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+          fetch-depth: 0
+      - name: Docker mirror login (Earthly Only)
+        run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Configure Earthly to use mirror (Earthly Only)
+        run: |-
+          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+
+          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Docker Login (main build)
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+      - name: Build latest earthly using released earthly
+        run: earthly --use-inline-cache +for-linux
+      - name: rebuild earthly using latest earthly build
+        run: ./build/linux/amd64/earthly --use-inline-cache +for-linux
+      - name: staging releases
+        run: |-
+            set -euo pipefail
+            export SHA_DEC="$(echo "ibase=16; $(git rev-parse --short HEAD | tr '[:lower:]' '[:upper:]')" | bc)"
+            export RELEASE_TAG="v0.$(date +%s).$SHA_DEC"
+            export SKIP_CHANGELOG_DATE_TEST=true
+            export S3_BUCKET="staging-pkg"
+            export earthly="./build/linux/amd64/earthly"
+            echo "attempting staging-release version: $RELEASE_TAG"
+            eval "$(ssh-agent -s)"
+            "$earthly" secrets get -n /earthly-technologies/github/griswoldthecat/id_rsa | ssh-add -
+            git remote add staging git@github.com:earthly/earthly-staging.git
+            git push staging HEAD:pre-release-$RELEASE_TAG
+            echo -e "# Earthly Changelog\n\nAll notable changes to [Earthly](https://github.com/earthly/earthly) will be documented in this file.\n\n## Unreleased\n\n## $RELEASE_TAG - $(date +%Y-%m-%d)\n\nThis pre-release was built from $(git rev-parse HEAD)" > CHANGELOG.md
+            ./release/release.sh
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
