@@ -63,8 +63,8 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) -P --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
-      - name: rebuild earthly using latest earthly build
-        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
+#      - name: rebuild earthly using latest earthly build
+#        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
             set -euo pipefail
@@ -74,13 +74,13 @@ jobs:
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.conversion_parallelism 5
-      - name: Run parallel buildkit start test. It ensures that earthly starting up buildkit does not race with itself.
-        run: |-
-          ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd && \
-          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
-          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
-          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
-          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello
+#      - name: Run parallel buildkit start test. It ensures that earthly starting up buildkit does not race with itself.
+#        run: |-
+#          ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd && \
+#          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
+#          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
+#          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
+#          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello
 #      - name: Execute interactive debugger test
 #        uses: nick-fields/retry@v2
 #        with:

@@ -75,12 +75,12 @@ jobs:
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.conversion_parallelism 5
-      - name: Execute test-local
-        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache --save-inline-cache --no-output ./tests/local+test-local"
-      - name: Execute test-local --push
-        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache --save-inline-cache --no-output --push ./tests/local+test-local"
+#      - name: Execute test-local
+#        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache --save-inline-cache --no-output ./tests/local+test-local"
+#      - name: Execute test-local --push
+#        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache --save-inline-cache --no-output --push ./tests/local+test-local"
       - name: Run general local tests (TODO this is re-testing the +test-local target)
-        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache --save-inline-cache --no-output ./tests/local+all --FRONTEND=${{inputs.BINARY}}"
+        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache --save-inline-cache --no-output ./tests/local+all"
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd 2>&1
         if: ${{ failure() }}
