@@ -54,7 +54,7 @@ jobs:
       BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
-      BINARY_COMPOSE: "sudo podman-compose"
+      BINARY_COMPOSE: "\"sudo podman-compose\""
       SUDO: "sudo"
     secrets: inherit
 
