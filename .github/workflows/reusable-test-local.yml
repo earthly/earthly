@@ -62,7 +62,7 @@ jobs:
         run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman
         if: inputs.binary == 'podman'
       - name: Install Podman Compose
-        run: pip3 install podman-compose
+        run: curl -o /usr/local/bin/podman-compose https://raw.githubusercontent.com/containers/podman-compose/devel/podman_compose.py && chmod +x /usr/local/bin/podman-compose
         if: inputs.binary == 'podman'
       - name: Podman debug info
         run: podman version && podman info && podman info --debug
