@@ -43,23 +43,19 @@ test1:
     # No change & re-run - should only have 1 line output and not re-echo.
     DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
 
-    RUN echo "step 1" && cat ./output | grep "execute-test1-run-before-copy" && cat ./output | grep "execute-test1-run-before-copy" | wc -l  && nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
-        test "$nl" -eq 1
+    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && test "$nl" -eq 1
 
     # Cached - should only have 1 line output and not re-echo.
-    RUN echo "step 2" && cat ./output | grep "execute-test1-run-before-copy" && nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && \
-        test "$nl" -eq 1
+    RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && test "$nl" -eq 1
 
     RUN echo "other content" >./input
     DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
 
     # Cached.
-    RUN echo "step 3" && cat ./output | grep "execute-test1-run-before-copy" && nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
-        test "$nl" -eq 1
+    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && test "$nl" -eq 1
 
     # Not cached.
-    RUN echo "step 4" && cat ./output | grep "execute-test1-run-before-copy" && nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && \
-        test "$nl" -eq 2
+    RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && test "$nl" -eq 2
 
 test2:
     RUN echo "a"
