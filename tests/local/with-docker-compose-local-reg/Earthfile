@@ -11,9 +11,10 @@ fetch:
 
 test:
     LOCALLY
+    ARG FRONTEND=docker
     WITH DOCKER \
             --compose docker-compose.yml \
             --service webserver \
             --load fetch:latest=+fetch
-        RUN docker compose up --exit-code-from fetch fetch | grep 'Hello World'
+        RUN $FRONTEND compose up --exit-code-from fetch fetch | grep 'Hello World'
     END

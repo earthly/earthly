@@ -28,7 +28,7 @@ all:
     BUILD +test3
 
 test1:
-    RUN --no-cache echo "content" >./input
+    RUN echo "content" >./input
     # Running with tmpfs mount = no local cache.
     DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
     # Not cached.

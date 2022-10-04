@@ -187,12 +187,12 @@ test-with-two-dockers:
 # tests for WITH DOCKER and compose
 
 all:
+    ARG FRONTEND=docker
     BUILD +test-copy-dir-from-local
     BUILD +test-copy-file-from-local
     BUILD +test-copy-from-busybox-to-local
     BUILD +test-copy-from-busybox-to-local-with-workdir
     BUILD +test-local
-    ARG FRONTEND=docker
     BUILD +test-local-with-arg --pattern=memory
     BUILD +test-locally-can-copy-dir
     BUILD +test-locally-can-copy-dir-contents
