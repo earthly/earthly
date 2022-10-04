@@ -28,11 +28,7 @@ all:
     BUILD +test3
 
 test1:
-    # Break cache everytime - to ensure testing the caching below works correctly
-    ARG EARTHLY_GIT_HASH
-    RUN echo $EARTHLY_GIT_HASH
-
-    RUN echo "content" >./input
+    RUN --no-cache echo "content" >./input
     # Running with tmpfs mount = no local cache.
     DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
     # Not cached.
