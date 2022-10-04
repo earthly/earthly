@@ -61,6 +61,7 @@ jobs:
       BUILD_EARTHLY_ARGS: " " # empty
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
+      BINARY_COMPOSE: "docker compose"
       SUDO: ""
       USE_SATELLITE: true
       SATELLITE_NAME: "core-test"
