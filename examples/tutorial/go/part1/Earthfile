@@ -4,10 +4,10 @@ WORKDIR /go-workdir
 
 build:
     COPY main.go .
-    RUN go build -o my_go_build/go-example main.go
-    SAVE ARTIFACT my_go_build/go-example /saved_go_artifact AS LOCAL local_go_build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example
 
 docker:
-    COPY +build/saved_go_artifact .
-    ENTRYPOINT ["/go-workdir/saved_go_artifact"]
+    COPY +build/example .
+    ENTRYPOINT ["/go-workdir/example"]
     SAVE IMAGE go-example:latest
