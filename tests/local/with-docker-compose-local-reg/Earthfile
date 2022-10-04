@@ -1,6 +1,7 @@
 VERSION --use-registry-for-with-docker 0.6
 
 all:
+    ARG FRONTEND=docker
     BUILD +test
 
 fetch:

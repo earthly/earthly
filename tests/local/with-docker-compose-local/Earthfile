@@ -1,6 +1,7 @@
 VERSION 0.6
 
 all:
+    ARG FRONTEND=docker
     BUILD +test
 
 fetch:

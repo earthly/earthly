@@ -29,30 +29,38 @@ all:
 
 test1:
     RUN echo "content" >./input
-    # Running with tmpfs mount = no local cache.
-    DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
-    # Not cached.
+    WAIT
+        # Running with tmpfs mount = no local cache.
+        DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
+    END
+    # Not cached - before copy.
     RUN cat ./output
-    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
-        test "$nl" -eq 2
-    # Re-Run Not cached.
+    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && test "$nl" -eq 2
+    # Not cached - after copy.
     RUN cat ./output
-    RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && \
-        test "$nl" -eq 2
-    # No change & re-run.
-    DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
-    # Cached - should only have 1 line output and not re-echo.
+    RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && test "$nl" -eq 2
+
+    WAIT
+        # No change & re-run - should only have 1 line output and not re-echo.
+        DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
+    END
+
     RUN echo "step 1" && cat ./output | grep "execute-test1-run-before-copy" && cat ./output | grep "execute-test1-run-before-copy" | wc -l  && nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
         test "$nl" -eq 1
+
     # Cached - should only have 1 line output and not re-echo.
     RUN echo "step 2" && cat ./output | grep "execute-test1-run-before-copy" && nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && \
         test "$nl" -eq 1
-    # Change input & re-run.
+
     RUN echo "other content" >./input
-    DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
+    WAIT
+       DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
+    END
+
     # Cached.
     RUN echo "step 3" && cat ./output | grep "execute-test1-run-before-copy" && nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && \
         test "$nl" -eq 1
+
     # Not cached.
     RUN echo "step 4" && cat ./output | grep "execute-test1-run-before-copy" && nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && \
         test "$nl" -eq 2
