@@ -24,7 +24,7 @@ def test_interactive(earthly_path, timeout):
             c.expect('Entering interactive debugger')
 
             # give the shell time to startup, otherwise stdin might be lost
-            time.sleep(0.5)
+            time.sleep(5)
 
             # test we can select from the postgres database that is created via docker-compose
             # this is wrapped in an infinite retry loop which pexpect will kill after the configured timeout
