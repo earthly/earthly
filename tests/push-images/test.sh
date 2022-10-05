@@ -6,7 +6,7 @@ set -o pipefail
 cd "$(dirname "$0")"
 
 earthly=${earthly-"../../build/linux/amd64/earthly"}
-# docker or podman
+
 frontend="${frontend:-$(which docker || which podman)}"
 test -n "$frontend" || (>&2 echo "Error: frontend is empty" && exit 1)
 
