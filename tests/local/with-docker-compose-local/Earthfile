@@ -1,6 +1,8 @@
 VERSION 0.6
 
 all:
+    ARG FRONTEND=docker
+    ARG FRONTEND_COMPOSE="docker compose"
     BUILD +test
 
 fetch:
@@ -11,9 +13,11 @@ fetch:
 
 test:
     LOCALLY
+    ARG FRONTEND=docker
+    ARG FRONTEND_COMPOSE="docker compose"
     WITH DOCKER \
             --compose docker-compose.yml \
             --service webserver \
             --load fetch:latest=+fetch
-        RUN docker compose up --exit-code-from fetch fetch | grep 'Hello World'
+        RUN $FRONTEND_COMPOSE up --exit-code-from fetch fetch | grep 'Hello World'
     END

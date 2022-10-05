@@ -33,7 +33,6 @@
 * Merge branch `main` into `next`, then merge branch `next` into `main`.
 * Update the version for the installation command in the following places:
 <!-- vale HouseStyle.Spelling = NO -->
-  * [ci-integration.md](../docs/ci-integration.md)
   * [circle-integration.md](../docs/ci-integration/guides/circle-integration.md)
   * [gh-actions-integration.md](../docs/ci-integration/guides/gh-actions-integration.md)
   * [codebuild-integration.md](../docs/ci-integration/guides/codebuild-integration.md)

@@ -4,9 +4,12 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.25 - 2022-10-04
+
 ### Fixed
 
-- Fixed outputing images with long names [#2053](https://github.com/earthly/earthly/issues/2053)
+- Fixed outputting images with long names [#2053](https://github.com/earthly/earthly/issues/2053)
+- Fixed buildkit connection timing out occasionally [#2229](https://github.com/earthly/earthly/issues/2229)
 
 ## v0.6.24 - 2022-09-22
 
