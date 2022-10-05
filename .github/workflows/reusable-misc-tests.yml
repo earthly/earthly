@@ -139,7 +139,7 @@ jobs:
           timeout_minutes: 3
           max_attempts: 3
           command: |-
-            frontend=${{inputs.BINARY}} ./tests/try-catch/test.sh \
+            ./tests/try-catch/test.sh \
                 --build-arg DOCKERHUB_AUTH=true \
                 --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
                 --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \

@@ -1,10 +1,9 @@
 VERSION --try 0.6
 test:
     FROM alpine:3.15
-    ARG FRONTEND=docker
     TRY
         WITH DOCKER
-            RUN $FRONTEND ps > docker-ps && false
+            RUN docker ps > docker-ps && false
         END
     FINALLY
         SAVE ARTIFACT docker-ps AS LOCAL .testdata

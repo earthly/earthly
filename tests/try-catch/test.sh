@@ -3,9 +3,6 @@
 set -ue
 set -o pipefail
 
-frontend="${frontend:-$(which docker || which podman)}"
-test -n "$frontend" || (>&2 echo "Error: frontend is empty" && exit 1)
-
 initialwd="$(pwd)"
 cd "$(dirname "$0")"
 
@@ -23,9 +20,10 @@ function finish {
 }
 trap finish EXIT
 
-for test_path in docker-try-finally-fail try-catch-not-currently-implemented try-finally-fail try-finally-pass try-finally-if-exists try-finally-two-files
+# TODO: add back docker-try-finally-fail
+for test_path in try-catch-not-currently-implemented try-finally-fail try-finally-pass try-finally-if-exists try-finally-two-files
 do
     printf "=== running $test_path ===\n\n"
-    "frontend=$frontend ${test_path}/test.sh"
+    "${test_path}/test.sh"
     printf "${test_path} passed\n\n"
 done
