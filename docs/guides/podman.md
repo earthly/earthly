@@ -18,10 +18,10 @@ If you wish to change the behavior of the startup check, run the following comma
 
 ```bash
 # Configure earthly to use podman
-> earthly config global.container_frontend podman-shell
+earthly config global.container_frontend podman-shell
 
 # Configure earthly to use docker
-> earthly config global.container_frontend docker-shell
+earthly config global.container_frontend docker-shell
 ```
 
 You can verify the command worked by checking the `~/.earthly/config.yml` file and verifying it contains a `container_frontend` entry.
