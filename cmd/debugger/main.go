@@ -304,7 +304,9 @@ func main() {
 		exitCode := 1
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode = exitErr.ExitCode()
-			conslogger.Warnf("Command %s failed with exit code %d\n", quotedCmd, exitCode)
+			if debuggerSettings.Enabled {
+				conslogger.Warnf("Command %s failed with exit code %d\n", quotedCmd, exitCode)
+			}
 		} else {
 			conslogger.Warnf("Command %s failed with unexpected execution error %v\n", quotedCmd, err)
 		}
