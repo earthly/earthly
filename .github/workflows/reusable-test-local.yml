@@ -86,11 +86,23 @@ jobs:
       - name: Configure Earthly Conversion Parallelism
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.conversion_parallelism 5
       - name: Execute test-local
-        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.RUN_EARTHLY_TEST_ARGS}} ./tests/local+test-local --FRONTEND=${{inputs.BINARY}}"
+        uses: nick-fields/retry@v2
+        with:
+          timeout_minutes: 3
+          max_attempts: 3
+          command: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.RUN_EARTHLY_TEST_ARGS}} ./tests/local+test-local --FRONTEND=${{inputs.BINARY}}"
       - name: Execute test-local --push
-        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.RUN_EARTHLY_TEST_ARGS}} --push ./tests/local+test-local --FRONTEND=${{inputs.BINARY}}"
+        uses: nick-fields/retry@v2
+        with:
+          timeout_minutes: 3
+          max_attempts: 3
+          command: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.RUN_EARTHLY_TEST_ARGS}} --push ./tests/local+test-local --FRONTEND=${{inputs.BINARY}}"
       - name: Run general local tests (TODO this is re-testing the +test-local target)
-        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.RUN_EARTHLY_TEST_ARGS}} ./tests/local+all --FRONTEND=${{inputs.BINARY}} --FRONTEND_COMPOSE=${{inputs.BINARY_COMPOSE}}"
+        uses: nick-fields/retry@v2
+        with:
+          timeout_minutes: 3
+          max_attempts: 3
+          command: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.RUN_EARTHLY_TEST_ARGS}} ./tests/local+all --FRONTEND=${{inputs.BINARY}} --FRONTEND_COMPOSE=${{inputs.BINARY_COMPOSE}}"
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd 2>&1
         if: ${{ failure() }}
