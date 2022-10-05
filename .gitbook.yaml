@@ -20,7 +20,6 @@ redirects:
     guides/shared-cache: guides/shared-cache.md
     guides/target-ref: guides/target-ref.md
     guides/udc: guides/udc.md
-    guides/podman: guides/podman.md
     earthly-config: earthly-config/earthly-config.md
     ci-integration: ci-integration/overview.md
     earth-command: earthly-command/earthly-command.md
