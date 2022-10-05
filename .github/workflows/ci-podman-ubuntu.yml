@@ -45,19 +45,19 @@ jobs:
       EXAMPLE_NAME: "+examples2"
     secrets: inherit
 
-  podman-test-local:
-    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
-    needs: podman-examples-2
-    uses: ./.github/workflows/reusable-test-local.yml
-    with:
-      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
-      RUNS_ON: "ubuntu-latest"
-      BINARY: "podman"
-      BINARY_COMPOSE: "\"sudo podman-compose\""
-      SUDO: "sudo"
-    secrets: inherit
-
+#  podman-test-local:
+#    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
+#    needs: podman-examples-2
+#    uses: ./.github/workflows/reusable-test-local.yml
+#    with:
+#      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+#      BUILD_EARTHLY_TARGET: "+for-linux"
+#      RUNS_ON: "ubuntu-latest"
+#      BINARY: "podman"
+#      BINARY_COMPOSE: "\"sudo podman-compose\""
+#      SUDO: "sudo"
+#    secrets: inherit
+#
 # TODO: Fix and bring back the below tests
 #  podman-push-integrations:
 #    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
