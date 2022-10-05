@@ -28,7 +28,7 @@ You can verify the command worked by checking the `~/.earthly/config.yml` file a
 ```bash
 > cat ~/.earthly/config.yml
 global:
-container_frontend: podman-shell
+    container_frontend: podman-shell
 ```
 
 Then, you can run a basic hello world example to see earthly using the appropriate container frontend.
