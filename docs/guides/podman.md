@@ -54,10 +54,10 @@ Depending on what you're doing you may need more resources.
 Resources can be adjusted by using one of these commands:
 ```bash
 # Initialize a new default machine with 5 CPUs, 128GB disk space, 8196 MB of memory, and start it
-> podman machine init --now --cpus 5 --disk-size 128 --memory 8196 
+podman machine init --now --cpus 5 --disk-size 128 --memory 8196 
 
 # Adjust the current default podman machine to use 5 CPUs, 128GB disk space, and 8196 MB of memory
-> podman machine stop ; podman machine set --cpus 5 --disk-size 128 --memory 8196 && podman machine start
+podman machine stop ; podman machine set --cpus 5 --disk-size 128 --memory 8196 && podman machine start
 ```
 
 ### Mac: check machine architecture
