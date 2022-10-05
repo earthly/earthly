@@ -53,12 +53,12 @@ jobs:
       DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
       DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
       # Used in our github action as the token - TODO: look to change it into an input
-      GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: remove docker
         run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
         if: inputs.binary == 'podman'
@@ -73,7 +73,7 @@ jobs:
         if: inputs.binary == 'podman'
       - name: Configure Satellites (Earthly Only)
         run: earthly sat ls && earthly satellite select ${{inputs.SATELLITE_NAME}}
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository && inputs.USE_SATELLITE
+        if: (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && inputs.USE_SATELLITE
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) ${{inputs.BUILD_EARTHLY_ARGS}} ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env

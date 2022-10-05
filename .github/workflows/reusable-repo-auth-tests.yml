@@ -35,12 +35,12 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       SSH_PORT: "2222"
       # Used in our github action as the token - TODO: look to change it into an input
-      GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: install sshpass and net-tools
         run: sudo apt-get install -y sshpass net-tools
       - name: remove docker
