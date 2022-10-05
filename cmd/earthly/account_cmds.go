@@ -243,7 +243,7 @@ func (app *earthlyApp) actionAccountRegister(cliCtx *cli.Context) error {
 	var publicKey string
 	if app.registrationPublicKey == "" {
 		if len(publicKeys) > 0 {
-			rawIsRegisterSSHKey, err := promptInput(cliCtx.Context, "Would you like to register an SSH key to be used as a form of login? [Y/n]: ")
+			rawIsRegisterSSHKey, err := promptInput(cliCtx.Context, "Would you like to enable password-less login using public key authentication (https://earthly.dev/public-key-auth)? [Y/n]: ")
 			if err != nil {
 				return err
 			}
@@ -345,9 +345,9 @@ func (app *earthlyApp) actionAccountAddKey(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
-	if cliCtx.NArg() > 1 {
+	if cliCtx.NArg() > 0 {
 		for _, k := range cliCtx.Args().Slice() {
-			err := cloudClient.AddPublickKey(cliCtx.Context, k)
+			err := cloudClient.AddPublicKey(cliCtx.Context, k)
 			if err != nil {
 				return errors.Wrap(err, "failed to add public key to account")
 			}
@@ -367,7 +367,7 @@ func (app *earthlyApp) actionAccountAddKey(cliCtx *cli.Context) error {
 	// as there's no way to pass app.ctx to stdin read calls.
 	signal.Reset(syscall.SIGINT, syscall.SIGTERM)
 
-	fmt.Printf("Which of the following keys do you want to register?\n")
+	fmt.Printf("Which of the following public keys do you want to register (your private key is never sent or even read by earthly)?\n")
 	for i, key := range publicKeys {
 		fmt.Printf("%d) %s\n", i+1, key.String())
 	}
@@ -387,7 +387,7 @@ func (app *earthlyApp) actionAccountAddKey(cliCtx *cli.Context) error {
 	}
 	publicKey := publicKeys[i-1].String()
 
-	err = cloudClient.AddPublickKey(cliCtx.Context, publicKey)
+	err = cloudClient.AddPublicKey(cliCtx.Context, publicKey)
 	if err != nil {
 		return errors.Wrap(err, "failed to add public key to account")
 	}
@@ -416,7 +416,7 @@ func (app *earthlyApp) actionAccountRemoveKey(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 	for _, k := range cliCtx.Args().Slice() {
-		err := cloudClient.RemovePublickKey(cliCtx.Context, k)
+		err := cloudClient.RemovePublicKey(cliCtx.Context, k)
 		if err != nil {
 			return errors.Wrap(err, "failed to add public key to account")
 		}

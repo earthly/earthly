@@ -45,7 +45,7 @@ func (c *client) ListPublicKeys(ctx context.Context) ([]string, error) {
 	return keys, nil
 }
 
-func (c *client) AddPublickKey(ctx context.Context, key string) error {
+func (c *client) AddPublicKey(ctx context.Context, key string) error {
 	key = strings.TrimSpace(key) + "\n"
 	status, body, err := c.doCall(ctx, "PUT", "/api/v0/account/keys", withAuth(), withBody([]byte(key)))
 	if err != nil {
@@ -61,7 +61,7 @@ func (c *client) AddPublickKey(ctx context.Context, key string) error {
 	return nil
 }
 
-func (c *client) RemovePublickKey(ctx context.Context, key string) error {
+func (c *client) RemovePublicKey(ctx context.Context, key string) error {
 	key = strings.TrimSpace(key) + "\n"
 	status, body, err := c.doCall(ctx, "DELETE", "/api/v0/account/keys", withAuth(), withBody([]byte(key)))
 	if err != nil {

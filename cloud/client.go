@@ -50,8 +50,8 @@ type Client interface {
 	RemoveOrgMember(ctx context.Context, orgName, userEmail string) error
 	RevokePermission(ctx context.Context, path, user string) error
 	ListPublicKeys(ctx context.Context) ([]string, error)
-	AddPublickKey(ctx context.Context, key string) error
-	RemovePublickKey(ctx context.Context, key string) error
+	AddPublicKey(ctx context.Context, key string) error
+	RemovePublicKey(ctx context.Context, key string) error
 	CreateToken(context.Context, string, bool, *time.Time) (string, error)
 	ListTokens(ctx context.Context) ([]*TokenDetail, error)
 	RemoveToken(ctx context.Context, token string) error
