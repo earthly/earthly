@@ -3,11 +3,6 @@ FROM --platform=linux/amd64 node:latest
 WORKDIR /app
 
 deps:
-    ARG auth_token
-    ARG site_id
-    # Set environment variables required for building and deploying to Netlify
-    ENV NETLIFY_AUTH_TOKEN=$auth_token
-    ENV NETLIFY_SITE_ID=$site_id
     # Install the Netlify CLI (global)
     RUN npm install netlify-cli -g
     # Copy package.json for installing required packages
@@ -24,8 +19,8 @@ build:
     # Copy files and directories required for building
     COPY next-env.d.ts styles.module.css tsconfig.json ./
     COPY --dir pages ./
-    # Build site
-    RUN netlify build --context production
+    # Build site using NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID secrets
+    RUN --secret NETLIFY_AUTH_TOKEN --secret NETLIFY_SITE_ID netlify build --context production
     SAVE ARTIFACT ./node_modules node_modules/ AS LOCAL ./
     SAVE ARTIFACT ./.next .next/ AS LOCAL ./
     SAVE ARTIFACT ./.netlify .netlify/ AS LOCAL ./
@@ -35,4 +30,4 @@ deploy:
     # Copy artifacts required for deploying to Netlify
     COPY +build/node_modules/ +build/.next/ +build/.netlify/ ./
     # Deploy site
-    RUN netlify deploy --prod
+    RUN --push --secret NETLIFY_AUTH_TOKEN --secret NETLIFY_SITE_ID netlify deploy --prod
