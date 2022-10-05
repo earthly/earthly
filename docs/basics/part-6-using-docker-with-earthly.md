@@ -120,7 +120,7 @@ func TestIntegration(t *testing.T) {
 ```Dockerfile
 VERSION 0.6
 FROM golang:1.15-alpine3.13
-WORKDIR /go-example
+WORKDIR /go-workdir
 
 deps:
     COPY go.mod go.sum ./

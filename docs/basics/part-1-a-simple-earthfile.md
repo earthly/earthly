@@ -8,7 +8,7 @@ WORKDIR /go-workdir
 build:
     COPY main.go .
     RUN go build -o output/example main.go
-    SAVE ARTIFACT output/example AS LOCAL local_go_build/go-example
+    SAVE ARTIFACT output/example AS LOCAL local-output/go-example
 
 docker:
     COPY +build/example .
@@ -32,7 +32,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part1/pa
 
 We'll slowly build up to the Earthfile we have above. Let's start with these first three lines.
 
-`Earthfile`
+`./tutorial/Earthfile`
 ```Dockerfile
 VERSION 0.6
 FROM golang:1.15-alpine3.13
@@ -59,13 +59,15 @@ Lastly, we change our working directory to `/go-workdir`.
 ## Creating Your First Targets
 Earthly aims to replace Dockerfile, makefile, bash scripts and more. We can take all the setup, configuration and build steps we'd normally define in those files and put them in our Earthfile in the form of `targets`.
 
-Let's start by defining a target to build our simple Go app. **When we run Earthly, we can tell it to execute a target by passing a plus for target (+) and then the target name.** So we'll be able to run our `build` target with `earthly +build`.
+Let's start by defining a target to build our simple Go app. **When we run Earthly, we can tell it to execute a target by passing a plus sign (+) and then the target name.** So we'll be able to run our `build` target with `earthly +build`.  More on this in the [Running the Build](#running-the-build) section.
+
+Let's start by breaking down our first target.
 
 ```Dockerfile
 build:
     COPY main.go .
     RUN go build -o output/example main.go
-    SAVE ARTIFACT output/example AS LOCAL local_go_build/go-example
+    SAVE ARTIFACT output/example
 ```
 
 The first thing we do is copy our `main.go` from the **build context** (the directory where the Earthfile resides) to the **build environment** (the containerized environment where Earthly commands are run).
@@ -84,11 +86,11 @@ docker:
 ```
 Here we copy the artifact `/example` produced by another target, `+build`, to the current directory within the build environment. Again this will be the working directory we set up in the `base` target at the beginning of the file. Lastly, we set the entrypoint for the resulting docker image, and then save the image.
 
-You may notice the command `COPY +build/... ...`, which has an unfamiliar form. This is a special type of `COPY`, which can be used to pass artifacts from one target to another. In this case, the target `build` (referenced as `+build`) produces an artifact, which has been declared with `SAVE ARTIFACT`, and the target `docker` copies that artifact in its build environment.
+You may notice the command `COPY +build/... ...`, which has an unfamiliar form if you're coming from Docker. This is a special type of `COPY`, which can be used to pass artifacts from one target to another. In this case, the target `build` (referenced as `+build`) produces an artifact, which has been declared with `SAVE ARTIFACT`, and the target `docker` copies that artifact in its build environment.
 
 With Earthly you have the ability to pass such artifacts or images between targets within the same Earthfile, but also across different Earthfiles across directories or even across repositories. To read more about this, see the [target, artifact and image referencing guide](../guides/target-ref.md) or jump to [part 5](./part-5-importing.md) of this guide.
 
-Lastly, we save the current state as a docker image, which will have the docker tag `example:latest`. This image is only made available to the host's docker if the entire build succeeds.
+Lastly, we save the current state as a docker image, which will have the docker tag `go-example:latest`. This image is only made available to the host's docker if the entire build succeeds.
 
 ## Target Environments
 
@@ -102,7 +104,7 @@ WORKDIR /go-workdir
 build:
     COPY main.go .
     RUN go build -o output/example main.go
-    SAVE ARTIFACT output/example AS LOCAL local_go_build/go-example
+    SAVE ARTIFACT output/example AS LOCAL local-output/go-example
 
 npm:
     FROM node:12-alpine3.12

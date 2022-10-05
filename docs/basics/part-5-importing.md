@@ -13,7 +13,7 @@ So far we've seen how the `FROM` command in Earthly has the ability to reference
 ```Dockerfile
 VERSION 0.6
 FROM golang:1.15-alpine3.13
-WORKDIR /go-example
+WORKDIR /go-workdir
 
 deps:
     COPY go.mod go.sum ./
@@ -25,8 +25,8 @@ deps:
 build:
     FROM +deps
     COPY main.go .
-    RUN go build -o build/go-example main.go
-    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example AS LOCAL local-output/go-example
 
 ```
 
@@ -51,7 +51,7 @@ We can use a target in the Earthfile in `/services/service-one` from inside the 
 
 VERSION 0.6
 FROM golang:1.15-alpine3.13
-WORKDIR /go-example
+WORKDIR /go-workdir
 
 deps:
     COPY go.mod go.sum ./
@@ -67,8 +67,8 @@ deps:
 build:
     FROM ./services/service-one+deps
     COPY main.go .
-    RUN go build -o build/go-example main.go
-    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example AS LOCAL local-output/go-example
 ```
 This code tells `FROM` that there is another Earthfile in  the `services/service-one` directory and that the Earthfile  contains a target called `+deps`. In this case, if we were to run `+build` Earthly is smart enough to go into the subdirectory, run the  `+deps` target in that Earthfile, and then use it as the base image for `+build`.
 
@@ -78,8 +78,8 @@ We can also reference an Earthfile in another repo, which works in a similar way
 build:
     FROM github.com/example/project+remote-target
     COPY main.go .
-    RUN go build -o build/go-example main.go
-    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example AS LOCAL local-output/go-example
 ```
 
 ## Importing Whole Projects
@@ -89,13 +89,13 @@ In addition to importing single targets from other files, we can also import an 
 VERSION 0.6
 IMPORT ./services/service-one AS my_service
 FROM golang:1.15-alpine3.13
-WORKDIR /go-example
+WORKDIR /go-workdir
 
 build:
     FROM my_service+deps
     COPY main.go .
-    RUN go build -o build/go-example main.go
-    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example AS LOCAL local-output/go-example
 ```
 In this example, we assume there is a `./services/service-one` directory that contains its own Earthfile. We import it and then use the `AS` keyword to give it an alias.
 

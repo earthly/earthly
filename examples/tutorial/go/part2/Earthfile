@@ -5,7 +5,7 @@ WORKDIR /go-workdir
 build:
     COPY main.go .
     RUN go build -o output/example main.go
-    SAVE ARTIFACT output/example AS LOCAL local_go_build/go-example
+    SAVE ARTIFACT output/example AS LOCAL local-output/go-example
 
 docker:
     COPY +build/example .
