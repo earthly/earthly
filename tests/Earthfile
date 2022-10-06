@@ -987,11 +987,14 @@ true-false-flag:
     RUN test $( cat output.txt | grep -v echo | grep "fight the power" | wc -l) = "1"
 
 true-false-flag-invalid:
-    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-false --post_command="2>output.txt"
-    RUN cat output.txt | grep "Command /bin/sh -c false failed with exit code 1"
-    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-false-with-args --post_command="2>output2.txt"
-    RUN cat output2.txt | grep "Command /bin/sh -c 'false echo test' failed with exit code 1"
-    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-maybe --post_command="2>output3.txt"
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --verbose=0 --should_fail=true --target=+run-false --post_command="2>output.txt"
+    RUN cat output.txt
+    RUN cat output.txt | grep "did not complete successfully. Exit code 1"
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --verbose=0 --should_fail=true --target=+run-false-with-args --post_command="2>output2.txt"
+    RUN cat output2.txt
+    RUN cat output2.txt | grep "did not complete successfully. Exit code 1"
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --verbose=0 --should_fail=true --target=+run-maybe --post_command="2>output3.txt"
+    RUN cat output3.txt
     RUN cat output3.txt | grep 'invalid argument for flag .*--no-cache.*expected bool'
 
 sequential-locally-test:
