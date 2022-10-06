@@ -1,0 +1,12 @@
+[[plugins]]
+package = "@netlify/plugin-nextjs"
+
+[build]
+command = "npm run build"
+publish = ".next"
+
+[[redirects]]
+from = "/_next/static/*"
+to = "/static/:splat"
+status = 200
+force = true
