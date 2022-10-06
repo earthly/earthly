@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- Build failures now show the file and line number of the failing command
+
 ## v0.6.25 - 2022-10-04
 
 ### Fixed
