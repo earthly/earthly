@@ -22,6 +22,13 @@ all:
     BUILD +experimental
 
 ga:
+    BUILD +ga-no-qemu
+    BUILD +ga-qemu
+
+ga-qemu:
+    BUILD ./platform+test
+
+ga-no-qemu:
     BUILD ./autocompletion+test-all \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
@@ -54,7 +61,6 @@ ga:
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
     BUILD ./import+build
     BUILD ./import+build-imported
-    BUILD ./platform+test
     BUILD +privileged-test
     BUILD +copy-test
     BUILD +copy-test-verbose-output
@@ -1057,6 +1063,7 @@ ls-subdir:
     RUN diff expected actual
 
 ssh:
+    ARG FRONTEND=docker
     COPY ssh.earth ./Earthfile
     RUN ssh-keygen -b 3072 -t rsa -f /root/rsa-key -q -N '' -C 'rsa-key-from-earthly-tests'
     RUN echo "#!/bin/sh
@@ -1064,7 +1071,7 @@ set -e
 eval \"\$(ssh-agent)\"
 ssh-add /root/rsa-key
 earthly --config \$earthly_config +test
-earthly --config \$earthly_config -P +test-with-docker
+earthly --config \$earthly_config -P +test-with-docker --FRONTEND=$FRONTEND
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
     ENV EARTHLY_EXEC_CMD="/tmp/test-earthly-script"
     RUN --privileged \

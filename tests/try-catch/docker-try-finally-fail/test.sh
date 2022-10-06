@@ -8,10 +8,14 @@ cd "$(dirname "$0")"
 earthly=${earthly-"../../../build/linux/amd64/earthly"}
 echo "using earthly=$(realpath "$earthly")"
 
+frontend="${frontend:-$(which docker || which podman)}"
+test -n "$frontend" || (>&2 echo "Error: frontend is empty" && exit 1)
+echo "using frontend=$frontend"
+
 rm .testdata || true # cleanup
 
 set +e
-"$earthly" -P $@ +test
+"$earthly" -P $@ +test --FRONTEND=$frontend
 exit_code="$?"
 set -e
 

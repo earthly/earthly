@@ -6,12 +6,13 @@ FROM alpine:3.15
 
 test-local-with-arg:
     LOCALLY
+    ARG FRONTEND=docker
     ARG pattern
     RUN set -e; \
         if [ "$(uname -s)" = "Darwin" ]; then \
             echo "locally must be working"; \
         else \
-            cat /proc/1/cgroup | grep -v docker | grep $pattern; \
+            cat /proc/1/cgroup | grep -v $FRONTEND | grep $pattern; \
         fi
 
 test-local:
@@ -165,32 +166,35 @@ mycontainer2:
 
 test-with-docker:
     LOCALLY
-    RUN docker images -q mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744 | xargs -n 1 -r docker rmi
-    WITH DOCKER \
-            --load mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest=+mycontainer
-        RUN docker run --rm mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest | grep "hello world"
+    ARG FRONTEND=docker
+    RUN $FRONTEND images -q mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744 | xargs -n 1 -r $FRONTEND rmi
+    WITH DOCKER --load mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest=+mycontainer
+        RUN $FRONTEND run --rm mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest | grep "hello world"
     END
 
 test-with-two-dockers:
     LOCALLY
-    RUN docker images -q mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75 | xargs -n 1 -r docker rmi
+    ARG FRONTEND=docker
+    RUN $FRONTEND images -q mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75 | xargs -n 1 -r $FRONTEND rmi
     WITH DOCKER \
             --load mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:latest=+mycontainer \
             --load mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:hyperlatest=+mycontainer2
-        RUN (docker run --rm mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:latest | grep "hello world" ) && \
-            (docker run --rm mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:hyperlatest | grep "fizzbuzz" )
+        RUN ($FRONTEND run --rm mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:latest | grep "hello world" ) && \
+            ($FRONTEND run --rm mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:hyperlatest | grep "fizzbuzz" )
     END
 
 #################################################################################################################
 # tests for WITH DOCKER and compose
 
 all:
+    ARG FRONTEND=docker
+    ARG FRONTEND_COMPOSE="docker compose"
     BUILD +test-copy-dir-from-local
     BUILD +test-copy-file-from-local
     BUILD +test-copy-from-busybox-to-local
     BUILD +test-copy-from-busybox-to-local-with-workdir
     BUILD +test-local
-    BUILD +test-local-with-arg --pattern=memory
+    BUILD +test-local-with-arg --pattern=memory --FRONTEND=$FRONTEND
     BUILD +test-locally-can-copy-dir
     BUILD +test-locally-can-copy-dir-contents
     BUILD +test-locally-workdir
@@ -199,7 +203,7 @@ all:
     BUILD +test-save-unnamed-local-artifact
     BUILD +test-save-unnamed-local-artifact-dir
     BUILD +test-save-unnamed-local-artifact-dir2
-    BUILD +test-with-docker
-    BUILD +test-with-two-dockers
-    BUILD ./with-docker-compose-local+all
-    BUILD ./with-docker-compose-local-reg+all
+    BUILD +test-with-docker --FRONTEND=$FRONTEND
+    BUILD +test-with-two-dockers --FRONTEND=$FRONTEND
+    BUILD ./with-docker-compose-local+all --FRONTEND=$FRONTEND --FRONTEND_COMPOSE=$FRONTEND_COMPOSE
+    BUILD ./with-docker-compose-local-reg+all --FRONTEND=$FRONTEND --FRONTEND_COMPOSE=$FRONTEND_COMPOSE

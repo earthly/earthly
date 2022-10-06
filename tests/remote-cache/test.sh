@@ -9,19 +9,29 @@ set -o pipefail
 
 cd "$(dirname "$0")"
 
+# docker / podman
+frontend="${frontend:-$(which docker || which podman)}"
+test -n "$frontend" || (>&2 echo "Error: frontend is empty" && exit 1)
 earthly=${earthly-"../../build/linux/amd64/earthly"}
 
 # Cleanup previous run.
-docker stop registry || true
-docker rm registry || true
+"$frontend" stop registry || true
+"$frontend" rm registry || true
 
 # Run registry.
-docker run --rm -d \
+"$frontend" run --rm -d \
     -p "127.0.0.1:5000:5000" \
     --name registry registry:2
 
-export REGISTRY_IP="$(docker inspect -f {{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}} registry)"
+export REGISTRY_IP="$($frontend inspect -f {{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}} registry)"
 export REGISTRY="$REGISTRY_IP:5000"
+
+if test -z "$REGISTRY_IP"
+then
+     echo echo "Error: REGISTRY_IP is empty"
+     exit 4
+fi
+
 
 # Test.
 set +e
@@ -37,6 +47,6 @@ exit_code="$?"
 set -e
 
 # Cleanup.
-docker stop registry
+"$frontend" stop registry
 
 exit "$exit_code"

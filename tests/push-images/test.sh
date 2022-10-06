@@ -7,6 +7,9 @@ cd "$(dirname "$0")"
 
 earthly=${earthly-"../../build/linux/amd64/earthly"}
 
+frontend="${frontend:-$(which docker || which podman)}"
+test -n "$frontend" || (>&2 echo "Error: frontend is empty" && exit 1)
+
 echo "=== Test Single --push ==="
 
 "$earthly" --allow-privileged --no-cache +only-push 2>&1 | tee single_output
@@ -17,7 +20,7 @@ if ! cat single_output | grep "Did not push image earthly/sap:only-push"; then
     exit 1
 fi
 
-docker images --format "{{.Repository}}:{{.Tag}}" | grep "earthly/sap:" > single_images
+"$frontend" images --format "{{.Repository}}:{{.Tag}}" | grep "earthly/sap:" > single_images
 
 if  ! cat single_images | grep -q "earthly/sap:only-push"; then
     echo "Missed only valid image"
@@ -35,7 +38,7 @@ if ! cat multi_output | grep "Did not push image earthly/sap:after-push"; then
     exit 1
 fi
 
-docker images --format "{{.Repository}}:{{.Tag}}" | grep "earthly/sap:" > multi_images
+"$frontend" images --format "{{.Repository}}:{{.Tag}}" | grep "earthly/sap:" > multi_images
 
 if echo "$EARTHLY_VERSION_FLAG_OVERRIDES" | grep "wait-block" >/dev/null; then
     echo "skipping non-output after push test; --wait-block feature does not impose such a limitation"
@@ -47,7 +50,7 @@ else
     fi
     if cat multi_images | grep "earthly/sap:after-push"; then
         echo "Saved invalid image"
-        docker images --format "{{.Repository}}:{{.Tag}}" | grep "sap:"
+        "$frontend" images --format "{{.Repository}}:{{.Tag}}" | grep "sap:"
         exit 1
     fi
 fi
