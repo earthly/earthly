@@ -294,7 +294,7 @@ func (sf *shellFrontend) commandContextOutputRetry(ctx context.Context, maxRetry
 		if err == nil {
 			return output, nil
 		}
-		sf.Console.VerbosePrintf("Command %s failed: %v. Will retry\n", strings.Join(args, " "))
+		sf.Console.Warnf("Command %s failed: %v. Will retry\n", strings.Join(args, " "))
 	}
 	return &commmandContextOutput{}, err
 }
