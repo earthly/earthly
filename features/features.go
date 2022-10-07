@@ -27,6 +27,7 @@ type Features struct {
 	CheckDuplicateImages       bool `long:"check-duplicate-images" description:"check for duplicate images during output"`
 	EarthlyVersionArg          bool `long:"earthly-version-arg" description:"includes EARTHLY_VERSION and EARTHLY_BUILD_SHA ARGs"`
 	EarthlyLocallyArg          bool `long:"earthly-locally-arg" description:"includes EARTHLY_LOCALLY ARG"`
+	EarthlyGitAuthorArgs       bool `long:"earthly-git-author-args" description:"includes EARTHLY_GIT_AUTHOR and EARTHLY_GIT_CO_AUTHORS ARGs"`
 	ExplicitGlobal             bool `long:"explicit-global" description:"require base target args to have explicit settings to be considered global args"`
 	UseCacheCommand            bool `long:"use-cache-command" description:"allow use of CACHE command in Earthfiles"`
 	UseHostCommand             bool `long:"use-host-command" description:"allow use of HOST command in Earthfiles"`

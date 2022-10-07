@@ -1,10 +1,19 @@
-VERSION 0.6
+VERSION --earthly-git-author-args 0.6
+
+# Note: this is tests both locally and remotely
+# the population of git metadata occurs in two **different** functions respectively:
+#   - gitutil/detectgit.go: Metadata            (locally-reference)
+#   - buildcontext/git.go: resolveGitProject    (remotely-referenced)
 
 test-git-metadata:
     FROM alpine
     ARG --required expectedsha
     ARG EARTHLY_GIT_SHORT_HASH
     ARG EARTHLY_GIT_HASH
+    ARG EARTHLY_GIT_AUTHOR
+    ARG EARTHLY_GIT_CO_AUTHORS
     RUN test "$EARTHLY_GIT_HASH" = "$expectedsha"
     RUN test -n "$EARTHLY_GIT_SHORT_HASH"
     RUN echo "$EARTHLY_GIT_HASH" | grep "$EARTHLY_GIT_SHORT_HASH"
+    RUN test "$EARTHLY_GIT_AUTHOR" = "onlyspammersemailthis@earthly.dev"
+    RUN test "$EARTHLY_GIT_CO_AUTHORS" = "testy@earthly.dev cover@earthly.dev"

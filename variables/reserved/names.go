@@ -8,6 +8,8 @@ const (
 	EarthlyGitOriginURL         = "EARTHLY_GIT_ORIGIN_URL"
 	EarthlyGitOriginURLScrubbed = "EARTHLY_GIT_ORIGIN_URL_SCRUBBED"
 	EarthlyGitProjectName       = "EARTHLY_GIT_PROJECT_NAME"
+	EarthlyGitAuthor            = "EARTHLY_GIT_AUTHOR"
+	EarthlyGitCoAuthors         = "EARTHLY_GIT_CO_AUTHORS"
 	EarthlyGitShortHash         = "EARTHLY_GIT_SHORT_HASH"
 	EarthlyGitTag               = "EARTHLY_GIT_TAG"
 	EarthlyLocally              = "EARTHLY_LOCALLY"
@@ -41,6 +43,8 @@ func init() {
 		EarthlyBuildSha:             struct{}{},
 		EarthlyGitBranch:            struct{}{},
 		EarthlyGitCommitTimestamp:   struct{}{},
+		EarthlyGitAuthor:            struct{}{},
+		EarthlyGitCoAuthors:         struct{}{},
 		EarthlyGitHash:              struct{}{},
 		EarthlyGitOriginURL:         struct{}{},
 		EarthlyGitOriginURLScrubbed: struct{}{},
