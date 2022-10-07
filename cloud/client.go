@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"time"
 
+	"github.com/earthly/cloud-api/compute"
 	"github.com/earthly/cloud-api/pipelines"
 	"github.com/golang/protobuf/jsonpb"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
@@ -106,6 +107,7 @@ type client struct {
 	disableSSHKeyGuessing bool
 	jm                    *jsonpb.Unmarshaler
 	pipelines             pipelines.PipelinesClient
+	compute               compute.ComputeClient
 }
 
 var _ Client = &client{}
@@ -144,5 +146,6 @@ func NewClient(httpAddr, grpcAddr, agentSockPath, authCredsOverride string, warn
 		return nil, errors.Wrap(err, "failed dialing pipelines grpc")
 	}
 	c.pipelines = pipelines.NewPipelinesClient(conn)
+	c.compute = compute.NewComputeClient(conn)
 	return c, nil
 }
