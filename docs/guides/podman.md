@@ -160,3 +160,8 @@ We've found installing [qemu-user-static](https://github.com/multiarch/qemu-user
 # or
 > yum install qemu-user-static
 ```
+
+### crun: open executable: Permission denied: OCI permission denied
+This can happen when you are trying to attempting to run a binary without the execution permission.
+https://github.com/containers/podman/issues/9377
+https://github.com/signalwire/freeswitch/pull/1748
