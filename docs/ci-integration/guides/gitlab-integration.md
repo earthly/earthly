@@ -12,9 +12,14 @@ services:
 
 variables:
   DOCKER_HOST: tcp://docker:2375
+  FORCE_COLOR: 1
   EARTHLY_EXEC_CMD: "/bin/sh"
 
-image: earthly/earthly:v0.6.22
+image: earthly/earthly:v0.6.25
+
+before_script:
+    - earthly bootstrap
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
 
 earthly:
   stage: build

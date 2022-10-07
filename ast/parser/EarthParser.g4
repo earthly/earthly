@@ -20,7 +20,8 @@ stmt:
 	| withStmt
 	| ifStmt
 	| forStmt
-	| waitStmt;
+	| waitStmt
+	| tryStmt;
 
 commandStmt:
 	fromStmt
@@ -50,7 +51,9 @@ commandStmt:
 	| importStmt
 	| cacheStmt
 	| hostStmt
-	| projectStmt;
+	| projectStmt
+	| pipelineStmt
+	| triggerStmt;
 
 // version --------------------------------------------------------------------
 version: VERSION WS stmtWords NL+;
@@ -79,6 +82,18 @@ elseBlock: stmts;
 
 ifExpr: expr;
 elseIfExpr: expr;
+
+// tryStmt ---------------------------------------------------------------------
+
+tryStmt: tryClause (NL+ WS? catchClause)? (NL+ WS? finallyClause)? NL+ WS? END;
+
+tryClause: TRY (NL+ WS? tryBlock)?;
+tryBlock: stmts;
+catchClause: CATCH (NL+ WS? catchBlock)?;
+catchBlock: stmts;
+finallyClause: FINALLY (NL+ WS? finallyBlock)?;
+finallyBlock: stmts;
+
 
 // forStmt --------------------------------------------------------------------
 
@@ -149,6 +164,8 @@ importStmt: IMPORT (WS stmtWords)?;
 cacheStmt: CACHE (WS stmtWords)?;
 hostStmt: HOST (WS stmtWords)?;
 projectStmt: PROJECT (WS stmtWords)?;
+pipelineStmt: PIPELINE (WS stmtWords)?;
+triggerStmt: TRIGGER (WS stmtWords)?;
 
 // expr, stmtWord* ------------------------------------------------------------
 

@@ -1,0 +1,73 @@
+name: Push Integrations
+
+on:
+  workflow_call:
+    inputs:
+      BUILT_EARTHLY_PATH:
+        required: true
+        type: string
+      BUILD_EARTHLY_TARGET:
+        required: true
+        type: string
+      BINARY:
+        required: true
+        type: string
+      SUDO:
+        type: string
+        required: false
+      RUNS_ON:
+        required: true
+        type: string
+
+
+jobs:
+  push-integrations:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{inputs.RUNS_ON}}
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+      # Used in our github action as the token - TODO: look to change it into an input
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: earthly/actions-setup@main
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: remove docker
+        run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
+        if: inputs.binary == 'podman'
+      - name: Install Podman (with apt-get)
+        run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman
+        if: inputs.binary == 'podman'
+      - name: Podman debug info
+        run: podman version && podman info && podman info --debug
+        if: inputs.binary == 'podman'
+      - name: Docker mirror login via ${{inputs.BINARY}} (Earthly Only)
+        run: ${{inputs.SUDO}} ${{inputs.BINARY}} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Build latest earthly using released earthly
+        run: ${{inputs.SUDO}} $(which earthly) -P --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+          set -euo pipefail
+          EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+          echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
+      - name: Enable local registry-based exporter
+        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.local_registry_host 'tcp://127.0.0.1:8371'
+      - name: Configure Earthly Conversion Parallelism
+        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.conversion_parallelism 5
+      - name: Push and Pull Cloud Images
+        run: |-
+          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P  \
+           --build-arg DOCKERHUB_AUTH=true \
+           --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+           --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+           --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
+          ./tests/cloud-push-pull+all
+      - name: Push Images after RUN --push
+        run: ${{inputs.SUDO}} frontend=${{inputs.BINARY}} ./tests/push-images/test.sh
+      - name: Buildkit logs (runs on failure)
+        run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
+        if: ${{ failure() }}

@@ -85,7 +85,7 @@ func (app *earthlyApp) actionDebugAst(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionDebugBuildkitInfo(cliCtx *cli.Context) error {
 	app.commandName = "debugBuildkitInfo"
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -104,14 +104,13 @@ func (app *earthlyApp) actionDebugBuildkitInfo(cliCtx *cli.Context) error {
 	fmt.Printf("Buildkit revision: %s\n", info.BuildkitVersion.Revision)
 	fmt.Printf("Buildkit package: %s\n", info.BuildkitVersion.Package)
 	fmt.Printf("Num sessions: %d\n", info.NumSessions)
-	fmt.Printf("Seconds idle: %d\n", info.SecondsIdle)
 	return nil
 }
 
 func (app *earthlyApp) actionDebugBuildkitDiskUsage(cliCtx *cli.Context) error {
 	app.commandName = "debugBuildkitDiskUsage"
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -162,7 +161,7 @@ func (app *earthlyApp) actionDebugBuildkitDiskUsage(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionDebugBuildkitWorkers(cliCtx *cli.Context) error {
 	app.commandName = "debugBuildkitWorkers"
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -235,7 +234,7 @@ func (app *earthlyApp) actionDebugBuildkitWorkers(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionDebugBuildkitShutdownIfIdle(cliCtx *cli.Context) error {
 	app.commandName = "debugBuildkitShutdownIfIdle"
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}

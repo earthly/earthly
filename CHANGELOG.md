@@ -4,6 +4,59 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- Build failures now show the file and line number of the failing command
+
+## v0.6.25 - 2022-10-04
+
+### Fixed
+
+- Fixed outputting images with long names [#2053](https://github.com/earthly/earthly/issues/2053)
+- Fixed buildkit connection timing out occasionally [#2229](https://github.com/earthly/earthly/issues/2229)
+
+## v0.6.24 - 2022-09-22
+
+### Added
+
+- The `earthly org invite` command now has the ability to invite multiple email addresses at once.
+- Experimental support for `TRY/FINALLY`, which allows saving artifacts upon failure. [#988](https://github.com/earthly/earthly/issues/988), [#587](https://github.com/earthly/earthly/issues/587).
+  Not that this is only a partial implementation, and only accepts a *single* RUN command in the `TRY`, and only `SAVE ARTIFACT` commands in the `FINALLY` block.
+- Ability to enable specific satellite features via cli flags, e.g. the new experimental sleep feature can be enabled with
+  `earthly satellite launch --feature-flags satellite-sleep my-satellite`.
+
+### Changed
+
+- Bootstraping zsh autocompletion will first attempt to install under `/usr/local/share/zsh/site-functions`, and will now
+  fallback to `/usr/share/zsh/site-functions`.
+- The `earthly preview org` command has been promoted to GA, and is now available under `earthly org`.
+- `earthly sat select` with no arguments now prints the current satellite and the usage text.
+- The interactive debugger now connects over the buildkit session connection rather than an unencrypted tcp connection; this makes it possible
+  to use the interactive debugger with remote buildkit instances.
+
+### Fixed
+
+- Fixed Earthly failing when using a remote docker host from a machine with an incompatible architecture. [#1895](https://github.com/earthly/earthly/issues/1895)
+- Earthly will no longer race with itself when starting up buildkit. [#2194](https://github.com/earthly/earthly/issues/2194)
+- The error reported when failing to initiate a connection to buildkit has been reworded to account for the remote buildkit/satellite case too.
+- Errors related to parsing `VERSION` feature flags will no longer be displayed during auto-completion.
+
+## v0.6.23 - 2022-09-06
+
+### Fixed
+
+- Using `--remote-cache` on a target that contains only `BUILD` instructions caused a hang. [#1945](https://github.com/earthly/earthly/issues/1945)
+- Fixed WAIT/END related bug which prevent `WITH DOCKER --load` from building referenced target.
+- Images and artifacts which are output (or pushed), are now displayed in the final earthly output.
+- `ssh: parse error in message type 27` error when using OpenSSH 8.9; fixed by upstream in [golang/go#51689](https://github.com/golang/go/issues/51689).
+
+### Changed
+
+- Removed warning stating that `WAIT/END code is experimental and may be incomplete` -- it is still experimental; however, it now has a higher degree
+  of test-coverage. It can be enabled with `VERSION --wait-block 0.6`.
+- A warning is now displayed during exporting a multi-platform image to the local host if no platform is found that matches the host's platform type.
+- Reduced verbosity of `To enable pushing use earthly --push` message.
+
 ## v0.6.22 - 2022-08-19
 
 ### Added

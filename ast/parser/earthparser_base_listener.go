@@ -171,6 +171,48 @@ func (s *BaseEarthParserListener) EnterElseIfExpr(ctx *ElseIfExprContext) {}
 // ExitElseIfExpr is called when production elseIfExpr is exited.
 func (s *BaseEarthParserListener) ExitElseIfExpr(ctx *ElseIfExprContext) {}
 
+// EnterTryStmt is called when production tryStmt is entered.
+func (s *BaseEarthParserListener) EnterTryStmt(ctx *TryStmtContext) {}
+
+// ExitTryStmt is called when production tryStmt is exited.
+func (s *BaseEarthParserListener) ExitTryStmt(ctx *TryStmtContext) {}
+
+// EnterTryClause is called when production tryClause is entered.
+func (s *BaseEarthParserListener) EnterTryClause(ctx *TryClauseContext) {}
+
+// ExitTryClause is called when production tryClause is exited.
+func (s *BaseEarthParserListener) ExitTryClause(ctx *TryClauseContext) {}
+
+// EnterTryBlock is called when production tryBlock is entered.
+func (s *BaseEarthParserListener) EnterTryBlock(ctx *TryBlockContext) {}
+
+// ExitTryBlock is called when production tryBlock is exited.
+func (s *BaseEarthParserListener) ExitTryBlock(ctx *TryBlockContext) {}
+
+// EnterCatchClause is called when production catchClause is entered.
+func (s *BaseEarthParserListener) EnterCatchClause(ctx *CatchClauseContext) {}
+
+// ExitCatchClause is called when production catchClause is exited.
+func (s *BaseEarthParserListener) ExitCatchClause(ctx *CatchClauseContext) {}
+
+// EnterCatchBlock is called when production catchBlock is entered.
+func (s *BaseEarthParserListener) EnterCatchBlock(ctx *CatchBlockContext) {}
+
+// ExitCatchBlock is called when production catchBlock is exited.
+func (s *BaseEarthParserListener) ExitCatchBlock(ctx *CatchBlockContext) {}
+
+// EnterFinallyClause is called when production finallyClause is entered.
+func (s *BaseEarthParserListener) EnterFinallyClause(ctx *FinallyClauseContext) {}
+
+// ExitFinallyClause is called when production finallyClause is exited.
+func (s *BaseEarthParserListener) ExitFinallyClause(ctx *FinallyClauseContext) {}
+
+// EnterFinallyBlock is called when production finallyBlock is entered.
+func (s *BaseEarthParserListener) EnterFinallyBlock(ctx *FinallyBlockContext) {}
+
+// ExitFinallyBlock is called when production finallyBlock is exited.
+func (s *BaseEarthParserListener) ExitFinallyBlock(ctx *FinallyBlockContext) {}
+
 // EnterForStmt is called when production forStmt is entered.
 func (s *BaseEarthParserListener) EnterForStmt(ctx *ForStmtContext) {}
 
@@ -428,6 +470,18 @@ func (s *BaseEarthParserListener) EnterProjectStmt(ctx *ProjectStmtContext) {}
 
 // ExitProjectStmt is called when production projectStmt is exited.
 func (s *BaseEarthParserListener) ExitProjectStmt(ctx *ProjectStmtContext) {}
+
+// EnterPipelineStmt is called when production pipelineStmt is entered.
+func (s *BaseEarthParserListener) EnterPipelineStmt(ctx *PipelineStmtContext) {}
+
+// ExitPipelineStmt is called when production pipelineStmt is exited.
+func (s *BaseEarthParserListener) ExitPipelineStmt(ctx *PipelineStmtContext) {}
+
+// EnterTriggerStmt is called when production triggerStmt is entered.
+func (s *BaseEarthParserListener) EnterTriggerStmt(ctx *TriggerStmtContext) {}
+
+// ExitTriggerStmt is called when production triggerStmt is exited.
+func (s *BaseEarthParserListener) ExitTriggerStmt(ctx *TriggerStmtContext) {}
 
 // EnterExpr is called when production expr is entered.
 func (s *BaseEarthParserListener) EnterExpr(ctx *ExprContext) {}

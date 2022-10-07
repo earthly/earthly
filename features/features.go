@@ -21,6 +21,7 @@ type Features struct {
 	ReferencedSaveOnly         bool `long:"referenced-save-only" description:"only save artifacts that are directly referenced"`
 	UseCopyIncludePatterns     bool `long:"use-copy-include-patterns" description:"specify an include pattern to buildkit when performing copies"`
 	ForIn                      bool `long:"for-in" description:"allow the use of the FOR command"`
+	TryFinally                 bool `long:"try" description:"allow the use of the TRY/FINALLY commands"`
 	RequireForceForUnsafeSaves bool `long:"require-force-for-unsafe-saves" description:"require the --force flag when saving to path outside of current path"`
 	NoImplicitIgnore           bool `long:"no-implicit-ignore" description:"disable implicit ignore rules to exclude .tmp-earthly-out/, build.earth, Earthfile, .earthignore and .earthlyignore when resolving local context"`
 	CheckDuplicateImages       bool `long:"check-duplicate-images" description:"check for duplicate images during output"`
@@ -40,6 +41,7 @@ type Features struct {
 	UseRegistryForWithDocker   bool `long:"use-registry-for-with-docker" description:"use embedded Docker registry for WITH DOCKER load operations"`
 	WaitBlock                  bool `long:"wait-block" description:"enable WITH/END feature, also allows RUN --push mixed with non-push commands"`
 	UseProjectSecrets          bool `long:"use-project-secrets" description:"enable project-based secret resolution"`
+	UsePipelines               bool `long:"use-pipelines" description:"enable the PIPELINE and TRIGGER commands"`
 
 	Major int
 	Minor int
@@ -157,7 +159,7 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 		return nil, false, errUnexpectedArgs
 	}
 
-	parsedArgs, err := flagutil.ParseArgsWithValueModifier("VERSION", &ftrs, version.Args, instrumentVersion)
+	parsedArgs, err := flagutil.ParseArgsWithValueModifierAndOptions("VERSION", &ftrs, version.Args, instrumentVersion, goflags.PassDoubleDash|goflags.PassAfterNonOption|goflags.AllowBoolValues)
 	if err != nil {
 		return nil, false, err
 	}

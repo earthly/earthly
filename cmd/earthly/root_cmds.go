@@ -10,6 +10,12 @@ import (
 	"strings"
 
 	"github.com/dustin/go-humanize"
+	"github.com/moby/buildkit/client"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
@@ -20,11 +26,6 @@ import (
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/termutil"
-	"github.com/moby/buildkit/client"
-	gwclient "github.com/moby/buildkit/frontend/gateway/client"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
-	"golang.org/x/sync/errgroup"
 )
 
 func (app *earthlyApp) rootCmds() []*cli.Command {
@@ -234,7 +235,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 					EnvVars:     []string{"EARTHLY_ORG"},
 					Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
 					Required:    false,
-					Destination: &app.satelliteOrg,
+					Destination: &app.orgName,
 				},
 			},
 			Subcommands: app.satelliteCmds(),
@@ -253,10 +254,11 @@ Set up a whole custom git repository for a server called example.com, using a si
 					UsageText:   "earthly org (member|invite)",
 					Flags: []cli.Flag{
 						&cli.StringFlag{
-							Name:     "org",
-							EnvVars:  []string{"EARTHLY_ORG"},
-							Usage:    "The name of the organization to which the project belongs. Required when user is a member of multiple.",
-							Required: false,
+							Name:        "org",
+							EnvVars:     []string{"EARTHLY_ORG"},
+							Usage:       "The name of the organization to which the project belongs. Required when user is a member of multiple.",
+							Required:    false,
+							Destination: &app.orgName,
 						},
 					},
 					Subcommands: app.orgCmdsPreview(),
@@ -269,10 +271,18 @@ Set up a whole custom git repository for a server called example.com, using a si
 					UsageText:   "earthly project (ls|rm|create|member)",
 					Flags: []cli.Flag{
 						&cli.StringFlag{
-							Name:     "org",
-							EnvVars:  []string{"EARTHLY_ORG"},
-							Usage:    "The name of the organization to which the project belongs. Required when user is a member of multiple.",
-							Required: false,
+							Name:        "org",
+							EnvVars:     []string{"EARTHLY_ORG"},
+							Usage:       "The name of the organization to which the project belongs. Required when user is a member of multiple.",
+							Required:    false,
+							Destination: &app.orgName,
+						},
+						&cli.StringFlag{
+							Name:        "project",
+							EnvVars:     []string{"EARTHLY_PROJECT"},
+							Usage:       "The project to act on.",
+							Required:    false,
+							Destination: &app.projectName,
 						},
 					},
 					Subcommands: app.projectCmds(),
@@ -284,16 +294,18 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Usage:       "Manage cloud secrets *experimental*",
 					Flags: []cli.Flag{
 						&cli.StringFlag{
-							Name:     "org",
-							EnvVars:  []string{"EARTHLY_ORG"},
-							Usage:    "The organization to which the project belongs.",
-							Required: true,
+							Name:        "org",
+							EnvVars:     []string{"EARTHLY_ORG"},
+							Usage:       "The organization to which the project belongs.",
+							Required:    true,
+							Destination: &app.orgName,
 						},
 						&cli.StringFlag{
-							Name:     "project",
-							EnvVars:  []string{"EARTHLY_PROJECT"},
-							Usage:    "The organization project in which to store secrets.",
-							Required: true,
+							Name:        "project",
+							EnvVars:     []string{"EARTHLY_PROJECT"},
+							Usage:       "The organization project in which to store secrets.",
+							Required:    true,
+							Destination: &app.projectName,
 						},
 					},
 					Subcommands: app.secretCmdsPreview(),
@@ -385,9 +397,11 @@ func (app *earthlyApp) bootstrap(cliCtx *cli.Context) error {
 		// Bootstrap buildkit - pulls image and starts daemon.
 		bkClient, err := app.getBuildkitClient(cliCtx, nil)
 		if err != nil {
-			return errors.Wrap(err, "bootstrap new buildkitd client")
+			console.Warnf("Warning: Bootstrapping buildkit failed: %v", err)
+			// Keep going.
+		} else {
+			defer bkClient.Close()
 		}
-		defer bkClient.Close()
 	}
 
 	console.Printf("Bootstrapping successful.\n")
@@ -638,7 +652,7 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	}
 
 	// Prune via API.
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -683,4 +697,10 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	}
 	app.console.Printf("Freed %s\n", humanize.Bytes(total))
 	return nil
+}
+
+func (app *earthlyApp) actionPreviewPromoted(name, dest string) cli.ActionFunc {
+	return func(*cli.Context) error {
+		return errors.Errorf("the %q command has been moved out of \"preview\" is now available under %q", name, dest)
+	}
 }

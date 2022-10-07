@@ -18,7 +18,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type onImageFunc func(context.Context, *errgroup.Group, string) (io.WriteCloser, error)
+type onImageFunc func(context.Context, *errgroup.Group, string, string, string) (io.WriteCloser, error)
 type onArtifactFunc func(context.Context, string, domain.Artifact, string, string) (string, error)
 type onFinalArtifactFunc func(context.Context) (string, error)
 
@@ -98,7 +98,9 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 						return nil, nil
 					}
 					imageName := md["image.name"]
-					return onImage(ctx, eg, imageName)
+					waitFor := md["export-image-wait-for"]
+					manifestKey := md["export-image-manifest-key"]
+					return onImage(ctx, eg, imageName, waitFor, manifestKey)
 				},
 				OutputDirFunc: func(md map[string]string) (string, error) {
 					if md["export-dir"] != "true" {

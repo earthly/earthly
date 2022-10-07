@@ -6,9 +6,10 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/earthly/earthly/cloud"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+
+	"github.com/earthly/earthly/cloud"
 )
 
 func (app *earthlyApp) orgCmds() []*cli.Command {
@@ -33,29 +34,49 @@ func (app *earthlyApp) orgCmds() []*cli.Command {
 			Action:    app.actionOrgListPermissions,
 		},
 		{
-			Name:      "invite",
-			Usage:     "Invite accounts to your organization",
-			UsageText: "earthly [options] org invite [options] <path> <email> [<email> ...]",
-			Action:    app.actionOrgInvite,
-			Flags: []cli.Flag{
-				&cli.BoolFlag{
-					Name:        "write",
-					Usage:       "Grant write permissions in addition to read",
-					Destination: &app.writePermission,
-				},
-			},
-		},
-		{
 			Name:      "revoke",
 			Usage:     "Remove accounts from your organization",
 			UsageText: "earthly [options] org revoke <path> <email> [<email> ...]",
 			Action:    app.actionOrgRevoke,
 		},
-	}
-}
-
-func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
-	return []*cli.Command{
+		{
+			Name:        "invite",
+			Usage:       "Invite users",
+			Description: "Invite users",
+			UsageText:   "earthly org [--org <organization-name>] invite [--name <recipient-name>] [--permission <permission>] [--message <message>] <email>",
+			Action:      app.actionOrgInviteEmail,
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "permission",
+					Usage:       "The access level the new organization member will have. Can be one of: read, write, or admin.",
+					Required:    false,
+					Destination: &app.invitePermission,
+				},
+				&cli.StringFlag{
+					Name:        "message",
+					Usage:       "An optional message to send with the invitation email.",
+					Required:    false,
+					Destination: &app.inviteMessage,
+				},
+			},
+			Subcommands: []*cli.Command{
+				{
+					Name:        "accept",
+					Usage:       "Accept an invitation to join an organization",
+					Description: "Accept an invitation to join an organization",
+					UsageText:   "earthly org invite accept <invite-code>",
+					Action:      app.actionOrgInviteAccept,
+				},
+				{
+					Name:        "ls",
+					Aliases:     []string{"list"},
+					Usage:       "List all sent invitations (both pending and accepted)",
+					Description: "List all pending and accepted invitations",
+					UsageText:   "earthly org [--org <organization>] invite ls",
+					Action:      app.actionOrgInviteList,
+				},
+			},
+		},
 		{
 			Name:        "member",
 			Aliases:     []string{"members"},
@@ -94,38 +115,23 @@ func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
 				},
 			},
 		},
+	}
+}
+
+func (app *earthlyApp) orgCmdsPreview() []*cli.Command {
+	return []*cli.Command{
 		{
 			Name:        "invite",
 			Usage:       "Invite users",
 			Description: "Invite users",
-			UsageText:   "earthly org [--org <organization-name>] invite [--name <recipient-name>] [--permission <permission>] [--message <message>] <email>",
-			Action:      app.actionOrgInviteEmail,
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:     "permission",
-					Usage:    "The access level the new organization member will have. Can be one of: read, write, or admin.",
-					Required: false,
-				},
-				&cli.StringFlag{
-					Name:     "message",
-					Usage:    "An optional message to send with the invitation email.",
-					Required: false,
-				},
-				&cli.StringFlag{
-					Name:     "name",
-					Usage:    "The invite recipient's name (optional).",
-					Required: false,
-				},
-			},
-			Subcommands: []*cli.Command{
-				{
-					Name:        "accept",
-					Usage:       "Accept an invitation to join an organization",
-					Description: "Accept an invitation to join an organization",
-					UsageText:   "earthly org invite accept <invite-code>",
-					Action:      app.actionOrgInviteAccept,
-				},
-			},
+			Action:      app.actionPreviewPromoted("invite", "org"),
+		},
+		{
+			Name:        "member",
+			Aliases:     []string{"members"},
+			Usage:       "Manage organization members",
+			Description: "Manage organization members",
+			Action:      app.actionPreviewPromoted("member", "org"),
 		},
 	}
 }
@@ -136,7 +142,7 @@ func (app *earthlyApp) actionOrgCreate(cliCtx *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	org := cliCtx.Args().Get(0)
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -149,7 +155,7 @@ func (app *earthlyApp) actionOrgCreate(cliCtx *cli.Context) error {
 
 func (app *earthlyApp) actionOrgList(cliCtx *cli.Context) error {
 	app.commandName = "orgList"
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -182,7 +188,7 @@ func (app *earthlyApp) actionOrgListPermissions(cliCtx *cli.Context) error {
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -205,28 +211,6 @@ func (app *earthlyApp) actionOrgListPermissions(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionOrgInvite(cliCtx *cli.Context) error {
-	app.commandName = "orgInvite"
-	if cliCtx.NArg() < 2 {
-		return errors.New("invalid number of arguments provided")
-	}
-	path := cliCtx.Args().Get(0)
-	if !strings.HasSuffix(path, "/") {
-		return errors.New("invitation paths must end with a slash (/)")
-	}
-
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
-	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
-	}
-	userEmail := cliCtx.Args().Get(1)
-	err = cloudClient.Invite(cliCtx.Context, path, userEmail, app.writePermission)
-	if err != nil {
-		return errors.Wrap(err, "failed to invite user into org")
-	}
-	return nil
-}
-
 func (app *earthlyApp) actionOrgInviteAccept(cliCtx *cli.Context) error {
 	app.commandName = "orgInviteAccept"
 
@@ -239,7 +223,7 @@ func (app *earthlyApp) actionOrgInviteAccept(cliCtx *cli.Context) error {
 		return errors.New("invite code is required")
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -249,62 +233,106 @@ func (app *earthlyApp) actionOrgInviteAccept(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to accept invite")
 	}
 
-	app.console.Printf("Invite accepted!\n")
+	app.console.Printf("Invite accepted!")
+
+	return nil
+}
+
+func (app *earthlyApp) actionOrgInviteList(cliCtx *cli.Context) error {
+	app.commandName = "orgInviteList"
+
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
+	if err != nil {
+		return err
+	}
+
+	invites, err := cloudClient.ListInvites(cliCtx.Context, orgName)
+	if err != nil {
+		return errors.Wrap(err, "failed to list invites")
+	}
+
+	if len(invites) == 0 {
+		return nil
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintf(w, "User Email\tPermission\tCreated\tAccepted\n")
+	for _, invite := range invites {
+		accepted := "No"
+		if !invite.AcceptedAt.IsZero() {
+			accepted = invite.AcceptedAt.Format(dateFormat)
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", invite.Email, invite.Permission, invite.CreatedAt.Format(dateFormat), accepted)
+	}
+	w.Flush()
 
 	return nil
 }
 
 func (app *earthlyApp) actionOrgInviteEmail(cliCtx *cli.Context) error {
 	app.commandName = "orgInviteEmail"
-
-	if cliCtx.NArg() != 1 {
+	if cliCtx.NArg() == 0 {
 		return errors.New("user email address required")
 	}
+	emails := cliCtx.Args().Slice()
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgName, err := projectOrgName(cliCtx, cloudClient)
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
-
-	userEmail := cliCtx.Args().Get(0)
-	if !strings.Contains(userEmail, "@") {
-		return errors.New("invalid email address")
-	}
-
-	invite := &cloud.OrgInvitation{
-		Email:   userEmail,
-		OrgName: orgName,
-	}
-
-	permission := cliCtx.String("permission")
+	permission := app.invitePermission
 	if permission == "" {
-		permission, err = promptInput(cliCtx.Context, "New user's permission (read, write, admin): ")
+		permission, err = promptInput(cliCtx.Context, "New user's permission [read/write/admin] (default=read): ")
 		if err != nil {
 			return errors.Wrap(err, "failed to read permission")
 		}
 	}
-	invite.Permission = permission
+	permission = strings.ToLower(permission)
+	switch permission {
+	case "":
+		permission = "read"
+	case "r":
+		permission = "read"
+	case "w":
+		permission = "write"
+	case "a":
+		permission = "admin"
+	default:
+	}
+	switch permission {
+	case "read", "write", "admin":
+	default:
+		return fmt.Errorf("invalid permission %s", permission)
+	}
 
-	message := cliCtx.String("message")
-	if message == "" {
-		message, err = promptInput(cliCtx.Context, "Message to user: ")
-		if err != nil {
-			return errors.Wrap(err, "failed to read message")
+	for _, userEmail := range emails {
+		if !strings.Contains(userEmail, "@") {
+			return fmt.Errorf("invalid email address %s", userEmail)
 		}
 	}
-	invite.Message = message
-
-	_, err = cloudClient.InviteToOrg(cliCtx.Context, invite)
-	if err != nil {
-		return errors.Wrap(err, "failed to invite user into org")
+	for _, userEmail := range emails {
+		invite := &cloud.OrgInvitation{
+			Email:      userEmail,
+			OrgName:    orgName,
+			Permission: permission,
+			Message:    app.inviteMessage,
+		}
+		_, err = cloudClient.InviteToOrg(cliCtx.Context, invite)
+		if err != nil {
+			return errors.Wrapf(err, "failed to invite user %s into org", userEmail)
+		}
+		app.console.Printf("Invite sent to %s", userEmail)
 	}
-
-	app.console.Printf("Invite sent!\n")
 
 	return nil
 }
@@ -319,7 +347,7 @@ func (app *earthlyApp) actionOrgRevoke(cliCtx *cli.Context) error {
 		return errors.New("revoked paths must end with a slash (/)")
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -338,12 +366,12 @@ func (app *earthlyApp) actionOrgMemberList(cliCtx *cli.Context) error {
 		return errors.New("expected no arguments")
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgName, err := projectOrgName(cliCtx, cloudClient)
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -351,6 +379,11 @@ func (app *earthlyApp) actionOrgMemberList(cliCtx *cli.Context) error {
 	members, err := cloudClient.ListOrgMembers(cliCtx.Context, orgName)
 	if err != nil {
 		return err
+	}
+
+	if len(members) == 0 {
+		app.console.Printf("No members in %s", orgName)
+		return nil
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
@@ -373,12 +406,12 @@ func (app *earthlyApp) actionOrgMemberUpdate(cliCtx *cli.Context) error {
 		return errors.New("too many arguments provided")
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgName, err := projectOrgName(cliCtx, cloudClient)
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -409,12 +442,12 @@ func (app *earthlyApp) actionOrgMemberRemove(cliCtx *cli.Context) error {
 		return errors.New("member email required")
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
 
-	orgName, err := projectOrgName(cliCtx, cloudClient)
+	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}

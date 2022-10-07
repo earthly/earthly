@@ -29,11 +29,13 @@ Please note that these examples, although similar, are distinct from the ones us
 * [go](./go)
 * [java](./java)
 * [js](./js)
+* [next-js-netlify](./next-js-netlify)
 * [python](./python)
 * [ruby](./ruby)
 * [ruby-on-rails](./ruby-on-rails)
 * [rust](./rust)
 * [scala](./scala)
+* [typescript-node](./typescript-node)
 <!-- vale HouseStyle.Spelling = YES -->
 
 ## Examples by use-cases

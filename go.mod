@@ -4,7 +4,6 @@ go 1.16
 
 require (
 	github.com/alessio/shellescape v1.4.1
-	github.com/antlr/antlr4 v0.0.0-20200225173536-225249fdaef5
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/containerd/containerd v1.6.6
 	github.com/creack/pty v1.1.11
@@ -12,11 +11,14 @@ require (
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/dustin/go-humanize v1.0.0
-	github.com/earthly/cloud-api v1.0.1-0.20220819185746-bab168ecbbf9
+	github.com/earthly/cloud-api v1.0.1-0.20220922190850-93cd2eef4241
+	github.com/earthly/earthly/ast v0.0.0-00010101000000-000000000000
 	github.com/elastic/go-sysinfo v1.7.1
 	github.com/fatih/color v1.9.0
+	github.com/gofrs/flock v0.8.1
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.3.0
+	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jdxcode/netrc v0.0.0-20210204082910-926c7f70242a
 	github.com/jessevdk/go-flags v1.5.0
@@ -33,8 +35,9 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/tonistiigi/fsutil v0.0.0-20220510150904-0dbf3a8a7d58
 	github.com/urfave/cli/v2 v2.3.0
-	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd
+	golang.org/x/crypto v0.0.0-20220826181053-bd7e27e6170d
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	google.golang.org/grpc v1.47.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -42,8 +45,9 @@ require (
 
 replace (
 	github.com/docker/docker => github.com/docker/docker v20.10.3-0.20220414164044-61404de7df1a+incompatible
+	github.com/earthly/earthly/ast => ./ast
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20220818191106-3b049bfd9c25
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20220913002628-9c256c19c539
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20220719234708-392da7eebeb5
 )

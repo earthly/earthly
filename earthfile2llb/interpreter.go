@@ -13,6 +13,7 @@ import (
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/conslogging"
+	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/platutil"
@@ -46,6 +47,8 @@ type Interpreter struct {
 	parallelConversion bool
 	console            conslogging.ConsoleLogger
 	gitLookup          *buildcontext.GitLookup
+
+	interactiveSaveFiles []debuggercommon.SaveFilesSettings
 }
 
 func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConversion bool, console conslogging.ConsoleLogger, gitLookup *buildcontext.GitLookup) *Interpreter {
@@ -76,12 +79,27 @@ func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
 	return i.errorf(ef.SourceLocation, "target %s not found", i.target.Target)
 }
 
+func (i *Interpreter) isPipelineTarget(ctx context.Context, t spec.Target) bool {
+	for _, stmt := range t.Recipe {
+		if stmt.Command != nil && stmt.Command.Name == "PIPELINE" {
+			return true
+		}
+	}
+	return false
+}
+
 func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
+	ctx = ContextWithSourceLocation(ctx, t.SourceLocation)
 	// Apply implicit FROM +base
 	err := i.converter.From(ctx, "+base", platutil.DefaultPlatform, i.allowPrivileged, nil)
 	if err != nil {
 		return i.wrapError(err, t.SourceLocation, "apply FROM")
 	}
+
+	if i.isPipelineTarget(ctx, t) {
+		return i.handlePipelineBlock(ctx, t.Name, t.Recipe)
+	}
+
 	return i.handleBlock(ctx, t.Recipe)
 }
 
@@ -135,7 +153,7 @@ func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, sta
 			case "DOCKER":
 				// TODO
 			}
-		} else if stmt.If != nil || stmt.For != nil || stmt.Wait != nil {
+		} else if stmt.If != nil || stmt.For != nil || stmt.Wait != nil || stmt.Try != nil {
 			// Cannot do any further parallel builds - these commands need to be
 			// executed to ensure that they don't impact the outcome. As such,
 			// commands following these cannot be executed preemptively.
@@ -148,6 +166,7 @@ func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, sta
 }
 
 func (i *Interpreter) handleStatement(ctx context.Context, stmt spec.Statement) error {
+	ctx = ContextWithSourceLocation(ctx, stmt.SourceLocation)
 	if stmt.Command != nil {
 		return i.handleCommand(ctx, *stmt.Command)
 	} else if stmt.With != nil {
@@ -158,6 +177,8 @@ func (i *Interpreter) handleStatement(ctx context.Context, stmt spec.Statement) 
 		return i.handleFor(ctx, *stmt.For)
 	} else if stmt.Wait != nil {
 		return i.handleWait(ctx, *stmt.Wait)
+	} else if stmt.Try != nil {
+		return i.handleTry(ctx, *stmt.Try)
 	} else {
 		return i.errorf(stmt.SourceLocation, "unexpected statement type")
 	}
@@ -182,6 +203,7 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 		}
 	}()
 
+	ctx = ContextWithSourceLocation(ctx, cmd.SourceLocation)
 	analytics.Count("cmd", cmd.Name)
 
 	if i.isWith {
@@ -252,8 +274,10 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 		return i.handleHost(ctx, cmd)
 	case "PROJECT":
 		return i.handleProject(ctx, cmd)
+	case "TRIGGER":
+		return i.handleTrigger(ctx, cmd)
 	default:
-		return i.errorf(cmd.SourceLocation, "unexpected command %s", cmd.Name)
+		return i.errorf(cmd.SourceLocation, "unexpected command %q", cmd.Name)
 	}
 }
 
@@ -441,6 +465,90 @@ func (i *Interpreter) handleWait(ctx context.Context, waitStmt spec.WaitStatemen
 	return i.converter.PopWaitBlock(ctx)
 }
 
+func (i *Interpreter) handleTry(ctx context.Context, tryStmt spec.TryStatement) error {
+	if !i.converter.ftrs.TryFinally {
+		return i.errorf(tryStmt.SourceLocation, "the TRY/CATCH/FINALLY commands are not supported in this version")
+	}
+
+	if len(tryStmt.TryBody) == 0 {
+		return i.errorf(tryStmt.SourceLocation, "TRY body is empty")
+	}
+	if len(tryStmt.TryBody) != 1 {
+		return i.errorf(tryStmt.SourceLocation, "TRY body can (currently) only contain a single command")
+	}
+
+	if tryStmt.CatchBody != nil {
+		return i.errorf(tryStmt.SourceLocation, "TRY/FINALLY doesn't (currently) support CATCH statements")
+	}
+
+	isRun := tryStmt.TryBody[0].Command != nil && tryStmt.TryBody[0].Command.Name == "RUN"
+	isDocker := tryStmt.TryBody[0].With != nil && tryStmt.TryBody[0].With.Command.Name == "DOCKER"
+
+	if isDocker {
+		if len(tryStmt.TryBody[0].With.Body) != 1 {
+			return i.errorf(tryStmt.SourceLocation, "TRY body can (currently) only contain a single command")
+		}
+	} else if !isRun {
+		return i.errorf(tryStmt.SourceLocation, "TRY body must (currently) be a RUN command (or a RUN inside a WITH DOCKER)")
+	}
+
+	saveArtifacts := []debuggercommon.SaveFilesSettings{}
+	if tryStmt.FinallyBody != nil {
+		for _, cmd := range *tryStmt.FinallyBody {
+			if cmd.Command == nil || cmd.Command.Name != "SAVE ARTIFACT" {
+				return i.errorf(tryStmt.SourceLocation, "CATCH/FINALLY body only (currently) supports SAVE ARTIFACT ... AS LOCAL commands; got %s", cmd.Command.Name)
+			}
+			opts := saveArtifactOpts{}
+			args, err := parseArgs("SAVE ARTIFACT", &opts, getArgsCopy(*cmd.Command))
+			if err != nil {
+				return i.wrapError(err, cmd.Command.SourceLocation, "invalid SAVE ARTIFACT arguments %v", cmd.Command.Args)
+			}
+			if opts.KeepTs || opts.KeepOwn || opts.SymlinkNoFollow || opts.Force {
+				return i.wrapError(err, cmd.Command.SourceLocation, "only the SAVE ARTIFACT --if-exists option is allowed in a TRY/FINALLY block: %v", cmd.Command.Args)
+			}
+			saveFrom, _, saveAsLocalTo, ok := parseSaveArtifactArgs(args)
+			if !ok {
+				return i.errorf(cmd.Command.SourceLocation, "invalid arguments for SAVE ARTIFACT command: %v", cmd.Command.Args)
+			}
+
+			if strings.Contains(saveFrom, "*") {
+				return i.errorf(cmd.Command.SourceLocation, "TRY/CATCH/FINALLY does not (currently) support wildcard SAVE ARTIFACT paths")
+			}
+			if saveAsLocalTo == "" {
+				return i.errorf(cmd.Command.SourceLocation, "missing local name for SAVE ARTIFACT within TRY/CATCH/FINALLY")
+			}
+			if strings.Contains(saveAsLocalTo, "$") {
+				return i.errorf(cmd.Command.SourceLocation, "TRY/CATCH/FINALLY does not (currently) support expanding args for SAVE ARTIFACT paths")
+			}
+			saveArtifacts = append(saveArtifacts, debuggercommon.SaveFilesSettings{
+				Src:      saveFrom,
+				Dst:      saveAsLocalTo,
+				IfExists: opts.IfExists,
+			})
+		}
+	}
+
+	i.interactiveSaveFiles = saveArtifacts
+
+	// process TRY body (i.e. perform the single RUN
+	err := i.handleStatement(ctx, tryStmt.TryBody[0])
+	if err != nil {
+		return err
+	}
+
+	// process the FINALLY body (which will only happen when the try RUN succeeds, on failure
+	// the SAVE ARTIFACTS are handled by the embedded debugger that was run under the try)
+	if tryStmt.FinallyBody != nil {
+		for _, cmd := range *tryStmt.FinallyBody {
+			err := i.handleStatement(ctx, cmd)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // Commands -------------------------------------------------------------------
 
 func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
@@ -586,19 +694,20 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			return i.errorf(cmd.SourceLocation, "--with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
 		}
 		opts := ConvertRunOpts{
-			CommandName:     cmd.Name,
-			Args:            args,
-			Locally:         i.local,
-			Mounts:          opts.Mounts,
-			Secrets:         opts.Secrets,
-			WithShell:       withShell,
-			WithEntrypoint:  opts.WithEntrypoint,
-			Privileged:      opts.Privileged,
-			Push:            opts.Push,
-			WithSSH:         opts.WithSSH,
-			NoCache:         opts.NoCache,
-			Interactive:     opts.Interactive,
-			InteractiveKeep: opts.InteractiveKeep,
+			CommandName:          cmd.Name,
+			Args:                 args,
+			Locally:              i.local,
+			Mounts:               opts.Mounts,
+			Secrets:              opts.Secrets,
+			WithShell:            withShell,
+			WithEntrypoint:       opts.WithEntrypoint,
+			Privileged:           opts.Privileged,
+			Push:                 opts.Push,
+			WithSSH:              opts.WithSSH,
+			NoCache:              opts.NoCache,
+			Interactive:          opts.Interactive,
+			InteractiveKeep:      opts.InteractiveKeep,
+			InteractiveSaveFiles: i.interactiveSaveFiles,
 		}
 		err = i.converter.Run(ctx, opts)
 		if err != nil {
@@ -874,6 +983,27 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	return nil
 }
 
+func parseSaveArtifactArgs(args []string) (string, string, string, bool) {
+	saveAsLocalTo := ""
+	saveTo := "./"
+	if len(args) >= 4 {
+		if strings.Join(args[len(args)-3:len(args)-1], " ") == "AS LOCAL" {
+			saveAsLocalTo = args[len(args)-1]
+			if len(args) == 5 {
+				saveTo = args[1]
+			}
+		} else {
+			return "", "", "", false
+		}
+	} else if len(args) == 2 {
+		saveTo = args[1]
+	} else if len(args) == 0 || len(args) == 3 {
+		return "", "", "", false
+	}
+	saveFrom := args[0]
+	return saveFrom, saveTo, saveAsLocalTo, true
+}
+
 func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) error {
 	opts := saveArtifactOpts{}
 	args, err := parseArgs("SAVE ARTIFACT", &opts, getArgsCopy(cmd))
@@ -887,24 +1017,12 @@ func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) 
 	if len(args) > 5 {
 		return i.errorf(cmd.SourceLocation, "too many arguments provided to the SAVE ARTIFACT command: %v", cmd.Args)
 	}
-	saveAsLocalTo := ""
-	saveTo := "./"
-	if len(args) >= 4 {
-		if strings.Join(args[len(args)-3:len(args)-1], " ") == "AS LOCAL" {
-			saveAsLocalTo = args[len(args)-1]
-			if len(args) == 5 {
-				saveTo = args[1]
-			}
-		} else {
-			return i.errorf(cmd.SourceLocation, "invalid arguments for SAVE ARTIFACT command: %v", cmd.Args)
-		}
-	} else if len(args) == 2 {
-		saveTo = args[1]
-	} else if len(args) == 3 {
+	saveFrom, saveTo, saveAsLocalTo, ok := parseSaveArtifactArgs(args)
+	if !ok {
 		return i.errorf(cmd.SourceLocation, "invalid arguments for SAVE ARTIFACT command: %v", cmd.Args)
 	}
 
-	saveFrom, err := i.expandArgs(ctx, args[0], false, false)
+	saveFrom, err = i.expandArgs(ctx, saveFrom, false, false)
 	if err != nil {
 		return i.errorf(cmd.SourceLocation, "failed to expand SAVE ARTIFACT src: %s", args[0])
 	}
@@ -1468,8 +1586,9 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 	}
 
 	i.withDocker = &WithDockerOpt{
-		ComposeFiles:    opts.ComposeFiles,
-		ComposeServices: opts.ComposeServices,
+		ComposeFiles:          opts.ComposeFiles,
+		ComposeServices:       opts.ComposeServices,
+		TryCatchSaveArtifacts: i.interactiveSaveFiles,
 	}
 	for _, pullStr := range opts.Pulls {
 		i.withDocker.Pulls = append(i.withDocker.Pulls, DockerPullOpt{
@@ -1626,6 +1745,79 @@ func (i *Interpreter) handleProject(ctx context.Context, cmd spec.Command) error
 	err = i.converter.Project(ctx, parts[0], parts[1])
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to process PROJECT")
+	}
+
+	return nil
+}
+
+func (i *Interpreter) handlePipelineBlock(ctx context.Context, name string, block spec.Block) error {
+	if len(block) == 0 {
+		return errors.New("pipeline targets require sub-commands")
+	}
+
+	if block[0].Command == nil || block[0].Command.Name != "PIPELINE" {
+		return i.errorf(block[0].Command.SourceLocation, "PIPELINE must be the first command in a pipeline target")
+	}
+
+	for _, stmt := range block {
+		if stmt.Command == nil {
+			return errors.New("pipeline targets do not support IF, WITH, FOR, or WAIT commands")
+		}
+		cmd := *stmt.Command
+		ctx = ContextWithSourceLocation(ctx, cmd.SourceLocation)
+		var err error
+		switch cmd.Name {
+		case "PIPELINE":
+			err = i.handlePipeline(ctx, cmd)
+		case "TRIGGER":
+			err = i.handleTrigger(ctx, cmd)
+		case "ARG":
+			err = i.handleArg(ctx, cmd)
+		case "BUILD":
+			err = i.handleBuild(ctx, cmd, false)
+		default:
+			return i.errorf(cmd.SourceLocation, "pipeline targets only support PIPELINE, TRIGGER, ARG, and BUILD commands")
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (i *Interpreter) handlePipeline(ctx context.Context, cmd spec.Command) error {
+
+	if len(cmd.Args) > 1 {
+		return i.errorf(cmd.SourceLocation, "invalid number of PIPELINE arguments")
+	}
+
+	opts := &pipelineOpts{}
+	_, err := parseArgs("PIPELINE", opts, getArgsCopy(cmd))
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "invalid PIPELINE arguments")
+	}
+
+	return i.converter.Pipeline(ctx)
+}
+
+func (i *Interpreter) handleTrigger(ctx context.Context, cmd spec.Command) error {
+
+	if len(cmd.Args) < 1 {
+		return i.errorf(cmd.SourceLocation, "TRIGGER requires at least 1 argument")
+	}
+
+	switch cmd.Args[0] {
+	case "manual":
+		if len(cmd.Args) != 1 {
+			return i.errorf(cmd.SourceLocation, "invalid argument")
+		}
+	case "pr", "push":
+		if len(cmd.Args) != 2 {
+			return i.errorf(cmd.SourceLocation, "'pr' and 'push' triggers require a branch name")
+		}
+	default:
+		return i.errorf(cmd.SourceLocation, "valid triggers include: 'manual', 'pr', or 'push'")
 	}
 
 	return nil

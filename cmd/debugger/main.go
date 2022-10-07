@@ -21,8 +21,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const cniGateway = "172.30.0.1:8373"
-
 var (
 	// Version is the version of the debugger
 	Version string
@@ -86,20 +84,12 @@ func populateShellHistory(cmd string) error {
 	return result
 }
 
-func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder func() (*exec.Cmd, error)) error {
+func sendFile(ctx context.Context, sockAddr, src, dst string) error {
 	log := slog.GetLogger(ctx)
 
-	// If the IP we derived at start fails, try the reserved gateway address for our internal CNI network.
-	// The CIDR range for this can be found in buildkitd/cni-conf.json.template, so if that ever changes, we need to change it here, too.
-	// Relevant CNI docs for the host-local ipam module: https://www.cni.dev/plugins/current/ipam/host-local/
-	// tl;dr we can assume the gateway is at .1 in the subnet.
-	conn, err := net.Dial("tcp", cniGateway)
+	conn, err := net.Dial("unix", sockAddr)
 	if err != nil {
-		log.Debug(fmt.Sprintf("failed to connect internal CNI %q, trying configured address %q.", cniGateway, remoteConsoleAddr))
-		conn, err = net.Dial("tcp", remoteConsoleAddr)
-		if err != nil {
-			return errors.Wrap(err, "failed to connect to remote debugger")
-		}
+		return errors.Wrap(err, "failed to connect to remote debugger")
 	}
 	defer func() {
 		err := conn.Close()
@@ -108,10 +98,44 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 		}
 	}()
 
-	_, err = conn.Write([]byte{common.ShellID})
+	// send a protocol version
+	err = common.WriteDataPacket(conn, 0x01, nil)
 	if err != nil {
 		return err
 	}
+
+	err = common.WriteDataPacket(conn, len(dst), []byte(dst))
+	if err != nil {
+		return err
+	}
+
+	b, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+
+	err = common.WriteDataPacket(conn, len(b), b)
+	if err != nil {
+		return err
+	}
+
+	// send end of file packet
+	return common.WriteDataPacket(conn, 0x00, nil)
+}
+
+func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder func() (*exec.Cmd, error)) error {
+	log := slog.GetLogger(ctx)
+
+	conn, err := net.Dial("unix", remoteConsoleAddr)
+	if err != nil {
+		return errors.Wrap(err, "failed to connect to remote debugger")
+	}
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			log.Error(errors.Wrap(err, "error closing"))
+		}
+	}()
 
 	err = common.WriteDataPacket(conn, common.StartShellSession, nil)
 	if err != nil {
@@ -252,7 +276,7 @@ func main() {
 		}
 
 		exitCode := 0
-		err = interactiveMode(ctx, debuggerSettings.RepeaterAddr, cmdBuilder)
+		err = interactiveMode(ctx, debuggerSettings.SocketPath, cmdBuilder)
 		if err != nil {
 			log.Error(err)
 			if exitErr, ok := err.(*exec.ExitError); ok {
@@ -280,15 +304,16 @@ func main() {
 		exitCode := 1
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode = exitErr.ExitCode()
-			conslogger.Warnf("Command %s failed with exit code %d\n", quotedCmd, exitCode)
+			if debuggerSettings.Enabled {
+				conslogger.Warnf("Command %s failed with exit code %d\n", quotedCmd, exitCode)
+			}
 		} else {
 			conslogger.Warnf("Command %s failed with unexpected execution error %v\n", quotedCmd, err)
 		}
 
 		if debuggerSettings.Enabled {
 			c := color.New(color.FgYellow)
-			c.Println("Entering interactive debugger (**Warning: only a single debugger per host is supported**)")
-
+			c.Println("Entering interactive debugger")
 			// Sometimes the interactive shell doesn't correctly get a newline
 			// Take a brief pause and issue a new line as a work around.
 			time.Sleep(time.Millisecond * 5)
@@ -309,11 +334,22 @@ func main() {
 				return exec.Command(shellPath), nil
 			}
 
-			err = interactiveMode(ctx, debuggerSettings.RepeaterAddr, cmdBuilder)
+			err = interactiveMode(ctx, debuggerSettings.SocketPath, cmdBuilder)
 			if err != nil {
 				log.Error(err)
 			}
 		}
+
+		for _, saveFile := range debuggerSettings.SaveFiles {
+			err = sendFile(ctx, common.DefaultSaveFileSocketPath, saveFile.Src, saveFile.Dst)
+			if err != nil {
+				if !errors.Is(err, os.ErrNotExist) || !saveFile.IfExists {
+					// treat it as a warning (we will exit due to RUN failure)
+					conslogger.Warnf("failed to save %s: %s\n", saveFile.Src, err)
+				}
+			}
+		}
+
 		// ensure that this always exits with an error status; otherwise it will be cached by earthly
 		if exitCode == 0 {
 			exitCode = 1

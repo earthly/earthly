@@ -106,7 +106,8 @@ type cliFlags struct {
 	disableNewLine            bool
 	secretFile                string
 	secretStdin               bool
-	apiServer                 string
+	cloudHTTPAddr             string
+	cloudGRPCAddr             string
 	satelliteAddress          string
 	writePermission           bool
 	registrationPublicKey     string
@@ -133,11 +134,15 @@ type cliFlags struct {
 	containerFrontend         containerutil.ContainerFrontend
 	logSharing                bool
 	satelliteName             string
-	satelliteOrg              string
 	noSatellite               bool
+	satelliteFeatureFlags     cli.StringSlice
 	userPermission            string
 	noBuildkitUpdate          bool
 	globalWaitEnd             bool // for feature-flipping builder.go code removal
+	projectName               string
+	orgName                   string
+	invitePermission          string
+	inviteMessage             string
 }
 
 type analyticsMetadata struct {
@@ -266,7 +271,7 @@ func main() {
 		ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		displayErrors := app.verbose
-		cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+		cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 		if err != nil && displayErrors {
 			app.console.Warnf("unable to start cloud client: %s", err)
 		} else if err == nil {
@@ -554,7 +559,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		}
 
 		if strings.Contains(err.Error(), "security.insecure is not allowed") {
-			app.console.Warnf("Error: --allow-privileged (-P) flag is required\n")
+			app.console.Warnf("Error: earthly --allow-privileged (earthly -P) flag is required\n")
 		} else if strings.Contains(err.Error(), "failed to fetch remote") {
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Printf(
@@ -592,7 +597,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
 			app.printCrashLogs(ctx)
 			return 7
-		} else if errors.Is(err, buildkitd.ErrBuildkitStartFailure) {
+		} else if errors.Is(err, buildkitd.ErrBuildkitConnectionFailure) && containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress) {
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Warnf(
 				"It seems that buildkitd had an issue. " +

@@ -206,7 +206,6 @@ func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special st
 	if underlineLength < barWidth {
 		underlineLength = barWidth
 	}
-	cl.errW.Write([]byte("\n"))
 	c.Fprintf(cl.errW, " %s", msg)
 	cl.errW.Write([]byte("\n"))
 	c.Fprintf(cl.errW, "%s", strings.Repeat("—", underlineLength))

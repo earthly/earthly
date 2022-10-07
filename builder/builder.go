@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/earthly/earthly/buildcontext"
@@ -17,6 +18,7 @@ import (
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
+	"github.com/earthly/earthly/util/dockerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/gwclientlogger"
 	"github.com/earthly/earthly/util/llbutil"
@@ -48,32 +50,34 @@ const (
 
 // Opt represent builder options.
 type Opt struct {
-	SessionID              string
-	BkClient               *client.Client
-	Console                conslogging.ConsoleLogger
-	Verbose                bool
-	Attachables            []session.Attachable
-	Enttlmnts              []entitlements.Entitlement
-	NoCache                bool
-	CacheImports           *states.CacheImports
-	CacheExport            string
-	MaxCacheExport         string
-	UseInlineCache         bool
-	SaveInlineCache        bool
-	ImageResolveMode       llb.ResolveMode
-	CleanCollection        *cleanup.Collection
-	OverridingVars         *variables.Scope
-	BuildContextProvider   *provider.BuildContextProvider
-	GitLookup              *buildcontext.GitLookup
-	UseFakeDep             bool
-	Strict                 bool
-	DisableNoOutputUpdates bool
-	ParallelConversion     bool
-	Parallelism            semutil.Semaphore
-	LocalRegistryAddr      string
-	FeatureFlagOverrides   string
-	ContainerFrontend      containerutil.ContainerFrontend
-	InternalSecretStore    *secretprovider.MutableMapStore
+	SessionID                             string
+	BkClient                              *client.Client
+	Console                               conslogging.ConsoleLogger
+	Verbose                               bool
+	Attachables                           []session.Attachable
+	Enttlmnts                             []entitlements.Entitlement
+	NoCache                               bool
+	CacheImports                          *states.CacheImports
+	CacheExport                           string
+	MaxCacheExport                        string
+	UseInlineCache                        bool
+	SaveInlineCache                       bool
+	ImageResolveMode                      llb.ResolveMode
+	CleanCollection                       *cleanup.Collection
+	OverridingVars                        *variables.Scope
+	BuildContextProvider                  *provider.BuildContextProvider
+	GitLookup                             *buildcontext.GitLookup
+	UseFakeDep                            bool
+	Strict                                bool
+	DisableNoOutputUpdates                bool
+	ParallelConversion                    bool
+	Parallelism                           semutil.Semaphore
+	LocalRegistryAddr                     string
+	FeatureFlagOverrides                  string
+	ContainerFrontend                     containerutil.ContainerFrontend
+	InternalSecretStore                   *secretprovider.MutableMapStore
+	InteractiveDebugging                  bool
+	InteractiveDebuggingDebugLevelLogging bool
 }
 
 // BuildOpt is a collection of build options.
@@ -89,6 +93,7 @@ type BuildOpt struct {
 	EnableGatewayClientLogging bool
 	BuiltinArgs                variables.DefaultArgs
 	GlobalWaitBlockFtr         bool
+	LocalArtifactWhiteList     *gatewaycrafter.LocalArtifactWhiteList
 }
 
 // Builder executes Earthly builds.
@@ -133,13 +138,12 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
 	var (
-		sharedLocalStateCache  = earthfile2llb.NewSharedLocalStateCache()
-		featureFlagOverrides   = b.opt.FeatureFlagOverrides
-		manifestLists          = make(map[string][]manifest) // parent image -> child images
-		platformImgNames       = make(map[string]bool)       // ensure that these are unique
-		singPlatImgNames       = make(map[string]bool)       // ensure that these are unique
-		pullPingMap            = gatewaycrafter.NewPullPingMap()
-		localArtifactWhiteList = gatewaycrafter.NewLocalArtifactWhiteList()
+		sharedLocalStateCache = earthfile2llb.NewSharedLocalStateCache()
+		featureFlagOverrides  = b.opt.FeatureFlagOverrides
+		manifestLists         = make(map[string][]dockerutil.Manifest) // parent image -> child images
+		platformImgNames      = make(map[string]bool)                  // ensure that these are unique
+		singPlatImgNames      = make(map[string]bool)                  // ensure that these are unique
+		exportCoordinator     = gatewaycrafter.NewExportCoordinator()
 
 		// dirIDs maps a dirIndex to a dirID; the "dir-id" field was introduced
 		// to accomodate parallelism in the WAIT/END PopWaitBlock handling
@@ -156,41 +160,45 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			gwClient = gwclientlogger.New(gwClient)
 		}
 		var err error
+		caps := gwClient.BuildOpts().LLBCaps
 		if !b.builtMain {
 			opt := earthfile2llb.ConvertOpt{
-				GwClient:               gwClient,
-				Resolver:               b.resolver,
-				ImageResolveMode:       b.opt.ImageResolveMode,
-				CleanCollection:        b.opt.CleanCollection,
-				PlatformResolver:       opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
-				DockerImageSolverTar:   newTarImageSolver(b.opt, b.s.sm),
-				MultiImageSolver:       newMultiImageSolver(b.opt, b.s.sm),
-				OverridingVars:         b.opt.OverridingVars,
-				BuildContextProvider:   b.opt.BuildContextProvider,
-				CacheImports:           b.opt.CacheImports,
-				UseInlineCache:         b.opt.UseInlineCache,
-				UseFakeDep:             b.opt.UseFakeDep,
-				AllowLocally:           !b.opt.Strict,
-				AllowInteractive:       !b.opt.Strict,
-				AllowPrivileged:        opt.AllowPrivileged,
-				ParallelConversion:     b.opt.ParallelConversion,
-				Parallelism:            b.opt.Parallelism,
-				Console:                b.opt.Console,
-				GitLookup:              b.opt.GitLookup,
-				FeatureFlagOverrides:   featureFlagOverrides,
-				LocalStateCache:        sharedLocalStateCache,
-				BuiltinArgs:            opt.BuiltinArgs,
-				NoCache:                b.opt.NoCache,
-				ContainerFrontend:      b.opt.ContainerFrontend,
-				UseLocalRegistry:       (b.opt.LocalRegistryAddr != ""),
-				DoSaves:                !opt.NoOutput,
-				OnlyFinalTargetImages:  opt.OnlyFinalTargetImages,
-				DoPushes:               opt.Push,
-				PullPingMap:            pullPingMap,
-				LocalArtifactWhiteList: localArtifactWhiteList,
-				InternalSecretStore:    b.opt.InternalSecretStore,
-				TempEarthlyOutDir:      b.tempEarthlyOutDir,
-				GlobalWaitBlockFtr:     opt.GlobalWaitBlockFtr,
+				GwClient:                             gwClient,
+				Resolver:                             b.resolver,
+				ImageResolveMode:                     b.opt.ImageResolveMode,
+				CleanCollection:                      b.opt.CleanCollection,
+				PlatformResolver:                     opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
+				DockerImageSolverTar:                 newTarImageSolver(b.opt, b.s.sm),
+				MultiImageSolver:                     newMultiImageSolver(b.opt, b.s.sm),
+				OverridingVars:                       b.opt.OverridingVars,
+				BuildContextProvider:                 b.opt.BuildContextProvider,
+				CacheImports:                         b.opt.CacheImports,
+				UseInlineCache:                       b.opt.UseInlineCache,
+				UseFakeDep:                           b.opt.UseFakeDep,
+				AllowLocally:                         !b.opt.Strict,
+				AllowInteractive:                     !b.opt.Strict,
+				AllowPrivileged:                      opt.AllowPrivileged,
+				ParallelConversion:                   b.opt.ParallelConversion,
+				Parallelism:                          b.opt.Parallelism,
+				Console:                              b.opt.Console,
+				GitLookup:                            b.opt.GitLookup,
+				FeatureFlagOverrides:                 featureFlagOverrides,
+				LocalStateCache:                      sharedLocalStateCache,
+				BuiltinArgs:                          opt.BuiltinArgs,
+				NoCache:                              b.opt.NoCache,
+				ContainerFrontend:                    b.opt.ContainerFrontend,
+				UseLocalRegistry:                     (b.opt.LocalRegistryAddr != ""),
+				DoSaves:                              !opt.NoOutput,
+				OnlyFinalTargetImages:                opt.OnlyFinalTargetImages,
+				DoPushes:                             opt.Push,
+				ExportCoordinator:                    exportCoordinator,
+				LocalArtifactWhiteList:               opt.LocalArtifactWhiteList,
+				InternalSecretStore:                  b.opt.InternalSecretStore,
+				TempEarthlyOutDir:                    b.tempEarthlyOutDir,
+				GlobalWaitBlockFtr:                   opt.GlobalWaitBlockFtr,
+				LLBCaps:                              &caps,
+				InteractiveDebuggerEnabled:           b.opt.InteractiveDebugging,
+				InteractiveDebuggerDebugLevelLogging: b.opt.InteractiveDebuggingDebugLevelLogging,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
@@ -284,7 +292,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						}
 						singPlatImgNames[saveImage.DockerTag] = true
 					}
-					localRegPullID := pullPingMap.Insert(gwClient.BuildOpts().SessionID, saveImage.DockerTag)
+					localRegPullID := exportCoordinator.AddImage(gwClient.BuildOpts().SessionID, saveImage.DockerTag, nil)
 					refPrefix, err := gwCrafter.AddPushImageEntry(ref, imageIndex, saveImage.DockerTag, shouldPush, saveImage.InsecurePush, saveImage.Image, nil)
 					if err != nil {
 						return nil, err
@@ -335,7 +343,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						}
 						imageIndex++
 
-						localRegPullID := pullPingMap.Insert(gwClient.BuildOpts().SessionID, platformImgName)
+						localRegPullID := exportCoordinator.AddImage(gwClient.BuildOpts().SessionID, platformImgName, nil)
 						if b.opt.LocalRegistryAddr != "" {
 							gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
 						} else {
@@ -343,9 +351,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						}
 
 						manifestLists[saveImage.DockerTag] = append(
-							manifestLists[saveImage.DockerTag], manifest{
-								imageName: platformImgName,
-								platform:  resolvedPlat,
+							manifestLists[saveImage.DockerTag], dockerutil.Manifest{
+								ImageName: platformImgName,
+								Platform:  resolvedPlat,
 							})
 					}
 				}
@@ -371,7 +379,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						return nil, err
 					}
 					dirIDs[dirIndex] = dirID
-					localArtifactWhiteList.Add(saveLocal.DestPath)
+					opt.LocalArtifactWhiteList.Add(saveLocal.DestPath)
 					dirIndex++
 				}
 			}
@@ -387,21 +395,53 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 		return gwCrafter.GetResult(), nil
 	}
-	onImage := func(childCtx context.Context, eg *errgroup.Group, imageName string) (io.WriteCloser, error) {
+	exportedTarImageManifestKeys := map[string]struct{}{}
+	var exportedImagesMutex sync.Mutex
+	onImageDone := func(manifestKey, waitFor string) error {
+		exportedImagesMutex.Lock()
+		defer exportedImagesMutex.Unlock()
+		exportedTarImageManifestKeys[manifestKey] = struct{}{}
+		manifests := make(map[string][]dockerutil.Manifest)
+		for _, manifestKey := range strings.Split(waitFor, " ") {
+			_, ok := exportedTarImageManifestKeys[manifestKey]
+			if !ok {
+				return nil
+			}
+			manifest, dockerTag, ok := exportCoordinator.GetImage(manifestKey)
+			if !ok {
+				return fmt.Errorf("failed to lookup %s in onImageDone", manifestKey)
+			}
+			manifests[dockerTag] = append(manifests[dockerTag], *manifest)
+		}
+		for parentImageName, children := range manifests {
+			if opt.PlatformResolver == nil {
+				panic("platform resolver is nil")
+			}
+			err := dockerutil.LoadDockerManifest(ctx, b.opt.Console, b.opt.ContainerFrontend, parentImageName, children, opt.PlatformResolver)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	onImage := func(childCtx context.Context, eg *errgroup.Group, imageName, waitFor, manifestKey string) (io.WriteCloser, error) {
 		pipeR, pipeW := io.Pipe()
 		eg.Go(func() error {
 			defer pipeR.Close()
-			err := loadDockerTar(childCtx, b.opt.ContainerFrontend, pipeR)
+			err := dockerutil.LoadDockerTar(childCtx, b.opt.ContainerFrontend, pipeR)
 			if err != nil {
 				return errors.Wrapf(err, "load docker tar")
 			}
-			return nil
+			if manifestKey == "" {
+				return nil
+			}
+			return onImageDone(manifestKey, waitFor)
 		})
 		return pipeW, nil
 	}
 	onArtifact := func(childCtx context.Context, index string, artifact domain.Artifact, artifactPath string, destPath string) (string, error) {
-		if !localArtifactWhiteList.Exists(destPath) {
-			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, localArtifactWhiteList.AsList())
+		if !opt.LocalArtifactWhiteList.Exists(destPath) {
+			return "", errors.Errorf("dest path %s is not in the whitelist: %+v", destPath, opt.LocalArtifactWhiteList.AsList())
 		}
 		outDir, err := b.tempEarthlyOutDir()
 		if err != nil {
@@ -421,15 +461,34 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		if b.opt.LocalRegistryAddr == "" {
 			return nil
 		}
+		manifests := make(map[string][]dockerutil.Manifest)
 		pullMap := make(map[string]string)
 		for _, imgToPull := range imagesToPull {
-			finalName, ok := pullPingMap.Get(imgToPull)
+			manifest, dockerTag, ok := exportCoordinator.GetImage(imgToPull)
 			if !ok {
 				return errors.Errorf("unrecognized image to pull %s", imgToPull)
 			}
-			pullMap[imgToPull] = finalName
+			if manifest != nil {
+				manifests[dockerTag] = append(manifests[dockerTag], *manifest)
+				pullMap[imgToPull] = manifest.ImageName
+			} else {
+				pullMap[imgToPull] = dockerTag
+			}
 		}
-		return dockerPullLocalImages(childCtx, b.opt.ContainerFrontend, b.opt.LocalRegistryAddr, pullMap)
+		err := dockerutil.DockerPullLocalImages(childCtx, b.opt.ContainerFrontend, b.opt.LocalRegistryAddr, pullMap)
+		if err != nil {
+			return err
+		}
+		for parentImageName, children := range manifests {
+			if opt.PlatformResolver == nil {
+				panic("platform resolver is nil")
+			}
+			err = dockerutil.LoadDockerManifest(ctx, b.opt.Console, b.opt.ContainerFrontend, parentImageName, children, opt.PlatformResolver)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 	if opt.PrintPhases {
 		b.opt.Console.PrintPhaseHeader(PhaseBuild, false, "")
@@ -446,7 +505,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	if opt.PrintPhases {
 		b.opt.Console.PrintPhaseHeader(PhasePush, !opt.Push, "")
 		if !opt.Push {
-			b.opt.Console.Printf("To enable pushing use\n\n\t\tearthly --push ...\n\n")
+			b.opt.Console.Printf("To enable pushing use earthly --push\n")
 		}
 	}
 	if opt.Push && opt.OnlyArtifact == nil && !opt.OnlyFinalTargetImages {
@@ -479,8 +538,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				return nil, err
 			}
 			err = saveartifactlocally.SaveArtifactLocally(
-				ctx, b.opt.Console, outputConsole, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath,
-				mts.Final.ID, opt.PrintPhases, false)
+				ctx, exportCoordinator, b.opt.Console, *opt.OnlyArtifact, outDir, opt.OnlyArtifactDestPath, mts.Final.ID, false)
 			if err != nil {
 				return nil, err
 			}
@@ -494,21 +552,20 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			if saveImage.SkipBuilder || !shouldPush && !shouldExport {
 				continue
 			}
-			targetStr := b.opt.Console.PrefixColor().Sprintf("%s", mts.Final.Target.StringCanonical())
+
 			if shouldPush {
-				pushConsole.Printf("Pushed image %s as %s\n", targetStr, saveImage.DockerTag)
+				exportCoordinator.AddPushedImageSummary(mts.Final.Target.StringCanonical(), saveImage.DockerTag, b.opt.Console.Salt(), true)
 			}
 			if saveImage.Push && !opt.Push {
-				pushConsole.Printf("Did not push image %s\n", saveImage.DockerTag)
+				exportCoordinator.AddPushedImageSummary(mts.Final.Target.StringCanonical(), saveImage.DockerTag, b.opt.Console.Salt(), false)
 			}
-			outputConsole.Printf("Image %s output as %s\n", targetStr, saveImage.DockerTag)
+			exportCoordinator.AddLocalOutputSummary(mts.Final.Target.StringCanonical(), saveImage.DockerTag, b.opt.Console.Salt())
 		}
 	} else {
 		// This needs to match with the same index used during output.
 		// TODO: This is a little brittle to future code changes.
 		dirIndex := 0
 		for _, sts := range mts.All() {
-			console := b.opt.Console.WithPrefixAndSalt(sts.Target.String(), sts.ID)
 			for _, saveImage := range sts.SaveImages {
 				doSave := (sts.GetDoSaves() || saveImage.ForceSave)
 				shouldPush := opt.Push && saveImage.Push && !sts.Target.IsRemote() && saveImage.DockerTag != "" && sts.GetDoPushes()
@@ -516,14 +573,13 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				if saveImage.SkipBuilder || !shouldPush && !shouldExport {
 					continue
 				}
-				targetStr := console.PrefixColor().Sprintf("%s", sts.Target.StringCanonical())
 				if shouldPush {
-					pushConsole.Printf("Pushed image %s as %s\n", targetStr, saveImage.DockerTag)
+					exportCoordinator.AddPushedImageSummary(sts.Target.StringCanonical(), saveImage.DockerTag, sts.ID, true)
 				}
 				if saveImage.Push && !opt.Push && !sts.Target.IsRemote() {
-					pushConsole.Printf("Did not push image %s\n", saveImage.DockerTag)
+					exportCoordinator.AddPushedImageSummary(sts.Target.StringCanonical(), saveImage.DockerTag, sts.ID, false)
 				}
-				outputConsole.Printf("Image %s output as %s\n", targetStr, saveImage.DockerTag)
+				exportCoordinator.AddLocalOutputSummary(sts.Target.StringCanonical(), saveImage.DockerTag, sts.ID)
 			}
 			if sts.GetDoSaves() {
 				for _, saveLocal := range sts.SaveLocals {
@@ -541,8 +597,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 						Artifact: saveLocal.ArtifactPath,
 					}
 					err = saveartifactlocally.SaveArtifactLocally(
-						ctx, b.opt.Console, outputConsole, artifact, artifactDir, saveLocal.DestPath,
-						sts.ID, opt.PrintPhases, saveLocal.IfExists)
+						ctx, exportCoordinator, b.opt.Console, artifact, artifactDir, saveLocal.DestPath, sts.ID, saveLocal.IfExists)
 					if err != nil {
 						return nil, err
 					}
@@ -567,8 +622,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 							Artifact: saveLocal.ArtifactPath,
 						}
 						err = saveartifactlocally.SaveArtifactLocally(
-							ctx, b.opt.Console, outputConsole, artifact, artifactDir, saveLocal.DestPath,
-							sts.ID, opt.PrintPhases, saveLocal.IfExists)
+							ctx, exportCoordinator, b.opt.Console, artifact, artifactDir, saveLocal.DestPath, sts.ID, saveLocal.IfExists)
 						if err != nil {
 							return nil, err
 						}
@@ -597,6 +651,27 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 		}
 	}
+
+	for _, artifactEntry := range exportCoordinator.GetArtifactSummary() {
+		console := b.opt.Console.WithPrefixAndSalt(artifactEntry.Target, artifactEntry.Salt)
+		targetStr := console.PrefixColor().Sprintf("%s", artifactEntry.Target)
+		outputConsole.Printf("Artifact %s output as %s\n", targetStr, artifactEntry.Path)
+	}
+	for _, outputEntry := range exportCoordinator.GetLocalOutputSummary() {
+		console := b.opt.Console.WithPrefixAndSalt(outputEntry.Target, outputEntry.Salt)
+		targetStr := console.PrefixColor().Sprintf("%s", outputEntry.Target)
+		outputConsole.Printf("Image %s output as %s\n", targetStr, outputEntry.DockerTag)
+	}
+	for _, pushEntry := range exportCoordinator.GetPushedImageSummary() {
+		console := b.opt.Console.WithPrefixAndSalt(pushEntry.Target, pushEntry.Salt)
+		targetStr := console.PrefixColor().Sprintf("%s", pushEntry.Target)
+		if pushEntry.Pushed {
+			pushConsole.Printf("Pushed image %s as %s\n", targetStr, pushEntry.DockerTag)
+		} else {
+			pushConsole.Printf("Did not push image %s\n", pushEntry.DockerTag)
+		}
+	}
+
 	pushConsole.Flush()
 	if opt.PrintPhases {
 		b.opt.Console.PrintPhaseFooter(PhasePush, !opt.Push, "")
@@ -605,7 +680,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	outputConsole.Flush()
 
 	for parentImageName, children := range manifestLists {
-		err = loadDockerManifest(ctx, b.opt.Console, b.opt.ContainerFrontend, parentImageName, children, opt.PlatformResolver)
+		err = dockerutil.LoadDockerManifest(ctx, b.opt.Console, b.opt.ContainerFrontend, parentImageName, children, opt.PlatformResolver)
 		if err != nil {
 			return nil, err
 		}

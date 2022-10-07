@@ -10,6 +10,7 @@ import (
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	"github.com/moby/buildkit/util/apicaps"
 	"github.com/pkg/errors"
 
 	"github.com/earthly/earthly/ast/spec"
@@ -70,6 +71,10 @@ type ConvertOpt struct {
 	AllowLocally bool
 	// AllowInteractive is an internal feature flag for controlling if interactive sessions can be initiated.
 	AllowInteractive bool
+	// EnableInteractiveDebugger is set to true when earthly is run with the --interactive cli flag
+	InteractiveDebuggerEnabled bool
+	// InteractiveDebuggerDebugLevelLogging controls if debug-level-logging is enabled within the interactive-debugger
+	InteractiveDebuggerDebugLevelLogging bool
 	// HasDangling represents whether the target has dangling instructions -
 	// ie if there are any non-SAVE commands after the first SAVE command,
 	// or if the target is invoked via BUILD command (not COPY nor FROM).
@@ -130,8 +135,8 @@ type ConvertOpt struct {
 	// this is to facilitate de-duplicating code from builder.go
 	GlobalWaitBlockFtr bool
 
-	// PullPingMap points to the per-connection map used by the builder's onPull callback
-	PullPingMap *gatewaycrafter.PullPingMap
+	// ExportCoordinator points to the per-connection map used by the builder's onPull callback
+	ExportCoordinator *gatewaycrafter.ExportCoordinator
 
 	// LocalArtifactWhiteList points to the per-connection list of seen SAVE ARTIFACT ... AS LOCAL entries
 	LocalArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList
@@ -143,6 +148,9 @@ type ConvertOpt struct {
 
 	// TempEarthlyOutDir is a path to a temp dir where artifacts are temporarily saved
 	TempEarthlyOutDir func() (string, error)
+
+	// LLBCaps indicates that builder's capabilities
+	LLBCaps *apicaps.CapSet
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.

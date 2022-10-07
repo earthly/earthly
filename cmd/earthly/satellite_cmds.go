@@ -23,6 +23,16 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 			UsageText: "earthly satellite launch <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] launch <satellite-name>",
 			Action: app.actionSatelliteLaunch,
+			Flags: []cli.Flag{
+				&cli.StringSliceFlag{
+					Name:        "feature-flag",
+					EnvVars:     []string{"EARTHLY_SATELLITE_FEATURE_FLAGS"},
+					Usage:       "One or more of experimental features to enable on a new satellite",
+					Required:    false,
+					Hidden:      true,
+					Destination: &app.satelliteFeatureFlags,
+				},
+			},
 		},
 		{
 			Name:        "rm",
@@ -117,7 +127,7 @@ func (app *earthlyApp) getSatelliteOrgID(ctx context.Context, cloudClient cloud.
 		return "", errors.New("unable to authenticate")
 	}
 	var orgID string
-	if app.satelliteOrg == "" {
+	if app.orgName == "" {
 		orgs, err := cloudClient.ListOrgs(ctx)
 		if err != nil {
 			return "", errors.Wrap(err, "failed finding org")
@@ -128,11 +138,11 @@ func (app *earthlyApp) getSatelliteOrgID(ctx context.Context, cloudClient cloud.
 		if len(orgs) > 1 {
 			return "", errors.New("more than one organizations available - please specify the name of the organization using `--org`")
 		}
-		app.satelliteOrg = orgs[0].Name
+		app.orgName = orgs[0].Name
 		orgID = orgs[0].ID
 	} else {
 		var err error
-		orgID, err = cloudClient.GetOrgID(ctx, app.satelliteOrg)
+		orgID, err = cloudClient.GetOrgID(ctx, app.orgName)
 		if err != nil {
 			return "", errors.Wrap(err, "invalid org provided")
 		}
@@ -149,7 +159,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 
 	app.satelliteName = cliCtx.Args().Get(0)
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -160,9 +170,9 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	}
 
 	app.console.Printf("Launching Satellite. This could take a moment...\n")
-	err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID)
+	err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID, app.satelliteFeatureFlags.Value())
 	if err != nil {
-		if errors.Cause(err) == context.Canceled {
+		if errors.Is(err, context.Canceled) {
 			app.console.Printf("Operation interrupted. Satellite should finish launching in background (if server received request).\n")
 			return nil
 		}
@@ -170,7 +180,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	}
 	app.console.Printf("...Done\n")
 
-	err = app.useSatellite(cliCtx, app.satelliteName, app.satelliteOrg)
+	err = app.useSatellite(cliCtx, app.satelliteName, app.orgName)
 	if err != nil {
 		return errors.Wrap(err, "could not configure satellite for use")
 	}
@@ -186,7 +196,7 @@ func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 		return errors.New("command does not accept any arguments")
 	}
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -214,7 +224,7 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 
 	app.satelliteName = cliCtx.Args().Get(0)
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -227,7 +237,7 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 	app.console.Printf("Destroying Satellite. This could take a moment...\n")
 	err = cloudClient.DeleteSatellite(cliCtx.Context, app.satelliteName, orgID)
 	if err != nil {
-		if errors.Cause(err) == context.Canceled {
+		if errors.Is(err, context.Canceled) {
 			app.console.Printf("Operation interrupted. Satellite should finish destroying in background (if server received request).\n")
 			return nil
 		}
@@ -255,7 +265,7 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	satelliteToInspect := cliCtx.Args().Get(0)
 	selectedSatellite := app.cfg.Satellite.Name
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -301,13 +311,24 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 	app.commandName = "satelliteSelect"
 
-	if cliCtx.NArg() != 1 {
+	if cliCtx.NArg() == 0 {
+		if app.cfg.Satellite.Name == "" {
+			app.console.Printf("No satellite selected\n\n")
+		} else {
+			app.console.Printf("Selected satellite: %s\n\n", app.cfg.Satellite.Name)
+		}
+		_ = cli.ShowCommandHelp(cliCtx, cliCtx.Command.Name)
 		return errors.New("satellite name is required")
+	}
+
+	if cliCtx.NArg() > 1 {
+		_ = cli.ShowCommandHelp(cliCtx, cliCtx.Command.Name)
+		return errors.New(fmt.Sprintf("can only provide 1 satellite name, %d provided", cliCtx.NArg()))
 	}
 
 	app.satelliteName = cliCtx.Args().Get(0)
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -325,7 +346,7 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 	found := false
 	for _, s := range satellites {
 		if app.satelliteName == s.Name {
-			err = app.useSatellite(cliCtx, s.Name, app.satelliteOrg)
+			err = app.useSatellite(cliCtx, s.Name, app.orgName)
 			if err != nil {
 				return errors.Wrapf(err, "could not select satellite %s", app.satelliteName)
 			}

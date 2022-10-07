@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/dockerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/pllb"
@@ -146,10 +148,14 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 
 	gwCrafter := gatewaycrafter.NewGatewayCrafter()
 
+	// these are used to pass manifest data to the onImage function in builder.go; this only applies to non-local-registry exports (e.g. satellites)
+	var tarImagesInWaitBlockRefPrefixes []string
+	var tarImagesInWaitBlock []string
+
 	refID := 0
 	for _, item := range imageWaitItems {
 		sessionID := item.c.opt.GwClient.BuildOpts().SessionID
-		pullPingMap := item.c.opt.PullPingMap
+		exportCoordinator := item.c.opt.ExportCoordinator
 		ref, err := llbutil.StateToRef(
 			ctx, item.c.opt.GwClient, item.si.State, item.c.opt.NoCache,
 			item.c.platr, item.c.opt.CacheImports.AsSlice())
@@ -198,22 +204,37 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 				if err != nil {
 					return err
 				}
+
+				exportCoordinatorImageID := exportCoordinator.AddImage(sessionID, item.si.DockerTag, &dockerutil.Manifest{
+					ImageName: platformImgName,
+					Platform:  item.si.Platform,
+				})
+
 				if item.c.opt.UseLocalRegistry {
-					localRegPullID := pullPingMap.Insert(sessionID, platformImgName)
-					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
+					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(exportCoordinatorImageID))
 				} else {
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
+					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-manifest-key", refPrefix), []byte(exportCoordinatorImageID))
+					tarImagesInWaitBlockRefPrefixes = append(tarImagesInWaitBlockRefPrefixes, refPrefix)
+					tarImagesInWaitBlock = append(tarImagesInWaitBlock, exportCoordinatorImageID)
 				}
 				refID++
 			} else {
 				if item.c.opt.UseLocalRegistry {
-					localRegPullID := pullPingMap.Insert(sessionID, item.si.DockerTag)
-					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(localRegPullID))
+					exportCoordinatorImageID := exportCoordinator.AddImage(sessionID, item.si.DockerTag, nil)
+					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-local-registry", refPrefix), []byte(exportCoordinatorImageID))
 				} else {
 					gwCrafter.AddMeta(fmt.Sprintf("%s/export-image", refPrefix), []byte("true"))
 				}
 			}
-
+			exportCoordinator.AddLocalOutputSummary(item.c.target.String(), item.si.DockerTag, item.c.mts.Final.ID)
+		}
+	}
+	if len(tarImagesInWaitBlockRefPrefixes) != 0 {
+		waitFor := strings.Join(tarImagesInWaitBlock, " ")
+		// the wait-for entry is used to know when all multiplatform images have been exported, thus making it safe to load manifests
+		for _, refPrefix := range tarImagesInWaitBlockRefPrefixes {
+			gwCrafter.AddMeta(fmt.Sprintf("%s/export-image-wait-for", refPrefix), []byte(waitFor))
 		}
 	}
 
@@ -284,6 +305,7 @@ func (wb *waitBlock) saveArtifactLocal(ctx context.Context) error {
 
 	var gatewayClient gwclient.Client
 	var console conslogging.ConsoleLogger
+	var exportCoordinator *gatewaycrafter.ExportCoordinator
 	artifacts := []saveArtifactLocalEntry{}
 
 	for refID, item := range wb.items {
@@ -296,6 +318,7 @@ func (wb *waitBlock) saveArtifactLocal(ctx context.Context) error {
 		i := saveLocalItem.saveLocal.Index
 		gatewayClient = c.opt.GwClient
 		console = c.opt.Console
+		exportCoordinator = c.opt.ExportCoordinator
 
 		state := c.mts.Final.SeparateArtifactsState[i]
 
@@ -345,13 +368,9 @@ func (wb *waitBlock) saveArtifactLocal(ctx context.Context) error {
 		return err
 	}
 
-	outputConsole := conslogging.NewBufferedLogger(&console)
-	defer outputConsole.Flush()
-
 	for _, entry := range artifacts {
 		err = saveartifactlocally.SaveArtifactLocally(
-			ctx, console, outputConsole, entry.artifact, entry.artifactDir, entry.destPath,
-			entry.salt, true, entry.ifExists)
+			ctx, exportCoordinator, console, entry.artifact, entry.artifactDir, entry.destPath, entry.salt, entry.ifExists)
 		if err != nil {
 			return err
 		}

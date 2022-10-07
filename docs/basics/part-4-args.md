@@ -15,8 +15,8 @@ Let's say we wanted to have the option to pass in a tag for our Docker image whe
 ```Dockerfile
 docker:
     ARG tag='latest'
-    COPY +build/go-example .
-    ENTRYPOINT ["/go-example/go-example"]
+    COPY +build/example .
+    ENTRYPOINT ["/go-workdir/example"]
     SAVE IMAGE go-example:$tag
 ```
 In our `+docker` target we can create an `ARG` called tag. In this case, we give it a default value of `latest`. If we do not provide a default value the default will be an empty string.
@@ -32,7 +32,7 @@ In this case `my-new-image-tag` will override the default value and become the n
 
 ```bash
 earthly +docker
-# tag for image will be 'latests'
+# tag for image will be 'latest'
 ```
 
 ### Passing ARGs in FROM, BUILD, and COPY
@@ -41,8 +41,8 @@ We can also pass `ARG`s when referencing a target inside an Earthfile. Using the
 ```Dockerfile
 docker:
     ARG tag='latest'
-    COPY +build/go-example .
-    ENTRYPOINT ["/go-example/go-example"]
+    COPY +build/example .
+    ENTRYPOINT ["/go-workdir/example"]
     SAVE IMAGE go-example:$tag
 
 with-build:
@@ -57,11 +57,11 @@ We can also pass `ARG`s when using the `COPY` command, though the syntax is a li
 build:
     ARG version
     COPY main.go .
-    RUN go build -o build/go-example-$version main.go
-    SAVE ARTIFACT build/go-example-$version /go-example AS LOCAL build/go-example
+    RUN go build -o output/example-$version main.go
+    SAVE ARTIFACT output/example-$version AS LOCAL local-output/go-example
 
 with-copy:
-    COPY (+build/go-example --version='1.0') .
+    COPY (+build/example --version='1.0') .
 ```
 
 ## Builtin `ARG`s

@@ -26,6 +26,7 @@ deps:
     RUN go install golang.org/x/lint/golint@latest
     RUN go install github.com/gordonklaus/ineffassign@latest
     COPY go.mod go.sum ./
+    COPY ./ast/go.mod ./ast/go.sum ./ast
     RUN go mod download
     SAVE ARTIFACT go.mod AS LOCAL go.mod
     SAVE ARTIFACT go.sum AS LOCAL go.sum
@@ -211,20 +212,6 @@ lint-changelog:
     COPY release/changelogparser.py /usr/bin/changelogparser
     COPY CHANGELOG.md .
     RUN changelogparser --changelog CHANGELOG.md
-
-shellrepeater:
-    FROM +code
-    ARG GOCACHE=/go-cache
-    ARG EARTHLY_TARGET_TAG
-    ARG VERSION=$EARTHLY_TARGET_TAG
-    ARG EARTHLY_GIT_HASH
-    RUN --mount=type=cache,target=$GOCACHE \
-        go build \
-            -ldflags "-d -X main.Version=$VERSION $GO_EXTRA_LDFLAGS -X main.GitSha=$EARTHLY_GIT_HASH $GO_EXTRA_LDFLAGS" \
-            -tags netgo -installsuffix netgo \
-            -o build/shellrepeater \
-            cmd/shellrepeater/*.go
-    SAVE ARTIFACT build/shellrepeater
 
 debugger:
     FROM +code
@@ -481,11 +468,14 @@ all:
     BUILD +prerelease
     BUILD +all-dind
 
-test:
+lint-all:
     BUILD +lint
     BUILD +lint-scripts
     BUILD +lint-newline-ending
     BUILD +lint-changelog
+
+# TODO: Document qemu vs non-qemu
+test-no-qemu:
     BUILD +unit-test
     BUILD +earthly-script-no-stdout
     ARG DOCKERHUB_MIRROR
@@ -500,13 +490,47 @@ test:
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
     ARG GLOBAL_WAIT_END="false"
-    BUILD ./tests+ga \
+    BUILD ./tests+ga-no-qemu \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+test-qemu:
+    ARG DOCKERHUB_MIRROR
+    ARG DOCKERHUB_MIRROR_INSECURE=false
+    ARG DOCKERHUB_AUTH=true
+    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+    ARG GLOBAL_WAIT_END="false"
+    BUILD ./tests+ga-qemu \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+test:
+    ARG DOCKERHUB_MIRROR
+    ARG DOCKERHUB_MIRROR_INSECURE=false
+    ARG DOCKERHUB_AUTH=true
+    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+    BUILD +test-no-qemu \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
+    BUILD +test-qemu \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
 
 test-all:
     BUILD +examples
@@ -515,7 +539,13 @@ test-all:
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
     ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-    BUILD +test \
+    BUILD +test-no-qemu \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
+    BUILD +test-qemu \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
@@ -576,7 +606,29 @@ examples2:
     BUILD github.com/earthly/hello-world:main+hello
     BUILD ./examples/cache-command/npm+docker
     BUILD ./examples/cache-command/mvn+docker
+    BUILD ./examples/typescript-node+docker
 
 license:
     COPY LICENSE ./
     SAVE ARTIFACT LICENSE
+
+# This target is to help keep all node package-lock.json files up to date
+npm-update-all:
+    FROM node:16.16.0-alpine3.15
+    COPY . /code
+    WORKDIR /code
+    FOR nodepath IN \
+            contrib/earthfile-syntax-highlighting \
+            examples/cache-command/npm \
+            examples/js \
+            examples/react \
+            examples/ruby-on-rails \
+            examples/tutorial/js/part3 \
+            examples/tutorial/js/part4 \
+            examples/tutorial/js/part5/services/service-one \
+            examples/tutorial/js/part6/api \
+            examples/tutorial/js/part6/app \
+            tests/remote-cache/test2
+        RUN cd $nodepath && npm update
+        SAVE ARTIFACT --if-exists $nodepath/package-lock.json AS LOCAL $nodepath/package-lock.json
+    END

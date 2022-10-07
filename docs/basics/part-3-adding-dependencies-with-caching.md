@@ -45,17 +45,17 @@ Now we can update our Earthfile to copy in the `go.mod` and `go.sum`.
 ```Dockerfile
 VERSION 0.6
 FROM golang:1.15-alpine3.13
-WORKDIR /go-example
+WORKDIR /go-workdir
 
 build:
     COPY go.mod go.sum .
     COPY main.go .
-    RUN go build -o build/go-example main.go
-    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example AS LOCAL local-output/go-example
 
 docker:
-    COPY +build/go-example .
-    ENTRYPOINT ["/go-example/go-example"]
+    COPY +build/example .
+    ENTRYPOINT ["/go-workdir/example"]
     SAVE IMAGE go-example:latest
 ```
 This works, but it is inefficient because we have not made proper use of caching. In the current setup, when a file changes, the corresponding `COPY` command is re-executed without cache, causing all commands after it to also re-execute without cache.
@@ -69,7 +69,7 @@ If, however, we could first download the dependencies and only afterwards copy a
 ```Dockerfile
 VERSION 0.6
 FROM golang:1.15-alpine3.13
-WORKDIR /go-example
+WORKDIR /go-workdir
 
 build:
     # Download deps before copying code.
@@ -77,12 +77,12 @@ build:
     RUN go mod download
     # Copy and build code.
     COPY main.go .
-    RUN go build -o build/go-example main.go
-    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example AS LOCAL local-output/go-example
 
 docker:
-    COPY +build/go-example .
-    ENTRYPOINT ["/go-example/go-example"]
+    COPY +build/example .
+    ENTRYPOINT ["/go-workdir/example"]
     SAVE IMAGE go-example:latest
 ```
 
@@ -97,7 +97,7 @@ In some cases, the dependencies might be used in more than one build target. For
 ```Dockerfile
 VERSION 0.6
 FROM golang:1.15-alpine3.13
-WORKDIR /go-example
+WORKDIR /go-workdir
 
 deps:
     COPY go.mod go.sum ./
@@ -109,12 +109,12 @@ deps:
 build:
     FROM +deps
     COPY main.go .
-    RUN go build -o build/go-example main.go
-    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example AS LOCAL local-output/go-example
 
 docker:
-    COPY +build/go-example .
-    ENTRYPOINT ["/go-example/go-example"]
+    COPY +build/example .
+    ENTRYPOINT ["/go-workdir/example"]
     SAVE IMAGE go-example:latest
 ```
 

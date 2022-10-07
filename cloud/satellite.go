@@ -1,14 +1,31 @@
 package cloud
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"net/http"
-	"net/url"
+	"io"
+	"time"
 
-	pipelinesapi "github.com/earthly/cloud-api/pipelines"
+	pb "github.com/earthly/cloud-api/pipelines"
 	"github.com/pkg/errors"
+)
+
+const (
+	// SatelliteStatusOperational indicates an on satellite that is ready to accept connections.
+	SatelliteStatusOperational = "Operational"
+	// SatelliteStatusSleep indicates a satellite that is in a sleep state.
+	SatelliteStatusSleep = "Sleeping"
+	// SatelliteStatusStarting indicates a satellite that is waking from a sleep state.
+	SatelliteStatusStarting = "Starting"
+	// SatelliteStatusCreating indicates a new satellite that is currently being launched.
+	SatelliteStatusCreating = "Creating"
+	// SatelliteStatusFailed indicates a satellite that has crashed and cannot be used.
+	SatelliteStatusFailed = "Failed"
+	// SatelliteStatusDestroying indicates a satellite that is actively being deleted.
+	SatelliteStatusDestroying = "Destroying"
+	// SatelliteStatusOffline indicates a satellite that has been stopped and will not be woken up normally via build.
+	SatelliteStatusOffline = "Offline"
+	// SatelliteStatusUnknown is used when an unexpected satellite status is returned by the server.
+	SatelliteStatusUnknown = "Unknown"
 )
 
 // SatelliteInstance contains details about a remote Buildkit instance.
@@ -16,101 +33,113 @@ type SatelliteInstance struct {
 	Name     string
 	Org      string
 	Status   string
-	Version  string
 	Platform string
 }
 
 func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error) {
-	url := fmt.Sprintf("/api/v0/satellites?orgId=%s", url.QueryEscape(orgID))
-	status, body, err := c.doCall(ctx, "GET", url, withAuth())
+	resp, err := c.pipelines.ListSatellites(c.withAuth(ctx), &pb.ListSatellitesRequest{
+		OrgId: orgID,
+	})
 	if err != nil {
-		return nil, err
-	}
-	if status != http.StatusOK {
-		return nil, errors.Errorf("failed listing satellites: %s", body)
-	}
-	var resp pipelinesapi.ListSatellitesResponse
-	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal listTokens response")
+		return nil, errors.Wrap(err, "failed listing satellites")
 	}
 	instances := make([]SatelliteInstance, len(resp.Instances))
 	for i, s := range resp.Instances {
 		instances[i] = SatelliteInstance{
 			Name:     s.Name,
 			Org:      orgID,
-			Version:  s.Version,
 			Platform: s.Platform,
-			Status:   s.Status.String(),
+			Status:   satelliteStatus(s.Status),
 		}
 	}
 	return instances, nil
 }
 
 func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error) {
-	url := fmt.Sprintf("/api/v0/satellites/%s?orgId=%s", name, url.QueryEscape(orgID))
-	status, body, err := c.doCall(ctx, "GET", url, withAuth())
+	resp, err := c.pipelines.GetSatellite(c.withAuth(ctx), &pb.GetSatelliteRequest{
+		OrgId: orgID,
+		Name:  name,
+	})
 	if err != nil {
-		return nil, err
-	}
-	if status != http.StatusOK {
-		return nil, errors.Errorf("failed listing satellites: %s", body)
-	}
-	var resp pipelinesapi.GetSatelliteResponse
-	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal listTokens response")
-	}
-	var satelliteStatus string
-	switch resp.Status {
-	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_OPERATIONAL:
-		satelliteStatus = "Operational"
-	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_CREATING:
-		satelliteStatus = "Creating"
-	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_FAILED:
-		satelliteStatus = "Failed"
-	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_DESTROYING:
-		satelliteStatus = "Destroying"
-	case pipelinesapi.SatelliteStatus_SATELLITE_STATUS_OFFLINE:
-		satelliteStatus = "Offline"
-	default:
-		satelliteStatus = "Unknown"
+		return nil, errors.Wrap(err, "failed getting satellite")
 	}
 	return &SatelliteInstance{
 		Name:     name,
 		Org:      orgID,
-		Status:   satelliteStatus,
-		Version:  resp.Version,
+		Status:   satelliteStatus(resp.Status),
 		Platform: resp.Platform,
 	}, nil
 }
 
 func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error {
-	url := fmt.Sprintf("/api/v0/satellites/%s?orgId=%s", name, url.QueryEscape(orgID))
-	status, body, err := c.doCall(ctx, "DELETE", url,
-		withAuth(), withHeader("Grpc-Timeout", satelliteMgmtTimeout))
+	_, err := c.pipelines.DeleteSatellite(c.withAuth(ctx), &pb.DeleteSatelliteRequest{
+		OrgId: orgID,
+		Name:  name,
+	})
 	if err != nil {
-		return err
-	}
-	if status != http.StatusOK {
-		return errors.Errorf("failed listing satellites: %s", body)
+		return errors.Wrap(err, "failed deleting satellite")
 	}
 	return nil
 }
 
-func (c *client) LaunchSatellite(ctx context.Context, name, orgID string) error {
-	req := pipelinesapi.LaunchSatelliteRequest{
-		OrgId:    orgID,
-		Name:     name,
-		Platform: "linux/amd64", // TODO support arm64 as well
-	}
-	status, body, err := c.doCall(ctx, "POST", "/api/v0/satellites",
-		withAuth(), withHeader("Grpc-Timeout", satelliteMgmtTimeout), withJSONBody(&req))
+func (c *client) LaunchSatellite(ctx context.Context, name, orgID string, features []string) error {
+	_, err := c.pipelines.LaunchSatellite(c.withAuth(ctx), &pb.LaunchSatelliteRequest{
+		OrgId:        orgID,
+		Name:         name,
+		Platform:     "linux/amd64", // TODO support arm64 as well
+		FeatureFlags: features,
+	})
 	if err != nil {
-		return err
-	}
-	if status != http.StatusOK {
-		return errors.Errorf("failed launching satellite: %s", body)
+		return errors.Wrap(err, "failed launching satellite")
 	}
 	return nil
+}
+
+func (c *client) ReserveSatellite(ctx context.Context, name, orgID string, out chan<- string) error {
+	defer close(out)
+	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	stream, err := c.pipelines.ReserveSatellite(c.withAuth(ctxTimeout), &pb.ReserveSatelliteRequest{
+		OrgId: orgID,
+		Name:  name,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed opening satellite reserve stream")
+	}
+	var update *pb.ReserveSatelliteResponse
+	for {
+		update, err = stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return errors.Wrap(err, "failed receiving satellite reserve update")
+		}
+		status := satelliteStatus(update.Status)
+		if status == SatelliteStatusFailed {
+			return errors.New("satellite is in failed state")
+		}
+		out <- status
+	}
+}
+
+func satelliteStatus(status pb.SatelliteStatus) string {
+	switch status {
+	case pb.SatelliteStatus_SATELLITE_STATUS_OPERATIONAL:
+		return SatelliteStatusOperational
+	case pb.SatelliteStatus_SATELLITE_STATUS_SLEEP:
+		return SatelliteStatusSleep
+	case pb.SatelliteStatus_SATELLITE_STATUS_STARTING:
+		return SatelliteStatusStarting
+	case pb.SatelliteStatus_SATELLITE_STATUS_CREATING:
+		return SatelliteStatusCreating
+	case pb.SatelliteStatus_SATELLITE_STATUS_FAILED:
+		return SatelliteStatusFailed
+	case pb.SatelliteStatus_SATELLITE_STATUS_DESTROYING:
+		return SatelliteStatusDestroying
+	case pb.SatelliteStatus_SATELLITE_STATUS_OFFLINE:
+		return SatelliteStatusOffline
+	default:
+		return SatelliteStatusUnknown
+	}
 }

@@ -106,12 +106,12 @@ if [ "$existing_release" != "null" ]; then
 fi
 
 PUSH_LATEST_TAG="true"
-if [ "$PRERELEASE" != "true" ] || [ "$PRODUCTION_RELEASE" != "true" ]; then
+if [ "$PRERELEASE" = "true" ] || [ "$PRODUCTION_RELEASE" != "true" ]; then
     PUSH_LATEST_TAG="false"
 fi
 
 "$earthly" --push --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG --build-arg PRERELEASE +release-dockerhub
-"$earthly" --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG --build-arg SKIP_CHANGELOG_DATE_TEST $GITHUB_SECRET_PATH_BUILD_ARG +release-github --PUSH_LATEST_TAG="$PUSH_LATEST_TAG"
+"$earthly" --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG --build-arg SKIP_CHANGELOG_DATE_TEST $GITHUB_SECRET_PATH_BUILD_ARG +release-github --PUSH_LATEST_TAG="$PUSH_LATEST_TAG" --PUSH_PRERELEASE_TAG="$PRERELEASE"
 
 if [ "$PRERELEASE" != "false" ]; then
     echo "exiting due to PRERELEASE=$PRERELEASE"

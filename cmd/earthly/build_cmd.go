@@ -1,15 +1,26 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"strings"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
-	"github.com/earthly/earthly/analytics"
+	"github.com/joho/godotenv"
+	"github.com/moby/buildkit/client/llb"
+	"github.com/moby/buildkit/session"
+	"github.com/moby/buildkit/session/auth/authprovider"
+	"github.com/moby/buildkit/session/localhost/localhostprovider"
+	"github.com/moby/buildkit/session/socketforward/socketprovider"
+	"github.com/moby/buildkit/session/sshforward/sshprovider"
+	"github.com/moby/buildkit/util/entitlements"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
+
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
@@ -21,20 +32,12 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
+	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
-	"github.com/joho/godotenv"
-	"github.com/moby/buildkit/client/llb"
-	"github.com/moby/buildkit/session"
-	"github.com/moby/buildkit/session/auth/authprovider"
-	"github.com/moby/buildkit/session/localhost/localhostprovider"
-	"github.com/moby/buildkit/session/sshforward/sshprovider"
-	"github.com/moby/buildkit/util/entitlements"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
 )
 
 func (app *earthlyApp) actionBuild(cliCtx *cli.Context) error {
@@ -157,7 +160,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	cloudClient, err := cloud.NewClient(app.apiServer, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -211,8 +214,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		app.useInlineCache = false
 		app.saveInlineCache = false
 	}
-	if app.interactiveDebugging && !isLocal {
-		return errors.New("the --interactive flag is not currently supported with non-local buildkit servers")
+	if isLocal && !app.containerFrontend.IsAvailable(cliCtx.Context) {
+		return errors.New("Frontend is not available to perform the build. Is Docker installed and running?")
 	}
 
 	bkClient, err := buildkitd.NewClient(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, Version, app.buildkitdSettings)
@@ -221,11 +224,6 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	}
 	defer bkClient.Close()
 	app.analyticsMetadata.isRemoteBuildkit = !isLocal
-
-	bkIP, err := buildkitd.GetContainerIP(cliCtx.Context, app.containerName, app.containerFrontend, app.buildkitdSettings)
-	if err != nil {
-		return errors.Wrap(err, "get buildkit container IP")
-	}
 
 	nativePlatform, err := platutil.GetNativePlatformViaBkClient(cliCtx.Context, bkClient)
 	if err != nil {
@@ -263,22 +261,6 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if err != nil {
 		return err
 	}
-
-	debuggerSettings := debuggercommon.DebuggerSettings{
-		DebugLevelLogging: app.debug,
-		Enabled:           app.interactiveDebugging,
-		RepeaterAddr:      fmt.Sprintf("%s:8373", bkIP),
-		Term:              os.Getenv("TERM"),
-	}
-	if app.interactiveDebugging {
-		analytics.Count("features", "interactive-debugging")
-	}
-
-	debuggerSettingsData, err := json.Marshal(&debuggerSettings)
-	if err != nil {
-		return errors.Wrap(err, "debugger settings json marshal")
-	}
-	secretsMap[debuggercommon.DebuggerSettingsSecretsKey] = debuggerSettingsData
 
 	localhostProvider, err := localhostprovider.NewLocalhostProvider()
 	if err != nil {
@@ -343,27 +325,30 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		attachables = append(attachables, ssh)
 	}
 
+	localArtifactWhiteList := gatewaycrafter.NewLocalArtifactWhiteList()
+
+	socketProvider, err := socketprovider.NewSocketProvider(map[string]socketprovider.SocketAcceptCb{
+		"earthly_save_file": getTryCatchSaveFileHandler(localArtifactWhiteList),
+		"earthly_interactive": func(ctx context.Context, conn io.ReadWriteCloser) error {
+			if !termutil.IsTTY() {
+				return fmt.Errorf("interactive mode unavailable due to terminal not being tty")
+			}
+			debugTermConsole := app.console.WithPrefix("internal-term")
+			err := terminal.ConnectTerm(cliCtx.Context, conn, debugTermConsole)
+			if err != nil {
+				return errors.Wrap(err, "interactive terminal")
+			}
+			return nil
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "ssh agent provider")
+	}
+	attachables = append(attachables, socketProvider)
+
 	var enttlmnts []entitlements.Entitlement
 	if app.allowPrivileged {
 		enttlmnts = append(enttlmnts, entitlements.EntitlementSecurityInsecure)
-	}
-
-	if termutil.IsTTY() {
-		go func() {
-			// Dialing does not accept URLs, it accepts an address and a "network". These cannot be handled as URL schemes.
-			// Since Shellrepeater hard-codes TCP, we drop it here and log the error if we fail to connect.
-
-			u, err := url.Parse(app.debuggerHost)
-			if err != nil {
-				panic("debugger host was not a URL")
-			}
-
-			debugTermConsole := app.console.WithPrefix("internal-term")
-			err = terminal.ConnectTerm(cliCtx.Context, u.Host, debugTermConsole)
-			if err != nil {
-				debugTermConsole.VerbosePrintf("unable to connect to terminal: %s", err.Error())
-			}
-		}()
 	}
 
 	overridingVars, err := app.combineVariables(dotEnvMap, flagArgs)
@@ -405,32 +390,34 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		localRegistryAddr = lrURL.Host
 	}
 	builderOpts := builder.Opt{
-		BkClient:               bkClient,
-		Console:                app.console,
-		Verbose:                app.verbose,
-		Attachables:            attachables,
-		Enttlmnts:              enttlmnts,
-		NoCache:                app.noCache,
-		CacheImports:           states.NewCacheImports(cacheImports),
-		CacheExport:            cacheExport,
-		MaxCacheExport:         maxCacheExport,
-		UseInlineCache:         app.useInlineCache,
-		SaveInlineCache:        app.saveInlineCache,
-		SessionID:              app.sessionID,
-		ImageResolveMode:       imageResolveMode,
-		CleanCollection:        cleanCollection,
-		OverridingVars:         overridingVars,
-		BuildContextProvider:   buildContextProvider,
-		GitLookup:              gitLookup,
-		UseFakeDep:             !app.noFakeDep,
-		Strict:                 app.strict,
-		DisableNoOutputUpdates: app.interactiveDebugging,
-		ParallelConversion:     (app.cfg.Global.ConversionParallelism != 0),
-		Parallelism:            parallelism,
-		LocalRegistryAddr:      localRegistryAddr,
-		FeatureFlagOverrides:   app.featureFlagOverrides,
-		ContainerFrontend:      app.containerFrontend,
-		InternalSecretStore:    internalSecretStore,
+		BkClient:                              bkClient,
+		Console:                               app.console,
+		Verbose:                               app.verbose,
+		Attachables:                           attachables,
+		Enttlmnts:                             enttlmnts,
+		NoCache:                               app.noCache,
+		CacheImports:                          states.NewCacheImports(cacheImports),
+		CacheExport:                           cacheExport,
+		MaxCacheExport:                        maxCacheExport,
+		UseInlineCache:                        app.useInlineCache,
+		SaveInlineCache:                       app.saveInlineCache,
+		SessionID:                             app.sessionID,
+		ImageResolveMode:                      imageResolveMode,
+		CleanCollection:                       cleanCollection,
+		OverridingVars:                        overridingVars,
+		BuildContextProvider:                  buildContextProvider,
+		GitLookup:                             gitLookup,
+		UseFakeDep:                            !app.noFakeDep,
+		Strict:                                app.strict,
+		DisableNoOutputUpdates:                app.interactiveDebugging,
+		ParallelConversion:                    (app.cfg.Global.ConversionParallelism != 0),
+		Parallelism:                           parallelism,
+		LocalRegistryAddr:                     localRegistryAddr,
+		FeatureFlagOverrides:                  app.featureFlagOverrides,
+		ContainerFrontend:                     app.containerFrontend,
+		InternalSecretStore:                   internalSecretStore,
+		InteractiveDebugging:                  app.interactiveDebugging,
+		InteractiveDebuggingDebugLevelLogging: app.debug,
 	}
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
 	if err != nil {
@@ -451,6 +438,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		PlatformResolver:           platr,
 		EnableGatewayClientLogging: app.debug,
 		BuiltinArgs:                builtinArgs,
+		LocalArtifactWhiteList:     localArtifactWhiteList,
 
 		// feature-flip the removal of builder.go code
 		// once VERSION 0.7 is released AND support for 0.6 is dropped,
@@ -471,4 +459,53 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	}
 
 	return nil
+}
+
+func getTryCatchSaveFileHandler(localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) func(ctx context.Context, conn io.ReadWriteCloser) error {
+	return func(ctx context.Context, conn io.ReadWriteCloser) error {
+		// version
+		n, _, err := debuggercommon.ReadDataPacket(conn)
+		if err != nil {
+			return err
+		}
+		if n != 1 {
+			return fmt.Errorf("unexpected version %d", n)
+		}
+
+		// dst path
+		_, dst, err := debuggercommon.ReadDataPacket(conn)
+		if err != nil {
+			return err
+		}
+
+		if !localArtifactWhiteList.Exists(string(dst)) {
+			return fmt.Errorf("file %s does not appear in the white list", dst)
+		}
+
+		// data
+		_, data, err := debuggercommon.ReadDataPacket(conn)
+		if err != nil {
+			return err
+		}
+
+		// EOF
+		n, _, err = debuggercommon.ReadDataPacket(conn)
+		if err != nil {
+			return err
+		}
+		if n != 0 {
+			return fmt.Errorf("expected EOF, but got more data")
+		}
+
+		f, err := os.Create(string(dst))
+		if err != nil {
+			return err
+		}
+		_, err = f.Write(data)
+		if err != nil {
+			return err
+		}
+
+		return f.Close()
+	}
 }
