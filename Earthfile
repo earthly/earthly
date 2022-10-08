@@ -22,9 +22,6 @@ WORKDIR /earthly
 
 deps:
     FROM +base
-    RUN go install golang.org/x/tools/cmd/goimports@latest
-    RUN go install golang.org/x/lint/golint@latest
-    RUN go install github.com/gordonklaus/ineffassign@latest
     RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.0
     COPY go.mod go.sum ./
     COPY ./ast/go.mod ./ast/go.sum ./ast
