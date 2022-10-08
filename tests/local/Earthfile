@@ -167,7 +167,7 @@ mycontainer2:
 test-with-docker:
     LOCALLY
     ARG FRONTEND=docker
-    RUN $FRONTEND images -q mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744 | xargs -n 1 -r $FRONTEND rmi
+    RUN $FRONTEND images -q mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744 | xargs -n 1 -r $FRONTEND rmi -f
     WITH DOCKER --load mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest=+mycontainer
         RUN $FRONTEND run --rm mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest | grep "hello world"
     END
@@ -175,7 +175,7 @@ test-with-docker:
 test-with-two-dockers:
     LOCALLY
     ARG FRONTEND=docker
-    RUN $FRONTEND images -q mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75 | xargs -n 1 -r $FRONTEND rmi
+    RUN $FRONTEND images -q mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75 | xargs -n 1 -r $FRONTEND rmi -f
     WITH DOCKER \
             --load mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:latest=+mycontainer \
             --load mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:hyperlatest=+mycontainer2
