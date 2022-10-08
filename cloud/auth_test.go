@@ -28,6 +28,7 @@ func TestClient_Authenticate(t *testing.T) {
 		email:    testEmail,
 		password: testPass,
 		authDir:  "/tmp",
+		jum:      &protojson.UnmarshalOptions{DiscardUnknown: true},
 	}
 	ctx := context.Background()
 
@@ -50,6 +51,7 @@ func TestClient_loadAuthStorage(t *testing.T) {
 		email:           testEmail,
 		password:        testPass,
 		authDir:         "/tmp",
+		jum:             &protojson.UnmarshalOptions{DiscardUnknown: true},
 	}
 	ctx := context.Background()
 	err := cc.saveToken()
