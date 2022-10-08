@@ -166,14 +166,17 @@ func keyAndValueCompatible(key reflect.Type, value *yaml.Node) bool {
 func Upsert(config []byte, path, value string) ([]byte, error) {
 	base := &yaml.Node{}
 	err := yaml.Unmarshal(config, base)
-	if err != nil {
+	if err != nil || base.IsZero() {
 		// Possibly an empty file, or a simple comment results in a null document.
 		// Not handled well, so manufacture somewhat acceptable document
 		fullDoc := string(config) + "\n---"
 		otherErr := yaml.Unmarshal([]byte(fullDoc), base)
 		if otherErr != nil {
-			// Give up - return original error.
-			return []byte{}, errors.Wrapf(err, "failed to parse config file")
+			// Give up.
+			if err != nil {
+				return []byte{}, errors.Wrapf(err, "failed to parse config file")
+			}
+			return []byte{}, errors.Wrapf(otherErr, "failed to parse config file")
 		}
 		base.Content = []*yaml.Node{{Kind: yaml.MappingNode}}
 	}
