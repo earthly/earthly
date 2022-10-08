@@ -8,8 +8,9 @@ import (
 	"time"
 
 	api "github.com/earthly/cloud-api/secrets"
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/ptypes"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -27,9 +28,6 @@ func TestClient_Authenticate(t *testing.T) {
 		email:    testEmail,
 		password: testPass,
 		authDir:  "/tmp",
-		jm: &jsonpb.Unmarshaler{
-			AllowUnknownFields: true,
-		},
 	}
 	ctx := context.Background()
 
@@ -54,8 +52,11 @@ func TestClient_loadAuthStorage(t *testing.T) {
 		authDir:         "/tmp",
 	}
 	ctx := context.Background()
-	cc.saveToken()
-	cc.savePasswordCredentials(ctx, cc.email, cc.password)
+	err := cc.saveToken()
+	assert.NoError(t, err)
+
+	err = cc.savePasswordCredentials(ctx, cc.email, cc.password)
+	assert.NoError(t, err)
 
 	cc.email = ""
 	cc.password = ""
@@ -81,16 +82,15 @@ func TestClient_loadAuthStorage(t *testing.T) {
 
 func mockServer(t *testing.T) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		pbTime, _ := ptypes.TimestampProto(testTokenExp)
 		resp := &api.LoginResponse{
 			Token:  testToken,
-			Expiry: pbTime,
+			Expiry: timestamppb.New(testTokenExp),
 		}
-		marshaler := jsonpb.Marshaler{}
-		encodedBody, err := marshaler.MarshalToString(resp)
+		encodedBody, err := protojson.Marshal(resp)
 		if err != nil {
 			t.Fatal("could not marshal mock response")
 		}
-		w.Write([]byte(encodedBody))
+		_, err = w.Write(encodedBody)
+		assert.NoError(t, err)
 	}))
 }

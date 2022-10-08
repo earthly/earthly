@@ -7,7 +7,6 @@ import (
 	"time"
 
 	secretsapi "github.com/earthly/cloud-api/secrets"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/pkg/errors"
 )
 
@@ -52,7 +51,7 @@ func (c *client) CreateProject(ctx context.Context, name, orgName string) (*Proj
 
 	res := &secretsapi.CreateProjectResponse{}
 
-	err = jsonpb.UnmarshalString(body, res)
+	err = c.jum.Unmarshal(body, res)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +80,7 @@ func (c *client) ListProjects(ctx context.Context, orgName string) ([]*Project, 
 
 	res := &secretsapi.ListProjectsResponse{}
 
-	err = jsonpb.UnmarshalString(body, res)
+	err = c.jum.Unmarshal(body, res)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +114,7 @@ func (c *client) GetProject(ctx context.Context, orgName, name string) (*Project
 
 	res := &secretsapi.GetProjectResponse{}
 
-	err = jsonpb.UnmarshalString(body, res)
+	err = c.jum.Unmarshal(body, res)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +202,7 @@ func (c *client) ListProjectMembers(ctx context.Context, orgName, name string) (
 
 	res := &secretsapi.ListProjectMembersResponse{}
 
-	err = jsonpb.UnmarshalString(body, res)
+	err = c.jum.Unmarshal(body, res)
 	if err != nil {
 		return nil, err
 	}

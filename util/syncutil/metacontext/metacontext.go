@@ -32,7 +32,7 @@ func New(ctx context.Context) *MetaContext {
 		doneCh:    make(chan struct{}),
 		subDoneCh: make(chan int),
 	}
-	mc.Add(ctx)
+	_ = mc.Add(ctx)
 	go mc.monitor()
 	return mc
 }

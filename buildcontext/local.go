@@ -100,9 +100,8 @@ func (lr *localResolver) resolveLocal(ctx context.Context, gwClient gwclient.Cli
 			llb.Platform(platr.LLBNative()),
 			llb.WithCustomNamef("[context %s] local context %s", ref.GetLocalPath(), ref.GetLocalPath()),
 		)
-	} else {
-		// Commands don't come with a build context.
 	}
+	// Else not needed: Commands don't come with a build context.
 
 	return &Data{
 		BuildFilePath:       bf.path,

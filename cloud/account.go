@@ -11,9 +11,9 @@ import (
 	"time"
 
 	secretsapi "github.com/earthly/cloud-api/secrets"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh/agent"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // TokenDetail contains token information
@@ -29,7 +29,7 @@ func (c *client) ListPublicKeys(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 	if status != http.StatusOK {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
@@ -37,7 +37,7 @@ func (c *client) ListPublicKeys(ctx context.Context) ([]string, error) {
 	}
 
 	keys := []string{}
-	for _, k := range strings.Split(body, "\n") {
+	for _, k := range strings.Split(string(body), "\n") {
 		if k != "" {
 			keys = append(keys, k)
 		}
@@ -47,12 +47,12 @@ func (c *client) ListPublicKeys(ctx context.Context) ([]string, error) {
 
 func (c *client) AddPublickKey(ctx context.Context, key string) error {
 	key = strings.TrimSpace(key) + "\n"
-	status, body, err := c.doCall(ctx, "PUT", "/api/v0/account/keys", withAuth(), withBody(key))
+	status, body, err := c.doCall(ctx, "PUT", "/api/v0/account/keys", withAuth(), withBody([]byte(key)))
 	if err != nil {
 		return err
 	}
 	if status != http.StatusCreated {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
@@ -63,12 +63,12 @@ func (c *client) AddPublickKey(ctx context.Context, key string) error {
 
 func (c *client) RemovePublickKey(ctx context.Context, key string) error {
 	key = strings.TrimSpace(key) + "\n"
-	status, body, err := c.doCall(ctx, "DELETE", "/api/v0/account/keys", withAuth(), withBody(key))
+	status, body, err := c.doCall(ctx, "DELETE", "/api/v0/account/keys", withAuth(), withBody([]byte(key)))
 	if err != nil {
 		return err
 	}
 	if status != http.StatusOK {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
@@ -79,12 +79,7 @@ func (c *client) RemovePublickKey(ctx context.Context, key string) error {
 
 func (c *client) CreateToken(ctx context.Context, name string, write bool, expiry *time.Time) (string, error) {
 	name = url.QueryEscape(name)
-
-	expiryPB, err := ptypes.TimestampProto(expiry.UTC())
-	if err != nil {
-		return "", errors.Wrap(err, "TimestampProto failed")
-	}
-
+	expiryPB := timestamppb.New(expiry.UTC())
 	authToken := secretsapi.AuthToken{
 		Write:  write,
 		Expiry: expiryPB,
@@ -94,13 +89,13 @@ func (c *client) CreateToken(ctx context.Context, name string, write bool, expir
 		return "", err
 	}
 	if status != http.StatusCreated {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			return "", errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
 		return "", errors.Errorf("failed to create new token: %s", msg)
 	}
-	return body, nil
+	return string(body), nil
 }
 
 func (c *client) ListTokens(ctx context.Context) ([]*TokenDetail, error) {
@@ -109,7 +104,7 @@ func (c *client) ListTokens(ctx context.Context) ([]*TokenDetail, error) {
 		return nil, err
 	}
 	if status != http.StatusOK {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
@@ -117,21 +112,17 @@ func (c *client) ListTokens(ctx context.Context) ([]*TokenDetail, error) {
 	}
 
 	var listTokensResponse secretsapi.ListAuthTokensResponse
-	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &listTokensResponse)
+	err = c.jum.Unmarshal(body, &listTokensResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal listTokens response")
 	}
 
 	tokenDetails := []*TokenDetail{}
 	for _, token := range listTokensResponse.Tokens {
-		expiry, err := ptypes.Timestamp(token.Expiry)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to decode expiry proto timestamp")
-		}
 		tokenDetails = append(tokenDetails, &TokenDetail{
 			Name:   token.Name,
 			Write:  token.Write,
-			Expiry: expiry,
+			Expiry: token.Expiry.AsTime(),
 		})
 	}
 	return tokenDetails, nil
@@ -144,7 +135,7 @@ func (c *client) RemoveToken(ctx context.Context, name string) error {
 		return err
 	}
 	if status != http.StatusOK {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
@@ -196,7 +187,7 @@ func (c *client) RegisterEmail(ctx context.Context, email string) error {
 		return err
 	}
 	if status != http.StatusCreated {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
@@ -229,7 +220,7 @@ func (c *client) CreateAccount(ctx context.Context, email, verificationToken, pa
 		return err
 	}
 	if status != http.StatusCreated {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
@@ -266,7 +257,7 @@ func (c *client) ping(ctx context.Context) (email string, writeAccess bool, err 
 		return "", false, errors.Errorf("unexpected status code from ping: %d", status)
 	}
 	var resp secretsapi.PingResponse
-	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
+	err = c.jum.Unmarshal(body, &resp)
 	if err != nil {
 		return "", false, errors.Wrap(err, "failed to unmarshal challenge response")
 	}

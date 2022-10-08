@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/earthly/cloud-api/pipelines"
-	"github.com/golang/protobuf/jsonpb"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh/agent"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var (
@@ -104,7 +104,7 @@ type client struct {
 	authCredToken         string
 	authDir               string
 	disableSSHKeyGuessing bool
-	jm                    *jsonpb.Unmarshaler
+	jum                   *protojson.UnmarshalOptions
 	pipelines             pipelines.PipelinesClient
 }
 
@@ -118,9 +118,7 @@ func NewClient(httpAddr, grpcAddr, agentSockPath, authCredsOverride string, warn
 			sockPath: agentSockPath,
 		},
 		warnFunc: warnFunc,
-		jm: &jsonpb.Unmarshaler{
-			AllowUnknownFields: true,
-		},
+		jum:      &protojson.UnmarshalOptions{DiscardUnknown: true},
 	}
 	if authCredsOverride != "" {
 		c.authCredToken = authCredsOverride

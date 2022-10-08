@@ -120,35 +120,53 @@ func (bb *BundleBuilder) WriteToDisk() (string, error) {
 		trimmed := strings.TrimSpace(lines.prefix)
 		escaped := url.QueryEscape(trimmed)
 
-		tarWriter.WriteHeader(&tar.Header{
+		err = tarWriter.WriteHeader(&tar.Header{
 			Name:       fmt.Sprintf("target/%s", escaped),
 			Size:       int64(lines.writer.Len()),
 			Mode:       0600,
 			ChangeTime: time.Now(),
 		})
-		tarWriter.Write([]byte(lines.writer.String()))
+		if err != nil {
+			return "", errors.Wrapf(err, "could not write target header")
+		}
+		_, err = tarWriter.Write([]byte(lines.writer.String()))
+		if err != nil {
+			return "", errors.Wrapf(err, "could not write target data")
+		}
 	}
 
 	// build manifest and permissions
 	mani := bb.buildManifest(targetData)
 	manifestJSON, _ := json.Marshal(mani)
-	tarWriter.WriteHeader(&tar.Header{
+	err = tarWriter.WriteHeader(&tar.Header{
 		Name:       "manifest",
 		Size:       int64(len(manifestJSON)),
 		Mode:       0600,
 		ChangeTime: time.Now(),
 	})
-	tarWriter.Write(manifestJSON)
+	if err != nil {
+		return "", errors.Wrapf(err, "could not write manifest header")
+	}
+	_, err = tarWriter.Write(manifestJSON)
+	if err != nil {
+		return "", errors.Wrapf(err, "could not write manifest")
+	}
 
 	perm := bb.buildPermissions()
 	permissionsJSON, _ := json.Marshal(perm)
-	tarWriter.WriteHeader(&tar.Header{
+	err = tarWriter.WriteHeader(&tar.Header{
 		Name:       "permissions",
 		Size:       int64(len(permissionsJSON)),
 		Mode:       0600,
 		ChangeTime: time.Now(),
 	})
-	tarWriter.Write(permissionsJSON)
+	if err != nil {
+		return "", errors.Wrapf(err, "could not write permissions header")
+	}
+	_, err = tarWriter.Write(permissionsJSON)
+	if err != nil {
+		return "", errors.Wrapf(err, "could not write permissions")
+	}
 
 	return file.Name(), nil
 }

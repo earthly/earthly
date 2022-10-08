@@ -302,10 +302,10 @@ func TestFrontendContainerRun(t *testing.T) {
 					// Roll our own cleanup since we can't use the spawn test containers helper... since
 					// the whole point of this test is to create them with a frontend. Also theres a volume
 					cmd := exec.CommandContext(ctx, tC.binary, "rm", "-f", name)
-					cmd.Run() // Just best effort
+					_ = cmd.Run() // Just best effort
 
 					cmd = exec.CommandContext(ctx, tC.binary, "volume", "rm", "-f", fmt.Sprintf("vol-%s", name))
-					cmd.Run()
+					_ = cmd.Run()
 				}
 			}()
 
@@ -351,7 +351,7 @@ func TestFrontendImagePull(t *testing.T) {
 			defer func() {
 				for _, ref := range tC.refList {
 					cmd := exec.CommandContext(ctx, "docker", "image", "rm", "-f", ref)
-					cmd.Run()
+					_ = cmd.Run()
 				}
 			}()
 		})
@@ -505,7 +505,7 @@ func TestFrontendImageLoad(t *testing.T) {
 
 			defer func() {
 				cmd := exec.CommandContext(ctx, tC.binary, "image", "rm", "-f", tC.ref)
-				cmd.Run()
+				_ = cmd.Run()
 			}()
 
 			info, err := fe.ImageInfo(ctx, tC.ref)
@@ -541,7 +541,7 @@ func TestFrontendImageLoadHybrid(t *testing.T) {
 
 			defer func() {
 				cmd := exec.CommandContext(ctx, tC.binary, "image", "rm", "-f", tC.ref)
-				cmd.Run()
+				_ = cmd.Run()
 			}()
 
 			info, err := fe.ImageInfo(ctx, tC.ref)
@@ -597,16 +597,16 @@ func spawnTestContainers(ctx context.Context, feBinary string, names ...string) 
 	for _, name := range names {
 		cmd := exec.CommandContext(ctx, feBinary, "run", "-d", "--name", name, "docker.io/library/nginx:1.21", `-text="test"`)
 		output, createErr := cmd.CombinedOutput()
-		if err != nil {
+		if createErr != nil {
 			// the frontend exists but is non-functional. This is... not likely to work at all.
-			multierror.Append(err, errors.Wrap(createErr, string(output)))
+			err = multierror.Append(err, errors.Wrap(createErr, string(output)))
 		}
 	}
 
 	return func() {
 		for _, name := range names {
 			cmd := exec.CommandContext(ctx, feBinary, "rm", "-f", name)
-			cmd.Run() // Just best effort
+			_ = cmd.Run() // Just best effort
 		}
 	}, nil
 }
@@ -616,17 +616,17 @@ func spawnTestImages(ctx context.Context, feBinary string, refs ...string) (func
 	for _, ref := range refs {
 		cmd := exec.CommandContext(ctx, feBinary, "image", "pull", "docker.io/nginx:1.21")
 		output, createErr := cmd.CombinedOutput()
-		if err != nil {
+		if createErr != nil {
 			// the frontend exists but is non-functional. This is... not likely to work at all.
-			multierror.Append(err, errors.Wrap(createErr, string(output)))
+			err = multierror.Append(err, errors.Wrap(createErr, string(output)))
 			break
 		}
 
 		cmd = exec.CommandContext(ctx, feBinary, "image", "tag", "docker.io/nginx:1.21", ref)
 		output, tagErr := cmd.CombinedOutput()
-		if err != nil {
+		if tagErr != nil {
 			// the frontend exists but is non-functional. This is... not likely to work at all.
-			multierror.Append(err, errors.Wrap(tagErr, string(output)))
+			err = multierror.Append(err, errors.Wrap(tagErr, string(output)))
 			break
 		}
 	}
@@ -634,9 +634,9 @@ func spawnTestImages(ctx context.Context, feBinary string, refs ...string) (func
 	return func() {
 		for _, ref := range refs {
 			cmd := exec.CommandContext(ctx, feBinary, "image", "rm", "-f", ref)
-			cmd.Run() // Just best effort
+			_ = cmd.Run() // Just best effort
 		}
-	}, nil
+	}, err
 }
 
 func spawnTestVolumes(ctx context.Context, feBinary string, names ...string) (func(), error) {
@@ -644,16 +644,16 @@ func spawnTestVolumes(ctx context.Context, feBinary string, names ...string) (fu
 	for _, name := range names {
 		cmd := exec.CommandContext(ctx, feBinary, "volume", "create", name)
 		output, createErr := cmd.CombinedOutput()
-		if err != nil {
+		if createErr != nil {
 			// the frontend exists but is non-functional. This is... not likely to work at all.
-			multierror.Append(err, errors.Wrap(createErr, string(output)))
+			err = multierror.Append(err, errors.Wrap(createErr, string(output)))
 		}
 	}
 
 	return func() {
 		for _, name := range names {
 			cmd := exec.CommandContext(ctx, feBinary, "volume", "rm", "-f", name)
-			cmd.Run() // Just best effort
+			_ = cmd.Run() // Just best effort
 		}
 	}, nil
 }

@@ -25,6 +25,7 @@ deps:
     RUN go install golang.org/x/tools/cmd/goimports@latest
     RUN go install golang.org/x/lint/golint@latest
     RUN go install github.com/gordonklaus/ineffassign@latest
+    RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.0
     COPY go.mod go.sum ./
     COPY ./ast/go.mod ./ast/go.sum ./ast
     RUN go mod download
@@ -116,6 +117,7 @@ earthly-script-no-stdout:
 
 lint:
     FROM +code
+    RUN golangci-lint run
     RUN output="$(ineffassign ./... 2>&1 | grep -v '/earthly/ast/parser/.*\.go')" ; \
         if [ -n "$output" ]; then \
             echo "$output" ; \

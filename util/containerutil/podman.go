@@ -111,7 +111,10 @@ func (psf *podmanShellFrontend) Information(ctx context.Context) (*FrontendInfo,
 	}
 
 	allInfo := info{}
-	json.Unmarshal([]byte(output.string()), &allInfo)
+	err = json.Unmarshal([]byte(output.string()), &allInfo)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse version output %s", output.string())
+	}
 
 	host := "daemonless"
 	if hasRemote {
