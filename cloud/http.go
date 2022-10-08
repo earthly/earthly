@@ -210,7 +210,7 @@ func (c *client) doCallImp(ctx context.Context, r request, method, url string, o
 }
 
 func readAllWithContext(ctx context.Context, r io.Reader) ([]byte, error) {
-	var dt []byte
+	dt := []byte{}
 	var readErr error
 	ch := make(chan struct{})
 	go func() {
