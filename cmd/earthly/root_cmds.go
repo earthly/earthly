@@ -350,8 +350,16 @@ func (app *earthlyApp) bootstrap(cliCtx *cli.Context) error {
 	defer func() {
 		// cliutil.IsBootstrapped() determines if bootstrapping was done based
 		// on the existance of ~/.earthly; therefore we must ensure it's created.
-		cliutil.GetOrCreateEarthlyDir()
-		cliutil.EnsurePermissions()
+		_, err := cliutil.GetOrCreateEarthlyDir()
+		if err != nil {
+			console.Warnf("Warning: Failed to create Earthly Dir: %v", err)
+			// Keep going.
+		}
+		err = cliutil.EnsurePermissions()
+		if err != nil {
+			console.Warnf("Warning: Failed to ensure permissions: %v", err)
+			// Keep going.
+		}
 	}()
 
 	if app.bootstrapWithAutocomplete {
@@ -359,12 +367,12 @@ func (app *earthlyApp) bootstrap(cliCtx *cli.Context) error {
 		err = app.insertBashCompleteEntry()
 		if err != nil {
 			console.Warnf("Warning: %s\n", err.Error())
-			err = nil
+			// Keep going.
 		}
 		err = app.insertZSHCompleteEntry()
 		if err != nil {
 			console.Warnf("Warning: %s\n", err.Error())
-			err = nil
+			// Keep going.
 		}
 
 		console.Printf("You may have to restart your shell for autocomplete to get initialized (e.g. run \"exec $SHELL\")\n")

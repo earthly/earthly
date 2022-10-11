@@ -79,9 +79,8 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 				rgp.state, []string{subDir}, platr.Scratch(), "./", false, false, false, "root:root", nil, false, false, false,
 				llb.WithCustomNamef("%sCOPY git context %s", vm.ToVertexPrefix(), ref.String())))
 		}
-	} else {
-		// Commands don't come with a build context.
 	}
+	// Else not needed: Commands don't come with a build context.
 
 	key := ref.ProjectCanonical()
 	isDockerfile := strings.HasPrefix(ref.GetName(), DockerfileMetaTarget)

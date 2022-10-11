@@ -1959,16 +1959,6 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 	return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=+secrets/<secret-id> or <secret-id>", secretKeyValue)
 }
 
-func (c *Converter) forceExecutionWithSemaphore(ctx context.Context, state pllb.State, platr *platutil.Resolver) error {
-	sem := c.opt.Parallelism
-	rel, err := sem.Acquire(ctx, 1)
-	if err != nil {
-		return errors.Wrapf(err, "acquiring parallelism semaphore during forceExecutionWithSemaphore for %s", c.target.String())
-	}
-	defer rel()
-	return c.forceExecution(ctx, state, platr)
-}
-
 func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr *platutil.Resolver) error {
 	if state.Output() == nil {
 		// Scratch - no need to execute.

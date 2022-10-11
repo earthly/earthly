@@ -72,7 +72,10 @@ func (sf *shellFrontend) ContainerInfo(ctx context.Context, namesOrIDs ...string
 		} `json:"Config"`
 		Image string `json:"Image"`
 	}{}
-	json.Unmarshal([]byte(output.stdout.String()), &containers)
+	err := json.Unmarshal([]byte(output.stdout.String()), &containers)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal container inspect output %s", output.stdout.String())
+	}
 
 	for i, container := range containers {
 		ipAddresses := map[string]string{}
@@ -232,7 +235,10 @@ func (sf *shellFrontend) ImageInfo(ctx context.Context, refs ...string) (map[str
 		ID   string   `json:"Id"`
 		Tags []string `json:"RepoTags"`
 	}{}
-	json.Unmarshal([]byte(output.stdout.String()), &images)
+	err := json.Unmarshal([]byte(output.stdout.String()), &images)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse image info")
+	}
 
 	for i, image := range images {
 		infos[refs[i]] = &ImageInfo{

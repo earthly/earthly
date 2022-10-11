@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -358,8 +357,9 @@ func (c *client) deleteCachedCredentials() error {
 }
 
 // loads the following files:
-//  * ~/.earthly/auth.credentials
-//  * ~/.earthly/auth.jwt
+//   - ~/.earthly/auth.credentials
+//   - ~/.earthly/auth.jwt
+//
 // If a an old-style auth.token file exists, it is automatically migrated and removed.
 func (c *client) loadAuthStorage() error {
 	if err := c.migrateOldToken(); err != nil {
@@ -451,32 +451,11 @@ func (c *client) login(ctx context.Context, credentials string) (token string, e
 		return "", zero, errors.Errorf("unexpected status code from login: %d", status)
 	}
 	var resp secretsapi.LoginResponse
-	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &resp)
+	err = c.jum.Unmarshal(body, &resp)
 	if err != nil {
 		return "", zero, errors.Wrap(err, "failed to unmarshal login response")
 	}
 	return resp.Token, resp.Expiry.AsTime().UTC(), nil
-}
-
-func (c *client) getLastUsedPublicKey() (string, error) {
-	data, err := os.ReadFile(path.Join(os.TempDir(), "last-used-public-key"))
-	if err != nil {
-		return "", errors.Wrap(err, "failed to read file")
-	}
-	return string(data), nil
-}
-
-func (c *client) savePublicKey(publicKey string) error {
-	f, err := os.Create(path.Join(os.TempDir(), "last-used-public-key"))
-	if err != nil {
-		return errors.Wrap(err, "failed to create path")
-	}
-	defer f.Close()
-	_, err = f.WriteString(publicKey)
-	if err != nil {
-		return errors.Wrap(err, "failed to write public key")
-	}
-	return nil
 }
 
 func (c *client) getChallenge(ctx context.Context) (string, error) {
@@ -485,7 +464,7 @@ func (c *client) getChallenge(ctx context.Context) (string, error) {
 		return "", err
 	}
 	if status != http.StatusOK {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			return "", errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
@@ -493,7 +472,7 @@ func (c *client) getChallenge(ctx context.Context) (string, error) {
 	}
 
 	var challengeResponse secretsapi.AuthChallengeResponse
-	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &challengeResponse)
+	err = c.jum.Unmarshal(body, &challengeResponse)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to unmarshal challenge response")
 	}

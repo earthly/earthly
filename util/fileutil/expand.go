@@ -24,7 +24,7 @@ func ExpandPath(s string) string {
 		if err != nil {
 			return s // best effort
 		}
-		homeDir, _ = users[user]
+		homeDir = users[user]
 		if homeDir == "" {
 			return s // best effort
 		}

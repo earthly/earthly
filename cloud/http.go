@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 type request struct {
@@ -45,14 +45,13 @@ func withHeader(key, value string) requestOpt {
 
 func withJSONBody(body proto.Message) requestOpt {
 	return func(r *request) error {
-		marshaler := jsonpb.Marshaler{}
-		encodedBody, err := marshaler.MarshalToString(body)
+		encodedBody, err := protojson.Marshal(body)
 		if err != nil {
 			return err
 		}
 
 		r.hasBody = true
-		r.body = []byte(encodedBody)
+		r.body = encodedBody
 		return nil
 	}
 }
@@ -75,15 +74,15 @@ func withFileBody(pathOnDisk string) requestOpt {
 	}
 }
 
-func withBody(body string) requestOpt {
+func withBody(body []byte) requestOpt {
 	return func(r *request) error {
 		r.hasBody = true
-		r.body = []byte(body)
+		r.body = append([]byte{}, body...)
 		return nil
 	}
 }
 
-func (c *client) doCall(ctx context.Context, method, url string, opts ...requestOpt) (int, string, error) {
+func (c *client) doCall(ctx context.Context, method, url string, opts ...requestOpt) (int, []byte, error) {
 	const maxAttempt = 10
 	const maxSleepBeforeRetry = time.Second * 3
 
@@ -91,7 +90,7 @@ func (c *client) doCall(ctx context.Context, method, url string, opts ...request
 	for _, opt := range opts {
 		err := opt(&r)
 		if err != nil {
-			return 0, "", err
+			return 0, nil, err
 		}
 	}
 
@@ -99,15 +98,15 @@ func (c *client) doCall(ctx context.Context, method, url string, opts ...request
 	if r.hasAuth && time.Now().UTC().After(c.authTokenExpiry) {
 		if err := c.Authenticate(ctx); err != nil {
 			if errors.Is(err, ErrUnauthorized) {
-				return 0, "", ErrUnauthorized
+				return 0, nil, ErrUnauthorized
 			}
-			return 0, "", errors.Wrap(err, "failed refreshing expired auth token")
+			return 0, nil, errors.Wrap(err, "failed refreshing expired auth token")
 		}
 		alreadyReAuthed = true
 	}
 
 	var status int
-	var body string
+	body := []byte{}
 	var callErr error
 	duration := time.Millisecond * 100
 	for attempt := 0; attempt < maxAttempt; attempt++ {
@@ -142,12 +141,12 @@ func (c *client) doCall(ctx context.Context, method, url string, opts ...request
 	return status, body, callErr
 }
 
-func shouldRetry(status int, body string, callErr error, warnFunc func(string, ...interface{})) (bool, error) {
+func shouldRetry(status int, body []byte, callErr error, warnFunc func(string, ...interface{})) (bool, error) {
 	if status == http.StatusUnauthorized {
 		return true, nil
 	}
 	if 500 <= status && status <= 599 {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			warnFunc("retrying http request due to unexpected status code %v", status)
 		} else {
@@ -174,7 +173,7 @@ func shouldRetry(status int, body string, callErr error, warnFunc func(string, .
 	}
 }
 
-func (c *client) doCallImp(ctx context.Context, r request, method, url string, opts ...requestOpt) (int, string, error) {
+func (c *client) doCallImp(ctx context.Context, r request, method, url string, opts ...requestOpt) (int, []byte, error) {
 	var bodyReader io.Reader
 	var bodyLen int64
 	if r.hasBody {
@@ -184,7 +183,7 @@ func (c *client) doCallImp(ctx context.Context, r request, method, url string, o
 
 	req, err := http.NewRequestWithContext(ctx, method, c.httpAddr+url, bodyReader)
 	if err != nil {
-		return 0, "", err
+		return 0, nil, err
 	}
 	if bodyReader != nil {
 		req.ContentLength = bodyLen
@@ -200,18 +199,18 @@ func (c *client) doCallImp(ctx context.Context, r request, method, url string, o
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, "", err
+		return 0, nil, err
 	}
 
 	respBody, err := readAllWithContext(ctx, resp.Body)
 	if err != nil {
-		return 0, "", err
+		return 0, nil, err
 	}
-	return resp.StatusCode, string(respBody), nil
+	return resp.StatusCode, respBody, nil
 }
 
 func readAllWithContext(ctx context.Context, r io.Reader) ([]byte, error) {
-	var dt []byte
+	dt := []byte{}
 	var readErr error
 	ch := make(chan struct{})
 	go func() {

@@ -22,9 +22,7 @@ WORKDIR /earthly
 
 deps:
     FROM +base
-    RUN go install golang.org/x/tools/cmd/goimports@latest
-    RUN go install golang.org/x/lint/golint@latest
-    RUN go install github.com/gordonklaus/ineffassign@latest
+    RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.0
     COPY go.mod go.sum ./
     COPY ./ast/go.mod ./ast/go.sum ./ast
     RUN go mod download
@@ -116,26 +114,8 @@ earthly-script-no-stdout:
 
 lint:
     FROM +code
-    RUN output="$(ineffassign ./... 2>&1 | grep -v '/earthly/ast/parser/.*\.go')" ; \
-        if [ -n "$output" ]; then \
-            echo "$output" ; \
-            exit 1 ; \
-        fi
-    RUN output="$(goimports -d $(find . -type f -name '*.go' | grep -v \./ast/parser/.*\.go) 2>&1)"  ; \
-        if [ -n "$output" ]; then \
-            echo "$output" ; \
-            exit 1 ; \
-        fi
-    # names.go defines some very obvious consts that do not need comments; however golint doesn't support disabling rules: https://github.com/golang/lint/issues/263
-    # therefore, we will hide this file from golint, and restore it after.
-    RUN mv variables/reserved/names.go variables/reserved/names.skip-go-lint && echo "package reserved" > variables/reserved/names.go
-    RUN golint -set_exit_status ./...
-    RUN mv variables/reserved/names.skip-go-lint variables/reserved/names.go
-    RUN output="$(go vet ./... 2>&1)" ; \
-        if [ -n "$output" ]; then \
-            echo "$output" ; \
-            exit 1 ; \
-        fi
+    COPY ./.golangci.yaml ./
+    RUN golangci-lint run
     RUN if find . -type f -name \*.go | xargs grep '"io/ioutil"'; then echo "io/ioutil is deprecated: https://go.dev/doc/go1.16#ioutil"; exit 1; fi
 
 lint-newline-ending:

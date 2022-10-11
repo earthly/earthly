@@ -117,5 +117,8 @@ func isEarthlyBinary(path string) bool {
 func profhandler() {
 	addr := "127.0.0.1:6060"
 	fmt.Printf("listening for pprof on %s\n", addr)
-	http.ListenAndServe(addr, nil)
+	err := http.ListenAndServe(addr, nil)
+	if err != nil {
+		fmt.Printf("error listening for pprof: %v", err)
+	}
 }

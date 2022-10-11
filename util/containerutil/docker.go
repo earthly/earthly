@@ -96,7 +96,10 @@ func (dsf *dockerShellFrontend) Information(ctx context.Context) (*FrontendInfo,
 	}
 
 	allInfo := info{}
-	json.Unmarshal([]byte(output.string()), &allInfo)
+	err = json.Unmarshal([]byte(output.string()), &allInfo)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse docker version output")
+	}
 
 	host, exists := os.LookupEnv("DOCKER_HOST")
 	if !exists {
