@@ -606,14 +606,22 @@ func (app *earthlyApp) actionListTargets(cliCtx *cli.Context) error {
 	// it's expensive to create this gwclient, so we need to implement a lazy eval which returns it when required.
 
 	target, err := domain.ParseTarget(fmt.Sprintf("%s+base", targetToParse)) // the +base is required to make ParseTarget work; however is ignored by GetTargets
-	if err != nil {
+	if errors.Is(err, buildcontext.ErrEarthfileNotExist{}) {
 		return errors.Errorf("unable to locate Earthfile under %s", targetToDisplay)
+	} else if err != nil {
+		return err
 	}
 
 	targets, err := earthfile2llb.GetTargets(cliCtx.Context, resolver, gwClient, target)
 	if err != nil {
-		return errors.Errorf("unable to locate Earthfile under %s", targetToDisplay)
+		switch err := errors.Cause(err).(type) {
+		case *buildcontext.ErrEarthfileNotExist:
+			return errors.Errorf("unable to locate Earthfile under %s", targetToDisplay)
+		default:
+			return err
+		}
 	}
+
 	targets = append(targets, "base")
 	sort.Strings(targets)
 	for _, t := range targets {
