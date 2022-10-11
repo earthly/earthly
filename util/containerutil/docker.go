@@ -201,7 +201,7 @@ func (dsf *dockerShellFrontend) VolumeInfo(ctx context.Context, volumeNames ...s
 				} else {
 					results[name] = &VolumeInfo{
 						Name:       volumeInfo.Name,
-						Size:       bytes,
+						SizeBytes:  bytes,
 						Mountpoint: volumeInfo.Mountpoint,
 					}
 				}

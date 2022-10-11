@@ -230,7 +230,7 @@ func (psf *podmanShellFrontend) VolumeInfo(ctx context.Context, volumeNames ...s
 
 				results[volumeName] = &VolumeInfo{
 					Name:       volumeName,
-					Size:       bytes,
+					SizeBytes:  bytes,
 					Mountpoint: string(mountpoint.string()),
 				}
 				break
