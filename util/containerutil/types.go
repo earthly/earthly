@@ -71,7 +71,7 @@ type ImageInfo struct {
 type VolumeInfo struct {
 	Name       string
 	Mountpoint string
-	Size       uint64
+	SizeBytes  uint64
 }
 
 // ImageTag contains a source and target ref, used for tagging an image. It means that the SourceRef is tagged as the value in TargetRef.
