@@ -168,7 +168,8 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 		return nil, false, errUnexpectedArgs
 	}
 
-	majorAndMinor := strings.Split(parsedArgs[0], ".")
+	versionValueStr := parsedArgs[0]
+	majorAndMinor := strings.Split(versionValueStr, ".")
 	if len(majorAndMinor) != 2 {
 		return nil, false, errUnexpectedArgs
 	}
@@ -179,6 +180,12 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 	ftrs.Minor, err = strconv.Atoi(majorAndMinor[1])
 	if err != nil {
 		return nil, false, errors.Wrapf(err, "failed to parse minor version %q", majorAndMinor[1])
+	}
+
+	if hasVersion {
+		analytics.Count("version", versionValueStr)
+	} else {
+		analytics.Count("version", "missing")
 	}
 
 	// Enable version-specific features.
