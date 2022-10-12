@@ -100,13 +100,11 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 }
 
 func (app *earthlyApp) getBuildkitClient(cliCtx *cli.Context, cloudClient cloud.Client) (*client.Client, error) {
-	if !app.isUsingSatellite(cliCtx) {
-		err := app.initFrontend(cliCtx)
-		if err != nil {
-			return nil, err
-		}
+	err := app.initFrontend(cliCtx)
+	if err != nil {
+		return nil, err
 	}
-	err := app.configureSatellite(cliCtx, cloudClient)
+	err = app.configureSatellite(cliCtx, cloudClient)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not construct new buildkit client")
 	}
