@@ -8,6 +8,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 - Build failures now show the file and line number of the failing command
 
+### Fixed
+
+- Some network operations were being incorrectly executed with a timeout of 0.
+
 ## v0.6.25 - 2022-10-04
 
 ### Fixed
