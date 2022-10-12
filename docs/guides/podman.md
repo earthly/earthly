@@ -162,6 +162,6 @@ We've found installing [qemu-user-static](https://github.com/multiarch/qemu-user
 ```
 
 ### crun: open executable: Permission denied: OCI permission denied
-This can happen when you are trying to attempting to run a binary without the execution permission.
+This can happen when you are attempting to run a binary without the execution permission; for example, as part of an ENTRYPOINT command.
 https://github.com/containers/podman/issues/9377
 https://github.com/signalwire/freeswitch/pull/1748
