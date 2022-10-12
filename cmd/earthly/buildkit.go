@@ -149,8 +149,6 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 		return nil
 	}
 
-	app.console.Warnf("Note: inline caching does not yet work on Earthly Satellites.")
-
 	// Set up extra settings needed for buildkit RPC metadata
 	if app.satelliteName == "" {
 		app.satelliteName = app.cfg.Satellite.Name
@@ -172,10 +170,10 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 	app.analyticsMetadata.isSatellite = true
 	app.analyticsMetadata.satelliteVersion = "" // TODO
 
-	app.console.Warnf("") // newline
-	app.console.Warnf("The following feature flags are recommended for use with Satellites and will be auto-enabled:")
-	app.console.Warnf("  --new-platform, --use-registry-for-with-docker")
-	app.console.Warnf("") // newline
+	app.console.Printf("") // newline
+	app.console.Printf("The following feature flags are recommended for use with Satellites and will be auto-enabled:")
+	app.console.Printf("  --new-platform, --use-registry-for-with-docker")
+	app.console.Printf("") // newline
 
 	if app.featureFlagOverrides != "" {
 		app.featureFlagOverrides += ","
