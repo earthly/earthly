@@ -171,14 +171,14 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 	app.analyticsMetadata.satelliteVersion = "" // TODO
 
 	app.console.Printf("") // newline
-	app.console.Printf("The following feature flags are recommended for use with Satellites and will be auto-enabled:")
-	app.console.Printf("  --new-platform, --use-registry-for-with-docker")
+	app.console.Printf("The following feature flag is recommended for use with Satellites and will be auto-enabled:")
+	app.console.Printf("  --new-platform")
 	app.console.Printf("") // newline
 
 	if app.featureFlagOverrides != "" {
 		app.featureFlagOverrides += ","
 	}
-	app.featureFlagOverrides += "new-platform,use-registry-for-with-docker"
+	app.featureFlagOverrides += "new-platform"
 
 	token, err := cloudClient.GetAuthToken(cliCtx.Context)
 	if err != nil {

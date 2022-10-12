@@ -8,6 +8,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 - Build failures now show the file and line number of the failing command
 
+### Changed
+
+- Loading Docker images as part of `WITH DOCKER` is now faster through the use of an embedded registry in Buildkit. This functionality was previously hidden (`VERSION --use-registry-for-with-docker`) and was only auto-enabled for Earthly Satellite users. It is now enabled by default for all builds. [#1268](https://github.com/earthly/earthly/issues/1268)
+
 ## v0.6.25 - 2022-10-04
 
 ### Fixed

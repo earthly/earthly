@@ -193,6 +193,7 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 	if versionAtLeast(ftrs, 0, 5) {
 		ftrs.ExecAfterParallel = true
 		ftrs.ParallelLoad = true
+		ftrs.UseRegistryForWithDocker = true
 	}
 	if versionAtLeast(ftrs, 0, 6) {
 		ftrs.ReferencedSaveOnly = true
