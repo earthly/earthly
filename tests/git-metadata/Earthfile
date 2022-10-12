@@ -41,7 +41,10 @@ git config --global user.name \"test name\"
 git clone git@git.example.com:testuser/repo.git
 mv Earthfile repo/
 git -C repo add Earthfile
-git -C repo commit -m test
+git -C repo commit -m \"test
+
+Co-authored-by: Testy McTest <testy@earthly.dev>
+Co-authored-by: Coverage McCover <cover@earthly.dev>\"
 git -C repo push
 export expectedsha=\$(git -C repo rev-parse HEAD)
 
