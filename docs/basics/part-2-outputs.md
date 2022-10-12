@@ -58,6 +58,11 @@ In this example, running `earthly +docker` will save an image named `go-example`
 ~$ docker image ls
 REPOSITORY          TAG       IMAGE ID       CREATED          SIZE
 go-example          latest    08b9f749023d   19 seconds ago   297MB
+
+# or podman
+~$ podman image ls
+REPOSITORY          TAG       IMAGE ID       CREATED          SIZE
+go-example          latest    08b9f749023d   19 seconds ago   297MB
 ```
 **NOTE**
 

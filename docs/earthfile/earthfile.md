@@ -919,6 +919,8 @@ END
 
 For more examples, see the [Docker in Earthly guide](../guides/docker-in-earthly.md) and the [Integration testing guide](../guides/integration.md).
 
+For information on using `WITH DOCKER` with podman see the [Podman guide](../guides/podman.md)
+
 {% hint style='info' %}
 ##### Note
 For performance reasons, it is recommended to use a Docker image that already contains `dockerd`. If `dockerd` is not found, Earthly will attempt to install it.
