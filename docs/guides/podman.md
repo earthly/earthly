@@ -5,7 +5,7 @@ Podman also works on Mac using a [podman machine](https://docs.podman.io/en/late
 
 ## Prerequisites
  - [Install podman](https://podman.io/getting-started/installation)
- - Mac: ensure a [podman machine](podman machine) is running.
+ - Mac: ensure a [podman machine](https://docs.podman.io/en/latest/markdown/podman-machine.1.html) is running.
  - Linux: for [multi-platform builds](https://docs.earthly.dev/docs/guides/multi-platform), install [qemu-user-static](https://github.com/multiarch/qemu-user-static).
  - [WITH DOCKER](https://docs.earthly.dev/docs/earthfile#with-docker) requires rootful mode.
    - Linux: run with `sudo` (i.e., `sudo earthly -P +with-docker-target`)
