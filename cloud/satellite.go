@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	pb "github.com/earthly/cloud-api/pipelines"
+	pb "github.com/earthly/cloud-api/compute"
 	"github.com/pkg/errors"
 )
 
@@ -37,7 +37,7 @@ type SatelliteInstance struct {
 }
 
 func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error) {
-	resp, err := c.pipelines.ListSatellites(c.withAuth(ctx), &pb.ListSatellitesRequest{
+	resp, err := c.compute.ListSatellites(c.withAuth(ctx), &pb.ListSatellitesRequest{
 		OrgId: orgID,
 	})
 	if err != nil {
@@ -56,7 +56,7 @@ func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteI
 }
 
 func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error) {
-	resp, err := c.pipelines.GetSatellite(c.withAuth(ctx), &pb.GetSatelliteRequest{
+	resp, err := c.compute.GetSatellite(c.withAuth(ctx), &pb.GetSatelliteRequest{
 		OrgId: orgID,
 		Name:  name,
 	})
@@ -72,7 +72,7 @@ func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*Satelli
 }
 
 func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error {
-	_, err := c.pipelines.DeleteSatellite(c.withAuth(ctx), &pb.DeleteSatelliteRequest{
+	_, err := c.compute.DeleteSatellite(c.withAuth(ctx), &pb.DeleteSatelliteRequest{
 		OrgId: orgID,
 		Name:  name,
 	})
@@ -83,7 +83,7 @@ func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error 
 }
 
 func (c *client) LaunchSatellite(ctx context.Context, name, orgID string, features []string) error {
-	_, err := c.pipelines.LaunchSatellite(c.withAuth(ctx), &pb.LaunchSatelliteRequest{
+	_, err := c.compute.LaunchSatellite(c.withAuth(ctx), &pb.LaunchSatelliteRequest{
 		OrgId:        orgID,
 		Name:         name,
 		Platform:     "linux/amd64", // TODO support arm64 as well
@@ -99,7 +99,7 @@ func (c *client) ReserveSatellite(ctx context.Context, name, orgID string, out c
 	defer close(out)
 	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
-	stream, err := c.pipelines.ReserveSatellite(c.withAuth(ctxTimeout), &pb.ReserveSatelliteRequest{
+	stream, err := c.compute.ReserveSatellite(c.withAuth(ctxTimeout), &pb.ReserveSatelliteRequest{
 		OrgId: orgID,
 		Name:  name,
 	})
