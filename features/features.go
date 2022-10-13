@@ -44,6 +44,8 @@ type Features struct {
 	UseProjectSecrets          bool `long:"use-project-secrets" description:"enable project-based secret resolution"`
 	UsePipelines               bool `long:"use-pipelines" description:"enable the PIPELINE and TRIGGER commands"`
 
+	NoUseRegistryForWithDocker bool `long:"no-use-registry-for-with-docker" description:"disable use-registry-for-with-docker"`
+
 	Major int
 	Minor int
 }
@@ -134,6 +136,7 @@ func ApplyFlagOverrides(ftrs *Features, envOverrides string) error {
 			return fmt.Errorf("unable to set %s: only boolean fields are currently supported", key)
 		}
 	}
+	processNegativeFlags(ftrs)
 	return nil
 }
 
@@ -193,6 +196,7 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 	if versionAtLeast(ftrs, 0, 5) {
 		ftrs.ExecAfterParallel = true
 		ftrs.ParallelLoad = true
+		ftrs.UseRegistryForWithDocker = true
 	}
 	if versionAtLeast(ftrs, 0, 6) {
 		ftrs.ReferencedSaveOnly = true
@@ -213,6 +217,7 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 		ftrs.UseNoManifestList = true
 		ftrs.UseChmod = true
 	}
+	processNegativeFlags(&ftrs)
 
 	return &ftrs, hasVersion, nil
 }
@@ -221,4 +226,10 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 // are greater than or equal to the provided major and minor versions.
 func versionAtLeast(ftrs Features, majorVersion, minorVersion int) bool {
 	return (ftrs.Major > majorVersion) || (ftrs.Major == majorVersion && ftrs.Minor >= minorVersion)
+}
+
+func processNegativeFlags(ftrs *Features) {
+	if ftrs.NoUseRegistryForWithDocker {
+		ftrs.UseRegistryForWithDocker = false
+	}
 }

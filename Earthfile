@@ -312,7 +312,8 @@ earthly-docker:
 earthly-integration-test-base:
     FROM +earthly-docker
     ENV NO_DOCKER=1
-    ENV NETWORK_MODE=host
+    ENV NETWORK_MODE=host # Note that this breaks access to embedded registry in WITH DOCKER.
+    ENV EARTHLY_VERSION_FLAG_OVERRIDES=no-use-registry-for-with-docker # Use tar-based due to above.
     WORKDIR /test
 
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
@@ -324,7 +325,7 @@ earthly-integration-test-base:
 
     IF [ -z $DOCKERHUB_MIRROR ]
         # No mirror, easy CI and local use by all
-        ENV GLOBAL_CONFIG="{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371', conversion_parallelism: 5}"
+        ENV GLOBAL_CONFIG="{disable_analytics: true}"
         IF [ "$DOCKERHUB_AUTH" = "true" ]
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
                 --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
@@ -345,8 +346,6 @@ earthly-integration-test-base:
         # NOTE: newlines+indentation is important here, see https://github.com/earthly/earthly/issues/1764 for potential pitfalls
         # yaml will convert newlines to spaces when using regular quoted-strings, therefore we will use the literal-style (denoted by `|`)
         ENV GLOBAL_CONFIG="disable_analytics: true
-local_registry_host: 'tcp://127.0.0.1:8371'
-conversion_parallelism: 5
 buildkit_additional_config: |
 $(echo "$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG" | sed "s/^/  /g")
 "

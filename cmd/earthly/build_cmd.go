@@ -209,8 +209,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 
 	isLocal := containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress)
 	if !isLocal && app.ci {
-		app.console.Warnf("Please note that --use-inline-cache and --save-inline-cache are currently disabled when using --ci on Satellites or remote Buildkit.")
-		app.console.Warnf("") // newline
+		app.console.Printf("Please note that --use-inline-cache and --save-inline-cache are currently disabled when using --ci on Satellites or remote Buildkit.")
+		app.console.Printf("") // newline
 		app.useInlineCache = false
 		app.saveInlineCache = false
 	}
