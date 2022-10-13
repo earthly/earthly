@@ -16,7 +16,7 @@ import (
 )
 
 // CopyOp is a simplified llb copy operation.
-func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, chmod *fs.FileMode, ifExists, symlinkNoFollow, merge bool, opts ...llb.ConstraintsOpt) pllb.State {
+func CopyOp(ctx context.Context, srcState pllb.State, srcs []string, destState pllb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, chmod *fs.FileMode, ifExists, symlinkNoFollow, merge bool, opts ...llb.ConstraintsOpt) (pllb.State, error) {
 	destAdjusted := dest
 	if dest == "." || dest == "" || len(srcs) > 1 {
 		destAdjusted += string("/") // TODO: needs to be the containers platform, not the earthly hosts platform. For now, this is always Linux.
@@ -59,12 +59,16 @@ func CopyOp(srcState pllb.State, srcs []string, destState pllb.State, dest strin
 		}
 	}
 	if fa == nil {
-		return destState
+		return destState, nil
 	}
 	if merge && chown == "" {
-		return pllb.Merge([]pllb.State{destState, pllb.Scratch().File(fa)}, opts...)
+		cwd, err := destState.GetDir(ctx)
+		if err != nil {
+			return pllb.State{}, err
+		}
+		return pllb.Merge([]pllb.State{destState, pllb.Scratch().Dir(cwd).File(fa)}, opts...), nil
 	}
-	return destState.File(fa, opts...)
+	return destState.File(fa, opts...), nil
 }
 
 // CopyWithRunOptions copies from `src` to `dest` and returns the result in a separate LLB State.
