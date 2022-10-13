@@ -4,13 +4,17 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.26 - 2022-10-13
+
 ### Added
 
 - Build failures now show the file and line number of the failing command
+- Introduced `EARTHLY_GIT_AUTHOR` and `EARTHLY_GIT_CO_AUTHORS` ARGS
 
 ### Fixed
 
 - Some network operations were being incorrectly executed with a timeout of 0.
+- Upon `earthly ls` failure it will display the failure reason
 
 ### Changed
 
