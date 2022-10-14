@@ -204,21 +204,20 @@ func (c *client) loadCredentials() error {
 	c.email = parts[0]
 	credType := parts[1]
 	credData := parts[2]
-	switch credType {
-	case "password":
+	if credType == "password" {
 		passwordBytes, err := base64.StdEncoding.DecodeString(credData)
 		if err != nil {
 			return errors.Wrap(err, "base64 decode failed")
 		}
 		c.password = string(passwordBytes)
-	case "ssh-rsa":
+	} else if credType == "token" {
+		c.authCredToken = credData
+	} else if strings.HasPrefix(credType, "ssh-") {
 		c.sshKeyBlob, err = base64.StdEncoding.DecodeString(credData)
 		if err != nil {
 			return errors.Wrap(err, "base64 decode failed")
 		}
-	case "token":
-		c.authCredToken = credData
-	default:
+	} else {
 		c.warnFunc("unable to handle cached auth type %s", credType)
 	}
 	return nil
@@ -480,22 +479,22 @@ func (c *client) getChallenge(ctx context.Context) (string, error) {
 	return challengeResponse.Challenge, nil
 }
 
-func (c *client) signChallenge(challenge string, key *agent.Key) (string, error) {
-	sig, err := c.sshAgent.Sign(key, []byte(challenge))
+func (c *client) signChallenge(challenge string, key *agent.Key) (string, string, error) {
+	sig, err := c.sshAgent.SignWithFlags(key, []byte(challenge), agent.SignatureFlagRsaSha512)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	s := base64.StdEncoding.EncodeToString(sig.Blob)
-	return s, nil
+	return sig.Format, s, nil
 }
 
 func (c *client) getSSHCredentials(challenge string, key *agent.Key) (credentials string, err error) {
-	sig, err := c.signChallenge(challenge, key)
+	sigFormat, sig, err := c.signChallenge(challenge, key)
 	if err != nil {
 		return credentials, err
 	}
 	blob := base64.StdEncoding.EncodeToString(key.Blob)
-	credentials = fmt.Sprintf("ssh-rsa %s %s", blob, sig)
+	credentials = fmt.Sprintf("%s %s %s", sigFormat, blob, sig)
 	return credentials, nil
 }
 
