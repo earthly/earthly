@@ -298,9 +298,12 @@ func (sf *shellFrontend) commandContextOutputWithRetry(ctx context.Context, retr
 		if cmdErr == nil {
 			return output, nil
 		}
-		err = cmdErr
+		err = multierror.Append(err, cmdErr)
 		if i < retries-1 {
-			sf.Console.VerbosePrintf("Command '%s' failed. Retrying...\n", strings.Join(args, " "))
+			binary, args2 := sf.commandContextStrings(args...)
+			sf.Console.VerbosePrintf(
+				"Command '%s %s' failed with error %v. Retrying...\n",
+				binary, strings.Join(args2, " "), cmdErr)
 		}
 	}
 	return nil, err
