@@ -41,6 +41,15 @@
         {
           "command": {
             "args": [
+              "ls",
+              ".git"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
               "git",
               "status"
             ],
@@ -71,6 +80,7 @@
   ],
   "version": {
     "args": [
+      "--use-copy-link",
       "0.6"
     ]
   }

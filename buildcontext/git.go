@@ -77,9 +77,13 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 				TargetName: ref.String(),
 				Internal:   true,
 			}
-			buildContextFactory = llbfactory.PreconstructedState(llbutil.CopyOp(
+			copyState, err := llbutil.CopyOp(ctx,
 				rgp.state, []string{subDir}, platr.Scratch(), "./", false, false, false, "root:root", nil, false, false, false,
-				llb.WithCustomNamef("%sCOPY git context %s", vm.ToVertexPrefix(), ref.String())))
+				llb.WithCustomNamef("%sCOPY git context %s", vm.ToVertexPrefix(), ref.String()))
+			if err != nil {
+				return nil, errors.Wrap(err, "copyOp failed in resolveEarthProject")
+			}
+			buildContextFactory = llbfactory.PreconstructedState(copyState)
 		}
 	}
 	// Else not needed: Commands don't come with a build context.
