@@ -45,8 +45,9 @@
 * [Examples](examples/examples.md)
 * Misc
     * [Alternative installation](./alt-installation.md)
-    * [Definitions](definitions/definitions.md)
     * [Data collection](data-collection/data-collection.md)
+    * [Definitions](definitions/definitions.md)
+    * [Public key authentication](public-key-auth/public-key-auth.md)
 
 ## 🔧 CI Integration
 
