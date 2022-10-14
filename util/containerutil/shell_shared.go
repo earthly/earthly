@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/conslogging"
@@ -285,24 +286,38 @@ func (cco *commmandContextOutput) string() string {
 
 func (sf *shellFrontend) commandContextStrings(args ...string) (string, []string) {
 	allArgs := append(sf.globalCompatibilityArgs, args...)
-
 	return sf.binaryName, allArgs
+}
+
+func (sf *shellFrontend) commandContextOutputWithRetry(ctx context.Context, retries int, timeout time.Duration, args ...string) (*commmandContextOutput, error) {
+	var err error
+	for i := 0; i < retries; i++ {
+		timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+		output, cmdErr := sf.commandContextOutput(timeoutCtx, args...)
+		if cmdErr == nil {
+			return output, nil
+		}
+		err = cmdErr
+		if i < retries-1 {
+			sf.Console.VerbosePrintf("Command '%s' failed. Retrying...\n", strings.Join(args, " "))
+		}
+	}
+	return nil, err
 }
 
 func (sf *shellFrontend) commandContextOutput(ctx context.Context, args ...string) (*commmandContextOutput, error) {
 	output := &commmandContextOutput{}
-
 	binary, args := sf.commandContextStrings(args...)
+	sf.Console.VerbosePrintf("Running command: %s %s\n", binary, strings.Join(args, " "))
 	cmd := exec.CommandContext(ctx, binary, args...)
 	cmd.Env = os.Environ() // Ensure all shellouts are using the current environment, picks up DOCKER_/PODMAN_ env vars when they matter
 	cmd.Stdout = &output.stdout
 	cmd.Stderr = &output.stderr
-
 	err := cmd.Run()
 	if err != nil {
 		return output, errors.Wrapf(err, "command failed: %s %s: %s: %s", sf.binaryName, strings.Join(args, " "), err.Error(), output.string())
 	}
-
 	return output, nil
 }
 
