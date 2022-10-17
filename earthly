@@ -30,9 +30,11 @@ last_check_state_path=/tmp/last-earthly-prerelease-check
 last_flag_hash_path=/tmp/last-earthly-flag-hash
 
 detect_frontend() {
-  if which docker; then
+  if which docker &>/dev/null && docker info &>/dev/null; then
+    echo "docker"
     return
-  elif which podman; then
+  elif which podman &>/dev/null && podman info &>/dev/null; then
+    echo "podman"
     return
   fi
 
@@ -42,10 +44,10 @@ detect_frontend() {
 frontend_bin=$(detect_frontend)
 
 get_latest_binary() {
-    $frontend_bin rm --force earthly_binary 2>/dev/null >&2 || true
+    "$frontend_bin" rm --force earthly_binary 2>/dev/null >&2 || true
 
-    $frontend_bin pull docker.io/earthly/earthlybinaries:prerelease >&2
-    $frontend_bin create --name earthly_binary docker.io/earthly/earthlybinaries:prerelease >&2
+    "$frontend_bin" pull docker.io/earthly/earthlybinaries:prerelease >&2
+    "$frontend_bin" create --name earthly_binary docker.io/earthly/earthlybinaries:prerelease >&2
 
     earth_bin_path=/earthly-linux-amd64
     bk_platform=linux/amd64
@@ -58,19 +60,19 @@ get_latest_binary() {
         fi
     fi
 
-    $frontend_bin pull --platform="$bk_platform" docker.io/earthly/buildkitd:prerelease >&2
-    $frontend_bin cp earthly_binary:"$earth_bin_path" "$bindir/earthly-prerelease" >&2
-    $frontend_bin rm earthly_binary >&2
+    "$frontend_bin" pull --platform="$bk_platform" docker.io/earthly/buildkitd:prerelease >&2
+    "$frontend_bin" cp earthly_binary:"$earth_bin_path" "$bindir/earthly-prerelease" >&2
+    "$frontend_bin" rm earthly_binary >&2
 }
 
 do_reset() {
     rm -f "$last_check_state_path"
-    $frontend_bin stop earthly-buildkitd || true
-    $frontend_bin rm -f earthly-buildkitd || true
+    "$frontend_bin" stop earthly-buildkitd || true
+    "$frontend_bin" rm -f earthly-buildkitd || true
     rm -f "$bindir/earthly-prerelease"
-    $frontend_bin rm --force earthly_binary 2>/dev/null || true
-    $frontend_bin rmi -f docker.io/earthly/buildkitd:prerelease || true
-    $frontend_bin rmi -f docker.io/earthly/earthlybinaries:prerelease || true
+    "$frontend_bin" rm --force earthly_binary 2>/dev/null || true
+    "$frontend_bin" rmi -f docker.io/earthly/buildkitd:prerelease || true
+    "$frontend_bin" rmi -f docker.io/earthly/earthlybinaries:prerelease || true
 }
 
 
