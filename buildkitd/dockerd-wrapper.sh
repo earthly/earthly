@@ -162,7 +162,7 @@ stop_dockerd() {
 }
 
 wipe_data_root() {
-    if ! rm -rf "$1" &>/dev/null && [ -n "$(ls -A "$1")" ]; then
+    if ! rm -rf "$1" 2>/dev/null >&2 && [ -n "$(ls -A "$1")" ]; then
         # We have some issues about failing to delete files.
         # If we fail, list the processes keeping it open for results.
         rm -rf "$1" || true # Do it again, but now print the error.

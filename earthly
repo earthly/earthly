@@ -30,10 +30,10 @@ last_check_state_path=/tmp/last-earthly-prerelease-check
 last_flag_hash_path=/tmp/last-earthly-flag-hash
 
 detect_frontend() {
-  if which docker &>/dev/null && docker info &>/dev/null; then
+  if which docker 2>/dev/null >&2 && docker info 2>/dev/null >&2; then
     echo "docker"
     return
-  elif which podman &>/dev/null && podman info &>/dev/null; then
+  elif which podman 2>/dev/null >&2 && podman info 2>/dev/null >&2; then
     echo "podman"
     return
   fi
