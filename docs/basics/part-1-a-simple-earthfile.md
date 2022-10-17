@@ -141,6 +141,9 @@ Once the build has executed, we can run the resulting docker image to try it out
 
 ```
 docker run --rm go-example:latest
+
+# or podman
+podman run --rm go-example:latest
 ```
 
 ### More Examples
