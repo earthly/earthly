@@ -28,9 +28,6 @@ type stackFrame struct {
 	// Always active scopes. These scopes influence the value of args directly.
 	args    *Scope
 	globals *Scope
-
-	org     string
-	project string
 }
 
 // Collection is a collection of variable scopes used within a single target.
@@ -38,6 +35,9 @@ type Collection struct {
 	// These scopes are always present, regardless of the stack position.
 	builtin *Scope // inactive
 	envs    *Scope // active
+
+	project string
+	org     string
 
 	stack []*stackFrame
 
@@ -92,22 +92,22 @@ func (c *Collection) ResetEnvVars(envs *Scope) {
 
 // SetOrg sets the organization name.
 func (c *Collection) SetOrg(org string) {
-	c.frame().org = org
+	c.org = org
 }
 
 // Org returns the organization name.
 func (c *Collection) Org() string {
-	return c.frame().org
+	return c.org
 }
 
 // SetProject sets the project name.
 func (c *Collection) SetProject(project string) {
-	c.frame().project = project
+	c.project = project
 }
 
 // Project returns the project name.
 func (c *Collection) Project() string {
-	return c.frame().project
+	return c.project
 }
 
 // EnvVars returns a copy of the env vars.

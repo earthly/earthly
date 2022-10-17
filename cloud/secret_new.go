@@ -7,7 +7,6 @@ import (
 	"time"
 
 	secretsapi "github.com/earthly/cloud-api/secrets"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/pkg/errors"
 )
 
@@ -48,7 +47,7 @@ func (c *client) ListSecrets(ctx context.Context, path string) ([]*Secret, error
 	var secrets []*Secret
 
 	res := &secretsapi.ListSecretsResponse{}
-	err = jsonpb.UnmarshalString(body, res)
+	err = c.jum.Unmarshal(body, res)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +71,7 @@ func (c *client) SetSecret(ctx context.Context, path string, secret []byte) erro
 	}
 	u := "/api/v1/secrets" + path
 
-	status, body, err := c.doCall(ctx, http.MethodPut, u, withAuth(), withBody(string(secret)))
+	status, body, err := c.doCall(ctx, http.MethodPut, u, withAuth(), withBody(secret))
 	if err != nil {
 		return err
 	}
@@ -122,7 +121,7 @@ func (c *client) ListSecretPermissions(ctx context.Context, path string) ([]*Sec
 	var secretPerms []*SecretPermission
 
 	res := &secretsapi.ListSecretPermissionsResponse{}
-	err = jsonpb.UnmarshalString(body, res)
+	err = c.jum.Unmarshal(body, res)
 	if err != nil {
 		return nil, err
 	}

@@ -28,12 +28,11 @@
   | Windows (WSL) | [![Build status](https://badge.buildkite.com/19d9cf7fcfb3e0ee45adcb29abb5ef3cfcd994fba2d6dc148c.svg)](https://buildkite.com/earthly-technologies/earthly-windows-scheduled)
 * Run
   ```bash
-  env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG="$RELEASE_TAG" ./release.sh
+  env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG="$RELEASE_TAG" USER="$USER" ./release.sh
   ```
 * Merge branch `main` into `next`, then merge branch `next` into `main`.
 * Update the version for the installation command in the following places:
 <!-- vale HouseStyle.Spelling = NO -->
-  * [ci-integration.md](../docs/ci-integration.md)
   * [circle-integration.md](../docs/ci-integration/guides/circle-integration.md)
   * [gh-actions-integration.md](../docs/ci-integration/guides/gh-actions-integration.md)
   * [codebuild-integration.md](../docs/ci-integration/guides/codebuild-integration.md)

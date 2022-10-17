@@ -91,17 +91,17 @@ embedded version of Earthly to use the cache via build-args:
 ./build/<platform>/amd64/earthly -P ./tests+all --DOCKERHUB_AUTH=false --DOCKERHUB_MIRROR=<ip-address-or-hostname>:<port> --DOCKERHUB_MIRROR_INSECURE=true
 ```
 
-## Updates to buildkit or fsutils
+## Updates to buildkit or fsutil
 
-Earthly is built against a fork of [buildkit](https://github.com/earthly/buildkit) and [fsutils](https://github.com/earthly/fsutils).
+Earthly is built against a fork of [buildkit](https://github.com/earthly/buildkit) and [fsutil](https://github.com/earthly/fsutil).
 For contributions that require updates to these forks, a PR must be opened in in the earthly-fork of the repository, and a corresponding PR should
 be opened in the earthly repository. Each PR's should reference the other through a link in the comments or description.
-This is required to show that earthly's tests will continue to pass with the changes to buildkit or fsutils.
+This is required to show that earthly's tests will continue to pass with the changes to buildkit or fsutil.
 Note that commits should be manually squashed before merging the PR in the earthly-fork.
 
 To update earthly's reference to buildkit, you may run `earthly +update-buildkit --BUILDKIT_GIT_ORG=<git-user-or-org> --BUILDKIT_GIT_SHA=<40-char-git-reference-here>`.
 
-Updates to fsutils must first be vendored into buildkit, then updated under `go.mod`; additional docs and scripts exist in the buildkit repo.
+Updates to fsutil must first be vendored into buildkit, then updated under `go.mod`; additional docs and scripts exist in the buildkit repo.
 
 ## Gotchas
 

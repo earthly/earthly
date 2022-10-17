@@ -83,7 +83,6 @@ type cliFlags struct {
 	buildkitHost              string
 	buildkitdImage            string
 	containerName             string
-	volumeName                string
 	cacheFrom                 cli.StringSlice
 	remoteCache               string
 	maxRemoteCache            bool
@@ -132,7 +131,6 @@ type cliFlags struct {
 	lsShowLong                bool
 	lsShowArgs                bool
 	containerFrontend         containerutil.ContainerFrontend
-	logSharing                bool
 	satelliteName             string
 	noSatellite               bool
 	satelliteFeatureFlags     cli.StringSlice
@@ -260,7 +258,11 @@ func main() {
 	}
 
 	app := newEarthlyApp(ctx, conslogging.Current(colorMode, padding, conslogging.Info))
-	app.unhideFlags(ctx)
+	err = app.unhideFlags(ctx)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error un-hiding flags %v", err)
+		os.Exit(1)
+	}
 	app.autoComplete(ctx)
 
 	exitCode := app.run(ctx, os.Args)

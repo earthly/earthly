@@ -20,7 +20,12 @@ func TestServer(t *testing.T) {
 
 	addr := "127.0.0.1:9834"
 	s := NewServer(addr, log)
-	go s.Start()
+	go func() {
+		err := s.Start()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	time.Sleep(10 * time.Millisecond)
 
@@ -79,7 +84,6 @@ func TestServer(t *testing.T) {
 	outputStr := string(buf[:n])
 
 	if inputStr != outputStr {
-		t.Fatal(fmt.Sprintf("want %v; got %v", inputStr, outputStr))
+		t.Fatalf("want %v; got %v", inputStr, outputStr)
 	}
-
 }

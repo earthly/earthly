@@ -7,16 +7,18 @@ This example uses [GitLab CI/CD](https://docs.gitlab.com/ee/ci/) to build the Ea
 ```yml
 # .gitlab-ci.yml
 
-image: docker
 services:
   - docker:dind
 
+variables:
+  DOCKER_HOST: tcp://docker:2375
+  FORCE_COLOR: 1
+  EARTHLY_EXEC_CMD: "/bin/sh"
+
+image: earthly/earthly:v0.6.27
+
 before_script:
-    - apk update && apk add git
-    - wget https://github.com/earthly/earthly/releases/download/v0.6.23/earthly-linux-amd64 -O /usr/local/bin/earthly
-    - chmod +x /usr/local/bin/earthly
-    - export FORCE_COLOR=1
-    - /usr/local/bin/earthly bootstrap
+    - earthly bootstrap
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
 
 earthly:

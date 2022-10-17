@@ -8,6 +8,10 @@ cd "$(dirname "$0")"
 earthly=${earthly-"../../build/linux/amd64/earthly"}
 earthly=$(realpath "$earthly")
 
+# docker / podman
+frontend="${frontend:-$(which docker || which podman)}"
+test -n "$frontend" || (>&2 echo "Error: frontend is empty" && exit 1)
+
 echo "=== Test 1: Hand Bootstrapped ==="
 
 "$earthly" bootstrap
@@ -159,8 +163,8 @@ cd "$prevdir"
 
 echo "=== Test 7: Homebrew Source ==="
 
-if which docker > /dev/null; then
-  docker rm -f earthly-buildkitd
+if which "$frontend" > /dev/null; then
+  "$frontend" rm -f earthly-buildkitd
 fi
 
 bash=$("$earthly" bootstrap --source bash)
@@ -177,8 +181,8 @@ if [[ "$zsh" != *"complete -o nospace"* ]]; then
   exit 1
 fi
 
-if docker container ls | grep earthly-buildkitd; then
-  echo "--source created a docker container"
+if "$frontend" container ls | grep earthly-buildkitd; then
+  echo "--source created a $frontend container"
   exit 1
 fi
 
@@ -186,8 +190,8 @@ if [[ -f ../../build/linux/amd64/earth ]]; then
   echo "--source symlinked earthly to earth"
 fi
 
-if ! DOCKER_HOST="docker is missing" "$earthly" bootstrap --source zsh > /dev/null 2>&1; then
-  echo "--source failed when docker was missing"
+if ! DOCKER_HOST="$frontend is missing" "$earthly" bootstrap --source zsh > /dev/null 2>&1; then
+  echo "--source failed when $frontend was missing"
   exit 1
 fi
 
@@ -196,13 +200,13 @@ rm -rf "$HOME/.earthly/"
 echo "=== Test 8: No Buildkit ==="
 
 "$earthly" bootstrap --no-buildkit
-if docker container ls | grep earthly-buildkitd; then
-  echo "--no-buildkit created a docker container"
+if "$frontend" container ls | grep earthly-buildkitd; then
+  echo "--no-buildkit created a $frontend container"
   exit 1
 fi
 
-if ! DOCKER_HOST="docker is missing" "$earthly" bootstrap --no-buildkit; then
-  echo "--no-buildkit fails when docker is missing"
+if ! DOCKER_HOST="$frontend is missing" "$earthly" bootstrap --no-buildkit; then
+  echo "--no-buildkit fails when $frontend is missing"
   exit 1
 fi
 

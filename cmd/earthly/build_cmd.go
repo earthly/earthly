@@ -108,11 +108,11 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	destPath := "./"
 	if app.imageMode {
 		if len(nonFlagArgs) == 0 {
-			cli.ShowAppHelp(cliCtx)
+			_ = cli.ShowAppHelp(cliCtx)
 			return errors.Errorf(
 				"no image reference provided. Try %s --image +<target-name>", cliCtx.App.Name)
 		} else if len(nonFlagArgs) != 1 {
-			cli.ShowAppHelp(cliCtx)
+			_ = cli.ShowAppHelp(cliCtx)
 			return errors.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
 		targetName := nonFlagArgs[0]
@@ -123,11 +123,11 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		}
 	} else if app.artifactMode {
 		if len(nonFlagArgs) == 0 {
-			cli.ShowAppHelp(cliCtx)
+			_ = cli.ShowAppHelp(cliCtx)
 			return errors.Errorf(
 				"no artifact reference provided. Try %s --artifact +<target-name>/<artifact-name>", cliCtx.App.Name)
 		} else if len(nonFlagArgs) > 2 {
-			cli.ShowAppHelp(cliCtx)
+			_ = cli.ShowAppHelp(cliCtx)
 			return errors.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
 		artifactName := nonFlagArgs[0]
@@ -142,11 +142,11 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		target = artifact.Target
 	} else {
 		if len(nonFlagArgs) == 0 {
-			cli.ShowAppHelp(cliCtx)
+			_ = cli.ShowAppHelp(cliCtx)
 			return errors.Errorf(
 				"no target reference provided. Try %s +<target-name>", cliCtx.App.Name)
 		} else if len(nonFlagArgs) != 1 {
-			cli.ShowAppHelp(cliCtx)
+			_ = cli.ShowAppHelp(cliCtx)
 			return errors.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
 		targetName := nonFlagArgs[0]
@@ -209,8 +209,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 
 	isLocal := containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress)
 	if !isLocal && app.ci {
-		app.console.Warnf("Please note that --use-inline-cache and --save-inline-cache are currently disabled when using --ci on Satellites or remote Buildkit.")
-		app.console.Warnf("") // newline
+		app.console.Printf("Please note that --use-inline-cache and --save-inline-cache are currently disabled when using --ci on Satellites or remote Buildkit.")
+		app.console.Printf("") // newline
 		app.useInlineCache = false
 		app.saveInlineCache = false
 	}

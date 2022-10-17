@@ -34,13 +34,13 @@ For more details on using a remote BuildKit daemon, [see our guide](./remote-bui
 The image expects the source code of the application you are building in the current working directory (by default `/workspace`). You will need to copy or mount the necessary files to that directory prior to invoking the entrypoint.
 
 ```bash
-docker run --privileged --rm -v "$PWD":/workspace earthly/earthly:v0.6.23 +my-target
+docker run --privileged --rm -v "$PWD":/workspace earthly/earthly:v0.6.27 +my-target
 ```
 
 Or, if you would like to use an alternative directory:
 
 ```bash
-docker run --privileged --rm -v "$PWD":/my-dir -w /my-dir earthly/earthly:v0.6.23 +my-target
+docker run --privileged --rm -v "$PWD":/my-dir -w /my-dir earthly/earthly:v0.6.27 +my-target
 ```
 
 #### `NO_DOCKER` Environment Variable

@@ -38,6 +38,8 @@ type GitMetadata struct {
 	Branch    []string
 	Tags      []string
 	Timestamp string
+	Author    string
+	CoAuthors []string
 }
 
 // Metadata performs git metadata detection on the provided directory.
@@ -92,6 +94,16 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 		retErr = err
 		// Keep going.
 	}
+	author, err := detectGitAuthor(ctx, dir)
+	if err != nil {
+		retErr = err
+		// Keep going.
+	}
+	coAuthors, err := detectGitCoAuthors(ctx, dir)
+	if err != nil {
+		retErr = err
+		// Keep going.
+	}
 
 	relDir, isRel, err := gitRelDir(baseDir, dir)
 	if err != nil {
@@ -111,6 +123,8 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 		Branch:    branch,
 		Tags:      tags,
 		Timestamp: timestamp,
+		Author:    author,
+		CoAuthors: coAuthors,
 	}, retErr
 }
 
@@ -126,6 +140,8 @@ func (gm *GitMetadata) Clone() *GitMetadata {
 		Branch:    gm.Branch,
 		Tags:      gm.Tags,
 		Timestamp: gm.Timestamp,
+		Author:    gm.Author,
+		CoAuthors: gm.CoAuthors,
 	}
 }
 
@@ -251,15 +267,85 @@ func detectGitTags(ctx context.Context, dir string) ([]string, error) {
 func detectGitTimestamp(ctx context.Context, dir string) (string, error) {
 	cmd := exec.CommandContext(ctx, "git", "log", "-1", "--format=%ct")
 	cmd.Dir = dir
+	cmd.Stderr = nil // force capture of stderr on errors
 	out, err := cmd.Output()
 	if err != nil {
-		return "", nil
+		exitError, ok := err.(*exec.ExitError)
+		if ok && strings.Contains(string(exitError.Stderr), "does not have any commits yet") {
+			return "", nil
+		}
+		return "", errors.Wrap(err, "detect git timestamp")
 	}
 	outStr := string(out)
 	if outStr == "" {
 		return "", nil
 	}
 	return strings.SplitN(outStr, "\n", 2)[0], nil
+}
+
+func detectGitAuthor(ctx context.Context, dir string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", "log", "-1", "--format=%ae")
+	cmd.Dir = dir
+	cmd.Stderr = nil // force capture of stderr on errors
+	out, err := cmd.Output()
+	if err != nil {
+		exitError, ok := err.(*exec.ExitError)
+		if ok && strings.Contains(string(exitError.Stderr), "does not have any commits yet") {
+			return "", nil
+		}
+		return "", errors.Wrap(err, "detect git author")
+	}
+	outStr := string(out)
+	if outStr == "" {
+		return "", nil
+	}
+	return strings.SplitN(outStr, "\n", 2)[0], nil
+}
+
+func detectGitCoAuthors(ctx context.Context, dir string) ([]string, error) {
+	cmd := exec.CommandContext(ctx, "git", "log", "-1", "--format=%b")
+	cmd.Dir = dir
+	cmd.Stderr = nil // force capture of stderr on errors
+	out, err := cmd.Output()
+	if err != nil {
+		exitError, ok := err.(*exec.ExitError)
+		if ok && strings.Contains(string(exitError.Stderr), "does not have any commits yet") {
+			return nil, nil
+		}
+		if out != nil && strings.Contains(string(out), "does not have any commits yet") {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, "detect git co-authors")
+	}
+	return ParseCoAuthorsFromBody(string(out)), nil
+}
+
+// ParseCoAuthorsFromBody returns a list of coauthor emails from a git body
+func ParseCoAuthorsFromBody(body string) []string {
+	coAuthors := []string{}
+	coAuthorsSeen := map[string]struct{}{}
+	for _, s := range strings.Split(body, "\n") {
+		s = strings.TrimSpace(s)
+		splits := strings.Split(s, " ")
+		n := len(splits)
+		if n > 2 {
+			if splits[0] == "Co-authored-by:" {
+				email := splits[n-1]
+				n = len(email)
+				if n > 2 {
+					if email[0] == '<' && email[n-1] == '>' {
+						email = email[1:(n - 1)]
+						_, seen := coAuthorsSeen[email]
+						if !seen {
+							coAuthors = append(coAuthors, email)
+							coAuthorsSeen[email] = struct{}{}
+						}
+					}
+				}
+			}
+		}
+	}
+	return coAuthors
 }
 
 // gitRelDir returns the relative path from git root (where .git directory locates in the project)

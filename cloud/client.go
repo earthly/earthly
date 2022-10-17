@@ -5,14 +5,15 @@ import (
 	"crypto/tls"
 	"time"
 
+	"github.com/earthly/cloud-api/compute"
 	"github.com/earthly/cloud-api/pipelines"
-	"github.com/golang/protobuf/jsonpb"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh/agent"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var (
@@ -49,8 +50,8 @@ type Client interface {
 	RemoveOrgMember(ctx context.Context, orgName, userEmail string) error
 	RevokePermission(ctx context.Context, path, user string) error
 	ListPublicKeys(ctx context.Context) ([]string, error)
-	AddPublickKey(ctx context.Context, key string) error
-	RemovePublickKey(ctx context.Context, key string) error
+	AddPublicKey(ctx context.Context, key string) error
+	RemovePublicKey(ctx context.Context, key string) error
 	CreateToken(context.Context, string, bool, *time.Time) (string, error)
 	ListTokens(ctx context.Context) ([]*TokenDetail, error)
 	RemoveToken(ctx context.Context, token string) error
@@ -72,6 +73,7 @@ type Client interface {
 	ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error)
 	GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error)
 	DeleteSatellite(ctx context.Context, name, orgID string) error
+	ReserveSatellite(ctx context.Context, name, orgID string, out chan<- string) error
 	CreateProject(ctx context.Context, name, orgName string) (*Project, error)
 	ListProjects(ctx context.Context, orgName string) ([]*Project, error)
 	GetProject(ctx context.Context, orgName, name string) (*Project, error)
@@ -103,8 +105,9 @@ type client struct {
 	authCredToken         string
 	authDir               string
 	disableSSHKeyGuessing bool
-	jm                    *jsonpb.Unmarshaler
+	jum                   *protojson.UnmarshalOptions
 	pipelines             pipelines.PipelinesClient
+	compute               compute.ComputeClient
 }
 
 var _ Client = &client{}
@@ -117,9 +120,7 @@ func NewClient(httpAddr, grpcAddr, agentSockPath, authCredsOverride string, warn
 			sockPath: agentSockPath,
 		},
 		warnFunc: warnFunc,
-		jm: &jsonpb.Unmarshaler{
-			AllowUnknownFields: true,
-		},
+		jum:      &protojson.UnmarshalOptions{DiscardUnknown: true},
 	}
 	if authCredsOverride != "" {
 		c.authCredToken = authCredsOverride
@@ -131,6 +132,7 @@ func NewClient(httpAddr, grpcAddr, agentSockPath, authCredsOverride string, warn
 	tlsConfig := credentials.NewTLS(&tls.Config{})
 	ctx := context.Background()
 	retryOpts := []grpc_retry.CallOption{
+		grpc_retry.WithMax(10),
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)),
 		grpc_retry.WithCodes(codes.Internal, codes.Unavailable),
 	}
@@ -142,5 +144,6 @@ func NewClient(httpAddr, grpcAddr, agentSockPath, authCredsOverride string, warn
 		return nil, errors.Wrap(err, "failed dialing pipelines grpc")
 	}
 	c.pipelines = pipelines.NewPipelinesClient(conn)
+	c.compute = compute.NewComputeClient(conn)
 	return c, nil
 }

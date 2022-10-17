@@ -96,7 +96,7 @@ func (app *earthlyApp) actionProjectList(cliCtx *cli.Context) error {
 	}
 
 	for _, project := range projects {
-		app.console.Printf("%s\n", project.Name)
+		fmt.Println(project.Name)
 	}
 
 	return nil

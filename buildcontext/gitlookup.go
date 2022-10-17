@@ -313,7 +313,6 @@ func (gl *GitLookup) getHostKeyAlgorithms(hostname string) ([]string, []string, 
 			keyAlg, keyData, err := parseKeyScanIfHostMatches(keyScan, hostname)
 			switch err {
 			case nil:
-				break
 			case errKeyScanNoMatch:
 				continue
 			default:
@@ -346,7 +345,7 @@ func (gl *GitLookup) newHostKeyCallback(keys []string) ssh.HostKeyCallback {
 				return nil
 			}
 		}
-		return fmt.Errorf("No known_host entry for %s", hostname)
+		return fmt.Errorf("no known_host entry for %s", hostname)
 	}
 }
 
@@ -541,9 +540,11 @@ func (gl *GitLookup) makeCloneURL(m *gitMatcher, host, gitPath string) (string, 
 }
 
 // GetCloneURL returns the repo to clone, and a path relative to the repo
-//   "github.com/earthly/earthly"             ---> ("git@github.com/earthly/earthly.git", "")
-//   "github.com/earthly/earthly/examples"    ---> ("git@github.com/earthly/earthly.git", "examples")
-//   "github.com/earthly/earthly/examples/go" ---> ("git@github.com/earthly/earthly.git", "examples/go")
+//
+//	"github.com/earthly/earthly"             ---> ("git@github.com/earthly/earthly.git", "")
+//	"github.com/earthly/earthly/examples"    ---> ("git@github.com/earthly/earthly.git", "examples")
+//	"github.com/earthly/earthly/examples/go" ---> ("git@github.com/earthly/earthly.git", "examples/go")
+//
 // Additionally a ssh keyscan might be returned (or an empty string indicating none was configured)
 func (gl *GitLookup) GetCloneURL(path string) (string, string, []string, error) {
 	gl.mu.Lock()

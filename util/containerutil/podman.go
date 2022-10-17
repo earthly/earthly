@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/hashicorp/go-multierror"
@@ -33,7 +34,7 @@ func NewPodmanShellFrontend(ctx context.Context, cfg *FrontendConfig) (Container
 	// TODO: Find a cleaner way to pass down information to the shellFrontend
 	fe.FrontendInformation = fe.Information
 
-	output, err := fe.commandContextOutput(ctx, "info", "--format={{.Host.Security.Rootless}}")
+	output, err := fe.commandContextOutputWithRetry(ctx, 10, 10*time.Second, "info", "--format={{.Host.Security.Rootless}}")
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +80,7 @@ func (psf *podmanShellFrontend) Config() *CurrentFrontend {
 }
 
 func (psf *podmanShellFrontend) Information(ctx context.Context) (*FrontendInfo, error) {
-	output, err := psf.commandContextOutput(ctx, "info", "--format={{.Host.RemoteSocket.Exists}}")
+	output, err := psf.commandContextOutputWithRetry(ctx, 10, 10*time.Second, "info", "--format={{.Host.RemoteSocket.Exists}}")
 	if err != nil {
 		return nil, err
 	}
@@ -111,11 +112,14 @@ func (psf *podmanShellFrontend) Information(ctx context.Context) (*FrontendInfo,
 	}
 
 	allInfo := info{}
-	json.Unmarshal([]byte(output.string()), &allInfo)
+	err = json.Unmarshal([]byte(output.string()), &allInfo)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse version output %s", output.string())
+	}
 
 	host := "daemonless"
 	if hasRemote {
-		output, err = psf.commandContextOutput(ctx, "info", "--format={{.Host.RemoteSocket.Path}}")
+		output, err = psf.commandContextOutputWithRetry(ctx, 10, 10*time.Second, "info", "--format={{.Host.RemoteSocket.Path}}")
 		if err != nil {
 			return nil, err
 		}
@@ -230,7 +234,7 @@ func (psf *podmanShellFrontend) VolumeInfo(ctx context.Context, volumeNames ...s
 
 				results[volumeName] = &VolumeInfo{
 					Name:       volumeName,
-					Size:       bytes,
+					SizeBytes:  bytes,
 					Mountpoint: string(mountpoint.string()),
 				}
 				break

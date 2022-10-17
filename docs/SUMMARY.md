@@ -27,6 +27,7 @@
     * [Integration Testing](guides/integration.md)
     * [Debugging techniques](guides/debugging.md)
     * [Multi-platform builds](guides/multi-platform.md)
+    * [Podman](guides/podman.md)
     * Configuring registries
         * [AWS ECR](guides/registries/aws-ecr.md)
         * [GCP Artifact Registry](guides/registries/gcp-artifact-registry.md)
@@ -44,8 +45,9 @@
 * [Examples](examples/examples.md)
 * Misc
     * [Alternative installation](./alt-installation.md)
-    * [Definitions](definitions/definitions.md)
     * [Data collection](data-collection/data-collection.md)
+    * [Definitions](definitions/definitions.md)
+    * [Public key authentication](public-key-auth/public-key-auth.md)
 
 ## 🔧 CI Integration
 

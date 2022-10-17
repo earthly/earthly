@@ -4,21 +4,64 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.27 - 2022-10-17
+
+### Changed
+- Support for all ssh-based key types (e.g. ssh-ed25519), and not only ssh-rsa. [#1783](https://github.com/earthly/earthly/issues/1783)
+
+### Fixed
+- Unable to specify public key to add via the command-line, e.g. running `earthly account add-key <key>` ignored the key and fellback to an interactive prompt.
+- `GIT CLONE` command was ignoring the `WORK DIR` command when `--use-copy-link` feature was set.
+
+## v0.6.26 - 2022-10-13
+
 ### Added
 
-- The new `earthly preview org invite` command now has the ability to invite multiple email addresses at once.
+- Build failures now show the file and line number of the failing command
+- Introduced `EARTHLY_GIT_AUTHOR` and `EARTHLY_GIT_CO_AUTHORS` ARGS
+
+### Fixed
+
+- Some network operations were being incorrectly executed with a timeout of 0.
+- Upon `earthly ls` failure it will display the failure reason
+
+### Changed
+
+- Loading Docker images as part of `WITH DOCKER` is now faster through the use of an embedded registry in Buildkit. This functionality was previously hidden (`VERSION --use-registry-for-with-docker`) and was only auto-enabled for Earthly Satellite users. It is now enabled by default for all builds. [#1268](https://github.com/earthly/earthly/issues/1268)
+
+## v0.6.25 - 2022-10-04
+
+### Fixed
+
+- Fixed outputting images with long names [#2053](https://github.com/earthly/earthly/issues/2053)
+- Fixed buildkit connection timing out occasionally [#2229](https://github.com/earthly/earthly/issues/2229)
+- Cache size was incorrectly displayed (magnitude of 1024 higher)
+
+## v0.6.24 - 2022-09-22
+
+### Added
+
+- The `earthly org invite` command now has the ability to invite multiple email addresses at once.
+- Experimental support for `TRY/FINALLY`, which allows saving artifacts upon failure. [#988](https://github.com/earthly/earthly/issues/988), [#587](https://github.com/earthly/earthly/issues/587).
+  Not that this is only a partial implementation, and only accepts a *single* RUN command in the `TRY`, and only `SAVE ARTIFACT` commands in the `FINALLY` block.
+- Ability to enable specific satellite features via cli flags, e.g. the new experimental sleep feature can be enabled with
+  `earthly satellite launch --feature-flags satellite-sleep my-satellite`.
 
 ### Changed
 
 - Bootstraping zsh autocompletion will first attempt to install under `/usr/local/share/zsh/site-functions`, and will now
   fallback to `/usr/share/zsh/site-functions`.
+- The `earthly preview org` command has been promoted to GA, and is now available under `earthly org`.
 - `earthly sat select` with no arguments now prints the current satellite and the usage text.
+- The interactive debugger now connects over the buildkit session connection rather than an unencrypted tcp connection; this makes it possible
+  to use the interactive debugger with remote buildkit instances.
 
 ### Fixed
 
 - Fixed Earthly failing when using a remote docker host from a machine with an incompatible architecture. [#1895](https://github.com/earthly/earthly/issues/1895)
 - Earthly will no longer race with itself when starting up buildkit. [#2194](https://github.com/earthly/earthly/issues/2194)
 - The error reported when failing to initiate a connection to buildkit has been reworded to account for the remote buildkit/satellite case too.
+- Errors related to parsing `VERSION` feature flags will no longer be displayed during auto-completion.
 
 ## v0.6.23 - 2022-09-06
 

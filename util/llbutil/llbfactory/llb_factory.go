@@ -49,11 +49,7 @@ func Local(name string, opts ...llb.LocalOption) Factory {
 
 // Copy makes a new copy of the localFactory
 func (f *LocalFactory) Copy() *LocalFactory {
-	newOpts := []llb.LocalOption{}
-	for _, o := range f.opts {
-		newOpts = append(newOpts, o)
-	}
-
+	newOpts := append([]llb.LocalOption{}, f.opts...)
 	return &LocalFactory{
 		name: f.name,
 		opts: newOpts,

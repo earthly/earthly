@@ -1,9 +1,11 @@
-VERSION 0.6
+VERSION --use-copy-link 0.6
+
 FROM alpine/git:1.0.7
 test:
     WORKDIR /test
     GIT CLONE https://github.com/moby/buildkit.git buildkit
     WORKDIR /test/buildkit
+    RUN ls .git
     RUN git status
     RUN git branch
     RUN test -f README.md

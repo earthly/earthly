@@ -89,6 +89,7 @@ func (i *Interpreter) isPipelineTarget(ctx context.Context, t spec.Target) bool 
 }
 
 func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
+	ctx = ContextWithSourceLocation(ctx, t.SourceLocation)
 	// Apply implicit FROM +base
 	err := i.converter.From(ctx, "+base", platutil.DefaultPlatform, i.allowPrivileged, nil)
 	if err != nil {
@@ -165,6 +166,7 @@ func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, sta
 }
 
 func (i *Interpreter) handleStatement(ctx context.Context, stmt spec.Statement) error {
+	ctx = ContextWithSourceLocation(ctx, stmt.SourceLocation)
 	if stmt.Command != nil {
 		return i.handleCommand(ctx, *stmt.Command)
 	} else if stmt.With != nil {
@@ -201,6 +203,7 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 		}
 	}()
 
+	ctx = ContextWithSourceLocation(ctx, cmd.SourceLocation)
 	analytics.Count("cmd", cmd.Name)
 
 	if i.isWith {
@@ -1761,6 +1764,7 @@ func (i *Interpreter) handlePipelineBlock(ctx context.Context, name string, bloc
 			return errors.New("pipeline targets do not support IF, WITH, FOR, or WAIT commands")
 		}
 		cmd := *stmt.Command
+		ctx = ContextWithSourceLocation(ctx, cmd.SourceLocation)
 		var err error
 		switch cmd.Name {
 		case "PIPELINE":

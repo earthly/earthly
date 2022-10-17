@@ -79,7 +79,10 @@ func populateShellHistory(cmd string) error {
 			result = multierror.Append(result, err)
 		}
 		defer f.Close()
-		f.Write([]byte(cmd + "\n"))
+		_, err = f.Write([]byte(cmd + "\n"))
+		if err != nil {
+			result = multierror.Append(result, err)
+		}
 	}
 	return result
 }
@@ -155,43 +158,53 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 	defer func() { _ = ptmx.Close() }() // Best effort.
 
 	ctx, cancel := context.WithCancel(ctx)
-
 	go func() {
+		defer cancel()
 		for {
 			connDataType, data, err := common.ReadDataPacket(conn)
 			if err != nil {
 				log.Error(errors.Wrap(err, "failed to read data from conn"))
-				break
+				return
 			}
 			switch connDataType {
 			case common.PtyData:
-				handlePtyData(ptmx, data)
+				err = handlePtyData(ptmx, data)
+				if err != nil {
+					log.Error(errors.Wrap(err, "failed to handle pty data"))
+					return
+				}
 			case common.WinSizeData:
-				handleWinChangeData(ptmx, data)
+				err = handleWinChangeData(ptmx, data)
+				if err != nil {
+					log.Error(errors.Wrap(err, "failed to handle win change data"))
+					return
+				}
 			default:
 				log.With("datatype", connDataType).Warning("unhandled data type")
 			}
 		}
-		cancel()
 	}()
 	go func() {
+		defer cancel()
 		initialData := true
 		for {
 			buf := make([]byte, 100)
 			n, err := ptmx.Read(buf)
 			if err != nil {
 				log.Error(errors.Wrap(err, "failed to read from ptmx"))
-				break
+				return
 			}
 			buf = buf[:n]
 			if initialData {
 				buf = append([]byte("\r\n"), buf...)
 				initialData = false
 			}
-			common.WriteDataPacket(conn, common.PtyData, buf)
-
+			err = common.WriteDataPacket(conn, common.PtyData, buf)
+			if err != nil {
+				log.Error(errors.Wrap(err, "failed to write data to conn"))
+				return
+			}
 		}
-		cancel()
 	}()
 
 	var waitErr error
@@ -204,7 +217,10 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 
 	<-ctx.Done()
 
-	common.WriteDataPacket(conn, common.EndShellSession, nil)
+	err = common.WriteDataPacket(conn, common.EndShellSession, nil)
+	if err != nil {
+		return errors.Wrap(err, "failed to send end shell session")
+	}
 
 	if !waitErrSet {
 		return errInteractiveModeWaitFailed
@@ -304,7 +320,9 @@ func main() {
 		exitCode := 1
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode = exitErr.ExitCode()
-			conslogger.Warnf("Command %s failed with exit code %d\n", quotedCmd, exitCode)
+			if debuggerSettings.Enabled {
+				conslogger.Warnf("Command %s failed with exit code %d\n", quotedCmd, exitCode)
+			}
 		} else {
 			conslogger.Warnf("Command %s failed with unexpected execution error %v\n", quotedCmd, err)
 		}

@@ -187,7 +187,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	}
 	state, img, envVars, err := c.internalFromClassical(
 		ctx, imageName, platform,
-		llb.WithCustomNamef("%sFROM %s", c.vertexPrefix(local, false, internal), imageName))
+		llb.WithCustomNamef("%sFROM %s", c.vertexPrefix(ctx, local, false, internal), imageName))
 	if err != nil {
 		return err
 	}
@@ -293,14 +293,18 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 				return err
 			}
 		}
-		BuildContextFactory = llbfactory.PreconstructedState(llbutil.CopyOp(
+		copyState, err := llbutil.CopyOp(ctx,
 			mts.Final.ArtifactsState, []string{contextArtifact.Artifact},
 			c.platr.Scratch(), "/", true, true, false, "", nil, false, false,
 			c.ftrs.UseCopyLink,
 			llb.WithCustomNamef(
 				"%sFROM DOCKERFILE (copy build context from) %s%s",
-				c.vertexPrefix(false, false, true),
-				joinWrap(buildArgs, "(", " ", ") "), contextArtifact.String())))
+				c.vertexPrefix(ctx, false, false, true),
+				joinWrap(buildArgs, "(", " ", ") "), contextArtifact.String()))
+		if err != nil {
+			return errors.Wrapf(err, "copyOp FROM DOCKERFILE")
+		}
+		BuildContextFactory = llbfactory.PreconstructedState(copyState)
 	} else {
 		// The build context is from the host.
 		if contextPath != "." &&
@@ -436,7 +440,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 		pllb.AddMount("/"+localhost.SendFileMagicStr, relevantDepState.ArtifactsState, llb.Readonly),
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s %s",
-			c.vertexPrefix(false, false, false),
+			c.vertexPrefix(ctx, false, false, false),
 			strIf(isDir, "--dir "),
 			joinWrap(buildArgs, "(", " ", ") "),
 			artifact.String(),
@@ -474,19 +478,22 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	// Grab the artifacts state in the dep states, after we've built it.
 	relevantDepState := mts.Final
 	// Copy.
-	c.mts.Final.MainState = llbutil.CopyOp(
+	c.mts.Final.MainState, err = llbutil.CopyOp(ctx,
 		relevantDepState.ArtifactsState, []string{artifact.Artifact},
 		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), chmod, ifExists, symlinkNoFollow,
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s%s%s %s",
-			c.vertexPrefix(false, false, false),
+			c.vertexPrefix(ctx, false, false, false),
 			strIf(isDir, "--dir "),
 			strIf(ifExists, "--if-exists "),
 			strIf(symlinkNoFollow, "--symlink-no-follow "),
 			joinWrap(buildArgs, "(", " ", ") "),
 			artifact.String(),
 			dest))
+	if err != nil {
+		return errors.Wrapf(err, "copyOp CopyArtifact")
+	}
 	return nil
 }
 
@@ -511,18 +518,21 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	}
 
 	c.nonSaveCommand()
-	c.mts.Final.MainState = llbutil.CopyOp(
+	c.mts.Final.MainState, err = llbutil.CopyOp(ctx,
 		srcState,
 		srcs,
 		c.mts.Final.MainState, dest, true, isDir, keepTs, c.copyOwner(keepOwn, chown), chmod, ifExists, false,
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s %s",
-			c.vertexPrefix(false, false, false),
+			c.vertexPrefix(ctx, false, false, false),
 			strIf(isDir, "--dir "),
 			strIf(ifExists, "--if-exists "),
 			strings.Join(srcs, " "),
 			dest))
+	if err != nil {
+		return errors.Wrapf(err, "copyOp CopyClassical")
+	}
 	return nil
 }
 
@@ -590,7 +600,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 				pllb.Mkdir("/run", 0755, llb.WithParents(true)),
 				llb.WithCustomNamef(
 					"%smkdir %s",
-					c.vertexPrefix(false, false, true), "/run"),
+					c.vertexPrefix(ctx, false, false, true), "/run"),
 			), nil
 		}
 	}
@@ -677,7 +687,7 @@ func (c *Converter) runCommand(ctx context.Context, outputFileName string, isExp
 				pllb.Mkdir(srcBuildArgDir, 0777, llb.WithParents(true)), // Mkdir is performed as root even when USER is set; we must use 0777
 				llb.WithCustomNamef(
 					"%smkdir %s",
-					c.vertexPrefix(false, false, true), srcBuildArgDir),
+					c.vertexPrefix(ctx, false, false, true), srcBuildArgDir),
 			), nil
 		}
 	}
@@ -757,46 +767,55 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	// accessed within the CopyOps below.
 	pcState := c.persistCache(c.mts.Final.MainState)
 
-	c.mts.Final.ArtifactsState = llbutil.CopyOp(
+	c.mts.Final.ArtifactsState, err = llbutil.CopyOp(ctx,
 		pcState, []string{saveFrom}, c.mts.Final.ArtifactsState,
 		saveToAdjusted, true, true, keepTs, own, nil, ifExists, symlinkNoFollow,
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
 			"%sSAVE ARTIFACT %s%s%s %s",
-			c.vertexPrefix(false, false, false),
+			c.vertexPrefix(ctx, false, false, false),
 			strIf(ifExists, "--if-exists "),
 			strIf(symlinkNoFollow, "--symlink-no-follow "),
 			saveFrom,
 			artifact.String()))
+	if err != nil {
+		return errors.Wrapf(err, "copyOp save artifact")
+	}
 	if saveAsLocalTo != "" {
 		separateArtifactsState := c.platr.Scratch()
 		if isPush {
 			pushState := c.persistCache(c.mts.Final.RunPush.State)
-			separateArtifactsState = llbutil.CopyOp(
+			separateArtifactsState, err = llbutil.CopyOp(ctx,
 				pushState, []string{saveFrom}, separateArtifactsState,
 				saveToAdjusted, true, true, keepTs, "root:root", nil, ifExists, symlinkNoFollow,
 				c.ftrs.UseCopyLink,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
-					c.vertexPrefix(false, false, false),
+					c.vertexPrefix(ctx, false, false, false),
 					strIf(ifExists, "--if-exists "),
 					strIf(symlinkNoFollow, "--symlink-no-follow "),
 					saveFrom,
 					artifact.String(),
 					saveAsLocalTo))
+			if err != nil {
+				return errors.Wrapf(err, "copyOp save artifact as local")
+			}
 		} else {
-			separateArtifactsState = llbutil.CopyOp(
+			separateArtifactsState, err = llbutil.CopyOp(ctx,
 				pcState, []string{saveFrom}, separateArtifactsState,
 				saveToAdjusted, true, true, keepTs, "root:root", nil, ifExists, symlinkNoFollow,
 				c.ftrs.UseCopyLink,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
-					c.vertexPrefix(false, false, false),
+					c.vertexPrefix(ctx, false, false, false),
 					strIf(ifExists, "--if-exists "),
 					strIf(symlinkNoFollow, "--symlink-no-follow "),
 					saveFrom,
 					artifact.String(),
 					saveAsLocalTo))
+			if err != nil {
+				return errors.Wrapf(err, "copyOp save artifact as local")
+			}
 		}
 		c.mts.Final.SeparateArtifactsState = append(c.mts.Final.SeparateArtifactsState, separateArtifactsState)
 
@@ -894,7 +913,7 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 		llb.IgnoreCache,
 		llb.WithCustomNamef(
 			"%sCopyFileMagicStr %s %s",
-			c.vertexPrefix(true, false, true), saveFrom, saveTo),
+			c.vertexPrefix(ctx, true, false, true), saveFrom, saveTo),
 	}
 	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
 
@@ -907,11 +926,14 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 		own = chown
 	}
 	ifExists := false
-	c.mts.Final.ArtifactsState = llbutil.CopyOp(
+	c.mts.Final.ArtifactsState, err = llbutil.CopyOp(ctx,
 		c.mts.Final.MainState, []string{absSaveTo}, c.mts.Final.ArtifactsState,
 		absSaveTo, true, true, keepTs, own, nil, ifExists, false,
 		c.ftrs.UseCopyLink,
 	)
+	if err != nil {
+		return errors.Wrapf(err, "copyOp save artifact from local")
+	}
 	err = c.forceExecution(ctx, c.mts.Final.ArtifactsState, c.platr)
 	if err != nil {
 		return err
@@ -1109,7 +1131,7 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 			mkdirOpts = append(mkdirOpts, llb.WithUser(c.mts.Final.MainImage.Config.User))
 		}
 		opts := []llb.ConstraintsOpt{
-			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(false, false, false), workdirPath),
+			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(ctx, false, false, false), workdirPath),
 		}
 		c.mts.Final.MainState = c.mts.Final.MainState.File(
 			pllb.Mkdir(workdirAbs, 0755, mkdirOpts...), opts...)
@@ -1277,12 +1299,15 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 		llb.KeepGitDir(),
 	}
 	gitState := pllb.Git(gitURL, branch, gitOpts...)
-	c.mts.Final.MainState = llbutil.CopyOp(
+	c.mts.Final.MainState, err = llbutil.CopyOp(ctx,
 		gitState, []string{"."}, c.mts.Final.MainState, dest, false, false, keepTs,
 		c.mts.Final.MainImage.Config.User, nil, false, false, c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
-			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(false, false, false),
+			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(ctx, false, false, false),
 			branch, gitURLScrubbed, dest))
+	if err != nil {
+		return errors.Wrapf(err, "copyOp git clone")
+	}
 	return nil
 }
 
@@ -1701,7 +1726,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		strIf(opts.Interactive, "--interactive "),
 		strIf(opts.InteractiveKeep, "--interactive-keep "),
 		strings.Join(opts.Args, " "))
-	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", c.vertexPrefix(opts.Locally, isInteractive, false), commandStr))
+	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", c.vertexPrefix(ctx, opts.Locally, isInteractive, false), commandStr))
 
 	var extraEnvVars []string
 
@@ -1959,16 +1984,6 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 	return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=+secrets/<secret-id> or <secret-id>", secretKeyValue)
 }
 
-func (c *Converter) forceExecutionWithSemaphore(ctx context.Context, state pllb.State, platr *platutil.Resolver) error {
-	sem := c.opt.Parallelism
-	rel, err := sem.Acquire(ctx, 1)
-	if err != nil {
-		return errors.Wrapf(err, "acquiring parallelism semaphore during forceExecutionWithSemaphore for %s", c.target.String())
-	}
-	defer rel()
-	return c.forceExecution(ctx, state, platr)
-}
-
 func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr *platutil.Resolver) error {
 	if state.Output() == nil {
 		// Scratch - no need to execute.
@@ -2122,7 +2137,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 	}
 }
 
-func (c *Converter) vertexPrefix(local bool, interactive bool, internal bool) string {
+func (c *Converter) vertexPrefix(ctx context.Context, local bool, interactive bool, internal bool) string {
 	activeOverriding := make(map[string]string)
 	for _, arg := range c.varCollection.SortedOverridingVariables() {
 		v, ok := c.varCollection.GetActive(arg)
@@ -2134,6 +2149,7 @@ func (c *Converter) vertexPrefix(local bool, interactive bool, internal bool) st
 	platformStr := platform.String()
 	isNativePlatform := c.platr.PlatformEquals(platform, platutil.NativePlatform)
 	vm := &outmon.VertexMeta{
+		SourceLocation:     SourceLocationFromContext(ctx),
 		TargetID:           c.mts.Final.ID,
 		TargetName:         c.mts.Final.Target.String(),
 		Platform:           platformStr,

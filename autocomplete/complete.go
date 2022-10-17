@@ -19,16 +19,6 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func trimFlag(prefix string) (string, bool) {
-	if len(prefix) == 1 && prefix[0] == '-' {
-		return "", true
-	}
-	if strings.HasPrefix(prefix, "--") {
-		return prefix[2:], true
-	}
-	return "", false
-}
-
 func isLocalPath(path string) bool {
 	for _, prefix := range []string{".", "..", "/", "~"} {
 		if strings.HasPrefix(path, prefix) {
@@ -338,7 +328,8 @@ const (
 
 // GetPotentials returns a list of potential arguments for shell auto completion
 // NOTE: you can cause earthly to run this command with:
-//       COMP_LINE="earthly -" COMP_POINT=$(echo -n $COMP_LINE | wc -c) go run cmd/earthly/main.go
+//
+//	COMP_LINE="earthly -" COMP_POINT=$(echo -n $COMP_LINE | wc -c) go run cmd/earthly/main.go
 func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, compLine string, compPoint int, app *cli.App) ([]string, error) {
 	compLine = compLine[:compPoint]
 	subCommands := app.Commands

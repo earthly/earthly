@@ -1,17 +1,20 @@
 package main
 
 import (
+	"context"
+	"math/rand"
 	"net/url"
 	"path/filepath"
 	"time"
+
+	"github.com/moby/buildkit/client"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
 
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
-	"github.com/moby/buildkit/client"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
 )
 
 func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
@@ -97,13 +100,11 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 }
 
 func (app *earthlyApp) getBuildkitClient(cliCtx *cli.Context, cloudClient cloud.Client) (*client.Client, error) {
-	if !app.isUsingSatellite(cliCtx) {
-		err := app.initFrontend(cliCtx)
-		if err != nil {
-			return nil, err
-		}
+	err := app.initFrontend(cliCtx)
+	if err != nil {
+		return nil, err
 	}
-	err := app.configureSatellite(cliCtx, cloudClient)
+	err = app.configureSatellite(cliCtx, cloudClient)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not construct new buildkit client")
 	}
@@ -146,8 +147,6 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 		return nil
 	}
 
-	app.console.Warnf("Note: inline caching does not yet work on Earthly Satellites.")
-
 	// Set up extra settings needed for buildkit RPC metadata
 	if app.satelliteName == "" {
 		app.satelliteName = app.cfg.Satellite.Name
@@ -169,21 +168,28 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 	app.analyticsMetadata.isSatellite = true
 	app.analyticsMetadata.satelliteVersion = "" // TODO
 
-	app.console.Warnf("") // newline
-	app.console.Warnf("The following feature flags are recommended for use with Satellites and will be auto-enabled:")
-	app.console.Warnf("  --new-platform, --use-registry-for-with-docker")
-	app.console.Warnf("") // newline
+	app.console.Printf("") // newline
+	app.console.Printf("The following feature flag is recommended for use with Satellites and will be auto-enabled:")
+	app.console.Printf("  --new-platform")
+	app.console.Printf("") // newline
 
 	if app.featureFlagOverrides != "" {
 		app.featureFlagOverrides += ","
 	}
-	app.featureFlagOverrides += "new-platform,use-registry-for-with-docker"
+	app.featureFlagOverrides += "new-platform"
 
 	token, err := cloudClient.GetAuthToken(cliCtx.Context)
 	if err != nil {
 		return errors.Wrap(err, "failed to get auth token")
 	}
 	app.buildkitdSettings.SatelliteToken = token
+
+	// Reserve the satellite for the upcoming build.
+	// This operation can take a moment if the satellite is asleep.
+	err = app.reserveSatellite(cliCtx.Context, cloudClient, app.satelliteName, orgID)
+	if err != nil {
+		return err
+	}
 
 	// TODO (dchw) what other settings might we want to override here?
 	return nil
@@ -198,4 +204,72 @@ func (app *earthlyApp) isUsingSatellite(cliCtx *cli.Context) bool {
 		return false
 	}
 	return app.cfg.Satellite.Name != "" || app.satelliteName != ""
+}
+
+func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.Client, name, orgID string) error {
+	console := app.console.WithPrefix("satellite")
+	out := make(chan string)
+	var reserveErr error
+	go func() { reserveErr = cloudClient.ReserveSatellite(ctx, name, orgID, out) }()
+	loadingMsgs := getSatelliteLoadingMessages()
+	var wasAsleep = false
+	for status := range out {
+		switch status {
+		case cloud.SatelliteStatusSleep:
+			wasAsleep = true
+			console.Printf("%s is waking up. Please wait...", name)
+		case cloud.SatelliteStatusStarting:
+			var msg string
+			msg, loadingMsgs = nextSatelliteLoadingMessage(loadingMsgs)
+			console.Printf("...%s...", msg)
+		case cloud.SatelliteStatusOperational:
+			if wasAsleep {
+				console.Printf("...System online.")
+			}
+		default:
+			console.VerbosePrintf("Unexpected satellite state: %s", status)
+		}
+	}
+	if reserveErr != nil {
+		return errors.Wrap(reserveErr, "failed reserving satellite for build")
+	}
+	return nil
+}
+
+func nextSatelliteLoadingMessage(msgs []string) (nextMsg string, remainingMsgs []string) {
+	if len(msgs) == 0 {
+		msgs = getSatelliteLoadingMessages()
+	}
+	return msgs[0], msgs[1:]
+}
+
+func getSatelliteLoadingMessages() []string {
+	baseMessages := []string{
+		"tracking orbit",
+		"adjusting course",
+		"deploying solar array",
+		"aligning solar panels",
+		"calibrating guidance system",
+		"establishing transponder uplink",
+		"testing signal quality",
+		"fueling thrusters",
+		"amplifying transmission signal",
+		"checking thermal controls",
+		"stabilizing trajectory",
+		"contacting mission control",
+		"testing antennas",
+		"reporting fuel levels",
+		"scanning surroundings",
+		"avoiding debris",
+		"taking solar reading",
+		"reporting thermal conditions",
+		"testing system integrity",
+		"checking battery levels",
+		"calibrating transponders",
+		"modifying downlink frequency",
+	}
+	msgs := baseMessages
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(msgs), func(i, j int) { msgs[i], msgs[j] = msgs[j], msgs[i] })
+	return msgs
 }
