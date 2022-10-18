@@ -7,7 +7,7 @@ require (
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/containerd/containerd v1.6.6
 	github.com/creack/pty v1.1.11
-	github.com/docker/cli v20.10.14+incompatible
+	github.com/docker/cli v20.10.17+incompatible
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/dustin/go-humanize v1.0.0
@@ -48,6 +48,6 @@ replace (
 	github.com/earthly/earthly/ast => ./ast
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20220913002628-9c256c19c539
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20221018212515-b4ccdaf100c3
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20220719234708-392da7eebeb5
 )

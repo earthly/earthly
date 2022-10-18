@@ -91,4 +91,4 @@ update-buildkit-earthfile:
     LOCALLY
     ARG --required BUILDKIT_GIT_SHA
     ARG --required BUILDKIT_GIT_ORG
-    RUN sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit\).*/\1:'$BUILDKIT_GIT_SHA'+build/g' Earthfile
+    RUN sed -i '' -e 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit\).*/\1:'$BUILDKIT_GIT_SHA'+build/g' Earthfile
