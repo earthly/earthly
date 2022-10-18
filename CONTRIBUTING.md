@@ -94,10 +94,11 @@ embedded version of Earthly to use the cache via build-args:
 ## Updates to buildkit or fsutil
 
 Earthly is built against a fork of [buildkit](https://github.com/earthly/buildkit) and [fsutil](https://github.com/earthly/fsutil).
+
 For contributions that require updates to these forks, a PR must be opened in in the earthly-fork of the repository, and a corresponding PR should
-be opened in the earthly repository. Each PR's should reference the other through a link in the comments or description.
-This is required to show that earthly's tests will continue to pass with the changes to buildkit or fsutil.
-Note that commits should be manually squashed before merging the PR in the earthly-fork.
+be opened in the earthly repository -- please link the two PRs together, in order to show that earthly's tests will continue to pass with the changes to buildkit or fsutil.
+
+The earthly-fork of the buildkit repository does not automatically squash commits; if you are submitting a PR for a new feature, it must be squashed manually. Do not squash commits when merging upstream changes from moby.
 
 To update earthly's reference to buildkit, you may run `earthly +update-buildkit --BUILDKIT_GIT_ORG=<git-user-or-org> --BUILDKIT_GIT_SHA=<40-char-git-reference-here>`.
 
