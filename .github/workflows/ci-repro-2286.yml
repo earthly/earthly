@@ -12,84 +12,47 @@ jobs:
   repro-1:
     uses: ./.github/workflows/reuseable-repro-2286.yml
     secrets: inherit
-
-  fill-1:
-    needs: repro-1
-    runs-on: "ubuntu-latest"
-    steps:
-    - name: fill up 5G space
-      run: sudo fallocate -l 5G file-5G && ls -lh
+    with:
+      FILL_SPACE_GB: 0
 
   repro-2:
     needs: fill-1
     uses: ./.github/workflows/reuseable-repro-2286.yml
     secrets: inherit
-
-  fill-2:
-    needs: repro-2
-    runs-on: "ubuntu-latest"
-    steps:
-      - name: fill up another 5G space
-        run: sudo fallocate -l 5G file-5G-2 && ls -lh
+    with:
+      FILL_SPACE_GB: 5
 
   repro-3:
     needs: fill-2
     uses: ./.github/workflows/reuseable-repro-2286.yml
     secrets: inherit
-
-  fill-3:
-    needs: repro-3
-    runs-on: "ubuntu-latest"
-    steps:
-      - name: fill up another 2g space
-        run: sudo fallocate -l 2G file-2G && ls -lh
+    with:
+      FILL_SPACE_GB: 10
 
   repro-4:
     needs: fill-3
     uses: ./.github/workflows/reuseable-repro-2286.yml
     secrets: inherit
-
-  fill-4:
-    needs: repro-4
-    runs-on: "ubuntu-latest"
-    steps:
-      - name: fill up another 1g space
-        run: sudo fallocate -l 1G file-1G && ls -lh
+    with:
+      FILL_SPACE_GB: 12
 
   repro-5:
     needs: fill-4
     uses: ./.github/workflows/reuseable-repro-2286.yml
     secrets: inherit
-
-  # After this, github worker should be full
-  fill-5:
-    needs: repro-5
-    runs-on: "ubuntu-latest"
-    steps:
-      - name: fill up another 1g space
-        run: sudo fallocate -l 1G file-1G-2 && ls -lh
+    with:
+      FILL_SPACE_GB: 13
 
   repro-6:
     needs: fill-5
     uses: ./.github/workflows/reuseable-repro-2286.yml
     secrets: inherit
-
-  # Overfill the SSD
-  fill-6:
-    needs: repro-6
-    runs-on: "ubuntu-latest"
-    steps:
-      - name: fill up 20GB of space
-        run: sudo fallocate -l 20G file-20G && ls -lh
+    with:
+      FILL_SPACE_GB: 14
 
   repro-7:
     needs: fill-6
     uses: ./.github/workflows/reuseable-repro-2286.yml
     secrets: inherit
-
-  fill-until-failure:
-    needs: repro-7
-    runs-on: "ubuntu-latest"
-    steps:
-      - name: This should fail
-        run: for i in {1..50}; do sudo fallocate -l 10G file-10G-$i && ls -lh; done
+    with:
+      FILL_SPACE_GB: 100

@@ -2,7 +2,10 @@ name: Try Reproducing 2286 20 times
 
 on:
   workflow_call:
-
+    inputs:
+      FILL_SPACE_GB:
+        required: true
+        type: number
 jobs:
   reproduce-2286-1:
     env:
@@ -15,6 +18,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -33,6 +39,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -51,6 +60,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -69,6 +81,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -88,6 +103,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -106,6 +124,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -125,6 +146,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -143,6 +167,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -161,6 +188,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -179,6 +209,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -197,6 +230,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -215,6 +251,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -233,6 +272,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -251,6 +293,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -269,6 +314,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -287,6 +335,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -305,6 +356,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -323,6 +377,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -341,6 +398,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
@@ -359,6 +419,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: "ubuntu-latest"
     steps:
+      - name: fill drive
+        run: sudo fallocate -l ${{inputs.FILL_SPACE_GB}}G file && ls -lh
+        if: inputs.FILL_SPACE_GB > 0
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
