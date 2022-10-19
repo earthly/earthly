@@ -33,6 +33,7 @@ import (
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
+	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
@@ -157,6 +158,16 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		}
 	}
 
+	var gitCommitAuthor string
+	if !target.IsRemote() {
+		gitMeta, err := gitutil.Metadata(cliCtx.Context, target.GetLocalPath())
+		if err == nil {
+			// git detection here is best effort
+			gitCommitAuthor = gitMeta.Author
+		}
+	}
+	fmt.Printf("got target: %s; last author is %s\n", target.String(), gitCommitAuthor)
+
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
@@ -202,7 +213,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return err
 	}
 
-	err = app.configureSatellite(cliCtx, cloudClient)
+	err = app.configureSatellite(cliCtx, cloudClient, gitCommitAuthor)
 	if err != nil {
 		return errors.Wrapf(err, "could not construct new buildkit client")
 	}
