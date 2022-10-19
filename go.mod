@@ -48,6 +48,6 @@ replace (
 	github.com/earthly/earthly/ast => ./ast
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20221019174741-663eff9a9eac
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20221019182116-f5143e302599
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20220719234708-392da7eebeb5
 )
