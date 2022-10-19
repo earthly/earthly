@@ -1,6 +1,6 @@
 VERSION --shell-out-anywhere --use-copy-link 0.6
 
-FROM golang:1.17-alpine3.14
+FROM golang:1.19-alpine3.15
 
 RUN apk add --update --no-cache \
     bash \
@@ -116,7 +116,6 @@ lint:
     FROM +code
     COPY ./.golangci.yaml ./
     RUN golangci-lint run
-    RUN if find . -type f -name \*.go | xargs grep '"io/ioutil"'; then echo "io/ioutil is deprecated: https://go.dev/doc/go1.16#ioutil"; exit 1; fi
 
 lint-newline-ending:
     FROM alpine:3.15
