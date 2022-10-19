@@ -16,42 +16,42 @@ jobs:
       FILL_SPACE_GB: 0
 
   repro-2:
-    needs: fill-1
+    needs: repro-1
     uses: ./.github/workflows/reuseable-repro-2286.yml
     secrets: inherit
     with:
       FILL_SPACE_GB: 5
 
   repro-3:
-    needs: fill-2
+    needs: repro-2
     uses: ./.github/workflows/reuseable-repro-2286.yml
     secrets: inherit
     with:
       FILL_SPACE_GB: 10
 
   repro-4:
-    needs: fill-3
+    needs: repro-3
     uses: ./.github/workflows/reuseable-repro-2286.yml
     secrets: inherit
     with:
       FILL_SPACE_GB: 12
 
   repro-5:
-    needs: fill-4
+    needs: repro-4
     uses: ./.github/workflows/reuseable-repro-2286.yml
     secrets: inherit
     with:
       FILL_SPACE_GB: 13
 
   repro-6:
-    needs: fill-5
+    needs: repro-5
     uses: ./.github/workflows/reuseable-repro-2286.yml
     secrets: inherit
     with:
       FILL_SPACE_GB: 14
 
   repro-7:
-    needs: fill-6
+    needs: repro-6
     uses: ./.github/workflows/reuseable-repro-2286.yml
     secrets: inherit
     with:
