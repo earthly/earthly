@@ -16,16 +16,17 @@ import (
 )
 
 type vertexMonitor struct {
-	vertex         *client.Vertex
-	meta           *VertexMeta
-	operation      string
-	lastProgress   map[string]time.Time
-	lastPercentage map[string]int
-	console        conslogging.ConsoleLogger
-	headerPrinted  bool
-	isError        bool
-	isCanceled     bool
-	tailOutput     *circbuf.Buffer
+	vertex           *client.Vertex
+	meta             *VertexMeta
+	operation        string
+	commandAnalytics *CommandAnalytics
+	lastProgress     map[string]time.Time
+	lastPercentage   map[string]int
+	console          conslogging.ConsoleLogger
+	headerPrinted    bool
+	isError          bool
+	isCanceled       bool
+	tailOutput       *circbuf.Buffer
 	// Line of output that has not yet been terminated with a \n.
 	openLine            []byte
 	lastOpenLineUpdate  time.Time

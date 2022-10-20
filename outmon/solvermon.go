@@ -2,6 +2,7 @@ package outmon
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -41,6 +42,7 @@ type SolverMonitor struct {
 	noOutputTicker              *time.Ticker
 	noOutputTick                time.Duration
 	errVertex                   *vertexMonitor
+	buildAnalytics              *BuildAnalytics
 
 	mu      sync.Mutex
 	ongoing bool
@@ -68,6 +70,7 @@ func NewSolverMonitor(console conslogging.ConsoleLogger, verbose bool, disableNo
 		startTime:              time.Now(),
 		noOutputTicker:         time.NewTicker(noOutputTick),
 		noOutputTick:           noOutputTick,
+		buildAnalytics:         &BuildAnalytics{},
 	}
 }
 
@@ -133,9 +136,18 @@ func (sm *SolverMonitor) processStatus(ss *client.SolveStatus) error {
 			if vm.meta.Local {
 				vm.console = vm.console.WithLocal(true)
 			}
+			if meta.CanonicalTargetName != "" {
+				vm.commandAnalytics = &CommandAnalytics{
+					Command:        operation,
+					SourceLocation: meta.SourceLocation,
+				}
+				targetAnalytics := sm.buildAnalytics.getTarget(vm.meta.CanonicalTargetName)
+				targetAnalytics.Commands = append(targetAnalytics.Commands, vm.commandAnalytics)
+			}
 			sm.vertices[vertex.Digest] = vm
 		}
 		vm.vertex = vertex
+
 		if !vm.headerPrinted &&
 			((!vm.meta.Internal && (vertex.Cached || vertex.Started != nil)) || vertex.Error != "") {
 			sm.printHeader(vm)
@@ -156,12 +168,13 @@ func (sm *SolverMonitor) processStatus(ss *client.SolveStatus) error {
 				sm.noOutputTicker.Reset(sm.noOutputTick)
 			}
 		}
+
+		sm.recordAnalytics(vm)
 		if sm.verbose {
 			vm.printTimingInfo()
 			sm.recordTiming(vm, vertex)
 			sm.noOutputTicker.Reset(sm.noOutputTick)
 		}
-
 		vm.reportStatusToConsole()
 		vm.reportResultToConsole()
 	}
@@ -345,6 +358,50 @@ func (sm *SolverMonitor) recordTiming(vm *vertexMonitor, vertex *client.Vertex) 
 	sm.timingTable[key] += dur
 }
 
+func (sm *SolverMonitor) recordAnalytics(vm *vertexMonitor) {
+	if vm.meta.CanonicalTargetName == "" {
+		return
+	}
+	targetAnalytics := sm.buildAnalytics.getTarget(vm.meta.CanonicalTargetName)
+	if vm.vertex.Started != nil {
+		if targetAnalytics.StartTime.IsZero() {
+			targetAnalytics.StartTime = *vm.vertex.Started
+		}
+		vm.commandAnalytics.StartTime = *vm.vertex.Started
+	}
+	if vm.vertex.Completed != nil {
+		if targetAnalytics.EndTime.Before(*vm.vertex.Completed) {
+			targetAnalytics.EndTime = *vm.vertex.Completed
+		}
+		vm.commandAnalytics.EndTime = *vm.vertex.Completed
+		switch {
+		case vm.isCanceled:
+			vm.commandAnalytics.Status = StatusCanceled
+			targetAnalytics.Status = StatusCanceled
+		case vm.isError || vm.vertex.Error != "":
+			vm.commandAnalytics.Status = StatusFailure
+			targetAnalytics.Status = StatusFailure
+		default:
+			vm.commandAnalytics.Status = StatusSuccess
+			if targetAnalytics.Status == "" {
+				targetAnalytics.Status = StatusSuccess
+			}
+		}
+		if vm.vertex.Started != nil {
+			targetAnalytics.ProcessingDuration +=
+				vm.vertex.Completed.Sub(*vm.vertex.Started)
+		}
+	}
+	vm.commandAnalytics.IsCached = vm.vertex.Cached
+	vm.commandAnalytics.IsLocal = vm.meta.Local
+
+}
+
+// GetAnalytics returns the analytics for the build.
+func (sm *SolverMonitor) GetAnalytics() *BuildAnalytics {
+	return sm.buildAnalytics
+}
+
 // PrintTiming prints the accumulated timing information.
 func (sm *SolverMonitor) PrintTiming() {
 	if !sm.verbose {
@@ -385,6 +442,16 @@ func (sm *SolverMonitor) PrintTiming() {
 	sm.console.
 		WithMetadataMode(true).
 		Printf("Total (real)\t%s\n", time.Since(sm.startTime))
+
+	// TODO: This should not be printed here.
+	if sm.buildAnalytics != nil {
+		dt, err := json.Marshal(sm.buildAnalytics)
+		if err != nil {
+			sm.console.Warnf("Failed to marshal build analytics: %v", err)
+		} else {
+			sm.console.Printf("Build analytics: %s", string(dt))
+		}
+	}
 }
 
 func (sm *SolverMonitor) reprintFailure(errVertex *vertexMonitor, phaseText string) {
