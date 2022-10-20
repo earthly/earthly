@@ -27,6 +27,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-2:
     env:
@@ -48,6 +51,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-3:
     env:
@@ -69,6 +75,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-4:
     env:
@@ -90,6 +99,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
 
   reproduce-2286-5:
@@ -112,6 +124,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-6:
     env:
@@ -133,6 +148,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
 
   reproduce-2286-7:
@@ -155,6 +173,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-8:
     env:
@@ -176,6 +197,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-9:
     env:
@@ -197,6 +221,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-10:
     env:
@@ -218,6 +245,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-11:
     env:
@@ -239,6 +269,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-12:
     env:
@@ -260,6 +293,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-13:
     env:
@@ -281,6 +317,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-14:
     env:
@@ -302,6 +341,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-15:
     env:
@@ -323,6 +365,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-16:
     env:
@@ -344,6 +389,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-17:
     env:
@@ -365,6 +413,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-18:
     env:
@@ -386,6 +437,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-19:
     env:
@@ -407,6 +461,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
 
   reproduce-2286-20:
     env:
@@ -428,6 +485,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+            - name: Buildkit logs (runs on failure)
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
