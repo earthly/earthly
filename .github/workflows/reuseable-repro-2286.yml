@@ -428,3 +428,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: running earthly 100 times
         run: for i in {1..100}; do earthly --push ./tests/reproduce-2286+test-case; done
+      - name: Buildkit logs (runs on failure)
+        run: docker logs earthly-buildkitd
+        if: ${{ failure() }}
