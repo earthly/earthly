@@ -70,10 +70,3 @@ jobs:
     secrets: inherit
     with:
       FILL_SPACE_GB: 20
-
-  repro-10:
-    needs: repro-9
-    uses: ./.github/workflows/reuseable-repro-2286.yml
-    secrets: inherit
-    with:
-      FILL_SPACE_GB: 100
