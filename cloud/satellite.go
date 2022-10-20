@@ -16,6 +16,8 @@ const (
 	SatelliteStatusSleep = "Sleeping"
 	// SatelliteStatusStarting indicates a satellite that is waking from a sleep state.
 	SatelliteStatusStarting = "Starting"
+	// SatelliteStatusStopping indicates a new satellite that is currently going to sleep.
+	SatelliteStatusStopping = "Stopping"
 	// SatelliteStatusCreating indicates a new satellite that is currently being launched.
 	SatelliteStatusCreating = "Creating"
 	// SatelliteStatusFailed indicates a satellite that has crashed and cannot be used.
@@ -133,6 +135,8 @@ func satelliteStatus(status pb.SatelliteStatus) string {
 		return SatelliteStatusSleep
 	case pb.SatelliteStatus_SATELLITE_STATUS_STARTING:
 		return SatelliteStatusStarting
+	case pb.SatelliteStatus_SATELLITE_STATUS_STOPPING:
+		return SatelliteStatusStopping
 	case pb.SatelliteStatus_SATELLITE_STATUS_CREATING:
 		return SatelliteStatusCreating
 	case pb.SatelliteStatus_SATELLITE_STATUS_FAILED:
