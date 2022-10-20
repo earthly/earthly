@@ -1,6 +1,17 @@
-VERSION 0.6
+VERSION --wait-block 0.6
 
 test-case:
   FROM debian
-  RUN --push mkdir -p artifact
-  SAVE ARTIFACT --push artifact AS LOCAL test-output/artifact
+  ARG EARTHLY_PUSH
+  IF [ "$EARTHLY_PUSH" = "true" ]
+    RUN --push mkdir -p artifact
+    SAVE ARTIFACT artifact AS LOCAL test-output/artifact
+  END
+
+
+test:
+  FROM debian
+  ARG EARTHLY_PUSH
+  IF [ "$EARTHLY_PUSH" = "true" ]
+    BUILD +push
+  END
