@@ -216,22 +216,47 @@ func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.C
 	var reserveErr error
 	go func() { reserveErr = cloudClient.ReserveSatellite(ctx, name, orgID, out) }()
 	loadingMsgs := getSatelliteLoadingMessages()
-	var wasAsleep = false
+	var (
+		loggedSleep      bool
+		loggedStop       bool
+		loggedStart      bool
+		shouldLogLoading bool
+	)
 	for status := range out {
+		shouldLogLoading = true
 		switch status {
 		case cloud.SatelliteStatusSleep:
-			wasAsleep = true
-			console.Printf("%s is waking up. Please wait...", name)
+			if !loggedSleep {
+				console.Printf("%s is waking up. Please wait...", name)
+				loggedSleep = true
+				shouldLogLoading = false
+			}
+		case cloud.SatelliteStatusStopping:
+			if !loggedStop {
+				console.Printf("%s is falling asleep. Please wait...", name)
+				loggedStop = true
+				shouldLogLoading = false
+			}
 		case cloud.SatelliteStatusStarting:
+			if !loggedStart {
+				console.Printf("%s is starting. Please wait...", name)
+				loggedStart = true
+				shouldLogLoading = false
+			}
+		case cloud.SatelliteStatusOperational:
+			// Should be last update received at this point.
+			console.Printf("...System online.")
+			shouldLogLoading = false
+		default:
+			// In case there's a new state later which we don't know about in the current earthly version,
+			// we'll do our best to inform the user of it here.
+			console.Printf("%s state is: %s", name, status)
+			shouldLogLoading = false
+		}
+		if shouldLogLoading {
 			var msg string
 			msg, loadingMsgs = nextSatelliteLoadingMessage(loadingMsgs)
 			console.Printf("...%s...", msg)
-		case cloud.SatelliteStatusOperational:
-			if wasAsleep {
-				console.Printf("...System online.")
-			}
-		default:
-			console.VerbosePrintf("Unexpected satellite state: %s", status)
 		}
 	}
 	if reserveErr != nil {
