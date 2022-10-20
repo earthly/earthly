@@ -175,16 +175,16 @@ func main() {
 		signal.Stop(sigChan)
 		cancel()
 	}()
+	var lastSignal os.Signal
 	go func() {
-		receivedSignal := false
 		for sig := range sigChan {
 			cancel()
-			if receivedSignal {
+			if lastSignal != nil {
 				// This is the second time we have received a signal. Quit immediately.
 				fmt.Printf("Received second signal %s. Forcing exit.\n", sig.String())
 				os.Exit(9)
 			}
-			receivedSignal = true
+			lastSignal = sig
 			fmt.Printf("Received signal %s. Cleaning up before exiting...\n", sig.String())
 			go func() {
 				// Wait for 30 seconds before forcing an exit.
@@ -293,6 +293,9 @@ func main() {
 				},
 			)
 		}
+	}
+	if lastSignal != nil {
+		app.console.PrintBar(color.New(color.FgHiYellow), fmt.Sprintf("WARNING: exiting due to received %s signal", lastSignal.String()), "")
 	}
 	os.Exit(exitCode)
 }

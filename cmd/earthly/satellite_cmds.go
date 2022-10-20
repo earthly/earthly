@@ -296,17 +296,23 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		app.buildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
 	}
 
-	err = buildkitd.PrintSatelliteInfo(cliCtx.Context, app.console, Version, app.buildkitdSettings)
-	if err != nil {
-		return errors.Wrap(err, "failed checking buildkit info")
-	}
-
 	selected := "No"
 	if selectedSatellite == satellite.Name {
 		selected = "Yes"
 	}
+
 	app.console.Printf("Instance state: %s", satellite.Status)
 	app.console.Printf("Currently selected: %s", selected)
+	app.console.Printf("")
+
+	if satellite.Status == cloud.SatelliteStatusOperational {
+		err = buildkitd.PrintSatelliteInfo(cliCtx.Context, app.console, Version, app.buildkitdSettings)
+		if err != nil {
+			return errors.Wrap(err, "failed checking buildkit info")
+		}
+	} else {
+		app.console.Printf("More info available when Satellite is awake.")
+	}
 	return nil
 }
 

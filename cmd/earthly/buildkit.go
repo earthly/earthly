@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
+	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/util/cliutil"
@@ -104,7 +105,7 @@ func (app *earthlyApp) getBuildkitClient(cliCtx *cli.Context, cloudClient cloud.
 	if err != nil {
 		return nil, err
 	}
-	err = app.configureSatellite(cliCtx, cloudClient)
+	err = app.configureSatellite(cliCtx, cloudClient, "") // no gitAuthor is passed for non-build commands (e.g. debug_cmds.go or root_cmds.go code)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not construct new buildkit client")
 	}
@@ -134,7 +135,7 @@ func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
 	app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
 }
 
-func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud.Client) error {
+func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud.Client, gitAuthor string) error {
 	if cliCtx.IsSet("buildkit-host") && cliCtx.IsSet("satellite") {
 		return errors.New("cannot specify both buildkit-host and satellite")
 	}
@@ -186,7 +187,7 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 
 	// Reserve the satellite for the upcoming build.
 	// This operation can take a moment if the satellite is asleep.
-	err = app.reserveSatellite(cliCtx.Context, cloudClient, app.satelliteName, orgID)
+	err = app.reserveSatellite(cliCtx.Context, cloudClient, app.satelliteName, orgID, gitAuthor)
 	if err != nil {
 		return err
 	}
@@ -206,28 +207,55 @@ func (app *earthlyApp) isUsingSatellite(cliCtx *cli.Context) bool {
 	return app.cfg.Satellite.Name != "" || app.satelliteName != ""
 }
 
-func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.Client, name, orgID string) error {
+func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.Client, name, orgID, gitAuthor string) error {
 	console := app.console.WithPrefix("satellite")
 	out := make(chan string)
 	var reserveErr error
-	go func() { reserveErr = cloudClient.ReserveSatellite(ctx, name, orgID, out) }()
+	_, isCI := analytics.DetectCI()
+	go func() { reserveErr = cloudClient.ReserveSatellite(ctx, name, orgID, gitAuthor, isCI, out) }()
 	loadingMsgs := getSatelliteLoadingMessages()
-	var wasAsleep = false
+	var (
+		loggedSleep      bool
+		loggedStop       bool
+		loggedStart      bool
+		shouldLogLoading bool
+	)
 	for status := range out {
+		shouldLogLoading = true
 		switch status {
 		case cloud.SatelliteStatusSleep:
-			wasAsleep = true
-			console.Printf("%s is waking up. Please wait...", name)
+			if !loggedSleep {
+				console.Printf("%s is waking up. Please wait...", name)
+				loggedSleep = true
+				shouldLogLoading = false
+			}
+		case cloud.SatelliteStatusStopping:
+			if !loggedStop {
+				console.Printf("%s is falling asleep. Please wait...", name)
+				loggedStop = true
+				shouldLogLoading = false
+			}
 		case cloud.SatelliteStatusStarting:
+			if !loggedStart && !loggedSleep {
+				console.Printf("%s is starting. Please wait...", name)
+				loggedStart = true
+				shouldLogLoading = false
+			}
+		case cloud.SatelliteStatusOperational:
+			// Should be last update received at this point.
+			console.Printf("...System online.")
+			shouldLogLoading = false
+		default:
+			// In case there's a new state later which we didn't expect here,
+			// we'll still try to inform the user as best we can.
+			// Note the state might just be "Unknown" if it maps to an gRPC enum we don't know about.
+			console.Printf("%s state is: %s", name, status)
+			shouldLogLoading = false
+		}
+		if shouldLogLoading {
 			var msg string
 			msg, loadingMsgs = nextSatelliteLoadingMessage(loadingMsgs)
 			console.Printf("...%s...", msg)
-		case cloud.SatelliteStatusOperational:
-			if wasAsleep {
-				console.Printf("...System online.")
-			}
-		default:
-			console.VerbosePrintf("Unexpected satellite state: %s", status)
 		}
 	}
 	if reserveErr != nil {

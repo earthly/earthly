@@ -16,6 +16,8 @@ const (
 	SatelliteStatusSleep = "Sleeping"
 	// SatelliteStatusStarting indicates a satellite that is waking from a sleep state.
 	SatelliteStatusStarting = "Starting"
+	// SatelliteStatusStopping indicates a new satellite that is currently going to sleep.
+	SatelliteStatusStopping = "Stopping"
 	// SatelliteStatusCreating indicates a new satellite that is currently being launched.
 	SatelliteStatusCreating = "Creating"
 	// SatelliteStatusFailed indicates a satellite that has crashed and cannot be used.
@@ -95,13 +97,15 @@ func (c *client) LaunchSatellite(ctx context.Context, name, orgID string, featur
 	return nil
 }
 
-func (c *client) ReserveSatellite(ctx context.Context, name, orgID string, out chan<- string) error {
+func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor string, isCI bool, out chan<- string) error {
 	defer close(out)
 	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 	stream, err := c.compute.ReserveSatellite(c.withAuth(ctxTimeout), &pb.ReserveSatelliteRequest{
-		OrgId: orgID,
-		Name:  name,
+		OrgId:       orgID,
+		Name:        name,
+		CommitEmail: gitAuthor,
+		IsCi:        isCI,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed opening satellite reserve stream")
@@ -131,6 +135,8 @@ func satelliteStatus(status pb.SatelliteStatus) string {
 		return SatelliteStatusSleep
 	case pb.SatelliteStatus_SATELLITE_STATUS_STARTING:
 		return SatelliteStatusStarting
+	case pb.SatelliteStatus_SATELLITE_STATUS_STOPPING:
+		return SatelliteStatusStopping
 	case pb.SatelliteStatus_SATELLITE_STATUS_CREATING:
 		return SatelliteStatusCreating
 	case pb.SatelliteStatus_SATELLITE_STATUS_FAILED:
