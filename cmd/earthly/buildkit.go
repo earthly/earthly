@@ -234,7 +234,7 @@ func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.C
 				shouldLogLoading = false
 			}
 		case cloud.SatelliteStatusStarting:
-			if !loggedStart {
+			if !loggedStart && !loggedSleep {
 				console.Printf("%s is starting. Please wait...", name)
 				loggedStart = true
 				shouldLogLoading = false
