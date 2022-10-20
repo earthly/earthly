@@ -50,7 +50,9 @@ type resolvedGitProject struct {
 	// tags is the git tags.
 	tags []string
 	// ts is the git commit timestamp.
-	ts string
+	ts        string
+	author    string
+	coAuthors []string
 	// state is the state holding the git files.
 	state pllb.State
 }
@@ -75,13 +77,16 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 				TargetName: ref.String(),
 				Internal:   true,
 			}
-			buildContextFactory = llbfactory.PreconstructedState(llbutil.CopyOp(
+			copyState, err := llbutil.CopyOp(ctx,
 				rgp.state, []string{subDir}, platr.Scratch(), "./", false, false, false, "root:root", nil, false, false, false,
-				llb.WithCustomNamef("%sCOPY git context %s", vm.ToVertexPrefix(), ref.String())))
+				llb.WithCustomNamef("%sCOPY git context %s", vm.ToVertexPrefix(), ref.String()))
+			if err != nil {
+				return nil, errors.Wrap(err, "copyOp failed in resolveEarthProject")
+			}
+			buildContextFactory = llbfactory.PreconstructedState(copyState)
 		}
-	} else {
-		// Commands don't come with a build context.
 	}
+	// Else not needed: Commands don't come with a build context.
 
 	key := ref.ProjectCanonical()
 	isDockerfile := strings.HasPrefix(ref.GetName(), DockerfileMetaTarget)
@@ -150,6 +155,8 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 			Branch:    rgp.branches,
 			Tags:      rgp.tags,
 			Timestamp: rgp.ts,
+			Author:    rgp.author,
+			CoAuthors: rgp.coAuthors,
 		},
 		Features: localBuildFile.ftrs,
 	}, nil
@@ -195,7 +202,10 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 					"git rev-parse --short=8 HEAD >/dest/git-short-hash ; " +
 					"git rev-parse --abbrev-ref HEAD >/dest/git-branch  || touch /dest/git-branch ; " +
 					"git describe --exact-match --tags >/dest/git-tags || touch /dest/git-tags ; " +
-					"git log -1 --format=%ct >/dest/git-ts || touch /dest/git-ts",
+					"git log -1 --format=%ct >/dest/git-ts || touch /dest/git-ts ; " +
+					"git log -1 --format=%ae >/dest/git-author || touch /dest/git-author ; " +
+					"git log -1 --format=%b >/dest/git-body || touch /dest/git-body ; " +
+					"",
 			}),
 			llb.Dir("/git-src"),
 			llb.ReadonlyRootFS(),
@@ -242,10 +252,24 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		if err != nil {
 			return nil, errors.Wrap(err, "read git-ts")
 		}
+		gitAuthorBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: "git-author",
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "read git-author")
+		}
+		gitBodyBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: "git-body",
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "read git-body")
+		}
 
 		gitHash := strings.SplitN(string(gitHashBytes), "\n", 2)[0]
 		gitShortHash := strings.SplitN(string(gitShortHashBytes), "\n", 2)[0]
 		gitBranches := strings.SplitN(string(gitBranchBytes), "\n", 2)
+		gitAuthor := strings.SplitN(string(gitAuthorBytes), "\n", 2)[0]
+		gitCoAuthors := gitutil.ParseCoAuthorsFromBody(string(gitBodyBytes))
 		var gitBranches2 []string
 		for _, gitBranch := range gitBranches {
 			if gitBranch != "" {
@@ -275,6 +299,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			branches:  gitBranches2,
 			tags:      gitTags2,
 			ts:        gitTs,
+			author:    gitAuthor,
+			coAuthors: gitCoAuthors,
 			state: pllb.Git(
 				gitURL,
 				gitHash,

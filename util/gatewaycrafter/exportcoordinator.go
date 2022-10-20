@@ -88,12 +88,8 @@ func (ec *ExportCoordinator) AddArtifactSummary(target, path, salt string) {
 
 // GetArtifactSummary returns a list of artifact summary entries, sorted by target name
 func (ec *ExportCoordinator) GetArtifactSummary() []ArtifactOutputSummaryEntry {
-	entries := []ArtifactOutputSummaryEntry{}
-
 	ec.m.Lock()
-	for _, x := range ec.artifactOutputSummary {
-		entries = append(entries, x)
-	}
+	entries := append([]ArtifactOutputSummaryEntry{}, ec.artifactOutputSummary...)
 	ec.m.Unlock()
 
 	sort.SliceStable(entries, func(i, j int) bool {
@@ -115,12 +111,8 @@ func (ec *ExportCoordinator) AddLocalOutputSummary(target, dockerTag, salt strin
 
 // GetLocalOutputSummary returns a list of output summary entries, sorted by target name
 func (ec *ExportCoordinator) GetLocalOutputSummary() []LocalOutputSummaryEntry {
-	entries := []LocalOutputSummaryEntry{}
-
 	ec.m.Lock()
-	for _, x := range ec.localOutputSummary {
-		entries = append(entries, x)
-	}
+	entries := append([]LocalOutputSummaryEntry{}, ec.localOutputSummary...)
 	ec.m.Unlock()
 
 	sort.SliceStable(entries, func(i, j int) bool {
@@ -143,12 +135,8 @@ func (ec *ExportCoordinator) AddPushedImageSummary(target, dockerTag, salt strin
 
 // GetPushedImageSummary returns a list of pushed image summary entries, sorted by target name
 func (ec *ExportCoordinator) GetPushedImageSummary() []PushedImageSummaryEntry {
-	entries := []PushedImageSummaryEntry{}
-
 	ec.m.Lock()
-	for _, x := range ec.pushedImageSummary {
-		entries = append(entries, x)
-	}
+	entries := append([]PushedImageSummaryEntry{}, ec.pushedImageSummary...)
 	ec.m.Unlock()
 
 	sort.SliceStable(entries, func(i, j int) bool {

@@ -472,11 +472,21 @@ dockerfile-test:
         -- --no-output +test
 
 fail-test:
-    DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --target=+test --post_command="2>output.txt"
+    DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --verbose=0 --target=+test --post_command="2>output.txt"
     RUN cat output.txt
     # The output of the failed command should have been printed twice.
     RUN cat output.txt | grep 'ZmFpbCA3YjcyZTAyNC01ZTIxLTRlMWItOTZlNC02NTVjMzk4NzYxMDcK' | test "$(wc -l)" -eq 2
     RUN cat output.txt | grep 'Repeating the output of the command that caused the failure'
+    RUN cat output.txt | grep 'ERROR Earthfile line 10:4'
+    RUN cat output.txt | grep 'RUN echo "fail 7b72e024-5e21-4e1b-96e4-655c39876107" | base64; false'
+    RUN cat output.txt | grep 'did not complete successfully. Exit code 1'
+    DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --verbose=0 --target=+test-copy --post_command="2>output.txt"
+    RUN cat output.txt
+    RUN cat output.txt | grep 'Repeating the output of the command that caused the failure'
+    RUN cat output.txt | grep 'ERROR Earthfile line 14:4'
+    RUN cat output.txt | grep 'COPY ./does-not-exist ./'
+    RUN cat output.txt | grep 'failed: "/does-not-exist": not found'
+    RUN cat output.txt | grep 'Should not be reached'; test "$?" -eq 1
 
 allow-privileged-test:
     # test that privileged-tasks in remote repos dont run
@@ -514,7 +524,7 @@ required-arg-test:
 
 fail-push-test:
     # test that an error code is correctly returned
-    DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --extra_args="--push" --target=+test-push \
+    DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --verbose=0 --extra_args="--push" --target=+test-push \
         --output_contains="this-too-will-fail"
 
 fail-invalid-artifact-test:
@@ -977,11 +987,14 @@ true-false-flag:
     RUN test $( cat output.txt | grep -v echo | grep "fight the power" | wc -l) = "1"
 
 true-false-flag-invalid:
-    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-false --post_command="2>output.txt"
-    RUN cat output.txt | grep "Command /bin/sh -c false failed with exit code 1"
-    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-false-with-args --post_command="2>output2.txt"
-    RUN cat output2.txt | grep "Command /bin/sh -c 'false echo test' failed with exit code 1"
-    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --should_fail=true --target=+run-maybe --post_command="2>output3.txt"
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --verbose=0 --should_fail=true --target=+run-false --post_command="2>output.txt"
+    RUN cat output.txt
+    RUN cat output.txt | grep "did not complete successfully. Exit code 1"
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --verbose=0 --should_fail=true --target=+run-false-with-args --post_command="2>output2.txt"
+    RUN cat output2.txt
+    RUN cat output2.txt | grep "did not complete successfully. Exit code 1"
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --verbose=0 --should_fail=true --target=+run-maybe --post_command="2>output3.txt"
+    RUN cat output3.txt
     RUN cat output3.txt | grep 'invalid argument for flag .*--no-cache.*expected bool'
 
 sequential-locally-test:
@@ -1143,12 +1156,13 @@ RUN_EARTHLY:
     ARG exec_cmd=
     ARG output_contains=
     ARG grep_flags=
+    ARG verbose=1
     IF [ ! -z "$earthfile" ]
         COPY "$earthfile" "$earthfile_dest"
     END
     RUN echo "
         set -x
-        export EARTHLY_VERBOSE=1
+        export EARTHLY_VERBOSE=$verbose
         if $use_tmpfs; then
             export EARTHLY_TMP_DIR=/tmp/earthly-tmpfs
         fi

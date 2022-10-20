@@ -430,7 +430,7 @@ to complete the registration process.
 
 ###### Description
 
-Login to an existing Earthly account. If no email or token is given, earthly will attempt to login using registered public keys.
+Login to an existing Earthly account. If no email or token is given, earthly will attempt to login using [registered public keys](../public-key-auth/public-key-auth.md).
 
 #### earthly account logout
 
@@ -461,25 +461,25 @@ Lists all public keys that are authorized to login to the current Earthly accoun
 ###### Synopsis
 
 * ```
-  earthly account add-key [<key>]
+  earthly account add-key [<public-key>]
   ```
 
 ###### Description
 
-Authorize a new ssh-rsa public key to login to the current Earthly account. If `key` is omitted, an interactive prompt is displayed
-to select a key to add.
+Authorize a new public key to login to the current Earthly account. If `key` is omitted, an interactive prompt is displayed
+to select a public key to add.
 
 #### earthly account remove-key
 
 ###### Synopsis
 
 * ```
-  earthly account remove-key <key>
+  earthly account remove-key <public-key>
   ```
 
 ###### Description
 
-Removes an authorized ssh-rsa key from accessing the current Earthly account.
+Removes an authorized public key from accessing the current Earthly account.
 
 #### earthly account list-tokens
 

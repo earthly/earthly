@@ -207,9 +207,9 @@ func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special st
 		underlineLength = barWidth
 	}
 	c.Fprintf(cl.errW, " %s", msg)
-	cl.errW.Write([]byte("\n"))
+	_, _ = cl.errW.Write([]byte("\n"))
 	c.Fprintf(cl.errW, "%s", strings.Repeat("—", underlineLength))
-	cl.errW.Write([]byte("\n\n"))
+	_, _ = cl.errW.Write([]byte("\n\n"))
 }
 
 // PrintPhaseFooter prints the phase footer.
@@ -267,9 +267,9 @@ func (cl ConsoleLogger) PrintBar(c *color.Color, msg, phase string) {
 		rightBar += "="
 	}
 
-	cl.errW.Write([]byte("\n"))
+	_, _ = cl.errW.Write([]byte("\n"))
 	c.Fprintf(cl.errW, "%s%s%s", leftBar, center, rightBar)
-	cl.errW.Write([]byte("\n\n"))
+	_, _ = cl.errW.Write([]byte("\n\n"))
 }
 
 // Warnf prints a warning message in red to errWriter.
@@ -392,20 +392,20 @@ func (cl ConsoleLogger) printPrefix() {
 	c := cl.PrefixColor()
 	c.Fprintf(cl.errW, prettyPrefix(cl.prefixPadding, cl.prefix))
 	if cl.isLocal {
-		cl.errW.Write([]byte(" *"))
+		_, _ = cl.errW.Write([]byte(" *"))
 		cl.color(localColor).Fprintf(cl.errW, "local")
-		cl.errW.Write([]byte("*"))
+		_, _ = cl.errW.Write([]byte("*"))
 	}
 	if cl.isFailed {
-		cl.errW.Write([]byte(" *"))
+		_, _ = cl.errW.Write([]byte(" *"))
 		cl.color(warnColor).Fprintf(cl.errW, "failed")
-		cl.errW.Write([]byte("*"))
+		_, _ = cl.errW.Write([]byte("*"))
 	}
-	cl.errW.Write([]byte(" | "))
+	_, _ = cl.errW.Write([]byte(" | "))
 	if cl.isCached {
-		cl.errW.Write([]byte("*"))
+		_, _ = cl.errW.Write([]byte("*"))
 		cl.color(cachedColor).Fprintf(cl.errW, "cached")
-		cl.errW.Write([]byte("* "))
+		_, _ = cl.errW.Write([]byte("* "))
 	}
 }
 

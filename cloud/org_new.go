@@ -7,7 +7,6 @@ import (
 	"time"
 
 	secretsapi "github.com/earthly/cloud-api/secrets"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/pkg/errors"
 )
 
@@ -43,7 +42,7 @@ func (c *client) InviteToOrg(ctx context.Context, invite *OrgInvitation) (string
 	}
 
 	res := &secretsapi.CreateInvitationResponse{}
-	err = jsonpb.UnmarshalString(body, res)
+	err = c.jum.Unmarshal(body, res)
 	if err != nil {
 		return "", err
 	}
@@ -66,7 +65,7 @@ func (c *client) ListOrgMembers(ctx context.Context, orgName string) ([]*OrgMemb
 
 	res := &secretsapi.ListOrgMembersResponse{}
 
-	err = jsonpb.UnmarshalString(body, res)
+	err = c.jum.Unmarshal(body, res)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +154,7 @@ func (c *client) ListInvites(ctx context.Context, org string) ([]*OrgInvitation,
 
 	res := &secretsapi.ListInvitationsResponse{}
 
-	err = jsonpb.UnmarshalString(body, res)
+	err = c.jum.Unmarshal(body, res)
 	if err != nil {
 		return nil, err
 	}

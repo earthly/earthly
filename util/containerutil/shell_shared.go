@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/conslogging"
@@ -72,7 +73,10 @@ func (sf *shellFrontend) ContainerInfo(ctx context.Context, namesOrIDs ...string
 		} `json:"Config"`
 		Image string `json:"Image"`
 	}{}
-	json.Unmarshal([]byte(output.stdout.String()), &containers)
+	err := json.Unmarshal([]byte(output.stdout.String()), &containers)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal container inspect output %s", output.stdout.String())
+	}
 
 	for i, container := range containers {
 		ipAddresses := map[string]string{}
@@ -232,7 +236,10 @@ func (sf *shellFrontend) ImageInfo(ctx context.Context, refs ...string) (map[str
 		ID   string   `json:"Id"`
 		Tags []string `json:"RepoTags"`
 	}{}
-	json.Unmarshal([]byte(output.stdout.String()), &images)
+	err := json.Unmarshal([]byte(output.stdout.String()), &images)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse image info")
+	}
 
 	for i, image := range images {
 		infos[refs[i]] = &ImageInfo{
@@ -279,24 +286,41 @@ func (cco *commmandContextOutput) string() string {
 
 func (sf *shellFrontend) commandContextStrings(args ...string) (string, []string) {
 	allArgs := append(sf.globalCompatibilityArgs, args...)
-
 	return sf.binaryName, allArgs
+}
+
+func (sf *shellFrontend) commandContextOutputWithRetry(ctx context.Context, retries int, timeout time.Duration, args ...string) (*commmandContextOutput, error) {
+	var err error
+	for i := 0; i < retries; i++ {
+		timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+		output, cmdErr := sf.commandContextOutput(timeoutCtx, args...)
+		if cmdErr == nil {
+			return output, nil
+		}
+		err = multierror.Append(err, cmdErr)
+		if i < retries-1 {
+			binary, args2 := sf.commandContextStrings(args...)
+			sf.Console.Printf(
+				"Command '%s %s' failed with error %v. Retrying...\n",
+				binary, strings.Join(args2, " "), cmdErr)
+		}
+	}
+	return nil, err
 }
 
 func (sf *shellFrontend) commandContextOutput(ctx context.Context, args ...string) (*commmandContextOutput, error) {
 	output := &commmandContextOutput{}
-
 	binary, args := sf.commandContextStrings(args...)
+	sf.Console.VerbosePrintf("Running command: %s %s\n", binary, strings.Join(args, " "))
 	cmd := exec.CommandContext(ctx, binary, args...)
 	cmd.Env = os.Environ() // Ensure all shellouts are using the current environment, picks up DOCKER_/PODMAN_ env vars when they matter
 	cmd.Stdout = &output.stdout
 	cmd.Stderr = &output.stderr
-
 	err := cmd.Run()
 	if err != nil {
 		return output, errors.Wrapf(err, "command failed: %s %s: %s: %s", sf.binaryName, strings.Join(args, " "), err.Error(), output.string())
 	}
-
 	return output, nil
 }
 

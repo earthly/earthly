@@ -165,13 +165,19 @@ func keyAndValueCompatible(key reflect.Type, value *yaml.Node) bool {
 // This is saved to disk in your earthly config file.
 func Upsert(config []byte, path, value string) ([]byte, error) {
 	base := &yaml.Node{}
-	yaml.Unmarshal(config, base)
-
-	if base.IsZero() {
-		// Empty file, or a simple comment results in a null document.
+	err := yaml.Unmarshal(config, base)
+	if err != nil || base.IsZero() {
+		// Possibly an empty file, or a simple comment results in a null document.
 		// Not handled well, so manufacture somewhat acceptable document
 		fullDoc := string(config) + "\n---"
-		yaml.Unmarshal([]byte(fullDoc), base)
+		otherErr := yaml.Unmarshal([]byte(fullDoc), base)
+		if otherErr != nil {
+			// Give up.
+			if err != nil {
+				return []byte{}, errors.Wrapf(err, "failed to parse config file")
+			}
+			return []byte{}, errors.Wrapf(otherErr, "failed to parse config file")
+		}
 		base.Content = []*yaml.Node{{Kind: yaml.MappingNode}}
 	}
 
@@ -205,15 +211,17 @@ func Upsert(config []byte, path, value string) ([]byte, error) {
 // If no key/value exists, the function will eventually return cleanly.
 func Delete(config []byte, path string) ([]byte, error) {
 	base := &yaml.Node{}
-	yaml.Unmarshal(config, base)
-
+	err := yaml.Unmarshal(config, base)
+	if err != nil {
+		return []byte{}, errors.Wrapf(err, "failed to parse config file")
+	}
 	if base.IsZero() {
 		return nil, errors.New("config is empty or missing")
 	}
 
 	pathParts := splitPath(path)
 
-	_, _, err := validatePath(reflect.TypeOf(Config{}), pathParts)
+	_, _, err = validatePath(reflect.TypeOf(Config{}), pathParts)
 	if err != nil {
 		return []byte{}, errors.Wrap(err, "path is not valid")
 	}
@@ -291,7 +299,8 @@ func validatePath(t reflect.Type, path []string) (reflect.Type, string, error) {
 
 func valueToYaml(value string) (*yaml.Node, error) {
 	valueNode := &yaml.Node{}
-	if err := yaml.Unmarshal([]byte(value), valueNode); err != nil {
+	err := yaml.Unmarshal([]byte(value), valueNode)
+	if err != nil {
 		return nil, errors.Errorf("%s is not a valid YAML value", value)
 	}
 

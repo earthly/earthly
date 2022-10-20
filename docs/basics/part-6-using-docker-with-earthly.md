@@ -120,7 +120,7 @@ func TestIntegration(t *testing.T) {
 ```Dockerfile
 VERSION 0.6
 FROM golang:1.15-alpine3.13
-WORKDIR /go-example
+WORKDIR /go-workdir
 
 deps:
     COPY go.mod go.sum ./
@@ -144,6 +144,13 @@ integration-tests:
     END
 ```
 When we use the `--compose` flag, Earthly will start up the services defined in the `docker-compose` file for us. In this case, we built a separate image that copies in our test files and uses the command to run the tests as its `ENTRYPOINT`. We can then load this image into our `WITH DOCKER` command. Note that loading an image will not run it by default, we need to explicitly run the image after we load it.
+
+You'll need to use `--allow-privileged` (or `-P` for short) to run this example. 
+
+```bash
+earthly --allow-privileged +integration-tests
+```
+
 
 ## More Examples
 

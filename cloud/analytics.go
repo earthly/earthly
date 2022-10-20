@@ -37,7 +37,7 @@ func (c *client) SendAnalytics(ctx context.Context, data *EarthlyAnalytics) erro
 		return errors.Wrap(err, "failed to marshal data")
 	}
 	opts := []requestOpt{
-		withBody(string(payload)),
+		withBody(payload),
 		withHeader("Content-Type", "application/json; charset=utf-8"),
 	}
 	if c.IsLoggedIn(ctx) {

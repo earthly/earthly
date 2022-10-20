@@ -80,7 +80,11 @@ func (s *Server) handleRequest(conn net.Conn) {
 	connLog := s.log.With("remote.addr", conn.RemoteAddr().String())
 
 	buf := make([]byte, 1)
-	conn.Read(buf)
+	_, err := conn.Read(buf)
+	if err != nil {
+		connLog.Error(errors.Wrap(err, "reading from connection failed"))
+		return
+	}
 
 	var isShellConn bool
 	switch buf[0] {

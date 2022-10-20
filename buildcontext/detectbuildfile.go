@@ -12,6 +12,16 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ErrNotExist is the struct indicating that file does not exist.
+type ErrEarthfileNotExist struct {
+	Target string
+}
+
+// Error is function required by error interface.
+func (err ErrEarthfileNotExist) Error() string {
+	return "No Earthfile nor build.earth file found for target " + err.Target
+}
+
 // detectBuildFile detects whether to use Earthfile, build.earth or Dockerfile.
 func detectBuildFile(ref domain.Reference, localDir string) (string, error) {
 	if strings.HasPrefix(ref.GetName(), DockerfileMetaTarget) {
@@ -23,8 +33,7 @@ func detectBuildFile(ref domain.Reference, localDir string) (string, error) {
 		buildEarthPath := filepath.Join(localDir, "build.earth")
 		_, err := os.Stat(buildEarthPath)
 		if os.IsNotExist(err) {
-			return "", errors.Errorf(
-				"No Earthfile nor build.earth file found for target %s", ref.String())
+			return "", ErrEarthfileNotExist{Target: ref.String()}
 		} else if err != nil {
 			return "", errors.Wrapf(err, "stat file %s", buildEarthPath)
 		}

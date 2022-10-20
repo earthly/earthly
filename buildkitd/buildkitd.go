@@ -135,7 +135,7 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image, c
 
 // MaybeStart ensures that the buildkitd daemon is started. It returns the URL
 // that can be used to connect to it.
-func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, containerName string, fe containerutil.ContainerFrontend, settings Settings, opts ...client.ClientOpt) (*client.Info, *client.WorkerInfo, error) {
+func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, containerName string, fe containerutil.ContainerFrontend, settings Settings, opts ...client.ClientOpt) (cinfo *client.Info, winfo *client.WorkerInfo, finalErr error) {
 	if settings.StartUpLockPath != "" {
 		startLock := flock.New(settings.StartUpLockPath)
 		timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -147,7 +147,16 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, c
 			}
 			return nil, nil, errors.Wrapf(err, "try flock context %s", settings.StartUpLockPath)
 		}
-		defer startLock.Unlock()
+		defer func() {
+			err := startLock.Unlock()
+			if err != nil {
+				console.Warnf("Failed to unlock %s: %v", settings.StartUpLockPath, err)
+				if finalErr == nil {
+					finalErr = err
+				}
+				return
+			}
+		}()
 	}
 	isStarted, err := IsStarted(ctx, containerName, fe)
 	if err != nil {
@@ -522,14 +531,14 @@ ContainerRunningLoop:
 			return nil, nil, err
 		}
 		// We timed out. Check if the user has a lot of cache and give buildkit another chance.
-		cacheSize, cacheSizeErr := getCacheSize(ctx, volumeName, fe)
+		cacheSizeBytes, cacheSizeErr := getCacheSize(ctx, volumeName, fe)
 		if cacheSizeErr != nil {
 			console.
 				WithPrefix("buildkitd").
 				Printf("Warning: Could not detect buildkit cache size: %v\n", cacheSizeErr)
 			return nil, nil, err
 		}
-		cacheGigs := cacheSize / 1024 / 1024
+		cacheGigs := cacheSizeBytes / 1024 / 1024 / 1024
 		if cacheGigs >= 30 || (cacheGigs >= 10 && runtime.GOOS == "darwin") {
 			console.
 				WithPrefix("buildkitd").
@@ -889,14 +898,14 @@ func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, work
 	}
 }
 
-// getCacheSize returns the size of the earthly cache in KiB.
+// getCacheSize returns the size of the earthly cache in bytes.
 func getCacheSize(ctx context.Context, volumeName string, fe containerutil.ContainerFrontend) (int, error) {
 	infos, err := fe.VolumeInfo(ctx, volumeName)
 	if err != nil {
 		return 0, errors.Wrapf(err, "failed to get volume info for cache size %s", volumeName)
 	}
 
-	return int(infos[volumeName].Size), nil
+	return int(infos[volumeName].SizeBytes), nil
 }
 
 func makeTLSPath(path string) (string, error) {

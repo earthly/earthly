@@ -40,7 +40,7 @@ func (c *client) ListOrgs(ctx context.Context) ([]*OrgDetail, error) {
 		return nil, err
 	}
 	if status != http.StatusOK {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
@@ -48,7 +48,7 @@ func (c *client) ListOrgs(ctx context.Context) ([]*OrgDetail, error) {
 	}
 
 	var listOrgsResponse secretsapi.ListOrgsResponse
-	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &listOrgsResponse)
+	err = c.jum.Unmarshal(body, &listOrgsResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal list orgs response")
 	}
@@ -85,7 +85,7 @@ func (c *client) Invite(ctx context.Context, path, user string, write bool) erro
 		return err
 	}
 	if status != http.StatusCreated {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
@@ -111,7 +111,7 @@ func (c *client) RevokePermission(ctx context.Context, path, user string) error 
 		return err
 	}
 	if status != http.StatusOK {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
@@ -132,7 +132,7 @@ func (c *client) ListOrgPermissions(ctx context.Context, path string) ([]*OrgPer
 		return nil, err
 	}
 	if status != http.StatusOK {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
@@ -140,7 +140,7 @@ func (c *client) ListOrgPermissions(ctx context.Context, path string) ([]*OrgPer
 	}
 
 	var listOrgPermissionsResponse secretsapi.ListOrgPermissionsResponse
-	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &listOrgPermissionsResponse)
+	err = c.jum.Unmarshal(body, &listOrgPermissionsResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal list org permissions response")
 	}
@@ -166,7 +166,7 @@ func (c *client) CreateOrg(ctx context.Context, org string) error {
 		return err
 	}
 	if status != http.StatusCreated {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}

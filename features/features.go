@@ -27,6 +27,7 @@ type Features struct {
 	CheckDuplicateImages       bool `long:"check-duplicate-images" description:"check for duplicate images during output"`
 	EarthlyVersionArg          bool `long:"earthly-version-arg" description:"includes EARTHLY_VERSION and EARTHLY_BUILD_SHA ARGs"`
 	EarthlyLocallyArg          bool `long:"earthly-locally-arg" description:"includes EARTHLY_LOCALLY ARG"`
+	EarthlyGitAuthorArgs       bool `long:"earthly-git-author-args" description:"includes EARTHLY_GIT_AUTHOR and EARTHLY_GIT_CO_AUTHORS ARGs"`
 	ExplicitGlobal             bool `long:"explicit-global" description:"require base target args to have explicit settings to be considered global args"`
 	UseCacheCommand            bool `long:"use-cache-command" description:"allow use of CACHE command in Earthfiles"`
 	UseHostCommand             bool `long:"use-host-command" description:"allow use of HOST command in Earthfiles"`
@@ -42,6 +43,8 @@ type Features struct {
 	WaitBlock                  bool `long:"wait-block" description:"enable WITH/END feature, also allows RUN --push mixed with non-push commands"`
 	UseProjectSecrets          bool `long:"use-project-secrets" description:"enable project-based secret resolution"`
 	UsePipelines               bool `long:"use-pipelines" description:"enable the PIPELINE and TRIGGER commands"`
+
+	NoUseRegistryForWithDocker bool `long:"no-use-registry-for-with-docker" description:"disable use-registry-for-with-docker"`
 
 	Major int
 	Minor int
@@ -133,6 +136,7 @@ func ApplyFlagOverrides(ftrs *Features, envOverrides string) error {
 			return fmt.Errorf("unable to set %s: only boolean fields are currently supported", key)
 		}
 	}
+	processNegativeFlags(ftrs)
 	return nil
 }
 
@@ -168,7 +172,8 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 		return nil, false, errUnexpectedArgs
 	}
 
-	majorAndMinor := strings.Split(parsedArgs[0], ".")
+	versionValueStr := parsedArgs[0]
+	majorAndMinor := strings.Split(versionValueStr, ".")
 	if len(majorAndMinor) != 2 {
 		return nil, false, errUnexpectedArgs
 	}
@@ -181,10 +186,17 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 		return nil, false, errors.Wrapf(err, "failed to parse minor version %q", majorAndMinor[1])
 	}
 
+	if hasVersion {
+		analytics.Count("version", versionValueStr)
+	} else {
+		analytics.Count("version", "missing")
+	}
+
 	// Enable version-specific features.
 	if versionAtLeast(ftrs, 0, 5) {
 		ftrs.ExecAfterParallel = true
 		ftrs.ParallelLoad = true
+		ftrs.UseRegistryForWithDocker = true
 	}
 	if versionAtLeast(ftrs, 0, 6) {
 		ftrs.ReferencedSaveOnly = true
@@ -205,6 +217,7 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 		ftrs.UseNoManifestList = true
 		ftrs.UseChmod = true
 	}
+	processNegativeFlags(&ftrs)
 
 	return &ftrs, hasVersion, nil
 }
@@ -213,4 +226,10 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 // are greater than or equal to the provided major and minor versions.
 func versionAtLeast(ftrs Features, majorVersion, minorVersion int) bool {
 	return (ftrs.Major > majorVersion) || (ftrs.Major == majorVersion && ftrs.Minor >= minorVersion)
+}
+
+func processNegativeFlags(ftrs *Features) {
+	if ftrs.NoUseRegistryForWithDocker {
+		ftrs.UseRegistryForWithDocker = false
+	}
 }

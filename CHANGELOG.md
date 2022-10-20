@@ -4,12 +4,38 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.27 - 2022-10-17
+
+### Changed
+- Support for all ssh-based key types (e.g. ssh-ed25519), and not only ssh-rsa. [#1783](https://github.com/earthly/earthly/issues/1783)
+
+### Fixed
+- Unable to specify public key to add via the command-line, e.g. running `earthly account add-key <key>` ignored the key and fellback to an interactive prompt.
+- `GIT CLONE` command was ignoring the `WORK DIR` command when `--use-copy-link` feature was set.
+
+## v0.6.26 - 2022-10-13
+
+### Added
+
+- Build failures now show the file and line number of the failing command
+- Introduced `EARTHLY_GIT_AUTHOR` and `EARTHLY_GIT_CO_AUTHORS` ARGS
+
+### Fixed
+
+- Some network operations were being incorrectly executed with a timeout of 0.
+- Upon `earthly ls` failure it will display the failure reason
+
+### Changed
+
+- Loading Docker images as part of `WITH DOCKER` is now faster through the use of an embedded registry in Buildkit. This functionality was previously hidden (`VERSION --use-registry-for-with-docker`) and was only auto-enabled for Earthly Satellite users. It is now enabled by default for all builds. [#1268](https://github.com/earthly/earthly/issues/1268)
+
 ## v0.6.25 - 2022-10-04
 
 ### Fixed
 
 - Fixed outputting images with long names [#2053](https://github.com/earthly/earthly/issues/2053)
 - Fixed buildkit connection timing out occasionally [#2229](https://github.com/earthly/earthly/issues/2229)
+- Cache size was incorrectly displayed (magnitude of 1024 higher)
 
 ## v0.6.24 - 2022-09-22
 

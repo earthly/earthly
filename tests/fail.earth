@@ -1,9 +1,18 @@
 VERSION 0.6
 FROM alpine:3.15
 
+# !IMPORTANT! Please note that the line numbers are important.
+# The test that uses this file is sensitive to line number changes!
+
 test:
     # intentionally cause a failure (this test is to ensure failures are caught)
+    # The following needs to be on line number 10.
     RUN echo "fail 7b72e024-5e21-4e1b-96e4-655c39876107" | base64; false
+
+test-copy:
+    # The following needs to be on line number 14.
+    COPY ./does-not-exist ./
+    RUN echo "Should not be reached"
 
 test-push:
     # intentionally cause a failure (this test is to ensure failures are caught)

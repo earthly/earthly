@@ -28,11 +28,11 @@ jobs:
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       # Used in our github action as the token - TODO: look to change it into an input
-      GITHUB_TOKEN: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GRISWOLDTHECAT_GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: earthly/actions-setup@main
       - name: Set up Docker QEMU
         id: qemu
@@ -77,8 +77,8 @@ jobs:
       - name: Run parallel buildkit start test. It ensures that earthly starting up buildkit does not race with itself.
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 3
-          max_attempts: 3
+          timeout_minutes: 10
+          max_attempts: 2
           command: |-
             ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd && \
             ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
@@ -88,8 +88,8 @@ jobs:
       - name: Execute interactive debugger test
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 3
-          max_attempts: 3
+          timeout_minutes: 10
+          max_attempts: 2
           command: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ${{inputs.BUILT_EARTHLY_PATH}} --timeout 180
       - name: Execute version test
         run: "${{inputs.BUILT_EARTHLY_PATH}} --version"
@@ -98,8 +98,8 @@ jobs:
       - name: Execute remote-cache test (Earthly Only)
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 3
-          max_attempts: 3
+          timeout_minutes: 10
+          max_attempts: 2
           command: |-
             frontend=${{inputs.BINARY}} ./tests/remote-cache/test.sh \
               --build-arg DOCKERHUB_AUTH=true \
@@ -110,8 +110,8 @@ jobs:
       - name: Execute remote-cache test (Fork Only)
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 3
-          max_attempts: 3
+          timeout_minutes: 10
+          max_attempts: 2
           command: frontend=${{inputs.BINARY}} ./tests/remote-cache/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute registry-certs test (Earthly Only)
@@ -136,8 +136,8 @@ jobs:
       - name: Execute try-catch test (Earthly Only)
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 3
-          max_attempts: 3
+          timeout_minutes: 10
+          max_attempts: 2
           command: |-
             ./tests/try-catch/test.sh \
                 --build-arg DOCKERHUB_AUTH=true \
@@ -148,15 +148,15 @@ jobs:
       - name: Execute try-catch test (Fork Only)
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 3
-          max_attempts: 3
+          timeout_minutes: 10
+          max_attempts: 2
           command: ./tests/try-catch/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute +test using wait-block override (Earthly Only)
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 3
-          max_attempts: 3
+          timeout_minutes: 20
+          max_attempts: 2
           command: |-
             ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P --global-wait-end \
                 --build-arg DOCKERHUB_AUTH=true \
@@ -165,13 +165,6 @@ jobs:
                 --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
              +test --GLOBAL_WAIT_END=true
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Execute +test using wait-block override (Fork Only)
-        uses: nick-fields/retry@v2
-        with:
-          timeout_minutes: 3
-          max_attempts: 3
-          command: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P --global-wait-end +test --GLOBAL_WAIT_END=true
-        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute local buildkit with mTLS test
         run: ./tests/remote-buildkit/remote-buildkit-test.sh
       - name: Run linux-amd64 specific tests (Earthly Only)

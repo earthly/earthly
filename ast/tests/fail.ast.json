@@ -28,6 +28,29 @@
       ]
     },
     {
+      "name": "test-copy",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "./does-not-exist",
+              "./"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"Should not be reached\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
       "name": "test-push",
       "recipe": [
         {

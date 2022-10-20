@@ -4,9 +4,9 @@ This page outlines alternative installation instructions for the `earthly` build
 
 ## Prerequisites
 
-* [Docker](https://docs.docker.com/install/)
+* [Docker](https://docs.docker.com/install/) or [Podman](https://docs.podman.io/en/latest/)
 * [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-* (*Windows only*) [Docker WSL 2 backend](https://docs.docker.com/docker-for-windows/wsl/)
+* (*Windows only*) [Docker WSL 2 backend](https://docs.docker.com/docker-for-windows/wsl/) or [Podman WSL2 backend](https://github.com/containers/podman/blob/main/docs/tutorials/podman-for-windows.md)
 
 ## Install earthly
 

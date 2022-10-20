@@ -100,13 +100,11 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 }
 
 func (app *earthlyApp) getBuildkitClient(cliCtx *cli.Context, cloudClient cloud.Client) (*client.Client, error) {
-	if !app.isUsingSatellite(cliCtx) {
-		err := app.initFrontend(cliCtx)
-		if err != nil {
-			return nil, err
-		}
+	err := app.initFrontend(cliCtx)
+	if err != nil {
+		return nil, err
 	}
-	err := app.configureSatellite(cliCtx, cloudClient)
+	err = app.configureSatellite(cliCtx, cloudClient)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not construct new buildkit client")
 	}
@@ -149,8 +147,6 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 		return nil
 	}
 
-	app.console.Warnf("Note: inline caching does not yet work on Earthly Satellites.")
-
 	// Set up extra settings needed for buildkit RPC metadata
 	if app.satelliteName == "" {
 		app.satelliteName = app.cfg.Satellite.Name
@@ -172,15 +168,15 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 	app.analyticsMetadata.isSatellite = true
 	app.analyticsMetadata.satelliteVersion = "" // TODO
 
-	app.console.Warnf("") // newline
-	app.console.Warnf("The following feature flags are recommended for use with Satellites and will be auto-enabled:")
-	app.console.Warnf("  --new-platform, --use-registry-for-with-docker")
-	app.console.Warnf("") // newline
+	app.console.Printf("") // newline
+	app.console.Printf("The following feature flag is recommended for use with Satellites and will be auto-enabled:")
+	app.console.Printf("  --new-platform")
+	app.console.Printf("") // newline
 
 	if app.featureFlagOverrides != "" {
 		app.featureFlagOverrides += ","
 	}
-	app.featureFlagOverrides += "new-platform,use-registry-for-with-docker"
+	app.featureFlagOverrides += "new-platform"
 
 	token, err := cloudClient.GetAuthToken(cliCtx.Context)
 	if err != nil {
@@ -248,8 +244,9 @@ func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.C
 			console.Printf("...System online.")
 			shouldLogLoading = false
 		default:
-			// In case there's a new state later which we don't know about in the current earthly version,
-			// we'll do our best to inform the user of it here.
+			// In case there's a new state later which we didn't expect here,
+			// we'll still try to inform the user as best we can.
+			// Note the state might just be "Unknown" if it maps to an gRPC enum we don't know about.
 			console.Printf("%s state is: %s", name, status)
 			shouldLogLoading = false
 		}

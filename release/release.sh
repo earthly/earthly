@@ -45,6 +45,8 @@ test -n "$HOME" || (echo "ERROR: HOME is not set"; exit 1);
 test -n "$RELEASE_TAG" || (echo "ERROR: RELEASE_TAG is not set" && exit 1);
 (echo "$RELEASE_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+\(-rc[0-9]\+\)\?$' > /dev/null) || (echo "ERROR: RELEASE_TAG must be formatted as v1.2.3 (or v1.2.3-RC1); instead got \"$RELEASE_TAG\""; exit 1);
 
+command -v jq || (echo "ERROR: jq is not installed"; exit 1);
+
 # Set default values
 export GITHUB_USER=${GITHUB_USER:-earthly}
 export DOCKERHUB_USER=${DOCKERHUB_USER:-earthly}

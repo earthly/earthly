@@ -350,8 +350,16 @@ func (app *earthlyApp) bootstrap(cliCtx *cli.Context) error {
 	defer func() {
 		// cliutil.IsBootstrapped() determines if bootstrapping was done based
 		// on the existance of ~/.earthly; therefore we must ensure it's created.
-		cliutil.GetOrCreateEarthlyDir()
-		cliutil.EnsurePermissions()
+		_, err := cliutil.GetOrCreateEarthlyDir()
+		if err != nil {
+			console.Warnf("Warning: Failed to create Earthly Dir: %v", err)
+			// Keep going.
+		}
+		err = cliutil.EnsurePermissions()
+		if err != nil {
+			console.Warnf("Warning: Failed to ensure permissions: %v", err)
+			// Keep going.
+		}
 	}()
 
 	if app.bootstrapWithAutocomplete {
@@ -359,12 +367,12 @@ func (app *earthlyApp) bootstrap(cliCtx *cli.Context) error {
 		err = app.insertBashCompleteEntry()
 		if err != nil {
 			console.Warnf("Warning: %s\n", err.Error())
-			err = nil
+			// Keep going.
 		}
 		err = app.insertZSHCompleteEntry()
 		if err != nil {
 			console.Warnf("Warning: %s\n", err.Error())
-			err = nil
+			// Keep going.
 		}
 
 		console.Printf("You may have to restart your shell for autocomplete to get initialized (e.g. run \"exec $SHELL\")\n")
@@ -598,14 +606,22 @@ func (app *earthlyApp) actionListTargets(cliCtx *cli.Context) error {
 	// it's expensive to create this gwclient, so we need to implement a lazy eval which returns it when required.
 
 	target, err := domain.ParseTarget(fmt.Sprintf("%s+base", targetToParse)) // the +base is required to make ParseTarget work; however is ignored by GetTargets
-	if err != nil {
+	if errors.Is(err, buildcontext.ErrEarthfileNotExist{}) {
 		return errors.Errorf("unable to locate Earthfile under %s", targetToDisplay)
+	} else if err != nil {
+		return err
 	}
 
 	targets, err := earthfile2llb.GetTargets(cliCtx.Context, resolver, gwClient, target)
 	if err != nil {
-		return errors.Errorf("unable to locate Earthfile under %s", targetToDisplay)
+		switch err := errors.Cause(err).(type) {
+		case *buildcontext.ErrEarthfileNotExist:
+			return errors.Errorf("unable to locate Earthfile under %s", targetToDisplay)
+		default:
+			return err
+		}
 	}
+
 	targets = append(targets, "base")
 	sort.Strings(targets)
 	for _, t := range targets {

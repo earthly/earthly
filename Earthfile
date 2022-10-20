@@ -1,6 +1,6 @@
 VERSION --shell-out-anywhere --use-copy-link 0.6
 
-FROM golang:1.17-alpine3.14
+FROM golang:1.19-alpine3.15
 
 RUN apk add --update --no-cache \
     bash \
@@ -22,9 +22,7 @@ WORKDIR /earthly
 
 deps:
     FROM +base
-    RUN go install golang.org/x/tools/cmd/goimports@latest
-    RUN go install golang.org/x/lint/golint@latest
-    RUN go install github.com/gordonklaus/ineffassign@latest
+    RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.0
     COPY go.mod go.sum ./
     COPY ./ast/go.mod ./ast/go.sum ./ast
     RUN go mod download
@@ -116,27 +114,8 @@ earthly-script-no-stdout:
 
 lint:
     FROM +code
-    RUN output="$(ineffassign ./... 2>&1 | grep -v '/earthly/ast/parser/.*\.go')" ; \
-        if [ -n "$output" ]; then \
-            echo "$output" ; \
-            exit 1 ; \
-        fi
-    RUN output="$(goimports -d $(find . -type f -name '*.go' | grep -v \./ast/parser/.*\.go) 2>&1)"  ; \
-        if [ -n "$output" ]; then \
-            echo "$output" ; \
-            exit 1 ; \
-        fi
-    # names.go defines some very obvious consts that do not need comments; however golint doesn't support disabling rules: https://github.com/golang/lint/issues/263
-    # therefore, we will hide this file from golint, and restore it after.
-    RUN mv variables/reserved/names.go variables/reserved/names.skip-go-lint && echo "package reserved" > variables/reserved/names.go
-    RUN golint -set_exit_status ./...
-    RUN mv variables/reserved/names.skip-go-lint variables/reserved/names.go
-    RUN output="$(go vet ./... 2>&1)" ; \
-        if [ -n "$output" ]; then \
-            echo "$output" ; \
-            exit 1 ; \
-        fi
-    RUN if find . -type f -name \*.go | xargs grep '"io/ioutil"'; then echo "io/ioutil is deprecated: https://go.dev/doc/go1.16#ioutil"; exit 1; fi
+    COPY ./.golangci.yaml ./
+    RUN golangci-lint run
 
 lint-newline-ending:
     FROM alpine:3.15
@@ -332,7 +311,8 @@ earthly-docker:
 earthly-integration-test-base:
     FROM +earthly-docker
     ENV NO_DOCKER=1
-    ENV NETWORK_MODE=host
+    ENV NETWORK_MODE=host # Note that this breaks access to embedded registry in WITH DOCKER.
+    ENV EARTHLY_VERSION_FLAG_OVERRIDES=no-use-registry-for-with-docker # Use tar-based due to above.
     WORKDIR /test
 
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
@@ -344,7 +324,7 @@ earthly-integration-test-base:
 
     IF [ -z $DOCKERHUB_MIRROR ]
         # No mirror, easy CI and local use by all
-        ENV GLOBAL_CONFIG="{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371', conversion_parallelism: 5}"
+        ENV GLOBAL_CONFIG="{disable_analytics: true}"
         IF [ "$DOCKERHUB_AUTH" = "true" ]
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
                 --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
@@ -365,8 +345,6 @@ earthly-integration-test-base:
         # NOTE: newlines+indentation is important here, see https://github.com/earthly/earthly/issues/1764 for potential pitfalls
         # yaml will convert newlines to spaces when using regular quoted-strings, therefore we will use the literal-style (denoted by `|`)
         ENV GLOBAL_CONFIG="disable_analytics: true
-local_registry_host: 'tcp://127.0.0.1:8371'
-conversion_parallelism: 5
 buildkit_additional_config: |
 $(echo "$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG" | sed "s/^/  /g")
 "

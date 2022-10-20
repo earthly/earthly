@@ -16,7 +16,7 @@ func (c *client) UploadLog(ctx context.Context, pathOnDisk string) (string, erro
 		return "", err
 	}
 	if status != http.StatusCreated {
-		msg, err := getMessageFromJSON(bytes.NewReader([]byte(body)))
+		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			return "", errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
 		}
@@ -24,7 +24,7 @@ func (c *client) UploadLog(ctx context.Context, pathOnDisk string) (string, erro
 	}
 
 	var uploadBundleResponse logsapi.UploadLogBundleResponse
-	err = c.jm.Unmarshal(bytes.NewReader([]byte(body)), &uploadBundleResponse)
+	err = c.jum.Unmarshal(body, &uploadBundleResponse)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to unmarshal uploadbundle response")
 	}

@@ -16,13 +16,13 @@ This gives us the ability to copy files between targets, **but it does not allow
 ```Dockerfile
 build:
     COPY main.go .
-    RUN go build -o build/go-example main.go
-    SAVE ARTIFACT build/go-example /go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example
 
 docker:
     #  COPY command copies files from the +build target
-    COPY +build/go-example .
-    ENTRYPOINT ["/go-example/go-example"]
+    COPY +build/example .
+    ENTRYPOINT ["/go-workdir/example"]
     SAVE IMAGE go-example:latest
 ```
 In order to **save the file locally** , we need to add `AS LOCAL` to the command.
@@ -30,11 +30,11 @@ In order to **save the file locally** , we need to add `AS LOCAL` to the command
 ```Dockerfile
 build:
     COPY main.go .
-    RUN go build -o build/go-example main.go
-    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example AS LOCAL local-output/go-example
 ```
 
-If we run this example with `earthly +build`, we'll see a `build` directory show up locally with a `go-example` file inside of it.
+If we run this example with `earthly +build`, we'll see a `local-output` directory show up locally with a `go-example` file inside of it.
 
 ## Saving Docker Images
 Saving Docker images to your local machine is easy with the `SAVE IMAGE` command.
@@ -42,12 +42,12 @@ Saving Docker images to your local machine is easy with the `SAVE IMAGE` command
 ```Dockerfile
 build:
     COPY main.go .
-    RUN go build -o build/go-example main.go
-    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example
 
 docker:
-    COPY +build/go-example .
-    ENTRYPOINT ["/go-example/go-example"]
+    COPY +build/example .
+    ENTRYPOINT ["/go-workdir/example"]
     SAVE IMAGE go-example:latest
 ```
 In this example, running `earthly +docker` will save an image named `go-example` with the tag `latest`.
@@ -58,6 +58,11 @@ In this example, running `earthly +docker` will save an image named `go-example`
 ~$ docker image ls
 REPOSITORY          TAG       IMAGE ID       CREATED          SIZE
 go-example          latest    08b9f749023d   19 seconds ago   297MB
+
+# or podman
+~$ podman image ls
+REPOSITORY          TAG       IMAGE ID       CREATED          SIZE
+go-example          latest    08b9f749023d   19 seconds ago   297MB
 ```
 **NOTE**
 
@@ -66,31 +71,31 @@ If we run a target as a reference in `FROM` or `COPY`, **outputs will not be pro
 ```Dockerfile
 build:
     COPY main.go .
-    RUN go build -o build/go-example main.go
-    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example AS LOCAL local-output/go-example
 
 docker:
-    COPY +build/go-example .
-    ENTRYPOINT ["/go-example/go-example"]
+    COPY +build/example .
+    ENTRYPOINT ["/go-workdir/example"]
     SAVE IMAGE go-example:latest
 ```
-In this case, running `earthly +docker` will not produce any output. In other words, you will not have a `build/go-example` written locally, but running `earthly +build` will still produce output as expected.
+In this case, running `earthly +docker` will not produce any output. In other words, you will not have a `local-output/go-example` written locally, but running `earthly +build` will still produce output as expected.
 
-The exception to this rule is the `BUILD` command. If you want to use `COPY` or `FROM` and still have Earthly create `build/go-example` locally, you'll need to use the `BUILD` command to do so.
+The exception to this rule is the `BUILD` command. If you want to use `COPY` or `FROM` and still have Earthly create `local-output/go-example` locally, you'll need to use the `BUILD` command to do so.
 
 ```Dockerfile
 build:
     COPY main.go .
-    RUN go build -o build/go-example main.go
-    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example AS LOCAL local-output/go-example
 
 docker:
     BUILD +build
-    COPY +build/go-example .
-    ENTRYPOINT ["/go-example/go-example"]
+    COPY +build/example .
+    ENTRYPOINT ["/go-workdir/example"]
     SAVE IMAGE go-example:latest
 ```
-Running `earthly +docker` in this case will now output `build/go-example` locally.
+Running `earthly +docker` in this case will now output `local-output/go-example` locally.
 
 ## The Push Flag
 
@@ -100,11 +105,11 @@ In addition to saving files and images locally, we can also push them to remote 
 
 ```Dockerfile
 docker:
-    COPY +build/go-example .
-    ENTRYPOINT ["/go-example/go-example"]
+    COPY +build/example .
+    ENTRYPOINT ["/go-workdir/example"]
     SAVE IMAGE --push go-example:latest
 ```
-Note that adding the `--push` flag to `SAVE IMAGE` is not enough, we'll also need to invoke push when we call earthly. `earthly --push +docker`.
+Note that adding the `--push` flag to `SAVE IMAGE` is not enough, we'll also need to invoke push when we run earthly. `earthly --push +docker`.
 
 #### External Changes
 You can also use `--push` as part of a `RUN` command to define commands that have an effect external to the build. These kinds of effects are only allowed to take place if the entire build succeeds.

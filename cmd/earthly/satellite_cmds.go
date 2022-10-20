@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
@@ -285,6 +286,7 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to get auth token")
 	}
 
+	app.buildkitdSettings.Timeout = 30 * time.Second
 	app.buildkitdSettings.SatelliteToken = token
 	app.buildkitdSettings.SatelliteName = satelliteToInspect
 	app.buildkitdSettings.SatelliteOrgID = orgID
