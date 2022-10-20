@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"net/url"
 	"path/filepath"
@@ -12,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
+	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/util/cliutil"
@@ -211,7 +211,7 @@ func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.C
 	console := app.console.WithPrefix("satellite")
 	out := make(chan string)
 	var reserveErr error
-	isCI := false
+	_, isCI := analytics.DetectCI()
 	go func() { reserveErr = cloudClient.ReserveSatellite(ctx, name, orgID, gitAuthor, isCI, out) }()
 	loadingMsgs := getSatelliteLoadingMessages()
 	var wasAsleep = false
