@@ -95,13 +95,15 @@ func (c *client) LaunchSatellite(ctx context.Context, name, orgID string, featur
 	return nil
 }
 
-func (c *client) ReserveSatellite(ctx context.Context, name, orgID string, out chan<- string) error {
+func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor string, isCI bool, out chan<- string) error {
 	defer close(out)
 	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 	stream, err := c.compute.ReserveSatellite(c.withAuth(ctxTimeout), &pb.ReserveSatelliteRequest{
-		OrgId: orgID,
-		Name:  name,
+		OrgId:       orgID,
+		Name:        name,
+		CommitEmail: gitAuthor,
+		IsCi:        isCI,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed opening satellite reserve stream")
