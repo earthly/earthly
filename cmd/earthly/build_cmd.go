@@ -162,11 +162,10 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if !target.IsRemote() {
 		gitMeta, err := gitutil.Metadata(cliCtx.Context, target.GetLocalPath())
 		if err == nil {
-			// git detection here is best effort
+			// Git commit detection here is best effort
 			gitCommitAuthor = gitMeta.Author
 		}
 	}
-	fmt.Printf("got target: %s; last author is %s\n", target.String(), gitCommitAuthor)
 
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()

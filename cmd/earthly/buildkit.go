@@ -211,8 +211,8 @@ func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.C
 	console := app.console.WithPrefix("satellite")
 	out := make(chan string)
 	var reserveErr error
-	fmt.Printf("TODO make use of gitAuthor %s\n", gitAuthor)
-	go func() { reserveErr = cloudClient.ReserveSatellite(ctx, name, orgID, out) }()
+	isCI := false
+	go func() { reserveErr = cloudClient.ReserveSatellite(ctx, name, orgID, gitAuthor, isCI, out) }()
 	loadingMsgs := getSatelliteLoadingMessages()
 	var wasAsleep = false
 	for status := range out {
