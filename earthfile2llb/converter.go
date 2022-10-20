@@ -18,6 +18,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alessio/shellescape"
+	"github.com/containerd/containerd/platforms"
+	"github.com/docker/distribution/reference"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
@@ -39,11 +42,8 @@ import (
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
-
-	"github.com/alessio/shellescape"
-	"github.com/containerd/containerd/platforms"
-	"github.com/docker/distribution/reference"
 	"github.com/moby/buildkit/client/llb"
+	dockerimage "github.com/moby/buildkit/exporter/containerimage/image"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session/localhost"
@@ -1356,7 +1356,7 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 		return err
 	}
 	c.nonSaveCommand()
-	hc := &dockerfile2llb.HealthConfig{}
+	hc := &dockerimage.HealthConfig{}
 	if isNone {
 		hc.Test = []string{"NONE"}
 	} else {
