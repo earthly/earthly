@@ -4,6 +4,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+- A summary of context file transfers is now displayed every 15 seconds.
+
 ## v0.6.27 - 2022-10-17
 
 ### Changed
