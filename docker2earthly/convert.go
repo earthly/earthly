@@ -58,7 +58,7 @@ func Docker2Earthly(dockerfilePath, earthfilePath, imageTag string) error {
 		return errors.Wrapf(err, "failed to parse Dockerfile located at %q", dockerfilePath)
 	}
 
-	stages, _, err := instructions.Parse(dockerfile.AST)
+	stages, initialArgs, err := instructions.Parse(dockerfile.AST)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse Dockerfile located at %q", dockerfilePath)
 	}
@@ -69,6 +69,15 @@ func Docker2Earthly(dockerfilePath, earthfilePath, imageTag string) error {
 		targets = append(targets, []string{
 			fmt.Sprintf("FROM %s", stage.BaseName),
 		})
+		// These args are in scope *only* for the very first FROM
+		if i == 0 && len(initialArgs) > 0 {
+			var fromArgs []string
+			for _, arg := range initialArgs {
+				fromArgs = append(fromArgs, fmt.Sprintf("%s", arg.String()))
+			}
+			targets[i+1] = append(fromArgs, targets[i+1]...)
+		}
+
 		if stage.Name == "" {
 			names[fmt.Sprintf("%d", i)] = i
 		} else {

@@ -19,3 +19,11 @@ cat "$dockerfiles"/Dockerfile2 | $earthly docker2earthly --dockerfile - --tag my
 cp "$dockerfiles"/app.go .
 $earthly +build
 docker run --rm myotherimage:test | grep greetings
+
+echo "=== Testing args-before-from.Dockerfile ==="
+cd "$(mktemp -d)"
+echo "working out of $(pwd)"
+$earthly docker2earthly --dockerfile - --tag onemoreimage:test < "$dockerfiles"/args-before-from.Dockerfile
+cp "$dockerfiles"/app.go .
+$earthly +build --BASE=golang --GO_MAJOR=1
+docker run --rm onemoreimage:test | grep greetings
