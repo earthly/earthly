@@ -66,17 +66,16 @@ func Docker2Earthly(dockerfilePath, earthfilePath, imageTag string) error {
 	names := map[string]int{}
 
 	for i, stage := range stages {
-		targets = append(targets, []string{
-			fmt.Sprintf("FROM %s", stage.BaseName),
-		})
+		fromCmd := []string{fmt.Sprintf("FROM %s", stage.BaseName)}
 		// These args are in scope *only* for the very first FROM
 		if i == 0 && len(initialArgs) > 0 {
 			var fromArgs []string
 			for _, arg := range initialArgs {
-				fromArgs = append(fromArgs, fmt.Sprintf("%s", arg.String()))
+				fromArgs = append(fromArgs, arg.String())
 			}
-			targets[i+1] = append(fromArgs, targets[i+1]...)
+			fromCmd = append(fromArgs, fromCmd...)
 		}
+		targets = append(targets, fromCmd)
 
 		if stage.Name == "" {
 			names[fmt.Sprintf("%d", i)] = i
