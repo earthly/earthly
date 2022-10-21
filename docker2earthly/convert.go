@@ -124,8 +124,6 @@ func Docker2Earthly(dockerfilePath, earthfilePath, imageTag string) error {
 		out = out2
 	}
 
-	fmt.Fprintf(out, "\n")
-
 	for i, lines := range targets {
 		for j, l := range lines {
 			if i == 0 {
