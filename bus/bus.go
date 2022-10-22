@@ -32,13 +32,13 @@ func New(ctx context.Context) *Bus {
 	return b
 }
 
-// GetPrinter returns the underlying BuildPrinter.
-func (b *Bus) GetPrinter() *BuildPrinter {
+// Printer returns the underlying BuildPrinter.
+func (b *Bus) Printer() *BuildPrinter {
 	return b.bp
 }
 
-// GetSolverMonitor returns the underlying SolverMonitor.
-func (b *Bus) GetSolverMonitor() *SolverMonitor {
+// SolverMonitor returns the underlying SolverMonitor.
+func (b *Bus) SolverMonitor() *SolverMonitor {
 	return b.sm
 }
 

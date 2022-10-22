@@ -42,14 +42,14 @@ func (sm *SolverMonitor) MonitorProgress(ctx context.Context, ch chan *client.So
 func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *client.SolveStatus) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	bp := sm.b.GetPrinter()
+	bp := sm.b.Printer()
 	for _, vertex := range status.Vertexes {
 		vm, exists := sm.vertices[vertex.Digest]
 		if !exists {
 			meta, operation := outmon.ParseFromVertexPrefix(vertex.Name)
-			tp := bp.GetTargetPrinter(
-				meta.TargetID, argsToSlice(meta.OverridingArgs), meta.Platform)
-			cp := tp.NewCommandPrinter(operation, vertex.Cached, false, meta.Local)
+			tp := bp.TargetPrinter(
+				meta.TargetID, meta.TargetName, meta.CanonicalTargetName, argsToSlice(meta.OverridingArgs), meta.Platform)
+			_, cp := tp.NextCommandPrinter(operation, vertex.Cached, false, meta.Local, meta.SourceLocation)
 			vm = &vertexMonitor{
 				vertex:    vertex,
 				meta:      meta,

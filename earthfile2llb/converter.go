@@ -2149,15 +2149,16 @@ func (c *Converter) vertexPrefix(ctx context.Context, local bool, interactive bo
 	platformStr := platform.String()
 	isNativePlatform := c.platr.PlatformEquals(platform, platutil.NativePlatform)
 	vm := &outmon.VertexMeta{
-		SourceLocation:     SourceLocationFromContext(ctx),
-		TargetID:           c.mts.Final.ID,
-		TargetName:         c.mts.Final.Target.String(),
-		Platform:           platformStr,
-		NonDefaultPlatform: !isNativePlatform,
-		Local:              local,
-		Interactive:        interactive,
-		OverridingArgs:     activeOverriding,
-		Internal:           internal,
+		SourceLocation:      SourceLocationFromContext(ctx),
+		TargetID:            c.mts.Final.ID,
+		TargetName:          c.mts.Final.Target.String(),
+		CanonicalTargetName: c.mts.Final.Target.StringCanonical(),
+		Platform:            platformStr,
+		NonDefaultPlatform:  !isNativePlatform,
+		Local:               local,
+		Interactive:         interactive,
+		OverridingArgs:      activeOverriding,
+		Internal:            internal,
 	}
 	return vm.ToVertexPrefix()
 }

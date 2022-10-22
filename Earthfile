@@ -40,8 +40,8 @@ code:
         RUN go mod download
     END
     COPY ./ast/parser+parser/*.go ./ast/parser/
-    COPY --dir analytics autocomplete buildcontext builder bus cleanup cmd config conslogging debugger dockertar \
-        docker2earthly domain features outmon slog cloud states util variables ./
+    COPY --dir analytics autocomplete buildcontext builder bus cleanup cmd config conslogging debugger delta2cons \
+        dockertar docker2earthly domain features outmon slog cloud states util variables ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
     COPY --dir ast/antlrhandler ast/spec ast/*.go ast/

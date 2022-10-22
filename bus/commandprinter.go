@@ -1,6 +1,7 @@
 package bus
 
 import (
+	"sync"
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
@@ -8,20 +9,24 @@ import (
 
 // CommandPrinter is a build log printer for a command.
 type CommandPrinter struct {
-	b           *Bus
-	tp          *TargetPrinter
-	targetID    string
-	index       int32
-	cached      bool
-	push        bool
-	local       bool
-	hasProgress bool
+	b        *Bus
+	tp       *TargetPrinter
+	targetID string
+	index    int32
+	cached   bool
+	push     bool
+	local    bool
+
+	mu          sync.Mutex
 	started     bool
+	hasProgress bool
 	size        int64
 }
 
 // Write prints a byte slice.
 func (cp *CommandPrinter) Write(dt []byte) (int, error) {
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
 	seekIndex := cp.size
 	cp.size += int64(len(dt))
 	cp.b.RawDelta(&logstream.Delta{
@@ -46,6 +51,8 @@ func (cp *CommandPrinter) Index() int32 {
 
 // SetStart sets the start time of the command.
 func (cp *CommandPrinter) SetStart(start time.Time) {
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
 	if cp.started {
 		return
 	}
@@ -59,6 +66,8 @@ func (cp *CommandPrinter) SetStart(start time.Time) {
 
 // SetProgress sets the progress of the command.
 func (cp *CommandPrinter) SetProgress(progress int32) {
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
 	if !cp.hasProgress {
 		cp.commandDelta(&logstream.DeltaCommandManifest{
 			HasHasProgress: true,
@@ -73,6 +82,8 @@ func (cp *CommandPrinter) SetProgress(progress int32) {
 
 // SetEnd sets the end time of the command.
 func (cp *CommandPrinter) SetEnd(end time.Time, success bool, canceled bool, errorStr string) {
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
 	var status logstream.BuildStatus
 	switch {
 	case canceled:

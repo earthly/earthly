@@ -15,15 +15,16 @@ import (
 // VertexMeta is metadata associated with the vertex. This is passed from the
 // converter to the solver monitor via BuildKit.
 type VertexMeta struct {
-	SourceLocation     *spec.SourceLocation `json:"sl,omitempty"`
-	TargetID           string               `json:"tid,omitempty"`
-	TargetName         string               `json:"tnm,omitempty"`
-	Platform           string               `json:"plt,omitempty"`
-	NonDefaultPlatform bool                 `json:"defplt,omitempty"`
-	Local              bool                 `json:"lcl,omitempty"`
-	Interactive        bool                 `json:"itrctv,omitempty"`
-	OverridingArgs     map[string]string    `json:"args,omitempty"`
-	Internal           bool                 `json:"itrnl,omitempty"`
+	SourceLocation      *spec.SourceLocation `json:"sl,omitempty"`
+	TargetID            string               `json:"tid,omitempty"`
+	TargetName          string               `json:"tnm,omitempty"`
+	CanonicalTargetName string               `json:"ctnm,omitempty"`
+	Platform            string               `json:"plt,omitempty"`
+	NonDefaultPlatform  bool                 `json:"defplt,omitempty"`
+	Local               bool                 `json:"lcl,omitempty"`
+	Interactive         bool                 `json:"itrctv,omitempty"`
+	OverridingArgs      map[string]string    `json:"args,omitempty"`
+	Internal            bool                 `json:"itrnl,omitempty"`
 }
 
 var vertexRegexp = regexp.MustCompile(`(?s)^\[([^\]]*)\] (.*)$`)
