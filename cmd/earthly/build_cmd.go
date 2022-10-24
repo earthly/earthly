@@ -217,7 +217,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return err
 	}
 
-	err = app.configureSatellite(cliCtx, cloudClient, gitCommitAuthor)
+	err = app.configureSatellite(cliCtx, cloudClient, gitCommitAuthor, gitGlobalEmail)
 	if err != nil {
 		return errors.Wrapf(err, "could not construct new buildkit client")
 	}
