@@ -105,7 +105,7 @@ func (app *earthlyApp) getBuildkitClient(cliCtx *cli.Context, cloudClient cloud.
 	if err != nil {
 		return nil, err
 	}
-	err = app.configureSatellite(cliCtx, cloudClient, "") // no gitAuthor is passed for non-build commands (e.g. debug_cmds.go or root_cmds.go code)
+	err = app.configureSatellite(cliCtx, cloudClient, "", "") // no gitAuthor/gitGlobalEmail is passed for non-build commands (e.g. debug_cmds.go or root_cmds.go code)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not construct new buildkit client")
 	}
