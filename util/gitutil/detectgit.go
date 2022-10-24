@@ -302,8 +302,8 @@ func detectGitAuthor(ctx context.Context, dir string) (string, error) {
 	return strings.SplitN(outStr, "\n", 2)[0], nil
 }
 
-// GlobalEmail returns the user's currently configured (global) email address
-func GlobalEmail(ctx context.Context) (string, error) {
+// ConfigEmail returns the user's currently configured (global) email address
+func ConfigEmail(ctx context.Context) (string, error) {
 	cmd := exec.CommandContext(ctx, "git", "config", "--get", "user.email")
 	cmd.Stderr = nil // force capture of stderr on errors
 	out, err := cmd.Output()

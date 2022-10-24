@@ -11,7 +11,7 @@ require (
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/dustin/go-humanize v1.0.0
-	github.com/earthly/cloud-api v1.0.1-0.20221020142037-a1531a0a332d
+	github.com/earthly/cloud-api v1.0.1-0.20221024201226-d18d2bf5520c
 	github.com/earthly/earthly/ast v0.0.0-00010101000000-000000000000
 	github.com/elastic/go-sysinfo v1.7.1
 	github.com/fatih/color v1.9.0

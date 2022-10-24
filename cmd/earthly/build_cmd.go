@@ -160,7 +160,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 
 	var (
 		gitCommitAuthor string
-		gitGlobalEmail  string
+		gitConfigEmail  string
 	)
 
 	if !target.IsRemote() {
@@ -168,8 +168,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			// Git commit detection here is best effort
 			gitCommitAuthor = meta.Author
 		}
-		if email, err := gitutil.GlobalEmail(cliCtx.Context); err == nil {
-			gitGlobalEmail = email
+		if email, err := gitutil.ConfigEmail(cliCtx.Context); err == nil {
+			gitConfigEmail = email
 		}
 	}
 
@@ -218,7 +218,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return err
 	}
 
-	err = app.configureSatellite(cliCtx, cloudClient, gitCommitAuthor, gitGlobalEmail)
+	err = app.configureSatellite(cliCtx, cloudClient, gitCommitAuthor, gitConfigEmail)
 	if err != nil {
 		return errors.Wrapf(err, "could not construct new buildkit client")
 	}

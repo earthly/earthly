@@ -97,7 +97,7 @@ func (c *client) LaunchSatellite(ctx context.Context, name, orgID string, featur
 	return nil
 }
 
-func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, gitGlobalEmail string, isCI bool, out chan<- string) error {
+func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, gitConfigEmail string, isCI bool, out chan<- string) error {
 	defer close(out)
 	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
@@ -105,7 +105,7 @@ func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, g
 		OrgId:          orgID,
 		Name:           name,
 		CommitEmail:    gitAuthor,
-		GitConfigEmail: gitGlobalEmail,
+		GitConfigEmail: gitConfigEmail,
 		IsCi:           isCI,
 	})
 	if err != nil {

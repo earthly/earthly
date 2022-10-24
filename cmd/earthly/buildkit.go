@@ -105,7 +105,7 @@ func (app *earthlyApp) getBuildkitClient(cliCtx *cli.Context, cloudClient cloud.
 	if err != nil {
 		return nil, err
 	}
-	err = app.configureSatellite(cliCtx, cloudClient, "", "") // no gitAuthor/gitGlobalEmail is passed for non-build commands (e.g. debug_cmds.go or root_cmds.go code)
+	err = app.configureSatellite(cliCtx, cloudClient, "", "") // no gitAuthor/gitConfigEmail is passed for non-build commands (e.g. debug_cmds.go or root_cmds.go code)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not construct new buildkit client")
 	}
@@ -135,7 +135,7 @@ func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
 	app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
 }
 
-func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud.Client, gitAuthor, gitGlobalEmail string) error {
+func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud.Client, gitAuthor, gitConfigEmail string) error {
 	if cliCtx.IsSet("buildkit-host") && cliCtx.IsSet("satellite") {
 		return errors.New("cannot specify both buildkit-host and satellite")
 	}
@@ -187,7 +187,7 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 
 	// Reserve the satellite for the upcoming build.
 	// This operation can take a moment if the satellite is asleep.
-	err = app.reserveSatellite(cliCtx.Context, cloudClient, app.satelliteName, orgID, gitAuthor, gitGlobalEmail)
+	err = app.reserveSatellite(cliCtx.Context, cloudClient, app.satelliteName, orgID, gitAuthor, gitConfigEmail)
 	if err != nil {
 		return err
 	}
@@ -207,13 +207,13 @@ func (app *earthlyApp) isUsingSatellite(cliCtx *cli.Context) bool {
 	return app.cfg.Satellite.Name != "" || app.satelliteName != ""
 }
 
-func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.Client, name, orgID, gitAuthor, gitGlobalEmail string) error {
+func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.Client, name, orgID, gitAuthor, gitConfigEmail string) error {
 	console := app.console.WithPrefix("satellite")
 	out := make(chan string)
 	var reserveErr error
 	_, isCI := analytics.DetectCI()
 	go func() {
-		reserveErr = cloudClient.ReserveSatellite(ctx, name, orgID, gitAuthor, gitGlobalEmail, isCI, out)
+		reserveErr = cloudClient.ReserveSatellite(ctx, name, orgID, gitAuthor, gitConfigEmail, isCI, out)
 	}()
 	loadingMsgs := getSatelliteLoadingMessages()
 	var (
