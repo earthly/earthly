@@ -29,17 +29,18 @@ var (
 
 // GitMetadata is a collection of git information about a certain directory.
 type GitMetadata struct {
-	BaseDir   string
-	RelDir    string
-	RemoteURL string
-	GitURL    string
-	Hash      string
-	ShortHash string
-	Branch    []string
-	Tags      []string
-	Timestamp string
-	Author    string
-	CoAuthors []string
+	BaseDir     string
+	RelDir      string
+	RemoteURL   string
+	GitURL      string
+	Hash        string
+	ShortHash   string
+	Branch      []string
+	Tags        []string
+	Timestamp   string
+	Author      string
+	CoAuthors   []string
+	GlobalEmail string
 }
 
 // Metadata performs git metadata detection on the provided directory.
@@ -104,6 +105,11 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 		retErr = err
 		// Keep going.
 	}
+	globalEmail, err := detectGitGlobalEmail(ctx)
+	if err != nil {
+		retErr = err
+		// Keep going.
+	}
 
 	relDir, isRel, err := gitRelDir(baseDir, dir)
 	if err != nil {
@@ -114,34 +120,36 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 	}
 
 	return &GitMetadata{
-		BaseDir:   filepath.ToSlash(baseDir),
-		RelDir:    filepath.ToSlash(relDir),
-		RemoteURL: remoteURL,
-		GitURL:    gitURL,
-		Hash:      hash,
-		ShortHash: shortHash,
-		Branch:    branch,
-		Tags:      tags,
-		Timestamp: timestamp,
-		Author:    author,
-		CoAuthors: coAuthors,
+		BaseDir:     filepath.ToSlash(baseDir),
+		RelDir:      filepath.ToSlash(relDir),
+		RemoteURL:   remoteURL,
+		GitURL:      gitURL,
+		Hash:        hash,
+		ShortHash:   shortHash,
+		Branch:      branch,
+		Tags:        tags,
+		Timestamp:   timestamp,
+		Author:      author,
+		CoAuthors:   coAuthors,
+		GlobalEmail: globalEmail,
 	}, retErr
 }
 
 // Clone returns a copy of the GitMetadata object.
 func (gm *GitMetadata) Clone() *GitMetadata {
 	return &GitMetadata{
-		BaseDir:   gm.BaseDir,
-		RelDir:    gm.RelDir,
-		RemoteURL: gm.RemoteURL,
-		GitURL:    gm.GitURL,
-		Hash:      gm.Hash,
-		ShortHash: gm.ShortHash,
-		Branch:    gm.Branch,
-		Tags:      gm.Tags,
-		Timestamp: gm.Timestamp,
-		Author:    gm.Author,
-		CoAuthors: gm.CoAuthors,
+		BaseDir:     gm.BaseDir,
+		RelDir:      gm.RelDir,
+		RemoteURL:   gm.RemoteURL,
+		GitURL:      gm.GitURL,
+		Hash:        gm.Hash,
+		ShortHash:   gm.ShortHash,
+		Branch:      gm.Branch,
+		Tags:        gm.Tags,
+		Timestamp:   gm.Timestamp,
+		Author:      gm.Author,
+		CoAuthors:   gm.CoAuthors,
+		GlobalEmail: gm.GlobalEmail,
 	}
 }
 
@@ -300,6 +308,16 @@ func detectGitAuthor(ctx context.Context, dir string) (string, error) {
 		return "", nil
 	}
 	return strings.SplitN(outStr, "\n", 2)[0], nil
+}
+
+func detectGitGlobalEmail(ctx context.Context) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", "config", "--global", "user.email")
+	cmd.Stderr = nil // force capture of stderr on errors
+	out, err := cmd.Output()
+	if err != nil {
+		return "", errors.Wrap(err, "detect git global email")
+	}
+	return strings.TrimSpace(string(out)), nil
 }
 
 func detectGitCoAuthors(ctx context.Context, dir string) ([]string, error) {

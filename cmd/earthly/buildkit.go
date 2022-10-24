@@ -135,7 +135,7 @@ func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
 	app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
 }
 
-func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud.Client, gitAuthor string) error {
+func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud.Client, gitAuthor, gitGlobalEmail string) error {
 	if cliCtx.IsSet("buildkit-host") && cliCtx.IsSet("satellite") {
 		return errors.New("cannot specify both buildkit-host and satellite")
 	}
@@ -187,7 +187,7 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 
 	// Reserve the satellite for the upcoming build.
 	// This operation can take a moment if the satellite is asleep.
-	err = app.reserveSatellite(cliCtx.Context, cloudClient, app.satelliteName, orgID, gitAuthor)
+	err = app.reserveSatellite(cliCtx.Context, cloudClient, app.satelliteName, orgID, gitAuthor, gitGlobalEmail)
 	if err != nil {
 		return err
 	}
@@ -207,12 +207,14 @@ func (app *earthlyApp) isUsingSatellite(cliCtx *cli.Context) bool {
 	return app.cfg.Satellite.Name != "" || app.satelliteName != ""
 }
 
-func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.Client, name, orgID, gitAuthor string) error {
+func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.Client, name, orgID, gitAuthor, gitGlobalEmail string) error {
 	console := app.console.WithPrefix("satellite")
 	out := make(chan string)
 	var reserveErr error
 	_, isCI := analytics.DetectCI()
-	go func() { reserveErr = cloudClient.ReserveSatellite(ctx, name, orgID, gitAuthor, isCI, out) }()
+	go func() {
+		reserveErr = cloudClient.ReserveSatellite(ctx, name, orgID, gitAuthor, gitGlobalEmail, isCI, out)
+	}()
 	loadingMsgs := getSatelliteLoadingMessages()
 	var (
 		loggedSleep      bool

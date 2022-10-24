@@ -158,12 +158,17 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		}
 	}
 
-	var gitCommitAuthor string
+	var (
+		gitCommitAuthor string
+		gitGlobalEmail  string
+	)
+
 	if !target.IsRemote() {
 		gitMeta, err := gitutil.Metadata(cliCtx.Context, target.GetLocalPath())
 		if err == nil {
 			// Git commit detection here is best effort
 			gitCommitAuthor = gitMeta.Author
+			gitGlobalEmail = gitMeta.GlobalEmail
 		}
 	}
 
