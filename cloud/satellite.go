@@ -127,6 +127,34 @@ func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor st
 	}
 }
 
+func (c *client) WakeSatellite(ctx context.Context, name, orgID string, out chan<- string) error {
+	defer close(out)
+	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	stream, err := c.compute.WakeSatellite(c.withAuth(ctxTimeout), &pb.WakeSatelliteRequest{
+		OrgId: orgID,
+		Name:  name,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed opening satellite wake stream")
+	}
+	var update *pb.WakeSatelliteResponse
+	for {
+		update, err = stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return errors.Wrap(err, "failed receiving satellite wake update")
+		}
+		status := satelliteStatus(update.Status)
+		if status == SatelliteStatusFailed {
+			return errors.New("satellite is in failed state")
+		}
+		out <- status
+	}
+}
+
 func satelliteStatus(status pb.SatelliteStatus) string {
 	switch status {
 	case pb.SatelliteStatus_SATELLITE_STATUS_OPERATIONAL:

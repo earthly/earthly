@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
+	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/containerutil"
 )
 
@@ -75,6 +77,13 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 			Description: "Remove any currently selected Satellite instance from your Earthly configuration",
 			UsageText:   "earthly satellite unselect",
 			Action:      app.actionSatelliteUnselect,
+		},
+		{
+			Name:        "wake",
+			Usage:       "Manually force a Satellite to wake up from a sleep state",
+			Description: "Manually force a Satellite to wake up from a sleep state",
+			UsageText:   "earthly satellite unselect",
+			Action:      app.actionSatelliteWake,
 		},
 	}
 }
@@ -311,7 +320,9 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 			return errors.Wrap(err, "failed checking buildkit info")
 		}
 	} else {
-		app.console.Printf("More info available when Satellite is awake.")
+		app.console.Printf("More info available when Satellite is awake:")
+		app.console.Printf("")
+		app.console.Printf("    earthly satellite --org %s wake %s", app.orgName, satelliteToInspect)
 	}
 	return nil
 }
@@ -386,4 +397,125 @@ func (app *earthlyApp) actionSatelliteUnselect(cliCtx *cli.Context) error {
 	}
 
 	return nil
+}
+
+func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
+	app.commandName = "satelliteWake"
+
+	if cliCtx.NArg() != 1 {
+		return errors.New("satellite name is required")
+	}
+
+	app.satelliteName = cliCtx.Args().Get(0)
+
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	if err != nil {
+		return err
+	}
+
+	out := make(chan string)
+	var wakeErr error
+	go func() { wakeErr = cloudClient.WakeSatellite(cliCtx.Context, app.satelliteName, orgID, out) }()
+	showSatelliteLoading(app.console, out, app.satelliteName)
+	if wakeErr != nil {
+		return errors.Wrapf(err, "failed waking satellite %s", app.satelliteName)
+	}
+
+	return nil
+}
+
+func showSatelliteLoading(console conslogging.ConsoleLogger, out chan string, satName string) {
+	loadingMsgs := getSatelliteLoadingMessages()
+	var (
+		loggedSleep      bool
+		loggedStop       bool
+		loggedStart      bool
+		shouldLogLoading bool
+	)
+	for status := range out {
+		shouldLogLoading = true
+		switch status {
+		case cloud.SatelliteStatusSleep:
+			if !loggedSleep {
+				console.Printf("%s is waking up. Please wait...", satName)
+				loggedSleep = true
+				shouldLogLoading = false
+			}
+		case cloud.SatelliteStatusStopping:
+			if !loggedStop {
+				console.Printf("%s is falling asleep. Please wait...", satName)
+				loggedStop = true
+				shouldLogLoading = false
+			}
+		case cloud.SatelliteStatusStarting:
+			if !loggedStart && !loggedSleep {
+				console.Printf("%s is starting. Please wait...", satName)
+				loggedStart = true
+				shouldLogLoading = false
+			}
+		case cloud.SatelliteStatusOperational:
+			if !loggedSleep && !loggedStop && !loggedStart {
+				// First message received is OPERATIONAL
+				console.Printf("%s is already awake.", satName)
+			} else {
+				// Satellite was in a different state previously but is now online
+				console.Printf("...System online.")
+			}
+			shouldLogLoading = false
+		default:
+			// In case there's a new state later which we didn't expect here,
+			// we'll still try to inform the user as best we can.
+			// Note the state might just be "Unknown" if it maps to an gRPC enum we don't know about.
+			console.Printf("%s state is: %s", satName, status)
+			shouldLogLoading = false
+		}
+		if shouldLogLoading {
+			var msg string
+			msg, loadingMsgs = nextSatelliteLoadingMessage(loadingMsgs)
+			console.Printf("...%s...", msg)
+		}
+	}
+}
+
+func nextSatelliteLoadingMessage(msgs []string) (nextMsg string, remainingMsgs []string) {
+	if len(msgs) == 0 {
+		msgs = getSatelliteLoadingMessages()
+	}
+	return msgs[0], msgs[1:]
+}
+
+func getSatelliteLoadingMessages() []string {
+	baseMessages := []string{
+		"tracking orbit",
+		"adjusting course",
+		"deploying solar array",
+		"aligning solar panels",
+		"calibrating guidance system",
+		"establishing transponder uplink",
+		"testing signal quality",
+		"fueling thrusters",
+		"amplifying transmission signal",
+		"checking thermal controls",
+		"stabilizing trajectory",
+		"contacting mission control",
+		"testing antennas",
+		"reporting fuel levels",
+		"scanning surroundings",
+		"avoiding debris",
+		"taking solar reading",
+		"reporting thermal conditions",
+		"testing system integrity",
+		"checking battery levels",
+		"calibrating transponders",
+		"modifying downlink frequency",
+	}
+	msgs := baseMessages
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(msgs), func(i, j int) { msgs[i], msgs[j] = msgs[j], msgs[i] })
+	return msgs
 }
