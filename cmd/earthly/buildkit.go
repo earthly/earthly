@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"math/rand"
 	"net/url"
 	"path/filepath"
 	"time"
@@ -209,97 +208,11 @@ func (app *earthlyApp) isUsingSatellite(cliCtx *cli.Context) bool {
 
 func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.Client, name, orgID, gitAuthor, gitConfigEmail string) error {
 	console := app.console.WithPrefix("satellite")
-	out := make(chan string)
-	var reserveErr error
 	_, isCI := analytics.DetectCI()
-	go func() {
-		reserveErr = cloudClient.ReserveSatellite(ctx, name, orgID, gitAuthor, gitConfigEmail, isCI, out)
-	}()
-	loadingMsgs := getSatelliteLoadingMessages()
-	var (
-		loggedSleep      bool
-		loggedStop       bool
-		loggedStart      bool
-		shouldLogLoading bool
-	)
-	for status := range out {
-		shouldLogLoading = true
-		switch status {
-		case cloud.SatelliteStatusSleep:
-			if !loggedSleep {
-				console.Printf("%s is waking up. Please wait...", name)
-				loggedSleep = true
-				shouldLogLoading = false
-			}
-		case cloud.SatelliteStatusStopping:
-			if !loggedStop {
-				console.Printf("%s is falling asleep. Please wait...", name)
-				loggedStop = true
-				shouldLogLoading = false
-			}
-		case cloud.SatelliteStatusStarting:
-			if !loggedStart && !loggedSleep {
-				console.Printf("%s is starting. Please wait...", name)
-				loggedStart = true
-				shouldLogLoading = false
-			}
-		case cloud.SatelliteStatusOperational:
-			// Should be last update received at this point.
-			console.Printf("...System online.")
-			shouldLogLoading = false
-		default:
-			// In case there's a new state later which we didn't expect here,
-			// we'll still try to inform the user as best we can.
-			// Note the state might just be "Unknown" if it maps to an gRPC enum we don't know about.
-			console.Printf("%s state is: %s", name, status)
-			shouldLogLoading = false
-		}
-		if shouldLogLoading {
-			var msg string
-			msg, loadingMsgs = nextSatelliteLoadingMessage(loadingMsgs)
-			console.Printf("...%s...", msg)
-		}
-	}
-	if reserveErr != nil {
-		return errors.Wrap(reserveErr, "failed reserving satellite for build")
+	out := cloudClient.ReserveSatellite(ctx, name, orgID, gitAuthor, gitConfigEmail, isCI)
+	err := showSatelliteLoading(console, name, out)
+	if err != nil {
+		return errors.Wrap(err, "failed reserving satellite for build")
 	}
 	return nil
-}
-
-func nextSatelliteLoadingMessage(msgs []string) (nextMsg string, remainingMsgs []string) {
-	if len(msgs) == 0 {
-		msgs = getSatelliteLoadingMessages()
-	}
-	return msgs[0], msgs[1:]
-}
-
-func getSatelliteLoadingMessages() []string {
-	baseMessages := []string{
-		"tracking orbit",
-		"adjusting course",
-		"deploying solar array",
-		"aligning solar panels",
-		"calibrating guidance system",
-		"establishing transponder uplink",
-		"testing signal quality",
-		"fueling thrusters",
-		"amplifying transmission signal",
-		"checking thermal controls",
-		"stabilizing trajectory",
-		"contacting mission control",
-		"testing antennas",
-		"reporting fuel levels",
-		"scanning surroundings",
-		"avoiding debris",
-		"taking solar reading",
-		"reporting thermal conditions",
-		"testing system integrity",
-		"checking battery levels",
-		"calibrating transponders",
-		"modifying downlink frequency",
-	}
-	msgs := baseMessages
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(msgs), func(i, j int) { msgs[i], msgs[j] = msgs[j], msgs[i] })
-	return msgs
 }
