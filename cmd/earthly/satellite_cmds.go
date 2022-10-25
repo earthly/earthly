@@ -459,7 +459,7 @@ func showSatelliteLoading(console conslogging.ConsoleLogger, satName string, out
 			}
 		case cloud.SatelliteStatusStopping:
 			if !loggedStop {
-				console.Printf("%s is falling asleep. Please wait...", satName)
+				console.Printf("%s is currently falling asleep. Waiting to send wake up signal...", satName)
 				loggedStop = true
 				shouldLogLoading = false
 			}

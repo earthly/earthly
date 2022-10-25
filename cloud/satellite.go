@@ -117,6 +117,7 @@ func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, g
 		})
 		if err != nil {
 			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite reserve stream")}
+			return
 		}
 		var update *pb.ReserveSatelliteResponse
 		for {
@@ -126,10 +127,12 @@ func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, g
 			}
 			if err != nil {
 				out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed receiving satellite reserve update")}
+				return
 			}
 			status := satelliteStatus(update.Status)
 			if status == SatelliteStatusFailed {
 				out <- SatelliteStatusUpdate{Err: errors.New("satellite is in a failed state")}
+				return
 			}
 			out <- SatelliteStatusUpdate{State: satelliteStatus(update.Status)}
 		}
@@ -149,6 +152,7 @@ func (c *client) WakeSatellite(ctx context.Context, name, orgID string) (out cha
 		})
 		if err != nil {
 			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite wake stream")}
+			return
 		}
 		var update *pb.WakeSatelliteResponse
 		for {
@@ -158,10 +162,12 @@ func (c *client) WakeSatellite(ctx context.Context, name, orgID string) (out cha
 			}
 			if err != nil {
 				out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed receiving satellite wake update")}
+				return
 			}
 			status := satelliteStatus(update.Status)
 			if status == SatelliteStatusFailed {
 				out <- SatelliteStatusUpdate{Err: errors.New("satellite is in a failed state")}
+				return
 			}
 			out <- SatelliteStatusUpdate{State: satelliteStatus(update.Status)}
 		}
