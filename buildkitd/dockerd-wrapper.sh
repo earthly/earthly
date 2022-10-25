@@ -83,8 +83,24 @@ start_dockerd() {
         echo >/etc/docker/daemon.json '{}'
     fi
 
+    # compliments of https://stackoverflow.com/a/53666584
+    # this will concatenate arrays found in both the LHS and RHS; default jq will overwrite the LHS with the RHS
+    cat <<'EOF' > /tmp/meld.jq
+def meld(a; b):
+  a as $a | b as $b
+  | if ($a|type) == "object" and ($b|type) == "object"
+    then reduce ([$a,$b]|add|keys_unsorted[]) as $k ({};
+      .[$k] = meld( $a[$k]; $b[$k]) )
+    elif ($a|type) == "array" and ($b|type) == "array"
+    then $a+$b
+    elif $b == null then $a
+    else $b
+    end;
+meld($user; .)
+EOF
+
     daemon_data="$(cat /etc/docker/daemon.json)"
-    cat <<EOF | jq ". + $daemon_data" > /etc/docker/daemon.json
+    cat <<EOF | jq --argjson user "$daemon_data" -f /tmp/meld.jq > /etc/docker/daemon.json
 {
     "default-address-pools" : [
         {
