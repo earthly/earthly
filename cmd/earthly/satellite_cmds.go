@@ -323,6 +323,7 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		app.console.Printf("More info available when Satellite is awake:")
 		app.console.Printf("")
 		app.console.Printf("    earthly satellite --org %s wake %s", app.orgName, satelliteToInspect)
+		app.console.Printf("")
 	}
 	return nil
 }
@@ -418,18 +419,25 @@ func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
 		return err
 	}
 
-	out := make(chan string)
-	var wakeErr error
-	go func() { wakeErr = cloudClient.WakeSatellite(cliCtx.Context, app.satelliteName, orgID, out) }()
-	showSatelliteLoading(app.console, out, app.satelliteName)
-	if wakeErr != nil {
-		return errors.Wrapf(err, "failed waking satellite %s", app.satelliteName)
+	sat, err := cloudClient.GetSatellite(cliCtx.Context, app.satelliteName, orgID)
+	if err != nil {
+		return err
+	}
+
+	if sat.Status == cloud.SatelliteStatusOperational {
+		app.console.Printf("%s is already awake.", app.satelliteName)
+	}
+
+	out := cloudClient.WakeSatellite(cliCtx.Context, app.satelliteName, orgID)
+	err = showSatelliteLoading(app.console, app.satelliteName, out)
+	if err != nil {
+		return errors.Wrap(err, "failed waiting for satellite wake")
 	}
 
 	return nil
 }
 
-func showSatelliteLoading(console conslogging.ConsoleLogger, out chan string, satName string) {
+func showSatelliteLoading(console conslogging.ConsoleLogger, satName string, out chan cloud.SatelliteStatusUpdate) error {
 	loadingMsgs := getSatelliteLoadingMessages()
 	var (
 		loggedSleep      bool
@@ -437,9 +445,12 @@ func showSatelliteLoading(console conslogging.ConsoleLogger, out chan string, sa
 		loggedStart      bool
 		shouldLogLoading bool
 	)
-	for status := range out {
+	for o := range out {
+		if o.Err != nil {
+			return errors.Wrap(o.Err, "failed processing satellite status")
+		}
 		shouldLogLoading = true
-		switch status {
+		switch o.State {
 		case cloud.SatelliteStatusSleep:
 			if !loggedSleep {
 				console.Printf("%s is waking up. Please wait...", satName)
@@ -459,10 +470,7 @@ func showSatelliteLoading(console conslogging.ConsoleLogger, out chan string, sa
 				shouldLogLoading = false
 			}
 		case cloud.SatelliteStatusOperational:
-			if !loggedSleep && !loggedStop && !loggedStart {
-				// First message received is OPERATIONAL
-				console.Printf("%s is already awake.", satName)
-			} else {
+			if loggedSleep || loggedStop || loggedStart {
 				// Satellite was in a different state previously but is now online
 				console.Printf("...System online.")
 			}
@@ -471,7 +479,7 @@ func showSatelliteLoading(console conslogging.ConsoleLogger, out chan string, sa
 			// In case there's a new state later which we didn't expect here,
 			// we'll still try to inform the user as best we can.
 			// Note the state might just be "Unknown" if it maps to an gRPC enum we don't know about.
-			console.Printf("%s state is: %s", satName, status)
+			console.Printf("%s state is: %s", satName, o)
 			shouldLogLoading = false
 		}
 		if shouldLogLoading {
@@ -480,6 +488,7 @@ func showSatelliteLoading(console conslogging.ConsoleLogger, out chan string, sa
 			console.Printf("...%s...", msg)
 		}
 	}
+	return nil
 }
 
 func nextSatelliteLoadingMessage(msgs []string) (nextMsg string, remainingMsgs []string) {
