@@ -101,7 +101,7 @@ Currently selected: No
 To clear the cache of a satellite, run the following while a satellite is selected:
 
 ```bash
-earthly purge -a
+earthly prune -a
 ```
 
 ### Upgrading a satellite
