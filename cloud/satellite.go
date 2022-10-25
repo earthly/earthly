@@ -102,17 +102,18 @@ type SatelliteStatusUpdate struct {
 	Err   error
 }
 
-func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor string, isCI bool) (out chan SatelliteStatusUpdate) {
+func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, gitConfigEmail string, isCI bool) (out chan SatelliteStatusUpdate) {
 	out = make(chan SatelliteStatusUpdate)
 	go func() {
 		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 		defer close(out)
 		stream, err := c.compute.ReserveSatellite(c.withAuth(ctxTimeout), &pb.ReserveSatelliteRequest{
-			OrgId:       orgID,
-			Name:        name,
-			CommitEmail: gitAuthor,
-			IsCi:        isCI,
+			OrgId:          orgID,
+			Name:           name,
+			CommitEmail:    gitAuthor,
+			GitConfigEmail: gitConfigEmail,
+			IsCi:           isCI,
 		})
 		if err != nil {
 			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite reserve stream")}

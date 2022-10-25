@@ -302,6 +302,17 @@ func detectGitAuthor(ctx context.Context, dir string) (string, error) {
 	return strings.SplitN(outStr, "\n", 2)[0], nil
 }
 
+// ConfigEmail returns the user's currently configured (global) email address
+func ConfigEmail(ctx context.Context) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", "config", "--get", "user.email")
+	cmd.Stderr = nil // force capture of stderr on errors
+	out, err := cmd.Output()
+	if err != nil {
+		return "", errors.Wrap(err, "detect git global email")
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
 func detectGitCoAuthors(ctx context.Context, dir string) ([]string, error) {
 	cmd := exec.CommandContext(ctx, "git", "log", "-1", "--format=%b")
 	cmd.Dir = dir
