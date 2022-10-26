@@ -12,7 +12,7 @@ buildkitd:
             ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
         END
     ELSE
-        ARG BUILDKIT_BASE_IMAGE/github.com/earthly/buildkit:d46611a5122fe5ad1dfd69cd0bf16b3fe67cdc44+build
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:d46611a5122fe5ad1dfd69cd0bf16b3fe67cdc44+build
     END
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
@@ -92,4 +92,8 @@ update-buildkit-earthfile:
     ARG --required BUILDKIT_GIT_SHA
     ARG --required BUILDKIT_GIT_ORG
     # First we try the Linux version, then the Mac version
-    RUN sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE\)=github.com\/.*\/buildkit.*/\1\/github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile || sed -E -i '' -e 's/(^[ \t]+ARG BUILDKIT_BASE_IMAGE).*\/buildkit.*/\1\/github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile
+    RUN sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE\)=github.com\/.*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile || sed -E -i '' -e 's/(^[ \t]+ARG BUILDKIT_BASE_IMAGE).*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile
+
+false:
+    COPY . .
+    RUN false
