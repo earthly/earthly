@@ -6,6 +6,7 @@ import (
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/ast/spec"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // TargetPrinter is a build log printer for a target.
@@ -28,7 +29,7 @@ func (tp *TargetPrinter) NextCommandPrinter(command string, cached bool, push bo
 		Commands: map[int32]*logstream.DeltaCommandManifest{
 			index: {
 				Name:      command,
-				Status:    logstream.BuildStatus_BUILD_STATUS_NOT_STARTED,
+				Status:    logstream.RunStatus_RUN_STATUS_NOT_STARTED,
 				HasCached: true,
 				IsCached:  cached,
 				HasPush:   true,
@@ -64,31 +65,30 @@ func (tp *TargetPrinter) maybeSetStart(start time.Time) {
 	defer tp.mu.Unlock()
 	if tp.started {
 		tp.targetDelta(&logstream.DeltaTargetManifest{
-			Status: logstream.BuildStatus_BUILD_STATUS_IN_PROGRESS,
+			Status: logstream.RunStatus_RUN_STATUS_IN_PROGRESS,
 		})
 		return
 	}
 	tp.started = true
 	tp.targetDelta(&logstream.DeltaTargetManifest{
-		Status:    logstream.BuildStatus_BUILD_STATUS_IN_PROGRESS,
-		StartedAt: start.Unix(),
+		Status:    logstream.RunStatus_RUN_STATUS_IN_PROGRESS,
+		StartedAt: timestamppb.New(start),
 	})
 }
 
-func (tp *TargetPrinter) setEnd(end time.Time, status logstream.BuildStatus, errorStr string) {
+func (tp *TargetPrinter) setEnd(end time.Time, status logstream.RunStatus) {
 	tp.mu.Lock()
 	defer tp.mu.Unlock()
 	tp.targetDelta(&logstream.DeltaTargetManifest{
-		Status: status,
-		// Error:      errorStr, // TODO
-		FinishedAt: end.Unix(),
+		Status:  status,
+		EndedAt: timestamppb.New(end),
 	})
 }
 
 func (tp *TargetPrinter) targetDelta(dtm *logstream.DeltaTargetManifest) {
 	tp.b.RawDelta(&logstream.Delta{
-		DeltaManifests: []*logstream.DeltaManifest{
-			{
+		DeltaTypeOneof: &logstream.Delta_DeltaManifest{
+			DeltaManifest: &logstream.DeltaManifest{
 				DeltaManifestOneof: &logstream.DeltaManifest_Fields{
 					Fields: &logstream.DeltaManifest_FieldsDelta{
 						Targets: map[string]*logstream.DeltaTargetManifest{

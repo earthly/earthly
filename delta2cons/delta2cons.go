@@ -8,7 +8,7 @@ import (
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/conslogging"
-	"github.com/earthly/earthly/delta2cons/deltautil"
+	"github.com/earthly/earthly/util/deltautil"
 	"github.com/mattn/go-isatty"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
@@ -39,7 +39,7 @@ type Delta2Cons struct {
 	startTime                  time.Time
 	ongoingTicker              *time.Ticker
 	ongoingTick                time.Duration
-	manifest                   *logstream.BuildManifest
+	manifest                   *logstream.RunManifest
 }
 
 // NewDelta2Cons creates a new Delta2Cons.
@@ -56,7 +56,7 @@ func NewDelta2Cons(console conslogging.ConsoleLogger, verbose bool, disableOngoi
 		startTime:             time.Now(),
 		ongoingTicker:         time.NewTicker(ongoingTick),
 		ongoingTick:           ongoingTick,
-		manifest:              &logstream.BuildManifest{},
+		manifest:              &logstream.RunManifest{},
 	}
 }
 
@@ -71,21 +71,24 @@ func (d2c *Delta2Cons) PipeDeltasToConsole(ctx context.Context, ch chan *logstre
 			if !ok {
 				return nil
 			}
-			_, err := deltautil.ApplyDelta(d2c.manifest, delta)
+			var err error
+			d2c.manifest, err = deltautil.ApplyDeltaManifest(d2c.manifest, delta)
 			if err != nil {
 				return errors.Wrap(err, "failed to apply delta")
 			}
-			for _, dm := range delta.DeltaManifests {
-				err := d2c.handleDeltaManifest(ctx, dm)
+			switch d := delta.GetDeltaTypeOneof().(type) {
+			case *logstream.Delta_DeltaManifest:
+				err := d2c.handleDeltaManifest(ctx, d.DeltaManifest)
 				if err != nil {
 					return errors.Wrap(err, "failed to handle delta manifest")
 				}
-			}
-			for _, dl := range delta.GetDeltaLogs() {
-				err := d2c.handleDeltaLog(ctx, dl)
+			case *logstream.Delta_DeltaLog:
+				err := d2c.handleDeltaLog(ctx, d.DeltaLog)
 				if err != nil {
 					return err
 				}
+			default:
+				return fmt.Errorf("unknown delta type %T", d)
 			}
 		case <-d2c.ongoingTicker.C:
 			err := d2c.processOngoingTick(ctx, bkClient)
@@ -105,7 +108,7 @@ func (d2c *Delta2Cons) handleDeltaManifest(ctx context.Context, dm *logstream.De
 	}
 	for targetID, t := range dm.GetFields().GetTargets() {
 		for index, cmd := range t.GetCommands() {
-			if cmd.GetStatus() == logstream.BuildStatus_BUILD_STATUS_IN_PROGRESS {
+			if cmd.GetStatus() == logstream.RunStatus_RUN_STATUS_IN_PROGRESS {
 				d2c.printHeader(targetID, index)
 			}
 			if cmd.GetHasHasProgress() && cmd.GetHasProgress() {

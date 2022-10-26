@@ -75,7 +75,7 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 					if vm.tailOutput != nil {
 						output = vm.tailOutput.Bytes()
 					}
-					bp.SetFatalError(end, targetID, index, output, errorStr)
+					bp.SetFatalError(end, targetID, true, index, output, errorStr)
 				}(*vertex.Completed, vm.meta.TargetID, vm.cp.Index(), vm.errorStr)
 			}
 		}
@@ -99,7 +99,7 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 		if !exists {
 			continue
 		}
-		_, err := vm.Write(logLine.Data)
+		_, err := vm.Write(logLine.Data, logLine.Timestamp, logLine.Stream)
 		if err != nil {
 			return err
 		}

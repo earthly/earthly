@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/armon/circbuf"
 	"github.com/earthly/earthly/outmon"
@@ -27,8 +28,8 @@ type vertexMonitor struct {
 var reErrExitCode = regexp.MustCompile(`^process (".*") did not complete successfully: exit code: ([0-9]+)$`)
 var reErrNotFound = regexp.MustCompile(`^failed to calculate checksum of ref ([^ ]*): (.*)$`)
 
-func (vm *vertexMonitor) Write(dt []byte) (int, error) {
-	_, err := vm.cp.Write(dt)
+func (vm *vertexMonitor) Write(dt []byte, ts time.Time, stream int) (int, error) {
+	_, err := vm.cp.Write(dt, ts, int32(stream))
 	if err != nil {
 		return 0, errors.Wrap(err, "write log line")
 	}

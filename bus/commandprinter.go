@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // CommandPrinter is a build log printer for a command.
@@ -20,24 +21,20 @@ type CommandPrinter struct {
 	mu          sync.Mutex
 	started     bool
 	hasProgress bool
-	size        int64
 }
 
-// Write prints a byte slice.
-func (cp *CommandPrinter) Write(dt []byte) (int, error) {
+// Write prints a byte slice with a timestamp.
+func (cp *CommandPrinter) Write(dt []byte, ts time.Time, stream int32) (int, error) {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
-	seekIndex := cp.size
-	cp.size += int64(len(dt))
 	cp.b.RawDelta(&logstream.Delta{
-		DeltaLogs: []*logstream.DeltaLog{
-			{
-				TargetId:  cp.targetID,
-				SeekIndex: seekIndex,
-				// TODO: Add command index?
-				DeltaLogOneof: &logstream.DeltaLog_Data{
-					Data: dt,
-				},
+		DeltaTypeOneof: &logstream.Delta_DeltaLog{
+			DeltaLog: &logstream.DeltaLog{
+				TargetId:     cp.targetID,
+				CommandIndex: cp.index,
+				Stream:       stream,
+				Timestamp:    timestamppb.New(ts),
+				Log:          dt,
 			},
 		},
 	})
@@ -58,8 +55,8 @@ func (cp *CommandPrinter) SetStart(start time.Time) {
 	}
 	cp.started = true
 	cp.commandDelta(&logstream.DeltaCommandManifest{
-		StartedAt: start.Unix(),
-		Status:    logstream.BuildStatus_BUILD_STATUS_IN_PROGRESS,
+		StartedAt: timestamppb.New(start),
+		Status:    logstream.RunStatus_RUN_STATUS_IN_PROGRESS,
 	})
 	cp.tp.maybeSetStart(start)
 }
@@ -84,27 +81,28 @@ func (cp *CommandPrinter) SetProgress(progress int32) {
 func (cp *CommandPrinter) SetEnd(end time.Time, success bool, canceled bool, errorStr string) {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
-	var status logstream.BuildStatus
+	var status logstream.RunStatus
 	switch {
 	case canceled:
-		status = logstream.BuildStatus_BUILD_STATUS_CANCELLED
+		status = logstream.RunStatus_RUN_STATUS_CANCELED
 	case success:
-		status = logstream.BuildStatus_BUILD_STATUS_SUCCESS
+		status = logstream.RunStatus_RUN_STATUS_SUCCESS
 	default:
-		status = logstream.BuildStatus_BUILD_STATUS_FAILURE
+		status = logstream.RunStatus_RUN_STATUS_FAILURE
 	}
 	cp.commandDelta(&logstream.DeltaCommandManifest{
-		Status: status,
-		// Error:      errorStr, // TODO
-		FinishedAt: end.Unix(),
+		Status:       status,
+		ErrorMessage: errorStr,
+		// TODO: Tail output.
+		EndedAt: timestamppb.New(end),
 	})
-	cp.tp.setEnd(end, status, errorStr)
+	cp.tp.setEnd(end, status)
 }
 
 func (cp *CommandPrinter) commandDelta(dcm *logstream.DeltaCommandManifest) {
 	cp.b.RawDelta(&logstream.Delta{
-		DeltaManifests: []*logstream.DeltaManifest{
-			{
+		DeltaTypeOneof: &logstream.Delta_DeltaManifest{
+			DeltaManifest: &logstream.DeltaManifest{
 				DeltaManifestOneof: &logstream.DeltaManifest_Fields{
 					Fields: &logstream.DeltaManifest_FieldsDelta{
 						Targets: map[string]*logstream.DeltaTargetManifest{

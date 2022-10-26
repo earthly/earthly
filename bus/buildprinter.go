@@ -1,12 +1,11 @@
 package bus
 
 import (
-	"fmt"
-	"io"
 	"sync"
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // BuildPrinter is a build log printer.
@@ -17,57 +16,26 @@ type BuildPrinter struct {
 	ended bool
 
 	gpMu sync.Mutex
-	gps  map[string]*genericPrinter
+	gps  map[string]*GenericPrinter
 }
 
 func newBuildPrinter(b *Bus) *BuildPrinter {
 	return &BuildPrinter{
 		b:   b,
 		tps: make(map[string]*TargetPrinter),
-		gps: make(map[string]*genericPrinter),
+		gps: make(map[string]*GenericPrinter),
 	}
 }
 
-// genericPrinter is a generic printer for build output unrelated to a specific target.
-type genericPrinter struct {
-	bp       *BuildPrinter
-	category string
-	mu       sync.Mutex
-	size     int64
-}
-
-// Write writes the given bytes to the generic printer.
-func (gp *genericPrinter) Write(dt []byte) (int, error) {
-	gp.mu.Lock()
-	defer gp.mu.Unlock()
-	seekIndex := gp.size
-	gp.size += int64(len(dt))
-	gp.bp.b.RawDelta(&logstream.Delta{
-		DeltaLogs: []*logstream.DeltaLog{
-			{
-				TargetId:  fmt.Sprintf("_generic:%s", gp.category),
-				SeekIndex: seekIndex,
-				DeltaLogOneof: &logstream.DeltaLog_Data{
-					Data: dt,
-				},
-			},
-		},
-	})
-	return len(dt), nil
-}
-
 // GenericPrinter returns a generic printer for build output unrelated to a specific target.
-func (bp *BuildPrinter) GenericPrinter(category string) io.Writer {
+func (bp *BuildPrinter) GenericPrinter(category string) *GenericPrinter {
 	bp.gpMu.Lock()
 	defer bp.gpMu.Unlock()
 	gp, ok := bp.gps[category]
 	if ok {
 		return gp
 	}
-	gp = &genericPrinter{
-		bp:       bp,
-		category: category,
-	}
+	gp = newGenericPrinter(bp, category)
 	bp.gps[category] = gp
 	return gp
 }
@@ -83,13 +51,11 @@ func (bp *BuildPrinter) TargetPrinter(targetID, shortTargetName, canonicalTarget
 	bp.buildDelta(&logstream.DeltaManifest_FieldsDelta{
 		Targets: map[string]*logstream.DeltaTargetManifest{
 			targetID: {
-				Name: targetID, // TODO: Remove?
-				// ShortName:    shortTargetName, // TODO
-				// CanonicalName: canonicalTargetName, // TODO
-				Status:       logstream.BuildStatus_BUILD_STATUS_IN_PROGRESS,
-				OverrideArgs: overrideArgs,
-				Platform:     platform,
-				StartedAt:    time.Now().Unix(),
+				Name:          shortTargetName,
+				CanonicalName: canonicalTargetName,
+				Status:        logstream.RunStatus_RUN_STATUS_IN_PROGRESS,
+				OverrideArgs:  overrideArgs,
+				Platform:      platform,
 			},
 		},
 	})
@@ -107,13 +73,13 @@ func (bp *BuildPrinter) SetStart(start time.Time) {
 	bp.mu.Lock()
 	defer bp.mu.Unlock()
 	bp.buildDelta(&logstream.DeltaManifest_FieldsDelta{
-		Status:    logstream.BuildStatus_BUILD_STATUS_IN_PROGRESS,
-		StartedAt: start.Unix(),
+		Status:    logstream.RunStatus_RUN_STATUS_IN_PROGRESS,
+		StartedAt: timestamppb.New(start),
 	})
 }
 
 // SetFatalError sets a fatal error for the build.
-func (bp *BuildPrinter) SetFatalError(end time.Time, failedTargetID string, failedCommandIndex int32, output []byte, errString string) {
+func (bp *BuildPrinter) SetFatalError(end time.Time, targetID string, hasCommandIndex bool, commandIndex int32, output []byte, errString string) {
 	bp.mu.Lock()
 	defer bp.mu.Unlock()
 	if bp.ended {
@@ -121,43 +87,53 @@ func (bp *BuildPrinter) SetFatalError(end time.Time, failedTargetID string, fail
 	}
 	bp.ended = true
 	bp.buildDelta(&logstream.DeltaManifest_FieldsDelta{
-		Status:       logstream.BuildStatus_BUILD_STATUS_FAILURE,
-		FinishedAt:   end.Unix(),
-		FailedTarget: failedTargetID,
-		// FailedCommand: failedCommandIndex, // TODO
-		FailedSummary: errString,
-		// FailedOutput:  output, // TODO
+		Status:     logstream.RunStatus_RUN_STATUS_FAILURE,
+		EndedAt:    timestamppb.New(end),
+		HasFailure: true,
+		Failure: &logstream.Failure{
+			TargetId:        targetID,
+			HasCommandIndex: hasCommandIndex,
+			CommandIndex:    commandIndex,
+			Output:          output,
+			Summary:         errString,
+		},
 	})
 }
 
 // SetEnd sets the end time of the build.
-func (bp *BuildPrinter) SetEnd(end time.Time, success bool, canceled bool, failureSummary string) {
+func (bp *BuildPrinter) SetEnd(end time.Time, success bool, canceled bool, failureOutput []byte, failureSummary string) {
 	bp.mu.Lock()
 	defer bp.mu.Unlock()
 	if bp.ended {
 		return
 	}
 	bp.ended = true
-	var status logstream.BuildStatus
+	var status logstream.RunStatus
+	var f *logstream.Failure
 	switch {
 	case canceled:
-		status = logstream.BuildStatus_BUILD_STATUS_CANCELLED
+		status = logstream.RunStatus_RUN_STATUS_CANCELED
 	case success:
-		status = logstream.BuildStatus_BUILD_STATUS_SUCCESS
+		status = logstream.RunStatus_RUN_STATUS_SUCCESS
 	default:
-		status = logstream.BuildStatus_BUILD_STATUS_FAILURE
+		status = logstream.RunStatus_RUN_STATUS_FAILURE
+		f = &logstream.Failure{
+			Output:  failureOutput,
+			Summary: failureSummary,
+		}
 	}
+
 	bp.buildDelta(&logstream.DeltaManifest_FieldsDelta{
-		Status:        status,
-		FinishedAt:    end.Unix(),
-		FailedSummary: failureSummary,
+		Status:  status,
+		EndedAt: timestamppb.New(end),
+		Failure: f,
 	})
 }
 
 func (bp *BuildPrinter) buildDelta(fd *logstream.DeltaManifest_FieldsDelta) {
 	bp.b.RawDelta(&logstream.Delta{
-		DeltaManifests: []*logstream.DeltaManifest{
-			{
+		DeltaTypeOneof: &logstream.Delta_DeltaManifest{
+			DeltaManifest: &logstream.DeltaManifest{
 				DeltaManifestOneof: &logstream.DeltaManifest_Fields{
 					Fields: fd,
 				},
