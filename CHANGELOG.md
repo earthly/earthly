@@ -4,8 +4,15 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.28 - 2022-10-26
+
 ### Added
 - A summary of context file transfers is now displayed every 15 seconds.
+- Satellite wake command, which can force a satellite to wake up (useful for calling inspect or other non-build related commands).
+
+### Changed
+- `WITH DOCKER` merging of user specific `/etc/docker/daemon.json` settings data now applies to arrays (previously only dictionaries were supported).
+- A final warning will be displayed if earthly is terminated due to a interrupt signal (ctrl-c).
 
 ## v0.6.27 - 2022-10-17
 
