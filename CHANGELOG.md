@@ -7,6 +7,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Added
 - A summary of context file transfers is now displayed every 15 seconds.
 
+### Changed
+- Updated buildkit to include changes up to [c717d6aa7543d4b83395e0552ef2eb311f563aab](https://github.com/moby/buildkit/commit/c717d6aa7543d4b83395e0552ef2eb311f563aab)
+
 ## v0.6.27 - 2022-10-17
 
 ### Changed
