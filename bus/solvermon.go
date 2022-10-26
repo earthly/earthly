@@ -4,14 +4,11 @@ import (
 	"context"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/earthly/earthly/outmon"
 	"github.com/moby/buildkit/client"
 	"github.com/opencontainers/go-digest"
 )
-
-const tailErrorBufferSizeBytes = 80 * 1024 // About as much as 1024 lines of 80 chars each.
 
 // SolverMonitor is a buildkit solver monitor.
 type SolverMonitor struct {
@@ -70,13 +67,9 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 			vm.cp.SetEnd(*vertex.Completed, success, vm.isCanceled, vm.errorStr)
 			if vm.isFatalError {
 				// Run this at the end so that we capture any additional log lines.
-				defer func(end time.Time, targetID string, index int32, errorStr string) {
-					output := []byte{}
-					if vm.tailOutput != nil {
-						output = vm.tailOutput.Bytes()
-					}
-					bp.SetFatalError(end, targetID, true, index, output, errorStr)
-				}(*vertex.Completed, vm.meta.TargetID, vm.cp.Index(), vm.errorStr)
+				defer bp.SetFatalError(
+					*vertex.Completed, vm.meta.TargetID, true, vm.cp.Index(),
+					vm.fatalErrorType, vm.errorStr)
 			}
 		}
 	}

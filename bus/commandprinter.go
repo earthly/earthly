@@ -4,9 +4,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/armon/circbuf"
 	"github.com/earthly/cloud-api/logstream"
+	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+const tailErrorBufferSizeBytes = 80 * 1024 // About as much as 1024 lines of 80 chars each.
 
 // CommandPrinter is a build log printer for a command.
 type CommandPrinter struct {
@@ -18,15 +22,38 @@ type CommandPrinter struct {
 	push     bool
 	local    bool
 
+	tailOutput *circbuf.Buffer
+
 	mu          sync.Mutex
 	started     bool
 	hasProgress bool
+}
+
+func newCommandPrinter(b *Bus, tp *TargetPrinter, targetID string, index int32, cached bool, push bool, local bool) *CommandPrinter {
+	to, err := circbuf.NewBuffer(tailErrorBufferSizeBytes)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to create tail buffer"))
+	}
+	return &CommandPrinter{
+		b:          b,
+		tp:         tp,
+		targetID:   targetID,
+		index:      index,
+		cached:     cached,
+		push:       push,
+		local:      local,
+		tailOutput: to,
+	}
 }
 
 // Write prints a byte slice with a timestamp.
 func (cp *CommandPrinter) Write(dt []byte, ts time.Time, stream int32) (int, error) {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
+	_, err := cp.tailOutput.Write(dt)
+	if err != nil {
+		return 0, errors.Wrap(err, "write to tail output")
+	}
 	cp.b.RawDelta(&logstream.Delta{
 		DeltaTypeOneof: &logstream.Delta_DeltaLog{
 			DeltaLog: &logstream.DeltaLog{
@@ -39,6 +66,13 @@ func (cp *CommandPrinter) Write(dt []byte, ts time.Time, stream int32) (int, err
 		},
 	})
 	return len(dt), nil
+}
+
+// TailOutput returns the tail of the output.
+func (cp *CommandPrinter) TailOutput() []byte {
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
+	return cp.tailOutput.Bytes()
 }
 
 // Index returns the index of the command.
@@ -93,8 +127,7 @@ func (cp *CommandPrinter) SetEnd(end time.Time, success bool, canceled bool, err
 	cp.commandDelta(&logstream.DeltaCommandManifest{
 		Status:       status,
 		ErrorMessage: errorStr,
-		// TODO: Tail output.
-		EndedAt: timestamppb.New(end),
+		EndedAt:      timestamppb.New(end),
 	})
 	cp.tp.setEnd(end, status)
 }

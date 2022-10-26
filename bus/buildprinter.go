@@ -59,11 +59,7 @@ func (bp *BuildPrinter) TargetPrinter(targetID, shortTargetName, canonicalTarget
 			},
 		},
 	})
-	tp = &TargetPrinter{
-		b:        bp.b,
-		targetID: targetID,
-		platform: platform,
-	}
+	tp = newTargetPrinter(bp.b, targetID, platform)
 	bp.tps[targetID] = tp
 	return tp
 }
@@ -79,22 +75,30 @@ func (bp *BuildPrinter) SetStart(start time.Time) {
 }
 
 // SetFatalError sets a fatal error for the build.
-func (bp *BuildPrinter) SetFatalError(end time.Time, targetID string, hasCommandIndex bool, commandIndex int32, output []byte, errString string) {
+func (bp *BuildPrinter) SetFatalError(end time.Time, targetID string, hasCommandIndex bool, commandIndex int32, failureType logstream.FailureType, errString string) {
 	bp.mu.Lock()
 	defer bp.mu.Unlock()
 	if bp.ended {
 		return
 	}
 	bp.ended = true
+	var tailOutput []byte
+	if targetID != "" && hasCommandIndex {
+		tp, ok := bp.tps[targetID]
+		if ok {
+			tailOutput = tp.CommandPrinter(commandIndex).TailOutput()
+		}
+	}
 	bp.buildDelta(&logstream.DeltaManifest_FieldsDelta{
 		Status:     logstream.RunStatus_RUN_STATUS_FAILURE,
 		EndedAt:    timestamppb.New(end),
 		HasFailure: true,
 		Failure: &logstream.Failure{
+			Type:            failureType,
 			TargetId:        targetID,
 			HasCommandIndex: hasCommandIndex,
 			CommandIndex:    commandIndex,
-			Output:          output,
+			Output:          tailOutput,
 			Summary:         errString,
 		},
 	})

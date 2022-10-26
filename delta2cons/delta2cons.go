@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
@@ -15,6 +16,10 @@ import (
 )
 
 const (
+	durationBetweenSha256ProgressUpdate = 5 * time.Second
+	durationBetweenProgressUpdate       = 3 * time.Second
+	durationBetweenProgressUpdateIfSame = 5 * time.Millisecond
+	durationBetweenOpenLineUpdate       = time.Second
 	durationBetweenOngoingUpdates       = 5 * time.Second
 	durationBetweenOngoingUpdatesNoAnsi = 60 * time.Second
 )
@@ -109,7 +114,12 @@ func (d2c *Delta2Cons) handleDeltaManifest(ctx context.Context, dm *logstream.De
 	for targetID, t := range dm.GetFields().GetTargets() {
 		for index, cmd := range t.GetCommands() {
 			if cmd.GetStatus() == logstream.RunStatus_RUN_STATUS_IN_PROGRESS {
-				d2c.printHeader(targetID, index)
+				tm, ok := d2c.manifest.GetTargets()[targetID]
+				if !ok {
+					return fmt.Errorf("target %s not found in manifest", targetID)
+				}
+				cm := tm.GetCommands()[index]
+				d2c.printHeader(targetID, index, tm, cm)
 			}
 			if cmd.GetHasHasProgress() && cmd.GetHasProgress() {
 				d2c.printProgress(targetID, index, cmd.GetProgress())
@@ -133,6 +143,7 @@ func (d2c *Delta2Cons) processOngoingTick(ctx context.Context, bkClient *client.
 	if d2c.disableOngoingUpdates {
 		return nil
 	}
+	d2c.console.WithPrefix("ongoing").Printf("ongoing TODO\n")
 	// Go through all the commands and find which one is ongoing.
 	// Print their targets on the console.
 	// TODO
@@ -141,8 +152,26 @@ func (d2c *Delta2Cons) processOngoingTick(ctx context.Context, bkClient *client.
 	return fmt.Errorf("not implemented")
 }
 
-func (d2c *Delta2Cons) printHeader(targetID string, index int32) {
-	// TODO
+func (d2c *Delta2Cons) printHeader(targetID string, index int32, tm *logstream.TargetManifest, cm *logstream.CommandManifest) {
+	c := d2c.console.WithPrefixAndSalt(tm.GetName(), targetID)
+	var metaParts []string
+	if tm.GetPlatform() != "" {
+		metaParts = append(metaParts, tm.GetPlatform())
+	}
+	if tm.GetOverrideArgs() != nil {
+		metaParts = append(metaParts, strings.Join(tm.GetOverrideArgs(), " "))
+	}
+	if len(metaParts) > 0 {
+		c.WithMetadataMode(true).Printf("%s\n", strings.Join(metaParts, " | "))
+	}
+	out := []string{}
+	out = append(out, "-->")
+	out = append(out, cm.GetName())
+	if cm.GetIsCached() {
+		c = c.WithCached(true)
+	}
+	c.Printf("%s\n", strings.Join(out, " "))
+
 	d2c.lastOutputWasOngoingUpdate = false
 	d2c.lastOutputWasProgress = false
 }
@@ -150,7 +179,19 @@ func (d2c *Delta2Cons) printHeader(targetID string, index int32) {
 func (d2c *Delta2Cons) printProgress(targetID string, index int32, progress int32) {
 	// TODO
 	d2c.lastOutputWasOngoingUpdate = false
-	d2c.lastOutputWasProgress = true
+	d2c.lastOutputWasProgress = (progress != 100)
+}
+
+func (d2c *Delta2Cons) shouldPrintProgress(targetID string, index int32, progress int32, verbose bool, sameAsLast bool) bool {
+	// minDelta := durationBetweenOngoingUpdates
+	// if sameAsLast && ansiSupported {
+	// 	minDelta = durationBetweenProgressUpdateIfSame
+	// } else if strings.HasPrefix(id, "sha256:") || strings.HasPrefix(id, "extracting sha256:") {
+	// 	minDelta = durationBetweenSha256ProgressUpdate
+	// }
+
+	// TODO
+	return true
 }
 
 // TODO: What to do with interactive mode? We need a way for an external

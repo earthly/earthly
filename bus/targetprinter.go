@@ -20,6 +20,14 @@ type TargetPrinter struct {
 	cps     []*CommandPrinter
 }
 
+func newTargetPrinter(b *Bus, targetID, platform string) *TargetPrinter {
+	return &TargetPrinter{
+		b:        b,
+		targetID: targetID,
+		platform: platform,
+	}
+}
+
 // NextCommandPrinter creates a new command printer.
 func (tp *TargetPrinter) NextCommandPrinter(command string, cached bool, push bool, local bool, sourceLocation *spec.SourceLocation) (int32, *CommandPrinter) {
 	tp.mu.Lock()
@@ -40,15 +48,7 @@ func (tp *TargetPrinter) NextCommandPrinter(command string, cached bool, push bo
 			},
 		},
 	})
-	cp := &CommandPrinter{
-		b:        tp.b,
-		tp:       tp,
-		targetID: tp.targetID,
-		index:    index,
-		cached:   cached,
-		push:     push,
-		local:    local,
-	}
+	cp := newCommandPrinter(tp.b, tp, tp.targetID, index, cached, push, local)
 	tp.cps = append(tp.cps, cp)
 	return int32(len(tp.cps)), cp
 }

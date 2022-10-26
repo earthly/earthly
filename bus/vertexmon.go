@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/armon/circbuf"
+	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/outmon"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
@@ -18,11 +18,10 @@ type vertexMonitor struct {
 	operation string
 	cp        *CommandPrinter
 
-	tailOutput *circbuf.Buffer
-
-	isFatalError bool // If set, this is the root cause of the entire build failure.
-	errorStr     string
-	isCanceled   bool
+	isFatalError   bool // If set, this is the root cause of the entire build failure.
+	fatalErrorType logstream.FailureType
+	errorStr       string
+	isCanceled     bool
 }
 
 var reErrExitCode = regexp.MustCompile(`^process (".*") did not complete successfully: exit code: ([0-9]+)$`)
@@ -32,17 +31,6 @@ func (vm *vertexMonitor) Write(dt []byte, ts time.Time, stream int) (int, error)
 	_, err := vm.cp.Write(dt, ts, int32(stream))
 	if err != nil {
 		return 0, errors.Wrap(err, "write log line")
-	}
-	if vm.tailOutput == nil {
-		var err error
-		vm.tailOutput, err = circbuf.NewBuffer(tailErrorBufferSizeBytes)
-		if err != nil {
-			return 0, errors.Wrap(err, "allocate buffer for output")
-		}
-	}
-	_, err = vm.tailOutput.Write(dt)
-	if err != nil {
-		return 0, errors.Wrap(err, "write to tail output buffer")
 	}
 	return len(dt), nil
 }
@@ -67,6 +55,7 @@ func (vm *vertexMonitor) parseError() {
 			"      did not complete successfully. Exit code %s",
 			internalStr, indentOp, m[2])
 		vm.isFatalError = true
+		vm.fatalErrorType = logstream.FailureType_FAILURE_TYPE_NONZERO_EXIT
 	case reErrNotFound.MatchString(errString):
 		m := reErrNotFound.FindStringSubmatch(errString)
 		errString = fmt.Sprintf(""+
@@ -75,8 +64,10 @@ func (vm *vertexMonitor) parseError() {
 			"      failed: %s",
 			internalStr, indentOp, m[2])
 		vm.isFatalError = true
+		vm.fatalErrorType = logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND
 	case errString == "no active sessions":
-		errString = "Canceled"
+		vm.isCanceled = true
+		errString = "WARN: Canceled"
 	default:
 		errString = fmt.Sprintf(
 			"The%s command '%s' failed: %s", internalStr, vm.operation, errString)
