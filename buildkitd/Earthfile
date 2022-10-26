@@ -91,7 +91,7 @@ update-buildkit-earthfile:
     LOCALLY
     ARG --required BUILDKIT_GIT_SHA
     ARG --required BUILDKIT_GIT_ORG
-    # First we try the Linux version, then the Mac version
+    # We run the Mac version on Darwin as it is not compatible with Linux sed
     RUN if [ "$(uname)" = "Darwin" ]; then \
             sed -E -i '' -e 's/(^[ \t]+ARG BUILDKIT_BASE_IMAGE).*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile; \
         else \
