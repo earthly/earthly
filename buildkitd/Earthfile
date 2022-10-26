@@ -92,8 +92,11 @@ update-buildkit-earthfile:
     ARG --required BUILDKIT_GIT_SHA
     ARG --required BUILDKIT_GIT_ORG
     # First we try the Linux version, then the Mac version
-    RUN sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE\)=github.com\/.*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile || sed -E -i '' -e 's/(^[ \t]+ARG BUILDKIT_BASE_IMAGE).*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile
-
+    RUN if [ "$(uname)" = "Darwin" ]; then \
+            sed -E -i '' -e 's/(^[ \t]+ARG BUILDKIT_BASE_IMAGE).*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile; \
+        else \
+            "sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE\)=github.com\/.*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile"; \
+        fi
 false:
     COPY . .
     RUN false
