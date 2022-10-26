@@ -97,6 +97,3 @@ update-buildkit-earthfile:
         else \
             "sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE\)=github.com\/.*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile"; \
         fi
-false:
-    COPY . .
-    RUN false
