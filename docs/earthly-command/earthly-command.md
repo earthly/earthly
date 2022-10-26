@@ -498,7 +498,7 @@ List account tokens associated with Earthly account. A token is useful for envir
 ###### Synopsis
 
 * ```
-  earthly account create-token [--write] [--expiry <expiry>]
+  earthly account create-token [--write] [--expiry <expiry>] <token-name>
   ```
 
 ###### Description
