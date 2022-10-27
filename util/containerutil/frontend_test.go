@@ -8,14 +8,15 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"testing"
-
-	"github.com/hashicorp/go-multierror"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
+	"time"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/containerutil"
+	"github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFrontendNew(t *testing.T) {
@@ -121,8 +122,8 @@ func TestFrontendContainerInfo(t *testing.T) {
 
 			testContainers := []string{"test-1", "test-2"}
 			cleanup, err := spawnTestContainers(ctx, tC.binary, testContainers...)
+			t.Cleanup(cleanup)
 			assert.NoError(t, err)
-			defer cleanup()
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
 			assert.NoError(t, err)
@@ -161,8 +162,8 @@ func TestFrontendContainerRemove(t *testing.T) {
 
 			testContainers := []string{"remove-1", "remove-2"}
 			cleanup, err := spawnTestContainers(ctx, tC.binary, testContainers...)
+			t.Cleanup(cleanup)
 			assert.NoError(t, err)
-			defer cleanup()
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
 			assert.NoError(t, err)
@@ -197,8 +198,8 @@ func TestFrontendContainerStop(t *testing.T) {
 
 			testContainers := []string{"stop-1", "stop-2"}
 			cleanup, err := spawnTestContainers(ctx, tC.binary, testContainers...)
+			t.Cleanup(cleanup)
 			assert.NoError(t, err)
-			defer cleanup()
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
 			assert.NoError(t, err)
@@ -232,8 +233,8 @@ func TestFrontendContainerLogs(t *testing.T) {
 
 			testContainers := []string{"logs-1", "logs-2"}
 			cleanup, err := spawnTestContainers(ctx, tC.binary, testContainers...)
+			t.Cleanup(cleanup)
 			assert.NoError(t, err)
-			defer cleanup()
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
 			assert.NoError(t, err)
@@ -242,11 +243,11 @@ func TestFrontendContainerLogs(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Len(t, logs, 2)
 
-			assert.Empty(t, logs[testContainers[0]].Stdout)
-			assert.NotEmpty(t, logs[testContainers[0]].Stderr)
+			assert.Equal(t, "output stream\n", logs[testContainers[0]].Stdout)
+			assert.Equal(t, "error stream\n", logs[testContainers[0]].Stderr)
 
-			assert.Empty(t, logs[testContainers[1]].Stdout)
-			assert.NotEmpty(t, logs[testContainers[1]].Stderr)
+			assert.Equal(t, "output stream\n", logs[testContainers[1]].Stdout)
+			assert.Equal(t, "error stream\n", logs[testContainers[1]].Stderr)
 		})
 	}
 }
@@ -374,7 +375,7 @@ func TestFrontendImageInfo(t *testing.T) {
 
 			cleanup, err := spawnTestImages(ctx, tC.binary, tC.refList...)
 			assert.NoError(t, err)
-			defer cleanup()
+			t.Cleanup(cleanup)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
 			assert.NoError(t, err)
@@ -406,7 +407,7 @@ func TestFrontendImageRemove(t *testing.T) {
 			refList := []string{"remove:1", "remove:2"}
 			cleanup, err := spawnTestImages(ctx, tC.binary, refList...)
 			assert.NoError(t, err)
-			defer cleanup()
+			t.Cleanup(cleanup)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
 			assert.NoError(t, err)
@@ -443,7 +444,7 @@ func TestFrontendImageTag(t *testing.T) {
 			ref := "tag:me"
 			cleanup, err := spawnTestImages(ctx, tC.binary, ref)
 			assert.NoError(t, err)
-			defer cleanup()
+			t.Cleanup(cleanup)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
 			assert.NoError(t, err)
@@ -567,7 +568,7 @@ func TestFrontendVolumeInfo(t *testing.T) {
 			volList := []string{"test1", "test2"}
 			cleanup, err := spawnTestVolumes(ctx, tC.binary, volList...)
 			assert.NoError(t, err)
-			defer cleanup()
+			t.Cleanup(cleanup)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
 			assert.NoError(t, err)
@@ -592,23 +593,96 @@ func isBinaryInstalled(ctx context.Context, binary string) bool {
 	return cmd.Run() == nil
 }
 
+// First, we attempt to stop the containers that may be running.
+// Next, we start the containers
+// After that, we attempt to wait for the containers for up to 20 seconds
+// Then we return
+// Caller is always expected to call cleanup
 func spawnTestContainers(ctx context.Context, feBinary string, names ...string) (func(), error) {
-	var err error
-	for _, name := range names {
-		cmd := exec.CommandContext(ctx, feBinary, "run", "-d", "--name", name, "docker.io/library/nginx:1.21", `-text="test"`)
-		output, createErr := cmd.CombinedOutput()
-		if createErr != nil {
-			// the frontend exists but is non-functional. This is... not likely to work at all.
-			err = multierror.Append(err, errors.Wrap(createErr, string(output)))
-		}
+	removeContainers(ctx, feBinary, names...) // best effort
+	err := startTestContainers(ctx, feBinary, names...)
+	cleanup := func() {
+		removeContainers(ctx, feBinary, names...) // best-effort
 	}
+	if err != nil {
+		return cleanup, err
+	}
+	err = waitForContainers(ctx, feBinary, names...)
+	return cleanup, err
+}
 
-	return func() {
-		for _, name := range names {
-			cmd := exec.CommandContext(ctx, feBinary, "rm", "-f", name)
-			_ = cmd.Run() // Just best effort
-		}
-	}, nil
+func startTestContainers(ctx context.Context, feBinary string, names ...string) error {
+	var err error
+	m := sync.Mutex{}
+	wg := sync.WaitGroup{}
+	for _, name := range names {
+		wg.Add(1)
+		go func(name string) {
+			defer wg.Done()
+			cmd := exec.CommandContext(ctx, feBinary, "run", "-d", "--rm", "--name", name, "docker.io/library/nginx:1.21", "sh", "-c", `echo output stream&&>&2 echo error stream&&sleep 100`)
+			output, createErr := cmd.CombinedOutput()
+			m.Lock()
+			defer m.Unlock()
+			if createErr != nil {
+				// the frontend exists but is non-functional. This is... not likely to work at all.
+				err = multierror.Append(err, errors.Wrap(createErr, string(output)))
+			}
+		}(name)
+	}
+	wg.Wait()
+	return err
+}
+
+func removeContainers(ctx context.Context, feBinary string, names ...string) error {
+	var err error
+	m := sync.Mutex{}
+	wg := sync.WaitGroup{}
+	for _, name := range names {
+		wg.Add(1)
+		go func(name string) {
+			defer wg.Done()
+			removeCmd := exec.CommandContext(ctx, feBinary, "rm", "-f", name)
+			output, removeErr := removeCmd.CombinedOutput()
+			m.Lock()
+			defer m.Unlock()
+			if removeErr != nil {
+				err = multierror.Append(err, fmt.Errorf("failed to remove container %s", name))
+				fmt.Printf("Warning: failed to remove container with name %s: err: %s, output: %s", name, removeErr, output)
+			}
+		}(name)
+	}
+	wg.Wait()
+	return err
+}
+
+func waitForContainers(ctx context.Context, feBinary string, names ...string) error {
+	var err error
+	m := sync.Mutex{}
+	wg := sync.WaitGroup{}
+	for _, name := range names {
+		wg.Add(1)
+		go func(name string) {
+			defer wg.Done()
+			attempts := 0
+			for attempts < 100 {
+				attempts++
+				// docker inspect -f {{.State.Running}} CONTAINERNAME`"=="true"
+				cmd := exec.CommandContext(ctx, feBinary, "inspect", "-f", "{{.State.Running}}", name)
+				output, _ := cmd.CombinedOutput()
+				if strings.Contains(string(output), "true") {
+					break
+				}
+				time.Sleep(time.Millisecond * 200)
+			}
+			m.Lock()
+			defer m.Unlock()
+			if attempts == 1000 {
+				err = multierror.Append(err, fmt.Errorf("failed to wait for container %s to start", name))
+			}
+		}(name)
+	}
+	wg.Wait()
+	return err
 }
 
 func spawnTestImages(ctx context.Context, feBinary string, refs ...string) (func(), error) {
