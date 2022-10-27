@@ -600,10 +600,10 @@ func isBinaryInstalled(ctx context.Context, binary string) bool {
 // Then we return
 // Caller is always expected to call cleanup
 func spawnTestContainers(ctx context.Context, feBinary string, names ...string) (func(), error) {
-	removeContainers(ctx, feBinary, names...) // best effort
+	_ = removeContainers(ctx, feBinary, names...) // best effort
 	err := startTestContainers(ctx, feBinary, names...)
 	cleanup := func() {
-		removeContainers(ctx, feBinary, names...) // best-effort
+		_ = removeContainers(ctx, feBinary, names...) // best-effort
 	}
 	if err != nil {
 		return cleanup, err
