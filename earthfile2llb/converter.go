@@ -42,6 +42,7 @@ import (
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
+
 	"github.com/moby/buildkit/client/llb"
 	dockerimage "github.com/moby/buildkit/exporter/containerimage/image"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
