@@ -661,25 +661,24 @@ func waitForContainers(ctx context.Context, feBinary string, names ...string) er
 	m := sync.Mutex{}
 	wg := sync.WaitGroup{}
 	for _, name := range names {
+		const maxAttempts = 100
 		wg.Add(1)
 		go func(name string) {
 			defer wg.Done()
 			attempts := 0
-			for attempts < 100 {
+			for attempts < maxAttempts {
 				attempts++
 				// docker inspect -f {{.State.Running}} CONTAINERNAME`"=="true"
 				cmd := exec.CommandContext(ctx, feBinary, "inspect", "-f", "{{.State.Running}}", name)
 				output, _ := cmd.CombinedOutput()
 				if strings.Contains(string(output), "true") {
-					break
+					return
 				}
 				time.Sleep(time.Millisecond * 200)
 			}
 			m.Lock()
 			defer m.Unlock()
-			if attempts == 1000 {
-				err = multierror.Append(err, fmt.Errorf("failed to wait for container %s to start", name))
-			}
+			err = multierror.Append(err, fmt.Errorf("failed to wait for container %s to start", name))
 		}(name)
 	}
 	wg.Wait()
