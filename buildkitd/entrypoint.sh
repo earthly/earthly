@@ -267,7 +267,7 @@ do
         # common instance is when something is OOM killed, for instance. This enumerates
         # all those PIDs, and kills them to prevent accidential "ghost" loads.
         if [ "$PID" != "$execpid" ]; then
-            ! ${BUILDKIT_DEBUG} || echo "$(date) | $PID($(cat /proc/$PID/cmdline)) killed" >> /var/log/oom_adj
+            ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) killed" >> /var/log/oom_adj
         fi
     done
 
