@@ -603,7 +603,7 @@ func spawnTestContainers(ctx context.Context, feBinary string, names ...string) 
 	_ = removeContainers(ctx, feBinary, names...) // best effort
 	err := startTestContainers(ctx, feBinary, names...)
 	cleanup := func() {
-		removeContainers(ctx, feBinary, names...) // best-effort
+		_ = removeContainers(ctx, feBinary, names...) // best-effort
 	}
 	if err != nil {
 		return cleanup, err
