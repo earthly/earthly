@@ -691,7 +691,11 @@ func waitForContainers(ctx context.Context, feBinary string, names ...string) er
 				attempts++
 				// docker inspect -f {{.State.Running}} CONTAINERNAME`"=="true"
 				cmd := exec.CommandContext(ctx, feBinary, "inspect", "-f", "{{.State.Running}}", name)
-				output, _ := cmd.CombinedOutput()
+				output, inspectErr := cmd.CombinedOutput()
+				if inspectErr != nil {
+					err = multierror.Append(err, inspectErr)
+					return
+				}
 				if strings.Contains(string(output), "true") {
 					return
 				}
