@@ -268,6 +268,7 @@ do
         # all those PIDs, and kills them to prevent accidential "ghost" loads.
         if [ "$PID" != "$execpid" ]; then
             ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) killed" >> /var/log/oom_adj
+            kill -9 "$PID"
         fi
     done
 
