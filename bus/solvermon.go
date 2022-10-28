@@ -79,7 +79,7 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 			tp := bp.TargetPrinter(
 				meta.TargetID, meta.TargetName, meta.CanonicalTargetName,
 				argsToSlice(meta.OverridingArgs), meta.Platform)
-			_, cp := tp.NextCommandPrinter(operation, vertex.Cached, false, meta.Local, meta.SourceLocation)
+			_, cp := tp.NextCommandPrinter(operation, vertex.Cached, false, meta.Local, meta.SourceLocation, meta.RepoGitURL, meta.RepoGitHash, meta.RepoFileRelToRepo)
 			vm = &vertexMonitor{
 				vertex:    vertex,
 				meta:      meta,

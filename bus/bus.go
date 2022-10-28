@@ -84,12 +84,6 @@ func (b *Bus) messageLoop(ctx context.Context) {
 		b.Close()
 	}()
 	for delta := range b.ch {
-		// if delta.GetDeltaManifest() != nil {
-		// 	fmt.Printf("@#@# Delta manifest: %v\n", delta.GetDeltaManifest())
-		// }
-		// if delta.GetDeltaLog() != nil {
-		// 	fmt.Printf("@#@#@# Delta log %s\n", string(delta.GetDeltaLog().GetLog()))
-		// }
 		b.mu.Lock()
 		b.history = append(b.history, delta)
 		var subs = append([]chan *logstream.Delta{}, b.subs...)

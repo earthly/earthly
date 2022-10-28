@@ -29,22 +29,22 @@ func newTargetPrinter(b *Bus, targetID, platform string) *TargetPrinter {
 }
 
 // NextCommandPrinter creates a new command printer.
-func (tp *TargetPrinter) NextCommandPrinter(command string, cached bool, push bool, local bool, sourceLocation *spec.SourceLocation) (int32, *CommandPrinter) {
+func (tp *TargetPrinter) NextCommandPrinter(command string, cached bool, push bool, local bool, sourceLocation *spec.SourceLocation, repoURL, repoHash, fileRelToRepo string) (int32, *CommandPrinter) {
 	tp.mu.Lock()
 	defer tp.mu.Unlock()
 	index := int32(len(tp.cps))
 	tp.targetDelta(&logstream.DeltaTargetManifest{
 		Commands: map[int32]*logstream.DeltaCommandManifest{
 			index: {
-				Name:      command,
-				Status:    logstream.RunStatus_RUN_STATUS_NOT_STARTED,
-				HasCached: true,
-				IsCached:  cached,
-				HasPush:   true,
-				IsPush:    push,
-				HasLocal:  true,
-				IsLocal:   local,
-				// SourceLocation: sourceLocation, // TODO
+				Name:           command,
+				Status:         logstream.RunStatus_RUN_STATUS_NOT_STARTED,
+				HasCached:      true,
+				IsCached:       cached,
+				HasPush:        true,
+				IsPush:         push,
+				HasLocal:       true,
+				IsLocal:        local,
+				SourceLocation: sourceLocationToProto(repoURL, repoHash, fileRelToRepo, sourceLocation),
 			},
 		},
 	})
@@ -99,4 +99,23 @@ func (tp *TargetPrinter) targetDelta(dtm *logstream.DeltaTargetManifest) {
 			},
 		},
 	})
+}
+
+func sourceLocationToProto(repoURL, repoHash, fileRelToRepo string, sl *spec.SourceLocation) *logstream.SourceLocation {
+	if sl == nil {
+		return nil
+	}
+	file := fileRelToRepo
+	if fileRelToRepo == "" && repoURL == "" {
+		file = sl.File
+	}
+	return &logstream.SourceLocation{
+		RepositoryUrl:  repoURL,
+		RepositoryHash: repoHash,
+		File:           file,
+		StartLine:      int32(sl.StartLine),
+		StartColumn:    int32(sl.StartColumn),
+		EndLine:        int32(sl.EndLine),
+		EndColumn:      int32(sl.EndColumn),
+	}
 }

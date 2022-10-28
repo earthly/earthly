@@ -34,6 +34,9 @@ var (
 		(isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd()))
 )
 
+// TODO(vladaionescu): What to do with interactive mode? We need a way for an external
+//                     process to signal interactive.
+
 type cmdKey struct {
 	targetID string
 	index    int32
@@ -253,9 +256,8 @@ func (d2c *Delta2Cons) processOngoingTick(ctx context.Context) error {
 		return nil
 	}
 	d2c.console.WithPrefix("ongoing").Printf("ongoing TODO\n")
-	// Go through all the commands and find which one is ongoing.
+	// TODO(vladaionescu): Go through all the commands and find which one is ongoing.
 	// Print their targets on the console.
-	// TODO
 	d2c.lastOutputWasOngoingUpdate = true
 	d2c.lastOutputWasProgress = false
 	d2c.lastCommandOutput = nil
@@ -306,12 +308,12 @@ func (d2c *Delta2Cons) shouldPrintProgress(targetID string, index int32, cm *log
 	if !cm.GetHasProgress() {
 		return false
 	}
-	// TODO: Skip some internal progress for non-ansi.
+	// TODO(vladaionescu): Skip some internal progress for non-ansi.
 	minDelta := durationBetweenOngoingUpdates
 	if d2c.lastOutputWasProgress && ansiSupported {
 		minDelta = durationBetweenProgressUpdateIfSame
 	}
-	// TODO
+	// TODO(vladaionescu): Handle sha256 progress in a special manner.
 	// } else if strings.HasPrefix(id, "sha256:") || strings.HasPrefix(id, "extracting sha256:") {
 	// 	minDelta = durationBetweenSha256ProgressUpdate
 	// }
@@ -370,6 +372,3 @@ func (d2c *Delta2Cons) printBuildFailure() {
 	d2c.lastOutputWasProgress = false
 	d2c.lastCommandOutput = nil
 }
-
-// TODO: What to do with interactive mode? We need a way for an external
-//       process to signal interactive.

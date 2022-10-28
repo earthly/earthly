@@ -16,6 +16,9 @@ import (
 // converter to the solver monitor via BuildKit.
 type VertexMeta struct {
 	SourceLocation      *spec.SourceLocation `json:"sl,omitempty"`
+	RepoGitURL          string               `json:"rgu,omitempty"`
+	RepoGitHash         string               `json:"rgh,omitempty"`
+	RepoFileRelToRepo   string               `json:"rfr,omitempty"`
 	TargetID            string               `json:"tid,omitempty"`
 	TargetName          string               `json:"tnm,omitempty"`
 	CanonicalTargetName string               `json:"ctnm,omitempty"`
