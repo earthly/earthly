@@ -616,11 +616,16 @@ func startTestContainers(ctx context.Context, feBinary string, names ...string) 
 	var err error
 	m := sync.Mutex{}
 	wg := sync.WaitGroup{}
+	image := "docker.io/library/nginx:1.21"
+	pullErr := pullImageIfNecessary(ctx, feBinary, image)
+	if pullErr != nil {
+		return fmt.Errorf("failed to pull image %s: %w", image, pullErr)
+	}
 	for _, name := range names {
 		wg.Add(1)
 		go func(name string) {
 			defer wg.Done()
-			cmd := exec.CommandContext(ctx, feBinary, "run", "-d", "--rm", "--name", name, "docker.io/library/nginx:1.21", "sh", "-c", `echo output stream&&>&2 echo error stream&&sleep 100`)
+			cmd := exec.CommandContext(ctx, feBinary, "run", "-d", "--rm", "--name", name, image, "sh", "-c", `echo output stream&&>&2 echo error stream&&sleep 100`)
 			output, createErr := cmd.CombinedOutput()
 			m.Lock()
 			defer m.Unlock()
@@ -634,6 +639,23 @@ func startTestContainers(ctx context.Context, feBinary string, names ...string) 
 	return err
 }
 
+// pullImageIfNecessary will only pull the image if it does not exist locally
+// This helps us avoid unauthenticated rate limits in tests
+func pullImageIfNecessary(ctx context.Context, feBinary string, image string) error {
+	cmd := exec.CommandContext(ctx, feBinary, "inspect", "--type=image", image)
+	_, inspectErr := cmd.CombinedOutput()
+	if inspectErr == nil {
+		// If we are able to inspect the image then it must exist locally
+		return nil
+	}
+	cmd = exec.CommandContext(ctx, feBinary, "pull", image)
+	_, pullErr := cmd.CombinedOutput()
+	if pullErr != nil {
+		return fmt.Errorf("failed to pull image %s: %w", image, pullErr)
+	}
+	return nil
+}
+
 func removeContainers(ctx context.Context, feBinary string, names ...string) error {
 	var err error
 	m := sync.Mutex{}
@@ -643,12 +665,11 @@ func removeContainers(ctx context.Context, feBinary string, names ...string) err
 		go func(name string) {
 			defer wg.Done()
 			removeCmd := exec.CommandContext(ctx, feBinary, "rm", "-f", name)
-			output, removeErr := removeCmd.CombinedOutput()
+			_, removeErr := removeCmd.CombinedOutput()
 			m.Lock()
 			defer m.Unlock()
 			if removeErr != nil {
 				err = multierror.Append(err, fmt.Errorf("failed to remove container %s", name))
-				fmt.Printf("Warning: failed to remove container with name %s: err: %s, output: %s", name, removeErr, output)
 			}
 		}(name)
 	}
