@@ -202,7 +202,8 @@ func (vm *vertexMonitor) printError() bool {
 			errString = fmt.Sprintf(""+
 				"      The%s command\n"+
 				"          %s\n"+
-				"      was terminated because the satellite ran out of memory.",
+				"      was terminated because the build system ran out of memory.\n"+
+				"      If you are using a satellite or other remote buildkit, it is the remote system that ran out of memory.",
 				internalStr, indentOp)
 		default:
 			errString = fmt.Sprintf(""+
