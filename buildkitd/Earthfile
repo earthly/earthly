@@ -12,7 +12,7 @@ buildkitd:
             ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
         END
     ELSE
-        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:bc0317bc6af3ac492fffc8aaacf187c99aba50bb+build
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:4d7c1301fdce48bf9a110d6b65e441dfc2cc52c7+build
     END
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
@@ -46,6 +46,7 @@ buildkitd:
     COPY ../+debugger/earth_debugger /usr/bin/earth_debugger
     COPY ./dockerd-wrapper.sh /var/earthly/dockerd-wrapper.sh
     COPY ./docker-auto-install.sh /var/earthly/docker-auto-install.sh
+    COPY ./oom-adjust.sh.template /bin/oom-adjust.sh.template
 
     ENV EARTHLY_RESET_TMP_DIR=false
     ENV EARTHLY_TMP_DIR=/tmp/earthly

@@ -215,12 +215,21 @@ fi
 export TLS_ENABLED
 
 envsubst </etc/buildkitd.toml.template >/etc/buildkitd.toml
+
+# Set up OOM
+OOM_SCORE_ADJ="${BUILDKIT_OOM_SCORE_ADJ:-0}"
+export OOM_SCORE_ADJ
+
+envsubst "\${OOM_SCORE_ADJ} \${BUILDKIT_DEBUG}" </bin/oom-adjust.sh.template >/bin/oom-adjust.sh
+chmod +x /bin/oom-adjust.sh
+
 echo "BUILDKIT_ROOT_DIR=$BUILDKIT_ROOT_DIR"
 echo "CACHE_SIZE_MB=$CACHE_SIZE_MB"
 echo "BUILDKIT_MAX_PARALLELISM=$BUILDKIT_MAX_PARALLELISM"
 echo "BUILDKIT_LOCAL_REGISTRY_LISTEN_PORT=$BUILDKIT_LOCAL_REGISTRY_LISTEN_PORT"
 echo "EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG"
 echo "CNI_MTU=$CNI_MTU"
+echo "OOM_SCORE_ADJ=$OOM_SCORE_ADJ"
 echo ""
 echo "======== CNI config =========="
 cat /etc/cni/cni-conf.json
@@ -229,8 +238,11 @@ echo ""
 echo "======== Buildkitd config =========="
 cat /etc/buildkitd.toml
 echo "======== End buildkitd config =========="
-
-
+echo ""
+echo "======== OOM Adjust script =========="
+cat /bin/oom-adjust.sh
+echo "======== OOM Adjust script =========="
+echo ""
 echo "Detected container architecture is $(uname -m)"
 
 "$@" &
@@ -248,5 +260,21 @@ do
         fi
         exit "$code"
     fi
+
+    for PID in $(pgrep -P 1)
+    do
+        # Sometimes, child processes can be reparented to the init (this script). One
+        # common instance is when something is OOM killed, for instance. This enumerates
+        # all those PIDs, and kills them to prevent accidential "ghost" loads.
+        if [ "$PID" != "$execpid" ]; then
+            if [ "$OOM_SCORE_ADJ" -ne "0" ]; then
+                ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) killed" >> /var/log/oom_adj
+                kill -9 "$PID"
+            else 
+                ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) was not killed because OOM_SCORE_ADJ was default or not set" >> /var/log/oom_adj
+            fi
+        fi
+    done
+
     sleep 1
 done
