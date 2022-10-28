@@ -111,6 +111,16 @@ func (cp *CommandPrinter) SetProgress(progress int32) {
 	})
 }
 
+// SetCached sets the cached status of the command.
+func (cp *CommandPrinter) SetCached(cached bool) {
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
+	cp.commandDelta(&logstream.DeltaCommandManifest{
+		HasCached: true,
+		IsCached:  cached,
+	})
+}
+
 // SetEnd sets the end time of the command.
 func (cp *CommandPrinter) SetEnd(end time.Time, success bool, canceled bool, errorStr string) {
 	cp.mu.Lock()

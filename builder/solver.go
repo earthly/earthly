@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/earthly/earthly/bus"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/outmon"
@@ -24,6 +25,8 @@ type onFinalArtifactFunc func(context.Context) (string, error)
 
 type solver struct {
 	sm              *outmon.SolverMonitor
+	bus             *bus.Bus
+	useLogstream    bool
 	bkClient        *client.Client
 	attachables     []session.Attachable
 	enttlmnts       []entitlements.Entitlement
@@ -55,11 +58,17 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 		return nil
 	})
 	var vertexFailureOutput string
-	eg.Go(func() error {
-		var err error
-		vertexFailureOutput, err = s.sm.MonitorProgress(ctx, ch, phaseText, false, s.bkClient)
-		return err
-	})
+	if s.useLogstream {
+		eg.Go(func() error {
+			return s.bus.SolverMonitor().MonitorProgress(ctx, ch)
+		})
+	} else {
+		eg.Go(func() error {
+			var err error
+			vertexFailureOutput, err = s.sm.MonitorProgress(ctx, ch, phaseText, false, s.bkClient)
+			return err
+		})
+	}
 	err = eg.Wait()
 	if buildErr != nil {
 		return NewBuildError(buildErr, vertexFailureOutput)

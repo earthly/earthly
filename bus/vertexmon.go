@@ -7,15 +7,16 @@ import (
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
-	"github.com/earthly/earthly/outmon"
+	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
 )
 
 type vertexMonitor struct {
 	vertex    *client.Vertex
-	meta      *outmon.VertexMeta
+	meta      *vertexmeta.VertexMeta
 	operation string
+	tp        *TargetPrinter
 	cp        *CommandPrinter
 
 	isFatalError   bool // If set, this is the root cause of the entire build failure.

@@ -2,10 +2,12 @@ package bus
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"sync"
+	"time"
 
-	"github.com/earthly/earthly/outmon"
+	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/moby/buildkit/client"
 	"github.com/opencontainers/go-digest"
 )
@@ -26,12 +28,31 @@ func newSolverMonitor(b *Bus) *SolverMonitor {
 
 // MonitorProgress processes a channel of buildkit solve statuses.
 func (sm *SolverMonitor) MonitorProgress(ctx context.Context, ch chan *client.SolveStatus) error {
+	returnedCh := make(chan struct{})
+	defer close(returnedCh)
+	closedCh := make(chan struct{})
+	go func() {
+		<-ctx.Done()
+		// Delay closing to allow any pending messages
+		// to be processed.
+		select {
+		case <-returnedCh:
+		case <-time.After(5 * time.Second):
+		}
+		close(closedCh)
+	}()
 	for {
 		select {
-		case <-ctx.Done():
+		case <-closedCh:
 			return ctx.Err()
-		case status := <-ch:
-			return sm.handleBuildkitStatus(ctx, status)
+		case status, ok := <-ch:
+			if !ok {
+				return nil
+			}
+			err := sm.handleBuildkitStatus(ctx, status)
+			if err != nil {
+				return err
+			}
 		}
 	}
 }
@@ -43,19 +64,35 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 	for _, vertex := range status.Vertexes {
 		vm, exists := sm.vertices[vertex.Digest]
 		if !exists {
-			meta, operation := outmon.ParseFromVertexPrefix(vertex.Name)
+			meta, operation := vertexmeta.ParseFromVertexPrefix(vertex.Name)
+			if meta.TargetID == "" {
+				// Fallback for various internal operations,
+				// where there's no Earthly target.
+				meta.TargetID = fmt.Sprintf("_internal:%s", vertex.Digest.String())
+			}
+			if meta.TargetName == "" {
+				meta.TargetName = meta.TargetID
+			}
+			if meta.CanonicalTargetName == "" {
+				meta.CanonicalTargetName = meta.TargetName
+			}
 			tp := bp.TargetPrinter(
-				meta.TargetID, meta.TargetName, meta.CanonicalTargetName, argsToSlice(meta.OverridingArgs), meta.Platform)
+				meta.TargetID, meta.TargetName, meta.CanonicalTargetName,
+				argsToSlice(meta.OverridingArgs), meta.Platform)
 			_, cp := tp.NextCommandPrinter(operation, vertex.Cached, false, meta.Local, meta.SourceLocation)
 			vm = &vertexMonitor{
 				vertex:    vertex,
 				meta:      meta,
 				operation: operation,
+				tp:        tp,
 				cp:        cp,
 			}
 			sm.vertices[vertex.Digest] = vm
 		}
 		vm.vertex = vertex
+		if vertex.Cached {
+			vm.cp.SetCached(true)
+		}
 		if vertex.Started != nil {
 			vm.cp.SetStart(*vertex.Started)
 		}

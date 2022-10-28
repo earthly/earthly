@@ -121,6 +121,13 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Value:       defaultEnvFile,
 			Destination: &app.envFile,
 		},
+		&cli.BoolFlag{
+			Name:        "logstream",
+			EnvVars:     []string{"EARTHLY_LOGSTREAM"},
+			Usage:       "Enable log streaming",
+			Destination: &app.logstream,
+			Hidden:      true, // Internal.
+		},
 	}
 }
 

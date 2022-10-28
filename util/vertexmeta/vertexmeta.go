@@ -1,4 +1,4 @@
-package outmon
+package vertexmeta
 
 import (
 	"encoding/base64"

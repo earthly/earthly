@@ -401,6 +401,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	}
 	builderOpts := builder.Opt{
 		BkClient:                              bkClient,
+		Bus:                                   app.bus,
+		UseLogstream:                          app.logstream,
 		Console:                               app.console,
 		Verbose:                               app.verbose,
 		Attachables:                           attachables,
