@@ -82,7 +82,7 @@ lint-scripts-misc:
         ./release/envcredhelper.sh ./.buildkite/*.sh \
         ./scripts/tests/*.sh \
         ./scripts/*.sh \
-        ./shell_scripts/ 
+        ./shell_scripts/
     RUN shellcheck shell_scripts/*
 
 lint-scripts-auth-test:
