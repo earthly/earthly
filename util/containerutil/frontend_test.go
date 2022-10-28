@@ -693,7 +693,9 @@ func waitForContainers(ctx context.Context, feBinary string, names ...string) er
 				cmd := exec.CommandContext(ctx, feBinary, "inspect", "-f", "{{.State.Running}}", name)
 				output, inspectErr := cmd.CombinedOutput()
 				if inspectErr != nil {
+					m.Lock()
 					err = multierror.Append(err, inspectErr)
+					m.Unlock()
 					return
 				}
 				if strings.Contains(string(output), "true") {
