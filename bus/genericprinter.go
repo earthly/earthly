@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // GenericPrinter is a generic printer for build output unrelated to a specific target.
@@ -35,9 +34,9 @@ func (gp *GenericPrinter) WriteWithTimestamp(dt []byte, ts time.Time) (int, erro
 	gp.bp.b.RawDelta(&logstream.Delta{
 		DeltaTypeOneof: &logstream.Delta_DeltaLog{
 			DeltaLog: &logstream.DeltaLog{
-				TargetId:  fmt.Sprintf("_generic:%s", gp.category),
-				Timestamp: timestamppb.New(ts),
-				Log:       dt,
+				CommandId:          fmt.Sprintf("_generic:%s", gp.category),
+				TimestampUnixNanos: uint64(ts.UnixNano()),
+				Data:               dt,
 			},
 		},
 	})

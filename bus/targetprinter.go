@@ -1,87 +1,37 @@
 package bus
 
 import (
-	"sync"
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
-	"github.com/earthly/earthly/ast/spec"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // TargetPrinter is a build log printer for a target.
 type TargetPrinter struct {
 	b        *Bus
 	targetID string
-	platform string
-
-	mu      sync.Mutex
-	started bool
-	cps     []*CommandPrinter
 }
 
-func newTargetPrinter(b *Bus, targetID, platform string) *TargetPrinter {
+func newTargetPrinter(b *Bus, targetID string) *TargetPrinter {
 	return &TargetPrinter{
 		b:        b,
 		targetID: targetID,
-		platform: platform,
 	}
 }
 
-// NextCommandPrinter creates a new command printer.
-func (tp *TargetPrinter) NextCommandPrinter(command string, cached bool, push bool, local bool, sourceLocation *spec.SourceLocation, repoURL, repoHash, fileRelToRepo string) (int32, *CommandPrinter) {
-	tp.mu.Lock()
-	defer tp.mu.Unlock()
-	index := int32(len(tp.cps))
+func (tp *TargetPrinter) SetStart(start time.Time) {
 	tp.targetDelta(&logstream.DeltaTargetManifest{
-		Commands: map[int32]*logstream.DeltaCommandManifest{
-			index: {
-				Name:           command,
-				Status:         logstream.RunStatus_RUN_STATUS_NOT_STARTED,
-				HasCached:      true,
-				IsCached:       cached,
-				HasPush:        true,
-				IsPush:         push,
-				HasLocal:       true,
-				IsLocal:        local,
-				SourceLocation: sourceLocationToProto(repoURL, repoHash, fileRelToRepo, sourceLocation),
-			},
-		},
-	})
-	cp := newCommandPrinter(tp.b, tp, tp.targetID, index, cached, push, local)
-	tp.cps = append(tp.cps, cp)
-	return int32(len(tp.cps)), cp
-}
-
-// CommandPrinter returns a command printer for a given index.
-func (tp *TargetPrinter) CommandPrinter(index int32) *CommandPrinter {
-	tp.mu.Lock()
-	defer tp.mu.Unlock()
-	return tp.cps[index]
-}
-
-func (tp *TargetPrinter) maybeSetStart(start time.Time) {
-	tp.mu.Lock()
-	defer tp.mu.Unlock()
-	if tp.started {
-		tp.targetDelta(&logstream.DeltaTargetManifest{
-			Status: logstream.RunStatus_RUN_STATUS_IN_PROGRESS,
-		})
-		return
-	}
-	tp.started = true
-	tp.targetDelta(&logstream.DeltaTargetManifest{
-		Status:    logstream.RunStatus_RUN_STATUS_IN_PROGRESS,
-		StartedAt: timestamppb.New(start),
+		Status:             logstream.RunStatus_RUN_STATUS_IN_PROGRESS,
+		StartedAtUnixNanos: uint64(start.UnixNano()),
 	})
 }
 
-func (tp *TargetPrinter) setEnd(end time.Time, status logstream.RunStatus) {
-	tp.mu.Lock()
-	defer tp.mu.Unlock()
+// SetEnd sets the end time of the target.
+func (tp *TargetPrinter) SetEnd(end time.Time, status logstream.RunStatus, finalPlatform string) {
 	tp.targetDelta(&logstream.DeltaTargetManifest{
-		Status:  status,
-		EndedAt: timestamppb.New(end),
+		Status:           status,
+		EndedAtUnixNanos: uint64(end.UnixNano()),
+		FinalPlatform:    finalPlatform,
 	})
 }
 
@@ -99,23 +49,4 @@ func (tp *TargetPrinter) targetDelta(dtm *logstream.DeltaTargetManifest) {
 			},
 		},
 	})
-}
-
-func sourceLocationToProto(repoURL, repoHash, fileRelToRepo string, sl *spec.SourceLocation) *logstream.SourceLocation {
-	if sl == nil {
-		return nil
-	}
-	file := fileRelToRepo
-	if fileRelToRepo == "" && repoURL == "" {
-		file = sl.File
-	}
-	return &logstream.SourceLocation{
-		RepositoryUrl:  repoURL,
-		RepositoryHash: repoHash,
-		File:           file,
-		StartLine:      int32(sl.StartLine),
-		StartColumn:    int32(sl.StartColumn),
-		EndLine:        int32(sl.EndLine),
-		EndColumn:      int32(sl.EndColumn),
-	}
 }

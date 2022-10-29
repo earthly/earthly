@@ -34,51 +34,53 @@ func ApplyDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error)
 			return nil, fmt.Errorf("unsupported manifest version %d", m2.GetVersion())
 		}
 		m.Version = m2.GetVersion()
-		m.CreatedAt = m2.GetCreatedAt()
-		m.StartedAt = m2.GetStartedAt()
-		m.EndedAt = m2.GetEndedAt()
+		m.CreatedAtUnixNanos = m2.GetCreatedAtUnixNanos()
+		m.StartedAtUnixNanos = m2.GetStartedAtUnixNanos()
+		m.EndedAtUnixNanos = m2.GetEndedAtUnixNanos()
 		m.Status = m2.GetStatus()
 		m.MainTarget = m2.GetMainTarget()
 		m.Failure = m2.GetFailure()
 		m.UserId = m2.GetUserId()
 		m.OrgId = m2.GetOrgId()
 		m.ProjectId = m2.GetProjectId()
-		newTargets := make(map[string]*pb.TargetManifest)
+		m.Targets = make(map[string]*pb.TargetManifest)
 		for targetID, t2 := range m2.GetTargets() {
-			newTargets[targetID] = &pb.TargetManifest{
-				Name:          t2.GetName(),
-				CanonicalName: t2.GetCanonicalName(),
-				OverrideArgs:  append([]string{}, t2.GetOverrideArgs()...),
-				Platform:      t2.GetPlatform(),
-				Status:        t2.GetStatus(),
-				StartedAt:     t2.GetStartedAt(),
-				EndedAt:       t2.GetEndedAt(),
-				Commands:      make([]*pb.CommandManifest, len(t2.GetCommands())),
-			}
-			for index, c2 := range t2.GetCommands() {
-				newTargets[targetID].Commands[index] = &pb.CommandManifest{
-					Name:           c2.GetName(),
-					Status:         c2.GetStatus(),
-					IsCached:       c2.GetIsCached(),
-					IsPush:         c2.GetIsPush(),
-					IsLocal:        c2.GetIsLocal(),
-					StartedAt:      c2.GetStartedAt(),
-					EndedAt:        c2.GetEndedAt(),
-					HasProgress:    c2.GetHasProgress(),
-					Progress:       c2.GetProgress(),
-					ErrorMessage:   c2.GetErrorMessage(),
-					SourceLocation: c2.GetSourceLocation(),
-				}
+			m.Targets[targetID] = &pb.TargetManifest{
+				Name:               t2.GetName(),
+				CanonicalName:      t2.GetCanonicalName(),
+				OverrideArgs:       append([]string{}, t2.GetOverrideArgs()...),
+				InitialPlatform:    t2.GetInitialPlatform(),
+				FinalPlatform:      t2.GetFinalPlatform(),
+				Status:             t2.GetStatus(),
+				StartedAtUnixNanos: t2.GetStartedAtUnixNanos(),
+				EndedAtUnixNanos:   t2.GetEndedAtUnixNanos(),
 			}
 		}
-		m.Targets = newTargets
+		m.Commands = make(map[string]*pb.CommandManifest)
+		for commandID, c2 := range m2.GetCommands() {
+			m.Commands[commandID] = &pb.CommandManifest{
+				Name:               c2.GetName(),
+				TargetId:           c2.GetTargetId(),
+				Platform:           c2.GetPlatform(),
+				Status:             c2.GetStatus(),
+				IsCached:           c2.GetIsCached(),
+				IsPush:             c2.GetIsPush(),
+				IsLocal:            c2.GetIsLocal(),
+				StartedAtUnixNanos: c2.GetStartedAtUnixNanos(),
+				EndedAtUnixNanos:   c2.GetEndedAtUnixNanos(),
+				HasProgress:        c2.GetHasProgress(),
+				Progress:           c2.GetProgress(),
+				ErrorMessage:       c2.GetErrorMessage(),
+				SourceLocation:     c2.GetSourceLocation(),
+			}
+		}
 	case *pb.DeltaManifest_Fields:
 		f := dm.GetFields()
-		if f.GetStartedAt().IsValid() {
-			m.StartedAt = f.GetStartedAt()
+		if f.GetStartedAtUnixNanos() != 0 {
+			m.StartedAtUnixNanos = f.GetStartedAtUnixNanos()
 		}
-		if f.GetEndedAt().IsValid() {
-			m.EndedAt = f.GetEndedAt()
+		if f.GetEndedAtUnixNanos() != 0 {
+			m.EndedAtUnixNanos = f.GetEndedAtUnixNanos()
 		}
 		if f.GetStatus() != pb.RunStatus_RUN_STATUS_UNKNOWN {
 			m.Status = f.GetStatus()
@@ -95,6 +97,7 @@ func ApplyDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error)
 				t = &pb.TargetManifest{}
 				m.Targets[targetID] = t
 			}
+
 			if t2.GetName() != "" {
 				t.Name = t2.GetName()
 			}
@@ -104,58 +107,70 @@ func ApplyDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error)
 			if len(t2.GetOverrideArgs()) > 0 {
 				t.OverrideArgs = append([]string{}, t2.GetOverrideArgs()...)
 			}
-			if t2.GetPlatform() != "" {
-				t.Platform = t2.GetPlatform()
+			if t2.GetInitialPlatform() != "" {
+				t.InitialPlatform = t2.GetInitialPlatform()
+			}
+			if t2.GetFinalPlatform() != "" {
+				t.FinalPlatform = t2.GetFinalPlatform()
 			}
 			if t2.GetStatus() != pb.RunStatus_RUN_STATUS_UNKNOWN {
 				t.Status = t2.GetStatus()
 			}
-			if t2.GetStartedAt().IsValid() {
-				t.StartedAt = t2.GetStartedAt()
+			if t2.GetStartedAtUnixNanos() != 0 {
+				t.StartedAtUnixNanos = t2.GetStartedAtUnixNanos()
 			}
-			if t2.GetEndedAt().IsValid() {
-				t.EndedAt = t2.GetEndedAt()
+			if t2.GetEndedAtUnixNanos() != 0 {
+				t.EndedAtUnixNanos = t2.GetEndedAtUnixNanos()
 			}
-			for index, c2 := range t2.GetCommands() {
-				if index >= int32(len(t.Commands)) {
-					for i := int32(len(t.Commands)); i <= index; i++ {
-						t.Commands = append(t.Commands, &pb.CommandManifest{})
-					}
-				}
-				c := t.Commands[index]
-				if c2.GetName() != "" {
-					c.Name = c2.GetName()
-				}
-				if c2.GetStatus() != pb.RunStatus_RUN_STATUS_UNKNOWN {
-					c.Status = c2.GetStatus()
-				}
-				if c2.GetHasCached() {
-					c.IsCached = c2.GetIsCached()
-				}
-				if c2.GetHasPush() {
-					c.IsPush = c2.GetIsPush()
-				}
-				if c2.GetHasLocal() {
-					c.IsLocal = c2.GetIsLocal()
-				}
-				if c2.GetStartedAt().IsValid() {
-					c.StartedAt = c2.GetStartedAt()
-				}
-				if c2.GetEndedAt().IsValid() {
-					c.EndedAt = c2.GetEndedAt()
-				}
-				if c2.GetHasHasProgress() {
-					c.HasProgress = c2.GetHasProgress()
-				}
-				if c2.GetHasProgress() {
-					c.Progress = c2.GetProgress()
-				}
-				if c2.GetErrorMessage() != "" {
-					c.ErrorMessage = c2.GetErrorMessage()
-				}
-				if c2.GetHasSourceLocation() {
-					c.SourceLocation = c2.GetSourceLocation()
-				}
+		}
+		for commandID, c2 := range f.GetCommands() {
+			if m.Commands == nil {
+				m.Commands = make(map[string]*pb.CommandManifest)
+			}
+			c, ok := m.Commands[commandID]
+			if !ok {
+				c = &pb.CommandManifest{}
+				m.Commands[commandID] = c
+			}
+
+			if c2.GetName() != "" {
+				c.Name = c2.GetName()
+			}
+			if c2.GetTargetId() != "" {
+				c.TargetId = c2.GetTargetId()
+			}
+			if c2.GetPlatform() != "" {
+				c.Platform = c2.GetPlatform()
+			}
+			if c2.GetStatus() != pb.RunStatus_RUN_STATUS_UNKNOWN {
+				c.Status = c2.GetStatus()
+			}
+			if c2.GetHasCached() {
+				c.IsCached = c2.GetIsCached()
+			}
+			if c2.GetHasPush() {
+				c.IsPush = c2.GetIsPush()
+			}
+			if c2.GetHasLocal() {
+				c.IsLocal = c2.GetIsLocal()
+			}
+			if c2.GetStartedAtUnixNanos() != 0 {
+				c.StartedAtUnixNanos = c2.GetStartedAtUnixNanos()
+			}
+			if c2.GetEndedAtUnixNanos() != 0 {
+				c.EndedAtUnixNanos = c2.GetEndedAtUnixNanos()
+			}
+			if c2.GetHasHasProgress() {
+				c.HasProgress = c2.GetHasProgress()
+			}
+			if c2.GetHasProgress() {
+				c.Progress = c2.GetProgress()
+			}
+			if c2.GetErrorMessage() != "" {
+				c.ErrorMessage = c2.GetErrorMessage()
+			}
+			if c2.GetHasSourceLocation() {
+				c.SourceLocation = c2.GetSourceLocation()
 			}
 		}
 	}

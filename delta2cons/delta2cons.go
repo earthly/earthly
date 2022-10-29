@@ -37,10 +37,6 @@ var (
 // TODO(vladaionescu): What to do with interactive mode? We need a way for an external
 //                     process to signal interactive.
 
-type cmdKey struct {
-	targetID string
-	index    int32
-}
 type command struct {
 	lastProgress   time.Time
 	lastPercentage int32
@@ -63,7 +59,7 @@ type Delta2Cons struct {
 	ongoingTicker              *time.Ticker
 	ongoingTick                time.Duration
 	manifest                   *logstream.RunManifest
-	commands                   map[cmdKey]*command
+	commands                   map[string]*command
 }
 
 // New creates a new Delta2Cons.
@@ -83,7 +79,7 @@ func New(console conslogging.ConsoleLogger, verbose bool, disableOngoingUpdates 
 		ongoingTicker:         ongoingTicker,
 		ongoingTick:           ongoingTick,
 		manifest:              &logstream.RunManifest{},
-		commands:              make(map[cmdKey]*command),
+		commands:              make(map[string]*command),
 	}
 }
 
@@ -118,6 +114,14 @@ func (d2c *Delta2Cons) PipeDeltasToConsole(ctx context.Context, ch chan *logstre
 			if err != nil {
 				return errors.Wrap(err, "failed to apply delta")
 			}
+			// TODO(vladaionescu): Make debugging a flag.
+			// switch d := delta.GetDeltaTypeOneof().(type) {
+			// case *logstream.Delta_DeltaManifest:
+			// 	fmt.Printf("@# delta manifest: %+v\n", d)
+			// case *logstream.Delta_DeltaLog:
+			// 	fmt.Printf("@# delta log: %+v\n", d)
+			// default:
+			// }
 			switch d := delta.GetDeltaTypeOneof().(type) {
 			case *logstream.Delta_DeltaManifest:
 				err := d2c.handleDeltaManifest(ctx, d.DeltaManifest)
@@ -142,28 +146,27 @@ func (d2c *Delta2Cons) PipeDeltasToConsole(ctx context.Context, ch chan *logstre
 }
 
 func (d2c *Delta2Cons) handleDeltaManifest(ctx context.Context, dm *logstream.DeltaManifest) error {
-	if dm.GetFields() == nil {
-		return nil
-	}
-	if dm.GetFields().GetTargets() == nil {
-		return nil
-	}
-	for targetID, t := range dm.GetFields().GetTargets() {
-		for index, cmd := range t.GetCommands() {
-			tm, ok := d2c.manifest.GetTargets()[targetID]
+	for commandID, cmd := range dm.GetFields().GetCommands() {
+		cm, ok := d2c.manifest.GetCommands()[commandID]
+		if !ok {
+			return fmt.Errorf("command %q not found in manifest", commandID)
+		}
+		var tm *logstream.TargetManifest
+		if cm.GetTargetId() != "" {
+			var ok bool
+			tm, ok = d2c.manifest.GetTargets()[cm.GetTargetId()]
 			if !ok {
-				return fmt.Errorf("target %s not found in manifest", targetID)
+				return fmt.Errorf("target %s not found in manifest", cm.GetTargetId())
 			}
-			cm := tm.GetCommands()[index]
-			if cmd.GetStatus() == logstream.RunStatus_RUN_STATUS_IN_PROGRESS {
-				d2c.printHeader(d2c.console, targetID, index, tm, cm)
-			}
-			if cmd.GetHasHasProgress() && d2c.shouldPrintProgress(targetID, index, cm) {
-				d2c.printProgress(targetID, index, cm)
-			}
-			if cmd.GetStatus() == logstream.RunStatus_RUN_STATUS_FAILURE {
-				d2c.printError(targetID, index, tm, cm)
-			}
+		}
+		if cmd.GetStatus() == logstream.RunStatus_RUN_STATUS_IN_PROGRESS {
+			d2c.printHeader(d2c.console, cm.GetTargetId(), commandID, tm, cm)
+		}
+		if cmd.GetHasHasProgress() && d2c.shouldPrintProgress(cm.GetTargetId(), commandID, cm) {
+			d2c.printProgress(cm.GetTargetId(), commandID, cm)
+		}
+		if cmd.GetStatus() == logstream.RunStatus_RUN_STATUS_FAILURE {
+			d2c.printError(cm.GetTargetId(), commandID, tm, cm)
 		}
 	}
 	if dm.GetFields().GetHasFailure() {
@@ -172,12 +175,11 @@ func (d2c *Delta2Cons) handleDeltaManifest(ctx context.Context, dm *logstream.De
 	return nil
 }
 
-func (d2c *Delta2Cons) getCommand(targetID string, index int32) *command {
-	key := cmdKey{targetID: targetID, index: index}
-	cmd, ok := d2c.commands[key]
+func (d2c *Delta2Cons) getCommand(commandID string) *command {
+	cmd, ok := d2c.commands[commandID]
 	if !ok {
 		cmd = &command{}
-		d2c.commands[key] = cmd
+		d2c.commands[commandID] = cmd
 	}
 	return cmd
 }
@@ -197,12 +199,12 @@ func (d2c *Delta2Cons) handleDeltaLog(ctx context.Context, dl *logstream.DeltaLo
 		}
 		c = c.WithPrefixAndSalt(tm.GetName(), dl.GetTargetId())
 	}
-	cmd := d2c.getCommand(dl.GetTargetId(), dl.GetCommandIndex())
+	cmd := d2c.getCommand(dl.GetCommandId())
 
 	sameAsLast := (!d2c.lastOutputWasOngoingUpdate &&
 		!d2c.lastOutputWasProgress &&
 		d2c.lastCommandOutput == cmd)
-	output := dl.GetLog()
+	output := dl.GetData()
 	printOutput := make([]byte, 0, len(cmd.openLine)+len(output)+10)
 	if bytes.HasPrefix(output, []byte{'\n'}) && len(cmd.openLine) > 0 && !cmd.lastOpenLineSkipped {
 		// Optimization for cases where ansi control sequences are not supported:
@@ -264,13 +266,17 @@ func (d2c *Delta2Cons) processOngoingTick(ctx context.Context) error {
 	return nil
 }
 
-func (d2c *Delta2Cons) printHeader(c conslogging.ConsoleLogger, targetID string, index int32, tm *logstream.TargetManifest, cm *logstream.CommandManifest) {
-	c = c.WithPrefixAndSalt(tm.GetName(), targetID)
-	var metaParts []string
-	if tm.GetPlatform() != "" {
-		metaParts = append(metaParts, tm.GetPlatform())
+func (d2c *Delta2Cons) printHeader(c conslogging.ConsoleLogger, targetID string, commandID string, tm *logstream.TargetManifest, cm *logstream.CommandManifest) {
+	if targetID != "" {
+		c = c.WithPrefixAndSalt(tm.GetName(), targetID)
+	} else {
+		c = c.WithPrefixAndSalt(commandID, commandID)
 	}
-	if tm.GetOverrideArgs() != nil {
+	var metaParts []string
+	if cm.GetPlatform() != "" {
+		metaParts = append(metaParts, cm.GetPlatform())
+	}
+	if tm != nil && tm.GetOverrideArgs() != nil {
 		metaParts = append(metaParts, strings.Join(tm.GetOverrideArgs(), " "))
 	}
 	if len(metaParts) > 0 {
@@ -289,7 +295,16 @@ func (d2c *Delta2Cons) printHeader(c conslogging.ConsoleLogger, targetID string,
 	d2c.lastCommandOutput = nil
 }
 
-func (d2c *Delta2Cons) printProgress(targetID string, index int32, cm *logstream.CommandManifest) {
+func (d2c *Delta2Cons) printProgress(targetID string, commandID string, cm *logstream.CommandManifest) {
+	c := d2c.console
+	if targetID != "" {
+		tm, ok := d2c.manifest.GetTargets()[targetID]
+		if ok {
+			c = c.WithPrefixAndSalt(tm.GetName(), targetID)
+		}
+	} else {
+		c = c.WithPrefixAndSalt(commandID, commandID)
+	}
 	builder := make([]string, 0, 2)
 	if d2c.lastOutputWasProgress {
 		builder = append(builder, string(ansiUp))
@@ -298,13 +313,13 @@ func (d2c *Delta2Cons) printProgress(targetID string, index int32, cm *logstream
 	builder = append(builder, fmt.Sprintf(
 		"[%s] %3d%% %s%s\n",
 		progressBar, cm.GetProgress(), cm.GetName(), string(ansiEraseRestLine)))
-	d2c.console.PrintBytes([]byte(strings.Join(builder, "")))
+	c.PrintBytes([]byte(strings.Join(builder, "")))
 	d2c.lastOutputWasOngoingUpdate = false
 	d2c.lastOutputWasProgress = (cm.GetProgress() != 100)
 	d2c.lastCommandOutput = nil
 }
 
-func (d2c *Delta2Cons) shouldPrintProgress(targetID string, index int32, cm *logstream.CommandManifest) bool {
+func (d2c *Delta2Cons) shouldPrintProgress(targetID string, commandID string, cm *logstream.CommandManifest) bool {
 	if !cm.GetHasProgress() {
 		return false
 	}
@@ -317,7 +332,7 @@ func (d2c *Delta2Cons) shouldPrintProgress(targetID string, index int32, cm *log
 	// } else if strings.HasPrefix(id, "sha256:") || strings.HasPrefix(id, "extracting sha256:") {
 	// 	minDelta = durationBetweenSha256ProgressUpdate
 	// }
-	cmd := d2c.getCommand(targetID, index)
+	cmd := d2c.getCommand(commandID)
 	lastProgress := cmd.lastProgress
 	if time.Since(lastProgress) < minDelta && cm.GetProgress() < 100 {
 		return false
@@ -330,8 +345,13 @@ func (d2c *Delta2Cons) shouldPrintProgress(targetID string, index int32, cm *log
 	return true
 }
 
-func (d2c *Delta2Cons) printError(targetID string, index int32, tm *logstream.TargetManifest, cm *logstream.CommandManifest) {
-	c := d2c.console.WithPrefixAndSalt(tm.GetName(), targetID)
+func (d2c *Delta2Cons) printError(targetID string, commandID string, tm *logstream.TargetManifest, cm *logstream.CommandManifest) {
+	c := d2c.console
+	if targetID != "" {
+		c = c.WithPrefixAndSalt(tm.GetName(), targetID)
+	} else {
+		c = c.WithPrefixAndSalt(commandID, commandID)
+	}
 	c.Printf("%s\n", cm.GetErrorMessage())
 	c.VerbosePrintf("Overriding args used: %s\n", strings.Join(tm.GetOverrideArgs(), " "))
 	d2c.lastOutputWasOngoingUpdate = false
@@ -348,25 +368,25 @@ func (d2c *Delta2Cons) printBuildFailure() {
 	var cm *logstream.CommandManifest
 	if f.GetTargetId() != "" {
 		tm = d2c.manifest.GetTargets()[f.GetTargetId()]
-		if f.GetHasCommandIndex() {
-			cm = tm.GetCommands()[f.GetCommandIndex()]
-		}
+	}
+	if f.GetCommandId() != "" {
+		cm = d2c.manifest.GetCommands()[f.GetCommandId()]
 	}
 	c := d2c.console.WithFailed(true)
-	c.Printf("Repeating the failure error...\n")
 	if tm != nil {
 		c = c.WithPrefixAndSalt(tm.GetName(), f.GetTargetId())
-		if cm != nil {
-			d2c.printHeader(c, f.GetTargetId(), f.GetCommandIndex(), tm, cm)
-		}
+	} else {
+		c = c.WithPrefixAndSalt(f.GetCommandId(), f.GetCommandId())
 	}
+	c.Printf("Repeating the failure error...\n")
+	d2c.printHeader(c, f.GetTargetId(), f.GetCommandId(), tm, cm)
 	if len(f.GetOutput()) > 0 {
 		c.PrintBytes(f.GetOutput())
 	} else {
 		c.Printf("[no output]\n")
 	}
-	if f.GetSummary() != "" {
-		c.Printf("%s\n", f.GetSummary())
+	if f.GetErrorMessage() != "" {
+		c.Printf("%s\n", f.GetErrorMessage())
 	}
 	d2c.lastOutputWasOngoingUpdate = false
 	d2c.lastOutputWasProgress = false

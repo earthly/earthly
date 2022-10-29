@@ -7,41 +7,32 @@ import (
 	"github.com/armon/circbuf"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const tailErrorBufferSizeBytes = 80 * 1024 // About as much as 1024 lines of 80 chars each.
 
 // CommandPrinter is a build log printer for a command.
 type CommandPrinter struct {
-	b        *Bus
-	tp       *TargetPrinter
-	targetID string
-	index    int32
-	cached   bool
-	push     bool
-	local    bool
+	b         *Bus
+	commandID string
+	targetID  string
 
 	tailOutput *circbuf.Buffer
 
-	mu          sync.Mutex
-	started     bool
-	hasProgress bool
+	mu           sync.Mutex
+	started      bool
+	lastProgress int32
 }
 
-func newCommandPrinter(b *Bus, tp *TargetPrinter, targetID string, index int32, cached bool, push bool, local bool) *CommandPrinter {
+func newCommandPrinter(b *Bus, commandID string, targetID string) *CommandPrinter {
 	to, err := circbuf.NewBuffer(tailErrorBufferSizeBytes)
 	if err != nil {
 		panic(errors.Wrap(err, "failed to create tail buffer"))
 	}
 	return &CommandPrinter{
 		b:          b,
-		tp:         tp,
+		commandID:  commandID,
 		targetID:   targetID,
-		index:      index,
-		cached:     cached,
-		push:       push,
-		local:      local,
 		tailOutput: to,
 	}
 }
@@ -57,11 +48,11 @@ func (cp *CommandPrinter) Write(dt []byte, ts time.Time, stream int32) (int, err
 	cp.b.RawDelta(&logstream.Delta{
 		DeltaTypeOneof: &logstream.Delta_DeltaLog{
 			DeltaLog: &logstream.DeltaLog{
-				TargetId:     cp.targetID,
-				CommandIndex: cp.index,
-				Stream:       stream,
-				Timestamp:    timestamppb.New(ts),
-				Log:          dt,
+				TargetId:           cp.targetID,
+				CommandId:          cp.commandID,
+				Stream:             stream,
+				TimestampUnixNanos: uint64(ts.UnixNano()),
+				Data:               dt,
 			},
 		},
 	})
@@ -75,11 +66,6 @@ func (cp *CommandPrinter) TailOutput() []byte {
 	return cp.tailOutput.Bytes()
 }
 
-// Index returns the index of the command.
-func (cp *CommandPrinter) Index() int32 {
-	return cp.index
-}
-
 // SetStart sets the start time of the command.
 func (cp *CommandPrinter) SetStart(start time.Time) {
 	cp.mu.Lock()
@@ -89,26 +75,24 @@ func (cp *CommandPrinter) SetStart(start time.Time) {
 	}
 	cp.started = true
 	cp.commandDelta(&logstream.DeltaCommandManifest{
-		StartedAt: timestamppb.New(start),
-		Status:    logstream.RunStatus_RUN_STATUS_IN_PROGRESS,
+		StartedAtUnixNanos: uint64(start.UnixNano()),
+		Status:             logstream.RunStatus_RUN_STATUS_IN_PROGRESS,
 	})
-	cp.tp.maybeSetStart(start)
 }
 
 // SetProgress sets the progress of the command.
 func (cp *CommandPrinter) SetProgress(progress int32) {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
-	if !cp.hasProgress {
-		cp.commandDelta(&logstream.DeltaCommandManifest{
-			HasHasProgress: true,
-			HasProgress:    true,
-		})
+	if cp.lastProgress == progress {
+		return
 	}
-	cp.hasProgress = true
 	cp.commandDelta(&logstream.DeltaCommandManifest{
-		Progress: progress,
+		HasHasProgress: true,
+		HasProgress:    true,
+		Progress:       progress,
 	})
+	cp.lastProgress = progress
 }
 
 // SetCached sets the cached status of the command.
@@ -135,11 +119,10 @@ func (cp *CommandPrinter) SetEnd(end time.Time, success bool, canceled bool, err
 		status = logstream.RunStatus_RUN_STATUS_FAILURE
 	}
 	cp.commandDelta(&logstream.DeltaCommandManifest{
-		Status:       status,
-		ErrorMessage: errorStr,
-		EndedAt:      timestamppb.New(end),
+		Status:           status,
+		ErrorMessage:     errorStr,
+		EndedAtUnixNanos: uint64(end.UnixNano()),
 	})
-	cp.tp.setEnd(end, status)
 }
 
 func (cp *CommandPrinter) commandDelta(dcm *logstream.DeltaCommandManifest) {
@@ -148,12 +131,8 @@ func (cp *CommandPrinter) commandDelta(dcm *logstream.DeltaCommandManifest) {
 			DeltaManifest: &logstream.DeltaManifest{
 				DeltaManifestOneof: &logstream.DeltaManifest_Fields{
 					Fields: &logstream.DeltaManifest_FieldsDelta{
-						Targets: map[string]*logstream.DeltaTargetManifest{
-							cp.targetID: {
-								Commands: map[int32]*logstream.DeltaCommandManifest{
-									cp.index: dcm,
-								},
-							},
+						Commands: map[string]*logstream.DeltaCommandManifest{
+							cp.commandID: dcm,
 						},
 					},
 				},

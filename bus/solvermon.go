@@ -2,7 +2,6 @@ package bus
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -65,21 +64,26 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 		vm, exists := sm.vertices[vertex.Digest]
 		if !exists {
 			meta, operation := vertexmeta.ParseFromVertexPrefix(vertex.Name)
-			if meta.TargetID == "" {
-				// Fallback for various internal operations,
-				// where there's no Earthly target.
-				meta.TargetID = fmt.Sprintf("_internal:%s", vertex.Digest.String())
-			}
-			if meta.TargetName == "" {
-				meta.TargetName = meta.TargetID
-			}
 			if meta.CanonicalTargetName == "" {
 				meta.CanonicalTargetName = meta.TargetName
 			}
-			tp := bp.TargetPrinter(
-				meta.TargetID, meta.TargetName, meta.CanonicalTargetName,
-				argsToSlice(meta.OverridingArgs), meta.Platform)
-			_, cp := tp.NextCommandPrinter(operation, vertex.Cached, false, meta.Local, meta.SourceLocation, meta.RepoGitURL, meta.RepoGitHash, meta.RepoFileRelToRepo)
+			var tp *TargetPrinter
+			if meta.TargetID != "" && meta.TargetName != "" {
+				var ok bool
+				tp, ok = bp.TargetPrinter(meta.TargetID)
+				if !ok {
+					tp = bp.NewTargetPrinter(
+						meta.TargetID, meta.TargetName, meta.CanonicalTargetName,
+						argsToSlice(meta.OverridingArgs), meta.Platform)
+					// TODO(vladaionescu): All the target printers should get
+					//                     SetStart and SetEnd appropriately.
+				}
+			}
+			push := false // TODO(vladaionescu): Support push.
+			cp := bp.NewCommandPrinter(
+				vertex.Digest.String(), operation, meta.TargetID, meta.Platform,
+				vertex.Cached, push, meta.Local, meta.SourceLocation,
+				meta.RepoGitURL, meta.RepoGitHash, meta.RepoFileRelToRepo)
 			vm = &vertexMonitor{
 				vertex:    vertex,
 				meta:      meta,
@@ -105,7 +109,7 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 			if vm.isFatalError {
 				// Run this at the end so that we capture any additional log lines.
 				defer bp.SetFatalError(
-					*vertex.Completed, vm.meta.TargetID, true, vm.cp.Index(),
+					*vertex.Completed, vm.meta.TargetID, vm.vertex.Digest.String(),
 					vm.fatalErrorType, vm.errorStr)
 			}
 		}
