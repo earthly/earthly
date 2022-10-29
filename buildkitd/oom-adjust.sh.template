@@ -1,0 +1,29 @@
+#! /bin/sh
+
+set -e
+
+if [ "${OOM_SCORE_ADJ}" -eq "0" ]; then
+    exit 0
+fi
+
+for PID in $(pidof buildkit-runc)
+do
+    PID_NAME=$(cat /proc/"$PID"/cmdline)
+    ! "${BUILDKIT_DEBUG}" || echo "$(date) | Checking $PID($PID_NAME)..." >> /var/log/oom_adj
+
+    if [ "$PID_NAME" = "buildkit-runcinit" ]; then
+        ! "${BUILDKIT_DEBUG}" || echo "$(date) |   $PID was buildkit-runcinit, ignoring" >> /var/log/oom_adj
+        continue
+    fi
+
+    #childpids=$(pgrep -P "$PID" | xargs)
+    for CHILD_PID in $(pgrep -P "$PID")
+    do
+        ! "${BUILDKIT_DEBUG}" || echo "$(date) |   $PID has child: $CHILD_PID($(cat /proc/"$CHILD_PID"/cmdline)) with oom_score_adj: $(cat /proc/"$CHILD_PID"/oom_score_adj)" >> /var/log/oom_adj
+    done
+
+    ! "${BUILDKIT_DEBUG}" || echo "$(date) |   Adjusting pid $PID oom_score_adj to ${OOM_SCORE_ADJ}" >> /var/log/oom_adj
+    ! "${BUILDKIT_DEBUG}" || echo "${OOM_SCORE_ADJ}" > /proc/"$PID"/oom_score_adj
+done
+
+! "${BUILDKIT_DEBUG}" || echo "$(date) | --" >> /var/log/oom_adj

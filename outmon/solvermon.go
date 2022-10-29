@@ -10,6 +10,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/util/buildkitutil"
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/moby/buildkit/client"
 	"github.com/opencontainers/go-digest"
@@ -261,6 +262,11 @@ func (sm *SolverMonitor) processNoOutputTick(ctx context.Context, bkClient *clie
 		warn = true
 		return nil // no need to crash
 	}
+	numOtherSessions := -1 // default to unknown (since Info is a newer call and might not be implemented)
+	if info, err := bkClient.Info(ctx); err == nil {
+		numOtherSessions = info.NumSessions - 1 // don't count current session
+	}
+
 	if len(workers) == 0 {
 		ongoingStr = "error getting buildkit worker info: no workers"
 		warn = true
@@ -271,17 +277,14 @@ func (sm *SolverMonitor) processNoOutputTick(ctx context.Context, bkClient *clie
 	switch {
 	case workerInfo.ParallelismWaiting > 5:
 		ongoingStr = fmt.Sprintf(
-			"Waiting... Buildkit is currently under heavy load (%d/%d)",
-			load, workerInfo.ParallelismMax)
+			"Waiting... Buildkit is currently under heavy load (%s)", buildkitutil.FormatUtilization(numOtherSessions, load, workerInfo.ParallelismMax))
 		warn = true
 	case workerInfo.ParallelismWaiting > 0:
 		ongoingStr = fmt.Sprintf(
-			"Waiting... Buildkit is currently under significant load (%d/%d)",
-			load, workerInfo.ParallelismMax)
+			"Waiting... Buildkit is currently under significant load (%s)", buildkitutil.FormatUtilization(numOtherSessions, load, workerInfo.ParallelismMax))
 	default:
 		ongoingStr = fmt.Sprintf(
-			"Waiting on Buildkit... Load (%d/%d)",
-			load, workerInfo.ParallelismMax)
+			"Waiting on Buildkit... (%s)", buildkitutil.FormatUtilization(numOtherSessions, load, workerInfo.ParallelismMax))
 	}
 	if workerInfo.GCAnalytics.CurrentStartTime != nil {
 		d := now.Sub(*workerInfo.GCAnalytics.CurrentStartTime).Round(time.Second)

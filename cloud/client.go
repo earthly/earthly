@@ -73,7 +73,8 @@ type Client interface {
 	ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error)
 	GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error)
 	DeleteSatellite(ctx context.Context, name, orgID string) error
-	ReserveSatellite(ctx context.Context, name, orgID, gitAuthor string, isCI bool, out chan<- string) error
+	ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, gitConfigEmail string, isCI bool) chan SatelliteStatusUpdate
+	WakeSatellite(ctx context.Context, name, orgID string) chan SatelliteStatusUpdate
 	CreateProject(ctx context.Context, name, orgName string) (*Project, error)
 	ListProjects(ctx context.Context, orgName string) ([]*Project, error)
 	GetProject(ctx context.Context, orgName, name string) (*Project, error)

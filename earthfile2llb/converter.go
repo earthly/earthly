@@ -44,6 +44,7 @@ import (
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/distribution/reference"
 	"github.com/moby/buildkit/client/llb"
+	dockerimage "github.com/moby/buildkit/exporter/containerimage/image"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session/localhost"
@@ -1356,7 +1357,7 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 		return err
 	}
 	c.nonSaveCommand()
-	hc := &dockerfile2llb.HealthConfig{}
+	hc := &dockerimage.HealthConfig{}
 	if isNone {
 		hc.Test = []string{"NONE"}
 	} else {

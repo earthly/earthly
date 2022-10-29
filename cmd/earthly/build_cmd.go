@@ -158,12 +158,18 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		}
 	}
 
-	var gitCommitAuthor string
+	var (
+		gitCommitAuthor string
+		gitConfigEmail  string
+	)
+
 	if !target.IsRemote() {
-		gitMeta, err := gitutil.Metadata(cliCtx.Context, target.GetLocalPath())
-		if err == nil {
+		if meta, err := gitutil.Metadata(cliCtx.Context, target.GetLocalPath()); err == nil {
 			// Git commit detection here is best effort
-			gitCommitAuthor = gitMeta.Author
+			gitCommitAuthor = meta.Author
+		}
+		if email, err := gitutil.ConfigEmail(cliCtx.Context); err == nil {
+			gitConfigEmail = email
 		}
 	}
 
@@ -212,7 +218,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return err
 	}
 
-	err = app.configureSatellite(cliCtx, cloudClient, gitCommitAuthor)
+	err = app.configureSatellite(cliCtx, cloudClient, gitCommitAuthor, gitConfigEmail)
 	if err != nil {
 		return errors.Wrapf(err, "could not construct new buildkit client")
 	}
