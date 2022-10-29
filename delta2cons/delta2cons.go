@@ -186,18 +186,17 @@ func (d2c *Delta2Cons) getCommand(commandID string) *command {
 
 func (d2c *Delta2Cons) handleDeltaLog(ctx context.Context, dl *logstream.DeltaLog) error {
 	c := d2c.console
-	if strings.HasPrefix("_generic:", dl.GetTargetId()) {
-		prefix := strings.TrimPrefix(dl.GetTargetId(), "_generic:")
+	if dl.GetTargetId() == "" && strings.HasPrefix("_generic:", dl.GetCommandId()) {
+		prefix := strings.TrimPrefix(dl.GetCommandId(), "_generic:")
 		c = c.WithPrefixAndSalt(prefix, prefix)
-	} else if strings.HasPrefix("_internal:", dl.GetTargetId()) {
-		prefix := strings.TrimPrefix(dl.GetTargetId(), "_internal:")
-		c = c.WithPrefixAndSalt(fmt.Sprintf("internal %s", prefix), prefix)
-	} else {
+	} else if dl.GetTargetId() != "" {
 		tm, ok := d2c.manifest.GetTargets()[dl.GetTargetId()]
 		if !ok {
 			return fmt.Errorf("target %s not found in manifest", dl.GetTargetId())
 		}
 		c = c.WithPrefixAndSalt(tm.GetName(), dl.GetTargetId())
+	} else {
+		c = c.WithPrefixAndSalt(dl.GetCommandId(), dl.GetCommandId())
 	}
 	cmd := d2c.getCommand(dl.GetCommandId())
 
