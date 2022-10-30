@@ -62,7 +62,7 @@ A simple solution is to delete the cache, either by running the Target with a [`
 
 ### Reduced Repeatability
 
-Since the target uses a local cache, it can perform differently on different machines. For example, it may work differently on your local machine than it might on your CI or a colleage's machine.
+Since the target uses a local cache, it can perform differently on different machines. For example, it may work differently on your local machine than it might on your CI or a colleague's machine.
 
 Consider a situation where a dependency has been removed from a registry such as NPM. Although unlikely, this could result in a build that works on a machine that already has it cached, but on another machine the build may consistently fail.
 
