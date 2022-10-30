@@ -46,6 +46,6 @@ test-no-sharing-prev:
     SAVE ARTIFACT nothing
 
 test-no-sharing:
-    COPY +test-no-sharing-prev/nothing . # Only to make sure +test-no-sharing-prev runs fitst
+    COPY +test-no-sharing-prev/nothing . # Only to make sure +test-no-sharing-prev runs first
     CACHE /no-sharing
     RUN ! test -f /no-sharing/should-not-see-me
