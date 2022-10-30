@@ -213,7 +213,7 @@ ga-no-qemu:
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
-# and should not be used to programatically detect if this should be
+# and should not be used to programmatically detect if this should be
 # run or not.
 ga-linux-amd64:
     BUILD +user-arg-test
