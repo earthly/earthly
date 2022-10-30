@@ -9,7 +9,7 @@ WORKDIR /example-grpc
 # This example spans 5 different git repositories, each containing an Earthfile:
 #
 # 1) https://github.com/earthly/earthly-example-proto
-# This repository contains the api.proto defitniton along with an Earthfile
+# This repository contains the api.proto definition along with an Earthfile
 # which installs the various protoc tools required to generate the go, python,
 # and ruby code.
 #
