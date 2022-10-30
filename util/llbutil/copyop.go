@@ -81,7 +81,7 @@ func CopyWithRunOptions(srcState pllb.State, src, dest string, platr *platutil.R
 	// Use the native platform instead of the target platform.
 	imgOpts := []llb.ImageOption{llb.MarkImageInternal, llb.Platform(platr.LLBNative())}
 
-	// The following executes the `copy` command, which is a custom exectuable
+	// The following executes the `copy` command, which is a custom executable
 	// contained in the Dockerfile COPY image above. The following .Run()
 	// operation executes in a state constructed from that Dockerfile COPY image,
 	// with the Earthly user's state mounted at /dest on that image.
