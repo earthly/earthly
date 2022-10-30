@@ -64,7 +64,7 @@ type GlobalConfig struct {
 	BuildkitRestartTimeoutS  int      `yaml:"buildkit_restart_timeout_s" help:"How long to wait for buildkit to (re)start, in seconds."`
 	BuildkitAdditionalArgs   []string `yaml:"buildkit_additional_args"   help:"Additional args to pass to buildkit when it starts. Useful for custom/self-signed certs, or user namespace complications."`
 	BuildkitAdditionalConfig string   `yaml:"buildkit_additional_config" help:"Additional config to use when starting the buildkit container; like using custom/self-signed certificates."`
-	BuildkitMaxParallelism   int      `yaml:"buildkit_max_parallelism"   help:"Max parallelism for builtkit workers"`
+	BuildkitMaxParallelism   int      `yaml:"buildkit_max_parallelism"   help:"Max parallelism for buildkit workers"`
 	ConversionParallelism    int      `yaml:"conversion_parallelism"     help:"Set the conversion parallelism for speeding up the use of IF, WITH, DOCKER --load, FROMDOCKERFILE and others. A value of 0 disables the feature"`
 	CniMtu                   uint16   `yaml:"cni_mtu"                    help:"Override auto-detection of the default interface MTU, for all containers within buildkit"`
 	BuildkitHost             string   `yaml:"buildkit_host"              help:"The URL of your buildkit, remote or local."`
