@@ -537,7 +537,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
 	err := app.cliApp.RunContext(ctx, args)
 	if err != nil {
-		ie, isInterpereterError := earthfile2llb.GetInterpreterError(err)
+		ie, isInterpreterError := earthfile2llb.GetInterpreterError(err)
 
 		var failedOutput string
 		var buildErr *builder.BuildError
@@ -609,7 +609,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
 			app.printCrashLogs(ctx)
 			return 6
-		} else if isInterpereterError {
+		} else if isInterpreterError {
 			app.console.Warnf("Error: %s\n", ie.Error())
 		} else {
 			app.console.Warnf("Error: %v\n", err)
