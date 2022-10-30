@@ -507,7 +507,7 @@ Creates a new authentication token. A read-only token is created by default, If 
 The token will expire in 1 year from creation date unless a different date is supplied via the `--expiry` option.
 
 {% hint style='info' %}
-It is then possible to `export EARTHLY_TOKEN=...`, which will force earthly to use this token for all authentication (overridding any other currently-logged in sessions).
+It is then possible to `export EARTHLY_TOKEN=...`, which will force earthly to use this token for all authentication (overriding any other currently-logged in sessions).
 {% endhint %}
 
 #### earthly account remove-token
