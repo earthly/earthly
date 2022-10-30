@@ -462,7 +462,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		GlobalWaitBlockFtr: app.globalWaitEnd,
 
 		// explicitly set this to true at the top level (without granting the entitlements.EntitlementSecurityInsecure buildkit option),
-		// to differentiate between a user forgetting to run earthly -P, versus a remotely referening an earthfile that requires privileged.
+		// to differentiate between a user forgetting to run earthly -P, versus a remotely referencing an earthfile that requires privileged.
 		AllowPrivileged: true,
 	}
 	if app.artifactMode {
