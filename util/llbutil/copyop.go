@@ -73,7 +73,7 @@ func CopyOp(ctx context.Context, srcState pllb.State, srcs []string, destState p
 
 // CopyWithRunOptions copies from `src` to `dest` and returns the result in a separate LLB State.
 // This operation is similar llb.Copy, however, it can apply llb.RunOptions (such as a mount)
-// Interanally, the operation runs on the internal COPY image used by Dockerfile.
+// Internally, the operation runs on the internal COPY image used by Dockerfile.
 func CopyWithRunOptions(srcState pllb.State, src, dest string, platr *platutil.Resolver, opts ...llb.RunOption) pllb.State {
 	// Docker's internal image for running COPY.
 	// Ref: https://github.com/moby/buildkit/blob/v0.9.3/frontend/dockerfile/dockerfile2llb/convert.go#L40
