@@ -90,7 +90,7 @@ func frontendIfAvailable(ctx context.Context, feType string, cfg *FrontendConfig
 
 	fe, err := newFe(ctx, cfg)
 	if err != nil {
-		return nil, errors.Wrapf(err, "%s frontend failed to initalize", feType)
+		return nil, errors.Wrapf(err, "%s frontend failed to initialize", feType)
 	}
 	if !fe.IsAvailable(ctx) {
 		return nil, fmt.Errorf("%s frontend not available", feType)
