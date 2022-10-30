@@ -426,7 +426,7 @@ transitive-args-test2:
 non-transitive-args-test:
     COPY non-transitive-args1.earth ./Earthfile
     COPY non-transitive-args2.earth ./subdir/Earthfile
-    # Should not override if transitive and corssing project boundaries.
+    # Should not override if transitive and crossing project boundaries.
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
