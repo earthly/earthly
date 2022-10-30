@@ -32,7 +32,7 @@ CACHE <directory>
 The `<directory>` is also persisted into the resulting image at the end of the Target's execution. Meaning that you can access the directory in a subsequent Target by referencing it with `FROM`, or if you run `SAVE IMAGE`, the directory will be accessible in the resulting Docker image.
 
 ## Simple Example
-A classic example for uing `CACHE` is within a Target which downloads new dependencies frequently. 
+A classic example for using `CACHE` is within a Target which downloads new dependencies frequently. 
 
 Here's an example Target that uses `CACHE` in an NPM build:
 ```Earthfile
