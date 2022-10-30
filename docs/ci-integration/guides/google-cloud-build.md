@@ -6,7 +6,7 @@ Google's Cloud Build is a popular, hosted build platform with deep integrations 
 
 ### Compatibility
 
-Earthly itself is able to run as expected within Cloud Build, including privileged mode features like `WITH DOCKER`. However, Application Default Credentials are not avaliable, so any `gcloud` or `gsutil` commands within your `Earthfile` will require additional manual configuration via a service account.
+Earthly itself is able to run as expected within Cloud Build, including privileged mode features like `WITH DOCKER`. However, Application Default Credentials are not available, so any `gcloud` or `gsutil` commands within your `Earthfile` will require additional manual configuration via a service account.
 
 ### Resources
 
@@ -52,9 +52,9 @@ Then select "Keys" from the top navigation.
 
 Click "Add Key", and then "Create New Key". Choose "JSON" as the key format, and click create. This will download the key to your computer, and you should see it in the list of keys.
 
-![The list view of avaliable keys for a Google Cloud service account](img/google-cloud-build-5.png)
+![The list view of available keys for a Google Cloud service account](img/google-cloud-build-5.png)
 
-Stash the key in your secret management utility of choice. You'll need to make this key avaliable to your build at runtime. For the rest of our example, we will be using Earthly's [Cloud Secrets](../../cloud/cloud-secrets.md).
+Stash the key in your secret management utility of choice. You'll need to make this key available to your build at runtime. For the rest of our example, we will be using Earthly's [Cloud Secrets](../../cloud/cloud-secrets.md).
 
 Often, external secrets management requires some kind of bootstrapping secret (or additional integration) to allow you to access the rest of the secrets in your store. Earthly is no different. We will keep our `EARTHLY_TOKEN` in [Googles Secret Manager](https://cloud.google.com/build/docs/securing-builds/use-secrets) for ease of use.
 

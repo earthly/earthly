@@ -79,8 +79,8 @@ func TestFrontendIsAvailable(t *testing.T) {
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
 			assert.NoError(t, err)
 
-			avaliable := fe.IsAvailable(ctx)
-			assert.True(t, avaliable)
+			available := fe.IsAvailable(ctx)
+			assert.True(t, available)
 		})
 	}
 }
@@ -583,7 +583,7 @@ func TestFrontendVolumeInfo(t *testing.T) {
 
 func onlyIfBinaryIsInstalled(ctx context.Context, t *testing.T, binary string) {
 	if !isBinaryInstalled(ctx, binary) {
-		t.Skipf("%s is not avaliable for tests, skipping", binary)
+		t.Skipf("%s is not available for tests, skipping", binary)
 	}
 }
 

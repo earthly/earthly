@@ -188,10 +188,10 @@ const (
 	// TCPAddress is the address at which the daemon is available when using TCP.
 	TCPAddress = "tcp://127.0.0.1:8372"
 
-	// DockerAddress is the address at which the daemon is avaliable whe using a Docker Container directly
+	// DockerAddress is the address at which the daemon is available whe using a Docker Container directly
 	DockerAddress = "docker-container://earthly-buildkitd"
 
-	// PodmanAddress is the address at which the daemon is avaliable whe using a Podman Container directly.
+	// PodmanAddress is the address at which the daemon is available whe using a Podman Container directly.
 	// Currently unused due to image export issues
 	PodmanAddress = "podman-container://earthly-buildkitd"
 

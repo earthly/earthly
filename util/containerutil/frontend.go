@@ -57,7 +57,7 @@ func FrontendForSetting(ctx context.Context, feType string, cfg *FrontendConfig)
 		return autodetectFrontend(ctx, cfg)
 	}
 
-	return frontendIfAvaliable(ctx, feType, cfg)
+	return frontendIfAvailable(ctx, feType, cfg)
 }
 
 func autodetectFrontend(ctx context.Context, cfg *FrontendConfig) (ContainerFrontend, error) {
@@ -67,7 +67,7 @@ func autodetectFrontend(ctx context.Context, cfg *FrontendConfig) (ContainerFron
 		FrontendDockerShell,
 		FrontendPodmanShell,
 	} {
-		fe, err := frontendIfAvaliable(ctx, feType, cfg)
+		fe, err := frontendIfAvailable(ctx, feType, cfg)
 		if err != nil {
 			errs = multierror.Append(errs, err)
 			continue
@@ -77,7 +77,7 @@ func autodetectFrontend(ctx context.Context, cfg *FrontendConfig) (ContainerFron
 	return nil, errors.Wrapf(errs, "failed to autodetect a supported frontend")
 }
 
-func frontendIfAvaliable(ctx context.Context, feType string, cfg *FrontendConfig) (ContainerFrontend, error) {
+func frontendIfAvailable(ctx context.Context, feType string, cfg *FrontendConfig) (ContainerFrontend, error) {
 	var newFe func(context.Context, *FrontendConfig) (ContainerFrontend, error)
 	switch feType {
 	case FrontendDockerShell:
@@ -93,7 +93,7 @@ func frontendIfAvaliable(ctx context.Context, feType string, cfg *FrontendConfig
 		return nil, errors.Wrapf(err, "%s frontend failed to initalize", feType)
 	}
 	if !fe.IsAvailable(ctx) {
-		return nil, fmt.Errorf("%s frontend not avaliable", feType)
+		return nil, fmt.Errorf("%s frontend not available", feType)
 	}
 
 	return fe, nil
