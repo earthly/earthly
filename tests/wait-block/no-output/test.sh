@@ -44,7 +44,7 @@ test "$(docker images -q myimg:623cb5fb1b8c4cff8693281095724bb0 | wc -l)" = "0"
 "$earthly" --image +build
 test "$(docker images -q myimg:623cb5fb1b8c4cff8693281095724bb0 | wc -l)" = "0"
 
-# the +myimg target on the otherhand contains an explicit SAVE IMAGE
+# the +myimg target on the other hand contains an explicit SAVE IMAGE
 "$earthly" --image +myimg
 test "$(docker images -q myimg:623cb5fb1b8c4cff8693281095724bb0 | wc -l)" = "1"
 docker rmi myimg:623cb5fb1b8c4cff8693281095724bb0
