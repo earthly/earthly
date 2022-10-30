@@ -1837,7 +1837,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 
 	if c.ftrs.WaitBlock && opts.Push {
-		// The WAIT / END feature treats a --push as syntatic sugar for
+		// The WAIT / END feature treats a --push as syntactic sugar for
 		// IF [ "$EARTHLY_PUSH" = "true" ]
 		//    RUN --no-cache ...
 		// END
