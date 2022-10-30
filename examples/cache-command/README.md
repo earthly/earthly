@@ -74,4 +74,4 @@ Some fully functional example projects are contained within subdirectories to de
 
 Take a look at the Earthfiles in these examples to see how they work. 
 
-Feel free to reach out via Github Issue or on our [Community Slack channel](https://earthly.dev/slack) if you have any questions or ideas. Thanks for using Earthly!
+Feel free to reach out via GitHub Issue or on our [Community Slack channel](https://earthly.dev/slack) if you have any questions or ideas. Thanks for using Earthly!
