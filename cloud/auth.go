@@ -27,7 +27,7 @@ func (c *client) Authenticate(ctx context.Context) error {
 	var err error
 	switch {
 	case c.email != "" && c.password != "":
-		err = c.loginWithPassowrd(ctx)
+		err = c.loginWithPassword(ctx)
 	case c.authCredToken != "":
 		err = c.loginWithToken(ctx)
 	default:
@@ -388,7 +388,7 @@ func (c *client) saveToken() error {
 	return nil
 }
 
-func (c *client) loginWithPassowrd(ctx context.Context) error {
+func (c *client) loginWithPassword(ctx context.Context) error {
 	var err error
 	c.authCredToken = getPasswordAuthToken(c.email, c.password)
 	c.authToken, c.authTokenExpiry, err = c.login(ctx, c.authCredToken)
