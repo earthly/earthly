@@ -432,7 +432,7 @@ func DefaultAddressForSetting(setting string) (string, error) {
 		return TCPAddress, nil // Right now, podman only works over TCP. There are weird errors when trying to use the provided helper from buildkit.
 
 	case FrontendStub:
-		return DockerAddress, nil // Maintiain old behavior
+		return DockerAddress, nil // Maintain old behavior
 	}
 
 	return "", fmt.Errorf("no default buildkit address for %s", setting)
