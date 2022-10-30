@@ -112,7 +112,7 @@ if [ -z "$IP_TABLES" ]; then
             exit 1
 
         elif [ "$legacylines" -ge "$nflines" ]; then
-            # Tiebreak goes to legacy, after testing on WSL/Windows
+            # Tie-break goes to legacy, after testing on WSL/Windows
             echo "Detected iptables-legacy by output length ($legacylines >= $nflines)"
             IP_TABLES="iptables-legacy"
 
