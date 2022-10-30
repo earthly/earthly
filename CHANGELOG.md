@@ -23,7 +23,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Support for all ssh-based key types (e.g. ssh-ed25519), and not only ssh-rsa. [#1783](https://github.com/earthly/earthly/issues/1783)
 
 ### Fixed
-- Unable to specify public key to add via the command-line, e.g. running `earthly account add-key <key>` ignored the key and fellback to an interactive prompt.
+- Unable to specify public key to add via the command-line, e.g. running `earthly account add-key <key>` ignored the key and fell back to an interactive prompt.
 - `GIT CLONE` command was ignoring the `WORK DIR` command when `--use-copy-link` feature was set.
 
 ## v0.6.26 - 2022-10-13
