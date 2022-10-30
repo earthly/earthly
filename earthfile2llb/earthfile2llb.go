@@ -289,7 +289,7 @@ func GetTargetArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 		}
 	}
 	if t == nil {
-		return nil, fmt.Errorf("faild to find %s", target.String())
+		return nil, fmt.Errorf("failed to find %s", target.String())
 	}
 	var args []string
 	for _, stmt := range t.Recipe {
