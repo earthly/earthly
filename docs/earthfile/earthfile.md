@@ -838,7 +838,7 @@ The `<context-path>` is the path where the Dockerfile build context exists. By d
 Specify an alternative Dockerfile to use. The `<dockerfile-path>` can be either a path on the host system, relative to the current Earthfile, or an [artifact reference](../guides/target-ref.md#artifact-reference) pointing to a Dockerfile.
 
 {% hint style='info' %}
-It is possible to split the `Dockerfile` and the build context across two seperate [artifact references](../guides/target-ref.md#artifact-reference):
+It is possible to split the `Dockerfile` and the build context across two separate [artifact references](../guides/target-ref.md#artifact-reference):
 
 ```Dockerfile
 FROM alpine
