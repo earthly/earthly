@@ -1935,7 +1935,7 @@ func (i *Interpreter) pushOnlyErr(sl *spec.SourceLocation) error {
 func (i *Interpreter) expandArgs(ctx context.Context, word string, keepPlusEscape, async bool) (string, error) {
 	runOpts := ConvertRunOpts{
 		CommandName: "expandargs",
-		Args:        nil, // this gets replaced whenver a shell-out is encountered
+		Args:        nil, // this gets replaced whenever a shell-out is encountered
 		Locally:     i.local,
 		Transient:   !i.local,
 		WithShell:   true,
