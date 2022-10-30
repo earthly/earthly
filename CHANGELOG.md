@@ -62,7 +62,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Changed
 
-- Bootstraping zsh autocompletion will first attempt to install under `/usr/local/share/zsh/site-functions`, and will now
+- Bootstrapping zsh autocompletion will first attempt to install under `/usr/local/share/zsh/site-functions`, and will now
   fallback to `/usr/share/zsh/site-functions`.
 - The `earthly preview org` command has been promoted to GA, and is now available under `earthly org`.
 - `earthly sat select` with no arguments now prints the current satellite and the usage text.
