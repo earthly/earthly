@@ -23,7 +23,7 @@ In these examples, adding the `CACHE` command allows an Earthly Target to perfor
 
 ## Usage
 
-The `CACHE` command takes a singe argument, which is a directory containing the files you want to cache for future resuse.
+The `CACHE` command takes a singe argument, which is a directory containing the files you want to cache for future reuse.
 
 ```Earthfile
 CACHE <directory>
@@ -44,7 +44,7 @@ deps:
   RUN npm install
 ```
 
-In the above example, our `node_modules` directory is cached within the Earthly Target. When our `package.json` changes, Earthly resuses the contents of `./node_modules` from the previous execution so that only the dependencies that have changed since last time will be downloaded to `node_modules`.
+In the above example, our `node_modules` directory is cached within the Earthly Target. When our `package.json` changes, Earthly reuses the contents of `./node_modules` from the previous execution so that only the dependencies that have changed since last time will be downloaded to `node_modules`.
 
 Without the `CACHE` command in the above example, if there's any change to the `package.json` file, *all* of the dependencies would need to be downloaded each time.
 
