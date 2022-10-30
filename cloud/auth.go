@@ -435,7 +435,7 @@ func (c *client) loginWithSSH(ctx context.Context) error {
 
 // login calls the login endpoint on the cloud server, passing the provided credentials.
 // If auth succeeds, a new jwt token is returned with it's expiry date.
-// ErrUnauthroized is returned if the credentials are not valid.
+// ErrUnauthorized is returned if the credentials are not valid.
 func (c *client) login(ctx context.Context, credentials string) (token string, expiry time.Time, err error) {
 	var zero time.Time
 	status, body, err := c.doCall(ctx, "POST", "/api/v0/account/login",
