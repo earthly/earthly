@@ -30,7 +30,7 @@ reject-dedup:
     BUILD +allow-privileged-in-remote-repo-triggered-by-copy
     # the second build then references the same repo that the first test referenced
     # but without an --allow-privileged, this should fail even though it was
-    # successfuly run (and cached) in the first step.
+    # successfully run (and cached) in the first step.
     BUILD +reject-privileged-in-remote-repo-triggered-by-copy
 
 reject-privileged-in-remote-repo-triggered-by-docker-load-privileged:
