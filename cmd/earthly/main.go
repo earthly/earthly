@@ -120,7 +120,7 @@ type cliFlags struct {
 	enableSourceMap           bool
 	configDryRun              bool
 	strict                    bool
-	conversionParllelism      int
+	conversionParallelism     int
 	debuggerHost              string
 	certPath                  string
 	keyPath                   string
@@ -463,7 +463,7 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 		app.console.Warnf("Warning: the setting cache_path is now obsolete and will be ignored")
 	}
 
-	if app.conversionParllelism != 0 {
+	if app.conversionParallelism != 0 {
 		app.console.Warnf("Warning: --conversion-parallelism and EARTHLY_CONVERSION_PARALLELISM is obsolete, please use 'earthly config global.conversion_parallelism <parallelism>' instead")
 	}
 
