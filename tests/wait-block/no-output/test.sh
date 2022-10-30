@@ -39,7 +39,7 @@ test "$(docker images -q myimg:623cb5fb1b8c4cff8693281095724bb0 | wc -l)" = "0"
 "$earthly" --no-output +build
 test "$(docker images -q myimg:623cb5fb1b8c4cff8693281095724bb0 | wc -l)" = "0"
 
-# --image mode only ouputs image of directly-referenced image,
+# --image mode only outputs image of directly-referenced image,
 # in the case of +build, there is no SAVE IMAGE
 "$earthly" --image +build
 test "$(docker images -q myimg:623cb5fb1b8c4cff8693281095724bb0 | wc -l)" = "0"
