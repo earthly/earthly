@@ -19,7 +19,7 @@ Node.JS/NPM projects with vendored `node_modules` using version ranges:
 Elixir's Dialyzer: 
   * Dialyzer is compiled quickly with incremental code changes and we can take advantage of that in our Earthly Target
 
-In these examples, adding the `CACHE` commnd allows an Earthly Target to perform more closely to how you would expect when running the commands natively in your local dev environment. 
+In these examples, adding the `CACHE` command allows an Earthly Target to perform more closely to how you would expect when running the commands natively in your local dev environment. 
 
 ## Usage
 
@@ -46,7 +46,7 @@ deps:
 
 In the above example, our `node_modules` directory is cached within the Earthly Target. When our `package.json` changes, Earthly resuses the contents of `./node_modules` from the previous execution so that only the dependencies that have changed since last time will be downloaded to `node_modules`.
 
-Without the `CACHE` commnad in the above example, if there's any change to the `package.json` file, *all* of the dependencies would need to be downloaded each time.
+Without the `CACHE` command in the above example, if there's any change to the `package.json` file, *all* of the dependencies would need to be downloaded each time.
 
 ## Tradeoffs
 

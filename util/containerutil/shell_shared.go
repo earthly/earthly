@@ -275,12 +275,12 @@ func (sf *shellFrontend) ImageTag(ctx context.Context, tags ...ImageTag) error {
 	return err
 }
 
-type commmandContextOutput struct {
+type commandContextOutput struct {
 	stdout strings.Builder
 	stderr strings.Builder
 }
 
-func (cco *commmandContextOutput) string() string {
+func (cco *commandContextOutput) string() string {
 	return strings.TrimSpace(cco.stdout.String() + cco.stderr.String())
 }
 
@@ -289,7 +289,7 @@ func (sf *shellFrontend) commandContextStrings(args ...string) (string, []string
 	return sf.binaryName, allArgs
 }
 
-func (sf *shellFrontend) commandContextOutputWithRetry(ctx context.Context, retries int, timeout time.Duration, args ...string) (*commmandContextOutput, error) {
+func (sf *shellFrontend) commandContextOutputWithRetry(ctx context.Context, retries int, timeout time.Duration, args ...string) (*commandContextOutput, error) {
 	var err error
 	for i := 0; i < retries; i++ {
 		timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
@@ -309,8 +309,8 @@ func (sf *shellFrontend) commandContextOutputWithRetry(ctx context.Context, retr
 	return nil, err
 }
 
-func (sf *shellFrontend) commandContextOutput(ctx context.Context, args ...string) (*commmandContextOutput, error) {
-	output := &commmandContextOutput{}
+func (sf *shellFrontend) commandContextOutput(ctx context.Context, args ...string) (*commandContextOutput, error) {
+	output := &commandContextOutput{}
 	binary, args := sf.commandContextStrings(args...)
 	sf.Console.VerbosePrintf("Running command: %s %s\n", binary, strings.Join(args, " "))
 	cmd := exec.CommandContext(ctx, binary, args...)
