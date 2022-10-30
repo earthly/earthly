@@ -60,7 +60,7 @@ See the [Target, artifact, and image referencing guide](../guides/target-ref.md)
 
 #### Build args
 
-Synposis:
+Synopsis:
 
   * Target form `earthly <target-ref> [--<build-arg-key>=<build-arg-value>...]`
   * Artifact form `earthly --artifact (<target-ref>/<artifact-path> [--<build-arg-key>=<build-arg-value>...]) <dest-path>`
