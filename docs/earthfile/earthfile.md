@@ -384,7 +384,7 @@ If the directories were copied without the use of `--dir`, then their contents w
 
 Sets a value override of `<build-arg-value>` for the build arg identified by `<build-arg-key>`, when building the target containing the mentioned artifact. See also [BUILD](#build) for more details about the build arg options.
 
-Note that build args and the artifact references they apply to need to be surrounded by paranthesis:
+Note that build args and the artifact references they apply to need to be surrounded by parenthesis:
 
 ```Dockerfile
 COPY (+target1/artifact --arg1=foo --arg2=bar) ./dest/path

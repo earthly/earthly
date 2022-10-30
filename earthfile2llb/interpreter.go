@@ -2210,7 +2210,7 @@ func parseArgsWithValueModifier(cmdName string, opts interface{}, args []string,
 }
 
 // processParamsAndQuotes takes in a slice of strings, and rearranges the slices
-// depending on quotes and paranthesis.
+// depending on quotes and parenthesis.
 // For example "hello ", "wor(", "ld)" becomes "hello ", "wor( ld)".
 func processParamsAndQuotes(args []string) []string {
 	curQuote := rune(0)
