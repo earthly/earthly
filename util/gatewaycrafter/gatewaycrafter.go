@@ -87,14 +87,14 @@ func (gc *GatewayCrafter) AddMeta(k string, v []byte) {
 	gc.res.AddMeta(k, v)
 }
 
-// GetRefsAndMetadata fetches the result Refs and Metadata; it is not re-entrant
+// GetRefsAndMetadata fetches the result Refs and Metadata; it is not reentrant
 func (gc *GatewayCrafter) GetRefsAndMetadata() (map[string]gwclient.Reference, map[string][]byte) {
 	gc.assertNotDone()
 	gc.done = true
 	return gc.res.Refs, gc.res.Metadata
 }
 
-// GetResult fetches the gwclient result object; it is not re-entrant
+// GetResult fetches the gwclient result object; it is not reentrant
 func (gc *GatewayCrafter) GetResult() *gwclient.Result {
 	gc.assertNotDone()
 	gc.done = true
