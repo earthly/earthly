@@ -6,7 +6,7 @@ Note to person editing!!
 
 The general order of the commands is as follows:
 
-- Core classical Dockerfile commands (order is the same as in the Dockferfile official docs)
+- Core classical Dockerfile commands (order is the same as in the Dockerfile official docs)
 - Core, GA'd Earthly commands
 - Other Dockerfile commands which have the exact same behavior in Earthly as in Dockerfiles
 - Beta Earthly commands
