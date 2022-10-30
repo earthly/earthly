@@ -171,12 +171,12 @@ copied/2/file" >./expected
     RUN diff -b ./actual ./expected
 
 copy-invalid-symlink-base:
-    RUN ln -s nonexistanttarget symlink
+    RUN ln -s nonexistenttarget symlink
     SAVE ARTIFACT --symlink-no-follow symlink
 
 copy-invalid-symlink:
     COPY --symlink-no-follow +copy-invalid-symlink-base/symlink .
-    RUN ls -la symlink | grep nonexistanttarget
+    RUN ls -la symlink | grep nonexistenttarget
     RUN ls symlink 2>&1 | grep 'No such file or directory'
 
 copy-dir-containing-invalid-symlink-base:
