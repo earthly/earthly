@@ -112,7 +112,7 @@ Running this build will use the [`cloudbuild.yaml`](https://github.com/earthly/c
       - +docker
 ```
 
-[The second step](hhttps://github.com/earthly/ci-example-project/blob/ea44992b020b52cb5a46920d5d11d4b8389ce19d/cloudbuild.yaml#L8-L13) runs a sample, Google Cloud Build only example to show how you would use an external service account to do things that normally requires credentials.
+[The second step](https://github.com/earthly/ci-example-project/blob/ea44992b020b52cb5a46920d5d11d4b8389ce19d/cloudbuild.yaml#L8-L13) runs a sample, Google Cloud Build only example to show how you would use an external service account to do things that normally requires credentials.
 
 ```yaml
   - id: 'gcp-test'
