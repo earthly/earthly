@@ -3,7 +3,7 @@ VERSION --wait-block 0.6
 myimg:
     FROM alpine:3.15
     RUN echo NWMyMTQ2YjctZGFlNS00YzQ5LWE1MTktNDM2Zjc4YzNkNzAwCg== > /special-data
-    RUN sleep 5 # increase the likelyhood of +check-tag-exists to run in the event the WAIT/END code fails to block
+    RUN sleep 5 # increase the likelihood of +check-tag-exists to run in the event the WAIT/END code fails to block
     ARG --required REGISTRY
     ARG --required tag
     SAVE IMAGE $REGISTRY/myuser/myimg:$tag
