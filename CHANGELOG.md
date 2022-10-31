@@ -4,9 +4,14 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+
+- Increases the cache limit for local and git sources from 10% to 50% to support copying large files (e.g. binary assets).
+
 ### Fixed
 
 - `CACHE` command was not being correctly used in `IF`, `FOR`, `ARG` and other commands. [#2330](https://github.com/earthly/earthly/issues/2330)
+- Fixed buildkit gckeepstorage config value which was was set to 1000 times larger than the cache size, now it is set to the cache size.
 
 ## v0.6.28 - 2022-10-26
 
