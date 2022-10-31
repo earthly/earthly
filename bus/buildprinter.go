@@ -60,9 +60,8 @@ func (bp *BuildPrinter) NewTargetPrinter(targetID, shortTargetName, canonicalTar
 			},
 		},
 	})
-	tp = newTargetPrinter(bp.b, targetID)
-	bp.tps[targetID] = tp
-	return tp
+	bp.tps[targetID] = newTargetPrinter(bp.b, targetID)
+	return bp.tps[targetID]
 }
 
 // TargetPrinter returns the target printer for the given target ID.

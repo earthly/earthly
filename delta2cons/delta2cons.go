@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
-	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/deltautil"
 	"github.com/earthly/earthly/util/progressbar"
 	"github.com/mattn/go-isatty"
@@ -24,6 +23,19 @@ const (
 	durationBetweenOngoingUpdates       = 5 * time.Second
 	durationBetweenOngoingUpdatesNoAnsi = 60 * time.Second
 )
+
+type Console interface {
+	// WithCommand TODO is a proposed function to encapsulate the command information
+	WithCommand(c *command) Console
+	WithPrefixAndSalt(prefix, salt string) Console
+	PrintBytes(b []byte) error
+	WithPrefix(prefix string) Console
+	WithFailed(bool) Console
+	WithCached(bool) Console
+	WithMetadataMode(bool) Console
+	Printf(str string, format ...any) error
+	VerbosePrintf(str string, format ...any)
+}
 
 const esc = 27
 
@@ -44,11 +56,16 @@ type command struct {
 	openLine            []byte
 	lastOpenLineUpdate  time.Time
 	lastOpenLineSkipped bool
+
+	// TODO: These are proposed
+	// TODO: We should have the stream and 'proper' UnixNanos in here?
+	TargetID  string
+	CommandID string
 }
 
 // Delta2Cons is a delta to console logger.
 type Delta2Cons struct {
-	console                    conslogging.ConsoleLogger
+	console                    Console
 	verbose                    bool
 	disableOngoingUpdates      bool
 	lastOutputWasProgress      bool
@@ -63,7 +80,7 @@ type Delta2Cons struct {
 }
 
 // New creates a new Delta2Cons.
-func New(console conslogging.ConsoleLogger, verbose bool, disableOngoingUpdates bool) *Delta2Cons {
+func New(console Console, verbose bool, disableOngoingUpdates bool) *Delta2Cons {
 	ongoingTick := durationBetweenOngoingUpdatesNoAnsi
 	if ansiSupported {
 		ongoingTick = durationBetweenOngoingUpdates
@@ -175,10 +192,10 @@ func (d2c *Delta2Cons) handleDeltaManifest(ctx context.Context, dm *logstream.De
 	return nil
 }
 
-func (d2c *Delta2Cons) getCommand(commandID string) *command {
+func (d2c *Delta2Cons) getCommand(commandID string, targetID string) *command {
 	cmd, ok := d2c.commands[commandID]
 	if !ok {
-		cmd = &command{}
+		cmd = &command{CommandID: commandID, TargetID: targetID}
 		d2c.commands[commandID] = cmd
 	}
 	return cmd
@@ -198,7 +215,10 @@ func (d2c *Delta2Cons) handleDeltaLog(ctx context.Context, dl *logstream.DeltaLo
 	} else {
 		c = c.WithPrefixAndSalt(dl.GetCommandId(), dl.GetCommandId())
 	}
-	cmd := d2c.getCommand(dl.GetCommandId())
+	cmd := d2c.getCommand(dl.GetCommandId(), dl.GetTargetId())
+
+	// TODO: Proposed adjustment
+	c = c.WithCommand(cmd)
 
 	sameAsLast := (!d2c.lastOutputWasOngoingUpdate &&
 		!d2c.lastOutputWasProgress &&
@@ -265,12 +285,14 @@ func (d2c *Delta2Cons) processOngoingTick(ctx context.Context) error {
 	return nil
 }
 
-func (d2c *Delta2Cons) printHeader(c conslogging.ConsoleLogger, targetID string, commandID string, tm *logstream.TargetManifest, cm *logstream.CommandManifest) {
+func (d2c *Delta2Cons) printHeader(c Console, targetID string, commandID string, tm *logstream.TargetManifest, cm *logstream.CommandManifest) {
 	if targetID != "" {
 		c = c.WithPrefixAndSalt(tm.GetName(), targetID)
 	} else {
 		c = c.WithPrefixAndSalt(commandID, commandID)
 	}
+	cmd := d2c.getCommand(commandID, targetID)
+	c = c.WithCommand(cmd)
 	var metaParts []string
 	if cm.GetPlatform() != "" {
 		metaParts = append(metaParts, cm.GetPlatform())
@@ -304,6 +326,7 @@ func (d2c *Delta2Cons) printProgress(targetID string, commandID string, cm *logs
 	} else {
 		c = c.WithPrefixAndSalt(commandID, commandID)
 	}
+	c = c.WithCommand(d2c.getCommand(commandID, targetID))
 	builder := make([]string, 0, 2)
 	if d2c.lastOutputWasProgress {
 		builder = append(builder, string(ansiUp))
@@ -331,7 +354,7 @@ func (d2c *Delta2Cons) shouldPrintProgress(targetID string, commandID string, cm
 	// } else if strings.HasPrefix(id, "sha256:") || strings.HasPrefix(id, "extracting sha256:") {
 	// 	minDelta = durationBetweenSha256ProgressUpdate
 	// }
-	cmd := d2c.getCommand(commandID)
+	cmd := d2c.getCommand(commandID, targetID)
 	lastProgress := cmd.lastProgress
 	if time.Since(lastProgress) < minDelta && cm.GetProgress() < 100 {
 		return false
@@ -351,6 +374,7 @@ func (d2c *Delta2Cons) printError(targetID string, commandID string, tm *logstre
 	} else {
 		c = c.WithPrefixAndSalt(commandID, commandID)
 	}
+	c = c.WithCommand(d2c.getCommand(commandID, targetID))
 	c.Printf("%s\n", cm.GetErrorMessage())
 	c.VerbosePrintf("Overriding args used: %s\n", strings.Join(tm.GetOverrideArgs(), " "))
 	d2c.lastOutputWasOngoingUpdate = false
@@ -368,10 +392,11 @@ func (d2c *Delta2Cons) printBuildFailure() {
 	if f.GetTargetId() != "" {
 		tm = d2c.manifest.GetTargets()[f.GetTargetId()]
 	}
+	c := d2c.console.WithFailed(true)
 	if f.GetCommandId() != "" {
 		cm = d2c.manifest.GetCommands()[f.GetCommandId()]
+		c = c.WithCommand(d2c.getCommand(f.GetCommandId(), f.GetTargetId()))
 	}
-	c := d2c.console.WithFailed(true)
 	if tm != nil {
 		c = c.WithPrefixAndSalt(tm.GetName(), f.GetTargetId())
 	} else {

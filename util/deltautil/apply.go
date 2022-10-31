@@ -33,6 +33,7 @@ func ApplyDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error)
 		if m2.GetVersion() != Version {
 			return nil, fmt.Errorf("unsupported manifest version %d", m2.GetVersion())
 		}
+		*m = *m2
 		m.Version = m2.GetVersion()
 		m.CreatedAtUnixNanos = m2.GetCreatedAtUnixNanos()
 		m.StartedAtUnixNanos = m2.GetStartedAtUnixNanos()
@@ -43,37 +44,9 @@ func ApplyDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error)
 		m.UserId = m2.GetUserId()
 		m.OrgId = m2.GetOrgId()
 		m.ProjectId = m2.GetProjectId()
-		m.Targets = make(map[string]*pb.TargetManifest)
-		for targetID, t2 := range m2.GetTargets() {
-			m.Targets[targetID] = &pb.TargetManifest{
-				Name:               t2.GetName(),
-				CanonicalName:      t2.GetCanonicalName(),
-				OverrideArgs:       append([]string{}, t2.GetOverrideArgs()...),
-				InitialPlatform:    t2.GetInitialPlatform(),
-				FinalPlatform:      t2.GetFinalPlatform(),
-				Status:             t2.GetStatus(),
-				StartedAtUnixNanos: t2.GetStartedAtUnixNanos(),
-				EndedAtUnixNanos:   t2.GetEndedAtUnixNanos(),
-			}
-		}
+		m.Targets = m2.GetTargets()
 		m.Commands = make(map[string]*pb.CommandManifest)
-		for commandID, c2 := range m2.GetCommands() {
-			m.Commands[commandID] = &pb.CommandManifest{
-				Name:               c2.GetName(),
-				TargetId:           c2.GetTargetId(),
-				Platform:           c2.GetPlatform(),
-				Status:             c2.GetStatus(),
-				IsCached:           c2.GetIsCached(),
-				IsPush:             c2.GetIsPush(),
-				IsLocal:            c2.GetIsLocal(),
-				StartedAtUnixNanos: c2.GetStartedAtUnixNanos(),
-				EndedAtUnixNanos:   c2.GetEndedAtUnixNanos(),
-				HasProgress:        c2.GetHasProgress(),
-				Progress:           c2.GetProgress(),
-				ErrorMessage:       c2.GetErrorMessage(),
-				SourceLocation:     c2.GetSourceLocation(),
-			}
-		}
+		m.Commands = m2.GetCommands()
 	case *pb.DeltaManifest_Fields:
 		f := dm.GetFields()
 		if f.GetStartedAtUnixNanos() != 0 {
