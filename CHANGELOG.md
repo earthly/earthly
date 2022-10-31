@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Fixed
+
+- `CACHE` command was not being correctly used in `IF`, `FOR`, `ARG` and other commands. [#2330](https://github.com/earthly/earthly/issues/2330)
+
 ## v0.6.28 - 2022-10-26
 
 ### Added
