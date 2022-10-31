@@ -583,6 +583,9 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 		return 0, err
 	}
 	c.nonSaveCommand()
+	for _, cache := range c.persistentCacheDirs {
+		opts.extraRunOpts = append(opts.extraRunOpts, cache)
+	}
 
 	var exitCodeFile string
 	if opts.Locally {
@@ -644,12 +647,18 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 // RunExpression runs an expression and returns its output. The run is transient - any state created
 // is not used in subsequent commands.
 func (c *Converter) RunExpression(ctx context.Context, expressionName string, opts ConvertRunOpts) (string, error) {
+	for _, cache := range c.persistentCacheDirs {
+		opts.extraRunOpts = append(opts.extraRunOpts, cache)
+	}
 	return c.runCommand(ctx, expressionName, true, opts)
 }
 
 // RunCommand runs a command and returns its output. The run is transient - any state created
 // is not used in subsequent commands.
 func (c *Converter) RunCommand(ctx context.Context, commandName string, opts ConvertRunOpts) (string, error) {
+	for _, cache := range c.persistentCacheDirs {
+		opts.extraRunOpts = append(opts.extraRunOpts, cache)
+	}
 	return c.runCommand(ctx, commandName, false, opts)
 }
 
