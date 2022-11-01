@@ -35,7 +35,7 @@ require (
 	github.com/tonistiigi/fsutil v0.0.0-20220930225714-4638ad635be5
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/crypto v0.0.0-20220826181053-bd7e27e6170d
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/sync v0.1.0
 	golang.org/x/term v0.0.0-20220919170432-7a66f970e087
 	google.golang.org/grpc v1.47.0
 	google.golang.org/protobuf v1.28.1
@@ -97,6 +97,6 @@ replace (
 	github.com/earthly/earthly/ast => ./ast
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20221028205720-4d7c1301fdce
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20221101175417-07d2268e08f2
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20221025225749-b994beadd443
 )
