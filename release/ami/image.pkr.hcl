@@ -31,7 +31,8 @@ source "amazon-ebs" "x86_64" {
     most_recent = true
     owners      = ["099720109477"]
   }
-  ssh_username = "ubuntu"
+  ssh_username           = "ubuntu"
+  ssh_read_write_timeout = "5m" # Allow reboots
 }
 
 source "amazon-ebs" "arm64" {
@@ -79,7 +80,8 @@ build {
       "chmod +x install.sh && ./install.sh",
     ]
   }
-  # We need to withstand a reboot since we need that to finish the docker installation
+
+  # We need to reboot since we need that to finish the docker installation, hence the sleep part
   provisioner "shell" {
     expect_disconnect = true
     inline = [
@@ -93,7 +95,7 @@ build {
     destination = "/tmp/configure.sh"
     max_retries = 10
   }
-    provisioner "file" {
+  provisioner "file" {
     source      = "cleanup.sh"
     destination = "/tmp/cleanup.sh"
     max_retries = 10
