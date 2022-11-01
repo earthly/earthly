@@ -93,10 +93,16 @@ build {
     destination = "/tmp/configure.sh"
     max_retries = 10
   }
+    provisioner "file" {
+    source      = "cleanup.sh"
+    destination = "/tmp/cleanup.sh"
+    max_retries = 10
+  }
   provisioner "shell" {
     inline = [
       "cd /tmp",
       "chmod +x configure.sh && ./configure.sh",
+      "chmod +x cleanup.sh && ./cleanup.sh"
     ]
   }
 }
