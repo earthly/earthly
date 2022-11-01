@@ -28,7 +28,7 @@ echo \
   stable main" | sudo tee /etc/apt/sources.list.d/earthly.list > /dev/null
 
 sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io earthly=$EARTHLY_VERSION
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io earthly="$EARTHLY_VERSION"
 
 docker -v
 earthly -v

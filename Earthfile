@@ -79,7 +79,8 @@ lint-scripts-misc:
     FROM +lint-scripts-base
     COPY ./earthly ./scripts/install-all-versions.sh ./buildkitd/entrypoint.sh ./earthly-entrypoint.sh \
         ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh ./buildkitd/oom-adjust.sh.template \
-        ./release/envcredhelper.sh ./.buildkite/*.sh \
+        ./release/envcredhelper.sh ./release/ami/cleanup.sh ./release/ami/configure.sh ./release/ami/install.sh \
+        ./.buildkite/*.sh \
         ./scripts/tests/*.sh \
         ./scripts/*.sh \
         ./shell_scripts/
