@@ -42,7 +42,7 @@ func (bp *BuildPrinter) GenericPrinter(category string) *GenericPrinter {
 	return gp
 }
 
-// TargetPrinter creates a new target printer.
+// NewTargetPrinter creates a new target printer.
 func (bp *BuildPrinter) NewTargetPrinter(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string) *TargetPrinter {
 	bp.mu.Lock()
 	defer bp.mu.Unlock()
