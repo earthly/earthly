@@ -72,18 +72,25 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 				var ok bool
 				tp, ok = bp.TargetPrinter(meta.TargetID)
 				if !ok {
-					tp = bp.NewTargetPrinter(
+					var err error
+					tp, err = bp.NewTargetPrinter(
 						meta.TargetID, meta.TargetName, meta.CanonicalTargetName,
 						argsToSlice(meta.OverridingArgs), meta.Platform)
+					if err != nil {
+						return err
+					}
 					// TODO(vladaionescu): All the target printers should get
 					//                     SetStart and SetEnd appropriately.
 				}
 			}
 			push := false // TODO(vladaionescu): Support push.
-			cp := bp.NewCommandPrinter(
+			cp, err := bp.NewCommandPrinter(
 				vertex.Digest.String(), operation, meta.TargetID, meta.Platform,
 				vertex.Cached, push, meta.Local, meta.SourceLocation,
 				meta.RepoGitURL, meta.RepoGitHash, meta.RepoFileRelToRepo)
+			if err != nil {
+				return err
+			}
 			vm = &vertexMonitor{
 				vertex:    vertex,
 				meta:      meta,

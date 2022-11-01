@@ -42,12 +42,12 @@ func (bp *BuildPrinter) GenericPrinter(category string) *GenericPrinter {
 }
 
 // NewTargetPrinter creates a new target printer.
-func (bp *BuildPrinter) NewTargetPrinter(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string) *TargetPrinter {
+func (bp *BuildPrinter) NewTargetPrinter(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string) (*TargetPrinter, error) {
 	bp.mu.Lock()
 	defer bp.mu.Unlock()
 	tp, ok := bp.tps[targetID]
 	if ok {
-		return tp
+		return nil, errors.New("target printer already exists")
 	}
 	bp.buildDelta(&logstream.DeltaManifest_FieldsDelta{
 		Targets: map[string]*logstream.DeltaTargetManifest{
@@ -60,7 +60,7 @@ func (bp *BuildPrinter) NewTargetPrinter(targetID, shortTargetName, canonicalTar
 		},
 	})
 	bp.tps[targetID] = newTargetPrinter(bp.b, targetID)
-	return bp.tps[targetID]
+	return bp.tps[targetID], nil
 }
 
 // TargetPrinter returns the target printer for the given target ID.
@@ -72,12 +72,12 @@ func (bp *BuildPrinter) TargetPrinter(targetID string) (*TargetPrinter, bool) {
 }
 
 // NewCommandPrinter creates a new command printer.
-func (bp *BuildPrinter) NewCommandPrinter(commandID string, command string, targetID string, platform string, cached bool, push bool, local bool, sourceLocation *spec.SourceLocation, repoURL, repoHash, fileRelToRepo string) *CommandPrinter {
+func (bp *BuildPrinter) NewCommandPrinter(commandID string, command string, targetID string, platform string, cached bool, push bool, local bool, sourceLocation *spec.SourceLocation, repoURL, repoHash, fileRelToRepo string) (*CommandPrinter, error) {
 	bp.mu.Lock()
 	defer bp.mu.Unlock()
 	cp, ok := bp.cps[commandID]
 	if ok {
-		return cp
+		return cp, errors.New("command printer already exists")
 	}
 	bp.buildDelta(&logstream.DeltaManifest_FieldsDelta{
 		Commands: map[string]*logstream.DeltaCommandManifest{
@@ -93,7 +93,7 @@ func (bp *BuildPrinter) NewCommandPrinter(commandID string, command string, targ
 		},
 	})
 	bp.cps[commandID] = newCommandPrinter(bp.b, commandID, targetID)
-	return bp.cps[commandID]
+	return bp.cps[commandID], nil
 }
 
 // CommandPrinter returns the command printer for the given command ID.
@@ -124,11 +124,10 @@ func (bp *BuildPrinter) SetFatalError(end time.Time, targetID string, commandID 
 	bp.ended = true
 	var tailOutput []byte
 	if commandID != "" {
-		cp, ok := bp.CommandPrinter(commandID)
-		if !ok {
-			panic("command printer not found")
+		cp, ok := bp.cps[commandID]
+		if ok {
+			tailOutput = cp.TailOutput()
 		}
-		tailOutput = cp.TailOutput()
 	}
 	bp.buildDelta(&logstream.DeltaManifest_FieldsDelta{
 		Status:           logstream.RunStatus_RUN_STATUS_FAILURE,
@@ -175,7 +174,7 @@ func (bp *BuildPrinter) SetEnd(end time.Time, success bool, canceled bool, failu
 }
 
 func (bp *BuildPrinter) buildDelta(fd *logstream.DeltaManifest_FieldsDelta) {
-	bp.b.RawDelta(&logstream.Delta{
+	bp.b.SendRawDelta(&logstream.Delta{
 		DeltaTypeOneof: &logstream.Delta_DeltaManifest{
 			DeltaManifest: &logstream.DeltaManifest{
 				DeltaManifestOneof: &logstream.DeltaManifest_Fields{

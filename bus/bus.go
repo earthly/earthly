@@ -65,8 +65,8 @@ func (b *Bus) SolverMonitor() *SolverMonitor {
 	return b.sm
 }
 
-// RawDelta sends a raw delta on the bus.
-func (b *Bus) RawDelta(delta *logstream.Delta) {
+// SendRawDelta sends a raw delta on the bus.
+func (b *Bus) SendRawDelta(delta *logstream.Delta) {
 	b.ch <- delta
 }
 

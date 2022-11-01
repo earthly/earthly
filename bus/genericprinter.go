@@ -31,7 +31,7 @@ func (gp *GenericPrinter) Write(dt []byte) (int, error) {
 func (gp *GenericPrinter) WriteWithTimestamp(dt []byte, ts time.Time) (int, error) {
 	gp.mu.Lock()
 	defer gp.mu.Unlock()
-	gp.bp.b.RawDelta(&logstream.Delta{
+	gp.bp.b.SendRawDelta(&logstream.Delta{
 		DeltaTypeOneof: &logstream.Delta_DeltaLog{
 			DeltaLog: &logstream.DeltaLog{
 				CommandId:          fmt.Sprintf("_generic:%s", gp.category),

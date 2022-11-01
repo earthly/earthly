@@ -45,7 +45,7 @@ func (cp *CommandPrinter) Write(dt []byte, ts time.Time, stream int32) (int, err
 	if err != nil {
 		return 0, errors.Wrap(err, "write to tail output")
 	}
-	cp.b.RawDelta(&logstream.Delta{
+	cp.b.SendRawDelta(&logstream.Delta{
 		DeltaTypeOneof: &logstream.Delta_DeltaLog{
 			DeltaLog: &logstream.DeltaLog{
 				TargetId:           cp.targetID,
@@ -126,7 +126,7 @@ func (cp *CommandPrinter) SetEnd(end time.Time, success bool, canceled bool, err
 }
 
 func (cp *CommandPrinter) commandDelta(dcm *logstream.DeltaCommandManifest) {
-	cp.b.RawDelta(&logstream.Delta{
+	cp.b.SendRawDelta(&logstream.Delta{
 		DeltaTypeOneof: &logstream.Delta_DeltaManifest{
 			DeltaManifest: &logstream.DeltaManifest{
 				DeltaManifestOneof: &logstream.DeltaManifest_Fields{

@@ -36,7 +36,7 @@ func (tp *TargetPrinter) SetEnd(end time.Time, status logstream.RunStatus, final
 }
 
 func (tp *TargetPrinter) targetDelta(dtm *logstream.DeltaTargetManifest) {
-	tp.b.RawDelta(&logstream.Delta{
+	tp.b.SendRawDelta(&logstream.Delta{
 		DeltaTypeOneof: &logstream.Delta_DeltaManifest{
 			DeltaManifest: &logstream.DeltaManifest{
 				DeltaManifestOneof: &logstream.DeltaManifest_Fields{
