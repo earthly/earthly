@@ -158,10 +158,5 @@ func (r *Resolver) ToLLBPlatform(in Platform) specs.Platform {
 
 // GetUserPlatform returns the user platform.
 func GetUserPlatform() specs.Platform {
-	p := platforms.DefaultSpec()
-	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
-		// Use linux so that this works with Docker Desktop app.
-		p.OS = "linux"
-	}
-	return platforms.Normalize(p)
+	return platforms.Normalize(platforms.DefaultSpec())
 }
