@@ -585,6 +585,8 @@ examples2:
     BUILD ./examples/cache-command/npm+docker
     BUILD ./examples/cache-command/mvn+docker
     BUILD ./examples/typescript-node+docker
+    BUILD ./examples/bazel+run
+    BUILD ./examples/bazel+image
 
 license:
     COPY LICENSE ./
