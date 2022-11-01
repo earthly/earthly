@@ -4,41 +4,16 @@ ami-base:
     FROM --platform=linux/amd64 ../common-repo+aws
 
     DO +ADD_YUM_REQS
-    DO +ADD_YQ
-    DO +ADD_TERRAFORM
+    DO +ADD_PACKER
 
     WORKDIR ami
-
-update-pipelines:
-    FROM +ami-base
-
-    ARG --required RELEASE_TAG
-    ARG ENVIRONMENT=production
-    ARG AWS_REGION=us-west-2
-
-    COPY imagebuilder.tf .
-
-    RUN --push \
-        --secret MFA_ARN=+secrets/user/earthly-technologies/aws/mfa-arn \
-        --secret MFA_KEY=+secrets/user/earthly-technologies/aws/mfa-key \
-        --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
-
-        eval $(assume-developer-role) && \
-        aws imagebuilder list-components | yq '.componentVersionList[] | "v"+.version' >> versions && \
-        echo $RELEASE_TAG >> versions && \
-        cat versions && \
-        terraform init && \
-        terraform workspace select $ENVIRONMENT && \
-        terraform plan && \
-        terraform apply --auto-approve
 
 shell:
     FROM +ami-base
 
-    ARG ENVIRONMENT=production
     ARG AWS_REGION=us-west-2
 
-    COPY imagebuilder.tf .
+    COPY install.sh configure.sh cleanup.sh image.pkr.hcl  .
 
     RUN --interactive \
         --secret MFA_ARN=+secrets/user/earthly-technologies/aws/mfa-arn \
@@ -52,11 +27,9 @@ build-ami:
     FROM +ami-base
 
     ARG --required RELEASE_TAG
-    ARG ENVIRONMENT=production
     ARG AWS_REGION=us-west-2
 
-    # Get the pipeline output data to look up the ARN for the one to trigger
-    COPY imagebuilder.tf .
+    COPY install.sh configure.sh cleanup.sh image.pkr.hcl  .
 
     RUN --push \
         --secret MFA_ARN=+secrets/user/earthly-technologies/aws/mfa-arn \
@@ -64,12 +37,8 @@ build-ami:
         --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
 
         eval $(assume-developer-role) && \
-        aws imagebuilder list-components | yq '.componentVersionList[] | "v"+.version' >> versions && \
-        terraform init && \
-        terraform workspace select $ENVIRONMENT && \
-        terraform refresh > /dev/null && \ # Do not print all variables to the logs. Terraform is one noisy fella
-        export PIPELINE_ARN=$(terraform output -json | yq .pipelines.value.[env\(RELEASE_TAG\)].arn) && \
-        aws imagebuilder start-image-pipeline-execution --image-pipeline-arn $PIPELINE_ARN
+        packer init . && \
+        packer build --var "earthly_version=$RELEASE_TAG" .
 
 ADD_YUM_REQS:
     COMMAND
@@ -77,22 +46,12 @@ ADD_YUM_REQS:
         yum install -y \
            curl \
            unzip \
-           git \
            ca-certificates
 
-ADD_YQ:
+ADD_PACKER:
     COMMAND
-    ARG YQ_VER=v4.20.2
-    ARG YQ_BIN=yq_linux_amd64
-
-    RUN curl https://github.com/mikefarah/yq/releases/download/${YQ_VER}/${YQ_BIN} -L -o /usr/bin/yq && \
-        chmod +x /usr/bin/yq
-
-ADD_TERRAFORM:
-    COMMAND
-    ARG TF_VER=0.14.11
-
-    RUN curl "https://releases.hashicorp.com/terraform/${TF_VER}/terraform_${TF_VER}_linux_amd64.zip" -o "terraform.zip" && \
-        unzip terraform.zip && \
-        chmod +x ./terraform && \
-        mv ./terraform /usr/local/bin/terraform
+    ARG PACKER_VER=1.8.4
+    RUN curl "https://releases.hashicorp.com/packer/${PACKER_VER}/packer_${PACKER_VER}_linux_amd64.zip" -o "packer.zip" && \
+        unzip packer.zip && \
+        chmod +x ./packer && \
+        mv ./packer /usr/local/bin/packer
