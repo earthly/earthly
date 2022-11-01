@@ -191,6 +191,10 @@ fi
 # set (or not), but we'll continue setting to "0" in case anyone has become dependent on that behavior.
 CACHE_SIZE_MB="${EFFECTIVE_CACHE_SIZE_MB:-0}"
 if [ "$CACHE_SIZE_MB" -gt "0" ]; then
+    SOURCE_FILE_KEEP_BYTES="$(echo "($CACHE_SIZE_MB * 1024 * 1024 * 0.5) / 1" | bc)" # Note /1 division truncates to int
+    export SOURCE_FILE_KEEP_BYTES
+    CATCH_ALL_KEEP_BYTES="$(echo "$CACHE_SIZE_MB * 1024 * 1024" | bc)"
+    export CATCH_ALL_KEEP_BYTES
     CACHE_SETTINGS="$(envsubst </etc/buildkitd.cache.template)"
 fi
 export CACHE_SETTINGS
