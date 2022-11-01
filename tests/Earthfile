@@ -1062,6 +1062,7 @@ cache-cmd:
     RUN test "$(cat ./artifacts2/1)" = "artifact 1"
     RUN test "$(cat ./artifacts2/2)" = "artifact 2"
     DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test-no-sharing
+    DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test-arg
 
 ls:
     COPY ls.earth Earthfile

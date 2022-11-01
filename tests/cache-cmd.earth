@@ -38,6 +38,12 @@ test-save-artifact:
     RUN echo "artifact 2" >> ./my/artifacts/2
     SAVE ARTIFACT ./my/artifacts AS LOCAL ./artifacts2
 
+test-arg:
+    CACHE /foo
+    RUN touch /foo/bar
+    ARG contents=$(ls /foo)
+    RUN test "$contents" = "bar"
+
 test-no-sharing-prev:
     CACHE /no-sharing
     RUN touch /no-sharing/should-not-see-me
