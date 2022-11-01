@@ -94,9 +94,8 @@ func (bp *BuildPrinter) NewCommandPrinter(commandID string, command string, targ
 			},
 		},
 	})
-	cp = newCommandPrinter(bp.b, commandID, targetID)
-	bp.cps[commandID] = cp
-	return cp
+	bp.cps[commandID] = newCommandPrinter(bp.b, commandID, targetID)
+	return bp.cps[commandID]
 }
 
 // CommandPrinter returns the command printer for the given command ID.
