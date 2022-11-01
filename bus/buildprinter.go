@@ -37,9 +37,8 @@ func (bp *BuildPrinter) GenericPrinter(category string) *GenericPrinter {
 	if ok {
 		return gp
 	}
-	gp = newGenericPrinter(bp, category)
-	bp.gps[category] = gp
-	return gp
+	bp.gps[category] = newGenericPrinter(bp, category)
+	return bp.gps[category]
 }
 
 // NewTargetPrinter creates a new target printer.
