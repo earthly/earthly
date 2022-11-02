@@ -82,8 +82,17 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 			Name:        "wake",
 			Usage:       "Manually force a Satellite to wake up from a sleep state",
 			Description: "Manually force a Satellite to wake up from a sleep state",
-			UsageText:   "earthly satellite unselect",
-			Action:      app.actionSatelliteWake,
+			UsageText: "earthly satellite wake <satellite-name>\n" +
+				"	earthly satellite [--org <organization-name>] wake <satellite-name>",
+			Action: app.actionSatelliteWake,
+		},
+		{
+			Name:        "sleep",
+			Usage:       "Manually force a Satellite to sleep from an operational state",
+			Description: "Manually force a Satellite to sleep from an operational state",
+			UsageText: "earthly satellite sleep <satellite-name>\n" +
+				"	earthly satellite [--org <organization-name>] sleep <satellite-name>",
+			Action: app.actionSatelliteSleep,
 		},
 	}
 }
@@ -437,6 +446,34 @@ func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
 	return nil
 }
 
+func (app *earthlyApp) actionSatelliteSleep(cliCtx *cli.Context) error {
+	app.commandName = "satelliteSleep"
+
+	if cliCtx.NArg() != 1 {
+		return errors.New("satellite name is required")
+	}
+
+	app.satelliteName = cliCtx.Args().Get(0)
+
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	if err != nil {
+		return err
+	}
+
+	out := cloudClient.SleepSatellite(cliCtx.Context, app.satelliteName, orgID)
+	err = showSatelliteStopping(app.console, app.satelliteName, out)
+	if err != nil {
+		return errors.Wrap(err, "failed waiting for satellite wake")
+	}
+
+	return nil
+}
+
 func showSatelliteLoading(console conslogging.ConsoleLogger, satName string, out chan cloud.SatelliteStatusUpdate) error {
 	loadingMsgs := getSatelliteLoadingMessages()
 	var (
@@ -527,4 +564,27 @@ func getSatelliteLoadingMessages() []string {
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(msgs), func(i, j int) { msgs[i], msgs[j] = msgs[j], msgs[i] })
 	return msgs
+}
+
+func showSatelliteStopping(console conslogging.ConsoleLogger, satName string, out chan cloud.SatelliteStatusUpdate) error {
+	loggedStopping := false
+	for o := range out {
+		if o.Err != nil {
+			return errors.Wrap(o.Err, "failed processing satellite status")
+		}
+		switch o.State {
+		case cloud.SatelliteStatusSleep:
+			if !loggedStopping {
+				console.Printf("%s is already asleep", satName)
+			} else {
+				console.Printf("...Done.")
+			}
+		case cloud.SatelliteStatusOperational:
+			console.Printf("%s is going to sleep. Please wait...", satName)
+		case cloud.SatelliteStatusStopping:
+			loggedStopping = true
+			console.Printf("...still shutting down...")
+		}
+	}
+	return nil
 }
