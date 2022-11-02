@@ -275,13 +275,6 @@ The `<mount-spec>` is defined as a series of comma-separated list of key-values.
 | `target` | The target path for the mount. | `target=/var/lib/data` |
 | `mode` | The permission of the mounted file, in octal format (the same format the chmod unix command line expects). | `mode=0400` |
 | `id` | The secret ID for the contents of the `target` file, only applicable for `type=secret`. | `id=+secrets/password` |
-| `sharing` | The sharing mode (`locked`, `shared`, `private`) for the cache mount, only applicable for `type=cache`. | `sharing=shared` |
-
-For cache mounts, the sharing mode can be one of the following:
-
-* `locked` (default) - the cache mount is locked for the duration of the execution, other concurrent builds will wait for the lock to be released.
-* `shared` - the cache mount is shared between all concurrent builds.
-* `private` - if another concurrent build attempts to use the cache, a new (empty) cache will be created for the concurrent build.
 
 ###### Examples:
 
@@ -1206,35 +1199,6 @@ WAIT
 END
 RUN ./test data # even if this fails, data will have been output
 ```
-
-## CACHE (beta)
-
-{% hint style='info' %}
-##### Note
-The `WAIT` command is experimental and must be enabled via `VERSION --wait-block 0.6`.
-{% endhint %}
-
-#### Synopsis
-
-* ```
-  CACHE [--sharing <sharing-mode>] [--type <cache-type>] <mountpoint>
-  ```
-
-#### Description
-
-The `CACHE` command creates a cache mountpoint at `<mountpoint>` in the build environment. The cache mountpoint is a directory which is shared between the instances of the same build target. The contents of the cache mountpoint are preserved between builds, and can be used to share data across builds.
-
-At the end of the target, the contents of the cache mountpoint are persisted as an additional layer in the image. This means that the contents are available to subsequent targets in the same build using `FROM`, or to any saved images `SAVE IMAGE`.
-
-#### Options
-
-##### `--sharing <sharing-mode>`
-
-The sharing mode for the cache mount, from one of the following:
-
-* `locked` (default) - the cache mount is locked for the duration of the execution, other concurrent builds will wait for the lock to be released.
-* `shared` - the cache mount is shared between all concurrent builds.
-* `private` - if another concurrent build attempts to use the cache, a new (empty) cache will be created for the concurrent build.
 
 ## LOCALLY
 
