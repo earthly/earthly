@@ -16,7 +16,7 @@ Cloud secrets can be used to share secrets between team members or across multip
 
 ## Introduction
 
-This document covers the use of cloud-hosted secrets. It builds upon the understanding of [build arguments and locally-supplied secrets](build-args.md).
+This document covers the use of cloud-hosted secrets. It builds upon the understanding of [build arguments and locally-supplied secrets](../guides/build-args.md).
 
 ## Managing secrets
 
