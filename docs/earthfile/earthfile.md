@@ -1211,7 +1211,7 @@ RUN ./test data # even if this fails, data will have been output
 
 {% hint style='info' %}
 ##### Note
-The `WAIT` command is experimental and must be enabled via `VERSION --wait-block 0.6`.
+The `CACHE` command is in beta and must be enabled via `VERSION --use-cache-command 0.6`.
 {% endhint %}
 
 #### Synopsis
