@@ -123,5 +123,5 @@ type pipelineOpts struct {
 }
 
 type cacheOpts struct {
-	Sharing string `long:"sharing" description:"The cache sharing mode: shared (default), private, locked"`
+	Sharing string `long:"sharing" description:"The cache sharing mode: locked (default), shared, private"`
 }
