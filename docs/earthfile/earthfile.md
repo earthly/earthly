@@ -1217,7 +1217,7 @@ The `CACHE` command is in beta and must be enabled via `VERSION --use-cache-comm
 #### Synopsis
 
 * ```
-  CACHE [--sharing <sharing-mode>] [--type <cache-type>] <mountpoint>
+  CACHE [--sharing <sharing-mode>] <mountpoint>
   ```
 
 #### Description
