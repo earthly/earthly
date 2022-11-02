@@ -12,7 +12,7 @@ buildkitd:
             ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
         END
     ELSE
-        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:07d2268e08f2aba8bcc6965ac61dbd7a566f61d4+build
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:ddc368c5dd6bc9398bd477365df53e9801e21304+build
     END
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
@@ -26,6 +26,7 @@ buildkitd:
         openssh-client \
         pigz \
         util-linux \
+        tini \
         xz
 
     # Add github and gitlab to known hosts.
@@ -61,7 +62,7 @@ buildkitd:
     ENV BUILDKIT_BASE_IMAGE=$BUILDKIT_BASE_IMAGE
     ENV EARTHLY_CACHE_VERSION="2" # whenever this value changes, a forced cache reset is performed
     VOLUME /tmp/earthly
-    ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--config=/etc/buildkitd.toml"]
+    ENTRYPOINT ["/sbin/tini", "-g", "--", "/usr/bin/entrypoint.sh", "buildkitd", "--config=/etc/buildkitd.toml"]
     ARG REGISTRY_USER="earthly"
     ARG IMAGE_REGISTRY="docker.io"
 
