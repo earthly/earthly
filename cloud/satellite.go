@@ -120,9 +120,8 @@ func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, g
 			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite reserve stream")}
 			return
 		}
-		var update *pb.ReserveSatelliteResponse
 		for {
-			update, err = stream.Recv()
+			update, err := stream.Recv()
 			if err == io.EOF {
 				return
 			}
@@ -155,9 +154,8 @@ func (c *client) WakeSatellite(ctx context.Context, name, orgID string) (out cha
 			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite wake stream")}
 			return
 		}
-		var update *pb.WakeSatelliteResponse
 		for {
-			update, err = stream.Recv()
+			update, err := stream.Recv()
 			if err == io.EOF {
 				return
 			}
@@ -191,9 +189,8 @@ func (c *client) SleepSatellite(ctx context.Context, name, orgID string) (out ch
 			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite sleep stream")}
 			return
 		}
-		var update *pb.SleepSatelliteResponse
 		for {
-			update, err = stream.Recv()
+			update, err := stream.Recv()
 			if err == io.EOF {
 				return
 			}
