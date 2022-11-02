@@ -4,9 +4,14 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- Cache mounts sharing mode can now be specified via `RUN --mount type=cache,sharing=shared` via `CACHE --sharing=shared`. Allowed values are `locked` (default - lock concurrent acccess to the cache), `shared` (allow concurrent access) and `private` (create a new empty cache on concurrent access).
+
 ### Changed
 
 - Increases the cache limit for local and git sources from 10% to 50% to support copying large files (e.g. binary assets).
+- The default cache mount sharing mode is now `locked` instead of `shared`. This means that if you have multiple builds running concurrently, they will block on each other to gain access to the cache mount. If you want to share the cache as it was shared in previous version of Earthly, you can use `RUN --mount type=cache,sharing=shared` or `CACHE --sharing=shared`.
 
 ### Fixed
 
