@@ -134,7 +134,6 @@ else
 fi
 
 if [ "$release_ami" = "true" ]; then
-  "$earthly" --push --build-arg RELEASE_TAG ./ami+update-pipelines
   "$earthly" --push --build-arg RELEASE_TAG ./ami+build-ami
 else
   echo "WARNING: there is no staging environment for AMIs"
