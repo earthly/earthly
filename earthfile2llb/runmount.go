@@ -31,7 +31,7 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 	var mountType string
 	var mountMode int
 	var mountOpts []llb.MountOption
-	sharingMode := llb.CacheMountShared
+	sharingMode := llb.CacheMountLocked
 	kvPairs := strings.Split(mount, ",")
 	for _, kvPair := range kvPairs {
 		kvSplit := strings.SplitN(kvPair, "=", 2)
