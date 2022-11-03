@@ -44,6 +44,10 @@ detect_frontend() {
 frontend_bin=$(detect_frontend)
 
 get_latest_binary() {
+    if [ "$frontend_bin" == "none" ]; then
+        echo "Could not find a frontend, perhaps the daemon isn't running?"
+        false
+    fi
     "$frontend_bin" rm --force earthly_binary 2>/dev/null >&2 || true
 
     "$frontend_bin" pull docker.io/earthly/earthlybinaries:prerelease >&2
