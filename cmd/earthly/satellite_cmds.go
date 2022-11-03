@@ -214,11 +214,8 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 	app.commandName = "satelliteList"
 
-	if cliCtx.NArg() == 0 {
-		return errors.New("satellite name is required")
-	}
-	if cliCtx.NArg() > 1 {
-		return errors.New("only a single satellite name is supported")
+	if cliCtx.NArg() != 0 {
+		return errors.New("command does not accept any arguments")
 	}
 
 	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
