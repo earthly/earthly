@@ -25,7 +25,13 @@ To build Earthly from source for your target system, use
     ./earthly +for-darwin-m1
     ```
 
-This builds the earthly binary in `./build/<platform>/amd64/earthly` and also the buildkitd image.
+This builds the earthly binary in `./build/*/*/earthly`, typically one of:
+
+* `./build/linux/amd64/earthly`
+* `./build/darwin/amd64/earthly`
+* `./build/darwin/arm64/earthly`
+
+It also builds the buildkitd image.
 
 The buildkitd image is tagged with your current branch name and also the built binary defaults to using that built image. The built binary will always check on startup whether it has the latest buildkitd running for its configured image name and will restart buildkitd automatically to update. If during your development you end up making changes to just the buildkitd image, the binary will pick up the change on its next run.
 
@@ -51,7 +57,7 @@ For development purposes, you may use the built `earthly` binary to rebuild itse
 To run most tests you can issue
 
 ```bash
-./build/<platform>/amd64/earthly -P \
+./build/*/*/earthly -P \
   --secret DOCKERHUB_USER=<my-docker-username> \
   --secret DOCKERHUB_TOKEN=<my-docker-token> \
   +test
@@ -60,7 +66,7 @@ To run most tests you can issue
 To also build the examples, you can run
 
 ```bash
-./build/<platform>/amd64/earthly -P  \
+./build/*/*/earthly -P  \
   --secret DOCKERHUB_USER=<my-docker-username> \
   --secret DOCKERHUB_TOKEN=<my-docker-token> \
   +test-all
@@ -69,7 +75,7 @@ To also build the examples, you can run
 The token should be the same token you use to login with Docker Hub. Other repositories are not supported. It is also possible to run tests without credentials. But running all of them, or running too frequently may incur rate limits. You could run a single test, without credentials like this:
 
 ```bash
-./build/<platform>/amd64/earthly -P ./tests+env-test --DOCKERHUB_AUTH=false
+./build/*/*/earthly -P ./tests+env-test --DOCKERHUB_AUTH=false
 ```
 
 If you don't want to specify these directly on the CLI, or don't want to type these each time, its possible [to use an .env file instead](https://docs.earthly.dev/docs/earthly-command#environment-variables-and-.env-file). Here is a template to get you started:
@@ -88,7 +94,7 @@ Since Earthly uses itself for running the tests (Earthly-in-Earthly), simply con
 embedded version of Earthly to use the cache via build-args:
 
 ```bash
-./build/<platform>/amd64/earthly -P ./tests+all --DOCKERHUB_AUTH=false --DOCKERHUB_MIRROR=<ip-address-or-hostname>:<port> --DOCKERHUB_MIRROR_INSECURE=true
+./build/*/*/earthly -P ./tests+all --DOCKERHUB_AUTH=false --DOCKERHUB_MIRROR=<ip-address-or-hostname>:<port> --DOCKERHUB_MIRROR_INSECURE=true
 ```
 
 ## Updates to buildkit or fsutil
