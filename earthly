@@ -136,7 +136,11 @@ case "$1" in
 
         last_flag_hash=$(cat "$last_flag_hash_path" 2>/dev/null || echo null)
         flagoverride_hash=$(md5sum "$earthly_version_flag_overrides_path" | awk '{print $1}')
-        if [ -z "$COMP_LINE" ]; then
+        if [ ! -x "$bindir/earthly-prerelease" ]; then
+            echo "Could not find an executable '$bindir/earthly-prerelease'."
+            update="true"
+            get_latest_binary_and_update_state
+        elif [ -z "$COMP_LINE" ]; then
             update="false"
             if [ "$last_flag_hash" != "$flagoverride_hash" ]; then
                 echo ".earthly_version_flag_overrides has changed since last run, checking for prerelease binaries" \
