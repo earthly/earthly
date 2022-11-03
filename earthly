@@ -126,7 +126,9 @@ case "$1" in
         flagoverride_hash=$(md5sum "$earthly_version_flag_overrides_path" | awk '{print $1}')
         if [ -z "$COMP_LINE" ]; then
             update="false"
-            if [ "$last_flag_hash" != "$flagoverride_hash" ]; then
+            if [ ! -x "$bindir/earthly-prerelease" ]; then
+                update="true"
+            elif [ "$last_flag_hash" != "$flagoverride_hash" ]; then
                 echo ".earthly_version_flag_overrides has changed since last run, checking for prerelease binaries. " \
                      "If you see an \"unable to set <flag-name>: invalid flag\" error, you may have to wait for the" \
                      "prerelease binary to be built by GHA on the main branch, before re-attempting a ./earthly upgrade" | fold >&2
