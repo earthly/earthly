@@ -1,6 +1,6 @@
 VERSION --use-host-command 0.6
 
-FROM alpine:3.15
+FROM alpine:3.16
 
 add-single-host:
     HOST example.com 1.2.3.4

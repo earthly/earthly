@@ -1,5 +1,5 @@
 IMPORT ./subdir AS empty-earthfile-only-containing-a-version
 
 test:
-    FROM alpine:3.15
+    FROM alpine:3.16
     RUN echo "pass"

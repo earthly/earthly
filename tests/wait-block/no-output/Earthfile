@@ -1,7 +1,7 @@
 VERSION --wait-block 0.6
 
 myimg:
-    FROM alpine:3.15
+    FROM alpine:3.16
     RUN echo foo > bar
     SAVE ARTIFACT bar
     SAVE IMAGE myimg:623cb5fb1b8c4cff8693281095724bb0

@@ -47,7 +47,7 @@ echo "testing earthly account login works (and is using the earthly-manitou acco
 
 mkdir -p /tmp/earthtest
 cat << EOF > /tmp/earthtest/Earthfile
-FROM alpine:3.15
+FROM alpine:3.16
 test-local-secret:
     WORKDIR /test
     RUN --mount=type=secret,target=/tmp/test_file,id=+secrets/my_secret test "\$(cat /tmp/test_file)" = "secret-value"

@@ -1,6 +1,6 @@
 VERSION --explicit-global 0.6
 
-FROM alpine:3.15
+FROM alpine:3.16
 WORKDIR /test
 
 ARG --global global_var=default

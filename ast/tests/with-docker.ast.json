@@ -133,7 +133,7 @@
         {
           "command": {
             "args": [
-              "alpine:3.15"
+              "alpine:3.16"
             ],
             "name": "FROM"
           }
@@ -212,7 +212,7 @@
         {
           "command": {
             "args": [
-              "alpine:3.15"
+              "alpine:3.16"
             ],
             "name": "FROM"
           }
@@ -270,7 +270,7 @@
         {
           "command": {
             "args": [
-              "alpine:3.15"
+              "alpine:3.16"
             ],
             "name": "FROM"
           }

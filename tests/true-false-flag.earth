@@ -1,6 +1,6 @@
 VERSION 0.6
 hello:
-    FROM alpine:3.15
+    FROM alpine:3.16
     ARG PRIVILEGED=false
     RUN --no-cache --privileged=$PRIVILEGED if cat /proc/self/status | grep CapEff | grep 0000003fffffffff >/dev/null; then echo "I have the power"; else echo "fight the power"; fi
 

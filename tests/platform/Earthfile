@@ -1,6 +1,6 @@
 VERSION --new-platform 0.6
 
-FROM alpine:3.15
+FROM alpine:3.16
 WORKDIR /work
 
 test:
@@ -93,9 +93,9 @@ run-all:
 run:
     ARG override_platform
     IF [ -n "$override_platform" ]
-        FROM --platform=$override_platform alpine:3.15
+        FROM --platform=$override_platform alpine:3.16
     ELSE
-        FROM alpine:3.15
+        FROM alpine:3.16
     END
     WORKDIR /work
     ARG USERPLATFORM
@@ -108,7 +108,7 @@ run:
     SAVE ARTIFACT ./*
 
 run-copy:
-    FROM alpine:3.15
+    FROM alpine:3.16
     WORKDIR /work
     ARG copy_platform
     IF [ -n "$copy_platform" ]
@@ -121,9 +121,9 @@ run-copy:
 copy-target:
     ARG copy_override_platform
     IF [ -n "$copy_override_platform" ]
-        FROM --platform=$copy_override_platform alpine:3.15
+        FROM --platform=$copy_override_platform alpine:3.16
     ELSE
-        FROM alpine:3.15
+        FROM alpine:3.16
     END
     WORKDIR /work
     ARG USERPLATFORM

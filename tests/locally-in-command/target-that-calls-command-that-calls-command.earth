@@ -1,6 +1,6 @@
 IMPORT ./some/subdir/submarine
 
 test:
-    FROM alpine:3.15
+    FROM alpine:3.16
     DO submarine+UDC_THAT_CALLS_OTHER_UDC
     RUN test "$(cat data)" = "I am running in /my/test"

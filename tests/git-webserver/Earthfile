@@ -99,7 +99,7 @@ nginx -c /root/nginx.conf
         mkdir -p /test/repo && \
         cd /test/repo && \
         git init --initial-branch=main . && \
-        echo -e "VERSION 0.6\nFROM alpine:3.15\nhello:\n\tRUN echo -n 98e15fb5-197c-43bf-886e-3291e65d646e | base64" > Earthfile && \
+        echo -e "VERSION 0.6\nFROM alpine:3.16\nhello:\n\tRUN echo -n 98e15fb5-197c-43bf-886e-3291e65d646e | base64" > Earthfile && \
         git add Earthfile && \
         git config --global user.email "onlyspammersemailthis@earthly.dev" && \
         git config --global user.name "test name" && \

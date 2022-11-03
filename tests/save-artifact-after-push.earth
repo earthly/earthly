@@ -1,6 +1,6 @@
 VERSION 0.6
 test:
-    FROM alpine:3.15
+    FROM alpine:3.16
     WORKDIR test
 
     RUN echo "1" > 1
@@ -13,6 +13,6 @@ test:
     SAVE ARTIFACT 2 AS LOCAL 2
 
 copy-test:
-    FROM alpine:3.15
+    FROM alpine:3.16
     WORKDIR test
     COPY +test/2 .

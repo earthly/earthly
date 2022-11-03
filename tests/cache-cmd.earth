@@ -1,6 +1,6 @@
 VERSION --use-cache-command 0.6
 
-FROM alpine:3.15
+FROM alpine:3.16
 CACHE /base/persistent
 RUN echo "hello" >> /base/persistent/hello
 

@@ -1,6 +1,6 @@
 VERSION --new-platform 0.6
 
-FROM alpine:3.15
+FROM alpine:3.16
 ARG NATIVEARCH
 IF [ "$NATIVEARCH" = "arm64" ]
     FROM arm64v8/openjdk:19-slim

@@ -1,5 +1,5 @@
 VERSION 0.6
-FROM alpine:3.15
+FROM alpine:3.16
 WORKDIR /test
 
 ARG global1=abc
@@ -40,7 +40,7 @@ test2:
     RUN test "$ALPINE" == "3.11"
 
 dummy:
-    FROM alpine:3.15
+    FROM alpine:3.16
 
 test3:
     ARG VAR1="test"

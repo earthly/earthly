@@ -59,7 +59,7 @@ update-buildkit:
     SAVE ARTIFACT go.sum AS LOCAL go.sum
 
 lint-scripts-base:
-    FROM alpine:3.15
+    FROM alpine:3.16
 
     ARG TARGETARCH
 
@@ -119,7 +119,7 @@ lint:
     RUN golangci-lint run
 
 lint-newline-ending:
-    FROM alpine:3.15
+    FROM alpine:3.16
     WORKDIR /everything
     COPY . .
     # test that line endings are unix-style
@@ -357,7 +357,7 @@ $(echo "$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG" | sed "s/^/  /g")
     END
 
 prerelease:
-    FROM alpine:3.15
+    FROM alpine:3.16
     ARG BUILDKIT_PROJECT
     BUILD \
         --platform=linux/amd64 \
@@ -367,7 +367,7 @@ prerelease:
     SAVE IMAGE --push earthly/earthlybinaries:prerelease
 
 prerelease-script:
-    FROM alpine:3.15
+    FROM alpine:3.16
     COPY ./earthly ./
     # This script is useful in other repos too.
     SAVE ARTIFACT ./earthly

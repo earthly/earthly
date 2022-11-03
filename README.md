@@ -245,7 +245,7 @@ all:
         +build
 
 build:
-    FROM alpine:3.15
+    FROM alpine:3.16
     CMD ["uname", "-m"]
     SAVE IMAGE multiplatform-image
 ```

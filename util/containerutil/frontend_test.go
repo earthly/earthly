@@ -333,8 +333,8 @@ func TestFrontendImagePull(t *testing.T) {
 		newFunc func(context.Context, *containerutil.FrontendConfig) (containerutil.ContainerFrontend, error)
 		refList []string
 	}{
-		{"docker", containerutil.NewDockerShellFrontend, []string{"nginx:1.21", "alpine:3.15"}},
-		{"podman", containerutil.NewPodmanShellFrontend, []string{"docker.io/nginx:1.21", "docker.io/alpine:3.15"}}, // Podman prefers... and exports fully-qualified image tags
+		{"docker", containerutil.NewDockerShellFrontend, []string{"nginx:1.21", "alpine:3.16"}},
+		{"podman", containerutil.NewPodmanShellFrontend, []string{"docker.io/nginx:1.21", "docker.io/alpine:3.16"}}, // Podman prefers... and exports fully-qualified image tags
 	}
 	for _, tC := range testCases {
 		t.Run(tC.binary, func(t *testing.T) {

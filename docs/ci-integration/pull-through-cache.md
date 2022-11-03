@@ -142,7 +142,7 @@ Then restart docker:
 sudo service docker restart
 ```
 
-Next you should be able to pull an image (e.g. `docker pull alpine:3.15`), which should use the cache.
+Next you should be able to pull an image (e.g. `docker pull alpine:3.16`), which should use the cache.
 
 #### Verifying the Cache is Actually Working (Optional)
 

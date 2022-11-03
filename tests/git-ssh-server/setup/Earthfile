@@ -90,7 +90,7 @@ fi
         mkdir -p /test/repo && \
         cd /test/repo && \
         git init --initial-branch=main . && \
-        echo -e "FROM alpine:3.15\nhello:\n\tRUN echo -n 1233c084-4cf5-4797-a4c5-eb65354ee7ee | base64" > Earthfile && \
+        echo -e "FROM alpine:3.16\nhello:\n\tRUN echo -n 1233c084-4cf5-4797-a4c5-eb65354ee7ee | base64" > Earthfile && \
         git add Earthfile && \
         git config --global user.email "onlyspammersemailthis@earthly.dev" && \
         git config --global user.name "test name" && \
