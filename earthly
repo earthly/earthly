@@ -103,6 +103,14 @@ do_help() {
     exec -a "$scriptname" "$bindir/earthly-prerelease" --help
 }
 
+get_latest_binary_and_update_state() {
+    get_latest_binary
+    echo "Updated prerelease binary. Version:" >&2
+    "$bindir/earthly-prerelease" --version >&2
+    echo "$now" >"$last_check_state_path"
+    echo "$flagoverride_hash" >"$last_flag_hash_path"
+}
+
 case "$1" in
     reset)
         do_reset
@@ -141,11 +149,7 @@ case "$1" in
             fi
 
             if [ "$update" = "true" ] && [ "$EARTHLY_DISABLE_AUTO_UPDATE" != "true" ]; then
-                get_latest_binary
-                echo "Updated prerelease binary. Version:" >&2
-                "$bindir/earthly-prerelease" --version >&2
-                echo "$now" >"$last_check_state_path"
-                echo "$flagoverride_hash" >"$last_flag_hash_path"
+                get_latest_binary_and_update_state
             fi
 
         fi
