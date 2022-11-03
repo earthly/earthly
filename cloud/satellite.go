@@ -7,6 +7,7 @@ import (
 
 	pb "github.com/earthly/cloud-api/compute"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 const (
@@ -119,9 +120,8 @@ func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, g
 			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite reserve stream")}
 			return
 		}
-		var update *pb.ReserveSatelliteResponse
 		for {
-			update, err = stream.Recv()
+			update, err := stream.Recv()
 			if err == io.EOF {
 				return
 			}
@@ -154,14 +154,48 @@ func (c *client) WakeSatellite(ctx context.Context, name, orgID string) (out cha
 			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite wake stream")}
 			return
 		}
-		var update *pb.WakeSatelliteResponse
 		for {
-			update, err = stream.Recv()
+			update, err := stream.Recv()
 			if err == io.EOF {
 				return
 			}
 			if err != nil {
 				out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed receiving satellite wake update")}
+				return
+			}
+			status := satelliteStatus(update.Status)
+			if status == SatelliteStatusFailed {
+				out <- SatelliteStatusUpdate{Err: errors.New("satellite is in a failed state")}
+				return
+			}
+			out <- SatelliteStatusUpdate{State: satelliteStatus(update.Status)}
+		}
+	}()
+	return out
+}
+
+func (c *client) SleepSatellite(ctx context.Context, name, orgID string) (out chan SatelliteStatusUpdate) {
+	out = make(chan SatelliteStatusUpdate)
+	go func() {
+		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		defer cancel()
+		defer close(out)
+		stream, err := c.compute.SleepSatellite(c.withAuth(ctxTimeout), &pb.SleepSatelliteRequest{
+			OrgId:          orgID,
+			Name:           name,
+			UpdateInterval: durationpb.New(10 * time.Second),
+		})
+		if err != nil {
+			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite sleep stream")}
+			return
+		}
+		for {
+			update, err := stream.Recv()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed receiving satellite sleep update")}
 				return
 			}
 			status := satelliteStatus(update.Status)

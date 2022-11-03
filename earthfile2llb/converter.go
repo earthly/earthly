@@ -583,6 +583,9 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 		return 0, err
 	}
 	c.nonSaveCommand()
+	for _, cache := range c.persistentCacheDirs {
+		opts.extraRunOpts = append(opts.extraRunOpts, cache)
+	}
 
 	var exitCodeFile string
 	if opts.Locally {
@@ -644,12 +647,18 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 // RunExpression runs an expression and returns its output. The run is transient - any state created
 // is not used in subsequent commands.
 func (c *Converter) RunExpression(ctx context.Context, expressionName string, opts ConvertRunOpts) (string, error) {
+	for _, cache := range c.persistentCacheDirs {
+		opts.extraRunOpts = append(opts.extraRunOpts, cache)
+	}
 	return c.runCommand(ctx, expressionName, true, opts)
 }
 
 // RunCommand runs a command and returns its output. The run is transient - any state created
 // is not used in subsequent commands.
 func (c *Converter) RunCommand(ctx context.Context, commandName string, opts ConvertRunOpts) (string, error) {
+	for _, cache := range c.persistentCacheDirs {
+		opts.extraRunOpts = append(opts.extraRunOpts, cache)
+	}
 	return c.runCommand(ctx, commandName, false, opts)
 }
 
@@ -1385,7 +1394,7 @@ func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal, 
 // Cache handles a `CACHE` command in a Target.
 // It appends run options to the Converter which will mount a cache volume in each successive `RUN` command,
 // and configures the `Converter` to persist the cache in the image at the end of the target.
-func (c *Converter) Cache(ctx context.Context, mountTarget string) error {
+func (c *Converter) Cache(ctx context.Context, mountTarget string, sharing string) error {
 	err := c.checkAllowed(cacheCmd)
 	if err != nil {
 		return err
@@ -1398,10 +1407,21 @@ func (c *Converter) Cache(ctx context.Context, mountTarget string) error {
 	}
 	mountID := path.Clean(mountTarget)
 	cachePath := path.Join("/run/cache", key, mountID)
+	var shareMode llb.CacheMountSharingMode
+	switch sharing {
+	case "shared":
+		shareMode = llb.CacheMountShared
+	case "private":
+		shareMode = llb.CacheMountPrivate
+	case "locked", "":
+		shareMode = llb.CacheMountLocked
+	default:
+		return errors.Errorf("invalid cache sharing mode %q", sharing)
+	}
 
 	if _, exists := c.persistentCacheDirs[mountTarget]; !exists {
 		c.persistentCacheDirs[mountTarget] = pllb.AddMount(mountTarget, pllb.Scratch(),
-			llb.AsPersistentCacheDir(cachePath, llb.CacheMountShared))
+			llb.AsPersistentCacheDir(cachePath, shareMode))
 	}
 	return nil
 }
