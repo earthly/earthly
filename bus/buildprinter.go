@@ -1,6 +1,7 @@
 package bus
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -45,7 +46,7 @@ func (bp *BuildPrinter) GenericPrinter(category string) *GenericPrinter {
 func (bp *BuildPrinter) NewTargetPrinter(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string) (*TargetPrinter, error) {
 	bp.mu.Lock()
 	defer bp.mu.Unlock()
-	tp, ok := bp.tps[targetID]
+	_, ok := bp.tps[targetID]
 	if ok {
 		return nil, errors.New("target printer already exists")
 	}
@@ -59,8 +60,9 @@ func (bp *BuildPrinter) NewTargetPrinter(targetID, shortTargetName, canonicalTar
 			},
 		},
 	})
-	bp.tps[targetID] = newTargetPrinter(bp.b, targetID)
-	return bp.tps[targetID], nil
+	tp := newTargetPrinter(bp.b, targetID)
+	bp.tps[targetID] = tp
+	return tp, nil
 }
 
 // TargetPrinter returns the target printer for the given target ID.
@@ -75,9 +77,9 @@ func (bp *BuildPrinter) TargetPrinter(targetID string) (*TargetPrinter, bool) {
 func (bp *BuildPrinter) NewCommandPrinter(commandID string, command string, targetID string, platform string, cached bool, push bool, local bool, sourceLocation *spec.SourceLocation, repoURL, repoHash, fileRelToRepo string) (*CommandPrinter, error) {
 	bp.mu.Lock()
 	defer bp.mu.Unlock()
-	cp, ok := bp.cps[commandID]
+	_, ok := bp.cps[commandID]
 	if ok {
-		return cp, errors.New("command printer already exists")
+		return nil, errors.New("command printer already exists")
 	}
 	bp.buildDelta(&logstream.DeltaManifest_FieldsDelta{
 		Commands: map[string]*logstream.DeltaCommandManifest{
@@ -92,8 +94,9 @@ func (bp *BuildPrinter) NewCommandPrinter(commandID string, command string, targ
 			},
 		},
 	})
-	bp.cps[commandID] = newCommandPrinter(bp.b, commandID, targetID)
-	return bp.cps[commandID], nil
+	cp := newCommandPrinter(bp.b, commandID, targetID)
+	bp.cps[commandID] = cp
+	return cp, nil
 }
 
 // CommandPrinter returns the command printer for the given command ID.
