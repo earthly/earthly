@@ -172,8 +172,11 @@ func (app *earthlyApp) getSatelliteOrgID(ctx context.Context, cloudClient cloud.
 func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	app.commandName = "satelliteLaunch"
 
-	if cliCtx.NArg() != 1 {
+	if cliCtx.NArg() == 0 {
 		return errors.New("satellite name is required")
+	}
+	if cliCtx.NArg() > 1 {
+		return errors.New("only a single satellite name is supported")
 	}
 
 	app.satelliteName = cliCtx.Args().Get(0)
@@ -211,8 +214,11 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 	app.commandName = "satelliteList"
 
-	if cliCtx.NArg() != 0 {
-		return errors.New("command does not accept any arguments")
+	if cliCtx.NArg() == 0 {
+		return errors.New("satellite name is required")
+	}
+	if cliCtx.NArg() > 1 {
+		return errors.New("only a single satellite name is supported")
 	}
 
 	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
@@ -237,8 +243,11 @@ func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 	app.commandName = "satelliteRemove"
 
-	if cliCtx.NArg() != 1 {
+	if cliCtx.NArg() == 0 {
 		return errors.New("satellite name is required")
+	}
+	if cliCtx.NArg() > 1 {
+		return errors.New("only a single satellite name is supported")
 	}
 
 	app.satelliteName = cliCtx.Args().Get(0)
@@ -277,8 +286,11 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	app.commandName = "satelliteInspect"
 
-	if cliCtx.NArg() != 1 {
+	if cliCtx.NArg() == 0 {
 		return errors.New("satellite name is required")
+	}
+	if cliCtx.NArg() > 1 {
+		return errors.New("only a single satellite name is supported")
 	}
 
 	satelliteToInspect := cliCtx.Args().Get(0)
@@ -412,8 +424,11 @@ func (app *earthlyApp) actionSatelliteUnselect(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
 	app.commandName = "satelliteWake"
 
-	if cliCtx.NArg() != 1 {
+	if cliCtx.NArg() == 0 {
 		return errors.New("satellite name is required")
+	}
+	if cliCtx.NArg() > 1 {
+		return errors.New("only a single satellite name is supported")
 	}
 
 	app.satelliteName = cliCtx.Args().Get(0)
@@ -449,8 +464,11 @@ func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionSatelliteSleep(cliCtx *cli.Context) error {
 	app.commandName = "satelliteSleep"
 
-	if cliCtx.NArg() != 1 {
+	if cliCtx.NArg() == 0 {
 		return errors.New("satellite name is required")
+	}
+	if cliCtx.NArg() > 1 {
+		return errors.New("only a single satellite name is supported")
 	}
 
 	app.satelliteName = cliCtx.Args().Get(0)
