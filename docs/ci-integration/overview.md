@@ -104,3 +104,4 @@ Below are links to CI systems that we have more specific information for. If you
  * [GitHub Actions](guides/gh-actions-integration.md)
  * [Google Cloud Build](guides/google-cloud-build.md)
  * [GitLab CI/CD](guides/gitlab-integration.md)
+ * [Woodpecker CI](guides/woodpecker-integration.md)
