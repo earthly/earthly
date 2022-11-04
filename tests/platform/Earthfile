@@ -7,7 +7,7 @@ test:
     FROM +run-all
     ARG nativeUname=$(uname -m)
     ARG tests="regular/linux/arm/v7 regular/linux/arm64 regular/linux/amd64 
-        native user default
+        native default
         override/linux/arm64 override/linux/amd64
         default_override/linux/arm64 default_override/linux/amd64
         copy_override/linux/arm64 copy_override/linux/amd64
@@ -32,7 +32,7 @@ test:
                 copy_override/linux/amd64|copy_other_set/linux/amd64|copy/linux/amd64|override/linux/amd64|default_override/linux/amd64|regular/linux/amd64) \
                     test \$um = x86_64 && \
                     test \$p = linux/amd64 ;; \
-                native|user|default|copy_native1|copy_native2) \
+                native|default|copy_native1|copy_native2) \
                     test \$um = \$nativeUname && \
                     case $nativeUname in \
                         aarch64) test \$p = linux/arm64 -o \$p = linux/arm64/v8 ;; \
@@ -71,7 +71,6 @@ run-all:
     COPY --platform=linux/arm64 +run/* ./out/regular/linux/arm64/
     COPY --platform=linux/arm/v7 +run/* ./out/regular/linux/arm/v7/
     COPY --platform=native +run/* ./out/native/
-    COPY --platform=user +run/* ./out/user/
     COPY +run/* ./out/default/
 
     # Start as one platform and end up as another.
