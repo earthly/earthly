@@ -80,10 +80,10 @@ jobs:
           timeout_minutes: 10
           max_attempts: 2
           command: |-
-            ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd && \
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ./examples/go+build & \
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ./examples/go+build & \
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ./examples/go+build
+            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
+            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
+            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
+            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello
       - name: Execute interactive debugger test
         uses: nick-fields/retry@v2
         with:
