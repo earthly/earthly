@@ -25,6 +25,7 @@ deps:
     RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.0
     COPY go.mod go.sum ./
     COPY ./ast/go.mod ./ast/go.sum ./ast
+    COPY ./util/deltautil/go.mod ./util/deltautil/go.sum ./util/deltautil
     RUN go mod download
     SAVE ARTIFACT go.mod AS LOCAL go.mod
     SAVE ARTIFACT go.sum AS LOCAL go.sum
