@@ -338,7 +338,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		cliFlags: cliFlags{
 			buildkitdSettings: buildkitd.Settings{},
 		},
-		bus: bus.New(ctx),
+		bus: bus.New(),
 	}
 
 	earthly := getBinaryName()

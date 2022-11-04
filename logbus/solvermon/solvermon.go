@@ -1,4 +1,4 @@
-package bus
+package solvermon
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/moby/buildkit/client"
 	"github.com/opencontainers/go-digest"
@@ -13,12 +14,13 @@ import (
 
 // SolverMonitor is a buildkit solver monitor.
 type SolverMonitor struct {
-	b        *Bus
+	b        *logbus.Bus
 	vertices map[digest.Digest]*vertexMonitor
 	mu       sync.Mutex
 }
 
-func newSolverMonitor(b *Bus) *SolverMonitor {
+// New creates a new SolverMonitor.
+func New(b *logbus.Bus) *SolverMonitor {
 	return &SolverMonitor{
 		b:        b,
 		vertices: make(map[digest.Digest]*vertexMonitor),
@@ -59,7 +61,7 @@ func (sm *SolverMonitor) MonitorProgress(ctx context.Context, ch chan *client.So
 func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *client.SolveStatus) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	bp := sm.b.Printer()
+	bp := sm.b.Run()
 	for _, vertex := range status.Vertexes {
 		vm, exists := sm.vertices[vertex.Digest]
 		if !exists {
@@ -67,13 +69,13 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 			if meta.CanonicalTargetName == "" {
 				meta.CanonicalTargetName = meta.TargetName
 			}
-			var tp *TargetPrinter
+			var tp *logbus.Target
 			if meta.TargetID != "" && meta.TargetName != "" {
 				var ok bool
-				tp, ok = bp.TargetPrinter(meta.TargetID)
+				tp, ok = bp.Target(meta.TargetID)
 				if !ok {
 					var err error
-					tp, err = bp.NewTargetPrinter(
+					tp, err = bp.NewTarget(
 						meta.TargetID, meta.TargetName, meta.CanonicalTargetName,
 						argsToSlice(meta.OverridingArgs), meta.Platform)
 					if err != nil {
@@ -84,7 +86,7 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 				}
 			}
 			push := false // TODO(vladaionescu): Support push.
-			cp, err := bp.NewCommandPrinter(
+			cp, err := bp.NewCommand(
 				vertex.Digest.String(), operation, meta.TargetID, meta.Platform,
 				vertex.Cached, push, meta.Local, meta.SourceLocation,
 				meta.RepoGitURL, meta.RepoGitHash, meta.RepoFileRelToRepo)

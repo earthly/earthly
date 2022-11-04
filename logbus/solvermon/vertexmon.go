@@ -1,4 +1,4 @@
-package bus
+package solvermon
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
+	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
@@ -16,8 +17,8 @@ type vertexMonitor struct {
 	vertex    *client.Vertex
 	meta      *vertexmeta.VertexMeta
 	operation string
-	tp        *TargetPrinter
-	cp        *CommandPrinter
+	tp        *logbus.Target
+	cp        *logbus.Command
 
 	isFatalError   bool // If set, this is the root cause of the entire build failure.
 	fatalErrorType logstream.FailureType

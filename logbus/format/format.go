@@ -1,4 +1,4 @@
-package delta2cons
+package format
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/util/deltautil"
 	"github.com/earthly/earthly/util/progressbar"
 	"github.com/mattn/go-isatty"
@@ -46,8 +47,9 @@ type command struct {
 	lastOpenLineSkipped bool
 }
 
-// Delta2Cons is a delta to console logger.
-type Delta2Cons struct {
+// Formatter is a delta to console logger.
+type Formatter struct {
+	bus                        *logbus.Bus
 	console                    conslogging.ConsoleLogger
 	verbose                    bool
 	disableOngoingUpdates      bool
@@ -62,16 +64,18 @@ type Delta2Cons struct {
 	commands                   map[string]*command
 }
 
-// New creates a new Delta2Cons.
-func New(console conslogging.ConsoleLogger, verbose bool, disableOngoingUpdates bool) *Delta2Cons {
+// New creates a new Formatter.
+func New(b *logbus.Bus, verbose bool, disableOngoingUpdates bool) *Formatter {
 	ongoingTick := durationBetweenOngoingUpdatesNoAnsi
 	if ansiSupported {
 		ongoingTick = durationBetweenOngoingUpdates
 	}
 	ongoingTicker := time.NewTicker(ongoingTick)
 	ongoingTicker.Stop()
-	return &Delta2Cons{
-		console:               console,
+	return &Formatter{
+		bus: b,
+		// TODO (vladaionescu): Pass in color detection and log level.
+		console:               conslogging.New(nil, nil, conslogging.AutoColor, conslogging.DefaultPadding, conslogging.Info),
 		verbose:               verbose,
 		disableOngoingUpdates: disableOngoingUpdates,
 		timingTable:           make(map[string]time.Duration),
@@ -85,7 +89,7 @@ func New(console conslogging.ConsoleLogger, verbose bool, disableOngoingUpdates 
 
 // PipeDeltasToConsole takes a channel of deltas interprets them and
 // writes them to the console.
-func (d2c *Delta2Cons) PipeDeltasToConsole(ctx context.Context, ch chan *logstream.Delta) error {
+func (f *Formatter) PipeDeltasToConsole(ctx context.Context, ch chan *logstream.Delta) error {
 	closeCh := make(chan struct{})
 	returnedCh := make(chan struct{})
 	defer close(returnedCh)
@@ -99,8 +103,8 @@ func (d2c *Delta2Cons) PipeDeltasToConsole(ctx context.Context, ch chan *logstre
 		}
 		close(closeCh)
 	}()
-	d2c.ongoingTicker.Reset(d2c.ongoingTick)
-	defer d2c.ongoingTicker.Stop()
+	f.ongoingTicker.Reset(f.ongoingTick)
+	defer f.ongoingTicker.Stop()
 	for {
 		select {
 		case <-closeCh:
@@ -110,7 +114,7 @@ func (d2c *Delta2Cons) PipeDeltasToConsole(ctx context.Context, ch chan *logstre
 				return nil
 			}
 			var err error
-			d2c.manifest, err = deltautil.ApplyDeltaManifest(d2c.manifest, delta)
+			f.manifest, err = deltautil.ApplyDeltaManifest(f.manifest, delta)
 			if err != nil {
 				return errors.Wrap(err, "failed to apply delta")
 			}
@@ -124,20 +128,20 @@ func (d2c *Delta2Cons) PipeDeltasToConsole(ctx context.Context, ch chan *logstre
 			// }
 			switch d := delta.GetDeltaTypeOneof().(type) {
 			case *logstream.Delta_DeltaManifest:
-				err := d2c.handleDeltaManifest(ctx, d.DeltaManifest)
+				err := f.handleDeltaManifest(ctx, d.DeltaManifest)
 				if err != nil {
 					return errors.Wrap(err, "failed to handle delta manifest")
 				}
 			case *logstream.Delta_DeltaLog:
-				err := d2c.handleDeltaLog(ctx, d.DeltaLog)
+				err := f.handleDeltaLog(ctx, d.DeltaLog)
 				if err != nil {
 					return err
 				}
 			default:
 				return fmt.Errorf("unknown delta type %T", d)
 			}
-		case <-d2c.ongoingTicker.C:
-			err := d2c.processOngoingTick(ctx)
+		case <-f.ongoingTicker.C:
+			err := f.processOngoingTick(ctx)
 			if err != nil {
 				return err
 			}
@@ -145,52 +149,52 @@ func (d2c *Delta2Cons) PipeDeltasToConsole(ctx context.Context, ch chan *logstre
 	}
 }
 
-func (d2c *Delta2Cons) handleDeltaManifest(ctx context.Context, dm *logstream.DeltaManifest) error {
+func (f *Formatter) handleDeltaManifest(ctx context.Context, dm *logstream.DeltaManifest) error {
 	for commandID, cmd := range dm.GetFields().GetCommands() {
-		cm, ok := d2c.manifest.GetCommands()[commandID]
+		cm, ok := f.manifest.GetCommands()[commandID]
 		if !ok {
 			return fmt.Errorf("command %q not found in manifest", commandID)
 		}
 		var tm *logstream.TargetManifest
 		if cm.GetTargetId() != "" {
 			var ok bool
-			tm, ok = d2c.manifest.GetTargets()[cm.GetTargetId()]
+			tm, ok = f.manifest.GetTargets()[cm.GetTargetId()]
 			if !ok {
 				return fmt.Errorf("target %s not found in manifest", cm.GetTargetId())
 			}
 		}
 		if cmd.GetStatus() == logstream.RunStatus_RUN_STATUS_IN_PROGRESS {
-			d2c.printHeader(d2c.console, cm.GetTargetId(), commandID, tm, cm)
+			f.printHeader(cm.GetTargetId(), commandID, tm, cm, false)
 		}
-		if cmd.GetHasHasProgress() && d2c.shouldPrintProgress(cm.GetTargetId(), commandID, cm) {
-			d2c.printProgress(cm.GetTargetId(), commandID, cm)
+		if cmd.GetHasHasProgress() && f.shouldPrintProgress(cm.GetTargetId(), commandID, cm) {
+			f.printProgress(cm.GetTargetId(), commandID, cm)
 		}
 		if cmd.GetStatus() == logstream.RunStatus_RUN_STATUS_FAILURE {
-			d2c.printError(cm.GetTargetId(), commandID, tm, cm)
+			f.printError(cm.GetTargetId(), commandID, tm, cm)
 		}
 	}
 	if dm.GetFields().GetHasFailure() {
-		d2c.printBuildFailure()
+		f.printBuildFailure()
 	}
 	return nil
 }
 
-func (d2c *Delta2Cons) getCommand(commandID string) *command {
-	cmd, ok := d2c.commands[commandID]
+func (f *Formatter) getCommand(commandID string) *command {
+	cmd, ok := f.commands[commandID]
 	if !ok {
 		cmd = &command{}
-		d2c.commands[commandID] = cmd
+		f.commands[commandID] = cmd
 	}
 	return cmd
 }
 
-func (d2c *Delta2Cons) handleDeltaLog(ctx context.Context, dl *logstream.DeltaLog) error {
-	c := d2c.console
+func (f *Formatter) handleDeltaLog(ctx context.Context, dl *logstream.DeltaLog) error {
+	c := f.console
 	if dl.GetTargetId() == "" && strings.HasPrefix("_generic:", dl.GetCommandId()) {
 		prefix := strings.TrimPrefix(dl.GetCommandId(), "_generic:")
 		c = c.WithPrefixAndSalt(prefix, prefix)
 	} else if dl.GetTargetId() != "" {
-		tm, ok := d2c.manifest.GetTargets()[dl.GetTargetId()]
+		tm, ok := f.manifest.GetTargets()[dl.GetTargetId()]
 		if !ok {
 			return fmt.Errorf("target %s not found in manifest", dl.GetTargetId())
 		}
@@ -198,11 +202,11 @@ func (d2c *Delta2Cons) handleDeltaLog(ctx context.Context, dl *logstream.DeltaLo
 	} else {
 		c = c.WithPrefixAndSalt(dl.GetCommandId(), dl.GetCommandId())
 	}
-	cmd := d2c.getCommand(dl.GetCommandId())
+	cmd := f.getCommand(dl.GetCommandId())
 
-	sameAsLast := (!d2c.lastOutputWasOngoingUpdate &&
-		!d2c.lastOutputWasProgress &&
-		d2c.lastCommandOutput == cmd)
+	sameAsLast := (!f.lastOutputWasOngoingUpdate &&
+		!f.lastOutputWasProgress &&
+		f.lastCommandOutput == cmd)
 	output := dl.GetData()
 	printOutput := make([]byte, 0, len(cmd.openLine)+len(output)+10)
 	if bytes.HasPrefix(output, []byte{'\n'}) && len(cmd.openLine) > 0 && !cmd.lastOpenLineSkipped {
@@ -246,30 +250,29 @@ func (d2c *Delta2Cons) handleDeltaLog(ctx context.Context, dl *logstream.DeltaLo
 
 	cmd.lastOpenLineSkipped = false
 	c.PrintBytes(printOutput)
-	d2c.lastOutputWasOngoingUpdate = false
-	d2c.lastOutputWasProgress = false
-	d2c.lastCommandOutput = cmd
+	f.lastOutputWasOngoingUpdate = false
+	f.lastOutputWasProgress = false
+	f.lastCommandOutput = cmd
 	return nil
 }
 
-func (d2c *Delta2Cons) processOngoingTick(ctx context.Context) error {
-	if d2c.disableOngoingUpdates {
+func (f *Formatter) processOngoingTick(ctx context.Context) error {
+	if f.disableOngoingUpdates {
 		return nil
 	}
-	d2c.console.WithPrefix("ongoing").Printf("ongoing TODO\n")
+	f.console.WithPrefix("ongoing").Printf("ongoing TODO\n")
 	// TODO(vladaionescu): Go through all the commands and find which one is ongoing.
 	// Print their targets on the console.
-	d2c.lastOutputWasOngoingUpdate = true
-	d2c.lastOutputWasProgress = false
-	d2c.lastCommandOutput = nil
+	f.lastOutputWasOngoingUpdate = true
+	f.lastOutputWasProgress = false
+	f.lastCommandOutput = nil
 	return nil
 }
 
-func (d2c *Delta2Cons) printHeader(c conslogging.ConsoleLogger, targetID string, commandID string, tm *logstream.TargetManifest, cm *logstream.CommandManifest) {
-	if targetID != "" {
-		c = c.WithPrefixAndSalt(tm.GetName(), targetID)
-	} else {
-		c = c.WithPrefixAndSalt(commandID, commandID)
+func (f *Formatter) printHeader(targetID string, commandID string, tm *logstream.TargetManifest, cm *logstream.CommandManifest, failure bool) {
+	c := f.targetConsole(targetID, commandID)
+	if failure {
+		c = c.WithFailed(true)
 	}
 	var metaParts []string
 	if cm.GetPlatform() != "" {
@@ -289,23 +292,15 @@ func (d2c *Delta2Cons) printHeader(c conslogging.ConsoleLogger, targetID string,
 	}
 	c.Printf("%s\n", strings.Join(out, " "))
 
-	d2c.lastOutputWasOngoingUpdate = false
-	d2c.lastOutputWasProgress = false
-	d2c.lastCommandOutput = nil
+	f.lastOutputWasOngoingUpdate = false
+	f.lastOutputWasProgress = false
+	f.lastCommandOutput = nil
 }
 
-func (d2c *Delta2Cons) printProgress(targetID string, commandID string, cm *logstream.CommandManifest) {
-	c := d2c.console
-	if targetID != "" {
-		tm, ok := d2c.manifest.GetTargets()[targetID]
-		if ok {
-			c = c.WithPrefixAndSalt(tm.GetName(), targetID)
-		}
-	} else {
-		c = c.WithPrefixAndSalt(commandID, commandID)
-	}
+func (f *Formatter) printProgress(targetID string, commandID string, cm *logstream.CommandManifest) {
+	c := f.targetConsole(targetID, commandID)
 	builder := make([]string, 0, 2)
-	if d2c.lastOutputWasProgress {
+	if f.lastOutputWasProgress {
 		builder = append(builder, string(ansiUp))
 	}
 	progressBar := progressbar.ProgressBar(int(cm.GetProgress()), 10)
@@ -313,25 +308,25 @@ func (d2c *Delta2Cons) printProgress(targetID string, commandID string, cm *logs
 		"[%s] %3d%% %s%s\n",
 		progressBar, cm.GetProgress(), cm.GetName(), string(ansiEraseRestLine)))
 	c.PrintBytes([]byte(strings.Join(builder, "")))
-	d2c.lastOutputWasOngoingUpdate = false
-	d2c.lastOutputWasProgress = (cm.GetProgress() != 100)
-	d2c.lastCommandOutput = nil
+	f.lastOutputWasOngoingUpdate = false
+	f.lastOutputWasProgress = (cm.GetProgress() != 100)
+	f.lastCommandOutput = nil
 }
 
-func (d2c *Delta2Cons) shouldPrintProgress(targetID string, commandID string, cm *logstream.CommandManifest) bool {
+func (f *Formatter) shouldPrintProgress(targetID string, commandID string, cm *logstream.CommandManifest) bool {
 	if !cm.GetHasProgress() {
 		return false
 	}
 	// TODO(vladaionescu): Skip some internal progress for non-ansi.
 	minDelta := durationBetweenOngoingUpdates
-	if d2c.lastOutputWasProgress && ansiSupported {
+	if f.lastOutputWasProgress && ansiSupported {
 		minDelta = durationBetweenProgressUpdateIfSame
 	}
 	// TODO(vladaionescu): Handle sha256 progress in a special manner.
 	// } else if strings.HasPrefix(id, "sha256:") || strings.HasPrefix(id, "extracting sha256:") {
 	// 	minDelta = durationBetweenSha256ProgressUpdate
 	// }
-	cmd := d2c.getCommand(commandID)
+	cmd := f.getCommand(commandID)
 	lastProgress := cmd.lastProgress
 	if time.Since(lastProgress) < minDelta && cm.GetProgress() < 100 {
 		return false
@@ -344,50 +339,60 @@ func (d2c *Delta2Cons) shouldPrintProgress(targetID string, commandID string, cm
 	return true
 }
 
-func (d2c *Delta2Cons) printError(targetID string, commandID string, tm *logstream.TargetManifest, cm *logstream.CommandManifest) {
-	c := d2c.console
-	if targetID != "" {
-		c = c.WithPrefixAndSalt(tm.GetName(), targetID)
-	} else {
-		c = c.WithPrefixAndSalt(commandID, commandID)
-	}
+func (f *Formatter) printError(targetID string, commandID string, tm *logstream.TargetManifest, cm *logstream.CommandManifest) {
+	c := f.targetConsole(targetID, commandID)
 	c.Printf("%s\n", cm.GetErrorMessage())
 	c.VerbosePrintf("Overriding args used: %s\n", strings.Join(tm.GetOverrideArgs(), " "))
-	d2c.lastOutputWasOngoingUpdate = false
-	d2c.lastOutputWasProgress = false
-	d2c.lastCommandOutput = nil
+	f.lastOutputWasOngoingUpdate = false
+	f.lastOutputWasProgress = false
+	f.lastCommandOutput = nil
 }
 
-func (d2c *Delta2Cons) printBuildFailure() {
-	if d2c.manifest.GetFailure() == nil {
+func (f *Formatter) printBuildFailure() {
+	if f.manifest.GetFailure() == nil {
 		return
 	}
-	f := d2c.manifest.GetFailure()
+	failure := f.manifest.GetFailure()
 	var tm *logstream.TargetManifest
 	var cm *logstream.CommandManifest
-	if f.GetTargetId() != "" {
-		tm = d2c.manifest.GetTargets()[f.GetTargetId()]
+	if failure.GetTargetId() != "" {
+		tm = f.manifest.GetTargets()[failure.GetTargetId()]
 	}
-	if f.GetCommandId() != "" {
-		cm = d2c.manifest.GetCommands()[f.GetCommandId()]
+	if failure.GetCommandId() != "" {
+		cm = f.manifest.GetCommands()[failure.GetCommandId()]
 	}
-	c := d2c.console.WithFailed(true)
-	if tm != nil {
-		c = c.WithPrefixAndSalt(tm.GetName(), f.GetTargetId())
-	} else {
-		c = c.WithPrefixAndSalt(f.GetCommandId(), f.GetCommandId())
-	}
+	c := f.targetConsole(failure.GetTargetId(), failure.GetCommandId())
+	c = c.WithFailed(true)
 	c.Printf("Repeating the failure error...\n")
-	d2c.printHeader(c, f.GetTargetId(), f.GetCommandId(), tm, cm)
-	if len(f.GetOutput()) > 0 {
-		c.PrintBytes(f.GetOutput())
+	f.printHeader(failure.GetTargetId(), failure.GetCommandId(), tm, cm, true)
+	if len(failure.GetOutput()) > 0 {
+		c.PrintBytes(failure.GetOutput())
 	} else {
 		c.Printf("[no output]\n")
 	}
-	if f.GetErrorMessage() != "" {
-		c.Printf("%s\n", f.GetErrorMessage())
+	if failure.GetErrorMessage() != "" {
+		c.Printf("%s\n", failure.GetErrorMessage())
 	}
-	d2c.lastOutputWasOngoingUpdate = false
-	d2c.lastOutputWasProgress = false
-	d2c.lastCommandOutput = nil
+	f.lastOutputWasOngoingUpdate = false
+	f.lastOutputWasProgress = false
+	f.lastCommandOutput = nil
+}
+
+func (f *Formatter) targetConsole(targetID string, commandID string) conslogging.ConsoleLogger {
+	var targetName string
+	writerTargetID := targetID
+	if targetID != "" {
+		tm := f.manifest.GetTargets()[targetID]
+		targetName = tm.GetName()
+	} else {
+		writerTargetID = "_internal"
+		targetName = "internal"
+		if commandID != "" {
+			writerTargetID = fmt.Sprintf("_internal:%s", commandID)
+			targetName = writerTargetID
+		}
+	}
+	return f.console.
+		WithWriter(f.bus.FormattedWriter(writerTargetID)).
+		WithPrefixAndSalt(targetName, targetID)
 }
