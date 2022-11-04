@@ -22,11 +22,17 @@ func NewFormattedWriter(bus *Bus, targetID string) *FormattedWriter {
 
 // Write writes the given bytes to the writer.
 func (fw *FormattedWriter) Write(dt []byte) (int, error) {
+	// TODO (vladaionescu): Can the timestamp be passed along straight
+	// 						from buildkit?
+	ts := uint64(time.Now().UnixNano())
 	fw.bus.WriteFormattedLog(&logstream.DeltaFormattedLog{
-		TargetId: fw.targetID,
-		// TODO (vladaionescu): Can the timestamp be passed along straight
-		// 						from buildkit?
-		TimestampUnixNanos: uint64(time.Now().UnixNano()),
+		TargetId:           fw.targetID,
+		TimestampUnixNanos: ts,
+		Data:               dt,
+	})
+	fw.bus.WriteFormattedLog(&logstream.DeltaFormattedLog{
+		TargetId:           "_full",
+		TimestampUnixNanos: ts,
 		Data:               dt,
 	})
 	return len(dt), nil

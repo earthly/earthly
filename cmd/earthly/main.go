@@ -146,6 +146,7 @@ type cliFlags struct {
 	invitePermission          string
 	inviteMessage             string
 	logstream                 bool
+	logstreamDebugFile        string
 }
 
 type analyticsMetadata struct {
@@ -383,7 +384,11 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 		app.console = app.console.WithLogLevel(conslogging.Verbose)
 	}
 	disableOngoingUpdates := !app.logstream // TODO (vladaionescu)
-	app.logbusSetup = logbussetup.New(cliCtx.Context, app.logbus, app.debug, app.verbose, disableOngoingUpdates)
+	var err error
+	app.logbusSetup, err = logbussetup.New(cliCtx.Context, app.logbus, app.debug, app.verbose, disableOngoingUpdates, app.logstreamDebugFile)
+	if err != nil {
+		return errors.Wrap(err, "logbus setup")
+	}
 
 	if cliCtx.IsSet("config") {
 		app.console.Printf("loading config values from %q\n", app.configPath)
@@ -397,7 +402,6 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 	}
 
 	var yamlData []byte
-	var err error
 	if app.configPath != "" {
 		yamlData, err = config.ReadConfigFile(app.configPath)
 		if err != nil {

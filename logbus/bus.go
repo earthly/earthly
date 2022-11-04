@@ -2,12 +2,17 @@ package logbus
 
 import (
 	"sync"
+	"time"
 
 	"github.com/earthly/cloud-api/logstream"
+	"github.com/earthly/earthly/util/deltautil"
+	"github.com/google/uuid"
 )
 
-// SubscriberFun is a function that is called for each delta.
-type SubscriberFun func(delta *logstream.Delta)
+// Subscriber is an object that can receive deltas.
+type Subscriber interface {
+	Write(*logstream.Delta)
+}
 
 // Bus is a build log data bus.
 // It listens for raw deltas via WriteDeltaManifest and WriteRawLog, passes
@@ -18,11 +23,11 @@ type Bus struct {
 	run *Run
 
 	rawMu      sync.Mutex
-	rawSubs    []SubscriberFun
+	rawSubs    []Subscriber
 	rawHistory []*logstream.Delta
 
 	formattedMu      sync.Mutex
-	formattedSubs    []SubscriberFun
+	formattedSubs    []Subscriber
 	formattedHistory []*logstream.Delta
 }
 
@@ -32,35 +37,48 @@ func New() *Bus {
 		run: nil, // set below
 	}
 	b.run = newRun(b)
+	// TODO (vladaionescu): This should be issued somewhere else
+	//                      (after we've parsed org and project names).
+	b.WriteDeltaManifest(&logstream.DeltaManifest{
+		DeltaManifestOneof: &logstream.DeltaManifest_ResetAll{
+			ResetAll: &logstream.RunManifest{
+				BuildId:            uuid.NewString(),
+				Version:            deltautil.Version,
+				CreatedAtUnixNanos: uint64(time.Now().UnixNano()),
+				OrgName:            "TODO",
+				ProjectName:        "TODO",
+			},
+		},
+	})
 	return b
 }
 
 // AddSubscriber adds a subscriber to the bus. A subscriber receives both the
 // raw and formatted deltas.
-func (b *Bus) AddSubscriber(sub SubscriberFun) {
+func (b *Bus) AddSubscriber(sub Subscriber) {
 	b.AddRawSubscriber(sub)
 	b.AddFormattedSubscriber(sub)
 }
 
 // AddRawSubscriber adds a raw subscriber to the bus. A raw subscriber only
 // receives the raw deltas: DeltaManifest and DeltaLog.
-func (b *Bus) AddRawSubscriber(sub SubscriberFun) {
+func (b *Bus) AddRawSubscriber(sub Subscriber) {
 	b.rawMu.Lock()
 	defer b.rawMu.Unlock()
 	for _, delta := range b.rawHistory {
-		sub(delta)
+		sub.Write(delta)
 	}
 	b.rawSubs = append(b.rawSubs, sub)
 }
 
 // AddFormattedSubscriber adds a formatted subscriber to the bus. A formatted
 // subscriber receives only the formatted deltas: DeltaFormattedLog.
-func (b *Bus) AddFormattedSubscriber(sub SubscriberFun) {
+func (b *Bus) AddFormattedSubscriber(sub Subscriber) {
 	b.formattedMu.Lock()
 	defer b.formattedMu.Unlock()
 	b.formattedSubs = append(b.formattedSubs, sub)
 	for _, delta := range b.formattedHistory {
-		sub(delta)
+		sub.Write(delta)
 	}
 }
 
@@ -80,7 +98,7 @@ func (b *Bus) WriteDeltaManifest(dm *logstream.DeltaManifest) {
 	defer b.rawMu.Unlock()
 	b.rawHistory = append(b.rawHistory, delta)
 	for _, sub := range b.rawSubs {
-		sub(delta)
+		sub.Write(delta)
 	}
 }
 
@@ -95,7 +113,7 @@ func (b *Bus) WriteRawLog(dl *logstream.DeltaLog) {
 	defer b.rawMu.Unlock()
 	b.rawHistory = append(b.rawHistory, delta)
 	for _, sub := range b.rawSubs {
-		sub(delta)
+		sub.Write(delta)
 	}
 }
 
@@ -110,7 +128,7 @@ func (b *Bus) WriteFormattedLog(dfl *logstream.DeltaFormattedLog) {
 	defer b.formattedMu.Unlock()
 	b.formattedHistory = append(b.formattedHistory, delta)
 	for _, sub := range b.formattedSubs {
-		sub(delta)
+		sub.Write(delta)
 	}
 }
 

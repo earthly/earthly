@@ -128,6 +128,13 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Destination: &app.logstream,
 			Hidden:      true, // Internal.
 		},
+		&cli.StringFlag{
+			Name:        "logstream-debug-file",
+			EnvVars:     []string{"EARTHLY_LOGSTREAM_DEBUG_FILE"},
+			Usage:       "Enable log streaming debugging output to a file",
+			Destination: &app.logstreamDebugFile,
+			Hidden:      true, // Internal.
+		},
 	}
 }
 

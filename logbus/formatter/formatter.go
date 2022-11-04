@@ -122,14 +122,6 @@ func (f *Formatter) processDelta(delta *logstream.Delta) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to apply delta")
 	}
-	// TODO(vladaionescu): Make debugging a flag.
-	// switch d := delta.GetDeltaTypeOneof().(type) {
-	// case *logstream.Delta_DeltaManifest:
-	// 	fmt.Printf("@# delta manifest: %+v\n", d)
-	// case *logstream.Delta_DeltaLog:
-	// 	fmt.Printf("@# delta log: %+v\n", d)
-	// default:
-	// }
 	switch d := delta.GetDeltaTypeOneof().(type) {
 	case *logstream.Delta_DeltaManifest:
 		err := f.handleDeltaManifest(d.DeltaManifest)
