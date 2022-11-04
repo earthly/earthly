@@ -75,7 +75,7 @@ jobs:
       - name: Configure Earthly Conversion Parallelism
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.conversion_parallelism 5
       - name: Stop the Buildkit container
-        command: ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd
+        run: ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd
       - name: Run parallel buildkit start test. It ensures that earthly starting up buildkit does not race with itself.
         uses: nick-fields/retry@v2
         with:
