@@ -89,7 +89,6 @@ jobs:
             for pid in ${pids[*]}; do
                 wait $pid
             done
-
       - name: Execute interactive debugger test
         uses: nick-fields/retry@v2
         with:
