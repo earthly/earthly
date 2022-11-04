@@ -80,7 +80,7 @@ jobs:
           timeout_minutes: 10
           max_attempts: 2
           command: |-
-            ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkit && \
+            ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd && \
             for i in 1 2 3 4; do
                 ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
                 pids[${i}]=$!
