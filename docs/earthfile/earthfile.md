@@ -6,7 +6,7 @@ Note to person editing!!
 
 The general order of the commands is as follows:
 
-- Core classical Dockerfile commands (order is the same as in the Dockferfile official docs)
+- Core classical Dockerfile commands (order is the same as in the Dockerfile official docs)
 - Core, GA'd Earthly commands
 - Other Dockerfile commands which have the exact same behavior in Earthly as in Dockerfiles
 - Beta Earthly commands
@@ -384,7 +384,7 @@ If the directories were copied without the use of `--dir`, then their contents w
 
 Sets a value override of `<build-arg-value>` for the build arg identified by `<build-arg-key>`, when building the target containing the mentioned artifact. See also [BUILD](#build) for more details about the build arg options.
 
-Note that build args and the artifact references they apply to need to be surrounded by paranthesis:
+Note that build args and the artifact references they apply to need to be surrounded by parenthesis:
 
 ```Dockerfile
 COPY (+target1/artifact --arg1=foo --arg2=bar) ./dest/path
@@ -565,7 +565,7 @@ This feature additionally allows shelling-out in *any* earthly command.
 
 The command `SAVE ARTIFACT` copies a file, a directory, or a series of files and directories represented by a wildcard, from the build environment into the target's artifact environment.
 
-If `AS LOCAL ...` is also specified, it additionally marks the artifact to be copied to the host at the location specified by `<local-path>`, once the build is deemed as successful. Note that local artifacts are only produced by targets that are run direcrtly with `earthly`, or when invoked using [`BUILD`](#build).
+If `AS LOCAL ...` is also specified, it additionally marks the artifact to be copied to the host at the location specified by `<local-path>`, once the build is deemed as successful. Note that local artifacts are only produced by targets that are run directly with `earthly`, or when invoked using [`BUILD`](#build).
 
 If `<artifact-dest-path>` is not specified, it is inferred as `/`.
 
@@ -838,7 +838,7 @@ The `<context-path>` is the path where the Dockerfile build context exists. By d
 Specify an alternative Dockerfile to use. The `<dockerfile-path>` can be either a path on the host system, relative to the current Earthfile, or an [artifact reference](../guides/target-ref.md#artifact-reference) pointing to a Dockerfile.
 
 {% hint style='info' %}
-It is possible to split the `Dockerfile` and the build context across two seperate [artifact references](../guides/target-ref.md#artifact-reference):
+It is possible to split the `Dockerfile` and the build context across two separate [artifact references](../guides/target-ref.md#artifact-reference):
 
 ```Dockerfile
 FROM alpine

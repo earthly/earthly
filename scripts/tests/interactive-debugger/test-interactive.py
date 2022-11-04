@@ -46,7 +46,7 @@ if __name__ == '__main__':
         print(f'Running {test_name}')
         test_exit_code = test(earthly_path, args.timeout)
         if test_exit_code == 2:
-            print(f'{test_name} timedout')
+            print(f'{test_name} timed out')
             exit_code = test_exit_code
         elif test_exit_code:
             print(f'{test_name} failed with exit code={test_exit_code}')

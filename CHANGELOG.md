@@ -37,7 +37,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Support for all ssh-based key types (e.g. ssh-ed25519), and not only ssh-rsa. [#1783](https://github.com/earthly/earthly/issues/1783)
 
 ### Fixed
-- Unable to specify public key to add via the command-line, e.g. running `earthly account add-key <key>` ignored the key and fellback to an interactive prompt.
+- Unable to specify public key to add via the command-line, e.g. running `earthly account add-key <key>` ignored the key and fell back to an interactive prompt.
 - `GIT CLONE` command was ignoring the `WORK DIR` command when `--use-copy-link` feature was set.
 
 ## v0.6.26 - 2022-10-13
@@ -76,7 +76,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Changed
 
-- Bootstraping zsh autocompletion will first attempt to install under `/usr/local/share/zsh/site-functions`, and will now
+- Bootstrapping zsh autocompletion will first attempt to install under `/usr/local/share/zsh/site-functions`, and will now
   fallback to `/usr/share/zsh/site-functions`.
 - The `earthly preview org` command has been promoted to GA, and is now available under `earthly org`.
 - `earthly sat select` with no arguments now prints the current satellite and the usage text.
@@ -197,7 +197,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Added
 
 - Experimental support for Docker registry based image creation and transfer `WITH DOCKER` loads and pulls. Enable with the `VERSION --use-registry-for-with-docker` flag.
-- Git config options for non-standard port and path prefix; these options are incompatible with a custom git substition regex.
+- Git config options for non-standard port and path prefix; these options are incompatible with a custom git substitution regex.
 - Experimental WAIT / END blocks, to allow for finer grain of control between pushing images and running commands.
 - Improved ARG error messages to include the ARG name associated with the error.
 
@@ -249,7 +249,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Added
 
-- The feature flag `--exec-after-build` has been enabled retroactively for `VERSION 0.5`. This speeds up largs builds by 15-20%.
+- The feature flag `--exec-after-build` has been enabled retroactively for `VERSION 0.5`. This speeds up large builds by 15-20%.
 - The feature flag `--parallel-load` has been enabled for every `VERSION`. This speeds up by parallelizing targets built for loading via `WITH DOCKER --load`.
 - `VERSION 0.0` is now permitted, however it is only meant for Earthly internal debugging purposes. `VERSION 0.0` disables all feature flags.
 - A new experimental mode in which `--platform` operates. To enable these features in your builds, set `VERSION --new-platform 0.6`:
@@ -398,7 +398,7 @@ as the last line of `earthly` output.
 
 ### Fixed
 
-- Duplicate execution occuring when using ARGs. [#1572](https://github.com/earthly/earthly/issues/1572), [#1582](https://github.com/earthly/earthly/issues/1582)
+- Duplicate execution occurring when using ARGs. [#1572](https://github.com/earthly/earthly/issues/1572), [#1582](https://github.com/earthly/earthly/issues/1582)
 - Overriding builtin ARG value now displays an error (rather than silently ignoring it).
 
 ## v0.6.3 - 2022-01-12
@@ -409,7 +409,7 @@ as the last line of `earthly` output.
 
 ### Added
 
-- Expirmental `CACHE` command can be used in Earthfiles to optimize the cache in projects that perform better with incremental changes. For example, a Maven
+- Experimental `CACHE` command can be used in Earthfiles to optimize the cache in projects that perform better with incremental changes. For example, a Maven
   project where `SNAPSHOT` dependencies are added frequently, an NPM project where `node_modules` change frequently, or programming languages using
   incremental compilers. [#1399](https://github.com/earthly/earthly/issues/1399)
 - Config file entries can be deleted using a `--delete` flag (for example `earthly config global.conversion_parallelism --delete`). [#1449](https://github.com/earthly/earthly/issues/1449)

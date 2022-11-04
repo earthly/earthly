@@ -111,7 +111,7 @@ func setNativePlatformArgs(s *Scope, platr *platutil.Resolver) {
 	s.AddInactive(arg.NativeVariant, platform.Variant)
 }
 
-// getProjectName returns the depricated PROJECT_NAME value
+// getProjectName returns the deprecated PROJECT_NAME value
 func getProjectName(s string) string {
 	protocol := "unknown"
 	parts := strings.SplitN(s, "://", 2)

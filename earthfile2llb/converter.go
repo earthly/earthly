@@ -1049,7 +1049,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 				shouldExportLocally := si.DockerTag != "" && c.opt.DoSaves
 				c.waitBlock().addSaveImage(si, c, shouldPush, shouldExportLocally)
 				if pushImages {
-					// only add summay for `SAVE IMAGE --push` commands
+					// only add summary for `SAVE IMAGE --push` commands
 					c.opt.ExportCoordinator.AddPushedImageSummary(c.target.StringCanonical(), si.DockerTag, c.mts.Final.ID, c.opt.DoPushes)
 				}
 
@@ -1477,7 +1477,7 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 	return bc, allowPrivileged, allowPrivilegedSet, nil
 }
 
-// EnterScopeDo introduces a new variable scope. Gloabls and imports are fetched from baseTarget.
+// EnterScopeDo introduces a new variable scope. Globals and imports are fetched from baseTarget.
 func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged bool, scopeName string, buildArgs []string) error {
 	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.platr.Current(), allowPrivileged, buildArgs, true, enterScopeDoCmd)
 	if err != nil {
@@ -1857,7 +1857,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 
 	if c.ftrs.WaitBlock && opts.Push {
-		// The WAIT / END feature treats a --push as syntatic sugar for
+		// The WAIT / END feature treats a --push as syntactic sugar for
 		// IF [ "$EARTHLY_PUSH" = "true" ]
 		//    RUN --no-cache ...
 		// END

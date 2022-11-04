@@ -45,7 +45,7 @@ def test_with_exit_code(earthly_path, timeout, exit_code_to_send):
 
             assert not c.isalive()
         except pexpect.exceptions.TIMEOUT as e:
-            print('interactive test timedout')
+            print('interactive test timed out')
             exit_code = 2
         except Exception as e:
             print(f'interactive test failed with {e}')

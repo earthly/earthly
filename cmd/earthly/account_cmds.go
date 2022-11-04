@@ -707,7 +707,7 @@ func (app *earthlyApp) actionAccountReset(cliCtx *cli.Context) error {
 	}
 
 	if app.token == "" {
-		err = cloudClient.AccountResetReqestToken(cliCtx.Context, app.email)
+		err = cloudClient.AccountResetRequestToken(cliCtx.Context, app.email)
 		if err != nil {
 			return errors.Wrap(err, "failed to request account reset token")
 		}

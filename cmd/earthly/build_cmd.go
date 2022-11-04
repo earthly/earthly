@@ -262,7 +262,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	case 1:
 		platr.UpdatePlatform(platformsSlice[0])
 	default:
-		return errors.Errorf("multi-platform builds are not yet supported on the command line. You may, however, create a target with the instruction BUILD --plaform ... --platform ... %s", target)
+		return errors.Errorf("multi-platform builds are not yet supported on the command line. You may, however, create a target with the instruction BUILD --platform ... --platform ... %s", target)
 	}
 
 	dotEnvMap, err := godotenv.Read(app.envFile)
@@ -462,7 +462,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		GlobalWaitBlockFtr: app.globalWaitEnd,
 
 		// explicitly set this to true at the top level (without granting the entitlements.EntitlementSecurityInsecure buildkit option),
-		// to differentiate between a user forgetting to run earthly -P, versus a remotely referening an earthfile that requires privileged.
+		// to differentiate between a user forgetting to run earthly -P, versus a remotely referencing an earthfile that requires privileged.
 		AllowPrivileged: true,
 	}
 	if app.artifactMode {

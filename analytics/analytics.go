@@ -250,6 +250,6 @@ func CollectAnalytics(ctx context.Context, cloudClient cloud.Client, displayErro
 
 	ok := syncutil.WaitContext(ctx, &wg)
 	if !ok && displayErrors {
-		fmt.Fprintf(os.Stderr, "Warning: timedout while sending analytics\n")
+		fmt.Fprintf(os.Stderr, "Warning: timed out while sending analytics\n")
 	}
 }

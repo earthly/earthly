@@ -891,11 +891,11 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	for index, src := range srcs {
 		var artifactSrc domain.Artifact
 		var parseErr error
-		if isInParansForm(src) {
+		if isInParamsForm(src) {
 			// COPY (<src> <flag-args>) ...
-			artifactStr, extraArgs, err := parseParans(src)
+			artifactStr, extraArgs, err := parseParams(src)
 			if err != nil {
-				return i.wrapError(err, cmd.SourceLocation, "parse parans %s", src)
+				return i.wrapError(err, cmd.SourceLocation, "parse params %s", src)
 			}
 			expandedArtifact, err := i.expandArgs(ctx, artifactStr, true, false)
 			if err != nil {
@@ -903,7 +903,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			}
 			artifactSrc, parseErr = domain.ParseArtifact(expandedArtifact)
 			if parseErr != nil {
-				// Must parse in the parans case.
+				// Must parse in the params case.
 				return i.wrapError(err, cmd.SourceLocation, "parse artifact")
 			}
 			srcFlagArgs[index] = extraArgs
@@ -1940,7 +1940,7 @@ func (i *Interpreter) pushOnlyErr(sl *spec.SourceLocation) error {
 func (i *Interpreter) expandArgs(ctx context.Context, word string, keepPlusEscape, async bool) (string, error) {
 	runOpts := ConvertRunOpts{
 		CommandName: "expandargs",
-		Args:        nil, // this gets replaced whenver a shell-out is encountered
+		Args:        nil, // this gets replaced whenever a shell-out is encountered
 		Locally:     i.local,
 		Transient:   !i.local,
 		WithShell:   true,
@@ -1991,8 +1991,8 @@ func parseLoad(loadStr string) (image string, target string, extraArgs []string,
 			target = strings.Join(words, " ")
 		}
 	}
-	if isInParansForm(target) {
-		target, extraArgs, err = parseParans(target)
+	if isInParamsForm(target) {
+		target, extraArgs, err = parseParams(target)
 		if err != nil {
 			return "", "", nil, err
 		}
@@ -2072,16 +2072,16 @@ func parseKeyValue(arg string) (string, *string, error) {
 	return name, value, nil
 }
 
-func isInParansForm(str string) bool {
+func isInParamsForm(str string) bool {
 	return (strings.HasPrefix(str, "\"(") && strings.HasSuffix(str, "\")")) ||
 		(strings.HasPrefix(str, "(") && strings.HasSuffix(str, ")"))
 }
 
-// parseParans turns "(+target --flag=something)" into "+target" and []string{"--flag=something"},
+// parseParams turns "(+target --flag=something)" into "+target" and []string{"--flag=something"},
 // or "\"(+target --flag=something)\"" into "+target" and []string{"--flag=something"}
-func parseParans(str string) (string, []string, error) {
-	if !isInParansForm(str) {
-		return "", nil, errors.New("parans atom not in ( ... )")
+func parseParams(str string) (string, []string, error) {
+	if !isInParamsForm(str) {
+		return "", nil, errors.New("params atom not in ( ... )")
 	}
 	if strings.HasPrefix(str, "\"(") {
 		str = str[2 : len(str)-2] // remove \"( and )\"
@@ -2130,7 +2130,7 @@ func parseParans(str string) (string, []string, error) {
 	}
 
 	if len(parts) < 1 {
-		return "", nil, errors.New("invalid empty parans")
+		return "", nil, errors.New("invalid empty params")
 	}
 	return parts[0], parts[1:], nil
 }
@@ -2205,19 +2205,19 @@ func baseTarget(ref domain.Reference) domain.Target {
 }
 
 func parseArgs(cmdName string, opts interface{}, args []string) ([]string, error) {
-	processed := processParansAndQuotes(args)
+	processed := processParamsAndQuotes(args)
 	return flagutil.ParseArgs(cmdName, opts, processed)
 }
 
 func parseArgsWithValueModifier(cmdName string, opts interface{}, args []string, argumentModFunc flagutil.ArgumentModFunc) ([]string, error) {
-	processed := processParansAndQuotes(args)
+	processed := processParamsAndQuotes(args)
 	return flagutil.ParseArgsWithValueModifier(cmdName, opts, processed, argumentModFunc)
 }
 
-// processParansAndQuotes takes in a slice of strings, and rearranges the slices
-// depending on quotes and paranthesis.
+// processParamsAndQuotes takes in a slice of strings, and rearranges the slices
+// depending on quotes and parenthesis.
 // For example "hello ", "wor(", "ld)" becomes "hello ", "wor( ld)".
-func processParansAndQuotes(args []string) []string {
+func processParamsAndQuotes(args []string) []string {
 	curQuote := rune(0)
 	allowedQuotes := map[rune]rune{
 		'"':  '"',

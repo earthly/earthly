@@ -1011,7 +1011,7 @@ This allows for `+build-wrapper` to reuse the logic in `+build`, but ultimately 
 
 ### Use `earthly/dind`
 
-When using `WITH DOCKER`, it is recommended that you use the official `earthly/dind` image (preferrably `:alpine`) for running Docker-in-Docker. Earthly's `WITH DOCKER` requires that the Docker engine is installed already in the image it is running in.
+When using `WITH DOCKER`, it is recommended that you use the official `earthly/dind` image (preferably `:alpine`) for running Docker-in-Docker. Earthly's `WITH DOCKER` requires that the Docker engine is installed already in the image it is running in.
 
 If Docker engine is not detected, `WITH DOCKER` will need to first install it - it usually does so automatically - however, the cache will be inefficient. Consider the following example:
 

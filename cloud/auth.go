@@ -27,7 +27,7 @@ func (c *client) Authenticate(ctx context.Context) error {
 	var err error
 	switch {
 	case c.email != "" && c.password != "":
-		err = c.loginWithPassowrd(ctx)
+		err = c.loginWithPassword(ctx)
 	case c.authCredToken != "":
 		err = c.loginWithToken(ctx)
 	default:
@@ -388,7 +388,7 @@ func (c *client) saveToken() error {
 	return nil
 }
 
-func (c *client) loginWithPassowrd(ctx context.Context) error {
+func (c *client) loginWithPassword(ctx context.Context) error {
 	var err error
 	c.authCredToken = getPasswordAuthToken(c.email, c.password)
 	c.authToken, c.authTokenExpiry, err = c.login(ctx, c.authCredToken)
@@ -435,7 +435,7 @@ func (c *client) loginWithSSH(ctx context.Context) error {
 
 // login calls the login endpoint on the cloud server, passing the provided credentials.
 // If auth succeeds, a new jwt token is returned with it's expiry date.
-// ErrUnauthroized is returned if the credentials are not valid.
+// ErrUnauthorized is returned if the credentials are not valid.
 func (c *client) login(ctx context.Context, credentials string) (token string, expiry time.Time, err error) {
 	var zero time.Time
 	status, body, err := c.doCall(ctx, "POST", "/api/v0/account/login",

@@ -137,7 +137,7 @@ amazon-elastic-container-registry:
         --privileged \
         -- aws ecr get-login-password | docker login --username AWS --password-stdin 404851345508.dkr.ecr.us-west-2.amazonaws.com
 
-    # Pass through Account ID this way to avoid checking it in to GitHub;
+    # Pass through Account ID this way to avoid checking it into GitHub;
     # its not strictly secret this way but its secret enough
     RUN --secret AWS_ACCESS_KEY_ID=+secrets/earthly-technologies/aws/ci-cd-access-key \
     --secret AWS_SECRET_ACCESS_KEY=+secrets/earthly-technologies/aws/ci-cd-access-secret \
