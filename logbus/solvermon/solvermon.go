@@ -10,6 +10,7 @@ import (
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/moby/buildkit/client"
 	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 // SolverMonitor is a buildkit solver monitor.
@@ -29,23 +30,25 @@ func New(b *logbus.Bus) *SolverMonitor {
 
 // MonitorProgress processes a channel of buildkit solve statuses.
 func (sm *SolverMonitor) MonitorProgress(ctx context.Context, ch chan *client.SolveStatus) error {
-	returnedCh := make(chan struct{})
-	defer close(returnedCh)
-	closedCh := make(chan struct{})
+	delayedCtx, delayedCancel := context.WithCancel(ctx)
+	defer delayedCancel()
 	go func() {
 		<-ctx.Done()
-		// Delay closing to allow any pending messages
-		// to be processed.
+		// Delay closing to allow any pending messages to be processed.
+		// The delay is very high because we expect the buildkit connection
+		// to be closed (and hence status channel to be closed) on cancellations
+		// anyway. We should be waiting for the full 30 seconds only if there's
+		// a bug.
 		select {
-		case <-returnedCh:
-		case <-time.After(5 * time.Second):
+		case <-delayedCtx.Done():
+		case <-time.After(30 * time.Second):
 		}
-		close(closedCh)
+		delayedCancel()
 	}()
 	for {
 		select {
-		case <-closedCh:
-			return ctx.Err()
+		case <-delayedCtx.Done():
+			return errors.Wrap(ctx.Err(), "timed out waiting for status channel to close")
 		case status, ok := <-ch:
 			if !ok {
 				return nil

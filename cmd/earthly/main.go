@@ -31,12 +31,12 @@ import (
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
-	"github.com/earthly/earthly/bus"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
-	"github.com/earthly/earthly/delta2cons"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/logbus"
+	logbussetup "github.com/earthly/earthly/logbus/setup"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
@@ -58,7 +58,8 @@ type earthlyApp struct {
 	cliApp      *cli.App
 	console     conslogging.ConsoleLogger
 	cfg         *config.Config
-	bus         *bus.Bus
+	logbusSetup *logbussetup.BusSetup
+	logbus      *logbus.Bus
 	sessionID   string
 	commandName string
 	cliFlags
@@ -338,7 +339,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		cliFlags: cliFlags{
 			buildkitdSettings: buildkitd.Settings{},
 		},
-		bus: bus.New(),
+		logbus: logbus.New(),
 	}
 
 	earthly := getBinaryName()
@@ -381,15 +382,8 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 	} else if app.verbose {
 		app.console = app.console.WithLogLevel(conslogging.Verbose)
 	}
-	disableOngoingUpdates := false // TODO
-	d2c := delta2cons.New(app.console, app.verbose, disableOngoingUpdates)
-	ch := app.bus.AddSubscriber()
-	go func() {
-		err := d2c.PipeDeltasToConsole(cliCtx.Context, ch)
-		if err != nil {
-			app.console.Warnf("error piping deltas to console: %v", err)
-		}
-	}()
+	disableOngoingUpdates := !app.logstream // TODO (vladaionescu)
+	app.logbusSetup = logbussetup.New(cliCtx.Context, app.logbus, app.debug, app.verbose, disableOngoingUpdates)
 
 	if cliCtx.IsSet("config") {
 		app.console.Printf("loading config values from %q\n", app.configPath)
@@ -548,7 +542,12 @@ func unhideFlagsCommands(ctx context.Context, cmds []*cli.Command) {
 }
 
 func (app *earthlyApp) run(ctx context.Context, args []string) int {
-	defer app.bus.Close()
+	defer func() {
+		err := app.logbusSetup.Close()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error(s) in logbus: %v", err)
+		}
+	}()
 	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
 	err := app.cliApp.RunContext(ctx, args)
 	if err != nil {

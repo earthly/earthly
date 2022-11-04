@@ -2,7 +2,6 @@ package logbus
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
@@ -12,7 +11,6 @@ import (
 type Generic struct {
 	run      *Run
 	category string
-	mu       sync.Mutex
 }
 
 func newGeneric(run *Run, category string) *Generic {
@@ -29,8 +27,6 @@ func (g *Generic) Write(dt []byte) (int, error) {
 
 // WriteWithTimestamp writes the given bytes to the generic printer.
 func (g *Generic) WriteWithTimestamp(dt []byte, ts time.Time) (int, error) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
 	g.run.b.WriteRawLog(&logstream.DeltaLog{
 		CommandId:          fmt.Sprintf("_generic:%s", g.category),
 		TimestampUnixNanos: uint64(ts.UnixNano()),

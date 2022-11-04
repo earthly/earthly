@@ -1,4 +1,4 @@
-package format
+package formatter
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
@@ -13,6 +14,7 @@ import (
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/util/deltautil"
 	"github.com/earthly/earthly/util/progressbar"
+	"github.com/hashicorp/go-multierror"
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 )
@@ -41,7 +43,7 @@ var (
 type command struct {
 	lastProgress   time.Time
 	lastPercentage int32
-	// Line of output that has not yet been terminated with a \n.
+	// openLine is the line of output that has not yet been terminated with a \n.
 	openLine            []byte
 	lastOpenLineUpdate  time.Time
 	lastOpenLineSkipped bool
@@ -49,107 +51,121 @@ type command struct {
 
 // Formatter is a delta to console logger.
 type Formatter struct {
-	bus                        *logbus.Bus
-	console                    conslogging.ConsoleLogger
-	verbose                    bool
-	disableOngoingUpdates      bool
+	bus           *logbus.Bus
+	console       conslogging.ConsoleLogger
+	verbose       bool
+	ongoingTick   time.Duration
+	ongoingTicker *time.Ticker
+	startTime     time.Time
+
+	mu                         sync.Mutex
 	lastOutputWasProgress      bool
 	lastOutputWasOngoingUpdate bool
 	lastCommandOutput          *command
 	timingTable                map[string]time.Duration // targetID -> duration
-	startTime                  time.Time
-	ongoingTicker              *time.Ticker
-	ongoingTick                time.Duration
 	manifest                   *logstream.RunManifest
 	commands                   map[string]*command
+	errors                     []error
 }
 
 // New creates a new Formatter.
-func New(b *logbus.Bus, verbose bool, disableOngoingUpdates bool) *Formatter {
+func New(ctx context.Context, b *logbus.Bus, verbose bool, disableOngoingUpdates bool) *Formatter {
 	ongoingTick := durationBetweenOngoingUpdatesNoAnsi
 	if ansiSupported {
 		ongoingTick = durationBetweenOngoingUpdates
 	}
 	ongoingTicker := time.NewTicker(ongoingTick)
 	ongoingTicker.Stop()
-	return &Formatter{
+	f := &Formatter{
 		bus: b,
 		// TODO (vladaionescu): Pass in color detection and log level.
-		console:               conslogging.New(nil, nil, conslogging.AutoColor, conslogging.DefaultPadding, conslogging.Info),
-		verbose:               verbose,
-		disableOngoingUpdates: disableOngoingUpdates,
-		timingTable:           make(map[string]time.Duration),
-		startTime:             time.Now(),
-		ongoingTicker:         ongoingTicker,
-		ongoingTick:           ongoingTick,
-		manifest:              &logstream.RunManifest{},
-		commands:              make(map[string]*command),
+		console:       conslogging.New(nil, nil, conslogging.AutoColor, conslogging.DefaultPadding, conslogging.Info),
+		verbose:       verbose,
+		timingTable:   make(map[string]time.Duration),
+		startTime:     time.Now(),
+		ongoingTicker: ongoingTicker,
+		ongoingTick:   ongoingTick,
+		manifest:      &logstream.RunManifest{},
+		commands:      make(map[string]*command),
+	}
+	if !disableOngoingUpdates {
+		go f.ongoingTickLoop(ctx)
+	}
+	return f
+}
+
+// Write writes a delta to the console.
+func (f *Formatter) Write(delta *logstream.Delta) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	err := f.processDelta(delta)
+	if err != nil {
+		f.errors = append(f.errors, err)
 	}
 }
 
-// PipeDeltasToConsole takes a channel of deltas interprets them and
-// writes them to the console.
-func (f *Formatter) PipeDeltasToConsole(ctx context.Context, ch chan *logstream.Delta) error {
-	closeCh := make(chan struct{})
-	returnedCh := make(chan struct{})
-	defer close(returnedCh)
-	go func() {
-		<-ctx.Done()
-		// Don't close immediately, as we want to print any
-		// final messages that might be coming in.
-		select {
-		case <-returnedCh:
-		case <-time.After(5 * time.Second):
+// Close stops the formatter and returns any errors encountered during
+// formatting.
+func (f *Formatter) Close() error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var retErr error
+	for _, err := range f.errors {
+		retErr = multierror.Append(retErr, err)
+	}
+	return retErr
+}
+
+func (f *Formatter) processDelta(delta *logstream.Delta) error {
+	var err error
+	f.manifest, err = deltautil.ApplyDeltaManifest(f.manifest, delta)
+	if err != nil {
+		return errors.Wrap(err, "failed to apply delta")
+	}
+	// TODO(vladaionescu): Make debugging a flag.
+	// switch d := delta.GetDeltaTypeOneof().(type) {
+	// case *logstream.Delta_DeltaManifest:
+	// 	fmt.Printf("@# delta manifest: %+v\n", d)
+	// case *logstream.Delta_DeltaLog:
+	// 	fmt.Printf("@# delta log: %+v\n", d)
+	// default:
+	// }
+	switch d := delta.GetDeltaTypeOneof().(type) {
+	case *logstream.Delta_DeltaManifest:
+		err := f.handleDeltaManifest(d.DeltaManifest)
+		if err != nil {
+			return errors.Wrap(err, "failed to handle delta manifest")
 		}
-		close(closeCh)
-	}()
+	case *logstream.Delta_DeltaLog:
+		err := f.handleDeltaLog(d.DeltaLog)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unknown delta type %T", d)
+	}
+	return nil
+}
+
+func (f *Formatter) ongoingTickLoop(ctx context.Context) {
 	f.ongoingTicker.Reset(f.ongoingTick)
 	defer f.ongoingTicker.Stop()
 	for {
 		select {
-		case <-closeCh:
-			return ctx.Err()
-		case delta, ok := <-ch:
-			if !ok {
-				return nil
-			}
-			var err error
-			f.manifest, err = deltautil.ApplyDeltaManifest(f.manifest, delta)
-			if err != nil {
-				return errors.Wrap(err, "failed to apply delta")
-			}
-			// TODO(vladaionescu): Make debugging a flag.
-			// switch d := delta.GetDeltaTypeOneof().(type) {
-			// case *logstream.Delta_DeltaManifest:
-			// 	fmt.Printf("@# delta manifest: %+v\n", d)
-			// case *logstream.Delta_DeltaLog:
-			// 	fmt.Printf("@# delta log: %+v\n", d)
-			// default:
-			// }
-			switch d := delta.GetDeltaTypeOneof().(type) {
-			case *logstream.Delta_DeltaManifest:
-				err := f.handleDeltaManifest(ctx, d.DeltaManifest)
-				if err != nil {
-					return errors.Wrap(err, "failed to handle delta manifest")
-				}
-			case *logstream.Delta_DeltaLog:
-				err := f.handleDeltaLog(ctx, d.DeltaLog)
-				if err != nil {
-					return err
-				}
-			default:
-				return fmt.Errorf("unknown delta type %T", d)
-			}
+		case <-ctx.Done():
+			return
 		case <-f.ongoingTicker.C:
+			f.mu.Lock()
 			err := f.processOngoingTick(ctx)
 			if err != nil {
-				return err
+				f.errors = append(f.errors, err)
 			}
+			f.mu.Unlock()
 		}
 	}
 }
 
-func (f *Formatter) handleDeltaManifest(ctx context.Context, dm *logstream.DeltaManifest) error {
+func (f *Formatter) handleDeltaManifest(dm *logstream.DeltaManifest) error {
 	for commandID, cmd := range dm.GetFields().GetCommands() {
 		cm, ok := f.manifest.GetCommands()[commandID]
 		if !ok {
@@ -188,20 +204,8 @@ func (f *Formatter) getCommand(commandID string) *command {
 	return cmd
 }
 
-func (f *Formatter) handleDeltaLog(ctx context.Context, dl *logstream.DeltaLog) error {
-	c := f.console
-	if dl.GetTargetId() == "" && strings.HasPrefix("_generic:", dl.GetCommandId()) {
-		prefix := strings.TrimPrefix(dl.GetCommandId(), "_generic:")
-		c = c.WithPrefixAndSalt(prefix, prefix)
-	} else if dl.GetTargetId() != "" {
-		tm, ok := f.manifest.GetTargets()[dl.GetTargetId()]
-		if !ok {
-			return fmt.Errorf("target %s not found in manifest", dl.GetTargetId())
-		}
-		c = c.WithPrefixAndSalt(tm.GetName(), dl.GetTargetId())
-	} else {
-		c = c.WithPrefixAndSalt(dl.GetCommandId(), dl.GetCommandId())
-	}
+func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
+	c := f.targetConsole(dl.GetTargetId(), dl.GetCommandId())
 	cmd := f.getCommand(dl.GetCommandId())
 
 	sameAsLast := (!f.lastOutputWasOngoingUpdate &&
@@ -257,10 +261,8 @@ func (f *Formatter) handleDeltaLog(ctx context.Context, dl *logstream.DeltaLog) 
 }
 
 func (f *Formatter) processOngoingTick(ctx context.Context) error {
-	if f.disableOngoingUpdates {
-		return nil
-	}
-	f.console.WithPrefix("ongoing").Printf("ongoing TODO\n")
+	c := f.console.WithWriter(f.bus.FormattedWriter("ongoing")).WithPrefix("ongoing")
+	c.Printf("ongoing TODO\n")
 	// TODO(vladaionescu): Go through all the commands and find which one is ongoing.
 	// Print their targets on the console.
 	f.lastOutputWasOngoingUpdate = true

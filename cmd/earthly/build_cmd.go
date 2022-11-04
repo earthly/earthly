@@ -407,7 +407,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	}
 	builderOpts := builder.Opt{
 		BkClient:                              bkClient,
-		Bus:                                   app.bus,
+		LogBusSolverMonitor:                   app.logbusSetup.SolverMonitor,
 		UseLogstream:                          app.logstream,
 		Console:                               app.console,
 		Verbose:                               app.verbose,

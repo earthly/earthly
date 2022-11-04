@@ -1,14 +1,17 @@
-package cons
+package writersub
 
 import (
 	"io"
+	"sync"
 
 	"github.com/earthly/cloud-api/logstream"
 )
 
 // WriterSub is a bus subscriber that can print formatted logs to a writer.
 type WriterSub struct {
-	w      io.Writer
+	w io.Writer
+
+	mu     sync.Mutex
 	errors []error
 }
 
@@ -25,7 +28,9 @@ func (ws *WriterSub) Write(delta *logstream.Delta) {
 	case *logstream.Delta_DeltaFormattedLog:
 		_, err := ws.w.Write(d.DeltaFormattedLog.Data)
 		if err != nil {
+			ws.mu.Lock()
 			ws.errors = append(ws.errors, err)
+			ws.mu.Unlock()
 		}
 	default:
 	}
@@ -33,5 +38,7 @@ func (ws *WriterSub) Write(delta *logstream.Delta) {
 
 // Errors returns any errors that occurred while writing to the writer.
 func (ws *WriterSub) Errors() []error {
+	ws.mu.Lock()
+	defer ws.mu.Unlock()
 	return ws.errors
 }
