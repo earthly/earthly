@@ -252,6 +252,13 @@ echo "Detected container architecture is $(uname -m)"
 "$@" &
 execpid=$!
 
+stop_buildkit() {
+  echo "Shutdown signal received. Stopping buildkit..."
+  kill -SIGTERM "$execpid"
+}
+
+trap stop_buildkit TERM QUIT INT
+
 # quit if buildkit dies
 set +x
 while true
