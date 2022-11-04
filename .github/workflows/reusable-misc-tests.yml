@@ -74,18 +74,22 @@ jobs:
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.local_registry_host 'tcp://127.0.0.1:8371'
       - name: Configure Earthly Conversion Parallelism
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.conversion_parallelism 5
+      - name: Stop the Buildkit container
+        command: ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd
       - name: Run parallel buildkit start test. It ensures that earthly starting up buildkit does not race with itself.
         uses: nick-fields/retry@v2
         with:
           timeout_minutes: 10
           max_attempts: 2
           command: |-
-            ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd && ( \
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello) && \
-            wait
+            for i in 4; do
+                ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello &
+                pids[${i}]=$!
+            done
+            for pid in ${pids[*]}; do
+                wait $pid
+            done
+
       - name: Execute interactive debugger test
         uses: nick-fields/retry@v2
         with:
