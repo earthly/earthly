@@ -84,10 +84,10 @@ jobs:
           command: |-
             for i in 4; do \
                 ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
-                pids[${i}]=$! \
+                pids[${i}]=$!
             done && \
             for pid in ${pids[*]}; do \
-                wait $pid \
+                wait $pid
             done
       - name: Execute interactive debugger test
         uses: nick-fields/retry@v2
