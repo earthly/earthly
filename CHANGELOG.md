@@ -17,6 +17,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 - `CACHE` command was not being correctly used in `IF`, `FOR`, `ARG` and other commands. [#2330](https://github.com/earthly/earthly/issues/2330)
 - Fixed buildkit gckeepstorage config value which was was set to 1000 times larger than the cache size, now it is set to the cache size.
+- Fixed Earthly not detecting the correct image digest for some images loaded in `WITH DOCKER --load` and causing cache not to be bust correctly. [#2337](https://github.com/earthly/earthly/issues/2337) and [#2288](https://github.com/earthly/earthly/issues/2288)
 
 ## v0.6.28 - 2022-10-26
 
