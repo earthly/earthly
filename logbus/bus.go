@@ -2,11 +2,8 @@ package logbus
 
 import (
 	"sync"
-	"time"
 
 	"github.com/earthly/cloud-api/logstream"
-	"github.com/earthly/earthly/util/deltautil"
-	"github.com/google/uuid"
 )
 
 // Subscriber is an object that can receive deltas.
@@ -37,19 +34,6 @@ func New() *Bus {
 		run: nil, // set below
 	}
 	b.run = newRun(b)
-	// TODO (vladaionescu): This should be issued somewhere else
-	//                      (after we've parsed org and project names).
-	b.WriteDeltaManifest(&logstream.DeltaManifest{
-		DeltaManifestOneof: &logstream.DeltaManifest_ResetAll{
-			ResetAll: &logstream.RunManifest{
-				BuildId:            uuid.NewString(),
-				Version:            deltautil.Version,
-				CreatedAtUnixNanos: uint64(time.Now().UnixNano()),
-				OrgName:            "TODO",
-				ProjectName:        "TODO",
-			},
-		},
-	})
 	return b
 }
 
@@ -58,6 +42,12 @@ func New() *Bus {
 func (b *Bus) AddSubscriber(sub Subscriber) {
 	b.AddRawSubscriber(sub)
 	b.AddFormattedSubscriber(sub)
+}
+
+// RemoveSubscriber removes a subscriber from the bus.
+func (b *Bus) RemoveSubscriber(sub Subscriber) {
+	b.RemoveRawSubscriber(sub)
+	b.RemoveFormattedSubscriber(sub)
 }
 
 // AddRawSubscriber adds a raw subscriber to the bus. A raw subscriber only
@@ -71,6 +61,18 @@ func (b *Bus) AddRawSubscriber(sub Subscriber) {
 	b.rawSubs = append(b.rawSubs, sub)
 }
 
+// RemoveRawSubscriber removes a raw subscriber from the bus.
+func (b *Bus) RemoveRawSubscriber(sub Subscriber) {
+	b.rawMu.Lock()
+	defer b.rawMu.Unlock()
+	for i, s := range b.rawSubs {
+		if s == sub {
+			b.rawSubs = append(b.rawSubs[:i], b.rawSubs[i+1:]...)
+			return
+		}
+	}
+}
+
 // AddFormattedSubscriber adds a formatted subscriber to the bus. A formatted
 // subscriber receives only the formatted deltas: DeltaFormattedLog.
 func (b *Bus) AddFormattedSubscriber(sub Subscriber) {
@@ -79,6 +81,18 @@ func (b *Bus) AddFormattedSubscriber(sub Subscriber) {
 	b.formattedSubs = append(b.formattedSubs, sub)
 	for _, delta := range b.formattedHistory {
 		sub.Write(delta)
+	}
+}
+
+// RemoveFormattedSubscriber removes a formatted subscriber from the bus.
+func (b *Bus) RemoveFormattedSubscriber(sub Subscriber) {
+	b.formattedMu.Lock()
+	defer b.formattedMu.Unlock()
+	for i, s := range b.formattedSubs {
+		if s == sub {
+			b.formattedSubs = append(b.formattedSubs[:i], b.formattedSubs[i+1:]...)
+			return
+		}
 	}
 }
 

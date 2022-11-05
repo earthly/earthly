@@ -4,11 +4,17 @@ import (
 	"context"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/earthly/cloud-api/logstream"
+	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/logbus/formatter"
+	"github.com/earthly/earthly/logbus/logstreamer"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/logbus/writersub"
+	"github.com/earthly/earthly/util/deltautil"
+	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
@@ -20,6 +26,7 @@ type BusSetup struct {
 	Formatter      *formatter.Formatter
 	SolverMonitor  *solvermon.SolverMonitor
 	BusDebugWriter *writersub.RawWriterSub
+	LogStreamer    *logstreamer.LogStreamer
 }
 
 // New creates a new BusSetup.
@@ -46,6 +53,25 @@ func New(ctx context.Context, bus *logbus.Bus, debug bool, verbose bool, disable
 	return bs, nil
 }
 
+// StartLogStreamer starts a LogStreamer for the given build. The
+// LogStreamer streams logs to the cloud.
+func (bs *BusSetup) StartLogStreamer(ctx context.Context, c cloud.Client, buildID, orgName, projectName string, createdAt time.Time) {
+	if buildID == "" {
+		buildID = uuid.NewString()
+	}
+	if createdAt.IsZero() {
+		createdAt = time.Now()
+	}
+	initialManifest := &logstream.RunManifest{
+		BuildId:            buildID,
+		Version:            deltautil.Version,
+		OrgName:            orgName,
+		ProjectName:        projectName,
+		CreatedAtUnixNanos: uint64(createdAt.UnixNano()),
+	}
+	bs.LogStreamer = logstreamer.New(ctx, bs.Bus, c, initialManifest)
+}
+
 // Close closes the BusSetup.
 func (bs *BusSetup) Close() error {
 	var retErr error
@@ -69,6 +95,12 @@ func (bs *BusSetup) Close() error {
 		}
 		if bdwErr != nil {
 			retErr = multierror.Append(retErr, errors.Wrap(bdwErr, "bus debug writer"))
+		}
+	}
+	if bs.LogStreamer != nil {
+		err := bs.LogStreamer.Close()
+		if err != nil {
+			retErr = multierror.Append(retErr, errors.Wrap(err, "log streamer"))
 		}
 	}
 	return retErr
