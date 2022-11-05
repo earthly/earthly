@@ -547,9 +547,11 @@ func unhideFlagsCommands(ctx context.Context, cmds []*cli.Command) {
 
 func (app *earthlyApp) run(ctx context.Context, args []string) int {
 	defer func() {
-		err := app.logbusSetup.Close()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error(s) in logbus: %v", err)
+		if app.logbusSetup != nil {
+			err := app.logbusSetup.Close()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error(s) in logbus: %v", err)
+			}
 		}
 	}()
 	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
