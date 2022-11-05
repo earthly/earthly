@@ -231,10 +231,14 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 			}
 
 			for k, v := range resp {
-				if !strings.HasPrefix(k, result.FinalImageName+"|") {
+				// discarded prefix is likely a registry/repository from its canonical name, i.e.
+				// 1. user asks for 'busybox'
+				// 2. result.FinalImageName is calculated as 'busybox:latest'
+				// 3. BK response has keys 'docker.io/library/busybox:latest|<type>'
+				_, k2, found := strings.Cut(k, result.FinalImageName+"|")
+				if !found {
 					continue
 				}
-				k2 := strings.TrimPrefix(k, result.FinalImageName+"|")
 				switch k2 {
 				case exptypes.ExporterImageDescriptorKey:
 					vdec, err := base64.StdEncoding.DecodeString(v)
