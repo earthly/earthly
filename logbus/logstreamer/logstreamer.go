@@ -23,12 +23,13 @@ type LogStreamer struct {
 	c               cloud.Client
 	buildID         string
 	initialManifest *logstream.RunManifest
-	done            chan struct{}
+	doneCh          chan struct{}
+	errors          []error
 
 	mu        sync.Mutex
+	cancelled bool
 	ch        chan *logstream.Delta
 	batchedCh chan []*logstream.Delta
-	errors    []error
 }
 
 // New creates a new LogStreamer.
@@ -38,7 +39,7 @@ func New(ctx context.Context, bus *logbus.Bus, c cloud.Client, initialManifest *
 		c:               c,
 		buildID:         initialManifest.GetBuildId(),
 		initialManifest: initialManifest,
-		done:            make(chan struct{}),
+		doneCh:          make(chan struct{}),
 	}
 	go ls.retryLoop(ctx)
 	return ls
@@ -79,29 +80,37 @@ func (ls *LogStreamer) batcherLoop(ctx context.Context) {
 }
 
 func (ls *LogStreamer) retryLoop(ctx context.Context) {
-	defer close(ls.done)
+	defer close(ls.doneCh)
 	const maxRetry = 10
 	for i := 0; i < maxRetry; i++ {
-		err := ls.tryStream(ctx)
+		retry, err := ls.tryStream(ctx)
+		ls.bus.RemoveSubscriber(ls)
 		if err == nil {
 			return
 		}
-		if err != errRetry {
-			ls.mu.Lock()
+		if i == maxRetry-1 {
+			retry = false
+		}
+		if !retry {
 			ls.errors = append(ls.errors, err)
-			ls.mu.Unlock()
 			return
 		}
+		fmt.Fprintf(os.Stderr, "transient error streaming logs: %v", err)
 	}
 }
 
-var errRetry = errors.New("retry")
-
-func (ls *LogStreamer) tryStream(ctx context.Context) error {
+func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 	ctxTry, cancelTry := context.WithCancel(ctx)
 	defer cancelTry()
-	ls.bus.RemoveSubscriber(ls) // no-op if not added yet
 	ls.mu.Lock()
+	if ls.cancelled {
+		// TODO (vladaionescu): It would be nice if on cancellation we could
+		// 						still go through the entire retry loop.
+		//						This would require that we close ls.ch on each
+		//						retry somehow safely.
+		ls.mu.Unlock()
+		return false, errors.New("log streamer closed")
+	}
 	ls.ch = make(chan *logstream.Delta, 10240)
 	ls.batchedCh = make(chan []*logstream.Delta, 10240)
 	ls.mu.Unlock()
@@ -123,17 +132,16 @@ func (ls *LogStreamer) tryStream(ctx context.Context) error {
 	if err != nil {
 		s, ok := status.FromError(errors.Cause(err))
 		if !ok {
-			return err
+			return false, err
 		}
 		switch s.Code() {
 		case codes.Unavailable, codes.Internal, codes.DeadlineExceeded:
-			fmt.Fprintf(os.Stderr, "transient error streaming logs: %v", err)
-			return errRetry // will cause a retry.
+			return true, err
 		default:
-			return err
+			return false, err
 		}
 	}
-	return nil
+	return false, nil
 }
 
 // Write writes the given delta to the log streamer.
@@ -146,10 +154,13 @@ func (ls *LogStreamer) Write(delta *logstream.Delta) {
 
 // Close closes the log streamer.
 func (ls *LogStreamer) Close() error {
-	close(ls.ch)
-	<-ls.done // wait for all messages to be sent (or for log streamer to error-out).
 	ls.mu.Lock()
-	defer ls.mu.Unlock()
+	if ls.ch != nil {
+		close(ls.ch)
+	}
+	ls.cancelled = true
+	ls.mu.Unlock()
+	<-ls.doneCh // wait for all messages to be sent (or for log streamer to error-out).
 	var retErr error
 	for _, err := range ls.errors {
 		retErr = multierror.Append(retErr, err)
