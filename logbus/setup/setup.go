@@ -35,7 +35,6 @@ func New(ctx context.Context, bus *logbus.Bus, debug bool, verbose bool, disable
 	bs.Bus.AddFormattedSubscriber(bs.ConsoleWriter)
 	bs.SolverMonitor = solvermon.New(bs.Bus)
 	if busDebugFile != "" {
-		// Open file for writing.
 		f, err := os.OpenFile(busDebugFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to open bus debug file %s", busDebugFile)
