@@ -2,7 +2,10 @@ module github.com/earthly/earthly/util/deltautil
 
 go 1.18
 
-require github.com/earthly/cloud-api v1.0.1-0.20221104223416-1c815f3ddc46
+require (
+	github.com/earthly/cloud-api v1.0.1-0.20221105195230-3a4a952a33c6
+	google.golang.org/protobuf v1.28.0
+)
 
 require (
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -11,5 +14,4 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/genproto v0.0.0-20220617124728-180714bec0ad // indirect
 	google.golang.org/grpc v1.47.0 // indirect
-	google.golang.org/protobuf v1.28.0 // indirect
 )

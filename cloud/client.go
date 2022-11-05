@@ -93,7 +93,7 @@ type Client interface {
 	RemoveSecretPermission(ctx context.Context, path, userEmail string) error
 	AccountResetReqestToken(ctx context.Context, userEmail string) error
 	AccountReset(ctx context.Context, userEmail, token, password string) error
-	StreamLogs(ctx context.Context, buildID string, deltas chan *logstream.Delta) error
+	StreamLogs(ctx context.Context, buildID string, deltas chan []*logstream.Delta) error
 }
 
 type client struct {

@@ -4,14 +4,15 @@ import (
 	"fmt"
 
 	pb "github.com/earthly/cloud-api/logstream"
+	"google.golang.org/protobuf/proto"
 )
 
 // Version is the version of the deltautil package.
 const Version = 2
 
 // ApplyDeltaManifest takes a delta and applies it to the given manifest,
-// then returns it. This will mutate the originally passed-in
-// manifest.
+// then returns it. This will either mutate the originally passed-in
+// manifest, or return a completely new one.
 func ApplyDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error) {
 	if m.GetVersion() != 0 && m.GetVersion() != Version {
 		return nil, fmt.Errorf("unsupported manifest version %d", m.GetVersion())
@@ -29,53 +30,7 @@ func ApplyDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error)
 	}
 	switch dm.GetDeltaManifestOneof().(type) {
 	case *pb.DeltaManifest_ResetAll:
-		m2 := dm.GetResetAll()
-		if m2.GetVersion() != Version {
-			return nil, fmt.Errorf("unsupported manifest version %d", m2.GetVersion())
-		}
-		m.Version = m2.GetVersion()
-		m.CreatedAtUnixNanos = m2.GetCreatedAtUnixNanos()
-		m.StartedAtUnixNanos = m2.GetStartedAtUnixNanos()
-		m.EndedAtUnixNanos = m2.GetEndedAtUnixNanos()
-		m.Status = m2.GetStatus()
-		m.MainTarget = m2.GetMainTarget()
-		m.Failure = m2.GetFailure()
-		m.OrgName = m2.GetOrgName()
-		m.ProjectName = m2.GetProjectName()
-		m.UserId = m2.GetUserId()
-		m.OrgId = m2.GetOrgId()
-		m.ProjectId = m2.GetProjectId()
-		m.Targets = make(map[string]*pb.TargetManifest)
-		for targetID, t2 := range m2.GetTargets() {
-			m.Targets[targetID] = &pb.TargetManifest{
-				Name:               t2.GetName(),
-				CanonicalName:      t2.GetCanonicalName(),
-				OverrideArgs:       append([]string{}, t2.GetOverrideArgs()...),
-				InitialPlatform:    t2.GetInitialPlatform(),
-				FinalPlatform:      t2.GetFinalPlatform(),
-				Status:             t2.GetStatus(),
-				StartedAtUnixNanos: t2.GetStartedAtUnixNanos(),
-				EndedAtUnixNanos:   t2.GetEndedAtUnixNanos(),
-			}
-		}
-		m.Commands = make(map[string]*pb.CommandManifest)
-		for commandID, c2 := range m2.GetCommands() {
-			m.Commands[commandID] = &pb.CommandManifest{
-				Name:               c2.GetName(),
-				TargetId:           c2.GetTargetId(),
-				Platform:           c2.GetPlatform(),
-				Status:             c2.GetStatus(),
-				IsCached:           c2.GetIsCached(),
-				IsPush:             c2.GetIsPush(),
-				IsLocal:            c2.GetIsLocal(),
-				StartedAtUnixNanos: c2.GetStartedAtUnixNanos(),
-				EndedAtUnixNanos:   c2.GetEndedAtUnixNanos(),
-				HasProgress:        c2.GetHasProgress(),
-				Progress:           c2.GetProgress(),
-				ErrorMessage:       c2.GetErrorMessage(),
-				SourceLocation:     c2.GetSourceLocation(),
-			}
-		}
+		m = proto.Clone(dm.GetResetAll()).(*pb.RunManifest)
 	case *pb.DeltaManifest_Fields:
 		f := dm.GetFields()
 		if f.GetStartedAtUnixNanos() != 0 {
@@ -89,6 +44,9 @@ func ApplyDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error)
 		}
 		if f.GetHasFailure() {
 			m.Failure = f.GetFailure()
+		}
+		if f.GetMainTargetId() != "" {
+			m.MainTargetId = f.GetMainTargetId()
 		}
 		for targetID, t2 := range f.GetTargets() {
 			if m.Targets == nil {

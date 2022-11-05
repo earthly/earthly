@@ -9,7 +9,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func (c *client) StreamLogs(ctx context.Context, buildID string, deltas chan *logstream.Delta) error {
+func (c *client) StreamLogs(ctx context.Context, buildID string, deltasCh chan []*logstream.Delta) error {
 	streamClient, err := c.logstream.StreamLogs(c.withAuth(ctx))
 	if err != nil {
 		return errors.Wrap(err, "failed to create log stream client")
@@ -41,7 +41,7 @@ func (c *client) StreamLogs(ctx context.Context, buildID string, deltas chan *lo
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case delta, ok := <-deltas:
+		case deltas, ok := <-deltasCh:
 			if !ok {
 				err := streamClient.Send(&logstream.StreamLogRequest{
 					BuildId: buildID,
@@ -55,10 +55,9 @@ func (c *client) StreamLogs(ctx context.Context, buildID string, deltas chan *lo
 				mu.Unlock()
 				return nil
 			}
-			// TODO (vladaionescu): Do some batching for the deltas.
 			err := streamClient.Send(&logstream.StreamLogRequest{
 				BuildId: buildID,
-				Deltas:  []*logstream.Delta{delta},
+				Deltas:  deltas,
 			})
 			if err != nil {
 				return errors.Wrap(err, "failed to send log delta")
