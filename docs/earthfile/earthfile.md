@@ -680,9 +680,8 @@ SAVE IMAGE my-example-registry.com/another-image:latest
 {% hint style='danger' %}
 ##### Important
 
-Since the introduction of the `--referenced-save-only` feature flag, images are only saved if they are connected to the initial target through a chain of `BUILD` commands. [See the `--referenced-save-only` flag documentation for more details](./features.md#referenced-save-only).
+As of [`VERSION 0.6`](#version), the `--referenced-save-only` feature flag is enabled by default. Images are only saved if they are connected to the initial target through a chain of `BUILD` commands. [See the `--referenced-save-only` flag documentation for more details](./features.md#referenced-save-only).
 
-This is automatically enabled when setting [`VERSION 0.6`](#version) in your `Earthfile`.
 {% endhint %}
 
 #### Options
