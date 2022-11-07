@@ -4,6 +4,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.29 - 2022-11-07
+
 ### Added
 
 - Cache mounts sharing mode can now be specified via `RUN --mount type=cache,sharing=shared` via `CACHE --sharing=shared`. Allowed values are `locked` (default - lock concurrent acccess to the cache), `shared` (allow concurrent access) and `private` (create a new empty cache on concurrent access).
