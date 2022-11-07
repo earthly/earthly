@@ -465,6 +465,9 @@ lint-all:
     BUILD +lint-newline-ending
     BUILD +lint-changelog
 
+lint-docs:
+    BUILD +lint-newline-ending
+
 # TODO: Document qemu vs non-qemu
 test-no-qemu:
     BUILD +unit-test
