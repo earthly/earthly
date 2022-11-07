@@ -1,16 +1,16 @@
 package llbutil
 
 import (
-	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/platutil"
+	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/moby/buildkit/client/llb"
 )
 
 // WithDependency creates a fake dependency between two states.
 func WithDependency(state pllb.State, depState pllb.State, stateStr, depStr string, platr *platutil.Resolver, opts ...llb.RunOption) pllb.State {
 	// TODO: Is there a better way to mark two states as depending on each other?
-	vm := &outmon.VertexMeta{
+	vm := &vertexmeta.VertexMeta{
 		Internal: true,
 	}
 	if state.Output() == nil {

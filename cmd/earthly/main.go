@@ -35,6 +35,8 @@ import (
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/logbus"
+	logbussetup "github.com/earthly/earthly/logbus/setup"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
@@ -56,6 +58,8 @@ type earthlyApp struct {
 	cliApp      *cli.App
 	console     conslogging.ConsoleLogger
 	cfg         *config.Config
+	logbusSetup *logbussetup.BusSetup
+	logbus      *logbus.Bus
 	sessionID   string
 	commandName string
 	cliFlags
@@ -141,6 +145,8 @@ type cliFlags struct {
 	orgName                   string
 	invitePermission          string
 	inviteMessage             string
+	logstream                 bool
+	logstreamDebugFile        string
 }
 
 type analyticsMetadata struct {
@@ -334,6 +340,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		cliFlags: cliFlags{
 			buildkitdSettings: buildkitd.Settings{},
 		},
+		logbus: logbus.New(),
 	}
 
 	earthly := getBinaryName()
@@ -366,7 +373,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 	return app
 }
 
-func (app *earthlyApp) before(context *cli.Context) error {
+func (app *earthlyApp) before(cliCtx *cli.Context) error {
 	if app.enableProfiler {
 		go profhandler()
 	}
@@ -376,8 +383,14 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	} else if app.verbose {
 		app.console = app.console.WithLogLevel(conslogging.Verbose)
 	}
+	disableOngoingUpdates := !app.logstream // TODO (vladaionescu)
+	var err error
+	app.logbusSetup, err = logbussetup.New(cliCtx.Context, app.logbus, app.debug, app.verbose, disableOngoingUpdates, app.logstreamDebugFile)
+	if err != nil {
+		return errors.Wrap(err, "logbus setup")
+	}
 
-	if context.IsSet("config") {
+	if cliCtx.IsSet("config") {
 		app.console.Printf("loading config values from %q\n", app.configPath)
 	}
 
@@ -389,11 +402,10 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	}
 
 	var yamlData []byte
-	var err error
 	if app.configPath != "" {
 		yamlData, err = config.ReadConfigFile(app.configPath)
 		if err != nil {
-			if context.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
+			if cliCtx.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
 				return errors.Wrapf(err, "read config")
 			}
 		}
@@ -408,14 +420,14 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.cfg.Git = map[string]config.GitConfig{}
 	}
 
-	err = app.processDeprecatedCommandOptions(context, app.cfg)
+	err = app.processDeprecatedCommandOptions(cliCtx, app.cfg)
 	if err != nil {
 		return err
 	}
 
 	// Make a small attempt to check if we are not bootstrapped. If not, then do that before we do anything else.
 	isBootstrapCmd := false
-	for _, f := range context.Args().Slice() {
+	for _, f := range cliCtx.Args().Slice() {
 		isBootstrapCmd = f == "bootstrap"
 
 		if isBootstrapCmd {
@@ -425,7 +437,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 
 	if !isBootstrapCmd && !cliutil.IsBootstrapped() {
 		app.bootstrapNoBuildkit = true // Docker may not be available, for instance... like our integration tests.
-		err = app.bootstrap(context)
+		err = app.bootstrap(cliCtx)
 		if err != nil {
 			return errors.Wrap(err, "bootstrap unbootstrapped installation")
 		}
@@ -456,7 +468,7 @@ func (app *earthlyApp) warnIfEarth() {
 	}
 }
 
-func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg *config.Config) error {
+func (app *earthlyApp) processDeprecatedCommandOptions(cliCtx *cli.Context, cfg *config.Config) error {
 	app.warnIfEarth()
 
 	if cfg.Global.CachePath != "" {
@@ -534,6 +546,14 @@ func unhideFlagsCommands(ctx context.Context, cmds []*cli.Command) {
 }
 
 func (app *earthlyApp) run(ctx context.Context, args []string) int {
+	defer func() {
+		if app.logbusSetup != nil {
+			err := app.logbusSetup.Close()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error(s) in logbus: %v", err)
+			}
+		}
+	}()
 	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
 	err := app.cliApp.RunContext(ctx, args)
 	if err != nil {

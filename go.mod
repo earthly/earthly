@@ -11,8 +11,9 @@ require (
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/dustin/go-humanize v1.0.0
-	github.com/earthly/cloud-api v1.0.1-0.20221102151927-95c3ac681493
+	github.com/earthly/cloud-api v1.0.1-0.20221105195230-3a4a952a33c6
 	github.com/earthly/earthly/ast v0.0.0-00010101000000-000000000000
+	github.com/earthly/earthly/util/deltautil v0.0.0-00010101000000-000000000000
 	github.com/elastic/go-sysinfo v1.7.1
 	github.com/fatih/color v1.9.0
 	github.com/gofrs/flock v0.8.1
@@ -95,6 +96,7 @@ require (
 replace (
 	github.com/docker/docker => github.com/docker/docker v20.10.3-0.20220414164044-61404de7df1a+incompatible
 	github.com/earthly/earthly/ast => ./ast
+	github.com/earthly/earthly/util/deltautil => ./util/deltautil
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
 	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20221028205720-4d7c1301fdce

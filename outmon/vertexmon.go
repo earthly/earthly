@@ -12,6 +12,8 @@ import (
 
 	"github.com/armon/circbuf"
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/util/progressbar"
+	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/mattn/go-isatty"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
@@ -19,7 +21,7 @@ import (
 
 type vertexMonitor struct {
 	vertex         *client.Vertex
-	meta           *VertexMeta
+	meta           *vertexmeta.VertexMeta
 	operation      string
 	lastProgress   map[string]time.Time
 	lastPercentage map[string]int
@@ -173,7 +175,7 @@ func (vm *vertexMonitor) printProgress(id string, progress int, verbose bool, sa
 		// Overwrite previous line if this update is for the same thing as the previous one.
 		builder = append(builder, string(ansiUp))
 	}
-	progressBar := progressBar(progress, 10)
+	progressBar := progressbar.ProgressBar(progress, 10)
 	builder = append(builder, fmt.Sprintf("[%s] %3d%% %s%s\n", progressBar, progress, id, string(ansiEraseRestLine)))
 	vm.console.PrintBytes([]byte(strings.Join(builder, "")))
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
@@ -52,6 +53,8 @@ const (
 type Opt struct {
 	SessionID                             string
 	BkClient                              *client.Client
+	LogBusSolverMonitor                   *solvermon.SolverMonitor
+	UseLogstream                          bool
 	Console                               conslogging.ConsoleLogger
 	Verbose                               bool
 	Attachables                           []session.Attachable
@@ -112,6 +115,8 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 	b := &Builder{
 		s: &solver{
 			sm:              outmon.NewSolverMonitor(opt.Console, opt.Verbose, opt.DisableNoOutputUpdates),
+			logbusSM:        opt.LogBusSolverMonitor,
+			useLogstream:    opt.UseLogstream,
 			bkClient:        opt.BkClient,
 			cacheImports:    opt.CacheImports,
 			cacheExport:     opt.CacheExport,

@@ -80,14 +80,22 @@ type ConsoleLogger struct {
 
 // Current returns the current console.
 func Current(colorMode ColorMode, prefixPadding int, logLevel LogLevel) ConsoleLogger {
+	return New(getCompatibleStderr(), &currentConsoleMutex, colorMode, prefixPadding, logLevel)
+}
+
+// New returns a new ConsoleLogger with a predefined target writer.
+func New(w io.Writer, mu *sync.Mutex, colorMode ColorMode, prefixPadding int, logLevel LogLevel) ConsoleLogger {
+	if mu == nil {
+		mu = &sync.Mutex{}
+	}
 	return ConsoleLogger{
-		consoleErrW:    getCompatibleStderr(),
-		errW:           getCompatibleStderr(),
+		consoleErrW:    w,
+		errW:           w,
 		colorMode:      colorMode,
 		saltColors:     make(map[string]*color.Color),
 		nextColorIndex: new(int),
 		prefixPadding:  prefixPadding,
-		mu:             &currentConsoleMutex,
+		mu:             mu,
 		logLevel:       logLevel,
 	}
 }

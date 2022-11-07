@@ -13,7 +13,6 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
-	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
@@ -21,6 +20,7 @@ import (
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/syncutil/synccache"
+	"github.com/earthly/earthly/util/vertexmeta"
 
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -73,7 +73,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 			// Optimization.
 			buildContextFactory = llbfactory.PreconstructedState(rgp.state)
 		} else {
-			vm := &outmon.VertexMeta{
+			vm := &vertexmeta.VertexMeta{
 				TargetName: ref.String(),
 				Internal:   true,
 			}
@@ -177,7 +177,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	cacheKey := fmt.Sprintf("%s#%s", gitURL, gitRef)
 	rgpValue, err := gr.projectCache.Do(ctx, cacheKey, func(ctx context.Context, k interface{}) (interface{}, error) {
 		// Copy all Earthfile, build.earth and Dockerfile files.
-		vm := &outmon.VertexMeta{
+		vm := &vertexmeta.VertexMeta{
 			TargetName: cacheKey,
 			Internal:   true,
 		}

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/earthly/cloud-api/compute"
+	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/cloud-api/pipelines"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/pkg/errors"
@@ -92,6 +93,7 @@ type Client interface {
 	RemoveSecretPermission(ctx context.Context, path, userEmail string) error
 	AccountResetRequestToken(ctx context.Context, userEmail string) error
 	AccountReset(ctx context.Context, userEmail, token, password string) error
+	StreamLogs(ctx context.Context, buildID string, deltas chan []*logstream.Delta) error
 }
 
 type client struct {
@@ -110,6 +112,7 @@ type client struct {
 	jum                   *protojson.UnmarshalOptions
 	pipelines             pipelines.PipelinesClient
 	compute               compute.ComputeClient
+	logstream             logstream.LogStreamClient
 }
 
 var _ Client = &client{}
@@ -147,5 +150,6 @@ func NewClient(httpAddr, grpcAddr, agentSockPath, authCredsOverride string, warn
 	}
 	c.pipelines = pipelines.NewPipelinesClient(conn)
 	c.compute = compute.NewComputeClient(conn)
+	c.logstream = logstream.NewLogStreamClient(conn)
 	return c, nil
 }

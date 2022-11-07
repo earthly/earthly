@@ -1,4 +1,4 @@
-package outmon
+package progressbar
 
 import "strings"
 
@@ -6,7 +6,8 @@ var progressChars = []string{
 	" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█",
 }
 
-func progressBar(progress, width int) string {
+// ProgressBar returns a progress bar as a string.
+func ProgressBar(progress, width int) string {
 	if progress > 100 {
 		progress = 100
 	}
