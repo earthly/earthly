@@ -223,25 +223,25 @@ Permits the build to use the --privileged flag in RUN commands. For more informa
 
 Also available as an env var setting: `EARTHLY_USE_INLINE_CACHE=true`
 
-Enables use of inline cache, if available. Any `SAVE IMAGE --push` command is used to inform the system of possible inline cache sources. For more information see the [shared caching guide](../guides/shared-cache.md).
+Enables use of inline cache, if available. Any `SAVE IMAGE --push` command is used to inform the system of possible inline cache sources. For more information see the [remote caching guide](../remote-caching.md).
 
 ##### `--save-inline-cache`
 
 Also available as an env var setting: `EARTHLY_SAVE_INLINE_CACHE=true`
 
-Enables embedding inline cache in any pushed images. This cache can be used on other systems, if enabled via `--use-inline-cache`. For more information see the [shared caching guide](../guides/shared-cache.md).
+Enables embedding inline cache in any pushed images. This cache can be used on other systems, if enabled via `--use-inline-cache`. For more information see the [remote caching guide](../remote-caching.md).
 
 ##### `--remote-cache <image-tag>`
 
 Also available as an env var setting: `EARTHLY_REMOTE_CACHE=<image-tag>`
 
-Enables use of explicit cache. The provided `<image-tag>` is used for storing and retrieving the cache to/from a Docker registry. Storing explicit cache is only enabled if the option `--push` is also passed in. For more information see the [shared caching guide](../guides/shared-cache.md).
+Enables use of explicit cache. The provided `<image-tag>` is used for storing and retrieving the cache to/from a Docker registry. Storing explicit cache is only enabled if the option `--push` is also passed in. For more information see the [remote caching guide](../remote-caching.md).
 
 ##### `--max-remote-cache`
 
 Also available as an env var setting: `EARTHLY_MAX_REMOTE_CACHE=true`
 
-Enables storing all intermediate layers as part of the explicit cache. Note that this setting is rarely effective due to the excessive upload overhead. For more information see the [shared caching guide](../guides/shared-cache.md).
+Enables storing all intermediate layers as part of the explicit cache. Note that this setting is rarely effective due to the excessive upload overhead. For more information see the [remote caching guide](../remote-caching.md).
 
 ##### `--ci`
 

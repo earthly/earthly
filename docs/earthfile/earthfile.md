@@ -664,7 +664,7 @@ For detailed examples demonstrating how other scenarios may function, please see
 
 In the *output form*, the command `SAVE IMAGE` marks the current build environment as the image of the target and assigns one or more output image names.
 
-In the *cache hint form*, it instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [shared caching guide](../guides/shared-cache.md).
+In the *cache hint form*, it instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [remote caching guide](../remote-caching.md).
 
 {% hint style='info' %}
 ##### Assigning multiple image names
@@ -707,11 +707,11 @@ earthly --push +docker-image
 
 ##### `--cache-from=<cache-image>`
 
-Adds additional cache sources to be used when `--use-inline-cache` is enabled. For more information see the [shared caching guide](../guides/shared-cache.md).
+Adds additional cache sources to be used when `--use-inline-cache` is enabled. For more information see the [remote caching guide](../remote-caching.md).
 
 ##### `--cache-hint`
 
-Instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [shared caching guide](../guides/shared-cache.md).
+Instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [remote caching guide](../remote-caching.md).
 
 ## BUILD
 
