@@ -601,6 +601,13 @@ SAVE ARTIFACT ./my-directory/* AS LOCAL ./destination
 ```
 {% endhint %}
 
+{% hint style='danger' %}
+##### Important
+
+As of [`VERSION 0.6`](#version), local artifacts are only saved [if they are connected to the initial target through a chain of `BUILD` commands](#what-is-being-output-and-pushed).
+
+{% endhint %}
+
 #### Options
 
 ##### `--keep-ts`
@@ -675,6 +682,13 @@ SAVE IMAGE my-image:latest
 SAVE IMAGE my-image:1.0.0
 SAVE IMAGE my-example-registry.com/another-image:latest
 ```
+{% endhint %}
+
+{% hint style='danger' %}
+##### Important
+
+As of [`VERSION 0.6`](#version), the `--referenced-save-only` feature flag is enabled by default. Images are only saved [if they are connected to the initial target through a chain of `BUILD` commands](#what-is-being-output-and-pushed).
+
 {% endhint %}
 
 #### Options
