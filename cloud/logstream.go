@@ -37,31 +37,34 @@ func (c *client) StreamLogs(ctx context.Context, buildID string, deltasCh chan [
 			}
 		}
 	})
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case deltas, ok := <-deltasCh:
-			if !ok {
+	eg.Go(func() error {
+		for {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case deltas, ok := <-deltasCh:
+				if !ok {
+					err := streamClient.Send(&logstream.StreamLogRequest{
+						BuildId: buildID,
+						Eof:     true,
+					})
+					if err != nil {
+						return errors.Wrap(err, "failed to send EOF to log stream")
+					}
+					mu.Lock()
+					finished = true
+					mu.Unlock()
+					return nil
+				}
 				err := streamClient.Send(&logstream.StreamLogRequest{
 					BuildId: buildID,
-					Eof:     true,
+					Deltas:  deltas,
 				})
 				if err != nil {
-					return errors.Wrap(err, "failed to send EOF to log stream")
+					return errors.Wrap(err, "failed to send log delta")
 				}
-				mu.Lock()
-				finished = true
-				mu.Unlock()
-				return nil
-			}
-			err := streamClient.Send(&logstream.StreamLogRequest{
-				BuildId: buildID,
-				Deltas:  deltas,
-			})
-			if err != nil {
-				return errors.Wrap(err, "failed to send log delta")
 			}
 		}
-	}
+	})
+	return eg.Wait()
 }
