@@ -1,19 +1,14 @@
 # Remote BuildKit 
 
-{% hint style='danger' %}
-##### Note
-
-Using a remote BuildKit instance is currently _experimental_. If you run into any issues, or need help, [don't hesitate to reach out](https://github.com/earthly/earthly/issues/new)!
-
-{% endhint %}
-
 ## Introduction
 
 In some cases, you may want to run a remote instance of [`earthly/buildkitd`](https://hub.docker.com/r/earthly/buildkitd). This guide is intended to help you identify if you might benefit from this configuration, and to help you set it up correctly.
 
+If you are looking for a way to use remote runners without the complexities of managing them yourself, you may want to consider [Earthly Satellites](../cloud/satellites.md): remote runners managed by Earthly.
+
 ### Why Remote?
 
-Running a remote daemon is a unique feature of Earthly. It allows the build to happen elsewhere; even when executing it from your local development machine. However, it is not always the best option. Before setting up a remote daemon, first look into Earthly's shared caching capabilities and see if those can get you the boost you need. In our experience, [shared caching](../guides/shared-cache.md) is usually enough.
+Running a remote daemon is a unique feature of Earthly. It allows the build to happen elsewhere; even when executing it from your local development machine. However, it is not always the best option. Before setting up a remote daemon, first look into Earthly's shared caching capabilities and see if those can get you the boost you need. In our experience, [remote caching](../remote-caching.md) is usually enough.
 
 However, there are instances where a remote daemon can make the most sense. Here are some examples:
 

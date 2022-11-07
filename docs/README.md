@@ -14,7 +14,7 @@ One of the key principles of Earthly is that the best build tooling of a specifi
 
 See [installation instructions](https://earthly.dev/get-earthly).
 
-For a full list of installation options see the [alternative installation page](./alt-installation.md).
+For a full list of installation options see the [alternative installation page](./alt-installation/alt-installation.md).
 
 ## Getting started
 
