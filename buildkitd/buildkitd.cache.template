@@ -1,12 +1,11 @@
   # Please note the required indentation to fit in buildkit.toml.template accordingly.
 
-  # 1/100 of total cache size.
-  gckeepstorage = ${CACHE_SIZE_MB}0000
+  # gckeepstorage sets storage limit for default gc profile, in MB.
+  gckeepstorage = ${CACHE_SIZE_MB}
+
   [[worker.oci.gcpolicy]]
-    # 1/10 of total cache size.
-    keepBytes = ${CACHE_SIZE_MB}00000
+    keepBytes = ${SOURCE_FILE_KEEP_BYTES}
     filters = [ "type==source.local", "type==source.git.checkout"]
   [[worker.oci.gcpolicy]]
     all = true
-    # Cache size MB with 6 zeros, to turn it into bytes.
-    keepBytes = ${CACHE_SIZE_MB}000000
+    keepBytes = ${CATCH_ALL_KEEP_BYTES}

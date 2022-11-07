@@ -110,7 +110,7 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 		&cli.StringFlag{
 			Name:        "version-flag-overrides",
 			EnvVars:     []string{"EARTHLY_VERSION_FLAG_OVERRIDES"},
-			Usage:       "Apply additional flags after each VERSION command across all Earthfiles, multiple flags can be seperated by commas",
+			Usage:       "Apply additional flags after each VERSION command across all Earthfiles, multiple flags can be separated by commas",
 			Destination: &app.featureFlagOverrides,
 			Hidden:      true, // used for feature-flipping from ./earthly dev script
 		},

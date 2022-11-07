@@ -28,7 +28,7 @@ export REGISTRY="$REGISTRY_IP:5000"
 
 if test -z "$REGISTRY_IP"
 then
-     echo echo "Error: REGISTRY_IP is empty"
+     echo "Error: REGISTRY_IP is empty"
      exit 4
 fi
 

@@ -30,7 +30,7 @@ func TestBuildArgMatrix(t *testing.T) {
 	}
 }
 
-func TestParseParans(t *testing.T) {
+func TestParseParams(t *testing.T) {
 	var tests = []struct {
 		in    string
 		first string
@@ -48,7 +48,7 @@ func TestParseParans(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.in, func(t *testing.T) {
-			actualFirst, actualArgs, err := parseParans(tt.in)
+			actualFirst, actualArgs, err := parseParams(tt.in)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.first, actualFirst)
 			assert.Equal(t, tt.args, actualArgs)
@@ -57,7 +57,7 @@ func TestParseParans(t *testing.T) {
 	}
 }
 
-func TestNegativeParseParans(t *testing.T) {
+func TestNegativeParseParams(t *testing.T) {
 	var tests = []struct {
 		in string
 	}{
@@ -70,12 +70,12 @@ func TestNegativeParseParans(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		_, _, err := parseParans(tt.in)
+		_, _, err := parseParams(tt.in)
 		assert.Error(t, err)
 	}
 }
 
-func TestProcessParansAndQuotes(t *testing.T) {
+func TestProcessParamsAndQuotes(t *testing.T) {
 	var tests = []struct {
 		in   []string
 		args []string
@@ -95,7 +95,7 @@ func TestProcessParansAndQuotes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(strings.Join(tt.in, " "), func(t *testing.T) {
-			actualArgs := processParansAndQuotes(tt.in)
+			actualArgs := processParamsAndQuotes(tt.in)
 			assert.Equal(t, tt.args, actualArgs)
 		})
 

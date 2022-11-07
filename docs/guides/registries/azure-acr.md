@@ -22,7 +22,7 @@ build:
 
 ## Login and Configure the ACR Credential Helper
 
-ACR does not issue permanent credentials. Instead, it relies on your Azure AD credentials to issue Docker credentials. As an individual user, you will need to log in to your repository first:
+ACR does not issue permanent credentials. Instead, it relies on your Azure AD credentials to issue Docker credentials. As an individual user, you will need to log into your repository first:
 
 ```
 ❯ az acr login --name helloearthly

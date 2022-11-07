@@ -120,7 +120,7 @@ type cliFlags struct {
 	enableSourceMap           bool
 	configDryRun              bool
 	strict                    bool
-	conversionParllelism      int
+	conversionParallelism     int
 	debuggerHost              string
 	certPath                  string
 	keyPath                   string
@@ -463,7 +463,7 @@ func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg
 		app.console.Warnf("Warning: the setting cache_path is now obsolete and will be ignored")
 	}
 
-	if app.conversionParllelism != 0 {
+	if app.conversionParallelism != 0 {
 		app.console.Warnf("Warning: --conversion-parallelism and EARTHLY_CONVERSION_PARALLELISM is obsolete, please use 'earthly config global.conversion_parallelism <parallelism>' instead")
 	}
 
@@ -537,7 +537,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
 	err := app.cliApp.RunContext(ctx, args)
 	if err != nil {
-		ie, isInterpereterError := earthfile2llb.GetInterpreterError(err)
+		ie, isInterpreterError := earthfile2llb.GetInterpreterError(err)
 
 		var failedOutput string
 		var buildErr *builder.BuildError
@@ -609,7 +609,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
 			app.printCrashLogs(ctx)
 			return 6
-		} else if isInterpereterError {
+		} else if isInterpreterError {
 			app.console.Warnf("Error: %s\n", ie.Error())
 		} else {
 			app.console.Warnf("Error: %v\n", err)

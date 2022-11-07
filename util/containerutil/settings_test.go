@@ -328,7 +328,7 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 	}
 }
 
-func TestParseAndvalidateURLFailures(t *testing.T) {
+func TestParseAndValidateURLFailures(t *testing.T) {
 	var tests = []struct {
 		testName string
 		url      string
@@ -357,7 +357,7 @@ func TestParseAndvalidateURLFailures(t *testing.T) {
 	}
 }
 
-func TestParseAndvalidateURL(t *testing.T) {
+func TestParseAndValidateURL(t *testing.T) {
 	var tests = []struct {
 		testName string
 		url      string

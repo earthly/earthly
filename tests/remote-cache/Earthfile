@@ -63,7 +63,7 @@ test2:
     # Running with tmpfs mount = no local cache.
     DO +DO_REMOTE_CACHE_EARTHLY --target=+test2
     DO +DO_REMOTE_CACHE_EARTHLY --target=+test2
-    # TODO FIXME the remote-cache caching isn't always working; we will ignore these checks until the flakyness is fixed.
+    # TODO FIXME the remote-cache caching isn't always working; we will ignore these checks until the flakiness is fixed.
     RUN (cat ./output | grep '\*cached\* --> RUN npm install') || echo "WARNING: RUN command not cached"
     RUN (cat ./output | grep '\*cached\* --> COPY test2/dist dist') || echo "WARNING: COPY classical command not cached"
     RUN (cat ./output | grep '\*cached\* --> SAVE ARTIFACT dist +test2-build/dist') || echo "WARNING: SAVE ARTIFACT command not cached"

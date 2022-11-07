@@ -12,7 +12,7 @@ buildkitd:
             ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
         END
     ELSE
-        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:9c256c19c5397aee1ba0379590d685c2e87ff17c+build
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:4d7c1301fdce48bf9a110d6b65e441dfc2cc52c7+build
     END
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
@@ -46,6 +46,7 @@ buildkitd:
     COPY ../+debugger/earth_debugger /usr/bin/earth_debugger
     COPY ./dockerd-wrapper.sh /var/earthly/dockerd-wrapper.sh
     COPY ./docker-auto-install.sh /var/earthly/docker-auto-install.sh
+    COPY ./oom-adjust.sh.template /bin/oom-adjust.sh.template
 
     ENV EARTHLY_RESET_TMP_DIR=false
     ENV EARTHLY_TMP_DIR=/tmp/earthly
@@ -91,4 +92,10 @@ update-buildkit-earthfile:
     LOCALLY
     ARG --required BUILDKIT_GIT_SHA
     ARG --required BUILDKIT_GIT_ORG
-    RUN sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit\).*/\1:'$BUILDKIT_GIT_SHA'+build/g' Earthfile
+    # We run the Mac version on Darwin as it is not compatible with Linux sed
+    # The regular expressions are intentionally different, but should be functionally equivalent on the correct uname.
+    RUN if [ "$(uname)" = "Darwin" ]; then \
+            sed -E -i '' -e 's/(^[ \t]+ARG BUILDKIT_BASE_IMAGE).*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile; \
+        else \
+            sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE\)=github.com\/.*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile; \
+        fi

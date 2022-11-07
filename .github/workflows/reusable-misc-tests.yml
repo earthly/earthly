@@ -81,16 +81,19 @@ jobs:
           max_attempts: 2
           command: |-
             ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd && \
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello
+            for i in 1 2 3 4; do
+                ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
+                pids[${i}]=$!
+            done && \
+            for pid in ${pids[*]}; do
+                wait $pid
+            done
       - name: Execute interactive debugger test
         uses: nick-fields/retry@v2
         with:
           timeout_minutes: 10
           max_attempts: 2
-          command: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ${{inputs.BUILT_EARTHLY_PATH}} --timeout 180
+          command: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ${{inputs.BUILT_EARTHLY_PATH}} --timeout 300
       - name: Execute version test
         run: "${{inputs.BUILT_EARTHLY_PATH}} --version"
       - name: Execute docker2earth test

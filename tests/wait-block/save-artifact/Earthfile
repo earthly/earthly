@@ -2,7 +2,7 @@ VERSION --wait-block 0.6
 
 produce-file:
     FROM alpine:3.15
-    RUN sleep 3 # to allow wait/end bugs to more easily propigate
+    RUN sleep 3 # to allow wait/end bugs to more easily propagate
     RUN echo -n foo > data
     SAVE ARTIFACT data AS LOCAL data
 

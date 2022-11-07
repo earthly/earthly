@@ -9,7 +9,7 @@ import (
 
 // ParseFlagArgs parses flag-form args.
 // These can be represented as `--arg=value` or `--arg value`.
-// The result is a slice that can be passed in to ParseArgs or to ParseCommandLineArgs.
+// The result is a slice that can be passed into ParseArgs or to ParseCommandLineArgs.
 func ParseFlagArgs(args []string) ([]string, error) {
 	flags, nonFlags, err := ParseFlagArgsWithNonFlags(args)
 	if err != nil {

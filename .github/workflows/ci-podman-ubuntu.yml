@@ -82,7 +82,7 @@ jobs:
 #      SUDO: "sudo"
 #    secrets: inherit
 #
-#  podman-boostrap-integrations:
+#  podman-bootstrap-integrations:
 #    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
 #    needs: podman-secret-integrations
 #    uses: ./.github/workflows/reusable-bootstrap-integrations.yml
@@ -96,7 +96,7 @@ jobs:
 #
 #  podman-repo-auth-tests:
 #    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
-#    needs: podman-boostrap-integrations
+#    needs: podman-bootstrap-integrations
 #    uses: ./.github/workflows/reusable-repo-auth-tests.yml
 #    with:
 #      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"

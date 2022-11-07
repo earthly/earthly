@@ -19,7 +19,7 @@ type TargetInput struct {
 	BuildArgs []BuildArgInput `json:"buildArgs"`
 	// Platform is the target platform of the target.
 	Platform string `json:"platform"`
-	// AllowPrivileged is true if the target will allow priviledged access
+	// AllowPrivileged is true if the target will allow privileged access
 	AllowPrivileged bool `json:"allowPrivileged"`
 }
 

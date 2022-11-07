@@ -816,7 +816,7 @@
             "args": [
               "ln",
               "-s",
-              "nonexistanttarget",
+              "nonexistenttarget",
               "symlink"
             ],
             "name": "RUN"
@@ -854,7 +854,7 @@
               "symlink",
               "|",
               "grep",
-              "nonexistanttarget"
+              "nonexistenttarget"
             ],
             "name": "RUN"
           }

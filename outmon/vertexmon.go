@@ -3,8 +3,10 @@ package outmon
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -190,11 +192,27 @@ func (vm *vertexMonitor) printError() bool {
 	switch {
 	case reErrExitCode.MatchString(errString):
 		m := reErrExitCode.FindStringSubmatch(errString)
-		errString = fmt.Sprintf(""+
-			"      The%s command\n"+
-			"          %s\n"+
-			"      did not complete successfully. Exit code %s",
-			internalStr, indentOp, m[2])
+
+		// Ignore the Error, default case will print it as a string using the source, so we won't miss any data.
+		exitCode, _ := strconv.ParseUint(m[2], 10, 32)
+
+		switch exitCode {
+		case 137:
+		case math.MaxUint32:
+			errString = fmt.Sprintf(""+
+				"      The%s command\n"+
+				"          %s\n"+
+				"      was terminated because the build system ran out of memory.\n"+
+				"      If you are using a satellite or other remote buildkit, it is the remote system that ran out of memory.",
+				internalStr, indentOp)
+		default:
+			errString = fmt.Sprintf(""+
+				"      The%s command\n"+
+				"          %s\n"+
+				"      did not complete successfully. Exit code %s",
+				internalStr, indentOp, m[2])
+		}
+
 		isFatal = true
 	case reErrNotFound.MatchString(errString):
 		m := reErrNotFound.FindStringSubmatch(errString)

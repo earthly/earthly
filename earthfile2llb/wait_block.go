@@ -135,7 +135,7 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 				noManifestListImgs[saveImage.si.DockerTag] = struct{}{}
 				isMultiPlatform[saveImage.si.DockerTag] = false
 			} else {
-				isMultiPlatform[saveImage.si.DockerTag] = true // do I need to count for previsouly seen?
+				isMultiPlatform[saveImage.si.DockerTag] = true // do I need to count for previously seen?
 			}
 		} else {
 			isMultiPlatform[saveImage.si.DockerTag] = false

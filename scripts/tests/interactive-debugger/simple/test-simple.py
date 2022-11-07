@@ -41,7 +41,7 @@ def test_interactive(earthly_path, timeout):
 
             assert not c.isalive()
         except pexpect.exceptions.TIMEOUT as e:
-            print('interactive test timedout')
+            print('interactive test timed out')
             exit_code = 2
         except Exception as e:
             print(f'interactive test failed with {e}')

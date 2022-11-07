@@ -8,13 +8,13 @@ savea:
     SAVE ARTIFACT a AS LOCAL a
 
 # second test: saveb is triggered by
-# a BUILD in savec, and savec is inherrited by
+# a BUILD in savec, and savec is inherited by
 # saved. when +saved is run, we should
 # produce files b, c, and d.
 
 saveb:
     FROM alpine:latest
-    RUN echo bannana > b
+    RUN echo banana > b
     SAVE ARTIFACT b AS LOCAL b
 
 savec:

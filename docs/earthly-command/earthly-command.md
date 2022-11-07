@@ -60,7 +60,7 @@ See the [Target, artifact, and image referencing guide](../guides/target-ref.md)
 
 #### Build args
 
-Synposis:
+Synopsis:
 
   * Target form `earthly <target-ref> [--<build-arg-key>=<build-arg-value>...]`
   * Artifact form `earthly --artifact (<target-ref>/<artifact-path> [--<build-arg-key>=<build-arg-value>...]) <dest-path>`
@@ -70,7 +70,7 @@ Also available as an env var setting: `EARTHLY_BUILD_ARGS="<build-arg-key>=<buil
 
 Build arg overrides may be specified as part of the Earthly command. The value of the build arg `<build-arg-key>` is set to `<build-arg-value>`.
 
-In the target and image forms the build args are passed after the target reference. For example `earthly +some-target --NAME=john --SPECIES=human`. In the artifact form, the build args are passed immediately after the artifact reference, however they are surrounded by paranthesis, similar to a [`COPY` command](../earthfile/earthfile.md#copy). For example `earthly --artifact (+some-target/some-artifact --NAME=john --SPECIES=human) ./dest/path/`.
+In the target and image forms the build args are passed after the target reference. For example `earthly +some-target --NAME=john --SPECIES=human`. In the artifact form, the build args are passed immediately after the artifact reference, however they are surrounded by parenthesis, similar to a [`COPY` command](../earthfile/earthfile.md#copy). For example `earthly --artifact (+some-target/some-artifact --NAME=john --SPECIES=human) ./dest/path/`.
 
 The build arg overrides only apply to the target being called directly and any other target referenced as part of the same Earthfile. Build arg overrides, will not apply to targets referenced from other directories or other repositories.
 
@@ -507,7 +507,7 @@ Creates a new authentication token. A read-only token is created by default, If 
 The token will expire in 1 year from creation date unless a different date is supplied via the `--expiry` option.
 
 {% hint style='info' %}
-It is then possible to `export EARTHLY_TOKEN=...`, which will force earthly to use this token for all authentication (overridding any other currently-logged in sessions).
+It is then possible to `export EARTHLY_TOKEN=...`, which will force earthly to use this token for all authentication (overriding any other currently-logged in sessions).
 {% endhint %}
 
 #### earthly account remove-token

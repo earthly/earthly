@@ -4,9 +4,9 @@ This image contains `buildkit` with some Earthly-specific setup. This is what Ea
 
 ## Tags
 
-* `v0.6.27`, `latest`
+* `v0.6.28`, `latest`
+* `v0.6.27`
 * `v0.6.26`
-* `v0.6.25`
 
 ## Quickstart
 
@@ -15,7 +15,7 @@ Want to just get started? Here are a couple sample `docker run` commands that co
 ### Simple Usage (Use Locally)
 
 ```bash
-docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw earthly/buildkitd:v0.6.27
+docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw earthly/buildkitd:v0.6.28
 ```
 
 Heres a quick breakdown:
@@ -29,7 +29,7 @@ Assuming you are running this on your machine, you could use this `buildkitd` by
 ### Usage (Use As Remote)
 
 ```bash
-docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw -e BUILDKIT_TCP_TRANSPORT_ENABLED=true -p 8372:8372 earthly/buildkitd:v0.6.27
+docker run --privileged -t -v earthly-tmp:/tmp/earthly:rw -e BUILDKIT_TCP_TRANSPORT_ENABLED=true -p 8372:8372 earthly/buildkitd:v0.6.28
 ```
 
 Omitting the options already discussed from the simple example:
@@ -71,7 +71,7 @@ When using this container locally with `earthly`, please note that setting `EART
 |-------------------------------------|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | EARTHLY_ADDITIONAL_BUILDKIT_CONFIG  |                                | Additional `buildkitd` config to append to the generated configuration file.                                                                                                  |
 | BUILDKIT_TCP_TRANSPORT_ENABLED      |                                | Set to `true` when the `buildkitd` instance is going to be used remotely                                                                                                      |
-| BUILDKIT_TLS_ENABLED                |                                | Set to `true` when the `buildkittd` instance will require mTLS from the clients. You will also need to mount certificates into the right place (`/etc/*.pem`).                |
+| BUILDKIT_TLS_ENABLED                |                                | Set to `true` when the `buildkitd` instance will require mTLS from the clients. You will also need to mount certificates into the right place (`/etc/*.pem`).                |
 | CNI_MTU                             | MTU of first default interface | Set this when we autodetect the MTU incorrectly. The device used for autodetection can be shown by the command  `ip route show \| grep default \| cut -d' ' -f5 \| head -n 1` |
 | EARTHLY_RESET_TMP_DIR               | `false`                        | Cleans out `/tmp/earthly` before running, if set to `true`. Useful when you host-mount an temporary directory across runs.                                                            |
 | NETWORK_MODE                        | `cni`                          | Specifies the networking mode of `buildkitd`. Default uses a CNI bridge network, configured with the `CNI_MTU`.                                                               |

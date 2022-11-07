@@ -7,7 +7,7 @@ savea:
 
 saveb:
     FROM alpine:3.15
-    RUN echo bannana > b
+    RUN echo banana > b
     SAVE ARTIFACT b AS LOCAL b
 
 savec:
