@@ -30,7 +30,8 @@ func ApplyDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error)
 	}
 	switch dm.GetDeltaManifestOneof().(type) {
 	case *pb.DeltaManifest_ResetAll:
-		m = proto.Clone(dm.GetResetAll()).(*pb.RunManifest)
+		v := proto.Clone(dm.GetResetAll()).(*pb.RunManifest)
+		*m = *v
 	case *pb.DeltaManifest_Fields:
 		f := dm.GetFields()
 		if f.GetStartedAtUnixNanos() != 0 {
