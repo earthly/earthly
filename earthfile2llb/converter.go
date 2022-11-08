@@ -23,7 +23,6 @@ import (
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
-	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
@@ -37,6 +36,7 @@ import (
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
+	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
 
@@ -44,6 +44,7 @@ import (
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/distribution/reference"
 	"github.com/moby/buildkit/client/llb"
+	dockerimage "github.com/moby/buildkit/exporter/containerimage/image"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session/localhost"
@@ -582,6 +583,9 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 		return 0, err
 	}
 	c.nonSaveCommand()
+	for _, cache := range c.persistentCacheDirs {
+		opts.extraRunOpts = append(opts.extraRunOpts, cache)
+	}
 
 	var exitCodeFile string
 	if opts.Locally {
@@ -643,12 +647,18 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 // RunExpression runs an expression and returns its output. The run is transient - any state created
 // is not used in subsequent commands.
 func (c *Converter) RunExpression(ctx context.Context, expressionName string, opts ConvertRunOpts) (string, error) {
+	for _, cache := range c.persistentCacheDirs {
+		opts.extraRunOpts = append(opts.extraRunOpts, cache)
+	}
 	return c.runCommand(ctx, expressionName, true, opts)
 }
 
 // RunCommand runs a command and returns its output. The run is transient - any state created
 // is not used in subsequent commands.
 func (c *Converter) RunCommand(ctx context.Context, commandName string, opts ConvertRunOpts) (string, error) {
+	for _, cache := range c.persistentCacheDirs {
+		opts.extraRunOpts = append(opts.extraRunOpts, cache)
+	}
 	return c.runCommand(ctx, commandName, false, opts)
 }
 
@@ -1039,7 +1049,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 				shouldExportLocally := si.DockerTag != "" && c.opt.DoSaves
 				c.waitBlock().addSaveImage(si, c, shouldPush, shouldExportLocally)
 				if pushImages {
-					// only add summay for `SAVE IMAGE --push` commands
+					// only add summary for `SAVE IMAGE --push` commands
 					c.opt.ExportCoordinator.AddPushedImageSummary(c.target.StringCanonical(), si.DockerTag, c.mts.Final.ID, c.opt.DoPushes)
 				}
 
@@ -1356,7 +1366,7 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 		return err
 	}
 	c.nonSaveCommand()
-	hc := &dockerfile2llb.HealthConfig{}
+	hc := &dockerimage.HealthConfig{}
 	if isNone {
 		hc.Test = []string{"NONE"}
 	} else {
@@ -1384,7 +1394,7 @@ func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal, 
 // Cache handles a `CACHE` command in a Target.
 // It appends run options to the Converter which will mount a cache volume in each successive `RUN` command,
 // and configures the `Converter` to persist the cache in the image at the end of the target.
-func (c *Converter) Cache(ctx context.Context, mountTarget string) error {
+func (c *Converter) Cache(ctx context.Context, mountTarget string, sharing string) error {
 	err := c.checkAllowed(cacheCmd)
 	if err != nil {
 		return err
@@ -1397,10 +1407,21 @@ func (c *Converter) Cache(ctx context.Context, mountTarget string) error {
 	}
 	mountID := path.Clean(mountTarget)
 	cachePath := path.Join("/run/cache", key, mountID)
+	var shareMode llb.CacheMountSharingMode
+	switch sharing {
+	case "shared":
+		shareMode = llb.CacheMountShared
+	case "private":
+		shareMode = llb.CacheMountPrivate
+	case "locked", "":
+		shareMode = llb.CacheMountLocked
+	default:
+		return errors.Errorf("invalid cache sharing mode %q", sharing)
+	}
 
 	if _, exists := c.persistentCacheDirs[mountTarget]; !exists {
 		c.persistentCacheDirs[mountTarget] = pllb.AddMount(mountTarget, pllb.Scratch(),
-			llb.AsPersistentCacheDir(cachePath, llb.CacheMountShared))
+			llb.AsPersistentCacheDir(cachePath, shareMode))
 	}
 	return nil
 }
@@ -1456,7 +1477,7 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 	return bc, allowPrivileged, allowPrivilegedSet, nil
 }
 
-// EnterScopeDo introduces a new variable scope. Gloabls and imports are fetched from baseTarget.
+// EnterScopeDo introduces a new variable scope. Globals and imports are fetched from baseTarget.
 func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged bool, scopeName string, buildArgs []string) error {
 	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.platr.Current(), allowPrivileged, buildArgs, true, enterScopeDoCmd)
 	if err != nil {
@@ -1836,7 +1857,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 
 	if c.ftrs.WaitBlock && opts.Push {
-		// The WAIT / END feature treats a --push as syntatic sugar for
+		// The WAIT / END feature treats a --push as syntactic sugar for
 		// IF [ "$EARTHLY_PUSH" = "true" ]
 		//    RUN --no-cache ...
 		// END
@@ -2148,16 +2169,26 @@ func (c *Converter) vertexPrefix(ctx context.Context, local bool, interactive bo
 	platform := c.platr.Materialize(c.platr.Current())
 	platformStr := platform.String()
 	isNativePlatform := c.platr.PlatformEquals(platform, platutil.NativePlatform)
-	vm := &outmon.VertexMeta{
-		SourceLocation:     SourceLocationFromContext(ctx),
-		TargetID:           c.mts.Final.ID,
-		TargetName:         c.mts.Final.Target.String(),
-		Platform:           platformStr,
-		NonDefaultPlatform: !isNativePlatform,
-		Local:              local,
-		Interactive:        interactive,
-		OverridingArgs:     activeOverriding,
-		Internal:           internal,
+	var gitURL, gitHash, fileRelToRepo string
+	if c.gitMeta != nil {
+		gitURL = c.gitMeta.RemoteURL
+		gitHash = c.gitMeta.Hash
+		fileRelToRepo = path.Join(c.gitMeta.RelDir, "Earthfile")
+	}
+	vm := &vertexmeta.VertexMeta{
+		SourceLocation:      SourceLocationFromContext(ctx),
+		RepoGitURL:          gitURL,
+		RepoGitHash:         gitHash,
+		RepoFileRelToRepo:   fileRelToRepo,
+		TargetID:            c.mts.Final.ID,
+		TargetName:          c.mts.Final.Target.String(),
+		CanonicalTargetName: c.mts.Final.Target.StringCanonical(),
+		Platform:            platformStr,
+		NonDefaultPlatform:  !isNativePlatform,
+		Local:               local,
+		Interactive:         interactive,
+		OverridingArgs:      activeOverriding,
+		Internal:            internal,
 	}
 	return vm.ToVertexPrefix()
 }
@@ -2165,7 +2196,7 @@ func (c *Converter) vertexPrefix(ctx context.Context, local bool, interactive bo
 func (c *Converter) imageVertexPrefix(id string, platform platutil.Platform) string {
 	platform = c.platr.Materialize(platform)
 	isNativePlatform := c.platr.PlatformEquals(platform, platutil.NativePlatform)
-	vm := &outmon.VertexMeta{
+	vm := &vertexmeta.VertexMeta{
 		TargetName:         id,
 		Platform:           platform.String(),
 		NonDefaultPlatform: !isNativePlatform,

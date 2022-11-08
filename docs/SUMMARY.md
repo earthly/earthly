@@ -22,7 +22,6 @@
     * [User-defined commands (UDCs)](guides/udc.md)
     * [Managing cache](guides/cache.md)
     * [Advanced local caching](guides/advanced-local-caching.md)
-    * [Shared cache](guides/shared-cache.md)
     * [Using Docker in Earthly](guides/docker-in-earthly.md)
     * [Integration Testing](guides/integration.md)
     * [Debugging techniques](guides/debugging.md)
@@ -36,6 +35,8 @@
     * Using the Earthly Docker Images
         * [earthly/earthly](docker-images/all-in-one.md)
         * [earthly/buildkitd](docker-images/buildkit-standalone.md)
+* [Remote runners](remote-runners.md)
+* [Remote caching](remote-caching.md)
 * [Earthfile reference](earthfile/earthfile.md)
     * [Builtin args](earthfile/builtin-args.md)
     * [Excluding patterns](earthfile/earthlyignore.md)
@@ -44,7 +45,7 @@
 * [Configuration reference](earthly-config/earthly-config.md)
 * [Examples](examples/examples.md)
 * Misc
-    * [Alternative installation](./alt-installation.md)
+    * [Alternative installation](./alt-installation/alt-installation.md)
     * [Data collection](data-collection/data-collection.md)
     * [Definitions](definitions/definitions.md)
     * [Public key authentication](public-key-auth/public-key-auth.md)

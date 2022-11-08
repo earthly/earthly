@@ -23,7 +23,7 @@ This is the recommended approach when using Earthly within Kubernetes. Assuming 
 
 ### Dependencies
 
-Your Kubernetes cluster needs to allow `priveleged` mode pods. It's possible to use a separate instance group, along with Taints and Tolerations to effectively segregate these pods.
+Your Kubernetes cluster needs to allow `privileged` mode pods. It's possible to use a separate instance group, along with Taints and Tolerations to effectively segregate these pods.
 
 ### Installation
 

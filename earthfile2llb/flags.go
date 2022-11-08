@@ -121,3 +121,7 @@ type argOpts struct {
 type pipelineOpts struct {
 	Push bool `long:"push" description:"Trigger a build in Cloud CI"`
 }
+
+type cacheOpts struct {
+	Sharing string `long:"sharing" description:"The cache sharing mode: locked (default), shared, private"`
+}

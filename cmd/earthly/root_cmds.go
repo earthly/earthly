@@ -349,7 +349,7 @@ func (app *earthlyApp) bootstrap(cliCtx *cli.Context) error {
 	console := app.console.WithPrefix("bootstrap")
 	defer func() {
 		// cliutil.IsBootstrapped() determines if bootstrapping was done based
-		// on the existance of ~/.earthly; therefore we must ensure it's created.
+		// on the existence of ~/.earthly; therefore we must ensure it's created.
 		_, err := cliutil.GetOrCreateEarthlyDir()
 		if err != nil {
 			console.Warnf("Warning: Failed to create Earthly Dir: %v", err)

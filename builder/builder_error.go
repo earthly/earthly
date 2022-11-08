@@ -17,7 +17,7 @@ func NewBuildError(err error, vertexLog string) error {
 	}
 }
 
-// BuildError formats the BuildError as a string, ommitting the vertex log
+// BuildError formats the BuildError as a string, omitting the vertex log
 func (e *BuildError) Error() string {
 	if e == nil {
 		return "<nil>"

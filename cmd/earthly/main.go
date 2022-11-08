@@ -35,6 +35,8 @@ import (
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/logbus"
+	logbussetup "github.com/earthly/earthly/logbus/setup"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
@@ -56,6 +58,8 @@ type earthlyApp struct {
 	cliApp      *cli.App
 	console     conslogging.ConsoleLogger
 	cfg         *config.Config
+	logbusSetup *logbussetup.BusSetup
+	logbus      *logbus.Bus
 	sessionID   string
 	commandName string
 	cliFlags
@@ -120,7 +124,7 @@ type cliFlags struct {
 	enableSourceMap           bool
 	configDryRun              bool
 	strict                    bool
-	conversionParllelism      int
+	conversionParallelism     int
 	debuggerHost              string
 	certPath                  string
 	keyPath                   string
@@ -141,6 +145,8 @@ type cliFlags struct {
 	orgName                   string
 	invitePermission          string
 	inviteMessage             string
+	logstream                 bool
+	logstreamDebugFile        string
 }
 
 type analyticsMetadata struct {
@@ -175,16 +181,16 @@ func main() {
 		signal.Stop(sigChan)
 		cancel()
 	}()
+	var lastSignal os.Signal
 	go func() {
-		receivedSignal := false
 		for sig := range sigChan {
 			cancel()
-			if receivedSignal {
+			if lastSignal != nil {
 				// This is the second time we have received a signal. Quit immediately.
 				fmt.Printf("Received second signal %s. Forcing exit.\n", sig.String())
 				os.Exit(9)
 			}
-			receivedSignal = true
+			lastSignal = sig
 			fmt.Printf("Received signal %s. Cleaning up before exiting...\n", sig.String())
 			go func() {
 				// Wait for 30 seconds before forcing an exit.
@@ -294,6 +300,9 @@ func main() {
 			)
 		}
 	}
+	if lastSignal != nil {
+		app.console.PrintBar(color.New(color.FgHiYellow), fmt.Sprintf("WARNING: exiting due to received %s signal", lastSignal.String()), "")
+	}
 	os.Exit(exitCode)
 }
 
@@ -331,6 +340,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		cliFlags: cliFlags{
 			buildkitdSettings: buildkitd.Settings{},
 		},
+		logbus: logbus.New(),
 	}
 
 	earthly := getBinaryName()
@@ -363,7 +373,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 	return app
 }
 
-func (app *earthlyApp) before(context *cli.Context) error {
+func (app *earthlyApp) before(cliCtx *cli.Context) error {
 	if app.enableProfiler {
 		go profhandler()
 	}
@@ -373,8 +383,14 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	} else if app.verbose {
 		app.console = app.console.WithLogLevel(conslogging.Verbose)
 	}
+	disableOngoingUpdates := !app.logstream // TODO (vladaionescu)
+	var err error
+	app.logbusSetup, err = logbussetup.New(cliCtx.Context, app.logbus, app.debug, app.verbose, disableOngoingUpdates, app.logstreamDebugFile)
+	if err != nil {
+		return errors.Wrap(err, "logbus setup")
+	}
 
-	if context.IsSet("config") {
+	if cliCtx.IsSet("config") {
 		app.console.Printf("loading config values from %q\n", app.configPath)
 	}
 
@@ -386,11 +402,10 @@ func (app *earthlyApp) before(context *cli.Context) error {
 	}
 
 	var yamlData []byte
-	var err error
 	if app.configPath != "" {
 		yamlData, err = config.ReadConfigFile(app.configPath)
 		if err != nil {
-			if context.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
+			if cliCtx.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
 				return errors.Wrapf(err, "read config")
 			}
 		}
@@ -405,14 +420,14 @@ func (app *earthlyApp) before(context *cli.Context) error {
 		app.cfg.Git = map[string]config.GitConfig{}
 	}
 
-	err = app.processDeprecatedCommandOptions(context, app.cfg)
+	err = app.processDeprecatedCommandOptions(cliCtx, app.cfg)
 	if err != nil {
 		return err
 	}
 
 	// Make a small attempt to check if we are not bootstrapped. If not, then do that before we do anything else.
 	isBootstrapCmd := false
-	for _, f := range context.Args().Slice() {
+	for _, f := range cliCtx.Args().Slice() {
 		isBootstrapCmd = f == "bootstrap"
 
 		if isBootstrapCmd {
@@ -422,7 +437,7 @@ func (app *earthlyApp) before(context *cli.Context) error {
 
 	if !isBootstrapCmd && !cliutil.IsBootstrapped() {
 		app.bootstrapNoBuildkit = true // Docker may not be available, for instance... like our integration tests.
-		err = app.bootstrap(context)
+		err = app.bootstrap(cliCtx)
 		if err != nil {
 			return errors.Wrap(err, "bootstrap unbootstrapped installation")
 		}
@@ -453,14 +468,14 @@ func (app *earthlyApp) warnIfEarth() {
 	}
 }
 
-func (app *earthlyApp) processDeprecatedCommandOptions(context *cli.Context, cfg *config.Config) error {
+func (app *earthlyApp) processDeprecatedCommandOptions(cliCtx *cli.Context, cfg *config.Config) error {
 	app.warnIfEarth()
 
 	if cfg.Global.CachePath != "" {
 		app.console.Warnf("Warning: the setting cache_path is now obsolete and will be ignored")
 	}
 
-	if app.conversionParllelism != 0 {
+	if app.conversionParallelism != 0 {
 		app.console.Warnf("Warning: --conversion-parallelism and EARTHLY_CONVERSION_PARALLELISM is obsolete, please use 'earthly config global.conversion_parallelism <parallelism>' instead")
 	}
 
@@ -531,10 +546,18 @@ func unhideFlagsCommands(ctx context.Context, cmds []*cli.Command) {
 }
 
 func (app *earthlyApp) run(ctx context.Context, args []string) int {
+	defer func() {
+		if app.logbusSetup != nil {
+			err := app.logbusSetup.Close()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error(s) in logbus: %v", err)
+			}
+		}
+	}()
 	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
 	err := app.cliApp.RunContext(ctx, args)
 	if err != nil {
-		ie, isInterpereterError := earthfile2llb.GetInterpreterError(err)
+		ie, isInterpreterError := earthfile2llb.GetInterpreterError(err)
 
 		var failedOutput string
 		var buildErr *builder.BuildError
@@ -606,7 +629,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
 			app.printCrashLogs(ctx)
 			return 6
-		} else if isInterpereterError {
+		} else if isInterpreterError {
 			app.console.Warnf("Error: %s\n", ie.Error())
 		} else {
 			app.console.Warnf("Error: %v\n", err)

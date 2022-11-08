@@ -1,4 +1,4 @@
-# This demostrates early cut off optimization from "Build Systems A la Carte"
+# This demonstrates early cut off optimization from "Build Systems A la Carte"
 # 1) Run `earthly +run`
 # 2) Add or remove a comment to main.cpp
 # 3) ReRun `earthly +run`

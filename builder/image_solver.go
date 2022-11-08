@@ -231,10 +231,17 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 			}
 
 			for k, v := range resp {
-				if !strings.HasPrefix(k, result.FinalImageName+"|") {
+				pref1 := result.FinalImageName + "|"
+				pref2 := fmt.Sprintf("docker.io/library/%s|", result.FinalImageName)
+				var k2 string
+				switch {
+				case strings.HasPrefix(k, pref1):
+					k2 = strings.TrimPrefix(k, pref1)
+				case strings.HasPrefix(k, pref2):
+					k2 = strings.TrimPrefix(k, pref2)
+				default:
 					continue
 				}
-				k2 := strings.TrimPrefix(k, result.FinalImageName+"|")
 				switch k2 {
 				case exptypes.ExporterImageDescriptorKey:
 					vdec, err := base64.StdEncoding.DecodeString(v)
@@ -257,7 +264,7 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 			}
 			if result.ImageDigest == "" {
 				// TODO: This should use console.
-				fmt.Printf("Warning: Could not detect digest for image %s. Please update your buildkit installation.\n", result.FinalImageName)
+				fmt.Fprintf(os.Stderr, "Warning: Could not detect digest for image %s. Please update your buildkit installation.\n", result.FinalImageName)
 			}
 			results[i] = result
 		}

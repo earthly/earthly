@@ -14,6 +14,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Ideally this would point to "the current version" rather than being hard-coded, but the single
+// "source of truth" (in ast/validator) isn't currently exported.
+const earthlyCurrentVersion = "0.6"
+
 func getArtifactName(s string) string {
 	split := strings.Split(s, "/")
 	n := len(split)
@@ -41,10 +45,11 @@ func Docker2Earthly(dockerfilePath, earthfilePath, imageTag string) error {
 
 	targets := [][]string{
 		{
+			fmt.Sprintf("VERSION %s\n", earthlyCurrentVersion),
 			"# This Earthfile was generated using docker2earthly",
 			"# the conversion is done on a best-effort basis",
 			"# and might not follow best practices, please",
-			"# visit http://docs.earthly.dev for Earthfile guides",
+			"# visit https://docs.earthly.dev for Earthfile guides",
 		},
 	}
 
@@ -53,7 +58,7 @@ func Docker2Earthly(dockerfilePath, earthfilePath, imageTag string) error {
 		return errors.Wrapf(err, "failed to parse Dockerfile located at %q", dockerfilePath)
 	}
 
-	stages, _, err := instructions.Parse(dockerfile.AST)
+	stages, initialArgs, err := instructions.Parse(dockerfile.AST)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse Dockerfile located at %q", dockerfilePath)
 	}
@@ -61,9 +66,17 @@ func Docker2Earthly(dockerfilePath, earthfilePath, imageTag string) error {
 	names := map[string]int{}
 
 	for i, stage := range stages {
-		targets = append(targets, []string{
-			fmt.Sprintf("FROM %s", stage.BaseName),
-		})
+		fromCmd := []string{fmt.Sprintf("FROM %s", stage.BaseName)}
+		// These args are in scope *only* for the very first FROM
+		if i == 0 && len(initialArgs) > 0 {
+			var fromArgs []string
+			for _, arg := range initialArgs {
+				fromArgs = append(fromArgs, arg.String())
+			}
+			fromCmd = append(fromArgs, fromCmd...)
+		}
+		targets = append(targets, fromCmd)
+
 		if stage.Name == "" {
 			names[fmt.Sprintf("%d", i)] = i
 		} else {
@@ -109,8 +122,6 @@ func Docker2Earthly(dockerfilePath, earthfilePath, imageTag string) error {
 		defer out2.Close()
 		out = out2
 	}
-
-	fmt.Fprintf(out, "\n")
 
 	for i, lines := range targets {
 		for j, l := range lines {

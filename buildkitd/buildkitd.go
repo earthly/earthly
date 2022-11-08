@@ -22,6 +22,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/util/buildkitutil"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
@@ -859,9 +860,7 @@ func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, work
 		printFun("Platforms: %s (native) %s", ps[0], strings.Join(ps[1:], " "))
 	}
 	load := workerInfo.ParallelismCurrent + workerInfo.ParallelismWaiting
-	printFun(
-		"Utilization: %d other builds, %d/%d op load",
-		info.NumSessions, load, workerInfo.ParallelismMax)
+	printFun(buildkitutil.FormatUtilization(info.NumSessions, load, workerInfo.ParallelismMax))
 	switch {
 	case workerInfo.ParallelismWaiting > 5:
 		bkCons.Warnf("Warning: Currently under heavy load. Performance will be affected")

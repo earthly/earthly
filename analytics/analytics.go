@@ -22,7 +22,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-func detectCI() (string, bool) {
+// DetectCI determines if Earthly is being run from a CI environment. It returns
+// the name of the CI tool and true if we detect one.
+func DetectCI() (string, bool) {
 	for k, v := range map[string]string{
 		"GITHUB_WORKFLOW": "github-actions",
 		"CIRCLECI":        "circle-ci",
@@ -190,7 +192,7 @@ type Meta struct {
 // CollectAnalytics sends analytics to api.earthly.dev
 func CollectAnalytics(ctx context.Context, cloudClient cloud.Client, displayErrors bool, meta Meta) {
 	var err error
-	ciName, ci := detectCI()
+	ciName, ci := DetectCI()
 	repoHash := getRepoHash()
 	installID, overrideInstallID := os.LookupEnv("EARTHLY_INSTALL_ID")
 	if !overrideInstallID {
@@ -248,6 +250,6 @@ func CollectAnalytics(ctx context.Context, cloudClient cloud.Client, displayErro
 
 	ok := syncutil.WaitContext(ctx, &wg)
 	if !ok && displayErrors {
-		fmt.Fprintf(os.Stderr, "Warning: timedout while sending analytics\n")
+		fmt.Fprintf(os.Stderr, "Warning: timed out while sending analytics\n")
 	}
 }

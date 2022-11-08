@@ -25,7 +25,7 @@ func NewSharedLocalStateCache() *LocalStateCache {
 	}
 }
 
-// getOrConstruct returns a cached pllb.State with the same sharedkey, or creates a new one
+// getOrConstruct returns a cached pllb.State with the same shared key, or creates a new one
 // if it doesn't exist.
 func (lsc *LocalStateCache) getOrConstruct(factory llbfactory.Factory) pllb.State {
 	localFactory, ok := factory.(*llbfactory.LocalFactory)

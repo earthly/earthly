@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"math/rand"
 	"net/url"
 	"path/filepath"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
+	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/util/cliutil"
@@ -104,7 +104,7 @@ func (app *earthlyApp) getBuildkitClient(cliCtx *cli.Context, cloudClient cloud.
 	if err != nil {
 		return nil, err
 	}
-	err = app.configureSatellite(cliCtx, cloudClient)
+	err = app.configureSatellite(cliCtx, cloudClient, "", "") // no gitAuthor/gitConfigEmail is passed for non-build commands (e.g. debug_cmds.go or root_cmds.go code)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not construct new buildkit client")
 	}
@@ -134,7 +134,7 @@ func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
 	app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
 }
 
-func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud.Client) error {
+func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud.Client, gitAuthor, gitConfigEmail string) error {
 	if cliCtx.IsSet("buildkit-host") && cliCtx.IsSet("satellite") {
 		return errors.New("cannot specify both buildkit-host and satellite")
 	}
@@ -186,7 +186,7 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 
 	// Reserve the satellite for the upcoming build.
 	// This operation can take a moment if the satellite is asleep.
-	err = app.reserveSatellite(cliCtx.Context, cloudClient, app.satelliteName, orgID)
+	err = app.reserveSatellite(cliCtx.Context, cloudClient, app.satelliteName, orgID, gitAuthor, gitConfigEmail)
 	if err != nil {
 		return err
 	}
@@ -206,70 +206,13 @@ func (app *earthlyApp) isUsingSatellite(cliCtx *cli.Context) bool {
 	return app.cfg.Satellite.Name != "" || app.satelliteName != ""
 }
 
-func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.Client, name, orgID string) error {
+func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.Client, name, orgID, gitAuthor, gitConfigEmail string) error {
 	console := app.console.WithPrefix("satellite")
-	out := make(chan string)
-	var reserveErr error
-	go func() { reserveErr = cloudClient.ReserveSatellite(ctx, name, orgID, out) }()
-	loadingMsgs := getSatelliteLoadingMessages()
-	var wasAsleep = false
-	for status := range out {
-		switch status {
-		case cloud.SatelliteStatusSleep:
-			wasAsleep = true
-			console.Printf("%s is waking up. Please wait...", name)
-		case cloud.SatelliteStatusStarting:
-			var msg string
-			msg, loadingMsgs = nextSatelliteLoadingMessage(loadingMsgs)
-			console.Printf("...%s...", msg)
-		case cloud.SatelliteStatusOperational:
-			if wasAsleep {
-				console.Printf("...System online.")
-			}
-		default:
-			console.VerbosePrintf("Unexpected satellite state: %s", status)
-		}
-	}
-	if reserveErr != nil {
-		return errors.Wrap(reserveErr, "failed reserving satellite for build")
+	_, isCI := analytics.DetectCI()
+	out := cloudClient.ReserveSatellite(ctx, name, orgID, gitAuthor, gitConfigEmail, isCI)
+	err := showSatelliteLoading(console, name, out)
+	if err != nil {
+		return errors.Wrap(err, "failed reserving satellite for build")
 	}
 	return nil
-}
-
-func nextSatelliteLoadingMessage(msgs []string) (nextMsg string, remainingMsgs []string) {
-	if len(msgs) == 0 {
-		msgs = getSatelliteLoadingMessages()
-	}
-	return msgs[0], msgs[1:]
-}
-
-func getSatelliteLoadingMessages() []string {
-	baseMessages := []string{
-		"tracking orbit",
-		"adjusting course",
-		"deploying solar array",
-		"aligning solar panels",
-		"calibrating guidance system",
-		"establishing transponder uplink",
-		"testing signal quality",
-		"fueling thrusters",
-		"amplifying transmission signal",
-		"checking thermal controls",
-		"stabilizing trajectory",
-		"contacting mission control",
-		"testing antennas",
-		"reporting fuel levels",
-		"scanning surroundings",
-		"avoiding debris",
-		"taking solar reading",
-		"reporting thermal conditions",
-		"testing system integrity",
-		"checking battery levels",
-		"calibrating transponders",
-		"modifying downlink frequency",
-	}
-	msgs := baseMessages
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(msgs), func(i, j int) { msgs[i], msgs[j] = msgs[j], msgs[i] })
-	return msgs
 }

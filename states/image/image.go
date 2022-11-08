@@ -2,7 +2,7 @@ package image
 
 import (
 	"github.com/earthly/earthly/util/llbutil"
-	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
+	"github.com/moby/buildkit/exporter/containerimage/image"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -52,7 +52,7 @@ func (img *Image) Clone() *Image {
 		},
 	}
 	if img.Config.Healthcheck != nil {
-		clone.Config.Healthcheck = &dockerfile2llb.HealthConfig{
+		clone.Config.Healthcheck = &image.HealthConfig{
 			Test:        make([]string, len(img.Config.Healthcheck.Test)),
 			Interval:    img.Config.Healthcheck.Interval,
 			Timeout:     img.Config.Healthcheck.Timeout,
@@ -86,5 +86,5 @@ func (img *Image) Clone() *Image {
 type Config struct {
 	specs.ImageConfig
 
-	Healthcheck *dockerfile2llb.HealthConfig `json:",omitempty"`
+	Healthcheck *image.HealthConfig `json:",omitempty"`
 }

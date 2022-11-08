@@ -4,7 +4,7 @@ To copy the files for [this example ( Part 6 )](https://github.com/earthly/earth
 earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part6/part6 ./part6
 ```
 
-Examples in [Python](#more-examples), [Javascript](#more-examples) and [Java](#more-examples) are at the bottom of this page.
+Examples in [Python](#more-examples), [JavaScript](#more-examples) and [Java](#more-examples) are at the bottom of this page.
 
 ## The `WITH DOCKER` Command
 
@@ -155,7 +155,7 @@ earthly --allow-privileged +integration-tests
 ## More Examples
 
 <details open>
-<summary>Javascript</summary>
+<summary>JavaScript</summary>
 
 To copy the files for [this example ( Part 6 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/js/part6) run
 

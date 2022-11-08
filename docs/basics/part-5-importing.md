@@ -4,7 +4,7 @@ To copy the files for [this example ( Part 5 )](https://github.com/earthly/earth
 earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part5/part5 ./part5
 ```
 
-Examples in [Python](#more-examples), [Javascript](#more-examples) and [Java](#more-examples) are at the bottom of this page.
+Examples in [Python](#more-examples), [JavaScript](#more-examples) and [Java](#more-examples) are at the bottom of this page.
 
 ## Calling on Targets From Other Earthfiles
 
@@ -104,7 +104,7 @@ Then, in our `+build` target we can inherit from any target in the imported Eart
 ## More Examples
 
 <details open>
-<summary>Javascript</summary>
+<summary>JavaScript</summary>
 
 To copy the files for [this example ( Part 5 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/js/part5) run
 

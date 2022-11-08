@@ -4,7 +4,7 @@ To copy the files for [this example ( Part 3 )](https://github.com/earthly/earth
 ```bash
 earthly --artifact github.com/earthly/earthly/examples/tutorial/go:main+part3/part3 ./part3
 ```
-Examples in [Python](#more-examples), [Javascript](#more-examples) and [Java](#more-examples) are at the bottom of this page.
+Examples in [Python](#more-examples), [JavaScript](#more-examples) and [Java](#more-examples) are at the bottom of this page.
 
 ## Dependencies
 Now let's imagine that we want to add some dependencies to our app. In Go, that means adding `go.mod` and `go.sum`. 
@@ -121,7 +121,7 @@ docker:
 ## More Examples
 
 <details open>
-<summary>Javascript</summary>
+<summary>JavaScript</summary>
 
 To copy the files for [this example ( Part 4 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/js/part4) run
 
@@ -129,7 +129,7 @@ To copy the files for [this example ( Part 4 )](https://github.com/earthly/earth
 earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part4/part4 ./part4
 ```
 
-Note that in our case, only the Javascript version has an example where `FROM +deps` is used in more than one place: both in `build` and in `docker`. Nevertheless, all versions show how dependencies may be separated.
+Note that in our case, only the JavaScript version has an example where `FROM +deps` is used in more than one place: both in `build` and in `docker`. Nevertheless, all versions show how dependencies may be separated.
 
 `./Earthfile`
 

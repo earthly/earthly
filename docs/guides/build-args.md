@@ -168,7 +168,7 @@ WITH DOCKER --load=(+hello --name=world)
 END
 ```
 
-Another way to pass build args is by specifying a dynamic value, delimited by `$(...)`. For example, in the following, the value of the arg `name` will be set as the ouptut of the shell command `echo world` (which, of course is simply `world`):
+Another way to pass build args is by specifying a dynamic value, delimited by `$(...)`. For example, in the following, the value of the arg `name` will be set as the output of the shell command `echo world` (which, of course is simply `world`):
 
 ```Dockerfile
 BUILD +hello --name=$(echo world)

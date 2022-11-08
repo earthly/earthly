@@ -6,7 +6,7 @@ import (
 )
 
 // ParseKeyValue pases a key-value type into its parts
-// if a key value needs to contain a = or \, it must be escapped using '\=', and '\\' respectively
+// if a key value needs to contain a = or \, it must be escaped using '\=', and '\\' respectively
 // once an unescaped '=' is found, all remaining chars will be used as-is without the need to be escaped.
 // the key and value are returned, along with a bool that is true if a value was defined (i.e. an equal was found)
 //

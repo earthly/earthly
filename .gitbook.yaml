@@ -17,7 +17,6 @@ redirects:
     guides/docker-in-earthly: guides/docker-in-earthly.md
     guides/integration: guides/integration.md
     guides/multi-platform: guides/multi-platform.md
-    guides/shared-cache: guides/shared-cache.md
     guides/target-ref: guides/target-ref.md
     guides/udc: guides/udc.md
     earthly-config: earthly-config/earthly-config.md
@@ -38,7 +37,7 @@ redirects:
     examples/codebuild-integration: ci-integration/guides/codebuild-integration.md
     examples/kubernetes: ci-integration/guides/kubernetes.md
     examples/jenkins: ci-integration/guides/jenkins.md
-    alt-installation: alt-installation.md
+    alt-installation: alt-installation/alt-installation.md
     guides/basics: basics/basics.md
     basics: basics/basics.md
     guides/ci-integration: ci-integration/overview.md
@@ -72,4 +71,5 @@ redirects:
     examples/per-language-earthfile-examples/js: examples/examples.md
     examples/per-language-earthfile-examples/python: examples/examples.md
     guides/configuring-registries: guides/auth.md
+    guides/shared-cache: remote-caching.md
     

@@ -264,7 +264,7 @@ func (c *client) ping(ctx context.Context) (email string, writeAccess bool, err 
 	return resp.Email, resp.WriteAccess, nil
 }
 
-func (c *client) AccountResetReqestToken(ctx context.Context, email string) error {
+func (c *client) AccountResetRequestToken(ctx context.Context, email string) error {
 	email = url.QueryEscape(email)
 	status, _, err := c.doCall(ctx, "PUT", "/api/v0/account/reset/"+email)
 	if err != nil {

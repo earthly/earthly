@@ -18,10 +18,10 @@ version: 0.2
 phases:
   install:
     commands:
-      - wget https://github.com/earthly/earthly/releases/download/v0.6.27/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly
+      - wget https://github.com/earthly/earthly/releases/download/v0.6.29/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly
   pre_build:
     commands:
-      - echo Logging in to Docker
+      - echo Logging into Docker
       - docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
   build:
     commands:

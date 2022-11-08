@@ -47,7 +47,7 @@ If you are new to Earthly or to Earthly Cloud, you must:
 
 ## Background
 
-Earthly Satellites allow Earthly to execute builds in the cloud seemlessly. You execute build commands in the terminal, like you always have (for example, `earthly +build`), and Earthly takes care of running the build in the cloud in real time, instead of your local machine.
+Earthly Satellites allow Earthly to execute builds in the cloud seamlessly. You execute build commands in the terminal, like you always have (for example, `earthly +build`), and Earthly takes care of running the build in the cloud in real time, instead of your local machine.
 
 It uploads parts of your working directory, passes along any secrets, executes the build in the cloud while streaming the build log in real-time back to you, and then downloads the resulting build images and artifacts back to your computer.
 

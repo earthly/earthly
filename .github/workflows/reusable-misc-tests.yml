@@ -77,20 +77,23 @@ jobs:
       - name: Run parallel buildkit start test. It ensures that earthly starting up buildkit does not race with itself.
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 3
-          max_attempts: 3
+          timeout_minutes: 10
+          max_attempts: 2
           command: |-
             ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd && \
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello
+            for i in 1 2 3 4; do
+                ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
+                pids[${i}]=$!
+            done && \
+            for pid in ${pids[*]}; do
+                wait $pid
+            done
       - name: Execute interactive debugger test
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 3
-          max_attempts: 3
-          command: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ${{inputs.BUILT_EARTHLY_PATH}} --timeout 180
+          timeout_minutes: 10
+          max_attempts: 2
+          command: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ${{inputs.BUILT_EARTHLY_PATH}} --timeout 300
       - name: Execute version test
         run: "${{inputs.BUILT_EARTHLY_PATH}} --version"
       - name: Execute docker2earth test
@@ -98,8 +101,8 @@ jobs:
       - name: Execute remote-cache test (Earthly Only)
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 3
-          max_attempts: 3
+          timeout_minutes: 10
+          max_attempts: 2
           command: |-
             frontend=${{inputs.BINARY}} ./tests/remote-cache/test.sh \
               --build-arg DOCKERHUB_AUTH=true \
@@ -110,8 +113,8 @@ jobs:
       - name: Execute remote-cache test (Fork Only)
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 3
-          max_attempts: 3
+          timeout_minutes: 10
+          max_attempts: 2
           command: frontend=${{inputs.BINARY}} ./tests/remote-cache/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute registry-certs test (Earthly Only)
@@ -136,8 +139,8 @@ jobs:
       - name: Execute try-catch test (Earthly Only)
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 3
-          max_attempts: 3
+          timeout_minutes: 10
+          max_attempts: 2
           command: |-
             ./tests/try-catch/test.sh \
                 --build-arg DOCKERHUB_AUTH=true \
@@ -148,15 +151,15 @@ jobs:
       - name: Execute try-catch test (Fork Only)
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 3
-          max_attempts: 3
+          timeout_minutes: 10
+          max_attempts: 2
           command: ./tests/try-catch/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute +test using wait-block override (Earthly Only)
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 3
-          max_attempts: 3
+          timeout_minutes: 20
+          max_attempts: 2
           command: |-
             ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P --global-wait-end \
                 --build-arg DOCKERHUB_AUTH=true \

@@ -56,4 +56,4 @@ which restarts the daemon and resets the contents of the cache volume.
 ## See also
 
 * [Advanced local caching techniques](./advanced-local-caching.md)
-* [Shared caching](./shared-cache.md)
+* [Remote caching](../remote-caching.md)

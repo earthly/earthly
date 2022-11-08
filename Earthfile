@@ -1,6 +1,6 @@
 VERSION --shell-out-anywhere --use-copy-link 0.6
 
-FROM golang:1.17-alpine3.14
+FROM golang:1.19-alpine3.15
 
 RUN apk add --update --no-cache \
     bash \
@@ -25,23 +25,35 @@ deps:
     RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.0
     COPY go.mod go.sum ./
     COPY ./ast/go.mod ./ast/go.sum ./ast
+    COPY ./util/deltautil/go.mod ./util/deltautil/go.sum ./util/deltautil
     RUN go mod download
     SAVE ARTIFACT go.mod AS LOCAL go.mod
     SAVE ARTIFACT go.sum AS LOCAL go.sum
 
 code:
     FROM +deps
-    # Use BUILDKIT_PROJECT to point go.mod to a buildkit dir being actively developed.
-    # --BUILDKIT_PROJECT=../buildkit or --BUILDKIT_PROJECT=github.com/earthly/buildkit:4f1c968c3778a7140c56e3e6a755b7f2d38f2156
+    # Use BUILDKIT_PROJECT to point go.mod to a buildkit dir being actively developed. Examples:
+    #   --BUILDKIT_PROJECT=../buildkit
+    #   --BUILDKIT_PROJECT=github.com/earthly/buildkit:<git-ref>
     ARG BUILDKIT_PROJECT
     IF [ "$BUILDKIT_PROJECT" != "" ]
         COPY --dir "$BUILDKIT_PROJECT"+code/buildkit /buildkit
         RUN go mod edit -replace github.com/moby/buildkit=/buildkit
         RUN go mod download
     END
+    # Use CLOUD_API to point go.mod to a cloud API dir being actively developed. Examples:
+    #   --CLOUD_API=../cloud/api+proto/api/public/'*'
+    #   --CLOUD_API=github.com/earthly/cloud/api:<git-ref>+proto/api/public/'*'
+    #   --CLOUD_API=github.com/earthly/cloud-api:<git-ref>+code/'*'
+    ARG CLOUD_API
+    IF [ "$CLOUD_API" != "" ]
+        COPY --dir "$CLOUD_API" /cloud-api/
+        RUN go mod edit -replace github.com/earthly/cloud-api=/cloud-api
+        RUN go mod download
+    END
     COPY ./ast/parser+parser/*.go ./ast/parser/
-    COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
-        docker2earthly domain features outmon slog cloud states util variables ./
+    COPY --dir analytics autocomplete buildcontext builder logbus cleanup cmd config conslogging debugger \
+        dockertar docker2earthly domain features outmon slog cloud states util variables ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
     COPY --dir ast/antlrhandler ast/spec ast/*.go ast/
@@ -78,8 +90,9 @@ lint-scripts-base:
 lint-scripts-misc:
     FROM +lint-scripts-base
     COPY ./earthly ./scripts/install-all-versions.sh ./buildkitd/entrypoint.sh ./earthly-entrypoint.sh \
-        ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh \
-        ./release/envcredhelper.sh ./.buildkite/*.sh \
+        ./buildkitd/dockerd-wrapper.sh ./buildkitd/docker-auto-install.sh ./buildkitd/oom-adjust.sh.template \
+        ./release/envcredhelper.sh ./release/ami/cleanup.sh ./release/ami/configure.sh ./release/ami/install.sh \
+        ./.buildkite/*.sh \
         ./scripts/tests/*.sh \
         ./scripts/*.sh \
         ./shell_scripts/
@@ -116,7 +129,6 @@ lint:
     FROM +code
     COPY ./.golangci.yaml ./
     RUN golangci-lint run
-    RUN if find . -type f -name \*.go | xargs grep '"io/ioutil"'; then echo "io/ioutil is deprecated: https://go.dev/doc/go1.16#ioutil"; exit 1; fi
 
 lint-newline-ending:
     FROM alpine:3.15
@@ -453,6 +465,9 @@ lint-all:
     BUILD +lint-newline-ending
     BUILD +lint-changelog
 
+lint-docs:
+    BUILD +lint-newline-ending
+
 # TODO: Document qemu vs non-qemu
 test-no-qemu:
     BUILD +unit-test
@@ -586,6 +601,8 @@ examples2:
     BUILD ./examples/cache-command/npm+docker
     BUILD ./examples/cache-command/mvn+docker
     BUILD ./examples/typescript-node+docker
+    BUILD ./examples/bazel+run
+    BUILD ./examples/bazel+image
 
 license:
     COPY LICENSE ./

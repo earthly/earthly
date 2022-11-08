@@ -6,7 +6,7 @@ Note to person editing!!
 
 The general order of the commands is as follows:
 
-- Core classical Dockerfile commands (order is the same as in the Dockferfile official docs)
+- Core classical Dockerfile commands (order is the same as in the Dockerfile official docs)
 - Core, GA'd Earthly commands
 - Other Dockerfile commands which have the exact same behavior in Earthly as in Dockerfiles
 - Beta Earthly commands
@@ -275,6 +275,13 @@ The `<mount-spec>` is defined as a series of comma-separated list of key-values.
 | `target` | The target path for the mount. | `target=/var/lib/data` |
 | `mode` | The permission of the mounted file, in octal format (the same format the chmod unix command line expects). | `mode=0400` |
 | `id` | The secret ID for the contents of the `target` file, only applicable for `type=secret`. | `id=+secrets/password` |
+| `sharing` | The sharing mode (`locked`, `shared`, `private`) for the cache mount, only applicable for `type=cache`. | `sharing=shared` |
+
+For cache mounts, the sharing mode can be one of the following:
+
+* `locked` (default) - the cache mount is locked for the duration of the execution, other concurrent builds will wait for the lock to be released.
+* `shared` - the cache mount is shared between all concurrent builds.
+* `private` - if another concurrent build attempts to use the cache, a new (empty) cache will be created for the concurrent build.
 
 ###### Examples:
 
@@ -384,7 +391,7 @@ If the directories were copied without the use of `--dir`, then their contents w
 
 Sets a value override of `<build-arg-value>` for the build arg identified by `<build-arg-key>`, when building the target containing the mentioned artifact. See also [BUILD](#build) for more details about the build arg options.
 
-Note that build args and the artifact references they apply to need to be surrounded by paranthesis:
+Note that build args and the artifact references they apply to need to be surrounded by parenthesis:
 
 ```Dockerfile
 COPY (+target1/artifact --arg1=foo --arg2=bar) ./dest/path
@@ -565,7 +572,7 @@ This feature additionally allows shelling-out in *any* earthly command.
 
 The command `SAVE ARTIFACT` copies a file, a directory, or a series of files and directories represented by a wildcard, from the build environment into the target's artifact environment.
 
-If `AS LOCAL ...` is also specified, it additionally marks the artifact to be copied to the host at the location specified by `<local-path>`, once the build is deemed as successful. Note that local artifacts are only produced by targets that are run direcrtly with `earthly`, or when invoked using [`BUILD`](#build).
+If `AS LOCAL ...` is also specified, it additionally marks the artifact to be copied to the host at the location specified by `<local-path>`, once the build is deemed as successful. Note that local artifacts are only produced by targets that are run directly with `earthly`, or when invoked using [`BUILD`](#build).
 
 If `<artifact-dest-path>` is not specified, it is inferred as `/`.
 
@@ -592,6 +599,13 @@ SAVE ARTIFACT ./my-directory AS LOCAL ./destination
 # This will merge the contents of ./my-directory into ./destination.
 SAVE ARTIFACT ./my-directory/* AS LOCAL ./destination
 ```
+{% endhint %}
+
+{% hint style='danger' %}
+##### Important
+
+As of [`VERSION 0.6`](#version), local artifacts are only saved [if they are connected to the initial target through a chain of `BUILD` commands](#what-is-being-output-and-pushed).
+
 {% endhint %}
 
 #### Options
@@ -650,7 +664,7 @@ For detailed examples demonstrating how other scenarios may function, please see
 
 In the *output form*, the command `SAVE IMAGE` marks the current build environment as the image of the target and assigns one or more output image names.
 
-In the *cache hint form*, it instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [shared caching guide](../guides/shared-cache.md).
+In the *cache hint form*, it instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [remote caching guide](../remote-caching.md).
 
 {% hint style='info' %}
 ##### Assigning multiple image names
@@ -670,6 +684,13 @@ SAVE IMAGE my-example-registry.com/another-image:latest
 ```
 {% endhint %}
 
+{% hint style='danger' %}
+##### Important
+
+As of [`VERSION 0.6`](#version), the `--referenced-save-only` feature flag is enabled by default. Images are only saved [if they are connected to the initial target through a chain of `BUILD` commands](#what-is-being-output-and-pushed).
+
+{% endhint %}
+
 #### Options
 
 ##### `--push`
@@ -686,11 +707,11 @@ earthly --push +docker-image
 
 ##### `--cache-from=<cache-image>`
 
-Adds additional cache sources to be used when `--use-inline-cache` is enabled. For more information see the [shared caching guide](../guides/shared-cache.md).
+Adds additional cache sources to be used when `--use-inline-cache` is enabled. For more information see the [remote caching guide](../remote-caching.md).
 
 ##### `--cache-hint`
 
-Instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [shared caching guide](../guides/shared-cache.md).
+Instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [remote caching guide](../remote-caching.md).
 
 ## BUILD
 
@@ -838,7 +859,7 @@ The `<context-path>` is the path where the Dockerfile build context exists. By d
 Specify an alternative Dockerfile to use. The `<dockerfile-path>` can be either a path on the host system, relative to the current Earthfile, or an [artifact reference](../guides/target-ref.md#artifact-reference) pointing to a Dockerfile.
 
 {% hint style='info' %}
-It is possible to split the `Dockerfile` and the build context across two seperate [artifact references](../guides/target-ref.md#artifact-reference):
+It is possible to split the `Dockerfile` and the build context across two separate [artifact references](../guides/target-ref.md#artifact-reference):
 
 ```Dockerfile
 FROM alpine
@@ -1199,6 +1220,35 @@ WAIT
 END
 RUN ./test data # even if this fails, data will have been output
 ```
+
+## CACHE (beta)
+
+{% hint style='info' %}
+##### Note
+The `CACHE` command is in beta and must be enabled via `VERSION --use-cache-command 0.6`.
+{% endhint %}
+
+#### Synopsis
+
+* ```
+  CACHE [--sharing <sharing-mode>] <mountpoint>
+  ```
+
+#### Description
+
+The `CACHE` command creates a cache mountpoint at `<mountpoint>` in the build environment. The cache mountpoint is a directory which is shared between the instances of the same build target. The contents of the cache mountpoint are preserved between builds, and can be used to share data across builds.
+
+At the end of the target, the contents of the cache mountpoint are persisted as an additional layer in the image. This means that the contents are available to subsequent targets in the same build using `FROM`, or to any saved images `SAVE IMAGE`.
+
+#### Options
+
+##### `--sharing <sharing-mode>`
+
+The sharing mode for the cache mount, from one of the following:
+
+* `locked` (default) - the cache mount is locked for the duration of the execution, other concurrent builds will wait for the lock to be released.
+* `shared` - the cache mount is shared between all concurrent builds.
+* `private` - if another concurrent build attempts to use the cache, a new (empty) cache will be created for the concurrent build.
 
 ## LOCALLY
 

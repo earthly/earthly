@@ -35,7 +35,7 @@ then
     earthly bootstrap --source zsh > "$ZSH_COMPLETION_DIR/_earthly"
 fi
 
-# skip bootstraping if docker isn't installed or running
+# skip bootstrapping if docker isn't installed or running
 if ! command -v docker &> /dev/null
 then
     echo "docker was not found; skipping earthly bootstrap"

@@ -213,7 +213,7 @@ ga-no-qemu:
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
-# and should not be used to programatically detect if this should be
+# and should not be used to programmatically detect if this should be
 # run or not.
 ga-linux-amd64:
     BUILD +user-arg-test
@@ -426,7 +426,7 @@ transitive-args-test2:
 non-transitive-args-test:
     COPY non-transitive-args1.earth ./Earthfile
     COPY non-transitive-args2.earth ./subdir/Earthfile
-    # Should not override if transitive and corssing project boundaries.
+    # Should not override if transitive and crossing project boundaries.
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
@@ -577,7 +577,7 @@ dotenv-test:
     DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-file .this-should-fail" --should_fail="true" --target=+test
     DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ENV_FILE=.this-too-should-fail" --should_fail="true" --target=+test
 
-    # --env-file takes preceddence
+    # --env-file takes precedence
     DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-file .some-other-env" --pre_command="export EARTHLY_ENV_FILE=.this-should-be-ignored" --target=+test
 
 
@@ -1062,6 +1062,7 @@ cache-cmd:
     RUN test "$(cat ./artifacts2/1)" = "artifact 1"
     RUN test "$(cat ./artifacts2/2)" = "artifact 2"
     DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test-no-sharing
+    DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test-arg
 
 ls:
     COPY ls.earth Earthfile

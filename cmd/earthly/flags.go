@@ -110,7 +110,7 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 		&cli.StringFlag{
 			Name:        "version-flag-overrides",
 			EnvVars:     []string{"EARTHLY_VERSION_FLAG_OVERRIDES"},
-			Usage:       "Apply additional flags after each VERSION command across all Earthfiles, multiple flags can be seperated by commas",
+			Usage:       "Apply additional flags after each VERSION command across all Earthfiles, multiple flags can be separated by commas",
 			Destination: &app.featureFlagOverrides,
 			Hidden:      true, // used for feature-flipping from ./earthly dev script
 		},
@@ -120,6 +120,20 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Usage:       "Use values from this file as earthly environment variables, buildargs, or secrets",
 			Value:       defaultEnvFile,
 			Destination: &app.envFile,
+		},
+		&cli.BoolFlag{
+			Name:        "logstream",
+			EnvVars:     []string{"EARTHLY_LOGSTREAM"},
+			Usage:       "Enable log streaming",
+			Destination: &app.logstream,
+			Hidden:      true, // Internal.
+		},
+		&cli.StringFlag{
+			Name:        "logstream-debug-file",
+			EnvVars:     []string{"EARTHLY_LOGSTREAM_DEBUG_FILE"},
+			Usage:       "Enable log streaming debugging output to a file",
+			Destination: &app.logstreamDebugFile,
+			Hidden:      true, // Internal.
 		},
 	}
 }

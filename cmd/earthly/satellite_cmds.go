@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
+	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/containerutil"
 )
 
@@ -75,6 +77,22 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 			Description: "Remove any currently selected Satellite instance from your Earthly configuration",
 			UsageText:   "earthly satellite unselect",
 			Action:      app.actionSatelliteUnselect,
+		},
+		{
+			Name:        "wake",
+			Usage:       "Manually force a Satellite to wake up from a sleep state",
+			Description: "Manually force a Satellite to wake up from a sleep state",
+			UsageText: "earthly satellite wake <satellite-name>\n" +
+				"	earthly satellite [--org <organization-name>] wake <satellite-name>",
+			Action: app.actionSatelliteWake,
+		},
+		{
+			Name:        "sleep",
+			Usage:       "Manually force a Satellite to sleep from an operational state",
+			Description: "Manually force a Satellite to sleep from an operational state",
+			UsageText: "earthly satellite sleep <satellite-name>\n" +
+				"	earthly satellite [--org <organization-name>] sleep <satellite-name>",
+			Action: app.actionSatelliteSleep,
 		},
 	}
 }
@@ -154,8 +172,11 @@ func (app *earthlyApp) getSatelliteOrgID(ctx context.Context, cloudClient cloud.
 func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	app.commandName = "satelliteLaunch"
 
-	if cliCtx.NArg() != 1 {
+	if cliCtx.NArg() == 0 {
 		return errors.New("satellite name is required")
+	}
+	if cliCtx.NArg() > 1 {
+		return errors.New("only a single satellite name is supported")
 	}
 
 	app.satelliteName = cliCtx.Args().Get(0)
@@ -219,8 +240,11 @@ func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 	app.commandName = "satelliteRemove"
 
-	if cliCtx.NArg() != 1 {
+	if cliCtx.NArg() == 0 {
 		return errors.New("satellite name is required")
+	}
+	if cliCtx.NArg() > 1 {
+		return errors.New("only a single satellite name is supported")
 	}
 
 	app.satelliteName = cliCtx.Args().Get(0)
@@ -259,8 +283,11 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	app.commandName = "satelliteInspect"
 
-	if cliCtx.NArg() != 1 {
+	if cliCtx.NArg() == 0 {
 		return errors.New("satellite name is required")
+	}
+	if cliCtx.NArg() > 1 {
+		return errors.New("only a single satellite name is supported")
 	}
 
 	satelliteToInspect := cliCtx.Args().Get(0)
@@ -296,17 +323,26 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		app.buildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
 	}
 
-	err = buildkitd.PrintSatelliteInfo(cliCtx.Context, app.console, Version, app.buildkitdSettings)
-	if err != nil {
-		return errors.Wrap(err, "failed checking buildkit info")
-	}
-
 	selected := "No"
 	if selectedSatellite == satellite.Name {
 		selected = "Yes"
 	}
+
 	app.console.Printf("Instance state: %s", satellite.Status)
 	app.console.Printf("Currently selected: %s", selected)
+	app.console.Printf("")
+
+	if satellite.Status == cloud.SatelliteStatusOperational {
+		err = buildkitd.PrintSatelliteInfo(cliCtx.Context, app.console, Version, app.buildkitdSettings)
+		if err != nil {
+			return errors.Wrap(err, "failed checking buildkit info")
+		}
+	} else {
+		app.console.Printf("More info available when Satellite is awake:")
+		app.console.Printf("")
+		app.console.Printf("    earthly satellite --org %s wake %s", app.orgName, satelliteToInspect)
+		app.console.Printf("")
+	}
 	return nil
 }
 
@@ -379,5 +415,191 @@ func (app *earthlyApp) actionSatelliteUnselect(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "could not unselect satellite")
 	}
 
+	return nil
+}
+
+func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
+	app.commandName = "satelliteWake"
+
+	if cliCtx.NArg() == 0 {
+		return errors.New("satellite name is required")
+	}
+	if cliCtx.NArg() > 1 {
+		return errors.New("only a single satellite name is supported")
+	}
+
+	app.satelliteName = cliCtx.Args().Get(0)
+
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	if err != nil {
+		return err
+	}
+
+	sat, err := cloudClient.GetSatellite(cliCtx.Context, app.satelliteName, orgID)
+	if err != nil {
+		return err
+	}
+
+	if sat.Status == cloud.SatelliteStatusOperational {
+		app.console.Printf("%s is already awake.", app.satelliteName)
+	}
+
+	out := cloudClient.WakeSatellite(cliCtx.Context, app.satelliteName, orgID)
+	err = showSatelliteLoading(app.console, app.satelliteName, out)
+	if err != nil {
+		return errors.Wrap(err, "failed waiting for satellite wake")
+	}
+
+	return nil
+}
+
+func (app *earthlyApp) actionSatelliteSleep(cliCtx *cli.Context) error {
+	app.commandName = "satelliteSleep"
+
+	if cliCtx.NArg() == 0 {
+		return errors.New("satellite name is required")
+	}
+	if cliCtx.NArg() > 1 {
+		return errors.New("only a single satellite name is supported")
+	}
+
+	app.satelliteName = cliCtx.Args().Get(0)
+
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cloud client")
+	}
+
+	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	if err != nil {
+		return err
+	}
+
+	out := cloudClient.SleepSatellite(cliCtx.Context, app.satelliteName, orgID)
+	err = showSatelliteStopping(app.console, app.satelliteName, out)
+	if err != nil {
+		return errors.Wrap(err, "failed waiting for satellite wake")
+	}
+
+	return nil
+}
+
+func showSatelliteLoading(console conslogging.ConsoleLogger, satName string, out chan cloud.SatelliteStatusUpdate) error {
+	loadingMsgs := getSatelliteLoadingMessages()
+	var (
+		loggedSleep      bool
+		loggedStop       bool
+		loggedStart      bool
+		shouldLogLoading bool
+	)
+	for o := range out {
+		if o.Err != nil {
+			return errors.Wrap(o.Err, "failed processing satellite status")
+		}
+		shouldLogLoading = true
+		switch o.State {
+		case cloud.SatelliteStatusSleep:
+			if !loggedSleep {
+				console.Printf("%s is waking up. Please wait...", satName)
+				loggedSleep = true
+				shouldLogLoading = false
+			}
+		case cloud.SatelliteStatusStopping:
+			if !loggedStop {
+				console.Printf("%s is currently falling asleep. Waiting to send wake up signal...", satName)
+				loggedStop = true
+				shouldLogLoading = false
+			}
+		case cloud.SatelliteStatusStarting:
+			if !loggedStart && !loggedSleep {
+				console.Printf("%s is starting. Please wait...", satName)
+				loggedStart = true
+				shouldLogLoading = false
+			}
+		case cloud.SatelliteStatusOperational:
+			if loggedSleep || loggedStop || loggedStart {
+				// Satellite was in a different state previously but is now online
+				console.Printf("...System online.")
+			}
+			shouldLogLoading = false
+		default:
+			// In case there's a new state later which we didn't expect here,
+			// we'll still try to inform the user as best we can.
+			// Note the state might just be "Unknown" if it maps to an gRPC enum we don't know about.
+			console.Printf("%s state is: %s", satName, o)
+			shouldLogLoading = false
+		}
+		if shouldLogLoading {
+			var msg string
+			msg, loadingMsgs = nextSatelliteLoadingMessage(loadingMsgs)
+			console.Printf("...%s...", msg)
+		}
+	}
+	return nil
+}
+
+func nextSatelliteLoadingMessage(msgs []string) (nextMsg string, remainingMsgs []string) {
+	if len(msgs) == 0 {
+		msgs = getSatelliteLoadingMessages()
+	}
+	return msgs[0], msgs[1:]
+}
+
+func getSatelliteLoadingMessages() []string {
+	baseMessages := []string{
+		"tracking orbit",
+		"adjusting course",
+		"deploying solar array",
+		"aligning solar panels",
+		"calibrating guidance system",
+		"establishing transponder uplink",
+		"testing signal quality",
+		"fueling thrusters",
+		"amplifying transmission signal",
+		"checking thermal controls",
+		"stabilizing trajectory",
+		"contacting mission control",
+		"testing antennas",
+		"reporting fuel levels",
+		"scanning surroundings",
+		"avoiding debris",
+		"taking solar reading",
+		"reporting thermal conditions",
+		"testing system integrity",
+		"checking battery levels",
+		"calibrating transponders",
+		"modifying downlink frequency",
+	}
+	msgs := baseMessages
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(msgs), func(i, j int) { msgs[i], msgs[j] = msgs[j], msgs[i] })
+	return msgs
+}
+
+func showSatelliteStopping(console conslogging.ConsoleLogger, satName string, out chan cloud.SatelliteStatusUpdate) error {
+	loggedStopping := false
+	for o := range out {
+		if o.Err != nil {
+			return errors.Wrap(o.Err, "failed processing satellite status")
+		}
+		switch o.State {
+		case cloud.SatelliteStatusSleep:
+			if !loggedStopping {
+				console.Printf("%s is already asleep", satName)
+			} else {
+				console.Printf("...Done.")
+			}
+		case cloud.SatelliteStatusOperational:
+			console.Printf("%s is going to sleep. Please wait...", satName)
+		case cloud.SatelliteStatusStopping:
+			loggedStopping = true
+			console.Printf("...still shutting down...")
+		}
+	}
 	return nil
 }
