@@ -171,6 +171,33 @@ This option is obsolete and it is ignored. Earthly no longer uses a loop device 
 
 This option is obsolete and it is ignored. Earthly cache has moved to a Docker volume. For more information see the [page on managing cache](../guides/cache.md).
 
+### Frontend configuration
+
+This option allows you to specify what supported frontend you are using (Docker / Podman).
+By default, Earthly will attempt to discover the frontend in this order: Docker -> Podman -> None
+
+For Docker:
+```yaml
+global:
+  container_frontend: docker-shell
+```
+
+For Podman:
+```yaml
+global:
+  container_frontend: podman-shell
+```
+
+You can use the following command to set the configuration option using the earthly CLI:
+
+```bash
+# Docker
+earthly config 'global.container_frontend' 'docker-shell'
+
+# Podman
+earthly config 'global.container_frontend' 'podman-shell'
+```
+
 ## Git configuration reference
 
 All git configuration is contained under site-specific options.
