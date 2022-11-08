@@ -10,9 +10,9 @@ import (
 // Version is the version of the deltautil package.
 const Version = 2
 
-// ApplyDeltaManifest takes a delta and applies it to the given manifest,
-// then returns it. This will either mutate the originally passed-in
-// manifest, or return a completely new one.
+// ApplyDeltaManifest takes a delta and applies it to the given manifest, then
+// returns it. This will mutate the originally passed-in manifest, and return a
+// completely new one and return the originally passed-in manifest.
 func ApplyDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error) {
 	if m.GetVersion() != 0 && m.GetVersion() != Version {
 		return nil, fmt.Errorf("unsupported manifest version %d", m.GetVersion())
@@ -30,7 +30,8 @@ func ApplyDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error)
 	}
 	switch dm.GetDeltaManifestOneof().(type) {
 	case *pb.DeltaManifest_ResetAll:
-		m = proto.Clone(dm.GetResetAll()).(*pb.RunManifest)
+		v := proto.Clone(dm.GetResetAll()).(*pb.RunManifest)
+		*m = *v
 	case *pb.DeltaManifest_Fields:
 		f := dm.GetFields()
 		if f.GetStartedAtUnixNanos() != 0 {
