@@ -4,6 +4,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+- Updated buildkit to include changes up to [a5263dd0f990a3fe17b67e0002b76bfd1f5b433d](https://github.com/moby/buildkit/commit/a5263dd0f990a3fe17b67e0002b76bfd1f5b433d)
+
 ## v0.6.29 - 2022-11-07
 
 ### Added

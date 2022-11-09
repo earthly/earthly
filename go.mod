@@ -99,6 +99,6 @@ replace (
 	github.com/earthly/earthly/util/deltautil => ./util/deltautil
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20221028205720-4d7c1301fdce
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20221109173939-f46745e0958c
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20221025225749-b994beadd443
 )
