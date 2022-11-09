@@ -10,10 +10,11 @@ import (
 // Version is the version of the deltautil package.
 const Version = 2
 
-// ApplyDeltaManifest takes a delta and applies it to the given manifest, then
-// returns it. This will mutate the originally passed-in manifest, and return a
-// completely new one and return the originally passed-in manifest.
-func ApplyDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error) {
+// WithDeltaManifest takes a delta and and a manifest and returns the result of
+// applying the delta to the manifest. The original passed-in manifest is not
+// changed. If the delta would not have any effect on the manifest, the original
+// manifest is returned.
+func WithDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error) {
 	if m.GetVersion() != 0 && m.GetVersion() != Version {
 		return nil, fmt.Errorf("unsupported manifest version %d", m.GetVersion())
 	}
@@ -28,35 +29,36 @@ func ApplyDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error)
 		// No action needed if this is not a manifest delta.
 		return m, nil
 	}
+	var ret *pb.RunManifest
 	switch dm.GetDeltaManifestOneof().(type) {
 	case *pb.DeltaManifest_ResetAll:
-		v := proto.Clone(dm.GetResetAll()).(*pb.RunManifest)
-		*m = *v
+		ret = proto.Clone(dm.GetResetAll()).(*pb.RunManifest)
 	case *pb.DeltaManifest_Fields:
+		ret = proto.Clone(m).(*pb.RunManifest)
 		f := dm.GetFields()
 		if f.GetStartedAtUnixNanos() != 0 {
-			m.StartedAtUnixNanos = f.GetStartedAtUnixNanos()
+			ret.StartedAtUnixNanos = f.GetStartedAtUnixNanos()
 		}
 		if f.GetEndedAtUnixNanos() != 0 {
-			m.EndedAtUnixNanos = f.GetEndedAtUnixNanos()
+			ret.EndedAtUnixNanos = f.GetEndedAtUnixNanos()
 		}
 		if f.GetStatus() != pb.RunStatus_RUN_STATUS_UNKNOWN {
-			m.Status = f.GetStatus()
+			ret.Status = f.GetStatus()
 		}
 		if f.GetHasFailure() {
-			m.Failure = f.GetFailure()
+			ret.Failure = f.GetFailure()
 		}
 		if f.GetMainTargetId() != "" {
-			m.MainTargetId = f.GetMainTargetId()
+			ret.MainTargetId = f.GetMainTargetId()
 		}
 		for targetID, t2 := range f.GetTargets() {
-			if m.Targets == nil {
-				m.Targets = make(map[string]*pb.TargetManifest)
+			if ret.Targets == nil {
+				ret.Targets = make(map[string]*pb.TargetManifest)
 			}
-			t, ok := m.Targets[targetID]
+			t, ok := ret.Targets[targetID]
 			if !ok {
 				t = &pb.TargetManifest{}
-				m.Targets[targetID] = t
+				ret.Targets[targetID] = t
 			}
 
 			if t2.GetName() != "" {
@@ -74,6 +76,9 @@ func ApplyDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error)
 			if t2.GetFinalPlatform() != "" {
 				t.FinalPlatform = t2.GetFinalPlatform()
 			}
+			if t2.GetSatelliteName() != "" {
+				t.SatelliteName = t2.GetSatelliteName()
+			}
 			if t2.GetStatus() != pb.RunStatus_RUN_STATUS_UNKNOWN {
 				t.Status = t2.GetStatus()
 			}
@@ -85,13 +90,13 @@ func ApplyDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error)
 			}
 		}
 		for commandID, c2 := range f.GetCommands() {
-			if m.Commands == nil {
-				m.Commands = make(map[string]*pb.CommandManifest)
+			if ret.Commands == nil {
+				ret.Commands = make(map[string]*pb.CommandManifest)
 			}
-			c, ok := m.Commands[commandID]
+			c, ok := ret.Commands[commandID]
 			if !ok {
 				c = &pb.CommandManifest{}
-				m.Commands[commandID] = c
+				ret.Commands[commandID] = c
 			}
 
 			if c2.GetName() != "" {
@@ -135,5 +140,5 @@ func ApplyDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error)
 			}
 		}
 	}
-	return m, nil
+	return ret, nil
 }

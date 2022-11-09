@@ -118,7 +118,7 @@ func (f *Formatter) Close() error {
 
 func (f *Formatter) processDelta(delta *logstream.Delta) error {
 	var err error
-	f.manifest, err = deltautil.ApplyDeltaManifest(f.manifest, delta)
+	f.manifest, err = deltautil.WithDeltaManifest(f.manifest, delta)
 	if err != nil {
 		return errors.Wrap(err, "failed to apply delta")
 	}
