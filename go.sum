@@ -37,6 +37,9 @@ github.com/containerd/containerd v1.6.8/go.mod h1:By6p5KqPK0/7/CgO/A6t/Gz+CUYUu2
 github.com/containerd/continuity v0.3.0 h1:nisirsYROK15TAMVukJOUyGJjz4BNQJBVsNvAXZJ/eg=
 github.com/containerd/continuity v0.3.0/go.mod h1:wJEAIwKOm/pBZuBd0JmeTvnLquTB1Ag8espWhkykbPM=
 github.com/containerd/fifo v1.0.0 h1:6PirWBr9/L7GDamKr+XM0IeUFXu5mf3M/BPpH9gaLBU=
+github.com/containerd/nydus-snapshotter v0.3.1 h1:b8WahTrPkt3XsabjG2o/leN4fw3HWZYr+qxo/Z8Mfzk=
+github.com/containerd/stargz-snapshotter v0.12.0 h1:SRKo+YxmypnlyC7eKc9KNW0Ciy1Auo102s8E/aRGWKg=
+github.com/containerd/stargz-snapshotter/estargz v0.12.0 h1:idtwRTLjk2erqiYhPWy2L844By8NRFYEwYHcXhoIWPM=
 github.com/containerd/ttrpc v1.1.0 h1:GbtyLRxb0gOLR0TYQWt3O6B0NvT8tMdorEHqIQo/lWI=
 github.com/containerd/ttrpc v1.1.0/go.mod h1:XX4ZTnoOId4HklF4edwc4DcqskFZuvXB1Evzy5KFQpQ=
 github.com/containerd/typeurl v1.0.2 h1:Chlt8zIieDbzQFzXzAeBEF92KhExuE4p9p92/QmY7aY=
@@ -68,8 +71,8 @@ github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/dustin/go-humanize v1.0.0 h1:VSnTsYCnlFHaM2/igO1h6X3HA71jcobQuxemgkq4zYo=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
-github.com/earthly/buildkit v0.0.1-0.20221028205720-4d7c1301fdce h1:L5PVT0b/g/1DDNjLtDuTq9JUcDj3Se0x5szWmiAMnRM=
-github.com/earthly/buildkit v0.0.1-0.20221028205720-4d7c1301fdce/go.mod h1:rxLaGmeAh0KNTTJbiUGTTDbawKIXxL6h7imbYELNKJQ=
+github.com/earthly/buildkit v0.0.1-0.20221109173939-f46745e0958c h1:IUNnk35i80ptmgrbbid7HxNxMcLvyMpGOaXVjCyggRw=
+github.com/earthly/buildkit v0.0.1-0.20221109173939-f46745e0958c/go.mod h1:xjNu8+/9ds44MQXBFPaZgkvCi1C6/hOXh5sA5tgij/s=
 github.com/earthly/cloud-api v1.0.1-0.20221109012436-6452f09b2aed h1:HJ8gdEpXCBCVEQ4TQkbIdaCLOALedGN+CdtWU6AE3K8=
 github.com/earthly/cloud-api v1.0.1-0.20221109012436-6452f09b2aed/go.mod h1:JhlHsW6o8zYa+XsM0nMAevRQtES35KE5R2G8tJALsnI=
 github.com/earthly/fsutil v0.0.0-20221025225749-b994beadd443 h1:EjOPneKZTuUcX+S49SLC35WUhcyF95m99JIOpoU5Mzs=
@@ -246,6 +249,7 @@ github.com/tonistiigi/vt100 v0.0.0-20210615222946-8066bb97264f/go.mod h1:ulncasL
 github.com/urfave/cli v1.22.1/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
 github.com/urfave/cli/v2 v2.3.0 h1:qph92Y649prgesehzOrQjdWyxFOp/QVM+6imKHad91M=
 github.com/urfave/cli/v2 v2.3.0/go.mod h1:LJmUH05zAU44vOAcrfzZQKsZbVcdbOG8rtL3/XcUArI=
+github.com/vbatts/tar-split v0.11.2 h1:Via6XqJr0hceW4wff3QRzD5gAk/tatMw/4ZA7cTlIME=
 github.com/vishvananda/netlink v1.1.0/go.mod h1:cTgwzPIzzgDAYoQrMm0EdrjRUBkTqKYppBueQtXaqoE=
 github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df/go.mod h1:JP3t17pCcGlemwknint6hfoeCVQrEMVwxRLRjXpq+BU=
 github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f/go.mod h1:N2zxlSyiKSe5eX1tZViRH5QA0qijqEDrYZiPEAiq3wU=
