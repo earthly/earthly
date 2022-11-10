@@ -209,7 +209,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		}
 	}
 	if app.logstreamUpload {
-		app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient, "orgName TODO", "projectName TODO")
+		app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient, "my-org", "projectName TODO")
 	}
 
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")

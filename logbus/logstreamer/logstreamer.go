@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/cloud"
@@ -46,7 +45,8 @@ func New(ctx context.Context, bus *logbus.Bus, c cloud.Client, initialManifest *
 }
 
 const maxBatchSize = 128
-const maxBatchDuration = 200 * time.Millisecond
+
+// const maxBatchDuration = 200 * time.Millisecond
 
 func (ls *LogStreamer) retryLoop(ctx context.Context) {
 	defer close(ls.doneCh)
@@ -120,29 +120,48 @@ func (ls *LogStreamer) batcherLoop(ctx context.Context) {
 	ch := ls.ch
 	batchedCh := ls.batchedCh
 	ls.mu.Unlock()
-	ticker := time.NewTicker(maxBatchDuration)
-	defer ticker.Stop()
-	batch := make([]*logstream.Delta, 0, maxBatchSize)
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
-			if len(batch) > 0 {
-				batchedCh <- batch
-				batch = make([]*logstream.Delta, 0, maxBatchSize)
-			}
 		case delta, ok := <-ch:
 			if !ok {
+				close(batchedCh)
 				return
 			}
-			batch = append(batch, delta)
-			if len(batch) >= maxBatchSize {
-				batchedCh <- batch
-				batch = make([]*logstream.Delta, 0, maxBatchSize)
-			}
+			batchedCh <- []*logstream.Delta{delta}
 		}
 	}
+
+	// TODO @#
+	// ticker := time.NewTicker(maxBatchDuration)
+	// defer ticker.Stop()
+	// batch := make([]*logstream.Delta, 0, maxBatchSize)
+	// for {
+	// 	select {
+	// 	case <-ctx.Done():
+	// 		return
+	// 	case <-ticker.C:
+	// 		if len(batch) > 0 {
+	// 			batchedCh <- batch
+	// 			batch = make([]*logstream.Delta, 0, maxBatchSize)
+	// 		}
+	// 	case delta, ok := <-ch:
+	// 		if !ok {
+	// 			if len(batch) > 0 {
+	// 				batchedCh <- batch
+	// 			}
+	// 			close(batchedCh)
+	// 			return
+	// 		}
+	// 		batch = append(batch, delta)
+	// 		if len(batch) >= maxBatchSize {
+	// 			batchedCh <- batch
+	// 			batch = make([]*logstream.Delta, 0, maxBatchSize)
+	// 		}
+	// 	}
+	// }
 }
 
 // Write writes the given delta to the log streamer.
