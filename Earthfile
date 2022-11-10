@@ -207,6 +207,7 @@ lint-changelog:
 
 debugger:
     FROM +code
+    ENV CGO_ENABLED=0
     ARG GOCACHE=/go-cache
     ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
     ARG EARTHLY_TARGET_TAG
@@ -222,6 +223,7 @@ debugger:
 
 earthly:
     FROM +code
+    ENV CGO_ENABLED=0
     ARG GOOS=linux
     ARG TARGETARCH
     ARG TARGETVARIANT
