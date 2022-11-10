@@ -20,6 +20,10 @@ RUN apk add --update --no-cache \
 
 WORKDIR /earthly
 
+t:
+    # TODO @# Remove
+    RUN --no-cache echo "hello world"
+
 deps:
     FROM +base
     RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.0
