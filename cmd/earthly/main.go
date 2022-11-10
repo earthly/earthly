@@ -20,6 +20,7 @@ import (
 
 	gsysinfo "github.com/elastic/go-sysinfo"
 	"github.com/fatih/color"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
@@ -146,7 +147,9 @@ type cliFlags struct {
 	invitePermission          string
 	inviteMessage             string
 	logstream                 bool
+	logstreamUpload           bool
 	logstreamDebugFile        string
+	buildID                   string
 }
 
 type analyticsMetadata struct {
@@ -383,9 +386,15 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 	} else if app.verbose {
 		app.console = app.console.WithLogLevel(conslogging.Verbose)
 	}
+	if app.buildID == "" {
+		app.buildID = uuid.NewString()
+	}
+	if app.logstreamUpload {
+		app.logstream = true
+	}
 	disableOngoingUpdates := !app.logstream // TODO (vladaionescu)
 	var err error
-	app.logbusSetup, err = logbussetup.New(cliCtx.Context, app.logbus, app.debug, app.verbose, disableOngoingUpdates, app.logstreamDebugFile)
+	app.logbusSetup, err = logbussetup.New(cliCtx.Context, app.logbus, app.debug, app.verbose, disableOngoingUpdates, app.logstreamDebugFile, app.buildID)
 	if err != nil {
 		return errors.Wrap(err, "logbus setup")
 	}

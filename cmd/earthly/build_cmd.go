@@ -162,7 +162,6 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		gitCommitAuthor string
 		gitConfigEmail  string
 	)
-
 	if !target.IsRemote() {
 		if meta, err := gitutil.Metadata(cliCtx.Context, target.GetLocalPath()); err == nil {
 			// Git commit detection here is best effort
@@ -208,6 +207,9 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 				app.console.Printf("Share your logs with an Earthly account (experimental)! Register for one at https://ci.earthly.dev.")
 			}()
 		}
+	}
+	if app.logstreamUpload {
+		app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient, "orgName TODO", "projectName TODO")
 	}
 
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")

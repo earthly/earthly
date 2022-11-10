@@ -124,8 +124,15 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 		&cli.BoolFlag{
 			Name:        "logstream",
 			EnvVars:     []string{"EARTHLY_LOGSTREAM"},
-			Usage:       "Enable log streaming",
+			Usage:       "Enable log streaming only locally",
 			Destination: &app.logstream,
+			Hidden:      true, // Internal.
+		},
+		&cli.BoolFlag{
+			Name:        "logstream-upload",
+			EnvVars:     []string{"EARTHLY_LOGSTREAM_UPLOAD"},
+			Usage:       "Enable log stream uploading",
+			Destination: &app.logstreamUpload,
 			Hidden:      true, // Internal.
 		},
 		&cli.StringFlag{
@@ -133,6 +140,13 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			EnvVars:     []string{"EARTHLY_LOGSTREAM_DEBUG_FILE"},
 			Usage:       "Enable log streaming debugging output to a file",
 			Destination: &app.logstreamDebugFile,
+			Hidden:      true, // Internal.
+		},
+		&cli.StringFlag{
+			Name:        "build-id",
+			EnvVars:     []string{"EARTHLY_BUILD_ID"},
+			Usage:       "The build ID to use for identifying the build in Earthly Cloud. If not specified, a random ID will be generated",
+			Destination: &app.buildID,
 			Hidden:      true, // Internal.
 		},
 	}
