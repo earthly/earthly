@@ -117,7 +117,6 @@ The newly launched satellite will always get the latest version available.
 
 ### Managing instance state
 
-
 To save costs, satellites automatically enter a **sleep** state after 30 min of inactivity. While a satellite is asleep, you are not billed for any compute minutes.
 
 The satellite will automatically **wake up** when a new build is started while it's in a sleep state. This is visible during the `Init` phase of the Earthly log.
