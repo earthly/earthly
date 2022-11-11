@@ -127,8 +127,8 @@ func RepoHashFromCloneURL(repo string) string {
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(repo)))
 }
 
-func getInstallID() (string, error) {
-	earthlyDir, err := cliutil.GetOrCreateEarthlyDir()
+func getInstallID(installationName string) (string, error) {
+	earthlyDir, err := cliutil.GetOrCreateEarthlyDir(installationName)
 	if err != nil {
 		return "", err
 	}
@@ -190,7 +190,7 @@ type Meta struct {
 }
 
 // CollectAnalytics sends analytics to api.earthly.dev
-func CollectAnalytics(ctx context.Context, cloudClient cloud.Client, displayErrors bool, meta Meta) {
+func CollectAnalytics(ctx context.Context, cloudClient cloud.Client, displayErrors bool, meta Meta, installationName string) {
 	var err error
 	ciName, ci := DetectCI()
 	repoHash := getRepoHash()
@@ -203,7 +203,7 @@ func CollectAnalytics(ctx context.Context, cloudClient cloud.Client, displayErro
 				installID = fmt.Sprintf("%x", sha256.Sum256([]byte(ciName+repoHash)))
 			}
 		} else {
-			installID, err = getInstallID()
+			installID, err = getInstallID(installationName)
 			if err != nil {
 				if displayErrors {
 					fmt.Fprintf(os.Stderr, "Failed to get install ID: %s\n", err.Error())

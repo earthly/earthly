@@ -33,7 +33,7 @@ func (app *earthlyApp) autoComplete(ctx context.Context) {
 	err := app.autoCompleteImp(ctx)
 	if err != nil {
 		errToLog := err
-		logDir, err := cliutil.GetOrCreateEarthlyDir()
+		logDir, err := cliutil.GetOrCreateEarthlyDir(app.installationName)
 		if err != nil {
 			os.Exit(1)
 		}

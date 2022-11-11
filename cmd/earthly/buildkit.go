@@ -13,6 +13,7 @@ import (
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
+	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 )
@@ -22,10 +23,9 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 	feConfig := &containerutil.FrontendConfig{
 		BuildkitHostCLIValue:       app.buildkitHost,
 		BuildkitHostFileValue:      app.cfg.Global.BuildkitHost,
-		DebuggerHostCLIValue:       app.debuggerHost,
-		DebuggerHostFileValue:      app.cfg.Global.DebuggerHost,
-		DebuggerPortFileValue:      app.cfg.Global.DebuggerPort,
 		LocalRegistryHostFileValue: app.cfg.Global.LocalRegistryHost,
+		InstallationName:           app.installationName,
+		DefaultPort:                8372 + config.PortOffset(app.installationName),
 		Console:                    console,
 	}
 	fe, err := containerutil.FrontendForSetting(cliCtx.Context, app.cfg.Global.ContainerFrontend, feConfig)
@@ -54,7 +54,6 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 	// they are calculated according to the first selected one in order of precedence.
 	buildkitURLs := fe.Config().FrontendURLs
 	app.buildkitHost = buildkitURLs.BuildkitHost.String()
-	app.debuggerHost = buildkitURLs.DebuggerHost.String()
 	app.localRegistryHost = buildkitURLs.LocalRegistryHost.String()
 
 	bkURL, err := url.Parse(app.buildkitHost) // Not validated because we already did that when we calculated it.
@@ -71,7 +70,6 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 	app.buildkitdSettings.Timeout = time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
 	app.buildkitdSettings.Debug = app.debug
 	app.buildkitdSettings.BuildkitAddress = app.buildkitHost
-	app.buildkitdSettings.DebuggerAddress = app.debuggerHost
 	app.buildkitdSettings.LocalRegistryAddress = app.localRegistryHost
 	app.buildkitdSettings.UseTCP = bkURL.Scheme == "tcp"
 	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
@@ -91,7 +89,7 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 		return errors.New(`invalid overridden iptables name. Valid values are "iptables-legacy" or "iptables-nft"`)
 	}
 	app.buildkitdSettings.IPTables = app.cfg.Global.IPTables
-	earthlyDir, err := cliutil.GetOrCreateEarthlyDir()
+	earthlyDir, err := cliutil.GetOrCreateEarthlyDir(app.installationName)
 	if err != nil {
 		return errors.Wrap(err, "failed to get earthly dir")
 	}
@@ -109,7 +107,7 @@ func (app *earthlyApp) getBuildkitClient(cliCtx *cli.Context, cloudClient cloud.
 		return nil, errors.Wrapf(err, "could not construct new buildkit client")
 	}
 
-	return buildkitd.NewClient(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, Version, app.buildkitdSettings)
+	return buildkitd.NewClient(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.installationName, app.containerFrontend, Version, app.buildkitdSettings)
 }
 
 func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {

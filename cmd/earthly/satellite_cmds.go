@@ -181,9 +181,9 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 
 	app.satelliteName = cliCtx.Args().Get(0)
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 
 	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
@@ -218,9 +218,9 @@ func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 		return errors.New("command does not accept any arguments")
 	}
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 
 	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
@@ -249,9 +249,9 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 
 	app.satelliteName = cliCtx.Args().Get(0)
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 
 	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
@@ -293,9 +293,9 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	satelliteToInspect := cliCtx.Args().Get(0)
 	selectedSatellite := app.cfg.Satellite.Name
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 
 	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
@@ -333,7 +333,7 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	app.console.Printf("")
 
 	if satellite.Status == cloud.SatelliteStatusOperational {
-		err = buildkitd.PrintSatelliteInfo(cliCtx.Context, app.console, Version, app.buildkitdSettings)
+		err = buildkitd.PrintSatelliteInfo(cliCtx.Context, app.console, Version, app.buildkitdSettings, app.installationName)
 		if err != nil {
 			return errors.Wrap(err, "failed checking buildkit info")
 		}
@@ -366,9 +366,9 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 
 	app.satelliteName = cliCtx.Args().Get(0)
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 
 	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
@@ -430,9 +430,9 @@ func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
 
 	app.satelliteName = cliCtx.Args().Get(0)
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 
 	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
@@ -470,9 +470,9 @@ func (app *earthlyApp) actionSatelliteSleep(cliCtx *cli.Context) error {
 
 	app.satelliteName = cliCtx.Args().Get(0)
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 
 	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)

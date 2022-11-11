@@ -32,7 +32,6 @@ import (
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
-	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/earthfile2llb"
@@ -46,10 +45,10 @@ import (
 )
 
 const (
-	// DefaultBuildkitdContainerName is the name of the buildkitd container.
-	DefaultBuildkitdContainerName = "earthly-buildkitd"
-	// DefaultBuildkitdVolumeName is the name of the docker volume used for storing the cache.
-	DefaultBuildkitdVolumeName = "earthly-cache"
+	// DefaultBuildkitdContainerSuffix is the suffix of the buildkitd container.
+	DefaultBuildkitdContainerSuffix = "-buildkitd"
+	// DefaultBuildkitdVolumeSuffix is the suffix of the docker volume used for storing the cache.
+	DefaultBuildkitdVolumeSuffix = "-cache"
 
 	defaultEnvFile = ".env"
 	envFileFlag    = "env-file"
@@ -88,6 +87,7 @@ type cliFlags struct {
 	buildkitHost              string
 	buildkitdImage            string
 	containerName             string
+	installationName          string
 	cacheFrom                 cli.StringSlice
 	remoteCache               string
 	maxRemoteCache            bool
@@ -127,7 +127,6 @@ type cliFlags struct {
 	configDryRun              bool
 	strict                    bool
 	conversionParallelism     int
-	debuggerHost              string
 	certPath                  string
 	keyPath                   string
 	disableAnalytics          bool
@@ -164,15 +163,16 @@ type analyticsMetadata struct {
 var (
 	// DefaultBuildkitdImage is the default buildkitd image to use.
 	DefaultBuildkitdImage string
-
 	// Version is the version of this CLI app.
 	Version string
-
 	// GitSha contains the git sha used to build this app
 	GitSha string
-
 	// BuiltBy contains information on which build-system was used (e.g. official earthly binaries, homebrew, etc)
 	BuiltBy string
+	// DefaultInstallationName is the name included in the various earthly global resources on the system,
+	// such as the ~/.earthly dir name, the buildkitd container name, the docker volume name, etc.
+	// This should be set to "earthly" for official releases.
+	DefaultInstallationName string
 )
 
 func main() {
@@ -283,9 +283,7 @@ func main() {
 		ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		displayErrors := app.verbose
-		cloudClient, err := cloud.NewClient(
-			app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure,
-			app.sshAuthSock, app.authToken, app.console.Warnf)
+		cloudClient, err := app.newCloudClient()
 		if err != nil && displayErrors {
 			app.console.Warnf("unable to start cloud client: %s", err)
 		} else if err == nil {
@@ -303,6 +301,7 @@ func main() {
 					IsRemoteBuildkit: app.analyticsMetadata.isRemoteBuildkit,
 					Realtime:         time.Since(startTime),
 				},
+				app.installationName,
 			)
 		}
 	}
@@ -384,6 +383,14 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 		go profhandler()
 	}
 
+	if app.installationName != "" {
+		if !cliCtx.IsSet("buildkit-container-name") {
+			app.containerName = fmt.Sprintf("%s-buildkitd", app.installationName)
+		}
+		if !cliCtx.IsSet("buildkit-volume-name") {
+			app.buildkitdSettings.VolumeName = fmt.Sprintf("%s-cache", app.installationName)
+		}
+	}
 	if app.debug {
 		app.console = app.console.WithLogLevel(conslogging.Debug)
 	} else if app.verbose {
@@ -406,13 +413,6 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 		app.console.Printf("loading config values from %q\n", app.configPath)
 	}
 
-	if app.containerName != DefaultBuildkitdContainerName {
-		// TODO remove this once the debugger port value is randomly supplied by the OS
-		// which is required to run multiple instances in parallel. Currently it attempts to bind the same
-		// port and fails.
-		return fmt.Errorf("buildkit-container-name is not currently supported")
-	}
-
 	var yamlData []byte
 	if app.configPath != "" {
 		yamlData, err = config.ReadConfigFile(app.configPath)
@@ -423,7 +423,7 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 		}
 	}
 
-	app.cfg, err = config.ParseConfigFile(yamlData)
+	app.cfg, err = config.ParseConfigFile(yamlData, app.installationName)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse %s", app.configPath)
 	}
@@ -447,7 +447,7 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 		}
 	}
 
-	if !isBootstrapCmd && !cliutil.IsBootstrapped() {
+	if !isBootstrapCmd && !cliutil.IsBootstrapped(app.installationName) {
 		app.bootstrapNoBuildkit = true // Docker may not be available, for instance... like our integration tests.
 		err = app.bootstrap(cliCtx)
 		if err != nil {
@@ -511,10 +511,6 @@ func (app *earthlyApp) processDeprecatedCommandOptions(cliCtx *cli.Context, cfg 
 			}
 			cfg.Git[k] = v
 		}
-	}
-
-	if cfg.Global.DebuggerPort != config.DefaultDebuggerPort {
-		app.console.Warnf("Warning: specifying the port using the debugger-port setting is deprecated. Set it in ~/.earthly/config.yml as part of the debugger_host variable; see https://docs.earthly.dev/earthly-config for reference.\n")
 	}
 
 	return nil

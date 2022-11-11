@@ -9,10 +9,14 @@ import (
 )
 
 func (app *earthlyApp) rootFlags() []cli.Flag {
+	defaultInstallationName := DefaultInstallationName
+	if defaultInstallationName == "" {
+		defaultInstallationName = "earthly"
+	}
 	return []cli.Flag{
 		&cli.StringFlag{
 			Name:        "config",
-			Value:       defaultConfigPath(),
+			Value:       defaultConfigPath(defaultInstallationName),
 			EnvVars:     []string{"EARTHLY_CONFIG"},
 			Usage:       "Path to config file",
 			Destination: &app.configPath,
@@ -160,6 +164,10 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 }
 
 func (app *earthlyApp) buildFlags() []cli.Flag {
+	defaultInstallationName := DefaultInstallationName
+	if defaultInstallationName == "" {
+		defaultInstallationName = "earthly"
+	}
 	return []cli.Flag{
 		&cli.StringSliceFlag{
 			Name:    "platform",
@@ -266,13 +274,6 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			Destination: &app.noSatellite,
 		},
 		&cli.StringFlag{
-			Name:        "debugger-host",
-			EnvVars:     []string{"EARTHLY_DEBUGGER_HOST"},
-			Usage:       wrap("The URL to use for connecting to a debugger host. ", "If empty, earthly uses the default debugger port, combined with the desired buildkit host."),
-			Destination: &app.debuggerHost,
-			Hidden:      true,
-		},
-		&cli.StringFlag{
 			Name:        "tlscert",
 			Value:       "./certs/earthly_cert.pem",
 			EnvVars:     []string{"EARTHLY_TLS_CERT"},
@@ -297,7 +298,7 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        "buildkit-container-name",
-			Value:       DefaultBuildkitdContainerName,
+			Value:       defaultInstallationName + DefaultBuildkitdContainerSuffix,
 			EnvVars:     []string{"EARTHLY_CONTAINER_NAME"},
 			Usage:       "The docker container name to use for the buildkit daemon",
 			Destination: &app.containerName,
@@ -305,10 +306,18 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        "buildkit-volume-name",
-			Value:       DefaultBuildkitdVolumeName,
+			Value:       defaultInstallationName + DefaultBuildkitdVolumeSuffix,
 			EnvVars:     []string{"EARTHLY_VOLUME_NAME"},
 			Usage:       "The docker volume name to use for the buildkit daemon cache",
 			Destination: &app.buildkitdSettings.VolumeName,
+			Hidden:      true,
+		},
+		&cli.StringFlag{
+			Name:        "installation-name",
+			Value:       defaultInstallationName,
+			EnvVars:     []string{"EARTHLY_INSTALLATION_NAME"},
+			Usage:       "The earthly installation name to use when naming the buildkit container, the docker volume and the ~/.earthly directory",
+			Destination: &app.installationName,
 			Hidden:      true,
 		},
 		&cli.StringSliceFlag{

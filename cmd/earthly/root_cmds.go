@@ -18,7 +18,6 @@ import (
 
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildkitd"
-	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/docker2earthly"
 	"github.com/earthly/earthly/domain"
@@ -350,12 +349,12 @@ func (app *earthlyApp) bootstrap(cliCtx *cli.Context) error {
 	defer func() {
 		// cliutil.IsBootstrapped() determines if bootstrapping was done based
 		// on the existence of ~/.earthly; therefore we must ensure it's created.
-		_, err := cliutil.GetOrCreateEarthlyDir()
+		_, err := cliutil.GetOrCreateEarthlyDir(app.installationName)
 		if err != nil {
 			console.Warnf("Warning: Failed to create Earthly Dir: %v", err)
 			// Keep going.
 		}
-		err = cliutil.EnsurePermissions()
+		err = cliutil.EnsurePermissions(app.installationName)
 		if err != nil {
 			console.Warnf("Warning: Failed to ensure permissions: %v", err)
 			// Keep going.
@@ -390,7 +389,7 @@ func (app *earthlyApp) bootstrap(cliCtx *cli.Context) error {
 			return errors.Wrapf(err, "invalid buildkit_host: %s", app.cfg.Global.BuildkitHost)
 		}
 		if bkURL.Scheme == "tcp" && app.cfg.Global.TLSEnabled {
-			root, err := cliutil.GetOrCreateEarthlyDir()
+			root, err := cliutil.GetOrCreateEarthlyDir(app.installationName)
 			if err != nil {
 				return err
 			}
@@ -660,7 +659,7 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		err = buildkitd.ResetCache(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, app.buildkitdSettings)
+		err = buildkitd.ResetCache(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.installationName, app.containerFrontend, app.buildkitdSettings)
 		if err != nil {
 			return errors.Wrap(err, "reset cache")
 		}
@@ -668,9 +667,9 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	}
 
 	// Prune via API.
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 	bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
 	if err != nil {

@@ -27,8 +27,7 @@ type LogStreamer struct {
 
 	mu        sync.Mutex
 	cancelled bool
-	ch        chan *logstream.Delta
-	batchedCh chan []*logstream.Delta
+	ch        chan []*logstream.Delta
 }
 
 // New creates a new LogStreamer.
@@ -43,8 +42,6 @@ func New(ctx context.Context, bus *logbus.Bus, c cloud.Client, initialManifest *
 	go ls.retryLoop(ctx)
 	return ls
 }
-
-const maxBatchSize = 128
 
 func (ls *LogStreamer) retryLoop(ctx context.Context) {
 	defer close(ls.doneCh)
@@ -77,11 +74,17 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 		ls.mu.Unlock()
 		return false, errors.New("log streamer closed")
 	}
-	const chSize = 128
-	ls.ch = make(chan *logstream.Delta, chSize)
-	ls.batchedCh = make(chan []*logstream.Delta, chSize*maxBatchSize)
+	const chSize = 10240
+	if ls.ch != nil {
+		// In case the channel is congested, this frees up any stuck writers.
+		go func() {
+			for range ls.ch {
+			}
+		}()
+	}
+	ls.ch = make(chan []*logstream.Delta, chSize)
 	ls.mu.Unlock()
-	ls.batchedCh <- []*logstream.Delta{
+	ls.ch <- []*logstream.Delta{
 		{
 			DeltaTypeOneof: &logstream.Delta_DeltaManifest{
 				DeltaManifest: &logstream.DeltaManifest{
@@ -92,10 +95,9 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 			},
 		},
 	}
-	go ls.batcherLoop(ctxTry)
 	ls.bus.AddSubscriber(ls)
 	defer ls.bus.RemoveSubscriber(ls)
-	err := ls.c.StreamLogs(ctxTry, ls.buildID, ls.batchedCh)
+	err := ls.c.StreamLogs(ctxTry, ls.buildID, ls.ch)
 	if err != nil {
 		s, ok := status.FromError(errors.Cause(err))
 		if !ok {
@@ -111,63 +113,12 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
-// batcherLoop batches deltas into batches of deltas, based on a maximum
-// batch size and a maximum delay interval.
-func (ls *LogStreamer) batcherLoop(ctx context.Context) {
-	ls.mu.Lock()
-	ch := ls.ch
-	batchedCh := ls.batchedCh
-	ls.mu.Unlock()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case delta, ok := <-ch:
-			if !ok {
-				close(batchedCh)
-				return
-			}
-			batchedCh <- []*logstream.Delta{delta}
-		}
-	}
-
-	// TODO @#
-	// ticker := time.NewTicker(maxBatchDuration)
-	// defer ticker.Stop()
-	// batch := make([]*logstream.Delta, 0, maxBatchSize)
-	// for {
-	// 	select {
-	// 	case <-ctx.Done():
-	// 		return
-	// 	case <-ticker.C:
-	// 		if len(batch) > 0 {
-	// 			batchedCh <- batch
-	// 			batch = make([]*logstream.Delta, 0, maxBatchSize)
-	// 		}
-	// 	case delta, ok := <-ch:
-	// 		if !ok {
-	// 			if len(batch) > 0 {
-	// 				batchedCh <- batch
-	// 			}
-	// 			close(batchedCh)
-	// 			return
-	// 		}
-	// 		batch = append(batch, delta)
-	// 		if len(batch) >= maxBatchSize {
-	// 			batchedCh <- batch
-	// 			batch = make([]*logstream.Delta, 0, maxBatchSize)
-	// 		}
-	// 	}
-	// }
-}
-
 // Write writes the given delta to the log streamer.
 func (ls *LogStreamer) Write(delta *logstream.Delta) {
 	ls.mu.Lock()
 	ch := ls.ch // ls.ch may get replaced on retry
 	ls.mu.Unlock()
-	ch <- delta
+	ch <- []*logstream.Delta{delta}
 }
 
 // Close closes the log streamer.

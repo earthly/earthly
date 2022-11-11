@@ -20,10 +20,6 @@ RUN apk add --update --no-cache \
 
 WORKDIR /earthly
 
-t:
-    # TODO @# Remove
-    RUN --no-cache echo "hello world"
-
 deps:
     FROM +base
     RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.0
@@ -235,6 +231,7 @@ earthly:
     ARG VARIANT=$TARGETVARIANT
     ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
     ARG EXECUTABLE_NAME="earthly"
+    ARG DEFAULT_INSTALLATION_NAME="earthly-dev"
     RUN test -n "$GOOS" && test -n "$GOARCH"
     RUN test "$GOARCH" != "arm" || test -n "$VARIANT"
     ARG EARTHLY_TARGET_TAG_DOCKER
@@ -248,6 +245,7 @@ earthly:
     RUN printf '-X main.DefaultBuildkitdImage='"$DEFAULT_BUILDKITD_IMAGE" > ./build/ldflags && \
         printf ' -X main.Version='"$VERSION" >> ./build/ldflags && \
         printf ' -X main.GitSha='"$EARTHLY_GIT_HASH" >> ./build/ldflags && \
+        printf ' -X main.DefaultInstallationName='"$DEFAULT_INSTALLATION_NAME" >> ./build/ldflags && \
         printf ' '"$GO_EXTRA_LDFLAGS" >> ./build/ldflags && \
         echo "$(cat ./build/ldflags)"
     # Important! If you change the go build options, you may need to also change them
@@ -324,7 +322,7 @@ earthly-docker:
     WORKDIR /workspace
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
-    COPY (+earthly/earthly --VERSION=$TAG) /usr/bin/earthly
+    COPY (+earthly/earthly --VERSION=$TAG --DEFAULT_INSTALLATION_NAME="earthly") /usr/bin/earthly
     SAVE IMAGE --push --cache-from=earthly/earthly:main earthly/earthly:$TAG
 
 earthly-integration-test-base:

@@ -2,7 +2,6 @@ package containerutil
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -15,13 +14,11 @@ var noopArgs = parsedCLIVals{}
 
 type results struct {
 	buildkit      string
-	debugger      string
 	localRegistry string
 }
 
 type parsedCLIVals struct {
 	buildkit string
-	debugger string
 }
 
 func TestBuildArgMatrix(t *testing.T) {
@@ -35,14 +32,11 @@ func TestBuildArgMatrix(t *testing.T) {
 			"No Config, no CLI",
 			config.GlobalConfig{
 				BuildkitHost:      "",
-				DebuggerHost:      "",
-				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "",
 			},
 			noopArgs,
 			results{
-				buildkit:      DockerAddress,
-				debugger:      fmt.Sprintf("tcp://127.0.0.1:%v", config.DefaultDebuggerPort),
+				buildkit:      "docker-container://earthly-buildkitd",
 				localRegistry: "",
 			},
 		},
@@ -50,14 +44,11 @@ func TestBuildArgMatrix(t *testing.T) {
 			"Remote Local in config, no CLI",
 			config.GlobalConfig{
 				BuildkitHost:      "tcp://127.0.0.1:8372",
-				DebuggerHost:      "",
-				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "",
 			},
 			noopArgs,
 			results{
 				buildkit:      "tcp://127.0.0.1:8372",
-				debugger:      fmt.Sprintf("tcp://127.0.0.1:%v", config.DefaultDebuggerPort),
 				localRegistry: "",
 			},
 		},
@@ -65,14 +56,11 @@ func TestBuildArgMatrix(t *testing.T) {
 			"Remote remote in config, no CLI",
 			config.GlobalConfig{
 				BuildkitHost:      "tcp://my-cool-host:8372",
-				DebuggerHost:      "",
-				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "",
 			},
 			noopArgs,
 			results{
 				buildkit:      "tcp://my-cool-host:8372",
-				debugger:      fmt.Sprintf("tcp://my-cool-host:%v", config.DefaultDebuggerPort),
 				localRegistry: "",
 			},
 		},
@@ -80,62 +68,11 @@ func TestBuildArgMatrix(t *testing.T) {
 			"Nonstandard local in config, no CLI",
 			config.GlobalConfig{
 				BuildkitHost:      "docker-container://my-container",
-				DebuggerHost:      "",
-				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "",
 			},
 			noopArgs,
 			results{
 				buildkit:      "docker-container://my-container",
-				debugger:      fmt.Sprintf("tcp://127.0.0.1:%v", config.DefaultDebuggerPort),
-				localRegistry: "",
-			},
-		},
-		{
-			"Debugger port specified",
-			config.GlobalConfig{
-				BuildkitHost:      "",
-				DebuggerHost:      "",
-				DebuggerPort:      5678,
-				LocalRegistryHost: "",
-			},
-			noopArgs,
-			results{
-				buildkit:      DockerAddress,
-				debugger:      "tcp://127.0.0.1:5678",
-				localRegistry: "",
-			},
-		},
-		{
-			"Debugger host and port specified",
-			config.GlobalConfig{
-				BuildkitHost:      "",
-				DebuggerHost:      "tcp://127.0.0.1:1234",
-				DebuggerPort:      5678,
-				LocalRegistryHost: "",
-			},
-			noopArgs,
-			results{
-				buildkit:      DockerAddress,
-				debugger:      "tcp://127.0.0.1:1234",
-				localRegistry: "",
-			},
-		},
-		{
-			"No Config, buildkit and debugger on CLI",
-			config.GlobalConfig{
-				BuildkitHost:      "tcp://not-this-bk:1234",
-				DebuggerHost:      "tcp://not-this-db:1234",
-				DebuggerPort:      config.DefaultDebuggerPort,
-				LocalRegistryHost: "",
-			},
-			parsedCLIVals{
-				buildkit: "tcp://ok-bk:42",
-				debugger: "tcp://ok-db:43",
-			},
-			results{
-				buildkit:      "tcp://ok-bk:42",
-				debugger:      "tcp://ok-db:43",
 				localRegistry: "",
 			},
 		},
@@ -143,14 +80,11 @@ func TestBuildArgMatrix(t *testing.T) {
 			"Remote Local in config, no CLI, validate registry host",
 			config.GlobalConfig{
 				BuildkitHost:      "tcp://127.0.0.1:8372",
-				DebuggerHost:      "",
-				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "tcp://127.0.0.1:8371",
 			},
 			noopArgs,
 			results{
 				buildkit:      "tcp://127.0.0.1:8372",
-				debugger:      fmt.Sprintf("tcp://127.0.0.1:%v", config.DefaultDebuggerPort),
 				localRegistry: "tcp://127.0.0.1:8371",
 			},
 		},
@@ -158,14 +92,11 @@ func TestBuildArgMatrix(t *testing.T) {
 			"Remote remote in config, no CLI, skip validate registry host",
 			config.GlobalConfig{
 				BuildkitHost:      "tcp://my-cool-host:8372",
-				DebuggerHost:      "",
-				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "this-is-not-a-url",
 			},
 			noopArgs,
 			results{
 				buildkit:      "tcp://my-cool-host:8372",
-				debugger:      fmt.Sprintf("tcp://my-cool-host:%v", config.DefaultDebuggerPort),
 				localRegistry: "",
 			},
 		},
@@ -173,14 +104,11 @@ func TestBuildArgMatrix(t *testing.T) {
 			"Local in config, no CLI, validate registry host",
 			config.GlobalConfig{
 				BuildkitHost:      "docker-container://my-cool-container",
-				DebuggerHost:      "",
-				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "tcp://127.0.0.1:8371",
 			},
 			noopArgs,
 			results{
 				buildkit:      "docker-container://my-cool-container",
-				debugger:      fmt.Sprintf("tcp://127.0.0.1:%v", config.DefaultDebuggerPort),
 				localRegistry: "tcp://127.0.0.1:8371",
 			},
 		},
@@ -202,16 +130,12 @@ func TestBuildArgMatrix(t *testing.T) {
 		urls, err := stub.setupAndValidateAddresses(FrontendDockerShell, &FrontendConfig{
 			BuildkitHostCLIValue:       tt.args.buildkit,
 			BuildkitHostFileValue:      tt.config.BuildkitHost,
-			DebuggerHostCLIValue:       tt.args.debugger,
-			DebuggerHostFileValue:      tt.config.DebuggerHost,
-			DebuggerPortFileValue:      tt.config.DebuggerPort,
 			LocalRegistryHostFileValue: tt.config.LocalRegistryHost,
 			Console:                    logger,
 		})
 		assert.NoError(t, err)
 		assert.Equal(t, tt.expected, results{
 			buildkit:      urls.BuildkitHost.String(),
-			debugger:      urls.DebuggerHost.String(),
 			localRegistry: urls.LocalRegistryHost.String(),
 		})
 	}
@@ -228,8 +152,6 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 			"Invalid buildkit URL",
 			config.GlobalConfig{
 				BuildkitHost:      "http\r://foo.com/",
-				DebuggerHost:      "",
-				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "",
 			},
 			errURLParseFailure,
@@ -239,8 +161,6 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 			"Invalid debugger URL",
 			config.GlobalConfig{
 				BuildkitHost:      "",
-				DebuggerHost:      "http\r://foo.com/",
-				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "",
 			},
 			errURLParseFailure,
@@ -250,8 +170,6 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 			"Invalid registry URL",
 			config.GlobalConfig{
 				BuildkitHost:      "",
-				DebuggerHost:      "",
-				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "http\r://foo.com/",
 			},
 			errURLParseFailure,
@@ -261,8 +179,6 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 			"Buildkit/Local Registry host mismatch",
 			config.GlobalConfig{
 				BuildkitHost:      "tcp://127.0.0.1:8372",
-				DebuggerHost:      "",
-				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "tcp://localhost:8371",
 			},
 			nil,
@@ -272,8 +188,6 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 			"Buildkit/Debugger host mismatch",
 			config.GlobalConfig{
 				BuildkitHost:      "tcp://bk:1234",
-				DebuggerHost:      "tcp://db:5678",
-				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "",
 			},
 			nil,
@@ -283,8 +197,6 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 			"Buildkit/Debugger port clash",
 			config.GlobalConfig{
 				BuildkitHost:      "tcp://cool-host:1234",
-				DebuggerHost:      "tcp://cool-host:1234",
-				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "",
 			},
 			errURLValidationFailure,
@@ -294,8 +206,6 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 			"Homebrew test",
 			config.GlobalConfig{
 				BuildkitHost:      "127.0.0.1",
-				DebuggerHost:      "",
-				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "",
 			},
 			errURLValidationFailure,
@@ -318,8 +228,6 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 
 		_, err = stub.setupAndValidateAddresses(FrontendDockerShell, &FrontendConfig{
 			BuildkitHostFileValue:      tt.config.BuildkitHost,
-			DebuggerHostFileValue:      tt.config.DebuggerHost,
-			DebuggerPortFileValue:      tt.config.DebuggerPort,
 			LocalRegistryHostFileValue: tt.config.LocalRegistryHost,
 			Console:                    logger,
 		})
@@ -388,8 +296,6 @@ func TestBuildArgMatrixValidationNonIssues(t *testing.T) {
 			"Buildkit/Local Registry host mismatch, schemes differ",
 			config.GlobalConfig{
 				BuildkitHost:      "docker-container://127.0.0.1:8372",
-				DebuggerHost:      "",
-				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "tcp://localhost:8371",
 			},
 			"Buildkit and Local Registry URLs are pointed at different hosts",
@@ -398,8 +304,6 @@ func TestBuildArgMatrixValidationNonIssues(t *testing.T) {
 			"Buildkit/Debugger host mismatch, schemes differ",
 			config.GlobalConfig{
 				BuildkitHost:      "docker-container://bk:1234",
-				DebuggerHost:      "tcp://db:5678",
-				DebuggerPort:      config.DefaultDebuggerPort,
 				LocalRegistryHost: "",
 			},
 			"Buildkit and Debugger URLs are pointed at different hosts",
@@ -421,8 +325,6 @@ func TestBuildArgMatrixValidationNonIssues(t *testing.T) {
 
 		_, err = stub.setupAndValidateAddresses(FrontendDockerShell, &FrontendConfig{
 			BuildkitHostFileValue:      tt.config.BuildkitHost,
-			DebuggerHostFileValue:      tt.config.DebuggerHost,
-			DebuggerPortFileValue:      tt.config.DebuggerPort,
 			LocalRegistryHostFileValue: tt.config.LocalRegistryHost,
 			Console:                    logger,
 		})

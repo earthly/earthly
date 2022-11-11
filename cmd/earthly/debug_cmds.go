@@ -15,7 +15,6 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/earthly/earthly/ast"
-	"github.com/earthly/earthly/cloud"
 )
 
 func (app *earthlyApp) debugCmds() []*cli.Command {
@@ -85,9 +84,9 @@ func (app *earthlyApp) actionDebugAst(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionDebugBuildkitInfo(cliCtx *cli.Context) error {
 	app.commandName = "debugBuildkitInfo"
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 	bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
@@ -110,9 +109,9 @@ func (app *earthlyApp) actionDebugBuildkitInfo(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionDebugBuildkitDiskUsage(cliCtx *cli.Context) error {
 	app.commandName = "debugBuildkitDiskUsage"
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 	bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
@@ -161,9 +160,9 @@ func (app *earthlyApp) actionDebugBuildkitDiskUsage(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionDebugBuildkitWorkers(cliCtx *cli.Context) error {
 	app.commandName = "debugBuildkitWorkers"
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 	bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
@@ -234,9 +233,9 @@ func (app *earthlyApp) actionDebugBuildkitWorkers(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionDebugBuildkitShutdownIfIdle(cliCtx *cli.Context) error {
 	app.commandName = "debugBuildkitShutdownIfIdle"
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 	bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
