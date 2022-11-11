@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -109,9 +110,10 @@ func (c *client) doCall(ctx context.Context, method, url string, opts ...request
 	body := []byte{}
 	var callErr error
 	duration := time.Millisecond * 100
+	reqID := uuid.NewString()
 	for attempt := 0; attempt < maxAttempt; attempt++ {
-		status, body, callErr = c.doCallImp(ctx, r, method, url, opts...)
-		retry, err := shouldRetry(status, body, callErr, c.warnFunc)
+		status, body, callErr = c.doCallImp(ctx, r, method, url, reqID, opts...)
+		retry, err := shouldRetry(status, body, callErr, c.warnFunc, reqID)
 		if err != nil {
 			return status, body, err
 		}
@@ -141,16 +143,16 @@ func (c *client) doCall(ctx context.Context, method, url string, opts ...request
 	return status, body, callErr
 }
 
-func shouldRetry(status int, body []byte, callErr error, warnFunc func(string, ...interface{})) (bool, error) {
+func shouldRetry(status int, body []byte, callErr error, warnFunc func(string, ...interface{}), reqID string) (bool, error) {
 	if status == http.StatusUnauthorized {
 		return true, nil
 	}
 	if 500 <= status && status <= 599 {
 		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
-			warnFunc("retrying http request due to unexpected status code %v", status)
+			warnFunc("retrying http request due to unexpected status code %v {reqID: %s}", status, reqID)
 		} else {
-			warnFunc("retrying http request due to unexpected status code %v: %v", status, msg)
+			warnFunc("retrying http request due to unexpected status code %v: %v {reqID: %s}", status, msg, reqID)
 		}
 		return true, nil
 	}
@@ -168,12 +170,12 @@ func shouldRetry(status int, body []byte, callErr error, warnFunc func(string, .
 	case strings.Contains(callErr.Error(), "failed to connect to ssh-agent"):
 		return false, callErr
 	default:
-		warnFunc("retrying http request due to unexpected error %v", callErr)
+		warnFunc("retrying http request due to unexpected error %v {reqID: %s}", callErr, reqID)
 		return true, nil
 	}
 }
 
-func (c *client) doCallImp(ctx context.Context, r request, method, url string, opts ...requestOpt) (int, []byte, error) {
+func (c *client) doCallImp(ctx context.Context, r request, method, url, reqID string, opts ...requestOpt) (int, []byte, error) {
 	var bodyReader io.Reader
 	var bodyLen int64
 	if r.hasBody {
@@ -194,6 +196,7 @@ func (c *client) doCallImp(ctx context.Context, r request, method, url string, o
 	if r.hasAuth {
 		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
 	}
+	req.Header.Add("Request-Id", reqID)
 
 	client := &http.Client{}
 
