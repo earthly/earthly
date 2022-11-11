@@ -67,9 +67,9 @@ Follow the steps in the [Earthly Cloud overview](./overview.md#getting-started) 
 
 ### 2. Purchase a Satellites Plan
 
-Satellites are now a paid feature and require a valid subscription to begin using. The subscription includes a 14-day free trial, so you can evaluate Satellites before committing to your first payment. Visit the [pricing page](https://earthly.dev/pricing) for more billing details.
+Satellites are now a paid feature and require a valid subscription to begin using. The subscription includes a 14-day free trial which can be canceled before any payment is made. Visit the [pricing page](https://earthly.dev/pricing) for more billing details.
 
-[Click here to start your subscription](https://buy.stripe.com/8wM9Es4BT4Vvb4YbIJ)
+[**Click here to start your subscription**](https://buy.stripe.com/8wM9Es4BT4Vvb4YbIJ)
 
 Once you've submitted your details on the checkout page, you will receive an email with further instructions. Please reply or [send us an email](mailto:support+satellite@earthly.dev) with your Org name in order for us to activate the Satellites feature on your account.
 
