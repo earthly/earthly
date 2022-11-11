@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/conslogging"
@@ -287,26 +286,6 @@ func (cco *commandContextOutput) string() string {
 func (sf *shellFrontend) commandContextStrings(args ...string) (string, []string) {
 	allArgs := append(sf.globalCompatibilityArgs, args...)
 	return sf.binaryName, allArgs
-}
-
-func (sf *shellFrontend) commandContextOutputWithRetry(ctx context.Context, retries int, timeout time.Duration, args ...string) (*commandContextOutput, error) {
-	var err error
-	for i := 0; i < retries; i++ {
-		timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
-		defer cancel()
-		output, cmdErr := sf.commandContextOutput(timeoutCtx, args...)
-		if cmdErr == nil {
-			return output, nil
-		}
-		err = multierror.Append(err, cmdErr)
-		if i < retries-1 {
-			binary, args2 := sf.commandContextStrings(args...)
-			sf.Console.Printf(
-				"Command '%s %s' failed with error %v. Retrying...\n",
-				binary, strings.Join(args2, " "), cmdErr)
-		}
-	}
-	return nil, err
 }
 
 func (sf *shellFrontend) commandContextOutput(ctx context.Context, args ...string) (*commandContextOutput, error) {
