@@ -61,6 +61,8 @@ jobs:
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Copy Earthly dir to Earthly dev dir
+        run: mkdir -p ~/.earthly && cp -r ~/.earthly ~/.earthly-dev
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) -P --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: rebuild earthly using latest earthly build
