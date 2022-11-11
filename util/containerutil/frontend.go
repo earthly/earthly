@@ -71,6 +71,10 @@ func autodetectFrontend(ctx context.Context, cfg *FrontendConfig) (ContainerFron
 			errs = multierror.Append(errs, err)
 			continue
 		}
+		if dsf, ok := fe.(*dockerShellFrontend); ok && dsf.likelyPodman {
+			// Docker CLI works, but it's likely podman making itself available via docker CLI.
+			continue
+		}
 		return fe, nil
 	}
 	return nil, errors.Wrapf(errs, "failed to autodetect a supported frontend")

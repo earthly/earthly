@@ -52,14 +52,21 @@ func NewDockerShellFrontend(ctx context.Context, cfg *FrontendConfig) (Container
 	}
 	fe.rootless = strings.Contains(output.string(), "rootless")
 	fe.userNamespaced = strings.Contains(output.string(), "name=userns")
-
 	if fe.userNamespaced {
 		fe.runCompatibilityArgs = []string{"--userns", "host"}
 	}
-
 	fe.urls, err = fe.setupAndValidateAddresses(FrontendDockerShell, cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to calculate buildkit URLs")
+	}
+
+	output, err = fe.commandContextOutputWithRetry(ctx, 10, 10*time.Second, "info", "--format={{.DockerRootDir}}")
+	if err != nil {
+		return nil, err
+	}
+	if strings.Contains(output.string(), "/var/lib/containers/storage") {
+		// Likely podman making itself available via the docker CLI.
+		fe.shellFrontend.likelyPodman = true
 	}
 
 	return fe, nil
