@@ -36,7 +36,7 @@ func TestBuildArgMatrix(t *testing.T) {
 			},
 			noopArgs,
 			results{
-				buildkit:      "docker-container://earthly-buildkitd",
+				buildkit:      "docker-container://test-buildkitd",
 				localRegistry: "",
 			},
 		},
@@ -121,7 +121,9 @@ func TestBuildArgMatrix(t *testing.T) {
 		logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, conslogging.Info)
 		logger = logger.WithWriter(&logs)
 
-		frontend, err := NewStubFrontend(ctx, &FrontendConfig{})
+		frontend, err := NewStubFrontend(ctx, &FrontendConfig{
+			InstallationName: "test-stub",
+		})
 		assert.NoError(t, err)
 
 		stub, ok := frontend.(*stubFrontend)
@@ -131,6 +133,8 @@ func TestBuildArgMatrix(t *testing.T) {
 			BuildkitHostCLIValue:       tt.args.buildkit,
 			BuildkitHostFileValue:      tt.config.BuildkitHost,
 			LocalRegistryHostFileValue: tt.config.LocalRegistryHost,
+			InstallationName:           "test",
+			DefaultPort:                8372,
 			Console:                    logger,
 		})
 		assert.NoError(t, err)
@@ -158,48 +162,12 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 			"",
 		},
 		{
-			"Invalid debugger URL",
-			config.GlobalConfig{
-				BuildkitHost:      "",
-				LocalRegistryHost: "",
-			},
-			errURLParseFailure,
-			"",
-		},
-		{
 			"Invalid registry URL",
 			config.GlobalConfig{
 				BuildkitHost:      "",
 				LocalRegistryHost: "http\r://foo.com/",
 			},
 			errURLParseFailure,
-			"",
-		},
-		{
-			"Buildkit/Local Registry host mismatch",
-			config.GlobalConfig{
-				BuildkitHost:      "tcp://127.0.0.1:8372",
-				LocalRegistryHost: "tcp://localhost:8371",
-			},
-			nil,
-			"Buildkit and local registry URLs are pointed at different hosts",
-		},
-		{
-			"Buildkit/Debugger host mismatch",
-			config.GlobalConfig{
-				BuildkitHost:      "tcp://bk:1234",
-				LocalRegistryHost: "",
-			},
-			nil,
-			"Buildkit and debugger URLs are pointed at different hosts",
-		},
-		{
-			"Buildkit/Debugger port clash",
-			config.GlobalConfig{
-				BuildkitHost:      "tcp://cool-host:1234",
-				LocalRegistryHost: "",
-			},
-			errURLValidationFailure,
 			"",
 		},
 		{
@@ -220,7 +188,9 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 		logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, conslogging.Info)
 		logger = logger.WithWriter(&logs)
 
-		frontend, err := NewStubFrontend(ctx, &FrontendConfig{})
+		frontend, err := NewStubFrontend(ctx, &FrontendConfig{
+			InstallationName: "test-stub",
+		})
 		assert.NoError(t, err)
 
 		stub, ok := frontend.(*stubFrontend)
@@ -230,6 +200,8 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 			BuildkitHostFileValue:      tt.config.BuildkitHost,
 			LocalRegistryHostFileValue: tt.config.LocalRegistryHost,
 			Console:                    logger,
+			InstallationName:           "test",
+			DefaultPort:                8372,
 		})
 		assert.ErrorIs(t, err, tt.expected)
 		assert.Contains(t, logs.String(), tt.log)
@@ -317,7 +289,9 @@ func TestBuildArgMatrixValidationNonIssues(t *testing.T) {
 		logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, conslogging.Info)
 		logger = logger.WithWriter(&logs)
 
-		frontend, err := NewStubFrontend(ctx, &FrontendConfig{})
+		frontend, err := NewStubFrontend(ctx, &FrontendConfig{
+			InstallationName: "test-stub",
+		})
 		assert.NoError(t, err)
 
 		stub, ok := frontend.(*stubFrontend)
@@ -327,6 +301,8 @@ func TestBuildArgMatrixValidationNonIssues(t *testing.T) {
 			BuildkitHostFileValue:      tt.config.BuildkitHost,
 			LocalRegistryHostFileValue: tt.config.LocalRegistryHost,
 			Console:                    logger,
+			InstallationName:           "test",
+			DefaultPort:                8372,
 		})
 		assert.NoError(t, err)
 		assert.NotContains(t, logs.String(), tt.log)
