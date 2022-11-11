@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -ue
+set -uex
 set -o pipefail
 
 cd "$(dirname "$0")"
@@ -91,6 +91,10 @@ sudo rm -rf "/usr/share/bash-completion/completions/earthly"
 
 echo "=== Test 5: Permissions ==="
 
+# @#
+ls -l "$HOME/.earthly-dev" || true
+ls -l "~/.earthly-dev" || true
+
 touch testfile
 USR=$(stat --format '%U' testfile)
 GRP=$(stat --format '%G' testfile)
@@ -114,10 +118,22 @@ if [[ $(stat --format '%G' "$HOME/.earthly-dev") != "$GRP" ]]; then
 fi
 
 echo "----"
+# @#
+ls -l "$HOME/.earthly-dev" || true
+ls -l "~/.earthly-dev" || true
+
 touch $HOME/.earthly-dev/config.yml
 sudo chown -R 12345:12345 $HOME/.earthly-dev
 
+# @#
+ls -l "$HOME/.earthly-dev" || true
+ls -l "~/.earthly-dev" || true
+
 sudo "$earthly" bootstrap
+
+# @#
+ls -l "$HOME/.earthly-dev" || true
+ls -l "~/.earthly-dev" || true
 
 if [[ $(stat --format '%U' "$HOME/.earthly-dev") != "$USR" ]]; then
   echo "earthly directory is not owned by the user"
