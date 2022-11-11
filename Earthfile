@@ -315,7 +315,7 @@ earthly-all:
 earthly-docker:
     ARG BUILDKIT_PROJECT
     FROM ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
-    RUN apk add --update --no-cache docker-cli libcap-ng-utils
+    RUN apk add --update --no-cache docker-cli libcap-ng-utils git
     ENV EARTHLY_IMAGE=true
     COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
     ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
