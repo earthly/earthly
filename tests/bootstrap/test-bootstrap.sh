@@ -29,7 +29,7 @@ if  cat hand_boot_output | grep -q "bootstrap |"; then
     exit 1
 fi
 
-rm -rf "$HOME/.earthly-dev/"
+rm -rf "$HOME/.earthly-dev"
 
 echo "=== Test 2: Implied Bootstrap ==="
 
@@ -48,7 +48,7 @@ if  cat imp_boot_output | grep -q "bootstrap |"; then
     exit 1
 fi
 
-rm -rf "$HOME/.earthly-dev/"
+rm -rf "$HOME/.earthly-dev"
 
 echo "=== Test 3: CI ==="
 
@@ -67,7 +67,7 @@ if  cat ci_boot_output | grep -q "bootstrap |"; then
     exit 1
 fi
 
-rm -rf "$HOME/.earthly-dev/"
+rm -rf "$HOME/.earthly-dev"
 
 echo "=== Test 4: With Autocomplete ==="
 
@@ -86,14 +86,10 @@ if [[ ! -f "/usr/share/bash-completion/completions/earthly" ]]; then
   exit 1
 fi
 
-rm -rf "$HOME/.earthly-dev/"
+rm -rf "$HOME/.earthly-dev"
 sudo rm -rf "/usr/share/bash-completion/completions/earthly"
 
 echo "=== Test 5: Permissions ==="
-
-# @#
-ls -l "$HOME/.earthly-dev" || true
-ls -l ~/.earthly-dev || true
 
 touch testfile
 USR=$(stat --format '%U' testfile)
@@ -117,23 +113,12 @@ if [[ $(stat --format '%G' "$HOME/.earthly-dev") != "$GRP" ]]; then
   exit 1
 fi
 
-echo "----"
-# @#
-ls -l "$HOME/.earthly-dev" || true
-ls -l ~/.earthly-dev || true
+echo "----
 
 touch $HOME/.earthly-dev/config.yml
 sudo chown -R 12345:12345 $HOME/.earthly-dev
 
-# @#
-ls -l "$HOME/.earthly-dev" || true
-ls -l ~/.earthly-dev || true
-
 sudo "$earthly" bootstrap
-
-# @#
-ls -l "$HOME/.earthly-dev" || true
-ls -l ~/.earthly-dev || true
 
 if [[ $(stat --format '%U' "$HOME/.earthly-dev") != "$USR" ]]; then
   echo "earthly directory is not owned by the user"
@@ -211,7 +196,7 @@ if ! DOCKER_HOST="$frontend is missing" "$earthly" bootstrap --source zsh > /dev
   exit 1
 fi
 
-rm -rf "$HOME/.earthly-dev/"
+rm -rf "$HOME/.earthly-dev"
 
 echo "=== Test 8: No Buildkit ==="
 
@@ -226,4 +211,4 @@ if ! DOCKER_HOST="$frontend is missing" "$earthly" bootstrap --no-buildkit; then
   exit 1
 fi
 
-rm -rf "$HOME/.earthly-dev/"
+rm -rf "$HOME/.earthly-dev"
