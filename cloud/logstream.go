@@ -2,7 +2,6 @@ package cloud
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/earthly/cloud-api/logstream"
@@ -26,13 +25,11 @@ func (c *client) StreamLogs(ctx context.Context, buildID string, deltasCh chan [
 				return errors.Wrap(err, "failed to read log stream response")
 			}
 			if resp.GetEofAck() {
-				fmt.Printf("@# received eof ack\n")
 				mu.Lock()
 				defer mu.Unlock()
 				if !finished {
 					return errors.New("unexpected EOF ack")
 				}
-				fmt.Printf("@# closing send\n")
 				err := streamClient.CloseSend()
 				if err != nil {
 					return errors.Wrap(err, "failed to close log stream")
@@ -48,7 +45,6 @@ func (c *client) StreamLogs(ctx context.Context, buildID string, deltasCh chan [
 				return ctx.Err()
 			case deltas, ok := <-deltasCh:
 				if !ok {
-					fmt.Printf("@# sending eof\n")
 					err := streamClient.Send(&logstream.StreamLogRequest{
 						BuildId: buildID,
 						Eof:     true,
@@ -61,7 +57,6 @@ func (c *client) StreamLogs(ctx context.Context, buildID string, deltasCh chan [
 					mu.Unlock()
 					return nil
 				}
-				fmt.Printf("@# sending deltas %v\n", deltas)
 				err := streamClient.Send(&logstream.StreamLogRequest{
 					BuildId: buildID,
 					Deltas:  deltas,

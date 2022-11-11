@@ -46,8 +46,6 @@ func New(ctx context.Context, bus *logbus.Bus, c cloud.Client, initialManifest *
 
 const maxBatchSize = 128
 
-// const maxBatchDuration = 200 * time.Millisecond
-
 func (ls *LogStreamer) retryLoop(ctx context.Context) {
 	defer close(ls.doneCh)
 	const maxRetry = 10
@@ -63,7 +61,7 @@ func (ls *LogStreamer) retryLoop(ctx context.Context) {
 			ls.errors = append(ls.errors, err)
 			return
 		}
-		fmt.Fprintf(os.Stderr, "transient error streaming logs: %v", err)
+		fmt.Fprintf(os.Stderr, "transient error streaming logs: %v\n", err)
 	}
 }
 

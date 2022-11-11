@@ -112,6 +112,7 @@ type cliFlags struct {
 	secretStdin               bool
 	cloudHTTPAddr             string
 	cloudGRPCAddr             string
+	cloudGRPCInsecure         bool
 	satelliteAddress          string
 	writePermission           bool
 	registrationPublicKey     string
@@ -282,7 +283,9 @@ func main() {
 		ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		displayErrors := app.verbose
-		cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+		cloudClient, err := cloud.NewClient(
+			app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure,
+			app.sshAuthSock, app.authToken, app.console.Warnf)
 		if err != nil && displayErrors {
 			app.console.Warnf("unable to start cloud client: %s", err)
 		} else if err == nil {

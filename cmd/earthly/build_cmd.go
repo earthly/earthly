@@ -175,7 +175,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock, app.authToken, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -183,33 +183,34 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	// Default upload logs, unless explicitly configured
 	if !app.cfg.Global.DisableLogSharing {
 		if cloudClient.IsLoggedIn(cliCtx.Context) {
-			// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
-			app.console = app.console.WithLogBundleWriter(target.String(), cleanCollection)
+			if app.logstreamUpload {
+				app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient, "my-org", "projectName TODO")
+			} else {
+				// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
+				app.console = app.console.WithLogBundleWriter(target.String(), cleanCollection)
 
-			defer func() { // Defer this to keep log upload code together
-				logPath, err := app.console.WriteBundleToDisk()
-				if err != nil {
-					err := errors.Wrapf(err, "failed to write log to disk")
-					app.console.Warnf(err.Error())
-					return
-				}
+				defer func() { // Defer this to keep log upload code together
+					logPath, err := app.console.WriteBundleToDisk()
+					if err != nil {
+						err := errors.Wrapf(err, "failed to write log to disk")
+						app.console.Warnf(err.Error())
+						return
+					}
 
-				id, err := cloudClient.UploadLog(cliCtx.Context, logPath)
-				if err != nil {
-					err := errors.Wrapf(err, "failed to upload log")
-					app.console.Warnf(err.Error())
-					return
-				}
-				app.console.Printf("Shareable link: %s\n", id)
-			}()
+					id, err := cloudClient.UploadLog(cliCtx.Context, logPath)
+					if err != nil {
+						err := errors.Wrapf(err, "failed to upload log")
+						app.console.Warnf(err.Error())
+						return
+					}
+					app.console.Printf("Shareable link: %s\n", id)
+				}()
+			}
 		} else {
 			defer func() { // Defer this to keep log upload code together
 				app.console.Printf("Share your logs with an Earthly account (experimental)! Register for one at https://ci.earthly.dev.")
 			}()
 		}
-	}
-	if app.logstreamUpload {
-		app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient, "my-org", "projectName TODO")
 	}
 
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")

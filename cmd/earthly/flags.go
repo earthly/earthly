@@ -87,6 +87,13 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Destination: &app.cloudGRPCAddr,
 			Hidden:      true, // Internal.
 		},
+		&cli.BoolFlag{
+			Name:        "grpc-insecure",
+			EnvVars:     []string{"EARTHLY_GRPC_INSECURE"},
+			Usage:       "Makes gRPC connections insecure for dev purposes",
+			Destination: &app.cloudGRPCInsecure,
+			Hidden:      true, // Internal.
+		},
 		&cli.StringFlag{
 			Name:        "satellite-address",
 			Value:       containerutil.SatelliteAddress,
