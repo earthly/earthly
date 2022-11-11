@@ -113,7 +113,7 @@ if [[ $(stat --format '%G' "$HOME/.earthly-dev") != "$GRP" ]]; then
   exit 1
 fi
 
-echo "----
+echo "----"
 
 touch $HOME/.earthly-dev/config.yml
 sudo chown -R 12345:12345 $HOME/.earthly-dev
