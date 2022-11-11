@@ -183,7 +183,9 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if !app.cfg.Global.DisableLogSharing {
 		if cloudClient.IsLoggedIn(cliCtx.Context) {
 			if app.logstreamUpload {
-				app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient, "my-org", "projectName TODO")
+				earthfileOrgName := "my-org" // TODO (vladaionescu): Detect this.
+				earthfileProjectName := ""   // TODO (vladaionescu): Detect this.
+				app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient, earthfileOrgName, earthfileProjectName)
 			} else {
 				// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
 				app.console = app.console.WithLogBundleWriter(target.String(), cleanCollection)
