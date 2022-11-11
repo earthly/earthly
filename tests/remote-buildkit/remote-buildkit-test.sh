@@ -5,7 +5,8 @@ set -o pipefail
 cd "$(dirname "$0")"
 earthly=${earthly-"../../build/linux/amd64/earthly"}
 
-touch ~/.earthly-dev/config.yml # In case it doesn't exist
+mkdir -p ~/.earthly-dev
+touch ~/.earthly-dev/config.yml
 cp ~/.earthly-dev/config.yml ~/.earthly-dev/config.yml.bkup
 
 function finish {
