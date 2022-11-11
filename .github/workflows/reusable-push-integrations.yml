@@ -47,8 +47,8 @@ jobs:
       - name: Docker mirror login via ${{inputs.BINARY}} (Earthly Only)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Copy Earthly dir to Earthly dev dir
-        run: mkdir -p ~/.earthly && cp -r ~/.earthly ~/.earthly-dev
+      - name: Link Earthly dir to Earthly dev dir
+        run: mkdir -p ~/.earthly && ln -s ~/.earthly ~/.earthly-dev
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) -P --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env

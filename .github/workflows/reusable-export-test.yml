@@ -71,8 +71,8 @@ jobs:
         # qemu-user-static needed for cross-compilation (--platform) targets
         run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y qemu-user-static
         if: inputs.BINARY == 'podman'
-      - name: Copy Earthly dir to Earthly dev dir
-        run: mkdir -p ~/.earthly && cp -r ~/.earthly ~/.earthly-dev
+      - name: Link Earthly dir to Earthly dev dir
+        run: mkdir -p ~/.earthly && ln -s ~/.earthly ~/.earthly-dev
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) -P --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
