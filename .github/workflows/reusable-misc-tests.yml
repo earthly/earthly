@@ -93,7 +93,7 @@ jobs:
         with:
           timeout_minutes: 10
           max_attempts: 2
-          command: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ${{inputs.BUILT_EARTHLY_PATH}} --timeout 300
+          command: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ${{inputs.BUILT_EARTHLY_PATH}} --timeout 180
       - name: Execute version test
         run: "${{inputs.BUILT_EARTHLY_PATH}} --version"
       - name: Execute docker2earth test
