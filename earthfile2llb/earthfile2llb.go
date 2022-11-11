@@ -91,6 +91,8 @@ type ConvertOpt struct {
 	// DoPushes controls when a SAVE IMAGE --push, and RUN --push commands are executed;
 	// SAVE IMAGE --push ... will still export an image to the local docker instance (as long as DoSaves=true)
 	DoPushes bool
+	// IsCI determines whether it is running from a CI environment.
+	IsCI bool
 	// ForceSaveImage is used to force all SAVE IMAGE commands are executed regardless of if they are
 	// for a local or remote target; this is to support the legacy behaviour that was first introduced in earthly (up to 0.5)
 	// When this is set to false, SAVE IMAGE commands are only executed when DoSaves is true.

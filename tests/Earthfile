@@ -139,6 +139,7 @@ ga-no-qemu:
     BUILD +required-arg-test
     BUILD +push-test
     BUILD +push-arg-test
+    BUILD +ci-arg-test
     BUILD +gen-dockerfile-test
     BUILD +chown-test
     BUILD +dotenv-test
@@ -549,6 +550,12 @@ push-arg-indirect-test:
         --output_contains="shoop"
     DO +RUN_EARTHLY --earthfile=push-arg.earth --extra_args="--push" --target=+indirect-test \
         --output_contains="shoop"
+
+ci-arg-test:
+    DO +RUN_EARTHLY --earthfile=ci-arg.earth --target=+ci-test \
+        --output_contains="shoop"
+    DO +RUN_EARTHLY --earthfile=ci-arg.earth --extra_args="--ci" --target=+ci-test \
+        --output_contains="real good"
 
 private-image-test:
     FROM earthly/private-test:latest

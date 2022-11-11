@@ -89,6 +89,7 @@ type BuildOpt struct {
 	AllowPrivileged            bool
 	PrintPhases                bool
 	Push                       bool
+	CI                         bool
 	NoOutput                   bool
 	OnlyFinalTargetImages      bool
 	OnlyArtifact               *domain.Artifact
@@ -196,6 +197,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				DoSaves:                              !opt.NoOutput,
 				OnlyFinalTargetImages:                opt.OnlyFinalTargetImages,
 				DoPushes:                             opt.Push,
+				IsCI:                                 opt.CI,
 				ExportCoordinator:                    exportCoordinator,
 				LocalArtifactWhiteList:               opt.LocalArtifactWhiteList,
 				InternalSecretStore:                  b.opt.InternalSecretStore,

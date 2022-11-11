@@ -119,6 +119,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		Console:          opt.Console,
 		Target:           target,
 		Push:             opt.DoPushes,
+		CI:               opt.IsCI,
 		PlatformResolver: opt.PlatformResolver,
 		GitMeta:          bc.GitMetadata,
 		BuiltinArgs:      opt.BuiltinArgs,

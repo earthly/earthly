@@ -451,6 +451,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	buildOpts := builder.BuildOpt{
 		PrintPhases:                true,
 		Push:                       app.push,
+		CI:                         app.ci,
 		NoOutput:                   app.noOutput,
 		OnlyFinalTargetImages:      app.imageMode,
 		PlatformResolver:           platr,
