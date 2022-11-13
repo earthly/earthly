@@ -16,6 +16,7 @@ ENV EARTHLY_SHOW_HIDDEN=0
 test-root-commands:
     RUN echo "account 
 bootstrap 
+completion 
 config 
 ls 
 org 
@@ -31,6 +32,7 @@ test-hidden-root-commands:
     RUN echo "account 
 bootstrap 
 build 
+completion 
 config 
 debug 
 docker 
@@ -223,6 +225,31 @@ test-no-errors-are-displayed:
     RUN ! COMP_LINE="earthly +" COMP_POINT=9 earthly > actual
     RUN diff expected actual
 
+test-completion-command:
+    RUN echo "bash 
+zsh "> expected
+    RUN COMP_LINE="earthly completion " COMP_POINT=19 earthly > actual
+    RUN diff expected actual
+
+test-completion-command-generated-bash:
+    # To avoid "bootstrap successful" from showing up when we run
+    # the completion command
+    RUN earthly bootstrap --no-buildkit 2>/dev/null
+    RUN earthly completion bash 2>err 1>out
+    RUN [ $(cat err | wc -c) -eq 0 ] && \
+        [ $(cat out | wc -l) -eq 1 ] && \
+        grep -E '^complete.+earthly$' out
+
+test-completion-command-generated-zsh:
+    # To avoid "bootstrap successful" from showing up when we run
+    # the completion command
+    RUN earthly bootstrap --no-buildkit 2>/dev/null
+    RUN earthly completion zsh 2>err 1>out
+    RUN cat err && cat out
+    RUN [ $(cat err | wc -c) -eq 0 ] && \
+        [ $(cat out | wc -l) -gt 1 ] && \
+        head -n 1 out | grep -E '^#compdef.+earthly$'
+
 test-all:
     BUILD +test-root-commands
     BUILD +test-hidden-root-commands
@@ -240,3 +267,6 @@ test-all:
     BUILD +test-targets-in-dir-and-subdir
     BUILD +test-targets-in-two-subdirs-that-are-similar
     BUILD +test-no-errors-are-displayed
+    BUILD +test-completion-command
+    BUILD +test-completion-command-generated-bash
+    BUILD +test-completion-command-generated-zsh

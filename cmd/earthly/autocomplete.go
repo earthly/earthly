@@ -20,6 +20,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+type completionGenerator func() (string, error)
+
 // to enable autocomplete, enter
 // complete -o nospace -C "/path/to/earthly" earthly
 func (app *earthlyApp) autoComplete(ctx context.Context) {

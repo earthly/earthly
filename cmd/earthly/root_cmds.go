@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path"
@@ -59,6 +60,25 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 					Name:        "with-autocomplete",
 					Usage:       "Add earthly autocompletions",
 					Destination: &app.bootstrapWithAutocomplete,
+				},
+			},
+		},
+		{
+			Name:        "completion",
+			Usage:       "Output shell completion code for the specified shell (bash, zsh)",
+			Description: "Output shell completion code for the specified shell (bash, zsh)",
+			Subcommands: []*cli.Command{
+				{
+					Name:      "bash",
+					Usage:     "Generate completions for bash",
+					UsageText: "earthly completion bash",
+					Action:    app.actionCompletion(bashCompleteEntry, os.Stdout),
+				},
+				{
+					Name:      "zsh",
+					Usage:     "Generate completions for zsh",
+					UsageText: "earthly completion zsh",
+					Action:    app.actionCompletion(zshCompleteEntry, os.Stdout),
 				},
 			},
 		},
@@ -452,6 +472,21 @@ func symlinkEarthlyToEarth() error {
 		return errors.Wrapf(err, "failed to symlink %s to %s", binPath, earthPath)
 	}
 	return nil
+}
+
+func (app *earthlyApp) actionCompletion(generator completionGenerator, out io.Writer) cli.ActionFunc {
+	app.commandName = "completion"
+	return func(*cli.Context) error {
+		res, err := generator()
+		if err != nil {
+			return err
+		}
+		_, err = out.Write([]byte(res))
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 }
 
 func (app *earthlyApp) actionDocker(cliCtx *cli.Context) error {
