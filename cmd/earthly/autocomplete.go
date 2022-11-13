@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/adrg/xdg"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -82,50 +83,80 @@ func (app *earthlyApp) autoCompleteImp(ctx context.Context) (err error) {
 
 	return err
 }
+
 func (app *earthlyApp) insertBashCompleteEntry() error {
-	var path string
-	if runtime.GOOS == "darwin" {
-		path = "/usr/local/etc/bash_completion.d/earthly"
-	} else {
-		path = "/usr/share/bash-completion/completions/earthly"
+	u, err := user.Current()
+	if err != nil {
+		return errors.Wrapf(err, "could not get current user")
 	}
+	isRootUser := u.Uid == "0"
+	var path string
+	// Assume that non-root can't write to the system and that installation
+	// to root's home isn't desirable.  One possible exception might be if
+	// those directories are on an R/O filesystem, but user can install these
+	// manually in that case.
+	if isRootUser {
+		if runtime.GOOS == "darwin" {
+			path = "/usr/local/etc/bash_completion.d/earthly"
+		} else {
+			path = "/usr/share/bash-completion/completions/earthly"
+		}
+	} else {
+		// https://github.com/scop/bash-completion/blob/master/README.md#faq
+		userPath, ok := os.LookupEnv("BASH_COMPLETION_USER_DIR")
+		if !ok {
+			// This will give a standardized fallback even if XDG isn't active
+			userPath = xdg.DataHome
+		}
+		path = filepath.Join(userPath, "bash-completion/completions/earthly")
+	}
+	ok, err := app.insertBashCompleteEntryAt(path)
+	if err == nil {
+		if ok {
+			app.console.VerbosePrintf("Successfully enabled bash-completion at %s\n", path)
+		} else {
+			app.console.VerbosePrintf("Bash-completion already present at %s\n", path)
+		}
+	}
+	return err
+}
+
+func (app *earthlyApp) insertBashCompleteEntryAt(path string) (bool, error) {
 	dirPath := filepath.Dir(path)
 
 	dirPathExists, err := fileutil.DirExists(dirPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed checking if %s exists", dirPath)
+		return false, errors.Wrapf(err, "failed checking if %s exists", dirPath)
 	}
 	if !dirPathExists {
-		fmt.Fprintf(os.Stderr, "Warning: unable to enable bash-completion: %s does not exist\n", dirPath)
-		return nil // bash-completion isn't available, silently fail.
+		return false, errors.New(fmt.Sprintf("%s does not exist", dirPath))
 	}
 
 	pathExists, err := fileutil.FileExists(path)
 	if err != nil {
-		return errors.Wrapf(err, "failed checking if %s exists", path)
+		return false, errors.Wrapf(err, "failed checking if %s exists", path)
 	}
 	if pathExists {
-		return nil // file already exists, don't update it.
+		return false, nil // file already exists, don't update it.
 	}
 
 	// create the completion file
 	f, err := os.Create(path)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer f.Close()
 
 	bashEntry, err := bashCompleteEntry()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: unable to enable bash-completion: %s\n", err)
-		return nil // bash-completion isn't available, silently fail.
+		return false, errors.Wrapf(err, "failed to add entry")
 	}
 
 	_, err = f.Write([]byte(bashEntry))
 	if err != nil {
-		return errors.Wrapf(err, "failed writing to %s", path)
+		return false, errors.Wrapf(err, "failed writing to %s", path)
 	}
-	return nil
+	return true, nil
 }
 
 func (app *earthlyApp) deleteZcompdump() error {
