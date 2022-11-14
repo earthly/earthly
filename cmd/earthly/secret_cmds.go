@@ -170,7 +170,7 @@ func (app *earthlyApp) actionSecretsList(cliCtx *cli.Context) error {
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -190,7 +190,7 @@ func (app *earthlyApp) actionSecretsGet(cliCtx *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	path := cliCtx.Args().Get(0)
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -211,7 +211,7 @@ func (app *earthlyApp) actionSecretsRemove(cliCtx *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 	path := cliCtx.Args().Get(0)
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -257,7 +257,7 @@ func (app *earthlyApp) actionSecretsSet(cliCtx *cli.Context) error {
 		value = string(data)
 	}
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -289,7 +289,7 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 
 	path = app.fullSecretPath(path)
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -325,7 +325,7 @@ func (app *earthlyApp) actionSecretsGetV2(cliCtx *cli.Context) error {
 
 	path := cliCtx.Args().Get(0)
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -358,7 +358,7 @@ func (app *earthlyApp) actionSecretsRemoveV2(cliCtx *cli.Context) error {
 
 	path := cliCtx.Args().Get(0)
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -410,7 +410,7 @@ func (app *earthlyApp) actionSecretsSetV2(cliCtx *cli.Context) error {
 		value = string(data)
 	}
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -454,7 +454,7 @@ func (app *earthlyApp) actionSecretPermsList(cliCtx *cli.Context) error {
 		return errors.New("user secrets don't support permissions")
 	}
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -498,7 +498,7 @@ func (app *earthlyApp) actionSecretPermsRemove(cliCtx *cli.Context) error {
 		return errors.New("user email is required")
 	}
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -537,7 +537,7 @@ func (app *earthlyApp) actionSecretPermsSet(cliCtx *cli.Context) error {
 		return errors.New("permission is required")
 	}
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}
@@ -574,7 +574,7 @@ func (app *earthlyApp) actionSecretsMigrate(cliCtx *cli.Context) error {
 		return errors.New("destination project is required")
 	}
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cloud client")
 	}

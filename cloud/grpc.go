@@ -16,8 +16,8 @@ func (c *client) withAuth(ctx context.Context) context.Context {
 	return metadata.AppendToOutgoingContext(ctx, "authorization", fmt.Sprintf("Bearer %s", c.authToken))
 }
 
-func withReqID(ctx context.Context) context.Context {
-	return metadata.AppendToOutgoingContext(ctx, requestID, newRequestID())
+func (c *client) withReqID(ctx context.Context) context.Context {
+	return metadata.AppendToOutgoingContext(ctx, requestID, c.getRequestID())
 }
 
 func getReqID(ctx context.Context) string {
@@ -36,7 +36,7 @@ func getReqID(ctx context.Context) string {
 // prints requestIDs to errors when errors are received from the server.
 func (c *client) UnaryInterceptor() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		ctx = withReqID(ctx)
+		ctx = c.withReqID(ctx)
 		ctx, err := c.reAuthIfExpired(ctx)
 		if err != nil {
 			return errors.Wrap(err, "failed refreshing expired token")
@@ -66,7 +66,7 @@ func (c *client) UnaryInterceptor() grpc.UnaryClientInterceptor {
 // prints requestIDs to errors when errors are received from the server.
 func (c *client) StreamInterceptor() grpc.StreamClientInterceptor {
 	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
-		ctx = withReqID(ctx)
+		ctx = c.withReqID(ctx)
 		ctx, err := c.reAuthIfExpired(ctx)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed refreshing expired token")

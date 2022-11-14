@@ -109,7 +109,7 @@ func (c *client) doCall(ctx context.Context, method, url string, opts ...request
 	body := []byte{}
 	var callErr error
 	duration := time.Millisecond * 100
-	reqID := newRequestID()
+	reqID := c.getRequestID()
 	for attempt := 0; attempt < maxAttempt; attempt++ {
 		status, body, callErr = c.doCallImp(ctx, r, method, url, reqID, opts...)
 		retry, err := shouldRetry(status, body, callErr, c.warnFunc, reqID)

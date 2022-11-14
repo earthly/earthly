@@ -147,6 +147,7 @@ type cliFlags struct {
 	inviteMessage             string
 	logstream                 bool
 	logstreamDebugFile        string
+	requestID                 string
 }
 
 type analyticsMetadata struct {
@@ -279,7 +280,7 @@ func main() {
 		ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		displayErrors := app.verbose
-		cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+		cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
 		if err != nil && displayErrors {
 			app.console.Warnf("unable to start cloud client: %s", err)
 		} else if err == nil {

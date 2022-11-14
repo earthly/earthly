@@ -115,19 +115,21 @@ type client struct {
 	pipelines             pipelines.PipelinesClient
 	compute               compute.ComputeClient
 	logstream             logstream.LogStreamClient
+	requestID             string
 }
 
 var _ Client = &client{}
 
 // NewClient provides a new Earthly Cloud client
-func NewClient(httpAddr, grpcAddr, agentSockPath, authCredsOverride string, warnFunc func(string, ...interface{})) (Client, error) {
+func NewClient(httpAddr, grpcAddr, agentSockPath, authCredsOverride, requestID string, warnFunc func(string, ...interface{})) (Client, error) {
 	c := &client{
 		httpAddr: httpAddr,
 		sshAgent: &lazySSHAgent{
 			sockPath: agentSockPath,
 		},
-		warnFunc: warnFunc,
-		jum:      &protojson.UnmarshalOptions{DiscardUnknown: true},
+		warnFunc:  warnFunc,
+		jum:       &protojson.UnmarshalOptions{DiscardUnknown: true},
+		requestID: requestID,
 	}
 	if authCredsOverride != "" {
 		c.authCredToken = authCredsOverride
@@ -156,6 +158,9 @@ func NewClient(httpAddr, grpcAddr, agentSockPath, authCredsOverride string, warn
 	return c, nil
 }
 
-func newRequestID() string {
+func (c *client) getRequestID() string {
+	if c.requestID != "" {
+		return c.requestID
+	}
 	return uuid.NewString()
 }
