@@ -8,6 +8,7 @@ import (
 	"github.com/earthly/cloud-api/compute"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/cloud-api/pipelines"
+	"github.com/google/uuid"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh/agent"
@@ -27,6 +28,7 @@ var (
 const (
 	tokenExpiryLayout    = "2006-01-02 15:04:05.999999999 -0700 MST"
 	satelliteMgmtTimeout = "5M" // 5 minute timeout when launching or deleting a Satellite
+	requestID            = "request-id"
 )
 
 // Client contains gRPC and REST endpoints to the Earthly Cloud backend.
@@ -143,8 +145,8 @@ func NewClient(httpAddr, grpcAddr, agentSockPath, authCredsOverride string, warn
 	}
 	conn, err := grpc.DialContext(ctx, grpcAddr,
 		grpc.WithTransportCredentials(tlsConfig),
-		grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...), c.StreamAuthInterceptor()),
-		grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...), c.UnaryAuthInterceptor()))
+		grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...), c.StreamInterceptor()),
+		grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...), c.UnaryInterceptor()))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed dialing pipelines grpc")
 	}
@@ -152,4 +154,8 @@ func NewClient(httpAddr, grpcAddr, agentSockPath, authCredsOverride string, warn
 	c.compute = compute.NewComputeClient(conn)
 	c.logstream = logstream.NewLogStreamClient(conn)
 	return c, nil
+}
+
+func newRequestID() string {
+	return uuid.NewString()
 }

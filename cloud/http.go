@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -110,7 +109,7 @@ func (c *client) doCall(ctx context.Context, method, url string, opts ...request
 	body := []byte{}
 	var callErr error
 	duration := time.Millisecond * 100
-	reqID := uuid.NewString()
+	reqID := newRequestID()
 	for attempt := 0; attempt < maxAttempt; attempt++ {
 		status, body, callErr = c.doCallImp(ctx, r, method, url, reqID, opts...)
 		retry, err := shouldRetry(status, body, callErr, c.warnFunc, reqID)
@@ -196,7 +195,7 @@ func (c *client) doCallImp(ctx context.Context, r request, method, url, reqID st
 	if r.hasAuth {
 		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
 	}
-	req.Header.Add("Request-Id", reqID)
+	req.Header.Add(requestID, reqID)
 
 	client := &http.Client{}
 
