@@ -70,7 +70,7 @@ type Client interface {
 	SendAnalytics(ctx context.Context, data *EarthlyAnalytics) error
 	IsLoggedIn(ctx context.Context) bool
 	GetAuthToken(ctx context.Context) (string, error)
-	LaunchSatellite(ctx context.Context, name, org string, features []string) error
+	LaunchSatellite(ctx context.Context, name, org, platform, size string, features []string) error
 	GetOrgID(ctx context.Context, name string) (string, error)
 	ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error)
 	GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error)

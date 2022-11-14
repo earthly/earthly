@@ -37,6 +37,7 @@ type SatelliteInstance struct {
 	Org      string
 	Status   string
 	Platform string
+	Size     string
 }
 
 func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error) {
@@ -52,6 +53,7 @@ func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteI
 			Name:     s.Name,
 			Org:      orgID,
 			Platform: s.Platform,
+			Size:     s.Size,
 			Status:   satelliteStatus(s.Status),
 		}
 	}
@@ -71,6 +73,7 @@ func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*Satelli
 		Org:      orgID,
 		Status:   satelliteStatus(resp.Status),
 		Platform: resp.Platform,
+		Size:     resp.Size,
 	}, nil
 }
 
@@ -85,11 +88,12 @@ func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error 
 	return nil
 }
 
-func (c *client) LaunchSatellite(ctx context.Context, name, orgID string, features []string) error {
+func (c *client) LaunchSatellite(ctx context.Context, name, orgID, platform, size string, features []string) error {
 	_, err := c.compute.LaunchSatellite(c.withAuth(ctx), &pb.LaunchSatelliteRequest{
 		OrgId:        orgID,
 		Name:         name,
-		Platform:     "linux/amd64", // TODO support arm64 as well
+		Platform:     platform,
+		Size:         size,
 		FeatureFlags: features,
 	})
 	if err != nil {
