@@ -21,7 +21,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jdxcode/netrc v0.0.0-20210204082910-926c7f70242a
-	github.com/jedib0t/go-pretty v4.3.0+incompatible
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/joho/godotenv v1.3.0
 	github.com/mattn/go-colorable v0.1.8
@@ -48,7 +47,6 @@ require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/antlr/antlr4 v0.0.0-20200225173536-225249fdaef5 // indirect
-	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/containerd/continuity v0.3.0 // indirect
 	github.com/containerd/ttrpc v1.1.0 // indirect
@@ -61,8 +59,6 @@ require (
 	github.com/elastic/go-windows v1.0.0 // indirect
 	github.com/go-logr/logr v1.2.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-openapi/errors v0.20.2 // indirect
-	github.com/go-openapi/strfmt v0.21.3 // indirect
 	github.com/gogo/googleapis v1.4.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -72,22 +68,18 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
 	github.com/klauspost/compress v1.15.9 // indirect
-	github.com/mattn/go-runewidth v0.0.13 // indirect
-	github.com/mitchellh/mapstructure v1.3.3 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/moby/locker v1.0.1 // indirect
 	github.com/moby/patternmatcher v0.5.0 // indirect
 	github.com/moby/sys/signal v0.7.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
-	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opencontainers/runc v1.1.3 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
-	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/tonistiigi/units v0.0.0-20180711220420-6950e57a87ea // indirect
 	github.com/tonistiigi/vt100 v0.0.0-20210615222946-8066bb97264f // indirect
-	go.mongodb.org/mongo-driver v1.10.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.29.0 // indirect
 	go.opentelemetry.io/otel v1.4.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.4.1 // indirect

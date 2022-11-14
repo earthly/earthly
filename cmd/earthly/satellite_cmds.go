@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"text/tabwriter"
 	"time"
 
-	"github.com/jedib0t/go-pretty/table"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
@@ -140,23 +140,19 @@ func (app *earthlyApp) useSatellite(cliCtx *cli.Context, satelliteName, orgName 
 }
 
 func (app *earthlyApp) printSatellites(satellites []cloud.SatelliteInstance, orgID string) {
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.Style().Options.DrawBorder = false
-	t.Style().Options.SeparateColumns = false
-	t.Style().Options.SeparateFooter = false
-	t.Style().Options.SeparateHeader = false
-	t.Style().Options.SeparateRows = false
-	t.AppendHeader(table.Row{"", "Name", "Platform", "Size"})
+	t := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
+	fmt.Fprintf(t, " \tNAME\tPLATFORM\tSIZE\n") // The leading space is for the selection marker, leave it alone
 	for _, s := range satellites {
 		var selected = ""
 		if s.Name == app.cfg.Satellite.Name && s.Org == orgID {
 			selected = "*"
 		}
-
-		t.AppendRow([]interface{}{selected, s.Name, s.Platform, s.Size})
+		fmt.Fprintf(t, "%s\t%s\t%s\t%s\n", selected, s.Name, s.Platform, s.Size)
 	}
-	t.Render()
+	err := t.Flush()
+	if err != nil {
+		fmt.Printf("failed to print satellites: %s", err.Error())
+	}
 }
 
 func (app *earthlyApp) getSatelliteOrgID(ctx context.Context, cloudClient cloud.Client) (string, error) {
