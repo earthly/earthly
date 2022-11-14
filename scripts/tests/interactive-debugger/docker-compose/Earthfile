@@ -1,11 +1,10 @@
 VERSION 0.6
 FROM earthly/dind:alpine
-RUN apk add --update --no-cache \
-    jq
 
 fail-with-docker-compose:
     WORKDIR /test
     RUN echo ZTg4Y2MyYjgtYzE3OS00ZWQ3LThlYWUtMjA3YTBlZjc1NDZj > /data.txt
+    COPY Dockerfile ./
     COPY docker-compose.yml ./
     WITH DOCKER --compose=docker-compose.yml
         RUN false
