@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 
 	"github.com/alessio/shellescape"
 	"github.com/dustin/go-humanize"
@@ -41,12 +40,12 @@ func NewDockerShellFrontend(ctx context.Context, cfg *FrontendConfig) (Container
 	// `--format` option.
 	// This is to prevent displaying panic() errors to our users (even though the panic() occurred in the
 	// docker cli binary and not earthly).
-	_, err := fe.commandContextOutputWithRetry(ctx, 10, 10*time.Second, "info")
+	_, err := fe.commandContextOutput(ctx, "info")
 	if err != nil {
 		return nil, err
 	}
 
-	output, err := fe.commandContextOutputWithRetry(ctx, 10, 10*time.Second, "info", "--format={{.SecurityOptions}}")
+	output, err := fe.commandContextOutput(ctx, "info", "--format={{.SecurityOptions}}")
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +85,7 @@ func (dsf *dockerShellFrontend) Config() *CurrentFrontend {
 }
 
 func (dsf *dockerShellFrontend) Information(ctx context.Context) (*FrontendInfo, error) {
-	output, err := dsf.commandContextOutputWithRetry(ctx, 10, 10*time.Second, "version", "--format={{json .}}")
+	output, err := dsf.commandContextOutput(ctx, "version", "--format={{json .}}")
 	if err != nil {
 		return nil, err
 	}
