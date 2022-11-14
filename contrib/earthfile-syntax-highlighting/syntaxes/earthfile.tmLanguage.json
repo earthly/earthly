@@ -88,7 +88,7 @@
 				},
 				{
 					"name": "keyword.operator.flag.earthfile",
-					"match": "(\\B(-)+[a-zA-Z0-9\\-]+)"
+					"match": "(\\B(-)+[a-zA-Z0-9\\-_]+)"
 				},
 				{
 					"include": "#special-method"
