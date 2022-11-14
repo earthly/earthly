@@ -52,10 +52,11 @@ func (c *client) UnaryAuthInterceptor() grpc.UnaryClientInterceptor {
 						return errors.Wrap(err, "failed re-authenticating")
 					}
 					md, ok := metadata.FromOutgoingContext(ctx)
-					if !ok {
-						return errors.New("could not parse metadata")
+					if ok {
+						md.Delete("authorization")
+					} else {
+						md = metadata.New(map[string]string{})
 					}
-					md.Delete("authorization")
 					ctx = metadata.NewOutgoingContext(ctx, md)
 					return invoker(c.withAuth(ctx), method, req, reply, cc, opts...)
 				}
@@ -85,10 +86,11 @@ func (c *client) StreamAuthInterceptor() grpc.StreamClientInterceptor {
 						return nil, errors.Wrap(err, "failed re-authenticating")
 					}
 					md, ok := metadata.FromOutgoingContext(ctx)
-					if !ok {
-						return nil, errors.New("could not parse metadata")
+					if ok {
+						md.Delete("authorization")
+					} else {
+						md = metadata.New(map[string]string{})
 					}
-					md.Delete("authorization")
 					ctx = metadata.NewOutgoingContext(ctx, md)
 					// TODO not sure if newStreamer(...) should be called here instead
 					return streamer(c.withAuth(ctx), desc, cc, method, opts...)
