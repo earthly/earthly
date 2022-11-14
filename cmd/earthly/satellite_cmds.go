@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/jedib0t/go-pretty/table"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
@@ -27,6 +28,18 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 				"	earthly satellite [--org <organization-name>] launch <satellite-name>",
 			Action: app.actionSatelliteLaunch,
 			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "platform",
+					Usage:       "The platform to use when launching a new satellite. Supported values: linux/amd64, linux/arm64.",
+					Required:    false,
+					Destination: &app.satellitePlatform,
+				},
+				&cli.StringFlag{
+					Name:        "size",
+					Usage:       "The size of the satellite. See https://earthly.dev/pricing#compute for details on each size. Supported values: small, medium, large.",
+					Required:    false,
+					Destination: &app.satelliteSize,
+				},
 				&cli.StringSliceFlag{
 					Name:        "feature-flag",
 					EnvVars:     []string{"EARTHLY_SATELLITE_FEATURE_FLAGS"},
@@ -127,13 +140,23 @@ func (app *earthlyApp) useSatellite(cliCtx *cli.Context, satelliteName, orgName 
 }
 
 func (app *earthlyApp) printSatellites(satellites []cloud.SatelliteInstance, orgID string) {
-	for _, satellite := range satellites {
-		if satellite.Name == app.cfg.Satellite.Name && satellite.Org == orgID {
-			fmt.Printf("* %s\n", satellite.Name)
-		} else {
-			fmt.Printf("  %s\n", satellite.Name)
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.Style().Options.DrawBorder = false
+	t.Style().Options.SeparateColumns = false
+	t.Style().Options.SeparateFooter = false
+	t.Style().Options.SeparateHeader = false
+	t.Style().Options.SeparateRows = false
+	t.AppendHeader(table.Row{"", "Name", "Platform", "Size"})
+	for _, s := range satellites {
+		var selected = ""
+		if s.Name == app.cfg.Satellite.Name && s.Org == orgID {
+			selected = "*"
 		}
+
+		t.AppendRow([]interface{}{selected, s.Name, s.Platform, s.Size})
 	}
+	t.Render()
 }
 
 func (app *earthlyApp) getSatelliteOrgID(ctx context.Context, cloudClient cloud.Client) (string, error) {
@@ -192,7 +215,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	}
 
 	app.console.Printf("Launching Satellite. This could take a moment...\n")
-	err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID, app.satelliteFeatureFlags.Value())
+	err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID, app.satellitePlatform, app.satelliteSize, app.satelliteFeatureFlags.Value())
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			app.console.Printf("Operation interrupted. Satellite should finish launching in background (if server received request).\n")
@@ -329,6 +352,8 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	}
 
 	app.console.Printf("Instance state: %s", satellite.Status)
+	app.console.Printf("Instance platform: %s", satellite.Platform)
+	app.console.Printf("Instance size: %s", satellite.Size)
 	app.console.Printf("Currently selected: %s", selected)
 	app.console.Printf("")
 
