@@ -38,10 +38,14 @@ detect_frontend() {
     return
   fi
 
-  echo "none"
+  echo >&2 "failed to detect docker/podman frontend"
+  exit 1
 }
 
-frontend_bin=$(detect_frontend)
+# some tests run ./earthly when no front-end is present; when EARTHLY_DISABLE_FRONTEND_DETECTION=true, skip detection.
+if [ "$EARTHLY_DISABLE_FRONTEND_DETECTION" != "true" ]; then
+    frontend_bin=$(detect_frontend)
+fi
 
 get_latest_binary() {
     "$frontend_bin" rm --force earthly_binary 2>/dev/null >&2 || true
