@@ -71,7 +71,7 @@ Satellites are now a paid feature and require a valid subscription to begin usin
 
 [**Click here to start your subscription**](https://buy.stripe.com/8wM9Es4BT4Vvb4YbIJ)
 
-Once you've submitted your details on the checkout page, you will receive an email with further instructions. Please reply or [send us an email](mailto:support+satellite@earthly.dev) with your Org name in order for us to activate the Satellites feature on your account.
+Once you've submitted your details on the checkout page, you will receive an email with further instructions. Please reply or [send us an email](mailto:support+satellite@earthly.dev) with your org name from step 1 in order for us to activate the Satellites feature on your account.
 
 ### 3. Ensure that you have the latest version of Earthly
 
