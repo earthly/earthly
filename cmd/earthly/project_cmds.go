@@ -80,9 +80,9 @@ func (app *earthlyApp) projectCmds() []*cli.Command {
 func (app *earthlyApp) actionProjectList(cliCtx *cli.Context) error {
 	app.commandName = "projectList"
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 
 	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
@@ -109,9 +109,9 @@ func (app *earthlyApp) actionProjectRemove(cliCtx *cli.Context) error {
 		return errors.New("project name is required")
 	}
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 
 	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
@@ -146,9 +146,9 @@ func (app *earthlyApp) actionProjectCreate(cliCtx *cli.Context) error {
 		return errors.New("project name is required")
 	}
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 
 	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
@@ -169,9 +169,9 @@ func (app *earthlyApp) actionProjectCreate(cliCtx *cli.Context) error {
 func (app *earthlyApp) actionProjectMemberList(cliCtx *cli.Context) error {
 	app.commandName = "projectMemberList"
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 
 	if app.projectName == "" {
@@ -210,9 +210,9 @@ func (app *earthlyApp) actionProjectMemberRemove(cliCtx *cli.Context) error {
 		return errors.New("user email are required")
 	}
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 
 	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
@@ -246,9 +246,9 @@ func (app *earthlyApp) actionProjectMemberAdd(cliCtx *cli.Context) error {
 		return errors.New("user email and permission arguments are required")
 	}
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 
 	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
@@ -287,9 +287,9 @@ func (app *earthlyApp) actionProjectMemberUpdate(cliCtx *cli.Context) error {
 		return errors.New("user email and permission arguments are required")
 	}
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.requestID, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 
 	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)

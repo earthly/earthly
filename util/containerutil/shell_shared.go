@@ -16,8 +16,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
-
-	"github.com/earthly/earthly/config"
 )
 
 type shellFrontend struct {
@@ -339,7 +337,7 @@ func (sf *shellFrontend) setupAndValidateAddresses(feType string, cfg *FrontendC
 			calculatedBuildkitHost = cfg.BuildkitHostFileValue
 		} else {
 			var err error
-			calculatedBuildkitHost, err = DefaultAddressForSetting(feType)
+			calculatedBuildkitHost, err = DefaultAddressForSetting(feType, cfg.InstallationName, cfg.DefaultPort)
 			if err != nil {
 				return nil, errors.Wrap(err, "could not validate default address")
 			}
@@ -352,32 +350,14 @@ func (sf *shellFrontend) setupAndValidateAddresses(feType string, cfg *FrontendC
 		return nil, err
 	}
 
-	calculatedDebuggerHost := cfg.DebuggerHostCLIValue
-	if cfg.DebuggerHostCLIValue == "" {
-		if cfg.DebuggerHostFileValue != "" {
-			calculatedDebuggerHost = cfg.DebuggerHostFileValue
-		} else {
-			if cfg.DebuggerPortFileValue == config.DefaultDebuggerPort && bkURL.Scheme == "tcp" {
-				calculatedDebuggerHost = fmt.Sprintf("tcp://%s:%v", bkURL.Hostname(), config.DefaultDebuggerPort)
-			} else {
-				calculatedDebuggerHost = fmt.Sprintf("tcp://127.0.0.1:%v", cfg.DebuggerPortFileValue)
-			}
-		}
-	}
-
-	dbURL, err := parseAndValidateURL(calculatedDebuggerHost)
-	if err != nil {
-		return nil, err
-	}
-
 	lrURL := &url.URL{}
-	if IsLocal(calculatedDebuggerHost) && cfg.LocalRegistryHostFileValue != "" {
+	if IsLocal(calculatedBuildkitHost) && cfg.LocalRegistryHostFileValue != "" {
 		// Local registry only matters when local, and specified.
 		lrURL, err = parseAndValidateURL(cfg.LocalRegistryHostFileValue)
 		if err != nil {
 			return nil, err
 		}
-		if bkURL.Scheme == dbURL.Scheme && bkURL.Hostname() != lrURL.Hostname() {
+		if !IsLocal(cfg.LocalRegistryHostFileValue) && bkURL.Hostname() != lrURL.Hostname() {
 			cfg.Console.Warnf("Buildkit and local registry URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), lrURL.Hostname())
 		}
 	} else {
@@ -385,33 +365,23 @@ func (sf *shellFrontend) setupAndValidateAddresses(feType string, cfg *FrontendC
 			cfg.Console.VerbosePrintf("Local registry host is specified while using remote buildkit. Local registry will not be used.")
 		}
 	}
-
-	if bkURL.Scheme == dbURL.Scheme && bkURL.Hostname() != dbURL.Hostname() {
-		cfg.Console.Warnf("Buildkit and debugger URLs are pointed at different hosts (%s vs. %s)", bkURL.Hostname(), dbURL.Hostname())
-	}
-
-	if bkURL.Hostname() == dbURL.Hostname() && bkURL.Port() == dbURL.Port() {
-		return nil, fmt.Errorf("debugger and Buildkit ports are the same: %w", errURLValidationFailure)
-	}
-
 	return &FrontendURLs{
 		BuildkitHost:      bkURL,
-		DebuggerHost:      dbURL,
 		LocalRegistryHost: lrURL,
 	}, nil
 }
 
 // DefaultAddressForSetting returns an address (signifying the desired/default transport) for a given frontend specified by setting.
-func DefaultAddressForSetting(setting string) (string, error) {
+func DefaultAddressForSetting(setting string, installationName string, defaultPort int) (string, error) {
 	switch setting {
 	case FrontendDockerShell:
-		return DockerAddress, nil
+		return fmt.Sprintf(DockerAddressFmt, installationName), nil
 
 	case FrontendPodmanShell:
-		return TCPAddress, nil // Right now, podman only works over TCP. There are weird errors when trying to use the provided helper from buildkit.
+		return fmt.Sprintf(TCPAddressFmt, defaultPort), nil // Right now, podman only works over TCP. There are weird errors when trying to use the provided helper from buildkit.
 
 	case FrontendStub:
-		return DockerAddress, nil // Maintain old behavior
+		return fmt.Sprintf(DockerAddressFmt, installationName), nil // Maintain old behavior
 	}
 
 	return "", fmt.Errorf("no default buildkit address for %s", setting)

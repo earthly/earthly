@@ -5,12 +5,13 @@ import (
 	"sync"
 
 	"github.com/earthly/cloud-api/logstream"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
 
 func (c *client) StreamLogs(ctx context.Context, buildID string, deltasCh chan []*logstream.Delta) error {
-	streamClient, err := c.logstream.StreamLogs(c.withAuth(ctx))
+	streamClient, err := c.logstream.StreamLogs(c.withAuth(ctx), grpc_retry.Disable())
 	if err != nil {
 		return errors.Wrap(err, "failed to create log stream client")
 	}

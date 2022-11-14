@@ -20,4 +20,4 @@ unset EARTHLY_TOKEN
 test -z "${SSH_AUTH_SOCK:-}"
 
 # make sure tests start without a config
-rm -f ~/.earthly/config.yml
+rm -f ~/.earthly-dev/config.yml

@@ -1,0 +1,20 @@
+VERSION 0.6
+FROM alpine:3.15
+
+ARG GLOBAL_ARG
+ARG GLOBAL_ARG_DEFAULT="mydefault"
+
+mybase:
+  ARG MYBASE_ARG
+  ARG MYBASE_ARG_DEFAULT="mybasedefault"
+
+fail:
+  FROM +mybase
+  ARG --required FOO
+  ARG --required BAR
+  ARG EMPTY
+  RUN --cause-interpreter-failure true
+
+from-fail:
+  ARG ANOTHER_ARG
+  FROM +fail

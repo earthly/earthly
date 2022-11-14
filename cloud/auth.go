@@ -257,12 +257,12 @@ func (c *client) getCredentialsPath(create bool) (string, error) {
 	if confDirPath == "" {
 		if create {
 			var err error
-			confDirPath, err = cliutil.GetOrCreateEarthlyDir()
+			confDirPath, err = cliutil.GetOrCreateEarthlyDir(c.installationName)
 			if err != nil {
 				return "", errors.Wrap(err, "cannot get .earthly dir")
 			}
 		} else {
-			confDirPath = cliutil.GetEarthlyDir()
+			confDirPath = cliutil.GetEarthlyDir(c.installationName)
 		}
 	}
 	credPath := filepath.Join(confDirPath, "auth.credentials")
@@ -272,7 +272,7 @@ func (c *client) getCredentialsPath(create bool) (string, error) {
 func (c *client) migrateOldToken() error {
 	confDirPath := c.authDir
 	if confDirPath == "" {
-		confDirPath = cliutil.GetEarthlyDir()
+		confDirPath = cliutil.GetEarthlyDir(c.installationName)
 	}
 	tokenPath := filepath.Join(confDirPath, "auth.token")
 	newPath := filepath.Join(confDirPath, "auth.credentials")
@@ -289,12 +289,12 @@ func (c *client) getTokenPath(create bool) (string, error) {
 	if confDirPath == "" {
 		if create {
 			var err error
-			confDirPath, err = cliutil.GetOrCreateEarthlyDir()
+			confDirPath, err = cliutil.GetOrCreateEarthlyDir(c.installationName)
 			if err != nil {
 				return "", errors.Wrap(err, "cannot get .earthly dir")
 			}
 		} else {
-			confDirPath = cliutil.GetEarthlyDir()
+			confDirPath = cliutil.GetEarthlyDir(c.installationName)
 		}
 	}
 	tokenPath := filepath.Join(confDirPath, "auth.jwt")

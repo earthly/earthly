@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -116,20 +117,22 @@ type client struct {
 	compute               compute.ComputeClient
 	logstream             logstream.LogStreamClient
 	requestID             string
+	installationName      string
 }
 
 var _ Client = &client{}
 
 // NewClient provides a new Earthly Cloud client
-func NewClient(httpAddr, grpcAddr, agentSockPath, authCredsOverride, requestID string, warnFunc func(string, ...interface{})) (Client, error) {
+func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, installationName, requestID string, warnFunc func(string, ...interface{})) (Client, error) {
 	c := &client{
 		httpAddr: httpAddr,
 		sshAgent: &lazySSHAgent{
 			sockPath: agentSockPath,
 		},
-		warnFunc:  warnFunc,
-		jum:       &protojson.UnmarshalOptions{DiscardUnknown: true},
-		requestID: requestID,
+		warnFunc:         warnFunc,
+		jum:              &protojson.UnmarshalOptions{DiscardUnknown: true},
+		installationName: installationName,
+		requestID:        requestID,
 	}
 	if authCredsOverride != "" {
 		c.authCredToken = authCredsOverride
@@ -138,17 +141,23 @@ func NewClient(httpAddr, grpcAddr, agentSockPath, authCredsOverride, requestID s
 			return nil, err
 		}
 	}
-	tlsConfig := credentials.NewTLS(&tls.Config{})
 	ctx := context.Background()
 	retryOpts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(10),
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)),
 		grpc_retry.WithCodes(codes.Internal, codes.Unavailable),
 	}
-	conn, err := grpc.DialContext(ctx, grpcAddr,
-		grpc.WithTransportCredentials(tlsConfig),
+	dialOpts := []grpc.DialOption{
 		grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...), c.StreamInterceptor()),
-		grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...), c.UnaryInterceptor()))
+		grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...), c.UnaryInterceptor()),
+	}
+	if useInsecure {
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	} else {
+		tlsConfig := credentials.NewTLS(&tls.Config{})
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(tlsConfig))
+	}
+	conn, err := grpc.DialContext(ctx, grpcAddr, dialOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed dialing pipelines grpc")
 	}

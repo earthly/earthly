@@ -11,8 +11,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const buildkitRegistry = "127.0.0.1:8371"
-
 type withDockerRunLocalReg struct {
 	c              *Converter
 	sem            semutil.Semaphore
@@ -82,7 +80,7 @@ func (w *withDockerRunLocalReg) Run(ctx context.Context, args []string, opt With
 	// Wait for all images to build (channel will be closed when finished).
 	for result := range res.ResultChan {
 		// Pull and then retag all images with expected tags.
-		pullImage := fmt.Sprintf("%s/%s", buildkitRegistry, result.IntermediateImageName)
+		pullImage := fmt.Sprintf("%s/%s", w.c.opt.LocalRegistryAddr, result.IntermediateImageName)
 		err := w.c.containerFrontend.ImagePull(ctx, pullImage)
 		if err != nil {
 			return err
