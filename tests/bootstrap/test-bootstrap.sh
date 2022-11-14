@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -ue
+set -uex
 set -o pipefail
 
 cd "$(dirname "$0")"
@@ -16,8 +16,8 @@ echo "=== Test 1: Hand Bootstrapped ==="
 
 "$earthly" bootstrap
 
-if [[ ! -d "$HOME/.earthly" ]]; then
-  echo ".earthly directory was missing after bootstrap"
+if [[ ! -d "$HOME/.earthly-dev" ]]; then
+  echo ".earthly-dev directory was missing after bootstrap"
   exit 1
 fi
 
@@ -29,14 +29,14 @@ if  cat hand_boot_output | grep -q "bootstrap |"; then
     exit 1
 fi
 
-rm -rf "$HOME/.earthly/"
+rm -rf "$HOME/.earthly-dev"
 
 echo "=== Test 2: Implied Bootstrap ==="
 
 "$earthly" +test
 
-if [[ ! -d "$HOME/.earthly" ]]; then
-  echo ".earthly directory was missing after bootstrap"
+if [[ ! -d "$HOME/.earthly-dev" ]]; then
+  echo ".earthly-dev directory was missing after bootstrap"
   exit 1
 fi
 
@@ -48,14 +48,14 @@ if  cat imp_boot_output | grep -q "bootstrap |"; then
     exit 1
 fi
 
-rm -rf "$HOME/.earthly/"
+rm -rf "$HOME/.earthly-dev"
 
 echo "=== Test 3: CI ==="
 
 "$earthly" --ci +test
 
-if [[ ! -d "$HOME/.earthly" ]]; then
-  echo ".earthly directory was missing after bootstrap"
+if [[ ! -d "$HOME/.earthly-dev" ]]; then
+  echo ".earthly-dev directory was missing after bootstrap"
   exit 1
 fi
 
@@ -67,7 +67,7 @@ if  cat ci_boot_output | grep -q "bootstrap |"; then
     exit 1
 fi
 
-rm -rf "$HOME/.earthly/"
+rm -rf "$HOME/.earthly-dev"
 
 echo "=== Test 4: With Autocomplete ==="
 
@@ -86,7 +86,7 @@ if [[ ! -f "/usr/share/bash-completion/completions/earthly" ]]; then
   exit 1
 fi
 
-rm -rf "$HOME/.earthly/"
+rm -rf "$HOME/.earthly-dev"
 sudo rm -rf "/usr/share/bash-completion/completions/earthly"
 
 echo "=== Test 5: Permissions ==="
@@ -101,45 +101,46 @@ echo "Group: $GRP"
 
 "$earthly" bootstrap
 
-if [[ $(stat --format '%U' "$HOME/.earthly") != "$USR" ]]; then
+if [[ $(stat --format '%U' "$HOME/.earthly-dev") != "$USR" ]]; then
   echo "earthly directory is not owned by the user"
-  stat "$HOME/.earthly"
+  stat "$HOME/.earthly-dev"
   exit 1
 fi
 
-if [[ $(stat --format '%G' "$HOME/.earthly") != "$GRP" ]]; then
+if [[ $(stat --format '%G' "$HOME/.earthly-dev") != "$GRP" ]]; then
   echo "earthly directory is not owned by the users group"
-  stat "$HOME/.earthly"
+  stat "$HOME/.earthly-dev"
   exit 1
 fi
 
 echo "----"
-touch $HOME/.earthly/config.yml
-sudo chown -R 12345:12345 $HOME/.earthly
+
+touch $HOME/.earthly-dev/config.yml
+sudo chown -R 12345:12345 $HOME/.earthly-dev
 
 sudo "$earthly" bootstrap
 
-if [[ $(stat --format '%U' "$HOME/.earthly") != "$USR" ]]; then
+if [[ $(stat --format '%U' "$HOME/.earthly-dev") != "$USR" ]]; then
   echo "earthly directory is not owned by the user"
-  stat "$HOME/.earthly"
+  stat "$HOME/.earthly-dev"
   exit 1
 fi
 
-if [[ $(stat --format '%G' "$HOME/.earthly") != "$GRP" ]]; then
+if [[ $(stat --format '%G' "$HOME/.earthly-dev") != "$GRP" ]]; then
   echo "earthly directory is not owned by the users group"
-  stat "$HOME/.earthly"
+  stat "$HOME/.earthly-dev"
   exit 1
 fi
 
-if [[ $(stat --format '%U' "$HOME/.earthly/config.yml") != "$USR" ]]; then
+if [[ $(stat --format '%U' "$HOME/.earthly-dev/config.yml") != "$USR" ]]; then
   echo "earthly config is not owned by the user"
-  stat "$HOME/.earthly/config.yml"
+  stat "$HOME/.earthly-dev/config.yml"
   exit 1
 fi
 
-if [[ $(stat --format '%G' "$HOME/.earthly/config.yml") != "$GRP" ]]; then
+if [[ $(stat --format '%G' "$HOME/.earthly-dev/config.yml") != "$GRP" ]]; then
   echo "earthly config is not owned by the users group"
-  stat "$HOME/.earthly/config.yml"
+  stat "$HOME/.earthly-dev/config.yml"
   exit 1
 fi
 
@@ -195,7 +196,7 @@ if ! DOCKER_HOST="$frontend is missing" "$earthly" bootstrap --source zsh > /dev
   exit 1
 fi
 
-rm -rf "$HOME/.earthly/"
+rm -rf "$HOME/.earthly-dev"
 
 echo "=== Test 8: No Buildkit ==="
 
@@ -210,4 +211,4 @@ if ! DOCKER_HOST="$frontend is missing" "$earthly" bootstrap --no-buildkit; then
   exit 1
 fi
 
-rm -rf "$HOME/.earthly/"
+rm -rf "$HOME/.earthly-dev"

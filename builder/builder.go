@@ -193,6 +193,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				NoCache:                              b.opt.NoCache,
 				ContainerFrontend:                    b.opt.ContainerFrontend,
 				UseLocalRegistry:                     (b.opt.LocalRegistryAddr != ""),
+				LocalRegistryAddr:                    b.opt.LocalRegistryAddr,
 				DoSaves:                              !opt.NoOutput,
 				OnlyFinalTargetImages:                opt.OnlyFinalTargetImages,
 				DoPushes:                             opt.Push,

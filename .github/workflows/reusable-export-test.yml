@@ -71,6 +71,8 @@ jobs:
         # qemu-user-static needed for cross-compilation (--platform) targets
         run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y qemu-user-static
         if: inputs.BINARY == 'podman'
+      - name: Link Earthly dir to Earthly dev dir
+        run: mkdir -p ~/.earthly && ln -s ~/.earthly ~/.earthly-dev
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) -P --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
@@ -78,10 +80,6 @@ jobs:
             set -euo pipefail
             EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
             echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-      - name: Enable local registry-based exporter
-        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.local_registry_host 'tcp://127.0.0.1:8371'
-      - name: Configure Earthly Conversion Parallelism
-        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.conversion_parallelism 5
       - name: run export tests
         run: env earthly=${{inputs.BUILT_EARTHLY_PATH}} frontend=${{inputs.BINARY}} scripts/tests/export.sh
       - name: Buildkit logs (runs on failure)

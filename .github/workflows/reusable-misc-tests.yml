@@ -61,6 +61,8 @@ jobs:
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Link Earthly dir to Earthly dev dir
+        run: mkdir -p ~/.earthly && ln -s ~/.earthly ~/.earthly-dev
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) -P --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: rebuild earthly using latest earthly build
@@ -70,10 +72,6 @@ jobs:
             set -euo pipefail
             EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
             echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-      - name: Enable local registry-based exporter
-        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.local_registry_host 'tcp://127.0.0.1:8371'
-      - name: Configure Earthly Conversion Parallelism
-        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.conversion_parallelism 5
       - name: Run parallel buildkit start test. It ensures that earthly starting up buildkit does not race with itself.
         uses: nick-fields/retry@v2
         with:

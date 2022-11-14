@@ -145,8 +145,6 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly/buildkitd image using released earthly
         run: earthly --use-inline-cache ./buildkitd+buildkitd --TAG=race-test
-      - name: Configure Earthly Conversion Parallelism
-        run: go run ./cmd/earthly/*.go config global.conversion_parallelism 5
       - name: Execute tests (Earthly Only)
         run: |-
           GORACE="halt_on_error=1" go run -race ./cmd/earthly/*.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
@@ -195,10 +193,6 @@ jobs:
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-      - name: Enable local registry-based exporter
-        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
-      - name: Configure Earthly Conversion Parallelism
-        run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
       - name: Build tutorial part 1
         run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part1 --earthly=$(realpath ./build/linux/amd64/earthly)
       - name: Build tutorial part 2
@@ -259,10 +253,6 @@ jobs:
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-      - name: Enable local registry-based exporter
-        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
-      - name: Configure Earthly Conversion Parallelism
-        run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
       - name: Build linux/amd64 +buildkitd
         run: |-
           ./build/linux/amd64/earthly --ci  --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
@@ -314,10 +304,6 @@ jobs:
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-      - name: Enable local registry-based exporter
-        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
-      - name: Configure Earthly Conversion Parallelism
-        run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
       - name: Build linux/arm64 +buildkitd
         run: |-
           ./build/linux/amd64/earthly --ci  --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
@@ -369,10 +355,6 @@ jobs:
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-      - name: Enable local registry-based exporter
-        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
-      - name: Configure Earthly Conversion Parallelism
-        run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
       - name: Build +all-dind
         run: ./build/linux/amd64/earthly --ci +all-dind
       - name: Buildkit logs (runs on failure)
@@ -423,10 +405,6 @@ jobs:
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-      - name: Enable local registry-based exporter
-        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
-      - name: Configure Earthly Conversion Parallelism
-        run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
       - name: Build +earthly-all
         run: ./build/linux/amd64/earthly --ci +earthly-all
       - name: Build +earthly-docker
@@ -479,10 +457,6 @@ jobs:
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-      - name: Enable local registry-based exporter
-        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
-      - name: Configure Earthly Conversion Parallelism
-        run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
       - name: Build +prerelease
         run: ./build/linux/amd64/earthly --ci +prerelease
       - name: Buildkit logs (runs on failure)
@@ -554,10 +528,6 @@ jobs:
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-      - name: Enable local registry-based exporter
-        run: ./build/linux/amd64/earthly config global.local_registry_host 'tcp://127.0.0.1:8371'
-      - name: Configure Earthly Conversion Parallelism
-        run: ./build/linux/amd64/earthly config global.conversion_parallelism 5
       - name: Build and push +prerelease
         run: ./build/linux/amd64/earthly --ci --push +prerelease
       - name: Update DockerHub description for earthly/earthly

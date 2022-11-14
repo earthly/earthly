@@ -10,10 +10,19 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/pkg/errors"
 )
+
+func (app *earthlyApp) newCloudClient() (cloud.Client, error) {
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock, app.authToken, app.installationName, app.console.Warnf)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create cloud client")
+	}
+	return cloudClient, nil
+}
 
 func wrap(s ...string) string {
 	return strings.Join(s, "\n\t")
@@ -84,8 +93,8 @@ func processSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) 
 	return finalSecrets, nil
 }
 
-func defaultConfigPath() string {
-	earthlyDir := cliutil.GetEarthlyDir()
+func defaultConfigPath(installName string) string {
+	earthlyDir := cliutil.GetEarthlyDir(installName)
 	oldConfig := filepath.Join(earthlyDir, "config.yaml")
 	newConfig := filepath.Join(earthlyDir, "config.yml")
 	oldConfigExists, _ := fileutil.FileExists(oldConfig)

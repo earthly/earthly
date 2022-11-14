@@ -42,11 +42,10 @@ type FrontendConfig struct {
 	BuildkitHostCLIValue  string
 	BuildkitHostFileValue string
 
-	DebuggerHostCLIValue  string
-	DebuggerHostFileValue string
-	DebuggerPortFileValue int
-
 	LocalRegistryHostFileValue string
+
+	InstallationName string
+	DefaultPort      int
 
 	Console conslogging.ConsoleLogger
 }

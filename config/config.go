@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"hash/crc32"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -13,9 +14,6 @@ import (
 )
 
 const (
-	// DefaultDebuggerPort is the default user-facing port for the debugger.
-	DefaultDebuggerPort = 8373
-
 	// DefaultLocalRegistryPort is the default user-facing port for the local registry used for exports.
 	DefaultLocalRegistryPort = 8371
 
@@ -68,7 +66,6 @@ type GlobalConfig struct {
 	ConversionParallelism    int      `yaml:"conversion_parallelism"     help:"Set the conversion parallelism for speeding up the use of IF, WITH, DOCKER --load, FROMDOCKERFILE and others. A value of 0 disables the feature"`
 	CniMtu                   uint16   `yaml:"cni_mtu"                    help:"Override auto-detection of the default interface MTU, for all containers within buildkit"`
 	BuildkitHost             string   `yaml:"buildkit_host"              help:"The URL of your buildkit, remote or local."`
-	DebuggerHost             string   `yaml:"debugger_host"              help:"The URL of the Earthly debugger, remote or local."`
 	LocalRegistryHost        string   `yaml:"local_registry_host"        help:"The URL of the local registry used for image exports to Docker."`
 	TLSCA                    string   `yaml:"tlsca"                      help:"The path to the CA cert for verification. Relative paths are interpreted as relative to ~/.earthly."`
 	ClientTLSCert            string   `yaml:"tlscert"                    help:"The path to the client cert for verification. Relative paths are interpreted as relative to ~/.earthly."`
@@ -83,7 +80,6 @@ type GlobalConfig struct {
 
 	// Obsolete.
 	CachePath      string `yaml:"cache_path"         help:" *Deprecated* The path to keep Earthly's cache."`
-	DebuggerPort   int    `yaml:"debugger_port"      help:" *Deprecated* What port should the debugger (and other interactive sessions) use to communicate."`
 	BuildkitScheme string `yaml:"buildkit_transport" help:" *Deprecated* Change how Earthly communicates with its buildkit daemon. Valid options are: docker-container, tcp. TCP is experimental."`
 }
 
@@ -115,15 +111,24 @@ type Config struct {
 	Satellite Satellite            `yaml:"satellite" help:"Satellite remote building configuration. Overrides some other remote buildkit settings when present. Requires YAML literal to set directly"`
 }
 
+// PortOffset is the offset to use for dev ports.
+func PortOffset(installationName string) int {
+	if installationName == "earthly" {
+		// No offset for the official release.
+		return 0
+	}
+	return 10 + int(crc32.ChecksumIEEE([]byte(installationName)))%1000
+}
+
 // ParseConfigFile parse config data
-func ParseConfigFile(yamlData []byte) (*Config, error) {
+func ParseConfigFile(yamlData []byte, installationName string) (*Config, error) {
+	defaultLocalRegistryPort := DefaultLocalRegistryPort + PortOffset(installationName)
 	// prepopulate defaults
 	config := Config{
 		Global: GlobalConfig{
 			BuildkitCacheSizeMb:     0,
 			BuildkitCacheSizePct:    0,
-			DebuggerPort:            DefaultDebuggerPort,
-			LocalRegistryHost:       fmt.Sprintf("tcp://127.0.0.1:%d", DefaultLocalRegistryPort),
+			LocalRegistryHost:       fmt.Sprintf("tcp://127.0.0.1:%d", defaultLocalRegistryPort),
 			BuildkitScheme:          DefaultBuildkitScheme,
 			BuildkitRestartTimeoutS: 60,
 			ConversionParallelism:   DefaultConversionParallelism,
