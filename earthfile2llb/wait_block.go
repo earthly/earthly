@@ -9,102 +9,96 @@ import (
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/dockerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/llbutil"
-	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/saveartifactlocally"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/syncutil/serrgroup"
+	"github.com/earthly/earthly/util/waitutil"
 
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
 )
 
-type saveImageWaitItem struct {
-	c           *Converter
-	si          states.SaveImage
-	push        bool
-	localExport bool
-}
-
-type stateWaitItem struct {
-	c     *Converter
-	state *pllb.State
-}
-
-type saveArtifactLocalWaitItem struct {
-	c         *Converter
-	saveLocal states.SaveLocal
-}
-
-// waitItem should be either saveImageWaitItem or stateWaitItem
-type waitItem interface {
-}
-
 type waitBlock struct {
-	items []waitItem
-	mu    sync.Mutex
+	items     []waitutil.WaitItem
+	seenItems map[waitutil.WaitItem]struct{}
+	mu        sync.Mutex
+
+	// used for short-circuiting
+	called            bool
+	pushCalled        bool
+	localExportCalled bool
 }
 
 func newWaitBlock() *waitBlock {
-	return &waitBlock{}
+	return &waitBlock{
+		seenItems: map[waitutil.WaitItem]struct{}{},
+	}
 }
 
-func (wb *waitBlock) addSaveImage(si states.SaveImage, c *Converter, push, localExport bool) {
-	if !push && !localExport {
+func (wb *waitBlock) SetDoSaves() {
+	wb.mu.Lock()
+	defer wb.mu.Unlock()
+	for _, wi := range wb.items {
+		wi.SetDoSave()
+	}
+}
+
+func (wb *waitBlock) SetDoPushes() {
+	wb.mu.Lock()
+	defer wb.mu.Unlock()
+	for _, wi := range wb.items {
+		wi.SetDoPush()
+	}
+}
+
+func (wb *waitBlock) AddItem(item waitutil.WaitItem) {
+	wb.mu.Lock()
+	defer wb.mu.Unlock()
+	_, exists := wb.seenItems[item]
+	if exists {
 		return
 	}
-	wb.mu.Lock()
-	defer wb.mu.Unlock()
-	item := saveImageWaitItem{
-		c:           c,
-		si:          si,
-		push:        push,
-		localExport: localExport,
-	}
-	wb.items = append(wb.items, &item)
+	wb.seenItems[item] = struct{}{}
+	wb.items = append(wb.items, item)
 }
 
-func (wb *waitBlock) addState(state *pllb.State, c *Converter) {
+func (wb *waitBlock) Wait(ctx context.Context, push, localExport bool) error {
 	wb.mu.Lock()
 	defer wb.mu.Unlock()
-	item := stateWaitItem{
-		c:     c,
-		state: state,
-	}
-	wb.items = append(wb.items, &item)
-}
 
-func (wb *waitBlock) addSaveArtifactLocal(state states.SaveLocal, c *Converter) {
-	wb.mu.Lock()
-	defer wb.mu.Unlock()
-	item := saveArtifactLocalWaitItem{
-		c:         c,
-		saveLocal: state,
+	shortCircuit := wb.called
+	wb.called = true
+	if push && !wb.pushCalled {
+		shortCircuit = false
+		wb.pushCalled = true
 	}
-	wb.items = append(wb.items, &item)
-}
-
-func (wb *waitBlock) wait(ctx context.Context) error {
-	wb.mu.Lock()
-	defer wb.mu.Unlock()
+	if localExport && !wb.localExportCalled {
+		shortCircuit = false
+		wb.localExportCalled = true
+	}
+	if shortCircuit {
+		return nil
+	}
 
 	errGroup, ctx := serrgroup.WithContext(ctx)
 	errGroup.Go(func() error {
-		return wb.saveImages(ctx)
+		return wb.saveImages(ctx, push, localExport)
 	})
-	errGroup.Go(func() error {
-		return wb.saveArtifactLocal(ctx)
-	})
+	if localExport {
+		errGroup.Go(func() error {
+			return wb.saveArtifactLocal(ctx)
+		})
+	}
 	errGroup.Go(func() error {
 		return wb.waitStates(ctx)
 	})
 	return errGroup.Wait()
 }
 
-func (wb *waitBlock) saveImages(ctx context.Context) error {
+func (wb *waitBlock) saveImages(ctx context.Context, pushesAllowed, localExportsAllowed bool) error {
 	isMultiPlatform := make(map[string]bool)        // DockerTag -> bool
 	noManifestListImgs := make(map[string]struct{}) // set based on DockerTag
 	platformImgNames := make(map[string]bool)
@@ -114,6 +108,10 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 	for _, item := range wb.items {
 		saveImage, ok := item.(*saveImageWaitItem)
 		if !ok {
+			continue
+		}
+
+		if !saveImage.push && !saveImage.localExport {
 			continue
 		}
 
@@ -176,7 +174,7 @@ func (wb *waitBlock) saveImages(ctx context.Context) error {
 				if _, found := platformImgNames[platformImgName]; found {
 					return errors.Errorf(
 						"image %s is defined multiple times for the same platform (%s)",
-						item.si.DockerTag, platformImgName)
+						item.si.DockerTag, item.si.Platform.String())
 				}
 				platformImgNames[platformImgName] = true
 			}
