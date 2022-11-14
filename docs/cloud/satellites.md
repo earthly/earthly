@@ -65,9 +65,13 @@ As builds often handle sensitive pieces of data, Satellites are designed with se
 
 Follow the steps in the [Earthly Cloud overview](./overview.md#getting-started) to register an account and create an org.
 
-### 2. Request access
+### 2. Purchase a Satellites Plan
 
-Satellites is currently a private beta feature. Please [contact us](mailto:support+satellite@earthly.dev) to join the beta. Please mention your org name when requesting access.
+Satellites are now a paid feature and require a valid subscription to begin using. The subscription includes a 14-day free trial which can be canceled before any payment is made. Visit the [pricing page](https://earthly.dev/pricing) for more billing details.
+
+[**Click here to start your subscription**](https://buy.stripe.com/8wM9Es4BT4Vvb4YbIJ)
+
+Once you've submitted your details on the checkout page, you will receive an email with further instructions. Please reply or [send us an email](mailto:support+satellite@earthly.dev) with your org name from step 1 in order for us to activate the Satellites feature on your account.
 
 ### 3. Ensure that you have the latest version of Earthly
 
