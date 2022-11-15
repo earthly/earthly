@@ -2,8 +2,6 @@ package earthfile2llb
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"path"
@@ -11,7 +9,6 @@ import (
 	"sync"
 
 	debuggercommon "github.com/earthly/earthly/debugger/common"
-	"github.com/earthly/earthly/dockertar"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/llbutil/pllb"
@@ -364,22 +361,12 @@ func (w *withDockerRunTar) solveImage(ctx context.Context, mts *states.MultiTarg
 		if err != nil {
 			return pllb.State{}, errors.Wrapf(err, "build target %s for docker load", opName)
 		}
-		dockerImageID, err := dockertar.GetID(outFile)
-		if err != nil {
-			return pllb.State{}, errors.Wrap(err, "inspect docker tar after build")
-		}
-		// Use the docker image ID + dockerTag as sessionID. This will cause
-		// buildkit to use cache when these are the same as before (eg a docker image
-		// that is identical as before).
-		sessionIDKey := fmt.Sprintf("%s-%s", dockerTag, dockerImageID)
-		sha256SessionIDKey := sha256.Sum256([]byte(sessionIDKey))
-		sessionID := hex.EncodeToString(sha256SessionIDKey[:])
 
 		tarContext := pllb.Local(
 			string(solveID),
-			llb.SessionID(sessionID),
+			llb.SessionID(w.c.opt.GwClient.BuildOpts().SessionID),
 			llb.Platform(w.c.platr.LLBNative()),
-			llb.WithCustomNamef("%sdocker tar context %s %s", w.c.vertexPrefix(ctx, false, false, true), opName, sessionID),
+			llb.WithCustomNamef("%sdocker tar context %s", w.c.vertexPrefix(ctx, false, false, true), opName),
 		)
 		// Add directly to build context so that if a later statement forces execution, the images are available.
 		w.c.opt.BuildContextProvider.AddDir(string(solveID), outDir)
