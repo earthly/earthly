@@ -59,12 +59,21 @@ func NewDockerShellFrontend(ctx context.Context, cfg *FrontendConfig) (Container
 		return nil, errors.Wrap(err, "failed to calculate buildkit URLs")
 	}
 
-	output, err = fe.commandContextOutputWithRetry(ctx, 10, 10*time.Second, "info", "--format={{.DockerRootDir}}")
+	output, err = fe.commandContextOutput(ctx, "info", "--format={{.DockerRootDir}}")
 	if err != nil {
-		return nil, err
+		// Maybe the user has aliased podman=docker?
+		// (The same information is found at a different path in podman)
+		var err2 error
+		output, err2 = fe.commandContextOutput(ctx, "info", "--format={{.Store.GraphRoot}}")
+		if err2 != nil {
+			return nil, errors.Wrap(err, "failed to get docker root dir")
+		}
 	}
-	if strings.Contains(output.string(), "/var/lib/containers/storage") {
+	outputStr := strings.TrimSpace(output.string())
+	if outputStr == "/var/lib/containers/storage" {
 		// Likely podman making itself available via the docker CLI.
+		// This can happen either when podman set /var/run/docker.sock itself,
+		// or when the user has aliased podman=docker.
 		fe.shellFrontend.likelyPodman = true
 	}
 
