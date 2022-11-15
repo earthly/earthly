@@ -21,7 +21,6 @@ Here are some examples:
 * `+build`
 * `./js+deps`
 * `github.com/earthly/earthly:v0.1.0+earthly`
-* `earthly+for-linux`
 
 ## Artifact reference
 

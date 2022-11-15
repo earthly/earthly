@@ -39,8 +39,6 @@ type Interpreter struct {
 	local           bool
 	allowPrivileged bool
 
-	stack string
-
 	withDocker    *WithDockerOpt
 	withDockerRan bool
 
@@ -55,7 +53,6 @@ func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConv
 	return &Interpreter{
 		converter:          c,
 		target:             t,
-		stack:              c.StackString(),
 		allowPrivileged:    allowPrivileged,
 		parallelConversion: parallelConversion,
 		console:            console,
@@ -1897,7 +1894,6 @@ func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Co
 	}
 	prevAllowPrivileged := i.allowPrivileged
 	i.allowPrivileged = allowPrivileged
-	i.stack = i.converter.StackString()
 	err = i.handleBlock(ctx, uc.Recipe[1:])
 	if err != nil {
 		return err
@@ -1906,7 +1902,6 @@ func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Co
 	if err != nil {
 		return i.wrapError(err, uc.SourceLocation, "exit scope")
 	}
-	i.stack = i.converter.StackString()
 	i.allowPrivileged = prevAllowPrivileged
 	return nil
 }
@@ -1925,12 +1920,16 @@ func (i *Interpreter) expandArgsSlice(ctx context.Context, words []string, keepP
 	return ret, nil
 }
 
+func (i *Interpreter) stack() string {
+	return i.converter.varCollection.StackString()
+}
+
 func (i *Interpreter) errorf(sl *spec.SourceLocation, format string, args ...interface{}) *InterpreterError {
-	return Errorf(sl, i.stack, format, args...)
+	return Errorf(sl, i.stack(), format, args...)
 }
 
 func (i *Interpreter) wrapError(cause error, sl *spec.SourceLocation, format string, args ...interface{}) *InterpreterError {
-	return WrapError(cause, sl, i.stack, format, args...)
+	return WrapError(cause, sl, i.stack(), format, args...)
 }
 
 func (i *Interpreter) pushOnlyErr(sl *spec.SourceLocation) error {

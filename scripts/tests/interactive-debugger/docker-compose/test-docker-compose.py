@@ -26,14 +26,12 @@ def test_interactive(earthly_path, timeout):
             # give the shell time to startup, otherwise stdin might be lost
             time.sleep(5)
 
-            # test we can select from the postgres database that is created via docker-compose
-            # this is wrapped in an infinite retry loop which pexpect will kill after the configured timeout
-            # the retry loop is required because the container reports an UP status before all data is loaded.
-            c.sendline('while ! docker exec test_postgres_1 psql -c "select name from country WHERE two_letter = \'AF\'" iso3166; do sleep 1; done')
+            # test we can obtain decoded text from the rot13 echo server that is created via docker-compose
+            c.sendline('docker exec test_rot13_1 sh -c \'(echo Nstunavfgna; sleep 1) | ncat localhost 5432\'')
             try:
                 c.expect('Afghanistan', timeout=timeout)
             except Exception as e:
-                raise RuntimeError('failed to find Afghanistan in output (indicating we were unable to run psql in the postgres container that was started via docker compose)')
+                raise RuntimeError('failed to find Afghanistan in output (indicating we were unable to obtain decoded text from the rot13 echo server that was started via docker compose)')
 
             # decode the data.txt file to ensure the debugger is still running
             c.sendline("cat /data.txt | base64 -d")

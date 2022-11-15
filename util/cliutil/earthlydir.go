@@ -1,6 +1,7 @@
 package cliutil
 
 import (
+	"fmt"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -19,23 +20,23 @@ var earthlyDirCreateErr error
 
 // GetEarthlyDir returns the .earthly dir. (Usually ~/.earthly).
 // This function will not attempt to create the directory if missing, for that functionality use to the GetOrCreateEarthlyDir function.
-func GetEarthlyDir() string {
+func GetEarthlyDir(installName string) string {
 	earthlyDirOnce.Do(func() {
-		earthlyDir, earthlyDirSudoUser = getEarthlyDirAndUser()
+		earthlyDir, earthlyDirSudoUser = getEarthlyDirAndUser(installName)
 	})
 	return earthlyDir
 }
 
-func getEarthlyDirAndUser() (string, *user.User) {
+func getEarthlyDirAndUser(installName string) (string, *user.User) {
 	homeDir, u := fileutil.HomeDir()
-	earthlyDir := filepath.Join(homeDir, ".earthly")
+	earthlyDir := filepath.Join(homeDir, fmt.Sprintf(".%s", installName))
 	return earthlyDir, u
 }
 
 // GetOrCreateEarthlyDir returns the .earthly dir. (Usually ~/.earthly).
 // if the directory does not exist, it will attempt to create it.
-func GetOrCreateEarthlyDir() (string, error) {
-	_ = GetEarthlyDir() // ensure global vars get created so we can reference them below.
+func GetOrCreateEarthlyDir(installName string) (string, error) {
+	_ = GetEarthlyDir(installName) // ensure global vars get created so we can reference them below.
 
 	earthlyDirCreateOnce.Do(func() {
 		earthlyDirExists, err := fileutil.DirExists(earthlyDir)
@@ -62,14 +63,14 @@ func GetOrCreateEarthlyDir() (string, error) {
 }
 
 // IsBootstrapped provides a tentatively correct guess about the state of our bootstrapping.
-func IsBootstrapped() bool {
-	exists, _ := fileutil.DirExists(GetEarthlyDir())
+func IsBootstrapped(installName string) bool {
+	exists, _ := fileutil.DirExists(GetEarthlyDir(installName))
 	return exists
 }
 
 // EnsurePermissions changes the permissions of all earthly files to be owned by the user and their group.
-func EnsurePermissions() error {
-	earthlyDir, sudoUser := getEarthlyDirAndUser()
+func EnsurePermissions(installName string) error {
+	earthlyDir, sudoUser := getEarthlyDirAndUser(installName)
 	if sudoUser != nil {
 		err := fileutil.EnsureUserOwned(earthlyDir, sudoUser)
 		if err != nil {

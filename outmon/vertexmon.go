@@ -199,7 +199,6 @@ func (vm *vertexMonitor) printError() bool {
 		exitCode, _ := strconv.ParseUint(m[2], 10, 32)
 
 		switch exitCode {
-		case 137:
 		case math.MaxUint32:
 			errString = fmt.Sprintf(""+
 				"      The%s command\n"+

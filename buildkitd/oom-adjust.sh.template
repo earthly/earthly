@@ -23,7 +23,7 @@ do
     done
 
     ! "${BUILDKIT_DEBUG}" || echo "$(date) |   Adjusting pid $PID oom_score_adj to ${OOM_SCORE_ADJ}" >> /var/log/oom_adj
-    ! "${BUILDKIT_DEBUG}" || echo "${OOM_SCORE_ADJ}" > /proc/"$PID"/oom_score_adj
+    echo "${OOM_SCORE_ADJ}" > /proc/"$PID"/oom_score_adj
 done
 
 ! "${BUILDKIT_DEBUG}" || echo "$(date) | --" >> /var/log/oom_adj
