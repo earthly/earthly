@@ -23,6 +23,7 @@ type shellFrontend struct {
 	rootless                bool
 	runCompatibilityArgs    []string
 	globalCompatibilityArgs []string
+	likelyPodman            bool
 
 	FrontendInformation func(ctx context.Context) (*FrontendInfo, error)
 	urls                *FrontendURLs
