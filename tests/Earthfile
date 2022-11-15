@@ -143,6 +143,8 @@ ga-no-qemu:
     BUILD +chown-test
     BUILD +dotenv-test
     BUILD +env-test
+    BUILD +stack-failure-test
+    BUILD +multi-stack-failure-test
     BUILD +no-cache-local-artifact-test
     BUILD +empty-git-test
     BUILD +escape-test
@@ -569,6 +571,7 @@ dotenv-test:
     RUN echo "TEST_ENV_2=foo" >>.env
     RUN echo "TEST_ENV_3=bar" >>.env
     DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test
+
     # Smoke test that no .env file does not result in an error.
     RUN mv .env .some-other-env
     DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-dotenv
@@ -580,6 +583,32 @@ dotenv-test:
     # --env-file takes precedence
     DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-file .some-other-env" --pre_command="export EARTHLY_ENV_FILE=.this-should-be-ignored" --target=+test
 
+stack-failure-test:
+    RUN echo "TEST_ENV_1=abracadabra" >.env
+    RUN echo "TEST_ENV_2=foo" >>.env
+    RUN echo "THIS_IS_SECRET=dont-display-this" >>.env
+
+    # test that only declared ARGs are displayed in output (and non-referenced .env values which may actually be secrets aren't)
+    DO +RUN_EARTHLY --earthfile=stack-failure.earth --extra_args="--no-output" --output_contains="unknown flag .cause-interpreter-failure." --should_fail="true" --target=+fail
+    RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
+    RUN grep 'in.*+fail --TEST_ENV_1=abracadabra --TEST_ENV_2=foo' earthly.output
+
+    # test missing target doesn't leak secret
+    DO +RUN_EARTHLY --earthfile=stack-failure.earth --extra_args="--no-output" --output_contains="target this-does-not-exist not found" --should_fail="true" --target=+this-does-not-exist
+    RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
+
+multi-stack-failure-test:
+    RUN echo "FOO=foo" >.env
+    RUN echo "THIS_IS_SECRET=dont-display-this" >>.env
+
+    DO +RUN_EARTHLY --earthfile=multi-stack-failure.earth --extra_args="--no-output --build-arg BAR=bar" --output_contains="unknown flag .cause-interpreter-failure." --should_fail="true" --target=+fail
+    RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
+    RUN grep 'in.*+fail --BAR=bar --EMPTY= --FOO=foo' earthly.output
+
+    DO +RUN_EARTHLY --earthfile=multi-stack-failure.earth --extra_args="--no-output --build-arg BAR=bar --build-arg ANOTHER_ARG=another-value" --output_contains="unknown flag .cause-interpreter-failure." --should_fail="true" --target=+from-fail
+    RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
+    RUN grep 'in.*+fail --BAR=bar --EMPTY= --FOO=foo' earthly.output
+    RUN grep 'in.*+from-fail --ANOTHER_ARG=another-value' earthly.output
 
 env-test:
     DO +RUN_EARTHLY --earthfile=env.earth --extra_args="--no-output" --target=+test

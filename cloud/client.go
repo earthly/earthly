@@ -8,6 +8,7 @@ import (
 	"github.com/earthly/cloud-api/compute"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/cloud-api/pipelines"
+	"github.com/google/uuid"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh/agent"
@@ -28,6 +29,7 @@ var (
 const (
 	tokenExpiryLayout    = "2006-01-02 15:04:05.999999999 -0700 MST"
 	satelliteMgmtTimeout = "5M" // 5 minute timeout when launching or deleting a Satellite
+	requestID            = "request-id"
 )
 
 // Client contains gRPC and REST endpoints to the Earthly Cloud backend.
@@ -70,7 +72,7 @@ type Client interface {
 	SendAnalytics(ctx context.Context, data *EarthlyAnalytics) error
 	IsLoggedIn(ctx context.Context) bool
 	GetAuthToken(ctx context.Context) (string, error)
-	LaunchSatellite(ctx context.Context, name, org string, features []string) error
+	LaunchSatellite(ctx context.Context, name, org, platform, size string, features []string) error
 	GetOrgID(ctx context.Context, name string) (string, error)
 	ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error)
 	GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error)
@@ -114,13 +116,14 @@ type client struct {
 	pipelines             pipelines.PipelinesClient
 	compute               compute.ComputeClient
 	logstream             logstream.LogStreamClient
+	requestID             string
 	installationName      string
 }
 
 var _ Client = &client{}
 
 // NewClient provides a new Earthly Cloud client
-func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, installationName string, warnFunc func(string, ...interface{})) (Client, error) {
+func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, installationName, requestID string, warnFunc func(string, ...interface{})) (Client, error) {
 	c := &client{
 		httpAddr: httpAddr,
 		sshAgent: &lazySSHAgent{
@@ -129,6 +132,7 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 		warnFunc:         warnFunc,
 		jum:              &protojson.UnmarshalOptions{DiscardUnknown: true},
 		installationName: installationName,
+		requestID:        requestID,
 	}
 	if authCredsOverride != "" {
 		c.authCredToken = authCredsOverride
@@ -144,8 +148,8 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 		grpc_retry.WithCodes(codes.Internal, codes.Unavailable),
 	}
 	dialOpts := []grpc.DialOption{
-		grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...), c.StreamAuthInterceptor()),
-		grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...), c.UnaryAuthInterceptor()),
+		grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...), c.StreamInterceptor()),
+		grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...), c.UnaryInterceptor()),
 	}
 	if useInsecure {
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -161,4 +165,11 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	c.compute = compute.NewComputeClient(conn)
 	c.logstream = logstream.NewLogStreamClient(conn)
 	return c, nil
+}
+
+func (c *client) getRequestID() string {
+	if c.requestID != "" {
+		return c.requestID
+	}
+	return uuid.NewString()
 }

@@ -190,7 +190,7 @@ func (app *earthlyApp) actionAccountRegister(cliCtx *cli.Context) error {
 	if !strings.Contains(app.email, "@") {
 		return errors.New("email is invalid")
 	}
-
+	
 	cloudClient, err := app.newCloudClient()
 	if err != nil {
 		return err

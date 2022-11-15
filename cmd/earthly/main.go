@@ -139,6 +139,8 @@ type cliFlags struct {
 	satelliteName             string
 	noSatellite               bool
 	satelliteFeatureFlags     cli.StringSlice
+	satellitePlatform         string
+	satelliteSize             string
 	userPermission            string
 	noBuildkitUpdate          bool
 	globalWaitEnd             bool // for feature-flipping builder.go code removal
@@ -149,6 +151,7 @@ type cliFlags struct {
 	logstream                 bool
 	logstreamUpload           bool
 	logstreamDebugFile        string
+	requestID                 string
 	buildID                   string
 }
 

@@ -10,14 +10,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
-	"github.com/pkg/errors"
 )
 
 func (app *earthlyApp) newCloudClient() (cloud.Client, error) {
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock, app.authToken, app.installationName, app.console.Warnf)
+	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock,
+		app.authToken, app.installationName, app.requestID, app.console.Warnf)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create cloud client")
 	}

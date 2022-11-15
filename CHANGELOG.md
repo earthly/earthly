@@ -11,6 +11,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Fixed
 
 - Fixed Earthly on Mac would randomly hang on `1. Init` if Earthly was installed from Homebrew or the Earthly homebrew tap. [#2247](https://github.com/earthly/earthly/issues/2247)
+- Only referenced ARGs from .env are displayed on failures, this prevents secrets contained in .env from being displayed. [#1736](https://github.com/earthly/earthly/issues/1736)
 - Earthly now correctly detects if Podman is running but is under the disguise of the Docker CLI.
 
 ## v0.6.29 - 2022-11-07
