@@ -6,7 +6,6 @@ on:
     paths-ignore: [ docs/** ]
   pull_request:
     branches: [ main ]
-    paths-ignore: [ docs/** ]
 
 jobs:
   podman-tests:
