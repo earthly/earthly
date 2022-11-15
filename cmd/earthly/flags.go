@@ -106,6 +106,13 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Destination: &app.satelliteAddress,
 			Hidden:      true, // Internal.
 		},
+		&cli.StringFlag{
+			Name:        "request-id",
+			EnvVars:     []string{"EARTHLY_REQUEST_ID"},
+			Usage:       "Override a request ID to the backend API. Useful for debugging or manually retrying a request.",
+			Destination: &app.requestID,
+			Hidden:      true, // Internal
+		},
 		&cli.BoolFlag{
 			Name:        "no-buildkit-update",
 			EnvVars:     []string{"EARTHLY_NO_BUILDKIT_UPDATE"},
