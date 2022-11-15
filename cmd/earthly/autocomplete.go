@@ -111,14 +111,15 @@ func (app *earthlyApp) insertBashCompleteEntry() error {
 		path = filepath.Join(userPath, "bash-completion/completions/earthly")
 	}
 	ok, err := app.insertBashCompleteEntryAt(path)
-	if err == nil {
-		if ok {
-			app.console.VerbosePrintf("Successfully enabled bash-completion at %s\n", path)
-		} else {
-			app.console.VerbosePrintf("Bash-completion already present at %s\n", path)
-		}
+	if err != nil {
+		return err
 	}
-	return err
+	if ok {
+		app.console.VerbosePrintf("Successfully enabled bash-completion at %s\n", path)
+	} else {
+		app.console.VerbosePrintf("Bash-completion already present at %s\n", path)
+	}
+	return nil
 }
 
 func (app *earthlyApp) insertBashCompleteEntryAt(path string) (bool, error) {
