@@ -4,5 +4,4 @@ FROM alpine:3.15
 ci-test:
     ARG EARTHLY_CI
     RUN test "$EARTHLY_CI" = "true" || test "$EARTHLY_CI" = "false"
-    RUN (if [ "$EARTHLY_CI" = "true" ]; then echo UHVzaCBpdCByZWFsIGdvb2Q=; else echo U2hvb3Agc2hvb3AgYmEtZG9vcA==; fi) | base64 -d | tee chorus
-    SAVE ARTIFACT chorus
+    RUN (if [ "$EARTHLY_CI" = "true" ]; then echo Q0kgZW52aXJvbm1lbnQ=; else echo bG9jYWwgZW52aXJvbm1lbnQ=; fi) | base64 -d

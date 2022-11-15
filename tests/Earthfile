@@ -553,9 +553,9 @@ push-arg-indirect-test:
 
 ci-arg-test:
     DO +RUN_EARTHLY --earthfile=ci-arg.earth --target=+ci-test \
-        --output_contains="shoop"
+        --output_contains="local environment"
     DO +RUN_EARTHLY --earthfile=ci-arg.earth --extra_args="--ci" --target=+ci-test \
-        --output_contains="real good"
+        --output_contains="CI environment"
 
 private-image-test:
     FROM earthly/private-test:latest

@@ -54,6 +54,7 @@ func init() {
 		EarthlyGitTag:               struct{}{},
 		EarthlyLocally:              struct{}{},
 		EarthlyPush:                 struct{}{},
+		EarthlyCI:                   struct{}{},
 		EarthlySourceDateEpoch:      struct{}{},
 		EarthlyTarget:               struct{}{},
 		EarthlyTargetName:           struct{}{},
