@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -141,13 +142,14 @@ func (app *earthlyApp) useSatellite(cliCtx *cli.Context, satelliteName, orgName 
 
 func (app *earthlyApp) printSatellites(satellites []cloud.SatelliteInstance, orgID string) {
 	t := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
-	fmt.Fprintf(t, " \tNAME\tPLATFORM\tSIZE\n") // The leading space is for the selection marker, leave it alone
+	fmt.Fprintf(t, " \tNAME\tPLATFORM\tSIZE\tVERSION\tSTATE\n") // The leading space is for the selection marker, leave it alone
 	for _, s := range satellites {
 		var selected = ""
 		if s.Name == app.cfg.Satellite.Name && s.Org == orgID {
 			selected = "*"
 		}
-		fmt.Fprintf(t, "%s\t%s\t%s\t%s\n", selected, s.Name, s.Platform, s.Size)
+		_, _ = fmt.Fprintf(t, "%s\t%s\t%s\t%s\t%s\t%s\n",
+			selected, s.Name, s.Platform, s.Size, s.Version, strings.ToLower(s.Status))
 	}
 	err := t.Flush()
 	if err != nil {
@@ -347,9 +349,13 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		selected = "Yes"
 	}
 
-	app.console.Printf("Instance state: %s", satellite.Status)
-	app.console.Printf("Instance platform: %s", satellite.Platform)
-	app.console.Printf("Instance size: %s", satellite.Size)
+	app.console.Printf("State: %s", satellite.Status)
+	app.console.Printf("Platform: %s", satellite.Platform)
+	app.console.Printf("Size: %s", satellite.Size)
+	app.console.Printf("Version: %s", satellite.Version)
+	if len(satellite.FeatureFlags) > 0 {
+		app.console.Printf("Feature Flags: %+v", satellite.FeatureFlags)
+	}
 	app.console.Printf("Currently selected: %s", selected)
 	app.console.Printf("")
 
