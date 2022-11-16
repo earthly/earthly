@@ -122,6 +122,7 @@ type cliFlags struct {
 	expiry                    string
 	termsConditionsPrivacy    bool
 	authToken                 string
+	authJWT                   string
 	noFakeDep                 bool
 	enableSourceMap           bool
 	configDryRun              bool
