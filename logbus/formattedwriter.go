@@ -1,8 +1,6 @@
 package logbus
 
 import (
-	"time"
-
 	"github.com/earthly/cloud-api/logstream"
 )
 
@@ -24,15 +22,15 @@ func NewFormattedWriter(bus *Bus, targetID string) *FormattedWriter {
 func (fw *FormattedWriter) Write(dt []byte) (int, error) {
 	// TODO (vladaionescu): Can the timestamp be passed along straight
 	// 						from buildkit?
-	ts := uint64(time.Now().UnixNano())
+	now := fw.bus.NowUnixNanos()
 	fw.bus.WriteFormattedLog(&logstream.DeltaFormattedLog{
 		TargetId:           fw.targetID,
-		TimestampUnixNanos: ts,
+		TimestampUnixNanos: now,
 		Data:               dt,
 	})
 	fw.bus.WriteFormattedLog(&logstream.DeltaFormattedLog{
 		TargetId:           "_full",
-		TimestampUnixNanos: ts,
+		TimestampUnixNanos: now,
 		Data:               dt,
 	})
 	return len(dt), nil

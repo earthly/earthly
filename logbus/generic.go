@@ -29,7 +29,7 @@ func (g *Generic) Write(dt []byte) (int, error) {
 func (g *Generic) WriteWithTimestamp(dt []byte, ts time.Time) (int, error) {
 	g.run.b.WriteRawLog(&logstream.DeltaLog{
 		CommandId:          fmt.Sprintf("_generic:%s", g.category),
-		TimestampUnixNanos: uint64(ts.UnixNano()),
+		TimestampUnixNanos: g.run.b.TsUnixNanos(ts),
 		Data:               dt,
 	})
 	return len(dt), nil

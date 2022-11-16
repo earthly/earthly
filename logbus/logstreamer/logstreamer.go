@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // LogStreamer is a log streamer. It uses the cloud client to send
@@ -118,7 +119,19 @@ func (ls *LogStreamer) Write(delta *logstream.Delta) {
 	ls.mu.Lock()
 	ch := ls.ch // ls.ch may get replaced on retry
 	ls.mu.Unlock()
-	ch <- []*logstream.Delta{delta}
+	if ch != nil {
+		ch <- []*logstream.Delta{delta}
+	} else {
+		// TODO (vladaionescu): If these messages show up, we need to rethink
+		//						the closing sequence.
+		// TODO (vladaionescu): We should only log this if verbose is enabled.
+		dt, err := protojson.Marshal(delta)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "log streamer closed, but failed to marshal log delta: %v", err)
+			return
+		}
+		fmt.Fprintf(os.Stderr, "log streamer closed, dropping delta %v\n", string(dt))
+	}
 }
 
 // Close closes the log streamer.
@@ -126,6 +139,7 @@ func (ls *LogStreamer) Close() error {
 	ls.mu.Lock()
 	if ls.ch != nil {
 		close(ls.ch)
+		ls.ch = nil
 	}
 	ls.cancelled = true
 	ls.mu.Unlock()
