@@ -127,7 +127,7 @@ func (ls *LogStreamer) Write(delta *logstream.Delta) {
 		// TODO (vladaionescu): We should only log this if verbose is enabled.
 		dt, err := protojson.Marshal(delta)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to marshal log delta: %v", err)
+			fmt.Fprintf(os.Stderr, "log streamer closed, but failed to marshal log delta: %v", err)
 			return
 		}
 		fmt.Fprintf(os.Stderr, "log streamer closed, dropping delta %v\n", string(dt))
