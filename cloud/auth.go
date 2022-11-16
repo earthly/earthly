@@ -88,14 +88,6 @@ func (c *client) GetAuthToken(ctx context.Context) (string, error) {
 	return c.authToken, nil
 }
 
-func (c *client) SetAuthToken(ctx context.Context, jwt string) error {
-	c.email = ""
-	c.password = ""
-	c.authCredToken = ""
-	c.authToken = jwt
-	return nil
-}
-
 func (c *client) SetSSHCredentials(ctx context.Context, email, sshKey string) error {
 	sshKeyType, sshKeyBlob, _, err := parseSSHKey(sshKey)
 	if err != nil {
