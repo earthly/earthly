@@ -38,7 +38,7 @@ func New(ctx context.Context, bus *logbus.Bus, debug bool, verbose bool, disable
 		Formatter:     nil, // set below
 		SolverMonitor: nil, // set below
 		BuildID:       buildID,
-		CreatedAt:     time.Now(),
+		CreatedAt:     bus.CreatedAt(),
 	}
 	bs.Formatter = formatter.New(ctx, bs.Bus, verbose, disableOngoingUpdates)
 	bs.Bus.AddRawSubscriber(bs.Formatter)

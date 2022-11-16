@@ -2,6 +2,7 @@ package logbus
 
 import (
 	"sync"
+	"time"
 
 	"github.com/earthly/cloud-api/logstream"
 )
@@ -17,7 +18,8 @@ type Subscriber interface {
 // bus via WriteFormattedLog. The formatted deltas are then passed on to
 // formatted subscribers.
 type Bus struct {
-	run *Run
+	run       *Run
+	createdAt time.Time
 
 	rawMu      sync.Mutex
 	rawSubs    []Subscriber
@@ -31,10 +33,32 @@ type Bus struct {
 // New creates a new Bus.
 func New() *Bus {
 	b := &Bus{
-		run: nil, // set below
+		run:       nil, // set below
+		createdAt: time.Now(),
 	}
 	b.run = newRun(b)
 	return b
+}
+
+// CreatedAt returns the time the bus was created.
+func (b *Bus) CreatedAt() time.Time {
+	return b.createdAt
+}
+
+// NowUnixNanos returns the current time in unix nanoseconds, ensuring
+// monotonically increasing time.
+func (b *Bus) NowUnixNanos() uint64 {
+	return b.TsUnixNanos(time.Now())
+}
+
+// TsUnixNanos returns a given timestamp in unix nanoseconds, ensuring
+// monotonically increasing time.
+func (b *Bus) TsUnixNanos(t2 time.Time) uint64 {
+	// The following is necessary to ensure that the time is monotonically increasing.
+	// t2.UnixNano() strips the monotonic clock reading - so that wouldn't work.
+	// Sub maintains the monotonic clock reading https://pkg.go.dev/time#hdr-Monotonic_Clocks.
+	deltaT := t2.Sub(b.createdAt).Nanoseconds()
+	return uint64(b.CreatedAt().UnixNano()) + uint64(deltaT)
 }
 
 // AddSubscriber adds a subscriber to the bus. A subscriber receives both the

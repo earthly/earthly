@@ -113,7 +113,7 @@ func (run *Run) SetStart(start time.Time) {
 	defer run.mu.Unlock()
 	run.buildDelta(&logstream.DeltaManifest_FieldsDelta{
 		Status:             logstream.RunStatus_RUN_STATUS_IN_PROGRESS,
-		StartedAtUnixNanos: uint64(start.UnixNano()),
+		StartedAtUnixNanos: run.b.TsUnixNanos(start),
 	})
 }
 
@@ -134,7 +134,7 @@ func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, 
 	}
 	run.buildDelta(&logstream.DeltaManifest_FieldsDelta{
 		Status:           logstream.RunStatus_RUN_STATUS_FAILURE,
-		EndedAtUnixNanos: uint64(end.UnixNano()),
+		EndedAtUnixNanos: run.b.TsUnixNanos(end),
 		HasFailure:       true,
 		Failure: &logstream.Failure{
 			Type:         failureType,
@@ -171,7 +171,7 @@ func (run *Run) SetEnd(end time.Time, success bool, canceled bool, failureOutput
 
 	run.buildDelta(&logstream.DeltaManifest_FieldsDelta{
 		Status:           status,
-		EndedAtUnixNanos: uint64(end.UnixNano()),
+		EndedAtUnixNanos: run.b.TsUnixNanos(end),
 		Failure:          f,
 	})
 }
