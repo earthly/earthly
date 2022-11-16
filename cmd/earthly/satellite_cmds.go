@@ -190,7 +190,7 @@ func (app *earthlyApp) printSatellitesJSON(satellites []cloud.SatelliteInstance,
 	}
 	b, err := json.MarshalIndent(jsonSats, "", "  ")
 	if err != nil {
-		fmt.Printf("failed to marshal json: %s", err.Error()) // unlikely
+		fmt.Fprintf(os.Stderr, "failed to marshal json: %s", err.Error()) // unlikely
 	}
 	fmt.Println(string(b))
 }
