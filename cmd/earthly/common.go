@@ -19,7 +19,7 @@ import (
 
 func (app *earthlyApp) newCloudClient() (cloud.Client, error) {
 	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock,
-		app.authToken, app.installationName, app.requestID, app.console.Warnf)
+		app.authToken, app.authJWT, app.installationName, app.requestID, app.console.Warnf)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create cloud client")
 	}

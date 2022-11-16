@@ -35,6 +35,13 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Destination: &app.authToken,
 		},
 		&cli.StringFlag{
+			Name:        "auth-jwt",
+			EnvVars:     []string{"EARTHLY_JWT"},
+			Usage:       "Force Earthly account to use supplied JWT token",
+			Destination: &app.authJWT,
+			Hidden:      true, // Internal.
+		},
+		&cli.StringFlag{
 			Name:        "git-username",
 			EnvVars:     []string{"GIT_USERNAME"},
 			Usage:       "The git username to use for git HTTPS authentication",
