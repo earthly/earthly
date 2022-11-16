@@ -222,7 +222,7 @@
 		"variable": {
 			"patterns": [
 				{
-					"match": "\\$[a-zA-Z0-9_\\-]+",
+					"match": "\\$[a-zA-Z0-9_]+",
 					"name": "variable.other.earthfile"
 				},
 				{

@@ -8,6 +8,11 @@ For an introduction of Earthly see the [Earthly GitHub repository](https://githu
 
 ## Release Notes
 
+### 0.0.12
+
+* Fix don't allow `-` in variable names.
+* Fix arg names containing `_`
+
 ### 0.0.11
 
 * Add highlighting for `FOR` and `VERSION`.
