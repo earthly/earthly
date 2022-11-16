@@ -120,7 +120,7 @@ earthly-script-no-stdout:
     # This script performs an explicit "docker pull earthlybinaries:prerelease" which can cause rate-limiting
     # to work-around this, we will copy an earthly binary in, and disable auto-updating (and therefore don't require a WITH DOCKER)
     COPY +earthly/earthly /root/.earthly/earthly-prerelease
-    RUN EARTHLY_DISABLE_AUTO_UPDATE=true ./earthly --version > earthly-version-output
+    RUN EARTHLY_DISABLE_FRONTEND_DETECTION=true EARTHLY_DISABLE_AUTO_UPDATE=true ./earthly --version > earthly-version-output
 
     RUN test "$(cat earthly-version-output | wc -l)" = "1"
     RUN grep '^earthly version.*$' earthly-version-output # only --version info should go to stdout
@@ -207,6 +207,7 @@ lint-changelog:
 
 debugger:
     FROM +code
+    ENV CGO_ENABLED=0
     ARG GOCACHE=/go-cache
     ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
     ARG EARTHLY_TARGET_TAG
@@ -222,6 +223,7 @@ debugger:
 
 earthly:
     FROM +code
+    ENV CGO_ENABLED=0
     ARG GOOS=linux
     ARG TARGETARCH
     ARG TARGETVARIANT
@@ -229,6 +231,7 @@ earthly:
     ARG VARIANT=$TARGETVARIANT
     ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
     ARG EXECUTABLE_NAME="earthly"
+    ARG DEFAULT_INSTALLATION_NAME="earthly-dev"
     RUN test -n "$GOOS" && test -n "$GOARCH"
     RUN test "$GOARCH" != "arm" || test -n "$VARIANT"
     ARG EARTHLY_TARGET_TAG_DOCKER
@@ -242,6 +245,7 @@ earthly:
     RUN printf '-X main.DefaultBuildkitdImage='"$DEFAULT_BUILDKITD_IMAGE" > ./build/ldflags && \
         printf ' -X main.Version='"$VERSION" >> ./build/ldflags && \
         printf ' -X main.GitSha='"$EARTHLY_GIT_HASH" >> ./build/ldflags && \
+        printf ' -X main.DefaultInstallationName='"$DEFAULT_INSTALLATION_NAME" >> ./build/ldflags && \
         printf ' '"$GO_EXTRA_LDFLAGS" >> ./build/ldflags && \
         echo "$(cat ./build/ldflags)"
     # Important! If you change the go build options, you may need to also change them
@@ -311,14 +315,14 @@ earthly-all:
 earthly-docker:
     ARG BUILDKIT_PROJECT
     FROM ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
-    RUN apk add --update --no-cache docker-cli libcap-ng-utils
+    RUN apk add --update --no-cache docker-cli libcap-ng-utils git
     ENV EARTHLY_IMAGE=true
     COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
     ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
     WORKDIR /workspace
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
-    COPY (+earthly/earthly --VERSION=$TAG) /usr/bin/earthly
+    COPY (+earthly/earthly --VERSION=$TAG --DEFAULT_INSTALLATION_NAME="earthly") /usr/bin/earthly
     SAVE IMAGE --push --cache-from=earthly/earthly:main earthly/earthly:$TAG
 
 earthly-integration-test-base:
