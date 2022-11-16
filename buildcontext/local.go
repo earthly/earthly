@@ -97,7 +97,6 @@ func (lr *localResolver) resolveLocal(ctx context.Context, gwClient gwclient.Cli
 			buildContextFactory = llbfactory.Local(
 				ref.GetLocalPath(),
 				llb.ExcludePatterns(excludes),
-				llb.SessionID(gwClient.BuildOpts().SessionID),
 				llb.Platform(platr.LLBNative()),
 				llb.WithCustomNamef("[context %s] local context %s", ref.GetLocalPath(), ref.GetLocalPath()),
 			)
