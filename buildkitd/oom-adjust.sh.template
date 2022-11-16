@@ -8,7 +8,7 @@ fi
 
 for PID in $(pidof buildkit-runc)
 do
-    if [ ! -f /proc/"$PID"/cmdline ]; then
+    if [ ! -d /proc/"$PID" ]; then
         ! "${BUILDKIT_DEBUG}" || echo "$(date) | $PID was missing, ignoring" >> /var/log/oom_adj
         continue
     fi
@@ -23,7 +23,7 @@ do
 
     for CHILD_PID in $(pgrep -P "$PID")
     do
-        if [ ! -f /proc/"$CHILD_PID"/cmdline ]; then
+        if [ ! -d /proc/"$CHILD_PID" ]; then
             ! "${BUILDKIT_DEBUG}" || echo "$(date) |   $CHILD_PID was missing, ignoring" >> /var/log/oom_adj
             continue
         fi
