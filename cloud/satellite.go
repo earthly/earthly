@@ -35,7 +35,7 @@ const (
 type SatelliteInstance struct {
 	Name         string
 	Org          string
-	Status       string
+	State        string
 	Platform     string
 	Size         string
 	Version      string
@@ -56,7 +56,7 @@ func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteI
 			Org:      orgID,
 			Platform: s.Platform,
 			Size:     s.Size,
-			Status:   satelliteStatus(s.Status),
+			State:    satelliteStatus(s.Status),
 			Version:  s.Version,
 		}
 	}
@@ -74,7 +74,7 @@ func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*Satelli
 	return &SatelliteInstance{
 		Name:         name,
 		Org:          orgID,
-		Status:       satelliteStatus(resp.Status),
+		State:        satelliteStatus(resp.Status),
 		Platform:     resp.Platform,
 		Size:         resp.Size,
 		Version:      resp.Version,
