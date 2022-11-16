@@ -136,6 +136,7 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	}
 	if authJWTOverride != "" {
 		c.authToken = authJWTOverride
+		c.authTokenExpiry = time.Now().Add(24 * 365 * time.Hour) // Never expire when using JWT.
 	} else if authCredsOverride != "" {
 		c.authCredToken = authCredsOverride
 	} else {
