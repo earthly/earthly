@@ -423,7 +423,6 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		MaxCacheExport:                        maxCacheExport,
 		UseInlineCache:                        app.useInlineCache,
 		SaveInlineCache:                       app.saveInlineCache,
-		SessionID:                             app.sessionID,
 		ImageResolveMode:                      imageResolveMode,
 		CleanCollection:                       cleanCollection,
 		OverridingVars:                        overridingVars,

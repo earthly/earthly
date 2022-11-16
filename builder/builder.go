@@ -51,7 +51,6 @@ const (
 
 // Opt represent builder options.
 type Opt struct {
-	SessionID                             string
 	BkClient                              *client.Client
 	LogBusSolverMonitor                   *solvermon.SolverMonitor
 	UseLogstream                          bool
