@@ -55,7 +55,7 @@ func (b *Bus) NowUnixNanos() uint64 {
 // monotonically increasing time.
 func (b *Bus) TsUnixNanos(t2 time.Time) uint64 {
 	// The following is necessary to ensure that the time is monotonically increasing.
-	// t2.UnixNano() strips the monotonic clock reading - so that wouldn't work.
+	// t2.UnixNano() sometimes strips the monotonic clock reading (e.g. time.Now().UnixNano()).
 	// Sub maintains the monotonic clock reading https://pkg.go.dev/time#hdr-Monotonic_Clocks.
 	deltaT := t2.Sub(b.createdAt).Nanoseconds()
 	return uint64(b.CreatedAt().UnixNano()) + uint64(deltaT)
