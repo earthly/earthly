@@ -41,7 +41,6 @@ import (
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/reflectutil"
-	"github.com/earthly/earthly/util/stringutil"
 )
 
 const (
@@ -60,7 +59,6 @@ type earthlyApp struct {
 	cfg         *config.Config
 	logbusSetup *logbussetup.BusSetup
 	logbus      *logbus.Bus
-	sessionID   string
 	commandName string
 	cliFlags
 	analyticsMetadata
@@ -343,9 +341,8 @@ func getBinaryName() string {
 
 func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *earthlyApp {
 	app := &earthlyApp{
-		cliApp:    cli.NewApp(),
-		console:   console,
-		sessionID: stringutil.RandomAlphanumeric(64),
+		cliApp:  cli.NewApp(),
+		console: console,
 		cliFlags: cliFlags{
 			buildkitdSettings: buildkitd.Settings{},
 		},
