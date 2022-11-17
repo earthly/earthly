@@ -81,7 +81,15 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 		// In case the channel is congested, this frees up any stuck writers.
 		prevCh := ls.ch
 		go func() {
-			for range prevCh {
+			for {
+				select {
+				case _, ok := <-prevCh:
+					if !ok {
+						return
+					}
+				default:
+					return // no more messages to consume, but channel not closed
+				}
 			}
 		}()
 	}
