@@ -76,14 +76,12 @@ type ConsoleLogger struct {
 	prefixWriter   PrefixWriter
 	trailingLine   bool
 	prefixPadding  int
-	trailNewLine   bool
 	bb             *BundleBuilder
 }
 
 // Current returns the current console.
 func Current(colorMode ColorMode, prefixPadding int, logLevel LogLevel) ConsoleLogger {
-	return New(getCompatibleStderr(), &currentConsoleMutex, colorMode, prefixPadding, logLevel).
-		WithTrailNewLine(true)
+	return New(getCompatibleStderr(), &currentConsoleMutex, colorMode, prefixPadding, logLevel)
 }
 
 // New returns a new ConsoleLogger with a predefined target writer.
@@ -119,17 +117,9 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 		colorMode:      cl.colorMode,
 		nextColorIndex: cl.nextColorIndex,
 		prefixPadding:  cl.prefixPadding,
-		trailNewLine:   cl.trailNewLine,
 		mu:             cl.mu,
 		bb:             cl.bb,
 	}
-}
-
-// WithTrailNewLine returns a ConsoleLogger with trailNewLine flag set accordingly.
-func (cl ConsoleLogger) WithTrailNewLine(trailNewLine bool) ConsoleLogger {
-	ret := cl.clone()
-	ret.trailNewLine = trailNewLine
-	return ret
 }
 
 // WithPrefix returns a ConsoleLogger with a prefix added.

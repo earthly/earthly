@@ -382,34 +382,27 @@ func (f *Formatter) printBuildFailure() {
 }
 
 func (f *Formatter) targetConsole(targetID string, commandID string) conslogging.ConsoleLogger {
-	trailNewLine := true
 	var targetName string
-	writerTargetID := targetID
-	if targetID != "" {
+	var writerTargetID string
+	switch {
+	case targetID != "":
 		tm := f.manifest.GetTargets()[targetID]
 		targetName = tm.GetName()
-	} else {
-		if commandID != "" {
-			switch {
-			case commandID == "_generic:default":
-				targetName = ""
-				writerTargetID = commandID
-				trailNewLine = false
-			case strings.HasPrefix(commandID, "_generic:"):
-				targetName = strings.TrimPrefix(commandID, "_generic:")
-				writerTargetID = commandID
-				trailNewLine = false
-			default:
-				targetName = fmt.Sprintf("_internal:%s", commandID)
-				writerTargetID = targetName
-			}
-		} else {
-			targetName = "_unknown"
-			writerTargetID = targetName
-		}
+		writerTargetID = targetID
+	case commandID == "_generic:default":
+		targetName = ""
+		writerTargetID = commandID
+	case strings.HasPrefix(commandID, "_generic:"):
+		targetName = strings.TrimPrefix(commandID, "_generic:")
+		writerTargetID = commandID
+	case commandID != "":
+		targetName = fmt.Sprintf("_internal:%s", commandID)
+		writerTargetID = commandID
+	default:
+		targetName = "_unknown"
+		writerTargetID = "_unknown"
 	}
 	return f.console.
 		WithWriter(f.bus.FormattedWriter(writerTargetID)).
-		WithTrailNewLine(trailNewLine).
 		WithPrefixAndSalt(targetName, writerTargetID)
 }

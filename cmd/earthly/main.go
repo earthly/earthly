@@ -414,7 +414,6 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 		app.logstream = true
 	}
 	if app.logstream {
-		// TODO (vladaionescu): Set category correctly via the console logger.
 		app.console = app.console.WithPrefixWriter(app.logbus.Run().Generic())
 	}
 
