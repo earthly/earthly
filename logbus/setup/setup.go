@@ -31,7 +31,7 @@ type BusSetup struct {
 }
 
 // New creates a new BusSetup.
-func New(ctx context.Context, bus *logbus.Bus, debug bool, verbose bool, disableOngoingUpdates bool, busDebugFile string, buildID string) (*BusSetup, error) {
+func New(ctx context.Context, bus *logbus.Bus, debug, verbose, forceColor, noColor, disableOngoingUpdates bool, busDebugFile string, buildID string) (*BusSetup, error) {
 	bs := &BusSetup{
 		Bus:           bus,
 		ConsoleWriter: writersub.New(os.Stderr, "_full"),
@@ -40,7 +40,7 @@ func New(ctx context.Context, bus *logbus.Bus, debug bool, verbose bool, disable
 		BuildID:       buildID,
 		CreatedAt:     bus.CreatedAt(),
 	}
-	bs.Formatter = formatter.New(ctx, bs.Bus, verbose, disableOngoingUpdates)
+	bs.Formatter = formatter.New(ctx, bs.Bus, debug, verbose, forceColor, noColor, disableOngoingUpdates)
 	bs.Bus.AddRawSubscriber(bs.Formatter)
 	bs.Bus.AddFormattedSubscriber(bs.ConsoleWriter)
 	bs.SolverMonitor = solvermon.New(bs.Bus)

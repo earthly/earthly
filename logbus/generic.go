@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
+	"github.com/earthly/earthly/conslogging"
 )
 
 // Generic is a generic writer for build output unrelated to a specific target.
@@ -13,9 +14,18 @@ type Generic struct {
 	category string
 }
 
-func newGeneric(run *Run, category string) *Generic {
+func newGeneric(run *Run) *Generic {
 	return &Generic{
 		run:      run,
+		category: "default",
+	}
+}
+
+// WithPrefix returns a new Generic with the given prefix. This satisfies the
+// conslogging.PrefixWriter interface.
+func (g *Generic) WithPrefix(category string) conslogging.PrefixWriter {
+	return &Generic{
+		run:      g.run,
 		category: category,
 	}
 }

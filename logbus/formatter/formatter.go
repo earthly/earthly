@@ -23,7 +23,6 @@ const (
 	durationBetweenSha256ProgressUpdate = 5 * time.Second
 	durationBetweenProgressUpdate       = 3 * time.Second
 	durationBetweenProgressUpdateIfSame = 5 * time.Millisecond
-	durationBetweenOpenLineUpdate       = time.Second
 	durationBetweenOngoingUpdates       = 5 * time.Second
 	durationBetweenOngoingUpdatesNoAnsi = 60 * time.Second
 )
@@ -44,9 +43,7 @@ type command struct {
 	lastProgress   time.Time
 	lastPercentage int32
 	// openLine is the line of output that has not yet been terminated with a \n.
-	openLine            []byte
-	lastOpenLineUpdate  time.Time
-	lastOpenLineSkipped bool
+	openLine []byte
 }
 
 // Formatter is a delta to console logger.
@@ -70,17 +67,34 @@ type Formatter struct {
 }
 
 // New creates a new Formatter.
-func New(ctx context.Context, b *logbus.Bus, verbose bool, disableOngoingUpdates bool) *Formatter {
+func New(ctx context.Context, b *logbus.Bus, debug, verbose, forceColor, noColor bool, disableOngoingUpdates bool) *Formatter {
 	ongoingTick := durationBetweenOngoingUpdatesNoAnsi
 	if ansiSupported {
 		ongoingTick = durationBetweenOngoingUpdates
 	}
 	ongoingTicker := time.NewTicker(ongoingTick)
 	ongoingTicker.Stop()
+	var logLevel conslogging.LogLevel
+	switch {
+	case debug:
+		logLevel = conslogging.Debug
+	case verbose:
+		logLevel = conslogging.Verbose
+	default:
+		logLevel = conslogging.Info
+	}
+	var colorMode conslogging.ColorMode
+	switch {
+	case forceColor:
+		colorMode = conslogging.ForceColor
+	case noColor:
+		colorMode = conslogging.NoColor
+	default:
+		colorMode = conslogging.AutoColor
+	}
 	f := &Formatter{
-		bus: b,
-		// TODO (vladaionescu): Pass in color detection and log level.
-		console:       conslogging.New(nil, nil, conslogging.AutoColor, conslogging.DefaultPadding, conslogging.Info),
+		bus:           b,
+		console:       conslogging.New(nil, nil, colorMode, conslogging.DefaultPadding, logLevel),
 		verbose:       verbose,
 		timingTable:   make(map[string]time.Duration),
 		startTime:     time.Now(),
@@ -210,13 +224,12 @@ func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
 		f.lastCommandOutput == cmd)
 	output := dl.GetData()
 	printOutput := make([]byte, 0, len(cmd.openLine)+len(output)+10)
-	if bytes.HasPrefix(output, []byte{'\n'}) && len(cmd.openLine) > 0 && !cmd.lastOpenLineSkipped {
+	if bytes.HasPrefix(output, []byte{'\n'}) && len(cmd.openLine) > 0 {
 		// Optimization for cases where ansi control sequences are not supported:
 		// if the output starts with a \n, then treat the open line as closed and
 		// just keep going after that.
 		cmd.openLine = nil
 		output = output[1:]
-		cmd.lastOpenLineUpdate = time.Time{}
 	}
 	if sameAsLast && len(cmd.openLine) > 0 {
 		// Prettiness optimization: if there is an open line and the previous print out
@@ -232,24 +245,15 @@ func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
 	if lastNewLine != -1 {
 		// Ends up being empty slice if output ends in \n.
 		cmd.openLine = printOutput[(lastNewLine + 1):]
-		// A \n exists - reset the open line timer.
-		cmd.lastOpenLineUpdate = time.Time{}
 	} else {
 		// No \n found - update cmd.openLine to append the new output.
 		cmd.openLine = append(cmd.openLine, output...)
 	}
 	if !bytes.HasSuffix(printOutput, []byte{'\n'}) {
-		if time.Since(cmd.lastOpenLineUpdate) > durationBetweenOpenLineUpdate {
-			// Skip printing if trying to update the same line too frequently.
-			cmd.lastOpenLineSkipped = true
-			return nil
-		}
-		cmd.lastOpenLineUpdate = time.Now()
 		// If output doesn't terminate in \n, add our own.
 		printOutput = append(printOutput, '\n')
 	}
 
-	cmd.lastOpenLineSkipped = false
 	c.PrintBytes(printOutput)
 	f.lastOutputWasOngoingUpdate = false
 	f.lastOutputWasProgress = false
@@ -378,20 +382,34 @@ func (f *Formatter) printBuildFailure() {
 }
 
 func (f *Formatter) targetConsole(targetID string, commandID string) conslogging.ConsoleLogger {
+	trailNewLine := true
 	var targetName string
 	writerTargetID := targetID
 	if targetID != "" {
 		tm := f.manifest.GetTargets()[targetID]
 		targetName = tm.GetName()
 	} else {
-		writerTargetID = "_internal"
-		targetName = "internal"
 		if commandID != "" {
-			writerTargetID = fmt.Sprintf("_internal:%s", commandID)
-			targetName = writerTargetID
+			switch {
+			case commandID == "_generic:default":
+				targetName = ""
+				writerTargetID = commandID
+				trailNewLine = false
+			case strings.HasPrefix(commandID, "_generic:"):
+				targetName = strings.TrimPrefix(commandID, "_generic:")
+				writerTargetID = commandID
+				trailNewLine = false
+			default:
+				targetName = fmt.Sprintf("_internal:%s", commandID)
+				writerTargetID = targetName
+			}
+		} else {
+			targetName = "_unknown"
+			writerTargetID = targetName
 		}
 	}
 	return f.console.
 		WithWriter(f.bus.FormattedWriter(writerTargetID)).
-		WithPrefixAndSalt(targetName, targetID)
+		WithTrailNewLine(trailNewLine).
+		WithPrefixAndSalt(targetName, writerTargetID)
 }

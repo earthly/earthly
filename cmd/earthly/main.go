@@ -400,14 +400,22 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 	if app.buildID == "" {
 		app.buildID = uuid.NewString()
 	}
+	disableOngoingUpdates := !app.logstream || app.interactiveDebugging
+	_, forceColor := os.LookupEnv("FORCE_COLOR")
+	_, noColor := os.LookupEnv("NO_COLOR")
+	var err error
+	app.logbusSetup, err = logbussetup.New(
+		cliCtx.Context, app.logbus, app.debug, app.verbose, forceColor, noColor,
+		disableOngoingUpdates, app.logstreamDebugFile, app.buildID)
+	if err != nil {
+		return errors.Wrap(err, "logbus setup")
+	}
 	if app.logstreamUpload {
 		app.logstream = true
 	}
-	disableOngoingUpdates := !app.logstream // TODO (vladaionescu)
-	var err error
-	app.logbusSetup, err = logbussetup.New(cliCtx.Context, app.logbus, app.debug, app.verbose, disableOngoingUpdates, app.logstreamDebugFile, app.buildID)
-	if err != nil {
-		return errors.Wrap(err, "logbus setup")
+	if app.logstream {
+		// TODO (vladaionescu): Set category correctly via the console logger.
+		app.console = app.console.WithPrefixWriter(app.logbus.Run().Generic())
 	}
 
 	if cliCtx.IsSet("config") {
