@@ -57,6 +57,7 @@ type Formatter struct {
 	ongoingTick   time.Duration
 	ongoingTicker *time.Ticker
 	startTime     time.Time
+	closedCh      chan struct{}
 
 	mu                         sync.Mutex
 	lastOutputWasProgress      bool
@@ -83,6 +84,7 @@ func New(ctx context.Context, b *logbus.Bus, verbose bool, disableOngoingUpdates
 		verbose:       verbose,
 		timingTable:   make(map[string]time.Duration),
 		startTime:     time.Now(),
+		closedCh:      make(chan struct{}),
 		ongoingTicker: ongoingTicker,
 		ongoingTick:   ongoingTick,
 		manifest:      &logstream.RunManifest{},
@@ -107,6 +109,7 @@ func (f *Formatter) Write(delta *logstream.Delta) {
 // Close stops the formatter and returns any errors encountered during
 // formatting.
 func (f *Formatter) Close() error {
+	close(f.closedCh)
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	var retErr error
@@ -145,6 +148,8 @@ func (f *Formatter) ongoingTickLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			return
+		case <-f.closedCh:
 			return
 		case <-f.ongoingTicker.C:
 			f.mu.Lock()

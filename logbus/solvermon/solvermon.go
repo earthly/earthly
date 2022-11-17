@@ -8,6 +8,7 @@ import (
 
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/util/vertexmeta"
+	"github.com/earthly/earthly/util/xcontext"
 	"github.com/moby/buildkit/client"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -30,7 +31,7 @@ func New(b *logbus.Bus) *SolverMonitor {
 
 // MonitorProgress processes a channel of buildkit solve statuses.
 func (sm *SolverMonitor) MonitorProgress(ctx context.Context, ch chan *client.SolveStatus) error {
-	delayedCtx, delayedCancel := context.WithCancel(ctx)
+	delayedCtx, delayedCancel := context.WithCancel(xcontext.Detach(ctx))
 	defer delayedCancel()
 	go func() {
 		<-ctx.Done()
@@ -53,7 +54,7 @@ func (sm *SolverMonitor) MonitorProgress(ctx context.Context, ch chan *client.So
 			if !ok {
 				return nil
 			}
-			err := sm.handleBuildkitStatus(ctx, status)
+			err := sm.handleBuildkitStatus(delayedCtx, status)
 			if err != nil {
 				return err
 			}
