@@ -17,7 +17,6 @@ type Run struct {
 	commands map[string]*Command
 	ended    bool
 
-	gpMu    sync.Mutex
 	generic *Generic
 }
 
