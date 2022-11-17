@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/cloud"
@@ -78,8 +79,17 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 	const chSize = 10240
 	if ls.ch != nil {
 		// In case the channel is congested, this frees up any stuck writers.
+		prevCh := ls.ch
 		go func() {
-			for range ls.ch {
+			for {
+				select {
+				case _, ok := <-prevCh:
+					if !ok {
+						return
+					}
+				default:
+					return // no more messages to consume, but channel not closed
+				}
 			}
 		}()
 	}
@@ -143,7 +153,18 @@ func (ls *LogStreamer) Close() error {
 	}
 	ls.cancelled = true
 	ls.mu.Unlock()
-	<-ls.doneCh // wait for all messages to be sent (or for log streamer to error-out).
+	// wait for all messages to be sent
+	timedOut := false
+	select {
+	case <-ls.doneCh:
+	case <-time.After(60 * time.Second):
+		timedOut = true
+	}
+	ls.mu.Lock()
+	defer ls.mu.Unlock()
+	if timedOut {
+		ls.errors = append(ls.errors, errors.New("timed out waiting for log streamer to close"))
+	}
 	var retErr error
 	for _, err := range ls.errors {
 		retErr = multierror.Append(retErr, err)
