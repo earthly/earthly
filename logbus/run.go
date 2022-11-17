@@ -17,29 +17,23 @@ type Run struct {
 	commands map[string]*Command
 	ended    bool
 
-	gpMu     sync.Mutex
-	generics map[string]*Generic
+	generic *Generic
 }
 
 func newRun(b *Bus) *Run {
-	return &Run{
+	run := &Run{
 		b:        b,
 		targets:  make(map[string]*Target),
 		commands: make(map[string]*Command),
-		generics: make(map[string]*Generic),
+		generic:  nil, // set below
 	}
+	run.generic = newGeneric(run)
+	return run
 }
 
 // Generic returns a generic writer for build output unrelated to a specific target.
-func (run *Run) Generic(category string) *Generic {
-	run.gpMu.Lock()
-	defer run.gpMu.Unlock()
-	gp, ok := run.generics[category]
-	if ok {
-		return gp
-	}
-	run.generics[category] = newGeneric(run, category)
-	return run.generics[category]
+func (run *Run) Generic() *Generic {
+	return run.generic
 }
 
 // NewTarget creates a new target printer.
