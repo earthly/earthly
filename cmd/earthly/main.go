@@ -140,6 +140,7 @@ type cliFlags struct {
 	satelliteFeatureFlags     cli.StringSlice
 	satellitePlatform         string
 	satelliteSize             string
+	satellitePrintJSON        bool
 	userPermission            string
 	noBuildkitUpdate          bool
 	globalWaitEnd             bool // for feature-flipping builder.go code removal
