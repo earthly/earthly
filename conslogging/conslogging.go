@@ -1,7 +1,7 @@
 package conslogging
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"strings"
@@ -208,8 +208,12 @@ func (cl ConsoleLogger) WithLogBundleWriter(entrypoint string, collection *clean
 
 // PrintPhaseHeader prints the phase header.
 func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special string) {
+	w := new(bytes.Buffer)
 	cl.mu.Lock()
-	defer cl.mu.Unlock()
+	defer func() {
+		_, _ = w.WriteTo(cl.errW)
+		cl.mu.Unlock()
+	}()
 	msg := phase
 	c := cl.color(phaseColor)
 	if disabled {
@@ -223,32 +227,31 @@ func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special st
 	if underlineLength < barWidth {
 		underlineLength = barWidth
 	}
-	c.Fprintf(cl.errW, " %s", msg)
-	fmt.Fprintf(cl.errW, "\n")
-	c.Fprintf(cl.errW, "%s", strings.Repeat("—", underlineLength))
-	fmt.Fprintf(cl.errW, "\n\n")
+	c.Fprintf(w, " %s", msg)
+	fmt.Fprintf(w, "\n")
+	c.Fprintf(w, "%s", strings.Repeat("—", underlineLength))
+	fmt.Fprintf(w, "\n\n")
 }
 
 // PrintPhaseFooter prints the phase footer.
 func (cl ConsoleLogger) PrintPhaseFooter(phase string, disabled bool, special string) {
+	w := new(bytes.Buffer)
 	cl.mu.Lock()
-	defer cl.mu.Unlock()
+	defer func() {
+		_, _ = w.WriteTo(cl.errW)
+		cl.mu.Unlock()
+	}()
 	c := cl.color(noColor)
-	c.Fprintf(cl.errW, "\n")
+	c.Fprintf(w, "\n")
 }
 
 // PrintSuccess prints the success message.
 func (cl ConsoleLogger) PrintSuccess() {
-	cl.mu.Lock()
-	defer cl.mu.Unlock()
 	cl.PrintBar(successColor, "🌍 Earthly Build  ✅ SUCCESS", "")
 }
 
 // PrintFailure prints the failure message.
 func (cl ConsoleLogger) PrintFailure(phase string) {
-	cl.mu.Lock()
-	defer cl.mu.Unlock()
-
 	cl.PrintBar(warnColor, "❌ FAILURE", phase)
 }
 
@@ -265,6 +268,12 @@ func (cl ConsoleLogger) PrefixColor() *color.Color {
 
 // PrintBar prints an earthly message bar.
 func (cl ConsoleLogger) PrintBar(c *color.Color, msg, phase string) {
+	w := new(bytes.Buffer)
+	cl.mu.Lock()
+	defer func() {
+		_, _ = w.WriteTo(cl.errW)
+		cl.mu.Unlock()
+	}()
 	c = cl.color(c)
 	center := msg
 	if phase != "" {
@@ -284,22 +293,20 @@ func (cl ConsoleLogger) PrintBar(c *color.Color, msg, phase string) {
 		rightBar += "="
 	}
 
-	fmt.Fprintf(cl.errW, "\n")
-	c.Fprintf(cl.errW, "%s%s%s", leftBar, center, rightBar)
-	fmt.Fprintf(cl.errW, "\n\n")
+	fmt.Fprintf(w, "\n")
+	c.Fprintf(w, "%s%s%s", leftBar, center, rightBar)
+	fmt.Fprintf(w, "\n\n")
 }
-
-const minWriterSize = 1024
 
 // Warnf prints a warning message in red to errWriter.
 func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 	if cl.logLevel < Warn {
 		return
 	}
-	w := bufio.NewWriterSize(cl.errW, minWriterSize)
+	w := new(bytes.Buffer)
 	cl.mu.Lock()
 	defer func() {
-		_ = w.Flush()
+		_, _ = w.WriteTo(cl.errW)
 		cl.mu.Unlock()
 	}()
 
@@ -308,7 +315,7 @@ func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 	text = strings.TrimSuffix(text, "\n")
 
 	for _, line := range strings.Split(text, "\n") {
-		cl.printPrefix()
+		cl.printPrefix(w)
 		c.Fprintf(w, "%s\n", line)
 	}
 }
@@ -318,10 +325,10 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	if cl.logLevel < Info {
 		return
 	}
-	w := bufio.NewWriterSize(cl.errW, minWriterSize)
+	w := new(bytes.Buffer)
 	cl.mu.Lock()
 	defer func() {
-		_ = w.Flush()
+		_, _ = w.WriteTo(cl.errW)
 		cl.mu.Unlock()
 	}()
 
@@ -332,7 +339,7 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	text := fmt.Sprintf(format, args...)
 	text = strings.TrimSuffix(text, "\n")
 	for _, line := range strings.Split(text, "\n") {
-		cl.printPrefix()
+		cl.printPrefix(w)
 		c.Fprintf(w, "%s", line)
 
 		// Don't use a background color for \n.
@@ -342,14 +349,11 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 
 // PrintBytes prints bytes directly to the console.
 func (cl ConsoleLogger) PrintBytes(data []byte) {
-	writerSize := minWriterSize
-	if len(data) > writerSize {
-		writerSize = len(data)
-	}
-	w := bufio.NewWriterSize(cl.errW, writerSize)
+	w := new(bytes.Buffer)
+	w.Grow(len(data) + len(data)/4)
 	cl.mu.Lock()
 	defer func() {
-		_ = w.Flush()
+		_, _ = w.WriteTo(cl.errW)
 		cl.mu.Unlock()
 	}()
 	c := cl.color(noColor)
@@ -375,7 +379,7 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 					c.Fprintf(w, "%s", string(output))
 					output = output[:0]
 				}
-				cl.printPrefix()
+				cl.printPrefix(w)
 				cl.trailingLine = true
 			}
 			output = append(output, ch...)
@@ -419,7 +423,7 @@ func (cl ConsoleLogger) DebugBytes(data []byte) {
 	cl.WithMetadataMode(true).PrintBytes(data)
 }
 
-func (cl ConsoleLogger) printPrefix() {
+func (cl ConsoleLogger) printPrefix(w io.Writer) {
 	// Assumes mu locked.
 	if cl.prefixWriter != nil {
 		// When the prefix writer is in use, we don't need to print the prefix.
@@ -429,22 +433,22 @@ func (cl ConsoleLogger) printPrefix() {
 		return
 	}
 	c := cl.PrefixColor()
-	c.Fprintf(cl.errW, "%s", prettyPrefix(cl.prefixPadding, cl.prefix))
+	c.Fprintf(w, "%s", prettyPrefix(cl.prefixPadding, cl.prefix))
 	if cl.isLocal {
-		fmt.Fprintf(cl.errW, " *")
-		cl.color(localColor).Fprintf(cl.errW, "local")
-		fmt.Fprintf(cl.errW, "*")
+		fmt.Fprintf(w, " *")
+		cl.color(localColor).Fprintf(w, "local")
+		fmt.Fprintf(w, "*")
 	}
 	if cl.isFailed {
-		fmt.Fprintf(cl.errW, " *")
-		cl.color(warnColor).Fprintf(cl.errW, "failed")
-		fmt.Fprintf(cl.errW, "*")
+		fmt.Fprintf(w, " *")
+		cl.color(warnColor).Fprintf(w, "failed")
+		fmt.Fprintf(w, "*")
 	}
-	fmt.Fprintf(cl.errW, " | ")
+	fmt.Fprintf(w, " | ")
 	if cl.isCached {
-		fmt.Fprintf(cl.errW, "*")
-		cl.color(cachedColor).Fprintf(cl.errW, "cached")
-		fmt.Fprintf(cl.errW, "* ")
+		fmt.Fprintf(w, "*")
+		cl.color(cachedColor).Fprintf(w, "cached")
+		fmt.Fprintf(w, "* ")
 	}
 }
 
