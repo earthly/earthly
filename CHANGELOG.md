@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- Ability to run multiple Earthly installations at a time via `EARTHLY_INSTALLATION_NAME` environment variable, or the `--installation-name` CLI flag. The installation name defaults to `earthly` if not specified. Different installations use different configurations, different buildkit Daemons, different cache volumes, and different ports.
+
 ### Changed
 
 - Updated buildkit to include changes up to [a5263dd0f990a3fe17b67e0002b76bfd1f5b433d](https://github.com/moby/buildkit/commit/a5263dd0f990a3fe17b67e0002b76bfd1f5b433d), which includes a change to speed-up buildkit startup time.
