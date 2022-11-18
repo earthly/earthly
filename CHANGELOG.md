@@ -7,6 +7,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Added
 
 - Added support for a custom `.netrc` file path using the standard `NETRC` environmental variable. [#2426](https://github.com/earthly/earthly/pull/2426)
+- Ability to run multiple Earthly installations at a time via `EARTHLY_INSTALLATION_NAME` environment variable, or the `--installation-name` CLI flag. The installation name defaults to `earthly` if not specified. Different installations use different configurations, different buildkit Daemons, different cache volumes, and different ports.
 
 ### Changed
 
