@@ -7,6 +7,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Changed
 
 - Updated buildkit to include changes up to [a5263dd0f990a3fe17b67e0002b76bfd1f5b433d](https://github.com/moby/buildkit/commit/a5263dd0f990a3fe17b67e0002b76bfd1f5b433d), which includes a change to speed-up buildkit startup time.
+- Added support for a custom `.netrc` file path using the standard `NETRC` environmental variable. [#2426](https://github.com/earthly/earthly/pull/2426)
 
 ### Fixed
 
