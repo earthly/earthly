@@ -1,6 +1,7 @@
 package conslogging
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"strings"
@@ -288,14 +289,19 @@ func (cl ConsoleLogger) PrintBar(c *color.Color, msg, phase string) {
 	fmt.Fprintf(cl.errW, "\n\n")
 }
 
+const minWriterSize = 1024
+
 // Warnf prints a warning message in red to errWriter.
 func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 	if cl.logLevel < Warn {
 		return
 	}
-
+	w := bufio.NewWriterSize(cl.errW, minWriterSize)
 	cl.mu.Lock()
-	defer cl.mu.Unlock()
+	defer func() {
+		_ = w.Flush()
+		cl.mu.Unlock()
+	}()
 
 	c := cl.color(warnColor)
 	text := fmt.Sprintf(format, args...)
@@ -303,7 +309,7 @@ func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 
 	for _, line := range strings.Split(text, "\n") {
 		cl.printPrefix()
-		c.Fprintf(cl.errW, "%s\n", line)
+		c.Fprintf(w, "%s\n", line)
 	}
 }
 
@@ -312,8 +318,13 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	if cl.logLevel < Info {
 		return
 	}
+	w := bufio.NewWriterSize(cl.errW, minWriterSize)
 	cl.mu.Lock()
-	defer cl.mu.Unlock()
+	defer func() {
+		_ = w.Flush()
+		cl.mu.Unlock()
+	}()
+
 	c := cl.color(noColor)
 	if cl.metadataMode {
 		c = cl.color(metadataModeColor)
@@ -322,17 +333,25 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	text = strings.TrimSuffix(text, "\n")
 	for _, line := range strings.Split(text, "\n") {
 		cl.printPrefix()
-		c.Fprintf(cl.errW, "%s", line)
+		c.Fprintf(w, "%s", line)
 
 		// Don't use a background color for \n.
-		noColor.Fprintf(cl.errW, "\n")
+		noColor.Fprintf(w, "\n")
 	}
 }
 
 // PrintBytes prints bytes directly to the console.
 func (cl ConsoleLogger) PrintBytes(data []byte) {
+	writerSize := minWriterSize
+	if len(data) > writerSize {
+		writerSize = len(data)
+	}
+	w := bufio.NewWriterSize(cl.errW, writerSize)
 	cl.mu.Lock()
-	defer cl.mu.Unlock()
+	defer func() {
+		_ = w.Flush()
+		cl.mu.Unlock()
+	}()
 	c := cl.color(noColor)
 	if cl.metadataMode {
 		c = cl.color(metadataModeColor)
@@ -353,7 +372,7 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 		default:
 			if !cl.trailingLine {
 				if len(output) > 0 {
-					c.Fprintf(cl.errW, "%s", string(output))
+					c.Fprintf(w, "%s", string(output))
 					output = output[:0]
 				}
 				cl.printPrefix()
@@ -363,7 +382,7 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 		}
 	}
 	if len(output) > 0 {
-		c.Fprintf(cl.errW, "%s", string(output))
+		c.Fprintf(w, "%s", string(output))
 		// output = output[:0] // needed if output is used further in the future
 	}
 }
