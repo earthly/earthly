@@ -42,11 +42,10 @@ type FrontendConfig struct {
 	BuildkitHostCLIValue  string
 	BuildkitHostFileValue string
 
-	DebuggerHostCLIValue  string
-	DebuggerHostFileValue string
-	DebuggerPortFileValue int
-
 	LocalRegistryHostFileValue string
+
+	InstallationName string
+	DefaultPort      int
 
 	Console conslogging.ConsoleLogger
 }
@@ -70,6 +69,10 @@ func autodetectFrontend(ctx context.Context, cfg *FrontendConfig) (ContainerFron
 		fe, err := frontendIfAvailable(ctx, feType, cfg)
 		if err != nil {
 			errs = multierror.Append(errs, err)
+			continue
+		}
+		if dsf, ok := fe.(*dockerShellFrontend); ok && dsf.likelyPodman {
+			// Docker CLI works, but it's likely podman making itself available via docker CLI.
 			continue
 		}
 		return fe, nil

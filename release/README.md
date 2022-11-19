@@ -135,4 +135,6 @@ These images can be rebuilt by running:
   git push origin "vscode-syntax-highlighting-$VSCODE_RELEASE_TAG"
   ```
 
-(If token has expired, Vlad can regenerate one following [this guide](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token) and then setting it using `./earthly secrets set /earthly-technologies/vsce/token '...'`)
+(If `VSCE_TOKEN` token has expired, Vlad can regenerate one following [this guide](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token) and then setting it using `./earthly secrets set /earthly-technologies/vsce/token '...'`)
+
+(If `OVSX_TOKEN` token has expired, Nacho can regenerate one following [this guide](https://github.com/eclipse/openvsx/wiki/Publishing-Extensions#3-create-an-access-token) and then setting it using `./earthly secrets set /earthly-technologies/ovsx/token '...'`)

@@ -105,6 +105,8 @@ type ConvertOpt struct {
 	LocalStateCache *LocalStateCache
 	// UseLocalRegistry indicates whether the BuildKit-embedded registry can be used for exports.
 	UseLocalRegistry bool
+	// LocalRegistryAddr is the address of the BuildKit-embedded registry.
+	LocalRegistryAddr string
 
 	// Features is the set of enabled features
 	Features *features.Features

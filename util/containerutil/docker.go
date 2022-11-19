@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 
 	"github.com/alessio/shellescape"
 	"github.com/dustin/go-humanize"
@@ -41,25 +40,41 @@ func NewDockerShellFrontend(ctx context.Context, cfg *FrontendConfig) (Container
 	// `--format` option.
 	// This is to prevent displaying panic() errors to our users (even though the panic() occurred in the
 	// docker cli binary and not earthly).
-	_, err := fe.commandContextOutputWithRetry(ctx, 10, 10*time.Second, "info")
+	_, err := fe.commandContextOutput(ctx, "info")
 	if err != nil {
 		return nil, err
 	}
 
-	output, err := fe.commandContextOutputWithRetry(ctx, 10, 10*time.Second, "info", "--format={{.SecurityOptions}}")
+	output, err := fe.commandContextOutput(ctx, "info", "--format={{.SecurityOptions}}")
 	if err != nil {
 		return nil, err
 	}
 	fe.rootless = strings.Contains(output.string(), "rootless")
 	fe.userNamespaced = strings.Contains(output.string(), "name=userns")
-
 	if fe.userNamespaced {
 		fe.runCompatibilityArgs = []string{"--userns", "host"}
 	}
-
 	fe.urls, err = fe.setupAndValidateAddresses(FrontendDockerShell, cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to calculate buildkit URLs")
+	}
+
+	output, err = fe.commandContextOutput(ctx, "info", "--format={{.DockerRootDir}}")
+	if err != nil {
+		// Maybe the user has aliased podman=docker?
+		// (The same information is found at a different path in podman)
+		var err2 error
+		output, err2 = fe.commandContextOutput(ctx, "info", "--format={{.Store.GraphRoot}}")
+		if err2 != nil {
+			return nil, errors.Wrap(err, "failed to get docker root dir")
+		}
+	}
+	outputStr := strings.TrimSpace(output.string())
+	if outputStr == "/var/lib/containers/storage" {
+		// Likely podman making itself available via the docker CLI.
+		// This can happen either when podman set /var/run/docker.sock itself,
+		// or when the user has aliased podman=docker.
+		fe.shellFrontend.likelyPodman = true
 	}
 
 	return fe, nil
@@ -79,7 +94,7 @@ func (dsf *dockerShellFrontend) Config() *CurrentFrontend {
 }
 
 func (dsf *dockerShellFrontend) Information(ctx context.Context) (*FrontendInfo, error) {
-	output, err := dsf.commandContextOutputWithRetry(ctx, 10, 10*time.Second, "version", "--format={{json .}}")
+	output, err := dsf.commandContextOutput(ctx, "version", "--format={{json .}}")
 	if err != nil {
 		return nil, err
 	}

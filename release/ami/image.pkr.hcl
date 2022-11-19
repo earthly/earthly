@@ -19,7 +19,7 @@ locals {
 # https://cloud-images.ubuntu.com/locator/ec2/
 
 source "amazon-ebs" "x86_64" {
-  ami_name      = "earthly-${var.earthly_version}-x86_64-${local.timestamp}"
+  ami_name      = "earthly-${var.earthly_version}-amd64-${local.timestamp}"
   instance_type = "t2.micro"
   region        = "us-west-2"
   source_ami_filter {

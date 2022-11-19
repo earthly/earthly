@@ -49,7 +49,7 @@ func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gituti
 	}
 
 	if ftrs.EarthlyLocallyArg {
-		ret.AddInactive(arg.EarthlyLocally, "false")
+		SetLocally(ret, false)
 	}
 
 	if gitMeta != nil {
@@ -110,6 +110,11 @@ func setNativePlatformArgs(s *Scope, platr *platutil.Resolver) {
 	s.AddInactive(arg.NativeOS, platform.OS)
 	s.AddInactive(arg.NativeArch, platform.Architecture)
 	s.AddInactive(arg.NativeVariant, platform.Variant)
+}
+
+// SetLocally sets the locally built-in arg value
+func SetLocally(s *Scope, locally bool) {
+	s.AddInactive(arg.EarthlyLocally, fmt.Sprintf("%v", locally))
 }
 
 // getProjectName returns the deprecated PROJECT_NAME value

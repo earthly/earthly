@@ -144,6 +144,12 @@ func (c *Collection) SetPlatform(platr *platutil.Resolver) {
 	c.effectiveCache = nil
 }
 
+// SetLocally sets the locally flag, updating the builtin args.
+func (c *Collection) SetLocally(locally bool) {
+	SetLocally(c.builtin, locally)
+	c.effectiveCache = nil
+}
+
 // GetActive returns an active variable by name.
 func (c *Collection) GetActive(name string) (string, bool) {
 	return c.effective().GetActive(name)
@@ -264,10 +270,10 @@ func (c *Collection) IsStackAtBase() bool {
 func (c *Collection) StackString() string {
 	builder := make([]string, 0, len(c.stack))
 	for i := len(c.stack) - 1; i >= 0; i-- {
-		overridingNames := c.stack[i].overriding.SortedAny()
-		row := make([]string, 0, len(overridingNames)+1)
+		activeNames := c.stack[i].args.SortedActive()
+		row := make([]string, 0, len(activeNames)+1)
 		row = append(row, c.stack[i].frameName)
-		for _, k := range overridingNames {
+		for _, k := range activeNames {
 			v, _ := c.stack[i].overriding.GetAny(k)
 			row = append(row, fmt.Sprintf("--%s=%s", k, v))
 		}

@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // LogStreamer is a log streamer. It uses the cloud client to send
@@ -28,8 +29,7 @@ type LogStreamer struct {
 
 	mu        sync.Mutex
 	cancelled bool
-	ch        chan *logstream.Delta
-	batchedCh chan []*logstream.Delta
+	ch        chan []*logstream.Delta
 }
 
 // New creates a new LogStreamer.
@@ -44,9 +44,6 @@ func New(ctx context.Context, bus *logbus.Bus, c cloud.Client, initialManifest *
 	go ls.retryLoop(ctx)
 	return ls
 }
-
-const maxBatchSize = 128
-const maxBatchDuration = 200 * time.Millisecond
 
 func (ls *LogStreamer) retryLoop(ctx context.Context) {
 	defer close(ls.doneCh)
@@ -63,7 +60,7 @@ func (ls *LogStreamer) retryLoop(ctx context.Context) {
 			ls.errors = append(ls.errors, err)
 			return
 		}
-		fmt.Fprintf(os.Stderr, "transient error streaming logs: %v", err)
+		fmt.Fprintf(os.Stderr, "transient error streaming logs: %v\n", err)
 	}
 }
 
@@ -79,11 +76,26 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 		ls.mu.Unlock()
 		return false, errors.New("log streamer closed")
 	}
-	const chSize = 128
-	ls.ch = make(chan *logstream.Delta, chSize)
-	ls.batchedCh = make(chan []*logstream.Delta, chSize*maxBatchSize)
+	const chSize = 10240
+	if ls.ch != nil {
+		// In case the channel is congested, this frees up any stuck writers.
+		prevCh := ls.ch
+		go func() {
+			for {
+				select {
+				case _, ok := <-prevCh:
+					if !ok {
+						return
+					}
+				default:
+					return // no more messages to consume, but channel not closed
+				}
+			}
+		}()
+	}
+	ls.ch = make(chan []*logstream.Delta, chSize)
 	ls.mu.Unlock()
-	ls.batchedCh <- []*logstream.Delta{
+	ls.ch <- []*logstream.Delta{
 		{
 			DeltaTypeOneof: &logstream.Delta_DeltaManifest{
 				DeltaManifest: &logstream.DeltaManifest{
@@ -94,10 +106,9 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 			},
 		},
 	}
-	go ls.batcherLoop(ctxTry)
 	ls.bus.AddSubscriber(ls)
 	defer ls.bus.RemoveSubscriber(ls)
-	err := ls.c.StreamLogs(ctxTry, ls.buildID, ls.batchedCh)
+	err := ls.c.StreamLogs(ctxTry, ls.buildID, ls.ch)
 	if err != nil {
 		s, ok := status.FromError(errors.Cause(err))
 		if !ok {
@@ -113,44 +124,24 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
-// batcherLoop batches deltas into batches of deltas, based on a maximum
-// batch size and a maximum delay interval.
-func (ls *LogStreamer) batcherLoop(ctx context.Context) {
-	ls.mu.Lock()
-	ch := ls.ch
-	batchedCh := ls.batchedCh
-	ls.mu.Unlock()
-	ticker := time.NewTicker(maxBatchDuration)
-	defer ticker.Stop()
-	batch := make([]*logstream.Delta, 0, maxBatchSize)
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			if len(batch) > 0 {
-				batchedCh <- batch
-				batch = make([]*logstream.Delta, 0, maxBatchSize)
-			}
-		case delta, ok := <-ch:
-			if !ok {
-				return
-			}
-			batch = append(batch, delta)
-			if len(batch) >= maxBatchSize {
-				batchedCh <- batch
-				batch = make([]*logstream.Delta, 0, maxBatchSize)
-			}
-		}
-	}
-}
-
 // Write writes the given delta to the log streamer.
 func (ls *LogStreamer) Write(delta *logstream.Delta) {
 	ls.mu.Lock()
 	ch := ls.ch // ls.ch may get replaced on retry
 	ls.mu.Unlock()
-	ch <- delta
+	if ch != nil {
+		ch <- []*logstream.Delta{delta}
+	} else {
+		// TODO (vladaionescu): If these messages show up, we need to rethink
+		//						the closing sequence.
+		// TODO (vladaionescu): We should only log this if verbose is enabled.
+		dt, err := protojson.Marshal(delta)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Log streamer closed, but failed to marshal log delta: %v", err)
+			return
+		}
+		fmt.Fprintf(os.Stderr, "Log streamer closed, dropping delta %v\n", string(dt))
+	}
 }
 
 // Close closes the log streamer.
@@ -158,10 +149,22 @@ func (ls *LogStreamer) Close() error {
 	ls.mu.Lock()
 	if ls.ch != nil {
 		close(ls.ch)
+		ls.ch = nil
 	}
 	ls.cancelled = true
 	ls.mu.Unlock()
-	<-ls.doneCh // wait for all messages to be sent (or for log streamer to error-out).
+	// wait for all messages to be sent
+	timedOut := false
+	select {
+	case <-ls.doneCh:
+	case <-time.After(60 * time.Second):
+		timedOut = true
+	}
+	ls.mu.Lock()
+	defer ls.mu.Unlock()
+	if timedOut {
+		ls.errors = append(ls.errors, errors.New("timed out waiting for log streamer to close"))
+	}
 	var retErr error
 	for _, err := range ls.errors {
 		retErr = multierror.Append(retErr, err)

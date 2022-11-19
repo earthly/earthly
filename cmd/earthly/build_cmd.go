@@ -26,7 +26,6 @@ import (
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cleanup"
-	"github.com/earthly/earthly/cloud"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/domain"
@@ -162,7 +161,6 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		gitCommitAuthor string
 		gitConfigEmail  string
 	)
-
 	if !target.IsRemote() {
 		if meta, err := gitutil.Metadata(cliCtx.Context, target.GetLocalPath()); err == nil {
 			// Git commit detection here is best effort
@@ -176,33 +174,39 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.sshAuthSock, app.authToken, app.console.Warnf)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
-		return errors.Wrap(err, "failed to create cloud client")
+		return err
 	}
 
 	// Default upload logs, unless explicitly configured
 	if !app.cfg.Global.DisableLogSharing {
 		if cloudClient.IsLoggedIn(cliCtx.Context) {
-			// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
-			app.console = app.console.WithLogBundleWriter(target.String(), cleanCollection)
+			if app.logstreamUpload {
+				earthfileOrgName := "my-org" // TODO (vladaionescu): Detect this.
+				earthfileProjectName := ""   // TODO (vladaionescu): Detect this.
+				app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient, earthfileOrgName, earthfileProjectName)
+			} else {
+				// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
+				app.console = app.console.WithLogBundleWriter(target.String(), cleanCollection)
 
-			defer func() { // Defer this to keep log upload code together
-				logPath, err := app.console.WriteBundleToDisk()
-				if err != nil {
-					err := errors.Wrapf(err, "failed to write log to disk")
-					app.console.Warnf(err.Error())
-					return
-				}
+				defer func() { // Defer this to keep log upload code together
+					logPath, err := app.console.WriteBundleToDisk()
+					if err != nil {
+						err := errors.Wrapf(err, "failed to write log to disk")
+						app.console.Warnf(err.Error())
+						return
+					}
 
-				id, err := cloudClient.UploadLog(cliCtx.Context, logPath)
-				if err != nil {
-					err := errors.Wrapf(err, "failed to upload log")
-					app.console.Warnf(err.Error())
-					return
-				}
-				app.console.Printf("Shareable link: %s\n", id)
-			}()
+					id, err := cloudClient.UploadLog(cliCtx.Context, logPath)
+					if err != nil {
+						err := errors.Wrapf(err, "failed to upload log")
+						app.console.Warnf(err.Error())
+						return
+					}
+					app.console.Printf("Shareable link: %s\n", id)
+				}()
+			}
 		} else {
 			defer func() { // Defer this to keep log upload code together
 				app.console.Printf("Share your logs with an Earthly account (experimental)! Register for one at https://ci.earthly.dev.")
@@ -234,7 +238,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return errors.New("Frontend is not available to perform the build. Is Docker installed and running?")
 	}
 
-	bkClient, err := buildkitd.NewClient(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.containerFrontend, Version, app.buildkitdSettings)
+	bkClient, err := buildkitd.NewClient(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.installationName, app.containerFrontend, Version, app.buildkitdSettings)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
@@ -419,7 +423,6 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		MaxCacheExport:                        maxCacheExport,
 		UseInlineCache:                        app.useInlineCache,
 		SaveInlineCache:                       app.saveInlineCache,
-		SessionID:                             app.sessionID,
 		ImageResolveMode:                      imageResolveMode,
 		CleanCollection:                       cleanCollection,
 		OverridingVars:                        overridingVars,

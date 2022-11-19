@@ -51,7 +51,6 @@ const (
 
 // Opt represent builder options.
 type Opt struct {
-	SessionID                             string
 	BkClient                              *client.Client
 	LogBusSolverMonitor                   *solvermon.SolverMonitor
 	UseLogstream                          bool
@@ -129,7 +128,7 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 		opt:      opt,
 		resolver: nil, // initialized below
 	}
-	b.resolver = buildcontext.NewResolver(opt.SessionID, opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides)
+	b.resolver = buildcontext.NewResolver(opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides)
 	return b, nil
 }
 
@@ -194,6 +193,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				NoCache:                              b.opt.NoCache,
 				ContainerFrontend:                    b.opt.ContainerFrontend,
 				UseLocalRegistry:                     (b.opt.LocalRegistryAddr != ""),
+				LocalRegistryAddr:                    b.opt.LocalRegistryAddr,
 				DoSaves:                              !opt.NoOutput,
 				OnlyFinalTargetImages:                opt.OnlyFinalTargetImages,
 				DoPushes:                             opt.Push,

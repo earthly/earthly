@@ -1,0 +1,7 @@
+VERSION 0.6
+FROM alpine:3.15
+
+fail:
+    ARG TEST_ENV_1
+    ARG TEST_ENV_2=override
+    RUN --cause-interpreter-failure true

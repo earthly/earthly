@@ -14,7 +14,6 @@ import (
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/logbus/writersub"
 	"github.com/earthly/earthly/util/deltautil"
-	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
@@ -27,17 +26,21 @@ type BusSetup struct {
 	SolverMonitor  *solvermon.SolverMonitor
 	BusDebugWriter *writersub.RawWriterSub
 	LogStreamer    *logstreamer.LogStreamer
+	BuildID        string
+	CreatedAt      time.Time
 }
 
 // New creates a new BusSetup.
-func New(ctx context.Context, bus *logbus.Bus, debug bool, verbose bool, disableOngoingUpdates bool, busDebugFile string) (*BusSetup, error) {
+func New(ctx context.Context, bus *logbus.Bus, debug, verbose, forceColor, noColor, disableOngoingUpdates bool, busDebugFile string, buildID string) (*BusSetup, error) {
 	bs := &BusSetup{
 		Bus:           bus,
 		ConsoleWriter: writersub.New(os.Stderr, "_full"),
 		Formatter:     nil, // set below
 		SolverMonitor: nil, // set below
+		BuildID:       buildID,
+		CreatedAt:     bus.CreatedAt(),
 	}
-	bs.Formatter = formatter.New(ctx, bs.Bus, verbose, disableOngoingUpdates)
+	bs.Formatter = formatter.New(ctx, bs.Bus, debug, verbose, forceColor, noColor, disableOngoingUpdates)
 	bs.Bus.AddRawSubscriber(bs.Formatter)
 	bs.Bus.AddFormattedSubscriber(bs.ConsoleWriter)
 	bs.SolverMonitor = solvermon.New(bs.Bus)
@@ -55,19 +58,13 @@ func New(ctx context.Context, bus *logbus.Bus, debug bool, verbose bool, disable
 
 // StartLogStreamer starts a LogStreamer for the given build. The
 // LogStreamer streams logs to the cloud.
-func (bs *BusSetup) StartLogStreamer(ctx context.Context, c cloud.Client, buildID, orgName, projectName string, createdAt time.Time) {
-	if buildID == "" {
-		buildID = uuid.NewString()
-	}
-	if createdAt.IsZero() {
-		createdAt = time.Now()
-	}
+func (bs *BusSetup) StartLogStreamer(ctx context.Context, c cloud.Client, orgName, projectName string) {
 	initialManifest := &logstream.RunManifest{
-		BuildId:            buildID,
+		BuildId:            bs.BuildID,
 		Version:            deltautil.Version,
 		OrgName:            orgName,
 		ProjectName:        projectName,
-		CreatedAtUnixNanos: uint64(createdAt.UnixNano()),
+		CreatedAtUnixNanos: uint64(bs.CreatedAt.UnixNano()),
 	}
 	bs.LogStreamer = logstreamer.New(ctx, bs.Bus, c, initialManifest)
 }

@@ -49,7 +49,7 @@ func (c *Command) Write(dt []byte, ts time.Time, stream int32) (int, error) {
 		TargetId:           c.targetID,
 		CommandId:          c.commandID,
 		Stream:             stream,
-		TimestampUnixNanos: uint64(ts.UnixNano()),
+		TimestampUnixNanos: c.b.TsUnixNanos(ts),
 		Data:               dt,
 	})
 	return len(dt), nil
@@ -71,7 +71,7 @@ func (c *Command) SetStart(start time.Time) {
 	}
 	c.started = true
 	c.commandDelta(&logstream.DeltaCommandManifest{
-		StartedAtUnixNanos: uint64(start.UnixNano()),
+		StartedAtUnixNanos: c.b.TsUnixNanos(start),
 		Status:             logstream.RunStatus_RUN_STATUS_IN_PROGRESS,
 	})
 }
@@ -117,7 +117,7 @@ func (c *Command) SetEnd(end time.Time, success bool, canceled bool, errorStr st
 	c.commandDelta(&logstream.DeltaCommandManifest{
 		Status:           status,
 		ErrorMessage:     errorStr,
-		EndedAtUnixNanos: uint64(end.UnixNano()),
+		EndedAtUnixNanos: c.b.TsUnixNanos(end),
 	})
 }
 

@@ -11,13 +11,14 @@ import (
 	"strconv"
 	"strings"
 
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	"github.com/pkg/errors"
+
 	"github.com/earthly/earthly/autocomplete"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
-	gwclient "github.com/moby/buildkit/frontend/gateway/client"
-	"github.com/pkg/errors"
 )
 
 // to enable autocomplete, enter
@@ -33,7 +34,7 @@ func (app *earthlyApp) autoComplete(ctx context.Context) {
 	err := app.autoCompleteImp(ctx)
 	if err != nil {
 		errToLog := err
-		logDir, err := cliutil.GetOrCreateEarthlyDir()
+		logDir, err := cliutil.GetOrCreateEarthlyDir(app.installationName)
 		if err != nil {
 			os.Exit(1)
 		}
@@ -68,7 +69,7 @@ func (app *earthlyApp) autoCompleteImp(ctx context.Context) (err error) {
 	}
 
 	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
-	resolver := buildcontext.NewResolver("", nil, gitLookup, app.console, "")
+	resolver := buildcontext.NewResolver(nil, gitLookup, app.console, "")
 	var gwClient gwclient.Client // TODO this is a nil pointer which causes a panic if we try to expand a remotely referenced earthfile
 	// it's expensive to create this gwclient, so we need to implement a lazy eval which returns it when required.
 
