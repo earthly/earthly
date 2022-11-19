@@ -54,7 +54,7 @@ func (ie InterpreterError) Error() string {
 		ie.SourceLocation.File, ie.SourceLocation.StartLine, ie.SourceLocation.StartColumn,
 		err.Error())
 	if ie.stack != "" {
-		ret = fmt.Sprintf("%s\nin\t\t%s", ret, ie.Stack)
+		ret = fmt.Sprintf("%s\nin\t\t%s", ret, ie.stack)
 	}
 	return ret
 }

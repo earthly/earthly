@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/cloud"
@@ -22,14 +21,13 @@ import (
 
 // BusSetup is a helper for setting up a logbus.Bus.
 type BusSetup struct {
-	Bus            *logbus.Bus
-	ConsoleWriter  *writersub.WriterSub
-	Formatter      *formatter.Formatter
-	SolverMonitor  *solvermon.SolverMonitor
-	BusDebugWriter *writersub.RawWriterSub
-	LogStreamer    *logstreamer.LogStreamer
-	BuildID        string
-	CreatedAt      time.Time
+	Bus             *logbus.Bus
+	ConsoleWriter   *writersub.WriterSub
+	Formatter       *formatter.Formatter
+	SolverMonitor   *solvermon.SolverMonitor
+	BusDebugWriter  *writersub.RawWriterSub
+	LogStreamer     *logstreamer.LogStreamer
+	InitialManifest *logstream.RunManifest
 }
 
 // New creates a new BusSetup.
@@ -39,8 +37,11 @@ func New(ctx context.Context, bus *logbus.Bus, debug, verbose, forceColor, noCol
 		ConsoleWriter: writersub.New(os.Stderr, "_full"),
 		Formatter:     nil, // set below
 		SolverMonitor: nil, // set below
-		BuildID:       buildID,
-		CreatedAt:     bus.CreatedAt(),
+		InitialManifest: &logstream.RunManifest{
+			BuildId:            buildID,
+			Version:            deltautil.Version,
+			CreatedAtUnixNanos: uint64(bus.CreatedAt().UnixNano()),
+		},
 	}
 	bs.Formatter = formatter.New(ctx, bs.Bus, debug, verbose, forceColor, noColor, disableOngoingUpdates)
 	bs.Bus.AddRawSubscriber(bs.Formatter)
@@ -58,22 +59,22 @@ func New(ctx context.Context, bus *logbus.Bus, debug, verbose, forceColor, noCol
 	return bs, nil
 }
 
+// SetOrgAndProject sets the org and project for the manifest.
+func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
+	bs.InitialManifest.OrgName = orgName
+	bs.InitialManifest.ProjectName = projectName
+}
+
 // StartLogStreamer starts a LogStreamer for the given build. The
 // LogStreamer streams logs to the cloud.
-func (bs *BusSetup) StartLogStreamer(ctx context.Context, c cloud.Client, orgName, projectName string) {
-	initialManifest := &logstream.RunManifest{
-		BuildId:            bs.BuildID,
-		Version:            deltautil.Version,
-		OrgName:            orgName,
-		ProjectName:        projectName,
-		CreatedAtUnixNanos: uint64(bs.CreatedAt.UnixNano()),
-	}
-	bs.LogStreamer = logstreamer.New(ctx, bs.Bus, c, initialManifest)
+func (bs *BusSetup) StartLogStreamer(ctx context.Context, c cloud.Client) {
+	bs.LogStreamer = logstreamer.New(ctx, bs.Bus, c, bs.InitialManifest)
 }
 
 // DumpManifestToFile dumps the manifest to the given file.
 func (bs *BusSetup) DumpManifestToFile(path string) error {
 	m := bs.Formatter.Manifest()
+	proto.Merge(m, bs.InitialManifest)
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return errors.Wrapf(err, "failed to open bus manifest debug file %s", path)
@@ -81,7 +82,13 @@ func (bs *BusSetup) DumpManifestToFile(path string) error {
 	useJson := strings.HasSuffix(path, ".json")
 	var dt []byte
 	if useJson {
-		dt, err = protojson.Marshal(m)
+		jsonOpts := protojson.MarshalOptions{
+			Multiline:       true,
+			Indent:          "  ",
+			UseProtoNames:   true,
+			EmitUnpopulated: true,
+		}
+		dt, err = jsonOpts.Marshal(m)
 	} else {
 		dt, err = proto.Marshal(m)
 	}
