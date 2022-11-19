@@ -579,6 +579,11 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			}
 		}
 	}()
+	app.logbus.Run().SetStart(time.Now())
+	defer func() {
+		// Just in case this is forgotten somewhere else.
+		app.logbus.Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_FAILURE)
+	}()
 	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
 	err := app.cliApp.RunContext(ctx, args)
 	if err != nil {

@@ -47,7 +47,6 @@ func (sm *SolverMonitor) MonitorProgress(ctx context.Context, ch chan *client.So
 		}
 		delayedCancel()
 	}()
-	sm.b.Run().SetStart(time.Now())
 	for {
 		select {
 		case <-delayedCtx.Done():
