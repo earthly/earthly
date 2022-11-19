@@ -29,6 +29,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
@@ -65,94 +66,95 @@ type earthlyApp struct {
 }
 
 type cliFlags struct {
-	platformsStr              cli.StringSlice
-	buildArgs                 cli.StringSlice
-	secrets                   cli.StringSlice
-	secretFiles               cli.StringSlice
-	artifactMode              bool
-	imageMode                 bool
-	pull                      bool
-	push                      bool
-	ci                        bool
-	output                    bool
-	noOutput                  bool
-	noCache                   bool
-	pruneAll                  bool
-	pruneReset                bool
-	buildkitdSettings         buildkitd.Settings
-	allowPrivileged           bool
-	enableProfiler            bool
-	buildkitHost              string
-	buildkitdImage            string
-	containerName             string
-	installationName          string
-	cacheFrom                 cli.StringSlice
-	remoteCache               string
-	maxRemoteCache            bool
-	saveInlineCache           bool
-	useInlineCache            bool
-	configPath                string
-	gitUsernameOverride       string
-	gitPasswordOverride       string
-	interactiveDebugging      bool
-	sshAuthSock               string
-	verbose                   bool
-	dryRun                    bool
-	debug                     bool
-	homebrewSource            string
-	bootstrapNoBuildkit       bool
-	bootstrapWithAutocomplete bool
-	email                     string
-	token                     string
-	password                  string
-	disableNewLine            bool
-	secretFile                string
-	secretStdin               bool
-	cloudHTTPAddr             string
-	cloudGRPCAddr             string
-	cloudGRPCInsecure         bool
-	satelliteAddress          string
-	writePermission           bool
-	registrationPublicKey     string
-	dockerfilePath            string
-	earthfilePath             string
-	earthfileFinalImage       string
-	expiry                    string
-	termsConditionsPrivacy    bool
-	authToken                 string
-	authJWT                   string
-	noFakeDep                 bool
-	enableSourceMap           bool
-	configDryRun              bool
-	strict                    bool
-	conversionParallelism     int
-	certPath                  string
-	keyPath                   string
-	disableAnalytics          bool
-	featureFlagOverrides      string
-	localRegistryHost         string
-	envFile                   string
-	lsShowLong                bool
-	lsShowArgs                bool
-	containerFrontend         containerutil.ContainerFrontend
-	satelliteName             string
-	noSatellite               bool
-	satelliteFeatureFlags     cli.StringSlice
-	satellitePlatform         string
-	satelliteSize             string
-	satellitePrintJSON        bool
-	userPermission            string
-	noBuildkitUpdate          bool
-	globalWaitEnd             bool // for feature-flipping builder.go code removal
-	projectName               string
-	orgName                   string
-	invitePermission          string
-	inviteMessage             string
-	logstream                 bool
-	logstreamUpload           bool
-	logstreamDebugFile        string
-	requestID                 string
-	buildID                   string
+	platformsStr               cli.StringSlice
+	buildArgs                  cli.StringSlice
+	secrets                    cli.StringSlice
+	secretFiles                cli.StringSlice
+	artifactMode               bool
+	imageMode                  bool
+	pull                       bool
+	push                       bool
+	ci                         bool
+	output                     bool
+	noOutput                   bool
+	noCache                    bool
+	pruneAll                   bool
+	pruneReset                 bool
+	buildkitdSettings          buildkitd.Settings
+	allowPrivileged            bool
+	enableProfiler             bool
+	buildkitHost               string
+	buildkitdImage             string
+	containerName              string
+	installationName           string
+	cacheFrom                  cli.StringSlice
+	remoteCache                string
+	maxRemoteCache             bool
+	saveInlineCache            bool
+	useInlineCache             bool
+	configPath                 string
+	gitUsernameOverride        string
+	gitPasswordOverride        string
+	interactiveDebugging       bool
+	sshAuthSock                string
+	verbose                    bool
+	dryRun                     bool
+	debug                      bool
+	homebrewSource             string
+	bootstrapNoBuildkit        bool
+	bootstrapWithAutocomplete  bool
+	email                      string
+	token                      string
+	password                   string
+	disableNewLine             bool
+	secretFile                 string
+	secretStdin                bool
+	cloudHTTPAddr              string
+	cloudGRPCAddr              string
+	cloudGRPCInsecure          bool
+	satelliteAddress           string
+	writePermission            bool
+	registrationPublicKey      string
+	dockerfilePath             string
+	earthfilePath              string
+	earthfileFinalImage        string
+	expiry                     string
+	termsConditionsPrivacy     bool
+	authToken                  string
+	authJWT                    string
+	noFakeDep                  bool
+	enableSourceMap            bool
+	configDryRun               bool
+	strict                     bool
+	conversionParallelism      int
+	certPath                   string
+	keyPath                    string
+	disableAnalytics           bool
+	featureFlagOverrides       string
+	localRegistryHost          string
+	envFile                    string
+	lsShowLong                 bool
+	lsShowArgs                 bool
+	containerFrontend          containerutil.ContainerFrontend
+	satelliteName              string
+	noSatellite                bool
+	satelliteFeatureFlags      cli.StringSlice
+	satellitePlatform          string
+	satelliteSize              string
+	satellitePrintJSON         bool
+	userPermission             string
+	noBuildkitUpdate           bool
+	globalWaitEnd              bool // for feature-flipping builder.go code removal
+	projectName                string
+	orgName                    string
+	invitePermission           string
+	inviteMessage              string
+	logstream                  bool
+	logstreamUpload            bool
+	logstreamDebugFile         string
+	logstreamDebugManifestFile string
+	requestID                  string
+	buildID                    string
 }
 
 type analyticsMetadata struct {
@@ -569,6 +571,12 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error(s) in logbus: %v", err)
 			}
+			if app.logstreamDebugManifestFile != "" {
+				err := app.logbusSetup.DumpManifestToFile(app.logstreamDebugManifestFile)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error dumping manifest: %v", err)
+				}
+			}
 		}
 	}()
 	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
@@ -601,14 +609,17 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		}
 
 		if strings.Contains(err.Error(), "security.insecure is not allowed") {
+			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_NEEDS_PRIVILEGED, err.Error())
 			app.console.Warnf("Error: earthly --allow-privileged (earthly -P) flag is required\n")
 		} else if strings.Contains(err.Error(), "failed to fetch remote") {
+			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_GIT, err.Error())
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Printf(
 				"Check your git auth settings.\n" +
 					"Did you ssh-add today? Need to configure ~/.earthly/config.yml?\n" +
 					"For more information see https://docs.earthly.dev/guides/auth\n")
 		} else if strings.Contains(err.Error(), "failed to compute cache key") && strings.Contains(err.Error(), ": not found") {
+			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND, err.Error())
 			re := regexp.MustCompile(`("[^"]*"): not found`)
 			var matches = re.FindStringSubmatch(err.Error())
 			if len(matches) == 2 {
@@ -626,6 +637,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			baseErrMsg := rpcRegex.ReplaceAll([]byte(baseErr.Error()), []byte(""))
 			app.console.Warnf("Error: %s\n", string(baseErrMsg))
 			if bytes.Contains(baseErrMsg, []byte("transport is closing")) {
+				app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, baseErr.Error())
 				app.console.Warnf(
 					"It seems that buildkitd is shutting down or it has crashed. " +
 						"You can report crashes at https://github.com/earthly/earthly/issues/new.")
@@ -633,6 +645,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 				return 7
 			}
 		} else if errors.Is(err, buildkitd.ErrBuildkitCrashed) {
+			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, err.Error())
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Warnf(
 				"It seems that buildkitd is shutting down or it has crashed. " +
@@ -640,6 +653,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			app.printCrashLogs(ctx)
 			return 7
 		} else if errors.Is(err, buildkitd.ErrBuildkitConnectionFailure) && containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress) {
+			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_CONNECTION_FAILURE, err.Error())
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Warnf(
 				"It seems that buildkitd had an issue. " +
@@ -647,21 +661,26 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			app.printCrashLogs(ctx)
 			return 6
 		} else if isInterpreterError {
+			app.logbus.Run().SetFatalError(time.Now(), ie.TargetID, "", logstream.FailureType_FAILURE_TYPE_SYNTAX, err.Error())
 			app.console.Warnf("Error: %s\n", ie.Error())
 		} else {
 			app.console.Warnf("Error: %v\n", err)
 		}
 		if errors.Is(err, context.Canceled) {
+			app.logbus.Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
 			app.console.Warnf("Context canceled: %v\n", err)
 			return 2
 		}
 		if status.Code(err) == codes.Canceled {
+			app.logbus.Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
 			app.console.Warnf("Context canceled from buildkitd: %v\n", err)
 			app.printCrashLogs(ctx)
 			return 2
 		}
+		app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
 		return 1
 	}
+	app.logbus.Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS)
 	return 0
 }
 

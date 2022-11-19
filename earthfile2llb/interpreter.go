@@ -1925,11 +1925,13 @@ func (i *Interpreter) stack() string {
 }
 
 func (i *Interpreter) errorf(sl *spec.SourceLocation, format string, args ...interface{}) *InterpreterError {
-	return Errorf(sl, i.stack(), format, args...)
+	targetID := i.converter.mts.Final.ID
+	return Errorf(sl, i.stack(), targetID, format, args...)
 }
 
 func (i *Interpreter) wrapError(cause error, sl *spec.SourceLocation, format string, args ...interface{}) *InterpreterError {
-	return WrapError(cause, sl, i.stack(), format, args...)
+	targetID := i.converter.mts.Final.ID
+	return WrapError(cause, sl, i.stack(), targetID, format, args...)
 }
 
 func (i *Interpreter) pushOnlyErr(sl *spec.SourceLocation) error {

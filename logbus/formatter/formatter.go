@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -131,6 +132,13 @@ func (f *Formatter) Close() error {
 		retErr = multierror.Append(retErr, err)
 	}
 	return retErr
+}
+
+// Manifest returns a copy of the manifest.
+func (f *Formatter) Manifest() *logstream.RunManifest {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return proto.Clone(f.manifest).(*logstream.RunManifest)
 }
 
 func (f *Formatter) processDelta(delta *logstream.Delta) error {

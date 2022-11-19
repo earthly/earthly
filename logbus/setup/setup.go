@@ -16,6 +16,8 @@ import (
 	"github.com/earthly/earthly/util/deltautil"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 // BusSetup is a helper for setting up a logbus.Bus.
@@ -67,6 +69,30 @@ func (bs *BusSetup) StartLogStreamer(ctx context.Context, c cloud.Client, orgNam
 		CreatedAtUnixNanos: uint64(bs.CreatedAt.UnixNano()),
 	}
 	bs.LogStreamer = logstreamer.New(ctx, bs.Bus, c, initialManifest)
+}
+
+// DumpManifestToFile dumps the manifest to the given file.
+func (bs *BusSetup) DumpManifestToFile(path string) error {
+	m := bs.Formatter.Manifest()
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return errors.Wrapf(err, "failed to open bus manifest debug file %s", path)
+	}
+	useJson := strings.HasSuffix(path, ".json")
+	var dt []byte
+	if useJson {
+		dt, err = protojson.Marshal(m)
+	} else {
+		dt, err = proto.Marshal(m)
+	}
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshal manifest")
+	}
+	_, err = f.Write(dt)
+	if err != nil {
+		return errors.Wrapf(err, "failed to write manifest")
+	}
+	return nil
 }
 
 // Close closes the BusSetup.
