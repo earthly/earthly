@@ -1,4 +1,4 @@
-VERSION 0.6
+VERSION --ci-arg 0.6
 FROM alpine:3.15
 
 ci-test:

@@ -43,6 +43,7 @@ type Features struct {
 	WaitBlock                  bool `long:"wait-block" description:"enable WITH/END feature, also allows RUN --push mixed with non-push commands"`
 	UseProjectSecrets          bool `long:"use-project-secrets" description:"enable project-based secret resolution"`
 	UsePipelines               bool `long:"use-pipelines" description:"enable the PIPELINE and TRIGGER commands"`
+	EarthlyCIArg               bool `long:"ci-arg" description:"include EARTHLY_CI arg"`
 
 	NoUseRegistryForWithDocker bool `long:"no-use-registry-for-with-docker" description:"disable use-registry-for-with-docker"`
 
