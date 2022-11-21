@@ -14,6 +14,7 @@ const (
 	EarthlyGitTag               = "EARTHLY_GIT_TAG"
 	EarthlyLocally              = "EARTHLY_LOCALLY"
 	EarthlyPush                 = "EARTHLY_PUSH"
+	EarthlyCI                   = "EARTHLY_CI"
 	EarthlySourceDateEpoch      = "EARTHLY_SOURCE_DATE_EPOCH"
 	EarthlyTarget               = "EARTHLY_TARGET"
 	EarthlyTargetName           = "EARTHLY_TARGET_NAME"
@@ -53,6 +54,7 @@ func init() {
 		EarthlyGitTag:               struct{}{},
 		EarthlyLocally:              struct{}{},
 		EarthlyPush:                 struct{}{},
+		EarthlyCI:                   struct{}{},
 		EarthlySourceDateEpoch:      struct{}{},
 		EarthlyTarget:               struct{}{},
 		EarthlyTargetName:           struct{}{},
