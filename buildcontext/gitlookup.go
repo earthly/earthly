@@ -439,15 +439,21 @@ func (gl *GitLookup) lookupNetRCCredential(host string) (login, password string,
 	var n *netrc.Netrc
 	if content := os.Getenv("NETRC_CONTENT"); content != "" {
 		n, err = netrc.ParseString(content)
+		if err != nil {
+			return "", "", errors.Wrap(err, "failed to parse NETRC_CONTENT data")
+		}
 	} else if path := os.Getenv("NETRC"); path != "" {
 		n, err = netrc.Parse(path)
+		if err != nil {
+			return "", "", errors.Wrapf(err, "failed to parse netrc file: %s", path)
+		}
 	} else {
 		homeDir, _ := fileutil.HomeDir()
 		path = filepath.Join(homeDir, ".netrc")
 		n, err = netrc.Parse(path)
-	}
-	if err != nil {
-		return "", "", errors.Wrap(err, "failed to parse .netrc")
+		if err != nil {
+			return "", "", errors.Wrap(err, "failed to parse default .netrc file")
+		}
 	}
 	machine := n.Machine(host)
 	if machine == nil {
