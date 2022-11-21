@@ -400,24 +400,24 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 	} else if app.verbose {
 		app.console = app.console.WithLogLevel(conslogging.Verbose)
 	}
-	if app.buildID == "" {
-		app.buildID = uuid.NewString()
-	}
-	disableOngoingUpdates := !app.logstream || app.interactiveDebugging
-	_, forceColor := os.LookupEnv("FORCE_COLOR")
-	_, noColor := os.LookupEnv("NO_COLOR")
-	var err error
-	app.logbusSetup, err = logbussetup.New(
-		cliCtx.Context, app.logbus, app.debug, app.verbose, forceColor, noColor,
-		disableOngoingUpdates, app.logstreamDebugFile, app.buildID)
-	if err != nil {
-		return errors.Wrap(err, "logbus setup")
-	}
 	if app.logstreamUpload {
 		app.logstream = true
 	}
 	if app.logstream {
 		app.console = app.console.WithPrefixWriter(app.logbus.Run().Generic())
+		if app.buildID == "" {
+			app.buildID = uuid.NewString()
+		}
+		disableOngoingUpdates := !app.logstream || app.interactiveDebugging
+		_, forceColor := os.LookupEnv("FORCE_COLOR")
+		_, noColor := os.LookupEnv("NO_COLOR")
+		var err error
+		app.logbusSetup, err = logbussetup.New(
+			cliCtx.Context, app.logbus, app.debug, app.verbose, forceColor, noColor,
+			disableOngoingUpdates, app.logstreamDebugFile, app.buildID)
+		if err != nil {
+			return errors.Wrap(err, "logbus setup")
+		}
 	}
 
 	if cliCtx.IsSet("config") {
@@ -426,6 +426,7 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 
 	var yamlData []byte
 	if app.configPath != "" {
+		var err error
 		yamlData, err = config.ReadConfigFile(app.configPath)
 		if err != nil {
 			if cliCtx.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
@@ -434,6 +435,7 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 		}
 	}
 
+	var err error
 	app.cfg, err = config.ParseConfigFile(yamlData, app.installationName)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse %s", app.configPath)
@@ -566,7 +568,7 @@ func unhideFlagsCommands(ctx context.Context, cmds []*cli.Command) {
 
 func (app *earthlyApp) run(ctx context.Context, args []string) int {
 	defer func() {
-		if app.logbusSetup != nil {
+		if app.logstream {
 			err := app.logbusSetup.Close()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error(s) in logbus: %v", err)
