@@ -100,6 +100,7 @@ replace (
 
 	github.com/earthly/earthly/ast => ./ast
 	github.com/earthly/earthly/util/deltautil => ./util/deltautil
+	github.com/jdxcode/netrc => github.com/mikejholly/netrc v0.0.0-20221121193719-a154cb29ec2a
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
 	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20221109173939-f46745e0958c
