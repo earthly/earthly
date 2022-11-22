@@ -11,6 +11,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/buildkitutil"
+	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/moby/buildkit/client"
 	"github.com/opencontainers/go-digest"
 )
@@ -122,7 +123,7 @@ func (sm *SolverMonitor) processStatus(ss *client.SolveStatus) error {
 	for _, vertex := range ss.Vertexes {
 		vm, ok := sm.vertices[vertex.Digest]
 		if !ok {
-			meta, operation := ParseFromVertexPrefix(vertex.Name)
+			meta, operation := vertexmeta.ParseFromVertexPrefix(vertex.Name)
 			vm = &vertexMonitor{
 				vertex:         vertex,
 				meta:           meta,

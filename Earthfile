@@ -25,23 +25,35 @@ deps:
     RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.0
     COPY go.mod go.sum ./
     COPY ./ast/go.mod ./ast/go.sum ./ast
+    COPY ./util/deltautil/go.mod ./util/deltautil/go.sum ./util/deltautil
     RUN go mod download
     SAVE ARTIFACT go.mod AS LOCAL go.mod
     SAVE ARTIFACT go.sum AS LOCAL go.sum
 
 code:
     FROM +deps
-    # Use BUILDKIT_PROJECT to point go.mod to a buildkit dir being actively developed.
-    # --BUILDKIT_PROJECT=../buildkit or --BUILDKIT_PROJECT=github.com/earthly/buildkit:4f1c968c3778a7140c56e3e6a755b7f2d38f2156
+    # Use BUILDKIT_PROJECT to point go.mod to a buildkit dir being actively developed. Examples:
+    #   --BUILDKIT_PROJECT=../buildkit
+    #   --BUILDKIT_PROJECT=github.com/earthly/buildkit:<git-ref>
     ARG BUILDKIT_PROJECT
     IF [ "$BUILDKIT_PROJECT" != "" ]
         COPY --dir "$BUILDKIT_PROJECT"+code/buildkit /buildkit
         RUN go mod edit -replace github.com/moby/buildkit=/buildkit
         RUN go mod download
     END
+    # Use CLOUD_API to point go.mod to a cloud API dir being actively developed. Examples:
+    #   --CLOUD_API=../cloud/api+proto/api/public/'*'
+    #   --CLOUD_API=github.com/earthly/cloud/api:<git-ref>+proto/api/public/'*'
+    #   --CLOUD_API=github.com/earthly/cloud-api:<git-ref>+code/'*'
+    ARG CLOUD_API
+    IF [ "$CLOUD_API" != "" ]
+        COPY --dir "$CLOUD_API" /cloud-api/
+        RUN go mod edit -replace github.com/earthly/cloud-api=/cloud-api
+        RUN go mod download
+    END
     COPY ./ast/parser+parser/*.go ./ast/parser/
-    COPY --dir analytics autocomplete buildcontext builder cleanup cmd config conslogging debugger dockertar \
-        docker2earthly domain features outmon slog cloud states util variables ./
+    COPY --dir analytics autocomplete buildcontext builder logbus cleanup cmd config conslogging debugger \
+        dockertar docker2earthly domain features outmon slog cloud states util variables ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
     COPY --dir ast/antlrhandler ast/spec ast/*.go ast/
@@ -108,7 +120,7 @@ earthly-script-no-stdout:
     # This script performs an explicit "docker pull earthlybinaries:prerelease" which can cause rate-limiting
     # to work-around this, we will copy an earthly binary in, and disable auto-updating (and therefore don't require a WITH DOCKER)
     COPY +earthly/earthly /root/.earthly/earthly-prerelease
-    RUN EARTHLY_DISABLE_AUTO_UPDATE=true ./earthly --version > earthly-version-output
+    RUN EARTHLY_DISABLE_FRONTEND_DETECTION=true EARTHLY_DISABLE_AUTO_UPDATE=true ./earthly --version > earthly-version-output
 
     RUN test "$(cat earthly-version-output | wc -l)" = "1"
     RUN grep '^earthly version.*$' earthly-version-output # only --version info should go to stdout
@@ -195,6 +207,7 @@ lint-changelog:
 
 debugger:
     FROM +code
+    ENV CGO_ENABLED=0
     ARG GOCACHE=/go-cache
     ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
     ARG EARTHLY_TARGET_TAG
@@ -210,6 +223,7 @@ debugger:
 
 earthly:
     FROM +code
+    ENV CGO_ENABLED=0
     ARG GOOS=linux
     ARG TARGETARCH
     ARG TARGETVARIANT
@@ -217,6 +231,7 @@ earthly:
     ARG VARIANT=$TARGETVARIANT
     ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
     ARG EXECUTABLE_NAME="earthly"
+    ARG DEFAULT_INSTALLATION_NAME="earthly-dev"
     RUN test -n "$GOOS" && test -n "$GOARCH"
     RUN test "$GOARCH" != "arm" || test -n "$VARIANT"
     ARG EARTHLY_TARGET_TAG_DOCKER
@@ -230,6 +245,7 @@ earthly:
     RUN printf '-X main.DefaultBuildkitdImage='"$DEFAULT_BUILDKITD_IMAGE" > ./build/ldflags && \
         printf ' -X main.Version='"$VERSION" >> ./build/ldflags && \
         printf ' -X main.GitSha='"$EARTHLY_GIT_HASH" >> ./build/ldflags && \
+        printf ' -X main.DefaultInstallationName='"$DEFAULT_INSTALLATION_NAME" >> ./build/ldflags && \
         printf ' '"$GO_EXTRA_LDFLAGS" >> ./build/ldflags && \
         echo "$(cat ./build/ldflags)"
     # Important! If you change the go build options, you may need to also change them
@@ -299,14 +315,14 @@ earthly-all:
 earthly-docker:
     ARG BUILDKIT_PROJECT
     FROM ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
-    RUN apk add --update --no-cache docker-cli libcap-ng-utils
+    RUN apk add --update --no-cache docker-cli libcap-ng-utils git
     ENV EARTHLY_IMAGE=true
     COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
     ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
     WORKDIR /workspace
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
-    COPY (+earthly/earthly --VERSION=$TAG) /usr/bin/earthly
+    COPY (+earthly/earthly --VERSION=$TAG --DEFAULT_INSTALLATION_NAME="earthly") /usr/bin/earthly
     SAVE IMAGE --push --cache-from=earthly/earthly:main earthly/earthly:$TAG
 
 earthly-integration-test-base:
@@ -452,6 +468,9 @@ lint-all:
     BUILD +lint-scripts
     BUILD +lint-newline-ending
     BUILD +lint-changelog
+
+lint-docs:
+    BUILD +lint-newline-ending
 
 # TODO: Document qemu vs non-qemu
 test-no-qemu:

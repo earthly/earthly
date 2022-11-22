@@ -53,6 +53,7 @@ type NewCollectionOpt struct {
 	Console          conslogging.ConsoleLogger
 	Target           domain.Target
 	Push             bool
+	CI               bool
 	PlatformResolver *platutil.Resolver
 	NativePlatform   specs.Platform
 	GitMeta          *gitutil.GitMetadata
@@ -67,7 +68,7 @@ func NewCollection(opts NewCollectionOpt) *Collection {
 	target := opts.Target
 	console := opts.Console
 	return &Collection{
-		builtin: BuiltinArgs(target, opts.PlatformResolver, opts.GitMeta, opts.BuiltinArgs, opts.Features, opts.Push),
+		builtin: BuiltinArgs(target, opts.PlatformResolver, opts.GitMeta, opts.BuiltinArgs, opts.Features, opts.Push, opts.CI),
 		envs:    NewScope(),
 		stack: []*stackFrame{{
 			frameName:  target.StringCanonical(),
@@ -140,6 +141,12 @@ func (c *Collection) SetOverriding(overriding *Scope) {
 // SetPlatform sets the platform, updating the builtin args.
 func (c *Collection) SetPlatform(platr *platutil.Resolver) {
 	SetPlatformArgs(c.builtin, platr)
+	c.effectiveCache = nil
+}
+
+// SetLocally sets the locally flag, updating the builtin args.
+func (c *Collection) SetLocally(locally bool) {
+	SetLocally(c.builtin, locally)
 	c.effectiveCache = nil
 }
 
@@ -263,10 +270,10 @@ func (c *Collection) IsStackAtBase() bool {
 func (c *Collection) StackString() string {
 	builder := make([]string, 0, len(c.stack))
 	for i := len(c.stack) - 1; i >= 0; i-- {
-		overridingNames := c.stack[i].overriding.SortedAny()
-		row := make([]string, 0, len(overridingNames)+1)
+		activeNames := c.stack[i].args.SortedActive()
+		row := make([]string, 0, len(activeNames)+1)
 		row = append(row, c.stack[i].frameName)
-		for _, k := range overridingNames {
+		for _, k := range activeNames {
 			v, _ := c.stack[i].overriding.GetAny(k)
 			row = append(row, fmt.Sprintf("--%s=%s", k, v))
 		}

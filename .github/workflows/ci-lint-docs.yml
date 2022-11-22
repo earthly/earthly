@@ -1,0 +1,34 @@
+name: lint-docs
+
+on:
+  push:
+    branches: [ main, next ]
+  pull_request:
+    branches: [ main, next ]
+
+jobs:
+  test:
+    name: +lint-docs
+    runs-on: "ubuntu-latest"
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+      DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
+      DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+      # Used in our github action as the token - TODO: look to change it into an input
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: earthly/actions-setup@main
+      - name: Execute lint (Earthly Only)
+        run: |-
+          earthly --ci -P \
+            --build-arg DOCKERHUB_AUTH=true \
+            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
+          +lint-docs
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository

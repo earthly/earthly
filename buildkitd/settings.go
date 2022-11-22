@@ -15,7 +15,6 @@ type Settings struct {
 	CacheSizePct         int
 	Debug                bool
 	BuildkitAddress      string
-	DebuggerAddress      string
 	LocalRegistryAddress string
 	AdditionalArgs       []string
 	AdditionalConfig     string

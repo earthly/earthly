@@ -1,14 +1,14 @@
-# Shared cache
+# Remote caching
 
-Earthly has the ability to share cache between different isolated CI runs and even with developers. This page goes through the available features, common use-cases and situations where shared cache is most useful.
+Earthly has the ability to share cache between different isolated CI runs and even with developers via remote caching. This page goes through the available features, common use-cases and situations where remote caching is most useful.
 
-Shared caching is made possible by storing intermediate steps of a build in a cloud-based Docker registry. This cache can then be downloaded on another machine in order to skip common parts.
+Remote caching is made possible by storing intermediate steps of a build in a cloud-based Docker registry. This cache can then be downloaded on another machine in order to skip common parts.
 
-Note that there is yet another way to share cache between builds, via [Earthly Satellites (beta)](../cloud/satellites.md). This page only covers remote shared caching through the use of a registry.
+Note that there is yet another way to share cache between builds, via [Earthly Remote Runners](./remote-runners.md) (a commercial version of remote runners is [Earthly Satellites](cloud/satelllites.md)). Using the cache of a remote runner is easier to manage, because there is no upload or download step (the cache is always there, available instantly) and no additional experimentation is required (everything is automatically cached without the need to experiment). This page only covers remote shared caching through the use of a registry.
 
-## Types of shared cache
+## Types of remote cache
 
-Earthly makes available two types of shared caches:
+Earthly makes available two types of remote caching:
 
 * [Inline cache](#inline-cache)
 * [Explicit cache](#explicit-cache-advanced) (advanced)
@@ -59,11 +59,11 @@ On developer's computer (optional):
 earthly --use-inline-cache +some-target
 ```
 
-The options mentioned above are also available as environment variables. See [Earthly command reference](../earthly-command/earthly-command.md) for more information.
+The options mentioned above are also available as environment variables. See [Earthly command reference](earthly-command/earthly-command.md) for more information.
 
 The way this works underneath is that Earthly uses `SAVE IMAGE --push` declarations as source and destination for any inline cache.
 
-In case different Docker tags are used in branch or PR builds, it is possible to use additional cache sources via [`SAVE IMAGE --cache-from=...`](../earthfile/earthfile.md#save-image). This may be useful so that PR builds are able to use the main branch cache. Here is a simple example:
+In case different Docker tags are used in branch or PR builds, it is possible to use additional cache sources via [`SAVE IMAGE --cache-from=...`](earthfile/earthfile.md#save-image). This may be useful so that PR builds are able to use the main branch cache. Here is a simple example:
 
 ```Dockerfile
 FROM ...
@@ -104,7 +104,7 @@ earthly --ci --push +docker
 
 ### Explicit cache (advanced)
 
-Explicit caching requires that you dedicate a Docker tag specifically for cache storage. Unlike inline caching, this tag is not meant to be used for anything else. For this reason, uploading the cache is an added step in your runs, which may affect performance.
+Explicit caching requires that you dedicate a Docker tag specifically for cache storage. Unlike inline caching, this tag is not meant to be used for anything else. For this reason, uploading the cache is an added step that takes additional time.
 
 #### How to use explicit caching
 
@@ -130,7 +130,7 @@ On developer's computer (optional):
 earthly --remote-cache=mycompany/myimage:cache +some-target
 ```
 
-The options mentioned above are also available as environment variables. See [Earthly command reference](../earthly-command/earthly-command.md) for more information.
+The options mentioned above are also available as environment variables. See [Earthly command reference](earthly-command/earthly-command.md) for more information.
 
 {% hint style='info' %}
 ##### Note
@@ -141,7 +141,7 @@ If a project has multiple CI pipelines or `earthly` invocations, it is recommend
 {% hint style='info' %}
 ##### Note
 
-It is currently not possible to push both inline and explicit caches currently.
+It is currently not possible to push both inline and explicit caches in a single run.
 {% endhint %}
 
 #### Optimizing explicit cache performance (advanced)
@@ -197,25 +197,25 @@ Below is a summary of the different characteristics of each type of cache.
 * By default, caches only the layers of the target being built, and not of any other referenced targets
 * You can cache additional targets by adding `SAVE IMAGE --cache-hint` commands
 
-## When to use shared cache
+## When to use remote caching
 
-There are several situations where shared caching can provide a significant performance boost. The following are only a few examples of how to get a feel for its usefulness.
+There are several situations where remote caching can provide a significant performance boost. The following are only a few examples of how to get a feel for its usefulness.
 
 ### Compute-heavy vs Download-heavy
 
-In general shared cache is very useful when there is a significant computation overhead during the execution of your build. Assuming that the inputs of that computation do not change regularly, then shared caching could be a good candidate. If a time-consuming operation, however, is not compute-heavy, but rather download-heavy, then shared cache may not be as effective (it's one download versus another).
+In general remote caching is very useful when there is a significant computation overhead during the execution of your build. Assuming that the inputs of that computation do not change regularly, then remote caching could be a good candidate. If a time-consuming operation, however, is not compute-heavy, but rather download-heavy, then remote caching may not be as effective (it's one download versus another).
 
-As an example of this distinction, consider the use of the `apk` tool shipped in `alpine` images. Installing packages via `apk` is download-heavy, but usually not very compute-heavy, and so using shared caching to offset `apk` download times might not be as effective. On the other hand, consider `apt-get` tool shipped in `ubuntu` images. Besides performing downloads, `apt-get` also performs additional post-download steps which tend to be compute-intensive. For this reason, shared caching is usually very effective here.
+As an example of this distinction, consider the use of the `apk` tool shipped in `alpine` images. Installing packages via `apk` is download-heavy, but usually not very compute-heavy, and so using remote caching to offset `apk` download times might not be as effective. On the other hand, consider `apt-get` tool shipped in `ubuntu` images. Besides performing downloads, `apt-get` also performs additional post-download steps which tend to be compute-intensive. For this reason, remote caching is usually very effective here.
 
 Similarly to the comparison between `apk` and `apt-get`, similar remarks can be made about the various language-specific dependency management tools. Some will be pure download-based (e.g. `go mod download`), while others will be a mix of download and computation (.e.g `sbt`).
 
 ### An intermediate result is small and doesn't change much
 
-An area where shared cache is particularly impactful are cases where a rare-changing prerequisite downloads many dependencies and/or performs intensive computation, but the end result is relatively small (e.g. a single binary). Passing this prerequisite over the wire as part of the shared cache is very fast (especially if the downloads required to generate it are not used anywhere else), whereas regenerating it requires a lot of work.
+An area where remote caching is particularly impactful are cases where a rare-changing prerequisite downloads many dependencies and/or performs intensive computation, but the end result is relatively small (e.g. a single binary). Passing this prerequisite over the wire as part of the remote caching is very fast (especially if the downloads required to generate it are not used anywhere else), whereas regenerating it requires a lot of work.
 
 ### Monorepo and Polyrepo setups
 
-An excellent example of the above are typical inter-project dependencies. Regardless of whether your layout is a monorepo or a polyrepo, if projects reference artifacts or images from each other, then whatever tools used to generate those artifacts or images are usually not required across projects. In such cases it is possible to prevent entire target trees of downloads and computation and simply download the final result using the shared cache.
+An excellent example of the above are typical inter-project dependencies. Regardless of whether your layout is a monorepo or a polyrepo, if projects reference artifacts or images from each other, then whatever tools used to generate those artifacts or images are usually not required across projects. In such cases it is possible to prevent entire target trees of downloads and computation and simply download the final result using the remote cache.
 
 A simple way to visualize this use-case is comparing the performance of a build that takes place behind a `FROM +some-target` instruction versus just using the previously built image directly. If `+some-target` has a `SAVE IMAGE --push myimage:latest` instruction, then the performance becomes almost the same to using `FROM myimage:latest` directly.
 
@@ -225,12 +225,12 @@ Modern CIs execute in a sandbox. They start with a blank slate and need to downl
 
 If, however, you are using a CI which reuses the same environment (e.g. Jenkins, BuildKite - depending on how they are configured), then simply relying on the local cache is enough.
 
-### Shared cache for developers
+### Remote caching for developers
 
-It is possible to use cache in read-only mode for developers to speed up local development. This can be achieved by enabling read-write shared caching in CI and read-only cache for individual developers. Since all Earthly cache is kept in Docker registries, managing access to the cache can be controlled by managing access to individual Docker images.
+It is possible to use cache in read-only mode for developers to speed up local development. This can be achieved by enabling read-write remote caching in CI and read-only cache for individual developers. Since all Earthly cache is kept in Docker registries, managing access to the cache can be controlled by managing access to individual Docker images.
 
 Note however that there is small performance penalty for regularly checking the remote registry on every run.
 
 ## Alternatives
 
-An alternative to using shared cache is to use [Earthly Satellites (beta)](../cloud/satellites.md). Satellites execute the build remotely, and this allows the cache to be located in close proximity to the execution, making the process very efficient. Satellites are also significantly easier to set up, as the caching just works and there is no need for additional experimentation.
+An alternative to using remote caching is to use [Earthly Remote Runners](./remote-runners.md) (a commercial version of remote runners is [Earthly Satellites](cloud/satelllites.md)). Remote runners execute the build remotely, and this allows the cache to be located in close proximity to the execution, which is very efficient. Satellites are also significantly easier to set up, as the caching just works and there is no need for additional experimentation.

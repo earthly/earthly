@@ -1,6 +1,7 @@
 package conslogging
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"strings"
@@ -73,6 +74,7 @@ type ConsoleLogger struct {
 	nextColorIndex *int
 	errW           io.Writer
 	consoleErrW    io.Writer
+	prefixWriter   PrefixWriter
 	trailingLine   bool
 	prefixPadding  int
 	bb             *BundleBuilder
@@ -80,14 +82,22 @@ type ConsoleLogger struct {
 
 // Current returns the current console.
 func Current(colorMode ColorMode, prefixPadding int, logLevel LogLevel) ConsoleLogger {
+	return New(getCompatibleStderr(), &currentConsoleMutex, colorMode, prefixPadding, logLevel)
+}
+
+// New returns a new ConsoleLogger with a predefined target writer.
+func New(w io.Writer, mu *sync.Mutex, colorMode ColorMode, prefixPadding int, logLevel LogLevel) ConsoleLogger {
+	if mu == nil {
+		mu = &sync.Mutex{}
+	}
 	return ConsoleLogger{
-		consoleErrW:    getCompatibleStderr(),
-		errW:           getCompatibleStderr(),
+		consoleErrW:    w,
+		errW:           w,
 		colorMode:      colorMode,
 		saltColors:     make(map[string]*color.Color),
 		nextColorIndex: new(int),
 		prefixPadding:  prefixPadding,
-		mu:             &currentConsoleMutex,
+		mu:             mu,
 		logLevel:       logLevel,
 	}
 }
@@ -96,6 +106,7 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 	return ConsoleLogger{
 		consoleErrW:    cl.consoleErrW,
 		errW:           cl.errW,
+		prefixWriter:   cl.prefixWriter,
 		prefix:         cl.prefix,
 		metadataMode:   cl.metadataMode,
 		isLocal:        cl.isLocal,
@@ -114,12 +125,21 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 
 // WithPrefix returns a ConsoleLogger with a prefix added.
 func (cl ConsoleLogger) WithPrefix(prefix string) ConsoleLogger {
+	return cl.WithPrefixAndSalt(prefix, prefix)
+}
+
+// WithPrefixAndSalt returns a ConsoleLogger with a prefix and a seed added.
+func (cl ConsoleLogger) WithPrefixAndSalt(prefix string, salt string) ConsoleLogger {
 	ret := cl.clone()
 	if cl.bb != nil {
 		ret.errW = io.MultiWriter(cl.consoleErrW, cl.bb.PrefixWriter(prefix))
 	}
 	ret.prefix = prefix
-	ret.salt = prefix
+	ret.salt = salt
+	if ret.prefixWriter != nil {
+		ret.prefixWriter = ret.prefixWriter.WithPrefix(prefix)
+		ret.errW = ret.prefixWriter
+	}
 	return ret
 }
 
@@ -134,17 +154,6 @@ func (cl ConsoleLogger) WithMetadataMode(metadataMode bool) ConsoleLogger {
 func (cl ConsoleLogger) WithLocal(isLocal bool) ConsoleLogger {
 	ret := cl.clone()
 	ret.isLocal = isLocal
-	return ret
-}
-
-// WithPrefixAndSalt returns a ConsoleLogger with a prefix and a seed added.
-func (cl ConsoleLogger) WithPrefixAndSalt(prefix string, salt string) ConsoleLogger {
-	ret := cl.clone()
-	if cl.bb != nil {
-		ret.errW = io.MultiWriter(cl.consoleErrW, cl.bb.PrefixWriter(prefix))
-	}
-	ret.prefix = prefix
-	ret.salt = salt
 	return ret
 }
 
@@ -179,6 +188,14 @@ func (cl ConsoleLogger) WithWriter(w io.Writer) ConsoleLogger {
 	return ret
 }
 
+// WithPrefixWriter returns a ConsoleLogger with a prefix writer.
+func (cl ConsoleLogger) WithPrefixWriter(w PrefixWriter) ConsoleLogger {
+	ret := cl.clone()
+	ret.prefixWriter = w
+	ret.errW = w
+	return ret
+}
+
 // WithLogBundleWriter returns a ConsoleLogger with a BundleWriter attached to capture output into a log bundle, for upload to log sharing.
 func (cl ConsoleLogger) WithLogBundleWriter(entrypoint string, collection *cleanup.Collection) ConsoleLogger {
 	ret := cl.clone()
@@ -191,8 +208,12 @@ func (cl ConsoleLogger) WithLogBundleWriter(entrypoint string, collection *clean
 
 // PrintPhaseHeader prints the phase header.
 func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special string) {
+	w := new(bytes.Buffer)
 	cl.mu.Lock()
-	defer cl.mu.Unlock()
+	defer func() {
+		_, _ = w.WriteTo(cl.errW)
+		cl.mu.Unlock()
+	}()
 	msg := phase
 	c := cl.color(phaseColor)
 	if disabled {
@@ -206,32 +227,31 @@ func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special st
 	if underlineLength < barWidth {
 		underlineLength = barWidth
 	}
-	c.Fprintf(cl.errW, " %s", msg)
-	_, _ = cl.errW.Write([]byte("\n"))
-	c.Fprintf(cl.errW, "%s", strings.Repeat("—", underlineLength))
-	_, _ = cl.errW.Write([]byte("\n\n"))
+	c.Fprintf(w, " %s", msg)
+	fmt.Fprintf(w, "\n")
+	c.Fprintf(w, "%s", strings.Repeat("—", underlineLength))
+	fmt.Fprintf(w, "\n\n")
 }
 
 // PrintPhaseFooter prints the phase footer.
 func (cl ConsoleLogger) PrintPhaseFooter(phase string, disabled bool, special string) {
+	w := new(bytes.Buffer)
 	cl.mu.Lock()
-	defer cl.mu.Unlock()
+	defer func() {
+		_, _ = w.WriteTo(cl.errW)
+		cl.mu.Unlock()
+	}()
 	c := cl.color(noColor)
-	c.Fprintf(cl.errW, "\n")
+	c.Fprintf(w, "\n")
 }
 
 // PrintSuccess prints the success message.
 func (cl ConsoleLogger) PrintSuccess() {
-	cl.mu.Lock()
-	defer cl.mu.Unlock()
 	cl.PrintBar(successColor, "🌍 Earthly Build  ✅ SUCCESS", "")
 }
 
 // PrintFailure prints the failure message.
 func (cl ConsoleLogger) PrintFailure(phase string) {
-	cl.mu.Lock()
-	defer cl.mu.Unlock()
-
 	cl.PrintBar(warnColor, "❌ FAILURE", phase)
 }
 
@@ -248,6 +268,12 @@ func (cl ConsoleLogger) PrefixColor() *color.Color {
 
 // PrintBar prints an earthly message bar.
 func (cl ConsoleLogger) PrintBar(c *color.Color, msg, phase string) {
+	w := new(bytes.Buffer)
+	cl.mu.Lock()
+	defer func() {
+		_, _ = w.WriteTo(cl.errW)
+		cl.mu.Unlock()
+	}()
 	c = cl.color(c)
 	center := msg
 	if phase != "" {
@@ -267,9 +293,9 @@ func (cl ConsoleLogger) PrintBar(c *color.Color, msg, phase string) {
 		rightBar += "="
 	}
 
-	_, _ = cl.errW.Write([]byte("\n"))
-	c.Fprintf(cl.errW, "%s%s%s", leftBar, center, rightBar)
-	_, _ = cl.errW.Write([]byte("\n\n"))
+	fmt.Fprintf(w, "\n")
+	c.Fprintf(w, "%s%s%s", leftBar, center, rightBar)
+	fmt.Fprintf(w, "\n\n")
 }
 
 // Warnf prints a warning message in red to errWriter.
@@ -277,17 +303,20 @@ func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 	if cl.logLevel < Warn {
 		return
 	}
-
+	w := new(bytes.Buffer)
 	cl.mu.Lock()
-	defer cl.mu.Unlock()
+	defer func() {
+		_, _ = w.WriteTo(cl.errW)
+		cl.mu.Unlock()
+	}()
 
 	c := cl.color(warnColor)
 	text := fmt.Sprintf(format, args...)
 	text = strings.TrimSuffix(text, "\n")
 
 	for _, line := range strings.Split(text, "\n") {
-		cl.printPrefix()
-		c.Fprintf(cl.errW, "%s\n", line)
+		cl.printPrefix(w)
+		c.Fprintf(w, "%s\n", line)
 	}
 }
 
@@ -296,8 +325,13 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	if cl.logLevel < Info {
 		return
 	}
+	w := new(bytes.Buffer)
 	cl.mu.Lock()
-	defer cl.mu.Unlock()
+	defer func() {
+		_, _ = w.WriteTo(cl.errW)
+		cl.mu.Unlock()
+	}()
+
 	c := cl.color(noColor)
 	if cl.metadataMode {
 		c = cl.color(metadataModeColor)
@@ -305,18 +339,23 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	text := fmt.Sprintf(format, args...)
 	text = strings.TrimSuffix(text, "\n")
 	for _, line := range strings.Split(text, "\n") {
-		cl.printPrefix()
-		c.Fprintf(cl.errW, "%s", line)
+		cl.printPrefix(w)
+		c.Fprintf(w, "%s", line)
 
 		// Don't use a background color for \n.
-		noColor.Fprintf(cl.errW, "\n")
+		noColor.Fprintf(w, "\n")
 	}
 }
 
 // PrintBytes prints bytes directly to the console.
 func (cl ConsoleLogger) PrintBytes(data []byte) {
+	w := new(bytes.Buffer)
+	w.Grow(len(data) + len(data)/4)
 	cl.mu.Lock()
-	defer cl.mu.Unlock()
+	defer func() {
+		_, _ = w.WriteTo(cl.errW)
+		cl.mu.Unlock()
+	}()
 	c := cl.color(noColor)
 	if cl.metadataMode {
 		c = cl.color(metadataModeColor)
@@ -337,17 +376,17 @@ func (cl ConsoleLogger) PrintBytes(data []byte) {
 		default:
 			if !cl.trailingLine {
 				if len(output) > 0 {
-					c.Fprintf(cl.errW, "%s", string(output))
+					c.Fprintf(w, "%s", string(output))
 					output = output[:0]
 				}
-				cl.printPrefix()
+				cl.printPrefix(w)
 				cl.trailingLine = true
 			}
 			output = append(output, ch...)
 		}
 	}
 	if len(output) > 0 {
-		c.Fprintf(cl.errW, "%s", string(output))
+		c.Fprintf(w, "%s", string(output))
 		// output = output[:0] // needed if output is used further in the future
 	}
 }
@@ -384,28 +423,32 @@ func (cl ConsoleLogger) DebugBytes(data []byte) {
 	cl.WithMetadataMode(true).PrintBytes(data)
 }
 
-func (cl ConsoleLogger) printPrefix() {
+func (cl ConsoleLogger) printPrefix(w io.Writer) {
 	// Assumes mu locked.
+	if cl.prefixWriter != nil {
+		// When the prefix writer is in use, we don't need to print the prefix.
+		return
+	}
 	if cl.prefix == "" {
 		return
 	}
 	c := cl.PrefixColor()
-	c.Fprintf(cl.errW, prettyPrefix(cl.prefixPadding, cl.prefix))
+	c.Fprintf(w, "%s", prettyPrefix(cl.prefixPadding, cl.prefix))
 	if cl.isLocal {
-		_, _ = cl.errW.Write([]byte(" *"))
-		cl.color(localColor).Fprintf(cl.errW, "local")
-		_, _ = cl.errW.Write([]byte("*"))
+		fmt.Fprintf(w, " *")
+		cl.color(localColor).Fprintf(w, "local")
+		fmt.Fprintf(w, "*")
 	}
 	if cl.isFailed {
-		_, _ = cl.errW.Write([]byte(" *"))
-		cl.color(warnColor).Fprintf(cl.errW, "failed")
-		_, _ = cl.errW.Write([]byte("*"))
+		fmt.Fprintf(w, " *")
+		cl.color(warnColor).Fprintf(w, "failed")
+		fmt.Fprintf(w, "*")
 	}
-	_, _ = cl.errW.Write([]byte(" | "))
+	fmt.Fprintf(w, " | ")
 	if cl.isCached {
-		_, _ = cl.errW.Write([]byte("*"))
-		cl.color(cachedColor).Fprintf(cl.errW, "cached")
-		_, _ = cl.errW.Write([]byte("* "))
+		fmt.Fprintf(w, "*")
+		cl.color(cachedColor).Fprintf(w, "cached")
+		fmt.Fprintf(w, "* ")
 	}
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
@@ -50,8 +51,9 @@ const (
 
 // Opt represent builder options.
 type Opt struct {
-	SessionID                             string
 	BkClient                              *client.Client
+	LogBusSolverMonitor                   *solvermon.SolverMonitor
+	UseLogstream                          bool
 	Console                               conslogging.ConsoleLogger
 	Verbose                               bool
 	Attachables                           []session.Attachable
@@ -86,6 +88,7 @@ type BuildOpt struct {
 	AllowPrivileged            bool
 	PrintPhases                bool
 	Push                       bool
+	CI                         bool
 	NoOutput                   bool
 	OnlyFinalTargetImages      bool
 	OnlyArtifact               *domain.Artifact
@@ -112,6 +115,8 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 	b := &Builder{
 		s: &solver{
 			sm:              outmon.NewSolverMonitor(opt.Console, opt.Verbose, opt.DisableNoOutputUpdates),
+			logbusSM:        opt.LogBusSolverMonitor,
+			useLogstream:    opt.UseLogstream,
 			bkClient:        opt.BkClient,
 			cacheImports:    opt.CacheImports,
 			cacheExport:     opt.CacheExport,
@@ -123,7 +128,7 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 		opt:      opt,
 		resolver: nil, // initialized below
 	}
-	b.resolver = buildcontext.NewResolver(opt.SessionID, opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides)
+	b.resolver = buildcontext.NewResolver(opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides)
 	return b, nil
 }
 
@@ -188,9 +193,11 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				NoCache:                              b.opt.NoCache,
 				ContainerFrontend:                    b.opt.ContainerFrontend,
 				UseLocalRegistry:                     (b.opt.LocalRegistryAddr != ""),
+				LocalRegistryAddr:                    b.opt.LocalRegistryAddr,
 				DoSaves:                              !opt.NoOutput,
 				OnlyFinalTargetImages:                opt.OnlyFinalTargetImages,
 				DoPushes:                             opt.Push,
+				IsCI:                                 opt.CI,
 				ExportCoordinator:                    exportCoordinator,
 				LocalArtifactWhiteList:               opt.LocalArtifactWhiteList,
 				InternalSecretStore:                  b.opt.InternalSecretStore,

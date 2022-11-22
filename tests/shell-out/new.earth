@@ -1,16 +1,20 @@
 VERSION --shell-out-anywhere 0.6
 
-test-all:
+test:
     BUILD +test-copyfile
-    BUILD +test
+    BUILD +test1
     BUILD +test2
     BUILD +test3
     BUILD +test4
     BUILD +test5
     BUILD +test6
+    BUILD +test7
+    BUILD +test8
+    BUILD +test9
+    BUILD +test10
 
 hasfile:
-    FROM +test
+    FROM +test1
     RUN touch valid-file
     SAVE ARTIFACT "valid-$(echo file)"
 
@@ -19,7 +23,7 @@ test-copyfile:
     COPY "+hasfile/$(echo dmFsaWQtZmlsZQ== | base64 -d)" .
     RUN test -f valid-file
 
-test:
+test1:
     FROM alpine:3.15
     RUN echo "world" > data
     ARG key="hello$(cat /data)"
@@ -59,3 +63,23 @@ test6:
     FROM alpine:3.15
     ARG mystr="hello $(echo -n one && echo -n two >/dev/null && echo -n three)."
     RUN test "$mystr" = "hello onethree."
+
+test7:
+    FROM alpine:3.15
+    ARG foo = "$(echo '()')"
+    RUN env | grep foo | tee output && base64 output | grep Zm9vPSgpCg==
+
+test8:
+    FROM alpine:3.15
+    ARG foo = "$(echo "()")"
+    RUN env | grep foo | tee output && base64 output | grep Zm9vPSgpCg==
+
+test9:
+    FROM alpine:3.15
+    ARG foo = "$(echo \\(\\))"
+    RUN env | grep foo | tee output && base64 output | grep Zm9vPSgpCg==
+
+test10:
+    FROM alpine:3.15
+    ARG foo = $(echo \\(\\))
+    RUN env | grep foo | tee output && base64 output | grep Zm9vPSgpCg==

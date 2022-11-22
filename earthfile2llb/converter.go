@@ -23,7 +23,6 @@ import (
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
-	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
@@ -37,6 +36,7 @@ import (
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
+	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
 
@@ -119,6 +119,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		Console:          opt.Console,
 		Target:           target,
 		Push:             opt.DoPushes,
+		CI:               opt.IsCI,
 		PlatformResolver: opt.PlatformResolver,
 		GitMeta:          bc.GitMetadata,
 		BuiltinArgs:      opt.BuiltinArgs,
@@ -163,7 +164,7 @@ func (c *Converter) From(ctx context.Context, imageName string, platform platuti
 	if err != nil {
 		return err
 	}
-	c.varCollection.SetArg(reserved.EarthlyLocally, "false") // FIXME this will have to change once https://github.com/earthly/earthly/issues/2044 is fixed
+	c.varCollection.SetLocally(false) // FIXME this will have to change once https://github.com/earthly/earthly/issues/2044 is fixed
 	platform = c.setPlatform(platform)
 	if strings.Contains(imageName, "+") {
 		// Target-based FROM.
@@ -399,7 +400,7 @@ func (c *Converter) Locally(ctx context.Context) error {
 		return errors.Wrapf(err, "unable to get abs path of %s", c.localWorkingDir)
 	}
 
-	c.varCollection.SetArg(reserved.EarthlyLocally, "true")
+	c.varCollection.SetLocally(true)
 
 	// reset WORKDIR to current directory where Earthfile is
 	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workingDir)
@@ -2169,16 +2170,26 @@ func (c *Converter) vertexPrefix(ctx context.Context, local bool, interactive bo
 	platform := c.platr.Materialize(c.platr.Current())
 	platformStr := platform.String()
 	isNativePlatform := c.platr.PlatformEquals(platform, platutil.NativePlatform)
-	vm := &outmon.VertexMeta{
-		SourceLocation:     SourceLocationFromContext(ctx),
-		TargetID:           c.mts.Final.ID,
-		TargetName:         c.mts.Final.Target.String(),
-		Platform:           platformStr,
-		NonDefaultPlatform: !isNativePlatform,
-		Local:              local,
-		Interactive:        interactive,
-		OverridingArgs:     activeOverriding,
-		Internal:           internal,
+	var gitURL, gitHash, fileRelToRepo string
+	if c.gitMeta != nil {
+		gitURL = c.gitMeta.RemoteURL
+		gitHash = c.gitMeta.Hash
+		fileRelToRepo = path.Join(c.gitMeta.RelDir, "Earthfile")
+	}
+	vm := &vertexmeta.VertexMeta{
+		SourceLocation:      SourceLocationFromContext(ctx),
+		RepoGitURL:          gitURL,
+		RepoGitHash:         gitHash,
+		RepoFileRelToRepo:   fileRelToRepo,
+		TargetID:            c.mts.Final.ID,
+		TargetName:          c.mts.Final.Target.String(),
+		CanonicalTargetName: c.mts.Final.Target.StringCanonical(),
+		Platform:            platformStr,
+		NonDefaultPlatform:  !isNativePlatform,
+		Local:               local,
+		Interactive:         interactive,
+		OverridingArgs:      activeOverriding,
+		Internal:            internal,
 	}
 	return vm.ToVertexPrefix()
 }
@@ -2186,7 +2197,7 @@ func (c *Converter) vertexPrefix(ctx context.Context, local bool, interactive bo
 func (c *Converter) imageVertexPrefix(id string, platform platutil.Platform) string {
 	platform = c.platr.Materialize(platform)
 	isNativePlatform := c.platr.PlatformEquals(platform, platutil.NativePlatform)
-	vm := &outmon.VertexMeta{
+	vm := &vertexmeta.VertexMeta{
 		TargetName:         id,
 		Platform:           platform.String(),
 		NonDefaultPlatform: !isNativePlatform,

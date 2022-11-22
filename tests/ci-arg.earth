@@ -1,0 +1,7 @@
+VERSION --ci-arg 0.6
+FROM alpine:3.15
+
+ci-test:
+    ARG EARTHLY_CI
+    RUN test "$EARTHLY_CI" = "true" || test "$EARTHLY_CI" = "false"
+    RUN (if [ "$EARTHLY_CI" = "true" ]; then echo Q0kgZW52aXJvbm1lbnQ=; else echo bG9jYWwgZW52aXJvbm1lbnQ=; fi) | base64 -d

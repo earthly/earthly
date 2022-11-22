@@ -23,7 +23,7 @@ type DefaultArgs struct {
 }
 
 // BuiltinArgs returns a scope containing the builtin args.
-func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs, ftrs *features.Features, push bool) *Scope {
+func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs, ftrs *features.Features, push bool, ci bool) *Scope {
 	ret := NewScope()
 	ret.AddInactive(arg.EarthlyTarget, target.StringCanonical())
 	ret.AddInactive(arg.EarthlyTargetProject, target.ProjectCanonical())
@@ -47,8 +47,12 @@ func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gituti
 		ret.AddInactive(arg.EarthlyBuildSha, defaultArgs.EarthlyBuildSha)
 	}
 
+	if ftrs.EarthlyCIArg {
+		ret.AddInactive(arg.EarthlyCI, fmt.Sprintf("%t", ci))
+	}
+
 	if ftrs.EarthlyLocallyArg {
-		ret.AddInactive(arg.EarthlyLocally, "false")
+		SetLocally(ret, false)
 	}
 
 	if gitMeta != nil {
@@ -109,6 +113,11 @@ func setNativePlatformArgs(s *Scope, platr *platutil.Resolver) {
 	s.AddInactive(arg.NativeOS, platform.OS)
 	s.AddInactive(arg.NativeArch, platform.Architecture)
 	s.AddInactive(arg.NativeVariant, platform.Variant)
+}
+
+// SetLocally sets the locally built-in arg value
+func SetLocally(s *Scope, locally bool) {
+	s.AddInactive(arg.EarthlyLocally, fmt.Sprintf("%v", locally))
 }
 
 // getProjectName returns the deprecated PROJECT_NAME value

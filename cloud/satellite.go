@@ -33,10 +33,13 @@ const (
 
 // SatelliteInstance contains details about a remote Buildkit instance.
 type SatelliteInstance struct {
-	Name     string
-	Org      string
-	Status   string
-	Platform string
+	Name         string
+	Org          string
+	State        string
+	Platform     string
+	Size         string
+	Version      string
+	FeatureFlags []string
 }
 
 func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error) {
@@ -52,7 +55,9 @@ func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteI
 			Name:     s.Name,
 			Org:      orgID,
 			Platform: s.Platform,
-			Status:   satelliteStatus(s.Status),
+			Size:     s.Size,
+			State:    satelliteStatus(s.Status),
+			Version:  s.Version,
 		}
 	}
 	return instances, nil
@@ -67,10 +72,13 @@ func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*Satelli
 		return nil, errors.Wrap(err, "failed getting satellite")
 	}
 	return &SatelliteInstance{
-		Name:     name,
-		Org:      orgID,
-		Status:   satelliteStatus(resp.Status),
-		Platform: resp.Platform,
+		Name:         name,
+		Org:          orgID,
+		State:        satelliteStatus(resp.Status),
+		Platform:     resp.Platform,
+		Size:         resp.Size,
+		Version:      resp.Version,
+		FeatureFlags: resp.FeatureFlags,
 	}, nil
 }
 
@@ -85,11 +93,12 @@ func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error 
 	return nil
 }
 
-func (c *client) LaunchSatellite(ctx context.Context, name, orgID string, features []string) error {
+func (c *client) LaunchSatellite(ctx context.Context, name, orgID, platform, size string, features []string) error {
 	_, err := c.compute.LaunchSatellite(c.withAuth(ctx), &pb.LaunchSatelliteRequest{
 		OrgId:        orgID,
 		Name:         name,
-		Platform:     "linux/amd64", // TODO support arm64 as well
+		Platform:     platform,
+		Size:         size,
 		FeatureFlags: features,
 	})
 	if err != nil {

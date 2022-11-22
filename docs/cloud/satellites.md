@@ -14,7 +14,7 @@ This feature is currently in **Beta** stage
   * [Emailing support](mailto:support+satellite@earthly.dev)
 {% endhint %}
 
-Earthly Satellites are remote Buildkit instances managed by the Earthly team. They allow you to perform builds in the cloud, while retaining cache between runs.
+Earthly Satellites are [remote runner](../remote-runners.md) instances managed by the Earthly team. They allow you to perform builds in the cloud, while retaining cache between runs.
 
 When using Earthly Satellites, even though the build executes remotely, the following pieces of functionality are still available:
 
@@ -26,7 +26,7 @@ When using Earthly Satellites, even though the build executes remotely, the foll
 
 ![Satellite workflow](./img/satellite-workflow.png)
 
-Earthly Satellite instances come with their own cache volume. This means that performing builds repeatedly on the same satellite will result in faster builds. This can be especially useful when using Satellites from a sandboxed CI environment, where cache from previous builds would not otherwise be available. Below is a comparison with Earthly's [Shared remote cache features](../guides/shared-cache.md).
+Earthly Satellite instances come with their own cache volume. This means that performing builds repeatedly on the same satellite will result in faster builds. This can be especially useful when using Satellites from a sandboxed CI environment, where cache from previous builds would not otherwise be available. Below is a comparison with Earthly's [Shared remote cache features](../remote-caching.md).
 
 | Cache characteristic | Satellite | Shared Cache |
 | --- | --- | --- |
@@ -42,7 +42,7 @@ Earthly Satellite instances come with their own cache volume. This means that pe
 
 Typical use cases for Earthly Satellites include:
 
-* Speeding up CI builds in sandboxed CI environments such as GitHub Actions, GitLab, CircleCI, and others. Most CI build times are improved by 20-80% via Satellites.
+* Speeding up CI builds in sandboxed CI environments such as GitHub Actions, GitLab, CircleCI, and others. Most CI build times are improved by a factor of 2-4X via Satellites.
 * Executing builds on AMD64/Intel architecture natively when working from an Apple Silicon machine (Apple M1/M2).
 * Sharing compute and cache with coworkers or with the CI.
 * Benefiting from high-bandwidth internet access from the satellite, thus allowing for fast downloads of dependencies and fast pushes for deployments. This is particularly useful if operating from a location with slow internet.
@@ -65,9 +65,13 @@ As builds often handle sensitive pieces of data, Satellites are designed with se
 
 Follow the steps in the [Earthly Cloud overview](./overview.md#getting-started) to register an account and create an org.
 
-### 2. Request access
+### 2. Purchase a Satellites Plan
 
-Satellites is currently a private beta feature. Please [contact us](mailto:support+satellite@earthly.dev) to join the beta. Please mention your org name when requesting access.
+Satellites are now a paid feature and require a valid subscription to begin using. The subscription includes a 14-day free trial which can be canceled before any payment is made. Visit the [pricing page](https://earthly.dev/pricing) for more billing details.
+
+[**Click here to start your subscription**](https://buy.stripe.com/8wM9Es4BT4Vvb4YbIJ)
+
+Once you've submitted your details on the checkout page, you will receive an email with further instructions. Please reply or [send us an email](mailto:support+satellite@earthly.dev) with your org name from step 1 in order for us to activate the Satellites feature on your account.
 
 ### 3. Ensure that you have the latest version of Earthly
 
