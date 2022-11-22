@@ -18,7 +18,7 @@ This example shows how to use the Earthly container in conjunction with a Docker
 docker run -t -v $(pwd):/workspace -v /var/run/docker.sock:/var/run/docker.sock -e NO_BUILDKIT=1 earthly/earthly:v0.6.30 +for-linux
 ```
 
-Here's a quick breakdown
+Here's a quick breakdown:
 
 - `-t` tells Docker to emulate a TTY. This makes the `earthly` log output colorized.
 - `-v $(pwd):/workspace` mounts the source code into the conventional location within the docker container. Earthly is executed from this directory when starting the container. Any artifacts saved within this folder remain on your local machine.
