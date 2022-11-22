@@ -4,6 +4,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.6.30 - 2022-11-22
+
 ### Added
 
 - Added support for a custom `.netrc` file path using the standard `NETRC` environmental variable. [#2426](https://github.com/earthly/earthly/pull/2426)
