@@ -29,6 +29,7 @@ import (
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
@@ -179,13 +180,22 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return err
 	}
 
+	if app.logstream {
+		earthfileOrgName := "my-org" // TODO (vladaionescu): Detect this.
+		earthfileProjectName := ""   // TODO (vladaionescu): Detect this.
+		app.logbusSetup.SetOrgAndProject(earthfileOrgName, earthfileProjectName)
+	}
+
 	// Default upload logs, unless explicitly configured
 	if !app.cfg.Global.DisableLogSharing {
 		if cloudClient.IsLoggedIn(cliCtx.Context) {
 			if app.logstreamUpload {
-				earthfileOrgName := "my-org" // TODO (vladaionescu): Detect this.
-				earthfileProjectName := ""   // TODO (vladaionescu): Detect this.
-				app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient, earthfileOrgName, earthfileProjectName)
+				app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient)
+				urlStr := fmt.Sprintf("https://ci.earthly.dev/todourl/%s", app.logbusSetup.InitialManifest.GetBuildId())
+				app.console.Printf("Streaming logs to %s\n", urlStr)
+				defer func() {
+					app.console.Printf("View logs at %s\n", urlStr)
+				}()
 			} else {
 				// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
 				app.console = app.console.WithLogBundleWriter(target.String(), cleanCollection)
@@ -409,9 +419,13 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		}
 		localRegistryAddr = lrURL.Host
 	}
+	var logbusSM *solvermon.SolverMonitor
+	if app.logstream {
+		logbusSM = app.logbusSetup.SolverMonitor
+	}
 	builderOpts := builder.Opt{
 		BkClient:                              bkClient,
-		LogBusSolverMonitor:                   app.logbusSetup.SolverMonitor,
+		LogBusSolverMonitor:                   logbusSM,
 		UseLogstream:                          app.logstream,
 		Console:                               app.console,
 		Verbose:                               app.verbose,

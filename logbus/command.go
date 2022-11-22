@@ -102,18 +102,9 @@ func (c *Command) SetCached(cached bool) {
 }
 
 // SetEnd sets the end time of the command.
-func (c *Command) SetEnd(end time.Time, success bool, canceled bool, errorStr string) {
+func (c *Command) SetEnd(end time.Time, status logstream.RunStatus, errorStr string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	var status logstream.RunStatus
-	switch {
-	case canceled:
-		status = logstream.RunStatus_RUN_STATUS_CANCELED
-	case success:
-		status = logstream.RunStatus_RUN_STATUS_SUCCESS
-	default:
-		status = logstream.RunStatus_RUN_STATUS_FAILURE
-	}
 	c.commandDelta(&logstream.DeltaCommandManifest{
 		Status:           status,
 		ErrorMessage:     errorStr,

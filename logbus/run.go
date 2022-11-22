@@ -140,33 +140,17 @@ func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, 
 	})
 }
 
-// SetEnd sets the end time of the build.
-func (run *Run) SetEnd(end time.Time, success bool, canceled bool, failureOutput []byte, errorMessage string) {
+// SetEnd sets the end time and status of the build.
+func (run *Run) SetEnd(end time.Time, status logstream.RunStatus) {
 	run.mu.Lock()
 	defer run.mu.Unlock()
 	if run.ended {
 		return
 	}
 	run.ended = true
-	var status logstream.RunStatus
-	var f *logstream.Failure
-	switch {
-	case canceled:
-		status = logstream.RunStatus_RUN_STATUS_CANCELED
-	case success:
-		status = logstream.RunStatus_RUN_STATUS_SUCCESS
-	default:
-		status = logstream.RunStatus_RUN_STATUS_FAILURE
-		f = &logstream.Failure{
-			Output:       failureOutput,
-			ErrorMessage: errorMessage,
-		}
-	}
-
 	run.buildDelta(&logstream.DeltaManifest_FieldsDelta{
 		Status:           status,
 		EndedAtUnixNanos: run.b.TsUnixNanos(end),
-		Failure:          f,
 	})
 }
 

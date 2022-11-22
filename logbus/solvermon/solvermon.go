@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/earthly/earthly/util/xcontext"
@@ -85,8 +86,7 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 					if err != nil {
 						return err
 					}
-					// TODO(vladaionescu): All the target printers should get
-					//                     SetStart and SetEnd appropriately.
+					tp.SetStart(time.Now())
 				}
 			}
 			push := false // TODO(vladaionescu): Support push.
@@ -117,8 +117,25 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 			vm.parseError()
 		}
 		if vertex.Completed != nil {
-			success := (vertex.Error == "" && !vm.isFatalError && !vm.isCanceled)
-			vm.cp.SetEnd(*vertex.Completed, success, vm.isCanceled, vm.errorStr)
+			var status logstream.RunStatus
+			switch {
+			case vm.isCanceled:
+				status = logstream.RunStatus_RUN_STATUS_CANCELED
+			case vertex.Error == "" && !vm.isFatalError:
+				status = logstream.RunStatus_RUN_STATUS_SUCCESS
+			default:
+				status = logstream.RunStatus_RUN_STATUS_FAILURE
+			}
+			vm.cp.SetEnd(*vertex.Completed, status, vm.errorStr)
+			if vm.tp != nil {
+				// TODO (vladaionescu): The end event is set repeatedly for the
+				//                      same target, because we don't know which
+				//                      command is the last one for a target.
+				//                      This means that some targets can be
+				//                      deemed as successful initially, only to be
+				//                      overwritten by a failure.
+				vm.tp.SetEnd(*vertex.Completed, status, vm.meta.Platform)
+			}
 			if vm.isFatalError {
 				// Run this at the end so that we capture any additional log lines.
 				defer bp.SetFatalError(
