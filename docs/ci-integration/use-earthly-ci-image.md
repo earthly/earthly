@@ -6,7 +6,7 @@ This guide is intended to help you use the Earthly image for your containerized 
 
 ## Prerequisites
 
-The `earthly/earthly` image requires that it is run as `--privileged`, if it is meant to be used with the embedded BuiltKit daemon. This is mainly due to the use of overlayfs and the internal networking setup.
+The `earthly/earthly` image requires that it is run as `--privileged`, or alternatively, it is run without the embedded Buildkit daemon (`NO_BUILDKIT=1`).
 
 ## Getting Started
 
@@ -48,12 +48,12 @@ docker run --privileged --rm -v "$PWD":/my-dir -w /my-dir earthly/earthly:v0.6.3
 Alternatively, you may rely on Earthly to perform a git clone, by using the remote target reference format. For example:
 
 ```bash
-docker run -e NO_BUILDKIT=1 --rm earthly/earthly:v0.6.30 github.com/foo/bar:my-branch+target
+docker run --privileged --rm earthly/earthly:v0.6.30 github.com/foo/bar:my-branch+target
 ```
 
 #### `NO_BUILDKIT` Environment Variable
 
-As the embedded Buildkit daemon requires `--privileged`, for some operations you may be able to use the `NO_BUILDKIT` environment variable to disable the embedded Buildkit daemon. This is especially useful when running against a remote buildkit (like a Satellite), or when not performing a build as part of the command (like when using `earthly account`).
+As the embedded Buildkit daemon requires `--privileged`, for some operations you may be able to use the `NO_BUILDKIT=1` environment variable to disable the embedded Buildkit daemon. This is especially useful when running against a remote buildkit (like a Satellite), or when not performing a build as part of the command (like when using `earthly account`).
 
 ## An important note about running the image
 
