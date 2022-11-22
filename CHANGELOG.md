@@ -13,6 +13,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Changed
 
 - Updated buildkit to include changes up to [a5263dd0f990a3fe17b67e0002b76bfd1f5b433d](https://github.com/moby/buildkit/commit/a5263dd0f990a3fe17b67e0002b76bfd1f5b433d), which includes a change to speed-up buildkit startup time.
+- The Earthly Docker image works better for cases where a buildkit instance is not needed. The image now works without `--privileged` when using `NO_BUILDKIT=1`, and additionally, the image can also use `/var/run/docker.sock` or `DOCKER_HOST` for the buildkit daemon.
 
 ### Fixed
 
