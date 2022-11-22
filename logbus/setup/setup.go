@@ -85,7 +85,7 @@ func (bs *BusSetup) DumpManifestToFile(path string) error {
 		jsonOpts := protojson.MarshalOptions{
 			Multiline:       true,
 			Indent:          "  ",
-			UseProtoNames:   true,
+			UseProtoNames:   false,
 			EmitUnpopulated: true,
 		}
 		dt, err = jsonOpts.Marshal(m)
