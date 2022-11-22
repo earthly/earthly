@@ -205,7 +205,6 @@ release-homebrew:
         -e 's^\burl ".*"^url "'"$NEW_URL"'"^' \
         -e 's^\bsha256 ".*"$^sha256 "'$(cat /params/downloadsha256)'"^' \
         -e 's^\btags = ".*"^tags = "'"$(cat /params/tags)"'"^' \
-        -e 's^\bldflags = ".*"^ldflags = "'"$(cat /params/ldflags)"'"^' \
         ./Formula/earthly.rb
     RUN echo "Diff:" && git diff
     RUN version=${RELEASE_TAG#v} ;\
