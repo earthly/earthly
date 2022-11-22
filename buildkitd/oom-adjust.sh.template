@@ -20,11 +20,6 @@ fi
 
 for PID in $(pidof buildkit-runc)
 do
-    if [ ! -d /proc/"$PID" ]; then
-        log "$PID was missing, ignoring"
-        continue
-    fi
-
     PID_NAME=$(cat /proc/"$PID"/cmdline || echo "unknown")
 
     case "$PID_NAME" in
