@@ -181,8 +181,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	}
 
 	if app.logstream {
-		earthfileOrgName := "my-org" // TODO (vladaionescu): Detect this.
-		earthfileProjectName := ""   // TODO (vladaionescu): Detect this.
+		earthfileOrgName := "my-org"         // TODO (vladaionescu): Detect this.
+		earthfileProjectName := "my-project" // TODO (vladaionescu): Detect this.
 		app.logbusSetup.SetOrgAndProject(earthfileOrgName, earthfileProjectName)
 	}
 
