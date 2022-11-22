@@ -138,7 +138,7 @@ Conversely, if a satellite is currently selected, but you want to execute a buil
 earthly --no-sat +my-target
 ```
 
-For more information on using satellites, see the [Using satellites page](../satellites/using.md).
+For more information on using satellites, see the [Using satellites page](./satellites/using.md).
 
 ### 6. Invite your team
 
@@ -150,7 +150,7 @@ earthly org invite /<org-name>/ <email>
 
 Note the slashes around the org name. Also, please note that **the user must have an account on Earthly before they can be invited**. (This is a temporary limitation which will be addressed in the future.)
 
-Once a user has been invited, you can forward them a link to the page [Using Satellites](./using.md) for them to get started.
+Once a user has been invited, you can forward them a link to the page [Using Satellites](./satellites/using.md) for them to get started.
 
 ## Managing Satellites
 
