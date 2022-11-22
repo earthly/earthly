@@ -149,7 +149,9 @@ case "$1" in
                 echo "$now" >"$last_check_state_path"
                 echo "$flagoverride_hash" >"$last_flag_hash_path"
             fi
-
+        elif [ ! -x "$bindir/earthly-prerelease" ]; then
+            # prerelease doesn't exist, exit silently to avoid displaying errors during tab-completion
+            exit 0
         fi
 
         EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < "$earthly_version_flag_overrides_path")"
