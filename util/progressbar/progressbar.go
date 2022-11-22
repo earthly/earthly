@@ -3,7 +3,7 @@ package progressbar
 import "strings"
 
 var progressChars = []string{
-	" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█",
+	" ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "-",
 }
 
 // ProgressBar returns a progress bar as a string.
