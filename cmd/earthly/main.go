@@ -584,7 +584,9 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 	app.logbus.Run().SetStart(time.Now())
 	defer func() {
 		// Just in case this is forgotten somewhere else.
-		app.logbus.Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_FAILURE)
+		app.logbus.Run().SetFatalError(
+			time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER,
+			"No SetFatalError called appropriately. This should never happen.")
 	}()
 	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
 	err := app.cliApp.RunContext(ctx, args)
