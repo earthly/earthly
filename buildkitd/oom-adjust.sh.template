@@ -31,21 +31,17 @@ do
 
     for CHILD_PID in $(pgrep -P "$PID")
     do
-        if [ ! -d /proc/"$CHILD_PID" ]; then
-            log "$CHILD_PID child was missing, ignoring"
-            continue
-        fi
-
         CHILD_PID_NAME=$(cat /proc/"$CHILD_PID"/cmdline || echo "unknown")
         CHILD_OOM_ADJ=$(cat /proc/"$CHILD_PID"/oom_score_adj || echo "unknown")
-        log "$PID has child: $CHILD_PID($CHILD_PID_NAME) with oom_score_adj: $CHILD_OOM_ADJ"
 
-        if [ ! "$CHILD_OOM_ADJ" = "0" ]; then
-            # The child may have started _after_ this script ran on the parent (or other invocation of) buildkit-runc.
-            # This undoes the inherited adjustment to make sure we behave properly at OOM time.
-            log "$CHILD_PID child oom_score_adj was set to 0"
-            adjust_oom "0" "$CHILD_PID"
-        fi
+        case "$CHILD_OOM_ADJ" in
+            "unknown"*) log "$PID has child: $CHILD_PID($CHILD_PID_NAME), which was missing, ignoring"; continue ;;
+            "0")        log "$PID has child: $CHILD_PID($CHILD_PID_NAME) with oom_score_adj: $CHILD_OOM_ADJ"; continue ;;
+            *)          log "$PID has child: $CHILD_PID($CHILD_PID_NAME), oom_score_adj was set to 0: $CHILD_OOM_ADJ" ;;
+        esac
+        # The child may have started _after_ this script ran on the parent (or other invocation of) buildkit-runc.
+        # This undoes the inherited adjustment to make sure we behave properly at OOM time.
+        adjust_oom "0" "$CHILD_PID"
     done
 
     PID_NAME=$(cat /proc/"$PID"/cmdline || echo "unknown")
