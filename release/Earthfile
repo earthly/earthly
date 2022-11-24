@@ -169,12 +169,10 @@ release-homebrew:
     ARG GIT_USERNAME="griswoldthecat"
     ARG GIT_NAME="griswoldthecat"
     ARG GIT_EMAIL="griswoldthecat@users.noreply.github.com"
-    ARG GITHUB_USER
-    ARG BREW_REPO
-    ARG EARTHLY_REPO
-    ARG GITHUB_TOKEN_SECRET_PATH="+secrets/user/610f09a9-4493-4d3c-bb00-b8e0cf36f1e0"
-    ARG HOMEBREW_EARTHLY_URL="https://github.com/$GITHUB_USER/$BREW_REPO"
-    ARG NEW_URL=https://github.com/"$GITHUB_USER"/"$EARTHLY_REPO"/archive/"$RELEASE_TAG".tar.gz
+    ARG --required GITHUB_USER
+    ARG --required BREW_REPO
+    ARG --required EARTHLY_REPO
+    ARG EARTHLY_GIT_HASH
     WORKDIR /earthly/homebrew-earthly
 
     RUN git config --global user.name "$GIT_NAME" && \
@@ -192,19 +190,9 @@ release-homebrew:
     ARG RELEASE_BRANCH="release-$RELEASE_TAG"
     RUN git switch -c "$RELEASE_BRANCH"
 
-    RUN mkdir -p /params
-    RUN curl -L "$NEW_URL" | sha256sum | cut -f 1 -d ' ' > /params/downloadsha256
-    COPY --build-arg VERSION=$RELEASE_TAG \
-        ../+earthly-darwin-amd64/tags ../+earthly-darwin-amd64/ldflags /params/
-
-    # replace version with #{version} variable to conform to homebrew PR requests
-    RUN escapedversion=`echo "${RELEASE_TAG}" | sed 's/\./\\\./g'`; \
-        sed -i -e "s/${escapedversion}/v#{version}/g" /params/ldflags*
-
     RUN sed -i \
-        -e 's^\burl ".*"^url "'"$NEW_URL"'"^' \
-        -e 's^\bsha256 ".*"$^sha256 "'$(cat /params/downloadsha256)'"^' \
-        -e 's^\btags = ".*"^tags = "'"$(cat /params/tags)"'"^' \
+        -e 's^\(tag: \+\)"v[0-9.]\+"\(,\?\)$^\1"'$RELEASE_TAG'"\2^' \
+        -e 's^\(revision: \+\)"[0-9a-f]\+"\(,\?\)$^\1"'$EARTHLY_GIT_HASH'"\2^' \
         ./Formula/earthly.rb
     RUN echo "Diff:" && git diff
     RUN version=${RELEASE_TAG#v} ;\
