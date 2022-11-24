@@ -383,9 +383,7 @@ func (f *Formatter) printBuildFailure() {
 			c.Printf("[no output]\n")
 		}
 	}
-	if failure.GetErrorMessage() != "" {
-		c.Printf("%s\n", failure.GetErrorMessage())
-	}
+	c.Printf("%s\n", failure.GetErrorMessage())
 	f.lastOutputWasOngoingUpdate = false
 	f.lastOutputWasProgress = false
 	f.lastCommandOutput = nil
