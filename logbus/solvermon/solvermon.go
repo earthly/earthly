@@ -73,11 +73,10 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 			if meta.CanonicalTargetName == "" {
 				meta.CanonicalTargetName = meta.TargetName
 			}
-			push := false // TODO(vladaionescu): Support push.
 			// TODO(vladaionescu): Should logbus commands be created in the converter instead?
 			cp, err := bp.NewCommand(
 				vertex.Digest.String(), operation, meta.TargetID, meta.Platform,
-				vertex.Cached, push, meta.Local, meta.SourceLocation,
+				vertex.Cached, meta.Local, meta.SourceLocation,
 				meta.RepoGitURL, meta.RepoGitHash, meta.RepoFileRelToRepo)
 			if err != nil {
 				return err
