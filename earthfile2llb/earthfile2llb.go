@@ -155,6 +155,9 @@ type ConvertOpt struct {
 
 	// LLBCaps indicates that builder's capabilities
 	LLBCaps *apicaps.CapSet
+
+	// MainStsIDFuture is a channel that is used to signal the main sts ID, when known.
+	MainStsIDFuture chan string
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
@@ -219,6 +222,10 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	sts, found, err := opt.Visited.Add(ctx, targetWithMetadata, opt.PlatformResolver, opt.AllowPrivileged, opt.OverridingVars, opt.parentDepSub)
 	if err != nil {
 		return nil, err
+	}
+	if opt.MainStsIDFuture != nil {
+		opt.MainStsIDFuture <- sts.ID
+		opt.MainStsIDFuture = nil
 	}
 	if found {
 		if opt.DoSaves {

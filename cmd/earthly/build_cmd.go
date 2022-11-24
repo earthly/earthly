@@ -187,14 +187,15 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	}
 
 	// Default upload logs, unless explicitly configured
+	doLogstreamUpload := false
+	var logstreamURL string
 	if !app.cfg.Global.DisableLogSharing {
 		if cloudClient.IsLoggedIn(cliCtx.Context) {
 			if app.logstreamUpload {
-				app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient)
-				urlStr := fmt.Sprintf("https://ci.earthly.dev/todourl/%s", app.logbusSetup.InitialManifest.GetBuildId())
-				app.console.Printf("Streaming logs to %s\n", urlStr)
+				doLogstreamUpload = true
+				logstreamURL = fmt.Sprintf("https://ci.earthly.dev/todourl/%s", app.logbusSetup.InitialManifest.GetBuildId())
 				defer func() {
-					app.console.Printf("View logs at %s\n", urlStr)
+					app.console.Printf("View logs at %s\n", logstreamURL)
 				}()
 			} else {
 				// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
@@ -475,6 +476,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		EnableGatewayClientLogging: app.debug,
 		BuiltinArgs:                builtinArgs,
 		LocalArtifactWhiteList:     localArtifactWhiteList,
+		MainStsIDFuture:            make(chan string, 1),
 
 		// feature-flip the removal of builder.go code
 		// once VERSION 0.7 is released AND support for 0.6 is dropped,
@@ -489,6 +491,22 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		buildOpts.OnlyArtifact = &artifact
 		buildOpts.OnlyArtifactDestPath = destPath
 	}
+	// Kick off logstream upload only when we have the main target ID reported back from
+	// earthfile2llb.
+	go func() {
+		select {
+		case <-cliCtx.Context.Done():
+			return
+		case mainStsID := <-buildOpts.MainStsIDFuture:
+			if app.logstream {
+				app.logbusSetup.SetMainTargetID(mainStsID)
+				if doLogstreamUpload {
+					app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient)
+					app.console.Printf("Streaming logs to %s\n", app.logstreamDebugFile)
+				}
+			}
+		}
+	}()
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
 	if err != nil {
 		return errors.Wrap(err, "build target")
