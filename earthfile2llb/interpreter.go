@@ -1729,17 +1729,15 @@ func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error 
 }
 
 func (i *Interpreter) handleProject(ctx context.Context, cmd spec.Command) error {
-	projectVal, err := i.expandArgs(ctx, cmd.Args[0], false, false)
-	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "failed to expand PROJECT %s", cmd.Args[0])
-	}
-
+	// Note: Expanding args for PROJECT is not allowed. The value needs to be
+	// lifted straight from the AST.
+	projectVal := cmd.Args[0]
 	parts := strings.Split(projectVal, "/")
 	if len(parts) != 2 {
 		return i.errorf(cmd.SourceLocation, "unexpected format for PROJECT statement, should be: <organization>/<project>")
 	}
 
-	err = i.converter.Project(ctx, parts[0], parts[1])
+	err := i.converter.Project(ctx, parts[0], parts[1])
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to process PROJECT")
 	}

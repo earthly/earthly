@@ -29,6 +29,7 @@ import (
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
@@ -178,12 +179,6 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	cloudClient, err := app.newCloudClient()
 	if err != nil {
 		return err
-	}
-
-	if app.logstream {
-		earthfileOrgName := "my-org"         // TODO (vladaionescu): Detect this.
-		earthfileProjectName := "my-project" // TODO (vladaionescu): Detect this.
-		app.logbusSetup.SetOrgAndProject(earthfileOrgName, earthfileProjectName)
 	}
 
 	// Default upload logs, unless explicitly configured
@@ -491,7 +486,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		EnableGatewayClientLogging: app.debug,
 		BuiltinArgs:                builtinArgs,
 		LocalArtifactWhiteList:     localArtifactWhiteList,
-		MainStsIDFuture:            make(chan string, 1),
+		MainTargetDetailsFuture:    make(chan earthfile2llb.TargetDetails, 1),
 		Runner:                     runnerName,
 
 		// feature-flip the removal of builder.go code
@@ -513,9 +508,10 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		select {
 		case <-cliCtx.Context.Done():
 			return
-		case mainStsID := <-buildOpts.MainStsIDFuture:
+		case details := <-buildOpts.MainTargetDetailsFuture:
 			if app.logstream {
-				app.logbusSetup.SetMainTargetID(mainStsID)
+				app.logbusSetup.SetMainTargetID(details.ID)
+				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
 				if doLogstreamUpload {
 					app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient)
 					app.console.Printf("Streaming logs to %s\n", app.logstreamDebugFile)

@@ -156,8 +156,8 @@ type ConvertOpt struct {
 	// LLBCaps indicates that builder's capabilities
 	LLBCaps *apicaps.CapSet
 
-	// MainStsIDFuture is a channel that is used to signal the main sts ID, once it is known.
-	MainStsIDFuture chan string
+	// MainTargetDetailsFuture is a channel that is used to signal the main target details, once known.
+	MainTargetDetailsFuture chan TargetDetails
 
 	// The runner used to execute the target on. This is used only for metadata reporting purposes.
 	// May be one of the following:
@@ -165,6 +165,16 @@ type ConvertOpt struct {
 	// * "bk:<buildkit-address>" - remote builds via buildkit
 	// * "sat:<org-name>/<sat-name>" - remote builds via satellite
 	Runner string
+}
+
+// TargetDetails contains details about the target being built.
+type TargetDetails struct {
+	// ID is the sts ID of the target.
+	ID string
+	// EarthlyOrgName is the name of the Earthly org.
+	EarthlyOrgName string
+	// EarthlyProjectName is the name of the Earthly project.
+	EarthlyProjectName string
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
@@ -230,9 +240,13 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if err != nil {
 		return nil, err
 	}
-	if opt.MainStsIDFuture != nil {
-		opt.MainStsIDFuture <- sts.ID
-		opt.MainStsIDFuture = nil
+	if opt.MainTargetDetailsFuture != nil {
+		opt.MainTargetDetailsFuture <- TargetDetails{
+			ID:                 sts.ID,
+			EarthlyOrgName:     bc.EarthlyOrgName,
+			EarthlyProjectName: bc.EarthlyProjectName,
+		}
+		opt.MainTargetDetailsFuture = nil
 	}
 	if found {
 		if opt.DoSaves {
