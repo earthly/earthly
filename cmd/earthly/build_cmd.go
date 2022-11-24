@@ -29,6 +29,7 @@ import (
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
@@ -180,21 +181,16 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return err
 	}
 
-	if app.logstream {
-		earthfileOrgName := "my-org"         // TODO (vladaionescu): Detect this.
-		earthfileProjectName := "my-project" // TODO (vladaionescu): Detect this.
-		app.logbusSetup.SetOrgAndProject(earthfileOrgName, earthfileProjectName)
-	}
-
 	// Default upload logs, unless explicitly configured
+	doLogstreamUpload := false
+	var logstreamURL string
 	if !app.cfg.Global.DisableLogSharing {
 		if cloudClient.IsLoggedIn(cliCtx.Context) {
 			if app.logstreamUpload {
-				app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient)
-				urlStr := fmt.Sprintf("https://ci.earthly.dev/todourl/%s", app.logbusSetup.InitialManifest.GetBuildId())
-				app.console.Printf("Streaming logs to %s\n", urlStr)
+				doLogstreamUpload = true
+				logstreamURL = fmt.Sprintf("https://ci.earthly.dev/todourl/%s", app.logbusSetup.InitialManifest.GetBuildId())
 				defer func() {
-					app.console.Printf("View logs at %s\n", urlStr)
+					app.console.Printf("View logs at %s\n", logstreamURL)
 				}()
 			} else {
 				// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
@@ -237,7 +233,22 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return errors.Wrapf(err, "could not construct new buildkit client")
 	}
 
+	var runnerName string
 	isLocal := containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress)
+	if isLocal {
+		hostname, err := os.Hostname()
+		if err != nil {
+			app.console.Warnf("failed to get hostname: %v", err)
+			hostname = "unknown"
+		}
+		runnerName = fmt.Sprintf("local:%s", hostname)
+	} else {
+		if app.satelliteName != "" {
+			runnerName = fmt.Sprintf("sat:%s/%s", app.orgName, app.satelliteName)
+		} else {
+			runnerName = fmt.Sprintf("bk:%s", app.buildkitdSettings.BuildkitAddress)
+		}
+	}
 	if !isLocal && app.ci {
 		app.console.Printf("Please note that --use-inline-cache and --save-inline-cache are currently disabled when using --ci on Satellites or remote Buildkit.")
 		app.console.Printf("") // newline
@@ -475,6 +486,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		EnableGatewayClientLogging: app.debug,
 		BuiltinArgs:                builtinArgs,
 		LocalArtifactWhiteList:     localArtifactWhiteList,
+		MainTargetDetailsFuture:    make(chan earthfile2llb.TargetDetails, 1),
+		Runner:                     runnerName,
 
 		// feature-flip the removal of builder.go code
 		// once VERSION 0.7 is released AND support for 0.6 is dropped,
@@ -489,6 +502,23 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		buildOpts.OnlyArtifact = &artifact
 		buildOpts.OnlyArtifactDestPath = destPath
 	}
+	// Kick off logstream upload only when we've passed the necessary information to logbusSetup.
+	// This information is passed back right at the beginning of the build within earthfile2llb.
+	go func() {
+		select {
+		case <-cliCtx.Context.Done():
+			return
+		case details := <-buildOpts.MainTargetDetailsFuture:
+			if app.logstream {
+				app.logbusSetup.SetMainTargetID(details.ID)
+				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
+				if doLogstreamUpload {
+					app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient)
+					app.console.Printf("Streaming logs to %s\n", app.logstreamDebugFile)
+				}
+			}
+		}
+	}()
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
 	if err != nil {
 		return errors.Wrap(err, "build target")

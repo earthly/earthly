@@ -360,10 +360,10 @@ func (f *Formatter) printError(targetID string, commandID string, tm *logstream.
 }
 
 func (f *Formatter) printBuildFailure() {
-	if f.manifest.GetFailure() == nil {
+	failure := f.manifest.GetFailure()
+	if failure.GetErrorMessage() == "" {
 		return
 	}
-	failure := f.manifest.GetFailure()
 	var tm *logstream.TargetManifest
 	var cm *logstream.CommandManifest
 	if failure.GetTargetId() != "" {
@@ -374,16 +374,16 @@ func (f *Formatter) printBuildFailure() {
 	}
 	c := f.targetConsole(failure.GetTargetId(), failure.GetCommandId())
 	c = c.WithFailed(true)
-	c.Printf("Repeating the failure error...\n")
-	f.printHeader(failure.GetTargetId(), failure.GetCommandId(), tm, cm, true)
-	if len(failure.GetOutput()) > 0 {
-		c.PrintBytes(failure.GetOutput())
-	} else {
-		c.Printf("[no output]\n")
+	if failure.GetCommandId() != "" {
+		c.Printf("Repeating the failure error...\n")
+		f.printHeader(failure.GetTargetId(), failure.GetCommandId(), tm, cm, true)
+		if len(failure.GetOutput()) > 0 {
+			c.PrintBytes(failure.GetOutput())
+		} else {
+			c.Printf("[no output]\n")
+		}
 	}
-	if failure.GetErrorMessage() != "" {
-		c.Printf("%s\n", failure.GetErrorMessage())
-	}
+	c.Printf("%s\n", failure.GetErrorMessage())
 	f.lastOutputWasOngoingUpdate = false
 	f.lastOutputWasProgress = false
 	f.lastCommandOutput = nil
