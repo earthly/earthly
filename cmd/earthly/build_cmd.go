@@ -502,8 +502,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		buildOpts.OnlyArtifact = &artifact
 		buildOpts.OnlyArtifactDestPath = destPath
 	}
-	// Kick off logstream upload only when we have the main target ID reported back from
-	// earthfile2llb.
+	// Kick off logstream upload only when we've passed the necessary information to logbusSetup.
+	// This information is passed back right at the beginning of the build within earthfile2llb.
 	go func() {
 		select {
 		case <-cliCtx.Context.Done():
