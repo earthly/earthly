@@ -598,7 +598,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		if errors.As(err, &buildErr) {
 			failedOutput = buildErr.VertexLog()
 		}
-		if app.verbose {
+		if app.debug {
 			// Get the stack trace from the deepest error that has it and print it.
 			type stackTracer interface {
 				StackTrace() errors.StackTrace
@@ -617,17 +617,20 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			}
 		}
 
-		if strings.Contains(err.Error(), "security.insecure is not allowed") {
+		switch {
+		case strings.Contains(err.Error(), "security.insecure is not allowed"):
 			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_NEEDS_PRIVILEGED, err.Error())
 			app.console.Warnf("Error: earthly --allow-privileged (earthly -P) flag is required\n")
-		} else if strings.Contains(err.Error(), "failed to fetch remote") {
+			return 9
+		case strings.Contains(err.Error(), "failed to fetch remote"):
 			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_GIT, err.Error())
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Printf(
 				"Check your git auth settings.\n" +
 					"Did you ssh-add today? Need to configure ~/.earthly/config.yml?\n" +
 					"For more information see https://docs.earthly.dev/guides/auth\n")
-		} else if strings.Contains(err.Error(), "failed to compute cache key") && strings.Contains(err.Error(), ": not found") {
+			return 1
+		case strings.Contains(err.Error(), "failed to compute cache key") && strings.Contains(err.Error(), ": not found"):
 			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND, err.Error())
 			re := regexp.MustCompile(`("[^"]*"): not found`)
 			var matches = re.FindStringSubmatch(err.Error())
@@ -636,12 +639,14 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			} else {
 				app.console.Warnf("Error: File not found: %v\n", err.Error())
 			}
-		} else if strings.Contains(failedOutput, "Invalid ELF image for this architecture") {
+			return 1
+		case strings.Contains(failedOutput, "Invalid ELF image for this architecture"):
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Printf(
 				"Are you using --platform to target a different architecture? You may have to manually install QEMU.\n" +
 					"For more information see https://docs.earthly.dev/guides/multi-platform\n")
-		} else if !app.verbose && rpcRegex.MatchString(err.Error()) {
+			return 1
+		case !app.verbose && rpcRegex.MatchString(err.Error()):
 			baseErr := errors.Cause(err)
 			baseErrMsg := rpcRegex.ReplaceAll([]byte(baseErr.Error()), []byte(""))
 			app.console.Warnf("Error: %s\n", string(baseErrMsg))
@@ -650,44 +655,52 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 				app.console.Warnf(
 					"It seems that buildkitd is shutting down or it has crashed. " +
 						"You can report crashes at https://github.com/earthly/earthly/issues/new.")
-				app.printCrashLogs(ctx)
+				if containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress) {
+					app.printCrashLogs(ctx)
+				}
 				return 7
 			}
-		} else if errors.Is(err, buildkitd.ErrBuildkitCrashed) {
+			return 1
+		case errors.Is(err, buildkitd.ErrBuildkitCrashed):
 			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, err.Error())
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Warnf(
 				"It seems that buildkitd is shutting down or it has crashed. " +
 					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
-			app.printCrashLogs(ctx)
+			if containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress) {
+				app.printCrashLogs(ctx)
+			}
 			return 7
-		} else if errors.Is(err, buildkitd.ErrBuildkitConnectionFailure) && containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress) {
+		case errors.Is(err, buildkitd.ErrBuildkitConnectionFailure):
 			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_CONNECTION_FAILURE, err.Error())
 			app.console.Warnf("Error: %v\n", err)
-			app.console.Warnf(
-				"It seems that buildkitd had an issue. " +
-					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
-			app.printCrashLogs(ctx)
+			if containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress) {
+				app.console.Warnf(
+					"It seems that buildkitd had an issue. " +
+						"You can report crashes at https://github.com/earthly/earthly/issues/new.")
+				app.printCrashLogs(ctx)
+			}
 			return 6
-		} else if isInterpreterError {
-			app.logbus.Run().SetFatalError(time.Now(), ie.TargetID, "", logstream.FailureType_FAILURE_TYPE_SYNTAX, err.Error())
+		case errors.Is(err, context.Canceled):
+			app.logbus.Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
+			app.console.Warnf("Canceled\n")
+			return 2
+		case status.Code(errors.Cause(err)) == codes.Canceled:
+			app.logbus.Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
+			app.console.Warnf("Canceled\n")
+			if containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress) {
+				app.printCrashLogs(ctx)
+			}
+			return 2
+		case isInterpreterError:
+			app.logbus.Run().SetFatalError(time.Now(), ie.TargetID, "", logstream.FailureType_FAILURE_TYPE_SYNTAX, ie.Error())
 			app.console.Warnf("Error: %s\n", ie.Error())
-		} else {
+			return 1
+		default:
+			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
 			app.console.Warnf("Error: %v\n", err)
+			return 1
 		}
-		if errors.Is(err, context.Canceled) {
-			app.logbus.Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
-			app.console.Warnf("Context canceled: %v\n", err)
-			return 2
-		}
-		if status.Code(err) == codes.Canceled {
-			app.logbus.Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
-			app.console.Warnf("Context canceled from buildkitd: %v\n", err)
-			app.printCrashLogs(ctx)
-			return 2
-		}
-		app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
-		return 1
 	}
 	app.logbus.Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS)
 	return 0

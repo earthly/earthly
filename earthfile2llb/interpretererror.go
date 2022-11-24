@@ -59,7 +59,12 @@ func (ie InterpreterError) Error() string {
 	return ret
 }
 
-// Unwrap returns the cause of the error (if any).
+// Cause returns the cause of the error (if any).
+func (ie InterpreterError) Cause() error {
+	return errors.Cause(ie.cause)
+}
+
+// Unwrap unwraps the error.
 func (ie InterpreterError) Unwrap() error {
 	return ie.cause
 }
