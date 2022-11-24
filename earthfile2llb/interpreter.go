@@ -62,6 +62,11 @@ func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConv
 
 // Run interprets the commands in the given Earthfile AST, for a specific target.
 func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
+	defer func() {
+		if err != nil {
+			i.converter.RecordTargetFailure(ctx, err)
+		}
+	}()
 	if i.target.Target == "base" {
 		i.isBase = true
 		err := i.handleBlock(ctx, ef.BaseRecipe)

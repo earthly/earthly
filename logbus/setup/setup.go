@@ -65,11 +65,6 @@ func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
 	bs.InitialManifest.ProjectName = projectName
 }
 
-// SetMainTargetID sets the main target ID for the manifest.
-func (bs *BusSetup) SetMainTargetID(targetID string) {
-	bs.InitialManifest.MainTargetId = targetID
-}
-
 // StartLogStreamer starts a LogStreamer for the given build. The
 // LogStreamer streams logs to the cloud.
 func (bs *BusSetup) StartLogStreamer(ctx context.Context, c cloud.Client) {

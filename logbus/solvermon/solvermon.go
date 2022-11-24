@@ -2,7 +2,6 @@ package solvermon
 
 import (
 	"context"
-	"sort"
 	"sync"
 	"time"
 
@@ -74,22 +73,8 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 			if meta.CanonicalTargetName == "" {
 				meta.CanonicalTargetName = meta.TargetName
 			}
-			var tp *logbus.Target
-			if meta.TargetID != "" && meta.TargetName != "" {
-				var ok bool
-				tp, ok = bp.Target(meta.TargetID)
-				if !ok {
-					var err error
-					tp, err = bp.NewTarget(
-						meta.TargetID, meta.TargetName, meta.CanonicalTargetName,
-						argsToSlice(meta.OverridingArgs), meta.Platform, meta.Runner)
-					if err != nil {
-						return err
-					}
-					tp.SetStart(time.Now())
-				}
-			}
 			push := false // TODO(vladaionescu): Support push.
+			// TODO(vladaionescu): Should logbus commands be created in the converter instead?
 			cp, err := bp.NewCommand(
 				vertex.Digest.String(), operation, meta.TargetID, meta.Platform,
 				vertex.Cached, push, meta.Local, meta.SourceLocation,
@@ -101,7 +86,6 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 				vertex:    vertex,
 				meta:      meta,
 				operation: operation,
-				tp:        tp,
 				cp:        cp,
 			}
 			sm.vertices[vertex.Digest] = vm
@@ -127,15 +111,6 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 				status = logstream.RunStatus_RUN_STATUS_FAILURE
 			}
 			vm.cp.SetEnd(*vertex.Completed, status, vm.errorStr)
-			if vm.tp != nil {
-				// TODO (vladaionescu): The end event is set repeatedly for the
-				//                      same target, because we don't know which
-				//                      command is the last one for a target.
-				//                      This means that some targets can be
-				//                      deemed as successful initially, only to be
-				//                      overwritten by a failure.
-				vm.tp.SetEnd(*vertex.Completed, status, vm.meta.Platform)
-			}
 			if vm.isFatalError {
 				// Run this at the end so that we capture any additional log lines.
 				defer bp.SetFatalError(
@@ -169,13 +144,4 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 		}
 	}
 	return nil
-}
-
-func argsToSlice(args map[string]string) []string {
-	var argsSlice []string
-	for k, v := range args {
-		argsSlice = append(argsSlice, k+"="+v)
-	}
-	sort.StringSlice(argsSlice).Sort()
-	return argsSlice
 }

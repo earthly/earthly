@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
@@ -159,6 +160,9 @@ type ConvertOpt struct {
 	// MainTargetDetailsFuture is a channel that is used to signal the main target details, once known.
 	MainTargetDetailsFuture chan TargetDetails
 
+	// Logbus is the bus used for logging and metadata reporting.
+	Logbus *logbus.Bus
+
 	// The runner used to execute the target on. This is used only for metadata reporting purposes.
 	// May be one of the following:
 	// * "local:<hostname>" - local builds
@@ -169,8 +173,6 @@ type ConvertOpt struct {
 
 // TargetDetails contains details about the target being built.
 type TargetDetails struct {
-	// ID is the sts ID of the target.
-	ID string
 	// EarthlyOrgName is the name of the Earthly org.
 	EarthlyOrgName string
 	// EarthlyProjectName is the name of the Earthly project.
@@ -241,8 +243,8 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		return nil, err
 	}
 	if opt.MainTargetDetailsFuture != nil {
+		// TODO (vladaionescu): These should perhaps be passed back via logbus instead.
 		opt.MainTargetDetailsFuture <- TargetDetails{
-			ID:                 sts.ID,
 			EarthlyOrgName:     bc.EarthlyOrgName,
 			EarthlyProjectName: bc.EarthlyProjectName,
 		}

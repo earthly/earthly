@@ -19,7 +19,6 @@ type vertexMonitor struct {
 	vertex    *client.Vertex
 	meta      *vertexmeta.VertexMeta
 	operation string
-	tp        *logbus.Target
 	cp        *logbus.Command
 
 	isFatalError   bool // If set, this is the root cause of the entire build failure.

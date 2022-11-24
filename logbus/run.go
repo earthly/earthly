@@ -11,21 +11,23 @@ import (
 
 // Run is a run logstream delta generator for a run.
 type Run struct {
-	b        *Bus
-	mu       sync.Mutex
-	targets  map[string]*Target
-	commands map[string]*Command
-	ended    bool
+	b          *Bus
+	mu         sync.Mutex
+	targets    map[string]*Target
+	commands   map[string]*Command
+	ended      bool
+	mainTarget bool
 
 	generic *Generic
 }
 
 func newRun(b *Bus) *Run {
 	run := &Run{
-		b:        b,
-		targets:  make(map[string]*Target),
-		commands: make(map[string]*Command),
-		generic:  nil, // set below
+		b:          b,
+		targets:    make(map[string]*Target),
+		commands:   make(map[string]*Command),
+		generic:    nil, // set below
+		mainTarget: true,
 	}
 	run.generic = newGeneric(run)
 	return run
@@ -40,11 +42,18 @@ func (run *Run) Generic() *Generic {
 func (run *Run) NewTarget(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string, runner string) (*Target, error) {
 	run.mu.Lock()
 	defer run.mu.Unlock()
+	mainTargetID := ""
+	if run.mainTarget {
+		// The first target is deemed as the main target.
+		run.mainTarget = false
+		mainTargetID = targetID
+	}
 	_, ok := run.targets[targetID]
 	if ok {
 		return nil, errors.New("target printer already exists")
 	}
 	run.buildDelta(&logstream.DeltaManifest_FieldsDelta{
+		MainTargetId: mainTargetID,
 		Targets: map[string]*logstream.DeltaTargetManifest{
 			targetID: {
 				Name:            shortTargetName,

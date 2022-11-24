@@ -486,6 +486,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		EnableGatewayClientLogging: app.debug,
 		BuiltinArgs:                builtinArgs,
 		LocalArtifactWhiteList:     localArtifactWhiteList,
+		Logbus:                     app.logbus,
 		MainTargetDetailsFuture:    make(chan earthfile2llb.TargetDetails, 1),
 		Runner:                     runnerName,
 
@@ -510,11 +511,10 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			return
 		case details := <-buildOpts.MainTargetDetailsFuture:
 			if app.logstream {
-				app.logbusSetup.SetMainTargetID(details.ID)
 				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
 				if doLogstreamUpload {
 					app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient)
-					app.console.Printf("Streaming logs to %s\n", app.logstreamDebugFile)
+					app.console.Printf("Streaming logs to %s\n", logstreamURL)
 				}
 			}
 		}
