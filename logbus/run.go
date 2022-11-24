@@ -37,7 +37,7 @@ func (run *Run) Generic() *Generic {
 }
 
 // NewTarget creates a new target printer.
-func (run *Run) NewTarget(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string) (*Target, error) {
+func (run *Run) NewTarget(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string, runner string) (*Target, error) {
 	run.mu.Lock()
 	defer run.mu.Unlock()
 	_, ok := run.targets[targetID]
@@ -51,6 +51,7 @@ func (run *Run) NewTarget(targetID, shortTargetName, canonicalTargetName string,
 				CanonicalName:   canonicalTargetName,
 				OverrideArgs:    overrideArgs,
 				InitialPlatform: initialPlatform,
+				Runner:          runner,
 			},
 		},
 	})

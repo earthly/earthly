@@ -2190,6 +2190,7 @@ func (c *Converter) vertexPrefix(ctx context.Context, local bool, interactive bo
 		Interactive:         interactive,
 		OverridingArgs:      activeOverriding,
 		Internal:            internal,
+		Runner:              c.opt.Runner,
 	}
 	return vm.ToVertexPrefix()
 }

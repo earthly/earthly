@@ -98,6 +98,7 @@ type BuildOpt struct {
 	GlobalWaitBlockFtr         bool
 	LocalArtifactWhiteList     *gatewaycrafter.LocalArtifactWhiteList
 	MainStsIDFuture            chan string
+	Runner                     string
 }
 
 // Builder executes Earthly builds.
@@ -208,6 +209,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				InteractiveDebuggerEnabled:           b.opt.InteractiveDebugging,
 				InteractiveDebuggerDebugLevelLogging: b.opt.InteractiveDebuggingDebugLevelLogging,
 				MainStsIDFuture:                      opt.MainStsIDFuture,
+				Runner:                               opt.Runner,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {

@@ -76,8 +76,8 @@ func WithDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error) 
 			if t2.GetFinalPlatform() != "" {
 				t.FinalPlatform = t2.GetFinalPlatform()
 			}
-			if t2.GetSatelliteName() != "" {
-				t.SatelliteName = t2.GetSatelliteName()
+			if t2.GetRunner() != "" {
+				t.Runner = t2.GetRunner()
 			}
 			if t2.GetStatus() != pb.RunStatus_RUN_STATUS_UNKNOWN {
 				t.Status = t2.GetStatus()

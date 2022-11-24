@@ -238,7 +238,22 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return errors.Wrapf(err, "could not construct new buildkit client")
 	}
 
+	var runnerName string
 	isLocal := containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress)
+	if isLocal {
+		hostname, err := os.Hostname()
+		if err != nil {
+			app.console.Warnf("failed to get hostname: %v", err)
+			hostname = "unknown"
+		}
+		runnerName = fmt.Sprintf("local:%s", hostname)
+	} else {
+		if app.satelliteName != "" {
+			runnerName = fmt.Sprintf("sat:%s/%s", app.orgName, app.satelliteName)
+		} else {
+			runnerName = fmt.Sprintf("bk:%s", app.buildkitdSettings.BuildkitAddress)
+		}
+	}
 	if !isLocal && app.ci {
 		app.console.Printf("Please note that --use-inline-cache and --save-inline-cache are currently disabled when using --ci on Satellites or remote Buildkit.")
 		app.console.Printf("") // newline
@@ -477,6 +492,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		BuiltinArgs:                builtinArgs,
 		LocalArtifactWhiteList:     localArtifactWhiteList,
 		MainStsIDFuture:            make(chan string, 1),
+		Runner:                     runnerName,
 
 		// feature-flip the removal of builder.go code
 		// once VERSION 0.7 is released AND support for 0.6 is dropped,

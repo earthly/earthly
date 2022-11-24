@@ -156,8 +156,15 @@ type ConvertOpt struct {
 	// LLBCaps indicates that builder's capabilities
 	LLBCaps *apicaps.CapSet
 
-	// MainStsIDFuture is a channel that is used to signal the main sts ID, when known.
+	// MainStsIDFuture is a channel that is used to signal the main sts ID, once it is known.
 	MainStsIDFuture chan string
+
+	// The runner used to execute the target on. This is used only for metadata reporting purposes.
+	// May be one of the following:
+	// * "local:<hostname>" - local builds
+	// * "bk:<buildkit-address>" - remote builds via buildkit
+	// * "sat:<org-name>/<sat-name>" - remote builds via satellite
+	Runner string
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.

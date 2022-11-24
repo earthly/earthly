@@ -82,7 +82,7 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 					var err error
 					tp, err = bp.NewTarget(
 						meta.TargetID, meta.TargetName, meta.CanonicalTargetName,
-						argsToSlice(meta.OverridingArgs), meta.Platform)
+						argsToSlice(meta.OverridingArgs), meta.Platform, meta.Runner)
 					if err != nil {
 						return err
 					}
