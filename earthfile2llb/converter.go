@@ -114,7 +114,6 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		Final:   sts,
 		Visited: opt.Visited,
 	}
-	sts.AddOverridingVarsAsBuildArgInputs(opt.OverridingVars)
 	newCollOpt := variables.NewCollectionOpt{
 		Console:          opt.Console,
 		Target:           target,
@@ -1624,13 +1623,9 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		// Propagate build arg inputs upwards (a child target depending on a build arg means
 		// that the parent also depends on that build arg).
 		for _, bai := range mts.Final.TargetInput().BuildArgs {
-			// Check if the build arg has been overridden. If it has, it can no longer be an input
-			// directly, so skip it.
-			_, found := opt.OverridingVars.GetAny(bai.Name)
-			if found {
-				continue
+			if !reserved.IsBuiltIn(bai.Name) {
+				c.mts.Final.AddBuildArgInput(bai)
 			}
-			c.mts.Final.AddBuildArgInput(bai)
 		}
 		if cmdT == fromCmd {
 			// Propagate globals.

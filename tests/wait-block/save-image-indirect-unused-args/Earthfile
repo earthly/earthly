@@ -1,0 +1,21 @@
+VERSION --wait-block 0.6
+
+# unused by test; however required for wait-test common.sh
+deps:
+    FROM scratch
+
+a:
+  FROM alpine:3.15
+  RUN echo a > /data
+  SAVE IMAGE earthly/testimg:f8874c9c-50bd-4634-aa5f-c53f26b69b87
+
+indirect:
+  FROM alpine:3.15
+  ARG myarg
+  BUILD +a
+
+test:
+  WAIT
+    BUILD +indirect --myarg=notused
+    BUILD +indirect --myarg=unused
+  END

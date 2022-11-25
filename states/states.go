@@ -172,17 +172,6 @@ func (sts *SingleTarget) AddBuildArgInput(bai dedup.BuildArgInput) {
 	sts.targetInput = sts.targetInput.WithBuildArgInput(bai)
 }
 
-// AddOverridingVarsAsBuildArgInputs adds some vars to the sts's target input.
-func (sts *SingleTarget) AddOverridingVarsAsBuildArgInputs(overridingVars *variables.Scope) {
-	sts.tiMu.Lock()
-	defer sts.tiMu.Unlock()
-	for _, key := range overridingVars.SortedAny() {
-		ovVar, _ := overridingVars.GetAny(key)
-		sts.targetInput = sts.targetInput.WithBuildArgInput(
-			dedup.BuildArgInput{ConstantValue: ovVar, Name: key})
-	}
-}
-
 // LastSaveImage returns the last save image available (if any).
 func (sts *SingleTarget) LastSaveImage() SaveImage {
 	if len(sts.SaveImages) == 0 {
