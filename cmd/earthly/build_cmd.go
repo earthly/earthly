@@ -270,6 +270,9 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if err != nil {
 		return errors.Wrap(err, "get native platform via buildkit client")
 	}
+	if app.logstream {
+		app.logbusSetup.SetDefaultPlatform(platforms.Format(nativePlatform))
+	}
 	platr := platutil.NewResolver(nativePlatform)
 	app.analyticsMetadata.buildkitPlatform = platforms.Format(nativePlatform)
 	app.analyticsMetadata.userPlatform = platforms.Format(platr.LLBUser())

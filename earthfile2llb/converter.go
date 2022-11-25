@@ -2117,8 +2117,8 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	}
 	baseImageName := reference.TagNameOnly(ref).String()
 	logName := fmt.Sprintf(
-		"%sLoad metadata %s",
-		c.imageVertexPrefix(imageName, platform), platforms.Format(llbPlatform))
+		"%sLoad metadata %s %s",
+		c.imageVertexPrefix(imageName, platform), imageName, platforms.Format(llbPlatform))
 	dgst, dt, err := c.opt.MetaResolver.ResolveImageConfig(
 		ctx, baseImageName,
 		llb.ResolveImageConfigOpt{

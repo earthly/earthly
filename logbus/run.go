@@ -78,7 +78,7 @@ func (run *Run) Target(targetID string) (*Target, bool) {
 }
 
 // NewCommand creates a new command printer.
-func (run *Run) NewCommand(commandID string, command string, targetID string, platform string, cached bool, local bool, sourceLocation *spec.SourceLocation, repoURL, repoHash, fileRelToRepo string) (*Command, error) {
+func (run *Run) NewCommand(commandID string, command string, targetID string, category string, platform string, cached bool, local bool, sourceLocation *spec.SourceLocation, repoURL, repoHash, fileRelToRepo string) (*Command, error) {
 	run.mu.Lock()
 	defer run.mu.Unlock()
 	_, ok := run.commands[commandID]
@@ -90,6 +90,7 @@ func (run *Run) NewCommand(commandID string, command string, targetID string, pl
 			commandID: {
 				Name:           command,
 				TargetId:       targetID,
+				Category:       category,
 				Platform:       platform,
 				IsCached:       cached,
 				IsLocal:        local,

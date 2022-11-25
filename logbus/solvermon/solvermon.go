@@ -2,6 +2,7 @@ package solvermon
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -70,12 +71,13 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 		vm, exists := sm.vertices[vertex.Digest]
 		if !exists {
 			meta, operation := vertexmeta.ParseFromVertexPrefix(vertex.Name)
-			if meta.CanonicalTargetName == "" {
-				meta.CanonicalTargetName = meta.TargetName
-			}
 			// TODO(vladaionescu): Should logbus commands be created in the converter instead?
+			category := meta.TargetName
+			if meta.Internal {
+				category = fmt.Sprintf("internal %s", category)
+			}
 			cp, err := bp.NewCommand(
-				vertex.Digest.String(), operation, meta.TargetID, meta.Platform,
+				vertex.Digest.String(), operation, meta.TargetID, category, meta.Platform,
 				vertex.Cached, meta.Local, meta.SourceLocation,
 				meta.RepoGitURL, meta.RepoGitHash, meta.RepoFileRelToRepo)
 			if err != nil {
