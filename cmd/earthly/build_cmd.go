@@ -549,7 +549,7 @@ func getTryCatchSaveFileHandler(localArtifactWhiteList *gatewaycrafter.LocalArti
 		}
 
 		// data
-		_, data, err := debuggercommon.ReadDataPacket(conn)
+		data, err := debuggercommon.ReadFileTransfer(conn)
 		if err != nil {
 			return err
 		}

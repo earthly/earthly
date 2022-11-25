@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
+	"math"
+
+	"github.com/pkg/errors"
 )
 
 //******************************************************************************************
@@ -38,8 +41,14 @@ const PtyData = 0x03
 // WinSizeData identifies the terminal window data payload packet
 const WinSizeData = 0x04
 
+// FileTransferData identifies a file transfer packet
+const FileTransferData = 0x05
+
 // End of network protocol magic numbers
 //******************************************************************************************
+
+var ErrPacketTooLarge = errors.New("packet too large")
+var ErrUnexpectedType = errors.New("unexpected packet type")
 
 func readUint16PrefixedData(r io.Reader) ([]byte, error) {
 	var l uint16
@@ -48,6 +57,26 @@ func readUint16PrefixedData(r io.Reader) ([]byte, error) {
 		return nil, err
 	}
 	return io.ReadAll(io.LimitReader(r, int64(l)))
+}
+
+// ReadFileTransfer decodes a byte sequence from the reader
+func ReadFileTransfer(r io.Reader) ([]byte, error) {
+	var connDataType uint16
+	err := binary.Read(r, binary.LittleEndian, &connDataType)
+	if err != nil {
+		return nil, err
+	}
+	if connDataType != FileTransferData {
+		return nil, ErrUnexpectedType
+	}
+	var size uint64
+	err = binary.Read(r, binary.LittleEndian, &size)
+	if err != nil {
+		return nil, err
+	}
+	data := make([]byte, int(size))
+	_, err = io.ReadFull(r, data)
+	return data, err
 }
 
 // ReadDataPacket decodes a data packet from the reader
@@ -64,8 +93,26 @@ func ReadDataPacket(r io.Reader) (int, []byte, error) {
 	return int(connDataType), data, nil
 }
 
+// WriteFileTransfer writes a byte sequence to the writer
+func WriteFileTransfer(w io.Writer, data []byte) error {
+	err := binary.Write(w, binary.LittleEndian, uint16(FileTransferData))
+	if err != nil {
+		return err
+	}
+	size := uint64(len(data))
+	err = binary.Write(w, binary.LittleEndian, size)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(data)
+	return err
+}
+
 // WriteDataPacket writes a data packet to the writer
 func WriteDataPacket(w io.Writer, n int, data []byte) error {
+	if n > math.MaxUint16 {
+		return ErrPacketTooLarge
+	}
 	err := binary.Write(w, binary.LittleEndian, uint16(n))
 	if err != nil {
 		return err

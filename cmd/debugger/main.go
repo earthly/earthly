@@ -117,7 +117,7 @@ func sendFile(ctx context.Context, sockAddr, src, dst string) error {
 		return err
 	}
 
-	err = common.WriteDataPacket(conn, len(b), b)
+	err = common.WriteFileTransfer(conn, b)
 	if err != nil {
 		return err
 	}
