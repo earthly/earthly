@@ -21,8 +21,12 @@ release:
     RUN --secret VSCE_TOKEN=+secrets/earthly-technologies/vsce/token test -n "$VSCE_TOKEN"
     RUN --secret OVSX_TOKEN=+secrets/earthly-technologies/ovsx/token test -n "$OVSX_TOKEN"
     RUN --push \
-        --secret VSCE_TOKEN=+secrets/earthly-technologies/vsce/token \
+        --secret VSCE_TOKEN=+secrets/earthly-technologies/vsce/toke\n \
         vsce publish --pat "$VSCE_TOKEN" --packagePath ./earthfile-syntax-highlighting-$VSCODE_RELEASE_TAG.vsix
     RUN --push \
-        --secret OVSX_TOKEN=+secrets/earthly-technologies/ovsx/token \ 
+        --secret OVSX_TOKEN=+secrets/earthly-technologies/ovsxs/token \ 
         npx ovsx publish ./earthfile-syntax-highlighting-$VSCODE_RELEASE_TAG.vsix -p "$OVSX_TOKEN"
+
+export:
+    COPY . ./
+    SAVE ARTIFACT ./
