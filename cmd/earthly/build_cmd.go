@@ -527,51 +527,101 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	return nil
 }
 
-func getTryCatchSaveFileHandler(localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) func(ctx context.Context, conn io.ReadWriteCloser) error {
-	return func(ctx context.Context, conn io.ReadWriteCloser) error {
-		// version
-		n, _, err := debuggercommon.ReadDataPacket(conn)
+func receiveFileVersion1(ctx context.Context, conn io.ReadWriteCloser, localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) error {
+	// dst path
+	_, dst, err := debuggercommon.ReadDataPacket(conn)
+	if err != nil {
+		return err
+	}
+
+	if !localArtifactWhiteList.Exists(string(dst)) {
+		return fmt.Errorf("file %s does not appear in the white list", dst)
+	}
+
+	// data
+	_, data, err := debuggercommon.ReadDataPacket(conn)
+	if err != nil {
+		return err
+	}
+
+	// EOF
+	n, _, err := debuggercommon.ReadDataPacket(conn)
+	if err != nil {
+		return err
+	}
+	if n != 0 {
+		return fmt.Errorf("expected EOF, but got more data")
+	}
+
+	f, err := os.Create(string(dst))
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(data)
+	if err != nil {
+		return err
+	}
+
+	return f.Close()
+}
+
+func receiveFileVersion2(ctx context.Context, conn io.ReadWriteCloser, localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) error {
+	// dst path
+	dst, err := debuggercommon.ReadUint16PrefixedData(conn)
+	if err != nil {
+		return err
+	}
+
+	if !localArtifactWhiteList.Exists(string(dst)) {
+		return fmt.Errorf("file %s does not appear in the white list", dst)
+	}
+
+	f, err := os.Create(string(dst))
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			// don't output incomplete data
+			_ = f.Close()
+			_ = os.Remove(string(dst))
+		}
+	}()
+
+	// data
+	for {
+		data, err := debuggercommon.ReadUint16PrefixedData(conn)
 		if err != nil {
 			return err
 		}
-		if n != 1 {
-			return fmt.Errorf("unexpected version %d", n)
-		}
-
-		// dst path
-		_, dst, err := debuggercommon.ReadDataPacket(conn)
-		if err != nil {
-			return err
-		}
-
-		if !localArtifactWhiteList.Exists(string(dst)) {
-			return fmt.Errorf("file %s does not appear in the white list", dst)
-		}
-
-		// data
-		_, data, err := debuggercommon.ReadDataPacket(conn)
-		if err != nil {
-			return err
-		}
-
-		// EOF
-		n, _, err = debuggercommon.ReadDataPacket(conn)
-		if err != nil {
-			return err
-		}
-		if n != 0 {
-			return fmt.Errorf("expected EOF, but got more data")
-		}
-
-		f, err := os.Create(string(dst))
-		if err != nil {
-			return err
+		if len(data) == 0 {
+			break
 		}
 		_, err = f.Write(data)
 		if err != nil {
 			return err
 		}
+	}
 
-		return f.Close()
+	return f.Close()
+}
+
+func getTryCatchSaveFileHandler(localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) func(ctx context.Context, conn io.ReadWriteCloser) error {
+	return func(ctx context.Context, conn io.ReadWriteCloser) error {
+		// version
+		protocolVersion, _, err := debuggercommon.ReadDataPacket(conn)
+		if err != nil {
+			return err
+		}
+
+		switch protocolVersion {
+		case 1:
+			return receiveFileVersion1(ctx, conn, localArtifactWhiteList)
+		case 2:
+			return receiveFileVersion2(ctx, conn, localArtifactWhiteList)
+		default:
+			return fmt.Errorf("unexpected version %d", protocolVersion)
+		}
 	}
 }
