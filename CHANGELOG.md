@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Fixed
+
+- Support for saving files larger than 64kB on failure within a `TRY/FINALLY` block. [#2452](https://github.com/earthly/earthly/issues/2452)
+
 ## v0.6.30 - 2022-11-22
 
 ### Added
