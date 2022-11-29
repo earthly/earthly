@@ -105,6 +105,9 @@ func WithDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error) 
 			if c2.GetTargetId() != "" {
 				c.TargetId = c2.GetTargetId()
 			}
+			if c2.GetCategory() != "" {
+				c.Category = c2.GetCategory()
+			}
 			if c2.GetPlatform() != "" {
 				c.Platform = c2.GetPlatform()
 			}
@@ -113,9 +116,6 @@ func WithDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error) 
 			}
 			if c2.GetHasCached() {
 				c.IsCached = c2.GetIsCached()
-			}
-			if c2.GetHasPush() {
-				c.IsPush = c2.GetIsPush()
 			}
 			if c2.GetHasLocal() {
 				c.IsLocal = c2.GetIsLocal()

@@ -15,6 +15,7 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
@@ -97,6 +98,7 @@ type BuildOpt struct {
 	BuiltinArgs                variables.DefaultArgs
 	GlobalWaitBlockFtr         bool
 	LocalArtifactWhiteList     *gatewaycrafter.LocalArtifactWhiteList
+	Logbus                     *logbus.Bus
 	MainTargetDetailsFuture    chan earthfile2llb.TargetDetails
 	Runner                     string
 }
@@ -208,6 +210,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				LLBCaps:                              &caps,
 				InteractiveDebuggerEnabled:           b.opt.InteractiveDebugging,
 				InteractiveDebuggerDebugLevelLogging: b.opt.InteractiveDebuggingDebugLevelLogging,
+				Logbus:                               opt.Logbus,
 				MainTargetDetailsFuture:              opt.MainTargetDetailsFuture,
 				Runner:                               opt.Runner,
 			}

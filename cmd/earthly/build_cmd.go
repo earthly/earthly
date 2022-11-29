@@ -270,6 +270,9 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if err != nil {
 		return errors.Wrap(err, "get native platform via buildkit client")
 	}
+	if app.logstream {
+		app.logbusSetup.SetDefaultPlatform(platforms.Format(nativePlatform))
+	}
 	platr := platutil.NewResolver(nativePlatform)
 	app.analyticsMetadata.buildkitPlatform = platforms.Format(nativePlatform)
 	app.analyticsMetadata.userPlatform = platforms.Format(platr.LLBUser())
@@ -486,6 +489,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		EnableGatewayClientLogging: app.debug,
 		BuiltinArgs:                builtinArgs,
 		LocalArtifactWhiteList:     localArtifactWhiteList,
+		Logbus:                     app.logbus,
 		MainTargetDetailsFuture:    make(chan earthfile2llb.TargetDetails, 1),
 		Runner:                     runnerName,
 
@@ -510,11 +514,10 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			return
 		case details := <-buildOpts.MainTargetDetailsFuture:
 			if app.logstream {
-				app.logbusSetup.SetMainTargetID(details.ID)
 				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
 				if doLogstreamUpload {
 					app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient)
-					app.console.Printf("Streaming logs to %s\n", app.logstreamDebugFile)
+					app.console.Printf("Streaming logs to %s\n", logstreamURL)
 				}
 			}
 		}

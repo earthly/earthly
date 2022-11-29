@@ -59,15 +59,15 @@ func New(ctx context.Context, bus *logbus.Bus, debug, verbose, forceColor, noCol
 	return bs, nil
 }
 
+// SetDefaultPlatform sets the default platform of the build.
+func (bs *BusSetup) SetDefaultPlatform(platform string) {
+	bs.Formatter.SetDefaultPlatform(platform)
+}
+
 // SetOrgAndProject sets the org and project for the manifest.
 func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
 	bs.InitialManifest.OrgName = orgName
 	bs.InitialManifest.ProjectName = projectName
-}
-
-// SetMainTargetID sets the main target ID for the manifest.
-func (bs *BusSetup) SetMainTargetID(targetID string) {
-	bs.InitialManifest.MainTargetId = targetID
 }
 
 // StartLogStreamer starts a LogStreamer for the given build. The
