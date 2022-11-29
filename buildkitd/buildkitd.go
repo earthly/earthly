@@ -221,7 +221,7 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image,
 		if ok {
 			// No need to replace: images are the same and settings are the same.
 			bkCons.VerbosePrintf("Settings hashes match (%q), no restart required\n", hash)
-			info, workerInfo, err := checkConnection(ctx, settings.BuildkitAddress, 5*time.Second, opts...)
+			info, workerInfo, err := checkConnection(ctx, settings.BuildkitAddress, settings.Timeout, opts...)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -231,7 +231,7 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image,
 	} else {
 		if settings.NoUpdate {
 			bkCons.Printf("Updated image available. But update was inhibited.\n")
-			info, workerInfo, err := checkConnection(ctx, settings.BuildkitAddress, 5*time.Second, opts...)
+			info, workerInfo, err := checkConnection(ctx, settings.BuildkitAddress, settings.Timeout, opts...)
 			if err != nil {
 				return nil, nil, err
 			}
