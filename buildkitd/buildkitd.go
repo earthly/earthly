@@ -26,6 +26,7 @@ import (
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
+	"github.com/earthly/earthly/util/semverutil"
 )
 
 var (
@@ -817,11 +818,25 @@ func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, work
 						"Warning: Buildkit version (%s) is different from Earthly version (%s)",
 						info.BuildkitVersion.Version, earthlyVersion)
 				} else {
-					// TODO: Be smarter about this comparison and provide a more meaningful message.
-					//       Perhaps we should only print something here if the versions are drastically different.
-					bkCons.Printf(
-						"Info: Buildkit version (%s) is different from Earthly version (%s)",
-						info.BuildkitVersion.Version, earthlyVersion)
+					compatible := true
+					bkVersion, err := semverutil.Parse(info.BuildkitVersion.Version)
+					if err != nil {
+						bkCons.VerbosePrintf("Warning: could not parse buildkit version: %v", err)
+						compatible = false
+					}
+					earthlyVersion, err := semverutil.Parse(earthlyVersion)
+					if err != nil {
+						bkCons.VerbosePrintf("Warning: could not parse earthly version: %v", err)
+						compatible = false
+					}
+					compatible = compatible && semverutil.IsCompatible(bkVersion, earthlyVersion)
+					if !compatible {
+						bkCons.Warnf("Warning: Buildkit version (%s) is not compatible with Earthly version (%s)",
+							info.BuildkitVersion.Version, earthlyVersion)
+					} else {
+						bkCons.VerbosePrintf("Buildkit version (%s) is compatible with Earthly version (%s)",
+							info.BuildkitVersion.Version, earthlyVersion)
+					}
 				}
 			}
 		}
