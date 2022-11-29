@@ -7,6 +7,7 @@ import (
 
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
+
 	"github.com/stretchr/testify/assert"
 )
 

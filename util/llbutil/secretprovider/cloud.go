@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/earthly/earthly/cloud"
+
 	"github.com/moby/buildkit/session/secrets"
 )
 

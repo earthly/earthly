@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	logsapi "github.com/earthly/cloud-api/logs"
+
 	"github.com/pkg/errors"
 )
 

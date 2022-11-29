@@ -6,10 +6,10 @@ import (
 	"os"
 	"text/tabwriter"
 
+	"github.com/earthly/earthly/cloud"
+
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
-
-	"github.com/earthly/earthly/cloud"
 )
 
 const dateFormat = "2006-01-02"

@@ -9,13 +9,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/dustin/go-humanize"
-	"github.com/moby/buildkit/client"
-	gwclient "github.com/moby/buildkit/frontend/gateway/client"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
-	"golang.org/x/sync/errgroup"
-
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/config"
@@ -25,6 +18,13 @@ import (
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/termutil"
+
+	"github.com/dustin/go-humanize"
+	"github.com/moby/buildkit/client"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
+	"golang.org/x/sync/errgroup"
 )
 
 func (app *earthlyApp) rootCmds() []*cli.Command {

@@ -10,12 +10,12 @@ import (
 // once an unescaped '=' is found, all remaining chars will be used as-is without the need to be escaped.
 // the key and value are returned, along with a bool that is true if a value was defined (i.e. an equal was found)
 //
-// e.g. ParseKeyValue("foo")       -> `foo`,  ``,       false
-//      ParseKeyValue("foo=")      -> `foo`,  ``,       true
-//      ParseKeyValue("foo=bar")   -> `foo`,  `bar`,    true
-//      ParseKeyValue(`f\=oo=bar`) -> `f=oo`, `bar`,    true
-//      ParseKeyValue(`foo=bar=`)  -> `foo",  `bar=`,   true
-//      ParseKeyValue(`foo=bar\=`) -> `foo",  `bar\=`,  true
+// e.g. ParseKeyValue("foo")       -> "foo",  "",       false
+// e.g. ParseKeyValue("foo=")      -> "foo",  "",       true
+// e.g. ParseKeyValue("foo=bar")   -> "foo",  "bar",    true
+// e.g. ParseKeyValue("f\=oo=bar") -> "f=oo", "bar",    true
+// e.g. ParseKeyValue("foo=bar=")  -> "foo",  "bar=",   true
+// e.g. ParseKeyValue("foo=bar\=") -> "foo",  "bar\=",  true
 func ParseKeyValue(s string) (string, string, bool) {
 	key := []string{}
 	var escaped bool

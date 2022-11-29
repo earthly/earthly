@@ -8,6 +8,7 @@ import (
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
+
 	"github.com/pkg/errors"
 )
 

@@ -1,2 +1,15 @@
 run:
   timeout: 10m
+
+linters:
+  enable:
+  - gci
+
+linters-settings:
+  gci:
+    custom-order: true
+    sections:
+      - standard
+      - 'prefix(github.com/earthly/earthly)'
+      - 'prefix(github.com/earthly/cloud-api)'
+      - default

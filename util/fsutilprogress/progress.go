@@ -6,8 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dustin/go-humanize"
 	"github.com/earthly/earthly/conslogging"
+
+	"github.com/dustin/go-humanize"
 	"github.com/tonistiigi/fsutil"
 )
 

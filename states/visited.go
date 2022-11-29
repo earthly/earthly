@@ -8,6 +8,7 @@ import (
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/variables"
+
 	"github.com/pkg/errors"
 )
 

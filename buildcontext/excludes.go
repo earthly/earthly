@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/earthly/earthly/util/fileutil"
+
 	"github.com/moby/buildkit/frontend/dockerfile/dockerignore"
 	"github.com/pkg/errors"
 )

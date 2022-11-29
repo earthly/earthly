@@ -8,6 +8,7 @@ import (
 
 	"github.com/earthly/earthly/ast/parser"
 	"github.com/earthly/earthly/ast/spec"
+
 	"github.com/pkg/errors"
 )
 

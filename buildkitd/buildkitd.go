@@ -12,6 +12,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/util/buildkitutil"
+	"github.com/earthly/earthly/util/cliutil"
+	"github.com/earthly/earthly/util/containerutil"
+	"github.com/earthly/earthly/util/fileutil"
+	"github.com/earthly/earthly/util/semverutil"
+
 	"github.com/containerd/containerd/platforms"
 	"github.com/dustin/go-humanize"
 	"github.com/gofrs/flock"
@@ -20,13 +27,6 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/earthly/earthly/conslogging"
-	"github.com/earthly/earthly/util/buildkitutil"
-	"github.com/earthly/earthly/util/cliutil"
-	"github.com/earthly/earthly/util/containerutil"
-	"github.com/earthly/earthly/util/fileutil"
-	"github.com/earthly/earthly/util/semverutil"
 )
 
 var (

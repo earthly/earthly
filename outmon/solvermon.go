@@ -8,10 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dustin/go-humanize"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/buildkitutil"
 	"github.com/earthly/earthly/util/vertexmeta"
+
+	"github.com/dustin/go-humanize"
 	"github.com/moby/buildkit/client"
 	"github.com/opencontainers/go-digest"
 )

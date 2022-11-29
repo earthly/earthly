@@ -5,8 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/ast/spec"
+
+	"github.com/earthly/cloud-api/logstream"
 )
 
 // Run is a run logstream delta generator for a run.

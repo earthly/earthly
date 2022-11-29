@@ -11,14 +11,14 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/earthly/earthly/cloud"
+
 	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/term"
-
-	"github.com/earthly/earthly/cloud"
 )
 
 var (
@@ -190,7 +190,7 @@ func (app *earthlyApp) actionAccountRegister(cliCtx *cli.Context) error {
 	if !strings.Contains(app.email, "@") {
 		return errors.New("email is invalid")
 	}
-	
+
 	cloudClient, err := app.newCloudClient()
 	if err != nil {
 		return err

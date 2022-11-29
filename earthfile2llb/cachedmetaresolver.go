@@ -3,8 +3,9 @@ package earthfile2llb
 import (
 	"context"
 
-	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/util/syncutil/synccache"
+
+	"github.com/containerd/containerd/platforms"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/opencontainers/go-digest"
 )

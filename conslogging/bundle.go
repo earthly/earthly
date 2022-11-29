@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/earthly/earthly/cleanup"
+
 	"github.com/pkg/errors"
 )
 

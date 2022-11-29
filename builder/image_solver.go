@@ -15,6 +15,7 @@ import (
 	"github.com/earthly/earthly/states/image"
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/llbutil"
+
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/exporter/containerimage/exptypes"

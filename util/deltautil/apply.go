@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	pb "github.com/earthly/cloud-api/logstream"
+
 	"google.golang.org/protobuf/proto"
 )
 

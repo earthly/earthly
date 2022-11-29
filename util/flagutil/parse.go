@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
-
 	flags "github.com/jessevdk/go-flags"
+	"github.com/pkg/errors"
 )
 
 // ArgumentModFunc accepts a flagName which corresponds to the long flag name, and a pointer

@@ -1,8 +1,9 @@
 package platutil
 
 import (
-	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/util/llbutil/pllb"
+
+	"github.com/containerd/containerd/platforms"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 

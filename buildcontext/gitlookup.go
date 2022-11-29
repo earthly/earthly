@@ -15,17 +15,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
-	"golang.org/x/crypto/ssh/knownhosts"
-
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/fileutil"
 
 	"github.com/jdxcode/netrc"
 	"github.com/moby/buildkit/util/gitutil"
 	"github.com/moby/buildkit/util/sshutil"
+	"github.com/pkg/errors"
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
+	"golang.org/x/crypto/ssh/knownhosts"
 )
 
 type gitMatcher struct {

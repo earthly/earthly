@@ -7,12 +7,12 @@ import (
 	"strconv"
 	"strings"
 
-	goflags "github.com/jessevdk/go-flags"
-	"github.com/pkg/errors"
-
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/util/flagutil"
+
+	goflags "github.com/jessevdk/go-flags"
+	"github.com/pkg/errors"
 )
 
 // Features is used to denote which features to flip on or off; this is for use in maintaining

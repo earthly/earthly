@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/earthly/earthly/ast/spec"
+
 	"github.com/pkg/errors"
 )
 

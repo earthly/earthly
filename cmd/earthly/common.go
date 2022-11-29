@@ -10,11 +10,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
+
+	"github.com/pkg/errors"
 )
 
 func (app *earthlyApp) newCloudClient() (cloud.Client, error) {

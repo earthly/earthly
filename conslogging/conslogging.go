@@ -9,6 +9,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/earthly/earthly/cleanup"
+
 	"github.com/fatih/color"
 )
 

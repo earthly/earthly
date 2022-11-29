@@ -6,9 +6,10 @@ import (
 	"path"
 	"strings"
 
-	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/platutil"
+
+	"github.com/containerd/containerd/platforms"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"

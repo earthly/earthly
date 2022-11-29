@@ -8,7 +8,7 @@ import (
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
-//RandomAlphanumeric returns a random alphanumeric string of length n
+// RandomAlphanumeric returns a random alphanumeric string of length n
 func RandomAlphanumeric(n int) string {
 	var seed int64
 	err := binary.Read(crand.Reader, binary.BigEndian, &seed)

@@ -8,9 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/util/vertexmeta"
+
+	"github.com/earthly/cloud-api/logstream"
+
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
 )

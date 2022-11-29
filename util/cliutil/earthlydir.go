@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/earthly/earthly/util/fileutil"
+
 	"github.com/pkg/errors"
 )
 

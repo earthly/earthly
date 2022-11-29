@@ -6,10 +6,10 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/earthly/earthly/cloud"
+
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
-
-	"github.com/earthly/earthly/cloud"
 )
 
 func (app *earthlyApp) orgCmds() []*cli.Command {

@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/earthly/earthly/cleanup"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestTempEarthlyOutDir tests that tempEarthlyOutDir always returns the same directory

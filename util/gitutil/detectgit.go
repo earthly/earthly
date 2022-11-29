@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/earthly/earthly/domain"
+
 	"github.com/pkg/errors"
 )
 

@@ -30,6 +30,7 @@ import (
 	"github.com/earthly/earthly/util/saveartifactlocally"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/variables"
+
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"

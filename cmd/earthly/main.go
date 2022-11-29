@@ -18,18 +18,6 @@ import (
 	"syscall"
 	"time"
 
-	gsysinfo "github.com/elastic/go-sysinfo"
-	"github.com/fatih/color"
-	"github.com/google/uuid"
-	"github.com/joho/godotenv"
-	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
-	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
@@ -42,6 +30,19 @@ import (
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/reflectutil"
+
+	"github.com/earthly/cloud-api/logstream"
+
+	gsysinfo "github.com/elastic/go-sysinfo"
+	"github.com/fatih/color"
+	"github.com/google/uuid"
+	"github.com/joho/godotenv"
+	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (

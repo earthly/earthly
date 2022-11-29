@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/earthly/cloud-api/logstream"
+
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"

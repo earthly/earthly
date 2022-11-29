@@ -9,9 +9,9 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/platutil"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 // Manifest contains docker manifest data

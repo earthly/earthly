@@ -11,8 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/conslogging"
+
+	"github.com/containerd/containerd/platforms"
 	"github.com/hashicorp/go-multierror"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"

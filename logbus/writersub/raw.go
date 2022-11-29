@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/earthly/cloud-api/logstream"
+
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )

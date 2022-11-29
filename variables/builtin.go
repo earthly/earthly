@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containerd/containerd/platforms"
-
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/gitutil"
@@ -13,6 +11,8 @@ import (
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/stringutil"
 	arg "github.com/earthly/earthly/variables/reserved"
+
+	"github.com/containerd/containerd/platforms"
 )
 
 // DefaultArgs contains additional builtin ARG values which need

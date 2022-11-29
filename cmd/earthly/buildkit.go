@@ -6,16 +6,16 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/moby/buildkit/client"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
-
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
+
+	"github.com/moby/buildkit/client"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
 )
 
 func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {

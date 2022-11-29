@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/earthly/earthly/util/syncutil/metacontext"
+
 	"github.com/pkg/errors"
 )
 

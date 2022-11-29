@@ -10,14 +10,14 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
-
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/containerutil"
+
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
 )
 
 func (app *earthlyApp) satelliteCmds() []*cli.Command {

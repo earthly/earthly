@@ -4,8 +4,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/armon/circbuf"
 	"github.com/earthly/cloud-api/logstream"
+
+	"github.com/armon/circbuf"
 	"github.com/pkg/errors"
 )
 

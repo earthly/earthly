@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/earthly/earthly/ast/parser"
+
+	"github.com/antlr/antlr4/runtime/Go/antlr"
 )
 
 // lexer is a lexer for an earthly file, which also emits indentation

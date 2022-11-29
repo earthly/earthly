@@ -8,13 +8,13 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/earthly/earthly/ast"
+
 	"github.com/containerd/containerd/platforms"
 	"github.com/dustin/go-humanize"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
-
-	"github.com/earthly/earthly/ast"
 )
 
 func (app *earthlyApp) debugCmds() []*cli.Command {

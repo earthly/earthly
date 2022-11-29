@@ -4,16 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/earthly/earthly/logbus"
-	"github.com/earthly/earthly/util/containerutil"
-	"github.com/earthly/earthly/util/gatewaycrafter"
-	"github.com/earthly/earthly/util/llbutil/secretprovider"
-	"github.com/earthly/earthly/util/platutil"
-	"github.com/moby/buildkit/client/llb"
-	gwclient "github.com/moby/buildkit/frontend/gateway/client"
-	"github.com/moby/buildkit/util/apicaps"
-	"github.com/pkg/errors"
-
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
@@ -21,10 +11,20 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
+	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/containerutil"
+	"github.com/earthly/earthly/util/gatewaycrafter"
+	"github.com/earthly/earthly/util/llbutil/secretprovider"
+	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/syncutil/serrgroup"
 	"github.com/earthly/earthly/variables"
+
+	"github.com/moby/buildkit/client/llb"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	"github.com/moby/buildkit/util/apicaps"
+	"github.com/pkg/errors"
 )
 
 // ConvertOpt holds conversion parameters.

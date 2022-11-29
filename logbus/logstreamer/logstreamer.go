@@ -7,9 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/logbus"
+
+	"github.com/earthly/cloud-api/logstream"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"

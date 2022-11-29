@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/earthly/earthly/ast/antlrhandler"
 	"github.com/earthly/earthly/ast/parser"
 	"github.com/earthly/earthly/ast/spec"
+
+	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/pkg/errors"
 )
 

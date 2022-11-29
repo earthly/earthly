@@ -11,9 +11,11 @@ import (
 	"strings"
 	"time"
 
-	secretsapi "github.com/earthly/cloud-api/secrets"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
+
+	secretsapi "github.com/earthly/cloud-api/secrets"
+
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh/agent"
 )

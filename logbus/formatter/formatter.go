@@ -9,11 +9,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/util/deltautil"
 	"github.com/earthly/earthly/util/progressbar"
+
+	"github.com/earthly/cloud-api/logstream"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"

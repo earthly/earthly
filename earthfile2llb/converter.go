@@ -18,7 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
@@ -41,8 +40,8 @@ import (
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+
+	"github.com/earthly/cloud-api/logstream"
 
 	"github.com/alessio/shellescape"
 	"github.com/containerd/containerd/platforms"
@@ -55,6 +54,8 @@ import (
 	solverpb "github.com/moby/buildkit/solver/pb"
 	"github.com/moby/buildkit/util/apicaps"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type cmdType int

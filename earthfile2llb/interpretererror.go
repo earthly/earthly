@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/earthly/earthly/ast/spec"
+
 	"github.com/pkg/errors"
 )
 
