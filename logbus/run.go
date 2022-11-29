@@ -27,7 +27,7 @@ func newRun(b *Bus) *Run {
 		targets:       make(map[string]*Target),
 		commands:      make(map[string]*Command),
 		generic:       nil, // set below
-		hasMainTarget: true,
+		hasMainTarget: false,
 	}
 	run.generic = newGeneric(run)
 	return run
@@ -43,9 +43,9 @@ func (run *Run) NewTarget(targetID, shortTargetName, canonicalTargetName string,
 	run.mu.Lock()
 	defer run.mu.Unlock()
 	mainTargetID := ""
-	if run.hasMainTarget {
+	if !run.hasMainTarget {
 		// The first target is deemed as the main target.
-		run.hasMainTarget = false
+		run.hasMainTarget = true
 		mainTargetID = targetID
 	}
 	_, ok := run.targets[targetID]
