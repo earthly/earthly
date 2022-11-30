@@ -61,21 +61,29 @@ jobs:
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: does the image exist1 ?
+        run: docker images | grep 'earthly/buildkitd:image-test' || echo test-image-not-found-1
       - name: Link Earthly dir to Earthly dev dir
         run: mkdir -p ~/.earthly && ln -s ~/.earthly ~/.earthly-dev
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) -P --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
+      - name: does the image exist2 ?
+        run: docker images | grep 'earthly/buildkitd:image-test' || echo test-image-not-found-2
       - name: rebuild earthly using latest earthly build
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
+      - name: does the image exist3 ?
+        run: docker images | grep 'earthly/buildkitd:image-test' || echo test-image-not-found-3
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
             set -euo pipefail
             EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
             echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-      - name: does the image exist?
-        run: docker images | grep 'earthly/buildkitd:image-test' || echo test-image-not-found
+      - name: does the image exist4 ?
+        run: docker images | grep 'earthly/buildkitd:image-test' || echo test-image-not-found-4
       - name: Build the earthly docker image
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} +earthly-docker --TAG=image-test
+      - name: does the image exist5 ?
+        run: docker images | grep 'earthly/buildkitd:image-test' || echo test-image-not-found-5
       - name: "Run the earthly image tests (Earthly only)"
         run: FRONTEND=${{inputs.BINARY}} EARTHLY_IMAGE=earthly/earthly:image-test ./scripts/tests/earthly-image.sh
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
