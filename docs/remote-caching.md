@@ -4,7 +4,7 @@ Earthly has the ability to share cache between different isolated CI runs and ev
 
 Remote caching is made possible by storing intermediate steps of a build in a cloud-based Docker registry. This cache can then be downloaded on another machine in order to skip common parts.
 
-Note that there is yet another way to share cache between builds, via [Earthly Remote Runners](./remote-runners.md) (a commercial version of remote runners is [Earthly Satellites](cloud/satelllites.md)). Using the cache of a remote runner is easier to manage, because there is no upload or download step (the cache is always there, available instantly) and no additional experimentation is required (everything is automatically cached without the need to experiment). This page only covers remote shared caching through the use of a registry.
+Note that there is yet another way to share cache between builds, via [Earthly Remote Runners](./remote-runners.md) (a commercial version of remote runners is [Earthly Satellites](cloud/satellites.md)). Using the cache of a remote runner is easier to manage, because there is no upload or download step (the cache is always there, available instantly) and no additional experimentation is required (everything is automatically cached without the need to experiment). This page only covers remote shared caching through the use of a registry.
 
 ## Types of remote cache
 

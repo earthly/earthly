@@ -62,6 +62,11 @@ func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConv
 
 // Run interprets the commands in the given Earthfile AST, for a specific target.
 func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
+	defer func() {
+		if err != nil {
+			i.converter.RecordTargetFailure(ctx, err)
+		}
+	}()
 	if i.target.Target == "base" {
 		i.isBase = true
 		err := i.handleBlock(ctx, ef.BaseRecipe)
@@ -1729,17 +1734,15 @@ func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error 
 }
 
 func (i *Interpreter) handleProject(ctx context.Context, cmd spec.Command) error {
-	projectVal, err := i.expandArgs(ctx, cmd.Args[0], false, false)
-	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "failed to expand PROJECT %s", cmd.Args[0])
-	}
-
+	// Note: Expanding args for PROJECT is not allowed. The value needs to be
+	// lifted straight from the AST.
+	projectVal := cmd.Args[0]
 	parts := strings.Split(projectVal, "/")
 	if len(parts) != 2 {
 		return i.errorf(cmd.SourceLocation, "unexpected format for PROJECT statement, should be: <organization>/<project>")
 	}
 
-	err = i.converter.Project(ctx, parts[0], parts[1])
+	err := i.converter.Project(ctx, parts[0], parts[1])
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to process PROJECT")
 	}
@@ -1925,11 +1928,13 @@ func (i *Interpreter) stack() string {
 }
 
 func (i *Interpreter) errorf(sl *spec.SourceLocation, format string, args ...interface{}) *InterpreterError {
-	return Errorf(sl, i.stack(), format, args...)
+	targetID := i.converter.mts.Final.ID
+	return Errorf(sl, targetID, i.stack(), format, args...)
 }
 
 func (i *Interpreter) wrapError(cause error, sl *spec.SourceLocation, format string, args ...interface{}) *InterpreterError {
-	return WrapError(cause, sl, i.stack(), format, args...)
+	targetID := i.converter.mts.Final.ID
+	return WrapError(cause, sl, targetID, i.stack(), format, args...)
 }
 
 func (i *Interpreter) pushOnlyErr(sl *spec.SourceLocation) error {

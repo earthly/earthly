@@ -355,9 +355,7 @@ func (sw *shellWord) processDollar() (string, error) {
 	switch peek {
 	case '(':
 		sw.scanner.Next()
-		//return sw.processDollarShellOut()
-		shout, err := sw.processDollarShellOut()
-		return shout, err
+		return sw.processDollarShellOut()
 	case '{':
 		sw.scanner.Next()
 		return sw.processDollarCurlyBracket()
@@ -374,27 +372,35 @@ func (sw *shellWord) processDollar() (string, error) {
 		return value, nil
 	}
 }
+
 func (sw *shellWord) processDollarShellOut() (string, error) {
 	var result bytes.Buffer
+
+	oldRawQuotes := sw.rawQuotes
+	sw.rawQuotes = true
+	defer func() { sw.rawQuotes = oldRawQuotes }()
 
 	seenParentheses := 1
 	escaped := false
 	for {
-		ch := sw.scanner.Next()
+		ch := sw.scanner.Peek()
 		if ch == scanner.EOF {
 			return "", errors.New("syntax error: missing ')'")
 		}
 		if escaped {
 			escaped = false
+			ch = sw.scanner.Next()
 			result.WriteRune(ch)
 			continue
 		}
 		switch ch {
 		case '\\':
 			escaped = true
+			_ = sw.scanner.Next()
 			continue
 		case ')':
 			seenParentheses--
+			ch = sw.scanner.Next()
 			if seenParentheses == 0 {
 				command := result.String()
 				if sw.shellOut == nil {
@@ -405,20 +411,24 @@ func (sw *shellWord) processDollarShellOut() (string, error) {
 			result.WriteRune(ch)
 		case '(':
 			seenParentheses++
+			ch = sw.scanner.Next()
 			result.WriteRune(ch)
 		case '\'':
+			// processDollarShellOut will call Next()
 			s, err := sw.processSingleQuote()
 			if err != nil {
 				return "", err
 			}
 			result.WriteString(s)
 		case '"':
+			_ = sw.scanner.Next()
 			s, err := sw.processDoubleQuoteIgnoringDollar()
 			if err != nil {
 				return "", err
 			}
 			result.WriteString(s)
 		default:
+			ch = sw.scanner.Next()
 			result.WriteRune(ch)
 		}
 	}

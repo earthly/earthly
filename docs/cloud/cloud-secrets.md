@@ -53,7 +53,7 @@ earthly secrets get /user/my_key
 
 ## Using cloud secrets in builds
 
-Cloud secrets can be referenced in an Earthfile, in a similar way to [locally-defined secrets](build-args.md).
+Cloud secrets can be referenced in an Earthfile, in a similar way to [locally-defined secrets](../guides/build-args.md).
 
 Consider the Earthfile:
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
@@ -91,6 +92,8 @@ type ConvertOpt struct {
 	// DoPushes controls when a SAVE IMAGE --push, and RUN --push commands are executed;
 	// SAVE IMAGE --push ... will still export an image to the local docker instance (as long as DoSaves=true)
 	DoPushes bool
+	// IsCI determines whether it is running from a CI environment.
+	IsCI bool
 	// ForceSaveImage is used to force all SAVE IMAGE commands are executed regardless of if they are
 	// for a local or remote target; this is to support the legacy behaviour that was first introduced in earthly (up to 0.5)
 	// When this is set to false, SAVE IMAGE commands are only executed when DoSaves is true.
@@ -153,6 +156,27 @@ type ConvertOpt struct {
 
 	// LLBCaps indicates that builder's capabilities
 	LLBCaps *apicaps.CapSet
+
+	// MainTargetDetailsFuture is a channel that is used to signal the main target details, once known.
+	MainTargetDetailsFuture chan TargetDetails
+
+	// Logbus is the bus used for logging and metadata reporting.
+	Logbus *logbus.Bus
+
+	// The runner used to execute the target on. This is used only for metadata reporting purposes.
+	// May be one of the following:
+	// * "local:<hostname>" - local builds
+	// * "bk:<buildkit-address>" - remote builds via buildkit
+	// * "sat:<org-name>/<sat-name>" - remote builds via satellite
+	Runner string
+}
+
+// TargetDetails contains details about the target being built.
+type TargetDetails struct {
+	// EarthlyOrgName is the name of the Earthly org.
+	EarthlyOrgName string
+	// EarthlyProjectName is the name of the Earthly project.
+	EarthlyProjectName string
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
@@ -217,6 +241,14 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	sts, found, err := opt.Visited.Add(ctx, targetWithMetadata, opt.PlatformResolver, opt.AllowPrivileged, opt.OverridingVars, opt.parentDepSub)
 	if err != nil {
 		return nil, err
+	}
+	if opt.MainTargetDetailsFuture != nil {
+		// TODO (vladaionescu): These should perhaps be passed back via logbus instead.
+		opt.MainTargetDetailsFuture <- TargetDetails{
+			EarthlyOrgName:     bc.EarthlyOrgName,
+			EarthlyProjectName: bc.EarthlyProjectName,
+		}
+		opt.MainTargetDetailsFuture = nil
 	}
 	if found {
 		if opt.DoSaves {

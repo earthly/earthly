@@ -19,10 +19,11 @@ func newTarget(b *Bus, targetID string) *Target {
 	}
 }
 
+// SetStart sets the start time of the target.
 func (target *Target) SetStart(start time.Time) {
 	target.targetDelta(&logstream.DeltaTargetManifest{
 		Status:             logstream.RunStatus_RUN_STATUS_IN_PROGRESS,
-		StartedAtUnixNanos: uint64(start.UnixNano()),
+		StartedAtUnixNanos: target.b.TsUnixNanos(start),
 	})
 }
 
@@ -30,7 +31,7 @@ func (target *Target) SetStart(start time.Time) {
 func (target *Target) SetEnd(end time.Time, status logstream.RunStatus, finalPlatform string) {
 	target.targetDelta(&logstream.DeltaTargetManifest{
 		Status:           status,
-		EndedAtUnixNanos: uint64(end.UnixNano()),
+		EndedAtUnixNanos: target.b.TsUnixNanos(end),
 		FinalPlatform:    finalPlatform,
 	})
 }

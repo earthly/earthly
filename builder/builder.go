@@ -15,6 +15,7 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
@@ -51,7 +52,6 @@ const (
 
 // Opt represent builder options.
 type Opt struct {
-	SessionID                             string
 	BkClient                              *client.Client
 	LogBusSolverMonitor                   *solvermon.SolverMonitor
 	UseLogstream                          bool
@@ -89,6 +89,7 @@ type BuildOpt struct {
 	AllowPrivileged            bool
 	PrintPhases                bool
 	Push                       bool
+	CI                         bool
 	NoOutput                   bool
 	OnlyFinalTargetImages      bool
 	OnlyArtifact               *domain.Artifact
@@ -97,6 +98,9 @@ type BuildOpt struct {
 	BuiltinArgs                variables.DefaultArgs
 	GlobalWaitBlockFtr         bool
 	LocalArtifactWhiteList     *gatewaycrafter.LocalArtifactWhiteList
+	Logbus                     *logbus.Bus
+	MainTargetDetailsFuture    chan earthfile2llb.TargetDetails
+	Runner                     string
 }
 
 // Builder executes Earthly builds.
@@ -128,7 +132,7 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 		opt:      opt,
 		resolver: nil, // initialized below
 	}
-	b.resolver = buildcontext.NewResolver(opt.SessionID, opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides)
+	b.resolver = buildcontext.NewResolver(opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides)
 	return b, nil
 }
 
@@ -197,6 +201,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				DoSaves:                              !opt.NoOutput,
 				OnlyFinalTargetImages:                opt.OnlyFinalTargetImages,
 				DoPushes:                             opt.Push,
+				IsCI:                                 opt.CI,
 				ExportCoordinator:                    exportCoordinator,
 				LocalArtifactWhiteList:               opt.LocalArtifactWhiteList,
 				InternalSecretStore:                  b.opt.InternalSecretStore,
@@ -205,6 +210,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				LLBCaps:                              &caps,
 				InteractiveDebuggerEnabled:           b.opt.InteractiveDebugging,
 				InteractiveDebuggerDebugLevelLogging: b.opt.InteractiveDebuggingDebugLevelLogging,
+				Logbus:                               opt.Logbus,
+				MainTargetDetailsFuture:              opt.MainTargetDetailsFuture,
+				Runner:                               opt.Runner,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {

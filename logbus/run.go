@@ -11,52 +11,56 @@ import (
 
 // Run is a run logstream delta generator for a run.
 type Run struct {
-	b        *Bus
-	mu       sync.Mutex
-	targets  map[string]*Target
-	commands map[string]*Command
-	ended    bool
+	b             *Bus
+	mu            sync.Mutex
+	targets       map[string]*Target
+	commands      map[string]*Command
+	ended         bool
+	hasMainTarget bool
 
-	gpMu     sync.Mutex
-	generics map[string]*Generic
+	generic *Generic
 }
 
 func newRun(b *Bus) *Run {
-	return &Run{
-		b:        b,
-		targets:  make(map[string]*Target),
-		commands: make(map[string]*Command),
-		generics: make(map[string]*Generic),
+	run := &Run{
+		b:             b,
+		targets:       make(map[string]*Target),
+		commands:      make(map[string]*Command),
+		generic:       nil, // set below
+		hasMainTarget: false,
 	}
+	run.generic = newGeneric(run)
+	return run
 }
 
 // Generic returns a generic writer for build output unrelated to a specific target.
-func (run *Run) Generic(category string) *Generic {
-	run.gpMu.Lock()
-	defer run.gpMu.Unlock()
-	gp, ok := run.generics[category]
-	if ok {
-		return gp
-	}
-	run.generics[category] = newGeneric(run, category)
-	return run.generics[category]
+func (run *Run) Generic() *Generic {
+	return run.generic
 }
 
 // NewTarget creates a new target printer.
-func (run *Run) NewTarget(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string) (*Target, error) {
+func (run *Run) NewTarget(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string, runner string) (*Target, error) {
 	run.mu.Lock()
 	defer run.mu.Unlock()
+	mainTargetID := ""
+	if !run.hasMainTarget {
+		// The first target is deemed as the main target.
+		run.hasMainTarget = true
+		mainTargetID = targetID
+	}
 	_, ok := run.targets[targetID]
 	if ok {
 		return nil, errors.New("target printer already exists")
 	}
 	run.buildDelta(&logstream.DeltaManifest_FieldsDelta{
+		MainTargetId: mainTargetID,
 		Targets: map[string]*logstream.DeltaTargetManifest{
 			targetID: {
 				Name:            shortTargetName,
 				CanonicalName:   canonicalTargetName,
 				OverrideArgs:    overrideArgs,
 				InitialPlatform: initialPlatform,
+				Runner:          runner,
 			},
 		},
 	})
@@ -74,7 +78,7 @@ func (run *Run) Target(targetID string) (*Target, bool) {
 }
 
 // NewCommand creates a new command printer.
-func (run *Run) NewCommand(commandID string, command string, targetID string, platform string, cached bool, push bool, local bool, sourceLocation *spec.SourceLocation, repoURL, repoHash, fileRelToRepo string) (*Command, error) {
+func (run *Run) NewCommand(commandID string, command string, targetID string, category string, platform string, cached bool, local bool, sourceLocation *spec.SourceLocation, repoURL, repoHash, fileRelToRepo string) (*Command, error) {
 	run.mu.Lock()
 	defer run.mu.Unlock()
 	_, ok := run.commands[commandID]
@@ -86,9 +90,9 @@ func (run *Run) NewCommand(commandID string, command string, targetID string, pl
 			commandID: {
 				Name:           command,
 				TargetId:       targetID,
+				Category:       category,
 				Platform:       platform,
 				IsCached:       cached,
-				IsPush:         push,
 				IsLocal:        local,
 				SourceLocation: sourceLocationToProto(repoURL, repoHash, fileRelToRepo, sourceLocation),
 			},
@@ -113,7 +117,7 @@ func (run *Run) SetStart(start time.Time) {
 	defer run.mu.Unlock()
 	run.buildDelta(&logstream.DeltaManifest_FieldsDelta{
 		Status:             logstream.RunStatus_RUN_STATUS_IN_PROGRESS,
-		StartedAtUnixNanos: uint64(start.UnixNano()),
+		StartedAtUnixNanos: run.b.TsUnixNanos(start),
 	})
 }
 
@@ -134,7 +138,7 @@ func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, 
 	}
 	run.buildDelta(&logstream.DeltaManifest_FieldsDelta{
 		Status:           logstream.RunStatus_RUN_STATUS_FAILURE,
-		EndedAtUnixNanos: uint64(end.UnixNano()),
+		EndedAtUnixNanos: run.b.TsUnixNanos(end),
 		HasFailure:       true,
 		Failure: &logstream.Failure{
 			Type:         failureType,
@@ -146,33 +150,17 @@ func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, 
 	})
 }
 
-// SetEnd sets the end time of the build.
-func (run *Run) SetEnd(end time.Time, success bool, canceled bool, failureOutput []byte, errorMessage string) {
+// SetEnd sets the end time and status of the build.
+func (run *Run) SetEnd(end time.Time, status logstream.RunStatus) {
 	run.mu.Lock()
 	defer run.mu.Unlock()
 	if run.ended {
 		return
 	}
 	run.ended = true
-	var status logstream.RunStatus
-	var f *logstream.Failure
-	switch {
-	case canceled:
-		status = logstream.RunStatus_RUN_STATUS_CANCELED
-	case success:
-		status = logstream.RunStatus_RUN_STATUS_SUCCESS
-	default:
-		status = logstream.RunStatus_RUN_STATUS_FAILURE
-		f = &logstream.Failure{
-			Output:       failureOutput,
-			ErrorMessage: errorMessage,
-		}
-	}
-
 	run.buildDelta(&logstream.DeltaManifest_FieldsDelta{
 		Status:           status,
-		EndedAtUnixNanos: uint64(end.UnixNano()),
-		Failure:          f,
+		EndedAtUnixNanos: run.b.TsUnixNanos(end),
 	})
 }
 

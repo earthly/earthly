@@ -18,11 +18,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
+	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
@@ -39,6 +41,8 @@ import (
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/alessio/shellescape"
 	"github.com/containerd/containerd/platforms"
@@ -104,6 +108,7 @@ type Converter struct {
 	containerFrontend   containerutil.ContainerFrontend
 	waitBlockStack      []*waitBlock
 	isPipeline          bool
+	logbusTarget        *logbus.Target
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -119,6 +124,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		Console:          opt.Console,
 		Target:           target,
 		Push:             opt.DoPushes,
+		CI:               opt.IsCI,
 		PlatformResolver: opt.PlatformResolver,
 		GitMeta:          bc.GitMetadata,
 		BuiltinArgs:      opt.BuiltinArgs,
@@ -126,6 +132,20 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		GlobalImports:    opt.GlobalImports,
 		Features:         opt.Features,
 	}
+	ovVarsKeysSorted := opt.OverridingVars.SortedAny()
+	ovVars := make([]string, 0, len(ovVarsKeysSorted))
+	for _, k := range ovVarsKeysSorted {
+		v, _ := opt.OverridingVars.GetAny(k)
+		ovVars = append(ovVars, fmt.Sprintf("%s=%s", k, v))
+	}
+	logbusTarget, err := opt.Logbus.Run().NewTarget(
+		sts.ID, target.String(), target.StringCanonical(), ovVars,
+		opt.PlatformResolver.Current().String(), opt.Runner)
+	if err != nil {
+		return nil, errors.Wrap(err, "new logbus target")
+	}
+	logbusTarget.SetStart(time.Now())
+
 	c := &Converter{
 		target:              target,
 		gitMeta:             bc.GitMetadata,
@@ -140,6 +160,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		localWorkingDir:     filepath.Dir(bc.BuildFilePath),
 		containerFrontend:   opt.ContainerFrontend,
 		waitBlockStack:      []*waitBlock{opt.waitBlock},
+		logbusTarget:        logbusTarget,
 	}
 
 	if c.opt.GlobalWaitBlockFtr {
@@ -1102,13 +1123,16 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 		if err != nil {
 			return errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
 		}
-		if c.ftrs.ExecAfterParallel && mts != nil && mts.Final != nil {
-			err = c.forceExecution(ctx, mts.Final.MainState, mts.Final.PlatformResolver)
-			if err != nil {
-				return errors.Wrapf(err, "async force execution for %s", fullTargetName)
-			}
-		}
 		if apf != nil {
+			if c.ftrs.ExecAfterParallel && mts != nil && mts.Final != nil {
+				// TODO: This is a duplication from the forceExecution taking place
+				//       from FinalizeStates. However, this is necessary for apf
+				//       synchronization (needs to be run after target has executed).
+				err = c.forceExecution(ctx, mts.Final.MainState, mts.Final.PlatformResolver)
+				if err != nil {
+					return errors.Wrapf(err, "async force execution for %s", fullTargetName)
+				}
+			}
 			err = apf(ctx, mts)
 			if err != nil {
 				return err
@@ -1534,9 +1558,39 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	if c.ftrs.WaitBlock {
 		c.waitBlock().addState(&c.mts.Final.MainState, c)
 	}
-
 	close(c.mts.Final.Done())
+
+	// Force execution asynchronously, and then mark the logbusTarget as finished.
+	// This ensures that the execution actually took place, for timing purposes.
+	c.opt.ErrorGroup.Go(func() error {
+		rel, err := c.opt.Parallelism.Acquire(ctx, 1)
+		if err != nil {
+			return errors.Wrapf(err, "acquiring parallelism semaphore for %s", c.mts.FinalTarget().String())
+		}
+		defer rel()
+		if c.ftrs.ExecAfterParallel {
+			err = c.forceExecution(ctx, c.mts.Final.MainState, c.mts.Final.PlatformResolver)
+			if err != nil {
+				return errors.Wrapf(err, "async force execution for %s", c.mts.FinalTarget().String())
+			}
+		}
+		c.logbusTarget.SetEnd(
+			time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS, c.platr.Current().String())
+		return nil
+	})
 	return c.mts, nil
+}
+
+// RecordTargetFailure records a failure in a target.
+func (c *Converter) RecordTargetFailure(ctx context.Context, err error) {
+	var st logstream.RunStatus
+	switch {
+	case errors.Is(err, context.Canceled) || status.Code(errors.Cause(err)) == codes.Canceled:
+		st = logstream.RunStatus_RUN_STATUS_CANCELED
+	default:
+		st = logstream.RunStatus_RUN_STATUS_FAILURE
+	}
+	c.logbusTarget.SetEnd(time.Now(), st, c.platr.Current().String())
 }
 
 var errShellOutNotPermitted = errors.New("shell-out not permitted")
@@ -2063,8 +2117,8 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	}
 	baseImageName := reference.TagNameOnly(ref).String()
 	logName := fmt.Sprintf(
-		"%sLoad metadata %s",
-		c.imageVertexPrefix(imageName, platform), platforms.Format(llbPlatform))
+		"%sLoad metadata %s %s",
+		c.imageVertexPrefix(imageName, platform), imageName, platforms.Format(llbPlatform))
 	dgst, dt, err := c.opt.MetaResolver.ResolveImageConfig(
 		ctx, baseImageName,
 		llb.ResolveImageConfigOpt{
@@ -2189,6 +2243,7 @@ func (c *Converter) vertexPrefix(ctx context.Context, local bool, interactive bo
 		Interactive:         interactive,
 		OverridingArgs:      activeOverriding,
 		Internal:            internal,
+		Runner:              c.opt.Runner,
 	}
 	return vm.ToVertexPrefix()
 }

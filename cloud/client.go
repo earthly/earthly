@@ -123,7 +123,7 @@ type client struct {
 var _ Client = &client{}
 
 // NewClient provides a new Earthly Cloud client
-func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, installationName, requestID string, warnFunc func(string, ...interface{})) (Client, error) {
+func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, authJWTOverride, installationName, requestID string, warnFunc func(string, ...interface{})) (Client, error) {
 	c := &client{
 		httpAddr: httpAddr,
 		sshAgent: &lazySSHAgent{
@@ -134,7 +134,10 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 		installationName: installationName,
 		requestID:        requestID,
 	}
-	if authCredsOverride != "" {
+	if authJWTOverride != "" {
+		c.authToken = authJWTOverride
+		c.authTokenExpiry = time.Now().Add(24 * 365 * time.Hour) // Never expire when using JWT.
+	} else if authCredsOverride != "" {
 		c.authCredToken = authCredsOverride
 	} else {
 		if err := c.loadAuthStorage(); err != nil {

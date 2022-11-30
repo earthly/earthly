@@ -17,13 +17,13 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
 	durationBetweenSha256ProgressUpdate = 5 * time.Second
 	durationBetweenProgressUpdate       = 3 * time.Second
 	durationBetweenProgressUpdateIfSame = 5 * time.Millisecond
-	durationBetweenOpenLineUpdate       = time.Second
 	durationBetweenOngoingUpdates       = 5 * time.Second
 	durationBetweenOngoingUpdatesNoAnsi = 60 * time.Second
 )
@@ -44,19 +44,19 @@ type command struct {
 	lastProgress   time.Time
 	lastPercentage int32
 	// openLine is the line of output that has not yet been terminated with a \n.
-	openLine            []byte
-	lastOpenLineUpdate  time.Time
-	lastOpenLineSkipped bool
+	openLine []byte
 }
 
 // Formatter is a delta to console logger.
 type Formatter struct {
-	bus           *logbus.Bus
-	console       conslogging.ConsoleLogger
-	verbose       bool
-	ongoingTick   time.Duration
-	ongoingTicker *time.Ticker
-	startTime     time.Time
+	bus             *logbus.Bus
+	console         conslogging.ConsoleLogger
+	verbose         bool
+	ongoingTick     time.Duration
+	ongoingTicker   *time.Ticker
+	startTime       time.Time
+	closedCh        chan struct{}
+	defaultPlatform string
 
 	mu                         sync.Mutex
 	lastOutputWasProgress      bool
@@ -69,20 +69,38 @@ type Formatter struct {
 }
 
 // New creates a new Formatter.
-func New(ctx context.Context, b *logbus.Bus, verbose bool, disableOngoingUpdates bool) *Formatter {
+func New(ctx context.Context, b *logbus.Bus, debug, verbose, forceColor, noColor bool, disableOngoingUpdates bool) *Formatter {
 	ongoingTick := durationBetweenOngoingUpdatesNoAnsi
 	if ansiSupported {
 		ongoingTick = durationBetweenOngoingUpdates
 	}
 	ongoingTicker := time.NewTicker(ongoingTick)
 	ongoingTicker.Stop()
+	var logLevel conslogging.LogLevel
+	switch {
+	case debug:
+		logLevel = conslogging.Debug
+	case verbose:
+		logLevel = conslogging.Verbose
+	default:
+		logLevel = conslogging.Info
+	}
+	var colorMode conslogging.ColorMode
+	switch {
+	case forceColor:
+		colorMode = conslogging.ForceColor
+	case noColor:
+		colorMode = conslogging.NoColor
+	default:
+		colorMode = conslogging.AutoColor
+	}
 	f := &Formatter{
-		bus: b,
-		// TODO (vladaionescu): Pass in color detection and log level.
-		console:       conslogging.New(nil, nil, conslogging.AutoColor, conslogging.DefaultPadding, conslogging.Info),
+		bus:           b,
+		console:       conslogging.New(nil, nil, colorMode, conslogging.DefaultPadding, logLevel),
 		verbose:       verbose,
 		timingTable:   make(map[string]time.Duration),
 		startTime:     time.Now(),
+		closedCh:      make(chan struct{}),
 		ongoingTicker: ongoingTicker,
 		ongoingTick:   ongoingTick,
 		manifest:      &logstream.RunManifest{},
@@ -104,9 +122,17 @@ func (f *Formatter) Write(delta *logstream.Delta) {
 	}
 }
 
+// SetDefaultPlatform sets the default platform.
+func (f *Formatter) SetDefaultPlatform(platform string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.defaultPlatform = platform
+}
+
 // Close stops the formatter and returns any errors encountered during
 // formatting.
 func (f *Formatter) Close() error {
+	close(f.closedCh)
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	var retErr error
@@ -114,6 +140,13 @@ func (f *Formatter) Close() error {
 		retErr = multierror.Append(retErr, err)
 	}
 	return retErr
+}
+
+// Manifest returns a copy of the manifest.
+func (f *Formatter) Manifest() *logstream.RunManifest {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return proto.Clone(f.manifest).(*logstream.RunManifest)
 }
 
 func (f *Formatter) processDelta(delta *logstream.Delta) error {
@@ -145,6 +178,8 @@ func (f *Formatter) ongoingTickLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			return
+		case <-f.closedCh:
 			return
 		case <-f.ongoingTicker.C:
 			f.mu.Lock()
@@ -197,7 +232,10 @@ func (f *Formatter) getCommand(commandID string) *command {
 }
 
 func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
-	c := f.targetConsole(dl.GetTargetId(), dl.GetCommandId())
+	c, verboseOnly := f.targetConsole(dl.GetTargetId(), dl.GetCommandId())
+	if verboseOnly && !f.verbose {
+		return nil
+	}
 	cmd := f.getCommand(dl.GetCommandId())
 
 	sameAsLast := (!f.lastOutputWasOngoingUpdate &&
@@ -205,13 +243,12 @@ func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
 		f.lastCommandOutput == cmd)
 	output := dl.GetData()
 	printOutput := make([]byte, 0, len(cmd.openLine)+len(output)+10)
-	if bytes.HasPrefix(output, []byte{'\n'}) && len(cmd.openLine) > 0 && !cmd.lastOpenLineSkipped {
+	if bytes.HasPrefix(output, []byte{'\n'}) && len(cmd.openLine) > 0 {
 		// Optimization for cases where ansi control sequences are not supported:
 		// if the output starts with a \n, then treat the open line as closed and
 		// just keep going after that.
 		cmd.openLine = nil
 		output = output[1:]
-		cmd.lastOpenLineUpdate = time.Time{}
 	}
 	if sameAsLast && len(cmd.openLine) > 0 {
 		// Prettiness optimization: if there is an open line and the previous print out
@@ -227,24 +264,15 @@ func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
 	if lastNewLine != -1 {
 		// Ends up being empty slice if output ends in \n.
 		cmd.openLine = printOutput[(lastNewLine + 1):]
-		// A \n exists - reset the open line timer.
-		cmd.lastOpenLineUpdate = time.Time{}
 	} else {
 		// No \n found - update cmd.openLine to append the new output.
 		cmd.openLine = append(cmd.openLine, output...)
 	}
 	if !bytes.HasSuffix(printOutput, []byte{'\n'}) {
-		if time.Since(cmd.lastOpenLineUpdate) > durationBetweenOpenLineUpdate {
-			// Skip printing if trying to update the same line too frequently.
-			cmd.lastOpenLineSkipped = true
-			return nil
-		}
-		cmd.lastOpenLineUpdate = time.Now()
 		// If output doesn't terminate in \n, add our own.
 		printOutput = append(printOutput, '\n')
 	}
 
-	cmd.lastOpenLineSkipped = false
 	c.PrintBytes(printOutput)
 	f.lastOutputWasOngoingUpdate = false
 	f.lastOutputWasProgress = false
@@ -264,12 +292,20 @@ func (f *Formatter) processOngoingTick(ctx context.Context) error {
 }
 
 func (f *Formatter) printHeader(targetID string, commandID string, tm *logstream.TargetManifest, cm *logstream.CommandManifest, failure bool) {
-	c := f.targetConsole(targetID, commandID)
+	c, verboseOnly := f.targetConsole(targetID, commandID)
+	if verboseOnly && !f.verbose {
+		return
+	}
+	if cm.GetCategory() == "context" && !f.verbose {
+		// These tend to be pretty noisy. Don't print their header unless
+		// verbose is enabled.
+		return
+	}
 	if failure {
 		c = c.WithFailed(true)
 	}
 	var metaParts []string
-	if cm.GetPlatform() != "" {
+	if cm.GetPlatform() != "" && cm.GetPlatform() != f.defaultPlatform {
 		metaParts = append(metaParts, cm.GetPlatform())
 	}
 	if tm != nil && tm.GetOverrideArgs() != nil {
@@ -292,7 +328,10 @@ func (f *Formatter) printHeader(targetID string, commandID string, tm *logstream
 }
 
 func (f *Formatter) printProgress(targetID string, commandID string, cm *logstream.CommandManifest) {
-	c := f.targetConsole(targetID, commandID)
+	c, verboseOnly := f.targetConsole(targetID, commandID)
+	if verboseOnly && !f.verbose {
+		return
+	}
 	builder := make([]string, 0, 2)
 	if f.lastOutputWasProgress {
 		builder = append(builder, string(ansiUp))
@@ -334,7 +373,7 @@ func (f *Formatter) shouldPrintProgress(targetID string, commandID string, cm *l
 }
 
 func (f *Formatter) printError(targetID string, commandID string, tm *logstream.TargetManifest, cm *logstream.CommandManifest) {
-	c := f.targetConsole(targetID, commandID)
+	c, _ := f.targetConsole(targetID, commandID)
 	c.Printf("%s\n", cm.GetErrorMessage())
 	c.VerbosePrintf("Overriding args used: %s\n", strings.Join(tm.GetOverrideArgs(), " "))
 	f.lastOutputWasOngoingUpdate = false
@@ -343,10 +382,10 @@ func (f *Formatter) printError(targetID string, commandID string, tm *logstream.
 }
 
 func (f *Formatter) printBuildFailure() {
-	if f.manifest.GetFailure() == nil {
+	failure := f.manifest.GetFailure()
+	if failure.GetErrorMessage() == "" {
 		return
 	}
-	failure := f.manifest.GetFailure()
 	var tm *logstream.TargetManifest
 	var cm *logstream.CommandManifest
 	if failure.GetTargetId() != "" {
@@ -355,38 +394,63 @@ func (f *Formatter) printBuildFailure() {
 	if failure.GetCommandId() != "" {
 		cm = f.manifest.GetCommands()[failure.GetCommandId()]
 	}
-	c := f.targetConsole(failure.GetTargetId(), failure.GetCommandId())
+	c, _ := f.targetConsole(failure.GetTargetId(), failure.GetCommandId())
 	c = c.WithFailed(true)
-	c.Printf("Repeating the failure error...\n")
-	f.printHeader(failure.GetTargetId(), failure.GetCommandId(), tm, cm, true)
-	if len(failure.GetOutput()) > 0 {
-		c.PrintBytes(failure.GetOutput())
-	} else {
-		c.Printf("[no output]\n")
+	if failure.GetCommandId() != "" {
+		c.Printf("Repeating the failure error...\n")
+		f.printHeader(failure.GetTargetId(), failure.GetCommandId(), tm, cm, true)
+		if len(failure.GetOutput()) > 0 {
+			c.PrintBytes(failure.GetOutput())
+		} else {
+			c.Printf("[no output]\n")
+		}
 	}
-	if failure.GetErrorMessage() != "" {
-		c.Printf("%s\n", failure.GetErrorMessage())
-	}
+	c.Printf("%s\n", failure.GetErrorMessage())
 	f.lastOutputWasOngoingUpdate = false
 	f.lastOutputWasProgress = false
 	f.lastCommandOutput = nil
 }
 
-func (f *Formatter) targetConsole(targetID string, commandID string) conslogging.ConsoleLogger {
+func (f *Formatter) targetConsole(targetID string, commandID string) (conslogging.ConsoleLogger, bool) {
 	var targetName string
-	writerTargetID := targetID
-	if targetID != "" {
+	var writerTargetID string
+	verboseOnly := false
+	switch {
+	case targetID != "":
 		tm := f.manifest.GetTargets()[targetID]
 		targetName = tm.GetName()
-	} else {
-		writerTargetID = "_internal"
-		targetName = "internal"
-		if commandID != "" {
-			writerTargetID = fmt.Sprintf("_internal:%s", commandID)
-			targetName = writerTargetID
+		writerTargetID = targetID
+	case commandID == "_generic:default":
+		targetName = ""
+		writerTargetID = commandID
+	case strings.HasPrefix(commandID, "_generic:"):
+		targetName = strings.TrimPrefix(commandID, "_generic:")
+		writerTargetID = commandID
+	case commandID != "":
+		cm, ok := f.manifest.GetCommands()[commandID]
+		if ok {
+			targetName = cm.GetCategory()
+			if targetName == "" {
+				targetName = cm.GetName()
+			}
 		}
+		switch {
+		case strings.HasPrefix(targetName, "internal "):
+			verboseOnly = true
+			targetName = strings.TrimPrefix(targetName, "internal ")
+		case targetName == "internal":
+			verboseOnly = true
+		case targetName == "":
+			verboseOnly = true
+			targetName = fmt.Sprintf("_internal:%s", commandID)
+		default:
+		}
+		writerTargetID = commandID
+	default:
+		targetName = "_unknown"
+		writerTargetID = "_unknown"
 	}
 	return f.console.
 		WithWriter(f.bus.FormattedWriter(writerTargetID)).
-		WithPrefixAndSalt(targetName, targetID)
+		WithPrefixAndSalt(targetName, writerTargetID), verboseOnly
 }

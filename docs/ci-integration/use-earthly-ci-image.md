@@ -6,7 +6,7 @@ This guide is intended to help you use the Earthly image for your containerized 
 
 ## Prerequisites
 
-The `earthly/earthly` image requires that it is run as `--privileged`, if it is meant to be used with the embedded BuiltKit daemon. This is mainly due to the use of overlayfs and the internal networking setup.
+The `earthly/earthly` image requires that it is run as `--privileged`, or alternatively, it is run without the embedded Buildkit daemon (`NO_BUILDKIT=1`).
 
 ## Getting Started
 
@@ -27,25 +27,33 @@ Note that using the `earthly` binary as the entrypoint will not start up BuildKi
 
 An alternative option is to use the `earthly/earthly` image in conjunction with a remote BuildKit Daemon. You may use the environment variable `BUILDKIT_HOST` to specify the hostname of the remote BuildKit Daemon. When this environment variable is set, the `earthly/earthly` image will not attempt to start BuildKit and will instead use the remote BuildKit Daemon.
 
-For more details on using a remote BuildKit daemon, [see our guide](./remote-buildkit.md).
+You may also use the `earthly/earthly` image to run a build against an Earthly Satellite. To achieve this you can pass along an `EARTHLY_TOKEN` environment variable, along with the command-line flags `--sat` and `--org`, to point the build to a specific satellite.
+
+For more details on using remote execution, [see our guide on remote Buildkit](./remote-buildkit.md) or the [introduction to Satellites](../cloud/satellites.md).
 
 #### Mounting the source code
 
 The image expects the source code of the application you are building in the current working directory (by default `/workspace`). You will need to copy or mount the necessary files to that directory prior to invoking the entrypoint.
 
 ```bash
-docker run --privileged --rm -v "$PWD":/workspace earthly/earthly:v0.6.29 +my-target
+docker run --privileged --rm -v "$PWD":/workspace earthly/earthly:v0.6.30 +my-target
 ```
 
 Or, if you would like to use an alternative directory:
 
 ```bash
-docker run --privileged --rm -v "$PWD":/my-dir -w /my-dir earthly/earthly:v0.6.29 +my-target
+docker run --privileged --rm -v "$PWD":/my-dir -w /my-dir earthly/earthly:v0.6.30 +my-target
 ```
 
-#### `NO_DOCKER` Environment Variable
+Alternatively, you may rely on Earthly to perform a git clone, by using the remote target reference format. For example:
 
-In many CI use-cases outputting images locally is not necessary. In fact, Earthly's `--ci` flag disables output by default. In such circumstances, you can use the `NO_DOCKER` environment variable to disable checking for the presence of Docker. This will disable some warnings that would otherwise be printed to the console as Earthly starts up.
+```bash
+docker run --privileged --rm earthly/earthly:v0.6.30 github.com/foo/bar:my-branch+target
+```
+
+#### `NO_BUILDKIT` Environment Variable
+
+As the embedded Buildkit daemon requires `--privileged`, for some operations you may be able to use the `NO_BUILDKIT=1` environment variable to disable the embedded Buildkit daemon. This is especially useful when running against a remote buildkit (like a Satellite), or when not performing a build as part of the command (like when using `earthly account`).
 
 ## An important note about running the image
 
@@ -63,9 +71,5 @@ In some environments, not mounting `/tmp/earthly` as a Docker volume results in 
 ...
 rm: can't remove '/var/earthly/dind/...': Resource busy
 ```
-
-In EKS, users reported that mounting an EBS volume, instead of a Kubernetes `emptyDir` worked.
-
-This part of our documentation needs improvement. If you have a Kubernetes-based setup, please [let us know](https://earthly.dev/slack) how you have mounted `/tmp/earthly` and whether `WITH DOCKER` worked well for you.
 
 For more information, see the [documentation for `earthly/earthly` on DockerHub](https://hub.docker.com/r/earthly/earthly).

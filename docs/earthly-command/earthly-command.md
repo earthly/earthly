@@ -119,10 +119,15 @@ The `.env` file is meant for settings which are specific to the local environmen
 
 ##### `--config <path>`
 
-
 Also available as an env var setting: `EARTHLY_CONFIG=<path>`.
 
 Overrides the earthly [configuration file](../earthly-config/earthly-config.md), defaults to `~/.earthly/config.yml`.
+
+##### `--installation-name <name>`
+
+Also available as an env var setting: `EARTHLY_INSTALLATION_NAME=<name>`.
+
+Overrides the Earthly installation name. The installation name is used for the Buildkit Daemon name, the cache volume name, the configuration directory (`~/.<installation-name>`) and for the ports used by Buildkit. Using multiple installation names on the same system allows Earthly to run as multiple isolated instances, each with its own configuration, cache and daemon. Defaults to `earthly`.
 
 ##### `--ssh-auth-sock <path-to-sock>`
 

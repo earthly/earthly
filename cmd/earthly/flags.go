@@ -35,6 +35,13 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Destination: &app.authToken,
 		},
 		&cli.StringFlag{
+			Name:        "auth-jwt",
+			EnvVars:     []string{"EARTHLY_JWT"},
+			Usage:       "Force Earthly account to use supplied JWT token",
+			Destination: &app.authJWT,
+			Hidden:      true, // Internal.
+		},
+		&cli.StringFlag{
 			Name:        "git-username",
 			EnvVars:     []string{"GIT_USERNAME"},
 			Usage:       "The git username to use for git HTTPS authentication",
@@ -158,6 +165,13 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			EnvVars:     []string{"EARTHLY_LOGSTREAM_DEBUG_FILE"},
 			Usage:       "Enable log streaming debugging output to a file",
 			Destination: &app.logstreamDebugFile,
+			Hidden:      true, // Internal.
+		},
+		&cli.StringFlag{
+			Name:        "logstream-debug-manifest-file",
+			EnvVars:     []string{"EARTHLY_LOGSTREAM_DEBUG_MANIFEST_FILE"},
+			Usage:       "Enable log streaming manifest debugging output to a file",
+			Destination: &app.logstreamDebugManifestFile,
 			Hidden:      true, // Internal.
 		},
 		&cli.StringFlag{
@@ -325,7 +339,6 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			EnvVars:     []string{"EARTHLY_INSTALLATION_NAME"},
 			Usage:       "The earthly installation name to use when naming the buildkit container, the docker volume and the ~/.earthly directory",
 			Destination: &app.installationName,
-			Hidden:      true,
 		},
 		&cli.StringSliceFlag{
 			Name:    "cache-from",

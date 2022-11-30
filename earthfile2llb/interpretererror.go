@@ -13,25 +13,28 @@ var _ error = &InterpreterError{}
 // source code location.
 type InterpreterError struct {
 	SourceLocation *spec.SourceLocation
+	TargetID       string
 	text           string
 	cause          error
 	stack          string
 }
 
 // Errorf creates a new interpreter error.
-func Errorf(sl *spec.SourceLocation, stack string, format string, args ...interface{}) *InterpreterError {
+func Errorf(sl *spec.SourceLocation, targetID, stack string, format string, args ...interface{}) *InterpreterError {
 	return &InterpreterError{
 		SourceLocation: sl,
+		TargetID:       targetID,
 		stack:          stack,
 		text:           fmt.Sprintf(format, args...),
 	}
 }
 
 // WrapError wraps another error into a new interpreter error.
-func WrapError(cause error, sl *spec.SourceLocation, stack string, format string, args ...interface{}) *InterpreterError {
+func WrapError(cause error, sl *spec.SourceLocation, targetID, stack string, format string, args ...interface{}) *InterpreterError {
 	return &InterpreterError{
 		cause:          cause,
 		SourceLocation: sl,
+		TargetID:       targetID,
 		stack:          stack,
 		text:           fmt.Sprintf(format, args...),
 	}
@@ -56,7 +59,12 @@ func (ie InterpreterError) Error() string {
 	return ret
 }
 
-// Unwrap returns the cause of the error (if any).
+// Cause returns the cause of the error (if any).
+func (ie InterpreterError) Cause() error {
+	return errors.Cause(ie.cause)
+}
+
+// Unwrap unwraps the error.
 func (ie InterpreterError) Unwrap() error {
 	return ie.cause
 }

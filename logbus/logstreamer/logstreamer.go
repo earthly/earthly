@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/cloud"
@@ -13,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // LogStreamer is a log streamer. It uses the cloud client to send
@@ -77,8 +79,17 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 	const chSize = 10240
 	if ls.ch != nil {
 		// In case the channel is congested, this frees up any stuck writers.
+		prevCh := ls.ch
 		go func() {
-			for range ls.ch {
+			for {
+				select {
+				case _, ok := <-prevCh:
+					if !ok {
+						return
+					}
+				default:
+					return // no more messages to consume, but channel not closed
+				}
 			}
 		}()
 	}
@@ -118,7 +129,19 @@ func (ls *LogStreamer) Write(delta *logstream.Delta) {
 	ls.mu.Lock()
 	ch := ls.ch // ls.ch may get replaced on retry
 	ls.mu.Unlock()
-	ch <- []*logstream.Delta{delta}
+	if ch != nil {
+		ch <- []*logstream.Delta{delta}
+	} else {
+		// TODO (vladaionescu): If these messages show up, we need to rethink
+		//						the closing sequence.
+		// TODO (vladaionescu): We should only log this if verbose is enabled.
+		dt, err := protojson.Marshal(delta)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Log streamer closed, but failed to marshal log delta: %v", err)
+			return
+		}
+		fmt.Fprintf(os.Stderr, "Log streamer closed, dropping delta %v\n", string(dt))
+	}
 }
 
 // Close closes the log streamer.
@@ -126,10 +149,22 @@ func (ls *LogStreamer) Close() error {
 	ls.mu.Lock()
 	if ls.ch != nil {
 		close(ls.ch)
+		ls.ch = nil
 	}
 	ls.cancelled = true
 	ls.mu.Unlock()
-	<-ls.doneCh // wait for all messages to be sent (or for log streamer to error-out).
+	// wait for all messages to be sent
+	timedOut := false
+	select {
+	case <-ls.doneCh:
+	case <-time.After(60 * time.Second):
+		timedOut = true
+	}
+	ls.mu.Lock()
+	defer ls.mu.Unlock()
+	if timedOut {
+		ls.errors = append(ls.errors, errors.New("timed out waiting for log streamer to close"))
+	}
 	var retErr error
 	for _, err := range ls.errors {
 		retErr = multierror.Append(retErr, err)
