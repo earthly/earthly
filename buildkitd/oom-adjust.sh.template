@@ -2,7 +2,7 @@
 
 set -e
 
-OOM_SCORE_ADJ="${OOM_SCORE_ADJ}"
+OOM_ADJ="${OOM_SCORE_ADJ}"
 DEBUG="${BUILDKIT_DEBUG}"
 INVOCATION=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 6 ; echo '')
 
@@ -14,7 +14,7 @@ adjust_oom() {
   echo "$1" > /proc/"$2"/oom_score_adj || true # It is ok if the OOM score fails - the PID may have exited, so it no longer matters anyways.
 }
 
-if [ "$OOM_SCORE_ADJ" -eq "0" ]; then
+if [ "$OOM_ADJ" -eq "0" ]; then
     exit 0
 fi
 
@@ -51,5 +51,5 @@ do
         "buildkit-runc"*)     log "$PID oom_score_adj was set to $OOM_SCORE_ADJ" ;;
         *)                    log "$PID was $PID_NAME, no longer a candidate for OOM adjustment, ignoring"; continue ;;
     esac
-    adjust_oom "$OOM_SCORE_ADJ" "$PID"
+    adjust_oom "$OOM_ADJ" "$PID"
 done
