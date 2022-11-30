@@ -29,17 +29,18 @@ var (
 
 // GitMetadata is a collection of git information about a certain directory.
 type GitMetadata struct {
-	BaseDir   string
-	RelDir    string
-	RemoteURL string
-	GitURL    string
-	Hash      string
-	ShortHash string
-	Branch    []string
-	Tags      []string
-	Timestamp string
-	Author    string
-	CoAuthors []string
+	BaseDir            string
+	RelDir             string
+	RemoteURL          string
+	GitURL             string
+	Hash               string
+	ShortHash          string
+	Branch             []string
+	Tags               []string
+	CommitterTimestamp string
+	AuthorTimestamp    string
+	Author             string
+	CoAuthors          []string
 }
 
 // Metadata performs git metadata detection on the provided directory.
@@ -89,7 +90,12 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 		// Most likely no tags. Keep going.
 		tags = nil
 	}
-	timestamp, err := detectGitTimestamp(ctx, dir)
+	committerTimestamp, err := detectGitTimestamp(ctx, dir, committer)
+	if err != nil {
+		retErr = err
+		// Keep going.
+	}
+	authorTimestamp, err := detectGitTimestamp(ctx, dir, author)
 	if err != nil {
 		retErr = err
 		// Keep going.
@@ -114,34 +120,36 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 	}
 
 	return &GitMetadata{
-		BaseDir:   filepath.ToSlash(baseDir),
-		RelDir:    filepath.ToSlash(relDir),
-		RemoteURL: remoteURL,
-		GitURL:    gitURL,
-		Hash:      hash,
-		ShortHash: shortHash,
-		Branch:    branch,
-		Tags:      tags,
-		Timestamp: timestamp,
-		Author:    author,
-		CoAuthors: coAuthors,
+		BaseDir:            filepath.ToSlash(baseDir),
+		RelDir:             filepath.ToSlash(relDir),
+		RemoteURL:          remoteURL,
+		GitURL:             gitURL,
+		Hash:               hash,
+		ShortHash:          shortHash,
+		Branch:             branch,
+		Tags:               tags,
+		CommitterTimestamp: committerTimestamp,
+		AuthorTimestamp:    authorTimestamp,
+		Author:             author,
+		CoAuthors:          coAuthors,
 	}, retErr
 }
 
 // Clone returns a copy of the GitMetadata object.
 func (gm *GitMetadata) Clone() *GitMetadata {
 	return &GitMetadata{
-		BaseDir:   gm.BaseDir,
-		RelDir:    gm.RelDir,
-		RemoteURL: gm.RemoteURL,
-		GitURL:    gm.GitURL,
-		Hash:      gm.Hash,
-		ShortHash: gm.ShortHash,
-		Branch:    gm.Branch,
-		Tags:      gm.Tags,
-		Timestamp: gm.Timestamp,
-		Author:    gm.Author,
-		CoAuthors: gm.CoAuthors,
+		BaseDir:            gm.BaseDir,
+		RelDir:             gm.RelDir,
+		RemoteURL:          gm.RemoteURL,
+		GitURL:             gm.GitURL,
+		Hash:               gm.Hash,
+		ShortHash:          gm.ShortHash,
+		Branch:             gm.Branch,
+		Tags:               gm.Tags,
+		CommitterTimestamp: gm.CommitterTimestamp,
+		AuthorTimestamp:    gm.AuthorTimestamp,
+		Author:             gm.Author,
+		CoAuthors:          gm.CoAuthors,
 	}
 }
 
@@ -264,8 +272,22 @@ func detectGitTags(ctx context.Context, dir string) ([]string, error) {
 	return nil, nil
 }
 
-func detectGitTimestamp(ctx context.Context, dir string) (string, error) {
-	cmd := exec.CommandContext(ctx, "git", "log", "-1", "--format=%ct")
+type gitTimestampType int
+
+const (
+	author gitTimestampType = iota
+	committer
+)
+
+func detectGitTimestamp(ctx context.Context, dir string, tsType gitTimestampType) (string, error) {
+	var format string
+	switch tsType {
+	case author:
+		format = "%at"
+	case committer:
+		format = "%ct"
+	}
+	cmd := exec.CommandContext(ctx, "git", "log", "-1", "--format="+format)
 	cmd.Dir = dir
 	cmd.Stderr = nil // force capture of stderr on errors
 	out, err := cmd.Output()
