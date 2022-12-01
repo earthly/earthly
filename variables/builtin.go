@@ -72,8 +72,10 @@ func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gituti
 		ret.AddInactive(arg.EarthlyGitOriginURLScrubbed, stringutil.ScrubCredentials(gitMeta.RemoteURL))
 		ret.AddInactive(arg.EarthlyGitProjectName, getProjectName(gitMeta.RemoteURL))
 		ret.AddInactive(arg.EarthlyGitCommitTimestamp, gitMeta.CommitterTimestamp)
-		ret.AddInactive(arg.EarthlyGitCommitAuthorTimestamp, gitMeta.AuthorTimestamp)
 
+		if ftrs.GitCommitAuthorTimestamp {
+			ret.AddInactive(arg.EarthlyGitCommitAuthorTimestamp, gitMeta.AuthorTimestamp)
+		}
 		if gitMeta.CommitterTimestamp == "" {
 			ret.AddInactive(arg.EarthlySourceDateEpoch, "0")
 		} else {
