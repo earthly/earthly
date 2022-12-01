@@ -120,6 +120,9 @@ func WithDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error) 
 			if c2.GetHasLocal() {
 				c.IsLocal = c2.GetIsLocal()
 			}
+			if c2.GetHasInteractive() {
+				c.IsInteractive = c2.GetIsInteractive()
+			}
 			if c2.GetStartedAtUnixNanos() != 0 {
 				c.StartedAtUnixNanos = c2.GetStartedAtUnixNanos()
 			}

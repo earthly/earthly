@@ -44,6 +44,7 @@ type Features struct {
 	UseProjectSecrets          bool `long:"use-project-secrets" description:"enable project-based secret resolution"`
 	UsePipelines               bool `long:"use-pipelines" description:"enable the PIPELINE and TRIGGER commands"`
 	EarthlyCIArg               bool `long:"ci-arg" description:"include EARTHLY_CI arg"`
+	GitCommitAuthorTimestamp   bool `long:"git-commit-author-timestamp" description:"include EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP arg"`
 
 	NoUseRegistryForWithDocker bool `long:"no-use-registry-for-with-docker" description:"disable use-registry-for-with-docker"`
 

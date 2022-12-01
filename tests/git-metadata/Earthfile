@@ -45,14 +45,20 @@ git -C repo commit -m \"test
 
 Co-authored-by: Testy McTest <testy@earthly.dev>
 Co-authored-by: Coverage McCover <cover@earthly.dev>\"
+sleep 1
+git -C repo commit --amend --no-edit
 git -C repo push
-export expectedsha=\$(git -C repo rev-parse HEAD)
+export expected_sha=\$(git -C repo rev-parse HEAD)
+export expected_committer_timestamp=\$(git -C repo log -1 --format=\"%ct\")
+export expected_author_timestamp=\$(git -C repo log -1 --format=\"%at\")
 
 # finally perform earthly tests
-earthly --config \$earthly_config --verbose -D --build-arg expectedsha ./repo+test-git-metadata
+earthly --config \$earthly_config --verbose -D --build-arg expected_sha \
+--build-arg expected_committer_timestamp --build-arg expected_author_timestamp ./repo+test-git-metadata
 
 rm -rf repo
-earthly --config \$earthly_config --verbose -D --build-arg expectedsha git.example.com/testuser/repo:main+test-git-metadata
+earthly --config \$earthly_config --verbose -D --build-arg expected_sha \
+--build-arg expected_committer_timestamp --build-arg expected_author_timestamp git.example.com/testuser/repo:main+test-git-metadata
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
     DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --exec_cmd=/tmp/test-earthly-script
 
