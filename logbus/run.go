@@ -85,16 +85,18 @@ func (run *Run) NewCommand(commandID string, command string, targetID string, ca
 	if ok {
 		return nil, errors.New("command printer already exists")
 	}
+	sl := sourceLocationToProto(repoURL, repoHash, fileRelToRepo, sourceLocation)
 	run.buildDelta(&logstream.DeltaManifest_FieldsDelta{
 		Commands: map[string]*logstream.DeltaCommandManifest{
 			commandID: {
-				Name:           command,
-				TargetId:       targetID,
-				Category:       category,
-				Platform:       platform,
-				IsCached:       cached,
-				IsLocal:        local,
-				SourceLocation: sourceLocationToProto(repoURL, repoHash, fileRelToRepo, sourceLocation),
+				Name:              command,
+				TargetId:          targetID,
+				Category:          category,
+				Platform:          platform,
+				IsCached:          cached,
+				IsLocal:           local,
+				HasSourceLocation: (sl != nil),
+				SourceLocation:    sl,
 			},
 		},
 	})
