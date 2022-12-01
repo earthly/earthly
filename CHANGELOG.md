@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- new ARG `EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP` will contain the author timestamp of the current git commit, this ARG must be enabled with the `VERSION --git-commit-author-timestamp` feature flag. [#2462](https://github.com/earthly/earthly/pull/2462)
+
 ### Fixed
 
 - Support for saving files larger than 64kB on failure within a `TRY/FINALLY` block. [#2452](https://github.com/earthly/earthly/issues/2452)
