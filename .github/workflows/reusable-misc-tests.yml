@@ -65,12 +65,16 @@ jobs:
         run: mkdir -p ~/.earthly && ln -s ~/.earthly ~/.earthly-dev
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) -P --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
-      - name: rebuild earthly using latest earthly build echo
-        run: echo ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
+      - name: what installation name is it?
+        run: EARTHLY_SHOW_HIDDEN=1 ${{inputs.BUILT_EARTHLY_PATH}} --help | grep INSTAL
+      - name: what hash is it?
+        run: md5sum ${{inputs.BUILT_EARTHLY_PATH}}
       - name: rebuild earthly using latest earthly build
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: what installation name is it?
         run: EARTHLY_SHOW_HIDDEN=1 ${{inputs.BUILT_EARTHLY_PATH}} --help | grep INSTAL
+      - name: what hash is it?
+        run: md5sum ${{inputs.BUILT_EARTHLY_PATH}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
             set -euo pipefail
