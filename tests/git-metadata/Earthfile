@@ -45,6 +45,7 @@ git -C repo commit -m \"test
 
 Co-authored-by: Testy McTest <testy@earthly.dev>
 Co-authored-by: Coverage McCover <cover@earthly.dev>\"
+sleep 1
 git -C repo commit --amend --no-edit
 git -C repo push
 export expected_sha=\$(git -C repo rev-parse HEAD)
