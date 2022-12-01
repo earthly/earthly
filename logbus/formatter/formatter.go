@@ -59,6 +59,7 @@ type Formatter struct {
 	defaultPlatform string
 
 	mu                         sync.Mutex
+	interactives               map[string]struct{} // set of command IDs
 	lastOutputWasProgress      bool
 	lastOutputWasOngoingUpdate bool
 	lastCommandOutput          *command
@@ -105,6 +106,7 @@ func New(ctx context.Context, b *logbus.Bus, debug, verbose, forceColor, noColor
 		ongoingTick:   ongoingTick,
 		manifest:      &logstream.RunManifest{},
 		commands:      make(map[string]*command),
+		interactives:  make(map[string]struct{}),
 	}
 	if !disableOngoingUpdates {
 		go f.ongoingTickLoop(ctx)
@@ -204,6 +206,19 @@ func (f *Formatter) handleDeltaManifest(dm *logstream.DeltaManifest) error {
 			tm, ok = f.manifest.GetTargets()[cm.GetTargetId()]
 			if !ok {
 				return fmt.Errorf("target %s not found in manifest", cm.GetTargetId())
+			}
+		}
+		if cmd.GetHasInteractive() && cmd.GetIsInteractive() {
+			if cm.GetEndedAtUnixNanos() == 0 {
+				if len(f.interactives) == 0 {
+					f.ongoingTicker.Stop()
+				}
+				f.interactives[commandID] = struct{}{}
+			} else if cmd.GetEndedAtUnixNanos() != 0 {
+				delete(f.interactives, commandID)
+				if len(f.interactives) == 0 {
+					f.ongoingTicker.Reset(f.ongoingTick)
+				}
 			}
 		}
 		if cmd.GetStatus() == logstream.RunStatus_RUN_STATUS_IN_PROGRESS {
