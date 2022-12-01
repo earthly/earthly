@@ -90,6 +90,7 @@ jobs:
             docker ps -a
             docker images
             echo using ${{inputs.BUILT_EARTHLY_PATH}}
+            EARTHLY_SHOW_HIDDEN=1 ${{inputs.BUILT_EARTHLY_PATH}} --help | grep INSTALL
             ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd && \
             for i in 1 2 3 4; do
                 ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
