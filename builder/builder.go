@@ -220,8 +220,12 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 		}
 		if opt.GlobalWaitBlockFtr {
-			b.opt.Console.Printf("skipping builder.go bf code due to GlobalWaitBlockFtr\n")
-			return nil, nil
+			if opt.OnlyArtifact != nil || opt.OnlyFinalTargetImages {
+				b.opt.Console.Printf("builder.go bf code is still required for OnlyArtifact or OnlyFinalTargetImages modes (GlobalWaitBlockFtr has no effect)\n")
+			} else {
+				b.opt.Console.Printf("skipping builder.go bf code due to GlobalWaitBlockFtr\n")
+				return nil, nil
+			}
 		}
 
 		// WARNING: the code below is deprecated, and will eventually be removed, in favour of wait_block.go

@@ -9,6 +9,7 @@ import (
 	"github.com/earthly/earthly/states/image"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/platutil"
+	"github.com/earthly/earthly/util/waitutil"
 	"github.com/earthly/earthly/variables"
 	"github.com/google/uuid"
 )
@@ -67,6 +68,13 @@ type SingleTarget struct {
 
 	// doPushes indicates whether the SaveImages should actually be pushed
 	doPushes bool
+
+	// WaitBlocks contains the caller's waitblock plus any additional waitblocks defined in the target
+	WaitBlocks []waitutil.WaitBlock
+
+	// WaitItems contains all wait items which are created by the target
+	// it exists for tracking items in the target vs a caller's wait block that is shared between multiple targets
+	WaitItems []waitutil.WaitItem
 
 	// doneCh is a channel that is closed when the sts is complete.
 	doneCh chan struct{}
@@ -141,6 +149,12 @@ func (sts *SingleTarget) SetDoSaves() {
 	sts.doSavesMu.Lock()
 	defer sts.doSavesMu.Unlock()
 	sts.doSaves = true
+	for _, wi := range sts.WaitItems {
+		wi.SetDoSave()
+	}
+	for _, wb := range sts.WaitBlocks {
+		wb.SetDoSaves()
+	}
 }
 
 // GetDoPushes returns whether the SAVE IMAGE --push or RUN --push commands
@@ -156,6 +170,35 @@ func (sts *SingleTarget) SetDoPushes() {
 	sts.doSavesMu.Lock()
 	defer sts.doSavesMu.Unlock()
 	sts.doPushes = true
+}
+
+// AddWaitBlock adds a wait block to the state
+func (sts *SingleTarget) AddWaitBlock(waitBlock waitutil.WaitBlock) {
+	sts.doSavesMu.Lock()
+	defer sts.doSavesMu.Unlock()
+	sts.WaitBlocks = append(sts.WaitBlocks, waitBlock)
+}
+
+// Wait performs a Wait on all wait blocks
+func (sts *SingleTarget) Wait(ctx context.Context) error {
+	sts.doSavesMu.Lock()
+	defer sts.doSavesMu.Unlock()
+	for i := len(sts.WaitBlocks) - 1; i >= 0; i-- {
+		err := sts.WaitBlocks[i].Wait(ctx, sts.doPushes, sts.doSaves)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// AttachTopLevelWaitItems adds pre-created wait items to a new waitblock
+func (sts *SingleTarget) AttachTopLevelWaitItems(ctx context.Context, waitBlock waitutil.WaitBlock) {
+	sts.doSavesMu.Lock()
+	defer sts.doSavesMu.Unlock()
+	for _, item := range sts.WaitItems {
+		waitBlock.AddItem(item)
+	}
 }
 
 // TargetInput returns the target input in a concurrent-safe way.

@@ -1,0 +1,49 @@
+VERSION --wait-block 0.6
+
+earthly-multiplatform-wait-test-with-from-amd64:
+    FROM --platform=linux/amd64 alpine:latest
+    RUN echo x86_64 > /contrived-platform-data
+    SAVE IMAGE earthly-multiplatform-wait-test-with-from:latest
+
+earthly-multiplatform-wait-test-with-from-arm64:
+    FROM --platform=linux/arm64 alpine:latest
+    RUN echo aarch64 > /contrived-platform-data
+    SAVE IMAGE earthly-multiplatform-wait-test-with-from:latest
+
+earthly-multiplatform-wait-test-with-from-arm32v7:
+    FROM --platform=linux/arm/v7 alpine:latest
+    RUN echo arm/v7 > /contrived-platform-data
+    SAVE IMAGE earthly-multiplatform-wait-test-with-from:latest
+
+check-tag-exists-locally:
+    LOCALLY
+
+    RUN true
+
+    RUN docker images | grep 'earthly-multiplatform-wait-test-with-from[ ]\+latest_linux_amd64'
+    RUN docker images | grep 'earthly-multiplatform-wait-test-with-from[ ]\+latest_linux_arm_v7'
+    RUN if docker images | grep 'earthly-multiplatform-wait-test-with-from[ ]\+latest_linux_arm64'; then echo "Error: latest_linux_arm64 should not have be saved, but was" && exit 1; fi
+
+
+deps:
+    FROM alpine
+
+fake:
+    FROM +earthly-multiplatform-wait-test-with-from-arm64
+    RUN echo "this fake target uses arm64, but doesn't contain a direct SAVE IMAGE"
+
+indirect:
+    FROM +earthly-multiplatform-wait-test-with-from-amd64
+    RUN echo "this uses the same target which will be called directly under the main test"
+
+test:
+    FROM alpine
+    WAIT
+        BUILD +indirect # indirectly builds arm64, which is also built directly inside the IF
+        IF --no-cache sleep 5 # wait here in order for +indirect to be executed first
+            BUILD +earthly-multiplatform-wait-test-with-from-amd64
+            BUILD +earthly-multiplatform-wait-test-with-from-arm32v7
+            BUILD +fake # this indirectly builds arm64, which should never be saved locally
+        END
+    END
+    BUILD +check-tag-exists-locally
