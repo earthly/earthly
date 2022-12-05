@@ -150,6 +150,7 @@ ga-no-qemu:
     BUILD +chown-test
     BUILD +dotenv-test
     BUILD +env-test
+    BUILD +env-home-test
     BUILD +stack-failure-test
     BUILD +multi-stack-failure-test
     BUILD +no-cache-local-artifact-test
@@ -625,6 +626,9 @@ multi-stack-failure-test:
 
 env-test:
     DO +RUN_EARTHLY --earthfile=env.earth --extra_args="--no-output" --target=+test
+
+env-home-test:
+    DO +RUN_EARTHLY --earthfile=env-home.earth --extra_args="--secret sshkey=not-actually-a-ssh-key --no-output" --target=+test
 
 no-cache-local-artifact-test:
     DO +RUN_EARTHLY --earthfile=no-cache-local-artifact.earth --use_tmpfs=false --extra_args="--no-cache" --target=+test
