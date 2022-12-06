@@ -36,6 +36,7 @@ import (
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/platutil"
+	"github.com/earthly/earthly/util/shell"
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/vertexmeta"
@@ -2042,6 +2043,19 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 		return "", "", nil
 	}
 	parts := strings.SplitN(secretKeyValue, "=", 2)
+
+	// validate environment name is correct
+	defer func() {
+		if err != nil {
+			return
+		}
+		if envVar != "" && !shell.IsValidEnvVarName(envVar) {
+			err = fmt.Errorf("invalid secret environment name: %s", envVar)
+			secretID = ""
+			envVar = ""
+			return
+		}
+	}()
 
 	if len(parts) == 1 {
 		return parts[0], parts[0], nil
