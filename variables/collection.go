@@ -15,6 +15,10 @@ import (
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
+var ShellOutEnvs = map[string]struct{}{
+	"HOME": struct{}{},
+}
+
 type stackFrame struct {
 	frameName string
 	// absRef is the ref any other ref in this frame would be relative to.
@@ -183,7 +187,7 @@ func (c *Collection) Expand(word string, shellOut shell.EvalShellOutFn) (string,
 	shlex := shell.NewLex('\\')
 	shlex.ShellOut = shellOut
 	varMap := c.effective().ActiveValueMap()
-	return shlex.ProcessWordWithMap(word, varMap)
+	return shlex.ProcessWordWithMap(word, varMap, ShellOutEnvs)
 }
 
 // DeclareArg declares an arg. The effective value may be

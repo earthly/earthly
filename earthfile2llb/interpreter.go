@@ -2150,7 +2150,7 @@ func requiresShellOutOrCmdInvalid(s string) bool {
 		required = true
 		return "", nil
 	}
-	_, err := shlex.ProcessWordWithMap(s, map[string]string{})
+	_, err := shlex.ProcessWordWithMap(s, map[string]string{}, variables.ShellOutEnvs)
 	return required || err != nil
 }
 
