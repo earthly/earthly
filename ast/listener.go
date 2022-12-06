@@ -8,6 +8,7 @@ import (
 
 	"github.com/earthly/earthly/ast/parser"
 	"github.com/earthly/earthly/ast/spec"
+	"github.com/earthly/earthly/util/shell"
 	"github.com/pkg/errors"
 )
 
@@ -630,7 +631,13 @@ var envVarNameRegexp = regexp.MustCompile(`^[a-zA-Z_]+[a-zA-Z0-9_]*$`)
 func checkEnvVarName(str string) error {
 	itMatch := envVarNameRegexp.MatchString(str)
 	if !itMatch {
+		if shell.IsValidEnvVarName(str) {
+			panic("shouldnt happen as its the same regex")
+		}
 		return errors.Errorf("invalid env key definition %s", str)
+	}
+	if !shell.IsValidEnvVarName(str) {
+		panic("shouldnt happen either as its the same regex")
 	}
 	return nil
 }
