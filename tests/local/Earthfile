@@ -10,9 +10,11 @@ test-local-with-arg:
     ARG pattern
     RUN set -e; \
         if [ "$(uname -s)" = "Darwin" ]; then \
-            echo "locally must be working"; \
+            echo "locally must be working (since we cant run darwin via runc)"; \
+        elif [ "$(cat /proc/1/comm)" = "systemd" ]; then \
+            test "$(systemd-detect-virt --container)" = "none" || (echo "systemd-detect-virt --container returned $(systemd-detect-virt --container) instead" && exit 1); \
         else \
-            cat /proc/1/cgroup | grep -v $FRONTEND | grep $pattern; \
+            echo "unable to deteremine if running locally or not; got init process of $(cat /proc/1/comm)" && exit 1; \
         fi
 
 test-local:
@@ -22,9 +24,11 @@ test-local:
     RUN whoami
     RUN set -e; \
         if [ "$(uname -s)" = "Darwin" ]; then \
-            echo "locally must be working"; \
+            echo "locally must be working (since we cant run darwin via runc)"; \
+        elif [ "$(cat /proc/1/comm)" = "systemd" ]; then \
+            test "$(systemd-detect-virt --container)" = "none" || (echo "systemd-detect-virt --container returned $(systemd-detect-virt --container) instead" && exit 1); \
         else \
-            cat /proc/1/cgroup | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /^[0-9]+:cpuset:\/$/;'; \
+            echo "unable to deteremine if running locally or not; got init process of $(cat /proc/1/comm)" && exit 1; \
         fi
 
 
