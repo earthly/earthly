@@ -136,6 +136,12 @@ If you have issues with git-related features or with private docker registries, 
 
 You may need to adjust the docker login command in the `earthly-integration-test-base:` target by removing the Earthly repository and adjusting for your login credentials provider.
 
+### Documentation
+
+Changes to the contents of `docs/` will be automatically updated to [docs.earthly.dev](https://docs.earthly.dev/); this is a problem for new features since the published documentation will reference features which are missing from the current released version of earthly. To ensure docs stay in sync, documentation for new features must be submitted via a seperate PR to the `next` branch.
+
+When a new version of earthly is [released](release/README.md), the `next` branch gets merged into the `main` branch, which then propigates to the published documentation.
+
 ## CLA
 
 ### Individual
