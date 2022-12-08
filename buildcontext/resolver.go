@@ -59,8 +59,14 @@ type Resolver struct {
 
 // NewResolver returns a new NewResolver.
 func NewResolver(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides string) *Resolver {
+	return NewResolverCustomGit(cleanCollection, gitLookup, console, featureFlagOverrides, "")
+}
+
+// NewResolverCustomGit returns a new Resolver instance with a custom gitImage.
+func NewResolverCustomGit(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides string, gitImage string) *Resolver {
 	return &Resolver{
 		gr: &gitResolver{
+			gitImage:        gitImage,
 			cleanCollection: cleanCollection,
 			projectCache:    synccache.New(),
 			buildFileCache:  synccache.New(),

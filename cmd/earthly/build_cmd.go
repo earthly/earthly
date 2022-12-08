@@ -471,6 +471,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		InternalSecretStore:                   internalSecretStore,
 		InteractiveDebugging:                  app.interactiveDebugging,
 		InteractiveDebuggingDebugLevelLogging: app.debug,
+		GitImage:							   app.cfg.Global.GitImage,
 	}
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
 	if err != nil {

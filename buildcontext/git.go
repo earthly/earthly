@@ -34,6 +34,7 @@ const (
 type gitResolver struct {
 	cleanCollection *cleanup.Collection
 
+	gitImage       string
 	projectCache   *synccache.SyncCache // "gitURL#gitRef" -> *resolvedGitProject
 	buildFileCache *synccache.SyncCache // project ref -> local path
 	gitLookup      *GitLookup
@@ -193,8 +194,12 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		}
 
 		gitState := llb.Git(gitURL, gitRef, gitOpts...)
+		gitImage := gr.gitImage
+		if gitImage == "" {
+			gitImage = defaultGitImage
+		}
 		opImg := pllb.Image(
-			defaultGitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
+			gitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
 			llb.Platform(platr.LLBNative()))
 
 		// Get git hash.
