@@ -163,10 +163,6 @@ Allows overriding Earthly's automatic MTU detection. This is used when configuri
 
 Allows overriding Earthly's automatic `ip_tables` module detection. Valid choices are `iptables-legacy` or `iptables-nft`.
 
-### git_image
-
-Allows to override the image used to run internal `git` commands (e.g. during `GIT CLONE` or `IMPORT`). This defaults to `alpine/git:v2.30.1`.
-
 ### no_loop_device (obsolete)
 
 This option is obsolete and it is ignored. Earthly no longer uses a loop device for its cache.
