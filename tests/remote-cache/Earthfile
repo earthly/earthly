@@ -17,7 +17,6 @@ ARG EARTHLY_BUILD_ARGS="REGISTRY"
 ARG REGISTRY_CONFIG="
 [registry.\"$REGISTRY\"]
   http = true
-  insecure = true
 "
 
 COPY test.earth ./Earthfile
@@ -34,7 +33,7 @@ test1:
     RUN cat ./output
 
     # Check that the registry cache configuration didn't fail.
-    RUN ! grep "failed to configure registry cache" output
+    # RUN ! grep "failed to configure registry cache" output
 
     # Not cached - before copy.
     RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && test "$nl" -eq 2
@@ -45,6 +44,9 @@ test1:
     # No change & re-run - should only have 1 line output and not re-echo.
     DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
     RUN cat ./output
+
+    # Check that the registry cache configuration didn't fail.
+     RUN ! grep "failed to configure registry cache" output
 
     RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && test "$nl" -eq 1
 
