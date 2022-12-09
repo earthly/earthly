@@ -167,6 +167,10 @@ Allows overriding Earthly's automatic `ip_tables` module detection. Valid choice
 
 This option is obsolete and it is ignored. Earthly no longer uses a loop device for its cache.
 
+### git_image
+
+Allows to override the image used to run internal `git` commands (e.g. during `GIT CLONE` or `IMPORT`). This defaults to `alpine/git:v2.30.1`.
+
 ### cache_path (obsolete)
 
 This option is obsolete and it is ignored. Earthly cache has moved to a Docker volume. For more information see the [page on managing cache](../guides/cache.md).
