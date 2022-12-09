@@ -32,8 +32,8 @@ test1:
     DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
     RUN cat ./output
 
-    # Check that the registry cache configuration didn't fail.
-    # RUN ! grep "failed to configure registry cache" output
+    # Check that the registry cache wasn't initially found
+    RUN grep "failed to configure registry cache importer: $REGISTRY/test1:latest: not found" output
 
     # Not cached - before copy.
     RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && test "$nl" -eq 2
@@ -46,7 +46,7 @@ test1:
     RUN cat ./output
 
     # Check that the registry cache configuration didn't fail.
-     RUN ! grep "failed to configure registry cache" output
+    RUN ! grep "failed to configure registry cache" output
 
     RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && test "$nl" -eq 1
 

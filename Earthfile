@@ -335,6 +335,7 @@ earthly-integration-test-base:
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE
+    ARG DOCKERHUB_MIRROR_HTTP
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
     ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
@@ -355,8 +356,11 @@ earthly-integration-test-base:
         IF [ "$DOCKERHUB_MIRROR_INSECURE" = "true" ]
             ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
 [registry.\"$DOCKERHUB_MIRROR\"]
-  http = true
   insecure = true"
+        ELSE IF [ "$DOCKERHUB_MIRROR_HTTP" = "true" ]
+            ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
+[registry.\"$DOCKERHUB_MIRROR\"]
+  http = true"
         END
 
         # NOTE: newlines+indentation is important here, see https://github.com/earthly/earthly/issues/1764 for potential pitfalls
