@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/earthly/earthly/cloud"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -20,11 +21,20 @@ func (app *earthlyApp) webUI(cliCtx *cli.Context) error {
 		urlToOpen.Query().Set("final", app.loginFinal)
 	}
 
-	// TODO: Get token
-	var token string
+	client, err := app.newCloudClient()
+	if err != nil {
+		return errors.Wrap(err, "failed to initialize cloud client")
+	}
+
+	token, err := client.GetAuthToken(cliCtx.Context)
+	if err != nil && err != cloud.ErrUnauthorized {
+		return errors.Wrapf(err, "failed to get auth token")
+	}
+
 	if token != "" {
 		urlToOpen.Query().Set("token", token)
 	}
 
-	return errors.New("unimplemented")
+	app.console.Printf("Visit UI at %s", urlToOpen.String())
+	return nil
 }
