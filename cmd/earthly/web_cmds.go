@@ -5,6 +5,8 @@ import (
 	"net/url"
 
 	"github.com/earthly/earthly/cloud"
+
+	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -35,6 +37,13 @@ func (app *earthlyApp) webUI(cliCtx *cli.Context) error {
 		urlToOpen.Query().Set("token", token)
 	}
 
-	app.console.Printf("Visit UI at %s", urlToOpen.String())
+	urlString := urlToOpen.String()
+
+	err = browser.OpenURL(urlString)
+	if err != nil {
+		app.console.Printf("failed to open UI in browser")
+	}
+
+	app.console.Printf("Visit UI at %s", urlString)
 	return nil
 }
