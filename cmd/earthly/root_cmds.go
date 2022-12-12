@@ -309,32 +309,31 @@ Set up a whole custom git repository for a server called example.com, using a si
 					},
 					Subcommands: app.secretCmdsPreview(),
 				},
-				{
-					Name:        "web-ui",
-					Aliases:     []string{"web", "ui"},
-					Description: "Access the web UI *experimental*",
-					Usage:       "Access the web UI via your default browser and print the url",
-					UsageText:   "earthly web-ui (--provider=github|--final=ci)",
-					Hidden:      true,
-					Flags: []cli.Flag{
-						&cli.StringFlag{
-							Name:        "provider",
-							EnvVars:     []string{"EARTHLY_LOGIN_PROVIDER"},
-							Usage:       "The provider to use when logging into the web-ui",
-							Required:    false,
-							Destination: &app.loginProvider,
-						},
-						&cli.StringFlag{
-							Name:        "final",
-							EnvVars:     []string{"EARTHLY_LOGIN_FINAL"},
-							Usage:       "The final destination after accessing the web ui",
-							Required:    false,
-							Destination: &app.loginFinal,
-						},
-					},
-					Action: app.webUI,
+			},
+		},
+		{
+			Name:        "web-ui",
+			Description: "Access the web UI",
+			Usage:       "Access the web UI via your default browser and print the url",
+			UsageText:   "earthly web-ui (--provider=github|--final=ci)",
+			Hidden:      true,
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "provider",
+					EnvVars:     []string{"EARTHLY_LOGIN_PROVIDER"},
+					Usage:       "The provider to use when logging into the web-ui",
+					Required:    false,
+					Destination: &app.loginProvider,
+				},
+				&cli.StringFlag{
+					Name:        "final",
+					EnvVars:     []string{"EARTHLY_LOGIN_FINAL"},
+					Usage:       "The final destination after accessing the web ui",
+					Required:    false,
+					Destination: &app.loginFinal,
 				},
 			},
+			Action: app.webUI,
 		},
 	}
 }

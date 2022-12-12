@@ -12,7 +12,7 @@ import (
 )
 
 func (app *earthlyApp) webUI(cliCtx *cli.Context) error {
-	urlToOpen, err := url.Parse(fmt.Sprintf("%s/login", app.cloudHTTPAddr))
+	urlToOpen, err := url.Parse(fmt.Sprintf("%s/login", app.getCIHost()))
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse url")
 	}
@@ -29,7 +29,7 @@ func (app *earthlyApp) webUI(cliCtx *cli.Context) error {
 	}
 
 	token, err := client.GetAuthToken(cliCtx.Context)
-	if err != nil && err != cloud.ErrUnauthorized {
+	if err != nil && !errors.Is(err, cloud.ErrUnauthorized) {
 		return errors.Wrapf(err, "failed to get auth token")
 	}
 
@@ -47,3 +47,7 @@ func (app *earthlyApp) webUI(cliCtx *cli.Context) error {
 	app.console.Printf("Visit UI at %s", urlString)
 	return nil
 }
+
+// TODO: Tests
+// - When not logged in, should still open / print url
+// - When logged in, should print url including the provider / token.
