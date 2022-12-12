@@ -16,11 +16,12 @@ func (app *earthlyApp) webUI(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse url")
 	}
+	query := urlToOpen.Query()
 	if app.loginProvider != "" {
-		urlToOpen.Query().Set("provider", app.loginProvider)
+		query.Set("provider", app.loginProvider)
 	}
 	if app.loginFinal != "" {
-		urlToOpen.Query().Set("final", app.loginFinal)
+		query.Set("final", app.loginFinal)
 	}
 
 	client, err := app.newCloudClient()
@@ -34,9 +35,10 @@ func (app *earthlyApp) webUI(cliCtx *cli.Context) error {
 	}
 
 	if token != "" {
-		urlToOpen.Query().Set("token", token)
+		query.Set("token", token)
 	}
 
+	urlToOpen.RawQuery = query.Encode()
 	urlString := urlToOpen.String()
 
 	err = browser.OpenURL(urlString)
@@ -47,7 +49,3 @@ func (app *earthlyApp) webUI(cliCtx *cli.Context) error {
 	app.console.Printf("Visit UI at %s", urlString)
 	return nil
 }
-
-// TODO: Tests
-// - When not logged in, should still open / print url
-// - When logged in, should print url including the provider / token.
