@@ -5,7 +5,6 @@ import (
 	"net/url"
 
 	"github.com/earthly/earthly/cloud"
-
 	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
@@ -30,8 +29,11 @@ func (app *earthlyApp) webUI(cliCtx *cli.Context) error {
 	}
 
 	token, err := client.GetAuthToken(cliCtx.Context)
-	if err != nil && !errors.Is(err, cloud.ErrUnauthorized) {
-		return errors.Wrapf(err, "failed to get auth token")
+	if err != nil {
+		if !errors.Is(err, cloud.ErrUnauthorized) {
+			return errors.Wrapf(err, "failed to get auth token")
+		}
+		app.console.VerbosePrintf("failed to get token :s", err.Error())
 	}
 
 	if token != "" {
