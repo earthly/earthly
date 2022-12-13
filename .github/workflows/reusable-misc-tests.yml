@@ -77,6 +77,9 @@ jobs:
       - name: "Run the earthly image tests (Earthly only)"
         run: FRONTEND=${{inputs.BINARY}} EARTHLY_IMAGE=earthly/earthly:image-test ./scripts/tests/earthly-image.sh
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: "Run the Web UI tests (Earthly only)"
+        run: ./scripts/tests/web-ui.sh
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Run parallel buildkit start test. It ensures that earthly starting up buildkit does not race with itself.
         uses: nick-fields/retry@v2
         with:
