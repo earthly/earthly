@@ -39,8 +39,8 @@ ls
 org 
 preview 
 prune 
-satellite
-secret
+satellite 
+secret 
 web-ui " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
     RUN diff expected actual
