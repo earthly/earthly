@@ -26,7 +26,7 @@ func (app *earthlyApp) newCloudClient() (cloud.Client, error) {
 	return cloudClient, nil
 }
 
-// returns protocol:hostname
+// getCIHost returns protocol://hostname
 func (app *earthlyApp) getCIHost() string {
 	if strings.Contains(app.cloudGRPCAddr, "staging") {
 		return "https://ci-beta.staging.earthly.dev"
