@@ -33,7 +33,7 @@ func (app *earthlyApp) webUI(cliCtx *cli.Context) error {
 		if !errors.Is(err, cloud.ErrUnauthorized) {
 			return errors.Wrapf(err, "failed to get auth token")
 		}
-		app.console.VerbosePrintf("failed to get token :s", err.Error())
+		app.console.VerbosePrintf("failed to get token %s", err.Error())
 	}
 
 	if token != "" {
