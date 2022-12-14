@@ -312,16 +312,16 @@ Set up a whole custom git repository for a server called example.com, using a si
 			},
 		},
 		{
-			Name:        "web-ui",
+			Name:        "web",
 			Description: "Access the web UI",
 			Usage:       "Access the web UI via your default browser and print the url",
-			UsageText:   "earthly web-ui (--provider=github|--final=ci)",
+			UsageText:   "earthly web (--provider=github|--final=ci)",
 			Hidden:      true,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "provider",
 					EnvVars:     []string{"EARTHLY_LOGIN_PROVIDER"},
-					Usage:       "The provider to use when logging into the web-ui",
+					Usage:       "The provider to use when logging into the web ui",
 					Required:    false,
 					Destination: &app.loginProvider,
 				},
