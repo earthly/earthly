@@ -119,6 +119,7 @@ ga-no-qemu:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
+    BUILD ./web+test
     BUILD +excludes-test
     BUILD +secrets-test
     BUILD +secrets-optional-prefix-test

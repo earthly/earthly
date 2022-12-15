@@ -1,0 +1,21 @@
+VERSION 0.6
+
+FROM ../..+earthly-integration-test-base --DOCKERHUB_AUTH=false
+
+IMPORT .. AS tests
+
+WORKDIR /test
+
+test:
+    RUN earthly web 2>&1 | grep -qE "https://ci(-beta)?.earthly.dev/login"
+    RUN earthly web --provider github 2>output-file \
+        && output=$(cat output-file) \
+        && rm output-file \
+        && if [[ "$output" != *"provider=github"* ]]; then echo "failed to find provider=github in output" && exit 1; fi
+
+    RUN --secret EARTHLY_TOKEN=+secrets/EARTHLY_TOKEN earthly web 2>&1 | grep -qE "https://ci(-beta)?.earthly.dev/login\?token=(.*)+"
+    RUN --secret EARTHLY_TOKEN=+secrets/EARTHLY_TOKEN earthly web --provider github 2>output-file \
+        && output=$(cat output-file) \
+        && rm output-file \
+        && if [[ "$output" != *"provider=github"* ]]; then echo "failed to find provider=github in output" && exit 1; fi \
+        && if [[ "$output" != *"token="* ]]; then echo "failed to find provider= in output" && exit 1; fi

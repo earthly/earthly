@@ -42,7 +42,8 @@ func (app *earthlyApp) webUI(cliCtx *cli.Context) error {
 
 	err = browser.OpenURL(urlString)
 	if err != nil {
-		app.console.Printf("failed to open UI in browser")
+		err := errors.Wrapf(err, "failed to open UI in browser")
+		app.console.Printf(err.Error())
 	}
 
 	app.console.Printf("Visit UI at %s", urlString)
