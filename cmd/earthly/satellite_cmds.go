@@ -53,9 +53,9 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 				&cli.StringFlag{
 					Name:    "maintenance-window",
 					Aliases: []string{"mw"},
-					Usage: "Set a custom maintenance window for satellite auto-updates.\n" +
+					Usage: "Sets a maintenance window for satellite auto-updates.\n" +
 						"If there is a a new satellite version available, the satellite will update within 2 hrs of the time specified.\n" +
-						"Format must be in HH:MM (24 hr) and will be automatically converted from your local time to UTC.\n" +
+						"Format must be in HH:MM (24 hr) and will be automatically converted from your current local time to UTC.\n" +
 						"Default value is 02:00 in your local time.",
 					Required:    false,
 					Destination: &app.satelliteMaintenanceWindow,

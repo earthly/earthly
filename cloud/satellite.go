@@ -97,13 +97,13 @@ func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error 
 
 func (c *client) LaunchSatellite(ctx context.Context, name, orgID, platform, size, version, maintenanceWindow string, features []string) error {
 	req := &pb.LaunchSatelliteRequest{
-		OrgId:        orgID,
-		Name:         name,
-		Platform:     platform,
-		Size:         size,
-		FeatureFlags: features,
-		Version:      version,
-		//MaintenanceWindow: maintenanceWindow,
+		OrgId:                  orgID,
+		Name:                   name,
+		Platform:               platform,
+		Size:                   size,
+		FeatureFlags:           features,
+		Version:                version,
+		MaintenanceWindowStart: maintenanceWindow,
 	}
 	_, err := c.compute.LaunchSatellite(c.withAuth(ctx), req)
 	if err != nil {
@@ -225,12 +225,12 @@ func (c *client) SleepSatellite(ctx context.Context, name, orgID string) (out ch
 
 func (c *client) UpdateSatellite(ctx context.Context, name, orgID, version, maintenanceWindow string, dropCache bool, featureFlags []string) error {
 	req := &pb.UpdateSatelliteRequest{
-		OrgId:        orgID,
-		Name:         name,
-		Version:      version,
-		DropCache:    dropCache,
-		FeatureFlags: featureFlags,
-		//MaintenanceWindow: maintenanceWindow,
+		OrgId:                  orgID,
+		Name:                   name,
+		Version:                version,
+		DropCache:              dropCache,
+		FeatureFlags:           featureFlags,
+		MaintenanceWindowStart: maintenanceWindow,
 	}
 	_, err := c.compute.UpdateSatellite(c.withAuth(ctx), req)
 	if err != nil {
