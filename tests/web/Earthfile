@@ -13,8 +13,8 @@ test:
         && rm output-file \
         && if [[ "$output" != *"provider=github"* ]]; then echo "failed to find provider=github in output" && exit 1; fi
 
-    RUN --secret EARTHLY_TOKEN=+secrets/EARTHLY_TOKEN earthly web 2>&1 | grep -qE "https://ci(-beta)?.earthly.dev/login\?token=(.*)+"
-    RUN --secret EARTHLY_TOKEN=+secrets/EARTHLY_TOKEN earthly web --provider github 2>output-file \
+    RUN --secret EARTHLY_TOKEN=+secrets/earthly-technologies/earthly/fake-user/token earthly web 2>&1 | grep -qE "https://ci(-beta)?.earthly.dev/login\?token=(.*)+"
+    RUN --secret EARTHLY_TOKEN=+secrets/earthly-technologies/earthly/fake-user/token earthly web --provider github 2>output-file \
         && output=$(cat output-file) \
         && rm output-file \
         && if [[ "$output" != *"provider=github"* ]]; then echo "failed to find provider=github in output" && exit 1; fi \
