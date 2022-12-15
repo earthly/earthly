@@ -156,7 +156,6 @@ type cliFlags struct {
 	requestID                  string
 	buildID                    string
 	loginProvider              string
-	loginFinal                 string
 }
 
 type analyticsMetadata struct {

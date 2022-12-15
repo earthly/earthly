@@ -13,20 +13,15 @@ if [ $RESULT -ne 0 ]; then
   exit $RESULT
 fi
 
-# Test with arguments passed for provider and final
-NO_COLOR=0 "$earthly" web --provider github --final ci 2>output-file
+# Test with argument passed for provider
+NO_COLOR=0 "$earthly" web --provider github 2>output-file
 output=$(cat output-file)
 rm output-file
 
 RESULT=$?
 if [ $RESULT -ne 0 ]; then
-  echo "failed without login provider / final arguments passed"
+  echo "failed without login provider argument passed"
   exit $RESULT
-fi
-
-if [[ "$output" != *"final=ci"* ]]; then
-  echo "failed to find final=ci in output"
-  exit 1
 fi
 
 if [[ "$output" != *"provider=github"* ]]; then
@@ -49,8 +44,8 @@ if [ $RESULT -ne 0 ]; then
 fi
 
 
-# Test logged in with arguments passed for provider and final
-NO_COLOR=0 "$earthly" web --provider github --final ci 2>output-file
+# Test logged in with argument passed for provider
+NO_COLOR=0 "$earthly" web --provider github 2>output-file
 output=$(cat output-file)
 rm output-file
 
@@ -58,11 +53,6 @@ RESULT=$?
 if [ $RESULT -ne 0 ]; then
   echo "failed without login provider / final arguments passed"
   exit $RESULT
-fi
-
-if [[ "$output" != *"final=ci"* ]]; then
-  echo "failed to find final=ci in output"
-  exit 1
 fi
 
 if [[ "$output" != *"provider=github"* ]]; then

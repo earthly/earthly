@@ -19,9 +19,6 @@ func (app *earthlyApp) webUI(cliCtx *cli.Context) error {
 	if app.loginProvider != "" {
 		query.Set("provider", app.loginProvider)
 	}
-	if app.loginFinal != "" {
-		query.Set("final", app.loginFinal)
-	}
 
 	client, err := app.newCloudClient()
 	if err != nil {

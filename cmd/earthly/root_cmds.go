@@ -315,7 +315,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 			Name:        "web",
 			Description: "Access the web UI",
 			Usage:       "Access the web UI via your default browser and print the url",
-			UsageText:   "earthly web (--provider=github|--final=ci)",
+			UsageText:   "earthly web (--provider=github)",
 			Hidden:      true,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
@@ -324,13 +324,6 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Usage:       "The provider to use when logging into the web ui",
 					Required:    false,
 					Destination: &app.loginProvider,
-				},
-				&cli.StringFlag{
-					Name:        "final",
-					EnvVars:     []string{"EARTHLY_LOGIN_FINAL"},
-					Usage:       "The final destination after accessing the web ui",
-					Required:    false,
-					Destination: &app.loginFinal,
 				},
 			},
 			Action: app.webUI,
