@@ -2,7 +2,9 @@ package cloud
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"regexp"
 	"time"
 
 	pb "github.com/earthly/cloud-api/compute"
@@ -93,14 +95,17 @@ func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error 
 	return nil
 }
 
-func (c *client) LaunchSatellite(ctx context.Context, name, orgID, platform, size string, features []string) error {
-	_, err := c.compute.LaunchSatellite(c.withAuth(ctx), &pb.LaunchSatelliteRequest{
+func (c *client) LaunchSatellite(ctx context.Context, name, orgID, platform, size, version, maintenanceWindow string, features []string) error {
+	req := &pb.LaunchSatelliteRequest{
 		OrgId:        orgID,
 		Name:         name,
 		Platform:     platform,
 		Size:         size,
 		FeatureFlags: features,
-	})
+		Version:      version,
+		//MaintenanceWindow: maintenanceWindow,
+	}
+	_, err := c.compute.LaunchSatellite(c.withAuth(ctx), req)
 	if err != nil {
 		return errors.Wrap(err, "failed launching satellite")
 	}
@@ -216,6 +221,37 @@ func (c *client) SleepSatellite(ctx context.Context, name, orgID string) (out ch
 		}
 	}()
 	return out
+}
+
+func (c *client) UpdateSatellite(ctx context.Context, name, orgID, version, maintenanceWindow string, dropCache bool, featureFlags []string) error {
+	req := &pb.UpdateSatelliteRequest{
+		OrgId:        orgID,
+		Name:         name,
+		Version:      version,
+		DropCache:    dropCache,
+		FeatureFlags: featureFlags,
+		//MaintenanceWindow: maintenanceWindow,
+	}
+	_, err := c.compute.UpdateSatellite(c.withAuth(ctx), req)
+	if err != nil {
+		return errors.Wrap(err, "failed getting satellite")
+	}
+	return nil
+}
+
+var maintenceWindowRx = regexp.MustCompile(`[0-9]{2}:[0-9]{2}\z`)
+
+// ParseMaintenanceWindow checks if the provided maintenance window is valid
+// and returns a new maintenance window converted from local time to UTC format.
+func ParseMaintenanceWindow(window string, locale *time.Location) (string, error) {
+	if !maintenceWindowRx.MatchString(window) {
+		return "", errors.New("maintenance window must be in the format HH:MM (24hr)")
+	}
+	t, err := time.ParseInLocation("15:04:05", fmt.Sprintf("%s:00", window), locale)
+	if err != nil {
+		return "", errors.Wrap(err, "failed parsing maintenance window")
+	}
+	return t.UTC().Format("15:04"), nil
 }
 
 func satelliteStatus(status pb.SatelliteStatus) string {
