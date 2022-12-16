@@ -7,28 +7,37 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseMaintenanceWindow(t *testing.T) {
+func TestLocalMaintenanceWindowToUTC(t *testing.T) {
 	t.Run("proper timestamp", func(t *testing.T) {
 		l, _ := time.LoadLocation("EST")
-		w, err := ParseMaintenanceWindow("02:00", l)
+		w, err := LocalMaintenanceWindowToUTC("02:00", l)
 		assert.Nil(t, err)
 		assert.Equal(t, "07:00", w)
 	})
 	t.Run("invalid formats", func(t *testing.T) {
 		l, _ := time.LoadLocation("EST")
-		_, err := ParseMaintenanceWindow("1234:00", l)
+		_, err := LocalMaintenanceWindowToUTC("1234:00", l)
 		assert.NotNil(t, err)
-		_, err = ParseMaintenanceWindow("02:1234", l)
+		_, err = LocalMaintenanceWindowToUTC("02:1234", l)
 		assert.NotNil(t, err)
-		_, err = ParseMaintenanceWindow("02:00:12", l)
+		_, err = LocalMaintenanceWindowToUTC("02:00:12", l)
 		assert.NotNil(t, err)
-		_, err = ParseMaintenanceWindow("1:00pm", l)
+		_, err = LocalMaintenanceWindowToUTC("1:00pm", l)
 		assert.NotNil(t, err)
-		_, err = ParseMaintenanceWindow("13:14 EST", l)
+		_, err = LocalMaintenanceWindowToUTC("13:14 EST", l)
 		assert.NotNil(t, err)
-		_, err = ParseMaintenanceWindow("1224", l)
+		_, err = LocalMaintenanceWindowToUTC("1224", l)
 		assert.NotNil(t, err)
-		_, err = ParseMaintenanceWindow("oops", l)
+		_, err = LocalMaintenanceWindowToUTC("oops", l)
 		assert.NotNil(t, err)
+	})
+}
+
+func TestUTCMaintenanceWindowToLocal(t *testing.T) {
+	t.Run("proper timestamp", func(t *testing.T) {
+		l, _ := time.LoadLocation("EST")
+		w, err := UTCMaintenanceWindowToLocal("07:00", l)
+		assert.Nil(t, err)
+		assert.Equal(t, "02:00", w)
 	})
 }

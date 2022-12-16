@@ -35,13 +35,14 @@ const (
 
 // SatelliteInstance contains details about a remote Buildkit instance.
 type SatelliteInstance struct {
-	Name         string
-	Org          string
-	State        string
-	Platform     string
-	Size         string
-	Version      string
-	FeatureFlags []string
+	Name              string
+	Org               string
+	State             string
+	Platform          string
+	Size              string
+	Version           string
+	FeatureFlags      []string
+	MaintenanceWindow string
 }
 
 func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error) {
@@ -74,13 +75,14 @@ func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*Satelli
 		return nil, errors.Wrap(err, "failed getting satellite")
 	}
 	return &SatelliteInstance{
-		Name:         name,
-		Org:          orgID,
-		State:        satelliteStatus(resp.Status),
-		Platform:     resp.Platform,
-		Size:         resp.Size,
-		Version:      resp.Version,
-		FeatureFlags: resp.FeatureFlags,
+		Name:              name,
+		Org:               orgID,
+		State:             satelliteStatus(resp.Status),
+		Platform:          resp.Platform,
+		Size:              resp.Size,
+		Version:           resp.Version,
+		FeatureFlags:      resp.FeatureFlags,
+		MaintenanceWindow: resp.MaintenanceWindowStart,
 	}, nil
 }
 
@@ -241,17 +243,27 @@ func (c *client) UpdateSatellite(ctx context.Context, name, orgID, version, main
 
 var maintenceWindowRx = regexp.MustCompile(`[0-9]{2}:[0-9]{2}\z`)
 
-// ParseMaintenanceWindow checks if the provided maintenance window is valid
+// LocalMaintenanceWindowToUTC checks if the provided maintenance window is valid
 // and returns a new maintenance window converted from local time to UTC format.
-func ParseMaintenanceWindow(window string, locale *time.Location) (string, error) {
+func LocalMaintenanceWindowToUTC(window string, loc *time.Location) (string, error) {
 	if !maintenceWindowRx.MatchString(window) {
 		return "", errors.New("maintenance window must be in the format HH:MM (24hr)")
 	}
-	t, err := time.ParseInLocation("15:04:05", fmt.Sprintf("%s:00", window), locale)
+	t, err := time.ParseInLocation("15:04:05", fmt.Sprintf("%s:00", window), loc)
 	if err != nil {
 		return "", errors.Wrap(err, "failed parsing maintenance window")
 	}
 	return t.UTC().Format("15:04"), nil
+}
+
+// UTCMaintenanceWindowToLocal checks if the provided maintenance window is valid
+// and returns a new maintenance window converted from local time to UTC format.
+func UTCMaintenanceWindowToLocal(window string, loc *time.Location) (string, error) {
+	t, err := time.ParseInLocation("15:04:05", fmt.Sprintf("%s:00", window), time.UTC)
+	if err != nil {
+		return "", errors.Wrap(err, "failed parsing maintenance window")
+	}
+	return t.In(loc).Format("15:04"), nil
 }
 
 func satelliteStatus(status pb.SatelliteStatus) string {

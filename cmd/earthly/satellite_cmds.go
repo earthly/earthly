@@ -320,7 +320,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 
 	localWindow := window
 	if window != "" {
-		window, err = cloud.ParseMaintenanceWindow(window, time.Local)
+		window, err = cloud.LocalMaintenanceWindowToUTC(window, time.Local)
 		if err != nil {
 			return err
 		}
@@ -476,6 +476,13 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	app.console.Printf("Version: %s", satellite.Version)
 	if len(satellite.FeatureFlags) > 0 {
 		app.console.Printf("Feature Flags: %+v", satellite.FeatureFlags)
+	}
+	if satellite.MaintenanceWindow != "" {
+		mw, err := cloud.UTCMaintenanceWindowToLocal(satellite.MaintenanceWindow, time.Local)
+		if err != nil {
+			return errors.Wrap(err, "failed converting maintenance window to local time")
+		}
+		app.console.Printf("Maintenance Window: %s", mw)
 	}
 	app.console.Printf("Currently selected: %s", selected)
 	app.console.Printf("")
@@ -664,7 +671,7 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 	}
 
 	if window != "" {
-		window, err = cloud.ParseMaintenanceWindow(window, time.Local)
+		window, err = cloud.LocalMaintenanceWindowToUTC(window, time.Local)
 		if err != nil {
 			return err
 		}
