@@ -1,0 +1,7 @@
+VERSION 0.6
+
+FROM ..+base
+
+export:
+  COPY . docs
+  SAVE ARTIFACT docs docs
