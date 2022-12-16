@@ -62,7 +62,7 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 				},
 				&cli.StringFlag{
 					Name:        "version",
-					Usage:       "Launch a specific satellite version (disables auto-updates)",
+					Usage:       "Launch and pin a satellite at a specific version (disables auto-updates)",
 					Required:    false,
 					Hidden:      true,
 					Destination: &app.satelliteCurrentVersion,
@@ -310,6 +310,15 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		return err
 	}
 
+	if window != "" && version != "" {
+		return errors.New("cannot set both maintenance window and a pinned version")
+	}
+
+	if window == "" && version == "" {
+		window = "02:00"
+	}
+
+	localWindow := window
 	if window != "" {
 		window, err = cloud.ParseMaintenanceWindow(window, time.Local)
 		if err != nil {
@@ -317,7 +326,10 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		}
 	}
 
-	app.console.Printf("Launching Satellite. This could take a moment...\n")
+	z, _ := time.Now().Zone()
+	app.console.Printf("Launching Satellite '%s' with auto-updates set to run at %s (%s)\n",
+		app.satelliteName, localWindow, z)
+	app.console.Printf("Please wait...\n")
 	err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID, platform, size, version, window, ffs)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
@@ -656,6 +668,8 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 		if err != nil {
 			return err
 		}
+		z, _ := time.Now().Zone()
+		app.console.Printf("Auto-update maintenance window set to %s (%s)\n", app.satelliteMaintenanceWindow, z)
 	}
 
 	err = cloudClient.UpdateSatellite(cliCtx.Context, app.satelliteName, orgID, version, window, dropCache, ffs)
@@ -663,7 +677,7 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed starting satellite update")
 	}
 
-	app.console.Printf("Update now running on satellite: %s...", app.satelliteName)
+	app.console.Printf("Update now running on satellite '%s'...\n", app.satelliteName)
 	return nil
 }
 
