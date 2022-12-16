@@ -35,7 +35,8 @@ The following builtin args are available
 | `EARTHLY_GIT_SHORT_HASH` | The first 8 characters of the git hash detected within the build context directory. If no git directory is detected, then the value is an empty string. Take care when using this arg, as the frequently changing git hash may be cause for not using the cache. | `41cb5666` |
 | `EARTHLY_GIT_ORIGIN_URL` | The git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. Please note that this may be inconsistent, depending on whether an HTTPS or SSH URL was used. | `git@github.com:bar/buz.git` or `https://github.com/bar/buz.git` |
 | `EARTHLY_GIT_PROJECT_NAME` | The git project name from within the git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. | `bar/buz` |
-| `EARTHLY_GIT_COMMIT_TIMESTAMP` | The timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is an empty string. | `1626881847` |
+| `EARTHLY_GIT_COMMIT_TIMESTAMP` | The committer timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is an empty string. | `1626881847` |
+| `EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP` | The author timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is an empty string. | `1626881847` |
 | `EARTHLY_VERSION` * | The version of Earthly currently running. | `v0.6.2` |
 | `EARTHLY_BUILD_SHA` * | The git hash of the commit which built the currently running version of Earthly. | `1a9eda7a83af0e2ec122720e93ff6dbe9231fc0c` |
 | `TARGETPLATFORM` | The target platform the target is being built for. | `linux/arm/v7`, `linux/amd64`, `linux/arm64` |

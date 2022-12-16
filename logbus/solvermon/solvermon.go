@@ -78,7 +78,7 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 			}
 			cp, err := bp.NewCommand(
 				vertex.Digest.String(), operation, meta.TargetID, category, meta.Platform,
-				vertex.Cached, meta.Local, meta.SourceLocation,
+				vertex.Cached, meta.Local, meta.Interactive, meta.SourceLocation,
 				meta.RepoGitURL, meta.RepoGitHash, meta.RepoFileRelToRepo)
 			if err != nil {
 				return err

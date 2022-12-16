@@ -36,6 +36,7 @@ import (
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/platutil"
+	"github.com/earthly/earthly/util/shell"
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/vertexmeta"
@@ -877,9 +878,9 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		}
 
 		if c.ftrs.WaitBlock {
-			if c.opt.DoSaves {
-				c.waitBlock().addSaveArtifactLocal(saveLocal, c)
-			}
+			waitItem := newSaveArtifactLocal(saveLocal, c, c.opt.DoSaves)
+			c.waitBlock().AddItem(waitItem)
+			c.mts.Final.WaitItems = append(c.mts.Final.WaitItems, waitItem)
 		} else {
 			if isPush {
 				c.mts.Final.RunPush.SaveLocals = append(c.mts.Final.RunPush.SaveLocals, saveLocal)
@@ -984,7 +985,9 @@ func (c *Converter) waitBlock() *waitBlock {
 
 // PushWaitBlock should be called when a WAIT block starts, all commands will be added to this new block
 func (c *Converter) PushWaitBlock(ctx context.Context) error {
-	c.waitBlockStack = append(c.waitBlockStack, newWaitBlock())
+	waitBlock := newWaitBlock()
+	c.waitBlockStack = append(c.waitBlockStack, waitBlock)
+	c.mts.Final.AddWaitBlock(waitBlock)
 	return nil
 }
 
@@ -999,14 +1002,14 @@ func (c *Converter) PopWaitBlock(ctx context.Context) error {
 		// an END is only ever encountered by the converter that created the WAIT block, this is the only special
 		// instance where we reference mts.Final.MainState before calling FinalizeStates; this can be done here
 		// as the waitBlock belongs to the current Converter
-		c.waitBlock().addState(&c.mts.Final.MainState, c)
+		c.waitBlock().AddItem(newStateWaitItem(&c.mts.Final.MainState, c))
 	}
 
 	i := n - 1
 	waitBlock := c.waitBlockStack[i]
 	c.waitBlockStack = c.waitBlockStack[:i]
 
-	return waitBlock.wait(ctx)
+	return waitBlock.Wait(ctx, c.opt.DoPushes, c.opt.DoSaves)
 }
 
 // SaveImage applies the earthly SAVE IMAGE command.
@@ -1068,7 +1071,9 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 			if c.ftrs.WaitBlock {
 				shouldPush := pushImages && si.DockerTag != "" && c.opt.DoPushes
 				shouldExportLocally := si.DockerTag != "" && c.opt.DoSaves
-				c.waitBlock().addSaveImage(si, c, shouldPush, shouldExportLocally)
+				waitItem := newSaveImage(si, c, shouldPush, shouldExportLocally)
+				c.waitBlock().AddItem(waitItem)
+				c.mts.Final.WaitItems = append(c.mts.Final.WaitItems, waitItem)
 				if pushImages {
 					// only add summary for `SAVE IMAGE --push` commands
 					c.opt.ExportCoordinator.AddPushedImageSummary(c.target.StringCanonical(), si.DockerTag, c.mts.Final.ID, c.opt.DoPushes)
@@ -1556,7 +1561,7 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	}
 
 	if c.ftrs.WaitBlock {
-		c.waitBlock().addState(&c.mts.Final.MainState, c)
+		c.waitBlock().AddItem(newStateWaitItem(&c.mts.Final.MainState, c))
 	}
 	close(c.mts.Final.Done())
 
@@ -1650,7 +1655,16 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	opt.PlatformResolver = c.platr.SubResolver(platform)
 	opt.HasDangling = isDangling
 	opt.AllowPrivileged = allowPrivileged
-	opt.waitBlock = c.waitBlock()
+
+	if cmdT == buildCmd {
+		// only BUILD commands get propigated
+		opt.waitBlock = c.waitBlock()
+	} else {
+		// FROM/COPY commands will return a llb state, which will cause a wait to occur
+		// if the wait block was passed here, calling SetDoSaves would get propigated
+		opt.waitBlock = nil
+	}
+
 	if c.opt.Features.ReferencedSaveOnly {
 		// DoSaves should only be potentially turned-off when the ReferencedSaveOnly feature is flipped
 		opt.DoSaves = (cmdT == buildCmd && c.opt.DoSaves && !c.opt.OnlyFinalTargetImages)
@@ -2029,6 +2043,19 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 		return "", "", nil
 	}
 	parts := strings.SplitN(secretKeyValue, "=", 2)
+
+	// validate environment name is correct
+	defer func() {
+		if err != nil {
+			return
+		}
+		if envVar != "" && !shell.IsValidEnvVarName(envVar) {
+			err = fmt.Errorf("invalid secret environment name: %s", envVar)
+			secretID = ""
+			envVar = ""
+			return
+		}
+	}()
 
 	if len(parts) == 1 {
 		return parts[0], parts[0], nil

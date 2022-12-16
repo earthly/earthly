@@ -1,0 +1,4 @@
+VERSION --shell-out-anywhere 0.6
+FROM alpine:3.15
+test:
+    RUN --mount=type=secret,target=$HOME/.ssh/id_rsa,id=+secrets/sshkey test -f $HOME/.ssh/id_rsa && test "$(cat ~/.ssh/id_rsa)" = "not-actually-a-ssh-key"

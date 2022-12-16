@@ -78,23 +78,29 @@ func (run *Run) Target(targetID string) (*Target, bool) {
 }
 
 // NewCommand creates a new command printer.
-func (run *Run) NewCommand(commandID string, command string, targetID string, category string, platform string, cached bool, local bool, sourceLocation *spec.SourceLocation, repoURL, repoHash, fileRelToRepo string) (*Command, error) {
+func (run *Run) NewCommand(commandID string, command string, targetID string, category string, platform string, cached, local, interactive bool, sourceLocation *spec.SourceLocation, repoURL, repoHash, fileRelToRepo string) (*Command, error) {
 	run.mu.Lock()
 	defer run.mu.Unlock()
 	_, ok := run.commands[commandID]
 	if ok {
 		return nil, errors.New("command printer already exists")
 	}
+	sl := sourceLocationToProto(repoURL, repoHash, fileRelToRepo, sourceLocation)
 	run.buildDelta(&logstream.DeltaManifest_FieldsDelta{
 		Commands: map[string]*logstream.DeltaCommandManifest{
 			commandID: {
-				Name:           command,
-				TargetId:       targetID,
-				Category:       category,
-				Platform:       platform,
-				IsCached:       cached,
-				IsLocal:        local,
-				SourceLocation: sourceLocationToProto(repoURL, repoHash, fileRelToRepo, sourceLocation),
+				Name:              command,
+				TargetId:          targetID,
+				Category:          category,
+				Platform:          platform,
+				HasCached:         true,
+				IsCached:          cached,
+				HasLocal:          true,
+				IsLocal:           local,
+				HasInteractive:    true,
+				IsInteractive:     interactive,
+				HasSourceLocation: (sl != nil),
+				SourceLocation:    sl,
 			},
 		},
 	})

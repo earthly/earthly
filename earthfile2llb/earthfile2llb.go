@@ -4,16 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/earthly/earthly/logbus"
-	"github.com/earthly/earthly/util/containerutil"
-	"github.com/earthly/earthly/util/gatewaycrafter"
-	"github.com/earthly/earthly/util/llbutil/secretprovider"
-	"github.com/earthly/earthly/util/platutil"
-	"github.com/moby/buildkit/client/llb"
-	gwclient "github.com/moby/buildkit/frontend/gateway/client"
-	"github.com/moby/buildkit/util/apicaps"
-	"github.com/pkg/errors"
-
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
@@ -21,10 +11,19 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
+	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/containerutil"
+	"github.com/earthly/earthly/util/gatewaycrafter"
+	"github.com/earthly/earthly/util/llbutil/secretprovider"
+	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/syncutil/serrgroup"
 	"github.com/earthly/earthly/variables"
+	"github.com/moby/buildkit/client/llb"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	"github.com/moby/buildkit/util/apicaps"
+	"github.com/pkg/errors"
 )
 
 // ConvertOpt holds conversion parameters.
@@ -227,14 +226,8 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	}
 	opt.PlatformResolver.AllowNativeAndUser = opt.Features.NewPlatform
 
-	wbWait := false
 	if opt.waitBlock == nil {
 		opt.waitBlock = newWaitBlock()
-
-		// we must call opt.waitBlock.wait(), since we are the creator.
-		// unfortunately this must be done before opt.ErrorGroup.Wait() is called (rather than here via a defer),
-		// as the ctx would otherwise be canceled.
-		wbWait = true
 	}
 
 	targetWithMetadata := bc.Ref.(domain.Target)
@@ -254,7 +247,13 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		if opt.DoSaves {
 			// Set the do saves flag, in case it was not set before.
 			sts.SetDoSaves()
+			err := sts.Wait(ctx)
+			if err != nil {
+				return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
+			}
 		}
+		sts.AttachTopLevelWaitItems(ctx, opt.waitBlock)
+
 		// This target has already been done.
 		return &states.MultiTarget{
 			Final:   sts,
@@ -276,8 +275,8 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		return nil, err
 	}
 
-	if wbWait {
-		err = opt.waitBlock.wait(ctx)
+	if initialCall {
+		err = opt.waitBlock.Wait(ctx, opt.DoPushes, opt.DoSaves)
 		if err != nil {
 			return nil, err
 		}
