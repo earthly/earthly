@@ -32,6 +32,30 @@ test-local:
         fi
 
 
+##################################################
+# tests for running locally with --allow-parallel
+
+test-parallel:
+    BUILD +test-parallel-1
+    BUILD +test-parallel-2
+
+    COPY +test-parallel-1/data data1.txt
+    RUN diff data1.txt <(echo "hello1")
+
+    COPY +test-parallel-2/data data2.txt
+    RUN diff data2.txt <(echo "hello2")
+
+test-parallel-1:
+    LOCALLY --allow-parallel
+    RUN echo hello1 > /tmp/earthly-test-10878452-ff7a-4067-a75d-6239a2579590
+    SAVE ARTIFACT /tmp/earthly-test-10878452-ff7a-4067-a75d-6239a2579590 data
+
+test-parallel-2:
+    LOCALLY --allow-parallel
+    RUN echo hello2 > /tmp/earthly-test-61266c0a-e57c-4e96-9901-8c9201072174
+    SAVE ARTIFACT /tmp/earthly-test-61266c0a-e57c-4e96-9901-8c9201072174 data
+
+
 #################################################################################################################
 # tests for testing locally produced artifacts can be referenced by containerized targets
 

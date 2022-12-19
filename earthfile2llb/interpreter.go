@@ -37,6 +37,7 @@ type Interpreter struct {
 	isWith          bool
 	pushOnlyAllowed bool
 	local           bool
+	denyParallel    bool
 	allowPrivileged bool
 
 	withDocker    *WithDockerOpt
@@ -124,8 +125,9 @@ func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
 }
 
 func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, startIndex int) error {
-	if i.local {
-		// Don't do any preemptive execution for LOCALLY targets.
+	if i.denyParallel {
+		// Don't do any preemptive execution for targets which explicitly block parallel
+		// execution.
 		return nil
 	}
 	// Look ahead of the execution and fire off asynchronous builds for mentioned targets,
@@ -821,6 +823,15 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 }
 
 func (i *Interpreter) handleLocally(ctx context.Context, cmd spec.Command) error {
+	opts := locallyOpts{}
+	args, err := parseArgs("LOCALLY", &opts, getArgsCopy(cmd))
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "invalid LOCALLY arguments %v", cmd.Args)
+	}
+	if len(args) != 0 {
+		return i.errorf(cmd.SourceLocation, "invalid number of arguments for LOCALLY")
+	}
+
 	if !i.allowPrivileged {
 		return i.errorf(cmd.SourceLocation, "Permission denied: unwilling to allow locally directive from remote Earthfile; did you reference a remote Earthfile without the --allow-privileged flag?")
 	}
@@ -830,7 +841,8 @@ func (i *Interpreter) handleLocally(ctx context.Context, cmd spec.Command) error
 	}
 
 	i.local = true
-	err := i.converter.Locally(ctx)
+	i.denyParallel = !opts.Parallel
+	err = i.converter.Locally(ctx)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply LOCALLY")
 	}

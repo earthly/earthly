@@ -125,3 +125,7 @@ type pipelineOpts struct {
 type cacheOpts struct {
 	Sharing string `long:"sharing" description:"The cache sharing mode: locked (default), shared, private"`
 }
+
+type locallyOpts struct {
+	Parallel bool `long:"allow-parallel" description:"Allow this locally command to run in parallel with other commands"`
+}
