@@ -76,6 +76,7 @@ require (
 	github.com/moby/sys/signal v0.7.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opencontainers/runc v1.1.3 // indirect
+	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect

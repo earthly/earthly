@@ -40,7 +40,8 @@ org
 preview 
 prune 
 satellite 
-secret " > expected
+secret 
+web " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
     RUN diff expected actual
 
