@@ -46,13 +46,18 @@ func New(ctx context.Context, bus *logbus.Bus, c cloud.Client, initialManifest *
 }
 
 func (ls *LogStreamer) retryLoop(ctx context.Context) {
-	defer close(ls.doneCh)
+	defer func() {
+		printDebugLog("Closing doneCh")
+		close(ls.doneCh)
+	}()
 	const maxRetry = 10
 	for i := 0; i < maxRetry; i++ {
 		retry, err := ls.tryStream(ctx)
 		if err == nil {
+			printDebugLog(fmt.Sprintf("succeeded try %d", i))
 			return
 		}
+		printDebugLog(fmt.Sprintf("failed try %d > %s", i, err.Error()))
 		if i == maxRetry-1 {
 			retry = false
 		}
@@ -69,6 +74,7 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 	defer cancelTry()
 	ls.mu.Lock()
 	if ls.cancelled {
+		printDebugLog(fmt.Sprintf("cancelled"))
 		// TODO (vladaionescu): It would be nice if on cancellation we could
 		// 						still go through the entire retry loop.
 		//						This would require that we close ls.ch on each
@@ -77,9 +83,11 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 		return false, errors.New("log streamer closed")
 	}
 	const chSize = 10240
+	printDebugLog(fmt.Sprintf("starting %v", ls.ch == nil))
 	if ls.ch != nil {
 		// In case the channel is congested, this frees up any stuck writers.
 		prevCh := ls.ch
+		printDebugLog(fmt.Sprintf("cleaning prevCh"))
 		go func() {
 			for {
 				select {
@@ -106,21 +114,27 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 			},
 		},
 	}
+	printDebugLog(fmt.Sprintf("swapping subscribers"))
 	ls.bus.AddSubscriber(ls)
 	defer ls.bus.RemoveSubscriber(ls)
+	printDebugLog(fmt.Sprintf("streaming logs"))
 	err := ls.c.StreamLogs(ctxTry, ls.buildID, ls.ch)
+	printDebugLog(fmt.Sprintf("got response from stream logs> %v", err))
 	if err != nil {
+		printDebugLog(fmt.Sprintf("got error from logstream> %s", err))
 		s, ok := status.FromError(errors.Cause(err))
 		if !ok {
 			return false, err
 		}
 		switch s.Code() {
 		case codes.Unavailable, codes.Internal, codes.DeadlineExceeded:
+			printDebugLog(fmt.Sprintf("got bad code from logstream: %s", s.Code()))
 			return true, err
 		default:
 			return false, err
 		}
 	}
+	printDebugLog(fmt.Sprintf("returning from tryStream - success"))
 	return false, nil
 }
 
@@ -170,4 +184,12 @@ func (ls *LogStreamer) Close() error {
 		retErr = multierror.Append(retErr, err)
 	}
 	return retErr
+}
+
+func printDebugLog(log string) {
+	_, err := fmt.Fprintf(os.Stdout, fmt.Sprintf("DEBUG: ========== %s ========== END DEBUG\n", log))
+	if err != nil {
+		msg := fmt.Sprintf("failed to log debug log > %s", err)
+		panic(msg)
+	}
 }
