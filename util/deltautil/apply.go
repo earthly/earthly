@@ -52,14 +52,7 @@ func WithDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error) 
 			ret.MainTargetId = f.GetMainTargetId()
 		}
 		for targetID, t2 := range f.GetTargets() {
-			if ret.Targets == nil {
-				ret.Targets = make(map[string]*pb.TargetManifest)
-			}
-			t, ok := ret.Targets[targetID]
-			if !ok {
-				t = &pb.TargetManifest{}
-				ret.Targets[targetID] = t
-			}
+			t := ensureTargetExists(ret, targetID)
 
 			if t2.GetName() != "" {
 				t.Name = t2.GetName()
@@ -90,20 +83,14 @@ func WithDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error) 
 			}
 		}
 		for commandID, c2 := range f.GetCommands() {
-			if ret.Commands == nil {
-				ret.Commands = make(map[string]*pb.CommandManifest)
-			}
-			c, ok := ret.Commands[commandID]
-			if !ok {
-				c = &pb.CommandManifest{}
-				ret.Commands[commandID] = c
-			}
+			c := ensureCommandExists(ret, commandID)
 
 			if c2.GetName() != "" {
 				c.Name = c2.GetName()
 			}
 			if c2.GetTargetId() != "" {
 				c.TargetId = c2.GetTargetId()
+				ensureTargetExists(ret, c2.GetTargetId())
 			}
 			if c2.GetCategory() != "" {
 				c.Category = c2.GetCategory()
@@ -144,4 +131,28 @@ func WithDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error) 
 		}
 	}
 	return ret, nil
+}
+
+func ensureTargetExists(r *pb.RunManifest, targetID string) *pb.TargetManifest {
+	if r.Targets == nil {
+		r.Targets = make(map[string]*pb.TargetManifest)
+	}
+	t, ok := r.Targets[targetID]
+	if !ok {
+		t = &pb.TargetManifest{}
+		r.Targets[targetID] = t
+	}
+	return t
+}
+
+func ensureCommandExists(r *pb.RunManifest, commandID string) *pb.CommandManifest {
+	if r.Commands == nil {
+		r.Commands = make(map[string]*pb.CommandManifest)
+	}
+	c, ok := r.Commands[commandID]
+	if !ok {
+		c = &pb.CommandManifest{}
+		r.Commands[commandID] = c
+	}
+	return c
 }
