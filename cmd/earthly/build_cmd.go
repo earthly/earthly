@@ -188,7 +188,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		if cloudClient.IsLoggedIn(cliCtx.Context) {
 			if app.logstreamUpload {
 				doLogstreamUpload = true
-				logstreamURL := fmt.Sprintf("%s/builds/%s", app.getCIHost(), app.logbusSetup.InitialManifest.GetBuildId())
+				logstreamURL = fmt.Sprintf("%s/builds/%s", app.getCIHost(), app.logbusSetup.InitialManifest.GetBuildId())
 				defer func() {
 					app.console.Printf("View logs at %s\n", logstreamURL)
 				}()
