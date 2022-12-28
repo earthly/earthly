@@ -297,7 +297,7 @@ func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
 
 func (f *Formatter) processOngoingTick(ctx context.Context) error {
 	c := f.console.WithWriter(f.bus.FormattedWriter("ongoing")).WithPrefix("ongoing")
-	c.Printf("ongoing TODO\n")
+	c.VerbosePrintf("ongoing TODO\n")
 	// TODO(vladaionescu): Go through all the commands and find which one is ongoing.
 	// Print their targets on the console.
 	f.lastOutputWasOngoingUpdate = true
