@@ -1,16 +1,17 @@
 VERSION 0.6
 FROM alpine:3.15
+RUN apk add libcap # for capsh
 
 IMPORT --allow-privileged github.com/earthly/test-remote/privileged:main
 IMPORT ./a/really/deep/subdir
 
 test-remote-import:
     COPY privileged+privileged/proc-status .
-    RUN cat proc-status | grep CapEff | grep 0000003fffffffff
+    RUN capsh --decode="$(cat proc-status | grep CapEff | awk '{print $2}')" | grep cap_sys_admin
 
 test-relative-import:
     COPY subdir+subdirprivileged/proc-status .
-    RUN cat proc-status | grep CapEff | grep 0000003fffffffff
+    RUN capsh --decode="$(cat proc-status | grep CapEff | awk '{print $2}')" | grep cap_sys_admin
 
 test-remote-cmd:
     DO privileged+PRIV
