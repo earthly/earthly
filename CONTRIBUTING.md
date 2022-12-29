@@ -145,8 +145,7 @@ When a new version of earthly is [released](release/README.md), the `next` branc
 ### Config
 
 Starting with [v0.6.30](CHANGELOG.md#v0630---2022-11-22), the default location of the built binary's config file has
-changed to `~/.earthly-dev/config.yml`.  The standard location is not used as a fallback, so ensure you maintain your
-own symlink or copy (if needed).
+changed to `~/.earthly-dev/config.yml`. The standard location is not used as a fallback; it is possible to `export EARTHLY_CONFIG=~/.earthly/config.yml`, or create a symlink if required.
 
 ## CLA
 
