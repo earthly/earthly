@@ -345,6 +345,8 @@ earthly-integration-test-base:
         IF [ "$DOCKERHUB_AUTH" = "true" ]
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
                 --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
+                (test -n "$USERNAME" || (echo "ERROR: USERNAME not set"; exit 1)) && \
+                (test -n "$TOKEN" || (echo "ERROR: TOKEN not set"; exit 1)) && \
                 docker login --username="$USERNAME" --password="$TOKEN"
         END
     ELSE
@@ -368,7 +370,10 @@ $(echo "$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG" | sed "s/^/  /g")
         IF [ "$DOCKERHUB_AUTH" = "true" ]
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
                 --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
-                docker login $DOCKERHUB_MIRROR --username="$USERNAME" --password="$TOKEN"
+                (test -n "$DOCKERHUB_MIRROR" || (echo "ERROR: DOCKERHUB_MIRROR not set"; exit 1)) && \
+                (test -n "$USERNAME" || (echo "ERROR: USERNAME not set"; exit 1)) && \
+                (test -n "$TOKEN" || (echo "ERROR: TOKEN not set"; exit 1)) && \
+                docker login "$DOCKERHUB_MIRROR" --username="$USERNAME" --password="$TOKEN"
         END
     END
 
