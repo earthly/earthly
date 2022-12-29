@@ -192,11 +192,11 @@ func (sf *shellFrontend) ContainerRun(ctx context.Context, containers ...Contain
 		}
 
 		platform := getPlatform()
-		supportsPlatform, platformCheckErr := sf.supportsPlatform(ctx, platform)
+		serverPlatformEqualsUserPlatform, platformCheckErr := sf.isServerPlatform(ctx, platform)
 		if platformCheckErr != nil {
 			err = multierror.Append(err, platformCheckErr)
 		}
-		if supportsPlatform {
+		if serverPlatformEqualsUserPlatform {
 			args = append(args, "--platform", platform)
 		}
 
@@ -311,7 +311,8 @@ func normalizePlatform(platform string) (string, error) {
 	return platforms.Format(platformSpec), nil
 }
 
-func (sf *shellFrontend) supportsPlatform(ctx context.Context, platform string) (bool, error) {
+// isServerPlatform returns true if the server platform matches the `platform` string.
+func (sf *shellFrontend) isServerPlatform(ctx context.Context, platform string) (bool, error) {
 	normalizedPlatform, err := normalizePlatform(platform)
 	if err != nil {
 		// Failing to normalize the platform means it may not be valid, so return false
