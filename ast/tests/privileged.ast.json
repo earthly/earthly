@@ -7,6 +7,16 @@
         ],
         "name": "FROM"
       }
+    },
+    {
+      "command": {
+        "args": [
+          "apk",
+          "add",
+          "libcap"
+        ],
+        "name": "RUN"
+      }
     }
   ],
   "targets": [
@@ -32,14 +42,8 @@
           "command": {
             "args": [
               "--privileged",
-              "cat",
-              "/proc/self/status",
-              "|",
-              "grep",
-              "CapEff",
-              "|",
-              "grep",
-              "0000003fffffffff"
+              "capsh",
+              "--has-p=cap_sys_admin"
             ],
             "name": "RUN"
           }

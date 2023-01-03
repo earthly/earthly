@@ -1,5 +1,6 @@
 VERSION 0.6
 FROM alpine:3.15
+RUN apk add libcap # for capsh
 
 reject-privileged-in-remote-repo-triggered-by-from-locally:
     FROM github.com/earthly/test-remote/privileged:main+locally
@@ -55,7 +56,8 @@ allow-privileged-in-remote-repo-triggered-by-from-privileged:
 
 allow-privileged-in-remote-repo-triggered-by-copy-privileged:
     COPY --allow-privileged github.com/earthly/test-remote/privileged:main+privileged/proc-status .
-    RUN cat proc-status | grep CapEff | grep 0000003fffffffff
+    # checking for 0000003fffffffff might fail when running under podman, check the cap_sys_admin bit is set instead
+    RUN capsh --decode="$(cat proc-status | grep CapEff | awk '{print $2}')" | grep cap_sys_admin
 
 allow-privileged-in-remote-repo-triggered-by-build-privileged:
     BUILD --allow-privileged github.com/earthly/test-remote/privileged:main+privileged

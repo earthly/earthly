@@ -32,8 +32,6 @@ func NewDockerShellFrontend(ctx context.Context, cfg *FrontendConfig) (Container
 			Console:                 cfg.Console,
 		},
 	}
-	// TODO: Find a cleaner way to pass down information to the shellFrontend
-	fe.FrontendInformation = fe.Information
 
 	// running `docker info --format={{.SecurityOptions}}` results in a panic() when docker is not running.
 	// To workaround this issue, first we run `docker info` to test docker is running, then again with the
