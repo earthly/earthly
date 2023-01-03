@@ -24,9 +24,8 @@ type shellFrontend struct {
 	globalCompatibilityArgs []string
 	likelyPodman            bool
 
-	FrontendInformation func(ctx context.Context) (*FrontendInfo, error)
-	urls                *FrontendURLs
-	Console             conslogging.ConsoleLogger
+	urls    *FrontendURLs
+	Console conslogging.ConsoleLogger
 }
 
 func (sf *shellFrontend) IsAvailable(ctx context.Context) bool {
