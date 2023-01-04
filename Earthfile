@@ -188,10 +188,15 @@ unit-test:
     FROM +code
     COPY podman-setup.sh .
     ARG testname # when specified, only run specific unit-test, otherwise run all.
+
+    # pkgname determines the package name (or names) that will be tested. The go
+    # submodules must be specified explicitly or they will not be run, as
+    # "./..." does not match submodules.
+    ARG pkgname = ./... github.com/earthly/earthly/ast/... github.com/earthly/earthly/util/deltautil/...
     WITH DOCKER
         RUN ./podman-setup.sh && \
             if [ -n "$testname" ]; then testarg="-run $testname"; fi && \
-            go test -timeout 20m $testarg ./...
+            go test -timeout 20m $testarg $pkgname
     END
 
 changelog:
