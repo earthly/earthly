@@ -18,7 +18,7 @@ set -ex
 #     DOCKERHUB_USER      override the default earthly dockerhub user
 #     EARTHLY_REPO        override the default earthly repo name
 #     BREW_REPO           override the default homebrew-earthly repo name
-#     GITHUB_SECRET_PATH  override the default +secrets/earthly-technologies/github/griswoldthecat/token secrets location where the github token is stored
+#     GITHUB_SECRET_PATH  override the default +secrets/earthly-technologies/github/littleredcorvette/token secrets location where the github token is stored
 #     PRERELEASE          override the default false value (must be false or true)
 #
 # examples
