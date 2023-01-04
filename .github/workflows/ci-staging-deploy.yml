@@ -59,7 +59,7 @@ jobs:
             export earthly="./build/linux/amd64/earthly"
             echo "attempting staging-release version: $RELEASE_TAG"
             eval "$(ssh-agent -s)"
-            "$earthly" secrets get -n /earthly-technologies/github/griswoldthecat/id_rsa | ssh-add -
+            "$earthly" secrets get -n /earthly-technologies/github/littleredcorvette/id_rsa | ssh-add -
             git remote add staging git@github.com:earthly/earthly-staging.git
             git push staging HEAD:pre-release-$RELEASE_TAG
             echo -e "# Earthly Changelog\n\nAll notable changes to [Earthly](https://github.com/earthly/earthly) will be documented in this file.\n\n## Unreleased\n\n## $RELEASE_TAG - $(date +%Y-%m-%d)\n\nThis pre-release was built from $(git rev-parse HEAD)" > CHANGELOG.md
