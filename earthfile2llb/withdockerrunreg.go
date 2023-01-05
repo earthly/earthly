@@ -193,6 +193,8 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 		"/var/earthly/dind", pllb.Scratch(), llb.HostBind(), llb.SourcePath("/tmp/earthly/dind")))
 	crOpts.extraRunOpts = append(crOpts.extraRunOpts, pllb.AddMount(
 		dockerdWrapperPath, pllb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
+	crOpts.extraRunOpts = append(crOpts.extraRunOpts, opt.extraRunOpts...)
+
 	dindID, err := w.c.mts.Final.TargetInput().Hash()
 	if err != nil {
 		return errors.Wrap(err, "make dind ID")
