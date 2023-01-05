@@ -199,6 +199,20 @@ unit-test:
             go test -timeout 20m $testarg $pkgname
     END
 
+submodule-decouple-check:
+    FROM +code
+    RUN for submodule in github.com/earthly/earthly/ast github.com/earthly/earthly/util/deltautil; \
+    do \
+        for dep in $(go list -f '{{range .Deps}}{{.}} {{end}}' $submodule/...); \
+        do \
+            if [ "$(go list -f '{{if .Module}}{{.Module}}{{end}}' $dep)" == "github.com/earthly/earthly" ]; \
+            then \
+               echo "FAIL: submodule $submodule imports $dep, which is in the core 'github.com/earthly/earthly' module"; \
+               exit 1; \
+            fi; \
+        done; \
+    done
+
 changelog:
     FROM scratch
     COPY CHANGELOG.md .
@@ -478,6 +492,7 @@ lint-all:
     BUILD +lint-scripts
     BUILD +lint-newline-ending
     BUILD +lint-changelog
+    BUILD +submodule-decouple-check
 
 lint-docs:
     BUILD +lint-newline-ending
