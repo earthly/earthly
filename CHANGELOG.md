@@ -18,6 +18,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Support for saving files larger than 64kB on failure within a `TRY/FINALLY` block. [#2452](https://github.com/earthly/earthly/issues/2452)
 - Fixed race condition where `SAVE IMAGE` or `SAVE ARTIFACT AS LOCAL` commands were not always performed when contained in a target that was referenced by both a `FROM` (or `COPY`) and a `BUILD` command within the context of a `WAIT`/`END` block. [#2237](https://github.com/earthly/earthly/issues/2218)
 - `WORKDIR` is lost when `--use-copy-link` feature is enabled with `GIT CLONE` or `COPY --keep-own` commands. [#2544](https://github.com/earthly/earthly/issues/2544)
+- The `CACHE` command did not work when used inside a `WITH DOCKER` block. [#2549](https://github.com/earthly/earthly/issues/2549)
 
 ## v0.6.30 - 2022-11-22
 
