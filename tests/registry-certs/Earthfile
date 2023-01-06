@@ -10,7 +10,6 @@ ARG REGISTRY_IP
 ARG EARTHLY_BUILD_ARGS="REGISTRY"
 ARG REGISTRY_CONFIG="
 [registry.\"$REGISTRY\"]
-  http = true
   insecure = true
 "
 
