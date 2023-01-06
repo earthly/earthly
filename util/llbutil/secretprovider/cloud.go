@@ -26,7 +26,6 @@ func NewCloudStore(client cloud.Client) secrets.SecretStore {
 // secrets are referenced via +secret/name or +secret/org/name (or +secret/org/subdir1/.../name)
 // however by the time GetSecret is called, the "+secret" prefix is removed.
 func (cs *cloudStore) GetSecret(ctx context.Context, id string) ([]byte, error) {
-
 	q, err := url.ParseQuery(id)
 	if err != nil {
 		return nil, errors.New("failed to parse secret ID")
@@ -61,6 +60,12 @@ func (cs *cloudStore) GetSecret(ctx context.Context, id string) ([]byte, error) 
 		}
 
 	case "1": // Project-based secret style includes the org and project name
+		org := q.Get("org")
+		project := q.Get("project")
+		if org == "" || project == "" {
+			return nil, secrets.ErrNotFound
+		}
+
 		if !strings.HasPrefix(name, "user/") {
 			name = path.Join(q.Get("org"), q.Get("project"), name)
 		}
