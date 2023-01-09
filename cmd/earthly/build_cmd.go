@@ -46,12 +46,8 @@ func (app *earthlyApp) actionBuild(cliCtx *cli.Context) error {
 	app.commandName = "build"
 
 	if app.ci {
-		app.useInlineCache = true
 		app.noOutput = !app.output && !app.artifactMode && !app.imageMode
 		app.strict = true
-		if app.remoteCache == "" && app.push {
-			app.saveInlineCache = true
-		}
 
 		if app.interactiveDebugging {
 			return errors.New("unable to use --ci flag in combination with --interactive flag")
@@ -249,11 +245,9 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			runnerName = fmt.Sprintf("bk:%s", app.buildkitdSettings.BuildkitAddress)
 		}
 	}
-	if !isLocal && app.ci {
-		app.console.Printf("Please note that --use-inline-cache and --save-inline-cache are currently disabled when using --ci on Satellites or remote Buildkit.")
-		app.console.Printf("") // newline
-		app.useInlineCache = false
-		app.saveInlineCache = false
+	if !isLocal && (app.useInlineCache || app.saveInlineCache) {
+		app.console.Warnf("Note that inline cache (--use-inline-cache and --save-inline-cache) occasionally cause builds to get stuck at 100%% CPU on Satellites and remote Buildkit.")
+		app.console.Warnf("") // newline
 	}
 	if isLocal && !app.containerFrontend.IsAvailable(cliCtx.Context) {
 		return errors.New("Frontend is not available to perform the build. Is Docker installed and running?")

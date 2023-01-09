@@ -243,7 +243,7 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 		&cli.BoolFlag{
 			Name:        "ci",
 			EnvVars:     []string{"EARTHLY_CI"},
-			Usage:       wrap("Execute in CI mode. ", "Implies --use-inline-cache --save-inline-cache --no-output --strict"),
+			Usage:       wrap("Execute in CI mode. ", "Implies --no-output --strict"),
 			Destination: &app.ci,
 		},
 		&cli.BoolFlag{
