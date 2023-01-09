@@ -3,27 +3,27 @@ FROM alpine:3.15
 RUN apk add libcap # for capsh
 
 reject-privileged-in-remote-repo-triggered-by-from-locally:
-    FROM github.com/earthly/test-remote/privileged:45359a92acdd7ef27d561d0836099cdacc508e40+locally
+    FROM github.com/earthly/test-remote/privileged:main+locally
     RUN echo this should never run because the above FROM should fail
 
 reject-privileged-in-remote-repo-triggered-by-from-privileged:
-    FROM github.com/earthly/test-remote/privileged:45359a92acdd7ef27d561d0836099cdacc508e40+privileged
+    FROM github.com/earthly/test-remote/privileged:main+privileged
     RUN echo this should never run because the above FROM should fail
 
 reject-privileged-in-remote-repo-triggered-by-copy-locally:
-    COPY github.com/earthly/test-remote/privileged:45359a92acdd7ef27d561d0836099cdacc508e40+locally/hostname .
+    COPY github.com/earthly/test-remote/privileged:main+locally/hostname .
     RUN echo this should never run because the above COPY should fail
 
 reject-privileged-in-remote-repo-triggered-by-copy-privileged:
-    COPY github.com/earthly/test-remote/privileged:45359a92acdd7ef27d561d0836099cdacc508e40+privileged/hostname .
+    COPY github.com/earthly/test-remote/privileged:main+privileged/hostname .
     RUN echo this should never run because the above COPY should fail
 
 reject-privileged-in-remote-repo-triggered-by-build-locally:
-    BUILD github.com/earthly/test-remote/privileged:45359a92acdd7ef27d561d0836099cdacc508e40+locally
+    BUILD github.com/earthly/test-remote/privileged:main+locally
     RUN echo this should never run because the above BUILD should fail
 
 reject-privileged-in-remote-repo-triggered-by-build-privileged:
-    BUILD github.com/earthly/test-remote/privileged:45359a92acdd7ef27d561d0836099cdacc508e40+privileged
+    BUILD github.com/earthly/test-remote/privileged:main+privileged
     RUN echo this should never run because the above BUILD should fail
 
 reject-dedup:
@@ -35,35 +35,35 @@ reject-dedup:
     BUILD +reject-privileged-in-remote-repo-triggered-by-copy
 
 reject-privileged-in-remote-repo-triggered-by-docker-load-privileged:
-    WITH DOCKER --load shouldfail:latest=github.com/earthly/test-remote/privileged:45359a92acdd7ef27d561d0836099cdacc508e40+privileged
+    WITH DOCKER --load shouldfail:latest=github.com/earthly/test-remote/privileged:main+privileged
         RUN echo this should never run because the above --load should fail
     END
 
 allow-privileged-in-remote-repo-triggered-by-from-locally:
-    FROM --allow-privileged github.com/earthly/test-remote/privileged:45359a92acdd7ef27d561d0836099cdacc508e40+locally
+    FROM --allow-privileged github.com/earthly/test-remote/privileged:main+locally
     RUN echo this command should work
 
 allow-privileged-in-remote-repo-triggered-by-copy-locally:
-    COPY --allow-privileged github.com/earthly/test-remote/privileged:45359a92acdd7ef27d561d0836099cdacc508e40+locally/hostname .
+    COPY --allow-privileged github.com/earthly/test-remote/privileged:main+locally/hostname .
     RUN ls hostname
 
 allow-privileged-in-remote-repo-triggered-by-build-locally:
-    BUILD --allow-privileged github.com/earthly/test-remote/privileged:45359a92acdd7ef27d561d0836099cdacc508e40+locally
+    BUILD --allow-privileged github.com/earthly/test-remote/privileged:main+locally
 
 allow-privileged-in-remote-repo-triggered-by-from-privileged:
-    FROM --allow-privileged github.com/earthly/test-remote/privileged:45359a92acdd7ef27d561d0836099cdacc508e40+privileged
+    FROM --allow-privileged github.com/earthly/test-remote/privileged:main+privileged
     RUN echo this command should work
 
 allow-privileged-in-remote-repo-triggered-by-copy-privileged:
-    COPY --allow-privileged github.com/earthly/test-remote/privileged:45359a92acdd7ef27d561d0836099cdacc508e40+privileged/proc-status .
+    COPY --allow-privileged github.com/earthly/test-remote/privileged:main+privileged/proc-status .
     # checking for 0000003fffffffff might fail when running under podman, check the cap_sys_admin bit is set instead
     RUN capsh --decode="$(cat proc-status | grep CapEff | awk '{print $2}')" | grep cap_sys_admin
 
 allow-privileged-in-remote-repo-triggered-by-build-privileged:
-    BUILD --allow-privileged github.com/earthly/test-remote/privileged:45359a92acdd7ef27d561d0836099cdacc508e40+privileged
+    BUILD --allow-privileged github.com/earthly/test-remote/privileged:main+privileged
 
 allow-privileged-in-remote-repo-triggered-by-cmd-privileged:
-    DO --allow-privileged github.com/earthly/test-remote/privileged:45359a92acdd7ef27d561d0836099cdacc508e40+PRIV
+    DO --allow-privileged github.com/earthly/test-remote/privileged:main+PRIV
 
 
 allow-all:

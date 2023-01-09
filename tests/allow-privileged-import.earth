@@ -2,7 +2,7 @@ VERSION 0.7
 FROM alpine:3.15
 RUN apk add libcap # for capsh
 
-IMPORT --allow-privileged github.com/earthly/test-remote/privileged:45359a92acdd7ef27d561d0836099cdacc508e40
+IMPORT --allow-privileged github.com/earthly/test-remote/privileged:main
 IMPORT ./a/really/deep/subdir
 
 test-remote-import:

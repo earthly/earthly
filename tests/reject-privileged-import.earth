@@ -1,7 +1,7 @@
 VERSION 0.7
 FROM alpine:3.15
 
-IMPORT github.com/earthly/test-remote/privileged:45359a92acdd7ef27d561d0836099cdacc508e40
+IMPORT github.com/earthly/test-remote/privileged:main
 
 test-reject-copy:
     COPY test-remote/privileged+privileged/proc-status .
