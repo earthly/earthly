@@ -1,0 +1,28 @@
+VERSION 0.7
+PROJECT earthly-technologies/example
+FROM alpine:latest
+
+cloud-secrets:
+  # This example assumes you have created a project using a command similar to:
+  #   earthly projects --org earthly-technologies --project example
+  # (where earthly-technologies has been replaced by your organization name)
+  #
+  # Next, a secret has been set by running:
+  #   earthly secrets --org earthly-technologies --project example set token abc123
+  #
+  # You can verify it was set by running:
+  #   earthly secrets --org earthly-technologies --project example ls
+  # which should output:
+  #   token
+
+  # You can also view the secret by running:
+  #   earthly secrets --org earthly-technologies --project example get token
+  # which should output:
+  #   abc123
+
+  # secrets are referenced in an Earthfile by first defining the project name (using the
+  # `PROJECT org/project-name` command); this is done right after the `VERSION` command.
+  # Then the secret can be referenced via RUN:
+  RUN --secret MY_SECRET=token test -n "$MY_SECRET"
+  RUN --secret token test -n "$token"
+  RUN --mount=type=secret,id=token,mode=0600,target=/root/secret-token ls -la /root/secret-token
