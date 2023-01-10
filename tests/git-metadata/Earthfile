@@ -37,6 +37,11 @@ ssh git@git.example.com | grep \"Hi git! You've successfully authenticated, but 
 git config --global user.email \"onlyspammersemailthis@earthly.dev\"
 git config --global user.name \"test name\"
 
+# Also set git author details via env variable
+# just in case this prevents the flaky git commit bug we have been seeing in GHA
+export GIT_AUTHOR_NAME=\"test name\"
+export GIT_AUTHOR_EMAIL=\"onlyspammersemailthis@earthly.dev\"
+
 # test this worked (seems to be flaky in some tests)
 cat \$HOME/.gitconfig
 git config --global user.name
