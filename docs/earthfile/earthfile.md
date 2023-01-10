@@ -818,6 +818,18 @@ Once a feature reaches maturity, it will be enabled by default under a new versi
 
 All features are described in [the version-specific features reference](./features.md).
 
+## PROJECT
+
+#### Synopsis
+
+* `PROJECT <org-name>/<project-name>`
+
+#### Description
+
+The command `PROJECT` marks the current Earthfile as being part of the project belonging to the [Earthly organization](https://docs.earthly.dev/earthly-cloud/overview) `<org-name>` and the project `<project-name>`. The project is used by Earthly to retrieve [cloud-based secrets](../cloud/cloud-secrets.md) belonging to the project, and associate any build logs to the project when logged in, and sharing build logs is enabled.
+
+The `PROJECT` command can only be used in the `base` recipe and it applies to the entire Earthfile. The `PROJECT` command can never contain any `ARG`s that need expanding.
+
 ## GIT CLONE
 
 #### Synopsis
@@ -1221,6 +1233,45 @@ END
 RUN ./test data # even if this fails, data will have been output
 ```
 
+## TRY (experimental)
+
+{% hint style='info' %}
+##### Note
+The `TRY` command is currently incomplete and has experimental status. To use this feature, it must be enabled via `VERSION --try 0.7`.
+{% endhint %}
+
+#### Synopsis
+
+* ```
+  TRY
+    <try-block>
+  FINALLY
+    <finally-block>
+  END
+  ```
+
+#### Description
+
+The `TRY` clause executes commands within the `<try-block>`, while ensuring that the `<finally-block>` is always executed, even if the `<try-block>` fails.
+
+This clause is still under active development. For now, only a single `RUN` command is permitted within the `<try-block>`, and only one or more `SAVE ARTIFACT` commands are permitted in the `<finally-block>`. The clause is thus useful for outputting coverage information in unit testing, outputting screenshots in UI integration tests, or outputting `junit.xml`, or similar.
+
+#### Example
+
+```Dockerfile
+VERSION --try 0.7
+
+example:
+    FROM ...
+    TRY
+        # only a single RUN command is currently supported
+        RUN ./test.sh
+    FINALLY
+        # only SAVE ARTIFACT commands are supported here
+        SAVE ARTIFACT junit.xml AS LOCAL ./
+    END
+```
+
 ## CACHE (beta)
 
 {% hint style='info' %}
@@ -1546,6 +1597,54 @@ VERSION --use-host-command 0.6
 #### Description
 
 The `HOST` command creates a hostname entry (under `/etc/hosts`) that causes `<hostname>` to resolve to the specified `<ip>` address.
+
+## PIPELINE (beta)
+
+{% hint style='info' %}
+##### Note
+The `PIPELINE` command is in beta status and is only useful for Earthly CI.
+{% endhint %}
+
+#### Synopsis
+
+* `PIPELINE [--push]`
+
+#### Description
+
+The `PIPELINE` command is used to declare that the current target is an Earthly CI pipeline. The `PIPELINE` command must be the first command in the target.
+
+A pipeline is a target that is executed by Earthly CI in when a certain trigger is activated. Triggers can be declared via the `TRIGGER` command. Pipeline targets allow only the commands `TRIGGER`, `ARG` and `BUILD`. Other commands may be used indirectly in other targets that can be then referenced by `BUILD`.
+
+Pipeline targets are always executed with no outputs, in strict mode.
+
+#### Options
+
+##### `--push`
+
+Indicates that the targets referenced by this pipeline will be called in push-mode. `SAVE IMAGE --push` commands will trigger pushes to the remote registry, and `RUN --push` commands will execute.
+
+## TRIGGER (beta)
+
+{% hint style='info' %}
+##### Note
+The `TRIGGER` command is in beta status and is only useful for Earthly CI.
+{% endhint %}
+
+#### Synopsis
+
+* `TRIGGER manual` (manual form)
+* `TRIGGER pr <pr-branch>` (PR form)
+* `TRIGGER push <push-branch>` (push form)
+
+#### Description
+
+The `TRIGGER` command is only allowed in the context of a pipeline target (declared via `PIPELINE`), and is used to configure the way in which the pipeline is triggered. Multiple triggers are allowed for a single pipeline.
+
+In the *manual form*, the pipeline is triggered manually via the Earthly CI UI or via `earthly` on the command-line.
+
+In the *PR form*, the pipeline is triggered when a pull request is opened against the branch `<pr-branch>`.
+
+In the *push form*, the pipeline is triggered when a push is made to the branch `<push-branch>`.
 
 ## SHELL (not supported)
 
