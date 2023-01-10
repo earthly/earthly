@@ -6,6 +6,41 @@ ARG --global DOCKERHUB_MIRROR
 ARG --global DOCKERHUB_MIRROR_INSECURE=false
 ARG --global DOCKERHUB_AUTH=true
 
+git:
+    FROM alpine:3.15
+
+    RUN apk add --update build-base curl-dev expat-dev openssl-dev>3 pcre2-dev perl-dev perl-error xmlto zlib-dev asciidoc python3-dev tcl tk libsecret-dev glib-dev docbook2x
+
+    GIT CLONE git@github.com:git/git.git /git
+    WORKDIR /git
+
+    ENV NO_GETTEXT=YesPlease
+    ENV NO_SVN_TESTS=YesPlease
+    ENV NO_REGEX=YesPlease
+    ENV NO_SYS_POLL_H=1
+    ENV ICONV_OMITS_BOM=Yes
+    ENV INSTALL_SYMLINKS=1
+    ENV USE_LIBPCRE2=YesPlease
+    ENV PYTHON_PATH=/usr/bin/python3
+
+    RUN mkdir /gitbuild
+    RUN make prefix=/gitbuild all doc info
+    RUN make prefix=/gitbuild install install-doc install-html install-info
+    SAVE ARTIFACT /gitbuild
+
+git-cached:
+    FROM alpine:3.15
+    ARG USE_CACHED_GIT_BINARIES=true
+    IF [ "$USE_CACHED_GIT_BINARIES" = "true" ]
+        # make use of a pre-compiled version
+        FROM earthly/earthly:git-binary-for-metadata-test
+    ELSE
+        FROM scratch
+        COPY +git/gitbuild /gitbuild
+        SAVE IMAGE --push earthly/earthly:git-binary-for-metadata-test
+    END
+    SAVE ARTIFACT /gitbuild
+
 test:
     FROM ../git-ssh-server/setup+server \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
@@ -18,8 +53,22 @@ test:
         --USER_RSA=true \
         --USER_ED25519=false
     COPY test.earth Earthfile
+
+    # git version 2.34.5 (given to us by apk add), will sometimes fail on the git commit
+    # when looking up the git author email (fails with "please tell me who you are" errors)
+    # this even happens when the GIT_AUTHOR_EMAIL env is set.
+    # Instead we use a more recent version of git we have compiled from source
+    COPY +git-cached/gitbuild /gitbuild
+
+    RUN git --version
+    RUN /gitbuild/bin/git --version
     RUN echo "#!/bin/sh
 set -ex
+
+# use the latest version of git
+PATH=/gitbuild/bin/:$PATH
+
+git --version
 
 # first ensure these two /etc/hosts entries are working
 ping -c 1 git.example.com
