@@ -60,7 +60,6 @@ global:
       mirrors = ["<mirror>"]
 
     [registry."<mirror>"]
-      http = true
       insecure = true
 ```
 
@@ -176,7 +175,6 @@ global:
     [registry."docker.io"]
       mirrors = ["192.168.0.80:5000"]
     [registry."192.168.0.80:5000"]
-      http = true
       insecure = true
 ```
 

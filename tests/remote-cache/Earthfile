@@ -36,15 +36,14 @@ ARG --global EARTHLY_BUILD_ARGS="REGISTRY"
 ARG --global REGISTRY_CONFIG="
 [registry.\"$REGISTRY\"]
   http = true
-  insecure = true
 "
 
 COPY test.earth ./Earthfile
 
 all:
     BUILD +test1
-    #BUILD +test2
-    #BUILD +test3
+    BUILD +test2
+    BUILD +test3
 
 test1:
     RUN echo "content" >./input
