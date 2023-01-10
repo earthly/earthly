@@ -215,15 +215,23 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 	}
 	if versionAtLeast(ftrs, 0, 7) {
 		ftrs.CheckDuplicateImages = true
+		ftrs.EarthlyCIArg = true
+		ftrs.EarthlyGitAuthorArgs = true
+		ftrs.EarthlyLocallyArg = true
 		ftrs.EarthlyVersionArg = true
 		ftrs.ExplicitGlobal = true
+		ftrs.GitCommitAuthorTimestamp = true
 		ftrs.NewPlatform = true
 		ftrs.NoTarBuildOutput = true
+		ftrs.ShellOutAnywhere = true
 		ftrs.UseCacheCommand = true
 		ftrs.UseChmod = true
 		ftrs.UseCopyLink = true
 		ftrs.UseHostCommand = true
 		ftrs.UseNoManifestList = true
+		ftrs.UsePipelines = true
+		ftrs.UseProjectSecrets = true
+		ftrs.WaitBlock = true
 	}
 	processNegativeFlags(&ftrs)
 

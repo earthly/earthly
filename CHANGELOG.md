@@ -4,6 +4,35 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.0-rc1 - 2022-10-12
+
+This version promotes a number of features that have been previously in Experimental and Beta status. To make use of the features in this version you need to declare `VERSION 0.7` at the top of your Earthfile. a `VERSION` command is now required for all Earthfiles, an error will occur if it is missing. If you are not ready to update your Earthfiles to use 0.7 (or 0.6), you can declare `VERSION 0.5` to continue to use your Earthfiles.
+
+
+Declaring `VERSION 0.7` is equivalent to
+
+```
+VERSION \
+  --explicit-global \
+  --check-duplicate-images \
+  --earthly-version-arg \
+  --use-cache-command \
+  --use-host-command \
+  --use-copy-link \
+  --new-platform \
+  --no-tar-build-output \
+  --use-no-manifest-list \
+  --use-chmod \
+  --shell-out-anywhere \
+  --earthly-locally-arg \
+  --use-project-secrets \
+  --use-pipelines \
+  --earthly-git-author-args \
+  0.6
+```
+
+For more information on the individual Earthfile feature flags see the [Earthfile version-specific features page](https://docs.earthly.dev/docs/earthfile/features).
+
 ### Added
 
 - New ARG `EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP` will contain the author timestamp of the current git commit, this ARG must be enabled with the `VERSION --git-commit-author-timestamp` feature flag. [#2462](https://github.com/earthly/earthly/pull/2462)
@@ -95,6 +124,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Changed
 
 - Loading Docker images as part of `WITH DOCKER` is now faster through the use of an embedded registry in Buildkit. This functionality was previously hidden (`VERSION --use-registry-for-with-docker`) and was only auto-enabled for Earthly Satellite users. It is now enabled by default for all builds. [#1268](https://github.com/earthly/earthly/issues/1268)
+
+### Changed
+
+- `VERSION` command is now required.
 
 ## v0.6.25 - 2022-10-04
 

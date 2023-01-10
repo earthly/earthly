@@ -1,10 +1,10 @@
-VERSION --use-host-command 0.6
+VERSION 0.7
 
-ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-ARG DOCKERHUB_MIRROR
-ARG DOCKERHUB_MIRROR_INSECURE=false
-ARG DOCKERHUB_AUTH=true
+ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+ARG --global DOCKERHUB_MIRROR
+ARG --global DOCKERHUB_MIRROR_INSECURE=false
+ARG --global DOCKERHUB_AUTH=true
 FROM ..+earthly-integration-test-base \
     --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
     --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
@@ -199,6 +199,7 @@ ga-no-qemu:
     BUILD +true-false-flag
     BUILD +true-false-flag-invalid
     BUILD +dont-save-indirect-remote-artifact
+    BUILD +remote-earthfile-must-have-version
     BUILD +sequential-locally-test
     BUILD +version-flag-test
     BUILD +implicit-ignores
@@ -517,7 +518,8 @@ allow-privileged-test:
     DO +RUN_EARTHLY --earthfile=allow-privileged.earth --extra_args="--allow-privileged" --target=+allow-all
 
 allow-privileged-import-test:
-    RUN mkdir -p a/really/deep/subdir && echo "subdirprivileged:
+    RUN mkdir -p a/really/deep/subdir && echo "VERSION 0.7
+subdirprivileged:
     FROM alpine:latest
     RUN --privileged cat /proc/self/status | grep CapEff > output
     SAVE ARTIFACT output proc-status
@@ -686,7 +688,7 @@ target-first-line:
 absolute-reference-with-relative:
     RUN mkdir -p /a/path/to/test/subdir
     # create a base Earthfile which is referenced by target-absolute-reference.earth
-    RUN echo -e "FROM alpine:3.15\nRUN mkdir -p /dir/from/base" > /a/path/to/test/Earthfile
+    RUN echo -e "VERSION 0.7\nFROM alpine:3.15\nRUN mkdir -p /dir/from/base" > /a/path/to/test/Earthfile
     DO +RUN_EARTHLY --earthfile=absolute-reference-with-relative.earth --earthfile_dest=/a/path/to/test/subdir/Earthfile --extra_args="--no-output" --target=/a/path/to/test/subdir+test
 
 end-comment:
@@ -916,7 +918,7 @@ save-artifact-selective-referencing-remote:
     BUILD +save-artifact-selective-referencing-remote-test3
 
 save-remote-artifact-selective-legacy:
-    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/no-version:main+savelocal
+    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/v0.5:main+savelocal
     # if it were to be saved, it should show up under output/testfile; but we're going to check for
     # a) no output directory (which also means output/testfile doesn't exist), and
     # b) that ./testfile wasn't accidentally created.
@@ -928,9 +930,11 @@ save-remote-artifact-selective:
     RUN test -f ./output/testfile
 
 dont-save-indirect-remote-artifact:
-    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/no-version:main+copy-from-savelocal
-    RUN test ! -f ./output/testfile
     DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/versioned:main+copy-from-savelocal
+    RUN test ! -f ./output/testfile
+
+remote-earthfile-must-have-version:
+    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/no-version:main+copy-from-savelocal --should_fail=true --output_contains="No version specified in github.com/earthly/test-remote/output/no-version"
     RUN test ! -f ./output/testfile
 
 push-build:

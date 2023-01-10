@@ -47,6 +47,7 @@ echo "testing earthly account login works (and is using the earthly-manitou acco
 
 mkdir -p /tmp/earthtest
 cat << EOF > /tmp/earthtest/Earthfile
+VERSION 0.6
 FROM alpine:3.15
 test-local-secret:
     WORKDIR /test

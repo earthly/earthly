@@ -1,4 +1,4 @@
-VERSION --try 0.6
+VERSION --try 0.7
 
 test:
     FROM alpine:3.15

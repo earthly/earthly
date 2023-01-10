@@ -1,4 +1,4 @@
-VERSION 0.6
+VERSION 0.7
 
 deps:
     FROM golang:1.17-alpine
