@@ -376,7 +376,6 @@ earthly-integration-test-base:
         IF [ "$DOCKERHUB_MIRROR_INSECURE" = "true" ]
             ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
 [registry.\"$DOCKERHUB_MIRROR\"]
-  http = true
   insecure = true"
         END
 
