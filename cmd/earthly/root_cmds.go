@@ -281,7 +281,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Destination: &app.projectName,
 				},
 			},
-			Subcommands: app.secretCmdsPreview(),
+			Subcommands: app.secretCmds(),
 		},
 		{
 			Name:        "web",

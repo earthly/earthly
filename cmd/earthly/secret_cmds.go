@@ -12,7 +12,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func (app *earthlyApp) secretCmdsPreview() []*cli.Command {
+func (app *earthlyApp) secretCmds() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:  "set",
