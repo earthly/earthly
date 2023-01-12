@@ -232,8 +232,6 @@ Set up a whole custom git repository for a server called example.com, using a si
 			},
 			Subcommands: app.satelliteCmds(),
 		},
-
-		//new
 		{
 			Name:        "project",
 			Aliases:     []string{"projects"},
@@ -258,8 +256,6 @@ Set up a whole custom git repository for a server called example.com, using a si
 			},
 			Subcommands: app.projectCmds(),
 		},
-
-		//new
 		{
 			Name:        "secret",
 			Aliases:     []string{"secrets"},
@@ -701,10 +697,4 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	}
 	app.console.Printf("Freed %s\n", humanize.Bytes(total))
 	return nil
-}
-
-func (app *earthlyApp) actionPreviewPromoted(name, dest string) cli.ActionFunc {
-	return func(*cli.Context) error {
-		return errors.Errorf("the %q command has been moved out of \"preview\" is now available under %q", name, dest)
-	}
 }
