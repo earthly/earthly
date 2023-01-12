@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containerd/containerd/platforms"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/hashicorp/go-multierror"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
@@ -25,9 +24,8 @@ type shellFrontend struct {
 	globalCompatibilityArgs []string
 	likelyPodman            bool
 
-	FrontendInformation func(ctx context.Context) (*FrontendInfo, error)
-	urls                *FrontendURLs
-	Console             conslogging.ConsoleLogger
+	urls    *FrontendURLs
+	Console conslogging.ConsoleLogger
 }
 
 func (sf *shellFrontend) IsAvailable(ctx context.Context) bool {
@@ -191,16 +189,8 @@ func (sf *shellFrontend) ContainerRun(ctx context.Context, containers ...Contain
 			args = append(args, "--publish", port)
 		}
 
-		platform := getPlatform()
-		supportsPlatform, platformCheckErr := sf.supportsPlatform(ctx, platform)
-		if platformCheckErr != nil {
-			err = multierror.Append(err, platformCheckErr)
-		}
-		if supportsPlatform {
-			args = append(args, "--platform", platform)
-		}
-
 		args = append(args, "-d") // Run detached, this feels implied by the API
+		args = append(args, "--pull", "missing")
 		args = append(args, "--name", container.NameOrID)
 		args = append(args, container.AdditionalArgs...)
 		args = append(args, sf.runCompatibilityArgs...)
@@ -300,35 +290,6 @@ func (sf *shellFrontend) commandContextOutput(ctx context.Context, args ...strin
 		return output, errors.Wrapf(err, "command failed: %s %s: %s: %s", sf.binaryName, strings.Join(args, " "), err.Error(), output.string())
 	}
 	return output, nil
-}
-
-func normalizePlatform(platform string) (string, error) {
-	parsedPlatform, err := platforms.Parse(platform)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to parse platform %s", platform)
-	}
-	platformSpec := platforms.Normalize(parsedPlatform)
-	return platforms.Format(platformSpec), nil
-}
-
-func (sf *shellFrontend) supportsPlatform(ctx context.Context, platform string) (bool, error) {
-	normalizedPlatform, err := normalizePlatform(platform)
-	if err != nil {
-		// Failing to normalize the platform means it may not be valid, so return false
-		sf.Console.VerbosePrintf("failed to normalize platform %s", platform)
-		return false, nil
-	}
-	frontendInfo, err := sf.FrontendInformation(ctx)
-	if err != nil {
-		return false, errors.Wrapf(err, "failed to get platform information")
-	}
-	normalizedServerPlatform, err := normalizePlatform(frontendInfo.ServerPlatform)
-	if err != nil {
-		// Failing to normalize the platform could mean its invalid, so return false
-		sf.Console.VerbosePrintf("failed to normalize server platform %s", frontendInfo.ServerPlatform)
-		return false, nil
-	}
-	return normalizedServerPlatform == normalizedPlatform, nil
 }
 
 func (sf *shellFrontend) setupAndValidateAddresses(feType string, cfg *FrontendConfig) (*FrontendURLs, error) {

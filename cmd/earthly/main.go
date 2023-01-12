@@ -159,6 +159,7 @@ type cliFlags struct {
 	logstreamDebugManifestFile string
 	requestID                  string
 	buildID                    string
+	loginProvider              string
 }
 
 type analyticsMetadata struct {

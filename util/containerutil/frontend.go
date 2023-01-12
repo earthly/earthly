@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"runtime"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
@@ -100,12 +99,4 @@ func frontendIfAvailable(ctx context.Context, feType string, cfg *FrontendConfig
 	}
 
 	return fe, nil
-}
-
-func getPlatform() string {
-	arch := runtime.GOARCH
-	if runtime.GOARCH == "arm" {
-		arch = "arm/v7"
-	}
-	return fmt.Sprintf("linux/%s", arch)
 }

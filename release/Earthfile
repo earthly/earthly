@@ -1,4 +1,4 @@
-VERSION 0.6
+VERSION 0.7
 FROM alpine:3.15
 
 RUN apk add --update --no-cache \
@@ -103,7 +103,7 @@ release-github:
     RUN file ./release/earthly-linux-arm64 | grep "aarch64"
     RUN file ./release/earthly-linux-arm64 | grep "ELF 64-bit"
     RUN file ./release/earthly-windows-amd64.exe | grep "PE32"
-    ARG GITHUB_SECRET_PATH="+secrets/earthly-technologies/github/griswoldthecat/token"
+    ARG GITHUB_SECRET_PATH="+secrets/earthly-technologies/github/littleredcorvette/token"
     RUN --push \
         --secret GITHUB_TOKEN="$GITHUB_SECRET_PATH" \
         set -e; \
@@ -166,9 +166,9 @@ release-homebrew:
 
     # Deps and preconditions.
     ARG --required RELEASE_TAG
-    ARG GIT_USERNAME="griswoldthecat"
-    ARG GIT_NAME="griswoldthecat"
-    ARG GIT_EMAIL="griswoldthecat@users.noreply.github.com"
+    ARG GIT_USERNAME="littleredcorvette"
+    ARG GIT_NAME="littleredcorvette"
+    ARG GIT_EMAIL="littleredcorvette@users.noreply.github.com"
     ARG --required GITHUB_USER
     ARG --required BREW_REPO
     ARG --required EARTHLY_REPO
@@ -182,7 +182,7 @@ release-homebrew:
     RUN mkdir -p /root/.ssh
     RUN echo "|1|M66Uwae8fx9M5JFDd+WyVi3dERM=|LKfAmECF1kHoZ6epHR5jtPhJgic= ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==" > /root/.ssh/known_hosts
 
-    RUN --mount type=secret,id=+secrets/earthly-technologies/github/griswoldthecat/id_rsa,target=/root/id_rsa --no-cache \
+    RUN --mount type=secret,id=+secrets/earthly-technologies/github/littleredcorvette/id_rsa,target=/root/id_rsa --no-cache \
         eval $(ssh-agent) && \
         cat /root/id_rsa | ssh-add - && \
         git clone "git@github.com:$GITHUB_USER/$BREW_REPO.git" .
@@ -199,7 +199,7 @@ release-homebrew:
         echo version=$version ;\
         git commit -a --allow-empty -m "earthly $version"
 
-    RUN --mount type=secret,id=+secrets/earthly-technologies/github/griswoldthecat/id_rsa,target=/root/id_rsa \
+    RUN --mount type=secret,id=+secrets/earthly-technologies/github/littleredcorvette/id_rsa,target=/root/id_rsa \
         --secret SLACK_WEBHOOK_URL=+secrets/earthly-technologies/slack/release-webhook \
         --push \
         eval $(ssh-agent) && \

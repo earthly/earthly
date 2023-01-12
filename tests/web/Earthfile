@@ -1,0 +1,31 @@
+VERSION 0.6 # this requires old secrets
+
+ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+ARG DOCKERHUB_MIRROR
+ARG DOCKERHUB_MIRROR_INSECURE=false
+ARG DOCKERHUB_AUTH=true
+FROM ../..+earthly-integration-test-base \
+    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
+
+IMPORT .. AS tests
+
+WORKDIR /test
+
+test:
+    RUN earthly web 2>&1 | grep -qE "https://ci(-beta)?.earthly.dev/login"
+    RUN earthly web --provider github 2>output-file \
+        && output=$(cat output-file) \
+        && rm output-file \
+        && if [[ "$output" != *"provider=github"* ]]; then echo "failed to find provider=github in output" && exit 1; fi
+
+    RUN --secret EARTHLY_TOKEN=+secrets/earthly-technologies/earthly/fake-user/token earthly web 2>&1 | grep -qE "https://ci(-beta)?.earthly.dev/login\?token=.+"
+    RUN --secret EARTHLY_TOKEN=+secrets/earthly-technologies/earthly/fake-user/token earthly web --provider github 2>output-file \
+        && output=$(cat output-file) \
+        && rm output-file \
+        && if [[ "$output" != *"provider=github"* ]]; then echo "failed to find provider=github in output" && exit 1; fi \
+        && if [[ "$output" != *"token="* ]]; then echo "failed to find provider= in output" && exit 1; fi

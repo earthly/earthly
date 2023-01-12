@@ -24,7 +24,7 @@ rm -rf /tmp/earthly-export-test-1
 mkdir /tmp/earthly-export-test-1
 cd /tmp/earthly-export-test-1
 cat >> Earthfile <<EOF
-VERSION 0.6
+VERSION 0.7
 test1:
     FROM busybox:latest
     SAVE IMAGE earthly-export-test-1:test
@@ -43,7 +43,7 @@ rm -rf /tmp/earthly-export-test-2
 mkdir /tmp/earthly-export-test-2
 cd /tmp/earthly-export-test-2
 cat >> Earthfile <<EOF
-VERSION 0.6
+VERSION 0.7
 test2:
     FROM busybox:latest
     CMD echo "running default cmd"
@@ -63,7 +63,7 @@ rm -rf /tmp/earthly-export-test-3
 mkdir /tmp/earthly-export-test-3
 cd /tmp/earthly-export-test-3
 cat >> Earthfile <<EOF
-VERSION 0.6
+VERSION 0.7
 test3:
     FROM busybox:latest
     RUN echo "hello my world" > /data
@@ -87,7 +87,7 @@ rm -rf /tmp/earthly-export-test-4
 mkdir /tmp/earthly-export-test-4
 cd /tmp/earthly-export-test-4
 cat >> Earthfile <<EOF
-VERSION 0.6
+VERSION 0.7
 
 multi4:
     # NOTE: keep amd64 in the middle, since earthly will fallback to the first defined platform
@@ -123,7 +123,7 @@ rm -rf /tmp/earthly-export-test-5
 mkdir /tmp/earthly-export-test-5
 cd /tmp/earthly-export-test-5
 cat >> Earthfile <<EOF
-VERSION 0.6
+VERSION 0.7
 
 all5:
     BUILD +test5-img1
@@ -155,7 +155,7 @@ rm -rf /tmp/earthly-export-test-6
 mkdir /tmp/earthly-export-test-6
 cd /tmp/earthly-export-test-6
 cat >> Earthfile <<EOF
-VERSION --use-no-manifest-list 0.6
+VERSION 0.7
 
 multi6:
     BUILD --platform=linux/arm64 +test6
@@ -182,7 +182,7 @@ echo ==== Running test 7 ====
 mkdir /tmp/earthly-export-test-7
 cd /tmp/earthly-export-test-7
 cat >> Earthfile <<EOF
-VERSION 0.6
+VERSION 0.7
 test7:
     BUILD +b
 b:

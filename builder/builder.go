@@ -81,6 +81,7 @@ type Opt struct {
 	InternalSecretStore                   *secretprovider.MutableMapStore
 	InteractiveDebugging                  bool
 	InteractiveDebuggingDebugLevelLogging bool
+	GitImage                              string
 }
 
 // BuildOpt is a collection of build options.
@@ -118,7 +119,7 @@ type Builder struct {
 func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 	b := &Builder{
 		s: &solver{
-			sm:              outmon.NewSolverMonitor(opt.Console, opt.Verbose, opt.DisableNoOutputUpdates),
+			sm:              outmon.NewSolverMonitor(opt.Console, opt.Verbose, opt.DisableNoOutputUpdates || opt.UseLogstream),
 			logbusSM:        opt.LogBusSolverMonitor,
 			useLogstream:    opt.UseLogstream,
 			bkClient:        opt.BkClient,
@@ -132,7 +133,7 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 		opt:      opt,
 		resolver: nil, // initialized below
 	}
-	b.resolver = buildcontext.NewResolver(opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides)
+	b.resolver = buildcontext.NewResolverCustomGit(opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides, opt.GitImage)
 	return b, nil
 }
 

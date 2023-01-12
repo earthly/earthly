@@ -1,4 +1,4 @@
-VERSION 0.6
+VERSION 0.7
 
 test-abs-path:
     FROM alpine:3.15
@@ -7,11 +7,11 @@ test-abs-path:
     GIT CLONE ssh://git@git.example.com:22/home/git/testuser/repo.git /repo3
 
     # Make sure all cloned repos are the same
-    RUN diff /repo/Earthfile /repo2/Earthfile
-    RUN diff /repo/Earthfile /repo3/Earthfile
+    RUN diff /repo/i-really-like-this-uuid /repo2/i-really-like-this-uuid
+    RUN diff /repo/i-really-like-this-uuid /repo3/i-really-like-this-uuid
 
-    # Display hash of Earthfile so the caller can verify we cloned the right file
-    RUN --no-cache md5sum /repo/Earthfile
+    # Display hash of exquisite uuid so the caller can verify we cloned the right file
+    RUN --no-cache md5sum /repo/i-really-like-this-uuid
 
 test-rel-path:
     FROM alpine:3.15
@@ -23,10 +23,10 @@ test-rel-path:
     GIT CLONE http://git.example.com/testuser/repo.git /repo5
 
     # Make sure all cloned repos are the same
-    RUN diff /repo/Earthfile /repo2/Earthfile
-    RUN diff /repo/Earthfile /repo3/Earthfile
-    RUN diff /repo/Earthfile /repo4/Earthfile
-    RUN diff /repo/Earthfile /repo5/Earthfile
+    RUN diff /repo/i-really-like-this-uuid /repo2/i-really-like-this-uuid
+    RUN diff /repo/i-really-like-this-uuid /repo3/i-really-like-this-uuid
+    RUN diff /repo/i-really-like-this-uuid /repo4/i-really-like-this-uuid
+    RUN diff /repo/i-really-like-this-uuid /repo5/i-really-like-this-uuid
 
-    # Display hash of Earthfile so the caller can verify we cloned the right file
-    RUN --no-cache md5sum /repo/Earthfile
+    # Display hash of exquisite uuid so the caller can verify we cloned the right file
+    RUN --no-cache md5sum /repo/i-really-like-this-uuid

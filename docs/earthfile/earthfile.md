@@ -54,7 +54,8 @@ Examples:
 
 * Classical reference: `FROM alpine:latest`
 * Local reference: `FROM +another-target`
-* Relative reference: `FROM ./subdirectory+some-target`
+* Relative reference: `FROM ./subdirectory+some-target` or `FROM ../otherdirectory+some-target`
+* Absolute reference: `FROM /absolute/path+some-target`
 * Remote reference from a public or [private](https://docs.earthly.dev/docs/guides/auth) git repository: `FROM github.com/example/project+remote-target`
 
 The `FROM` command does not mark any saved images or artifacts of the referenced target for output, nor does it mark any push commands of the referenced target for pushing. For that, please use [`BUILD`](#build).

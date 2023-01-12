@@ -152,8 +152,7 @@
   ],
   "version": {
     "args": [
-      "--use-host-command",
-      "0.6"
+      "0.7"
     ]
   }
 }

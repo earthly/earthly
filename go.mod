@@ -6,7 +6,7 @@ require (
 	github.com/adrg/xdg v0.4.0
 	github.com/alessio/shellescape v1.4.1
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
-	github.com/containerd/containerd v1.6.8
+	github.com/containerd/containerd v1.6.12
 	github.com/creack/pty v1.1.11
 	github.com/docker/cli v20.10.17+incompatible
 	github.com/docker/distribution v2.8.1+incompatible
@@ -45,6 +45,7 @@ require (
 )
 
 require (
+	cloud.google.com/go v0.57.0 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/antlr/antlr4 v0.0.0-20200225173536-225249fdaef5 // indirect
@@ -75,6 +76,7 @@ require (
 	github.com/moby/sys/signal v0.7.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opencontainers/runc v1.1.3 // indirect
+	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect

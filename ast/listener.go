@@ -8,7 +8,6 @@ import (
 
 	"github.com/earthly/earthly/ast/parser"
 	"github.com/earthly/earthly/ast/spec"
-	"github.com/earthly/earthly/util/shell"
 	"github.com/pkg/errors"
 )
 
@@ -627,7 +626,7 @@ func (l *listener) EnterStmtWord(c *parser.StmtWordContext) {
 // ----------------------------------------------------------------------------
 
 func checkEnvVarName(str string) error {
-	if !shell.IsValidEnvVarName(str) {
+	if !IsValidEnvVarName(str) {
 		return errors.Errorf("invalid env key definition %s", str)
 	}
 	return nil

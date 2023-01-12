@@ -33,6 +33,17 @@
         {
           "command": {
             "args": [
+              "test",
+              "\"$(pwd)\"",
+              "=",
+              "\"/test\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
               "/test/buildkit"
             ],
             "name": "WORKDIR"
@@ -80,8 +91,7 @@
   ],
   "version": {
     "args": [
-      "--use-copy-link",
-      "0.6"
+      "0.7"
     ]
   }
 }

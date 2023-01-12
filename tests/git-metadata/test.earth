@@ -1,4 +1,4 @@
-VERSION --earthly-git-author-args --git-commit-author-timestamp 0.6
+VERSION 0.7
 
 # Note: this is tests both locally and remotely
 # the population of git metadata occurs in two **different** functions respectively:

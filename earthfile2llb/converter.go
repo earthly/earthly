@@ -1361,6 +1361,10 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 
 	enableParallel := allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad
 
+	for _, cache := range c.persistentCacheDirs {
+		opt.extraRunOpts = append(opt.extraRunOpts, cache)
+	}
+
 	if c.ftrs.UseRegistryForWithDocker {
 		wdr := newWithDockerRunRegistry(c, enableParallel)
 		return wdr.Run(ctx, args, opt)

@@ -21,7 +21,6 @@ func NewStubFrontend(ctx context.Context, cfg *FrontendConfig) (ContainerFronten
 	fe := &stubFrontend{
 		shellFrontend: &shellFrontend{Console: cfg.Console},
 	}
-	fe.shellFrontend.FrontendInformation = fe.Information
 
 	var err error
 	fe.urls, err = fe.setupAndValidateAddresses(FrontendStub, cfg)

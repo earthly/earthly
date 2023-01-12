@@ -188,11 +188,30 @@ unit-test:
     FROM +code
     COPY podman-setup.sh .
     ARG testname # when specified, only run specific unit-test, otherwise run all.
+
+    # pkgname determines the package name (or names) that will be tested. The go
+    # submodules must be specified explicitly or they will not be run, as
+    # "./..." does not match submodules.
+    ARG pkgname = ./... github.com/earthly/earthly/ast/... github.com/earthly/earthly/util/deltautil/...
     WITH DOCKER
         RUN ./podman-setup.sh && \
             if [ -n "$testname" ]; then testarg="-run $testname"; fi && \
-            go test -timeout 20m $testarg ./...
+            go test -timeout 20m $testarg $pkgname
     END
+
+submodule-decouple-check:
+    FROM +code
+    RUN for submodule in github.com/earthly/earthly/ast github.com/earthly/earthly/util/deltautil; \
+    do \
+        for dep in $(go list -f '{{range .Deps}}{{.}} {{end}}' $submodule/...); \
+        do \
+            if [ "$(go list -f '{{if .Module}}{{.Module}}{{end}}' $dep)" == "github.com/earthly/earthly" ]; \
+            then \
+               echo "FAIL: submodule $submodule imports $dep, which is in the core 'github.com/earthly/earthly' module"; \
+               exit 1; \
+            fi; \
+        done; \
+    done
 
 changelog:
     FROM scratch
@@ -345,6 +364,8 @@ earthly-integration-test-base:
         IF [ "$DOCKERHUB_AUTH" = "true" ]
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
                 --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
+                (test -n "$USERNAME" || (echo "ERROR: USERNAME not set"; exit 1)) && \
+                (test -n "$TOKEN" || (echo "ERROR: TOKEN not set"; exit 1)) && \
                 docker login --username="$USERNAME" --password="$TOKEN"
         END
     ELSE
@@ -355,7 +376,6 @@ earthly-integration-test-base:
         IF [ "$DOCKERHUB_MIRROR_INSECURE" = "true" ]
             ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
 [registry.\"$DOCKERHUB_MIRROR\"]
-  http = true
   insecure = true"
         END
 
@@ -368,7 +388,10 @@ $(echo "$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG" | sed "s/^/  /g")
         IF [ "$DOCKERHUB_AUTH" = "true" ]
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
                 --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
-                docker login $DOCKERHUB_MIRROR --username="$USERNAME" --password="$TOKEN"
+                (test -n "$DOCKERHUB_MIRROR" || (echo "ERROR: DOCKERHUB_MIRROR not set"; exit 1)) && \
+                (test -n "$USERNAME" || (echo "ERROR: USERNAME not set"; exit 1)) && \
+                (test -n "$TOKEN" || (echo "ERROR: TOKEN not set"; exit 1)) && \
+                docker login "$DOCKERHUB_MIRROR" --username="$USERNAME" --password="$TOKEN"
         END
     END
 
@@ -468,6 +491,7 @@ lint-all:
     BUILD +lint-scripts
     BUILD +lint-newline-ending
     BUILD +lint-changelog
+    BUILD +submodule-decouple-check
 
 lint-docs:
     BUILD +lint-newline-ending

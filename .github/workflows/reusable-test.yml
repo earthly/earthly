@@ -61,7 +61,7 @@ jobs:
         if: inputs.BINARY == 'docker'
       - name: remove Docker
         run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
-        if: inputs.binary == 'podman'
+        if: inputs.binary != 'docker'
       - name: Install Podman (with apt-get)
         run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman
         if: inputs.binary == 'podman'

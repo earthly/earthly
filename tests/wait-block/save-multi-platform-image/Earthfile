@@ -1,4 +1,4 @@
-VERSION --wait-block 0.6
+VERSION 0.7
 
 earthly-multiplatform-wait-test-amd64:
     FROM --platform=linux/amd64 alpine:3.15

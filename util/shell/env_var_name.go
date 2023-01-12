@@ -1,10 +1,8 @@
 package shell
 
-import "regexp"
-
-var envVarNameRegexp = regexp.MustCompile(`^[a-zA-Z_]+[a-zA-Z0-9_]*$`)
+import "github.com/earthly/earthly/ast"
 
 // IsValidEnvVarName returns true if env name is valid
 func IsValidEnvVarName(name string) bool {
-	return envVarNameRegexp.MatchString(name)
+	return ast.IsValidEnvVarName(name)
 }

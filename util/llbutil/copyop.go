@@ -66,7 +66,7 @@ func CopyOp(ctx context.Context, srcState pllb.State, srcs []string, destState p
 		if err != nil {
 			return pllb.State{}, err
 		}
-		return pllb.Merge([]pllb.State{destState, pllb.Scratch().Dir(cwd).File(fa)}, opts...), nil
+		return pllb.Merge([]pllb.State{destState, pllb.Scratch().Dir(cwd).File(fa)}, opts...).Dir(cwd), nil
 	}
 	return destState.File(fa, opts...), nil
 }
