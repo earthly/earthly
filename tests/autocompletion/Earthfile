@@ -19,7 +19,7 @@ bootstrap
 config 
 ls 
 org 
-preview 
+project 
 prune 
 satellite 
 secret " > expected
@@ -37,7 +37,7 @@ docker
 docker2earthly 
 ls 
 org 
-preview 
+project 
 prune 
 satellite 
 secret 
