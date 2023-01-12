@@ -65,7 +65,7 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 					Usage:       "Launch and pin a satellite at a specific version (disables auto-updates)",
 					Required:    false,
 					Hidden:      true,
-					Destination: &app.satelliteCurrentVersion,
+					Destination: &app.satelliteVersion,
 				},
 			},
 		},
@@ -168,7 +168,7 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 					Usage:       "Launch a specific satellite version (disables auto-updates)",
 					Required:    false,
 					Hidden:      true,
-					Destination: &app.satelliteCurrentVersion,
+					Destination: &app.satelliteVersion,
 				},
 			},
 		},
@@ -298,7 +298,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	size := app.satelliteSize
 	platform := app.satellitePlatform
 	window := app.satelliteMaintenanceWindow
-	version := app.satelliteCurrentVersion
+	version := app.satelliteVersion
 
 	cloudClient, err := app.newCloudClient()
 	if err != nil {
@@ -658,7 +658,7 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 	window := app.satelliteMaintenanceWindow
 	ffs := app.satelliteFeatureFlags.Value()
 	dropCache := app.satelliteDropCache
-	version := app.satelliteCurrentVersion
+	version := app.satelliteVersion
 
 	cloudClient, err := app.newCloudClient()
 	if err != nil {

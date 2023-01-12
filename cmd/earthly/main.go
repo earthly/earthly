@@ -145,6 +145,7 @@ type cliFlags struct {
 	satellitePrintJSON         bool
 	satelliteMaintenanceWindow string
 	satelliteDropCache         bool
+	satelliteVersion           string
 	userPermission             string
 	noBuildkitUpdate           bool
 	globalWaitEnd              bool // for feature-flipping builder.go code removal
