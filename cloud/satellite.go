@@ -241,12 +241,12 @@ func (c *client) UpdateSatellite(ctx context.Context, name, orgID, version, main
 	return nil
 }
 
-var maintenceWindowRx = regexp.MustCompile(`[0-9]{2}:[0-9]{2}\z`)
+var maintenanceWindowRx = regexp.MustCompile(`[0-9]{2}:[0-9]{2}\z`)
 
 // LocalMaintenanceWindowToUTC checks if the provided maintenance window is valid
 // and returns a new maintenance window converted from local time to UTC format.
 func LocalMaintenanceWindowToUTC(window string, loc *time.Location) (string, error) {
-	if !maintenceWindowRx.MatchString(window) {
+	if !maintenanceWindowRx.MatchString(window) {
 		return "", errors.New("maintenance window must be in the format HH:MM (24hr)")
 	}
 	t, err := time.ParseInLocation("15:04:05", fmt.Sprintf("%s:00", window), loc)
