@@ -608,6 +608,7 @@ examples1:
     BUILD ./examples/cutoff-optimization+run
     BUILD ./examples/import+build
     BUILD ./examples/secrets+base
+    BUILD ./examples/cloud-secrets+base
 
 examples2:
     BUILD ./examples/readme/go1+all
