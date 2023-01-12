@@ -12,58 +12,6 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func (app *earthlyApp) secretCmds() []*cli.Command {
-	return []*cli.Command{
-		{
-			Name:  "set",
-			Usage: "Stores a secret in the secrets store",
-			UsageText: "earthly [options] secret set <path> <value>\n" +
-				"   earthly [options] secret set --file <local-path> <path>\n" +
-				"   earthly [options] secret set --stdin <path>",
-			Action: app.actionSecretsSet,
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:        "file",
-					Aliases:     []string{"f"},
-					Usage:       "Stores secret stored in file",
-					Destination: &app.secretFile,
-				},
-				&cli.BoolFlag{
-					Name:        "stdin",
-					Aliases:     []string{"i"},
-					Usage:       "Stores secret read from stdin",
-					Destination: &app.secretStdin,
-				},
-			},
-		},
-		{
-			Name:      "get",
-			Action:    app.actionSecretsGet,
-			Usage:     "Retrieve a secret from the secrets store",
-			UsageText: "earthly [options] secret get [options] <path>",
-			Flags: []cli.Flag{
-				&cli.BoolFlag{
-					Aliases:     []string{"n"},
-					Usage:       "Disable newline at the end of the secret",
-					Destination: &app.disableNewLine,
-				},
-			},
-		},
-		{
-			Name:      "ls",
-			Usage:     "List secrets in the secrets store",
-			UsageText: "earthly [options] secret ls [<path>]",
-			Action:    app.actionSecretsList,
-		},
-		{
-			Name:      "rm",
-			Usage:     "Removes a secret from the secrets store",
-			UsageText: "earthly [options] secret rm <path>",
-			Action:    app.actionSecretsRemove,
-		},
-	}
-}
-
 func (app *earthlyApp) secretCmdsPreview() []*cli.Command {
 	return []*cli.Command{
 		{

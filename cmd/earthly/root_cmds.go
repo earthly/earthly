@@ -134,13 +134,6 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 			},
 		},
 		{
-			Name:        "old-secret",
-			Aliases:     []string{"secrets"},
-			Usage:       "Earthly secrets",
-			Description: "Manage cloud secrets *experimental*",
-			Subcommands: app.secretCmds(),
-		},
-		{
 			Name:        "account",
 			Usage:       "Create or manage an Earthly account *experimental*",
 			Subcommands: app.accountCmds(),
