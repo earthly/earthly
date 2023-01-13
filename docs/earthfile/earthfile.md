@@ -147,7 +147,7 @@ This option is deprecated. Use `--<build-arg-key>=<build-arg-value>` instead.
 
 #### Synopsis
 
-* `RUN [--push] [--entrypoint] [--privileged] [--secret <env-var>=<secret-ref>] [--ssh] [--mount <mount-spec>] [--] <command>` (shell form)
+* `RUN [--push] [--entrypoint] [--privileged] [--secret <env-var>=<secret-id>] [--ssh] [--mount <mount-spec>] [--] <command>` (shell form)
 * `RUN [[<flags>...], "<executable>", "<arg1>", "<arg2>", ...]` (exec form)
 
 #### Description
@@ -208,12 +208,10 @@ Note that privileged mode is not enabled by default. In order to use this option
 earthly --allow-privileged +some-target
 ```
 
-##### `--secret <env-var>=<secret-ref> | <secret-id>`
+##### `--secret <env-var>=<secret-id> | <secret-id>`
 
 Makes available a secret, in the form of an env var (its name is defined by `<env-var>`), to the command being executed. 
 If you only specify `<secret-id>`, the name of the env var will be `<secret-id>` and its value the value of `<secret-id>`.
-
-The `<secret-ref>` needs to be of the form `+secrets/<secret-id>`, where `<secret-id>` is the identifier passed to the `earthly` command when passing the secret: `earthly --secret <secret-id>=<value>`.
 
 Here is an example that showcases both syntaxes:
 
@@ -229,7 +227,7 @@ earthly --secret GH_TOKEN="the-actual-secret-token-value" +release
 earthly --secret GITHUB_TOKEN="the-actual-secret-token-value" +release-short
 ```
 
-An empty string is also allowed for `<secret-ref>`, allowing for optional secrets, should it need to be disabled.
+An empty string is also allowed for `<secret-id>`, allowing for optional secrets, should it need to be disabled.
 
 ```Dockerfile
 release:
@@ -1107,9 +1105,9 @@ Same as [`RUN --no-cache`](#no-cache).
 
 Same as [`RUN --mount <mount-spec>`](#mount-less-than-mount-spec-greater-than).
 
-##### `--secret <env-var>=<secret-ref>`
+##### `--secret <env-var>=<secret-id>`
 
-Same as [`RUN --secret <env-var>=<secret-ref>`](#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than).
+Same as [`RUN --secret <env-var>=<secret-id>`](#secret-less-than-env-var-greater-than-less-than-secret-id-greater-than).
 
 ## FOR
 
@@ -1174,9 +1172,9 @@ Same as [`RUN --no-cache`](#no-cache).
 
 Same as [`RUN --mount <mount-spec>`](#mount-less-than-mount-spec-greater-than).
 
-##### `--secret <env-var>=<secret-ref>`
+##### `--secret <env-var>=<secret-id>`
 
-Same as [`RUN --secret <env-var>=<secret-ref>`](#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than).
+Same as [`RUN --secret <env-var>=<secret-id>`](#secret-less-than-env-var-greater-than-less-than-secret-id-greater-than).
 
 ## WAIT (experimental)
 
