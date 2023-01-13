@@ -35,9 +35,7 @@ earthly org create <org-name>
 To invite another user to join your org, run:
 
 ```bash
-earthly org invite /<org-name>/ <email>
+earthly --org <org-name> org invite <email>
 ```
-
-Note the slashes around the org name. Also, please note that **the user must have an account on Earthly before they can be invited**. (This is a temporary limitation which will be addressed in the future.)
 
 You can join an Earthly org by following the steps outlined in the invitation email sent to you by an Earthly admin.

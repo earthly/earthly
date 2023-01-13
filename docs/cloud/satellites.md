@@ -145,10 +145,8 @@ For more information on using satellites, see the [Using satellites page](../sat
 A final optional step is to invite your team to use the satellite. This can be done by running:
 
 ```bash
-earthly org invite /<org-name>/ <email>
+earthly --org <org-name> org invite <email>
 ```
-
-Note the slashes around the org name. Also, please note that **the user must have an account on Earthly before they can be invited**. (This is a temporary limitation which will be addressed in the future.)
 
 Once a user has been invited, you can forward them a link to the page [Using Satellites](./using.md) for them to get started.
 
@@ -203,7 +201,5 @@ before running your Earthly targets.
   earthly sat launch <satellite-name>
   ```
 * The output phase (the phase in which a satellite outputs build results back to the local machine) is slower than it could be. To work around this issue, you can make use of the `--no-output` flag (assuming that local outputs are not needed). You can even use `--no-output` in conjunction with `--push`. We are working on ways in which local outputs can be synchronized more intelligently such that only a diff is transferred over the network.
-* A user can only be invited into an Earthly org if they already have a user account. This is a temporary limitation which will be addressed in the future.
-* Satellites in conjunction with `--save-inline-cache` or `--use-inline-cache` is currently unsupported. When using `--ci`, the options `--save-inline-cache` and `--use-inline-cache` will not be implicitly enabled when using Satellites.
 
 If you run into any issues please let us know either via [Slack](https://earthly.dev/slack), [GitHub issues](https://github.com/earthly/earthly/issues) or by [emailing support](mailto:support+satellite@earthly.dev).

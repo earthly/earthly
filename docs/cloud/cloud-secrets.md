@@ -3,11 +3,9 @@
 {% hint style='danger' %}
 ##### Important
 
-This feature is currently in **Experimental** stage
+This feature is currently in **Beta** stage
 
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/575) for any known problems.
-* Give us feedback on [Slack](https://earthly.dev/slack) in the `#cloud-secrets` channel.
+* If you encounter any issues, please give us feedback on [Slack](https://earthly.dev/slack) in the `#cloud-secrets` channel.
 {% endhint %}
 
 Earthly has the ability to use secure cloud-based storage for build secrets. This page goes through the basic setup and usage examples.
