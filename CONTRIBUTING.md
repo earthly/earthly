@@ -97,6 +97,12 @@ embedded version of Earthly to use the cache via build-args:
 ./build/*/*/earthly -P ./tests+all --DOCKERHUB_AUTH=false --DOCKERHUB_MIRROR=<ip-address-or-hostname>:<port> --DOCKERHUB_MIRROR_INSECURE=true
 ```
 
+or if you are using a plain http cache, use:
+
+```bash
+./build/*/*/earthly -P ./tests+all --DOCKERHUB_AUTH=false --DOCKERHUB_MIRROR=<ip-address-or-hostname>:<port> --DOCKERHUB_MIRROR_HTTP=true
+```
+
 ## Updates to buildkit or fsutil
 
 Earthly is built against a fork of [buildkit](https://github.com/earthly/buildkit) and [fsutil](https://github.com/earthly/fsutil).
