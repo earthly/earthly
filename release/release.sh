@@ -37,6 +37,12 @@ if [[ "$earthly" == .* ]]; then
   earthly="$(pwd)/$earthly"
 fi
 
+# TODO once v 0.7 is fully released, we can remove this
+if "$earthly" secrets --help 2>&1 | grep migrate > /dev/null; then
+    echo "you are using an older version of earthly, please upgrade to v0.7.X (or build it from main)"
+    exit 1
+fi
+
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd $SCRIPT_DIR
 
@@ -92,7 +98,7 @@ fi
 if [ -n "$GITHUB_SECRET_PATH" ]; then
     GITHUB_SECRET_PATH_BUILD_ARG="--build-arg GITHUB_SECRET_PATH=$GITHUB_SECRET_PATH"
 else
-    ("$earthly" secrets ls /earthly-technologies >/dev/null) || (echo "ERROR: current user does not have access to earthly-technologies shared secrets"; exit 1);
+    ("$earthly" secrets --org earthly-technologies --project core ls >/dev/null) || (echo "ERROR: current user does not have access to the earthly-technologies core project"; exit 1);
 fi
 
 release_ami="false"
