@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION --use-cache-command 0.6
 
 FROM node:17-alpine3.14
 WORKDIR /app
