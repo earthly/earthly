@@ -342,7 +342,9 @@ earthly-docker:
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     COPY (+earthly/earthly --VERSION=$TAG --DEFAULT_INSTALLATION_NAME="earthly") /usr/bin/earthly
-    SAVE IMAGE --push --cache-from=earthly/earthly:main earthly/earthly:$TAG
+    ARG DOCKERHUB_USER="earthly"
+    ARG DOCKERHUB_IMG="earthly"
+    SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG
 
 earthly-integration-test-base:
     FROM +earthly-docker
