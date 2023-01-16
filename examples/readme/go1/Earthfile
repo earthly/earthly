@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.6
 FROM golang:1.19-alpine3.15
 RUN apk --update --no-cache add git curl
 WORKDIR /go-example

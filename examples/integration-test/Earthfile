@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.6
 FROM earthly/dind:alpine
 WORKDIR /scala-example
 RUN apk add openjdk11 bash wget postgresql-client
