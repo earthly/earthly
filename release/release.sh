@@ -38,7 +38,7 @@ if [[ "$earthly" == .* ]]; then
 fi
 
 # TODO once v 0.7 is fully released, we can remove this
-if "$earthly" secrets --help 2>&1 | grep migrate > /dev/null; then
+if ! "$earthly" secrets --help 2>&1 | grep migrate > /dev/null; then
     echo "you are using an older version of earthly, please upgrade to v0.7.X (or build it from main)"
     exit 1
 fi
