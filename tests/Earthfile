@@ -135,13 +135,6 @@ ga-no-qemu:
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
         --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
-    BUILD ./web+test \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
     BUILD +excludes-test
     BUILD +secrets-test
     BUILD +secrets-optional-prefix-test
@@ -244,6 +237,14 @@ ga-no-qemu:
         BUILD +save-artifact-after-push
         BUILD ./with-docker-via-command+test
     END
+
+tests-that-require-earthly-technologies-account-access:
+    BUILD ./web+test \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
