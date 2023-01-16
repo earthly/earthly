@@ -401,7 +401,7 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 		return err
 	}
 
-	app.console.Printf("Destroying Satellite. This could take a moment...\n")
+	app.console.Printf("Destroying Satellite '%s'. This could take a moment...\n", app.satelliteName)
 	err = cloudClient.DeleteSatellite(cliCtx.Context, app.satelliteName, orgID)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
@@ -694,6 +694,7 @@ func showSatelliteLoading(console conslogging.ConsoleLogger, satName string, out
 		loggedSleep      bool
 		loggedStop       bool
 		loggedStart      bool
+		loggedUpdating   bool
 		shouldLogLoading bool
 	)
 	for o := range out {
@@ -720,8 +721,13 @@ func showSatelliteLoading(console conslogging.ConsoleLogger, satName string, out
 				loggedStart = true
 				shouldLogLoading = false
 			}
+		case cloud.SatelliteStatusUpdating:
+			if !loggedUpdating {
+				console.Printf("%s is updating. It may take a few minutes to be ready...", satName)
+				loggedUpdating = true
+			}
 		case cloud.SatelliteStatusOperational:
-			if loggedSleep || loggedStop || loggedStart {
+			if loggedSleep || loggedStop || loggedStart || loggedUpdating {
 				// Satellite was in a different state previously but is now online
 				console.Printf("...System online.")
 			}

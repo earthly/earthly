@@ -23,6 +23,8 @@ const (
 	SatelliteStatusStopping = "Stopping"
 	// SatelliteStatusCreating indicates a new satellite that is currently being launched.
 	SatelliteStatusCreating = "Creating"
+	// SatelliteStatusUpdating indicates a satellite that is upgrading to a new version, either manually or via maintenance window.
+	SatelliteStatusUpdating = "Updating"
 	// SatelliteStatusFailed indicates a satellite that has crashed and cannot be used.
 	SatelliteStatusFailed = "Failed"
 	// SatelliteStatusDestroying indicates a satellite that is actively being deleted.
@@ -278,6 +280,8 @@ func satelliteStatus(status pb.SatelliteStatus) string {
 		return SatelliteStatusStopping
 	case pb.SatelliteStatus_SATELLITE_STATUS_CREATING:
 		return SatelliteStatusCreating
+	case pb.SatelliteStatus_SATELLITE_STATUS_UPDATING:
+		return SatelliteStatusUpdating
 	case pb.SatelliteStatus_SATELLITE_STATUS_FAILED:
 		return SatelliteStatusFailed
 	case pb.SatelliteStatus_SATELLITE_STATUS_DESTROYING:
