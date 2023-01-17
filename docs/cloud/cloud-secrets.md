@@ -26,11 +26,11 @@ Then, you need create an Earthly project. To do that, you may use the command
 earthly project --org <org-name> create <project-name>
 ```
 
-Or alternatively, launch the Earthly web interface by running `earthly web`, and click on **New Project**.
+Or alternatively, launch the Earthly web interface by running `earthly web`, and clicking on **New Project**.
 
 ### Listing secrets
 
-Each Earthly project has its own isolated secret store. To view the secrets within a given project, you can run
+Each Earthly project has its own isolated secret store. Multiple code repositories may be associated with a single Earthly project. To view the secrets within a given project, you can run
 
 ```bash
 earthly secret --org <org-name> --project <project-name> ls
@@ -121,4 +121,6 @@ VERSION 0.7
 PROJECT <org-name>/<project-name>
 ```
 
-Secret references then need to be changed from `RUN --secret <env-var>=+secrets/<org-name>/<secret-key>` to `RUN --secret <env-var>=<secret-key>`. So the prefix `+secrets/<org-name>/` needs to be removed.
+Secret references then need to be changed from `RUN --secret <env-var>=+secrets/<org-name>/<secret-key>` to `RUN --secret <env-var>=<secret-key>`. So the prefix `+secrets/<org-name>/` needs to be removed. For user secrets, only the prefix `+secrets` needs to be removed, such that the key of the secret contains the `/user/` prefix.
+
+Please note that user secrets are not migrated by the `migrate` command. You will need to manually re-create them.
