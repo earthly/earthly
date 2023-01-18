@@ -481,11 +481,12 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		app.console.Printf("Feature Flags: %+v", satellite.FeatureFlags)
 	}
 	if satellite.MaintenanceWindowStart != "" {
-		mwStart, err := cloud.UTCMaintenanceWindowToLocal(satellite.MaintenanceWindowStart, time.Local)
+		zone := time.FixedZone(time.Now().Zone()) // Important not to use this instead of time.Local
+		mwStart, err := cloud.UTCMaintenanceWindowToLocal(satellite.MaintenanceWindowStart, zone)
 		if err != nil {
 			return errors.Wrap(err, "failed converting maintenance window start to local time")
 		}
-		mwEnd, err := cloud.UTCMaintenanceWindowToLocal(satellite.MaintenanceWindowEnd, time.Local)
+		mwEnd, err := cloud.UTCMaintenanceWindowToLocal(satellite.MaintenanceWindowEnd, zone)
 		if err != nil {
 			return errors.Wrap(err, "failed converting maintenance window end to local time")
 		}
