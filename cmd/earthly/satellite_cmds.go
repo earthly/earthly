@@ -474,15 +474,22 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	app.console.Printf("Platform: %s", satellite.Platform)
 	app.console.Printf("Size: %s", satellite.Size)
 	app.console.Printf("Version: %s", satellite.Version)
+	if satellite.RevisionID > 0 {
+		app.console.Printf("Revision: %d", satellite.RevisionID)
+	}
 	if len(satellite.FeatureFlags) > 0 {
 		app.console.Printf("Feature Flags: %+v", satellite.FeatureFlags)
 	}
-	if satellite.MaintenanceWindow != "" {
-		mw, err := cloud.UTCMaintenanceWindowToLocal(satellite.MaintenanceWindow, time.Local)
+	if satellite.MaintenanceWindowStart != "" {
+		mwStart, err := cloud.UTCMaintenanceWindowToLocal(satellite.MaintenanceWindowStart, time.Local)
 		if err != nil {
-			return errors.Wrap(err, "failed converting maintenance window to local time")
+			return errors.Wrap(err, "failed converting maintenance window start to local time")
 		}
-		app.console.Printf("Maintenance Window: %s", mw)
+		mwEnd, err := cloud.UTCMaintenanceWindowToLocal(satellite.MaintenanceWindowEnd, time.Local)
+		if err != nil {
+			return errors.Wrap(err, "failed converting maintenance window end to local time")
+		}
+		app.console.Printf("Maintenance Window: [%s - %s]", mwStart, mwEnd)
 	}
 	app.console.Printf("Currently selected: %s", selected)
 	app.console.Printf("")

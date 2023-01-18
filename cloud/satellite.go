@@ -37,14 +37,16 @@ const (
 
 // SatelliteInstance contains details about a remote Buildkit instance.
 type SatelliteInstance struct {
-	Name              string
-	Org               string
-	State             string
-	Platform          string
-	Size              string
-	Version           string
-	FeatureFlags      []string
-	MaintenanceWindow string
+	Name                   string
+	Org                    string
+	State                  string
+	Platform               string
+	Size                   string
+	Version                string
+	FeatureFlags           []string
+	MaintenanceWindowStart string
+	MaintenanceWindowEnd   string
+	RevisionID             int32
 }
 
 func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error) {
@@ -77,14 +79,16 @@ func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*Satelli
 		return nil, errors.Wrap(err, "failed getting satellite")
 	}
 	return &SatelliteInstance{
-		Name:              name,
-		Org:               orgID,
-		State:             satelliteStatus(resp.Status),
-		Platform:          resp.Platform,
-		Size:              resp.Size,
-		Version:           resp.Version,
-		FeatureFlags:      resp.FeatureFlags,
-		MaintenanceWindow: resp.MaintenanceWindowStart,
+		Name:                   name,
+		Org:                    orgID,
+		State:                  satelliteStatus(resp.Status),
+		Platform:               resp.Platform,
+		Size:                   resp.Size,
+		Version:                resp.Version,
+		FeatureFlags:           resp.FeatureFlags,
+		MaintenanceWindowStart: resp.MaintenanceWindowStart,
+		MaintenanceWindowEnd:   resp.MaintenanceWindowEnd,
+		RevisionID:             resp.RevisionId,
 	}, nil
 }
 
