@@ -1479,6 +1479,7 @@ func (c *Converter) Project(ctx context.Context, org, project string) error {
 	c.nonSaveCommand()
 	c.varCollection.SetOrg(org)
 	c.varCollection.SetProject(project)
+	c.opt.CloudStoredAuthProvider.AddProject(org, project)
 	return nil
 }
 
