@@ -20,6 +20,8 @@ jobs:
       EARTHLY_REPO: "earthly-staging"
       BREW_REPO: "homebrew-earthly-staging"
       DOCKERHUB_USER: "earthly"
+      DOCKERHUB_IMG: "earthly-staging"
+      DOCKERHUB_BUILDKIT_IMG: "buildkitd-staging"
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:

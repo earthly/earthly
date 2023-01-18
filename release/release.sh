@@ -16,6 +16,7 @@ set -ex
 #   Optional
 #     GITHUB_USER         override the default earthly github user
 #     DOCKERHUB_USER      override the default earthly dockerhub user
+#     DOCKERHUB_IMG       override the default earthly dockerhub image name
 #     EARTHLY_REPO        override the default earthly repo name
 #     BREW_REPO           override the default homebrew-earthly repo name
 #     GITHUB_SECRET_PATH  override the default +secrets/earthly-technologies/github/littleredcorvette/token secrets location where the github token is stored
@@ -56,6 +57,8 @@ command -v jq || (echo "ERROR: jq is not installed"; exit 1);
 # Set default values
 export GITHUB_USER=${GITHUB_USER:-earthly}
 export DOCKERHUB_USER=${DOCKERHUB_USER:-earthly}
+export DOCKERHUB_IMG=${DOCKERHUB_IMG:-earthly}
+export DOCKERHUB_BUILDKIT_IMG=${DOCKERHUB_BUILDKIT_IMG:-buildkitd}
 export EARTHLY_REPO=${EARTHLY_REPO:-earthly}
 export BREW_REPO=${BREW_REPO:-homebrew-earthly}
 export GITHUB_SECRET_PATH=$GITHUB_SECRET_PATH
@@ -76,6 +79,14 @@ if [ "$GITHUB_USER" = "earthly" ] && [ "$EARTHLY_REPO" = "earthly" ]; then
         echo "expected DOCKERHUB_USER=earthly but got $DOCKERHUB_USER"
         exit 1
     fi
+    if [ "$DOCKERHUB_IMG" != "earthly" ]; then
+        echo "expected DOCKERHUB_IMG=earthly but got $DOCKERHUB_IMG"
+        exit 1
+    fi
+    if [ "$DOCKERHUB_BUILDKIT_IMG" != "buildkitd" ]; then
+        echo "expected DOCKERHUB_BUILDKIT_IMG=earthly but got $DOCKERHUB_BUILDKIT_IMG"
+        exit 1
+    fi
     if [ "$S3_BUCKET" != "production-pkg" ]; then
         echo "expected S3_BUCKET=production-pkg but got $S3_BUCKET"
         exit 1
@@ -93,7 +104,7 @@ if [ -z "$earthly" ]; then
 fi
 
 # fail-fast if release-notes do not exist (or if date is incorrect)
-"$earthly" --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG --build-arg SKIP_CHANGELOG_DATE_TEST +release-notes
+"$earthly" --build-arg RELEASE_TAG --build-arg SKIP_CHANGELOG_DATE_TEST +release-notes
 
 if [ -n "$GITHUB_SECRET_PATH" ]; then
     GITHUB_SECRET_PATH_BUILD_ARG="--build-arg GITHUB_SECRET_PATH=$GITHUB_SECRET_PATH"
@@ -118,8 +129,8 @@ if [ "$PRERELEASE" = "true" ] || [ "$PRODUCTION_RELEASE" != "true" ]; then
     PUSH_LATEST_TAG="false"
 fi
 
-"$earthly" --push --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG --build-arg PRERELEASE +release-dockerhub
-"$earthly" --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg RELEASE_TAG --build-arg SKIP_CHANGELOG_DATE_TEST $GITHUB_SECRET_PATH_BUILD_ARG +release-github --PUSH_LATEST_TAG="$PUSH_LATEST_TAG" --PUSH_PRERELEASE_TAG="$PRERELEASE"
+"$earthly" --push --build-arg DOCKERHUB_USER --build-arg DOCKERHUB_IMG --build-arg DOCKERHUB_BUILDKIT_IMG --build-arg RELEASE_TAG --build-arg PRERELEASE +release-dockerhub
+"$earthly" --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg DOCKERHUB_BUILDKIT_IMG --build-arg RELEASE_TAG --build-arg SKIP_CHANGELOG_DATE_TEST $GITHUB_SECRET_PATH_BUILD_ARG +release-github --PUSH_LATEST_TAG="$PUSH_LATEST_TAG" --PUSH_PRERELEASE_TAG="$PRERELEASE"
 
 if [ "$PRERELEASE" != "false" ]; then
     echo "exiting due to PRERELEASE=$PRERELEASE"
