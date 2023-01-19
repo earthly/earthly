@@ -318,17 +318,17 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		window = "02:00"
 	}
 
+	zone, offset := time.Now().Zone()
 	localWindow := window
 	if window != "" {
-		window, err = cloud.LocalMaintenanceWindowToUTC(window, time.Local)
+		window, err = cloud.LocalMaintenanceWindowToUTC(window, time.FixedZone(zone, offset))
 		if err != nil {
 			return err
 		}
 	}
 
-	z, _ := time.Now().Zone()
 	app.console.Printf("Launching Satellite '%s' with auto-updates set to run at %s (%s)\n",
-		app.satelliteName, localWindow, z)
+		app.satelliteName, localWindow, zone)
 	app.console.Printf("Please wait...\n")
 	err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID, platform, size, version, window, ffs)
 	if err != nil {
