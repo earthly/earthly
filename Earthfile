@@ -186,17 +186,40 @@ markdown-spellcheck:
 
 unit-test:
     FROM +code
-    COPY podman-setup.sh .
+    RUN apk add --no-cache --update podman
+    COPY not-a-unit-test.sh .
+
     ARG testname # when specified, only run specific unit-test, otherwise run all.
 
     # pkgname determines the package name (or names) that will be tested. The go
     # submodules must be specified explicitly or they will not be run, as
     # "./..." does not match submodules.
     ARG pkgname = ./... github.com/earthly/earthly/ast/... github.com/earthly/earthly/util/deltautil/...
-    WITH DOCKER
-        RUN ./podman-setup.sh && \
-            if [ -n "$testname" ]; then testarg="-run $testname"; fi && \
-            go test -timeout 20m $testarg $pkgname
+
+    ARG DOCKERHUB_MIRROR
+    ARG DOCKERHUB_MIRROR_INSECURE=false
+    ARG DOCKERHUB_MIRROR_HTTP=false
+    ARG DOCKERHUB_AUTH=true
+    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+    IF [ -n "$DOCKERHUB_MIRROR" ]
+        RUN mkdir -p /etc/docker
+        RUN echo "{\"registry-mirrors\": [\"http://$DOCKERHUB_MIRROR\"]" > /etc/docker/daemon.json
+        IF [ "$DOCKERHUB_MIRROR_INSECURE" = "true" ] || [ "$DOCKERHUB_MIRROR_HTTP" = "true" ]
+          RUN echo ", \"insecure-registries\": [\"$DOCKERHUB_MIRROR\"]" >> /etc/docker/daemon.json
+        END
+        RUN echo "}" >> /etc/docker/daemon.json
+    END
+    IF [ "$DOCKERHUB_AUTH" = "true" ]
+        WITH DOCKER
+            RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
+                --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
+                ./not-a-unit-test.sh
+        END
+    ELSE
+        WITH DOCKER
+            RUN ./not-a-unit-test.sh
+        END
     END
 
 submodule-decouple-check:
