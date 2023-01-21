@@ -1,4 +1,5 @@
 VERSION 0.7
+PROJECT earthly-technologies/core
 FROM alpine:3.15
 
 RUN apk add --update --no-cache \
@@ -33,30 +34,37 @@ release-dind:
 release-dockerhub:
     ARG --required RELEASE_TAG
     ARG DOCKERHUB_USER="earthly"
+    ARG DOCKERHUB_IMG="earthly"
+    ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
     ARG PUSH_LATEST_TAG="false"
     ARG PUSH_PRERELEASE_TAG="false"
-    BUILD +perform-release-dockerhub --RELEASE_TAG="$RELEASE_TAG" --DOCKERHUB_USER="$DOCKERHUB_USER"
+    BUILD +perform-release-dockerhub --RELEASE_TAG="$RELEASE_TAG" --DOCKERHUB_USER="$DOCKERHUB_USER" --DOCKERHUB_IMG="$DOCKERHUB_IMG" --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
     IF [ "$PUSH_LATEST_TAG" = "true" ]
-      BUILD +perform-release-dockerhub --RELEASE_TAG="latest" --DOCKERHUB_USER="$DOCKERHUB_USER"
+      BUILD +perform-release-dockerhub --RELEASE_TAG="latest" --DOCKERHUB_USER="$DOCKERHUB_USER" --DOCKERHUB_IMG="$DOCKERHUB_IMG" --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
     END
     IF [ "$PUSH_PRERELEASE_TAG" = "true" ]
-      BUILD +perform-release-dockerhub --RELEASE_TAG="prerelease" --DOCKERHUB_USER="$DOCKERHUB_USER"
+      BUILD +perform-release-dockerhub --RELEASE_TAG="prerelease" --DOCKERHUB_USER="$DOCKERHUB_USER" --DOCKERHUB_IMG="$DOCKERHUB_IMG" --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
     END
 
 perform-release-dockerhub:
     ARG --required RELEASE_TAG
     ARG DOCKERHUB_USER="earthly"
+    ARG DOCKERHUB_IMG="earthly"
+    ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
         ../+earthly-docker \
-        --TAG="$RELEASE_TAG"
+        --TAG="$RELEASE_TAG" \
+        --DOCKERHUB_USER="$DOCKERHUB_USER" \
+        --DOCKERHUB_IMG="$DOCKERHUB_IMG"
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
         ../buildkitd+buildkitd \
         --TAG="$RELEASE_TAG" \
-        --DOCKERHUB_USER="$DOCKERHUB_USER"
+        --DOCKERHUB_USER="$DOCKERHUB_USER" \
+        --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
 
 release-notes:
     FROM python:3
@@ -81,13 +89,14 @@ release-github:
     ARG GITHUB_USER="earthly"
     ARG EARTHLY_REPO="earthly"
     ARG DOCKERHUB_USER="earthly"
+    ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
     ARG PRERELEASE="false"
     ARG EARTHLY_GIT_HASH
     RUN test -n "$EARTHLY_GIT_HASH"
     COPY +release-notes/notes.txt release-notes.txt
     COPY (../+earthly-all/* \
          --VERSION=$RELEASE_TAG \
-         --DEFAULT_BUILDKITD_IMAGE="$DOCKERHUB_USER/buildkitd:$RELEASE_TAG" \
+         --DEFAULT_BUILDKITD_IMAGE="$DOCKERHUB_USER/$DOCKERHUB_BUILDKIT_IMG:$RELEASE_TAG" \
          --DEFAULT_INSTALLATION_NAME="earthly" \
          ) ./release/
     RUN ls ./release
@@ -103,7 +112,7 @@ release-github:
     RUN file ./release/earthly-linux-arm64 | grep "aarch64"
     RUN file ./release/earthly-linux-arm64 | grep "ELF 64-bit"
     RUN file ./release/earthly-windows-amd64.exe | grep "PE32"
-    ARG GITHUB_SECRET_PATH="+secrets/earthly-technologies/github/littleredcorvette/token"
+    ARG GITHUB_SECRET_PATH="littleredcorvette-github-token"
     RUN --push \
         --secret GITHUB_TOKEN="$GITHUB_SECRET_PATH" \
         set -e; \
@@ -182,7 +191,7 @@ release-homebrew:
     RUN mkdir -p /root/.ssh
     RUN echo "|1|M66Uwae8fx9M5JFDd+WyVi3dERM=|LKfAmECF1kHoZ6epHR5jtPhJgic= ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==" > /root/.ssh/known_hosts
 
-    RUN --mount type=secret,id=+secrets/earthly-technologies/github/littleredcorvette/id_rsa,target=/root/id_rsa --no-cache \
+    RUN --mount type=secret,id=littleredcorvette-id_rsa,target=/root/id_rsa --no-cache \
         eval $(ssh-agent) && \
         cat /root/id_rsa | ssh-add - && \
         git clone "git@github.com:$GITHUB_USER/$BREW_REPO.git" .
@@ -199,8 +208,8 @@ release-homebrew:
         echo version=$version ;\
         git commit -a --allow-empty -m "earthly $version"
 
-    RUN --mount type=secret,id=+secrets/earthly-technologies/github/littleredcorvette/id_rsa,target=/root/id_rsa \
-        --secret SLACK_WEBHOOK_URL=+secrets/earthly-technologies/slack/release-webhook \
+    RUN --mount type=secret,id=littleredcorvette-id_rsa,target=/root/id_rsa \
+        --secret SLACK_WEBHOOK_URL=slack-release-webhook \
         --push \
         eval $(ssh-agent) && \
         cat /root/id_rsa | ssh-add - && \

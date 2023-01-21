@@ -186,17 +186,40 @@ markdown-spellcheck:
 
 unit-test:
     FROM +code
-    COPY podman-setup.sh .
+    RUN apk add --no-cache --update podman
+    COPY not-a-unit-test.sh .
+
     ARG testname # when specified, only run specific unit-test, otherwise run all.
 
     # pkgname determines the package name (or names) that will be tested. The go
     # submodules must be specified explicitly or they will not be run, as
     # "./..." does not match submodules.
     ARG pkgname = ./... github.com/earthly/earthly/ast/... github.com/earthly/earthly/util/deltautil/...
-    WITH DOCKER
-        RUN ./podman-setup.sh && \
-            if [ -n "$testname" ]; then testarg="-run $testname"; fi && \
-            go test -timeout 20m $testarg $pkgname
+
+    ARG DOCKERHUB_MIRROR
+    ARG DOCKERHUB_MIRROR_INSECURE=false
+    ARG DOCKERHUB_MIRROR_HTTP=false
+    ARG DOCKERHUB_AUTH=true
+    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+    IF [ -n "$DOCKERHUB_MIRROR" ]
+        RUN mkdir -p /etc/docker
+        RUN echo "{\"registry-mirrors\": [\"http://$DOCKERHUB_MIRROR\"]" > /etc/docker/daemon.json
+        IF [ "$DOCKERHUB_MIRROR_INSECURE" = "true" ] || [ "$DOCKERHUB_MIRROR_HTTP" = "true" ]
+          RUN echo ", \"insecure-registries\": [\"$DOCKERHUB_MIRROR\"]" >> /etc/docker/daemon.json
+        END
+        RUN echo "}" >> /etc/docker/daemon.json
+    END
+    IF [ "$DOCKERHUB_AUTH" = "true" ]
+        WITH DOCKER
+            RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
+                --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
+                ./not-a-unit-test.sh
+        END
+    ELSE
+        WITH DOCKER
+            RUN ./not-a-unit-test.sh
+        END
     END
 
 submodule-decouple-check:
@@ -342,7 +365,9 @@ earthly-docker:
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     COPY (+earthly/earthly --VERSION=$TAG --DEFAULT_INSTALLATION_NAME="earthly") /usr/bin/earthly
-    SAVE IMAGE --push --cache-from=earthly/earthly:main earthly/earthly:$TAG
+    ARG DOCKERHUB_USER="earthly"
+    ARG DOCKERHUB_IMG="earthly"
+    SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG
 
 earthly-integration-test-base:
     FROM +earthly-docker
@@ -354,11 +379,12 @@ earthly-integration-test-base:
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE
+    ARG DOCKERHUB_MIRROR_HTTP
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
     ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
 
-    IF [ -z $DOCKERHUB_MIRROR ]
+    IF [ -z "$DOCKERHUB_MIRROR" ]
         # No mirror, easy CI and local use by all
         ENV GLOBAL_CONFIG="{disable_analytics: true}"
         IF [ "$DOCKERHUB_AUTH" = "true" ]
@@ -372,11 +398,13 @@ earthly-integration-test-base:
         # Use a mirror, supports mirroring Docker Hub only.
         ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="[registry.\"docker.io\"]
   mirrors = [\"$DOCKERHUB_MIRROR\"]"
-
         IF [ "$DOCKERHUB_MIRROR_INSECURE" = "true" ]
             ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
-[registry.\"$DOCKERHUB_MIRROR\"]
   insecure = true"
+        END
+        IF [ "$DOCKERHUB_MIRROR_HTTP" = "true" ]
+            ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
+  http = true"
         END
 
         # NOTE: newlines+indentation is important here, see https://github.com/earthly/earthly/issues/1764 for potential pitfalls
@@ -502,6 +530,7 @@ test-no-qemu:
     BUILD +earthly-script-no-stdout
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false
+    ARG DOCKERHUB_MIRROR_HTTP=false
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
     ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
@@ -510,7 +539,8 @@ test-no-qemu:
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
     ARG GLOBAL_WAIT_END="false"
     BUILD ./tests+ga-no-qemu \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
@@ -518,11 +548,13 @@ test-no-qemu:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
 test-qemu:
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false
+    ARG DOCKERHUB_MIRROR_HTTP=false
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
     ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
@@ -533,11 +565,13 @@ test-qemu:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
 test:
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false
+    ARG DOCKERHUB_MIRROR_HTTP=false
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
     ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
@@ -546,18 +580,21 @@ test:
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
     BUILD +test-qemu \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
 
 test-all:
     BUILD +examples
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false
+    ARG DOCKERHUB_MIRROR_HTTP=false
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
     ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
@@ -566,19 +603,22 @@ test-all:
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
     BUILD +test-qemu \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
     BUILD ./tests+experimental  \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
 
 examples:
     BUILD +examples1

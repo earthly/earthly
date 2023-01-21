@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.6
 FROM golang:1.15-alpine3.13
 RUN apk --update --no-cache add git g++ make curl wget ca-certificates
 RUN echo "Some time-consuming operation" && sleep 10 && echo "...done"

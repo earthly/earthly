@@ -58,7 +58,7 @@ build:
 {% hint style='danger' %}
 ##### Note
 
-The `http` and `insecure` settings are mutually exclusive. Setting `insecure=true` should only be used when the registry is https and is configured with an insecure certificate.
+The `http` and `insecure` settings are typically mutually exclusive. Setting `insecure=true` should only be used when the registry is https and is configured with an insecure certificate.
 Setting `http=true` is only for the case where a standard http-based registry is used (i.e. no SSL encryption). If both are set buildkit will attempt to connect to the registry using either http (port 80), or https (port 443).
 
 {% endhint %}

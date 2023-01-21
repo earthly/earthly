@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.6
 
 base-image:
     FROM busybox:1.32.0
