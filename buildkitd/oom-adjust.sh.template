@@ -2,28 +2,54 @@
 
 set -e
 
-if [ "${OOM_SCORE_ADJ}" -eq "0" ]; then
+OOM_ADJ="${OOM_SCORE_ADJ}"
+DEBUG="${BUILDKIT_DEBUG}"
+INVOCATION=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 6 ; echo '')
+
+log() {
+    ! "$DEBUG" || echo "$(date) [$INVOCATION] | $1" >> /var/log/oom_adj
+}
+
+adjust_oom() {
+  echo "$1" > /proc/"$2"/oom_score_adj || true # It is ok if the OOM score fails - the PID may have exited, so it no longer matters anyways.
+}
+
+if [ "$OOM_ADJ" -eq "0" ]; then
     exit 0
 fi
 
 for PID in $(pidof buildkit-runc)
 do
-    PID_NAME=$(cat /proc/"$PID"/cmdline)
-    ! "${BUILDKIT_DEBUG}" || echo "$(date) | Checking $PID($PID_NAME)..." >> /var/log/oom_adj
+    PID_NAME=$(cat /proc/"$PID"/cmdline || echo "unknown")
 
-    if [ "$PID_NAME" = "buildkit-runcinit" ]; then
-        ! "${BUILDKIT_DEBUG}" || echo "$(date) |   $PID was buildkit-runcinit, ignoring" >> /var/log/oom_adj
-        continue
-    fi
+    case "$PID_NAME" in
+        # This is the POSIX way to do a string-starts-with, and accomodates the one prefix we do not want. Order here is important.
+        "buildkit-runcinit"*) log "$PID was buildkit-runcinit, ignoring"; continue ;;
+        "buildkit-runc"*)     log "$PID is runc parent($PID_NAME), proceeding" ;;
+        *)                    log "$PID was $PID_NAME, ignoring"; continue ;;
+    esac
 
-    #childpids=$(pgrep -P "$PID" | xargs)
     for CHILD_PID in $(pgrep -P "$PID")
     do
-        ! "${BUILDKIT_DEBUG}" || echo "$(date) |   $PID has child: $CHILD_PID($(cat /proc/"$CHILD_PID"/cmdline)) with oom_score_adj: $(cat /proc/"$CHILD_PID"/oom_score_adj)" >> /var/log/oom_adj
+        CHILD_PID_NAME=$(cat /proc/"$CHILD_PID"/cmdline || echo "unknown")
+        CHILD_OOM_ADJ=$(cat /proc/"$CHILD_PID"/oom_score_adj || echo "unknown")
+
+        case "$CHILD_OOM_ADJ" in
+            "unknown"*) log "$PID has child: $CHILD_PID($CHILD_PID_NAME), which was missing, ignoring"; continue ;;
+            "0")        log "$PID has child: $CHILD_PID($CHILD_PID_NAME) with oom_score_adj: $CHILD_OOM_ADJ"; continue ;;
+            *)          log "$PID has child: $CHILD_PID($CHILD_PID_NAME), oom_score_adj was set to 0: $CHILD_OOM_ADJ" ;;
+        esac
+        # The child may have started _after_ this script ran on the parent (or other invocation of) buildkit-runc.
+        # This undoes the inherited adjustment to make sure we behave properly at OOM time.
+        adjust_oom "0" "$CHILD_PID"
     done
 
-    ! "${BUILDKIT_DEBUG}" || echo "$(date) |   Adjusting pid $PID oom_score_adj to ${OOM_SCORE_ADJ}" >> /var/log/oom_adj
-    echo "${OOM_SCORE_ADJ}" > /proc/"$PID"/oom_score_adj
+    PID_NAME=$(cat /proc/"$PID"/cmdline || echo "unknown")
+    case "$PID_NAME" in
+        # Just in case the process exec-ed another program between the initial filter and now.
+        "buildkit-runcinit"*) log "$PID was buildkit-runcinit, no longer a candidate for OOM adjustment, ignoring"; continue ;;
+        "buildkit-runc"*)     log "$PID oom_score_adj was set to $OOM_SCORE_ADJ" ;;
+        *)                    log "$PID was $PID_NAME, no longer a candidate for OOM adjustment, ignoring"; continue ;;
+    esac
+    adjust_oom "$OOM_ADJ" "$PID"
 done
-
-! "${BUILDKIT_DEBUG}" || echo "$(date) | --" >> /var/log/oom_adj

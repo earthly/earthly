@@ -16,7 +16,7 @@ import (
 
 // Ideally this would point to "the current version" rather than being hard-coded, but the single
 // "source of truth" (in ast/validator) isn't currently exported.
-const earthlyCurrentVersion = "0.6"
+const earthlyCurrentVersion = "0.7"
 
 func getArtifactName(s string) string {
 	split := strings.Split(s, "/")

@@ -18,11 +18,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
+	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
@@ -34,11 +36,14 @@ import (
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/platutil"
+	"github.com/earthly/earthly/util/shell"
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/alessio/shellescape"
 	"github.com/containerd/containerd/platforms"
@@ -104,6 +109,7 @@ type Converter struct {
 	containerFrontend   containerutil.ContainerFrontend
 	waitBlockStack      []*waitBlock
 	isPipeline          bool
+	logbusTarget        *logbus.Target
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -127,6 +133,20 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		GlobalImports:    opt.GlobalImports,
 		Features:         opt.Features,
 	}
+	ovVarsKeysSorted := opt.OverridingVars.SortedAny()
+	ovVars := make([]string, 0, len(ovVarsKeysSorted))
+	for _, k := range ovVarsKeysSorted {
+		v, _ := opt.OverridingVars.GetAny(k)
+		ovVars = append(ovVars, fmt.Sprintf("%s=%s", k, v))
+	}
+	logbusTarget, err := opt.Logbus.Run().NewTarget(
+		sts.ID, target.String(), target.StringCanonical(), ovVars,
+		opt.PlatformResolver.Current().String(), opt.Runner)
+	if err != nil {
+		return nil, errors.Wrap(err, "new logbus target")
+	}
+	logbusTarget.SetStart(time.Now())
+
 	c := &Converter{
 		target:              target,
 		gitMeta:             bc.GitMetadata,
@@ -141,6 +161,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		localWorkingDir:     filepath.Dir(bc.BuildFilePath),
 		containerFrontend:   opt.ContainerFrontend,
 		waitBlockStack:      []*waitBlock{opt.waitBlock},
+		logbusTarget:        logbusTarget,
 	}
 
 	if c.opt.GlobalWaitBlockFtr {
@@ -857,9 +878,9 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		}
 
 		if c.ftrs.WaitBlock {
-			if c.opt.DoSaves {
-				c.waitBlock().addSaveArtifactLocal(saveLocal, c)
-			}
+			waitItem := newSaveArtifactLocal(saveLocal, c, c.opt.DoSaves)
+			c.waitBlock().AddItem(waitItem)
+			c.mts.Final.WaitItems = append(c.mts.Final.WaitItems, waitItem)
 		} else {
 			if isPush {
 				c.mts.Final.RunPush.SaveLocals = append(c.mts.Final.RunPush.SaveLocals, saveLocal)
@@ -964,7 +985,9 @@ func (c *Converter) waitBlock() *waitBlock {
 
 // PushWaitBlock should be called when a WAIT block starts, all commands will be added to this new block
 func (c *Converter) PushWaitBlock(ctx context.Context) error {
-	c.waitBlockStack = append(c.waitBlockStack, newWaitBlock())
+	waitBlock := newWaitBlock()
+	c.waitBlockStack = append(c.waitBlockStack, waitBlock)
+	c.mts.Final.AddWaitBlock(waitBlock)
 	return nil
 }
 
@@ -979,14 +1002,14 @@ func (c *Converter) PopWaitBlock(ctx context.Context) error {
 		// an END is only ever encountered by the converter that created the WAIT block, this is the only special
 		// instance where we reference mts.Final.MainState before calling FinalizeStates; this can be done here
 		// as the waitBlock belongs to the current Converter
-		c.waitBlock().addState(&c.mts.Final.MainState, c)
+		c.waitBlock().AddItem(newStateWaitItem(&c.mts.Final.MainState, c))
 	}
 
 	i := n - 1
 	waitBlock := c.waitBlockStack[i]
 	c.waitBlockStack = c.waitBlockStack[:i]
 
-	return waitBlock.wait(ctx)
+	return waitBlock.Wait(ctx, c.opt.DoPushes, c.opt.DoSaves)
 }
 
 // SaveImage applies the earthly SAVE IMAGE command.
@@ -1048,7 +1071,9 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 			if c.ftrs.WaitBlock {
 				shouldPush := pushImages && si.DockerTag != "" && c.opt.DoPushes
 				shouldExportLocally := si.DockerTag != "" && c.opt.DoSaves
-				c.waitBlock().addSaveImage(si, c, shouldPush, shouldExportLocally)
+				waitItem := newSaveImage(si, c, shouldPush, shouldExportLocally)
+				c.waitBlock().AddItem(waitItem)
+				c.mts.Final.WaitItems = append(c.mts.Final.WaitItems, waitItem)
 				if pushImages {
 					// only add summary for `SAVE IMAGE --push` commands
 					c.opt.ExportCoordinator.AddPushedImageSummary(c.target.StringCanonical(), si.DockerTag, c.mts.Final.ID, c.opt.DoPushes)
@@ -1103,13 +1128,16 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 		if err != nil {
 			return errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
 		}
-		if c.ftrs.ExecAfterParallel && mts != nil && mts.Final != nil {
-			err = c.forceExecution(ctx, mts.Final.MainState, mts.Final.PlatformResolver)
-			if err != nil {
-				return errors.Wrapf(err, "async force execution for %s", fullTargetName)
-			}
-		}
 		if apf != nil {
+			if c.ftrs.ExecAfterParallel && mts != nil && mts.Final != nil {
+				// TODO: This is a duplication from the forceExecution taking place
+				//       from FinalizeStates. However, this is necessary for apf
+				//       synchronization (needs to be run after target has executed).
+				err = c.forceExecution(ctx, mts.Final.MainState, mts.Final.PlatformResolver)
+				if err != nil {
+					return errors.Wrapf(err, "async force execution for %s", fullTargetName)
+				}
+			}
 			err = apf(ctx, mts)
 			if err != nil {
 				return err
@@ -1333,6 +1361,10 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 
 	enableParallel := allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad
 
+	for _, cache := range c.persistentCacheDirs {
+		opt.extraRunOpts = append(opt.extraRunOpts, cache)
+	}
+
 	if c.ftrs.UseRegistryForWithDocker {
 		wdr := newWithDockerRunRegistry(c, enableParallel)
 		return wdr.Run(ctx, args, opt)
@@ -1533,11 +1565,41 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	}
 
 	if c.ftrs.WaitBlock {
-		c.waitBlock().addState(&c.mts.Final.MainState, c)
+		c.waitBlock().AddItem(newStateWaitItem(&c.mts.Final.MainState, c))
 	}
-
 	close(c.mts.Final.Done())
+
+	// Force execution asynchronously, and then mark the logbusTarget as finished.
+	// This ensures that the execution actually took place, for timing purposes.
+	c.opt.ErrorGroup.Go(func() error {
+		rel, err := c.opt.Parallelism.Acquire(ctx, 1)
+		if err != nil {
+			return errors.Wrapf(err, "acquiring parallelism semaphore for %s", c.mts.FinalTarget().String())
+		}
+		defer rel()
+		if c.ftrs.ExecAfterParallel {
+			err = c.forceExecution(ctx, c.mts.Final.MainState, c.mts.Final.PlatformResolver)
+			if err != nil {
+				return errors.Wrapf(err, "async force execution for %s", c.mts.FinalTarget().String())
+			}
+		}
+		c.logbusTarget.SetEnd(
+			time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS, c.platr.Current().String())
+		return nil
+	})
 	return c.mts, nil
+}
+
+// RecordTargetFailure records a failure in a target.
+func (c *Converter) RecordTargetFailure(ctx context.Context, err error) {
+	var st logstream.RunStatus
+	switch {
+	case errors.Is(err, context.Canceled) || status.Code(errors.Cause(err)) == codes.Canceled:
+		st = logstream.RunStatus_RUN_STATUS_CANCELED
+	default:
+		st = logstream.RunStatus_RUN_STATUS_FAILURE
+	}
+	c.logbusTarget.SetEnd(time.Now(), st, c.platr.Current().String())
 }
 
 var errShellOutNotPermitted = errors.New("shell-out not permitted")
@@ -1597,7 +1659,16 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	opt.PlatformResolver = c.platr.SubResolver(platform)
 	opt.HasDangling = isDangling
 	opt.AllowPrivileged = allowPrivileged
-	opt.waitBlock = c.waitBlock()
+
+	if cmdT == buildCmd {
+		// only BUILD commands get propigated
+		opt.waitBlock = c.waitBlock()
+	} else {
+		// FROM/COPY commands will return a llb state, which will cause a wait to occur
+		// if the wait block was passed here, calling SetDoSaves would get propigated
+		opt.waitBlock = nil
+	}
+
 	if c.opt.Features.ReferencedSaveOnly {
 		// DoSaves should only be potentially turned-off when the ReferencedSaveOnly feature is flipped
 		opt.DoSaves = (cmdT == buildCmd && c.opt.DoSaves && !c.opt.OnlyFinalTargetImages)
@@ -1977,6 +2048,19 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 	}
 	parts := strings.SplitN(secretKeyValue, "=", 2)
 
+	// validate environment name is correct
+	defer func() {
+		if err != nil {
+			return
+		}
+		if envVar != "" && !shell.IsValidEnvVarName(envVar) {
+			err = fmt.Errorf("invalid secret environment name: %s", envVar)
+			secretID = ""
+			envVar = ""
+			return
+		}
+	}()
+
 	if len(parts) == 1 {
 		return parts[0], parts[0], nil
 	}
@@ -2064,8 +2148,8 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	}
 	baseImageName := reference.TagNameOnly(ref).String()
 	logName := fmt.Sprintf(
-		"%sLoad metadata %s",
-		c.imageVertexPrefix(imageName, platform), platforms.Format(llbPlatform))
+		"%sLoad metadata %s %s",
+		c.imageVertexPrefix(imageName, platform), imageName, platforms.Format(llbPlatform))
 	dgst, dt, err := c.opt.MetaResolver.ResolveImageConfig(
 		ctx, baseImageName,
 		llb.ResolveImageConfigOpt{
@@ -2190,6 +2274,7 @@ func (c *Converter) vertexPrefix(ctx context.Context, local bool, interactive bo
 		Interactive:         interactive,
 		OverridingArgs:      activeOverriding,
 		Internal:            internal,
+		Runner:              c.opt.Runner,
 	}
 	return vm.ToVertexPrefix()
 }

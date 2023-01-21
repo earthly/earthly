@@ -71,7 +71,7 @@ mkdir -p ~/odd-project
 cd ~/odd-project
 git init
 cat <<EOF >> Earthfile
-
+VERSION 0.7
 FROM alpine:latest
 
 build:
@@ -95,6 +95,7 @@ git push -u origin trunk
 # Create a second Earthfile in a subdirectory which will contain a Command:
 mkdir -p weirdcommands
 cat <<EOF >> weirdcommands/Earthfile
+VERSION 0.7
 TOUCH:
   COMMAND
   ARG file=touched
@@ -127,7 +128,7 @@ $earthly -V myserver/project/weirdcommands:trunk+target
 # next test that we can reference commands in the weird repo;
 # create a local Earthfile (that wont be saved to git)
 cat <<EOF > Earthfile
-
+VERSION 0.7
 IMPORT myserver/project/weirdcommands:trunk
 
 FROM alpine:latest

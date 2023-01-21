@@ -15,6 +15,7 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
@@ -80,6 +81,7 @@ type Opt struct {
 	InternalSecretStore                   *secretprovider.MutableMapStore
 	InteractiveDebugging                  bool
 	InteractiveDebuggingDebugLevelLogging bool
+	GitImage                              string
 }
 
 // BuildOpt is a collection of build options.
@@ -97,6 +99,9 @@ type BuildOpt struct {
 	BuiltinArgs                variables.DefaultArgs
 	GlobalWaitBlockFtr         bool
 	LocalArtifactWhiteList     *gatewaycrafter.LocalArtifactWhiteList
+	Logbus                     *logbus.Bus
+	MainTargetDetailsFuture    chan earthfile2llb.TargetDetails
+	Runner                     string
 }
 
 // Builder executes Earthly builds.
@@ -114,7 +119,7 @@ type Builder struct {
 func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 	b := &Builder{
 		s: &solver{
-			sm:              outmon.NewSolverMonitor(opt.Console, opt.Verbose, opt.DisableNoOutputUpdates),
+			sm:              outmon.NewSolverMonitor(opt.Console, opt.Verbose, opt.DisableNoOutputUpdates || opt.UseLogstream),
 			logbusSM:        opt.LogBusSolverMonitor,
 			useLogstream:    opt.UseLogstream,
 			bkClient:        opt.BkClient,
@@ -128,7 +133,7 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 		opt:      opt,
 		resolver: nil, // initialized below
 	}
-	b.resolver = buildcontext.NewResolver(opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides)
+	b.resolver = buildcontext.NewResolverCustomGit(opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides, opt.GitImage)
 	return b, nil
 }
 
@@ -206,6 +211,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				LLBCaps:                              &caps,
 				InteractiveDebuggerEnabled:           b.opt.InteractiveDebugging,
 				InteractiveDebuggerDebugLevelLogging: b.opt.InteractiveDebuggingDebugLevelLogging,
+				Logbus:                               opt.Logbus,
+				MainTargetDetailsFuture:              opt.MainTargetDetailsFuture,
+				Runner:                               opt.Runner,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
@@ -213,8 +221,12 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 		}
 		if opt.GlobalWaitBlockFtr {
-			b.opt.Console.Printf("skipping builder.go bf code due to GlobalWaitBlockFtr\n")
-			return nil, nil
+			if opt.OnlyArtifact != nil || opt.OnlyFinalTargetImages {
+				b.opt.Console.Printf("builder.go bf code is still required for OnlyArtifact or OnlyFinalTargetImages modes (GlobalWaitBlockFtr has no effect)\n")
+			} else {
+				b.opt.Console.Printf("skipping builder.go bf code due to GlobalWaitBlockFtr\n")
+				return nil, nil
+			}
 		}
 
 		// WARNING: the code below is deprecated, and will eventually be removed, in favour of wait_block.go

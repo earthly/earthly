@@ -61,7 +61,7 @@ jobs:
         if: inputs.BINARY == 'docker'
       - name: remove Docker
         run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
-        if: inputs.binary == 'podman'
+        if: inputs.binary != 'docker'
       - name: Install Podman (with apt-get)
         run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman
         if: inputs.binary == 'podman'
@@ -113,6 +113,15 @@ jobs:
             --build-arg DOCKERHUB_AUTH=false \
           +test-no-qemu
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+      - name: Execute tests-that-require-earthly-technologies-account-access
+        run: |-
+          ${{inputs.SUDO}} ${{ inputs.BUILT_EARTHLY_PATH }} --ci -P \
+            --build-arg DOCKERHUB_AUTH=true \
+            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
+          ./tests+tests-that-require-earthly-technologies-account-access
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Install QEMU for Podman multi-arch building
         # qemu-user-static needed for cross-compilation (--platform) targets
         run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y qemu-user-static

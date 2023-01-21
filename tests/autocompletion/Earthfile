@@ -1,15 +1,17 @@
-VERSION 0.6
+VERSION 0.7
 ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
 ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
 ARG DOCKERHUB_MIRROR
 ARG DOCKERHUB_MIRROR_INSECURE=false
+ARG DOCKERHUB_MIRROR_HTTP=false
 ARG DOCKERHUB_AUTH=true
 FROM ../..+earthly-integration-test-base \
     --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
     --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
     --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
     --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
+    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+    --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
 
 ENV EARTHLY_SHOW_HIDDEN=0
 
@@ -19,7 +21,7 @@ bootstrap
 config 
 ls 
 org 
-preview 
+project 
 prune 
 satellite 
 secret " > expected
@@ -37,10 +39,11 @@ docker
 docker2earthly 
 ls 
 org 
-preview 
+project 
 prune 
 satellite 
-secret " > expected
+secret 
+web " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
     RUN diff expected actual
 
@@ -60,22 +63,6 @@ test-targets:
     RUN echo "+mytarget " > expected
     RUN COMP_LINE="earthly +m" COMP_POINT=10 earthly > actual
     RUN diff expected actual
-
-test-targets-without-version:
-    COPY fake.earth ./Earthfile
-    RUN mv Earthfile Earthfile.bkup && cat Earthfile.bkup | grep -v VERSION > Earthfile
-
-    RUN echo "+mytarget 
-+othertarget 
-+othertargetwithargs 
-+targetwithrequiredarg " > expected
-    RUN COMP_LINE="earthly +" COMP_POINT=9 earthly > actual
-    RUN diff expected actual
-
-    RUN echo "+mytarget " > expected
-    RUN COMP_LINE="earthly +m" COMP_POINT=10 earthly > actual 2> errlog
-    RUN diff expected actual
-    RUN test -f errlog && ! test -s errlog
 
 test-target-with-build-args:
     COPY fake.earth ./Earthfile
@@ -228,7 +215,6 @@ test-all:
     BUILD +test-hidden-root-commands
     BUILD +test-build-flags
     BUILD +test-targets
-    BUILD +test-targets-without-version
     BUILD +test-targets-from-other-dir
     BUILD +test-target-with-build-args
     BUILD +test-target-with-build-args-from-other-dir

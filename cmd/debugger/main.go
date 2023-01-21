@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"math"
 	"net"
 	"os"
 	"os/exec"
@@ -102,28 +105,39 @@ func sendFile(ctx context.Context, sockAddr, src, dst string) error {
 	}()
 
 	// send a protocol version
-	err = common.WriteDataPacket(conn, 0x01, nil)
+	err = common.WriteDataPacket(conn, 0x02, nil)
 	if err != nil {
 		return err
 	}
 
-	err = common.WriteDataPacket(conn, len(dst), []byte(dst))
+	err = common.WriteUint16PrefixedData(conn, []byte(dst))
 	if err != nil {
 		return err
 	}
 
-	b, err := os.ReadFile(src)
+	f, err := os.Open(src)
 	if err != nil {
 		return err
 	}
+	r := bufio.NewReader(f)
+	b := make([]byte, 0, math.MaxUint16)
+	for {
+		n, err := r.Read(b[:cap(b)])
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
 
-	err = common.WriteDataPacket(conn, len(b), b)
-	if err != nil {
-		return err
+		err = common.WriteUint16PrefixedData(conn, b[:n])
+		if err != nil {
+			return err
+		}
 	}
 
 	// send end of file packet
-	return common.WriteDataPacket(conn, 0x00, nil)
+	return common.WriteUint16PrefixedData(conn, nil)
 }
 
 func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder func() (*exec.Cmd, error)) error {
@@ -245,7 +259,6 @@ func main() {
 	args := os.Args[1:]
 
 	if args[0] == "--version" {
-		fmt.Printf("version: %v-%v\n", Version, GitSha)
 		return
 	}
 

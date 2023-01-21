@@ -28,6 +28,10 @@ const DockerfileMetaTarget = "@dockerfile:"
 type Data struct {
 	// The parsed Earthfile AST.
 	Earthfile spec.Earthfile
+	// EarthlyOrgName is the org that the target belongs to.
+	EarthlyOrgName string
+	// EarthlyProjectName is the project that the target belongs to.
+	EarthlyProjectName string
 	// BuildFilePath is the local path where the Earthfile or Dockerfile can be found.
 	BuildFilePath string
 	// BuildContext is the state to use for the build.
@@ -55,8 +59,14 @@ type Resolver struct {
 
 // NewResolver returns a new NewResolver.
 func NewResolver(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides string) *Resolver {
+	return NewResolverCustomGit(cleanCollection, gitLookup, console, featureFlagOverrides, "")
+}
+
+// NewResolverCustomGit returns a new Resolver instance with a custom gitImage.
+func NewResolverCustomGit(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides string, gitImage string) *Resolver {
 	return &Resolver{
 		gr: &gitResolver{
+			gitImage:        gitImage,
 			cleanCollection: cleanCollection,
 			projectCache:    synccache.New(),
 			buildFileCache:  synccache.New(),
@@ -107,6 +117,12 @@ func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, platr 
 		if err != nil {
 			return nil, err
 		}
+		org, project, err := extractOrgAndProjectName(d.Earthfile)
+		if err != nil {
+			return nil, err
+		}
+		d.EarthlyOrgName = org
+		d.EarthlyProjectName = project
 	}
 	return d, nil
 }
@@ -121,4 +137,25 @@ func (r *Resolver) parseEarthfile(ctx context.Context, path string) (spec.Earthf
 	}
 	ef := efValue.(spec.Earthfile)
 	return ef, nil
+}
+
+func extractOrgAndProjectName(ef spec.Earthfile) (string, string, error) {
+	for _, cmd := range ef.BaseRecipe {
+		if cmd.Command == nil {
+			continue
+		}
+		if cmd.Command.Name != "PROJECT" {
+			continue
+		}
+		if len(cmd.Command.Args) != 1 {
+			return "", "", errors.Errorf("invalid PROJECT command")
+		}
+		orgProj := cmd.Command.Args[0]
+		parts := strings.SplitN(orgProj, "/", 2)
+		if len(parts) != 2 {
+			return "", "", errors.Errorf("invalid PROJECT command")
+		}
+		return parts[0], parts[1], nil
+	}
+	return "", "", nil
 }

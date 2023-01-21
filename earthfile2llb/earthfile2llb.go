@@ -4,15 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/earthly/earthly/util/containerutil"
-	"github.com/earthly/earthly/util/gatewaycrafter"
-	"github.com/earthly/earthly/util/llbutil/secretprovider"
-	"github.com/earthly/earthly/util/platutil"
-	"github.com/moby/buildkit/client/llb"
-	gwclient "github.com/moby/buildkit/frontend/gateway/client"
-	"github.com/moby/buildkit/util/apicaps"
-	"github.com/pkg/errors"
-
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
@@ -20,10 +11,19 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
+	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/containerutil"
+	"github.com/earthly/earthly/util/gatewaycrafter"
+	"github.com/earthly/earthly/util/llbutil/secretprovider"
+	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/syncutil/serrgroup"
 	"github.com/earthly/earthly/variables"
+	"github.com/moby/buildkit/client/llb"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	"github.com/moby/buildkit/util/apicaps"
+	"github.com/pkg/errors"
 )
 
 // ConvertOpt holds conversion parameters.
@@ -155,6 +155,27 @@ type ConvertOpt struct {
 
 	// LLBCaps indicates that builder's capabilities
 	LLBCaps *apicaps.CapSet
+
+	// MainTargetDetailsFuture is a channel that is used to signal the main target details, once known.
+	MainTargetDetailsFuture chan TargetDetails
+
+	// Logbus is the bus used for logging and metadata reporting.
+	Logbus *logbus.Bus
+
+	// The runner used to execute the target on. This is used only for metadata reporting purposes.
+	// May be one of the following:
+	// * "local:<hostname>" - local builds
+	// * "bk:<buildkit-address>" - remote builds via buildkit
+	// * "sat:<org-name>/<sat-name>" - remote builds via satellite
+	Runner string
+}
+
+// TargetDetails contains details about the target being built.
+type TargetDetails struct {
+	// EarthlyOrgName is the name of the Earthly org.
+	EarthlyOrgName string
+	// EarthlyProjectName is the name of the Earthly project.
+	EarthlyProjectName string
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
@@ -205,14 +226,8 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	}
 	opt.PlatformResolver.AllowNativeAndUser = opt.Features.NewPlatform
 
-	wbWait := false
 	if opt.waitBlock == nil {
 		opt.waitBlock = newWaitBlock()
-
-		// we must call opt.waitBlock.wait(), since we are the creator.
-		// unfortunately this must be done before opt.ErrorGroup.Wait() is called (rather than here via a defer),
-		// as the ctx would otherwise be canceled.
-		wbWait = true
 	}
 
 	targetWithMetadata := bc.Ref.(domain.Target)
@@ -220,11 +235,25 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if err != nil {
 		return nil, err
 	}
+	if opt.MainTargetDetailsFuture != nil {
+		// TODO (vladaionescu): These should perhaps be passed back via logbus instead.
+		opt.MainTargetDetailsFuture <- TargetDetails{
+			EarthlyOrgName:     bc.EarthlyOrgName,
+			EarthlyProjectName: bc.EarthlyProjectName,
+		}
+		opt.MainTargetDetailsFuture = nil
+	}
 	if found {
 		if opt.DoSaves {
 			// Set the do saves flag, in case it was not set before.
 			sts.SetDoSaves()
+			err := sts.Wait(ctx)
+			if err != nil {
+				return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
+			}
 		}
+		sts.AttachTopLevelWaitItems(ctx, opt.waitBlock)
+
 		// This target has already been done.
 		return &states.MultiTarget{
 			Final:   sts,
@@ -246,8 +275,8 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		return nil, err
 	}
 
-	if wbWait {
-		err = opt.waitBlock.wait(ctx)
+	if initialCall {
+		err = opt.waitBlock.Wait(ctx, opt.DoPushes, opt.DoSaves)
 		if err != nil {
 			return nil, err
 		}

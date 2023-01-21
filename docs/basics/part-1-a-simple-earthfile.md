@@ -74,7 +74,7 @@ The first thing we do is copy our `main.go` from the **build context** (the dire
 
 Next, we run a go build command against the previously copied `main.go` file.
 
-Finally, we save the output of the build command as an artifact called `/example` (it can be later referenced as `+build/example`).
+Finally, we save the output of the build command as an artifact. The syntax for `SAVE ARTIFACT` defaults the destination path to `/` - so our artifact will be called `/example` (it can be later referenced as `+build/example`). If we wanted to save it at a different path, we could use `SAVE ARTIFACT output/example /some/path/to/example` and refer to it later as `+build/some/path/to/example`.
 
 Now let's create a new target called `+docker`.
 

@@ -5,7 +5,7 @@ FROM alpine:3.15
 buildkitd:
     ARG BUILDKIT_PROJECT
     IF [ "$BUILDKIT_PROJECT" != "" ]
-        IF case "$BUILDKIT_PROJECT" in "../*") true;; "*") false;; esac
+        IF case "$BUILDKIT_PROJECT" in "../*") true;; *) false;; esac
             # Assuming this is coming from the main Earthly Earthfile.
             ARG BUILDKIT_BASE_IMAGE=../$BUILDKIT_PROJECT+build
         ELSE
@@ -62,12 +62,13 @@ buildkitd:
     ENV EARTHLY_CACHE_VERSION="2" # whenever this value changes, a forced cache reset is performed
     VOLUME /tmp/earthly
     ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--config=/etc/buildkitd.toml"]
-    ARG REGISTRY_USER="earthly"
+    ARG DOCKERHUB_USER="earthly"
+    ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
     ARG IMAGE_REGISTRY="docker.io"
 
     # Ensure that the image we save is a fully qualified name. Podman defaults to "localhost", while Docker defaults to
     # "docker.io". This keeps it consistent across both frontends.
-    SAVE IMAGE --push --cache-from=$IMAGE_REGISTRY/earthly/buildkitd:main $IMAGE_REGISTRY/$REGISTRY_USER/buildkitd:$TAG
+    SAVE IMAGE --push --cache-from=$IMAGE_REGISTRY/earthly/buildkitd:main $IMAGE_REGISTRY/$DOCKERHUB_USER/$DOCKERHUB_BUILDKIT_IMG:$TAG
 
 buildkit-sha:
     RUN apk add git

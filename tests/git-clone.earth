@@ -1,9 +1,9 @@
-VERSION --use-copy-link 0.6
-
+VERSION 0.7
 FROM alpine/git:1.0.7
 test:
     WORKDIR /test
     GIT CLONE https://github.com/moby/buildkit.git buildkit
+    RUN test "$(pwd)" = "/test"
     WORKDIR /test/buildkit
     RUN ls .git
     RUN git status

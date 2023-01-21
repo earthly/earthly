@@ -54,7 +54,8 @@ Examples:
 
 * Classical reference: `FROM alpine:latest`
 * Local reference: `FROM +another-target`
-* Relative reference: `FROM ./subdirectory+some-target`
+* Relative reference: `FROM ./subdirectory+some-target` or `FROM ../otherdirectory+some-target`
+* Absolute reference: `FROM /absolute/path+some-target`
 * Remote reference from a public or [private](https://docs.earthly.dev/docs/guides/auth) git repository: `FROM github.com/example/project+remote-target`
 
 The `FROM` command does not mark any saved images or artifacts of the referenced target for output, nor does it mark any push commands of the referenced target for pushing. For that, please use [`BUILD`](#build).
@@ -556,7 +557,7 @@ build-linux:
 Earthly, by default, only supports dynamic values which start with the `$(...)` shell-out syntax -- passing
 a value such as `--name="the honourable $(whoami)"` will fail to execute the `whoami` program.
 
-This behaviour can be changed with the experimental [`VERSION` `--shell-out-anywhere` feature flag](../earthfile/features#feature-flags).
+This behaviour can be changed with the experimental [`VERSION` `--shell-out-anywhere` feature flag](./features.md#feature-flags).
 This feature additionally allows shelling-out in *any* earthly command.
 {% endhint %}
 

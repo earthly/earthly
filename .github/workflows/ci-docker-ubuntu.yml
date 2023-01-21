@@ -111,6 +111,16 @@ jobs:
       SUDO: ""
     secrets: inherit
 
+  docker-git-metadata-test:
+    uses: ./.github/workflows/reusable-git-metadata-test.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
   race-tests:
     name: +test (-race)
     runs-on: ubuntu-latest

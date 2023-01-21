@@ -19,6 +19,7 @@ func newTarget(b *Bus, targetID string) *Target {
 	}
 }
 
+// SetStart sets the start time of the target.
 func (target *Target) SetStart(start time.Time) {
 	target.targetDelta(&logstream.DeltaTargetManifest{
 		Status:             logstream.RunStatus_RUN_STATUS_IN_PROGRESS,

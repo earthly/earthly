@@ -64,6 +64,14 @@
         {
           "command": {
             "args": [
+              "EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
               "EARTHLY_VERSION"
             ],
             "name": "ARG"
@@ -206,6 +214,16 @@
           "command": {
             "args": [
               "test",
+              "-z",
+              "\"$EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
               "-n",
               "\"$EARTHLY_VERSION\""
             ],
@@ -238,8 +256,7 @@
   ],
   "version": {
     "args": [
-      "--earthly-version-arg",
-      "0.6"
+      "0.7"
     ]
   }
 }

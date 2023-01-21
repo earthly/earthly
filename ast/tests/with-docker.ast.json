@@ -909,9 +909,7 @@
   ],
   "version": {
     "args": [
-      "--parallel-load",
-      "--shell-out-anywhere",
-      "0.6"
+      "0.7"
     ]
   }
 }

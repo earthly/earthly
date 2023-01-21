@@ -1,10 +1,11 @@
-VERSION 0.6
+VERSION 0.7
 
-ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-ARG DOCKERHUB_MIRROR
-ARG DOCKERHUB_MIRROR_INSECURE=false
-ARG DOCKERHUB_AUTH=true
+ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+ARG --global DOCKERHUB_MIRROR
+ARG --global DOCKERHUB_MIRROR_INSECURE=false
+ARG --global DOCKERHUB_MIRROR_HTTP=false
+ARG --global DOCKERHUB_AUTH=true
 
 test-rsa-only:
     FROM ./setup+server \
@@ -13,6 +14,7 @@ test-rsa-only:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --SSHD_RSA=true \
         --SSHD_ED25519=false \
         --USER_RSA=true \
@@ -45,6 +47,7 @@ test-ed25519-only:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --SSHD_RSA=false \
         --SSHD_ED25519=true \
         --USER_RSA=false \
@@ -77,6 +80,7 @@ test-server-both-user-rsa-only:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -109,6 +113,7 @@ test-server-both-with-missing-keyscan:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -149,6 +154,7 @@ test-server-both-with-only-rsa-keyscan:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -182,6 +188,7 @@ test-server-both-with-only-ed25519-keyscan:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -215,6 +222,7 @@ test-configured-ssh-no-keyscan:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -263,6 +271,7 @@ test-server-with-unhashed-keyscan:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -298,6 +307,7 @@ test-with-custom-matcher:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -350,6 +360,7 @@ test-git-clone-command-with-custom-matcher:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -373,7 +384,7 @@ ssh-add -l
 # call target which performs a git-clone
 (set +e; earthly --config \$earthly_config --verbose -D +test 2>&1; echo \"\$?\" > status) | tee output.txt
 test \"\$(cat status)\" = \"0\"
-grep fb5de6fc4b750a88841cd91b55bdec6d output.txt
+grep 57043e67e8ad8367799dd70c5f78ff42 output.txt
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
     DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-funnyserver.earth --exec_cmd=/tmp/test-earthly-script
 
@@ -384,6 +395,7 @@ test-custom-matcher-non-standard-port-and-no-host-checking:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -408,14 +420,14 @@ cat \$earthly_config
 # call target which performs a git-clone
 (set +e; earthly --config \$earthly_config --verbose -D +test-abs-path 2>&1; echo \"\$?\" > status) | tee output.txt
 test \"\$(cat status)\" = \"0\"
-grep fb5de6fc4b750a88841cd91b55bdec6d output.txt
+grep 57043e67e8ad8367799dd70c5f78ff42 output.txt
 
 # next, change config to reflect git repos that use relative paths and require a prefix
 earthly --config \$earthly_config config 'git.\"git.example.com\"' '{\"auth\": \"ssh\", \"user\": \"git\", \"port\": 2244, \"prefix\": \"~/\", \"strict_host_key_checking\": false}'
 cat \$earthly_config
 (set +e; earthly --config \$earthly_config --verbose -D +test-rel-path 2>&1; echo \"\$?\" > status) | tee output2.txt
 test \"\$(cat status)\" = \"0\"
-grep fb5de6fc4b750a88841cd91b55bdec6d output2.txt
+grep 57043e67e8ad8367799dd70c5f78ff42 output2.txt
 
 # finally make sure we can reference it remotely via the cli
 earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo+hello
@@ -449,4 +461,5 @@ RUN_EARTHLY_ARGS:
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP

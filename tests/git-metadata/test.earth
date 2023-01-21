@@ -1,4 +1,4 @@
-VERSION --earthly-git-author-args 0.6
+VERSION 0.7
 
 # Note: this is tests both locally and remotely
 # the population of git metadata occurs in two **different** functions respectively:
@@ -7,12 +7,18 @@ VERSION --earthly-git-author-args 0.6
 
 test-git-metadata:
     FROM alpine
-    ARG --required expectedsha
+    ARG --required expected_sha
+    ARG --required expected_committer_timestamp
+    ARG --required expected_author_timestamp
     ARG EARTHLY_GIT_SHORT_HASH
     ARG EARTHLY_GIT_HASH
     ARG EARTHLY_GIT_AUTHOR
     ARG EARTHLY_GIT_CO_AUTHORS
-    RUN test "$EARTHLY_GIT_HASH" = "$expectedsha"
+    ARG EARTHLY_GIT_COMMIT_TIMESTAMP
+    ARG EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP
+    RUN test "$EARTHLY_GIT_HASH" = "$expected_sha"
+    RUN test "$EARTHLY_GIT_COMMIT_TIMESTAMP" = "$expected_committer_timestamp"
+    RUN test "$EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP" = "$expected_author_timestamp"
     RUN test -n "$EARTHLY_GIT_SHORT_HASH"
     RUN echo "$EARTHLY_GIT_HASH" | grep "$EARTHLY_GIT_SHORT_HASH"
     RUN test "$EARTHLY_GIT_AUTHOR" = "onlyspammersemailthis@earthly.dev"

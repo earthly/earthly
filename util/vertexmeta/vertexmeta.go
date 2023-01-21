@@ -28,6 +28,7 @@ type VertexMeta struct {
 	Interactive         bool                 `json:"itrctv,omitempty"`
 	OverridingArgs      map[string]string    `json:"args,omitempty"`
 	Internal            bool                 `json:"itrnl,omitempty"`
+	Runner              string               `json:"runner,omitempty"`
 }
 
 var vertexRegexp = regexp.MustCompile(`(?s)^\[([^\]]*)\] (.*)$`)

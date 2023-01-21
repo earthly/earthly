@@ -1,4 +1,4 @@
-VERSION --new-platform 0.6
+VERSION 0.7
 
 FROM alpine:3.15
 WORKDIR /work
@@ -6,7 +6,7 @@ WORKDIR /work
 test:
     FROM +run-all
     ARG nativeUname=$(uname -m)
-    ARG tests="regular/linux/arm/v7 regular/linux/arm64 regular/linux/amd64 
+    ARG tests="regular/linux/arm/v7 regular/linux/arm64 regular/linux/amd64
         native default
         override/linux/arm64 override/linux/amd64
         default_override/linux/arm64 default_override/linux/amd64

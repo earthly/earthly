@@ -1,15 +1,17 @@
-VERSION 0.6
+VERSION 0.6 # TODO need to update azure-container-registry secrets first before moving to 0.7
 ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
 ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
 ARG DOCKERHUB_MIRROR
 ARG DOCKERHUB_MIRROR_INSECURE=false
+ARG DOCKERHUB_MIRROR_HTTP=false
 ARG DOCKERHUB_AUTH=true
 FROM ../..+earthly-integration-test-base \
     --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
     --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
     --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
     --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
+    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+    --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
 WORKDIR /test
 
 RUN apk update && \
@@ -21,12 +23,12 @@ all:
     BUILD +azure-container-registry
     BUILD +amazon-elastic-container-registry
 
-google-base:    
+google-base:
     RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-324.0.0-linux-x86_64.tar.gz && \
         tar -xvzf google-cloud-sdk-324.0.0-linux-x86_64.tar.gz && \
         ./google-cloud-sdk/install.sh -q && \
         ls -la /test/google-cloud-sdk
-    
+
     ENV PATH $PATH:/test/google-cloud-sdk/bin
 
     RUN --secret=GCP_KEY=+secrets/earthly-technologies/gcp/ci-cd-key \
@@ -68,11 +70,13 @@ google-container-repository:
 
 azure-container-registry:
     COPY azure-container-registry.earth ./Earthfile
-   
+
    # Note that we dont have to install a cred helper here, also the cred helper wouldnt help here anyways
-    RUN --secret AZ_USERNAME=+secrets/earthly-technologies/azure/ci-cd-username \
-        --secret AZ_PASSWORD=+secrets/earthly-technologies/azure/ci-cd-password \
-        docker login earthlyintegrationtest.azurecr.io --username $AZ_USERNAME --password $AZ_PASSWORD
+    RUN --secret AZ_USERNAME=+secrets/earthly-technologies/azure/ci-cd-username \ # TODO these need to be updated for the new projects-based secret
+        --secret AZ_PASSWORD=+secrets/earthly-technologies/azure/ci-cd-password \ # TODO these need to be updated for the new projects-based secret
+        (test -n "$AZ_USERNAME" || (echo "ERROR: AZ_USERNAME not set"; exit 1)) && \
+        (test -n "$AZ_PASSWORD" || (echo "ERROR: AZ_PASSWORD not set"; exit 1)) && \
+        docker login earthlyintegrationtest.azurecr.io --username "$AZ_USERNAME" --password "$AZ_PASSWORD"
 
     RUN --privileged \
     --entrypoint \
@@ -115,13 +119,13 @@ amazon-base:
 
     RUN apk add go
     RUN go get -u github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login
-    
+
     ENV PATH $PATH:/root/go/bin
 
 amazon-elastic-container-registry:
     FROM +amazon-base
     COPY amazon-elastic-container-registry.earth ./Earthfile
-   
+
     ENV AWS_REGION us-west-2
 
     # Set up the AWS credential helper

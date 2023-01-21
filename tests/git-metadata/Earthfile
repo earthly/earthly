@@ -1,10 +1,11 @@
-VERSION 0.6
+VERSION 0.7
 
-ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-ARG DOCKERHUB_MIRROR
-ARG DOCKERHUB_MIRROR_INSECURE=false
-ARG DOCKERHUB_AUTH=true
+ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+ARG --global DOCKERHUB_MIRROR
+ARG --global DOCKERHUB_MIRROR_INSECURE=false
+ARG --global DOCKERHUB_MIRROR_HTTP=false
+ARG --global DOCKERHUB_AUTH=true
 
 test:
     FROM ../git-ssh-server/setup+server \
@@ -13,6 +14,7 @@ test:
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --SSHD_RSA=true \
         --SSHD_ED25519=false \
         --USER_RSA=true \
@@ -37,6 +39,13 @@ ssh git@git.example.com | grep \"Hi git! You've successfully authenticated, but 
 git config --global user.email \"onlyspammersemailthis@earthly.dev\"
 git config --global user.name \"test name\"
 
+# test this worked (seems to be flaky in some tests)
+cat \$HOME/.gitconfig
+git config --global user.name
+git config --global user.email
+test -n \"\$(git config --global user.name)\"
+test -n \"\$(git config --global user.email)\"
+
 # clone the repo and add a test Earthfile to it
 git clone git@git.example.com:testuser/repo.git
 mv Earthfile repo/
@@ -45,14 +54,23 @@ git -C repo commit -m \"test
 
 Co-authored-by: Testy McTest <testy@earthly.dev>
 Co-authored-by: Coverage McCover <cover@earthly.dev>\"
+sleep 1 # force the commit time to change
+test -n \"\$(git config --global user.name)\"
+test -n \"\$(git config --global user.email)\"
+git -C repo commit --amend --no-edit
 git -C repo push
-export expectedsha=\$(git -C repo rev-parse HEAD)
+export expected_sha=\$(git -C repo rev-parse HEAD)
+export expected_committer_timestamp=\$(git -C repo log -1 --format=\"%ct\")
+export expected_author_timestamp=\$(git -C repo log -1 --format=\"%at\")
+test \"\$expected_committer_timestamp\" -ne \"\$expected_author_timestamp\"
 
 # finally perform earthly tests
-earthly --config \$earthly_config --verbose -D --build-arg expectedsha ./repo+test-git-metadata
+earthly --config \$earthly_config --verbose -D --build-arg expected_sha \
+--build-arg expected_committer_timestamp --build-arg expected_author_timestamp ./repo+test-git-metadata
 
 rm -rf repo
-earthly --config \$earthly_config --verbose -D --build-arg expectedsha git.example.com/testuser/repo:main+test-git-metadata
+earthly --config \$earthly_config --verbose -D --build-arg expected_sha \
+--build-arg expected_committer_timestamp --build-arg expected_author_timestamp git.example.com/testuser/repo:main+test-git-metadata
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
     DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --exec_cmd=/tmp/test-earthly-script
 
@@ -69,4 +87,5 @@ RUN_EARTHLY_ARGS:
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP

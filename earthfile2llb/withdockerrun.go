@@ -57,6 +57,7 @@ type WithDockerOpt struct {
 	ComposeFiles          []string
 	ComposeServices       []string
 	TryCatchSaveArtifacts []debuggercommon.SaveFilesSettings
+	extraRunOpts          []llb.RunOption
 }
 
 type withDockerRunTar struct {
@@ -217,6 +218,7 @@ func (w *withDockerRunTar) Run(ctx context.Context, args []string, opt WithDocke
 		"/var/earthly/dind", pllb.Scratch(), llb.HostBind(), llb.SourcePath("/tmp/earthly/dind")))
 	crOpts.extraRunOpts = append(crOpts.extraRunOpts, pllb.AddMount(
 		dockerdWrapperPath, pllb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
+	crOpts.extraRunOpts = append(crOpts.extraRunOpts, opt.extraRunOpts...)
 
 	var tarPaths []string
 	for index, tl := range w.tarLoads {

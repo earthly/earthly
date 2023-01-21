@@ -34,6 +34,7 @@ const (
 type gitResolver struct {
 	cleanCollection *cleanup.Collection
 
+	gitImage       string
 	projectCache   *synccache.SyncCache // "gitURL#gitRef" -> *resolvedGitProject
 	buildFileCache *synccache.SyncCache // project ref -> local path
 	gitLookup      *GitLookup
@@ -49,8 +50,10 @@ type resolvedGitProject struct {
 	branches []string
 	// tags is the git tags.
 	tags []string
-	// ts is the git commit timestamp.
-	ts        string
+	// committerTs is the git committer timestamp.
+	committerTs string
+	// authorTs is the git author timestamp.
+	authorTs  string
 	author    string
 	coAuthors []string
 	// state is the state holding the git files.
@@ -147,16 +150,17 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 		BuildFilePath:       localBuildFile.path,
 		BuildContextFactory: buildContextFactory,
 		GitMetadata: &gitutil.GitMetadata{
-			BaseDir:   "",
-			RelDir:    subDir,
-			RemoteURL: gitURL,
-			Hash:      rgp.hash,
-			ShortHash: rgp.shortHash,
-			Branch:    rgp.branches,
-			Tags:      rgp.tags,
-			Timestamp: rgp.ts,
-			Author:    rgp.author,
-			CoAuthors: rgp.coAuthors,
+			BaseDir:            "",
+			RelDir:             subDir,
+			RemoteURL:          gitURL,
+			Hash:               rgp.hash,
+			ShortHash:          rgp.shortHash,
+			Branch:             rgp.branches,
+			Tags:               rgp.tags,
+			CommitterTimestamp: rgp.committerTs,
+			AuthorTimestamp:    rgp.authorTs,
+			Author:             rgp.author,
+			CoAuthors:          rgp.coAuthors,
 		},
 		Features: localBuildFile.ftrs,
 	}, nil
@@ -190,8 +194,12 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		}
 
 		gitState := llb.Git(gitURL, gitRef, gitOpts...)
+		gitImage := gr.gitImage
+		if gitImage == "" {
+			gitImage = defaultGitImage
+		}
 		opImg := pllb.Image(
-			defaultGitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
+			gitImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
 			llb.Platform(platr.LLBNative()))
 
 		// Get git hash.
@@ -202,7 +210,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 					"git rev-parse --short=8 HEAD >/dest/git-short-hash ; " +
 					"git rev-parse --abbrev-ref HEAD >/dest/git-branch  || touch /dest/git-branch ; " +
 					"git describe --exact-match --tags >/dest/git-tags || touch /dest/git-tags ; " +
-					"git log -1 --format=%ct >/dest/git-ts || touch /dest/git-ts ; " +
+					"git log -1 --format=%ct >/dest/git-committer-ts || touch /dest/git-committer-ts ; " +
+					"git log -1 --format=%at >/dest/git-author-ts || touch /dest/git-author-ts ; " +
 					"git log -1 --format=%ae >/dest/git-author || touch /dest/git-author ; " +
 					"git log -1 --format=%b >/dest/git-body || touch /dest/git-body ; " +
 					"",
@@ -246,11 +255,17 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		if err != nil {
 			return nil, errors.Wrap(err, "read git-tags")
 		}
-		gitTsBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
-			Filename: "git-ts",
+		gitCommitterTsBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: "git-committer-ts",
 		})
 		if err != nil {
-			return nil, errors.Wrap(err, "read git-ts")
+			return nil, errors.Wrap(err, "read git-committer-ts")
+		}
+		gitAuthorTsBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: "git-author-ts",
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "read git-author-ts")
 		}
 		gitAuthorBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
 			Filename: "git-author",
@@ -283,7 +298,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 				gitTags2 = append(gitTags2, gitTag)
 			}
 		}
-		gitTs := strings.SplitN(string(gitTsBytes), "\n", 2)[0]
+		gitCommiterTs := strings.SplitN(string(gitCommitterTsBytes), "\n", 2)[0]
+		gitAuthorTs := strings.SplitN(string(gitAuthorTsBytes), "\n", 2)[0]
 
 		gitOpts = []llb.GitOption{
 			llb.WithCustomNamef("[context %s] git context %s", stringutil.ScrubCredentials(gitURL), ref.StringCanonical()),
@@ -294,13 +310,14 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		}
 
 		rgp := &resolvedGitProject{
-			hash:      gitHash,
-			shortHash: gitShortHash,
-			branches:  gitBranches2,
-			tags:      gitTags2,
-			ts:        gitTs,
-			author:    gitAuthor,
-			coAuthors: gitCoAuthors,
+			hash:        gitHash,
+			shortHash:   gitShortHash,
+			branches:    gitBranches2,
+			tags:        gitTags2,
+			committerTs: gitCommiterTs,
+			authorTs:    gitAuthorTs,
+			author:      gitAuthor,
+			coAuthors:   gitCoAuthors,
 			state: pllb.Git(
 				gitURL,
 				gitHash,

@@ -76,8 +76,8 @@ func WithDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error) 
 			if t2.GetFinalPlatform() != "" {
 				t.FinalPlatform = t2.GetFinalPlatform()
 			}
-			if t2.GetSatelliteName() != "" {
-				t.SatelliteName = t2.GetSatelliteName()
+			if t2.GetRunner() != "" {
+				t.Runner = t2.GetRunner()
 			}
 			if t2.GetStatus() != pb.RunStatus_RUN_STATUS_UNKNOWN {
 				t.Status = t2.GetStatus()
@@ -105,6 +105,9 @@ func WithDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error) 
 			if c2.GetTargetId() != "" {
 				c.TargetId = c2.GetTargetId()
 			}
+			if c2.GetCategory() != "" {
+				c.Category = c2.GetCategory()
+			}
 			if c2.GetPlatform() != "" {
 				c.Platform = c2.GetPlatform()
 			}
@@ -114,11 +117,11 @@ func WithDeltaManifest(m *pb.RunManifest, d *pb.Delta) (*pb.RunManifest, error) 
 			if c2.GetHasCached() {
 				c.IsCached = c2.GetIsCached()
 			}
-			if c2.GetHasPush() {
-				c.IsPush = c2.GetIsPush()
-			}
 			if c2.GetHasLocal() {
 				c.IsLocal = c2.GetIsLocal()
+			}
+			if c2.GetHasInteractive() {
+				c.IsInteractive = c2.GetIsInteractive()
 			}
 			if c2.GetStartedAtUnixNanos() != 0 {
 				c.StartedAtUnixNanos = c2.GetStartedAtUnixNanos()

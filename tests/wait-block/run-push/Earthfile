@@ -1,4 +1,4 @@
-VERSION --wait-block 0.6
+VERSION 0.7
 
 test:
     FROM debian:11.4

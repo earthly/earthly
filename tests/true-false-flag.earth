@@ -1,8 +1,9 @@
-VERSION 0.6
+VERSION 0.7
 hello:
     FROM alpine:3.15
+    RUN apk add libcap # for capsh
     ARG PRIVILEGED=false
-    RUN --no-cache --privileged=$PRIVILEGED if cat /proc/self/status | grep CapEff | grep 0000003fffffffff >/dev/null; then echo "I have the power"; else echo "fight the power"; fi
+    RUN --no-cache --privileged=$PRIVILEGED if capsh --has-p=cap_sys_admin >/dev/null; then echo "I have the power"; else echo "fight the power"; fi
 
 all:
     BUILD +hello --PRIVILEGED=false

@@ -20,9 +20,9 @@ if NO_COLOR=0 "$earthly" account logout > output 2>&1; then
 fi
 diff output <(echo "Error: account logout has no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set")
 
-
 # fetch shared secret key (this step assumes your personal user has access to the /earthly-technologies/ secrets org
-ID_RSA=$($earthly secrets get -n /earthly-technologies/earthly-secrets/manitou/id_rsa)
+echo "fetching manitou-id_rsa"
+ID_RSA=$("$earthly" secrets --org earthly-technologies --project core get -n secrets-integration-manitou-id_rsa)
 
 # now that we grabbed the manitou credentials, unset our token, to ensure that we're only testing using manitou's credentials
 unset EARTHLY_TOKEN
@@ -47,27 +47,28 @@ echo "testing earthly account login works (and is using the earthly-manitou acco
 
 mkdir -p /tmp/earthtest
 cat << EOF > /tmp/earthtest/Earthfile
+VERSION 0.7
+PROJECT manitou-org/earthly-core-integration-test
 FROM alpine:3.15
 test-local-secret:
     WORKDIR /test
-    RUN --mount=type=secret,target=/tmp/test_file,id=+secrets/my_secret test "\$(cat /tmp/test_file)" = "secret-value"
+    RUN --mount=type=secret,target=/tmp/test_file,id=my_secret test "\$(cat /tmp/test_file)" = "my-local-value"
 test-server-secret:
     WORKDIR /test
-    RUN --mount=type=secret,target=/tmp/test_file,id=+secrets/user/earthly_integration_tests/my_test_file test "\$(cat /tmp/test_file)" = "secret-value"
+    RUN --mount=type=secret,target=/tmp/test_file,id=my_test_file test "\$(cat /tmp/test_file)" = "secret-value"
 EOF
 
 # set and test get returns the correct value
-"$earthly" secrets set /user/earthly_integration_tests/my_test_file "secret-value"
+"$earthly" secrets --org manitou-org --project earthly-core-integration-test set my_test_file "secret-value"
 
-"$earthly" secrets get /user/earthly_integration_tests/my_test_file | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /secret-value/;'
+"$earthly" secrets --org manitou-org --project earthly-core-integration-test get my_test_file | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /secret-value/;'
 
 echo "=== test 1 ==="
 # test RUN --mount can reference a secret from the command line
-"$earthly" --no-cache --secret my_secret=secret-value /tmp/earthtest+test-local-secret
+"$earthly" --no-cache --secret my_secret=my-local-value /tmp/earthtest+test-local-secret
 
 echo "=== test 2 ==="
 # test RUN --mount can reference a secret from the server that is only specified in the Earthfile
 "$earthly" --no-cache /tmp/earthtest+test-server-secret
 
 echo "=== All tests have passed ==="
-

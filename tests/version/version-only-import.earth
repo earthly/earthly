@@ -1,3 +1,4 @@
+VERSION 0.7
 IMPORT ./subdir AS empty-earthfile-only-containing-a-version
 
 test:

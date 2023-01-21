@@ -63,6 +63,11 @@ func Test_parseSecretFlag(t *testing.T) {
 			val:     "FOO=BAR",
 			wantErr: true,
 		},
+		{
+			name:    "invalid secret name",
+			val:     "my-key",
+			wantErr: true,
+		},
 	}
 
 	for _, test := range tests {

@@ -29,6 +29,8 @@ import (
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
@@ -44,12 +46,8 @@ func (app *earthlyApp) actionBuild(cliCtx *cli.Context) error {
 	app.commandName = "build"
 
 	if app.ci {
-		app.useInlineCache = true
 		app.noOutput = !app.output && !app.artifactMode && !app.imageMode
 		app.strict = true
-		if app.remoteCache == "" && app.push {
-			app.saveInlineCache = true
-		}
 
 		if app.interactiveDebugging {
 			return errors.New("unable to use --ci flag in combination with --interactive flag")
@@ -180,12 +178,16 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	}
 
 	// Default upload logs, unless explicitly configured
+	doLogstreamUpload := false
+	var logstreamURL string
 	if !app.cfg.Global.DisableLogSharing {
 		if cloudClient.IsLoggedIn(cliCtx.Context) {
 			if app.logstreamUpload {
-				earthfileOrgName := "my-org" // TODO (vladaionescu): Detect this.
-				earthfileProjectName := ""   // TODO (vladaionescu): Detect this.
-				app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient, earthfileOrgName, earthfileProjectName)
+				doLogstreamUpload = true
+				logstreamURL = fmt.Sprintf("%s/builds/%s", app.getCIHost(), app.logbusSetup.InitialManifest.GetBuildId())
+				defer func() {
+					app.console.Printf("View logs at %s\n", logstreamURL)
+				}()
 			} else {
 				// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
 				app.console = app.console.WithLogBundleWriter(target.String(), cleanCollection)
@@ -227,12 +229,25 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return errors.Wrapf(err, "could not construct new buildkit client")
 	}
 
+	var runnerName string
 	isLocal := containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress)
-	if !isLocal && app.ci {
-		app.console.Printf("Please note that --use-inline-cache and --save-inline-cache are currently disabled when using --ci on Satellites or remote Buildkit.")
-		app.console.Printf("") // newline
-		app.useInlineCache = false
-		app.saveInlineCache = false
+	if isLocal {
+		hostname, err := os.Hostname()
+		if err != nil {
+			app.console.Warnf("failed to get hostname: %v", err)
+			hostname = "unknown"
+		}
+		runnerName = fmt.Sprintf("local:%s", hostname)
+	} else {
+		if app.satelliteName != "" {
+			runnerName = fmt.Sprintf("sat:%s/%s", app.orgName, app.satelliteName)
+		} else {
+			runnerName = fmt.Sprintf("bk:%s", app.buildkitdSettings.BuildkitAddress)
+		}
+	}
+	if !isLocal && (app.useInlineCache || app.saveInlineCache) {
+		app.console.Warnf("Note that inline cache (--use-inline-cache and --save-inline-cache) occasionally cause builds to get stuck at 100%% CPU on Satellites and remote Buildkit.")
+		app.console.Warnf("") // newline
 	}
 	if isLocal && !app.containerFrontend.IsAvailable(cliCtx.Context) {
 		return errors.New("Frontend is not available to perform the build. Is Docker installed and running?")
@@ -248,6 +263,9 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	nativePlatform, err := platutil.GetNativePlatformViaBkClient(cliCtx.Context, bkClient)
 	if err != nil {
 		return errors.Wrap(err, "get native platform via buildkit client")
+	}
+	if app.logstream {
+		app.logbusSetup.SetDefaultPlatform(platforms.Format(nativePlatform))
 	}
 	platr := platutil.NewResolver(nativePlatform)
 	app.analyticsMetadata.buildkitPlatform = platforms.Format(nativePlatform)
@@ -409,9 +427,13 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		}
 		localRegistryAddr = lrURL.Host
 	}
+	var logbusSM *solvermon.SolverMonitor
+	if app.logstream {
+		logbusSM = app.logbusSetup.SolverMonitor
+	}
 	builderOpts := builder.Opt{
 		BkClient:                              bkClient,
-		LogBusSolverMonitor:                   app.logbusSetup.SolverMonitor,
+		LogBusSolverMonitor:                   logbusSM,
 		UseLogstream:                          app.logstream,
 		Console:                               app.console,
 		Verbose:                               app.verbose,
@@ -439,6 +461,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		InternalSecretStore:                   internalSecretStore,
 		InteractiveDebugging:                  app.interactiveDebugging,
 		InteractiveDebuggingDebugLevelLogging: app.debug,
+		GitImage:                              app.cfg.Global.GitImage,
 	}
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
 	if err != nil {
@@ -461,6 +484,9 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		EnableGatewayClientLogging: app.debug,
 		BuiltinArgs:                builtinArgs,
 		LocalArtifactWhiteList:     localArtifactWhiteList,
+		Logbus:                     app.logbus,
+		MainTargetDetailsFuture:    make(chan earthfile2llb.TargetDetails, 1),
+		Runner:                     runnerName,
 
 		// feature-flip the removal of builder.go code
 		// once VERSION 0.7 is released AND support for 0.6 is dropped,
@@ -475,6 +501,22 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		buildOpts.OnlyArtifact = &artifact
 		buildOpts.OnlyArtifactDestPath = destPath
 	}
+	// Kick off logstream upload only when we've passed the necessary information to logbusSetup.
+	// This information is passed back right at the beginning of the build within earthfile2llb.
+	go func() {
+		select {
+		case <-cliCtx.Context.Done():
+			return
+		case details := <-buildOpts.MainTargetDetailsFuture:
+			if app.logstream {
+				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
+				if doLogstreamUpload {
+					app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient)
+					app.console.Printf("Streaming logs to %s\n", logstreamURL)
+				}
+			}
+		}
+	}()
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
 	if err != nil {
 		return errors.Wrap(err, "build target")
@@ -483,51 +525,101 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	return nil
 }
 
-func getTryCatchSaveFileHandler(localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) func(ctx context.Context, conn io.ReadWriteCloser) error {
-	return func(ctx context.Context, conn io.ReadWriteCloser) error {
-		// version
-		n, _, err := debuggercommon.ReadDataPacket(conn)
+func receiveFileVersion1(ctx context.Context, conn io.ReadWriteCloser, localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) error {
+	// dst path
+	_, dst, err := debuggercommon.ReadDataPacket(conn)
+	if err != nil {
+		return err
+	}
+
+	if !localArtifactWhiteList.Exists(string(dst)) {
+		return fmt.Errorf("file %s does not appear in the white list", dst)
+	}
+
+	// data
+	_, data, err := debuggercommon.ReadDataPacket(conn)
+	if err != nil {
+		return err
+	}
+
+	// EOF
+	n, _, err := debuggercommon.ReadDataPacket(conn)
+	if err != nil {
+		return err
+	}
+	if n != 0 {
+		return fmt.Errorf("expected EOF, but got more data")
+	}
+
+	f, err := os.Create(string(dst))
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(data)
+	if err != nil {
+		return err
+	}
+
+	return f.Close()
+}
+
+func receiveFileVersion2(ctx context.Context, conn io.ReadWriteCloser, localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) error {
+	// dst path
+	dst, err := debuggercommon.ReadUint16PrefixedData(conn)
+	if err != nil {
+		return err
+	}
+
+	if !localArtifactWhiteList.Exists(string(dst)) {
+		return fmt.Errorf("file %s does not appear in the white list", dst)
+	}
+
+	f, err := os.Create(string(dst))
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			// don't output incomplete data
+			_ = f.Close()
+			_ = os.Remove(string(dst))
+		}
+	}()
+
+	// data
+	for {
+		data, err := debuggercommon.ReadUint16PrefixedData(conn)
 		if err != nil {
 			return err
 		}
-		if n != 1 {
-			return fmt.Errorf("unexpected version %d", n)
-		}
-
-		// dst path
-		_, dst, err := debuggercommon.ReadDataPacket(conn)
-		if err != nil {
-			return err
-		}
-
-		if !localArtifactWhiteList.Exists(string(dst)) {
-			return fmt.Errorf("file %s does not appear in the white list", dst)
-		}
-
-		// data
-		_, data, err := debuggercommon.ReadDataPacket(conn)
-		if err != nil {
-			return err
-		}
-
-		// EOF
-		n, _, err = debuggercommon.ReadDataPacket(conn)
-		if err != nil {
-			return err
-		}
-		if n != 0 {
-			return fmt.Errorf("expected EOF, but got more data")
-		}
-
-		f, err := os.Create(string(dst))
-		if err != nil {
-			return err
+		if len(data) == 0 {
+			break
 		}
 		_, err = f.Write(data)
 		if err != nil {
 			return err
 		}
+	}
 
-		return f.Close()
+	return f.Close()
+}
+
+func getTryCatchSaveFileHandler(localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) func(ctx context.Context, conn io.ReadWriteCloser) error {
+	return func(ctx context.Context, conn io.ReadWriteCloser) error {
+		// version
+		protocolVersion, _, err := debuggercommon.ReadDataPacket(conn)
+		if err != nil {
+			return err
+		}
+
+		switch protocolVersion {
+		case 1:
+			return receiveFileVersion1(ctx, conn, localArtifactWhiteList)
+		case 2:
+			return receiveFileVersion2(ctx, conn, localArtifactWhiteList)
+		default:
+			return fmt.Errorf("unexpected version %d", protocolVersion)
+		}
 	}
 }

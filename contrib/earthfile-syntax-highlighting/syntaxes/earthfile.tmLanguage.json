@@ -1,6 +1,9 @@
 {
 	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
 	"name": "Earthfile",
+	"fileTypes": [
+		"Earthfile"
+	],
 	"patterns": [
 		{
 			"include": "#comment"
@@ -69,10 +72,6 @@
 				{
 					"match": "\\\\$",
 					"name": "constant.character.escape.earthfile"
-				},
-				{
-					"match": "(?<=EXPOSE\\s+)(\\d+)",
-					"name": "constant.numeric.earthfile"
 				}
 			]
 		},
@@ -133,6 +132,17 @@
 							"name": "keyword.other.special-method.earthfile"
 						},
 						"2": {
+							"name": "constant.numeric-port.earthfile"
+						}
+					},
+					"match": "^\\s*(EXPOSE)\\s+(\\d+)"
+				},
+				{
+					"captures": {
+						"1": {
+							"name": "keyword.other.special-method.earthfile"
+						},
+						"2": {
 							"name": "entity.name.variable.target.earthfile"
 						},
 						"3": {
@@ -153,6 +163,10 @@
 					"match": "^\\s*\\b(FOR)\\b.*?\\b(IN)\\b"
 				},
 				{
+					"name": "keyword.other.special-method.earthfile",
+					"match": "^\\s*FROM DOCKERFILE\\s"
+				},
+				{
 					"captures": {
 						"1": {
 							"name": "keyword.other.special-method.earthfile"
@@ -161,15 +175,11 @@
 							"name": "entity.name.type.base-image.earthfile"
 						}
 					},
-					"match": "(?<=(^FROM\\s))(\\S+)"
+					"match": "^\\s*(FROM)\\s+([^\\s#]+)"
 				},
 				{
 					"name": "keyword.other.special-method.earthfile",
 					"match": "^\\s*HEALTHCHECK\\s+(NONE|CMD)\\s"
-				},
-				{
-					"name": "keyword.other.special-method.earthfile",
-					"match": "^\\s*FROM DOCKERFILE\\s"
 				},
 				{
 					"name": "keyword.other.special-method.earthfile",
@@ -193,10 +203,12 @@
 						}
 					},
 					"name": "string.quoted.double.earthfile",
-					"patterns": [{
-						"match": "\\\\.",
-						"name": "constant.character.escaped.earthfile"
-					}]
+					"patterns": [
+						{
+							"match": "\\\\.",
+							"name": "constant.character.escaped.earthfile"
+						}
+					]
 				},
 				{
 					"begin": "'",
@@ -212,10 +224,12 @@
 						}
 					},
 					"name": "string.quoted.single.earthfile",
-					"patterns": [{
-						"match": "\\\\.",
-						"name": "constant.character.escaped.earthfile"
-					}]
+					"patterns": [
+						{
+							"match": "\\\\.",
+							"name": "constant.character.escaped.earthfile"
+						}
+					]
 				}
 			]
 		},
@@ -226,24 +240,18 @@
 					"name": "variable.other.earthfile"
 				},
 				{
-					"match": "(?<=\\${)([a-zA-Z0-9.\\-_]+)(?=})",
-					"name": "variable.other.earthfile"
-				},
-				{
-					"begin": "\\$\\{",
-					"end": "\\}",
-					"beginCaptures": {
+					"captures": {
 						"1": {
 							"name": "punctuation.definition.variable.begin.earthfile"
-						}
-					},
-					"endCaptures": {
-						"1": {
+						},
+						"2": {
+							"name": "variable.other.earthfile"
+						},
+						"3": {
 							"name": "punctuation.definition.variable.end.earthfile"
 						}
 					},
-					"name": "variable.other.earthfile",
-					"patterns": []
+					"match": "(\\${)([a-zA-Z0-9.\\-_]+)(})"
 				}
 			]
 		},

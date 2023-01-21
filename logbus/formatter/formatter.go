@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -48,15 +49,17 @@ type command struct {
 
 // Formatter is a delta to console logger.
 type Formatter struct {
-	bus           *logbus.Bus
-	console       conslogging.ConsoleLogger
-	verbose       bool
-	ongoingTick   time.Duration
-	ongoingTicker *time.Ticker
-	startTime     time.Time
-	closedCh      chan struct{}
+	bus             *logbus.Bus
+	console         conslogging.ConsoleLogger
+	verbose         bool
+	ongoingTick     time.Duration
+	ongoingTicker   *time.Ticker
+	startTime       time.Time
+	closedCh        chan struct{}
+	defaultPlatform string
 
 	mu                         sync.Mutex
+	interactives               map[string]struct{} // set of command IDs
 	lastOutputWasProgress      bool
 	lastOutputWasOngoingUpdate bool
 	lastCommandOutput          *command
@@ -103,6 +106,7 @@ func New(ctx context.Context, b *logbus.Bus, debug, verbose, forceColor, noColor
 		ongoingTick:   ongoingTick,
 		manifest:      &logstream.RunManifest{},
 		commands:      make(map[string]*command),
+		interactives:  make(map[string]struct{}),
 	}
 	if !disableOngoingUpdates {
 		go f.ongoingTickLoop(ctx)
@@ -120,6 +124,13 @@ func (f *Formatter) Write(delta *logstream.Delta) {
 	}
 }
 
+// SetDefaultPlatform sets the default platform.
+func (f *Formatter) SetDefaultPlatform(platform string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.defaultPlatform = platform
+}
+
 // Close stops the formatter and returns any errors encountered during
 // formatting.
 func (f *Formatter) Close() error {
@@ -131,6 +142,13 @@ func (f *Formatter) Close() error {
 		retErr = multierror.Append(retErr, err)
 	}
 	return retErr
+}
+
+// Manifest returns a copy of the manifest.
+func (f *Formatter) Manifest() *logstream.RunManifest {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return proto.Clone(f.manifest).(*logstream.RunManifest)
 }
 
 func (f *Formatter) processDelta(delta *logstream.Delta) error {
@@ -190,6 +208,19 @@ func (f *Formatter) handleDeltaManifest(dm *logstream.DeltaManifest) error {
 				return fmt.Errorf("target %s not found in manifest", cm.GetTargetId())
 			}
 		}
+		if cmd.GetHasInteractive() && cmd.GetIsInteractive() {
+			if cm.GetEndedAtUnixNanos() == 0 {
+				if len(f.interactives) == 0 {
+					f.ongoingTicker.Stop()
+				}
+				f.interactives[commandID] = struct{}{}
+			} else if cmd.GetEndedAtUnixNanos() != 0 {
+				delete(f.interactives, commandID)
+				if len(f.interactives) == 0 {
+					f.ongoingTicker.Reset(f.ongoingTick)
+				}
+			}
+		}
 		if cmd.GetStatus() == logstream.RunStatus_RUN_STATUS_IN_PROGRESS {
 			f.printHeader(cm.GetTargetId(), commandID, tm, cm, false)
 		}
@@ -216,7 +247,10 @@ func (f *Formatter) getCommand(commandID string) *command {
 }
 
 func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
-	c := f.targetConsole(dl.GetTargetId(), dl.GetCommandId())
+	c, verboseOnly := f.targetConsole(dl.GetTargetId(), dl.GetCommandId())
+	if verboseOnly && !f.verbose {
+		return nil
+	}
 	cmd := f.getCommand(dl.GetCommandId())
 
 	sameAsLast := (!f.lastOutputWasOngoingUpdate &&
@@ -263,7 +297,7 @@ func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
 
 func (f *Formatter) processOngoingTick(ctx context.Context) error {
 	c := f.console.WithWriter(f.bus.FormattedWriter("ongoing")).WithPrefix("ongoing")
-	c.Printf("ongoing TODO\n")
+	c.VerbosePrintf("ongoing TODO\n")
 	// TODO(vladaionescu): Go through all the commands and find which one is ongoing.
 	// Print their targets on the console.
 	f.lastOutputWasOngoingUpdate = true
@@ -273,12 +307,20 @@ func (f *Formatter) processOngoingTick(ctx context.Context) error {
 }
 
 func (f *Formatter) printHeader(targetID string, commandID string, tm *logstream.TargetManifest, cm *logstream.CommandManifest, failure bool) {
-	c := f.targetConsole(targetID, commandID)
+	c, verboseOnly := f.targetConsole(targetID, commandID)
+	if verboseOnly && !f.verbose {
+		return
+	}
+	if cm.GetCategory() == "context" && !f.verbose {
+		// These tend to be pretty noisy. Don't print their header unless
+		// verbose is enabled.
+		return
+	}
 	if failure {
 		c = c.WithFailed(true)
 	}
 	var metaParts []string
-	if cm.GetPlatform() != "" {
+	if cm.GetPlatform() != "" && cm.GetPlatform() != f.defaultPlatform {
 		metaParts = append(metaParts, cm.GetPlatform())
 	}
 	if tm != nil && tm.GetOverrideArgs() != nil {
@@ -301,7 +343,10 @@ func (f *Formatter) printHeader(targetID string, commandID string, tm *logstream
 }
 
 func (f *Formatter) printProgress(targetID string, commandID string, cm *logstream.CommandManifest) {
-	c := f.targetConsole(targetID, commandID)
+	c, verboseOnly := f.targetConsole(targetID, commandID)
+	if verboseOnly && !f.verbose {
+		return
+	}
 	builder := make([]string, 0, 2)
 	if f.lastOutputWasProgress {
 		builder = append(builder, string(ansiUp))
@@ -343,7 +388,7 @@ func (f *Formatter) shouldPrintProgress(targetID string, commandID string, cm *l
 }
 
 func (f *Formatter) printError(targetID string, commandID string, tm *logstream.TargetManifest, cm *logstream.CommandManifest) {
-	c := f.targetConsole(targetID, commandID)
+	c, _ := f.targetConsole(targetID, commandID)
 	c.Printf("%s\n", cm.GetErrorMessage())
 	c.VerbosePrintf("Overriding args used: %s\n", strings.Join(tm.GetOverrideArgs(), " "))
 	f.lastOutputWasOngoingUpdate = false
@@ -352,10 +397,10 @@ func (f *Formatter) printError(targetID string, commandID string, tm *logstream.
 }
 
 func (f *Formatter) printBuildFailure() {
-	if f.manifest.GetFailure() == nil {
+	failure := f.manifest.GetFailure()
+	if failure.GetErrorMessage() == "" {
 		return
 	}
-	failure := f.manifest.GetFailure()
 	var tm *logstream.TargetManifest
 	var cm *logstream.CommandManifest
 	if failure.GetTargetId() != "" {
@@ -364,26 +409,27 @@ func (f *Formatter) printBuildFailure() {
 	if failure.GetCommandId() != "" {
 		cm = f.manifest.GetCommands()[failure.GetCommandId()]
 	}
-	c := f.targetConsole(failure.GetTargetId(), failure.GetCommandId())
+	c, _ := f.targetConsole(failure.GetTargetId(), failure.GetCommandId())
 	c = c.WithFailed(true)
-	c.Printf("Repeating the failure error...\n")
-	f.printHeader(failure.GetTargetId(), failure.GetCommandId(), tm, cm, true)
-	if len(failure.GetOutput()) > 0 {
-		c.PrintBytes(failure.GetOutput())
-	} else {
-		c.Printf("[no output]\n")
+	if failure.GetCommandId() != "" {
+		c.Printf("Repeating the failure error...\n")
+		f.printHeader(failure.GetTargetId(), failure.GetCommandId(), tm, cm, true)
+		if len(failure.GetOutput()) > 0 {
+			c.PrintBytes(failure.GetOutput())
+		} else {
+			c.Printf("[no output]\n")
+		}
 	}
-	if failure.GetErrorMessage() != "" {
-		c.Printf("%s\n", failure.GetErrorMessage())
-	}
+	c.Printf("%s\n", failure.GetErrorMessage())
 	f.lastOutputWasOngoingUpdate = false
 	f.lastOutputWasProgress = false
 	f.lastCommandOutput = nil
 }
 
-func (f *Formatter) targetConsole(targetID string, commandID string) conslogging.ConsoleLogger {
+func (f *Formatter) targetConsole(targetID string, commandID string) (conslogging.ConsoleLogger, bool) {
 	var targetName string
 	var writerTargetID string
+	verboseOnly := false
 	switch {
 	case targetID != "":
 		tm := f.manifest.GetTargets()[targetID]
@@ -396,7 +442,24 @@ func (f *Formatter) targetConsole(targetID string, commandID string) conslogging
 		targetName = strings.TrimPrefix(commandID, "_generic:")
 		writerTargetID = commandID
 	case commandID != "":
-		targetName = fmt.Sprintf("_internal:%s", commandID)
+		cm, ok := f.manifest.GetCommands()[commandID]
+		if ok {
+			targetName = cm.GetCategory()
+			if targetName == "" {
+				targetName = cm.GetName()
+			}
+		}
+		switch {
+		case strings.HasPrefix(targetName, "internal "):
+			verboseOnly = true
+			targetName = strings.TrimPrefix(targetName, "internal ")
+		case targetName == "internal":
+			verboseOnly = true
+		case targetName == "":
+			verboseOnly = true
+			targetName = fmt.Sprintf("_internal:%s", commandID)
+		default:
+		}
 		writerTargetID = commandID
 	default:
 		targetName = "_unknown"
@@ -404,5 +467,5 @@ func (f *Formatter) targetConsole(targetID string, commandID string) conslogging
 	}
 	return f.console.
 		WithWriter(f.bus.FormattedWriter(writerTargetID)).
-		WithPrefixAndSalt(targetName, writerTargetID)
+		WithPrefixAndSalt(targetName, writerTargetID), verboseOnly
 }

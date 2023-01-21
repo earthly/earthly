@@ -1,6 +1,26 @@
-VERSION 0.6
+VERSION                             \
+--check-duplicate-images            \
+--ci-arg                            \
+--earthly-git-author-args           \
+--earthly-locally-arg               \
+--earthly-version-arg               \
+--explicit-global                   \
+--git-commit-author-timestamp       \
+--new-platform                      \
+--no-tar-build-output               \
+--shell-out-anywhere                \
+--use-cache-command                 \
+--use-chmod                         \
+--use-copy-link                     \
+--use-host-command                  \
+--use-no-manifest-list              \
+--use-pipelines                     \
+--use-project-secrets               \
+#--wait-block                        \
+0.6
 
-ARG REGISTRY
+
+ARG --global REGISTRY
 
 test1:
     FROM alpine:3.15

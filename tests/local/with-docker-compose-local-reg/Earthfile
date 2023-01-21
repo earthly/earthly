@@ -1,4 +1,4 @@
-VERSION --use-registry-for-with-docker 0.6
+VERSION 0.7
 
 all:
     ARG FRONTEND=docker

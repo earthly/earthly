@@ -78,7 +78,7 @@ The token should be the same token you use to login with Docker Hub. Other repos
 ./build/*/*/earthly -P ./tests+env-test --DOCKERHUB_AUTH=false
 ```
 
-If you don't want to specify these directly on the CLI, or don't want to type these each time, its possible [to use an .env file instead](https://docs.earthly.dev/docs/earthly-command#environment-variables-and-.env-file). Here is a template to get you started:
+If you don't want to specify these directly on the CLI, or don't want to type these each time, it's possible [to use an .env file instead](https://docs.earthly.dev/docs/earthly-command#environment-variables-and-.env-file). Here is a template to get you started:
 
 ```shell
 DOCKERHUB_USER=<my-docker-username>
@@ -90,11 +90,17 @@ DOCKERHUB_TOKEN=<my-docker-token>
 The [Insecure Docker Hub Cache Example](https://docs.earthly.dev/ci-integration/pull-through-cache#insecure-docker-hub-cache-example), provides a guide on both
 running an insecure docker hub pull through cache as well as configuring Earthly to use that cache.
 
-Since Earthly uses itself for running the tests (Earthly-in-Earthly), simply configuring `~/.earthly/config.yml` is insufficient -- one must also configure the
+Since Earthly uses itself for running the tests (Earthly-in-Earthly), simply configuring `~/.earthly/config.yml`[^dir] is insufficient -- one must also configure the
 embedded version of Earthly to use the cache via build-args:
 
 ```bash
 ./build/*/*/earthly -P ./tests+all --DOCKERHUB_AUTH=false --DOCKERHUB_MIRROR=<ip-address-or-hostname>:<port> --DOCKERHUB_MIRROR_INSECURE=true
+```
+
+or if you are using a plain http cache, use:
+
+```bash
+./build/*/*/earthly -P ./tests+all --DOCKERHUB_AUTH=false --DOCKERHUB_MIRROR=<ip-address-or-hostname>:<port> --DOCKERHUB_MIRROR_HTTP=true
 ```
 
 ## Updates to buildkit or fsutil
@@ -112,7 +118,7 @@ Updates to fsutil must first be vendored into buildkit, then updated under `go.m
 
 ## Running buildkit under debug mode
 
-Buildkit's scheduler has a debug mode, which can be enabled with the following `~/.earthly/config.yml` config:
+Buildkit's scheduler has a debug mode, which can be enabled with the following `~/.earthly/config.yml`[^dir] config:
 
 ```yml
 global:
@@ -136,6 +142,17 @@ If you have issues with git-related features or with private docker registries, 
 
 You may need to adjust the docker login command in the `earthly-integration-test-base:` target by removing the Earthly repository and adjusting for your login credentials provider.
 
+### Documentation
+
+Changes to the contents of `docs/` will be automatically updated to [docs.earthly.dev](https://docs.earthly.dev/); this is a problem for new features since the published documentation will reference features which are missing from the current released version of earthly. To ensure docs stay in sync, documentation for new features must be submitted via a seperate PR to the `next` branch.
+
+When a new version of earthly is [released](release/README.md), the `next` branch gets merged into the `main` branch, which then propigates to the published documentation.
+
+### Config
+
+Starting with [v0.6.30](CHANGELOG.md#v0630---2022-11-22), the default location of the built binary's config file has
+changed to `~/.earthly-dev/config.yml`. The standard location is not used as a fallback; it is possible to `export EARTHLY_CONFIG=~/.earthly/config.yml`, or create a symlink if required.
+
 ## CLA
 
 ### Individual
@@ -145,3 +162,5 @@ All contributions must indicate agreement to the [Earthly Contributor License Ag
 ### Entity
 
 If you are an entity, please use the [Earthly Contributor License Agreement form](https://earthly.dev/cla-form) in addition to requiring your individual contributors to sign all contributions.
+
+[^dir]: Depending on the point in time earthly is being built the actual location [may be different](#config)

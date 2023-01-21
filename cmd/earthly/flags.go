@@ -168,6 +168,13 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Hidden:      true, // Internal.
 		},
 		&cli.StringFlag{
+			Name:        "logstream-debug-manifest-file",
+			EnvVars:     []string{"EARTHLY_LOGSTREAM_DEBUG_MANIFEST_FILE"},
+			Usage:       "Enable log streaming manifest debugging output to a file",
+			Destination: &app.logstreamDebugManifestFile,
+			Hidden:      true, // Internal.
+		},
+		&cli.StringFlag{
 			Name:        "build-id",
 			EnvVars:     []string{"EARTHLY_BUILD_ID"},
 			Usage:       "The build ID to use for identifying the build in Earthly Cloud. If not specified, a random ID will be generated",
@@ -236,7 +243,7 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 		&cli.BoolFlag{
 			Name:        "ci",
 			EnvVars:     []string{"EARTHLY_CI"},
-			Usage:       wrap("Execute in CI mode. ", "Implies --use-inline-cache --save-inline-cache --no-output --strict"),
+			Usage:       wrap("Execute in CI mode. ", "Implies --no-output --strict"),
 			Destination: &app.ci,
 		},
 		&cli.BoolFlag{

@@ -22,28 +22,28 @@ func TestShellParserMandatoryEnvVars(t *testing.T) {
 	noUnset := "${VAR?message here$ARG}"
 
 	// disallow empty
-	newWord, err = shlex.ProcessWord(noEmpty, setEnvs)
+	newWord, err = shlex.ProcessWord(noEmpty, setEnvs, nil)
 	require.NoError(t, err)
 	require.Equal(t, "plain", newWord)
 
-	_, err = shlex.ProcessWord(noEmpty, emptyEnvs)
+	_, err = shlex.ProcessWord(noEmpty, emptyEnvs, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "message herex")
 
-	_, err = shlex.ProcessWord(noEmpty, unsetEnvs)
+	_, err = shlex.ProcessWord(noEmpty, unsetEnvs, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "message herex")
 
 	// disallow unset
-	newWord, err = shlex.ProcessWord(noUnset, setEnvs)
+	newWord, err = shlex.ProcessWord(noUnset, setEnvs, nil)
 	require.NoError(t, err)
 	require.Equal(t, "plain", newWord)
 
-	newWord, err = shlex.ProcessWord(noUnset, emptyEnvs)
+	newWord, err = shlex.ProcessWord(noUnset, emptyEnvs, nil)
 	require.NoError(t, err)
 	require.Equal(t, "", newWord)
 
-	_, err = shlex.ProcessWord(noUnset, unsetEnvs)
+	_, err = shlex.ProcessWord(noUnset, unsetEnvs, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "message herex")
 }
@@ -87,7 +87,7 @@ func TestShellParser4EnvVars(t *testing.T) {
 
 		if ((platform == "W" || platform == "A") && runtime.GOOS == "windows") ||
 			((platform == "U" || platform == "A") && runtime.GOOS != "windows") {
-			newWord, err := shlex.ProcessWord(source, envs)
+			newWord, err := shlex.ProcessWord(source, envs, nil)
 			if expected == "error" {
 				require.Errorf(t, err, "input: %q, result: %q", source, newWord)
 			} else {
@@ -95,7 +95,7 @@ func TestShellParser4EnvVars(t *testing.T) {
 				require.Equal(t, expected, newWord, "at line %d of %s", lineCount, fn)
 			}
 
-			newWord, err = shlex.ProcessWordWithMap(source, envsMap)
+			newWord, err = shlex.ProcessWordWithMap(source, envsMap, nil)
 			if expected == "error" {
 				require.Errorf(t, err, "input: %q, result: %q", source, newWord)
 			} else {
@@ -150,7 +150,7 @@ func TestShellParser4Words(t *testing.T) {
 			expected := strings.Split(strings.TrimLeft(words[1], " "), ",")
 
 			// test for ProcessWords
-			result, err := shlex.ProcessWords(test, envs)
+			result, err := shlex.ProcessWords(test, envs, nil)
 
 			if err != nil {
 				result = []string{"error"}
@@ -166,7 +166,7 @@ func TestShellParser4Words(t *testing.T) {
 			}
 
 			// test for ProcessWordsWithMap
-			result, err = shlex.ProcessWordsWithMap(test, BuildEnvs(envs))
+			result, err = shlex.ProcessWordsWithMap(test, BuildEnvs(envs), nil)
 
 			if err != nil {
 				result = []string{"error"}

@@ -75,7 +75,7 @@ VERSION 0.7
 PROJECT <org-name>/<project-name>
 ```
 
-Then, cloud secrets can be referenced in a similar way to [locally-defined secrets](build-args.md).
+Then, cloud secrets can be referenced in a similar way to [locally-defined secrets](../guides/build-args.md).
 
 For example:
 

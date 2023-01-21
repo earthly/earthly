@@ -1,3 +1,4 @@
+VERSION 0.7
 my-image:
     FROM alpine
     SAVE IMAGE my/image:test
