@@ -52,7 +52,7 @@ to require version `0.X` (or later), and could be rewritten as `VERSION 0.X`.
 | `--new-platform` | 0.7 | Enable new platform behavior |
 | `--no-tar-build-output` | 0.7 | Do not print output when creating a tarball to load into `WITH DOCKER` |
 | `--use-no-manifest-list` | 0.7 | Enable the `SAVE IMAGE --no-manifest-list` option |
-| `--use-chmod` | 0.7 | Enable the `SAVE IMAGE --no-manifest-list` option |
+| `--use-chmod` | 0.7 | Enable the `COPY --chmod` option |
 | `--earthly-locally-arg` | 0.7 | Enable the `EARTHLY_LOCALLY` arg |
 | `--use-project-secrets` | 0.7 | Enable project-based secret resolution |
 | `--use-pipelines` | 0.7 | Enable the `PIPELINE` and `TRIGGER` commands |

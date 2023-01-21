@@ -4,7 +4,7 @@ Earthly has the ability to perform builds for multiple platforms, in parallel. T
 
 Currently only `linux` is supported as the build platform OS. Building with Windows containers will be available in a future version of Earthly.
 
-By default, builds are performed on the same processor architecture as available on the host natively. Using the `--platform` flag across various Earthfile commands or as part of the `earthly` command, it is possible to override the build platform and thus be able to execute builds on non-native processor architectures. Execution of non-native binaries can be performed via QEMU emulation.
+By default, builds are performed on the same architecture as the runner's native architecture. Using the `--platform` flag across various Earthfile commands or as part of the `earthly` command, it is possible to override the build platform and thus be able to execute builds on non-native processor architectures. Execution of non-native binaries can be performed via QEMU emulation.
 
 In some cases, execution of the build itself does not need to happen on the target architecture, through cross-compilation features of the compiler. Examples of languages that support cross-compilation are Go and Rust. This approach may be more beneficial in many cases, as there is no need to install QEMU and also, the build is more performant.
 
@@ -228,11 +228,12 @@ the host that called `earthly`. This can be useful to determine if cross-platfor
 
 ## Emulation and WITH DOCKER
 
-Please note that `WITH DOCKER` has an important limitation for cross-platform builds: the target containing `WITH DOCKER` needs to be executing on the native architecture of the host system. The images being run within `WITH DOCKER` can be of any architecture, however.
+Please note that `WITH DOCKER` has an important limitation for cross-platform builds: the target containing `WITH DOCKER` needs to be executing on the native architecture of the runner. The images being run within `WITH DOCKER` can be of any architecture, however.
 
 In other words, the following will **NOT** work on amd64:
 
 ```Dockerfile
+# Does not work!
 build:
     FROM --platform=linux/arm64 earthly/dind
     WITH DOCKER --pull=earthly/examples:multiplatform

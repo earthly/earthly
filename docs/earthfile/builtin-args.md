@@ -37,8 +37,12 @@ The following builtin args are available
 | `EARTHLY_GIT_PROJECT_NAME` | The git project name from within the git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. | `bar/buz` |
 | `EARTHLY_GIT_COMMIT_TIMESTAMP` | The committer timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is an empty string. | `1626881847` |
 | `EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP` | The author timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is an empty string. | `1626881847` |
-| `EARTHLY_VERSION` * | The version of Earthly currently running. | `v0.6.2` |
-| `EARTHLY_BUILD_SHA` * | The git hash of the commit which built the currently running version of Earthly. | `1a9eda7a83af0e2ec122720e93ff6dbe9231fc0c` |
+| `EARTHLY_VERSION` | The version of Earthly currently running. | `v0.6.2` |
+| `EARTHLY_BUILD_SHA` | The git hash of the commit which built the currently running version of Earthly. | `1a9eda7a83af0e2ec122720e93ff6dbe9231fc0c` |
+| `EARTHLY_CI` | Whether the build is being executed in --ci mode. | `true`, `false` |
+| `EARTHLY_GIT_AUTHOR` | The git author detected within the build context directory. If no git directory is detected, then the value is an empty string. | `John Doe <john@example.com>` |
+| `EARTHLY_GIT_CO_AUTHORS` | The git co-authors detected within the build context directory, separated by space. If no git directory is detected, then the value is an empty string. | `Jane Doe <jane@example.com Jack Smith <jack@example.com>` |
+| `EARTHLY_LOCALLY` | Whether the target is being executed `LOCALLY`. | `true`, `false` |
 | `TARGETPLATFORM` | The target platform the target is being built for. | `linux/arm/v7`, `linux/amd64`, `linux/arm64` |
 | `TARGETOS` | The target OS the target is being built for. | `linux` |
 | `TARGETARCH` | The target processor architecture the target is being built for. | `arm`, `amd64`, `arm64` |
@@ -48,8 +52,6 @@ The following builtin args are available
 | `USEROS` | The OS the target is being built from. | `linux`, `darwin` |
 | `USERARCH` | The processor architecture the target is being built from. | `arm`, `amd64`, `arm64` |
 | `USERVARIANT` | The processor architecture variant the target is being built from. | `v7` |
-
-* requires use of [feature-flag](./features.md), for example: `VERSION --earthly-version-arg 0.6`.
 
 {% hint style='info' %}
 ##### Note

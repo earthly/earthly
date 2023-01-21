@@ -292,7 +292,7 @@ earthly set /user/github/token 'shhh...'
 
 ```earthly
 release:
-  RUN --push --secret GITHUB_TOKEN=+secrets/user/github/token github-release upload file.bin
+  RUN --push --secret GITHUB_TOKEN=user/github/token github-release upload file.bin
 ```
 
 <br/>
