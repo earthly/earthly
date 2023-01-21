@@ -35,9 +35,23 @@ earthly org create <org-name>
 To invite another user to join your org, run:
 
 ```bash
-earthly org invite /<org-name>/ <email>
+earthly --org <org-name> org invite <email>
 ```
 
-Note the slashes around the org name. Also, please note that **the user must have an account on Earthly before they can be invited**. (This is a temporary limitation which will be addressed in the future.)
-
 You can join an Earthly org by following the steps outlined in the invitation email sent to you by an Earthly admin.
+
+## Logging in from a CI
+
+To be able to use certain Earthly features, such as Cloud Secrets, or Satellites from a CI other than Earthly CI, you will need to log into Earthly. The easiest way to do that is to create an Earthly authentication token by running
+
+```bash
+earthly account create-token [--write] <token-name>
+```
+
+This token can then be exported as an environment variable in the CI of choice.
+
+```bash
+EARTHLY_TOKEN=...
+```
+
+Which will then force Earthly to use that token when accessing secrets.

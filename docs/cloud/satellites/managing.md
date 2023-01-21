@@ -140,10 +140,8 @@ Note that the [`inspect`](#checking-status-of-a-satellite) command will show you
 Currently, all users who are part of an organization are allowed to use any satellite in the organization. To invite another user to join your org, run:
 
 ```bash
-earthly org invite /<org-name>/ <email>
+earthly --org <org-name> org invite <email>
 ```
-
-Note the slashes around the org name. Also, please note that **the user must have an account on Earthly before they can be invited**. (This is a temporary limitation which will be addressed in the future.)
 
 Once a user has been invited, you can forward them a link to the page [Using Satellites](./using.md) for them to get started.
 

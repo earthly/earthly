@@ -42,7 +42,7 @@ If you are new to Earthly or to Earthly Cloud, you must:
   You should see an output similar to:
 
   ```
-  /<org-name>/  member
+  <org-name>  member
   ```
 
 ## Background
