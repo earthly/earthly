@@ -148,7 +148,7 @@ func (app *earthlyApp) actionOrgList(cliCtx *cli.Context) error {
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	for _, org := range orgs {
-		fmt.Fprintf(w, "/%s/", org.Name)
+		fmt.Fprintf(w, "%s", org.Name)
 		if org.Admin {
 			fmt.Fprintf(w, "\tadmin")
 		} else {
