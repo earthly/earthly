@@ -51,16 +51,21 @@ my-image:
   SAVE IMAGE --push my-org/my-image:latest
 ```
 
-or
+This type of behavior is useful in order to have better control over the order of push operations. For example, you may want to push an image to a registry, followed by a deployment that uses the newly pushed image. Here is how this might look like:
 
 ```Earthfile
-test-and-push:
-  FROM +some-image
+push-and-deploy:
+  ...
   WAIT
-    BUILD +test
+    BUILD +my-image
   END
+  RUN --push ./deploy.sh my-org/my-image:latest
+my-image:
+  ...
   SAVE IMAGE --push my-org/my-image:latest
 ```
+
+Where `./deploy.sh` is custom deployment script instructing a production environment to start using the image that was just pushed.
 
 **Promoting experimental features**
 
