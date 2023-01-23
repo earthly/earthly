@@ -310,11 +310,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		return err
 	}
 
-	if window != "" && version != "" {
-		return errors.New("cannot set both maintenance window and a pinned version")
-	}
-
-	if window == "" && version == "" {
+	if window == "" {
 		window = "02:00"
 	}
 
@@ -473,7 +469,11 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	app.console.Printf("State: %s", satellite.State)
 	app.console.Printf("Platform: %s", satellite.Platform)
 	app.console.Printf("Size: %s", satellite.Size)
-	app.console.Printf("Version: %s", satellite.Version)
+	pinned := ""
+	if satellite.VersionPinned {
+		pinned = " (pinned)"
+	}
+	app.console.Printf("Version: %s%s", satellite.Version, pinned)
 	if satellite.RevisionID > 0 {
 		app.console.Printf("Revision: %d", satellite.RevisionID)
 	}
@@ -501,10 +501,14 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 			return errors.Wrap(err, "failed checking buildkit info")
 		}
 	} else {
-		app.console.Printf("More info available when Satellite is awake:")
-		app.console.Printf("")
-		app.console.Printf("    earthly satellite --org %s wake %s", app.orgName, satelliteToInspect)
-		app.console.Printf("")
+		app.console.Printf("More info available when Satellite is awake.")
+		if satellite.State == cloud.SatelliteStatusSleep {
+			// Only instruct the user to run this if the satellite is asleep.
+			// Otherwise, satellite may be updating, still starting, etc.
+			app.console.Printf("")
+			app.console.Printf("    earthly satellite --org %s wake %s", app.orgName, satelliteToInspect)
+			app.console.Printf("")
+		}
 	}
 	return nil
 }

@@ -43,6 +43,7 @@ type SatelliteInstance struct {
 	Platform               string
 	Size                   string
 	Version                string
+	VersionPinned          bool
 	FeatureFlags           []string
 	MaintenanceWindowStart string
 	MaintenanceWindowEnd   string
@@ -85,6 +86,7 @@ func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*Satelli
 		Platform:               resp.Platform,
 		Size:                   resp.Size,
 		Version:                resp.Version,
+		VersionPinned:          resp.VersionPinned,
 		FeatureFlags:           resp.FeatureFlags,
 		MaintenanceWindowStart: resp.MaintenanceWindowStart,
 		MaintenanceWindowEnd:   resp.MaintenanceWindowEnd,
