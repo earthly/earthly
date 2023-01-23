@@ -41,6 +41,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
   the earthly command line no longer supports accessing or modifying the global secrets. A new `earthly secrets migrate` command has been added to help transition the global-based secrets to the new project-based secrets.
 - Earthly will automatically shellout to determine the `$HOME` value when referenced; this requires the `--shell-out-anywhere` feature flag. [#2469](https://github.com/earthly/earthly/issues/2469)
 - Improved error message when invalid shell variable name is configured for a secret. [#2478](https://github.com/earthly/earthly/issues/2478)
+- The `--ci` flag no longer implies `--save-inline-cache` and `--use-inline-cache` since they were 100% CPU usage in some edge cases. These flags may still be explicitly enabled with `--ci`, but earthly will print a warning.
 
 ### Added
 
