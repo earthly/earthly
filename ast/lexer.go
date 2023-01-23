@@ -47,6 +47,12 @@ func (l *lexer) getMode() int {
 // popRecipeMode removes the recipe mode stack frame and then places back anything that existed
 // on top of it.
 func (l *lexer) popRecipeMode() {
+	defer func() {
+		// Recovering here prevents a panic due to erroneous indentation. The
+		// tokens will still fail to match our parser grammar, so we have no
+		// need to add an error of our own.
+		_ = recover()
+	}()
 	m := l.getMode()
 	if m == parser.EarthLexerRECIPE {
 		// Special case: nothing above.
