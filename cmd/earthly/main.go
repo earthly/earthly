@@ -30,6 +30,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/earthly/cloud-api/logstream"
+
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
@@ -142,6 +143,9 @@ type cliFlags struct {
 	satellitePlatform          string
 	satelliteSize              string
 	satellitePrintJSON         bool
+	satelliteMaintenanceWindow string
+	satelliteDropCache         bool
+	satelliteVersion           string
 	userPermission             string
 	noBuildkitUpdate           bool
 	globalWaitEnd              bool // for feature-flipping builder.go code removal
@@ -159,11 +163,11 @@ type cliFlags struct {
 }
 
 type analyticsMetadata struct {
-	isSatellite      bool
-	isRemoteBuildkit bool
-	satelliteVersion string
-	buildkitPlatform string
-	userPlatform     string
+	isSatellite             bool
+	isRemoteBuildkit        bool
+	satelliteCurrentVersion string
+	buildkitPlatform        string
+	userPlatform            string
 }
 
 var (
@@ -303,7 +307,7 @@ func main() {
 					CommandName:      app.commandName,
 					ExitCode:         exitCode,
 					IsSatellite:      app.analyticsMetadata.isSatellite,
-					SatelliteVersion: app.analyticsMetadata.satelliteVersion,
+					SatelliteVersion: app.analyticsMetadata.satelliteCurrentVersion,
 					IsRemoteBuildkit: app.analyticsMetadata.isRemoteBuildkit,
 					Realtime:         time.Since(startTime),
 				},

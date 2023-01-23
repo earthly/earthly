@@ -50,6 +50,23 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 					Hidden:      true,
 					Destination: &app.satelliteFeatureFlags,
 				},
+				&cli.StringFlag{
+					Name:    "maintenance-window",
+					Aliases: []string{"mw"},
+					Usage: "Sets a maintenance window for satellite auto-updates.\n" +
+						"If there is a a new satellite version available, the satellite will update within 2 hrs of the time specified.\n" +
+						"Format must be in HH:MM (24 hr) and will be automatically converted from your current local time to UTC.\n" +
+						"Default value is 02:00 in your local time.",
+					Required:    false,
+					Destination: &app.satelliteMaintenanceWindow,
+				},
+				&cli.StringFlag{
+					Name:        "version",
+					Usage:       "Launch and pin a satellite at a specific version (disables auto-updates)",
+					Required:    false,
+					Hidden:      true,
+					Destination: &app.satelliteVersion,
+				},
 			},
 		},
 		{
@@ -116,6 +133,44 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 			UsageText: "earthly satellite sleep <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] sleep <satellite-name>",
 			Action: app.actionSatelliteSleep,
+		},
+		{
+			Name:        "update",
+			Usage:       "Manually update a satellite to the latest version (may cause downtime)",
+			Description: "Manually update a satellite to the latest version (may cause downtime)",
+			UsageText: "earthly satellite update <satellite-name>\n" +
+				"	earthly satellite [--org <organization-name>] update <satellite-name>",
+			Action: app.actionSatelliteUpdate,
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "maintenance-window",
+					Aliases:     []string{"mw"},
+					Usage:       "Set a new custom maintenance window for future satellite auto-updates",
+					Required:    false,
+					Destination: &app.satelliteMaintenanceWindow,
+				},
+				&cli.BoolFlag{
+					Name:        "drop-cache",
+					Usage:       "Drop existing cache as part of the update operation",
+					Required:    false,
+					Destination: &app.satelliteDropCache,
+				},
+				&cli.StringSliceFlag{
+					Name:        "feature-flag",
+					EnvVars:     []string{"EARTHLY_SATELLITE_FEATURE_FLAGS"},
+					Usage:       "One or more of experimental features to enable on the updated satellite",
+					Required:    false,
+					Hidden:      true,
+					Destination: &app.satelliteFeatureFlags,
+				},
+				&cli.StringFlag{
+					Name:        "version",
+					Usage:       "Launch a specific satellite version (disables auto-updates)",
+					Required:    false,
+					Hidden:      true,
+					Destination: &app.satelliteVersion,
+				},
+			},
 		},
 	}
 }
@@ -239,6 +294,11 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	}
 
 	app.satelliteName = cliCtx.Args().Get(0)
+	ffs := app.satelliteFeatureFlags.Value()
+	size := app.satelliteSize
+	platform := app.satellitePlatform
+	window := app.satelliteMaintenanceWindow
+	version := app.satelliteVersion
 
 	cloudClient, err := app.newCloudClient()
 	if err != nil {
@@ -250,8 +310,23 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		return err
 	}
 
-	app.console.Printf("Launching Satellite. This could take a moment...\n")
-	err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID, app.satellitePlatform, app.satelliteSize, app.satelliteFeatureFlags.Value())
+	if window == "" {
+		window = "02:00"
+	}
+
+	zone, offset := time.Now().Zone()
+	localWindow := window
+	if window != "" {
+		window, err = cloud.LocalMaintenanceWindowToUTC(window, time.FixedZone(zone, offset))
+		if err != nil {
+			return err
+		}
+	}
+
+	app.console.Printf("Launching Satellite '%s' with auto-updates set to run at %s (%s)\n",
+		app.satelliteName, localWindow, zone)
+	app.console.Printf("Please wait...\n")
+	err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID, platform, size, version, window, ffs)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			app.console.Printf("Operation interrupted. Satellite should finish launching in background (if server received request).\n")
@@ -322,7 +397,7 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 		return err
 	}
 
-	app.console.Printf("Destroying Satellite. This could take a moment...\n")
+	app.console.Printf("Destroying Satellite '%s'. This could take a moment...\n", app.satelliteName)
 	err = cloudClient.DeleteSatellite(cliCtx.Context, app.satelliteName, orgID)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
@@ -394,9 +469,28 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	app.console.Printf("State: %s", satellite.State)
 	app.console.Printf("Platform: %s", satellite.Platform)
 	app.console.Printf("Size: %s", satellite.Size)
-	app.console.Printf("Version: %s", satellite.Version)
+	pinned := ""
+	if satellite.VersionPinned {
+		pinned = " (pinned)"
+	}
+	app.console.Printf("Version: %s%s", satellite.Version, pinned)
+	if satellite.RevisionID > 0 {
+		app.console.Printf("Revision: %d", satellite.RevisionID)
+	}
 	if len(satellite.FeatureFlags) > 0 {
 		app.console.Printf("Feature Flags: %+v", satellite.FeatureFlags)
+	}
+	if satellite.MaintenanceWindowStart != "" {
+		zone := time.FixedZone(time.Now().Zone()) // Important not to use this instead of time.Local
+		mwStart, err := cloud.UTCMaintenanceWindowToLocal(satellite.MaintenanceWindowStart, zone)
+		if err != nil {
+			return errors.Wrap(err, "failed converting maintenance window start to local time")
+		}
+		mwEnd, err := cloud.UTCMaintenanceWindowToLocal(satellite.MaintenanceWindowEnd, zone)
+		if err != nil {
+			return errors.Wrap(err, "failed converting maintenance window end to local time")
+		}
+		app.console.Printf("Maintenance Window: [%s - %s]", mwStart, mwEnd)
 	}
 	app.console.Printf("Currently selected: %s", selected)
 	app.console.Printf("")
@@ -407,10 +501,14 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 			return errors.Wrap(err, "failed checking buildkit info")
 		}
 	} else {
-		app.console.Printf("More info available when Satellite is awake:")
-		app.console.Printf("")
-		app.console.Printf("    earthly satellite --org %s wake %s", app.orgName, satelliteToInspect)
-		app.console.Printf("")
+		app.console.Printf("More info available when Satellite is awake.")
+		if satellite.State == cloud.SatelliteStatusSleep {
+			// Only instruct the user to run this if the satellite is asleep.
+			// Otherwise, satellite may be updating, still starting, etc.
+			app.console.Printf("")
+			app.console.Printf("    earthly satellite --org %s wake %s", app.orgName, satelliteToInspect)
+			app.console.Printf("")
+		}
 	}
 	return nil
 }
@@ -558,12 +656,57 @@ func (app *earthlyApp) actionSatelliteSleep(cliCtx *cli.Context) error {
 	return nil
 }
 
+func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
+	app.commandName = "satelliteUpdate"
+
+	if cliCtx.NArg() == 0 {
+		return errors.New("satellite name is required")
+	}
+	if cliCtx.NArg() > 1 {
+		return errors.New("only a single satellite name is supported")
+	}
+
+	app.satelliteName = cliCtx.Args().Get(0)
+	window := app.satelliteMaintenanceWindow
+	ffs := app.satelliteFeatureFlags.Value()
+	dropCache := app.satelliteDropCache
+	version := app.satelliteVersion
+
+	cloudClient, err := app.newCloudClient()
+	if err != nil {
+		return err
+	}
+
+	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	if err != nil {
+		return err
+	}
+
+	if window != "" {
+		window, err = cloud.LocalMaintenanceWindowToUTC(window, time.Local)
+		if err != nil {
+			return err
+		}
+		z, _ := time.Now().Zone()
+		app.console.Printf("Auto-update maintenance window set to %s (%s)\n", app.satelliteMaintenanceWindow, z)
+	}
+
+	err = cloudClient.UpdateSatellite(cliCtx.Context, app.satelliteName, orgID, version, window, dropCache, ffs)
+	if err != nil {
+		return errors.Wrap(err, "failed starting satellite update")
+	}
+
+	app.console.Printf("Update now running on satellite '%s'...\n", app.satelliteName)
+	return nil
+}
+
 func showSatelliteLoading(console conslogging.ConsoleLogger, satName string, out chan cloud.SatelliteStatusUpdate) error {
 	loadingMsgs := getSatelliteLoadingMessages()
 	var (
 		loggedSleep      bool
 		loggedStop       bool
 		loggedStart      bool
+		loggedUpdating   bool
 		shouldLogLoading bool
 	)
 	for o := range out {
@@ -590,8 +733,13 @@ func showSatelliteLoading(console conslogging.ConsoleLogger, satName string, out
 				loggedStart = true
 				shouldLogLoading = false
 			}
+		case cloud.SatelliteStatusUpdating:
+			if !loggedUpdating {
+				console.Printf("%s is updating. It may take a few minutes to be ready...", satName)
+				loggedUpdating = true
+			}
 		case cloud.SatelliteStatusOperational:
-			if loggedSleep || loggedStop || loggedStart {
+			if loggedSleep || loggedStop || loggedStart || loggedUpdating {
 				// Satellite was in a different state previously but is now online
 				console.Printf("...System online.")
 			}

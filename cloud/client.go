@@ -72,7 +72,7 @@ type Client interface {
 	SendAnalytics(ctx context.Context, data *EarthlyAnalytics) error
 	IsLoggedIn(ctx context.Context) bool
 	GetAuthToken(ctx context.Context) (string, error)
-	LaunchSatellite(ctx context.Context, name, org, platform, size string, features []string) error
+	LaunchSatellite(ctx context.Context, name, orgID, platform, size, version, maintenanceWindow string, features []string) error
 	GetOrgID(ctx context.Context, name string) (string, error)
 	ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error)
 	GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error)
@@ -80,6 +80,7 @@ type Client interface {
 	ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, gitConfigEmail string, isCI bool) chan SatelliteStatusUpdate
 	WakeSatellite(ctx context.Context, name, orgID string) chan SatelliteStatusUpdate
 	SleepSatellite(ctx context.Context, name, orgID string) chan SatelliteStatusUpdate
+	UpdateSatellite(ctx context.Context, name, orgID, version, maintenanceWindow string, dropCache bool, featureFlags []string) error
 	CreateProject(ctx context.Context, name, orgName string) (*Project, error)
 	ListProjects(ctx context.Context, orgName string) ([]*Project, error)
 	GetProject(ctx context.Context, orgName, name string) (*Project, error)
