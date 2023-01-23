@@ -165,7 +165,7 @@ To avoid any ambiguity regarding whether an argument is a `RUN` flag option or p
 
 ##### `--push`
 
-Marks the command as a "push command". Push commands are only executed if all other non-push instructions succeed. In addition, push commands are never cached, thus they are executed on every applicable invocation of the build.
+Marks the command as a "push command". Push commands are never cached, thus they are executed on every applicable invocation of the build.
 
 Push commands are not run by default. Add the `--push` flag to the `earthly` invocation to enable pushing. For example
 
@@ -173,9 +173,7 @@ Push commands are not run by default. Add the `--push` flag to the `earthly` inv
 earthly --push +deploy
 ```
 
-Push commands were introduced to allow the user to define commands that have an effect external to the build. This kind of effects are only allowed to take place if the entire build succeeds. Good candidates for push commands are uploads of artifacts to artifactories, commands that make a change to an external environment, like a production or staging environment.
-
-Note that non-push commands are not allowed to follow a push command within a recipe.
+Push commands were introduced to allow the user to define commands that have an effect external to the build. Good candidates for push commands are uploads of artifacts to artifactories, commands that make a change to an external environment, like a production or staging environment.
 
 ##### `--no-cache`
 
@@ -218,7 +216,7 @@ Here is an example that showcases both syntaxes:
 
 ```Dockerfile
 release:
-    RUN --push --secret GITHUB_TOKEN=+secrets/GH_TOKEN github-release upload
+    RUN --push --secret GITHUB_TOKEN=GH_TOKEN github-release upload
 release-short:
     RUN --push --secret GITHUB_TOKEN github-release upload
 ```
@@ -232,7 +230,7 @@ An empty string is also allowed for `<secret-id>`, allowing for optional secrets
 
 ```Dockerfile
 release:
-    ARG SECRET_ID=+secrets/GH_TOKEN
+    ARG SECRET_ID=GH_TOKEN
     RUN --push --secret GITHUB_TOKEN=$SECRET_ID github-release upload
 release-short:
     ARG SECRET_ID=GITHUB_TOKEN
@@ -244,7 +242,7 @@ earthly +release --SECRET_ID=""
 earthly +release-short --SECRET_ID=""
 ```
 
-It is also possible to mount a secret as a file with `RUN --mount type=secret,id=+secret/secret-id,target=/path/of/secret,mode=0400`. See `--mount` below.
+It is also possible to mount a secret as a file with `RUN --mount type=secret,id=secret-id,target=/path/of/secret,mode=0400`. See `--mount` below.
 
 For more information on how to use secrets see the [build arguments and secrets guide](../guides/build-args.md). See also the [Cloud secrets guide](../cloud/cloud-secrets.md).
 
@@ -273,7 +271,7 @@ The `<mount-spec>` is defined as a series of comma-separated list of key-values.
 | `type` | The type of the mount. Currently only `cache`, `tmpfs`, and `secret` are allowed. | `type=cache` |
 | `target` | The target path for the mount. | `target=/var/lib/data` |
 | `mode` | The permission of the mounted file, in octal format (the same format the chmod unix command line expects). | `mode=0400` |
-| `id` | The secret ID for the contents of the `target` file, only applicable for `type=secret`. | `id=+secrets/password` |
+| `id` | The secret ID for the contents of the `target` file, only applicable for `type=secret`. | `id=my-password` |
 | `sharing` | The sharing mode (`locked`, `shared`, `private`) for the cache mount, only applicable for `type=cache`. | `sharing=shared` |
 
 For cache mounts, the sharing mode can be one of the following:
@@ -298,7 +296,7 @@ Note that mounts cannot be shared between targets, nor can they be shared within
 Mounting a secret as a file:
 
 ```Dockerfile
-RUN --mount=type=secret,id=+secrets/netrc,target=/root/.netrc curl https://example.earthly.dev/restricted/example-file-that-requires-auth > data
+RUN --mount=type=secret,id=netrc,target=/root/.netrc curl https://example.earthly.dev/restricted/example-file-that-requires-auth > data
 ```
 
 The contents of the secret `/root/.netrc` file can then be specified from the command line as:
@@ -358,10 +356,11 @@ The parameter `<src-artifact>` is an [artifact reference](../guides/target-ref.m
 
 The `COPY` command does not mark any saved images or artifacts of the referenced target for output, nor does it mark any push commands of the referenced target for pushing. For that, please use [`BUILD`](#build).
 
-The classical form of the `COPY` command differs from Dockerfiles in two cases:
+The classical form of the `COPY` command differs from Dockerfiles in three cases:
 
 * URL sources are not yet supported.
 * Absolute paths are not supported - sources in the current directory cannot be referenced with a leading `/`
+* The Earthly `COPY` is a classical `COPY --link`. It uses layer merging for the copy operations.
 
 {% hint style='info' %}
 ##### Note
@@ -403,6 +402,10 @@ Instructs Earthly to not overwrite the file creation timestamps with a constant.
 ##### `--keep-own`
 
 Instructs Earthly to keep file ownership information. This applies only to the *artifact form* and has no effect otherwise.
+
+##### `--chmod <mode>`
+
+Instructs Earthly to change the file permissions of the copied files. The `<mode>` needs to be in octal format, e.g. `--chmod 0755` or `--chmod 755`.
 
 ##### `--if-exists`
 
@@ -511,8 +514,6 @@ This command works similarly to the [Dockerfile `ARG` command](https://docs.dock
 
 In its *constant form*, the arg takes a default value defined as a constant string. If the `<default-value>` is not provided, then the default value is an empty string. In its *dynamic form*, the arg takes a default value defined as an expression. The expression is evaluated at run time and its result is used as the default value. The expression is interpreted via the default shell (`/bin/sh -c`) within the build environment.
 
-If an `ARG` is defined in the `base` target of the Earthfile, then it becomes a global `ARG` and it is made available to every other target or command in that file, regardless of their base images used.
-
 The value of an arg can be overridden either from the `earthly` command
 
 ```bash
@@ -553,13 +554,11 @@ build-linux:
     BUILD +target-required --NAME=john
 ```
 
-{% hint style='info' %}
-Earthly, by default, only supports dynamic values which start with the `$(...)` shell-out syntax -- passing
-a value such as `--name="the honourable $(whoami)"` will fail to execute the `whoami` program.
+#### `--global`
 
-This behaviour can be changed with the experimental [`VERSION` `--shell-out-anywhere` feature flag](./features.md#feature-flags).
-This feature additionally allows shelling-out in *any* earthly command.
-{% endhint %}
+A global `ARG` is an arg that is made available to all targets in the Earthfile. This is useful for setting a default value for an arg that is used in many targets.
+
+Global args may only be declared in base targets.
 
 ## SAVE ARTIFACT
 
@@ -712,6 +711,10 @@ Adds additional cache sources to be used when `--use-inline-cache` is enabled. F
 
 Instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [remote caching guide](../remote-caching.md).
 
+##### `--no-manifest-list`
+
+Instructs Earthly to not create a manifest list for the image. This may be useful on platforms that do not support multi-platform images (for example, AWS Lambda), and the image produced needs to be of a different platform than the default one.
+
 ## BUILD
 
 #### Synopsis
@@ -800,20 +803,15 @@ This option is deprecated. Please use `--<build-arg-key>=<build-arg-value>` inst
 
 #### Description
 
-The command `VERSION` identifies which set of features to enable in Earthly while handling the corresponding Earthfile. The `VERSION` command is currently optional;
-however will become mandatory in a future version of Earthly. When specified, `VERSION` must be the first command in the Earthfile.
-
-
-| Version number | enabled features |
-| --- | --- |
-| `0.5` | _initial functionality will be preserved_ |
-| `0.6` | `--use-copy-include-patterns --referenced-save-only --for-in --require-force-for-unsafe-saves --no-implicit-ignore` |
+The command `VERSION` identifies which set of features to enable in Earthly while handling the corresponding Earthfile. The `VERSION` command is mandatory starting with Earthly 0.7. The `VERSION` command must be the first command in the Earthfile.
 
 #### Options
 
 Individual features may be enabled by setting the corresponding feature flag.
 New features start off as experimental, which is why they are disabled by default.
 Once a feature reaches maturity, it will be enabled by default under a new version number.
+
+Please note that using individual feature flags directly does not guarantee the forwards-backwards compatibility of Earthfiles across versions. Using individual feature flags is experimental and is not recommended for production use.
 
 All features are described in [the version-specific features reference](./features.md).
 
@@ -1177,12 +1175,7 @@ Same as [`RUN --mount <mount-spec>`](#mount-less-than-mount-spec-greater-than).
 
 Same as [`RUN --secret <env-var>=<secret-id>`](#secret-less-than-env-var-greater-than-less-than-secret-id-greater-than).
 
-## WAIT (experimental)
-
-{% hint style='info' %}
-##### Note
-The `WAIT` command is experimental and must be enabled via `VERSION --wait-block 0.6`.
-{% endhint %}
+## WAIT
 
 #### Synopsis
 
@@ -1578,16 +1571,7 @@ Sets an initialization time period in which failures are not counted towards the
 
 Sets the number of retries before a container is considered `unhealthy`. Defaults to `3`.
 
-## HOST (experimental)
-
-{% hint style='info' %}
-##### Note
-The `HOST` command is experimental and must be enabled by enabling the `--use-host-command` flag, e.g.
-
-```Dockerfile
-VERSION --use-host-command 0.6
-```
-{% endhint %}
+## HOST
 
 #### Synopsis
 

@@ -178,15 +178,15 @@ BUILD +hello --name=$(echo world)
 
 Secrets are similar to build arguments; however, they are *not* defined in targets, but instead are explicitly defined for each `RUN` command that is permitted to access them.
 
-Here's an example Earthfile that accesses a secret stored under `+secrets/passwd` and exposes it under the environment variable `mypassword`:
+Here's an example Earthfile that accesses a secret stored under `passwd` and exposes it under the environment variable `mypassword`:
 
 ```dockerfile
 FROM alpine:latest
 hush:
-    RUN --secret mypassword=+secrets/passwd echo "my password is $mypassword"
+    RUN --secret mypassword=passwd echo "my password is $mypassword"
 ```
 
-If the environment variable name is identical to the secret ID. For example to accesses a secret stored under `+secrets/passwd` and exposes it under the environment variable `passwd`  you can use the shorthand :
+If the environment variable name is identical to the secret ID. For example to accesses a secret stored under `passwd` and exposes it under the environment variable `passwd`  you can use the shorthand :
 
 ```dockerfile
 FROM alpine:latest
@@ -198,7 +198,7 @@ hush:
 It's also possible to temporarily mount a secret as a file:
 
 ```dockerfile
-RUN --mount type=secret,target=/root/mypassword,id=+secrets/passwd echo "my password is $(cat /root/mypassword)"
+RUN --mount type=secret,target=/root/mypassword,id=passwd echo "my password is $(cat /root/mypassword)"
 ```
 
 The file will not be saved to the image snapshot.
@@ -206,7 +206,7 @@ The file will not be saved to the image snapshot.
 
 ## Setting secret values
 
-The value for `+secrets/passwd` in examples above must then be supplied when earthly is invoked.
+The value for `passwd` in examples above must then be supplied when earthly is invoked.
 
 This is possible in a few ways:
 

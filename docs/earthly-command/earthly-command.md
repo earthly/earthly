@@ -182,7 +182,7 @@ Also available as an env var setting: `EARTHLY_SECRETS="<secret-id>=<value>,<sec
 
 Passes a secret with ID `<secret-id>` to the build environments. If `<value>` is not specified, then the value becomes the value of the environment variable with the same name as `<secret-id>`.
 
-The secret can be referenced within Earthfile recipes as `RUN --secret <arbitrary-env-var-name>=+secrets/<secret-id>`. For more information see the [`RUN --secret` Earthfile command](../earthfile/earthfile.md#run).
+The secret can be referenced within Earthfile recipes as `RUN --secret <arbitrary-env-var-name>=<secret-id>`. For more information see the [`RUN --secret` Earthfile command](../earthfile/earthfile.md#run).
 
 ##### `--secret-file <secret-id>=<path>`
 
@@ -190,7 +190,7 @@ Also available as an env var setting: `EARTHLY_SECRET_FILES="<secret-id>=<path>,
 
 Loads the contents of a file located at `<path>` into a secret with ID `<secret-id>` for use within the build environments.
 
-The secret can be referenced within Earthfile recipes as `RUN --secret <arbitrary-env-var-name>=+secrets/<secret-id>`. For more information see the [`RUN --secret` Earthfile command](../earthfile/earthfile.md#run).
+The secret can be referenced within Earthfile recipes as `RUN --secret <arbitrary-env-var-name>=<secret-id>`. For more information see the [`RUN --secret` Earthfile command](../earthfile/earthfile.md#run).
 
 ##### `--push`
 

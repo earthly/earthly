@@ -73,12 +73,12 @@ To perform a test release to a personal repo, first:
 
 1. fork a copy of both `earthly/earthly`, and `earthly/homebrew-earthly`
 2. commit your changes you wish to release and push them to your personal repo.
-3. save a copy of your GitHub token to `+secrets/user/github-token` (e.g. `earthly secrets set /user/github-token keep-it-secret`)
+3. save a copy of your GitHub token to `user/github-token` (e.g. `earthly secrets set /user/github-token keep-it-secret`)
 
 Then run:
 
   ```bash
-  RELEASE_TAG=v0.5.10 GITHUB_USER=mygithubuser DOCKERHUB_USER=mydockerhubuser EARTHLY_REPO=earthly BREW_REPO=homebrew-earthly GITHUB_SECRET_PATH=+secrets/user/github-token ./release.sh
+  RELEASE_TAG=v0.5.10 GITHUB_USER=mygithubuser DOCKERHUB_USER=mydockerhubuser EARTHLY_REPO=earthly BREW_REPO=homebrew-earthly GITHUB_SECRET_PATH=user/github-token ./release.sh
   ```
 
 NOTE: apt and yum repos do not currently support test releases. (TODO: fix this)
