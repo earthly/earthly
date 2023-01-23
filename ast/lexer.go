@@ -8,14 +8,20 @@ import (
 	"github.com/earthly/earthly/ast/parser"
 )
 
+const (
+	indentChannel  = antlr.LexerDefaultTokenChannel
+	newlineChannel = antlr.LexerDefaultTokenChannel
+)
+
 // lexer is a lexer for an earthly file, which also emits indentation
 // and dedentation tokens.
 type lexer struct {
 	*parser.EarthLexer
 
-	prevIndentLevel int
-	indentLevel     int
-	afterNewLine    bool
+	prevIndentLevel  int
+	indentLevel      int
+	afterNewLine     bool
+	afterLineComment bool
 
 	tokenQueue                                   []antlr.Token
 	wsChannel, wsStart, wsStop, wsLine, wsColumn int
@@ -93,6 +99,19 @@ func (l *lexer) stackString() string {
 func (l *lexer) NextToken() antlr.Token {
 	modeBefore := l.getMode()
 	peek := l.EarthLexer.NextToken()
+
+	if l.afterLineComment {
+		if peek.GetTokenType() == parser.EarthParserNL {
+			// Comments on their own line consume one trailing newline so that
+			// we can recognize comment blocks separately from other comment
+			// blocks. We still need to handle the indentation level for the
+			// newline, though.
+			l.processIndentation(peek)
+			peek = l.EarthLexer.NextToken()
+		}
+		l.afterLineComment = false
+	}
+
 	ret := peek
 	if peek.GetTokenType() == parser.EarthParserEOF {
 		// Add a NL before EOF. It simplifies the logic a lot if we know
@@ -101,6 +120,11 @@ func (l *lexer) NextToken() antlr.Token {
 		if l.debug {
 			fmt.Printf("NL ")
 		}
+		// This ensures that any necessary DEDENT tokens are added before the
+		// EOF.
+		l.afterNewLine = true
+		l.indentLevel = 0
+
 		// Force the default mode.
 		l.PushMode(0)
 		modeBefore = 0
@@ -150,43 +174,67 @@ func (l *lexer) processIndentation(peek antlr.Token) {
 	case parser.EarthLexerNL:
 		l.indentLevel = 0
 		l.afterNewLine = true
-	default:
+	case parser.EarthLexerCOMMENT:
 		if l.afterNewLine {
-			if l.prevIndentLevel < l.indentLevel {
-				l.tokenQueue = append(l.tokenQueue, l.makeIndent())
-				if l.debug {
-					fmt.Printf("INDENT ")
-				}
-			} else if l.prevIndentLevel > l.indentLevel {
-				l.tokenQueue = append(l.tokenQueue, l.makeDedent())
-				if l.debug {
-					fmt.Printf("DEDENT ")
-				}
-				if peek.GetTokenType() != parser.EarthLexerTarget && peek.GetTokenType() != parser.EarthLexerUserCommand {
-					l.popRecipeMode()
-				}
+			// In cases where comments are on a line by themselves, they could
+			// be documentation - in which case we need handle INDENT/DEDENT.
+			l.afterLineComment = true
+			if strings.HasPrefix(peek.GetText(), " ") || strings.HasPrefix(peek.GetText(), "\t") {
+				l.indentLevel = 1
 			}
+			l.handleIndentLevel(peek)
 		}
-		l.prevIndentLevel = l.indentLevel
-		l.afterNewLine = false
+	default:
+		l.handleIndentLevel(peek)
+	}
+}
+
+func (l *lexer) handleIndentLevel(peek antlr.Token) {
+	if !l.afterNewLine {
+		return
+	}
+	l.afterNewLine = false
+
+	if l.prevIndentLevel == l.indentLevel {
+		return
+	}
+	prevIndent := l.prevIndentLevel
+	l.prevIndentLevel = l.indentLevel
+
+	if prevIndent < l.indentLevel {
+		l.tokenQueue = append(l.tokenQueue, l.makeIndent())
+		if l.debug {
+			fmt.Printf("INDENT ")
+		}
+		return
+	}
+
+	l.tokenQueue = append(l.tokenQueue, l.makeDedent())
+	if l.debug {
+		fmt.Printf("DEDENT ")
+	}
+	switch peek.GetTokenType() {
+	case parser.EarthLexerTarget, parser.EarthLexerUserCommand:
+	default:
+		l.popRecipeMode()
 	}
 }
 
 func (l *lexer) makeIndent() antlr.Token {
 	return l.GetTokenFactory().Create(
 		l.GetTokenSourceCharStreamPair(), parser.EarthLexerINDENT, "",
-		l.wsChannel, l.wsStart, l.wsStop, l.wsLine, l.wsColumn)
+		indentChannel, l.wsStart, l.wsStop, l.wsLine, l.wsColumn)
 }
 
 func (l *lexer) makeDedent() antlr.Token {
 	return l.GetTokenFactory().Create(
 		l.GetTokenSourceCharStreamPair(), parser.EarthLexerDEDENT, "",
-		l.wsChannel, l.wsStart, l.wsStop, l.wsLine, l.wsColumn)
+		indentChannel, l.wsStart, l.wsStop, l.wsLine, l.wsColumn)
 }
 
 func (l *lexer) makeNL(peek antlr.Token) antlr.Token {
 	return l.GetTokenFactory().Create(
 		l.GetTokenSourceCharStreamPair(), parser.EarthLexerNL, "",
-		peek.GetChannel(), peek.GetStart(), peek.GetStop(),
+		newlineChannel, peek.GetStart(), peek.GetStop(),
 		peek.GetLine(), peek.GetColumn())
 }

@@ -8,12 +8,12 @@ earthFile: NL* version? (stmts NL)? NL* targets? NL* EOF;
 
 targets: targetOrUserCommand (NL* targetOrUserCommand)*;
 targetOrUserCommand: target | userCommand;
-target: targetHeader NL+ WS? (INDENT stmts NL+ DEDENT)?;
+target: targetHeader NL+ (INDENT NL* stmts? NL+ DEDENT)?;
 targetHeader: Target;
-userCommand: userCommandHeader NL+ WS? (INDENT stmts NL+ DEDENT)?;
+userCommand: userCommandHeader NL+ (INDENT NL* stmts NL+ DEDENT)?;
 userCommandHeader: UserCommand;
 
-stmts: WS? stmt (NL+ WS? stmt)*;
+stmts: stmt (NL+ stmt)*;
 
 stmt:
 	commandStmt
@@ -56,28 +56,28 @@ commandStmt:
 	| triggerStmt;
 
 // version --------------------------------------------------------------------
-version: VERSION WS stmtWords NL+;
+version: VERSION stmtWords NL+;
 
 // withStmt -------------------------------------------------------------------
 
-withStmt: withExpr (NL+ WS? withBlock)? NL+ WS? END;
+withStmt: withExpr (NL+ withBlock)? NL+ END;
 withBlock: stmts;
 
-withExpr: WITH WS withCommand;
+withExpr: WITH withCommand;
 withCommand:
 	dockerCommand;
 
-dockerCommand: DOCKER (WS stmtWords)?;
+dockerCommand: DOCKER stmtWords?;
 
 // ifStmt ---------------------------------------------------------------------
 
-ifStmt: ifClause (NL+ WS? elseIfClause)* (NL+ WS? elseClause)? NL+ WS? END;
+ifStmt: ifClause (NL+ elseIfClause)* (NL+ elseClause)? NL+ END;
 
-ifClause: IF WS ifExpr (NL+ WS? ifBlock)?;
+ifClause: IF ifExpr (NL+ ifBlock)?;
 ifBlock: stmts;
-elseIfClause: ELSE_IF WS elseIfExpr (NL+ WS? elseIfBlock)?;
+elseIfClause: ELSE_IF elseIfExpr (NL+ elseIfBlock)?;
 elseIfBlock: stmts;
-elseClause: ELSE (NL+ WS? elseBlock)?;
+elseClause: ELSE (NL+ elseBlock)?;
 elseBlock: stmts;
 
 ifExpr: expr;
@@ -85,92 +85,92 @@ elseIfExpr: expr;
 
 // tryStmt ---------------------------------------------------------------------
 
-tryStmt: tryClause (NL+ WS? catchClause)? (NL+ WS? finallyClause)? NL+ WS? END;
+tryStmt: tryClause (NL+ catchClause)? (NL+ finallyClause)? NL+ END;
 
-tryClause: TRY (NL+ WS? tryBlock)?;
+tryClause: TRY (NL+ tryBlock)?;
 tryBlock: stmts;
-catchClause: CATCH (NL+ WS? catchBlock)?;
+catchClause: CATCH (NL+ catchBlock)?;
 catchBlock: stmts;
-finallyClause: FINALLY (NL+ WS? finallyBlock)?;
+finallyClause: FINALLY (NL+ finallyBlock)?;
 finallyBlock: stmts;
 
 
 // forStmt --------------------------------------------------------------------
 
-forStmt: forClause NL+ WS? END;
+forStmt: forClause NL+ END;
 
-forClause: FOR WS forExpr (NL+ WS? forBlock)?;
+forClause: FOR forExpr (NL+ forBlock)?;
 forBlock: stmts;
 
 forExpr: stmtWords;
 
 // waitStmt --------------------------------------------------------------------
 
-waitStmt: waitClause NL+ WS? END;
-waitClause: WAIT (WS waitExpr)? (NL+ WS? waitBlock)?;
+waitStmt: waitClause NL+ END;
+waitClause: WAIT waitExpr? (NL+ waitBlock)?;
 waitBlock: stmts;
 waitExpr: stmtWords;
 
 // Regular commands -----------------------------------------------------------
 
-fromStmt: FROM (WS stmtWords)?;
+fromStmt: FROM stmtWords?;
 
-fromDockerfileStmt: FROM_DOCKERFILE (WS stmtWords)?;
+fromDockerfileStmt: FROM_DOCKERFILE stmtWords?;
 
-locallyStmt: LOCALLY (WS stmtWords)?;
+locallyStmt: LOCALLY stmtWords?;
 
-copyStmt: COPY (WS stmtWords)?;
+copyStmt: COPY stmtWords?;
 
 saveStmt: saveArtifact | saveImage;
-saveImage: SAVE_IMAGE (WS stmtWords)?;
-saveArtifact: SAVE_ARTIFACT (WS stmtWords)?;
+saveImage: SAVE_IMAGE stmtWords?;
+saveArtifact: SAVE_ARTIFACT stmtWords?;
 
-runStmt: RUN (WS stmtWordsMaybeJSON)?;
+runStmt: RUN stmtWordsMaybeJSON?;
 
-buildStmt: BUILD (WS stmtWords)?;
+buildStmt: BUILD stmtWords?;
 
-workdirStmt: WORKDIR (WS stmtWords)?;
+workdirStmt: WORKDIR stmtWords?;
 
-userStmt: USER (WS stmtWords)?;
+userStmt: USER stmtWords?;
 
-cmdStmt: CMD (WS stmtWordsMaybeJSON)?;
+cmdStmt: CMD stmtWordsMaybeJSON?;
 
-entrypointStmt: ENTRYPOINT (WS stmtWordsMaybeJSON)?;
+entrypointStmt: ENTRYPOINT stmtWordsMaybeJSON?;
 
-exposeStmt: EXPOSE (WS stmtWords)?;
+exposeStmt: EXPOSE stmtWords?;
 
-volumeStmt: VOLUME (WS stmtWordsMaybeJSON)?;
+volumeStmt: VOLUME stmtWordsMaybeJSON?;
 
-envStmt: ENV WS envArgKey (WS? EQUALS)? (WS? envArgValue)?;
-argStmt: ARG optionalFlag WS envArgKey ((WS? EQUALS) (WS? envArgValue)?)?;
-optionalFlag: (WS stmtWords)?;
+envStmt: ENV envArgKey EQUALS? (WS? envArgValue)?;
+argStmt: ARG optionalFlag envArgKey (EQUALS (WS? envArgValue)?)?;
+optionalFlag: stmtWords?;
 envArgKey: Atom;
 envArgValue: Atom (WS? Atom)*;
 
-labelStmt: LABEL (WS labelKey WS? EQUALS WS? labelValue)*;
+labelStmt: LABEL (labelKey EQUALS labelValue)*;
 labelKey: Atom;
 labelValue: Atom;
 
-gitCloneStmt: GIT_CLONE (WS stmtWords)?;
+gitCloneStmt: GIT_CLONE stmtWords?;
 
-addStmt: ADD (WS stmtWords)?;
-stopsignalStmt: STOPSIGNAL (WS stmtWords)?;
-onbuildStmt: ONBUILD (WS stmtWords)?;
-healthcheckStmt: HEALTHCHECK (WS stmtWords)?;
-shellStmt: SHELL (WS stmtWords)?;
-userCommandStmt: COMMAND (WS stmtWords)?;
-doStmt: DO (WS stmtWords)?;
-importStmt: IMPORT (WS stmtWords)?;
-cacheStmt: CACHE (WS stmtWords)?;
-hostStmt: HOST (WS stmtWords)?;
-projectStmt: PROJECT (WS stmtWords)?;
-pipelineStmt: PIPELINE (WS stmtWords)?;
-triggerStmt: TRIGGER (WS stmtWords)?;
+addStmt: ADD stmtWords?;
+stopsignalStmt: STOPSIGNAL stmtWords?;
+onbuildStmt: ONBUILD stmtWords?;
+healthcheckStmt: HEALTHCHECK stmtWords?;
+shellStmt: SHELL stmtWords?;
+userCommandStmt: COMMAND stmtWords?;
+doStmt: DO stmtWords?;
+importStmt: IMPORT stmtWords?;
+cacheStmt: CACHE stmtWords?;
+hostStmt: HOST stmtWords?;
+projectStmt: PROJECT stmtWords?;
+pipelineStmt: PIPELINE stmtWords?;
+triggerStmt: TRIGGER stmtWords?;
 
 // expr, stmtWord* ------------------------------------------------------------
 
 expr: stmtWordsMaybeJSON;
 
 stmtWordsMaybeJSON: stmtWords;
-stmtWords: stmtWord (WS stmtWord)*;
+stmtWords: stmtWord+;
 stmtWord: Atom;
