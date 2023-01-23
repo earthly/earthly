@@ -63,6 +63,7 @@ all:
     BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=for
     BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=empty-targets
     BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=quotes
+    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=documentation
 
 update-all:
     BUILD +update-expected \
@@ -115,6 +116,7 @@ update-all:
     BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=for
     BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=empty-targets
     BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=quotes
+    BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=documentation
 
 # Note: If this test fails for expected reasons (eg format of AST has changed), you can
 #       update the expectations via +update-all. Please review the resulting diff

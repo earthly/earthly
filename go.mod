@@ -46,7 +46,7 @@ require (
 )
 
 require (
-	cloud.google.com/go v0.57.0 // indirect
+	cloud.google.com/go v0.81.0 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/antlr/antlr4 v0.0.0-20200225173536-225249fdaef5 // indirect

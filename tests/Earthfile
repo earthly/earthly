@@ -224,6 +224,7 @@ ga-no-qemu:
     BUILD +server
     BUILD +build-after-from
     BUILD +pipelines
+    BUILD +doc
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -1127,6 +1128,23 @@ help:
     RUN earthly --help | grep -v 'buildkit-volume-name'
     ENV EARTHLY_SHOW_HIDDEN=1
     RUN earthly --help | grep 'buildkit-volume-name'
+
+doc:
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --output_contains="TARGETS:
+  +documented-target
+    documented-target is a target with documentation
+    that spans multiple lines.
+
+    It also has a separator between paragraphs."
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --grep_flags="-v" --output_contains="undocumented-target"
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --grep_flags="-v" --output_contains="incorrectly-documented-target"
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+documented-target" --output_contains="+documented-target
+  documented-target is a target with documentation
+  that spans multiple lines.
+
+  It also has a separator between paragraphs."
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+undocumented-target" --should_fail=true --output_contains="no doc comment found"
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+incorrectly-documented-target" --should_fail=true --output_contains="no doc comment found"
 
 cache-cmd:
     DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test

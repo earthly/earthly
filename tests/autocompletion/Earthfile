@@ -19,6 +19,7 @@ test-root-commands:
     RUN echo "account 
 bootstrap 
 config 
+doc 
 ls 
 org 
 project 
@@ -35,6 +36,7 @@ bootstrap
 build 
 config 
 debug 
+doc 
 docker 
 docker2earthly 
 ls 

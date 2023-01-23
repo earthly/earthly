@@ -107,6 +107,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - The platform logic has been improved to allow overriding the platform in situations where previously it was not possible. Additionally, the default platform is now the native platform of the runner, and not of the host running Earthly. This makes platforms work better in remote runner settings. Previously under `VERSION --new-platform 0.6`.
 - Earthly will automatically shellout to determine the `$HOME` value when referenced [#2469](https://github.com/earthly/earthly/issues/2469)
 - Improved error message when invalid shell variable name is configured for a secret. [#2478](https://github.com/earthly/earthly/issues/2478)
+- `earthly ls` has been promoted from *experimental* to *beta* status.
 
 ### Added
 
@@ -123,6 +124,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - `COPY --chmod <mode>` allows setting the permissions of the copied files. Previously under `VERSION --use-chmod 0.6`.
 - The new ARG `EARTHLY_LOCALLY` indicates whether the current target is executed in a `LOCALLY` context. Previously under `VERSION --earthly-locally-arg 0.6`.
 - The new ARGs `EARTHLY_GIT_AUTHOR` and `EARTHLY_GIT_CO_AUTHORS` contain the author and co-authors of the current git commit, respectively. Previously under `VERSION --earthly-git-author-args 0.6`.
+- `earthly doc [projectRef[+targetRef]]` is a new subcommand in *beta* status.  It will parse and output documentation comments on targets.
 
 ### Fixed
 

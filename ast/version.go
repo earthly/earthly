@@ -3,7 +3,6 @@ package ast
 import (
 	"bufio"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/earthly/earthly/ast/spec"
@@ -13,11 +12,34 @@ import (
 
 // ParseVersion reads the VERSION command for an Earthfile and returns spec.Version
 func ParseVersion(filePath string, enableSourceMap bool) (*spec.Version, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "unable to open %q", filePath)
+	var opts []Opt
+	if enableSourceMap {
+		opts = append(opts, WithSourceMap())
 	}
-	defer file.Close()
+	return ParseVersionOpts(FromPath(filePath), opts...)
+}
+
+// ParseVersionOpts reads the VERSION command for an Earthfile and returns a
+// spec.Version. This is the functional option version, which uses options to
+// change how a file is parsed.
+func ParseVersionOpts(fromOpt FromOpt, opts ...Opt) (*spec.Version, error) {
+	defaultPrefs := prefs{
+		done: func() {},
+	}
+	prefs, err := fromOpt(defaultPrefs)
+	if err != nil {
+		return nil, errors.Wrap(err, "ast: could not apply ParseVersion from opt")
+	}
+
+	for _, opt := range opts {
+		newPrefs, err := opt(prefs)
+		if err != nil {
+			return nil, errors.Wrap(err, "ast: could not apply ParseVersion opts")
+		}
+		prefs = newPrefs
+	}
+	file := prefs.reader
+	defer prefs.done()
 
 	var version spec.Version
 
@@ -60,14 +82,14 @@ outer:
 				}
 				// found something other than a '#' after a '\'
 				// e.g. VERSION    \    UNEXPECTED
-				return nil, fmt.Errorf("malformed trailing line on %s:%d", filePath, i)
+				return nil, fmt.Errorf("malformed trailing line on %s:%d", file.Name(), i)
 			}
 			if f == "VERSION" && !foundVersion {
 				foundVersion = true
 				startLine = i
 				continue
 			}
-			if f == "\\" {
+			if f == `\` {
 				trailingLine = true
 				continue
 			}
@@ -92,9 +114,9 @@ outer:
 
 		version.Args = args
 
-		if enableSourceMap {
+		if prefs.enableSourceMap {
 			version.SourceLocation = &spec.SourceLocation{
-				File:        filePath,
+				File:        file.Name(),
 				StartLine:   startLine,
 				StartColumn: 0,
 				EndLine:     endLine,
