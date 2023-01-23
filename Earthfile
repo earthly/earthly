@@ -194,7 +194,7 @@ unit-test:
     # pkgname determines the package name (or names) that will be tested. The go
     # submodules must be specified explicitly or they will not be run, as
     # "./..." does not match submodules.
-    ARG pkgname = ./... github.com/earthly/earthly/ast/... github.com/earthly/earthly/util/deltautil/...
+    ARG pkgname = ./...
 
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false
@@ -221,6 +221,8 @@ unit-test:
             RUN ./not-a-unit-test.sh
         END
     END
+    BUILD ./ast+unit-test
+    BUILD ./util/deltautil+unit-test
 
 submodule-decouple-check:
     FROM +code
