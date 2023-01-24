@@ -97,6 +97,9 @@ jobs:
           timeout_minutes: 10
           max_attempts: 2
           command: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ${{inputs.BUILT_EARTHLY_PATH}} --timeout 180
+      - name: "cloud-stored docker credential test (Earthly only)"
+        run: FRONTEND=${{inputs.BINARY}} earthly=${{inputs.BUILT_EARTHLY_PATH}} ./scripts/tests/cloud-docker-credentials-integration.sh
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute version test
         run: "${{inputs.BUILT_EARTHLY_PATH}} --version"
       - name: Execute docker2earth test

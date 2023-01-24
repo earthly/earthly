@@ -10,17 +10,6 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
-	"github.com/joho/godotenv"
-	"github.com/moby/buildkit/client/llb"
-	"github.com/moby/buildkit/session"
-	"github.com/moby/buildkit/session/auth/authprovider"
-	"github.com/moby/buildkit/session/localhost/localhostprovider"
-	"github.com/moby/buildkit/session/socketforward/socketprovider"
-	"github.com/moby/buildkit/session/sshforward/sshprovider"
-	"github.com/moby/buildkit/util/entitlements"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
-
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
@@ -35,11 +24,24 @@ import (
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/gitutil"
+	"github.com/earthly/earthly/util/llbutil/authprovider"
+	"github.com/earthly/earthly/util/llbutil/authprovider/cloudauth"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
+	"github.com/joho/godotenv"
+	"github.com/moby/buildkit/client/llb"
+	"github.com/moby/buildkit/session"
+	"github.com/moby/buildkit/session/auth"
+	dockerauthprovider "github.com/moby/buildkit/session/auth/authprovider"
+	"github.com/moby/buildkit/session/localhost/localhostprovider"
+	"github.com/moby/buildkit/session/socketforward/socketprovider"
+	"github.com/moby/buildkit/session/sshforward/sshprovider"
+	"github.com/moby/buildkit/util/entitlements"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
 )
 
 func (app *earthlyApp) actionBuild(cliCtx *cli.Context) error {
@@ -333,19 +335,25 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		localhostProvider,
 	}
 
-	switch app.containerFrontend.Config().Setting {
-	case containerutil.FrontendDocker, containerutil.FrontendDockerShell:
-		cfg := config.LoadDefaultConfigFile(os.Stderr)
-		attachables = append(attachables, authprovider.NewDockerAuthProvider(cfg))
+	cfg := config.LoadDefaultConfigFile(os.Stderr)
+	cloudStoredAuthProvider := cloudauth.NewProvider(cfg, cloudClient, app.console)
 
+	authServers := []auth.AuthServer{}
+	if _, _, _, err := cloudClient.WhoAmI(cliCtx.Context); err == nil {
+		// only add cloud-based auth provider when logged in
+		authServers = append(authServers, cloudStoredAuthProvider.(auth.AuthServer))
+	}
+
+	switch app.containerFrontend.Config().Setting {
 	case containerutil.FrontendPodman, containerutil.FrontendPodmanShell:
-		attachables = append(attachables, authprovider.NewPodmanAuthProvider(os.Stderr))
+		authServers = append(authServers, dockerauthprovider.NewPodmanAuthProvider(os.Stderr).(auth.AuthServer))
 
 	default:
-		// Old default behavior
-		cfg := config.LoadDefaultConfigFile(os.Stderr)
-		attachables = append(attachables, authprovider.NewDockerAuthProvider(cfg))
+		// includes containerutil.FrontendDocker, containerutil.FrontendDockerShell:
+		authServers = append(authServers, dockerauthprovider.NewDockerAuthProvider(cfg).(auth.AuthServer))
 	}
+
+	attachables = append(attachables, authprovider.NewAuthProvider(authServers))
 
 	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
 	err = app.updateGitLookupConfig(gitLookup)
@@ -496,6 +504,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		// explicitly set this to true at the top level (without granting the entitlements.EntitlementSecurityInsecure buildkit option),
 		// to differentiate between a user forgetting to run earthly -P, versus a remotely referencing an earthfile that requires privileged.
 		AllowPrivileged: true,
+
+		CloudStoredAuthProvider: cloudStoredAuthProvider.(cloudauth.ProjectBasedAuthProvider),
 	}
 	if app.artifactMode {
 		buildOpts.OnlyArtifact = &artifact
