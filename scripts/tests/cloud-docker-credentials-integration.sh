@@ -20,7 +20,7 @@ test -n "$EARTHLY_TOKEN"
 # And our earthly-user that GHA uses has been configured to have access:
 #   earthly projects --org earthly-technologies --project core-test-cloud-docker-credentials-test members add other-service+earthly@earthly.dev read+secrets
 
-# sanity check that secrets is working
+# check that secrets is working, and we are running with the correct user
 test "$("$earthly" secret --org earthly-technologies --project core-test-cloud-docker-credentials-test get std/registry/registry-1.docker.io/username)" = "verygoodusername"
 
 echo ==== test that the private verygoodimage can be fetched using the credentials from secrets ====
