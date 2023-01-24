@@ -2,11 +2,13 @@ package cloud
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	secretsapi "github.com/earthly/cloud-api/secrets"
+	"github.com/moby/buildkit/session/secrets"
 	"github.com/pkg/errors"
 )
 
@@ -62,6 +64,39 @@ func (c *client) ListSecrets(ctx context.Context, path string) ([]*Secret, error
 	}
 
 	return secrets, nil
+}
+
+func (c *client) GetProjectSecret(ctx context.Context, org, project, secretName string) (*Secret, error) {
+	if org == "" {
+		return nil, fmt.Errorf("GetProjectSecret called with empty org")
+	}
+	if project == "" {
+		return nil, fmt.Errorf("GetProjectSecret called with empty project")
+	}
+	if secretName == "" {
+		return nil, fmt.Errorf("GetProjectSecret called with empty secretName")
+	}
+	return c.getSecretV2(ctx, fmt.Sprintf("/%s/%s/%s", org, project, secretName))
+}
+
+func (c *client) GetUserSecret(ctx context.Context, secretName string) (*Secret, error) {
+	if secretName == "" {
+		return nil, fmt.Errorf("GetUserSecret called with empty secretName")
+	}
+	return c.getSecretV2(ctx, fmt.Sprintf("/user/%s", secretName))
+}
+
+func (c *client) getSecretV2(ctx context.Context, path string) (*Secret, error) {
+	res, err := c.ListSecrets(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	for _, sec := range res {
+		if sec.Path == path {
+			return sec, nil
+		}
+	}
+	return nil, secrets.ErrNotFound
 }
 
 // SetSecret adds or updates the given path and secret combination.
