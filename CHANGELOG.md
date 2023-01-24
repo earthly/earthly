@@ -4,6 +4,134 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.0-rc2 - 2023-01-18
+
+The documentation for this version is available at the [Earthly 0.7 documentation page](https://docs.earthly.dev/v/earthly-0.7/).
+
+**Earthly CI**
+
+Earthly 0.7 is the first version compatible with Earthly CI.
+
+Earthly 0.7 introduces the new keywords `PIPELINE` and `TRIGGER` to help define Earthly CI pipelines.
+
+```
+my-pipeline:
+    PIPELINE --push
+    TRIGGER push main
+    TRIGGER pr main
+    BUILD +my-target
+```
+
+For more information on how to use `PIPELINE` and `TRIGGER`, please see the [reference documentation](https://docs.earthly.dev/v/earthly-0.7/docs/earthfile#pipeline-beta).
+
+**Podman support**
+
+Podman support has now been promoted out of *beta* status and is generally available in 0.7. Earthly will automatically detect the container frontend, whether that's `docker` or `podman` and use it automatically for running Buildkit locally, or for outputting images locally resulting from the build.
+
+Please note that rootful podman is required. Rootless podman is not supported.
+
+**VERSION is now mandatory**
+
+The `VERSION` command
+is now required for all Earthfiles, and an error will occur if it is missing. If you are not ready to update your
+Earthfiles to use 0.7 (or 0.6), you can declare `VERSION 0.5` to continue to use your Earthfiles.
+
+**Pushing no longer requires everything else to succeed**
+
+The behavior of the `--push` mode has changed in a backwards incompatible manner. Previously, `--push` commands would only execute if all other commands had succeeded. This precondition is no longer enforced, to allow for more flexible push ordering via the new `WAIT` clause. To achieve the behavior of the previous `--push` mode, you need to wrap any pre-required commands in a `WAIT` clause. For example, to push an image only if tests have passed, you would do the following:
+  
+```Earthfile
+test-and-push:
+  WAIT
+    BUILD +test
+  END
+  BUILD +my-image
+my-image:
+  ...
+  SAVE IMAGE --push my-org/my-image:latest
+```
+
+This type of behavior is useful in order to have better control over the order of push operations. For example, you may want to push an image to a registry, followed by a deployment that uses the newly pushed image. Here is how this might look like:
+
+```Earthfile
+push-and-deploy:
+  ...
+  WAIT
+    BUILD +my-image
+  END
+  RUN --push ./deploy.sh my-org/my-image:latest
+my-image:
+  ...
+  SAVE IMAGE --push my-org/my-image:latest
+```
+
+Where `./deploy.sh` is custom deployment script instructing a production environment to start using the image that was just pushed.
+
+**Promoting experimental features**
+
+This version promotes a number of features that have been previously in Experimental and Beta status. To make use of
+the features in this version you need to declare `VERSION 0.7` at the top of your Earthfile.
+
+Declaring `VERSION 0.7` is equivalent to
+
+```
+VERSION \
+  --explicit-global \
+  --check-duplicate-images \
+  --earthly-version-arg \
+  --use-cache-command \
+  --use-host-command \
+  --use-copy-link \
+  --new-platform \
+  --no-tar-build-output \
+  --use-no-manifest-list \
+  --use-chmod \
+  --shell-out-anywhere \
+  --earthly-locally-arg \
+  --use-project-secrets \
+  --use-pipelines \
+  --earthly-git-author-args \
+  --wait-block \
+  0.6
+```
+
+For more information on the individual Earthfile feature flags see the [Earthfile version-specific features page](https://docs.earthly.dev/docs/earthfile/features).
+
+### Changed
+
+- The behavior of the `--push` mode has changed in a backwards incompatible manner. Previously, `--push` commands would only execute if all other commands had succeeded. This precondition is no longer enforced, allowing push commands to execute in the middle of the build now. Previously under `VERSION --wait-block 0.6`.
+- `ARG`s declared in the base target do not automatically become global unless explicitly declared as such via `ARG --global`. Previously under `VERSION --explicit-global 0.6`.
+- The Cloud-based secrets model is now project-based; it is not compatible with the older global secrets model. Earthfiles which are defined as `VERSION 0.5` or `VERSION 0.6` will continue to use the old global secrets namespace; however
+  the earthly command line no longer supports accessing or modifying the global secrets. A new `earthly secrets migrate` command has been added to help transition the global-based secrets to the new project-based secrets. If you need to manage secrets from Earthly 0.6 without migrating to the new 0.7 secrets, please use an older Earthly binary.
+- All `COPY` and `SAVE ARTIFACT` operations now use union filesystem merging for performing the `COPY`. This is similar to `COPY --link` in Dockerfiles, however in Earthly it is automatically enabled for all such operations. Previously under `VERSION --use-copy-link 0.6`.
+- The platform logic has been improved to allow overriding the platform in situations where previously it was not possible. Additionally, the default platform is now the native platform of the runner, and not of the host running Earthly. This makes platforms work better in remote runner settings. Previously under `VERSION --new-platform 0.6`.
+- Earthly will automatically shellout to determine the `$HOME` value when referenced [#2469](https://github.com/earthly/earthly/issues/2469)
+- Improved error message when invalid shell variable name is configured for a secret. [#2478](https://github.com/earthly/earthly/issues/2478)
+
+### Added
+
+- The commands `PIPELINE` and `TRIGGER` have been introduced for defining Earthly CI pipelines. Previously under `VERSION --use-pipelines 0.6`.
+- The clause `WAIT` is now generally available. The `WAIT` clause allows controlling of build order for operations that require it. This allows use-cases such as pushing images to a registry, followed by infrastructure changes that use the newly pushed images. Previously under `VERSION --wait-block 0.6`.
+- The command `CACHE` is now generally available. The `CACHE` command allows declaring a cache mount that can be used by any `RUN` command in the target, and also persists in the final image of the target (contents available when used via `FROM`). Previously under `VERSION --use-cache-command 0.6`.
+- The command `HOST` is now generally available. The `HOST` command allows declaring an `/etc/hosts` entry. Previously under `VERSION --use-host-command 0.6`.
+- New ARG `EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP` will contain the author timestamp of the current git commit. [#2462](https://github.com/earthly/earthly/pull/2462)
+- New ARGs `EARTHLY_VERSION` and `EARTHLY_BUILD_SHA` contain the version of Earthly and the git sha of Earthly itself, respectively.
+- It is now possible to execute shell commands as part of any command that allows using variables. For example `VOLUME $(cat /volume-name.txt)`. Previously under `VERSION --shell-out-anywhere 0.6`.
+- Allow custom image to be used for git opperations. [#2027](https://github.com/earthly/earthly/issues/2027)
+- Earthly now checks for duplicate image names when performing image outputs. Previously under `VERSION --check-duplicate-images 0.6`.
+- `SAVE IMAGE --no-manifest-list` allows outputting images of a different platform than the default one, but without the manifest list. This is useful for outputting images for platforms that do not support manifest lists, such as AWS Lambda. Previously under `VERSION --use-no-manifest-list 0.6`.
+- `COPY --chmod <mode>` allows setting the permissions of the copied files. Previously under `VERSION --use-chmod 0.6`.
+- The new ARG `EARTHLY_LOCALLY` indicates whether the current target is executed in a `LOCALLY` context. Previously under `VERSION --earthly-locally-arg 0.6`.
+- The new ARGs `EARTHLY_GIT_AUTHOR` and `EARTHLY_GIT_CO_AUTHORS` contain the author and co-authors of the current git commit, respectively. Previously under `VERSION --earthly-git-author-args 0.6`.
+
+### Fixed
+
+- Support for saving files larger than 64kB on failure within a `TRY/FINALLY` block. [#2452](https://github.com/earthly/earthly/issues/2452)
+- Fixed race condition where `SAVE IMAGE` or `SAVE ARTIFACT AS LOCAL` commands were not always performed when contained in a target that was referenced by both a `FROM` (or `COPY`) and a `BUILD` command within the context of a `WAIT`/`END` block. [#2237](https://github.com/earthly/earthly/issues/2218)
+- `WORKDIR` is lost when `--use-copy-link` feature is enabled with `GIT CLONE` or `COPY --keep-own` commands. Note that `--use-copy-link` is enabled by default in `VERSION 0.7`. [#2544](https://github.com/earthly/earthly/issues/2544)
+- The `CACHE` command did not work when used inside a `WITH DOCKER` block. [#2549](https://github.com/earthly/earthly/issues/2549)
+- The `--platform` argument is no longer passed to docker or podman, which caused podman to always pull the buildkit image even when it already existed locally. [#2511](https://github.com/earthly/earthly/issues/2511), [#2566](https://github.com/earthly/earthly/issues/2566)
+
 ## v0.7.0-rc1 - 2023-01-18
 
 This version promotes a number of features that have been previously in Experimental and Beta status. To make use of
