@@ -1,4 +1,4 @@
-package cloudstoredauthprovider
+package cloudauth
 
 import (
 	"crypto/rand"

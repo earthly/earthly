@@ -25,7 +25,7 @@ import (
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil/authprovider"
-	"github.com/earthly/earthly/util/llbutil/authprovider/cloudstoredauthprovider"
+	"github.com/earthly/earthly/util/llbutil/authprovider/cloudauth"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
@@ -336,7 +336,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	}
 
 	cfg := config.LoadDefaultConfigFile(os.Stderr)
-	cloudStoredAuthProvider := cloudstoredauthprovider.NewCloudAuthProvider(cfg, cloudClient, app.console)
+	cloudStoredAuthProvider := cloudauth.NewProvider(cfg, cloudClient, app.console)
 
 	authServers := []auth.AuthServer{}
 	if _, _, _, err := cloudClient.WhoAmI(cliCtx.Context); err == nil {
@@ -505,7 +505,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		// to differentiate between a user forgetting to run earthly -P, versus a remotely referencing an earthfile that requires privileged.
 		AllowPrivileged: true,
 
-		CloudStoredAuthProvider: cloudStoredAuthProvider.(cloudstoredauthprovider.ProjectBasedAuthProvider),
+		CloudStoredAuthProvider: cloudStoredAuthProvider.(cloudauth.ProjectBasedAuthProvider),
 	}
 	if app.artifactMode {
 		buildOpts.OnlyArtifact = &artifact

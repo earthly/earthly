@@ -15,7 +15,7 @@ import (
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
-	"github.com/earthly/earthly/util/llbutil/authprovider/cloudstoredauthprovider"
+	"github.com/earthly/earthly/util/llbutil/authprovider/cloudauth"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
@@ -170,7 +170,7 @@ type ConvertOpt struct {
 	// * "sat:<org-name>/<sat-name>" - remote builds via satellite
 	Runner string
 
-	CloudStoredAuthProvider cloudstoredauthprovider.ProjectBasedAuthProvider
+	CloudStoredAuthProvider cloudauth.ProjectBasedAuthProvider
 }
 
 // TargetDetails contains details about the target being built.

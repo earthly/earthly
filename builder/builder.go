@@ -24,7 +24,7 @@ import (
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/gwclientlogger"
 	"github.com/earthly/earthly/util/llbutil"
-	"github.com/earthly/earthly/util/llbutil/authprovider/cloudstoredauthprovider"
+	"github.com/earthly/earthly/util/llbutil/authprovider/cloudauth"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
@@ -103,7 +103,7 @@ type BuildOpt struct {
 	Logbus                     *logbus.Bus
 	MainTargetDetailsFuture    chan earthfile2llb.TargetDetails
 	Runner                     string
-	CloudStoredAuthProvider    cloudstoredauthprovider.ProjectBasedAuthProvider
+	CloudStoredAuthProvider    cloudauth.ProjectBasedAuthProvider
 }
 
 // Builder executes Earthly builds.

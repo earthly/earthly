@@ -3,7 +3,7 @@
 // This package is distributed under the original file's license, The Apache License, which is defined under
 // https://github.com/moby/buildkit/blob/7c3e9fdd48c867f48a07a80cde64cc2d578cb332/LICENSE
 
-package cloudstoredauthprovider
+package cloudauth
 
 import (
 	"context"
@@ -45,7 +45,7 @@ type ProjectBasedAuthProvider interface {
 	AddProject(org, project string)
 }
 
-func NewCloudAuthProvider(cfg *configfile.ConfigFile, cloudClient cloud.Client, console conslogging.ConsoleLogger) session.Attachable {
+func NewProvider(cfg *configfile.ConfigFile, cloudClient cloud.Client, console conslogging.ConsoleLogger) session.Attachable {
 	return &authProvider{
 		authConfigCache: map[string]*authConfig{},
 		config:          cfg,
@@ -285,12 +285,13 @@ func (ap *authProvider) getAuthConfig(ctx context.Context, host string) (*authCo
 		return ac, nil
 	}
 
-	// check unser user's secrets
+	// check user's secrets
 	ac, err := ap.getAuthConfigForProject(ctx, "", "", host)
 	if err == nil {
 		ap.authConfigCache[host] = ac
 		return ac, nil
-	} else if err != ErrNoCredentialsFound {
+	}
+	if err != ErrNoCredentialsFound {
 		ap.console.Warnf("failed to lookup username/password for %s under user secrets: %s", host, err.Error())
 	}
 
@@ -300,7 +301,8 @@ func (ap *authProvider) getAuthConfig(ctx context.Context, host string) (*authCo
 		if err == nil {
 			ap.authConfigCache[host] = ac
 			return ac, nil
-		} else if err != ErrNoCredentialsFound {
+		}
+		if err != ErrNoCredentialsFound {
 			ap.console.Warnf("failed to lookup username/password for %s under PROJECT %s/%s: %s", host, op.org, op.project, err.Error())
 		}
 	}
