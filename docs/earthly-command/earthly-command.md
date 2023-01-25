@@ -695,3 +695,91 @@ Prints help information about earthly.
 #### Description
 
 Prints version information about earthly.
+
+## earthly ls
+
+#### Synopsis
+
+* ```
+  earthly ls [<project-ref>]
+  ```
+
+#### Description
+
+Prints all targets in an `Earthfile` in a project.
+
+#### Options
+
+##### `--args`
+
+Show arguments (`ARG` statements) in the targets.
+
+##### `--long`
+
+Show full target-ref, including project-ref.
+
+## earthly doc
+
+#### Synopsis
+
+* ```
+  earthly doc [<project-ref>[+<target-ref>]]
+  ```
+
+#### Description
+
+Prints documentation comments for documented targets in an `Earthfile` in a
+project. Documentation on a target is any comment block that ends on the line
+immediately above the target definition and begins with the name of the target.
+
+#### Examples
+
+Given the following `Earthfile`:
+
+```
+VERSION 0.7
+FROM golang:1.19-alpine3.15
+
+deps:
+    COPY go.mod go.sum .
+    RUN go mod download
+
+# build runs 'go build' and saves the artifact locally.
+build:
+    FROM +deps
+    COPY . .
+    ARG output=./build/something
+    RUN go build -o /bin/something
+    SAVE ARTIFACT /bin/something AS LOCAL $output
+
+# tidy runs 'go mod tidy' and saves go.mod/go.sum locally.
+tidy:
+    FROM +deps
+    COPY . .
+    RUN go mod tidy
+    SAVE ARTIFACT go.mod AS LOCAL go.mod
+    SAVE ARTIFACT go.sum AS LOCAL go.sum
+```
+
+##### Print the doc comments for all documented targets:
+
+```
+$ earthly doc
+TARGETS:
+  +build
+    build runs 'go build' and saves the artifact locally.
+  +tidy
+    tidy runs 'go mod tidy' and saves go.mod/go.sum locally.
+```
+
+Note that, unlike `earthly ls`, `earthly doc` does not mention the `deps`
+target. Since it has no documentation, the `deps` target is not included in the
+output.
+
+##### Print the doc comments for a specific target:
+
+```
+$ earthly doc +build
++build
+  build runs 'go build' and saves the artifact locally.
+```
