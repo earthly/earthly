@@ -573,7 +573,7 @@ func receiveFileVersion1(ctx context.Context, conn io.ReadWriteCloser, localArti
 	return f.Close()
 }
 
-func receiveFileVersion2(ctx context.Context, conn io.ReadWriteCloser, localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) error {
+func receiveFileVersion2(ctx context.Context, conn io.ReadWriteCloser, localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) (retErr error) {
 	// dst path
 	dst, err := debuggercommon.ReadUint16PrefixedData(conn)
 	if err != nil {
@@ -590,7 +590,7 @@ func receiveFileVersion2(ctx context.Context, conn io.ReadWriteCloser, localArti
 	}
 
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			// don't output incomplete data
 			_ = f.Close()
 			_ = os.Remove(string(dst))
