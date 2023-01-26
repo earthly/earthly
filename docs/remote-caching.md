@@ -75,7 +75,7 @@ SAVE IMAGE --cache-from=mycompany/myimage:master --push mycompany/myimage:$BRANC
 {% hint style='info' %}
 The `--ci` flag will enable, among other things, both `--use-inline-cache` and `--save-inline-cache` flags. The `--use-inline-cache` flag is required to enable importing existing caches, and the `--save-inline-cache` flag is required to enable exporting images to the remote cache.
 
-Since `VERSION 0.6` the inline cache is only available for images [that are connected to the initial target through a chain of BUILD commands](https://docs.earthly.dev/docs/earthfile#what-is-being-output-and-pushed).
+Since `VERSION 0.6` the inline cache is only exported to images [that are connected to the initial target through a chain of BUILD commands](https://docs.earthly.dev/docs/earthfile#what-is-being-output-and-pushed).
 {% endhint %}
 
 #### Optimizing inline cache performance
