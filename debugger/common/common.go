@@ -45,6 +45,9 @@ const (
 	WinSizeData = 0x04
 )
 
+// End of network protocol magic numbers
+//******************************************************************************************
+
 var (
 	// ErrDataOverflow occurs when too much data is sent
 	ErrDataOverflow = errors.New("Data overflow")
@@ -52,9 +55,6 @@ var (
 	// ErrDataUnderflow occurs when too little data is received
 	ErrDataUnderflow = errors.New("Data underflow")
 )
-
-// End of network protocol magic numbers
-//******************************************************************************************
 
 // ReadUint16PrefixedData first reads a uint16 then reads that many bytes of data
 func ReadUint16PrefixedData(r io.Reader) ([]byte, error) {
