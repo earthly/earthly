@@ -130,7 +130,12 @@ func (c *client) RemoveSecret(ctx context.Context, path string) error {
 		return err
 	}
 
-	if status != http.StatusOK {
+	switch status {
+	case http.StatusOK:
+		break
+	case http.StatusNotFound:
+		return secrets.ErrNotFound
+	default:
 		return errors.Errorf("failed to delete secret: %s", body)
 	}
 

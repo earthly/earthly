@@ -1,0 +1,25 @@
+VERSION 0.7
+PROJECT earthly-technologies/core
+
+ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+ARG DOCKERHUB_MIRROR
+ARG DOCKERHUB_MIRROR_INSECURE=false
+ARG DOCKERHUB_MIRROR_HTTP=false
+ARG DOCKERHUB_AUTH=true
+FROM ../..+earthly-integration-test-base \
+    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+    --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+
+IMPORT .. AS tests
+
+WORKDIR /test
+
+test:
+    COPY test-project.sh test-user.sh lock.sh unlock.sh .
+    RUN --no-cache --secret EARTHLY_TOKEN=fake-user-write-token \
+        ./lock.sh && ( ./test-user.sh && ./test-project.sh) || ( ./unlock.sh && echo "test failed"; exit 1) && ./unlock.sh
