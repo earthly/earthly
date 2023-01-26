@@ -33,7 +33,7 @@ fi
 releases=$(jq -r '.[] | @base64' < "/tmp/releases")
 
 outdir="$HOME/bin"
-mkdir -p $outdir
+mkdir -p "$outdir"
 
 for row in $releases; do
     version=$(echo "$row" | base64 -d | jq -r '.name')
