@@ -115,15 +115,10 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 		path = cliCtx.Args().Get(0)
 	}
 
-	if app.orgName == "" {
-		return errors.New("invalid organization name")
+	path, err := app.fullSecretPath(path)
+	if err != nil {
+		return err
 	}
-
-	if app.projectName == "" {
-		return errors.New("invalid project name")
-	}
-
-	path = app.fullSecretPath(path)
 
 	cloudClient, err := app.newCloudClient()
 	if err != nil {
@@ -166,7 +161,10 @@ func (app *earthlyApp) actionSecretsGetV2(cliCtx *cli.Context) error {
 		return err
 	}
 
-	path = app.fullSecretPath(path)
+	path, err = app.fullSecretPath(path)
+	if err != nil {
+		return err
+	}
 
 	secrets, err := cloudClient.ListSecrets(cliCtx.Context, path)
 	if err != nil {
@@ -199,7 +197,10 @@ func (app *earthlyApp) actionSecretsRemoveV2(cliCtx *cli.Context) error {
 		return err
 	}
 
-	path = app.fullSecretPath(path)
+	path, err = app.fullSecretPath(path)
+	if err != nil {
+		return err
+	}
 
 	err = cloudClient.RemoveSecret(cliCtx.Context, path)
 	if err != nil {
@@ -251,7 +252,10 @@ func (app *earthlyApp) actionSecretsSetV2(cliCtx *cli.Context) error {
 		return err
 	}
 
-	path = app.fullSecretPath(path)
+	path, err = app.fullSecretPath(path)
+	if err != nil {
+		return err
+	}
 
 	err = cloudClient.SetSecret(cliCtx.Context, path, []byte(value))
 	if err != nil {
@@ -261,19 +265,26 @@ func (app *earthlyApp) actionSecretsSetV2(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) fullSecretPath(path string) string {
+func (app *earthlyApp) fullSecretPath(path string) (string, error) {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
 
 	if strings.HasPrefix(path, "/user") {
-		return path
+		return path, nil
+	}
+
+	if app.orgName == "" {
+		return "", fmt.Errorf("the --org flag is required")
+	}
+	if app.projectName == "" {
+		return "", fmt.Errorf("the --project flag is required")
 	}
 
 	// TODO: These values will eventually come from the new PROJECT command (if
 	// one is present). For now, we can use the flag/env values as a temporary
 	// measure.
-	return fmt.Sprintf("/%s/%s%s", app.orgName, app.projectName, path)
+	return fmt.Sprintf("/%s/%s%s", app.orgName, app.projectName, path), nil
 }
 
 func (app *earthlyApp) actionSecretPermsList(cliCtx *cli.Context) error {
@@ -284,7 +295,10 @@ func (app *earthlyApp) actionSecretPermsList(cliCtx *cli.Context) error {
 	}
 
 	path := cliCtx.Args().Get(0)
-	path = app.fullSecretPath(path)
+	path, err := app.fullSecretPath(path)
+	if err != nil {
+		return err
+	}
 
 	if strings.Contains(path, "/user") {
 		return errors.New("user secrets don't support permissions")
@@ -323,7 +337,10 @@ func (app *earthlyApp) actionSecretPermsRemove(cliCtx *cli.Context) error {
 	}
 
 	path := cliCtx.Args().Get(0)
-	path = app.fullSecretPath(path)
+	path, err := app.fullSecretPath(path)
+	if err != nil {
+		return err
+	}
 
 	if strings.Contains(path, "/user") {
 		return errors.New("user secrets don't support permissions")
@@ -357,7 +374,10 @@ func (app *earthlyApp) actionSecretPermsSet(cliCtx *cli.Context) error {
 	}
 
 	path := cliCtx.Args().Get(0)
-	path = app.fullSecretPath(path)
+	path, err := app.fullSecretPath(path)
+	if err != nil {
+		return err
+	}
 
 	if strings.Contains(path, "/user") {
 		return errors.New("user secrets don't support permissions")
