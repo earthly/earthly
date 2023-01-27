@@ -152,6 +152,7 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Usage:       "Enable log streaming only locally",
 			Destination: &app.logstream,
 			Hidden:      true, // Internal.
+			Value:       true,
 		},
 		&cli.BoolFlag{
 			Name:        "logstream-upload",
@@ -159,6 +160,7 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Usage:       "Enable log stream uploading",
 			Destination: &app.logstreamUpload,
 			Hidden:      true, // Internal.
+			Value:       true,
 		},
 		&cli.StringFlag{
 			Name:        "logstream-debug-file",
