@@ -39,7 +39,7 @@ Earthfiles to use 0.7 (or 0.6), you can declare `VERSION 0.5` to continue to use
 **Pushing no longer requires everything else to succeed**
 
 The behavior of the `--push` mode has changed in a backwards incompatible manner. Previously, `--push` commands would only execute if all other commands had succeeded. This precondition is no longer enforced, to allow for more flexible push ordering via the new `WAIT` clause. To achieve the behavior of the previous `--push` mode, you need to wrap any pre-required commands in a `WAIT` clause. For example, to push an image only if tests have passed, you would do the following:
-  
+
 ```Earthfile
 test-and-push:
   WAIT
@@ -125,6 +125,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - The new ARG `EARTHLY_LOCALLY` indicates whether the current target is executed in a `LOCALLY` context. Previously under `VERSION --earthly-locally-arg 0.6`.
 - The new ARGs `EARTHLY_GIT_AUTHOR` and `EARTHLY_GIT_CO_AUTHORS` contain the author and co-authors of the current git commit, respectively. Previously under `VERSION --earthly-git-author-args 0.6`.
 - `earthly doc [projectRef[+targetRef]]` is a new subcommand in *beta* status.  It will parse and output documentation comments on targets.
+- Ability to store docker registry credentials in cloud secrets and corresponding `earthly registry login|list|logout` commands; credentials can be associated with either your user or project.
 
 ### Fixed
 
