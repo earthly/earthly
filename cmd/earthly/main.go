@@ -408,22 +408,6 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 	if app.logstreamUpload {
 		app.logstream = true
 	}
-	if app.logstream {
-		app.console = app.console.WithPrefixWriter(app.logbus.Run().Generic())
-		if app.buildID == "" {
-			app.buildID = uuid.NewString()
-		}
-		disableOngoingUpdates := !app.logstream || app.interactiveDebugging
-		_, forceColor := os.LookupEnv("FORCE_COLOR")
-		_, noColor := os.LookupEnv("NO_COLOR")
-		var err error
-		app.logbusSetup, err = logbussetup.New(
-			cliCtx.Context, app.logbus, app.debug, app.verbose, forceColor, noColor,
-			disableOngoingUpdates, app.logstreamDebugFile, app.buildID)
-		if err != nil {
-			return errors.Wrap(err, "logbus setup")
-		}
-	}
 
 	if cliCtx.IsSet("config") {
 		app.console.Printf("loading config values from %q\n", app.configPath)
@@ -572,6 +556,22 @@ func unhideFlagsCommands(ctx context.Context, cmds []*cli.Command) {
 }
 
 func (app *earthlyApp) run(ctx context.Context, args []string) int {
+	if app.logstream {
+		app.console = app.console.WithPrefixWriter(app.logbus.Run().Generic())
+		if app.buildID == "" {
+			app.buildID = uuid.NewString()
+		}
+		disableOngoingUpdates := !app.logstream || app.interactiveDebugging
+		_, forceColor := os.LookupEnv("FORCE_COLOR")
+		_, noColor := os.LookupEnv("NO_COLOR")
+		var err error
+		app.logbusSetup, err = logbussetup.New(
+			ctx, app.logbus, app.debug, app.verbose, forceColor, noColor,
+			disableOngoingUpdates, app.logstreamDebugFile, app.buildID)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to setup logbus: %v", err)
+		}
+	}
 	defer func() {
 		if app.logstream {
 			err := app.logbusSetup.Close()
