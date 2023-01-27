@@ -19,7 +19,9 @@ func (app *earthlyApp) secretCmds() []*cli.Command {
 			Usage: "Stores a secret in the secrets store",
 			UsageText: "earthly [options] secret set <path> <value>\n" +
 				"   earthly [options] secret set --file <local-path> <path>\n" +
-				"   earthly [options] secret set --stdin <path>",
+				"   earthly [options] secret set --stdin <path>\n" +
+				"\n" +
+				"Security Recommendation: use --file or --stdin to avoid accidentally storing secrets in your shell's history",
 			Action: app.actionSecretsSetV2,
 			Flags: []cli.Flag{
 				&cli.StringFlag{

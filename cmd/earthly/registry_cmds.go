@@ -47,14 +47,14 @@ func (app *earthlyApp) registryCmds() []*cli.Command {
 				&cli.StringFlag{
 					Name:        "password",
 					EnvVars:     []string{"EARTHLY_REGISTRY_PASSWORD"},
-					Usage:       "The password to use when logging into the registry.",
+					Usage:       "The password to use when logging into the registry (use --password-stdin to prevent leaking your password via your shell history).",
 					Required:    false,
 					Destination: &app.registryPassword,
 				},
 				&cli.BoolFlag{
 					Name:        "password-stdin",
 					EnvVars:     []string{"EARTHLY_REGISTRY_PASSWORD_STDIN"},
-					Usage:       "Read the password from stdin.",
+					Usage:       "Read the password from stdin (recommended).",
 					Required:    false,
 					Destination: &app.registryPasswordStdin,
 				},

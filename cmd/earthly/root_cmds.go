@@ -290,8 +290,8 @@ Set up a whole custom git repository for a server called example.com, using a si
 		{
 			Name:        "registry",
 			Aliases:     []string{"registries"},
-			Description: "Manage registry access *experimental*",
-			Usage:       "Manage registry access *experimental*",
+			Description: "Manage registry access *beta*",
+			Usage:       "Manage registry access *beta*",
 			Subcommands: app.registryCmds(),
 		},
 		{
