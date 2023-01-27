@@ -45,7 +45,6 @@ to require version `0.X` (or later), and could be rewritten as `VERSION 0.X`.
 | `--shell-out-anywhere` | 0.7 | Allows shelling-out in any earthly command (including in the middle of `ARG`) |
 | `--explicit-global` | 0.7 | Base target args must have a `--global` flag in order to be considered global args |
 | `--check-duplicate-images` | 0.7 | Check for duplicate images during output |
-| `--earthly-version-arg` | 0.7 | Includes `EARTHLY_VERSION` and `EARTHLY_BUILD_SHA` ARGs |
 | `--use-cache-command` | 0.7 | Allow use of `CACHE` command in Earthfiles |
 | `--use-host-command` | 0.7 | Allow use of `HOST` command in Earthfiles |
 | `--use-copy-link` | 0.7 | Use the equivalent of `COPY --link` for all copy-like operations |
