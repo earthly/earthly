@@ -110,7 +110,8 @@ func (bs *BusSetup) DumpManifestToFile(path string) error {
 // Close closes the BusSetup.
 func (bs *BusSetup) Close() error {
 	var retErr error
-	errs := bs.ConsoleWriter.Errors()
+	cw := bs.ConsoleWriter
+	errs := cw.Errors()
 	var cwErr error
 	for _, err := range errs {
 		cwErr = multierror.Append(cwErr, err)
