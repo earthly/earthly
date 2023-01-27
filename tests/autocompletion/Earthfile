@@ -24,6 +24,7 @@ ls
 org 
 project 
 prune 
+registry 
 satellite 
 secret " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
@@ -43,6 +44,7 @@ ls
 org 
 project 
 prune 
+registry 
 satellite 
 secret 
 web " > expected

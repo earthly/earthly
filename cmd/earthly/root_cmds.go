@@ -288,6 +288,13 @@ Set up a whole custom git repository for a server called example.com, using a si
 			Subcommands: app.secretCmds(),
 		},
 		{
+			Name:        "registry",
+			Aliases:     []string{"registries"},
+			Description: "Manage registry access",
+			Usage:       "Manage registry access",
+			Subcommands: app.registryCmds(),
+		},
+		{
 			Name:        "web",
 			Description: "Access the web UI",
 			Usage:       "Access the web UI via your default browser and print the url",
