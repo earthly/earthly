@@ -112,7 +112,7 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 		{
 			Name:        "org",
 			Aliases:     []string{"orgs"},
-			Usage:       "Earthly organization administration *experimental*",
+			Usage:       "Earthly organization administration *beta*",
 			Subcommands: app.orgCmds(),
 		},
 		{
@@ -143,7 +143,7 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 		},
 		{
 			Name:        "account",
-			Usage:       "Create or manage an Earthly account *experimental*",
+			Usage:       "Create or manage an Earthly account *beta*",
 			Subcommands: app.accountCmds(),
 		},
 		{
@@ -243,8 +243,8 @@ Set up a whole custom git repository for a server called example.com, using a si
 		{
 			Name:        "project",
 			Aliases:     []string{"projects"},
-			Description: "Manage Earthly projects *experimental*",
-			Usage:       "Manage Earthly projects *experimental*",
+			Description: "Manage Earthly projects *beta*",
+			Usage:       "Manage Earthly projects *beta*",
 			UsageText:   "earthly project (ls|rm|create|member)",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
@@ -267,8 +267,8 @@ Set up a whole custom git repository for a server called example.com, using a si
 		{
 			Name:        "secret",
 			Aliases:     []string{"secrets"},
-			Description: "Manage cloud secrets *experimental*",
-			Usage:       "Manage cloud secrets *experimental*",
+			Description: "Manage cloud secrets *beta*",
+			Usage:       "Manage cloud secrets *beta*",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "org",
@@ -290,14 +290,14 @@ Set up a whole custom git repository for a server called example.com, using a si
 		{
 			Name:        "registry",
 			Aliases:     []string{"registries"},
-			Description: "Manage registry access",
-			Usage:       "Manage registry access",
+			Description: "Manage registry access *beta*",
+			Usage:       "Manage registry access *beta*",
 			Subcommands: app.registryCmds(),
 		},
 		{
 			Name:        "web",
-			Description: "Access the web UI",
-			Usage:       "Access the web UI via your default browser and print the url",
+			Description: "Access the web UI *beta*",
+			Usage:       "Access the web UI via your default browser and print the url *beta*",
 			UsageText:   "earthly web (--provider=github)",
 			Hidden:      true,
 			Flags: []cli.Flag{
