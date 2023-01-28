@@ -405,9 +405,6 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 	} else if app.verbose {
 		app.console = app.console.WithLogLevel(conslogging.Verbose)
 	}
-	if app.logstreamUpload {
-		app.logstream = true
-	}
 
 	if cliCtx.IsSet("config") {
 		app.console.Printf("loading config values from %q\n", app.configPath)
@@ -556,6 +553,9 @@ func unhideFlagsCommands(ctx context.Context, cmds []*cli.Command) {
 }
 
 func (app *earthlyApp) run(ctx context.Context, args []string) int {
+	if app.logstreamUpload {
+		app.logstream = true
+	}
 	if app.logstream {
 		app.console = app.console.WithPrefixWriter(app.logbus.Run().Generic())
 		if app.buildID == "" {
@@ -571,21 +571,22 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to setup logbus: %v", err)
 		}
-	}
-	defer func() {
-		if app.logstream {
-			err := app.logbusSetup.Close()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error(s) in logbus: %v", err)
-			}
-			if app.logstreamDebugManifestFile != "" {
-				err := app.logbusSetup.DumpManifestToFile(app.logstreamDebugManifestFile)
+		defer func() {
+			if app.logbusSetup != nil {
+				err := app.logbusSetup.Close()
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error dumping manifest: %v", err)
+					fmt.Fprintf(os.Stderr, "Error(s) in logbus: %v", err)
+				}
+				if app.logstreamDebugManifestFile != "" {
+					err := app.logbusSetup.DumpManifestToFile(app.logstreamDebugManifestFile)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "Error dumping manifest: %v", err)
+					}
 				}
 			}
-		}
-	}()
+		}()
+	}
+
 	app.logbus.Run().SetStart(time.Now())
 	defer func() {
 		// Just in case this is forgotten somewhere else.
