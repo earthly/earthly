@@ -716,7 +716,7 @@ Show arguments (`ARG` statements) in the targets.
 
 ##### `--long`
 
-Show full target-ref, including project-ref.
+Show full, canonical target references (includes the project part of the reference, if applicable).
 
 ## earthly doc
 
