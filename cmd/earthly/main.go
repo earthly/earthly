@@ -160,9 +160,6 @@ type cliFlags struct {
 	requestID                  string
 	buildID                    string
 	loginProvider              string
-	registryUsername           string
-	registryPassword           string
-	registryPasswordStdin      bool
 }
 
 type analyticsMetadata struct {
@@ -702,7 +699,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 					"You can report crashes at https://github.com/earthly/earthly/issues/new."
 				app.printCrashLogs(ctx)
 			}
-			setFatalError(logstream.FailureType_FAILURE_TYPE_CONNECTION_FAILURE, err.Error())
+			setFatalError(logstream.FailureType_FAILURE_TYPE_CONNECTION_FAILURE, msg)
 			return 6
 		case errors.Is(err, context.Canceled):
 			setEnd(logstream.RunStatus_RUN_STATUS_CANCELED, "Canceled")
