@@ -117,13 +117,13 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 		},
 		{
 			Name:      "doc",
-			Usage:     "Document targets from an Earthfile",
+			Usage:     "Document targets from an Earthfile *beta*",
 			UsageText: "earthly [options] doc [<project-ref>[+<target-ref>]]",
 			Action:    app.actionDocumentTarget,
 		},
 		{
 			Name:      "ls",
-			Usage:     "List targets from an Earthfile",
+			Usage:     "List targets from an Earthfile *beta*",
 			UsageText: "earthly [options] ls [<project-ref>]",
 			Action:    app.actionListTargets,
 			Flags: []cli.Flag{
