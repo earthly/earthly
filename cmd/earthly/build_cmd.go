@@ -19,7 +19,6 @@ import (
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
-	logbussetup "github.com/earthly/earthly/logbus/setup"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
@@ -32,7 +31,6 @@ import (
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
-	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/session"
@@ -75,40 +73,6 @@ func (app *earthlyApp) actionBuild(cliCtx *cli.Context) error {
 	flagArgs, nonFlagArgs, err := variables.ParseFlagArgsWithNonFlags(cliCtx.Args().Slice())
 	if err != nil {
 		return errors.Wrapf(err, "parse args %s", strings.Join(cliCtx.Args().Slice(), " "))
-	}
-
-	if app.logstreamUpload {
-		app.logstream = true
-	}
-	if app.logstream {
-		app.console = app.console.WithPrefixWriter(app.logbus.Run().Generic())
-		if app.buildID == "" {
-			app.buildID = uuid.NewString()
-		}
-		disableOngoingUpdates := !app.logstream || app.interactiveDebugging
-		_, forceColor := os.LookupEnv("FORCE_COLOR")
-		_, noColor := os.LookupEnv("NO_COLOR")
-		var err error
-		app.logbusSetup, err = logbussetup.New(
-			cliCtx.Context, app.logbus, app.debug, app.verbose, forceColor, noColor,
-			disableOngoingUpdates, app.logstreamDebugFile, app.buildID)
-		if err != nil {
-			return errors.Wrap(err, "logbus setup")
-		}
-		defer func() {
-			if app.logstream && app.logbusSetup != nil {
-				err := app.logbusSetup.Close()
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error(s) in logbus: %v", err)
-				}
-				if app.logstreamDebugManifestFile != "" {
-					err := app.logbusSetup.DumpManifestToFile(app.logstreamDebugManifestFile)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "Error dumping manifest: %v", err)
-					}
-				}
-			}
-		}()
 	}
 
 	return app.actionBuildImp(cliCtx, flagArgs, nonFlagArgs)
