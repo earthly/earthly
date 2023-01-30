@@ -783,3 +783,23 @@ $ earthly doc +build
 +build
   build runs 'go build' and saves the artifact locally.
 ```
+
+## earthly web
+
+#### Synopsis
+
+* ```
+  earthly web [--provider=<provider-ref>]]
+  ```
+
+#### Description
+
+Prints url for logging into the CI application and attempts to open your default browser with that url.
+
+#### Examples
+
+##### Login to the CI application with GitHub
+
+* ```
+  earthly web --provider=github
+  ```
