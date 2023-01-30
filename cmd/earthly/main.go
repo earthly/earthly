@@ -20,7 +20,6 @@ import (
 
 	gsysinfo "github.com/elastic/go-sysinfo"
 	"github.com/fatih/color"
-	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
@@ -408,25 +407,6 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 	} else if app.verbose {
 		app.console = app.console.WithLogLevel(conslogging.Verbose)
 	}
-	if app.logstreamUpload {
-		app.logstream = true
-	}
-	if app.logstream {
-		app.console = app.console.WithPrefixWriter(app.logbus.Run().Generic())
-		if app.buildID == "" {
-			app.buildID = uuid.NewString()
-		}
-		disableOngoingUpdates := !app.logstream || app.interactiveDebugging
-		_, forceColor := os.LookupEnv("FORCE_COLOR")
-		_, noColor := os.LookupEnv("NO_COLOR")
-		var err error
-		app.logbusSetup, err = logbussetup.New(
-			cliCtx.Context, app.logbus, app.debug, app.verbose, forceColor, noColor,
-			disableOngoingUpdates, app.logstreamDebugFile, app.buildID)
-		if err != nil {
-			return errors.Wrap(err, "logbus setup")
-		}
-	}
 
 	if cliCtx.IsSet("config") {
 		app.console.Printf("loading config values from %q\n", app.configPath)
@@ -575,20 +555,6 @@ func unhideFlagsCommands(ctx context.Context, cmds []*cli.Command) {
 }
 
 func (app *earthlyApp) run(ctx context.Context, args []string) int {
-	defer func() {
-		if app.logstream && app.logbusSetup != nil {
-			err := app.logbusSetup.Close()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error(s) in logbus: %v", err)
-			}
-			if app.logstreamDebugManifestFile != "" {
-				err := app.logbusSetup.DumpManifestToFile(app.logstreamDebugManifestFile)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error dumping manifest: %v", err)
-				}
-			}
-		}
-	}()
 	app.logbus.Run().SetStart(time.Now())
 	defer func() {
 		// Just in case this is forgotten somewhere else.
