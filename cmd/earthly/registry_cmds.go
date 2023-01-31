@@ -17,8 +17,8 @@ func (app *earthlyApp) registryCmds() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:        "login",
-			Usage:       "Login and store credentials in earthly-cloud",
-			Description: "Login and store credentials in earthly-cloud",
+			Usage:       "Login and store credentials in earthly-cloud *beta*",
+			Description: "Login and store credentials in earthly-cloud *beta*",
 			UsageText: "earthly registry login --username <username> --password <password> [<host>]\n" +
 				"	earthly registry login --org <org> --project <project> --username <username> --password <password> [<host>]\n",
 			Action: app.actionRegistryLogin,
@@ -60,7 +60,7 @@ func (app *earthlyApp) registryCmds() []*cli.Command {
 		},
 		{
 			Name:  "list",
-			Usage: "List configured registries",
+			Usage: "List configured registries *beta*",
 			UsageText: "earthly registry list\n" +
 				"	earthly registry list --org <org> --project <project>\n",
 			Action: app.actionRegistryList,
@@ -81,7 +81,7 @@ func (app *earthlyApp) registryCmds() []*cli.Command {
 		},
 		{
 			Name:  "logout",
-			Usage: "Logout of a registry (that has credentials stored in earthly-cloud)",
+			Usage: "Logout of a registry (that has credentials stored in earthly-cloud) *beta*",
 			UsageText: "earthly registry logout [<host>]\n" +
 				"	earthly registry login --org <org> --project <project> [<host>]\n",
 			Action: app.actionRegistryLogout,

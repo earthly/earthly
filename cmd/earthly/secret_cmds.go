@@ -16,7 +16,7 @@ func (app *earthlyApp) secretCmds() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:  "set",
-			Usage: "Stores a secret in the secrets store",
+			Usage: "Stores a secret in the secrets store *beta*",
 			UsageText: "earthly [options] secret set <path> <value>\n" +
 				"   earthly [options] secret set --file <local-path> <path>\n" +
 				"   earthly [options] secret set --stdin <path>\n" +
@@ -41,7 +41,7 @@ func (app *earthlyApp) secretCmds() []*cli.Command {
 		{
 			Name:      "get",
 			Action:    app.actionSecretsGetV2,
-			Usage:     "Retrieve a secret from the secrets store",
+			Usage:     "Retrieve a secret from the secrets store *beta*",
 			UsageText: "earthly [options] secret get [options] <path>",
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
@@ -53,19 +53,19 @@ func (app *earthlyApp) secretCmds() []*cli.Command {
 		},
 		{
 			Name:      "ls",
-			Usage:     "List secrets in the secrets store",
+			Usage:     "List secrets in the secrets store *beta*",
 			UsageText: "earthly [options] secret ls [<path>]",
 			Action:    app.actionSecretsListV2,
 		},
 		{
 			Name:      "rm",
-			Usage:     "Removes a secret from the secrets store",
+			Usage:     "Removes a secret from the secrets store *beta*",
 			UsageText: "earthly [options] secret rm <path>",
 			Action:    app.actionSecretsRemoveV2,
 		},
 		{
 			Name:      "migrate",
-			Usage:     "Migrate existing secrets into the new project-based structure",
+			Usage:     "Migrate existing secrets into the new project-based structure *beta*",
 			UsageText: "earthly [options] secret --org <organization> --project <project> migrate <source-organization>",
 			Action:    app.actionSecretsMigrate,
 			Flags: []cli.Flag{
@@ -80,7 +80,7 @@ func (app *earthlyApp) secretCmds() []*cli.Command {
 		{
 			Name:      "permission",
 			Aliases:   []string{"permissions"},
-			Usage:     "Manage user-level secret permissions.",
+			Usage:     "Manage user-level secret permissions. *beta*",
 			UsageText: "earthly [options] secret permission (ls|set|rm)",
 			Subcommands: []*cli.Command{
 				{
