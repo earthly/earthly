@@ -417,7 +417,7 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 		_, forceColor := os.LookupEnv("FORCE_COLOR")
 		_, noColor := os.LookupEnv("NO_COLOR")
 		var err error
-		app.logstream, err = logbus.LogstreamFactory(&logbus.LogstreamArgs{
+		app.logstream, err = logbus.LogstreamFactory(cliCtx.Context, &logbus.LogstreamArgs{
 			BuildID:                    app.buildID,
 			Debug:                      app.debug,
 			Verbose:                    app.verbose,

@@ -33,16 +33,19 @@ type LogStreamer struct {
 }
 
 // New creates a new LogStreamer.
-func New(ctx context.Context, bus *logbus.Bus, c cloud.Client, initialManifest *logstream.RunManifest) *LogStreamer {
+func New(bus *logbus.Bus, initialManifest *logstream.RunManifest) *LogStreamer {
 	ls := &LogStreamer{
 		bus:             bus,
-		c:               c,
 		buildID:         initialManifest.GetBuildId(),
 		initialManifest: initialManifest,
 		doneCh:          make(chan struct{}),
 	}
-	go ls.retryLoop(ctx)
 	return ls
+}
+
+func (ls *LogStreamer) StartStreaming(ctx context.Context, c cloud.Client) {
+	ls.c = c
+	go ls.retryLoop(ctx)
 }
 
 func (ls *LogStreamer) retryLoop(ctx context.Context) {

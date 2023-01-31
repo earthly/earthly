@@ -38,7 +38,44 @@ type Logstream interface {
 }
 
 type logstreamFacade struct {
-	bus *Bus
+	args            *LogstreamArgs
+	bus             *Bus
+	consoleWriter   *writersub.WriterSub
+	formatter       *formatter.Formatter
+	solverMonitor   *solvermon.SolverMonitor
+	busDebugWriter  *writersub.RawWriterSub
+	logStreamer     *logstreamer.LogStreamer
+	initialManifest *logstream.RunManifest
+}
+
+// SetDefaultPlatform sets the default platform of the build.
+func (l *logstreamFacade) SetDefaultPlatform(platform string) {
+	l.formatter.SetDefaultPlatform(platform)
+}
+
+// GetBuildID returns the buildID logstream was initialized with
+func (l *logstreamFacade) GetBuildID() string {
+	return l.args.BuildID
+}
+
+// SetOrgAndProject sets the org and project for the manifest.
+func (l *logstreamFacade) SetOrgAndProject(orgName, projectName string) {
+	l.initialManifest.OrgName = orgName
+	l.initialManifest.ProjectName = projectName
+}
+
+// StartLogStreamer starts a LogStreamer for the given build. The
+// LogStreamer streams logs to the cloud.
+func (l *logstreamFacade) StartLogStreamer(ctx context.Context, c cloud.Client) {
+	l.logStreamer.StartStreaming(ctx, c)
+}
+
+func (l *logstreamFacade) GetSolverMonitor() *solvermon.SolverMonitor {
+	return l.solverMonitor
+}
+
+func (l *logstreamFacade) Run() *Run {
+	return l.bus.Run()
 }
 
 func (l *logstreamFacade) StartNewTarget(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string, runner string) (*Target, error) {
@@ -50,27 +87,7 @@ func (l *logstreamFacade) StartNewTarget(targetID, shortTargetName, canonicalTar
 	return target, nil
 }
 
-func (l *logstreamFacade) Close() error {
-	return errors.New("implement me")
-	// if app.useLogstream && app.logbusSetup
-	/**
-	if app.logstreamDebugManifestFile != "" {
-			err := app.logstream.DumpManifestToFile(app.logstreamDebugManifestFile)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error dumping manifest: %v", err)
-			}
-		}
-	*/
-}
-
-/**
-cliCtx.Context, app.logbus, app.debug, app.verbose, forceColor, noColor,
-			disableOngoingUpdates, app.logstreamDebugFile, app.buildID
-*/
-
 type LogstreamArgs struct {
-	cliCtx context.Context
-
 	BuildID                    string
 	Debug                      bool
 	Verbose                    bool
@@ -83,71 +100,43 @@ type LogstreamArgs struct {
 	LogstreamDebugManifestFile string
 }
 
-func LogstreamFactory(args *LogstreamArgs) (Logstream, error) {
-	return nil, errors.New("implement me")
-}
-
-// BusSetup is a helper for setting up a logbus.Bus.
-type BusSetup struct {
-	Bus             *Bus
-	ConsoleWriter   *writersub.WriterSub
-	Formatter       *formatter.Formatter
-	SolverMonitor   *solvermon.SolverMonitor
-	BusDebugWriter  *writersub.RawWriterSub
-	LogStreamer     *logstreamer.LogStreamer
-	InitialManifest *logstream.RunManifest
-}
-
-// NewLogBusSetup creates a new BusSetup.
-func NewLogBusSetup(ctx context.Context, bus *Bus, debug, verbose, forceColor, noColor, disableOngoingUpdates bool, busDebugFile string, buildID string) (*BusSetup, error) {
-	bs := &BusSetup{
-		Bus:           bus,
-		ConsoleWriter: writersub.New(os.Stderr, "_full"),
-		Formatter:     nil, // set below
-		SolverMonitor: nil, // set below
-		InitialManifest: &logstream.RunManifest{
-			BuildId:            buildID,
+// LogstreamFactory sets up all dependencies necessary to run Logstream
+func LogstreamFactory(ctx context.Context, args *LogstreamArgs) (Logstream, error) {
+	bus := New()
+	l := &logstreamFacade{
+		args:          args,
+		bus:           bus,
+		consoleWriter: writersub.New(os.Stderr, "_full"),
+		formatter:     nil, // set below
+		solverMonitor: nil, // set below
+		initialManifest: &logstream.RunManifest{
+			BuildId:            args.BuildID,
 			Version:            deltautil.Version,
 			CreatedAtUnixNanos: uint64(bus.CreatedAt().UnixNano()),
 		},
 	}
-	bs.Formatter = formatter.New(ctx, bs.Bus, debug, verbose, forceColor, noColor, disableOngoingUpdates)
-	bs.Bus.AddRawSubscriber(bs.Formatter)
-	bs.Bus.AddFormattedSubscriber(bs.ConsoleWriter)
-	bs.SolverMonitor = solvermon.New(bs.Bus)
-	if busDebugFile != "" {
-		f, err := os.OpenFile(busDebugFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	l.logStreamer = logstreamer.New(bus, l.initialManifest)
+	l.formatter = formatter.New(ctx, l.bus, args.Debug, args.Verbose, args.ForceColor, args.NoColor, args.DisableOngoingUpdates)
+	l.bus.AddRawSubscriber(l.formatter)
+	l.bus.AddFormattedSubscriber(l.consoleWriter)
+	l.solverMonitor = solvermon.New(l.bus)
+	if args.LogstreamDebugFile != "" {
+		f, err := os.OpenFile(args.LogstreamDebugFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to open bus debug file %s", busDebugFile)
+			return nil, errors.Wrapf(err, "failed to open bus debug file %s", args.LogstreamDebugFile)
 		}
-		useJson := strings.HasSuffix(busDebugFile, ".json")
-		bs.BusDebugWriter = writersub.NewRaw(f, useJson)
-		bs.Bus.AddSubscriber(bs.BusDebugWriter)
+		useJson := strings.HasSuffix(args.LogstreamDebugFile, ".json")
+		l.busDebugWriter = writersub.NewRaw(f, useJson)
+		l.bus.AddSubscriber(l.busDebugWriter)
 	}
-	return bs, nil
-}
 
-// SetDefaultPlatform sets the default platform of the build.
-func (bs *BusSetup) SetDefaultPlatform(platform string) {
-	bs.Formatter.SetDefaultPlatform(platform)
-}
-
-// SetOrgAndProject sets the org and project for the manifest.
-func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
-	bs.InitialManifest.OrgName = orgName
-	bs.InitialManifest.ProjectName = projectName
-}
-
-// StartLogStreamer starts a LogStreamer for the given build. The
-// LogStreamer streams logs to the cloud.
-func (bs *BusSetup) StartLogStreamer(ctx context.Context, c cloud.Client) {
-	bs.LogStreamer = logstreamer.New(ctx, bs.Bus, c, bs.InitialManifest)
+	return l, nil
 }
 
 // DumpManifestToFile dumps the manifest to the given file.
-func (bs *BusSetup) DumpManifestToFile(path string) error {
-	m := bs.Formatter.Manifest()
-	proto.Merge(m, bs.InitialManifest)
+func (l *logstreamFacade) DumpManifestToFile(path string) error {
+	m := l.formatter.Manifest()
+	proto.Merge(m, l.initialManifest)
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return errors.Wrapf(err, "failed to open bus manifest debug file %s", path)
@@ -175,10 +164,10 @@ func (bs *BusSetup) DumpManifestToFile(path string) error {
 	return nil
 }
 
-// Close closes the BusSetup.
-func (bs *BusSetup) Close() error {
+// Close closes Logstream.
+func (l *logstreamFacade) Close() error {
 	var retErr error
-	cw := bs.ConsoleWriter
+	cw := l.consoleWriter
 	errs := cw.Errors()
 	var cwErr error
 	for _, err := range errs {
@@ -187,12 +176,12 @@ func (bs *BusSetup) Close() error {
 	if cwErr != nil {
 		retErr = multierror.Append(retErr, errors.Wrap(cwErr, "console writer"))
 	}
-	fErr := bs.Formatter.Close()
+	fErr := l.formatter.Close()
 	if fErr != nil {
 		retErr = multierror.Append(retErr, errors.Wrap(fErr, "formatter"))
 	}
-	if bs.BusDebugWriter != nil {
-		errs := bs.BusDebugWriter.Errors()
+	if l.busDebugWriter != nil {
+		errs := l.busDebugWriter.Errors()
 		var bdwErr error
 		for _, err := range errs {
 			bdwErr = multierror.Append(bdwErr, err)
@@ -201,10 +190,16 @@ func (bs *BusSetup) Close() error {
 			retErr = multierror.Append(retErr, errors.Wrap(bdwErr, "bus debug writer"))
 		}
 	}
-	if bs.LogStreamer != nil {
-		err := bs.LogStreamer.Close()
+	if l.logStreamer != nil {
+		err := l.logStreamer.Close()
 		if err != nil {
 			retErr = multierror.Append(retErr, errors.Wrap(err, "log streamer"))
+		}
+	}
+	if l.args.LogstreamDebugManifestFile != "" {
+		err := l.DumpManifestToFile(l.args.LogstreamDebugManifestFile)
+		if err != nil {
+			retErr = multierror.Append(retErr, errors.Wrap(err, "error dumping manifest"))
 		}
 	}
 	return retErr
