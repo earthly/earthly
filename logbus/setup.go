@@ -11,6 +11,7 @@ import (
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/logbus/formatter"
+	"github.com/earthly/earthly/logbus/logbus"
 	"github.com/earthly/earthly/logbus/logstreamer"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/logbus/writersub"
@@ -38,17 +39,17 @@ type Logstream interface {
 	MonitorProgress(ctx context.Context, ch chan *client.SolveStatus) error
 
 	// From logbus
-	GenericWriter() *Generic
+	GenericWriter() *logbus.Generic
 	SetFatalError(end time.Time, targetID string, commandID string, failureType logstream.FailureType, errString string)
 	SetEnd(end time.Time, status logstream.RunStatus)
 	SetStart(start time.Time)
 
-	StartNewTarget(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string, runner string) (*Target, error)
+	StartNewTarget(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string, runner string) (*logbus.Target, error)
 }
 
 type logstreamFacade struct {
 	args            *LogstreamArgs
-	bus             *Bus
+	bus             *logbus.Bus
 	consoleWriter   *writersub.WriterSub
 	formatter       *formatter.Formatter
 	solverMonitor   *solvermon.SolverMonitor
@@ -102,15 +103,15 @@ func (l *logstreamFacade) GetSolverMonitor() *solvermon.SolverMonitor {
 	return l.solverMonitor
 }
 
-func (l *logstreamFacade) Run() *Run {
+func (l *logstreamFacade) Run() *logbus.Run {
 	return l.bus.Run()
 }
 
-func (l *logstreamFacade) GenericWriter() *Generic {
+func (l *logstreamFacade) GenericWriter() *logbus.Generic {
 	return l.bus.Run().Generic()
 }
 
-func (l *logstreamFacade) StartNewTarget(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string, runner string) (*Target, error) {
+func (l *logstreamFacade) StartNewTarget(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string, runner string) (*logbus.Target, error) {
 	target, err := l.bus.Run().NewTarget(targetID, shortTargetName, canonicalTargetName, overrideArgs, initialPlatform, runner)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create new target")
@@ -141,7 +142,7 @@ type LogstreamArgs struct {
 
 // LogstreamFactory sets up all dependencies necessary to run Logstream
 func LogstreamFactory(ctx context.Context, args *LogstreamArgs) (Logstream, error) {
-	bus := New()
+	bus := logbus.New()
 	l := &logstreamFacade{
 		args:          args,
 		bus:           bus,

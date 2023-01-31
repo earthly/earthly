@@ -11,7 +11,7 @@ import (
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/conslogging"
-	"github.com/earthly/earthly/logbus"
+	"github.com/earthly/earthly/logbus/logbus"
 	"github.com/earthly/earthly/util/deltautil"
 	"github.com/earthly/earthly/util/progressbar"
 	"github.com/hashicorp/go-multierror"
