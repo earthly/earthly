@@ -1079,7 +1079,12 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					c.opt.ExportCoordinator.AddPushedImageSummary(c.target.StringCanonical(), si.DockerTag, c.mts.Final.ID, c.opt.DoPushes)
 				}
 
-				si.SkipBuilder = true
+				// TODO this is here as a work-around for https://github.com/earthly/earthly/issues/2178
+				// ideally we should always set SkipBuilder = true even when we are under the first implicit wait block
+				// however we don't want to break inline caching for users who are using VERSION 0.7 without any explicit WAIT blocks
+				if !c.opt.UseInlineCache || len(c.waitBlockStack) > 1 {
+					si.SkipBuilder = true
+				}
 			}
 			c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, si)
 		}

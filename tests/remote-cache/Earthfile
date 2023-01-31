@@ -1,23 +1,5 @@
-VERSION                             \
---check-duplicate-images            \
---ci-arg                            \
---earthly-git-author-args           \
---earthly-locally-arg               \
---earthly-version-arg               \
---explicit-global                   \
---git-commit-author-timestamp       \
---new-platform                      \
---no-tar-build-output               \
---shell-out-anywhere                \
---use-cache-command                 \
---use-chmod                         \
---use-copy-link                     \
---use-host-command                  \
---use-no-manifest-list              \
---use-pipelines                     \
---use-project-secrets               \
-#--wait-block                        \
-0.6
+VERSION 0.7
+
 ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
 ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
 ARG --global DOCKERHUB_MIRROR
