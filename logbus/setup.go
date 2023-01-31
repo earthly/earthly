@@ -7,7 +7,6 @@ import (
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/cloud"
-	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/logbus/formatter"
 	"github.com/earthly/earthly/logbus/logstreamer"
 	"github.com/earthly/earthly/logbus/solvermon"
@@ -21,7 +20,7 @@ import (
 
 // BusSetup is a helper for setting up a logbus.Bus.
 type BusSetup struct {
-	Bus             *logbus.Bus
+	Bus             *Bus
 	ConsoleWriter   *writersub.WriterSub
 	Formatter       *formatter.Formatter
 	SolverMonitor   *solvermon.SolverMonitor
@@ -30,8 +29,8 @@ type BusSetup struct {
 	InitialManifest *logstream.RunManifest
 }
 
-// New creates a new BusSetup.
-func New(ctx context.Context, bus *logbus.Bus, debug, verbose, forceColor, noColor, disableOngoingUpdates bool, busDebugFile string, buildID string) (*BusSetup, error) {
+// NewLogBusSetup creates a new BusSetup.
+func NewLogBusSetup(ctx context.Context, bus *Bus, debug, verbose, forceColor, noColor, disableOngoingUpdates bool, busDebugFile string, buildID string) (*BusSetup, error) {
 	bs := &BusSetup{
 		Bus:           bus,
 		ConsoleWriter: writersub.New(os.Stderr, "_full"),
