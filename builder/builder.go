@@ -16,7 +16,6 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/logbus"
-	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
@@ -54,7 +53,7 @@ const (
 // Opt represent builder options.
 type Opt struct {
 	BkClient                              *client.Client
-	LogBusSolverMonitor                   *solvermon.SolverMonitor
+	Logstream                             logbus.Logstream
 	UseLogstream                          bool
 	Console                               conslogging.ConsoleLogger
 	Verbose                               bool
@@ -122,7 +121,7 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 	b := &Builder{
 		s: &solver{
 			sm:              outmon.NewSolverMonitor(opt.Console, opt.Verbose, opt.DisableNoOutputUpdates || opt.UseLogstream),
-			logbusSM:        opt.LogBusSolverMonitor,
+			logstream:       opt.Logstream,
 			useLogstream:    opt.UseLogstream,
 			bkClient:        opt.BkClient,
 			cacheImports:    opt.CacheImports,

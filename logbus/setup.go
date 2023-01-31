@@ -2,7 +2,9 @@ package logbus
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -14,26 +16,33 @@ import (
 	"github.com/earthly/earthly/logbus/writersub"
 	"github.com/earthly/earthly/util/deltautil"
 	"github.com/hashicorp/go-multierror"
+	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
+// TODO: Document interface
 type Logstream interface {
 	// From LogBus setup
 	SetDefaultPlatform(platform string)
 	GetBuildID() string
-	SetOrgAndProject(orgName, projectName string)
-	StartLogStreamer(ctx context.Context, c cloud.Client)
+	GetBuildURL() string
+	StartLogStreamer(ctx context.Context, c cloud.Client, orgName, projectName string)
 
-	DumpManifestToFile(path string) error
 	Close() error
 
 	// TODO: Consider whether we can delegate - do we need the full structure?
-	GetSolverMonitor() *solvermon.SolverMonitor
+
+	// TODO: Rename?
+	MonitorProgress(ctx context.Context, ch chan *client.SolveStatus) error
 
 	// From logbus
-	Run() *Run
+	GenericWriter() *Generic
+	SetFatalError(end time.Time, targetID string, commandID string, failureType logstream.FailureType, errString string)
+	SetEnd(end time.Time, status logstream.RunStatus)
+	SetStart(start time.Time)
+
 	StartNewTarget(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string, runner string) (*Target, error)
 }
 
@@ -48,6 +57,22 @@ type logstreamFacade struct {
 	initialManifest *logstream.RunManifest
 }
 
+func (l *logstreamFacade) SetFatalError(end time.Time, targetID string, commandID string, failureType logstream.FailureType, errString string) {
+	l.Run().SetFatalError(end, targetID, commandID, failureType, errString)
+}
+
+func (l *logstreamFacade) SetEnd(end time.Time, status logstream.RunStatus) {
+	l.Run().SetEnd(end, status)
+}
+
+func (l *logstreamFacade) SetStart(start time.Time) {
+	l.Run().SetStart(start)
+}
+
+func (l *logstreamFacade) MonitorProgress(ctx context.Context, ch chan *client.SolveStatus) error {
+	return l.solverMonitor.MonitorProgress(ctx, ch)
+}
+
 // SetDefaultPlatform sets the default platform of the build.
 func (l *logstreamFacade) SetDefaultPlatform(platform string) {
 	l.formatter.SetDefaultPlatform(platform)
@@ -58,16 +83,19 @@ func (l *logstreamFacade) GetBuildID() string {
 	return l.args.BuildID
 }
 
-// SetOrgAndProject sets the org and project for the manifest.
-func (l *logstreamFacade) SetOrgAndProject(orgName, projectName string) {
-	l.initialManifest.OrgName = orgName
-	l.initialManifest.ProjectName = projectName
+func (l *logstreamFacade) GetBuildURL() string {
+	return fmt.Sprintf(path.Join(l.args.CIHost, "builds", l.GetBuildID()))
 }
 
-// StartLogStreamer starts a LogStreamer for the given build. The
-// LogStreamer streams logs to the cloud.
-func (l *logstreamFacade) StartLogStreamer(ctx context.Context, c cloud.Client) {
-	l.logStreamer.StartStreaming(ctx, c)
+// StartLogStreamer starts a LogStreamer for the given build.
+// The LogStreamer streams logs to the cloud - only if upload streaming is enabled
+func (l *logstreamFacade) StartLogStreamer(ctx context.Context, c cloud.Client, orgName, projectName string) {
+	if l.args.UploadLogstream {
+		l.initialManifest.OrgName = orgName
+		l.initialManifest.ProjectName = projectName
+		l.logStreamer.StartStreaming(ctx, c)
+		l.args.ConsolePrinter.Printf("Streaming logs to %s\n", l.GetBuildURL())
+	}
 }
 
 func (l *logstreamFacade) GetSolverMonitor() *solvermon.SolverMonitor {
@@ -76,6 +104,10 @@ func (l *logstreamFacade) GetSolverMonitor() *solvermon.SolverMonitor {
 
 func (l *logstreamFacade) Run() *Run {
 	return l.bus.Run()
+}
+
+func (l *logstreamFacade) GenericWriter() *Generic {
+	return l.bus.Run().Generic()
 }
 
 func (l *logstreamFacade) StartNewTarget(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string, runner string) (*Target, error) {
@@ -87,8 +119,14 @@ func (l *logstreamFacade) StartNewTarget(targetID, shortTargetName, canonicalTar
 	return target, nil
 }
 
+type Printer interface {
+	Printf(format string, args ...interface{})
+	Warnf(format string, args ...interface{})
+}
+
 type LogstreamArgs struct {
 	BuildID                    string
+	CIHost                     string
 	Debug                      bool
 	Verbose                    bool
 	ForceColor                 bool
@@ -98,6 +136,7 @@ type LogstreamArgs struct {
 	UploadLogstream            bool
 	LogstreamDebugFile         string
 	LogstreamDebugManifestFile string
+	ConsolePrinter             Printer
 }
 
 // LogstreamFactory sets up all dependencies necessary to run Logstream

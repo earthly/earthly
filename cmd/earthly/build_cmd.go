@@ -19,7 +19,6 @@ import (
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
-	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
@@ -180,15 +179,11 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	}
 
 	// Default upload logs, unless explicitly configured
-	doLogstreamUpload := false
-	var logstreamURL string
 	if !app.cfg.Global.DisableLogSharing {
 		if cloudClient.IsLoggedIn(cliCtx.Context) {
 			if app.uploadLogstream {
-				doLogstreamUpload = true
-				logstreamURL = fmt.Sprintf("%s/builds/%s", app.getCIHost(), app.logstream.GetBuildID())
 				defer func() {
-					app.console.Printf("View logs at %s\n", logstreamURL)
+					app.console.Printf("View logs at %s\n", app.logstream.GetBuildURL())
 				}()
 			} else {
 				// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
@@ -266,9 +261,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if err != nil {
 		return errors.Wrap(err, "get native platform via buildkit client")
 	}
-	if app.useLogstream {
-		app.logstream.SetDefaultPlatform(platforms.Format(nativePlatform))
-	}
+	app.logstream.SetDefaultPlatform(platforms.Format(nativePlatform))
 	platr := platutil.NewResolver(nativePlatform)
 	app.analyticsMetadata.buildkitPlatform = platforms.Format(nativePlatform)
 	app.analyticsMetadata.userPlatform = platforms.Format(platr.LLBUser())
@@ -435,13 +428,9 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		}
 		localRegistryAddr = lrURL.Host
 	}
-	var logbusSM *solvermon.SolverMonitor
-	if app.useLogstream {
-		logbusSM = app.logstream.GetSolverMonitor()
-	}
 	builderOpts := builder.Opt{
 		BkClient:                              bkClient,
-		LogBusSolverMonitor:                   logbusSM,
+		Logstream:                             app.logstream,
 		UseLogstream:                          app.useLogstream,
 		Console:                               app.console,
 		Verbose:                               app.verbose,
@@ -518,13 +507,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		case <-cliCtx.Context.Done():
 			return
 		case details := <-buildOpts.MainTargetDetailsFuture:
-			if app.useLogstream {
-				app.logstream.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
-				if doLogstreamUpload {
-					app.logstream.StartLogStreamer(cliCtx.Context, cloudClient)
-					app.console.Printf("Streaming logs to %s\n", logstreamURL)
-				}
-			}
+			app.logstream.StartLogStreamer(cliCtx.Context, cloudClient, details.EarthlyOrgName, details.EarthlyProjectName)
 		}
 	}()
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)

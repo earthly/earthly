@@ -6,7 +6,7 @@ import (
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/logbus/solvermon"
+	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/fsutilprogress"
@@ -25,7 +25,7 @@ type onFinalArtifactFunc func(context.Context) (string, error)
 
 type solver struct {
 	sm              *outmon.SolverMonitor
-	logbusSM        *solvermon.SolverMonitor
+	logstream       logbus.Logstream
 	useLogstream    bool
 	bkClient        *client.Client
 	attachables     []session.Attachable
@@ -60,7 +60,7 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 	var vertexFailureOutput string
 	if s.useLogstream {
 		eg.Go(func() error {
-			return s.logbusSM.MonitorProgress(ctx, ch)
+			return s.logstream.MonitorProgress(ctx, ch)
 		})
 	} else {
 		eg.Go(func() error {

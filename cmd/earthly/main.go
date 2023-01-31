@@ -408,31 +408,34 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 	if app.uploadLogstream {
 		app.useLogstream = true
 	}
-	if app.useLogstream {
-		app.console = app.console.WithPrefixWriter(app.logstream.Run().Generic())
-		if app.buildID == "" {
-			app.buildID = uuid.NewString()
-		}
-		disableOngoingUpdates := !app.useLogstream || app.interactiveDebugging
-		_, forceColor := os.LookupEnv("FORCE_COLOR")
-		_, noColor := os.LookupEnv("NO_COLOR")
-		var err error
-		app.logstream, err = logbus.LogstreamFactory(cliCtx.Context, &logbus.LogstreamArgs{
-			BuildID:                    app.buildID,
-			Debug:                      app.debug,
-			Verbose:                    app.verbose,
-			ForceColor:                 forceColor,
-			NoColor:                    noColor,
-			DisableOngoingUpdates:      disableOngoingUpdates,
-			UseLogstream:               app.useLogstream,
-			UploadLogstream:            app.uploadLogstream,
-			LogstreamDebugFile:         app.logstreamDebugFile,
-			LogstreamDebugManifestFile: app.logstreamDebugManifestFile,
-		})
-		if err != nil {
-			return errors.Wrap(err, "logstream setup")
-		}
+
+	if app.buildID == "" {
+		app.buildID = uuid.NewString()
 	}
+
+	disableOngoingUpdates := !app.useLogstream || app.interactiveDebugging
+	_, forceColor := os.LookupEnv("FORCE_COLOR")
+	_, noColor := os.LookupEnv("NO_COLOR")
+	var err error
+	app.logstream, err = logbus.LogstreamFactory(cliCtx.Context, &logbus.LogstreamArgs{
+		BuildID:                    app.buildID,
+		CIHost:                     app.getCIHost(),
+		Debug:                      app.debug,
+		Verbose:                    app.verbose,
+		ForceColor:                 forceColor,
+		NoColor:                    noColor,
+		DisableOngoingUpdates:      disableOngoingUpdates,
+		UseLogstream:               app.useLogstream,
+		UploadLogstream:            app.uploadLogstream,
+		LogstreamDebugFile:         app.logstreamDebugFile,
+		LogstreamDebugManifestFile: app.logstreamDebugManifestFile,
+		ConsolePrinter:             app.console,
+	})
+	if err != nil {
+		return errors.Wrap(err, "logstream setup")
+	}
+
+	app.console = app.console.WithPrefixWriter(app.logstream.GenericWriter())
 
 	if cliCtx.IsSet("config") {
 		app.console.Printf("loading config values from %q\n", app.configPath)
@@ -449,7 +452,6 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 		}
 	}
 
-	var err error
 	app.cfg, err = config.ParseConfigFile(yamlData, app.installationName)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse %s", app.configPath)
@@ -592,7 +594,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			if len(args) > 0 {
 				errString = fmt.Sprintf(errString, args...)
 			}
-			app.logstream.Run().SetFatalError(time.Now(), "", "", failureType, errString)
+			app.logstream.SetFatalError(time.Now(), "", "", failureType, errString)
 		} else {
 			app.console.Warnf(errString+"\n", args...)
 		}
@@ -600,16 +602,16 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 
 	setEnd := func(runType logstream.RunStatus, str string, args ...interface{}) {
 		if app.useLogstream {
-			app.logstream.Run().SetEnd(time.Now(), runType)
+			app.logstream.SetEnd(time.Now(), runType)
 		} else {
 			app.console.Warnf(str+"\n", args...)
 		}
 	}
 
-	app.logstream.Run().SetStart(time.Now())
+	app.logstream.SetStart(time.Now())
 	defer func() {
 		// Just in case this is forgotten somewhere else.
-		app.logstream.Run().SetFatalError(
+		app.logstream.SetFatalError(
 			time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER,
 			"No SetFatalError called appropriately. This should never happen.")
 	}()
@@ -719,7 +721,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			return 1
 		}
 	}
-	app.logstream.Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS)
+	app.logstream.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS)
 	return 0
 }
 

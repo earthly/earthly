@@ -109,7 +109,7 @@ type Converter struct {
 	containerFrontend   containerutil.ContainerFrontend
 	waitBlockStack      []*waitBlock
 	isPipeline          bool
-	logbusTarget        *logbus.Target
+	logstreamTarget     *logbus.Target
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -160,7 +160,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		localWorkingDir:     filepath.Dir(bc.BuildFilePath),
 		containerFrontend:   opt.ContainerFrontend,
 		waitBlockStack:      []*waitBlock{opt.waitBlock},
-		logbusTarget:        logstreamTarget,
+		logstreamTarget:     logstreamTarget,
 	}
 
 	if c.opt.GlobalWaitBlockFtr {
@@ -1569,7 +1569,7 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	}
 	close(c.mts.Final.Done())
 
-	// Force execution asynchronously, and then mark the logbusTarget as finished.
+	// Force execution asynchronously, and then mark the logstreamTarget as finished.
 	// This ensures that the execution actually took place, for timing purposes.
 	c.opt.ErrorGroup.Go(func() error {
 		rel, err := c.opt.Parallelism.Acquire(ctx, 1)
@@ -1583,7 +1583,7 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 				return errors.Wrapf(err, "async force execution for %s", c.mts.FinalTarget().String())
 			}
 		}
-		c.logbusTarget.SetEnd(
+		c.logstreamTarget.SetEnd(
 			time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS, c.platr.Current().String())
 		return nil
 	})
@@ -1599,7 +1599,7 @@ func (c *Converter) RecordTargetFailure(ctx context.Context, err error) {
 	default:
 		st = logstream.RunStatus_RUN_STATUS_FAILURE
 	}
-	c.logbusTarget.SetEnd(time.Now(), st, c.platr.Current().String())
+	c.logstreamTarget.SetEnd(time.Now(), st, c.platr.Current().String())
 }
 
 var errShellOutNotPermitted = errors.New("shell-out not permitted")
