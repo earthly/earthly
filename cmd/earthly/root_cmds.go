@@ -228,7 +228,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 				"	Note: This feature is currently experimental.\n" +
 				"	If you'd like to try it out, please contact us at support@earthly.dev or by visiting https://earthly.dev/slack.",
 			UsageText:   "earthly satellite (launch|ls|inspect|select|unselect|rm)",
-			Description: "Create and manage Earthly Satellites",
+			Description: "Create and manage Earthly Satellites *beta*",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "org",
