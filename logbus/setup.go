@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/cloud"
@@ -17,6 +18,74 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
+
+type Logstream interface {
+	// From LogBus setup
+	SetDefaultPlatform(platform string)
+	GetBuildID() string
+	SetOrgAndProject(orgName, projectName string)
+	StartLogStreamer(ctx context.Context, c cloud.Client)
+
+	DumpManifestToFile(path string) error
+	Close() error
+
+	// TODO: Consider whether we can delegate - do we need the full structure?
+	GetSolverMonitor() *solvermon.SolverMonitor
+
+	// From logbus
+	Run() *Run
+	StartNewTarget(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string, runner string) (*Target, error)
+}
+
+type logstreamFacade struct {
+	bus *Bus
+}
+
+func (l *logstreamFacade) StartNewTarget(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string, runner string) (*Target, error) {
+	target, err := l.bus.Run().NewTarget(targetID, shortTargetName, canonicalTargetName, overrideArgs, initialPlatform, runner)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create new target")
+	}
+	target.SetStart(time.Now())
+	return target, nil
+}
+
+func (l *logstreamFacade) Close() error {
+	return errors.New("implement me")
+	// if app.useLogstream && app.logbusSetup
+	/**
+	if app.logstreamDebugManifestFile != "" {
+			err := app.logstream.DumpManifestToFile(app.logstreamDebugManifestFile)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error dumping manifest: %v", err)
+			}
+		}
+	*/
+}
+
+/**
+cliCtx.Context, app.logbus, app.debug, app.verbose, forceColor, noColor,
+			disableOngoingUpdates, app.logstreamDebugFile, app.buildID
+*/
+
+type LogstreamArgs struct {
+	cliCtx context.Context
+
+	BuildID                    string
+	Debug                      bool
+	Verbose                    bool
+	ForceColor                 bool
+	NoColor                    bool
+	DisableOngoingUpdates      bool
+	UseLogstream               bool
+	UploadLogstream            bool
+	LogstreamDebugFile         string
+	LogstreamDebugManifestFile string
+}
+
+func LogstreamFactory(args *LogstreamArgs) (Logstream, error) {
+	return nil, errors.New("implement me")
+}
 
 // BusSetup is a helper for setting up a logbus.Bus.
 type BusSetup struct {

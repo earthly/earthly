@@ -139,13 +139,12 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		v, _ := opt.OverridingVars.GetAny(k)
 		ovVars = append(ovVars, fmt.Sprintf("%s=%s", k, v))
 	}
-	logbusTarget, err := opt.Logbus.Run().NewTarget(
+	logstreamTarget, err := opt.Logstream.StartNewTarget(
 		sts.ID, target.String(), target.StringCanonical(), ovVars,
 		opt.PlatformResolver.Current().String(), opt.Runner)
 	if err != nil {
-		return nil, errors.Wrap(err, "new logbus target")
+		return nil, errors.Wrap(err, "new logstream target")
 	}
-	logbusTarget.SetStart(time.Now())
 
 	c := &Converter{
 		target:              target,
@@ -161,7 +160,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		localWorkingDir:     filepath.Dir(bc.BuildFilePath),
 		containerFrontend:   opt.ContainerFrontend,
 		waitBlockStack:      []*waitBlock{opt.waitBlock},
-		logbusTarget:        logbusTarget,
+		logbusTarget:        logstreamTarget,
 	}
 
 	if c.opt.GlobalWaitBlockFtr {

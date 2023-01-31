@@ -38,7 +38,6 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/logbus"
-	logbussetup "github.com/earthly/earthly/logbus/setup"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
@@ -59,8 +58,7 @@ type earthlyApp struct {
 	cliApp      *cli.App
 	console     conslogging.ConsoleLogger
 	cfg         *config.Config
-	logbusSetup *logbussetup.BusSetup
-	logbus      *logbus.Bus
+	logstream   logbus.Logstream
 	commandName string
 	cliFlags
 	analyticsMetadata
@@ -153,8 +151,8 @@ type cliFlags struct {
 	orgName                    string
 	invitePermission           string
 	inviteMessage              string
-	logstream                  bool
-	logstreamUpload            bool
+	useLogstream               bool
+	uploadLogstream            bool
 	logstreamDebugFile         string
 	logstreamDebugManifestFile string
 	requestID                  string
@@ -357,7 +355,6 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		cliFlags: cliFlags{
 			buildkitdSettings: buildkitd.Settings{},
 		},
-		logbus: logbus.New(),
 	}
 
 	earthly := getBinaryName()
@@ -408,23 +405,32 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 	} else if app.verbose {
 		app.console = app.console.WithLogLevel(conslogging.Verbose)
 	}
-	if app.logstreamUpload {
-		app.logstream = true
+	if app.uploadLogstream {
+		app.useLogstream = true
 	}
-	if app.logstream {
-		app.console = app.console.WithPrefixWriter(app.logbus.Run().Generic())
+	if app.useLogstream {
+		app.console = app.console.WithPrefixWriter(app.logstream.Run().Generic())
 		if app.buildID == "" {
 			app.buildID = uuid.NewString()
 		}
-		disableOngoingUpdates := !app.logstream || app.interactiveDebugging
+		disableOngoingUpdates := !app.useLogstream || app.interactiveDebugging
 		_, forceColor := os.LookupEnv("FORCE_COLOR")
 		_, noColor := os.LookupEnv("NO_COLOR")
 		var err error
-		app.logbusSetup, err = logbussetup.New(
-			cliCtx.Context, app.logbus, app.debug, app.verbose, forceColor, noColor,
-			disableOngoingUpdates, app.logstreamDebugFile, app.buildID)
+		app.logstream, err = logbus.LogstreamFactory(&logbus.LogstreamArgs{
+			BuildID:                    app.buildID,
+			Debug:                      app.debug,
+			Verbose:                    app.verbose,
+			ForceColor:                 forceColor,
+			NoColor:                    noColor,
+			DisableOngoingUpdates:      disableOngoingUpdates,
+			UseLogstream:               app.useLogstream,
+			UploadLogstream:            app.uploadLogstream,
+			LogstreamDebugFile:         app.logstreamDebugFile,
+			LogstreamDebugManifestFile: app.logstreamDebugManifestFile,
+		})
 		if err != nil {
-			return errors.Wrap(err, "logbus setup")
+			return errors.Wrap(err, "logstream setup")
 		}
 	}
 
@@ -576,42 +582,34 @@ func unhideFlagsCommands(ctx context.Context, cmds []*cli.Command) {
 
 func (app *earthlyApp) run(ctx context.Context, args []string) int {
 	defer func() {
-		if app.logstream && app.logbusSetup != nil {
-			err := app.logbusSetup.Close()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error(s) in logbus: %v", err)
-			}
-			if app.logstreamDebugManifestFile != "" {
-				err := app.logbusSetup.DumpManifestToFile(app.logstreamDebugManifestFile)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error dumping manifest: %v", err)
-				}
-			}
+		err := app.logstream.Close()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error(s) in logstream: %v", err)
 		}
 	}()
 	setFatalError := func(failureType logstream.FailureType, errString string, args ...interface{}) {
-		if app.logstream {
+		if app.useLogstream {
 			if len(args) > 0 {
 				errString = fmt.Sprintf(errString, args...)
 			}
-			app.logbus.Run().SetFatalError(time.Now(), "", "", failureType, errString)
+			app.logstream.Run().SetFatalError(time.Now(), "", "", failureType, errString)
 		} else {
 			app.console.Warnf(errString+"\n", args...)
 		}
 	}
 
 	setEnd := func(runType logstream.RunStatus, str string, args ...interface{}) {
-		if app.logstream {
-			app.logbus.Run().SetEnd(time.Now(), runType)
+		if app.useLogstream {
+			app.logstream.Run().SetEnd(time.Now(), runType)
 		} else {
 			app.console.Warnf(str+"\n", args...)
 		}
 	}
 
-	app.logbus.Run().SetStart(time.Now())
+	app.logstream.Run().SetStart(time.Now())
 	defer func() {
 		// Just in case this is forgotten somewhere else.
-		app.logbus.Run().SetFatalError(
+		app.logstream.Run().SetFatalError(
 			time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER,
 			"No SetFatalError called appropriately. This should never happen.")
 	}()
@@ -721,7 +719,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			return 1
 		}
 	}
-	app.logbus.Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS)
+	app.logstream.Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS)
 	return 0
 }
 

@@ -160,8 +160,8 @@ type ConvertOpt struct {
 	// MainTargetDetailsFuture is a channel that is used to signal the main target details, once known.
 	MainTargetDetailsFuture chan TargetDetails
 
-	// Logbus is the bus used for logging and metadata reporting.
-	Logbus *logbus.Bus
+	// Logstream is used for logging and metadata reporting.
+	Logstream logbus.Logstream
 
 	// The runner used to execute the target on. This is used only for metadata reporting purposes.
 	// May be one of the following:

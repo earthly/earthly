@@ -184,9 +184,9 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	var logstreamURL string
 	if !app.cfg.Global.DisableLogSharing {
 		if cloudClient.IsLoggedIn(cliCtx.Context) {
-			if app.logstreamUpload {
+			if app.uploadLogstream {
 				doLogstreamUpload = true
-				logstreamURL = fmt.Sprintf("%s/builds/%s", app.getCIHost(), app.logbusSetup.InitialManifest.GetBuildId())
+				logstreamURL = fmt.Sprintf("%s/builds/%s", app.getCIHost(), app.logstream.GetBuildID())
 				defer func() {
 					app.console.Printf("View logs at %s\n", logstreamURL)
 				}()
@@ -266,8 +266,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if err != nil {
 		return errors.Wrap(err, "get native platform via buildkit client")
 	}
-	if app.logstream {
-		app.logbusSetup.SetDefaultPlatform(platforms.Format(nativePlatform))
+	if app.useLogstream {
+		app.logstream.SetDefaultPlatform(platforms.Format(nativePlatform))
 	}
 	platr := platutil.NewResolver(nativePlatform)
 	app.analyticsMetadata.buildkitPlatform = platforms.Format(nativePlatform)
@@ -436,13 +436,13 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		localRegistryAddr = lrURL.Host
 	}
 	var logbusSM *solvermon.SolverMonitor
-	if app.logstream {
-		logbusSM = app.logbusSetup.SolverMonitor
+	if app.useLogstream {
+		logbusSM = app.logstream.GetSolverMonitor()
 	}
 	builderOpts := builder.Opt{
 		BkClient:                              bkClient,
 		LogBusSolverMonitor:                   logbusSM,
-		UseLogstream:                          app.logstream,
+		UseLogstream:                          app.useLogstream,
 		Console:                               app.console,
 		Verbose:                               app.verbose,
 		Attachables:                           attachables,
@@ -492,7 +492,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		EnableGatewayClientLogging: app.debug,
 		BuiltinArgs:                builtinArgs,
 		LocalArtifactWhiteList:     localArtifactWhiteList,
-		Logbus:                     app.logbus,
+		Logstream:                  app.logstream,
 		MainTargetDetailsFuture:    make(chan earthfile2llb.TargetDetails, 1),
 		Runner:                     runnerName,
 
@@ -511,17 +511,17 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		buildOpts.OnlyArtifact = &artifact
 		buildOpts.OnlyArtifactDestPath = destPath
 	}
-	// Kick off logstream upload only when we've passed the necessary information to logbusSetup.
+	// Kick off useLogstream upload only when we've passed the necessary information to logbusSetup.
 	// This information is passed back right at the beginning of the build within earthfile2llb.
 	go func() {
 		select {
 		case <-cliCtx.Context.Done():
 			return
 		case details := <-buildOpts.MainTargetDetailsFuture:
-			if app.logstream {
-				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
+			if app.useLogstream {
+				app.logstream.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
 				if doLogstreamUpload {
-					app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient)
+					app.logstream.StartLogStreamer(cliCtx.Context, cloudClient)
 					app.console.Printf("Streaming logs to %s\n", logstreamURL)
 				}
 			}

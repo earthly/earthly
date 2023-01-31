@@ -147,30 +147,30 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Destination: &app.envFile,
 		},
 		&cli.BoolFlag{
-			Name:        "logstream",
+			Name:        "useLogstream",
 			EnvVars:     []string{"EARTHLY_LOGSTREAM"},
 			Usage:       "Enable log streaming only locally",
-			Destination: &app.logstream,
+			Destination: &app.useLogstream,
 			Hidden:      true, // Internal.
 			Value:       true,
 		},
 		&cli.BoolFlag{
-			Name:        "logstream-upload",
+			Name:        "useLogstream-upload",
 			EnvVars:     []string{"EARTHLY_LOGSTREAM_UPLOAD"},
 			Usage:       "Enable log stream uploading",
-			Destination: &app.logstreamUpload,
+			Destination: &app.uploadLogstream,
 			Hidden:      true, // Internal.
 			Value:       true,
 		},
 		&cli.StringFlag{
-			Name:        "logstream-debug-file",
+			Name:        "useLogstream-debug-file",
 			EnvVars:     []string{"EARTHLY_LOGSTREAM_DEBUG_FILE"},
 			Usage:       "Enable log streaming debugging output to a file",
 			Destination: &app.logstreamDebugFile,
 			Hidden:      true, // Internal.
 		},
 		&cli.StringFlag{
-			Name:        "logstream-debug-manifest-file",
+			Name:        "useLogstream-debug-manifest-file",
 			EnvVars:     []string{"EARTHLY_LOGSTREAM_DEBUG_MANIFEST_FILE"},
 			Usage:       "Enable log streaming manifest debugging output to a file",
 			Destination: &app.logstreamDebugManifestFile,

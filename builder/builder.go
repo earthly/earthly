@@ -100,7 +100,7 @@ type BuildOpt struct {
 	BuiltinArgs                variables.DefaultArgs
 	GlobalWaitBlockFtr         bool
 	LocalArtifactWhiteList     *gatewaycrafter.LocalArtifactWhiteList
-	Logbus                     *logbus.Bus
+	Logstream                  logbus.Logstream
 	MainTargetDetailsFuture    chan earthfile2llb.TargetDetails
 	Runner                     string
 	CloudStoredAuthProvider    cloudauth.ProjectBasedAuthProvider
@@ -213,7 +213,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				LLBCaps:                              &caps,
 				InteractiveDebuggerEnabled:           b.opt.InteractiveDebugging,
 				InteractiveDebuggerDebugLevelLogging: b.opt.InteractiveDebuggingDebugLevelLogging,
-				Logbus:                               opt.Logbus,
+				Logstream:                            opt.Logstream,
 				MainTargetDetailsFuture:              opt.MainTargetDetailsFuture,
 				Runner:                               opt.Runner,
 				CloudStoredAuthProvider:              opt.CloudStoredAuthProvider,
