@@ -2,6 +2,7 @@ package logbus
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -71,7 +72,42 @@ func (l *logstreamFacade) SetStart(start time.Time) {
 }
 
 func (l *logstreamFacade) MonitorProgress(ctx context.Context, ch chan *client.SolveStatus) error {
-	return l.solverMonitor.MonitorProgress(ctx, ch)
+	f, err := os.OpenFile("status-output.json", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return errors.Wrapf(err, "failed to open bus manifest debug file %s", "status-output.json")
+	}
+	defer f.Close()
+	passAlongCh := make(chan *client.SolveStatus)
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				fmt.Errorf("timed out waiting for status channel to close: %s", ctx.Err())
+			case status, ok := <-ch:
+				if !ok {
+					continue
+				}
+
+				j, err := json.Marshal(status)
+				if err != nil {
+					fmt.Errorf("failed to marshal status into json: %w", err)
+				}
+
+				_, err = f.Write(j)
+				if err != nil {
+					fmt.Errorf("failed to write status json: %w", err)
+				}
+
+				_, err = f.Write([]byte(",\n"))
+				if err != nil {
+					fmt.Errorf("failed to write newline")
+				}
+
+				passAlongCh <- status
+			}
+		}
+	}()
+	return l.solverMonitor.MonitorProgress(ctx, passAlongCh)
 }
 
 // SetDefaultPlatform sets the default platform of the build.

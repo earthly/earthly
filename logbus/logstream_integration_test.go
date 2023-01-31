@@ -57,3 +57,5 @@ func Test_Sanity(t *testing.T) {
 		Warnings: []*client.VertexWarning{},
 	}
 }
+
+// TODO: Converter touches targets by setting end
