@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/moby/buildkit/client"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,7 +36,24 @@ func defaultArgs(t *testing.T) *LogstreamArgs {
 }
 
 func Test_Sanity(t *testing.T) {
-	l, err := LogstreamFactory(context.Background(), defaultArgs(t))
+	ctx := context.Background()
+	l, err := LogstreamFactory(ctx, defaultArgs(t))
 	require.NoError(t, err)
 	require.NotNil(t, l)
+
+	ch := make(chan *client.SolveStatus)
+
+	go func() {
+		err := l.MonitorProgress(ctx, ch)
+		require.NoError(t, err)
+	}()
+
+	require.NoError(t, err)
+
+	ch <- &client.SolveStatus{
+		Vertexes: []*client.Vertex{},
+		Statuses: []*client.VertexStatus{},
+		Logs:     []*client.VertexLog{},
+		Warnings: []*client.VertexWarning{},
+	}
 }
