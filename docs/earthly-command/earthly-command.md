@@ -796,7 +796,7 @@ $ earthly doc +build
 
 Prints a url for entering the CI application and attempts to open your default browser with that url.
 If the provider argument is given the CI application will automatically begin an OAuth flow with the given provider.
-If you already logged into the CLI the url will contain a token used to link your OAuth credentials to your Earthly user.
+If you are logged into the CLI the url will contain a token used to link your OAuth credentials to your Earthly user.
 
 #### Examples
 
