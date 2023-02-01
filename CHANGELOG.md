@@ -4,7 +4,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
-## v0.7.0-rc2 - 2023-01-18
+## v0.7.0-rc2 - 2023-02-01
 
 The documentation for this version is available at the [Earthly 0.7 documentation page](https://docs.earthly.dev/v/earthly-0.7/).
 
@@ -108,6 +108,8 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - Earthly will automatically shellout to determine the `$HOME` value when referenced [#2469](https://github.com/earthly/earthly/issues/2469)
 - Improved error message when invalid shell variable name is configured for a secret. [#2478](https://github.com/earthly/earthly/issues/2478)
 - `earthly ls` has been promoted from *experimental* to *beta* status.
+- Setting a `VERSION` feature flag boolean to false (or any other value) will now raise an error; previously it was syntactically valid but had no effect.
+- `SAVE ARTIFACT <path> AS LOCAL ...` when used under a `TRY` / `FINALLY` can fail to be fully transferred to the host when the `TRY` command fails (resulting in an partially transferred file); an underflow can still occur, and is now detected and will not export the partial file. [2452](https://github.com/earthly/earthly/issues/2452)
 
 ### Added
 
@@ -118,7 +120,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - New ARG `EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP` will contain the author timestamp of the current git commit. [#2462](https://github.com/earthly/earthly/pull/2462)
 - New ARGs `EARTHLY_VERSION` and `EARTHLY_BUILD_SHA` contain the version of Earthly and the git sha of Earthly itself, respectively.
 - It is now possible to execute shell commands as part of any command that allows using variables. For example `VOLUME $(cat /volume-name.txt)`. Previously under `VERSION --shell-out-anywhere 0.6`.
-- Allow custom image to be used for git opperations. [#2027](https://github.com/earthly/earthly/issues/2027)
+- Allow custom image to be used for git operations. [#2027](https://github.com/earthly/earthly/issues/2027)
 - Earthly now checks for duplicate image names when performing image outputs. Previously under `VERSION --check-duplicate-images 0.6`.
 - `SAVE IMAGE --no-manifest-list` allows outputting images of a different platform than the default one, but without the manifest list. This is useful for outputting images for platforms that do not support manifest lists, such as AWS Lambda. Previously under `VERSION --use-no-manifest-list 0.6`.
 - `COPY --chmod <mode>` allows setting the permissions of the copied files. Previously under `VERSION --use-chmod 0.6`.
@@ -126,6 +128,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - The new ARGs `EARTHLY_GIT_AUTHOR` and `EARTHLY_GIT_CO_AUTHORS` contain the author and co-authors of the current git commit, respectively. Previously under `VERSION --earthly-git-author-args 0.6`.
 - `earthly doc [projectRef[+targetRef]]` is a new subcommand in *beta* status.  It will parse and output documentation comments on targets.
 - Ability to store docker registry credentials in cloud secrets and corresponding `earthly registry login|list|logout` commands; credentials can be associated with either your user or project.
+- New satellite commands for enabling auto-upgrades and forcing a manual upgrade.
 
 ### Fixed
 
@@ -134,6 +137,9 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - `WORKDIR` is lost when `--use-copy-link` feature is enabled with `GIT CLONE` or `COPY --keep-own` commands. Note that `--use-copy-link` is enabled by default in `VERSION 0.7`. [#2544](https://github.com/earthly/earthly/issues/2544)
 - The `CACHE` command did not work when used inside a `WITH DOCKER` block. [#2549](https://github.com/earthly/earthly/issues/2549)
 - The `--platform` argument is no longer passed to docker or podman, which caused podman to always pull the buildkit image even when it already existed locally. [#2511](https://github.com/earthly/earthly/issues/2511), [#2566](https://github.com/earthly/earthly/issues/2566)
+- Fixed missing inline cache export; note that inline cache exports **do not** work when used within a `WAIT` / `END` block, this is a known current limitation. [#2178](https://github.com/earthly/earthly/issues/2178)
+- Indentation in the base Earthfile target would cause a panic (when no other targets existed); now a syntax error is returned. [#2603](https://github.com/earthly/earthly/issues/2603)
+
 
 ## v0.7.0-rc1 - 2023-01-18
 
