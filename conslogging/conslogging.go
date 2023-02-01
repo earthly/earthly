@@ -471,7 +471,7 @@ func (cl ConsoleLogger) color(c *color.Color) *color.Color {
 var (
 	// githubRegExp Matches :2dd88e53f2e59e96ec1f9215f24a3981e5565edf+ in a target.
 	// 	Prefix containing hash may resemble: g/e/hello-world:2dd88e53f2e59e96ec1f9215f24a3981e5565edf+base
-	githubRegExp = regexp.MustCompile(":[a-zA-Z0-9]*\\+")
+	githubRegExp = regexp.MustCompile(`:[a-zA-Z0-9]*\\+`)
 )
 
 func prettyPrefix(prefixPadding int, prefix string) string {
