@@ -783,3 +783,25 @@ $ earthly doc +build
 +build
   build runs 'go build' and saves the artifact locally.
 ```
+
+## earthly web
+
+#### Synopsis
+
+* ```
+  earthly web [--provider=<provider-ref>]]
+  ```
+
+#### Description
+
+Prints a url for entering the CI application and attempts to open your default browser with that url.
+If the provider argument is given the CI application will automatically begin an OAuth flow with the given provider.
+If you are logged into the CLI the url will contain a token used to link your OAuth credentials to your Earthly user.
+
+#### Examples
+
+##### Login to the CI application with GitHub
+
+* ```
+  earthly web --provider=github
+  ```
