@@ -481,7 +481,8 @@ func prettyPrefix(prefixPadding int, prefix string) string {
 
 	// If the prefix contains a GitHub hash - shorten it
 	gitHashPart := githubRegExp.FindString(prefix)
-	if gitHashPart != "" {
+	resultingHashLength := 10 // 1 for ':', 1 for '+', 8 for hash
+	if len(gitHashPart) > resultingHashLength {
 		hash := gitHashPart[1:]
 		hash = hash[:len(gitHashPart)-1]
 		hash = hash[:8]
