@@ -469,24 +469,30 @@ func (cl ConsoleLogger) color(c *color.Color) *color.Color {
 }
 
 var (
-	// githubRegExp Matches :2dd88e53f2e59e96ec1f9215f24a3981e5565edf+ in a target.
+	// githubRegExp Matches :2dd88e53f2e59e96ec1f9215f24a3981e5565edf+ in a prefix.
 	// 	Prefix containing hash may resemble: g/e/hello-world:2dd88e53f2e59e96ec1f9215f24a3981e5565edf+base
-	githubRegExp = regexp.MustCompile(`:[a-zA-Z0-9]*\\+`)
+	//	Prefix must be exactly 40 characters
+	githubRegExp = regexp.MustCompile(`:[a-z0-9]{40}\+`)
+
+	branchOrSHARegExp = regexp.MustCompile(`:[a-zA-Z0-9/\-_]*\+`)
 )
 
+const tempReplacement = "{{}}{{{}{}}}"
+
 func prettyPrefix(prefixPadding int, prefix string) string {
-	if prefixPadding == NoPadding {
+	if prefixPadding <= NoPadding {
 		return prefix
 	}
 
-	// If the prefix contains a GitHub hash - shorten it
-	gitHashPart := githubRegExp.FindString(prefix)
-	resultingHashLength := 9 // 1 for ':', 1 for '+', 7 for hash
-	if len(gitHashPart) > resultingHashLength {
-		hash := gitHashPart[1:]
-		hash = hash[:len(gitHashPart)-1]
-		hash = hash[:7]
-		prefix = strings.Replace(prefix, gitHashPart, ":"+hash+"+", 1)
+	branchOrSHA := branchOrSHARegExp.FindString(prefix)
+	prefix = strings.Replace(prefix, branchOrSHA, tempReplacement, 1)
+
+	sha := githubRegExp.FindString(branchOrSHA)
+	if sha != "" {
+		hash := sha[1:8]
+		prefix = strings.Replace(prefix, tempReplacement, ":"+hash+"+", 1)
+	} else {
+
 	}
 
 	var brackets string
@@ -513,6 +519,8 @@ func prettyPrefix(prefixPadding int, prefix string) string {
 	}
 
 	formatString := fmt.Sprintf("%%%vv", prefixPadding)
+	// replaced later to allow branch names with special characters
+	prettyPrefix = strings.Replace(prettyPrefix, tempReplacement, branchOrSHA, 1)
 	return fmt.Sprintf(formatString, fmt.Sprintf("%s%s", prettyPrefix, brackets))
 }
 
