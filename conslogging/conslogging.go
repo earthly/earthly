@@ -477,22 +477,18 @@ var (
 	branchOrSHARegExp = regexp.MustCompile(`:[a-zA-Z0-9/\-_]*\+`)
 )
 
-const tempReplacement = "{{}}{{{}{}}}"
-
 func prettyPrefix(prefixPadding int, prefix string) string {
 	if prefixPadding <= NoPadding {
 		return prefix
 	}
 
+	// tempReplacement used to temporarily remove branch name / sha from string
+	const tempReplacement = "{{}}{{{}{}}}"
 	branchOrSHA := branchOrSHARegExp.FindString(prefix)
 	prefix = strings.Replace(prefix, branchOrSHA, tempReplacement, 1)
-
 	sha := githubRegExp.FindString(branchOrSHA)
 	if sha != "" {
-		hash := sha[1:8]
-		prefix = strings.Replace(prefix, tempReplacement, ":"+hash+"+", 1)
-	} else {
-
+		branchOrSHA = sha[:7] + "+"
 	}
 
 	var brackets string

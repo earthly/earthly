@@ -23,7 +23,7 @@ func Test_prettyPrefix(t *testing.T) {
 			name:          "shortens git SHA if prefix is present",
 			prefixPadding: DefaultPadding,
 			prefix:        "github.com/earthly/earthly:80524f0d82a353b3444e83f056207e15f4d5447c+hello-world",
-			expected:      "g/e/earthly:80524f0+hello-world",
+			expected:      "g/e/earthly:80524f+hello-world",
 		},
 		{
 			name:          "keeps branch name",
