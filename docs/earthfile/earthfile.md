@@ -406,6 +406,10 @@ Instructs Earthly to not overwrite the file creation timestamps with a constant.
 
 Instructs Earthly to keep file ownership information. This applies only to the *artifact form* and has no effect otherwise.
 
+{% hint style='info' %}
+Note that one must include the flag in the corresponding `SAVE ARTIFACT --keep-own ...` command.
+{% endhint %}
+
 ##### `--if-exists`
 
 Only copy source if it exists; if it does not exist, earthly will simply ignore the COPY command and won't treat any missing sources as failures.
