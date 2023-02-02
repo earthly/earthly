@@ -77,6 +77,7 @@ ga-no-qemu:
     BUILD +privileged-test
     BUILD +copy-test
     BUILD +copy-test-verbose-output
+    BUILD +copy-keep-own-test
     BUILD +cache-test
     BUILD +git-clone-test
     # this has been moved to a seperate target until we get the flakey "tell me who you are" bug
@@ -311,6 +312,10 @@ earthly --config \$earthly_config --verbose +copy 2>&1 | tee output2.txt;
     # test SAVE ARTIFACT AS LOCAL texts is output
     DO +RUN_EARTHLY --earthfile=copy-verbose.earth --extra_args="--verbose" --target=+save --output_contains="received data for important-data .12 B."
     RUN ls -la important-data
+
+copy-keep-own-test:
+    DO +RUN_EARTHLY --target=+test-known-user --earthfile=copy-keep-own.earth
+    DO +RUN_EARTHLY --target=+test-unknown-user --earthfile=copy-keep-own.earth
 
 cache-test:
     # Test that a file can be passed between runs through the mounted cache.

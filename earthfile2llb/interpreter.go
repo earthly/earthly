@@ -1048,6 +1048,13 @@ func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) 
 		return nil
 	}
 
+	if i.converter.ftrs.SaveArtifactKeepOwn {
+		if opts.KeepOwn {
+			fmt.Fprintf(os.Stderr, "Deprecation: SAVE ARTIFACT --keep-own is now applied by default, setting it no longer has any effect\n")
+		}
+		opts.KeepOwn = true
+	}
+
 	err = i.converter.SaveArtifact(ctx, saveFrom, expandedSaveTo, expandedSaveAsLocalTo, opts.KeepTs, opts.KeepOwn, opts.IfExists, opts.SymlinkNoFollow, opts.Force, i.pushOnlyAllowed)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply SAVE ARTIFACT")
