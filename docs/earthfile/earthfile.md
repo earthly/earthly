@@ -407,7 +407,7 @@ Instructs Earthly to not overwrite the file creation timestamps with a constant.
 Instructs Earthly to keep file ownership information. This applies only to the *artifact form* and has no effect otherwise.
 
 {% hint style='info' %}
-Note that one must include the flag in the corresponding `SAVE ARTIFACT --keep-own ...` command.
+Note that you must include the flag in the corresponding `SAVE ARTIFACT --keep-own ...` command, if using *artifact form*.
 {% endhint %}
 
 ##### `--if-exists`
