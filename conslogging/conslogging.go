@@ -472,7 +472,7 @@ var (
 	// githubRegExp Matches :2dd88e53f2e59e96ec1f9215f24a3981e5565edf+ in a prefix.
 	// 	Prefix containing hash may resemble: g/e/hello-world:2dd88e53f2e59e96ec1f9215f24a3981e5565edf+base
 	//	Prefix must be exactly 40 characters
-	githubRegExp = regexp.MustCompile(`:[a-z0-9]{40}\+`)
+	githubRegExp = regexp.MustCompile(`:[a-f0-9]{40}\+`)
 
 	branchOrSHARegExp = regexp.MustCompile(`:[a-zA-Z0-9/\-_]*\+`)
 )
