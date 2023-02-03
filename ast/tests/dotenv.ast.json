@@ -16,7 +16,15 @@
         {
           "command": {
             "args": [
-              "TEST_ENV_1",
+              "TEST_IN_DOTENV"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "TEST_ARG_1",
               "=",
               "incorrect"
             ],
@@ -27,7 +35,7 @@
           "command": {
             "args": [
               "test",
-              "\"$TEST_ENV_1\"",
+              "\"$TEST_ARG_1\"",
               "==",
               "\"abracadabra\""
             ],
@@ -38,7 +46,20 @@
           "command": {
             "args": [
               "--secret",
-              "MY_SECRET=+secrets/TEST_ENV_2",
+              "MY_SECRET=+secrets/TEST_SEC_2",
+              "test",
+              "\"$MY_SECRET\"",
+              "==",
+              "\"foo\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--secret",
+              "MY_SECRET=TEST_SEC_2",
               "test",
               "\"$MY_SECRET\"",
               "==",
@@ -51,9 +72,19 @@
           "command": {
             "args": [
               "test",
-              "\"$TEST_ENV_3\"",
+              "\"$TEST_ARG_3\"",
               "==",
               "\"\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-z",
+              "\"$TEST_IN_DOTENV\""
             ],
             "name": "RUN"
           }
@@ -66,7 +97,76 @@
         {
           "command": {
             "args": [
+              "TEST_ARG_1",
+              "=",
+              "missing"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$TEST_ARG_1\"",
+              "==",
+              "\"missing\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
               "true"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-with-push",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "EARTHLY_PUSH"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_PUSH\"",
+              "=",
+              "\"true\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-no-push",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "EARTHLY_PUSH"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_PUSH\"",
+              "=",
+              "\"false\""
             ],
             "name": "RUN"
           }

@@ -141,10 +141,24 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        envFileFlag,
-			EnvVars:     []string{"EARTHLY_ENV_FILE"},
-			Usage:       "Use values from this file as earthly environment variables, buildargs, or secrets",
+			EnvVars:     []string{"EARTHLY_ENV_PATH"},
+			Usage:       "Use values from this file as earthly environment variables",
 			Value:       defaultEnvFile,
 			Destination: &app.envFile,
+		},
+		&cli.StringFlag{
+			Name:        "arg-path",
+			EnvVars:     []string{"EARTHLY_ARG_PATH"},
+			Usage:       "Use values from this file as earthly buildargs",
+			Value:       defaultArgFile,
+			Destination: &app.argFile,
+		},
+		&cli.StringFlag{
+			Name:        "secret-path",
+			EnvVars:     []string{"EARTHLY_SECRET_PATH"},
+			Usage:       "Use values from this file as earthly secrets",
+			Value:       defaultSecretFile,
+			Destination: &app.secretFile,
 		},
 		&cli.BoolFlag{
 			Name:        "logstream",

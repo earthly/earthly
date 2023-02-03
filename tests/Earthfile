@@ -619,39 +619,48 @@ chown-test:
     DO +RUN_EARTHLY --earthfile=chown.earth --target=+test
 
 dotenv-test:
-    RUN echo "TEST_ENV_1=abracadabra" >.env
-    RUN echo "TEST_ENV_2=foo" >>.env
-    RUN echo "TEST_ENV_3=bar" >>.env
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test
+    RUN echo "TEST_IN_DOTENV=this-should-not-appear-as-a-build-arg" >.env
+    RUN echo "TEST_ARG_1=abracadabra" >.arg
+    RUN echo "TEST_SEC_2=foo" >.secret
+    RUN echo "TEST_ARG_3=bar" >>.arg
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test --output_contains="unexpected env .TEST_IN_DOTENV.: as of v0.7.0, --build-arg values must be defined in .arg"
 
-    # Smoke test that no .env file does not result in an error.
-    RUN mv .env .some-other-env
+    # test non-standard .arg paths can be used
+    RUN mv .arg .some-other-arg
     DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-dotenv
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-file .some-other-env" --target=+test
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ENV_FILE=.some-other-env" --target=+test
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-file .this-should-fail" --should_fail="true" --target=+test
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ENV_FILE=.this-too-should-fail" --should_fail="true" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-path .some-other-arg" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ARG_PATH=.some-other-arg" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-parth .this-should-fail" --should_fail="true" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ARG_PARH=.this-too-should-fail" --should_fail="true" --target=+test
 
     # --env-file takes precedence
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-file .some-other-env" --pre_command="export EARTHLY_ENV_FILE=.this-should-be-ignored" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-path .some-other-arg" --pre_command="export EARTHLY_ARG_PATH=.this-should-be-ignored" --target=+test
+
+    # test .env values still affect earthly cli
+    RUN echo EARTHLY_PUSH=1 > .env
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-with-push
+    RUN mv .env .some-other-env
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-push
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-path .some-other-env" --target=+test-with-push
 
 stack-failure-test:
-    RUN echo "TEST_ENV_1=abracadabra" >.env
-    RUN echo "TEST_ENV_2=foo" >>.env
-    RUN echo "THIS_IS_SECRET=dont-display-this" >>.env
+    RUN echo "TEST_ARG_1=abracadabra" >.arg
+    RUN echo "TEST_ARG_2=foo" >>.arg
+    RUN echo "THIS_IS_SECRET=dont-display-this" >>.secret
+    RUN echo "THIS_IS_ALSO_A_SECRET=dont-display-this-either" >>.env # test for user accidentally putting a secret in .env (carried over from a v0.6.0 .env file)
 
-    # test that only declared ARGs are displayed in output (and non-referenced .env values which may actually be secrets aren't)
+    # test that only declared ARGs are displayed in output (and non-referenced .arg values which may actually be secrets aren't)
     DO +RUN_EARTHLY --earthfile=stack-failure.earth --extra_args="--no-output" --output_contains="unknown flag .cause-interpreter-failure." --should_fail="true" --target=+fail
     RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
-    RUN grep 'in.*+fail --TEST_ENV_1=abracadabra --TEST_ENV_2=foo' earthly.output
+    RUN grep 'in.*+fail --TEST_ARG_1=abracadabra --TEST_ARG_2=foo' earthly.output
 
     # test missing target doesn't leak secret
     DO +RUN_EARTHLY --earthfile=stack-failure.earth --extra_args="--no-output" --output_contains="target this-does-not-exist not found" --should_fail="true" --target=+this-does-not-exist
     RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
 
 multi-stack-failure-test:
-    RUN echo "FOO=foo" >.env
-    RUN echo "THIS_IS_SECRET=dont-display-this" >>.env
+    RUN echo "FOO=foo" >.arg
+    RUN echo "THIS_IS_SECRET=dont-display-this" >>.arg
 
     DO +RUN_EARTHLY --earthfile=multi-stack-failure.earth --extra_args="--no-output --build-arg BAR=bar" --output_contains="unknown flag .cause-interpreter-failure." --should_fail="true" --target=+fail
     RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi

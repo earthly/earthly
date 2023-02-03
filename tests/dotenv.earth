@@ -2,11 +2,24 @@ VERSION 0.7
 FROM alpine:3.15
 
 test:
-    ARG TEST_ENV_1=incorrect
-    RUN test "$TEST_ENV_1" == "abracadabra"
-    RUN --secret MY_SECRET=+secrets/TEST_ENV_2 test "$MY_SECRET" == "foo"
+    ARG TEST_IN_DOTENV
+    ARG TEST_ARG_1=incorrect
+    RUN test "$TEST_ARG_1" == "abracadabra"
+    RUN --secret MY_SECRET=+secrets/TEST_SEC_2 test "$MY_SECRET" == "foo"
+    RUN --secret MY_SECRET=TEST_SEC_2 test "$MY_SECRET" == "foo"
     # Not pre-declared - should not be overriden by .env.
-    RUN test "$TEST_ENV_3" == ""
+    RUN test "$TEST_ARG_3" == ""
+    RUN test -z "$TEST_IN_DOTENV" # only set in .env, which is no longer used for build-args
 
 test-no-dotenv:
+    ARG TEST_ARG_1=missing
+    RUN test "$TEST_ARG_1" == "missing"
     RUN true
+
+test-with-push:
+    ARG EARTHLY_PUSH
+    RUN test "$EARTHLY_PUSH" = "true"
+
+test-no-push:
+    ARG EARTHLY_PUSH
+    RUN test "$EARTHLY_PUSH" = "false"
