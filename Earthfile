@@ -225,7 +225,7 @@ unit-test:
         END
     ELSE
         WITH DOCKER
-            RUN ./not-a-unit-test.sh
+            RUN testname=$testname pkgname=$pkgname ./not-a-unit-test.sh
         END
     END
     BUILD ./ast+unit-test
