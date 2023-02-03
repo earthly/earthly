@@ -71,6 +71,7 @@ func Test_prettyPrefix(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			assert.Equal(t, tc.expected, prettyPrefix(tc.prefixPadding, tc.prefix))
