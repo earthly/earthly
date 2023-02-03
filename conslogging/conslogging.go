@@ -491,11 +491,11 @@ func prettyPrefix(prefixPadding int, prefix string) string {
 		brackets = fmt.Sprintf("(%s", bracketParts[1])
 	}
 	prettyPrefix := bracketParts[0]
-	var branchPart string
+	var gitPart string // either a branch, sha, or neither if there is none
 	if len(prefix) > prefixPadding {
 		parts := strings.Split(prefix, ":")
 		if len(parts) > 1 {
-			branchPart = ":" + parts[1]
+			gitPart = ":" + parts[1]
 			parts = strings.Split(parts[0], "/")
 		}
 		target := parts[len(parts)-1]
@@ -514,7 +514,7 @@ func prettyPrefix(prefixPadding int, prefix string) string {
 	}
 
 	formatString := fmt.Sprintf("%%%vv", prefixPadding)
-	ret := fmt.Sprintf(formatString, fmt.Sprintf("%s%s%s", prettyPrefix, branchPart, brackets))
+	ret := fmt.Sprintf(formatString, fmt.Sprintf("%s%s%s", prettyPrefix, gitPart, brackets))
 	return ret
 }
 
