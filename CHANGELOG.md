@@ -76,21 +76,22 @@ Declaring `VERSION 0.7` is equivalent to
 
 ```
 VERSION \
-  --explicit-global \
   --check-duplicate-images \
+  --earthly-git-author-args \
+  --earthly-locally-arg \
   --earthly-version-arg \
-  --use-cache-command \
-  --use-host-command \
-  --use-copy-link \
+  --explicit-global \
   --new-platform \
   --no-tar-build-output \
-  --use-no-manifest-list \
-  --use-chmod \
+  --save-artifact-keep-own \
   --shell-out-anywhere \
-  --earthly-locally-arg \
-  --use-project-secrets \
+  --use-cache-command \
+  --use-chmod \
+  --use-copy-link \
+  --use-host-command \
+  --use-no-manifest-list \
   --use-pipelines \
-  --earthly-git-author-args \
+  --use-project-secrets \
   --wait-block \
   0.6
 ```
@@ -110,6 +111,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - `earthly ls` has been promoted from *experimental* to *beta* status.
 - Setting a `VERSION` feature flag boolean to false (or any other value) will now raise an error; previously it was syntactically valid but had no effect.
 - `SAVE ARTIFACT <path> AS LOCAL ...` when used under a `TRY` / `FINALLY` can fail to be fully transferred to the host when the `TRY` command fails (resulting in an partially transferred file); an underflow can still occur, and is now detected and will not export the partial file. [2452](https://github.com/earthly/earthly/issues/2452)
+- The `--keep-own` flag for `SAVE ARTIFACT` is now applied by default; note that `COPY --keep-own` must still be used in order to keep ownership
 
 ### Added
 
