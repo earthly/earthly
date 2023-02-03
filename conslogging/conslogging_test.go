@@ -23,7 +23,7 @@ func Test_prettyPrefix(t *testing.T) {
 			name:          "shortens git SHA if prefix is present",
 			prefixPadding: DefaultPadding,
 			prefix:        "github.com/earthly/earthly:80524f0d82a353b3444e83f056207e15f4d5447c+hello-world",
-			expected:      "g/e/earthly:80524f+hello-world",
+			expected:      "g/e/earthly:80524f0+hello-world",
 		},
 		{
 			name:          "keeps branch name",
@@ -32,22 +32,16 @@ func Test_prettyPrefix(t *testing.T) {
 			expected:      "g/e/earthly:some-feature-branch+hello-world",
 		},
 		{
+			name:          "keeps branch name closely resembling sha",
+			prefixPadding: DefaultPadding,
+			prefix:        "/e/hello-world:feedfacecafe",
+			expected:      "/e/hello-world:feedfacecafe",
+		},
+		{
 			name:          "keeps branch name containing special characters /-_",
 			prefixPadding: DefaultPadding,
 			prefix:        "github.com/earthly/earthly:-_/ryan_-/branch-names/-_in-here+hello-world",
 			expected:      "g/e/earthly:-_/ryan_-/branch-names/-_in-here+hello-world",
-		},
-		{
-			name:          "keeps branch name containing _",
-			prefixPadding: DefaultPadding,
-			prefix:        "github.com/earthly/earthly:ryan/branch+hello-world",
-			expected:      "g/e/earthly:ryan/branch+hello-world",
-		},
-		{
-			name:          "keeps branch name containing -",
-			prefixPadding: DefaultPadding,
-			prefix:        "github.com/earthly/earthly:ryan/branch+hello-world",
-			expected:      "g/e/earthly:ryan/branch+hello-world",
 		},
 		{
 			name:          "target with no github info",
