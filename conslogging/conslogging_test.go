@@ -44,10 +44,16 @@ func Test_prettyPrefix(t *testing.T) {
 			expected:      "g/e/earthly:-_/ryan_-/branch-names/-_in-here+hello-world",
 		},
 		{
-			name:          "target with no github info",
+			name:          "simple target with no path or github info",
 			prefixPadding: DefaultPadding,
 			prefix:        "+run",
 			expected:      padding(DefaultPadding-4) + "+run",
+		},
+		{
+			name:          "simple target with path",
+			prefixPadding: DefaultPadding,
+			prefix:        "github.com/earthly/earthly+run",
+			expected:      "github.com/earthly/earthly+run",
 		},
 		{
 			name:          "does not add padding if prefix longer than prefixPadding",
