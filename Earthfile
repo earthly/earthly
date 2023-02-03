@@ -228,6 +228,9 @@ unit-test:
             RUN testname=$testname pkgname=$pkgname ./not-a-unit-test.sh
         END
     END
+
+    # The following are separate go modules and need to be tested separately.
+    # The not-a-unit-test.sh script above actually DOES run unit-tests as well
     BUILD ./ast+unit-test
     BUILD ./util/deltautil+unit-test
 
