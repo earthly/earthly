@@ -38,7 +38,7 @@ Earthfiles to use 0.7 (or 0.6), you can declare `VERSION 0.5` to continue to use
 
 **Pushing no longer requires everything else to succeed**
 
-The behavior of the `--push` mode has changed in a backwards incompatible manner. Previously, `--push` commands would only execute if all other commands had succeeded. This precondition is no longer enforced, to allow for more flexible push ordering via the new `WAIT` clause. To achieve the behavior of the previous `--push` mode, you need to wrap any pre-required commands in a `WAIT` clause. For example, to push an image only if tests have passed, you would do the following:
+The behavior of the `--push` mode has changed in `VERSION 0.7` and is backwards incompatible with `VERSION 0.6`. Previously, `--push` commands would only execute if all other commands had succeeded. This precondition is no longer enforced, to allow for more flexible push ordering via the new `WAIT` clause. To achieve the behavior of the previous `--push` mode, you need to wrap any pre-required commands in a `WAIT` clause. For example, to push an image only if tests have passed, you would do the following:
 
 ```Earthfile
 test-and-push:
