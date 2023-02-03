@@ -230,7 +230,6 @@ unit-test:
     END
     BUILD ./ast+unit-test
     BUILD ./util/deltautil+unit-test
-    RUN go test ./conslogging
 
 # submodule-decouple-check checks that go submodules within earthly do not
 # depend on the core earthly project.

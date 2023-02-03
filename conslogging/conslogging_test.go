@@ -1,6 +1,7 @@
 package conslogging
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -47,7 +48,7 @@ func Test_prettyPrefix(t *testing.T) {
 			name:          "simple target with no path or github info",
 			prefixPadding: DefaultPadding,
 			prefix:        "+run",
-			expected:      padding(DefaultPadding-4) + "+run",
+			expected:      strings.Repeat(" ", DefaultPadding-4) + "+run",
 		},
 		{
 			name:          "simple target with path",
@@ -71,15 +72,9 @@ func Test_prettyPrefix(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			assert.Equal(t, tc.expected, prettyPrefix(tc.prefixPadding, tc.prefix))
 		})
 	}
-}
 
-func padding(n int) string {
-	s := ""
-	for i := 0; i < n; i++ {
-		s += " "
-	}
-	return s
 }
