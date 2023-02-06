@@ -628,20 +628,24 @@ dotenv-test:
     # test non-standard .arg paths can be used
     RUN mv .arg .some-other-arg
     DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-dotenv
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-path .some-other-arg" --target=+test
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ARG_PATH=.some-other-arg" --target=+test
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-parth .this-should-fail" --should_fail="true" --target=+test
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ARG_PARH=.this-too-should-fail" --should_fail="true" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-file-path .some-other-arg" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ARG_FILE_PATH=.some-other-arg" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-file-path .this-should-fail" --should_fail="true" --target=+test --output_contains="open .this-should-fail: no such file or directory"
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ARG_FILE_PATH=.this-too-should-fail" --should_fail="true" --target=+test --output_contains="open .this-too-should-fail: no such file or directory"
 
     # --env-file takes precedence
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-path .some-other-arg" --pre_command="export EARTHLY_ARG_PATH=.this-should-be-ignored" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-file-path .some-other-arg" --pre_command="export EARTHLY_ARG_FILE_PATH=.this-should-be-ignored" --target=+test
+
+    # test .secret can be renamed
+    RUN mv .secret .some-other-secret
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-file-path .some-other-arg --secret-file-path .some-other-secret" --target=+test
 
     # test .env values still affect earthly cli
     RUN echo EARTHLY_PUSH=1 > .env
     DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-with-push
     RUN mv .env .some-other-env
     DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-push
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-path .some-other-env" --target=+test-with-push
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-file-path .some-other-env" --target=+test-with-push
 
 stack-failure-test:
     RUN echo "TEST_ARG_1=abracadabra" >.arg

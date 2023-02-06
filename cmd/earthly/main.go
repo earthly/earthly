@@ -52,7 +52,7 @@ const (
 	DefaultBuildkitdVolumeSuffix = "-cache"
 
 	defaultEnvFile = ".env"
-	envFileFlag    = "env-path"
+	envFileFlag    = "env-file-path"
 
 	defaultArgFile    = ".arg"
 	defaultSecretFile = ".secret"
