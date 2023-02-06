@@ -293,7 +293,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	dotEnvMap, err := godotenv.Read(app.envFile)
 	if err != nil {
 		// ignore ErrNotExist when using default .env file
-		if app.envFile != defaultEnvFile || !errors.Is(err, os.ErrNotExist) {
+		if cliCtx.IsSet(envFileFlag) || !errors.Is(err, os.ErrNotExist) {
 			return errors.Wrapf(err, "read %s", app.envFile)
 		}
 	}
@@ -307,7 +307,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	argMap, err := godotenv.Read(app.argFile)
 	if err != nil {
 		// ignore ErrNotExist when using default .env file
-		if app.argFile != defaultArgFile || !errors.Is(err, os.ErrNotExist) {
+		if cliCtx.IsSet(argFileFlag) || !errors.Is(err, os.ErrNotExist) {
 			return errors.Wrapf(err, "read %s", app.argFile)
 		}
 	}
@@ -315,7 +315,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	secretsFileMap, err := godotenv.Read(app.secretFile)
 	if err != nil {
 		// ignore ErrNotExist when using default .env file
-		if app.secretFile != defaultSecretFile || !errors.Is(err, os.ErrNotExist) {
+		if cliCtx.IsSet(secretFileFlag) || !errors.Is(err, os.ErrNotExist) {
 			return errors.Wrapf(err, "read %s", app.secretFile)
 		}
 	}

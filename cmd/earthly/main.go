@@ -54,8 +54,11 @@ const (
 	defaultEnvFile = ".env"
 	envFileFlag    = "env-file-path"
 
-	defaultArgFile    = ".arg"
+	defaultArgFile = ".arg"
+	argFileFlag    = "arg-file-path"
+
 	defaultSecretFile = ".secret"
+	secretFileFlag    = "secret-file-path"
 )
 
 type earthlyApp struct {
