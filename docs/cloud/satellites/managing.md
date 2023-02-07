@@ -131,7 +131,7 @@ Here's an example showing a satellite launched with a custom maintenance window 
 earthly satellite launch --maintenance-window 04:00 my-satellite
 ```
 
-Note that updates will only happen during the maintenance window while the satellite is asleep. If the satellite remains in-use 
+Note that updates will only happen during the maintenance window while the satellite is asleep. If the satellite remains in use 
 for the entire duration of the maintenance window, then the update will be aborted until the next day.
 
 #### Version Pinning
