@@ -52,7 +52,13 @@ const (
 	DefaultBuildkitdVolumeSuffix = "-cache"
 
 	defaultEnvFile = ".env"
-	envFileFlag    = "env-file"
+	envFileFlag    = "env-file-path"
+
+	defaultArgFile = ".arg"
+	argFileFlag    = "arg-file-path"
+
+	defaultSecretFile = ".secret"
+	secretFileFlag    = "secret-file-path"
 )
 
 type earthlyApp struct {
@@ -108,7 +114,6 @@ type cliFlags struct {
 	token                      string
 	password                   string
 	disableNewLine             bool
-	secretFile                 string
 	secretStdin                bool
 	cloudHTTPAddr              string
 	cloudGRPCAddr              string
@@ -134,6 +139,8 @@ type cliFlags struct {
 	featureFlagOverrides       string
 	localRegistryHost          string
 	envFile                    string
+	argFile                    string
+	secretFile                 string
 	lsShowLong                 bool
 	lsShowArgs                 bool
 	containerFrontend          containerutil.ContainerFrontend
