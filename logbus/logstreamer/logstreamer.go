@@ -1,3 +1,5 @@
+//go:generate hel
+
 package logstreamer
 
 import (
@@ -8,7 +10,6 @@ import (
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
-	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/logbus"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
@@ -17,11 +18,30 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+const DefaultChSize = 10240
+
+type CloudClient interface {
+	StreamLogs(ctx context.Context, buildID string, deltas <-chan []*logstream.Delta) error
+}
+
+// Opt is an option function, used to adjust optional attributes of a
+// LogStreamer during New().
+type Opt func(*LogStreamer) *LogStreamer
+
+// WithChanSize sets the size of the channel that a LogStreamer constructs for
+// streaming logs.
+func WithChanSize(size int) Opt {
+	return func(l *LogStreamer) *LogStreamer {
+		l.chSize = size
+		return l
+	}
+}
+
 // LogStreamer is a log streamer. It uses the cloud client to send
 // log deltas to the cloud. It retries on transient errors.
 type LogStreamer struct {
 	bus             *logbus.Bus
-	c               *cloud.Client
+	c               CloudClient
 	buildID         string
 	initialManifest *logstream.RunManifest
 	doneCh          chan struct{}
@@ -29,17 +49,22 @@ type LogStreamer struct {
 
 	mu        sync.Mutex
 	cancelled bool
+	chSize    int
 	ch        chan []*logstream.Delta
 }
 
 // New creates a new LogStreamer.
-func New(ctx context.Context, bus *logbus.Bus, c *cloud.Client, initialManifest *logstream.RunManifest) *LogStreamer {
+func New(ctx context.Context, bus *logbus.Bus, c CloudClient, initialManifest *logstream.RunManifest, opts ...Opt) *LogStreamer {
 	ls := &LogStreamer{
 		bus:             bus,
 		c:               c,
 		buildID:         initialManifest.GetBuildId(),
 		initialManifest: initialManifest,
 		doneCh:          make(chan struct{}),
+		chSize:          DefaultChSize,
+	}
+	for _, o := range opts {
+		ls = o(ls)
 	}
 	go ls.retryLoop(ctx)
 	return ls
@@ -76,7 +101,6 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 		ls.mu.Unlock()
 		return false, errors.New("log streamer closed")
 	}
-	const chSize = 10240
 	if ls.ch != nil {
 		// In case the channel is congested, this frees up any stuck writers.
 		prevCh := ls.ch
@@ -93,7 +117,7 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 			}
 		}()
 	}
-	ls.ch = make(chan []*logstream.Delta, chSize)
+	ls.ch = make(chan []*logstream.Delta, ls.chSize)
 	ls.mu.Unlock()
 	ls.ch <- []*logstream.Delta{
 		{
@@ -108,8 +132,7 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 	}
 	ls.bus.AddSubscriber(ls)
 	defer ls.bus.RemoveSubscriber(ls)
-	err := ls.c.StreamLogs(ctxTry, ls.buildID, ls.ch)
-	if err != nil {
+	if err := ls.c.StreamLogs(ctxTry, ls.buildID, ls.ch); err != nil {
 		s, ok := status.FromError(errors.Cause(err))
 		if !ok {
 			return false, err
@@ -131,17 +154,18 @@ func (ls *LogStreamer) Write(delta *logstream.Delta) {
 	ls.mu.Unlock()
 	if ch != nil {
 		ch <- []*logstream.Delta{delta}
-	} else {
-		// TODO (vladaionescu): If these messages show up, we need to rethink
-		//						the closing sequence.
-		// TODO (vladaionescu): We should only log this if verbose is enabled.
-		dt, err := protojson.Marshal(delta)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Log streamer closed, but failed to marshal log delta: %v", err)
-			return
-		}
-		fmt.Fprintf(os.Stderr, "Log streamer closed, dropping delta %v\n", string(dt))
+		return
 	}
+
+	// TODO (vladaionescu): If these messages show up, we need to rethink
+	//						the closing sequence.
+	// TODO (vladaionescu): We should only log this if verbose is enabled.
+	dt, err := protojson.Marshal(delta)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Log streamer closed, but failed to marshal log delta: %v", err)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "Log streamer closed, dropping delta %v\n", string(dt))
 }
 
 // Close closes the log streamer.
