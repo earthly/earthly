@@ -311,7 +311,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	}
 
 	if size == "" {
-		size = cloud.SatelliteSizeMedium
+		size = cloud.DefaultSatelliteSize
 	}
 	if !cloud.ValidSatelliteSize(size) {
 		return errors.Errorf("not a valid size: %s", size)
