@@ -136,7 +136,7 @@ for the entire duration of the maintenance window, then the update will be abort
 #### Version Pinning
 
 If you want to prevent your satellite from automatically upgrading to a new earthly version, you can pin your version using the `--version` flag.
-Note that satellites on pinned versions may still receive auto-updates during a maintenance window; however, these updates will be important stability or security patches that will not change the version of earthly.
+Note that satellites on pinned versions may still receive auto-updates during a maintenance window; however, these updates will be limited to stability or security patches, rather than version updates.
 
 ```bash
 earthly satellite launch --version v0.6.29 my-satellite
