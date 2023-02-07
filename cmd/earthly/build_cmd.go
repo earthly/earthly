@@ -7,9 +7,22 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
+	"github.com/joho/godotenv"
+	"github.com/moby/buildkit/client/llb"
+	"github.com/moby/buildkit/session"
+	"github.com/moby/buildkit/session/auth"
+	dockerauthprovider "github.com/moby/buildkit/session/auth/authprovider"
+	"github.com/moby/buildkit/session/localhost/localhostprovider"
+	"github.com/moby/buildkit/session/socketforward/socketprovider"
+	"github.com/moby/buildkit/session/sshforward/sshprovider"
+	"github.com/moby/buildkit/util/entitlements"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
+
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
@@ -32,17 +45,11 @@ import (
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
-	"github.com/joho/godotenv"
-	"github.com/moby/buildkit/client/llb"
-	"github.com/moby/buildkit/session"
-	"github.com/moby/buildkit/session/auth"
-	dockerauthprovider "github.com/moby/buildkit/session/auth/authprovider"
-	"github.com/moby/buildkit/session/localhost/localhostprovider"
-	"github.com/moby/buildkit/session/socketforward/socketprovider"
-	"github.com/moby/buildkit/session/sshforward/sshprovider"
-	"github.com/moby/buildkit/util/entitlements"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
+)
+
+var (
+	orgMu     sync.Mutex
+	projectMu sync.Mutex
 )
 
 func (app *earthlyApp) actionBuild(cliCtx *cli.Context) error {
@@ -243,7 +250,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		runnerName = fmt.Sprintf("local:%s", hostname)
 	} else {
 		if app.satelliteName != "" {
-			runnerName = fmt.Sprintf("sat:%s/%s", app.orgName, app.satelliteName)
+			runnerName = fmt.Sprintf("sat:%s/%s", app.cliFlags.orgName, app.satelliteName)
 		} else {
 			runnerName = fmt.Sprintf("bk:%s", app.buildkitdSettings.BuildkitAddress)
 		}
@@ -541,6 +548,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		case <-cliCtx.Context.Done():
 			return
 		case details := <-buildOpts.MainTargetDetailsFuture:
+			app.setOrgForAnalytics(details.EarthlyOrgName)
+			app.setProjectForAnalytics(details.EarthlyProjectName)
 			if app.logstream {
 				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
 				if doLogstreamUpload {
@@ -556,6 +565,44 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	}
 
 	return nil
+}
+
+func (app *earthlyApp) getOrgForAnalytics() string {
+	if app.analyticsMetadata.orgName != "" {
+		return app.analyticsMetadata.orgName
+	} else {
+		orgMu.Lock()
+		defer orgMu.Unlock()
+		if app.analyticsMetadata.orgName != "" {
+			return app.analyticsMetadata.orgName
+		}
+	}
+	return app.cliFlags.orgName
+}
+
+func (app *earthlyApp) getProjectForAnalytics() string {
+	if app.analyticsMetadata.projectName != "" {
+		return app.analyticsMetadata.projectName
+	} else {
+		projectMu.Lock()
+		defer projectMu.Unlock()
+		if app.analyticsMetadata.projectName != "" {
+			return app.analyticsMetadata.projectName
+		}
+	}
+	return app.cliFlags.projectName
+}
+
+func (app *earthlyApp) setOrgForAnalytics(orgName string) {
+	orgMu.Lock()
+	app.analyticsMetadata.orgName = orgName
+	orgMu.Unlock()
+}
+
+func (app *earthlyApp) setProjectForAnalytics(projectName string) {
+	projectMu.Lock()
+	app.analyticsMetadata.projectName = projectName
+	projectMu.Unlock()
 }
 
 func receiveFileVersion1(ctx context.Context, conn io.ReadWriteCloser, localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) error {

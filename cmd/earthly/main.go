@@ -184,6 +184,8 @@ type analyticsMetadata struct {
 	satelliteCurrentVersion string
 	buildkitPlatform        string
 	userPlatform            string
+	orgName                 string
+	projectName             string
 }
 
 var (
@@ -326,6 +328,8 @@ func main() {
 					SatelliteVersion: app.analyticsMetadata.satelliteCurrentVersion,
 					IsRemoteBuildkit: app.analyticsMetadata.isRemoteBuildkit,
 					Realtime:         time.Since(startTime),
+					OrgName:          app.getOrgForAnalytics(),
+					ProjectName:      app.getProjectForAnalytics(),
 				},
 				app.installationName,
 			)

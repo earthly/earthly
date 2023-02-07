@@ -1,4 +1,4 @@
-VERSION --shell-out-anywhere --use-copy-link 0.6
+VERSION 0.6
 
 FROM golang:1.19-alpine3.15
 
