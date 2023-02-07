@@ -36,6 +36,15 @@ The `VERSION` command
 is now required for all Earthfiles, and an error will occur if it is missing. If you are not ready to update your
 Earthfiles to use 0.7 (or 0.6), you can declare `VERSION 0.5` to continue to use your Earthfiles.
 
+**.env file is no longer used for `ARG` or secrets**
+
+The `.env` file will only be used to automatically export environment variables, which can be used to configure earthly command line flags.
+As a result, values will no longer be propagated to Earthfile `ARG`s or `RUN --secret=...` commands.
+
+Instead if you want build arguments or secrets automatically passed into earthly, they must be placed in `.arg` or `.secret` files respectively.
+
+Note that this is a **backwards incompatible** change and will apply to all Earthfiles (regardless of the defined `VERSION` value).
+
 **Pushing no longer requires everything else to succeed**
 
 The behavior of the `--push` mode has changed in `VERSION 0.7` and is backwards incompatible with `VERSION 0.6`. Previously, `--push` commands would only execute if all other commands had succeeded. This precondition is no longer enforced, to allow for more flexible push ordering via the new `WAIT` clause. To achieve the behavior of the previous `--push` mode, you need to wrap any pre-required commands in a `WAIT` clause. For example, to push an image only if tests have passed, you would do the following:
@@ -112,6 +121,8 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - Setting a `VERSION` feature flag boolean to false (or any other value) will now raise an error; previously it was syntactically valid but had no effect.
 - `SAVE ARTIFACT <path> AS LOCAL ...` when used under a `TRY` / `FINALLY` can fail to be fully transferred to the host when the `TRY` command fails (resulting in an partially transferred file); an underflow can still occur, and is now detected and will not export the partial file. [2452](https://github.com/earthly/earthly/issues/2452)
 - The `--keep-own` flag for `SAVE ARTIFACT` is now applied by default; note that `COPY --keep-own` must still be used in order to keep ownership
+- Values from the `.env` file will no longer be propigated to Earthfile `ARG`s or `RUN --secret=...` commands; instead values must be placed in `.arg` or `.secret` files respectively. Note that this is a backwards incompatible change and will apply to all Earthfiles (regardless of the defined `VERSION` value). [#1736](https://github.com/earthly/earthly/issues/1736)
+
 
 ### Added
 
