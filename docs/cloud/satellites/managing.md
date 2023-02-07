@@ -155,7 +155,7 @@ The following example updates a satellite to the latest version, respecting any 
 earthly satellite update my-satellite
 ```
 
-The following command updates the satellite and clear it's cache during the process. If no update is available, this command will still clear the cache.
+The following command updates the satellite and clear its cache during the process. If no update is available, this command will still clear the cache.
 
 ```bash
 earthly satellite update --drop-cache my-satellite
