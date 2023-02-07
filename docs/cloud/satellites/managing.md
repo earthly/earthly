@@ -117,7 +117,6 @@ earthly prune -a
 
 By default satellites will automatically update as new versions become available. 
 Alternativly, satellite can also be pinned to specific earthly versions, however they will still receive patches and security fixes.
-Satellite updates will only run during their specific maintenance window.
 
 #### Auto-Update Maintenance Windows
 
