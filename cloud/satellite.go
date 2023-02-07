@@ -43,6 +43,11 @@ const (
 	SatelliteSizeXLarge = "xlarge"
 )
 
+const (
+	SatellitePlatformAMD64 = "linux/amd64"
+	SatellitePlatformARM64 = "linux/arm64"
+)
+
 const DefaultSatelliteSize = SatelliteSizeMedium
 
 // SatelliteInstance contains details about a remote Buildkit instance.
@@ -319,4 +324,13 @@ var validSizes = map[string]bool{
 
 func ValidSatelliteSize(size string) bool {
 	return validSizes[size]
+}
+
+var validPlatforms = map[string]bool{
+	SatellitePlatformAMD64: true,
+	SatellitePlatformARM64: true,
+}
+
+func ValidSatellitePlatform(size string) bool {
+	return validPlatforms[size]
 }

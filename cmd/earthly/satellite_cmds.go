@@ -20,8 +20,6 @@ import (
 	"github.com/earthly/earthly/util/containerutil"
 )
 
-const satelliteSizeFlag = "size"
-
 func (app *earthlyApp) satelliteCmds() []*cli.Command {
 	return []*cli.Command{
 		{
@@ -36,12 +34,14 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 					Name:        "platform",
 					Usage:       "The platform to use when launching a new satellite. Supported values: linux/amd64, linux/arm64.",
 					Required:    false,
+					Value:       cloud.SatellitePlatformAMD64,
 					Destination: &app.satellitePlatform,
 				},
 				&cli.StringFlag{
-					Name:        satelliteSizeFlag,
+					Name:        "size",
 					Usage:       "The size of the satellite. See https://earthly.dev/pricing#compute for details on each size. Supported values: small, medium, large.",
 					Required:    false,
+					Value:       cloud.SatelliteSizeMedium,
 					Destination: &app.satelliteSize,
 				},
 				&cli.StringSliceFlag{
@@ -312,12 +312,11 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		return err
 	}
 
-	if cliCtx.IsSet(satelliteSizeFlag) {
-		if !cloud.ValidSatelliteSize(size) {
-			return errors.Errorf("not a valid size: %s", size)
-		}
-	} else {
-		size = cloud.DefaultSatelliteSize
+	if !cloud.ValidSatellitePlatform(platform) {
+		return errors.Errorf("not a valid platform: '%s'", platform)
+	}
+	if !cloud.ValidSatelliteSize(size) {
+		return errors.Errorf("not a valid size: '%s'", size)
 	}
 
 	if window == "" {
