@@ -169,7 +169,12 @@ Updates can also specify a new pinned earthly version:
 earthly satellite update --version v0.6.29 my-satellite
 ```
 
-Feature flags can be set during an update as well. Note feature-flags enable preview features which are considered highly expirimental.
+Feature flags can be set during an update as well.
+When any feature flags are passed in, the entire set of existing feature flags are replaced with the new set.
+Passing no feature flags will retain the existing flags.
+
+Note feature-flags are typically used to preview unreleased features. They are considered highly expirimental.
+
 ```bash
 earthly satellite update --feature-flag cache-pct=30 my-satellite
 ```
