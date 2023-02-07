@@ -310,6 +310,13 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		return err
 	}
 
+	if size == "" {
+		size = cloud.SatelliteSizeMedium
+	}
+	if !cloud.ValidSatelliteSize(size) {
+		return errors.Errorf("not a valid size: %s", size)
+	}
+
 	if window == "" {
 		window = "02:00"
 	}

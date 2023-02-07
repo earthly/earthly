@@ -35,6 +35,15 @@ const (
 	SatelliteStatusUnknown = "Unknown"
 )
 
+const (
+	SatelliteSizeSmall  = "small"
+	SatelliteSizeMedium = "medium"
+	SatelliteSizeLarge  = "large"
+	SatelliteSizeXLarge = "xlarge"
+)
+
+const DefaultSatelliteSize = SatelliteSizeMedium
+
 // SatelliteInstance contains details about a remote Buildkit instance.
 type SatelliteInstance struct {
 	Name                   string
@@ -297,4 +306,15 @@ func satelliteStatus(status pb.SatelliteStatus) string {
 	default:
 		return SatelliteStatusUnknown
 	}
+}
+
+var validSizes = map[string]bool{
+	SatelliteSizeSmall:  true,
+	SatelliteSizeMedium: true,
+	SatelliteSizeLarge:  true,
+	SatelliteSizeXLarge: true,
+}
+
+func ValidSatelliteSize(size string) bool {
+	return validSizes[size]
 }
