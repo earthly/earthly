@@ -310,7 +310,6 @@ func satelliteStatus(status pb.SatelliteStatus) string {
 }
 
 var validSizes = map[string]bool{
-	"":                  true,
 	SatelliteSizeXSmall: true,
 	SatelliteSizeSmall:  true,
 	SatelliteSizeMedium: true,
