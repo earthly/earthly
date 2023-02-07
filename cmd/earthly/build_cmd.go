@@ -21,6 +21,7 @@ import (
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/gitutil"
@@ -292,12 +293,34 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	dotEnvMap, err := godotenv.Read(app.envFile)
 	if err != nil {
 		// ignore ErrNotExist when using default .env file
-		if app.envFile != defaultEnvFile || !errors.Is(err, os.ErrNotExist) {
+		if cliCtx.IsSet(envFileFlag) || !errors.Is(err, os.ErrNotExist) {
 			return errors.Wrapf(err, "read %s", app.envFile)
 		}
 	}
+	validEnvNames := cliutil.GetValidEnvNames(app.cliApp)
+	for k := range dotEnvMap {
+		if _, found := validEnvNames[k]; !found {
+			app.console.Warnf("unexpected env \"%s\": as of v0.7.0, --build-arg values must be defined in .arg (and --secret values in .secret)", k)
+		}
+	}
 
-	secretsMap, err := processSecrets(app.secrets.Value(), app.secretFiles.Value(), dotEnvMap)
+	argMap, err := godotenv.Read(app.argFile)
+	if err != nil {
+		// ignore ErrNotExist when using default .env file
+		if cliCtx.IsSet(argFileFlag) || !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrapf(err, "read %s", app.argFile)
+		}
+	}
+
+	secretsFileMap, err := godotenv.Read(app.secretFile)
+	if err != nil {
+		// ignore ErrNotExist when using default .env file
+		if cliCtx.IsSet(secretFileFlag) || !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrapf(err, "read %s", app.secretFile)
+		}
+	}
+
+	secretsMap, err := processSecrets(app.secrets.Value(), app.secretFiles.Value(), secretsFileMap)
 	if err != nil {
 		return err
 	}
@@ -397,7 +420,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		enttlmnts = append(enttlmnts, entitlements.EntitlementSecurityInsecure)
 	}
 
-	overridingVars, err := app.combineVariables(dotEnvMap, flagArgs)
+	overridingVars, err := app.combineVariables(argMap, flagArgs)
 	if err != nil {
 		return err
 	}
