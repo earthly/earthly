@@ -98,16 +98,21 @@ Currently selected: No
 
 ### Clearing cache
 
-The easiest way to clear cache on a satellite is to restart it using the `update` command with `--drop-cache` flag.
+There are two ways to clear the cache on satellite.
+
+#### Recreating the Underlying Satellite Instance (often faster)
+
+Running the `update`  command with `--drop-cache` will relaunch the instance with an empty cache volume.
+Note that this operation can take a while, and the satellite may also receive any available updates during the process.
 
 ```bash
 earthly satellite update --drop-cache my-satellte
 ```
+#### Using the prune command (slower)
 
-Note that this operation can take a while, and the satellite may also receive any available updates during the process.
-
-The `earthly prune` command can also be used. In many cases, however, it takes longer than using `satellite update`.
-The prune command also requires the satellite to be selected before running.
+The `earthly prune` command also works on satellites.
+It usually takes longer than running `satellite update`, however, it does not trigger a relaunch.
+The prune command requires the satellite to be selected before running.
 
 ```bash
 earthly prune -a
@@ -115,14 +120,13 @@ earthly prune -a
 
 ### Updating a satellite
 
-By default satellites will automatically update as new versions become available. 
-Alternativly, satellite can also be pinned to specific earthly versions, however they will still receive patches and security fixes.
+Satellites receive version updates by default, unless they are pinned to a specific version (by using the `--version` launch flag).
+Pinned versions will still receive minor patches, such as security updates.
 
 #### Auto-Update Maintenance Windows
 
 Maintenance windows are set between 2AM and 4AM in the timezone where the satellite is launched by default.
-If you prefer a different maintenance window, you can specify it in the launch command using the `--maintenance-window` flag.
-Using this flag, you can pass the start time in 24-hr format. The satellite will update within 2 hours of specified start time.
+The start time of the 2 hour window can be explicitly set by passing a 24-hr formatted time to the `--maintenance-window` flag of the launch command.
 
 Here's an example showing a satellite launched with a custom maintenance window of 4AM to 6AM:
 
@@ -131,7 +135,7 @@ earthly satellite launch --maintenance-window 04:00 my-satellite
 ```
 
 Note that updates will only happen during the maintenance window while the satellite is asleep. If the satellite remains in use 
-for the entire duration of the maintenance window, then the update will be aborted until the next day.
+for the entire duration of the maintenance window, then the update will be re-attempted the next day.
 
 #### Version Pinning
 
