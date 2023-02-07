@@ -130,7 +130,12 @@ type SatelliteStatusUpdate struct {
 func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, gitConfigEmail string, isCI bool) (out chan SatelliteStatusUpdate) {
 	out = make(chan SatelliteStatusUpdate)
 	go func() {
-		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		// Some notes on the 10-minute timeout here:
+		// Usually satellites reserve in 1-15 seconds, however, in some edge cases it will take longer.
+		// It can take a minute if the satellite is actively falling asleep (it needs to finish, then wake back up).
+		// In extreme cases, if a satellite update is running, the satellite can take around 6 minutes to finish,
+		// however, those updates typically only run overnight when the user is not expected to run builds.
+		ctxTimeout, cancel := context.WithTimeout(ctx, 10*time.Minute)
 		defer cancel()
 		defer close(out)
 		stream, err := c.compute.ReserveSatellite(c.withAuth(ctxTimeout), &pb.ReserveSatelliteRequest{
