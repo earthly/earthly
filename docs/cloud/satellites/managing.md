@@ -104,10 +104,10 @@ The easiest way to clear cache on a satellite is to restart it using the `update
 earthly satellite update --drop-cache my-satellte
 ```
 
-Note this operation will take around 6-minutes, and the satellite may also receive any available updates during the process.
+Note that this operation can take a while, and the satellite may also receive any available updates during the process.
 
-The `earthly prune` command can also be used. In many cases, however, it may take longer than using `satellite update`. 
-The prune command requires the satellite to be selected before running.
+The `earthly prune` command can also be used. In many cases, however, it takes longer than using `satellite update`.
+The prune command also requires the satellite to be selected before running.
 
 ```bash
 earthly prune -a
