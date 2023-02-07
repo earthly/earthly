@@ -174,7 +174,7 @@ earthly satellite update --feature-flag cache-pct=30 my-satellite
 #### Satellite Revision System
 
 In more detail, satellite versions are controlled via Earthly's internal revisioning system. 
-A satellite revision includes an earthly version, plus a revision increment, where each earthly version may contain a number or ordered revisions.
+A satellite revision includes an earthly version plus a revision increment, where each earthly version may contain a number or ordered revisions.
 Revision increments are released to patch stability or performance within a specific earthly version.
 
 You can view your current satellite version and revision number using the `earthly satellite inspect` command.
