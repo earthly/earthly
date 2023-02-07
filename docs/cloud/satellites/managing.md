@@ -122,7 +122,7 @@ Satellite updates will only run during their specific maintenance window.
 #### Auto-Update Maintenance Windows
 
 Maintenance windows are set between 2AM and 4AM in the timezone where the satellite is launched by default.
-If you prefer a different maintenance window, however, you can specify it in the launch command using the `--maintenance-window` flag.
+If you prefer a different maintenance window, you can specify it in the launch command using the `--maintenance-window` flag.
 Using this flag, you can pass the start time in 24-hr format. The satellite will update within 2 hours of specified start time.
 
 Here's an example showing a satellite launched with a custom maintenance window of 4AM to 6AM:
@@ -137,7 +137,7 @@ for the entire duration of the maintenance window, then the update will be abort
 #### Version Pinning
 
 If you want to prevent your satellite from automatically upgrading to a new earthly version, you can pin your version using the `--version` flag.
-Note that satellites on pinned versions may still receive auto-updates during a maintenance window; however, these updaets will be important stability or security patches that will not change the version of earthly.
+Note that satellites on pinned versions may still receive auto-updates during a maintenance window; however, these updates will be important stability or security patches that will not change the version of earthly.
 
 ```bash
 earthly satellite launch --version v0.6.29 my-satellite
@@ -155,7 +155,7 @@ The following example updates a satellite to the latest version, respecting any 
 earthly satellite update my-satellite
 ```
 
-The following command updates the satellite and clear its cache during the process. If no update is available, this command will still clear the cache.
+The following command updates the satellite and clears its cache during the process. If no updates are available, this command will still clear the cache.
 
 ```bash
 earthly satellite update --drop-cache my-satellite
