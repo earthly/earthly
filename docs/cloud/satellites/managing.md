@@ -145,7 +145,7 @@ earthly satellite launch --version v0.6.29 my-satellite
 
 #### Manually Updating a Satellite
 
-Satellites can also be manually updated using the `update` command. The update command can be used to not only trigger a version upgrade, but also to change other parameters of the satellite, such as feature-flags or it's cache. 
+Satellites can also be manually updated using the `update` command. The update command can be used to not only trigger a version upgrade, but also to change other parameters of the satellite, such as feature-flags or its cache. 
 Satellites must be in a sleep state before an update can be started. You can use the `earthly satellite sleep` command to do this manually.
 Below are some examples of how you can use the `update` command.
 
