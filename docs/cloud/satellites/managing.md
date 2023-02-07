@@ -179,6 +179,11 @@ Note feature-flags are typically used to preview unreleased features. They are c
 earthly satellite update --feature-flag cache-pct=30 my-satellite
 ```
 
+{% hint style='info' %}
+##### Note
+It's not currently possible to completely clear out the flags using the update command; you will have to destroy and recreate the satellite.
+{% endhint %}
+
 #### Satellite Revision System
 
 In more detail, satellite versions are controlled via Earthly's internal revisioning system. 
