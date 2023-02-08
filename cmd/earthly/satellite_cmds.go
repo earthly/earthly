@@ -262,7 +262,7 @@ func (app *earthlyApp) getSatelliteOrgID(ctx context.Context, cloudClient *cloud
 		return "", errors.New("unable to authenticate")
 	}
 	var orgID string
-	if app.cliFlags.orgName == "" {
+	if app.orgName == "" {
 		orgs, err := cloudClient.ListOrgs(ctx)
 		if err != nil {
 			return "", errors.Wrap(err, "failed finding org")
@@ -273,11 +273,11 @@ func (app *earthlyApp) getSatelliteOrgID(ctx context.Context, cloudClient *cloud
 		if len(orgs) > 1 {
 			return "", errors.New("more than one organizations available - please specify the name of the organization using `--org`")
 		}
-		app.cliFlags.orgName = orgs[0].Name
+		app.orgName = orgs[0].Name
 		orgID = orgs[0].ID
 	} else {
 		var err error
-		orgID, err = cloudClient.GetOrgID(ctx, app.cliFlags.orgName)
+		orgID, err = cloudClient.GetOrgID(ctx, app.orgName)
 		if err != nil {
 			return "", errors.Wrap(err, "invalid org provided")
 		}
@@ -345,7 +345,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	}
 	app.console.Printf("...Done\n")
 
-	err = app.useSatellite(cliCtx, app.satelliteName, app.cliFlags.orgName)
+	err = app.useSatellite(cliCtx, app.satelliteName, app.orgName)
 	if err != nil {
 		return errors.Wrap(err, "could not configure satellite for use")
 	}
@@ -515,7 +515,7 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 			// Only instruct the user to run this if the satellite is asleep.
 			// Otherwise, satellite may be updating, still starting, etc.
 			app.console.Printf("")
-			app.console.Printf("    earthly satellite --org %s wake %s", app.cliFlags.orgName, satelliteToInspect)
+			app.console.Printf("    earthly satellite --org %s wake %s", app.orgName, satelliteToInspect)
 			app.console.Printf("")
 		}
 	}
@@ -560,7 +560,7 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 	found := false
 	for _, s := range satellites {
 		if app.satelliteName == s.Name {
-			err = app.useSatellite(cliCtx, s.Name, app.cliFlags.orgName)
+			err = app.useSatellite(cliCtx, s.Name, app.orgName)
 			if err != nil {
 				return errors.Wrapf(err, "could not select satellite %s", app.satelliteName)
 			}

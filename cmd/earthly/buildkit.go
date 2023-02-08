@@ -149,8 +149,8 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient *clou
 	if app.satelliteName == "" {
 		app.satelliteName = app.cfg.Satellite.Name
 	}
-	if app.cliFlags.orgName == "" {
-		app.cliFlags.orgName = app.cfg.Satellite.Org
+	if app.orgName == "" {
+		app.orgName = app.cfg.Satellite.Org
 	}
 	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {

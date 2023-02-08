@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/earthly/cloud-api/analytics"
-
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"

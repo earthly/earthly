@@ -174,7 +174,7 @@ func (app *earthlyApp) actionProjectMemberList(cliCtx *cli.Context) error {
 		return err
 	}
 
-	if app.cliFlags.projectName == "" {
+	if app.projectName == "" {
 		return errors.New("project name is required")
 	}
 
@@ -183,7 +183,7 @@ func (app *earthlyApp) actionProjectMemberList(cliCtx *cli.Context) error {
 		return err
 	}
 
-	members, err := cloudClient.ListProjectMembers(cliCtx.Context, orgName, app.cliFlags.projectName)
+	members, err := cloudClient.ListProjectMembers(cliCtx.Context, orgName, app.projectName)
 	if err != nil {
 		return errors.Wrap(err, "failed to list project members")
 	}
@@ -220,7 +220,7 @@ func (app *earthlyApp) actionProjectMemberRemove(cliCtx *cli.Context) error {
 		return err
 	}
 
-	if app.cliFlags.projectName == "" {
+	if app.projectName == "" {
 		return errors.New("project name is required")
 	}
 
@@ -229,7 +229,7 @@ func (app *earthlyApp) actionProjectMemberRemove(cliCtx *cli.Context) error {
 		return errors.New("user email is required")
 	}
 
-	err = cloudClient.RemoveProjectMember(cliCtx.Context, orgName, app.cliFlags.projectName, userEmail)
+	err = cloudClient.RemoveProjectMember(cliCtx.Context, orgName, app.projectName, userEmail)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove project member")
 	}
@@ -256,7 +256,7 @@ func (app *earthlyApp) actionProjectMemberAdd(cliCtx *cli.Context) error {
 		return err
 	}
 
-	if app.cliFlags.projectName == "" {
+	if app.projectName == "" {
 		return errors.New("project name is required")
 	}
 
@@ -270,7 +270,7 @@ func (app *earthlyApp) actionProjectMemberAdd(cliCtx *cli.Context) error {
 		return errors.New("permission is required")
 	}
 
-	err = cloudClient.AddProjectMember(cliCtx.Context, orgName, app.cliFlags.projectName, userEmail, permission)
+	err = cloudClient.AddProjectMember(cliCtx.Context, orgName, app.projectName, userEmail, permission)
 	if err != nil {
 		return errors.Wrap(err, "failed to add project member")
 	}
@@ -297,7 +297,7 @@ func (app *earthlyApp) actionProjectMemberUpdate(cliCtx *cli.Context) error {
 		return err
 	}
 
-	if app.cliFlags.projectName == "" {
+	if app.projectName == "" {
 		return errors.New("project name is required")
 	}
 
@@ -311,7 +311,7 @@ func (app *earthlyApp) actionProjectMemberUpdate(cliCtx *cli.Context) error {
 		return errors.New("permission is required")
 	}
 
-	err = cloudClient.UpdateProjectMember(cliCtx.Context, orgName, app.cliFlags.projectName, userEmail, permission)
+	err = cloudClient.UpdateProjectMember(cliCtx.Context, orgName, app.projectName, userEmail, permission)
 	if err != nil {
 		return errors.Wrap(err, "failed to update project member")
 	}
@@ -324,8 +324,8 @@ func (app *earthlyApp) actionProjectMemberUpdate(cliCtx *cli.Context) error {
 // projectOrgName returns the specified org or retrieves the default org from the API.
 func (app *earthlyApp) projectOrgName(ctx context.Context, cloudClient *cloud.Client) (string, error) {
 
-	if app.cliFlags.orgName != "" {
-		return app.cliFlags.orgName, nil
+	if app.orgName != "" {
+		return app.orgName, nil
 	}
 
 	userOrgs, err := cloudClient.ListOrgs(ctx)
