@@ -106,7 +106,7 @@ Running the `update` command with `--drop-cache` will relaunch the instance with
 Note that this operation can take a while, and the satellite may also receive any available updates during the process.
 
 ```bash
-earthly satellite update --drop-cache my-satellte
+earthly satellite update --drop-cache my-satellite
 ```
 #### Using the prune command (slower)
 
