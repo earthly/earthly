@@ -34,12 +34,14 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 					Name:        "platform",
 					Usage:       "The platform to use when launching a new satellite. Supported values: linux/amd64, linux/arm64.",
 					Required:    false,
+					Value:       cloud.SatellitePlatformAMD64,
 					Destination: &app.satellitePlatform,
 				},
 				&cli.StringFlag{
 					Name:        "size",
 					Usage:       "The size of the satellite. See https://earthly.dev/pricing#compute for details on each size. Supported values: small, medium, large.",
 					Required:    false,
+					Value:       cloud.SatelliteSizeMedium,
 					Destination: &app.satelliteSize,
 				},
 				&cli.StringSliceFlag{
@@ -308,6 +310,13 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
+	}
+
+	if !cloud.ValidSatellitePlatform(platform) {
+		return errors.Errorf("not a valid platform: '%s'", platform)
+	}
+	if !cloud.ValidSatelliteSize(size) {
+		return errors.Errorf("not a valid size: '%s'", size)
 	}
 
 	if window == "" {
