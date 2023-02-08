@@ -1,0 +1,10 @@
+VERSION 0.7
+
+FROM golang:1.19-alpine3.15
+
+# documented-target is a target with documentation comments
+# above it.
+documented-target:
+    # documented-arg is an arg with documentation comments
+    # above it.
+    ARG documentedArg

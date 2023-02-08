@@ -164,7 +164,7 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud
 		app.buildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
 	}
 	app.analyticsMetadata.isSatellite = true
-	app.analyticsMetadata.satelliteVersion = "" // TODO
+	app.analyticsMetadata.satelliteCurrentVersion = "" // TODO
 
 	app.console.Printf("") // newline
 	app.console.Printf("The following feature flag is recommended for use with Satellites and will be auto-enabled:")

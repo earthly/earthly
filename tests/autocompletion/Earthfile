@@ -19,10 +19,12 @@ test-root-commands:
     RUN echo "account 
 bootstrap 
 config 
+doc 
 ls 
 org 
 project 
 prune 
+registry 
 satellite 
 secret " > expected
     RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
@@ -35,12 +37,14 @@ bootstrap
 build 
 config 
 debug 
+doc 
 docker 
 docker2earthly 
 ls 
 org 
 project 
 prune 
+registry 
 satellite 
 secret 
 web " > expected

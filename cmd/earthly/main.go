@@ -30,6 +30,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/earthly/cloud-api/logstream"
+
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
@@ -51,7 +52,13 @@ const (
 	DefaultBuildkitdVolumeSuffix = "-cache"
 
 	defaultEnvFile = ".env"
-	envFileFlag    = "env-file"
+	envFileFlag    = "env-file-path"
+
+	defaultArgFile = ".arg"
+	argFileFlag    = "arg-file-path"
+
+	defaultSecretFile = ".secret"
+	secretFileFlag    = "secret-file-path"
 )
 
 type earthlyApp struct {
@@ -107,7 +114,6 @@ type cliFlags struct {
 	token                      string
 	password                   string
 	disableNewLine             bool
-	secretFile                 string
 	secretStdin                bool
 	cloudHTTPAddr              string
 	cloudGRPCAddr              string
@@ -133,6 +139,8 @@ type cliFlags struct {
 	featureFlagOverrides       string
 	localRegistryHost          string
 	envFile                    string
+	argFile                    string
+	secretFile                 string
 	lsShowLong                 bool
 	lsShowArgs                 bool
 	containerFrontend          containerutil.ContainerFrontend
@@ -142,6 +150,9 @@ type cliFlags struct {
 	satellitePlatform          string
 	satelliteSize              string
 	satellitePrintJSON         bool
+	satelliteMaintenanceWindow string
+	satelliteDropCache         bool
+	satelliteVersion           string
 	userPermission             string
 	noBuildkitUpdate           bool
 	globalWaitEnd              bool // for feature-flipping builder.go code removal
@@ -156,14 +167,17 @@ type cliFlags struct {
 	requestID                  string
 	buildID                    string
 	loginProvider              string
+	registryUsername           string
+	registryPassword           string
+	registryPasswordStdin      bool
 }
 
 type analyticsMetadata struct {
-	isSatellite      bool
-	isRemoteBuildkit bool
-	satelliteVersion string
-	buildkitPlatform string
-	userPlatform     string
+	isSatellite             bool
+	isRemoteBuildkit        bool
+	satelliteCurrentVersion string
+	buildkitPlatform        string
+	userPlatform            string
 }
 
 var (
@@ -303,7 +317,7 @@ func main() {
 					CommandName:      app.commandName,
 					ExitCode:         exitCode,
 					IsSatellite:      app.analyticsMetadata.isSatellite,
-					SatelliteVersion: app.analyticsMetadata.satelliteVersion,
+					SatelliteVersion: app.analyticsMetadata.satelliteCurrentVersion,
 					IsRemoteBuildkit: app.analyticsMetadata.isRemoteBuildkit,
 					Realtime:         time.Since(startTime),
 				},

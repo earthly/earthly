@@ -32,6 +32,9 @@ fi
 
 releases=$(jq -r '.[] | @base64' < "/tmp/releases")
 
+outdir="$HOME/bin"
+mkdir -p "$outdir"
+
 for row in $releases; do
     version=$(echo "$row" | base64 -d | jq -r '.name')
     pattern="$version/$release_name"
@@ -41,7 +44,7 @@ for row in $releases; do
         if echo "$url" | grep -w "earth" >/dev/null; then
             earthlybin="earth"
         fi
-        outfile="$HOME/bin/$earthlybin-$version"
+        outfile="$outdir/$earthlybin-$version"
 
         if [ ! -f "$outfile" ]; then
             echo "Downloading $url to $outfile"

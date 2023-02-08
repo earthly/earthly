@@ -1,0 +1,34 @@
+VERSION 0.7
+
+withtestuser:
+  FROM alpine:3.15
+  RUN adduser -D testuser
+  WORKDIR /test
+
+producer:
+  FROM +withtestuser
+  RUN touch testperms
+  RUN chown testuser:testuser testperms
+  SAVE ARTIFACT testperms
+
+test-known-user:
+  FROM +withtestuser
+  WORKDIR /test
+  COPY --keep-own +producer/testperms .
+  RUN test "$(stat -c '%u' testperms)" = "1000"
+  RUN test "$(stat -c '%U' testperms)" = "testuser"
+  RUN test "$(stat -c '%g' testperms)" = "1000"
+  RUN test "$(stat -c '%G' testperms)" = "testuser"
+
+test-unknown-user:
+  FROM alpine:3.15
+  WORKDIR /test
+  COPY --keep-own +producer/testperms .
+  RUN test "$(stat -c '%u' testperms)" = "1000"
+  RUN test "$(stat -c '%U' testperms)" = "UNKNOWN"
+  RUN test "$(stat -c '%g' testperms)" = "1000"
+  RUN test "$(stat -c '%G' testperms)" = "UNKNOWN"
+
+test:
+  BUILD +test-known-user
+  BUILD +test-unknown-user
