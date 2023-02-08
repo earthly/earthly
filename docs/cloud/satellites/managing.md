@@ -152,7 +152,7 @@ Satellites can also be manually updated using the `update` command. The update c
 Satellites must be in a sleep state before an update can be started. You can use the `earthly satellite sleep` command to do this manually.
 Below are some examples of how you can use the `update` command.
 
-The following example updates a satellite to the latest version, respecting any pinned versions:
+The following example updates a satellite to the latest revision, respecting any pinned versions:
 
 ```bash
 earthly satellite update my-satellite
