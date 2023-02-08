@@ -1,4 +1,5 @@
-<h1 align="center"><a href="https://earthly.dev"><img src="img/logo-banner-white-bg.png" alt="Earthly" align="center" width="700px" /></a></h1>
+<h1 align="center"><a href="https://earthly.dev">Earthly
+<br/><img src="img/logo-banner-white-bg.png" alt="Earthly" align="center" width="700px" /></a></h1>
 
 [![GitHub Actions CI](https://github.com/earthly/earthly/workflows/GitHub%20Actions%20CI/badge.svg)](https://github.com/earthly/earthly/actions?query=workflow%3A%22GitHub+Actions+CI%22+branch%3Amain)
 [![Join the chat on Slack](https://img.shields.io/badge/slack-join%20chat-red.svg)](https://earthly.dev/slack)
@@ -89,7 +90,7 @@ Earthly is meant to be used both on your development machine and in CI. It runs 
 
 <h2 align="center">How Does It Work?</h2>
 
-In short: **containers**, **layer caching** and **complex build graphs**!
+In short: **containers**, **layer caching**, and **complex build graphs**!
 
 Earthly executes builds in containers, where execution is isolated. The dependencies of the build are explicitly specified in the build definition, thus making the build self-sufficient.
 
@@ -218,7 +219,7 @@ build:
 
 ### 🤲 Build tools that work everywhere
 
-No need to ask your team to install `protoc`, a specific version of Python, Java 1.6 or the .NET Core ecosystem. You only install once, in your Earthfile, and it works for everyone. Or even better, you can just make use of the rich Docker Hub ecosystem.
+No need to ask your team to install `protoc`, a specific version of Python, Java 1.6, or the .NET Core ecosystem. Install once in your Earthfile, and it works for everyone. Or even better, you can just make use of the rich Docker Hub ecosystem.
 
 ```earthly
 VERSION 0.6
@@ -303,13 +304,13 @@ release:
 
 ### How is Earthly different from Dockerfiles?
 
-[Dockerfiles](https://docs.docker.com/engine/reference/builder/) were designed for specifying the make-up of Docker images and that's where Dockerfiles stop. Earthly takes some key principles of Dockerfiles (like layer caching), but expands on the use-cases. For example, Earthly can output regular artifacts, run unit and integration tests, and create several Docker images at a time - all outside the scope of Dockerfiles.
+[Dockerfiles](https://docs.docker.com/engine/reference/builder/) were designed for specifying the make-up of Docker images and that's where Dockerfiles stop. Earthly takes some key principles of Dockerfiles (like layer caching) but expands on the use cases. For example, Earthly can output regular artifacts, run unit and integration tests, and create several Docker images at a time - all outside the scope of Dockerfiles.
 
-It is possible to use Dockerfiles in combination with other technologies (e.g., Makefiles or bash files) to solve such use-cases. However, these combinations are difficult to parallelize, challenging to scale across repositories as they lack a robust import system and also they often vary in style from one team to another. Earthly does not have these limitations as it was designed as a general-purpose build system.
+It is possible to use Dockerfiles in combination with other technologies (e.g., Makefiles or bash files) to solve such use cases. However, these combinations are difficult to parallelize, challenging to scale across repositories as they lack a robust import system, and often vary in style from one team to another. Earthly does not have these limitations as it was designed as a general-purpose build system.
 
-For example, Earthly introduces a richer target, artifact and image [referencing system](https://docs.earthly.dev/guides/target-ref), allowing for better reuse in complex builds spanning a single large repository or multiple repositories. Because Dockerfiles are only meant to describe one image at a time, such features are outside the scope of applicability of Dockerfiles.
+For example, Earthly introduces a richer target, artifact, and image [referencing system](https://docs.earthly.dev/guides/target-ref), allowing for better reuse in complex builds spanning a single large repository or multiple repositories. Because Dockerfiles are only meant to describe one image at a time, such features are outside the scope of applicability of Dockerfiles.
 
-### How do I tell apart classical Dockerfile commands from Earthly commands?
+### How do I know if a command is a classic Dockerfile command or an Earthly command?
 
 Check out the [Earthfile reference doc page](https://docs.earthly.dev/earthfile). It has all the commands there and specifies which commands are the same as Dockerfile commands and which are new.
 
