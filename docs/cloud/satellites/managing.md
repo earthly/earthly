@@ -111,7 +111,7 @@ earthly satellite update --drop-cache my-satellte
 #### Using the prune command (slower)
 
 The `earthly prune` command also works on satellites.
-It usually takes longer than running `satellite update`, however, it does not trigger a relaunch.
+It usually takes longer than running `satellite update`; however, it does not trigger a relaunch.
 The prune command requires the satellite to be selected before running.
 
 ```bash
