@@ -10,11 +10,10 @@ type ProjectTracker struct {
 	mutex              sync.Locker
 }
 
-func NewProjectTracker() *ProjectTracker {
-	return &ProjectTracker{
-		mutex: &sync.Mutex{},
-	}
+var projectTracker = ProjectTracker{
+	mutex: &sync.Mutex{},
 }
+
 func (pt *ProjectTracker) AddEarthfileProject(org, project string) {
 	pt.mutex.Lock()
 	defer pt.mutex.Unlock()

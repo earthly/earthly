@@ -258,3 +258,15 @@ func CollectAnalytics(ctx context.Context, cloudClient *cloud.Client, displayErr
 		fmt.Fprintf(os.Stderr, "Warning: timed out while sending analytics\n")
 	}
 }
+
+func AddEarthfileProject(org, project string) {
+	projectTracker.AddEarthfileProject(org, project)
+}
+
+func AddCommandLineProject(org, project string) {
+	projectTracker.AddCommandLineProject(org, project)
+}
+
+func ProjectDetails() (string, string) {
+	return projectTracker.ProjectDetails()
+}

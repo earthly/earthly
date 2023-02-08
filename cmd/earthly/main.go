@@ -70,7 +70,6 @@ type earthlyApp struct {
 	commandName string
 	cliFlags
 	analyticsMetadata
-	projectTracker *analytics.ProjectTracker
 }
 
 type cliFlags struct {
@@ -314,7 +313,7 @@ func main() {
 		if err != nil && displayErrors {
 			app.console.Warnf("unable to start cloud client: %s", err)
 		} else if err == nil {
-			org, project := app.projectTracker.ProjectDetails()
+			org, project := analytics.ProjectDetails()
 			analytics.CollectAnalytics(
 				ctxTimeout, cloudClient, displayErrors, analytics.Meta{
 					Version:          Version,
@@ -374,8 +373,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 		cliFlags: cliFlags{
 			buildkitdSettings: buildkitd.Settings{},
 		},
-		logbus:         logbus.New(),
-		projectTracker: analytics.NewProjectTracker(),
+		logbus: logbus.New(),
 	}
 
 	earthly := getBinaryName()
