@@ -30,8 +30,8 @@ func (app *earthlyApp) accountCmds() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:        "register",
-			Usage:       "Register for an Earthly account",
-			Description: "Register for an Earthly account",
+			Usage:       "Register for an Earthly account *beta*",
+			Description: "Register for an Earthly account *beta*",
 			UsageText: "You may register using GitHub OAuth, by visiting https://ci.earthly.dev\n" +
 				"   Once authenticated, a login token will be displayed which can be used to login:\n" +
 				"\n" +
@@ -79,8 +79,8 @@ func (app *earthlyApp) accountCmds() []*cli.Command {
 		},
 		{
 			Name:        "login",
-			Usage:       "Login to an Earthly account",
-			Description: "Login to an Earthly account",
+			Usage:       "Login to an Earthly account *beta*",
+			Description: "Login to an Earthly account *beta*",
 			UsageText: "earthly [options] account login\n" +
 				"   earthly [options] account login --email <email>\n" +
 				"   earthly [options] account login --email <email> --password <password>\n" +
@@ -107,37 +107,37 @@ func (app *earthlyApp) accountCmds() []*cli.Command {
 		},
 		{
 			Name:        "logout",
-			Usage:       "Logout of an Earthly account",
-			Description: "Logout of an Earthly account; this has no effect for ssh-based authentication",
+			Usage:       "Logout of an Earthly account *beta*",
+			Description: "Logout of an Earthly account; this has no effect for ssh-based authentication *beta*",
 			Action:      app.actionAccountLogout,
 		},
 		{
 			Name:      "list-keys",
-			Usage:     "List associated public keys used for authentication",
+			Usage:     "List associated public keys used for authentication *beta*",
 			UsageText: "earthly [options] account list-keys",
 			Action:    app.actionAccountListKeys,
 		},
 		{
 			Name:      "add-key",
-			Usage:     "Associate a new public key with your account",
+			Usage:     "Associate a new public key with your account *beta*",
 			UsageText: "earthly [options] add-key [<key>]",
 			Action:    app.actionAccountAddKey,
 		},
 		{
 			Name:      "remove-key",
-			Usage:     "Removes an existing public key from your account",
+			Usage:     "Removes an existing public key from your account *beta*",
 			UsageText: "earthly [options] remove-key <key>",
 			Action:    app.actionAccountRemoveKey,
 		},
 		{
 			Name:      "list-tokens",
-			Usage:     "List associated tokens used for authentication",
+			Usage:     "List associated tokens used for authentication *beta*",
 			UsageText: "earthly [options] account list-tokens",
 			Action:    app.actionAccountListTokens,
 		},
 		{
 			Name:      "create-token",
-			Usage:     "Create a new authentication token for your account",
+			Usage:     "Create a new authentication token for your account *beta*",
 			UsageText: "earthly [options] account create-token [options] <token name>",
 			Action:    app.actionAccountCreateToken,
 			Flags: []cli.Flag{
@@ -155,13 +155,13 @@ func (app *earthlyApp) accountCmds() []*cli.Command {
 		},
 		{
 			Name:      "remove-token",
-			Usage:     "Remove an authentication token from your account",
+			Usage:     "Remove an authentication token from your account *beta*",
 			UsageText: "earthly [options] account remove-token <token>",
 			Action:    app.actionAccountRemoveToken,
 		},
 		{
 			Name:  "reset",
-			Usage: "Reset Earthly account password",
+			Usage: "Reset Earthly account password *beta*",
 			UsageText: "earthly [options] account reset --email <email>\n" +
 				"   earthly [options] account reset --email <email> --token <token>\n",
 			Action: app.actionAccountReset,
@@ -190,7 +190,7 @@ func (app *earthlyApp) actionAccountRegister(cliCtx *cli.Context) error {
 	if !strings.Contains(app.email, "@") {
 		return errors.New("email is invalid")
 	}
-	
+
 	cloudClient, err := app.newCloudClient()
 	if err != nil {
 		return err

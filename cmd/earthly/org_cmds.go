@@ -16,33 +16,33 @@ func (app *earthlyApp) orgCmds() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:      "create",
-			Usage:     "Create a new organization",
+			Usage:     "Create a new organization *beta*",
 			UsageText: "earthly [options] org create <org-name>",
 			Action:    app.actionOrgCreate,
 		},
 		{
 			Name:      "ls",
 			Aliases:   []string{"list"},
-			Usage:     "List organizations you belong to",
+			Usage:     "List organizations you belong to *beta*",
 			UsageText: "earthly [options] org ls",
 			Action:    app.actionOrgList,
 		},
 		{
 			Name:      "list-permissions",
-			Usage:     "List permissions and membership of an organization",
+			Usage:     "List permissions and membership of an organization *beta*",
 			UsageText: "earthly [options] org list-permissions <org-name>",
 			Action:    app.actionOrgListPermissions,
 		},
 		{
 			Name:      "revoke",
-			Usage:     "Remove accounts from your organization",
+			Usage:     "Remove accounts from your organization *beta*",
 			UsageText: "earthly [options] org revoke <path> <email> [<email> ...]",
 			Action:    app.actionOrgRevoke,
 		},
 		{
 			Name:        "invite",
-			Usage:       "Invite users",
-			Description: "Invite users",
+			Usage:       "Invite users *beta*",
+			Description: "Invite users *beta*",
 			UsageText:   "earthly org [--org <organization-name>] invite [--name <recipient-name>] [--permission <permission>] [--message <message>] <email>",
 			Action:      app.actionOrgInviteEmail,
 			Flags: []cli.Flag{
@@ -62,16 +62,16 @@ func (app *earthlyApp) orgCmds() []*cli.Command {
 			Subcommands: []*cli.Command{
 				{
 					Name:        "accept",
-					Usage:       "Accept an invitation to join an organization",
-					Description: "Accept an invitation to join an organization",
+					Usage:       "Accept an invitation to join an organization *beta*",
+					Description: "Accept an invitation to join an organization *beta*",
 					UsageText:   "earthly org invite accept <invite-code>",
 					Action:      app.actionOrgInviteAccept,
 				},
 				{
 					Name:        "ls",
 					Aliases:     []string{"list"},
-					Usage:       "List all sent invitations (both pending and accepted)",
-					Description: "List all pending and accepted invitations",
+					Usage:       "List all sent invitations (both pending and accepted) *beta*",
+					Description: "List all pending and accepted invitations *beta*",
 					UsageText:   "earthly org [--org <organization>] invite ls",
 					Action:      app.actionOrgInviteList,
 				},
@@ -80,22 +80,22 @@ func (app *earthlyApp) orgCmds() []*cli.Command {
 		{
 			Name:        "member",
 			Aliases:     []string{"members"},
-			Usage:       "Manage organization members",
-			Description: "Manage organization members",
+			Usage:       "Manage organization members *beta*",
+			Description: "Manage organization members *beta*",
 			UsageText:   "earthly org [--org <organization-name>] members (ls|update|rm)",
 			Subcommands: []*cli.Command{
 				{
 					Name:        "ls",
 					Aliases:     []string{"list"},
-					Usage:       "List organization members and their permission level",
-					Description: "List organization members and their permission level",
+					Usage:       "List organization members and their permission level *beta*",
+					Description: "List organization members and their permission level *beta*",
 					UsageText:   "earthly org [--org organization] members ls",
 					Action:      app.actionOrgMemberList,
 				},
 				{
 					Name:        "update",
-					Usage:       "Update an organization member's permission",
-					Description: "Update an organization member's permission",
+					Usage:       "Update an organization member's permission *beta*",
+					Description: "Update an organization member's permission *beta*",
 					UsageText:   "earthly org [--org organization] members update --permission <permission> <user-email>",
 					Action:      app.actionOrgMemberUpdate,
 					Flags: []cli.Flag{
@@ -108,8 +108,8 @@ func (app *earthlyApp) orgCmds() []*cli.Command {
 				},
 				{
 					Name:        "rm",
-					Usage:       "Remove a user from the organization",
-					Description: "Remove a user from the organization",
+					Usage:       "Remove a user from the organization *beta*",
+					Description: "Remove a user from the organization *beta*",
 					UsageText:   "earthly org [--org organization] members rm <user-email>",
 					Action:      app.actionOrgMemberRemove,
 				},
@@ -148,7 +148,7 @@ func (app *earthlyApp) actionOrgList(cliCtx *cli.Context) error {
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	for _, org := range orgs {
-		fmt.Fprintf(w, "/%s/", org.Name)
+		fmt.Fprintf(w, "%s", org.Name)
 		if org.Admin {
 			fmt.Fprintf(w, "\tadmin")
 		} else {

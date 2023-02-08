@@ -9,7 +9,7 @@ generate-github-tasks:
             echo "      - name: run $f" >> /tmp/earthly-6b4acf13-2ef9-4008-9e64-a369b0eedc4a.steps; \
             echo "        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/$f" >> /tmp/earthly-6b4acf13-2ef9-4008-9e64-a369b0eedc4a.steps; \
         done; \
-        ls -lah ../../../.github/workflows/ci.yml; \ 
+        ls -lah ../../../.github/workflows/ci.yml; \
         START=$(grep -n '# auto-generated-entries start' ../../../.github/workflows/ci.yml | awk -F ':' '{print $1}'); \
         END=$(grep -n '# auto-generated-entries end' ../../../.github/workflows/ci.yml | awk -F ':' '{print $1}'); \
         test -n "$START"; \

@@ -40,9 +40,10 @@ type Features struct {
 	GitCommitAuthorTimestamp bool `long:"git-commit-author-timestamp" description:"include EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP arg"`
 	NewPlatform              bool `long:"new-platform" description:"enable new platform behavior"`
 	NoTarBuildOutput         bool `long:"no-tar-build-output" description:"do not print output when creating a tarball to load into WITH DOCKER"`
+	SaveArtifactKeepOwn      bool `long:"save-artifact-keep-own" description:"always apply the --keep-own flag with SAVE ARTIFACT"`
 	ShellOutAnywhere         bool `long:"shell-out-anywhere" description:"allow shelling-out in the middle of ARGs, or any other command"`
 	UseCacheCommand          bool `long:"use-cache-command" description:"allow use of CACHE command in Earthfiles"`
-	UseChmod                 bool `long:"use-chmod" description:"enable the SAVE IMAGE --no-manifest-list option"`
+	UseChmod                 bool `long:"use-chmod" description:"enable the COPY --chmod option"`
 	UseCopyLink              bool `long:"use-copy-link" description:"use the equivalent of COPY --link for all copy-like operations"`
 	UseHostCommand           bool `long:"use-host-command" description:"allow use of HOST command in Earthfiles"`
 	UseNoManifestList        bool `long:"use-no-manifest-list" description:"enable the SAVE IMAGE --no-manifest-list option"`
@@ -171,7 +172,7 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 		return nil, false, errUnexpectedArgs
 	}
 
-	parsedArgs, err := flagutil.ParseArgsWithValueModifierAndOptions("VERSION", &ftrs, version.Args, instrumentVersion, goflags.PassDoubleDash|goflags.PassAfterNonOption|goflags.AllowBoolValues)
+	parsedArgs, err := flagutil.ParseArgsWithValueModifierAndOptions("VERSION", &ftrs, version.Args, instrumentVersion, goflags.PassDoubleDash|goflags.PassAfterNonOption)
 	if err != nil {
 		return nil, false, err
 	}
@@ -223,6 +224,7 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 		ftrs.GitCommitAuthorTimestamp = true
 		ftrs.NewPlatform = true
 		ftrs.NoTarBuildOutput = true
+		ftrs.SaveArtifactKeepOwn = true
 		ftrs.ShellOutAnywhere = true
 		ftrs.UseCacheCommand = true
 		ftrs.UseChmod = true

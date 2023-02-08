@@ -10,17 +10,6 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
-	"github.com/joho/godotenv"
-	"github.com/moby/buildkit/client/llb"
-	"github.com/moby/buildkit/session"
-	"github.com/moby/buildkit/session/auth/authprovider"
-	"github.com/moby/buildkit/session/localhost/localhostprovider"
-	"github.com/moby/buildkit/session/socketforward/socketprovider"
-	"github.com/moby/buildkit/session/sshforward/sshprovider"
-	"github.com/moby/buildkit/util/entitlements"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
-
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
@@ -32,14 +21,28 @@ import (
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/gitutil"
+	"github.com/earthly/earthly/util/llbutil/authprovider"
+	"github.com/earthly/earthly/util/llbutil/authprovider/cloudauth"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
+	"github.com/joho/godotenv"
+	"github.com/moby/buildkit/client/llb"
+	"github.com/moby/buildkit/session"
+	"github.com/moby/buildkit/session/auth"
+	dockerauthprovider "github.com/moby/buildkit/session/auth/authprovider"
+	"github.com/moby/buildkit/session/localhost/localhostprovider"
+	"github.com/moby/buildkit/session/socketforward/socketprovider"
+	"github.com/moby/buildkit/session/sshforward/sshprovider"
+	"github.com/moby/buildkit/util/entitlements"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
 )
 
 func (app *earthlyApp) actionBuild(cliCtx *cli.Context) error {
@@ -290,12 +293,34 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	dotEnvMap, err := godotenv.Read(app.envFile)
 	if err != nil {
 		// ignore ErrNotExist when using default .env file
-		if app.envFile != defaultEnvFile || !errors.Is(err, os.ErrNotExist) {
+		if cliCtx.IsSet(envFileFlag) || !errors.Is(err, os.ErrNotExist) {
 			return errors.Wrapf(err, "read %s", app.envFile)
 		}
 	}
+	validEnvNames := cliutil.GetValidEnvNames(app.cliApp)
+	for k := range dotEnvMap {
+		if _, found := validEnvNames[k]; !found {
+			app.console.Warnf("unexpected env \"%s\": as of v0.7.0, --build-arg values must be defined in .arg (and --secret values in .secret)", k)
+		}
+	}
 
-	secretsMap, err := processSecrets(app.secrets.Value(), app.secretFiles.Value(), dotEnvMap)
+	argMap, err := godotenv.Read(app.argFile)
+	if err != nil {
+		// ignore ErrNotExist when using default .env file
+		if cliCtx.IsSet(argFileFlag) || !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrapf(err, "read %s", app.argFile)
+		}
+	}
+
+	secretsFileMap, err := godotenv.Read(app.secretFile)
+	if err != nil {
+		// ignore ErrNotExist when using default .env file
+		if cliCtx.IsSet(secretFileFlag) || !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrapf(err, "read %s", app.secretFile)
+		}
+	}
+
+	secretsMap, err := processSecrets(app.secrets.Value(), app.secretFiles.Value(), secretsFileMap)
 	if err != nil {
 		return err
 	}
@@ -333,19 +358,25 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		localhostProvider,
 	}
 
-	switch app.containerFrontend.Config().Setting {
-	case containerutil.FrontendDocker, containerutil.FrontendDockerShell:
-		cfg := config.LoadDefaultConfigFile(os.Stderr)
-		attachables = append(attachables, authprovider.NewDockerAuthProvider(cfg))
+	cfg := config.LoadDefaultConfigFile(os.Stderr)
+	cloudStoredAuthProvider := cloudauth.NewProvider(cfg, cloudClient, app.console)
 
+	authServers := []auth.AuthServer{}
+	if _, _, _, err := cloudClient.WhoAmI(cliCtx.Context); err == nil {
+		// only add cloud-based auth provider when logged in
+		authServers = append(authServers, cloudStoredAuthProvider.(auth.AuthServer))
+	}
+
+	switch app.containerFrontend.Config().Setting {
 	case containerutil.FrontendPodman, containerutil.FrontendPodmanShell:
-		attachables = append(attachables, authprovider.NewPodmanAuthProvider(os.Stderr))
+		authServers = append(authServers, dockerauthprovider.NewPodmanAuthProvider(os.Stderr).(auth.AuthServer))
 
 	default:
-		// Old default behavior
-		cfg := config.LoadDefaultConfigFile(os.Stderr)
-		attachables = append(attachables, authprovider.NewDockerAuthProvider(cfg))
+		// includes containerutil.FrontendDocker, containerutil.FrontendDockerShell:
+		authServers = append(authServers, dockerauthprovider.NewDockerAuthProvider(cfg).(auth.AuthServer))
 	}
+
+	attachables = append(attachables, authprovider.NewAuthProvider(authServers))
 
 	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
 	err = app.updateGitLookupConfig(gitLookup)
@@ -389,7 +420,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		enttlmnts = append(enttlmnts, entitlements.EntitlementSecurityInsecure)
 	}
 
-	overridingVars, err := app.combineVariables(dotEnvMap, flagArgs)
+	overridingVars, err := app.combineVariables(argMap, flagArgs)
 	if err != nil {
 		return err
 	}
@@ -496,6 +527,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		// explicitly set this to true at the top level (without granting the entitlements.EntitlementSecurityInsecure buildkit option),
 		// to differentiate between a user forgetting to run earthly -P, versus a remotely referencing an earthfile that requires privileged.
 		AllowPrivileged: true,
+
+		CloudStoredAuthProvider: cloudStoredAuthProvider.(cloudauth.ProjectBasedAuthProvider),
 	}
 	if app.artifactMode {
 		buildOpts.OnlyArtifact = &artifact
@@ -563,7 +596,7 @@ func receiveFileVersion1(ctx context.Context, conn io.ReadWriteCloser, localArti
 	return f.Close()
 }
 
-func receiveFileVersion2(ctx context.Context, conn io.ReadWriteCloser, localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) error {
+func receiveFileVersion2(ctx context.Context, conn io.ReadWriteCloser, localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) (retErr error) {
 	// dst path
 	dst, err := debuggercommon.ReadUint16PrefixedData(conn)
 	if err != nil {
@@ -580,7 +613,7 @@ func receiveFileVersion2(ctx context.Context, conn io.ReadWriteCloser, localArti
 	}
 
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			// don't output incomplete data
 			_ = f.Close()
 			_ = os.Remove(string(dst))

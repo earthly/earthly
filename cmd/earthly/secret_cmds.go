@@ -16,10 +16,12 @@ func (app *earthlyApp) secretCmds() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:  "set",
-			Usage: "Stores a secret in the secrets store",
+			Usage: "Stores a secret in the secrets store *beta*",
 			UsageText: "earthly [options] secret set <path> <value>\n" +
 				"   earthly [options] secret set --file <local-path> <path>\n" +
-				"   earthly [options] secret set --stdin <path>",
+				"   earthly [options] secret set --stdin <path>\n" +
+				"\n" +
+				"Security Recommendation: use --file or --stdin to avoid accidentally storing secrets in your shell's history",
 			Action: app.actionSecretsSetV2,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
@@ -39,7 +41,7 @@ func (app *earthlyApp) secretCmds() []*cli.Command {
 		{
 			Name:      "get",
 			Action:    app.actionSecretsGetV2,
-			Usage:     "Retrieve a secret from the secrets store",
+			Usage:     "Retrieve a secret from the secrets store *beta*",
 			UsageText: "earthly [options] secret get [options] <path>",
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
@@ -51,19 +53,19 @@ func (app *earthlyApp) secretCmds() []*cli.Command {
 		},
 		{
 			Name:      "ls",
-			Usage:     "List secrets in the secrets store",
+			Usage:     "List secrets in the secrets store *beta*",
 			UsageText: "earthly [options] secret ls [<path>]",
 			Action:    app.actionSecretsListV2,
 		},
 		{
 			Name:      "rm",
-			Usage:     "Removes a secret from the secrets store",
+			Usage:     "Removes a secret from the secrets store *beta*",
 			UsageText: "earthly [options] secret rm <path>",
 			Action:    app.actionSecretsRemoveV2,
 		},
 		{
 			Name:      "migrate",
-			Usage:     "Migrate existing secrets into the new project-based structure",
+			Usage:     "Migrate existing secrets into the new project-based structure *beta*",
 			UsageText: "earthly [options] secret --org <organization> --project <project> migrate <source-organization>",
 			Action:    app.actionSecretsMigrate,
 			Flags: []cli.Flag{
@@ -78,7 +80,7 @@ func (app *earthlyApp) secretCmds() []*cli.Command {
 		{
 			Name:      "permission",
 			Aliases:   []string{"permissions"},
-			Usage:     "Manage user-level secret permissions.",
+			Usage:     "Manage user-level secret permissions. *beta*",
 			UsageText: "earthly [options] secret permission (ls|set|rm)",
 			Subcommands: []*cli.Command{
 				{
@@ -115,15 +117,10 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 		path = cliCtx.Args().Get(0)
 	}
 
-	if app.orgName == "" {
-		return errors.New("invalid organization name")
+	path, err := app.fullSecretPath(path)
+	if err != nil {
+		return err
 	}
-
-	if app.projectName == "" {
-		return errors.New("invalid project name")
-	}
-
-	path = app.fullSecretPath(path)
 
 	cloudClient, err := app.newCloudClient()
 	if err != nil {
@@ -166,7 +163,10 @@ func (app *earthlyApp) actionSecretsGetV2(cliCtx *cli.Context) error {
 		return err
 	}
 
-	path = app.fullSecretPath(path)
+	path, err = app.fullSecretPath(path)
+	if err != nil {
+		return err
+	}
 
 	secrets, err := cloudClient.ListSecrets(cliCtx.Context, path)
 	if err != nil {
@@ -199,7 +199,10 @@ func (app *earthlyApp) actionSecretsRemoveV2(cliCtx *cli.Context) error {
 		return err
 	}
 
-	path = app.fullSecretPath(path)
+	path, err = app.fullSecretPath(path)
+	if err != nil {
+		return err
+	}
 
 	err = cloudClient.RemoveSecret(cliCtx.Context, path)
 	if err != nil {
@@ -251,7 +254,10 @@ func (app *earthlyApp) actionSecretsSetV2(cliCtx *cli.Context) error {
 		return err
 	}
 
-	path = app.fullSecretPath(path)
+	path, err = app.fullSecretPath(path)
+	if err != nil {
+		return err
+	}
 
 	err = cloudClient.SetSecret(cliCtx.Context, path, []byte(value))
 	if err != nil {
@@ -261,19 +267,26 @@ func (app *earthlyApp) actionSecretsSetV2(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) fullSecretPath(path string) string {
+func (app *earthlyApp) fullSecretPath(path string) (string, error) {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
 
 	if strings.HasPrefix(path, "/user") {
-		return path
+		return path, nil
+	}
+
+	if app.orgName == "" {
+		return "", fmt.Errorf("the --org flag is required")
+	}
+	if app.projectName == "" {
+		return "", fmt.Errorf("the --project flag is required")
 	}
 
 	// TODO: These values will eventually come from the new PROJECT command (if
 	// one is present). For now, we can use the flag/env values as a temporary
 	// measure.
-	return fmt.Sprintf("/%s/%s%s", app.orgName, app.projectName, path)
+	return fmt.Sprintf("/%s/%s%s", app.orgName, app.projectName, path), nil
 }
 
 func (app *earthlyApp) actionSecretPermsList(cliCtx *cli.Context) error {
@@ -284,7 +297,10 @@ func (app *earthlyApp) actionSecretPermsList(cliCtx *cli.Context) error {
 	}
 
 	path := cliCtx.Args().Get(0)
-	path = app.fullSecretPath(path)
+	path, err := app.fullSecretPath(path)
+	if err != nil {
+		return err
+	}
 
 	if strings.Contains(path, "/user") {
 		return errors.New("user secrets don't support permissions")
@@ -323,7 +339,10 @@ func (app *earthlyApp) actionSecretPermsRemove(cliCtx *cli.Context) error {
 	}
 
 	path := cliCtx.Args().Get(0)
-	path = app.fullSecretPath(path)
+	path, err := app.fullSecretPath(path)
+	if err != nil {
+		return err
+	}
 
 	if strings.Contains(path, "/user") {
 		return errors.New("user secrets don't support permissions")
@@ -357,7 +376,10 @@ func (app *earthlyApp) actionSecretPermsSet(cliCtx *cli.Context) error {
 	}
 
 	path := cliCtx.Args().Get(0)
-	path = app.fullSecretPath(path)
+	path, err := app.fullSecretPath(path)
+	if err != nil {
+		return err
+	}
 
 	if strings.Contains(path, "/user") {
 		return errors.New("user secrets don't support permissions")

@@ -34,8 +34,19 @@ set -ex
 #    env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG=v0.6.0 ./release.sh
 #
 
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+cd "$SCRIPT_DIR"
+
+test -n "$HOME" || (echo "ERROR: HOME is not set"; exit 1);
+test -n "$RELEASE_TAG" || (echo "ERROR: RELEASE_TAG is not set" && exit 1);
+(echo "$RELEASE_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+\(-rc[0-9]\+\)\?$' > /dev/null) || (echo "ERROR: RELEASE_TAG must be formatted as v1.2.3 (or v1.2.3-RC1); instead got \"$RELEASE_TAG\""; exit 1);
+command -v jq || (echo "ERROR: jq is not installed"; exit 1);
+
 if [[ "$earthly" == .* ]]; then
   earthly="$(pwd)/$earthly"
+elif [ -z "$earthly" ]; then
+  ../earthly upgrade
+  earthly="../earthly"
 fi
 
 # TODO once v 0.7 is fully released, we can remove this
@@ -43,16 +54,6 @@ if ! "$earthly" secrets --help 2>&1 | grep migrate > /dev/null; then
     echo "you are using an older version of earthly, please upgrade to v0.7.X (or build it from main)"
     exit 1
 fi
-
-SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-cd $SCRIPT_DIR
-
-test -n "$HOME" || (echo "ERROR: HOME is not set"; exit 1);
-
-test -n "$RELEASE_TAG" || (echo "ERROR: RELEASE_TAG is not set" && exit 1);
-(echo "$RELEASE_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+\(-rc[0-9]\+\)\?$' > /dev/null) || (echo "ERROR: RELEASE_TAG must be formatted as v1.2.3 (or v1.2.3-RC1); instead got \"$RELEASE_TAG\""; exit 1);
-
-command -v jq || (echo "ERROR: jq is not installed"; exit 1);
 
 # Set default values
 export GITHUB_USER=${GITHUB_USER:-earthly}
@@ -62,13 +63,18 @@ export DOCKERHUB_BUILDKIT_IMG=${DOCKERHUB_BUILDKIT_IMG:-buildkitd}
 export EARTHLY_REPO=${EARTHLY_REPO:-earthly}
 export BREW_REPO=${BREW_REPO:-homebrew-earthly}
 export GITHUB_SECRET_PATH=$GITHUB_SECRET_PATH
-export PRERELEASE=${PRERELEASE:-false}
+export PRERELEASE=${PRERELEASE:-true}
 export SKIP_CHANGELOG_DATE_TEST=${SKIP_CHANGELOG_DATE_TEST:-false}
 export S3_BUCKET=${S3_BUCKET:-production-pkg}
 
 
 if [ "$PRERELEASE" != "false" ] && [ "$PRERELEASE" != "true" ]; then
     echo "PRERELEASE must be \"true\" or \"false\""
+    exit 1
+fi
+
+if [[ "$RELEASE_TAG" =~ "rc" ]] && [ "$PRERELEASE" != "true" ]; then
+    echo "unable to have release candidate \"$RELEASE_TAG\" when PRERELEASE is not true (got \"$PRERELEASE\" instead)"
     exit 1
 fi
 
@@ -98,11 +104,6 @@ else
     fi
 fi
 
-if [ -z "$earthly" ]; then
-  ../earthly upgrade
-  earthly="../earthly"
-fi
-
 # fail-fast if release-notes do not exist (or if date is incorrect)
 "$earthly" --build-arg RELEASE_TAG --build-arg SKIP_CHANGELOG_DATE_TEST +release-notes
 
@@ -129,8 +130,8 @@ if [ "$PRERELEASE" = "true" ] || [ "$PRODUCTION_RELEASE" != "true" ]; then
     PUSH_LATEST_TAG="false"
 fi
 
-"$earthly" --push --build-arg DOCKERHUB_USER --build-arg DOCKERHUB_IMG --build-arg DOCKERHUB_BUILDKIT_IMG --build-arg RELEASE_TAG --build-arg PRERELEASE +release-dockerhub
-"$earthly" --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg DOCKERHUB_BUILDKIT_IMG --build-arg RELEASE_TAG --build-arg SKIP_CHANGELOG_DATE_TEST $GITHUB_SECRET_PATH_BUILD_ARG +release-github --PUSH_LATEST_TAG="$PUSH_LATEST_TAG" --PUSH_PRERELEASE_TAG="$PRERELEASE"
+"$earthly" --push --build-arg DOCKERHUB_USER --build-arg DOCKERHUB_IMG --build-arg DOCKERHUB_BUILDKIT_IMG --build-arg RELEASE_TAG +release-dockerhub --PUSH_PRERELEASE_TAG="$PRERELEASE" --PUSH_LATEST_TAG="$PUSH_LATEST_TAG"
+"$earthly" --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg DOCKERHUB_BUILDKIT_IMG --build-arg RELEASE_TAG --build-arg SKIP_CHANGELOG_DATE_TEST --build-arg PRERELEASE $GITHUB_SECRET_PATH_BUILD_ARG +release-github
 
 if [ "$PRERELEASE" != "false" ]; then
     echo "exiting due to PRERELEASE=$PRERELEASE"

@@ -1,0 +1,33 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "golang:1.19-alpine3.15"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "docs": "documented-target is a target with documentation comments\nabove it.\n",
+      "name": "documented-target",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "documentedArg"
+            ],
+            "name": "ARG"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.7"
+    ]
+  }
+}

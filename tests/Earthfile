@@ -77,6 +77,7 @@ ga-no-qemu:
     BUILD +privileged-test
     BUILD +copy-test
     BUILD +copy-test-verbose-output
+    BUILD +copy-keep-own-test
     BUILD +cache-test
     BUILD +git-clone-test
     # this has been moved to a seperate target until we get the flakey "tell me who you are" bug
@@ -224,6 +225,7 @@ ga-no-qemu:
     BUILD +server
     BUILD +build-after-from
     BUILD +pipelines
+    BUILD +doc
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -240,6 +242,12 @@ ga-no-qemu:
 
 tests-that-require-earthly-technologies-account-access:
     BUILD ./web+test \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE
+    BUILD ./registry-command+test \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
@@ -304,6 +312,10 @@ earthly --config \$earthly_config --verbose +copy 2>&1 | tee output2.txt;
     # test SAVE ARTIFACT AS LOCAL texts is output
     DO +RUN_EARTHLY --earthfile=copy-verbose.earth --extra_args="--verbose" --target=+save --output_contains="received data for important-data .12 B."
     RUN ls -la important-data
+
+copy-keep-own-test:
+    DO +RUN_EARTHLY --target=+test-known-user --earthfile=copy-keep-own.earth
+    DO +RUN_EARTHLY --target=+test-unknown-user --earthfile=copy-keep-own.earth
 
 cache-test:
     # Test that a file can be passed between runs through the mounted cache.
@@ -607,39 +619,52 @@ chown-test:
     DO +RUN_EARTHLY --earthfile=chown.earth --target=+test
 
 dotenv-test:
-    RUN echo "TEST_ENV_1=abracadabra" >.env
-    RUN echo "TEST_ENV_2=foo" >>.env
-    RUN echo "TEST_ENV_3=bar" >>.env
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test
+    RUN echo "TEST_IN_DOTENV=this-should-not-appear-as-a-build-arg" >.env
+    RUN echo "TEST_ARG_1=abracadabra" >.arg
+    RUN echo "TEST_SEC_2=foo" >.secret
+    RUN echo "TEST_ARG_3=bar" >>.arg
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test --output_contains="unexpected env .TEST_IN_DOTENV.: as of v0.7.0, --build-arg values must be defined in .arg"
 
-    # Smoke test that no .env file does not result in an error.
-    RUN mv .env .some-other-env
+    # test non-standard .arg paths can be used
+    RUN mv .arg .some-other-arg
     DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-dotenv
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-file .some-other-env" --target=+test
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ENV_FILE=.some-other-env" --target=+test
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-file .this-should-fail" --should_fail="true" --target=+test
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ENV_FILE=.this-too-should-fail" --should_fail="true" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-file-path .some-other-arg" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ARG_FILE_PATH=.some-other-arg" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-file-path .this-should-fail" --should_fail="true" --target=+test --output_contains="open .this-should-fail: no such file or directory"
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ARG_FILE_PATH=.this-too-should-fail" --should_fail="true" --target=+test --output_contains="open .this-too-should-fail: no such file or directory"
 
     # --env-file takes precedence
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-file .some-other-env" --pre_command="export EARTHLY_ENV_FILE=.this-should-be-ignored" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-file-path .some-other-arg" --pre_command="export EARTHLY_ARG_FILE_PATH=.this-should-be-ignored" --target=+test
+
+    # test .secret can be renamed
+    RUN mv .secret .some-other-secret
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-file-path .some-other-arg --secret-file-path .some-other-secret" --target=+test
+
+    # test .env values still affect earthly cli
+    RUN echo EARTHLY_PUSH=1 > .env
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-with-push
+    RUN mv .env .some-other-env
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-push
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-file-path .some-other-env" --target=+test-with-push
 
 stack-failure-test:
-    RUN echo "TEST_ENV_1=abracadabra" >.env
-    RUN echo "TEST_ENV_2=foo" >>.env
-    RUN echo "THIS_IS_SECRET=dont-display-this" >>.env
+    RUN echo "TEST_ARG_1=abracadabra" >.arg
+    RUN echo "TEST_ARG_2=foo" >>.arg
+    RUN echo "THIS_IS_SECRET=dont-display-this" >>.secret
+    RUN echo "THIS_IS_ALSO_A_SECRET=dont-display-this-either" >>.env # test for user accidentally putting a secret in .env (carried over from a v0.6.0 .env file)
 
-    # test that only declared ARGs are displayed in output (and non-referenced .env values which may actually be secrets aren't)
+    # test that only declared ARGs are displayed in output (and non-referenced .arg values which may actually be secrets aren't)
     DO +RUN_EARTHLY --earthfile=stack-failure.earth --extra_args="--no-output" --output_contains="unknown flag .cause-interpreter-failure." --should_fail="true" --target=+fail
     RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
-    RUN grep 'in.*+fail --TEST_ENV_1=abracadabra --TEST_ENV_2=foo' earthly.output
+    RUN grep 'in.*+fail --TEST_ARG_1=abracadabra --TEST_ARG_2=foo' earthly.output
 
     # test missing target doesn't leak secret
     DO +RUN_EARTHLY --earthfile=stack-failure.earth --extra_args="--no-output" --output_contains="target this-does-not-exist not found" --should_fail="true" --target=+this-does-not-exist
     RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
 
 multi-stack-failure-test:
-    RUN echo "FOO=foo" >.env
-    RUN echo "THIS_IS_SECRET=dont-display-this" >>.env
+    RUN echo "FOO=foo" >.arg
+    RUN echo "THIS_IS_SECRET=dont-display-this" >>.arg
 
     DO +RUN_EARTHLY --earthfile=multi-stack-failure.earth --extra_args="--no-output --build-arg BAR=bar" --output_contains="unknown flag .cause-interpreter-failure." --should_fail="true" --target=+fail
     RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
@@ -1127,6 +1152,23 @@ help:
     RUN earthly --help | grep -v 'buildkit-volume-name'
     ENV EARTHLY_SHOW_HIDDEN=1
     RUN earthly --help | grep 'buildkit-volume-name'
+
+doc:
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --output_contains="TARGETS:
+  +documented-target
+    documented-target is a target with documentation
+    that spans multiple lines.
+
+    It also has a separator between paragraphs."
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --grep_flags="-v" --output_contains="undocumented-target"
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --grep_flags="-v" --output_contains="incorrectly-documented-target"
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+documented-target" --output_contains="+documented-target
+  documented-target is a target with documentation
+  that spans multiple lines.
+
+  It also has a separator between paragraphs."
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+undocumented-target" --should_fail=true --output_contains="no doc comment found"
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+incorrectly-documented-target" --should_fail=true --output_contains="no doc comment found"
 
 cache-cmd:
     DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test

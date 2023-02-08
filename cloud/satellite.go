@@ -2,7 +2,9 @@ package cloud
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"regexp"
 	"time"
 
 	pb "github.com/earthly/cloud-api/compute"
@@ -21,6 +23,8 @@ const (
 	SatelliteStatusStopping = "Stopping"
 	// SatelliteStatusCreating indicates a new satellite that is currently being launched.
 	SatelliteStatusCreating = "Creating"
+	// SatelliteStatusUpdating indicates a satellite that is upgrading to a new version, either manually or via maintenance window.
+	SatelliteStatusUpdating = "Updating"
 	// SatelliteStatusFailed indicates a satellite that has crashed and cannot be used.
 	SatelliteStatusFailed = "Failed"
 	// SatelliteStatusDestroying indicates a satellite that is actively being deleted.
@@ -33,13 +37,17 @@ const (
 
 // SatelliteInstance contains details about a remote Buildkit instance.
 type SatelliteInstance struct {
-	Name         string
-	Org          string
-	State        string
-	Platform     string
-	Size         string
-	Version      string
-	FeatureFlags []string
+	Name                   string
+	Org                    string
+	State                  string
+	Platform               string
+	Size                   string
+	Version                string
+	VersionPinned          bool
+	FeatureFlags           []string
+	MaintenanceWindowStart string
+	MaintenanceWindowEnd   string
+	RevisionID             int32
 }
 
 func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error) {
@@ -72,13 +80,17 @@ func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*Satelli
 		return nil, errors.Wrap(err, "failed getting satellite")
 	}
 	return &SatelliteInstance{
-		Name:         name,
-		Org:          orgID,
-		State:        satelliteStatus(resp.Status),
-		Platform:     resp.Platform,
-		Size:         resp.Size,
-		Version:      resp.Version,
-		FeatureFlags: resp.FeatureFlags,
+		Name:                   name,
+		Org:                    orgID,
+		State:                  satelliteStatus(resp.Status),
+		Platform:               resp.Platform,
+		Size:                   resp.Size,
+		Version:                resp.Version,
+		VersionPinned:          resp.VersionPinned,
+		FeatureFlags:           resp.FeatureFlags,
+		MaintenanceWindowStart: resp.MaintenanceWindowStart,
+		MaintenanceWindowEnd:   resp.MaintenanceWindowEnd,
+		RevisionID:             resp.RevisionId,
 	}, nil
 }
 
@@ -93,14 +105,17 @@ func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error 
 	return nil
 }
 
-func (c *client) LaunchSatellite(ctx context.Context, name, orgID, platform, size string, features []string) error {
-	_, err := c.compute.LaunchSatellite(c.withAuth(ctx), &pb.LaunchSatelliteRequest{
-		OrgId:        orgID,
-		Name:         name,
-		Platform:     platform,
-		Size:         size,
-		FeatureFlags: features,
-	})
+func (c *client) LaunchSatellite(ctx context.Context, name, orgID, platform, size, version, maintenanceWindow string, features []string) error {
+	req := &pb.LaunchSatelliteRequest{
+		OrgId:                  orgID,
+		Name:                   name,
+		Platform:               platform,
+		Size:                   size,
+		FeatureFlags:           features,
+		Version:                version,
+		MaintenanceWindowStart: maintenanceWindow,
+	}
+	_, err := c.compute.LaunchSatellite(c.withAuth(ctx), req)
 	if err != nil {
 		return errors.Wrap(err, "failed launching satellite")
 	}
@@ -115,7 +130,12 @@ type SatelliteStatusUpdate struct {
 func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, gitConfigEmail string, isCI bool) (out chan SatelliteStatusUpdate) {
 	out = make(chan SatelliteStatusUpdate)
 	go func() {
-		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		// Some notes on the 10-minute timeout here:
+		// Usually satellites reserve in 1-15 seconds, however, in some edge cases it will take longer.
+		// It can take a minute if the satellite is actively falling asleep (it needs to finish, then wake back up).
+		// In extreme cases, if a satellite update is running, the satellite can take around 6 minutes to finish,
+		// however, those updates typically only run overnight when the user is not expected to run builds.
+		ctxTimeout, cancel := context.WithTimeout(ctx, 10*time.Minute)
 		defer cancel()
 		defer close(out)
 		stream, err := c.compute.ReserveSatellite(c.withAuth(ctxTimeout), &pb.ReserveSatelliteRequest{
@@ -218,6 +238,47 @@ func (c *client) SleepSatellite(ctx context.Context, name, orgID string) (out ch
 	return out
 }
 
+func (c *client) UpdateSatellite(ctx context.Context, name, orgID, version, maintenanceWindow string, dropCache bool, featureFlags []string) error {
+	req := &pb.UpdateSatelliteRequest{
+		OrgId:                  orgID,
+		Name:                   name,
+		Version:                version,
+		DropCache:              dropCache,
+		FeatureFlags:           featureFlags,
+		MaintenanceWindowStart: maintenanceWindow,
+	}
+	_, err := c.compute.UpdateSatellite(c.withAuth(ctx), req)
+	if err != nil {
+		return errors.Wrap(err, "failed getting satellite")
+	}
+	return nil
+}
+
+var maintenanceWindowRx = regexp.MustCompile(`[0-9]{2}:[0-9]{2}\z`)
+
+// LocalMaintenanceWindowToUTC checks if the provided maintenance window is valid
+// and returns a new maintenance window converted from local time to UTC format.
+func LocalMaintenanceWindowToUTC(window string, loc *time.Location) (string, error) {
+	if !maintenanceWindowRx.MatchString(window) {
+		return "", errors.New("maintenance window must be in the format HH:MM (24hr)")
+	}
+	t, err := time.ParseInLocation("15:04:05", fmt.Sprintf("%s:00", window), loc)
+	if err != nil {
+		return "", errors.Wrap(err, "failed parsing maintenance window")
+	}
+	return t.UTC().Format("15:04"), nil
+}
+
+// UTCMaintenanceWindowToLocal checks if the provided maintenance window is valid
+// and returns a new maintenance window converted from local time to UTC format.
+func UTCMaintenanceWindowToLocal(window string, loc *time.Location) (string, error) {
+	t, err := time.ParseInLocation("15:04:05", fmt.Sprintf("%s:00", window), time.UTC)
+	if err != nil {
+		return "", errors.Wrap(err, "failed parsing maintenance window")
+	}
+	return t.In(loc).Format("15:04"), nil
+}
+
 func satelliteStatus(status pb.SatelliteStatus) string {
 	switch status {
 	case pb.SatelliteStatus_SATELLITE_STATUS_OPERATIONAL:
@@ -230,6 +291,8 @@ func satelliteStatus(status pb.SatelliteStatus) string {
 		return SatelliteStatusStopping
 	case pb.SatelliteStatus_SATELLITE_STATUS_CREATING:
 		return SatelliteStatusCreating
+	case pb.SatelliteStatus_SATELLITE_STATUS_UPDATING:
+		return SatelliteStatusUpdating
 	case pb.SatelliteStatus_SATELLITE_STATUS_FAILED:
 		return SatelliteStatusFailed
 	case pb.SatelliteStatus_SATELLITE_STATUS_DESTROYING:

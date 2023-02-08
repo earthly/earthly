@@ -20,18 +20,24 @@ WORKDIR /test
 test-trailing-backslash:
     DO +RUN_EARTHLY_ARGS --earthfile=trailing-backslash.earth --should_fail=true --target=+base
 
+test-leading-whitespace:
+    DO +RUN_EARTHLY_ARGS --earthfile=leading-whitespace.earth --should_fail=true --target=+base --output_contains="syntax error"
+
 test-all:
     BUILD +test-trailing-backslash
+    BUILD +test-leading-whitespace
 
 RUN_EARTHLY_ARGS:
     COMMAND
     ARG earthfile
     ARG target
     ARG should_fail=false
+    ARG output_contains
     DO tests+RUN_EARTHLY \
         --earthfile=$earthfile \
         --target=$target \
         --should_fail=$should_fail \
+        --output_contains=$output_contains \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \

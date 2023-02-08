@@ -20,6 +20,8 @@ RUN apk add --update --no-cache \
 
 WORKDIR /earthly
 
+# deps downloads and caches all dependencies for earthly. When called directly,
+# go.mod and go.sum will be updated locally.
 deps:
     FROM +base
     RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.0
@@ -58,6 +60,7 @@ code:
     COPY --dir earthfile2llb/*.go earthfile2llb/
     COPY --dir ast/antlrhandler ast/spec ast/*.go ast/
 
+# update-buildkit updates earthly's buildkit dependency.
 update-buildkit:
     FROM +code # if we use deps, go mod tidy will remove a bunch of requirements since it won't have access to our codebase.
     ARG BUILDKIT_GIT_SHA
@@ -125,11 +128,14 @@ earthly-script-no-stdout:
     RUN test "$(cat earthly-version-output | wc -l)" = "1"
     RUN grep '^earthly version.*$' earthly-version-output # only --version info should go to stdout
 
+# lint runs basic go linters against the earthly project.
 lint:
     FROM +code
     COPY ./.golangci.yaml ./
     RUN golangci-lint run
 
+# lint-newline-ending checks that line endings are unix style and that files end
+# with a single newline.
 lint-newline-ending:
     FROM alpine:3.15
     WORKDIR /everything
@@ -184,6 +190,7 @@ markdown-spellcheck:
     # TODO remove the greps once the corresponding markdown files have spelling fixed (or techterms added to .vale/styles/HouseStyle/tech-terms/...
     RUN find . -type f -iname '*.md' | xargs vale --config /etc/vale/vale.ini --output line --minAlertLevel error
 
+# unit-test runs unit tests (and some integration tests).
 unit-test:
     FROM +code
     RUN apk add --no-cache --update podman
@@ -194,7 +201,7 @@ unit-test:
     # pkgname determines the package name (or names) that will be tested. The go
     # submodules must be specified explicitly or they will not be run, as
     # "./..." does not match submodules.
-    ARG pkgname = ./... github.com/earthly/earthly/ast/... github.com/earthly/earthly/util/deltautil/...
+    ARG pkgname = ./...
 
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false
@@ -218,10 +225,17 @@ unit-test:
         END
     ELSE
         WITH DOCKER
-            RUN ./not-a-unit-test.sh
+            RUN testname=$testname pkgname=$pkgname ./not-a-unit-test.sh
         END
     END
 
+    # The following are separate go modules and need to be tested separately.
+    # The not-a-unit-test.sh script above actually DOES run unit-tests as well
+    BUILD ./ast+unit-test
+    BUILD ./util/deltautil+unit-test
+
+# submodule-decouple-check checks that go submodules within earthly do not
+# depend on the core earthly project.
 submodule-decouple-check:
     FROM +code
     RUN for submodule in github.com/earthly/earthly/ast github.com/earthly/earthly/util/deltautil; \
@@ -514,6 +528,7 @@ all:
     BUILD +prerelease
     BUILD +all-dind
 
+# lint-all runs all linting checks against the earthly project.
 lint-all:
     BUILD +lint
     BUILD +lint-scripts
@@ -677,7 +692,7 @@ license:
     COPY LICENSE ./
     SAVE ARTIFACT LICENSE
 
-# This target is to help keep all node package-lock.json files up to date
+# npm-update-all helps keep all node package-lock.json files up to date.
 npm-update-all:
     FROM node:16.16.0-alpine3.15
     COPY . /code
