@@ -263,8 +263,8 @@ func AddEarthfileProject(org, project string) {
 	projectTracker.AddEarthfileProject(org, project)
 }
 
-func AddCommandLineProject(org, project string) {
-	projectTracker.AddCommandLineProject(org, project)
+func AddCLIProject(org, project string) {
+	projectTracker.AddCLIProject(org, project)
 }
 
 func ProjectDetails() (string, string) {

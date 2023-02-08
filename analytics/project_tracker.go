@@ -3,11 +3,11 @@ package analytics
 import "sync"
 
 type ProjectTracker struct {
-	earthfileOrg       string
-	earthfileProject   string
-	commandLineOrg     string
-	commandLineProject string
-	mutex              sync.Locker
+	earthfileOrg     string
+	earthfileProject string
+	cliOrg           string
+	cliProject       string
+	mutex            sync.Locker
 }
 
 var projectTracker = ProjectTracker{
@@ -21,17 +21,17 @@ func (pt *ProjectTracker) AddEarthfileProject(org, project string) {
 	pt.earthfileProject = project
 }
 
-func (pt *ProjectTracker) AddCommandLineProject(org, project string) {
-	pt.commandLineOrg = org
-	pt.commandLineProject = project
+func (pt *ProjectTracker) AddCLIProject(org, project string) {
+	pt.cliOrg = org
+	pt.cliProject = project
 }
 
 func (pt *ProjectTracker) ProjectDetails() (string, string) {
 	if pt.earthfileOrg != "" && pt.earthfileProject != "" {
 		return pt.earthfileOrg, pt.earthfileProject
 	}
-	org := pt.commandLineOrg
-	project := pt.commandLineProject
+	org := pt.cliOrg
+	project := pt.cliProject
 	pt.mutex.Lock()
 	defer pt.mutex.Unlock()
 	if pt.earthfileOrg != "" {

@@ -38,25 +38,25 @@ func TestProjectTracker_AddEarthfileProject(t *testing.T) {
 	Equal(t, project, pt.earthfileProject)
 }
 
-func TestProjectTracker_AddCommandLineProject(t *testing.T) {
+func TestProjectTracker_AddCLIProject(t *testing.T) {
 	mm := &mockMutex{}
 	pt := &ProjectTracker{
 		mutex: mm,
 	}
 	org := "some org"
 	project := "some project"
-	pt.AddCommandLineProject(org, project)
+	pt.AddCLIProject(org, project)
 	False(t, mm.lockCalled)
 	False(t, mm.unlockCalled)
-	Equal(t, org, pt.commandLineOrg)
-	Equal(t, project, pt.commandLineProject)
+	Equal(t, org, pt.cliOrg)
+	Equal(t, project, pt.cliProject)
 }
 
 func TestProjectTracker_ProjectDetails(t *testing.T) {
 	earthfileOrg := "earthfile org"
 	earthfileProject := "earthfile org"
-	commandLineOrg := "command line org"
-	commandLineProject := "command line org"
+	cliOrg := "cli org"
+	cliProject := "cli org"
 
 	testCases := map[string]struct {
 		earthfileOrg            string
@@ -94,40 +94,40 @@ func TestProjectTracker_ProjectDetails(t *testing.T) {
 			expectedOrg:             earthfileOrg,
 			expectedProject:         earthfileProject,
 		},
-		"use org from commandline after lock when it's initially not set": {
+		"use org from cli after lock when it's initially not set": {
 			earthfileOrg:            "",
 			earthfileProject:        earthfileProject,
 			expectLockUnlock:        true,
 			updatedEarthfileOrg:     "",
 			updatedEarthfileProject: "",
-			expectedOrg:             commandLineOrg,
+			expectedOrg:             cliOrg,
 			expectedProject:         earthfileProject,
 		},
-		"use project from commandline after lock when it's initially not set": {
+		"use project from cli after lock when it's initially not set": {
 			earthfileOrg:            earthfileOrg,
 			earthfileProject:        "",
 			expectLockUnlock:        true,
 			updatedEarthfileOrg:     "",
 			updatedEarthfileProject: "",
 			expectedOrg:             earthfileOrg,
-			expectedProject:         commandLineProject,
+			expectedProject:         cliProject,
 		},
-		"use org from earthfile and project from commandline after lock when initially the former is set and the latter is not": {
+		"use org from earthfile and project from cli after lock when initially the former is set and the latter is not": {
 			earthfileOrg:            earthfileOrg,
 			earthfileProject:        "",
 			expectLockUnlock:        true,
 			updatedEarthfileOrg:     earthfileOrg,
 			updatedEarthfileProject: "",
 			expectedOrg:             earthfileOrg,
-			expectedProject:         commandLineProject,
+			expectedProject:         cliProject,
 		},
-		"use org from commandline and project from earthfile after lock when initially the former is not set and the latter is": {
+		"use org from cli and project from earthfile after lock when initially the former is not set and the latter is": {
 			earthfileOrg:            "",
 			earthfileProject:        "",
 			expectLockUnlock:        true,
 			updatedEarthfileOrg:     "",
 			updatedEarthfileProject: earthfileProject,
-			expectedOrg:             commandLineOrg,
+			expectedOrg:             cliOrg,
 			expectedProject:         earthfileProject,
 		},
 		"use org & project from earthfile after lock when initially they are both not set": {
@@ -139,14 +139,14 @@ func TestProjectTracker_ProjectDetails(t *testing.T) {
 			expectedOrg:             earthfileOrg,
 			expectedProject:         earthfileProject,
 		},
-		"use org & project from commandline after lock when initially they are both not set": {
+		"use org & project from cli after lock when initially they are both not set": {
 			earthfileOrg:            "",
 			earthfileProject:        "",
 			expectLockUnlock:        true,
 			updatedEarthfileOrg:     "",
 			updatedEarthfileProject: "",
-			expectedOrg:             commandLineOrg,
-			expectedProject:         commandLineProject,
+			expectedOrg:             cliOrg,
+			expectedProject:         cliProject,
 		},
 	}
 
@@ -156,11 +156,11 @@ func TestProjectTracker_ProjectDetails(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			mm := &mockMutex{}
 			pt := &ProjectTracker{
-				earthfileOrg:       tc.earthfileOrg,
-				earthfileProject:   tc.earthfileProject,
-				commandLineOrg:     commandLineOrg,
-				commandLineProject: commandLineProject,
-				mutex:              mm,
+				earthfileOrg:     tc.earthfileOrg,
+				earthfileProject: tc.earthfileProject,
+				cliOrg:           cliOrg,
+				cliProject:       cliProject,
+				mutex:            mm,
 			}
 
 			mm.callback = func() {
