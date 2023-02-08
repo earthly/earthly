@@ -1,5 +1,6 @@
-<h1 align="center"><a href="https://earthly.dev">Earthly
-<br/><img src="img/logo-banner-white-bg.png" alt="Earthly" align="center" width="700px" /></a></h1>
+<h1>Earthly - it’s like Docker for builds</h1>
+
+<div align="center"><a href="https://earthly.dev"><img src="img/logo-banner-white-bg.png" alt="Earthly" width="700px" /></a></div>
 
 [![GitHub Actions CI](https://github.com/earthly/earthly/workflows/GitHub%20Actions%20CI/badge.svg)](https://github.com/earthly/earthly/actions?query=workflow%3A%22GitHub+Actions+CI%22+branch%3Amain)
 [![Join the chat on Slack](https://img.shields.io/badge/slack-join%20chat-red.svg)](https://earthly.dev/slack)
