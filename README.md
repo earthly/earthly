@@ -41,7 +41,7 @@
 * [Contributing](#contributing)
 * [Licensing](#licensing)
 
-<br/>
+
 <h2 align="center">Why Use Earthly?</h2>
 
 ### 🔁 Repeatable Builds
@@ -79,14 +79,14 @@ If your build has multiple steps, Earthly will:
 
 Never have to write the same code in multiple builds again. With Earthly, you can reuse targets, artifacts, and images across multiple Earthfiles, even ones in other repositories, in a single line. Earthly is cache-aware, based on the Git commit hash of the repository, and has shared caching capabilities. So you can create a vast and efficient build hierarchy that only executes the minimum required steps.
 
-<br/>
+
 <h2 align="center">Where Does Earthly Fit?</h2>
 
 <div align="center"><img src="docs/img/integration-diagram-v2.png" alt="Earthly fits between language-specific tooling and the CI" width="700px" /></div>
 
 Earthly is meant to be used both on your development machine and in CI. It runs on top of the CI/CD platform [Earthly CI](https://earthly.dev/product/earthly-ci), and it can also run on top of other popular CI systems too (such as [Jenkins](https://docs.earthly.dev/ci-integration/vendor-specific-guides/jenkins), [Circle CI](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration), and [GitLab CI/CD](https://docs.earthly.dev/ci-integration/vendor-specific-guides/gitlab-integration)). Earthly provides the benefits of a modern build automation system wherever it runs – such as caching and parallelism. It is a glue layer between language-specific build tooling (like maven, gradle, npm, pip, go build) and CI, working like a wrapper around your build tooling and build logic that isolates build execution from the environments they run in.
 
-<br/>
+
 <h2 align="center">How Does It Work?</h2>
 
 In short: **containers**, **layer caching** and **complex build graphs**!
@@ -95,17 +95,17 @@ Earthly executes builds in containers, where execution is isolated. The dependen
 
 We use a target-based system to help users break up complex builds into reusable parts. Nothing is shared between targets other than clearly declared dependencies. Nothing shared means no unexpected race conditions. In fact, the build is executed in parallel whenever possible, without any need for the user to take care of any locking or unexpected environment interactions.
 
-| ℹ️ Note <br/><br/> Earthfiles might seem very similar to Dockerfile multi-stage builds. In fact, the [same technology](https://github.com/moby/buildkit) is used underneath. However, a key difference is that Earthly is designed to be a general-purpose build system, not just a Docker image specification. Read more about [how Earthly is different from Dockerfiles](#how-is-earthly-different-from-dockerfiles). |
-| :--- |
+> **ℹ️ Note**  
+> Earthfiles might seem very similar to Dockerfile multi-stage builds. In fact, the [same technology](https://github.com/moby/buildkit) is used underneath. However, a key difference is that Earthly is designed to be a general-purpose build system, not just a Docker image specification. Read more about [how Earthly is different from Dockerfiles](#how-is-earthly-different-from-dockerfiles).
 
-<br/>
+
 <h2 align="center">Installation</h2>
 
 See [installation instructions](https://earthly.dev/get-earthly).
 
 To build from source, check the [contributing page](./CONTRIBUTING.md).
 
-<br/>
+
 <h2 align="center">Quick Start</h2>
 
 Here are some resources to get you started with Earthly
@@ -181,7 +181,7 @@ Invoke the build using `earthly +all`.
 
 Examples for other languages are available in the [examples dir](./examples).
 
-<br/>
+
 <h2 align="center">Features</h2>
 
 ### ⛓ Parallelization that just works
@@ -298,7 +298,7 @@ release:
   RUN --push --secret GITHUB_TOKEN=+secrets/user/github/token github-release upload file.bin
 ```
 
-<br/>
+
 <h2 align="center">FAQ</h2>
 
 ### How is Earthly different from Dockerfiles?
@@ -329,7 +329,7 @@ You may also optionally port your Dockerfiles to Earthly entirely. Translating D
 
 [Bazel](https://bazel.build) is a build tool developed by Google to optimize the speed, correctness, and reproducibility of their internal monorepo codebase. The main difference between Bazel and Earthly is that Bazel is a **build system**, whereas Earthly is a **general-purpose CI/CD framework**. For a more in-depth explanation see [our FAQ](https://earthly.dev/faq#bazel).
 
-<br/>
+
 <h2 align="center">Contributing</h2>
 
 * Please report bugs as [GitHub issues](https://github.com/earthly/earthly/issues).
@@ -338,7 +338,7 @@ You may also optionally port your Dockerfiles to Earthly entirely. Translating D
 * PRs welcome! But please give a heads-up in a GitHub issue before starting work. If there is no GitHub issue for what you want to do, please create one.
 * To build from source, check the [contributing page](./CONTRIBUTING.md).
 
-<br/>
+
 <h2 align="center">Licensing</h2>
 
 Earthly is licensed under the Mozilla Public License Version 2.0. See [LICENSE](./LICENSE).
