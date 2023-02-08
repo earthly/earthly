@@ -6,48 +6,48 @@ import (
 	. "github.com/stretchr/testify/assert"
 )
 
-type testMutex struct {
+type mockMutex struct {
 	lockCalled   bool
 	unlockCalled bool
 	callback     func()
 }
 
-func (tm *testMutex) Lock() {
-	tm.lockCalled = true
-	if tm.callback != nil {
-		tm.callback()
+func (mm *mockMutex) Lock() {
+	mm.lockCalled = true
+	if mm.callback != nil {
+		mm.callback()
 	}
 }
 
-func (tm *testMutex) Unlock() {
-	tm.unlockCalled = true
+func (mm *mockMutex) Unlock() {
+	mm.unlockCalled = true
 }
 
 // TestProjectTracker_AddEarthfileProject ensures the org and project are set correctly and that a lock is being acquired
 func TestProjectTracker_AddEarthfileProject(t *testing.T) {
-	tm := &testMutex{}
+	mm := &mockMutex{}
 	pt := &ProjectTracker{
-		mutex: tm,
+		mutex: mm,
 	}
 	org := "some org"
 	project := "some project"
 	pt.AddEarthfileProject(org, project)
-	True(t, tm.lockCalled)
-	True(t, tm.unlockCalled)
+	True(t, mm.lockCalled)
+	True(t, mm.unlockCalled)
 	Equal(t, org, pt.earthfileOrg)
 	Equal(t, project, pt.earthfileProject)
 }
 
 func TestProjectTracker_AddCommandLineProject(t *testing.T) {
-	tm := &testMutex{}
+	mm := &mockMutex{}
 	pt := &ProjectTracker{
-		mutex: tm,
+		mutex: mm,
 	}
 	org := "some org"
 	project := "some project"
 	pt.AddCommandLineProject(org, project)
-	False(t, tm.lockCalled)
-	False(t, tm.unlockCalled)
+	False(t, mm.lockCalled)
+	False(t, mm.unlockCalled)
 	Equal(t, org, pt.commandLineOrg)
 	Equal(t, project, pt.commandLineProject)
 }
@@ -154,16 +154,16 @@ func TestProjectTracker_ProjectDetails(t *testing.T) {
 		name := name
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			tm := &testMutex{}
+			mm := &mockMutex{}
 			pt := &ProjectTracker{
 				earthfileOrg:       tc.earthfileOrg,
 				earthfileProject:   tc.earthfileProject,
 				commandLineOrg:     commandLineOrg,
 				commandLineProject: commandLineProject,
-				mutex:              tm,
+				mutex:              mm,
 			}
 
-			tm.callback = func() {
+			mm.callback = func() {
 				if tc.updatedEarthfileOrg != "" {
 					pt.earthfileOrg = tc.updatedEarthfileOrg
 				}
@@ -173,8 +173,8 @@ func TestProjectTracker_ProjectDetails(t *testing.T) {
 			}
 
 			org, project := pt.ProjectDetails()
-			Equal(t, tc.expectLockUnlock, tm.lockCalled)
-			Equal(t, tc.expectLockUnlock, tm.unlockCalled)
+			Equal(t, tc.expectLockUnlock, mm.lockCalled)
+			Equal(t, tc.expectLockUnlock, mm.unlockCalled)
 			Equal(t, tc.expectedOrg, org)
 			Equal(t, tc.expectedProject, project)
 		})
