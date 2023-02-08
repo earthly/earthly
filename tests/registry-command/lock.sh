@@ -1,19 +1,29 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -ex
 
 ORG="ryan-test"
 PROJECT="registry-command-test-project"
 
-lock="$(earthly secrets --org "$ORG" --project "$PROJECT" get lock || true)"
-if [ -n "$lock" ]; then
+oldlockvalue=""
+while true; do
+    lock="$(earthly secrets --org "$ORG" --project "$PROJECT" get lock || true)"
+    if [ -z "$lock" ]; then
+        echo "no lock exists; proceeding to lock it"
+        break
+    fi
+    if [ "$lock" = "$oldlockvalue" ]; then
+        echo "lock value hasn't changed; forcing it open"
+        earthly secrets --org "$ORG" --project "$PROJECT" rm lock || true
+        sleep $[ ( $RANDOM % 5 ) + 1 ]s
+        continue
+    fi
+    oldlockvalue="$lock"
     # TODO implement a secrets ls --long, which would show a "date created/modified" column
     # then if the lock is older than 1 minute, we would consider it abandoned, delete it, and create
-    # a new lock. For now, we will simply sleep for 30 seconds (which should be enough time for the test to pass)
-    echo "lock exists; sleeping for 30 seconds"
-    sleep 30
-fi
-
-echo "no lock exists; proceeding to lock it"
+    # a new lock. For now, we will simply sleep for 60 seconds (which should be enough time for the test to pass)
+    echo "lock exists; sleeping for 60 seconds"
+    sleep 60
+done
 
 id="$(uuidgen)"
 test -n "$id"

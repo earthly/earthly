@@ -6,6 +6,8 @@ require (
 	github.com/adrg/xdg v0.4.0
 	github.com/alessio/shellescape v1.4.1
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
+	github.com/aws/aws-sdk-go-v2 v1.17.4
+	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20230206222643-feb497de7dbc
 	github.com/containerd/containerd v1.6.12
 	github.com/creack/pty v1.1.11
 	github.com/docker/cli v20.10.17+incompatible
@@ -33,8 +35,8 @@ require (
 	github.com/otiai10/copy v1.1.1
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.8.0
+	github.com/sirupsen/logrus v1.9.0
+	github.com/stretchr/testify v1.8.1
 	github.com/tonistiigi/fsutil v0.0.0-20220930225714-4638ad635be5
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/crypto v0.0.0-20220826181053-bd7e27e6170d
@@ -50,6 +52,19 @@ require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/antlr/antlr4 v0.0.0-20200225173536-225249fdaef5 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.18.12 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.13.12 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.22 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.28 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.22 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.29 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ecr v1.18.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.15.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.22 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.12.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.18.3 // indirect
+	github.com/aws/smithy-go v1.13.5 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/containerd/continuity v0.3.0 // indirect
 	github.com/containerd/ttrpc v1.1.0 // indirect
@@ -57,7 +72,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/docker v20.10.18+incompatible // indirect
-	github.com/docker/docker-credential-helpers v0.6.4 // indirect
+	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/elastic/go-windows v1.0.0 // indirect
 	github.com/go-logr/logr v1.2.2 // indirect
@@ -69,9 +84,11 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.3 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
 	github.com/klauspost/compress v1.15.9 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/moby/locker v1.0.1 // indirect
 	github.com/moby/patternmatcher v0.5.0 // indirect
 	github.com/moby/sys/signal v0.7.0 // indirect
