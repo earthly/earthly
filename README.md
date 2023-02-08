@@ -26,11 +26,9 @@
 
 <br/>
 <div style="margin:auto;background-color:#007e5d;padding-top:1.25rem;padding-bottom:1.25rem;text-align:center;font-size:1.5rem;line-height:2rem;color:#FFFFFF;width:20rem;box-sizing:border-box;border:0 solid #e5e7eb;border-radius:.5rem;"><a style="color:#FFFFFF;" href="https://earthly.dev/get-earthly">Get Earthly</a></div>
-<br/>
 
 ---------------------------------
 
-<br/>
 <h2 align="center">Table of Contents</h2>
 
 * [Why use Earthly?](#why-use-earthly)
@@ -82,15 +80,12 @@ If your build has multiple steps, Earthly will:
 Never have to write the same code in multiple builds again. With Earthly, you can reuse targets, artifacts, and images across multiple Earthfiles, even ones in other repositories, in a single line. Earthly is cache-aware, based on the Git commit hash of the repository, and has shared caching capabilities. So you can create a vast and efficient build hierarchy that only executes the minimum required steps.
 
 <br/>
-<br/>
 <h2 align="center">Where Does Earthly Fit?</h2>
 
 <div align="center"><img src="docs/img/integration-diagram-v2.png" alt="Earthly fits between language-specific tooling and the CI" width="700px" /></div>
-<br/>
 
 Earthly is meant to be used both on your development machine and in CI. It runs on top of the CI/CD platform [Earthly CI](https://earthly.dev/product/earthly-ci), and it can also run on top of other popular CI systems too (such as [Jenkins](https://docs.earthly.dev/ci-integration/vendor-specific-guides/jenkins), [Circle CI](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration), and [GitLab CI/CD](https://docs.earthly.dev/ci-integration/vendor-specific-guides/gitlab-integration)). Earthly provides the benefits of a modern build automation system wherever it runs – such as caching and parallelism. It is a glue layer between language-specific build tooling (like maven, gradle, npm, pip, go build) and CI, working like a wrapper around your build tooling and build logic that isolates build execution from the environments they run in.
 
-<br/>
 <br/>
 <h2 align="center">How Does It Work?</h2>
 
@@ -104,14 +99,12 @@ We use a target-based system to help users break up complex builds into reusable
 | :--- |
 
 <br/>
-<br/>
 <h2 align="center">Installation</h2>
 
 See [installation instructions](https://earthly.dev/get-earthly).
 
 To build from source, check the [contributing page](./CONTRIBUTING.md).
 
-<br/>
 <br/>
 <h2 align="center">Quick Start</h2>
 
@@ -188,7 +181,6 @@ Invoke the build using `earthly +all`.
 
 Examples for other languages are available in the [examples dir](./examples).
 
-<br/>
 <br/>
 <h2 align="center">Features</h2>
 
@@ -307,7 +299,6 @@ release:
 ```
 
 <br/>
-<br/>
 <h2 align="center">FAQ</h2>
 
 ### How is Earthly different from Dockerfiles?
@@ -339,7 +330,6 @@ You may also optionally port your Dockerfiles to Earthly entirely. Translating D
 [Bazel](https://bazel.build) is a build tool developed by Google to optimize the speed, correctness, and reproducibility of their internal monorepo codebase. The main difference between Bazel and Earthly is that Bazel is a **build system**, whereas Earthly is a **general-purpose CI/CD framework**. For a more in-depth explanation see [our FAQ](https://earthly.dev/faq#bazel).
 
 <br/>
-<br/>
 <h2 align="center">Contributing</h2>
 
 * Please report bugs as [GitHub issues](https://github.com/earthly/earthly/issues).
@@ -348,7 +338,6 @@ You may also optionally port your Dockerfiles to Earthly entirely. Translating D
 * PRs welcome! But please give a heads-up in a GitHub issue before starting work. If there is no GitHub issue for what you want to do, please create one.
 * To build from source, check the [contributing page](./CONTRIBUTING.md).
 
-<br/>
 <br/>
 <h2 align="center">Licensing</h2>
 
