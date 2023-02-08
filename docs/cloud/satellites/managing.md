@@ -102,7 +102,7 @@ There are two ways to clear the cache on satellite.
 
 #### Recreating the Underlying Satellite Instance (often faster)
 
-Running the `update`  command with `--drop-cache` will relaunch the instance with an empty cache volume.
+Running the `update` command with `--drop-cache` will relaunch the instance with an empty cache volume.
 Note that this operation can take a while, and the satellite may also receive any available updates during the process.
 
 ```bash
