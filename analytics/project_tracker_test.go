@@ -9,7 +9,6 @@ import (
 type testMutex struct {
 	lockCalled   bool
 	unlockCalled bool
-	pt           *ProjectTracker
 	callback     func()
 }
 
