@@ -375,7 +375,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			buildkitdSettings: buildkitd.Settings{},
 		},
 		logbus:         logbus.New(),
-		projectTracker: &analytics.ProjectTracker{},
+		projectTracker: analytics.NewProjectTracker(),
 	}
 
 	earthly := getBinaryName()

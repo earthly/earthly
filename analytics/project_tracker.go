@@ -10,8 +10,11 @@ type ProjectTracker struct {
 	mutex              sync.Locker
 }
 
-var projectTracker ProjectTracker
-
+func NewProjectTracker() *ProjectTracker {
+	return &ProjectTracker{
+		mutex: &sync.Mutex{},
+	}
+}
 func (pt *ProjectTracker) AddEarthfileProject(org, project string) {
 	pt.mutex.Lock()
 	defer pt.mutex.Unlock()
@@ -25,7 +28,7 @@ func (pt *ProjectTracker) AddCommandLineProject(org, project string) {
 }
 
 func (pt *ProjectTracker) ProjectDetails() (string, string) {
-	if pt.earthfileOrg != "" || pt.earthfileProject != "" {
+	if pt.earthfileOrg != "" && pt.earthfileProject != "" {
 		return pt.earthfileOrg, pt.earthfileProject
 	}
 	org := pt.commandLineOrg
