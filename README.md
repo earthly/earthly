@@ -192,6 +192,64 @@ Examples for other languages are available in the [examples dir](./examples).
 <br/>
 <h2 align="center">Features</h2>
 
+### ⛓ Parallelization that just works
+
+Whenever possible, Earthly automatically executes targets in parallel.
+
+<div align="center"><a href="https://asciinema.org/a/351678?speed=2"><img src="img/demo-351678.gif" alt="Demonstration of Earthly's parallelization" title="View on asciinema.org" width="600px" /></a></div>
+
+### 💾 Caching that works the same as Docker builds
+
+Cut down build times in CI through [Shared Caching](https://docs.earthly.dev/guides/shared-cache).
+
+<div align="center"><a href="https://asciinema.org/a/351674?speed=2"><img src="img/demo-351674.gif" alt="Demonstration of Earthly's caching" title="View on asciinema.org" width="600px" /></a></div>
+
+### 🛠 Multi-platform support
+
+Build for multiple platforms in parallel.
+
+```earthly
+VERSION 0.6
+all:
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm64 \
+        --platform=linux/arm/v7 \
+        --platform=linux/arm/v6 \
+        +build
+
+build:
+    FROM alpine:3.15
+    CMD ["uname", "-m"]
+    SAVE IMAGE multiplatform-image
+```
+
+### 🤲 Build tools that work everywhere
+
+No need to ask your team to install `protoc`, a specific version of Python, Java 1.6 or the .NET Core ecosystem. You only install once, in your Earthfile, and it works for everyone. Or even better, you can just make use of the rich Docker Hub ecosystem.
+
+```earthly
+VERSION 0.6
+FROM golang:1.15-alpine3.13
+WORKDIR /proto-example
+
+proto:
+  FROM namely/protoc-all:1.29_4
+  COPY api.proto /defs
+  RUN --entrypoint -- -f api.proto -l go
+  SAVE ARTIFACT ./gen/pb-go /pb AS LOCAL pb
+
+build:
+  COPY go.mod go.sum .
+  RUN go mod download
+  COPY +proto/pb pb
+  COPY main.go ./
+  RUN go build -o build/proto-example main.go
+  SAVE ARTIFACT build/proto-example
+```
+
+See full [example code](./examples/readme/proto).
+
 ### 📦 Modern import system
 
 Earthly can be used to reference and build targets from other directories or even other repositories. For example, if we wanted to build [an example target from the `github.com/earthly/earthly` repository](./examples/go/Earthfile#L17-L20), we could issue
@@ -234,64 +292,6 @@ Examples
   FROM github.com/someone/someproject:v1.2.3+some-target
   COPY github.com/someone/someproject:v1.2.3+some-target/my-artifact ./
   ```
-
-### 💾 Caching that works the same as Docker builds
-
-<div align="center"><a href="https://asciinema.org/a/351674?speed=2"><img src="img/demo-351674.gif" alt="Demonstration of Earthly's caching" title="View on asciinema.org" width="600px" /></a></div>
-
-Cut down build times in CI through [Shared Caching](https://docs.earthly.dev/guides/shared-cache).
-
-### 🛠 Multi-platform support
-
-Build for multiple platforms in parallel.
-
-```earthly
-VERSION 0.6
-all:
-    BUILD \
-        --platform=linux/amd64 \
-        --platform=linux/arm64 \
-        --platform=linux/arm/v7 \
-        --platform=linux/arm/v6 \
-        +build
-
-build:
-    FROM alpine:3.15
-    CMD ["uname", "-m"]
-    SAVE IMAGE multiplatform-image
-```
-
-### ⛓ Parallelization that just works
-
-Whenever possible, Earthly automatically executes targets in parallel.
-
-<div align="center"><a href="https://asciinema.org/a/351678?speed=2"><img src="img/demo-351678.gif" alt="Demonstration of Earthly's parallelization" title="View on asciinema.org" width="600px" /></a></div>
-
-### 🤲 Make use of build tools that work everywhere
-
-No need to ask your team to install `protoc`, a specific version of Python, Java 1.6 or the .NET Core ecosystem. You only install once, in your Earthfile, and it works for everyone. Or even better, you can just make use of the rich Docker Hub ecosystem.
-
-```earthly
-VERSION 0.6
-FROM golang:1.15-alpine3.13
-WORKDIR /proto-example
-
-proto:
-  FROM namely/protoc-all:1.29_4
-  COPY api.proto /defs
-  RUN --entrypoint -- -f api.proto -l go
-  SAVE ARTIFACT ./gen/pb-go /pb AS LOCAL pb
-
-build:
-  COPY go.mod go.sum .
-  RUN go mod download
-  COPY +proto/pb pb
-  COPY main.go ./
-  RUN go build -o build/proto-example main.go
-  SAVE ARTIFACT build/proto-example
-```
-
-See full [example code](./examples/readme/proto).
 
 ### 🔑 Cloud secrets support built-in
 
