@@ -173,7 +173,7 @@ Feature flags can be set during an update as well.
 When any feature flags are passed in, the entire set of existing feature flags are replaced with the new set.
 Passing no feature flags will retain the existing flags.
 
-Note feature-flags are typically used to preview unreleased features. They are considered highly expirimental.
+Note feature-flags are typically used to preview unreleased features. They are considered highly experimental.
 
 ```bash
 earthly satellite update --feature-flag cache-pct=30 my-satellite
