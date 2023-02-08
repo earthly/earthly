@@ -8,31 +8,28 @@
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
 [![License MPL-2](https://img.shields.io/badge/license-MPL-blue.svg)](./LICENSE)
 
-**🐳 Build anything via containers** - *build images or standalone artifacts (binaries, packages, arbitrary files)*
+**🔁 Repeatable builds** - *Write builds once, and run them anywhere – on your laptop, remote, and in any CI.*
 
-**🛠 Programming language agnostic** - *allows the use of language-specific build tooling*
+**👌 Super simple** - *Instantly recognizable syntax – like Dockerfile and Makefile had a baby.*
 
-**🔁 Repeatable builds** - *does not depend on user's local installation: runs the same locally, as in CI*
+**🛠 Compatible with every language, framework, and build tool** - *If it runs on Linux, it runs on Earthly.*
 
-**⛓ Parallelism that just works** - *build in parallel without special considerations*
+**🏘 Great for Monorepos and Polyrepos** - *Organize your build logic however makes the most sense for your project.*
 
-**🏘 Mono and Poly-repo friendly** - *ability to split the build definitions across vast project hierarchies*
+**💨 Fast Builds** - *Build caching and parallel execution makes builds fast automatically.*
 
-**💾 Shared caching** - *share build cache between CI runners*
-
-**🔀 Multi-platform** - *build for multiple platforms in parallel*
+**♻️ Reuse, Don't Repeat** - *Never write the same code in multiple builds again.*
 
 ---------------------------------
 
-[🌍 Earthly](https://earthly.dev) is a CI/CD framework that allows you to develop pipelines locally and run them anywhere. Earthly leverages containers for the execution of pipelines. This makes them self-contained, repeatable, portable and parallel.
+🌎 [Earthly](https://earthly.dev/) is a versatile, approachable CI/CD framework that runs every pipeline inside containers, giving you repeatable builds that you write once and run anywhere. It has a super simple, instantly recognizable syntax that is easy to write and understand – like Dockerfile and Makefile had a baby. And it leverages and augments popular build tools instead of replacing them, so you don’t have to rewrite all your builds no matter what languages you use.
 
 <br/>
-<div align="center"><a href="https://earthly.dev/get-earthly"><img src="docs/img/get-earthly-button.png" alt="Get Earthly" title="Get Earthly" /></a></div>
+<div style="margin:auto;background-color:#007e5d;padding-top:1.25rem;padding-bottom:1.25rem;text-align:center;font-size:1.5rem;line-height:2rem;color:#FFFFFF;width:20rem;box-sizing:border-box;border:0 solid #e5e7eb;border-radius:.5rem;"><a style="color:#FFFFFF;" href="https://earthly.dev/get-earthly">Get Earthly</a></div>
 <br/>
 
 ---------------------------------
 
-<br/>
 <br/>
 <h2 align="center">Table of Contents</h2>
 
@@ -46,7 +43,6 @@
 * [Contributing](#contributing)
 * [Licensing](#licensing)
 
-<br/>
 <br/>
 <h2 align="center">Why Use Earthly?</h2>
 
