@@ -98,22 +98,100 @@ Currently selected: No
 
 ### Clearing cache
 
-To clear the cache of a satellite, run the following while a satellite is selected:
+There are two ways to clear the cache on satellite.
+
+#### Recreating the Underlying Satellite Instance (often faster)
+
+Running the `update` command with `--drop-cache` will relaunch the instance with an empty cache volume.
+Note that this operation can take a while, and the satellite may also receive any available updates during the process.
+
+```bash
+earthly satellite update --drop-cache my-satellite
+```
+#### Using the prune command (slower)
+
+The `earthly prune` command also works on satellites.
+It usually takes longer than running `satellite update`; however, it does not trigger a relaunch.
+The prune command requires the satellite to be selected before running.
 
 ```bash
 earthly prune -a
 ```
 
-### Upgrading a satellite
+### Updating a satellite
 
-Currently, satellites do not have an auto-update mechanism built in. In order to get a newer version of a satellite, you need to manually remove and re-launch the satellite. Note that this operation resets the cache.
+Satellites receive version updates by default, unless they are pinned to a specific version (by using the `--version` launch flag).
+Pinned versions will still receive minor patches, such as security updates.
+
+#### Auto-Update Maintenance Windows
+
+Maintenance windows are set between 2AM and 4AM in the timezone where the satellite is launched by default.
+The start time of the 2 hour window can be explicitly set by passing a 24-hr formatted time to the `--maintenance-window` flag of the launch command.
+
+Here's an example showing a satellite launched with a custom maintenance window of 4AM to 6AM:
 
 ```bash
-earthly sat rm <satellite-name>
-earthly sat launch <satellite-name>
+earthly satellite launch --maintenance-window 04:00 my-satellite
 ```
 
-The newly launched satellite will always get the latest version available.
+Note that updates will only happen during the maintenance window while the satellite is asleep. If the satellite remains in use 
+for the entire duration of the maintenance window, then the update will be re-attempted the next day.
+
+#### Version Pinning
+
+If you want to prevent your satellite from automatically upgrading to a new earthly version, you can pin your version using the `--version` flag.
+Note that satellites on pinned versions may still receive auto-updates during a maintenance window; however, these updates will be limited to stability or security patches, rather than version updates.
+
+```bash
+earthly satellite launch --version v0.6.29 my-satellite
+```
+
+#### Manually Updating a Satellite
+
+Satellites can also be manually updated using the `update` command. The update command can be used to not only trigger a version upgrade, but also to change other parameters of the satellite, such as feature-flags or its cache. 
+Satellites must be in a sleep state before an update can be started. You can use the `earthly satellite sleep` command to do this manually.
+Below are some examples of how you can use the `update` command.
+
+The following example updates a satellite to the latest revision, respecting any pinned versions:
+
+```bash
+earthly satellite update my-satellite
+```
+
+The following command updates the satellite and clears its cache during the process. If no updates are available, this command will still clear the cache.
+
+```bash
+earthly satellite update --drop-cache my-satellite
+```
+
+Updates can also specify a new pinned earthly version:
+```bash
+earthly satellite update --version v0.6.29 my-satellite
+```
+
+Feature flags can be set during an update as well.
+When any feature flags are passed in, the entire set of existing feature flags are replaced with the new set.
+Passing no feature flags will retain the existing flags.
+
+Note feature-flags are typically used to preview unreleased features. They are considered highly experimental.
+
+```bash
+earthly satellite update --feature-flag cache-pct=30 my-satellite
+```
+
+{% hint style='info' %}
+##### Note
+It's not currently possible to completely clear out the flags using the update command; you will have to destroy and recreate the satellite.
+{% endhint %}
+
+#### Satellite Revision System
+
+In more detail, satellite versions are controlled via Earthly's internal revisioning system. 
+A satellite revision includes an earthly version plus a revision increment, where each earthly version may contain a number or ordered revisions.
+Revision increments are released to patch stability or performance within a specific earthly version.
+
+You can view your current satellite version and revision number using the `earthly satellite inspect` command.
+
 
 ### Managing instance state
 
