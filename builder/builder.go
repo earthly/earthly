@@ -24,6 +24,7 @@ import (
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/gwclientlogger"
 	"github.com/earthly/earthly/util/llbutil"
+	"github.com/earthly/earthly/util/llbutil/authprovider/cloudauth"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
@@ -41,13 +42,13 @@ import (
 
 const (
 	// PhaseInit is the phase text for the init phase.
-	PhaseInit = "1. Init 🚀"
+	PhaseInit = "Init 🚀"
 	// PhaseBuild is the phase text for the build phase.
-	PhaseBuild = "2. Build 🔧"
+	PhaseBuild = "Build 🔧"
 	// PhasePush is the phase text for the push phase.
-	PhasePush = "3. Push ⏫"
+	PhasePush = "Push Summary ⏫"
 	// PhaseOutput is the phase text for the output phase.
-	PhaseOutput = "4. Local Output 🎁"
+	PhaseOutput = "Local Output Summary 🎁"
 )
 
 // Opt represent builder options.
@@ -102,6 +103,7 @@ type BuildOpt struct {
 	Logbus                     *logbus.Bus
 	MainTargetDetailsFuture    chan earthfile2llb.TargetDetails
 	Runner                     string
+	CloudStoredAuthProvider    cloudauth.ProjectBasedAuthProvider
 }
 
 // Builder executes Earthly builds.
@@ -214,6 +216,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				Logbus:                               opt.Logbus,
 				MainTargetDetailsFuture:              opt.MainTargetDetailsFuture,
 				Runner:                               opt.Runner,
+				CloudStoredAuthProvider:              opt.CloudStoredAuthProvider,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {

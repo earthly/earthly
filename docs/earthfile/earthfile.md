@@ -407,6 +407,10 @@ Instructs Earthly to keep file ownership information. This applies only to the *
 
 Instructs Earthly to change the file permissions of the copied files. The `<mode>` needs to be in octal format, e.g. `--chmod 0755` or `--chmod 755`.
 
+{% hint style='info' %}
+Note that you must include the flag in the corresponding `SAVE ARTIFACT --keep-own ...` command, if using *artifact form*.
+{% endhint %}
+
 ##### `--if-exists`
 
 Only copy source if it exists; if it does not exist, earthly will simply ignore the COPY command and won't treat any missing sources as failures.

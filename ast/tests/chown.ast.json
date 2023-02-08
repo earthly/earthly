@@ -68,10 +68,7 @@
               "test",
               "testuser",
               "==",
-              "$(stat",
-              "-c",
-              "%U",
-              "./a.txt)"
+              "$(stat -c %U ./a.txt)"
             ],
             "name": "RUN"
           }
@@ -82,10 +79,7 @@
               "test",
               "testgroup",
               "==",
-              "$(stat",
-              "-c",
-              "%G",
-              "./a.txt)"
+              "$(stat -c %G ./a.txt)"
             ],
             "name": "RUN"
           }

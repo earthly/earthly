@@ -147,9 +147,7 @@
         "args": [
           "another-var",
           "IN",
-          "$(not",
-          "in",
-          "quotes)"
+          "$(not in quotes)"
         ],
         "body": [
           {
@@ -353,9 +351,7 @@
             "args": [
               "another-var",
               "IN",
-              "$(not",
-              "in",
-              "quotes)"
+              "$(not in quotes)"
             ],
             "body": [
               {

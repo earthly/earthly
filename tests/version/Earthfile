@@ -51,6 +51,9 @@ test-multi-line-with-args2:
 test-multi-line-with-newline:
     DO +RUN_EARTHLY_ARGS --earthfile=multi-line-with-empty-newline.earth --target=+test
 
+test-no-feature-flag-overrides:
+    DO +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-feature-flag-override.earth --target=+test --output_contains="bool flag .--referenced-save-only. cannot have an argument"
+
 test-version-only-import:
     RUN mkdir subdir
     RUN echo "VERSION 0.5" > subdir/Earthfile
@@ -89,6 +92,7 @@ test-all:
     BUILD +test-whitespace-then-version
     BUILD +test-version-only-import
     BUILD +test-invalid-versions
+    BUILD +test-no-feature-flag-overrides
 
 RUN_EARTHLY_ARGS:
     COMMAND
