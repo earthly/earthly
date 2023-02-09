@@ -122,6 +122,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - `SAVE ARTIFACT <path> AS LOCAL ...` when used under a `TRY` / `FINALLY` can fail to be fully transferred to the host when the `TRY` command fails (resulting in an partially transferred file); an underflow can still occur, and is now detected and will not export the partial file. [2452](https://github.com/earthly/earthly/issues/2452)
 - The `--keep-own` flag for `SAVE ARTIFACT` is now applied by default; note that `COPY --keep-own` must still be used in order to keep ownership
 - Values from the `.env` file will no longer be propigated to Earthfile `ARG`s or `RUN --secret=...` commands; instead values must be placed in `.arg` or `.secret` files respectively. Note that this is a backwards incompatible change and will apply to all Earthfiles (regardless of the defined `VERSION` value). [#1736](https://github.com/earthly/earthly/issues/1736)
+- Some particularly obtuse syntax errors now have hints added to help clarify what the expected syntax might be. [#2656](https://github.com/earthly/earthly/issues/2656)
 
 
 ### Added

@@ -11,14 +11,14 @@ import (
 	"github.com/poy/onpar/v2/expect"
 )
 
-func TestParse(t *testing.T) {
+func TestParse(topT *testing.T) {
 	type testCtx struct {
 		t      *testing.T
 		expect expect.Expectation
 		reader *mockNamedReader
 	}
 
-	o := onpar.BeforeEach(onpar.New(t), func(t *testing.T) testCtx {
+	o := onpar.BeforeEach(onpar.New(topT), func(t *testing.T) testCtx {
 		return testCtx{
 			t:      t,
 			expect: expect.New(t),
