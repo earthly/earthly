@@ -117,30 +117,35 @@ To build from source, check the [contributing page](./CONTRIBUTING.md).
 
 Here are some resources to get you started with Earthly
 
-* 🏁 [Getting started guide](https://docs.earthly.dev/guides/basics)
+* 🏁 [Getting started guide](https://docs.earthly.dev/basics)
 * 👀 [Examples](./examples)
-  * [C](./examples/c)
-  * [C++](./examples/cpp)
-  * [COBOL](./examples/cobol)
   * [Go](./examples/go)
-  * [Java](./examples/java)
-  * [JS](./examples/js)
+  * [JavaScript](./examples/js)
   * [Python](./examples/python)
-  * [Ruby](./examples/ruby)
+  * [Java](./examples/java)
   * [Rust](./examples/rust)
+  * [TypeScript (Node)](./examples/typescript-node)
+  * [C++](./examples/cpp)
+  * [C](./examples/c)
+  * [dotnet (C#)](./examples/dotnet)
+  * [Ruby](./examples/ruby)
   * [Scala](./examples/scala)
-  * [Mono-repo](./examples/monorepo)
-  * [Multi-repo](./examples/multirepo)
-* 🔍 Explore [Earthly's own build](https://docs.earthly.dev/examples/examples#earthlys-own-build)
+  * [Elixir](./examples/elixir)
+  * [COBOL](./examples/cobol)
+  * [Monorepo](./examples/monorepo)
+  * [Multirepo](./examples/multirepo)
+  * [Multiplatform Builds](./examples/multiplatform)
+  * [Integration Tests](./examples/integration-test)
+* 🔍 Explore [Earthly's own build](https://docs.earthly.dev/docs/examples#earthlys-own-build)
 * ✔️ [Best practices](https://docs.earthly.dev/best-practices)
 
 See also the [full documentation](https://docs.earthly.dev).
 
 Reference pages
 
-* 📑 [Earthfile reference](https://docs.earthly.dev/earthfile)
-* #️⃣ [Earthly command reference](https://docs.earthly.dev/earthly-command)
-* ⚙️ [Configuration reference](https://docs.earthly.dev/earthly-config)
+* 📑 [Earthfile reference](https://docs.earthly.dev/docs/earthfile)
+* #️⃣ [Earthly command reference](https://docs.earthly.dev/docs/earthly-command)
+* ⚙️ [Configuration reference](https://docs.earthly.dev/docs/earthly-config)
 
 ### A simple example (for Go)
 
@@ -199,7 +204,7 @@ Whenever possible, Earthly automatically executes targets in parallel.
 
 ### 💾 Caching that works the same as Docker builds
 
-Cut down build times in CI through [Shared Caching](https://docs.earthly.dev/guides/shared-cache).
+Cut down build times in CI through [shared remote caching](https://docs.earthly.dev/docs/remote-caching).
 
 <div align="center"><a href="https://asciinema.org/a/351674?speed=2"><img src="img/demo-351674.gif" alt="Demonstration of Earthly's caching" title="View on asciinema.org" width="600px" /></a></div>
 
@@ -314,11 +319,11 @@ release:
 
 It is possible to use Dockerfiles in combination with other technologies (e.g., Makefiles or bash files) to solve such use cases. However, these combinations are difficult to parallelize, challenging to scale across repositories as they lack a robust import system, and often vary in style from one team to another. Earthly does not have these limitations as it was designed as a general-purpose build system.
 
-For example, Earthly introduces a richer target, artifact, and image [referencing system](https://docs.earthly.dev/guides/target-ref), allowing for better reuse in complex builds spanning a single large repository or multiple repositories. Because Dockerfiles are only meant to describe one image at a time, such features are outside the scope of applicability of Dockerfiles.
+For example, Earthly introduces a richer target, artifact, and image [referencing system](https://docs.earthly.dev/docs/guides/target-ref), allowing for better reuse in complex builds spanning a single large repository or multiple repositories. Because Dockerfiles are only meant to describe one image at a time, such features are outside the scope of applicability of Dockerfiles.
 
 ### How do I know if a command is a classic Dockerfile command or an Earthly command?
 
-Check out the [Earthfile reference doc page](https://docs.earthly.dev/earthfile). It has all the commands there and specifies which commands are the same as Dockerfile commands and which are new.
+Check out the [Earthfile reference doc page](https://docs.earthly.dev/docs/earthfile). It has all the commands there and specifies which commands are the same as Dockerfile commands and which are new.
 
 ### Can Earthly build Dockerfiles?
 
@@ -330,7 +335,7 @@ build:
   SAVE IMAGE some-image:latest
 ```
 
-You may also optionally port your Dockerfiles to Earthly entirely. Translating Dockerfiles to Earthfiles is usually a matter of copy-pasting and making minor adjustments. See the [getting started page](https://docs.earthly.dev/guides/basics) for some Earthfile examples.
+You may also optionally port your Dockerfiles to Earthly entirely. Translating Dockerfiles to Earthfiles is usually a matter of copy-pasting and making minor adjustments. See the [getting started page](https://docs.earthly.dev/basics) for some Earthfile examples.
 
 ### How is Earthly different from Bazel?
 
