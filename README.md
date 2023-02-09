@@ -17,7 +17,7 @@
 
 **🔁 Repeatable Builds** - *Write builds once, and run them anywhere – on your laptop, remote, and in any CI.*
 
-**👌 Super Simple** - *Instantly recognizable syntax – like Dockerfile and Makefile had a baby.*
+**❤️ Super Simple** - *Instantly recognizable syntax – like Dockerfile and Makefile had a baby.*
 
 **🛠 Compatible with Every Language, Framework, and Build Tool** - *If it runs on Linux, it runs on Earthly.*
 
@@ -56,7 +56,7 @@
 Earthly runs all builds in containers, making them self-contained, isolated, repeatable, and portable. This allows for faster iteration on build scripts and easier debugging when something goes wrong – no more `git commit -m "try again"`. When you write a build, you know it will execute correctly no matter where it runs – your laptop, a colleague’s laptop, or any CI. You don’t have to configure language-specific tooling, install additional dependencies, or complicate your build scripts to ensure they are compatible with different OSs. Earthly gives you consistent, repeatable builds regardless of where they run.
 
 
-### 👌 Super Simple
+### ❤️ Super Simple
 
 Earthly’s syntax is easy to write and understand. Most engineers can read an Earthfile instantly, without prior knowledge of Earthly. We combined some of the best ideas from Dockerfiles and Makefiles into one specification – like Dockerfile and Makefile had a baby.
 
@@ -84,7 +84,7 @@ If your build has multiple steps, Earthly will:
 
 ### ♻️ Reuse, Don't Repeat
 
-Never have to write the same code in multiple builds again. With Earthly, you can reuse targets, artifacts, and images across multiple Earthfiles, even ones in other repositories, in a single line. Earthly is cache-aware, based on the Git commit hash of the repository, and has shared caching capabilities. So you can create a vast and efficient build hierarchy that only executes the minimum required steps.
+Never have to write the same code in multiple builds again. With Earthly, you can reuse targets, artifacts, and images across multiple Earthfiles, even ones in other repositories, in a single line. Earthly is cache-aware, based on the individual hashes of each file, and has shared caching capabilities. So you can create a vast and efficient build hierarchy that only executes the minimum required steps.
 
 
 <h2 align="center">Where Does Earthly Fit?</h2>
@@ -151,7 +151,7 @@ Reference pages
 
 ```earthly
 # Earthfile
-VERSION 0.6
+VERSION 0.7
 FROM golang:1.15-alpine3.13
 RUN apk --update --no-cache add git
 WORKDIR /go-example
@@ -213,7 +213,7 @@ Cut down build times in CI through [shared remote caching](https://docs.earthly.
 Build for multiple platforms in parallel.
 
 ```earthly
-VERSION 0.6
+VERSION 0.7
 all:
     BUILD \
         --platform=linux/amd64 \
@@ -233,7 +233,7 @@ build:
 No need to ask your team to install `protoc`, a specific version of Python, Java 1.6, or the .NET Core ecosystem. Install once in your Earthfile, and it works for everyone. Or even better, you can just make use of the rich Docker Hub ecosystem.
 
 ```earthly
-VERSION 0.6
+VERSION 0.7
 FROM golang:1.15-alpine3.13
 WORKDIR /proto-example
 
