@@ -27,7 +27,7 @@
 🌎 [Earthly](https://earthly.dev/) is a versatile, approachable CI/CD framework that runs every pipeline inside containers, giving you repeatable builds that you write once and run anywhere. It has a super simple, instantly recognizable syntax that is easy to write and understand – like Dockerfile and Makefile had a baby. And it leverages and augments popular build tools instead of replacing them, so you don’t have to rewrite all your builds no matter what languages you use.
 
 <br/>
-<div style="margin:auto;background-color:#007e5d;padding-top:1.25rem;padding-bottom:1.25rem;text-align:center;font-size:1.5rem;line-height:2rem;color:#FFFFFF;width:20rem;box-sizing:border-box;border:0 solid #e5e7eb;border-radius:.5rem;"><a style="color:#FFFFFF;" href="https://earthly.dev/get-earthly">Get Earthly</a></div>
+<div align="center"><a href="https://earthly.dev/get-earthly"><img src="docs/img/get-earthly-button.png" alt="Get Earthly" title="Get Earthly" /></a></div>
 
 ---------------------------------
 
