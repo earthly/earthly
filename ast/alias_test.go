@@ -12,6 +12,7 @@ var (
 	equal            = matchers.Equal
 	beNil            = matchers.BeNil
 	containSubstring = matchers.ContainSubstring
+	endWith          = matchers.EndWith
 
 	haveMethodExecuted = pers.HaveMethodExecuted
 	returning          = pers.Returning

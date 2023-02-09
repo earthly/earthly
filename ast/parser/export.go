@@ -9,3 +9,8 @@ func GetLexerModeNames() []string {
 func GetLexerSymbolicNames() []string {
 	return lexerSymbolicNames
 }
+
+// GetLexerLiteralNames returns the generated literal names.
+func GetLexerLiteralNames() []string {
+	return lexerLiteralNames
+}
