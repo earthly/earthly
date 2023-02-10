@@ -2,8 +2,6 @@ package gitutil
 
 import (
 	"testing"
-
-	. "github.com/stretchr/testify/assert"
 )
 
 func TestParseGitRemoteURL(t *testing.T) {

@@ -3,8 +3,6 @@ package features
 import (
 	"fmt"
 	"testing"
-
-	. "github.com/stretchr/testify/assert"
 )
 
 func TestFeaturesStringEnabled(t *testing.T) {

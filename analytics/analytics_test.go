@@ -5,8 +5,6 @@ package analytics
 
 import (
 	"testing"
-
-	. "github.com/stretchr/testify/assert"
 )
 
 // TestGetRepoHash tests the git repo hashing never changes

@@ -3,8 +3,6 @@ package buildcontext
 import (
 	"fmt"
 	"testing"
-
-	. "github.com/stretchr/testify/assert"
 )
 
 func Test_parseKeyScanIfHostMatches(t *testing.T) {

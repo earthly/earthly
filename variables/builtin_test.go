@@ -2,8 +2,6 @@ package variables
 
 import (
 	"testing"
-
-	. "github.com/stretchr/testify/assert"
 )
 
 func TestGetProjectName(t *testing.T) {
