@@ -143,7 +143,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - The new ARG `EARTHLY_LOCALLY` indicates whether the current target is executed in a `LOCALLY` context. Previously under `VERSION --earthly-locally-arg 0.6`.
 - The new ARGs `EARTHLY_GIT_AUTHOR` and `EARTHLY_GIT_CO_AUTHORS` contain the author and co-authors of the current git commit, respectively. Previously under `VERSION --earthly-git-author-args 0.6`.
 - `earthly doc [projectRef[+targetRef]]` is a new subcommand in *beta* status.  It will parse and output documentation comments on targets.
-- Ability to store docker registry credentials in cloud secrets and corresponding `earthly registry login|list|logout` commands; credentials can be associated with either your user or project.
+- Ability to store docker registry credentials in cloud secrets and corresponding `earthly registry setup|list|remove` commands; credentials can be associated with either your user or project.
 - New satellite commands for enabling auto-upgrades and forcing a manual upgrade.
 
 ### Fixed

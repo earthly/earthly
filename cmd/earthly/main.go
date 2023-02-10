@@ -170,6 +170,10 @@ type cliFlags struct {
 	registryUsername           string
 	registryPassword           string
 	registryPasswordStdin      bool
+	registryCredHelper         string
+	awsAccessKeyID             string
+	awsSecretAccessKey         string
+	gcpKey                     string
 }
 
 type analyticsMetadata struct {

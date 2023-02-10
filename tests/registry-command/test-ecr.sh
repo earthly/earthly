@@ -1,8 +1,8 @@
-#!/usr/bin/env bash
+#!/bin/sh
 set -e
 ./lock.sh
 
-function finish {
+finish() {
   status="$?"
   ./unlock.sh
   if [ "$status" = "0" ]; then
