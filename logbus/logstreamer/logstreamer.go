@@ -5,11 +5,13 @@ package logstreamer
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
+	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/logbus"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
@@ -18,21 +20,84 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-const DefaultChSize = 10240
+const (
+	DefaultChSize = 10240
+	drainTimeout  = 60 * time.Second
+)
 
 type CloudClient interface {
-	StreamLogs(ctx context.Context, buildID string, deltas <-chan []*logstream.Delta) error
+	StreamLogs(ctx context.Context, buildID string, deltas cloud.Deltas) error
+}
+
+type naiveDeltas struct {
+	mu     sync.Mutex
+	chSize int
+	ch     chan []*logstream.Delta
+}
+
+func (d *naiveDeltas) deltas() chan []*logstream.Delta {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.ch
+}
+
+func (d *naiveDeltas) reset() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.ch != nil {
+		go func(prevCh <-chan []*logstream.Delta) {
+			for {
+				select {
+				case _, ok := <-prevCh:
+					if !ok {
+						return
+					}
+				default:
+					return
+				}
+			}
+		}(d.ch)
+	}
+	d.ch = make(chan []*logstream.Delta, d.chSize)
+}
+
+func (d *naiveDeltas) send(deltas ...*logstream.Delta) bool {
+	ch := d.deltas()
+	if ch == nil {
+		return false
+	}
+	ch <- deltas
+	return true
+}
+
+func (d *naiveDeltas) close() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	close(d.ch)
+	d.ch = nil
+}
+
+func (d *naiveDeltas) Next(ctx context.Context) ([]*logstream.Delta, error) {
+	select {
+	case <-ctx.Done():
+		return nil, errors.Wrap(ctx.Err(), "logstreamer: context closed while waiting on next delta")
+	case delta, ok := <-d.deltas():
+		if !ok {
+			return nil, errors.Wrap(io.EOF, "logstreamer: channel closed")
+		}
+		return delta, nil
+	}
 }
 
 // Opt is an option function, used to adjust optional attributes of a
 // LogStreamer during New().
 type Opt func(*LogStreamer) *LogStreamer
 
-// WithChanSize sets the size of the channel that a LogStreamer constructs for
-// streaming logs.
-func WithChanSize(size int) Opt {
+// WithBuffer ensures that there is a buffer for at least size messages on the
+// cloud.Deltas value that the LogStreamer sends to StreamLogs.
+func WithBuffer(size int) Opt {
 	return func(l *LogStreamer) *LogStreamer {
-		l.chSize = size
+		l.deltas.chSize = size
 		return l
 	}
 }
@@ -49,8 +114,7 @@ type LogStreamer struct {
 
 	mu        sync.Mutex
 	cancelled bool
-	chSize    int
-	ch        chan []*logstream.Delta
+	deltas    naiveDeltas
 }
 
 // New creates a new LogStreamer.
@@ -61,7 +125,9 @@ func New(ctx context.Context, bus *logbus.Bus, c CloudClient, initialManifest *l
 		buildID:         initialManifest.GetBuildId(),
 		initialManifest: initialManifest,
 		doneCh:          make(chan struct{}),
-		chSize:          DefaultChSize,
+		deltas: naiveDeltas{
+			chSize: DefaultChSize,
+		},
 	}
 	for _, o := range opts {
 		ls = o(ls)
@@ -101,38 +167,20 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 		ls.mu.Unlock()
 		return false, errors.New("log streamer closed")
 	}
-	if ls.ch != nil {
-		// In case the channel is congested, this frees up any stuck writers.
-		prevCh := ls.ch
-		go func() {
-			for {
-				select {
-				case _, ok := <-prevCh:
-					if !ok {
-						return
-					}
-				default:
-					return // no more messages to consume, but channel not closed
-				}
-			}
-		}()
-	}
-	ls.ch = make(chan []*logstream.Delta, ls.chSize)
+	ls.deltas.reset()
 	ls.mu.Unlock()
-	ls.ch <- []*logstream.Delta{
-		{
-			DeltaTypeOneof: &logstream.Delta_DeltaManifest{
-				DeltaManifest: &logstream.DeltaManifest{
-					DeltaManifestOneof: &logstream.DeltaManifest_ResetAll{
-						ResetAll: ls.initialManifest,
-					},
+	ls.deltas.send(&logstream.Delta{
+		DeltaTypeOneof: &logstream.Delta_DeltaManifest{
+			DeltaManifest: &logstream.DeltaManifest{
+				DeltaManifestOneof: &logstream.DeltaManifest_ResetAll{
+					ResetAll: ls.initialManifest,
 				},
 			},
 		},
-	}
+	})
 	ls.bus.AddSubscriber(ls)
 	defer ls.bus.RemoveSubscriber(ls)
-	if err := ls.c.StreamLogs(ctxTry, ls.buildID, ls.ch); err != nil {
+	if err := ls.c.StreamLogs(ctxTry, ls.buildID, &ls.deltas); err != nil {
 		s, ok := status.FromError(errors.Cause(err))
 		if !ok {
 			return false, err
@@ -149,11 +197,7 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 
 // Write writes the given delta to the log streamer.
 func (ls *LogStreamer) Write(delta *logstream.Delta) {
-	ls.mu.Lock()
-	ch := ls.ch // ls.ch may get replaced on retry
-	ls.mu.Unlock()
-	if ch != nil {
-		ch <- []*logstream.Delta{delta}
+	if ls.deltas.send(delta) {
 		return
 	}
 
@@ -171,17 +215,18 @@ func (ls *LogStreamer) Write(delta *logstream.Delta) {
 // Close closes the log streamer.
 func (ls *LogStreamer) Close() error {
 	ls.mu.Lock()
-	if ls.ch != nil {
-		close(ls.ch)
-		ls.ch = nil
-	}
+	ls.deltas.close()
 	ls.cancelled = true
 	ls.mu.Unlock()
-	// wait for all messages to be sent
+
+	return ls.drain()
+}
+
+func (ls *LogStreamer) drain() error {
 	timedOut := false
 	select {
 	case <-ls.doneCh:
-	case <-time.After(60 * time.Second):
+	case <-time.After(drainTimeout):
 		timedOut = true
 	}
 	ls.mu.Lock()
