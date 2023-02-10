@@ -10,8 +10,6 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-
-	. "github.com/stretchr/testify/assert"
 )
 
 // getConsts parses names.go and returns all constants.

@@ -7,7 +7,6 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/conslogging"
 
-	. "github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v2"
 )
 
