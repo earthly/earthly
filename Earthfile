@@ -244,6 +244,16 @@ unit-test:
     BUILD ./ast+unit-test
     BUILD ./util/deltautil+unit-test
 
+# chaos-test runs tests that use chaos and load in order to exercise components
+# of earthly. These tests may be more resource-intensive or flaky than typical
+# unit or integration tests.
+#
+# Since the race detector (-race) sets a goroutine limit, these tests are run
+# without -race.
+chaos-test:
+    FROM +code
+    RUN go test -tags chaos ./...
+
 # submodule-decouple-check checks that go submodules within earthly do not
 # depend on the core earthly project.
 submodule-decouple-check:
@@ -552,6 +562,7 @@ lint-docs:
 # TODO: Document qemu vs non-qemu
 test-no-qemu:
     BUILD +unit-test
+    BUILD +chaos-test
     BUILD +earthly-script-no-stdout
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false

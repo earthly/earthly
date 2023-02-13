@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/logbus/logstreamer"
+	"github.com/pkg/errors"
 	"github.com/poy/onpar/v2/expect"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -23,16 +23,25 @@ import (
 
 const testTimeout = 10 * time.Second
 
+func newTestLogStreamer(ctx context.Context, client *mockCloudClient, initMani *logstream.RunManifest, opts ...logstreamer.Opt) (*logstreamer.LogStreamer, func(*testing.T)) {
+	str := logstreamer.New(ctx, logbus.New(), client, initMani, opts...)
+	cleanup := func(t *testing.T) {
+		pers.ConsistentlyReturn(t, client.StreamLogsOutput, errors.New("done"))
+		str.Close()
+	}
+	return str, cleanup
+}
+
 // TestDataRace_InitManifest ensures that there's no race condition on sending
 // the initial manifest when there are calls to Write blocked on buffer
 // allocation.
 func TestDataRace_InitManifest(t *testing.T) {
-	const concurrency = 5
-	for i := 0; i < concurrency; i++ {
+	const runs = 5
+	for i := 0; i < runs; i++ {
 		// While this test fails a little more consistently than the deadlock
 		// test, it still passes sometimes, depending on scheduler luck.
 		// Exercising it multiple times gives us a pretty good chance of seeing
-		// a failure every time.
+		// a failure every time. These don't have to run concurrently though.
 		t.Run(fmt.Sprintf("run %v", i), exerciseInitManifest)
 	}
 }
@@ -55,7 +64,8 @@ func exerciseInitManifest(t *testing.T) {
 			},
 		},
 	}
-	str := logstreamer.New(ctx, logbus.New(), client, initManifest)
+	str, cleanup := newTestLogStreamer(ctx, client, initManifest)
+	defer cleanup(t)
 
 	// To trigger this data race, all we need is for a call to `Write` to block
 	// on access to a lock while the buffer is being allocated. If the lock is
@@ -111,7 +121,8 @@ func exerciseInitManifest(t *testing.T) {
 // stream RPC errors with a retryable code, we can leave `Write` calls in a
 // deadlocked state.
 func TestTransientError_Deadlock(t *testing.T) {
-	const concurrency = 5
+	const concurrency = 10
+
 	for i := 0; i < concurrency; i++ {
 		// Running this test multiple times concurrently exercises the scheduler
 		// enough to get it to fail consistently.
@@ -144,10 +155,11 @@ func exerciseDeadlock(t *testing.T) {
 	defer cancel()
 
 	// We need a heavily congested log streamer, with a full channel.
-	str := logstreamer.New(ctx, logbus.New(), client, &logstream.RunManifest{
+	str, cleanup := newTestLogStreamer(ctx, client, &logstream.RunManifest{
 		BuildId: "foo",
 		Version: 1,
 	}, logstreamer.WithBuffer(chSize))
+	defer cleanup(t)
 
 	expect.Expect(t, client).To(
 		pers.HaveMethodExecuted(
@@ -156,23 +168,6 @@ func exerciseDeadlock(t *testing.T) {
 			pers.WithArgs(pers.Any, "foo", pers.Any),
 		),
 	)
-	// NOTE: expect.Expect/pers.HaveMethodExecuted is equivalent to the
-	// following:
-	//
-	// select {
-	// case <-client.StreamLogsCalled:
-	// 	<-client.StreamLogsInput.Ctx
-	// 	buildID := <-client.StreamLogsInput.BuildID
-	// 	if buildID != "foo" {
-	// 		t.Fatalf("expected client.StreamLogs to be called with build ID 'foo'; got '%v'", buildID)
-	// 	}
-	// 	deltas := <-client.StreamLogsInput.Deltas
-	// 	if cap(deltas) != chSize {
-	// 		t.Fatalf("expected stream capacity to be %d (from WithChanSize); got %d", chSize, cap(deltas))
-	// 	}
-	// case <-time.After(testTimeout):
-	// 	t.Fatalf("timed out after %v waiting for client.StreamLogs to be called", testTimeout)
-	// }
 
 	remaining := chSize - 1 // initialManifest is already on the channel
 	for i := 0; i < remaining; i++ {
@@ -184,34 +179,36 @@ func exerciseDeadlock(t *testing.T) {
 	// channel. We should be able to handle _effectively_ infinite blocked
 	// `Write` calls when we de-congest the channel later.
 
-	var unblocked int32
+	// NOTE: `WriteAsync` was written specifically for this test case. There was
+	// no way to get a consistent test result when calling `Write` in a
+	// goroutine, because we had no way to guarantee that all of the calls to
+	// `Write` had gotten access to the current channel before we trigger the
+	// decongestion logic. WriteAsync gets access to the channel synchronously
+	// and then writes to the channel asynchronously.
+
+	var unblocked []<-chan struct{}
 
 	blocked := chSize
 	for i := 0; i < chSize; i++ {
-		go func() {
-			defer atomic.AddInt32(&unblocked, 1)
-			str.Write(&logstream.Delta{})
-		}()
+		unblocked = append(unblocked, str.WriteAsync(&logstream.Delta{}))
 	}
 
 	// At this point, we have cap(deltaCh) goroutines all blocked on sending to
 	// the _current_ deltaCh. But we should be able to handle quite a lot
 	// more...
 
-	var extrasUnblocked int32
+	var extrasUnblocked []<-chan struct{}
 
-	beyondCap := 10000 * chSize
+	beyondCap := 1000 * chSize
 	blocked += beyondCap
 	for i := 0; i < beyondCap; i++ {
-		go func() {
-			defer atomic.AddInt32(&extrasUnblocked, 1)
-			str.Write(&logstream.Delta{})
-		}()
+		extrasUnblocked = append(extrasUnblocked, str.WriteAsync(&logstream.Delta{}))
 	}
 
-	time.Sleep(10 * time.Millisecond)
-	if unblocked := atomic.LoadInt32(&unblocked); unblocked > 0 {
-		t.Fatalf("setup failed: %d goroutines were unblocked", unblocked)
+	select {
+	case <-unblocked[0]:
+		t.Fatalf("setup failed: Write goroutines were not blocked")
+	default:
 	}
 
 	// And now we cause the log streamer to retry, which means it reallocates
@@ -219,24 +216,16 @@ func exerciseDeadlock(t *testing.T) {
 	pers.Return(client.StreamLogsOutput, status.Error(codes.DeadlineExceeded, "BOOM!"))
 
 	// At this point, our decongestion goroutine is running - all of our calls
-	// to `Write` should eventually unblock.
+	// to `WriteAsync` should eventually unblock, so all done channels should
+	// close.
 
-	const maxChecks = 500
-	checks := 0
+	timeout := time.After(testTimeout)
 
-	ticker := time.NewTicker(10 * time.Millisecond)
-	defer ticker.Stop()
-	for range ticker.C {
-		unblocked := atomic.LoadInt32(&unblocked)
-		extrasUnblocked := atomic.LoadInt32(&extrasUnblocked)
-		total := int(unblocked) + int(extrasUnblocked)
-		if total == blocked {
-			t.Logf("success: got %d unblocked writes", blocked)
-			break
+	for i, ch := range append(unblocked, extrasUnblocked...) {
+		select {
+		case <-ch:
+		case <-timeout:
+			t.Fatalf("timed out waiting for all WriteAsync calls to unblock; failed on call %d (out of %d)", i, len(unblocked)+len(extrasUnblocked))
 		}
-		if checks > maxChecks {
-			t.Fatalf("timed out waiting for all Write calls to unblock; got %d unblocked writes, expected %d", unblocked+extrasUnblocked, blocked)
-		}
-		checks++
 	}
 }

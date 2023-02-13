@@ -29,39 +29,71 @@ type CloudClient interface {
 	StreamLogs(ctx context.Context, buildID string, deltas cloud.Deltas) error
 }
 
-type naiveDeltas struct {
+func decongest(ch <-chan []*logstream.Delta) {
+	const decongestTimeout = 100 * time.Millisecond
+	t := time.NewTimer(0)
+	defer t.Stop()
+	for {
+		if !t.Stop() {
+			<-t.C
+		}
+		t.Reset(decongestTimeout)
+		select {
+		case _, ok := <-ch:
+			if !ok {
+				return
+			}
+		case <-t.C:
+			return
+		}
+	}
+}
+
+type deltasIter struct {
 	mu     sync.Mutex
 	chSize int
 	ch     chan []*logstream.Delta
+	init   *logstream.RunManifest
 }
 
-func (d *naiveDeltas) deltas() chan []*logstream.Delta {
+func (d *deltasIter) deltas() chan []*logstream.Delta {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	return d.ch
 }
 
-func (d *naiveDeltas) reset() {
+func (d *deltasIter) reset() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.ch != nil {
-		go func(prevCh <-chan []*logstream.Delta) {
-			for {
-				select {
-				case _, ok := <-prevCh:
-					if !ok {
-						return
-					}
-				default:
-					return
-				}
-			}
-		}(d.ch)
+		go decongest(d.ch)
 	}
 	d.ch = make(chan []*logstream.Delta, d.chSize)
+	d.ch <- []*logstream.Delta{{
+		DeltaTypeOneof: &logstream.Delta_DeltaManifest{
+			DeltaManifest: &logstream.DeltaManifest{
+				DeltaManifestOneof: &logstream.DeltaManifest_ResetAll{
+					ResetAll: d.init,
+				},
+			},
+		},
+	}}
 }
 
-func (d *naiveDeltas) send(deltas ...*logstream.Delta) bool {
+func (d *deltasIter) sendAsync(sent chan<- struct{}, deltas ...*logstream.Delta) bool {
+	ch := d.deltas()
+	if ch == nil {
+		close(sent)
+		return false
+	}
+	go func() {
+		defer close(sent)
+		ch <- deltas
+	}()
+	return true
+}
+
+func (d *deltasIter) send(deltas ...*logstream.Delta) bool {
 	ch := d.deltas()
 	if ch == nil {
 		return false
@@ -70,14 +102,15 @@ func (d *naiveDeltas) send(deltas ...*logstream.Delta) bool {
 	return true
 }
 
-func (d *naiveDeltas) close() {
+func (d *deltasIter) close() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	decongest(d.ch)
 	close(d.ch)
 	d.ch = nil
 }
 
-func (d *naiveDeltas) Next(ctx context.Context) ([]*logstream.Delta, error) {
+func (d *deltasIter) Next(ctx context.Context) ([]*logstream.Delta, error) {
 	select {
 	case <-ctx.Done():
 		return nil, errors.Wrap(ctx.Err(), "logstreamer: context closed while waiting on next delta")
@@ -105,28 +138,27 @@ func WithBuffer(size int) Opt {
 // LogStreamer is a log streamer. It uses the cloud client to send
 // log deltas to the cloud. It retries on transient errors.
 type LogStreamer struct {
-	bus             *logbus.Bus
-	c               CloudClient
-	buildID         string
-	initialManifest *logstream.RunManifest
-	doneCh          chan struct{}
-	errors          []error
+	bus     *logbus.Bus
+	c       CloudClient
+	buildID string
+	doneCh  chan struct{}
+	errors  []error
 
 	mu        sync.Mutex
 	cancelled bool
-	deltas    naiveDeltas
+	deltas    deltasIter
 }
 
 // New creates a new LogStreamer.
 func New(ctx context.Context, bus *logbus.Bus, c CloudClient, initialManifest *logstream.RunManifest, opts ...Opt) *LogStreamer {
 	ls := &LogStreamer{
-		bus:             bus,
-		c:               c,
-		buildID:         initialManifest.GetBuildId(),
-		initialManifest: initialManifest,
-		doneCh:          make(chan struct{}),
-		deltas: naiveDeltas{
+		bus:     bus,
+		c:       c,
+		buildID: initialManifest.GetBuildId(),
+		doneCh:  make(chan struct{}),
+		deltas: deltasIter{
 			chSize: DefaultChSize,
+			init:   initialManifest,
 		},
 	}
 	for _, o := range opts {
@@ -169,15 +201,6 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 	}
 	ls.deltas.reset()
 	ls.mu.Unlock()
-	ls.deltas.send(&logstream.Delta{
-		DeltaTypeOneof: &logstream.Delta_DeltaManifest{
-			DeltaManifest: &logstream.DeltaManifest{
-				DeltaManifestOneof: &logstream.DeltaManifest_ResetAll{
-					ResetAll: ls.initialManifest,
-				},
-			},
-		},
-	})
 	ls.bus.AddSubscriber(ls)
 	defer ls.bus.RemoveSubscriber(ls)
 	if err := ls.c.StreamLogs(ctxTry, ls.buildID, &ls.deltas); err != nil {
@@ -195,7 +218,35 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
-// Write writes the given delta to the log streamer.
+// WriteAsync queues delta up for writing and returns immediately. The returned
+// channel will be closed when delta has been passed off to the buffer.
+//
+// This is different than Write in two important ways:
+//
+// 1. It will never block.
+//
+// 2. If the buffer is full, it cannot guarantee order the order that delta will
+// be added to the buffer in the order in which WriteAsync was called.
+func (ls *LogStreamer) WriteAsync(delta *logstream.Delta) <-chan struct{} {
+	done := make(chan struct{})
+	if ls.deltas.sendAsync(done, delta) {
+		return done
+	}
+
+	// TODO (vladaionescu): If these messages show up, we need to rethink
+	//						the closing sequence.
+	// TODO (vladaionescu): We should only log this if verbose is enabled.
+	dt, err := protojson.Marshal(delta)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Log streamer closed, but failed to marshal log delta: %v", err)
+		return done
+	}
+	fmt.Fprintf(os.Stderr, "Log streamer closed, dropping delta %v\n", string(dt))
+	return done
+}
+
+// Write writes the given delta to the log streamer. If there is no room in ls's
+// buffer, Write will block until room has been freed.
 func (ls *LogStreamer) Write(delta *logstream.Delta) {
 	if ls.deltas.send(delta) {
 		return
