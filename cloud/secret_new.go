@@ -8,7 +8,6 @@ import (
 	"time"
 
 	secretsapi "github.com/earthly/cloud-api/secrets"
-	"github.com/moby/buildkit/session/secrets"
 	"github.com/pkg/errors"
 )
 
@@ -66,6 +65,7 @@ func (c *client) ListSecrets(ctx context.Context, path string) ([]*Secret, error
 	return secrets, nil
 }
 
+// GetProjectSecret gets a secret from a project secret store
 func (c *client) GetProjectSecret(ctx context.Context, org, project, secretName string) (*Secret, error) {
 	if org == "" {
 		return nil, fmt.Errorf("GetProjectSecret called with empty org")
@@ -79,11 +79,25 @@ func (c *client) GetProjectSecret(ctx context.Context, org, project, secretName 
 	return c.getSecretV2(ctx, fmt.Sprintf("/%s/%s/%s", org, project, secretName))
 }
 
+// GetUserSecret gets a secret from the current user's personal secret store
 func (c *client) GetUserSecret(ctx context.Context, secretName string) (*Secret, error) {
 	if secretName == "" {
 		return nil, fmt.Errorf("GetUserSecret called with empty secretName")
 	}
 	return c.getSecretV2(ctx, fmt.Sprintf("/user/%s", secretName))
+}
+
+// GetUserOrProjectSecret gets a secret from a project or the current user's personal secret store,
+// depending on the path being structured as /org/project/... or /user/... respectively.
+func (c *client) GetUserOrProjectSecret(ctx context.Context, path string) (*Secret, error) {
+	if !strings.HasPrefix(path, "/") {
+		return nil, ErrMalformedSecretPath
+	}
+	// path must be /user/..., or /org/project/...
+	if !strings.HasPrefix(path, "/user/") && strings.Count(path, "/") < 3 {
+		return nil, ErrMalformedSecretPath
+	}
+	return c.getSecretV2(ctx, path)
 }
 
 func (c *client) getSecretV2(ctx context.Context, path string) (*Secret, error) {
@@ -96,7 +110,7 @@ func (c *client) getSecretV2(ctx context.Context, path string) (*Secret, error) 
 			return sec, nil
 		}
 	}
-	return nil, secrets.ErrNotFound
+	return nil, ErrNotFound
 }
 
 // SetSecret adds or updates the given path and secret combination.
@@ -134,7 +148,7 @@ func (c *client) RemoveSecret(ctx context.Context, path string) error {
 	case http.StatusOK:
 		break
 	case http.StatusNotFound:
-		return secrets.ErrNotFound
+		return ErrNotFound
 	default:
 		return errors.Errorf("failed to delete secret: %s", body)
 	}

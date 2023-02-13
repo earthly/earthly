@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/earthly/earthly/cloud"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -168,16 +169,15 @@ func (app *earthlyApp) actionSecretsGetV2(cliCtx *cli.Context) error {
 		return err
 	}
 
-	secrets, err := cloudClient.ListSecrets(cliCtx.Context, path)
+	secret, err := cloudClient.GetUserOrProjectSecret(cliCtx.Context, path)
 	if err != nil {
+		if errors.Is(err, cloud.ErrNotFound) {
+			return errors.New("no secret found for that path")
+		}
 		return errors.Wrap(err, "failed to get secret")
 	}
 
-	if len(secrets) == 0 {
-		return errors.New("no secret found for that path")
-	}
-
-	fmt.Print(secrets[0].Value)
+	fmt.Print(secret.Value)
 	if !app.disableNewLine {
 		fmt.Printf("\n")
 	}
