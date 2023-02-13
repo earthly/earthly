@@ -13,5 +13,7 @@ function finish {
 }
 trap finish EXIT
 
+export ECR_REGISTRY_HOST="404851345508.dkr.ecr.us-west-2.amazonaws.com"
+
 ./test-ecr-user.sh
 ./test-ecr-project.sh
