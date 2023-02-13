@@ -4,15 +4,10 @@ set -ex
 # WARNING -- RACE-CONDITION: this test is not thread-safe (since it makes use of a shared user's secrets)
 # the lock.sh and unlock.sh scripts must first be run
 
-ARTIFACT_SERVER="us-west1-docker.pkg.dev"
-ARTIFACT_FULL_ADDRESS="$ARTIFACT_SERVER/ci-cd-302220"
-IMAGE="integration-test/test"
-
 clearusersecrets() {
     earthly secrets ls /user/std/ | xargs -r -n 1 earthly secrets rm
 }
 
-echo "here we go in test-gcp-project.sh"
 test -n "$earthly_config" # set by earthly-entrypoint.sh
 which earthly
 
@@ -24,7 +19,7 @@ earthly registry list | grep -v $ARTIFACT_SERVER
 
 # set dockerhub credentials
 
-# TODO implement registry login command for gcr, then switch this test over
+# TODO implement registry login command for gcloud artifact registry, then switch this test over
 
 ORG="ryan-test"
 PROJECT="registry-command-test-project"
@@ -55,7 +50,7 @@ push:
   SAVE IMAGE --push $ARTIFACT_FULL_ADDRESS/$IMAGE:latest
 EOF
 
-# --no-output is required for earthly-in-earthly; however a --push to gcloud artifact registry will still occur
+# --no-output is required for earthly-in-earthly; however a --push to gcp will still occur
 earthly --config "$earthly_config" --verbose +pull
 earthly --config "$earthly_config" --no-output --push --verbose +push
 

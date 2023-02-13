@@ -13,5 +13,16 @@ function finish {
 }
 trap finish EXIT
 
+# Test Google Artifact registry
+export ARTIFACT_SERVER="us-west1-docker.pkg.dev"
+export ARTIFACT_FULL_ADDRESS="$ARTIFACT_SERVER/ci-cd-302220"
+export IMAGE="integration-test/test"
+./test-gcp-user.sh
+./test-gcp-project.sh
+
+# Test Google container registry
+export ARTIFACT_SERVER="gcr.io"
+export ARTIFACT_FULL_ADDRESS="$ARTIFACT_SERVER/ci-cd-302220"
+export IMAGE="test"
 ./test-gcp-user.sh
 ./test-gcp-project.sh
