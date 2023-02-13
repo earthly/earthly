@@ -24,6 +24,8 @@ var (
 	ErrUnauthorized = errors.New("unauthorized")
 	// ErrNoAuthorizedPublicKeys occurs when no authorized public keys are found
 	ErrNoAuthorizedPublicKeys = errors.New("no authorized public keys found")
+	ErrNotFound               = errors.Errorf("not found")
+	ErrMalformedSecretPath    = errors.Errorf("malformed secret path")
 )
 
 const (
@@ -92,6 +94,7 @@ type Client interface {
 	ListSecrets(ctx context.Context, path string) ([]*Secret, error)
 	GetProjectSecret(ctx context.Context, org, project, secretName string) (*Secret, error)
 	GetUserSecret(ctx context.Context, secretName string) (*Secret, error)
+	GetUserOrProjectSecret(ctx context.Context, secretName string) (*Secret, error)
 	SetSecret(ctx context.Context, path string, secret []byte) error
 	RemoveSecret(ctx context.Context, path string) error
 	ListSecretPermissions(ctx context.Context, path string) ([]*SecretPermission, error)

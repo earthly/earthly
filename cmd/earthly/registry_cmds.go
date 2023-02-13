@@ -8,7 +8,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/earthly/earthly/cloud"
-	"github.com/moby/buildkit/session/secrets"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -258,7 +257,7 @@ func (app *earthlyApp) actionRegistryLogout(cliCtx *cli.Context) error {
 	fmt.Printf("Removing login credentials for %s\n", host)
 	for _, secretName := range []string{"username", "password"} {
 		err = cloudClient.RemoveSecret(cliCtx.Context, path+host+"/"+secretName)
-		if err != nil && !errors.Is(err, secrets.ErrNotFound) {
+		if err != nil && !errors.Is(err, cloud.ErrNotFound) {
 			return err
 		}
 	}
