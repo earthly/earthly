@@ -3,9 +3,10 @@ package cloudauth
 import (
 	"context"
 	"fmt"
-	"github.com/docker/cli/cli/config/types"
-	g2 "golang.org/x/oauth2/google"
 	"strings"
+
+	"github.com/docker/cli/cli/config/types"
+	"golang.org/x/oauth2/google"
 )
 
 const (
@@ -27,7 +28,7 @@ func (ap *authProvider) getAuthConfigGCR(ctx context.Context, fullPathPrefix, pa
 
 	ap.console.VerbosePrintf("creating new a new JWT config for %s", host)
 
-	jwtCFG, err := g2.JWTConfigFromJSON([]byte(keyJSON), OauthScope)
+	jwtCFG, err := google.JWTConfigFromJSON([]byte(keyJSON), OauthScope)
 
 	token, err := jwtCFG.TokenSource(ctx).Token()
 	if err != nil {

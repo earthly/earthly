@@ -13,7 +13,7 @@ function finish {
 }
 trap finish EXIT
 
-# Test Google Artifact registry
+# Test Google artifact registry
 export ARTIFACT_SERVER="us-west1-docker.pkg.dev"
 export ARTIFACT_FULL_ADDRESS="$ARTIFACT_SERVER/ci-cd-302220"
 export IMAGE="integration-test/test"
