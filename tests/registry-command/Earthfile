@@ -47,6 +47,21 @@ test-ecr:
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly
 
+test-gcp:
+    COPY lock.sh unlock.sh \
+        test-gcp.sh \
+        test-gcp-project.sh test-gcp-user.sh \
+        .
+
+    ENV EARTHLY_EXEC_CMD=/test/test-gcp.sh
+    RUN --secret EARTHLY_TOKEN=fake-user-write-token \
+        --secret GCP_KEY=gcp/ci-cd-key \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly
+
 test:
     BUILD +test-dockerhub
     BUILD +test-ecr
+    BUILD +test-gcp
