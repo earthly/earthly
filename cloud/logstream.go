@@ -22,7 +22,7 @@ func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) 
 		return errors.Wrap(err, "failed to create log stream client")
 	}
 	eg, ctx := errgroup.WithContext(ctx)
-	var finished int32
+	var finished atomic.Bool
 	eg.Go(func() error {
 		for {
 			resp, err := streamClient.Recv()
@@ -30,7 +30,7 @@ func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) 
 				return errors.Wrap(err, "failed to read log stream response")
 			}
 			if resp.GetEofAck() {
-				if atomic.LoadInt32(&finished) == 0 {
+				if finished.Load() {
 					return errors.New("unexpected EOF ack")
 				}
 				err := streamClient.CloseSend()
@@ -52,7 +52,7 @@ func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) 
 				if err := streamClient.Send(msg); err != nil {
 					return errors.Wrap(err, "failed to send EOF to log stream")
 				}
-				atomic.StoreInt32(&finished, 1)
+				finished.Store(true)
 				return nil
 			}
 			if err != nil {
