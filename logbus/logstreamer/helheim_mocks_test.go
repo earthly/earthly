@@ -49,35 +49,6 @@ func (m *mockCloudClient) StreamLogs(ctx context.Context, buildID string, deltas
 	return ret0
 }
 
-type mockDeltas struct {
-	t          vegr.T
-	timeout    time.Duration
-	NextCalled chan bool
-	NextInput  struct {
-		Ctx chan context.Context
-	}
-	NextOutput struct {
-		Ret0 chan []*logstream.Delta
-		Ret1 chan error
-	}
-}
-
-func newMockDeltas(t vegr.T, timeout time.Duration) *mockDeltas {
-	m := &mockDeltas{t: t, timeout: timeout}
-	m.NextCalled = make(chan bool, 100)
-	m.NextInput.Ctx = make(chan context.Context, 100)
-	m.NextOutput.Ret0 = make(chan []*logstream.Delta, 100)
-	m.NextOutput.Ret1 = make(chan error, 100)
-	return m
-}
-func (m *mockDeltas) Next(ctx context.Context) (ret0 []*logstream.Delta, ret1 error) {
-	m.t.Helper()
-	m.NextCalled <- true
-	m.NextInput.Ctx <- ctx
-	vegr.PopulateReturns(m.t, "Next", m.timeout, m.NextOutput, &ret0, &ret1)
-	return ret0, ret1
-}
-
 type mockContext struct {
 	t              vegr.T
 	timeout        time.Duration
@@ -141,4 +112,33 @@ func (m *mockContext) Value(key any) (ret0 any) {
 	m.ValueInput.Key <- key
 	vegr.PopulateReturns(m.t, "Value", m.timeout, m.ValueOutput, &ret0)
 	return ret0
+}
+
+type mockDeltas struct {
+	t          vegr.T
+	timeout    time.Duration
+	NextCalled chan bool
+	NextInput  struct {
+		Ctx chan context.Context
+	}
+	NextOutput struct {
+		Ret0 chan []*logstream.Delta
+		Ret1 chan error
+	}
+}
+
+func newMockDeltas(t vegr.T, timeout time.Duration) *mockDeltas {
+	m := &mockDeltas{t: t, timeout: timeout}
+	m.NextCalled = make(chan bool, 100)
+	m.NextInput.Ctx = make(chan context.Context, 100)
+	m.NextOutput.Ret0 = make(chan []*logstream.Delta, 100)
+	m.NextOutput.Ret1 = make(chan error, 100)
+	return m
+}
+func (m *mockDeltas) Next(ctx context.Context) (ret0 []*logstream.Delta, ret1 error) {
+	m.t.Helper()
+	m.NextCalled <- true
+	m.NextInput.Ctx <- ctx
+	vegr.PopulateReturns(m.t, "Next", m.timeout, m.NextOutput, &ret0, &ret1)
+	return ret0, ret1
 }

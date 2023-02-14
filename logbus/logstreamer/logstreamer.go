@@ -1,4 +1,4 @@
-//go:generate hel
+//go:generate hel --output helheim_mocks_test.go
 
 package logstreamer
 
@@ -21,105 +21,18 @@ import (
 )
 
 const (
-	DefaultChSize = 10240
-	drainTimeout  = 60 * time.Second
+	// DefaultBufferSize is the default size of the buffer in a LogStreamer.
+	DefaultBufferSize = 10240
+
+	// DrainTimeout is the time that a LogStreamer.Close() call will wait for
+	// any remaining deltas to drain from its buffer.
+	DrainTimeout = 60 * time.Second
 )
 
+// CloudClient is the type of client that a LogStreamer needs to connect to
+// cloud and stream logs.
 type CloudClient interface {
 	StreamLogs(ctx context.Context, buildID string, deltas cloud.Deltas) error
-}
-
-func decongest(ch <-chan []*logstream.Delta) {
-	const decongestTimeout = 100 * time.Millisecond
-	t := time.NewTimer(0)
-	defer t.Stop()
-	for {
-		if !t.Stop() {
-			<-t.C
-		}
-		t.Reset(decongestTimeout)
-		select {
-		case _, ok := <-ch:
-			if !ok {
-				return
-			}
-		case <-t.C:
-			return
-		}
-	}
-}
-
-type deltasIter struct {
-	mu     sync.Mutex
-	chSize int
-	ch     chan []*logstream.Delta
-	init   *logstream.RunManifest
-}
-
-func (d *deltasIter) deltas() chan []*logstream.Delta {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	return d.ch
-}
-
-func (d *deltasIter) reset() {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	if d.ch != nil {
-		go decongest(d.ch)
-	}
-	d.ch = make(chan []*logstream.Delta, d.chSize)
-	d.ch <- []*logstream.Delta{{
-		DeltaTypeOneof: &logstream.Delta_DeltaManifest{
-			DeltaManifest: &logstream.DeltaManifest{
-				DeltaManifestOneof: &logstream.DeltaManifest_ResetAll{
-					ResetAll: d.init,
-				},
-			},
-		},
-	}}
-}
-
-func (d *deltasIter) sendAsync(sent chan<- struct{}, deltas ...*logstream.Delta) bool {
-	ch := d.deltas()
-	if ch == nil {
-		close(sent)
-		return false
-	}
-	go func() {
-		defer close(sent)
-		ch <- deltas
-	}()
-	return true
-}
-
-func (d *deltasIter) send(deltas ...*logstream.Delta) bool {
-	ch := d.deltas()
-	if ch == nil {
-		return false
-	}
-	ch <- deltas
-	return true
-}
-
-func (d *deltasIter) close() {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	decongest(d.ch)
-	close(d.ch)
-	d.ch = nil
-}
-
-func (d *deltasIter) Next(ctx context.Context) ([]*logstream.Delta, error) {
-	select {
-	case <-ctx.Done():
-		return nil, errors.Wrap(ctx.Err(), "logstreamer: context closed while waiting on next delta")
-	case delta, ok := <-d.deltas():
-		if !ok {
-			return nil, errors.Wrap(io.EOF, "logstreamer: channel closed")
-		}
-		return delta, nil
-	}
 }
 
 // Opt is an option function, used to adjust optional attributes of a
@@ -157,7 +70,7 @@ func New(ctx context.Context, bus *logbus.Bus, c CloudClient, initialManifest *l
 		buildID: initialManifest.GetBuildId(),
 		doneCh:  make(chan struct{}),
 		deltas: deltasIter{
-			chSize: DefaultChSize,
+			chSize: DefaultBufferSize,
 			init:   initialManifest,
 		},
 	}
@@ -277,7 +190,7 @@ func (ls *LogStreamer) drain() error {
 	timedOut := false
 	select {
 	case <-ls.doneCh:
-	case <-time.After(drainTimeout):
+	case <-time.After(DrainTimeout):
 		timedOut = true
 	}
 	ls.mu.Lock()
@@ -290,4 +203,97 @@ func (ls *LogStreamer) drain() error {
 		retErr = multierror.Append(retErr, err)
 	}
 	return retErr
+}
+
+func decongest(ch <-chan []*logstream.Delta) {
+	const decongestTimeout = 100 * time.Millisecond
+	t := time.NewTimer(0)
+	defer t.Stop()
+	for {
+		if !t.Stop() {
+			<-t.C
+		}
+		t.Reset(decongestTimeout)
+		select {
+		case _, ok := <-ch:
+			if !ok {
+				return
+			}
+		case <-t.C:
+			return
+		}
+	}
+}
+
+type deltasIter struct {
+	mu     sync.Mutex
+	chSize int
+	ch     chan []*logstream.Delta
+	init   *logstream.RunManifest
+}
+
+func (d *deltasIter) deltas() chan []*logstream.Delta {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.ch
+}
+
+func (d *deltasIter) reset() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.ch != nil {
+		go decongest(d.ch)
+	}
+	d.ch = make(chan []*logstream.Delta, d.chSize)
+	d.ch <- []*logstream.Delta{{
+		DeltaTypeOneof: &logstream.Delta_DeltaManifest{
+			DeltaManifest: &logstream.DeltaManifest{
+				DeltaManifestOneof: &logstream.DeltaManifest_ResetAll{
+					ResetAll: d.init,
+				},
+			},
+		},
+	}}
+}
+
+func (d *deltasIter) sendAsync(sent chan<- struct{}, deltas ...*logstream.Delta) bool {
+	ch := d.deltas()
+	if ch == nil {
+		close(sent)
+		return false
+	}
+	go func() {
+		defer close(sent)
+		ch <- deltas
+	}()
+	return true
+}
+
+func (d *deltasIter) send(deltas ...*logstream.Delta) bool {
+	ch := d.deltas()
+	if ch == nil {
+		return false
+	}
+	ch <- deltas
+	return true
+}
+
+func (d *deltasIter) close() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	decongest(d.ch)
+	close(d.ch)
+	d.ch = nil
+}
+
+func (d *deltasIter) Next(ctx context.Context) ([]*logstream.Delta, error) {
+	select {
+	case <-ctx.Done():
+		return nil, errors.Wrap(ctx.Err(), "logstreamer: context closed while waiting on next delta")
+	case delta, ok := <-d.deltas():
+		if !ok {
+			return nil, errors.Wrap(io.EOF, "logstreamer: channel closed")
+		}
+		return delta, nil
+	}
 }

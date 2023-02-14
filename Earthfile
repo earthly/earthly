@@ -196,7 +196,7 @@ mocks:
     FROM +code
     RUN go install git.sr.ht/~nelsam/hel/v4@latest && go install golang.org/x/tools/cmd/goimports@latest
     RUN go generate ./...
-    FOR mockfile IN $(find . -name 'helheim_test.go')
+    FOR mockfile IN $(find . -name 'helheim*_test.go')
         SAVE ARTIFACT $mockfile AS LOCAL $mockfile
     END
 
