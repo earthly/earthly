@@ -1,6 +1,6 @@
 module github.com/earthly/earthly
 
-go 1.18
+go 1.19
 
 require (
 	github.com/adrg/xdg v0.4.0
