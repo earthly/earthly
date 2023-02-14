@@ -45,6 +45,7 @@ func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) 
 		for {
 			dl, err := deltas.Next(ctx)
 			if errors.Is(err, io.EOF) {
+				finished.Store(true)
 				msg := &logstream.StreamLogRequest{
 					BuildId: buildID,
 					Eof:     true,
@@ -53,7 +54,6 @@ func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) 
 				if err != nil {
 					return errors.Wrap(err, "failed to send EOF to log stream")
 				}
-				finished.Store(true)
 				return nil
 			}
 			if err != nil {

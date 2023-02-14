@@ -1,3 +1,5 @@
+//go:generate hel --output helheim_mocks_test.go
+
 package cloud
 
 import (
@@ -10,11 +12,9 @@ import (
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/cloud-api/pipelines"
 	"github.com/google/uuid"
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh/agent"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -35,12 +35,21 @@ const (
 	requestID            = "request-id"
 )
 
+// GRPCConn represents a grpc connection. It's effectively a copy of
+// grpc.ClientConnInterface, copied here to make it easier to see what is
+// required by this package without having to dig through the grpc docs.
+type GRPCConn interface {
+	Invoke(ctx context.Context, method string, args, reply any, opts ...grpc.CallOption) error
+	NewStream(ctx context.Context, desc *grpc.StreamDesc, method string, opts ...grpc.CallOption) (grpc.ClientStream, error)
+}
+
+// Client is a client for communicating with Earthly Cloud.
 type Client struct {
 	httpAddr              string
 	sshKeyBlob            []byte // sshKey to use
 	forceSSHKey           bool   // if true only use the above ssh key, don't attempt to guess others
 	sshAgent              agent.ExtendedAgent
-	warnFunc              func(string, ...interface{})
+	warnFunc              func(string, ...any)
 	email                 string
 	password              string
 	authToken             string
@@ -49,60 +58,88 @@ type Client struct {
 	authDir               string
 	disableSSHKeyGuessing bool
 	jum                   *protojson.UnmarshalOptions
+	grpcConn              GRPCConn
 	pipelines             pipelines.PipelinesClient
 	compute               compute.ComputeClient
 	logstream             logstream.LogStreamClient
 	analytics             analytics.AnalyticsClient
 	requestID             string
 	installationName      string
+
+	// postAllocationOpts are options that can't be applied until the Client has
+	// been fully allocated and all Opts have been applied.
+	//
+	// ... Which ... is a problem, because if a postAllocationOpt depends on
+	// another postAllocationOpt...
+	//
+	// It's not a big deal for now, but we probably should break the cycle when
+	// we get a chance to descend into that rabbit hole. Maybe `Client` is doing
+	// too much and should be broken up into a few types (e.g. Authenticator,
+	// Interceptor, Client).
+	postAllocationOpts []Opt
 }
 
 // NewClient provides a new Earthly Cloud client
 func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, authJWTOverride, installationName, requestID string, warnFunc func(string, ...interface{})) (*Client, error) {
-	c := &Client{
-		httpAddr: httpAddr,
-		sshAgent: &lazySSHAgent{
-			sockPath: agentSockPath,
-		},
-		warnFunc:         warnFunc,
-		jum:              &protojson.UnmarshalOptions{DiscardUnknown: true},
-		installationName: installationName,
-		requestID:        requestID,
+	opts := []Opt{
+		WithHTTPAddr(httpAddr),
+		WithAgentSockPath(agentSockPath),
+		WithInstallation(installationName),
+		WithRequestID(requestID),
+		WithWarnCallback(warnFunc),
 	}
-	if authJWTOverride != "" {
-		c.authToken = authJWTOverride
-		c.authTokenExpiry = time.Now().Add(24 * 365 * time.Hour) // Never expire when using JWT.
-	} else if authCredsOverride != "" {
-		c.authCredToken = authCredsOverride
-	} else {
-		if err := c.loadAuthStorage(); err != nil {
-			return nil, err
-		}
-	}
-	ctx := context.Background()
-	retryOpts := []grpc_retry.CallOption{
-		grpc_retry.WithMax(10),
-		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)),
-		grpc_retry.WithCodes(codes.Internal, codes.Unavailable),
-	}
-	dialOpts := []grpc.DialOption{
-		grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...), c.StreamInterceptor()),
-		grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...), c.UnaryInterceptor(WithSkipAuth("/api.public.analytics.Analytics/SendAnalytics"))),
-	}
+
+	// NOTE: retry and interceptor options are dealt with in the WithGRPCDial
+	// option.
+	var dialOpts []grpc.DialOption
 	if useInsecure {
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	} else {
 		tlsConfig := credentials.NewTLS(&tls.Config{})
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(tlsConfig))
 	}
-	conn, err := grpc.DialContext(ctx, grpcAddr, dialOpts...)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed dialing pipelines grpc")
+	opts = append(opts, WithGRPCDial(grpcAddr, dialOpts...))
+
+	if authJWTOverride != "" {
+		opts = append(opts, WithAuthOverride(JWT(authJWTOverride)))
+	} else if authCredsOverride != "" {
+		opts = append(opts, WithAuthOverride(Creds(authCredsOverride)))
 	}
-	c.pipelines = pipelines.NewPipelinesClient(conn)
-	c.compute = compute.NewComputeClient(conn)
-	c.logstream = logstream.NewLogStreamClient(conn)
+
+	return NewClientOpts(context.Background(), opts...)
+}
+
+// NewClientOpts provides a new Earthly Cloud client using the provided opts to
+// control how it is configured.
+func NewClientOpts(ctx context.Context, opts ...Opt) (*Client, error) {
+	c := &Client{
+		jum: &protojson.UnmarshalOptions{DiscardUnknown: true},
+	}
+	for _, opt := range opts {
+		newC, err := opt(ctx, c)
+		if err != nil {
+			return nil, err
+		}
+		c = newC
+	}
+	if c.authToken == "" && c.authCredToken == "" {
+		if err := c.loadAuthStorage(); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, opt := range c.postAllocationOpts {
+		newC, err := opt(ctx, c)
+		if err != nil {
+			return nil, err
+		}
+		c = newC
+	}
+	c.pipelines = pipelines.NewPipelinesClient(c.grpcConn)
+	c.compute = compute.NewComputeClient(c.grpcConn)
+	c.logstream = logstream.NewLogStreamClient(c.grpcConn)
 	c.analytics = analytics.NewAnalyticsClient(conn)
+
 	return c, nil
 }
 
