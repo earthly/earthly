@@ -10,6 +10,10 @@ import (
 	"github.com/docker/cli/cli/config/types"
 )
 
+const (
+	ECRCredHelper = "ecr-login"
+)
+
 func (ap *authProvider) getAuthConfigECR(ctx context.Context, host, org, project string) (*authConfig, error) {
 	registry, err := api.ExtractRegistry(host)
 	if err != nil {
@@ -54,13 +58,13 @@ func (ap *authProvider) getAuthConfigECR(ctx context.Context, host, org, project
 		},
 	})
 
-	ap.console.VerbosePrintf("calling ecr-login GetCredentials for %s", host)
+	ap.console.VerbosePrintf("calling %s GetCredentials for %s", ECRCredHelper, host)
 	auth, err := client.GetCredentials(host)
 	if err != nil {
-		return nil, fmt.Errorf("ecr-login using credentials from %s failed: %w", registryPath, err)
+		return nil, fmt.Errorf("%s using credentials from %s failed: %w", ECRCredHelper, registryPath, err)
 	}
 
-	ap.console.VerbosePrintf("ecr-login succeeded using aws credentials stored under %s", registryPath)
+	ap.console.VerbosePrintf("%s succeeded using aws credentials stored under %s", ECRCredHelper, registryPath)
 	return &authConfig{
 		ac: &types.AuthConfig{
 			ServerAddress: host,

@@ -10,7 +10,7 @@ require (
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20230206222643-feb497de7dbc
 	github.com/containerd/containerd v1.6.12
 	github.com/creack/pty v1.1.11
-	github.com/docker/cli v20.10.17+incompatible
+	github.com/docker/cli v20.10.20+incompatible
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/dustin/go-humanize v1.0.0
@@ -31,7 +31,7 @@ require (
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/moby/buildkit v0.8.2-0.20210129065303-6b9ea0c202cf
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/opencontainers/image-spec v1.0.3-0.20220303224323-02efb9a75ee1
+	github.com/opencontainers/image-spec v1.1.0-rc2
 	github.com/otiai10/copy v1.1.1
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
@@ -39,9 +39,10 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/tonistiigi/fsutil v0.0.0-20220930225714-4638ad635be5
 	github.com/urfave/cli/v2 v2.3.0
-	golang.org/x/crypto v0.0.0-20220826181053-bd7e27e6170d
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/term v0.0.0-20220919170432-7a66f970e087
+	golang.org/x/crypto v0.1.0
+	golang.org/x/oauth2 v0.1.0
+	golang.org/x/sync v0.1.0
+	golang.org/x/term v0.1.0
 	google.golang.org/grpc v1.47.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -49,7 +50,7 @@ require (
 
 require (
 	cloud.google.com/go v0.81.0 // indirect
-	github.com/Microsoft/go-winio v0.5.2 // indirect
+	github.com/Microsoft/go-winio v0.6.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/antlr/antlr4 v0.0.0-20200225173536-225249fdaef5 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.18.12 // indirect
@@ -67,11 +68,12 @@ require (
 	github.com/aws/smithy-go v1.13.5 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/containerd/continuity v0.3.0 // indirect
+	github.com/containerd/stargz-snapshotter/estargz v0.12.1 // indirect
 	github.com/containerd/ttrpc v1.1.0 // indirect
 	github.com/containerd/typeurl v1.0.2 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/docker/docker v20.10.18+incompatible // indirect
+	github.com/docker/docker v20.10.20+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/elastic/go-windows v1.0.0 // indirect
@@ -80,13 +82,14 @@ require (
 	github.com/gogo/googleapis v1.4.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.3 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
-	github.com/klauspost/compress v1.15.9 // indirect
+	github.com/klauspost/compress v1.15.11 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/moby/locker v1.0.1 // indirect
@@ -96,8 +99,7 @@ require (
 	github.com/opencontainers/runc v1.1.3 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
-	github.com/russross/blackfriday/v2 v2.0.1 // indirect
-	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/tonistiigi/units v0.0.0-20180711220420-6950e57a87ea // indirect
 	github.com/tonistiigi/vt100 v0.0.0-20210615222946-8066bb97264f // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.29.0 // indirect
@@ -106,11 +108,15 @@ require (
 	go.opentelemetry.io/otel/sdk v1.4.1 // indirect
 	go.opentelemetry.io/otel/trace v1.4.1 // indirect
 	go.opentelemetry.io/proto/otlp v0.12.0 // indirect
-	golang.org/x/net v0.0.0-20220906165146-f3363e06e74c // indirect
-	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/mod v0.6.0 // indirect
+	golang.org/x/net v0.1.0 // indirect
+	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
+	golang.org/x/tools v0.1.12 // indirect
+	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220617124728-180714bec0ad // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	howett.net/plist v0.0.0-20181124034731-591f970eefbb // indirect
 )
 
