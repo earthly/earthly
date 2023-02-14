@@ -30,7 +30,7 @@ func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) 
 				return errors.Wrap(err, "failed to read log stream response")
 			}
 			if resp.GetEofAck() {
-				if finished.Load() {
+				if !finished.Load() {
 					return errors.New("unexpected EOF ack")
 				}
 				err := streamClient.CloseSend()
