@@ -31,7 +31,7 @@ type EarthlyAnalytics struct {
 }
 
 // SendAnalytics send an analytics event to the Cloud server.
-func (c *client) SendAnalytics(ctx context.Context, data *EarthlyAnalytics) error {
+func (c *Client) SendAnalytics(ctx context.Context, data *EarthlyAnalytics) error {
 	payload, err := json.Marshal(data)
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal data")

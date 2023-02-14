@@ -34,7 +34,7 @@ type OrgMember struct {
 }
 
 // ListOrgs lists all orgs a user has permission to view.
-func (c *client) ListOrgs(ctx context.Context) ([]*OrgDetail, error) {
+func (c *Client) ListOrgs(ctx context.Context) ([]*OrgDetail, error) {
 	status, body, err := c.doCall(ctx, "GET", "/api/v0/admin/organizations", withAuth())
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func (c *client) ListOrgs(ctx context.Context) ([]*OrgDetail, error) {
 }
 
 // Invite a user to an org.
-func (c *client) Invite(ctx context.Context, path, user string, write bool) error {
+func (c *Client) Invite(ctx context.Context, path, user string, write bool) error {
 	orgName, ok := getOrgFromPath(path)
 	if !ok {
 		return errors.Errorf("invalid path")
@@ -95,7 +95,7 @@ func (c *client) Invite(ctx context.Context, path, user string, write bool) erro
 }
 
 // RevokePermission removes the org permission from the user.
-func (c *client) RevokePermission(ctx context.Context, path, user string) error {
+func (c *Client) RevokePermission(ctx context.Context, path, user string) error {
 	orgName, ok := getOrgFromPath(path)
 	if !ok {
 		return errors.Errorf("invalid path")
@@ -121,7 +121,7 @@ func (c *client) RevokePermission(ctx context.Context, path, user string) error 
 }
 
 // ListOrgPermissions returns all configured permissions for the org.
-func (c *client) ListOrgPermissions(ctx context.Context, path string) ([]*OrgPermissions, error) {
+func (c *Client) ListOrgPermissions(ctx context.Context, path string) ([]*OrgPermissions, error) {
 	orgName, ok := getOrgFromPath(path)
 	if !ok {
 		return nil, errors.Errorf("invalid path")
@@ -160,7 +160,7 @@ func (c *client) ListOrgPermissions(ctx context.Context, path string) ([]*OrgPer
 }
 
 // CreateOrg creates a new org by name.
-func (c *client) CreateOrg(ctx context.Context, org string) error {
+func (c *Client) CreateOrg(ctx context.Context, org string) error {
 	status, body, err := c.doCall(ctx, "PUT", fmt.Sprintf("/api/v0/admin/organizations/%s", url.QueryEscape(org)), withAuth())
 	if err != nil {
 		return err
@@ -176,7 +176,7 @@ func (c *client) CreateOrg(ctx context.Context, org string) error {
 }
 
 // GetOrgID retrieves the org ID for a named org.
-func (c *client) GetOrgID(ctx context.Context, orgName string) (string, error) {
+func (c *Client) GetOrgID(ctx context.Context, orgName string) (string, error) {
 	orgs, err := c.ListOrgs(ctx)
 	if err != nil {
 		return "", err

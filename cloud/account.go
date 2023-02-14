@@ -23,7 +23,7 @@ type TokenDetail struct {
 	Expiry time.Time
 }
 
-func (c *client) ListPublicKeys(ctx context.Context) ([]string, error) {
+func (c *Client) ListPublicKeys(ctx context.Context) ([]string, error) {
 	status, body, err := c.doCall(ctx, "GET", "/api/v0/account/keys", withAuth())
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (c *client) ListPublicKeys(ctx context.Context) ([]string, error) {
 	return keys, nil
 }
 
-func (c *client) AddPublicKey(ctx context.Context, key string) error {
+func (c *Client) AddPublicKey(ctx context.Context, key string) error {
 	key = strings.TrimSpace(key) + "\n"
 	status, body, err := c.doCall(ctx, "PUT", "/api/v0/account/keys", withAuth(), withBody([]byte(key)))
 	if err != nil {
@@ -61,7 +61,7 @@ func (c *client) AddPublicKey(ctx context.Context, key string) error {
 	return nil
 }
 
-func (c *client) RemovePublicKey(ctx context.Context, key string) error {
+func (c *Client) RemovePublicKey(ctx context.Context, key string) error {
 	key = strings.TrimSpace(key) + "\n"
 	status, body, err := c.doCall(ctx, "DELETE", "/api/v0/account/keys", withAuth(), withBody([]byte(key)))
 	if err != nil {
@@ -77,7 +77,7 @@ func (c *client) RemovePublicKey(ctx context.Context, key string) error {
 	return nil
 }
 
-func (c *client) CreateToken(ctx context.Context, name string, write bool, expiry *time.Time) (string, error) {
+func (c *Client) CreateToken(ctx context.Context, name string, write bool, expiry *time.Time) (string, error) {
 	name = url.QueryEscape(name)
 	expiryPB := timestamppb.New(expiry.UTC())
 	authToken := secretsapi.AuthToken{
@@ -98,7 +98,7 @@ func (c *client) CreateToken(ctx context.Context, name string, write bool, expir
 	return string(body), nil
 }
 
-func (c *client) ListTokens(ctx context.Context) ([]*TokenDetail, error) {
+func (c *Client) ListTokens(ctx context.Context) ([]*TokenDetail, error) {
 	status, body, err := c.doCall(ctx, "GET", "/api/v0/account/tokens", withAuth())
 	if err != nil {
 		return nil, err
@@ -128,7 +128,7 @@ func (c *client) ListTokens(ctx context.Context) ([]*TokenDetail, error) {
 	return tokenDetails, nil
 }
 
-func (c *client) RemoveToken(ctx context.Context, name string) error {
+func (c *Client) RemoveToken(ctx context.Context, name string) error {
 	name = url.QueryEscape(name)
 	status, body, err := c.doCall(ctx, "DELETE", "/api/v0/account/token/"+name, withAuth())
 	if err != nil {
@@ -144,7 +144,7 @@ func (c *client) RemoveToken(ctx context.Context, name string) error {
 	return nil
 }
 
-func (c *client) WhoAmI(ctx context.Context) (string, string, bool, error) {
+func (c *Client) WhoAmI(ctx context.Context) (string, string, bool, error) {
 	email, writeAccess, err := c.ping(ctx)
 	if err != nil {
 		return "", "", false, err
@@ -160,7 +160,7 @@ func (c *client) WhoAmI(ctx context.Context) (string, string, bool, error) {
 	return email, authType, writeAccess, nil
 }
 
-func (c *client) GetPublicKeys(ctx context.Context) ([]*agent.Key, error) {
+func (c *Client) GetPublicKeys(ctx context.Context) ([]*agent.Key, error) {
 	keys, err := c.sshAgent.List()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list ssh keys")
@@ -181,7 +181,7 @@ func (c *client) GetPublicKeys(ctx context.Context) ([]*agent.Key, error) {
 	return keys, nil
 }
 
-func (c *client) RegisterEmail(ctx context.Context, email string) error {
+func (c *Client) RegisterEmail(ctx context.Context, email string) error {
 	status, body, err := c.doCall(ctx, "PUT", fmt.Sprintf("/api/v0/account/create/%s", url.QueryEscape(email)))
 	if err != nil {
 		return err
@@ -196,7 +196,7 @@ func (c *client) RegisterEmail(ctx context.Context, email string) error {
 	return nil
 }
 
-func (c *client) CreateAccount(ctx context.Context, email, verificationToken, password, publicKey string, termsConditionsPrivacy bool) error {
+func (c *Client) CreateAccount(ctx context.Context, email, verificationToken, password, publicKey string, termsConditionsPrivacy bool) error {
 	if !IsValidEmail(ctx, email) {
 		return errors.Errorf("invalid email: %q", email)
 	}
@@ -245,7 +245,7 @@ func (c *client) CreateAccount(ctx context.Context, email, verificationToken, pa
 
 // ping calls the ping endpoint on the server,
 // which is used to both test an auth token and retrieve the associated email address.
-func (c *client) ping(ctx context.Context) (email string, writeAccess bool, err error) {
+func (c *Client) ping(ctx context.Context) (email string, writeAccess bool, err error) {
 	status, body, err := c.doCall(ctx, "GET", "/api/v0/account/ping", withAuth())
 	if err != nil {
 		return "", false, errors.Wrap(err, "failed executing ping request")
@@ -264,7 +264,7 @@ func (c *client) ping(ctx context.Context) (email string, writeAccess bool, err 
 	return resp.Email, resp.WriteAccess, nil
 }
 
-func (c *client) AccountResetRequestToken(ctx context.Context, email string) error {
+func (c *Client) AccountResetRequestToken(ctx context.Context, email string) error {
 	email = url.QueryEscape(email)
 	status, _, err := c.doCall(ctx, "PUT", "/api/v0/account/reset/"+email)
 	if err != nil {
@@ -276,7 +276,7 @@ func (c *client) AccountResetRequestToken(ctx context.Context, email string) err
 	return nil
 }
 
-func (c *client) AccountReset(ctx context.Context, email, token, password string) error {
+func (c *Client) AccountReset(ctx context.Context, email, token, password string) error {
 	createAccountRequest := secretsapi.ResetPasswordRequest{
 		Email:             email,
 		VerificationToken: token,

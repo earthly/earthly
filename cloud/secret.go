@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *client) Remove(ctx context.Context, path string) error {
+func (c *Client) Remove(ctx context.Context, path string) error {
 	if path == "" || path[0] != '/' {
 		return errors.Errorf("invalid path")
 	}
@@ -28,7 +28,7 @@ func (c *client) Remove(ctx context.Context, path string) error {
 	return nil
 }
 
-func (c *client) List(ctx context.Context, path string) ([]string, error) {
+func (c *Client) List(ctx context.Context, path string) ([]string, error) {
 	if path != "" && !strings.HasSuffix(path, "/") {
 		return nil, errors.Errorf("invalid path")
 	}
@@ -49,7 +49,7 @@ func (c *client) List(ctx context.Context, path string) ([]string, error) {
 	return strings.Split(string(body), "\n"), nil
 }
 
-func (c *client) Get(ctx context.Context, path string) ([]byte, error) {
+func (c *Client) Get(ctx context.Context, path string) ([]byte, error) {
 	if path == "" || path[0] != '/' || strings.HasSuffix(path, "/") {
 		return nil, errors.Errorf("invalid path")
 	}
@@ -67,7 +67,7 @@ func (c *client) Get(ctx context.Context, path string) ([]byte, error) {
 	return body, nil
 }
 
-func (c *client) Set(ctx context.Context, path string, data []byte) error {
+func (c *Client) Set(ctx context.Context, path string, data []byte) error {
 	if path == "" || path[0] != '/' {
 		return errors.Errorf("invalid path")
 	}

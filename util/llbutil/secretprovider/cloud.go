@@ -11,11 +11,11 @@ import (
 )
 
 type cloudStore struct {
-	client cloud.Client
+	client *cloud.Client
 }
 
 // NewCloudStore returns a new cloud secret store
-func NewCloudStore(client cloud.Client) secrets.SecretStore {
+func NewCloudStore(client *cloud.Client) secrets.SecretStore {
 	return &cloudStore{
 		client: client,
 	}

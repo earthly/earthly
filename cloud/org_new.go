@@ -22,7 +22,7 @@ type OrgInvitation struct {
 }
 
 // InviteToOrg sends an email invitation to a user and asks for them to join an org.
-func (c *client) InviteToOrg(ctx context.Context, invite *OrgInvitation) (string, error) {
+func (c *Client) InviteToOrg(ctx context.Context, invite *OrgInvitation) (string, error) {
 	u := "/api/v0/invitations"
 
 	req := &secretsapi.CreateInvitationRequest{
@@ -51,7 +51,7 @@ func (c *client) InviteToOrg(ctx context.Context, invite *OrgInvitation) (string
 }
 
 // ListOrgMembers returns a collection of org members.
-func (c *client) ListOrgMembers(ctx context.Context, orgName string) ([]*OrgMember, error) {
+func (c *Client) ListOrgMembers(ctx context.Context, orgName string) ([]*OrgMember, error) {
 	u := fmt.Sprintf("/api/v1/organizations/%s/members", orgName)
 
 	status, body, err := c.doCall(ctx, http.MethodGet, u, withAuth())
@@ -84,7 +84,7 @@ func (c *client) ListOrgMembers(ctx context.Context, orgName string) ([]*OrgMemb
 }
 
 // UpdateOrgMember updates a member's permission in an org.
-func (c *client) UpdateOrgMember(ctx context.Context, orgName, userEmail, permission string) error {
+func (c *Client) UpdateOrgMember(ctx context.Context, orgName, userEmail, permission string) error {
 	u := fmt.Sprintf("/api/v1/organizations/%s/members/%s", orgName, userEmail)
 
 	req := &secretsapi.UpdateOrgMemberRequest{
@@ -108,7 +108,7 @@ func (c *client) UpdateOrgMember(ctx context.Context, orgName, userEmail, permis
 }
 
 // RemoveOrgMember removes a member from the org.
-func (c *client) RemoveOrgMember(ctx context.Context, orgName, userEmail string) error {
+func (c *Client) RemoveOrgMember(ctx context.Context, orgName, userEmail string) error {
 	u := fmt.Sprintf("/api/v1/organizations/%s/members/%s", orgName, userEmail)
 
 	status, body, err := c.doCall(ctx, http.MethodDelete, u, withAuth())
@@ -124,7 +124,7 @@ func (c *client) RemoveOrgMember(ctx context.Context, orgName, userEmail string)
 }
 
 // AcceptInvite accepts the org invitation and adds the user to the org.
-func (c *client) AcceptInvite(ctx context.Context, inviteCode string) error {
+func (c *Client) AcceptInvite(ctx context.Context, inviteCode string) error {
 	u := "/api/v0/invitations/" + inviteCode
 
 	status, body, err := c.doCall(ctx, http.MethodPost, u, withAuth())
@@ -140,7 +140,7 @@ func (c *client) AcceptInvite(ctx context.Context, inviteCode string) error {
 }
 
 // ListInvites returns a collection of organization invites and their status.
-func (c *client) ListInvites(ctx context.Context, org string) ([]*OrgInvitation, error) {
+func (c *Client) ListInvites(ctx context.Context, org string) ([]*OrgInvitation, error) {
 	u := "/api/v0/invitations?org=" + org
 
 	status, body, err := c.doCall(ctx, http.MethodGet, u, withAuth())
