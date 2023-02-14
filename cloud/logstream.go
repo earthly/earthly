@@ -49,7 +49,8 @@ func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) 
 					BuildId: buildID,
 					Eof:     true,
 				}
-				if err := streamClient.Send(msg); err != nil {
+				err := streamClient.Send(msg)
+				if err != nil {
 					return errors.Wrap(err, "failed to send EOF to log stream")
 				}
 				finished.Store(true)
