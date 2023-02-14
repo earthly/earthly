@@ -280,7 +280,7 @@ For cache mounts, the sharing mode can be one of the following:
 * `shared` - the cache mount is shared between all concurrent builds.
 * `private` - if another concurrent build attempts to use the cache, a new (empty) cache will be created for the concurrent build.
 
-###### Examples:
+###### Examples
 
 Persisting cache for a single `RUN` command, even when its dependencies change:
 
@@ -1198,8 +1198,7 @@ Even though the `WAIT` clause limits parallelism by forcing everything within it
 
 #### Examples
 
-As an example, multiple `WAIT` blocks can be used; the first block builds and pushes to a remote registry (in parallel), then a second `WAIT` block
-can be used to execute a script which requires those images to exist in the remote registry:
+As an example, a `WAIT` block can be used to build and pushe to a remote registry (in parallel), then, after that execute a script which requires those images to exist in the remote registry:
 
 ```Dockerfile
 myimage:
@@ -1214,9 +1213,7 @@ WAIT
   BUILD +myimg
   BUILD +myotherimg
 END
-WAIT
-  RUN --push ./deploy ...
-END
+RUN --push ./deploy ...
 ```
 
 One can also use a `WAIT` block to control the order in which a `SAVE ARTIFACT ... AS LOCAL` command is executed:
@@ -1598,11 +1595,36 @@ The `PIPELINE` command is in beta status and is only useful for Earthly CI.
 
 #### Description
 
-The `PIPELINE` command is used to declare that the current target is an Earthly CI pipeline. The `PIPELINE` command must be the first command in the target.
+The `PIPELINE` command is used to declare that the current target is an Earthly CI pipeline. The `PIPELINE` command must be the first command in the target. The `PROJECT` declaration in the Earthfile is also required, and it must match the project the repository is added to, in order for the pipeline to be executed.
 
 A pipeline is a target that is executed by Earthly CI when a certain trigger is activated. Triggers can be declared via the `TRIGGER` command. Pipeline targets allow only the commands `TRIGGER`, `ARG` and `BUILD`. Other commands may be used indirectly in other targets that can be then referenced by `BUILD`.
 
 Pipeline targets are always executed with no outputs, in strict mode.
+
+{% hint style='info' %}
+##### Note
+Pipelines and their definitions, including their triggers must be merged into the primary branch (by default, the default branch on GitHub) in order for the triggers to take effect.
+{% endhint %}
+
+#### Example
+
+The following example shows a simple pipeline called `my-pipeline`, which is triggered on either a push to the `main` branch, or a pull request against the `main` branch. The pipeline executes the target `my-build`, which simply prints `Hello world`.
+
+```Earthfile
+VERSION 0.7
+PROJECT my-org/my-project
+
+FROM alpine:3.15
+
+my-pipeline:
+  PIPELINE
+  TRIGGER push main
+  TRIGGER pr main
+  BUILD +my-build
+
+my-build:
+  RUN echo Hello world
+```
 
 #### Options
 
@@ -1632,6 +1654,11 @@ In the *manual form*, the pipeline is triggered manually via the Earthly CI UI o
 In the *PR form*, the pipeline is triggered when a pull request is opened against the branch `<pr-branch>`.
 
 In the *push form*, the pipeline is triggered when a push is made to the branch `<push-branch>`.
+
+{% hint style='info' %}
+##### Note
+Pipelines and their definitions, including their triggers must be merged into the primary branch (by default, the default branch on GitHub) in order for the triggers to take effect.
+{% endhint %}
 
 ## SHELL (not supported)
 
