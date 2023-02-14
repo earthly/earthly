@@ -313,6 +313,7 @@ func main() {
 		if err != nil && displayErrors {
 			app.console.Warnf("unable to start cloud client: %s", err)
 		} else if err == nil {
+			analytics.AddCLIProject(app.orgName, app.projectName)
 			org, project := analytics.ProjectDetails()
 			analytics.CollectAnalytics(
 				ctxTimeout, cloudClient, displayErrors, analytics.Meta{
