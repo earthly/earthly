@@ -179,9 +179,9 @@ func exerciseDeadlock(t *testing.T) {
 	// channel. We should be able to handle _effectively_ infinite blocked
 	// `Write` calls when we de-congest the channel later.
 
-	// NOTE: `WriteAsync` was written specifically for this test case. There was
-	// no way to get a consistent test result when calling `Write` in a
-	// goroutine, because we had no way to guarantee that all of the calls to
+	// NOTE: `WriteAsyncUnsafe` was written specifically for this test case.
+	// There was no way to get a consistent test result when calling `Write` in
+	// a goroutine, because we had no way to guarantee that all of the calls to
 	// `Write` had gotten access to the current channel before we trigger the
 	// decongestion logic. WriteAsync gets access to the channel synchronously
 	// and then writes to the channel asynchronously.
@@ -190,7 +190,7 @@ func exerciseDeadlock(t *testing.T) {
 
 	blocked := chSize
 	for i := 0; i < chSize; i++ {
-		unblocked = append(unblocked, str.WriteAsync(&logstream.Delta{}))
+		unblocked = append(unblocked, str.WriteAsyncUnsafe(&logstream.Delta{}))
 	}
 
 	// At this point, we have cap(deltaCh) goroutines all blocked on sending to
@@ -202,7 +202,7 @@ func exerciseDeadlock(t *testing.T) {
 	beyondCap := 1000 * chSize
 	blocked += beyondCap
 	for i := 0; i < beyondCap; i++ {
-		extrasUnblocked = append(extrasUnblocked, str.WriteAsync(&logstream.Delta{}))
+		extrasUnblocked = append(extrasUnblocked, str.WriteAsyncUnsafe(&logstream.Delta{}))
 	}
 
 	select {

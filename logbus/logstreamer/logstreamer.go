@@ -131,16 +131,18 @@ func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
-// WriteAsync queues delta up for writing and returns immediately. The returned
-// channel will be closed when delta has been passed off to the buffer.
+// WriteAsyncUnsafe queues delta up for writing and returns immediately. The
+// returned channel will be closed when delta has been passed off to the buffer.
 //
 // This is different than Write in two important ways:
 //
 // 1. It will never block.
 //
-// 2. If the buffer is full, it cannot guarantee order the order that delta will
-// be added to the buffer in the order in which WriteAsync was called.
-func (ls *LogStreamer) WriteAsync(delta *logstream.Delta) <-chan struct{} {
+// 2. It cannot guarantee order.
+//
+// This is generally only useful in tests that are exercising concurrent writes,
+// to guarantee that a call to `Write` has gained access to the current buffer.
+func (ls *LogStreamer) WriteAsyncUnsafe(delta *logstream.Delta) <-chan struct{} {
 	done := make(chan struct{})
 	if ls.deltas.sendAsync(done, delta) {
 		return done
