@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var ErrAuthServerNoResponse = fmt.Errorf("AuthServerNoResponse")
+var ErrAuthProviderNoResponse = fmt.Errorf("AuthServerNoResponse")
 
 func NewAuthProvider(authServers []auth.AuthServer) session.Attachable {
 	return &authProvider{
@@ -31,7 +31,7 @@ func (ap *authProvider) Register(server *grpc.Server) {
 func (ap *authProvider) FetchToken(ctx context.Context, req *auth.FetchTokenRequest) (rr *auth.FetchTokenResponse, err error) {
 	for _, as := range ap.authServers {
 		a, err := as.FetchToken(ctx, req)
-		if errors.Is(err, ErrAuthServerNoResponse) {
+		if errors.Is(err, ErrAuthProviderNoResponse) {
 			continue
 		}
 		return a, err
@@ -42,7 +42,7 @@ func (ap *authProvider) FetchToken(ctx context.Context, req *auth.FetchTokenRequ
 func (ap *authProvider) Credentials(ctx context.Context, req *auth.CredentialsRequest) (*auth.CredentialsResponse, error) {
 	for _, as := range ap.authServers {
 		a, err := as.Credentials(ctx, req)
-		if errors.Is(err, ErrAuthServerNoResponse) {
+		if errors.Is(err, ErrAuthProviderNoResponse) {
 			continue
 		}
 		return a, err
@@ -53,7 +53,7 @@ func (ap *authProvider) Credentials(ctx context.Context, req *auth.CredentialsRe
 func (ap *authProvider) GetTokenAuthority(ctx context.Context, req *auth.GetTokenAuthorityRequest) (*auth.GetTokenAuthorityResponse, error) {
 	for _, as := range ap.authServers {
 		a, err := as.GetTokenAuthority(ctx, req)
-		if errors.Is(err, ErrAuthServerNoResponse) {
+		if errors.Is(err, ErrAuthProviderNoResponse) {
 			continue
 		}
 		return a, err
@@ -64,7 +64,7 @@ func (ap *authProvider) GetTokenAuthority(ctx context.Context, req *auth.GetToke
 func (ap *authProvider) VerifyTokenAuthority(ctx context.Context, req *auth.VerifyTokenAuthorityRequest) (*auth.VerifyTokenAuthorityResponse, error) {
 	for _, as := range ap.authServers {
 		a, err := as.VerifyTokenAuthority(ctx, req)
-		if errors.Is(err, ErrAuthServerNoResponse) {
+		if errors.Is(err, ErrAuthProviderNoResponse) {
 			continue
 		}
 		return a, err

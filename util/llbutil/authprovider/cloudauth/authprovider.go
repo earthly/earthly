@@ -28,7 +28,6 @@ import (
 	"github.com/earthly/earthly/util/llbutil/authprovider"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth"
-	"github.com/moby/buildkit/session/secrets"
 	"github.com/moby/buildkit/util/progress/progresswriter"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/nacl/sign"
@@ -206,58 +205,45 @@ func (ap *authProvider) VerifyTokenAuthority(ctx context.Context, req *auth.Veri
 	return &auth.VerifyTokenAuthorityResponse{Signed: sign.Sign(nil, req.Payload, priv)}, nil
 }
 
-// getProjectOrUserSecret will fetch a secret from a given org/project; or from the user-space when both org and project are empty
-func (ap *authProvider) getProjectOrUserSecret(ctx context.Context, org, project, secretName string) (string, error) {
-	if org == "" && project == "" {
-		secret, err := ap.cloudClient.GetUserSecret(ctx, secretName)
-		if err != nil {
-			if errors.Is(err, secrets.ErrNotFound) {
-				return "", nil // treat non-exists and empty secrets the same way
-			}
-			return "", fmt.Errorf("failed to lookup user secret %s: %w", secretName, err)
-		}
-		return secret.Value, nil
-	}
-
-	secret, err := ap.cloudClient.GetProjectSecret(ctx, org, project, secretName)
+func (ap *authProvider) projectExists(ctx context.Context, org, project string) (bool, error) {
+	_, err := ap.cloudClient.ListSecrets(ctx, fmt.Sprintf("/%s/%s/std/registry", org, project))
 	if err != nil {
-		if errors.Is(err, secrets.ErrNotFound) {
-			return "", nil // treat non-exists and empty secrets the same way
+		if strings.Contains(err.Error(), "resource not found") { // TODO better support for this error is needed by the client/server
+			return false, nil
 		}
-		return "", fmt.Errorf("failed to lookup project secret %s/%s/%s: %w", org, project, secretName, err)
+		return false, err
 	}
-	return secret.Value, nil
+	return true, nil
 }
 
-func (ap *authProvider) getAuthConfigForProject(ctx context.Context, org, project, host string) (*authConfig, error) {
-	pathPrefix := fmt.Sprintf("std/registry/%s/", host)
-	var fullPathPrefix string // only used for error messages
-	if org == "" && project == "" {
-		fullPathPrefix = fmt.Sprintf("/user/%s", pathPrefix)
-	} else {
-		fullPathPrefix = fmt.Sprintf("/%s/%s/%s", org, project, pathPrefix)
-	}
-	userPath := pathPrefix + "username"
-	passwordPath := pathPrefix + "password"
+func (ap *authProvider) getAuthConfigUsernamePassword(ctx context.Context, host, org, project string) (*authConfig, error) {
+	usernamePath := getRegistrySecret(host, org, project, "username")
+	passwordPath := getRegistrySecret(host, org, project, "password")
 
-	ap.console.VerbosePrintf("looking up %susername", fullPathPrefix)
-	username, err := ap.getProjectOrUserSecret(ctx, org, project, userPath)
-	if err != nil {
+	ap.console.VerbosePrintf("looking up %s", usernamePath)
+	var username string
+	usernameSecret, err := ap.cloudClient.GetUserOrProjectSecret(ctx, usernamePath)
+	if err == nil {
+		username = usernameSecret.Value
+	} else if !errors.Is(err, cloud.ErrNotFound) {
 		return nil, err
 	}
 
-	ap.console.VerbosePrintf("looking up %spassword", fullPathPrefix)
-	password, err := ap.getProjectOrUserSecret(ctx, org, project, passwordPath)
-	if err != nil {
+	ap.console.VerbosePrintf("looking up %s", passwordPath)
+	var password string
+	passwordSecret, err := ap.cloudClient.GetUserOrProjectSecret(ctx, passwordPath)
+	if err == nil {
+		password = passwordSecret.Value
+	} else if !errors.Is(err, cloud.ErrNotFound) {
 		return nil, err
 	}
 	// TODO look for insecure and http config options (not sure how these options will be propigated to the rest of buildkit)
 
 	if username == "" && password != "" {
-		return nil, fmt.Errorf("found %s/username, but no %s/password", fullPathPrefix, fullPathPrefix)
+		return nil, fmt.Errorf("found %s, but no %s", usernamePath, passwordPath)
 	}
 	if username != "" && password == "" {
-		return nil, fmt.Errorf("found %s/password, but no %s/username", fullPathPrefix, fullPathPrefix)
+		return nil, fmt.Errorf("found %s, but no %s", passwordPath, usernamePath)
 	}
 
 	if username == "" && password == "" {
@@ -270,8 +256,47 @@ func (ap *authProvider) getAuthConfigForProject(ctx context.Context, org, projec
 			Username:      username,
 			Password:      password,
 		},
-		loc: fullPathPrefix,
+		loc: getRegistrySecretPrefix(host, org, project),
 	}, nil
+}
+
+func getRegistrySecretPrefix(host, org, project string) string {
+	pathPrefix := fmt.Sprintf("std/registry/%s/", host)
+	if org == "" && project == "" {
+		return fmt.Sprintf("/user/%s", pathPrefix)
+	}
+	return fmt.Sprintf("/%s/%s/%s", org, project, pathPrefix)
+}
+
+func getRegistrySecret(host, org, project, filename string) string {
+	return getRegistrySecretPrefix(host, org, project) + filename
+}
+
+func (ap *authProvider) getAuthConfigForProject(ctx context.Context, org, project, host string) (*authConfig, error) {
+	credHelperPath := getRegistrySecret(host, org, project, "cred_helper")
+	ap.console.VerbosePrintf("looking up %s", credHelperPath)
+	var credHelper string
+	credHelperSecret, err := ap.cloudClient.GetUserOrProjectSecret(ctx, credHelperPath)
+	if err == nil {
+		credHelper = strings.TrimSpace(credHelperSecret.Value)
+		ap.console.VerbosePrintf("configured cred_helper for %s is %q", host, credHelper)
+	} else if errors.Is(err, cloud.ErrNotFound) {
+		ap.console.VerbosePrintf("no cred_helper for %q exists, checking for username/password based config", credHelperPath)
+	} else {
+		return nil, err
+	}
+
+	switch credHelper {
+	case "", "none": // either empty or ErrNotFound
+		return ap.getAuthConfigUsernamePassword(ctx, host, org, project)
+	case "ecr-login":
+		return ap.getAuthConfigECR(ctx, host, org, project)
+	case "gcloud":
+		//TODO return ap.getAuthConfigGCloud(ctx, org, project, host)
+		return nil, fmt.Errorf("gcould support comming soon")
+	default:
+		return nil, fmt.Errorf("unsupported cred_helper %s found at %s", credHelper, credHelperPath)
+	}
 }
 
 // getAuthConfig was re-written to make use of earthly-cloud based credentials
@@ -291,23 +316,32 @@ func (ap *authProvider) getAuthConfig(ctx context.Context, host string) (*authCo
 		ap.authConfigCache[host] = ac
 		return ac, nil
 	}
-	if err != ErrNoCredentialsFound {
-		ap.console.Warnf("failed to lookup username/password for %s under user secrets: %s", host, err.Error())
+	if !errors.Is(err, ErrNoCredentialsFound) {
+		return nil, fmt.Errorf("failed to lookup credentials for %s: %w", host, err)
 	}
 
 	// fall back to project's secrets (starting with the root-level Earthfile's org/project)
 	for _, op := range ap.orgProjects {
+		exists, err := ap.projectExists(ctx, op.org, op.project)
+		if err != nil {
+			return nil, err
+		}
+		if !exists {
+			ap.console.Warnf("Warning: PROJECT %s/%s was defined; however it doesn't exist (or you don't have access)", op.org, op.project)
+			continue
+		}
+
 		ac, err := ap.getAuthConfigForProject(ctx, op.org, op.project, host)
 		if err == nil {
 			ap.authConfigCache[host] = ac
 			return ac, nil
 		}
-		if err != ErrNoCredentialsFound {
-			ap.console.Warnf("failed to lookup username/password for %s under PROJECT %s/%s: %s", host, op.org, op.project, err.Error())
+		if !errors.Is(err, ErrNoCredentialsFound) {
+			return nil, fmt.Errorf("failed to lookup credentials for %s: %w", host, err)
 		}
 	}
 
-	return nil, authprovider.ErrAuthServerNoResponse
+	return nil, authprovider.ErrAuthProviderNoResponse
 }
 
 func (ap *authProvider) getAuthorityKey(ctx context.Context, host string, salt []byte) (ed25519.PrivateKey, error) {

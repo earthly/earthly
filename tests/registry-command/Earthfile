@@ -17,9 +17,36 @@ FROM ../..+earthly-integration-test-base \
 
 IMPORT .. AS tests
 
+RUN apk add bash
 WORKDIR /test
 
+test-dockerhub:
+    COPY lock.sh unlock.sh \
+        test-dockerhub-project.sh test-dockerhub-user.sh \
+        .
+    RUN --secret EARTHLY_TOKEN=fake-user-write-token \
+        --secret AWS_ACCESS_KEY_ID=aws/ci-cd-access-key \
+        --secret AWS_SECRET_ACCESS_KEY=aws/ci-cd-access-secret \
+        ./lock.sh && ( \
+            ./test-dockerhub-user.sh && \
+            ./test-dockerhub-project.sh && \
+            true) || ( ./unlock.sh && echo "dockerhub test failed"; exit 1) && ./unlock.sh
+
+test-ecr:
+    COPY lock.sh unlock.sh \
+        test-ecr.sh \
+        test-ecr-project.sh test-ecr-user.sh \
+        .
+
+    ENV EARTHLY_EXEC_CMD=/test/test-ecr.sh
+    RUN --secret EARTHLY_TOKEN=fake-user-write-token \
+        --secret AWS_ACCESS_KEY_ID=aws/ci-cd-access-key \
+        --secret AWS_SECRET_ACCESS_KEY=aws/ci-cd-access-secret \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly
+
 test:
-    COPY test-project.sh test-user.sh lock.sh unlock.sh .
-    RUN --no-cache --secret EARTHLY_TOKEN=fake-user-write-token \
-        ./lock.sh && ( ./test-user.sh && ./test-project.sh) || ( ./unlock.sh && echo "test failed"; exit 1) && ./unlock.sh
+    BUILD +test-dockerhub
+    BUILD +test-ecr
