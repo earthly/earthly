@@ -1198,7 +1198,7 @@ Even though the `WAIT` clause limits parallelism by forcing everything within it
 
 #### Examples
 
-As an example, a `WAIT` block can be used to build and pushe to a remote registry (in parallel), then, after that execute a script which requires those images to exist in the remote registry:
+As an example, a `WAIT` block can be used to build and push to a remote registry (in parallel), then, after that execute a script which requires those images to exist in the remote registry:
 
 ```Dockerfile
 myimage:
@@ -1595,7 +1595,10 @@ The `PIPELINE` command is in beta status and is only useful for Earthly CI.
 
 #### Description
 
-The `PIPELINE` command is used to declare that the current target is an Earthly CI pipeline. The `PIPELINE` command must be the first command in the target. The `PROJECT` declaration in the Earthfile is also required, and it must match the project the repository is added to, in order for the pipeline to be executed.
+The `PIPELINE` command is used to declare that the current target is an Earthly CI pipeline. The `PIPELINE` command must be the first command in the target.
+
+To use a `PIPELINE`, you must also declare a `PROJECT` in the Earthfile.
+This `PROJECT` must match the name of the CI's project that references the git repository
 
 A pipeline is a target that is executed by Earthly CI when a certain trigger is activated. Triggers can be declared via the `TRIGGER` command. Pipeline targets allow only the commands `TRIGGER`, `ARG` and `BUILD`. Other commands may be used indirectly in other targets that can be then referenced by `BUILD`.
 
@@ -1603,7 +1606,7 @@ Pipeline targets are always executed with no outputs, in strict mode.
 
 {% hint style='info' %}
 ##### Note
-Pipelines and their definitions, including their triggers must be merged into the primary branch (by default, the default branch on GitHub) in order for the triggers to take effect.
+Pipelines and their definitions, including their triggers must be merged into the primary branch (which, unless overridden, is the default branch on GitHub) in order for the triggers to take effect.
 {% endhint %}
 
 #### Example
@@ -1657,7 +1660,7 @@ In the *push form*, the pipeline is triggered when a push is made to the branch 
 
 {% hint style='info' %}
 ##### Note
-Pipelines and their definitions, including their triggers must be merged into the primary branch (by default, the default branch on GitHub) in order for the triggers to take effect.
+Pipelines and their definitions, including their triggers must be merged into the primary branch (which, unless overridden, is the default branch on GitHub) in order for the triggers to take effect.
 {% endhint %}
 
 ## SHELL (not supported)
