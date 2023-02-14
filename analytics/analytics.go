@@ -190,7 +190,7 @@ type Meta struct {
 }
 
 // CollectAnalytics sends analytics to api.earthly.dev
-func CollectAnalytics(ctx context.Context, cloudClient cloud.Client, displayErrors bool, meta Meta, installationName string) {
+func CollectAnalytics(ctx context.Context, cloudClient *cloud.Client, displayErrors bool, meta Meta, installationName string) {
 	var err error
 	ciName, ci := DetectCI()
 	repoHash := getRepoHash()

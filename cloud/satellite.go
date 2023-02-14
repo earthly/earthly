@@ -65,7 +65,7 @@ type SatelliteInstance struct {
 	RevisionID             int32
 }
 
-func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error) {
+func (c *Client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error) {
 	resp, err := c.compute.ListSatellites(c.withAuth(ctx), &pb.ListSatellitesRequest{
 		OrgId: orgID,
 	})
@@ -86,7 +86,7 @@ func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteI
 	return instances, nil
 }
 
-func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error) {
+func (c *Client) GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error) {
 	resp, err := c.compute.GetSatellite(c.withAuth(ctx), &pb.GetSatelliteRequest{
 		OrgId: orgID,
 		Name:  name,
@@ -109,7 +109,7 @@ func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*Satelli
 	}, nil
 }
 
-func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error {
+func (c *Client) DeleteSatellite(ctx context.Context, name, orgID string) error {
 	_, err := c.compute.DeleteSatellite(c.withAuth(ctx), &pb.DeleteSatelliteRequest{
 		OrgId: orgID,
 		Name:  name,
@@ -120,7 +120,7 @@ func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error 
 	return nil
 }
 
-func (c *client) LaunchSatellite(ctx context.Context, name, orgID, platform, size, version, maintenanceWindow string, features []string) error {
+func (c *Client) LaunchSatellite(ctx context.Context, name, orgID, platform, size, version, maintenanceWindow string, features []string) error {
 	req := &pb.LaunchSatelliteRequest{
 		OrgId:                  orgID,
 		Name:                   name,
@@ -142,7 +142,7 @@ type SatelliteStatusUpdate struct {
 	Err   error
 }
 
-func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, gitConfigEmail string, isCI bool) (out chan SatelliteStatusUpdate) {
+func (c *Client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, gitConfigEmail string, isCI bool) (out chan SatelliteStatusUpdate) {
 	out = make(chan SatelliteStatusUpdate)
 	go func() {
 		// Some notes on the 10-minute timeout here:
@@ -184,7 +184,7 @@ func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, g
 	return out
 }
 
-func (c *client) WakeSatellite(ctx context.Context, name, orgID string) (out chan SatelliteStatusUpdate) {
+func (c *Client) WakeSatellite(ctx context.Context, name, orgID string) (out chan SatelliteStatusUpdate) {
 	out = make(chan SatelliteStatusUpdate)
 	go func() {
 		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -218,7 +218,7 @@ func (c *client) WakeSatellite(ctx context.Context, name, orgID string) (out cha
 	return out
 }
 
-func (c *client) SleepSatellite(ctx context.Context, name, orgID string) (out chan SatelliteStatusUpdate) {
+func (c *Client) SleepSatellite(ctx context.Context, name, orgID string) (out chan SatelliteStatusUpdate) {
 	out = make(chan SatelliteStatusUpdate)
 	go func() {
 		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -253,7 +253,7 @@ func (c *client) SleepSatellite(ctx context.Context, name, orgID string) (out ch
 	return out
 }
 
-func (c *client) UpdateSatellite(ctx context.Context, name, orgID, version, maintenanceWindow string, dropCache bool, featureFlags []string) error {
+func (c *Client) UpdateSatellite(ctx context.Context, name, orgID, version, maintenanceWindow string, dropCache bool, featureFlags []string) error {
 	req := &pb.UpdateSatelliteRequest{
 		OrgId:                  orgID,
 		Name:                   name,

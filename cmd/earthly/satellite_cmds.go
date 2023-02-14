@@ -252,7 +252,7 @@ func (app *earthlyApp) printSatellitesJSON(satellites []cloud.SatelliteInstance,
 	fmt.Println(string(b))
 }
 
-func (app *earthlyApp) getSatelliteOrgID(ctx context.Context, cloudClient cloud.Client) (string, error) {
+func (app *earthlyApp) getSatelliteOrgID(ctx context.Context, cloudClient *cloud.Client) (string, error) {
 	// We are cheating here and forcing a re-auth before running any satellite commands.
 	// This is because there is an issue on the backend where the token might be outdated
 	// if a user was invited to an org recently after already logging-in.

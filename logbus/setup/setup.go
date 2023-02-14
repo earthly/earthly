@@ -72,7 +72,7 @@ func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
 
 // StartLogStreamer starts a LogStreamer for the given build. The
 // LogStreamer streams logs to the cloud.
-func (bs *BusSetup) StartLogStreamer(ctx context.Context, c cloud.Client) {
+func (bs *BusSetup) StartLogStreamer(ctx context.Context, c *cloud.Client) {
 	bs.LogStreamer = logstreamer.New(ctx, bs.Bus, c, bs.InitialManifest)
 }
 

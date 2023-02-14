@@ -12,11 +12,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (c *client) withAuth(ctx context.Context) context.Context {
+func (c *Client) withAuth(ctx context.Context) context.Context {
 	return metadata.AppendToOutgoingContext(ctx, "authorization", fmt.Sprintf("Bearer %s", c.authToken))
 }
 
-func (c *client) withReqID(ctx context.Context) context.Context {
+func (c *Client) withReqID(ctx context.Context) context.Context {
 	return metadata.AppendToOutgoingContext(ctx, requestID, c.getRequestID())
 }
 
@@ -34,7 +34,7 @@ func getReqID(ctx context.Context) string {
 // UnaryInterceptor is a unary middleware function for the Earthly gRPC client which
 // handle re-authentication when necessary, and automatically
 // prints requestIDs to errors when errors are received from the server.
-func (c *client) UnaryInterceptor() grpc.UnaryClientInterceptor {
+func (c *Client) UnaryInterceptor() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		ctx = c.withReqID(ctx)
 		ctx, err := c.reAuthIfExpired(ctx)
@@ -64,7 +64,7 @@ func (c *client) UnaryInterceptor() grpc.UnaryClientInterceptor {
 // StreamInterceptor is a stream middleware function for the Earthly gRPC client which
 // handle re-authentication when necessary, and automatically
 // prints requestIDs to errors when errors are received from the server.
-func (c *client) StreamInterceptor() grpc.StreamClientInterceptor {
+func (c *Client) StreamInterceptor() grpc.StreamClientInterceptor {
 	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
 		ctx = c.withReqID(ctx)
 		ctx, err := c.reAuthIfExpired(ctx)
@@ -91,7 +91,7 @@ func (c *client) StreamInterceptor() grpc.StreamClientInterceptor {
 	}
 }
 
-func (c *client) reAuthIfExpired(ctx context.Context) (context.Context, error) {
+func (c *Client) reAuthIfExpired(ctx context.Context) (context.Context, error) {
 	if time.Now().UTC().After(c.authTokenExpiry) {
 		err := c.Authenticate(ctx)
 		if err != nil {
@@ -102,7 +102,7 @@ func (c *client) reAuthIfExpired(ctx context.Context) (context.Context, error) {
 	return ctx, nil
 }
 
-func (c *client) reAuthCtx(ctx context.Context) (context.Context, error) {
+func (c *Client) reAuthCtx(ctx context.Context) (context.Context, error) {
 	err := c.Authenticate(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed re-authenticating")
@@ -110,7 +110,7 @@ func (c *client) reAuthCtx(ctx context.Context) (context.Context, error) {
 	return c.resetAuthMeta(ctx), nil
 }
 
-func (c *client) resetAuthMeta(ctx context.Context) context.Context {
+func (c *Client) resetAuthMeta(ctx context.Context) context.Context {
 	md, ok := metadata.FromOutgoingContext(ctx)
 	if ok {
 		md.Delete("authorization")

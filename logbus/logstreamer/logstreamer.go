@@ -21,7 +21,7 @@ import (
 // log deltas to the cloud. It retries on transient errors.
 type LogStreamer struct {
 	bus             *logbus.Bus
-	c               cloud.Client
+	c               *cloud.Client
 	buildID         string
 	initialManifest *logstream.RunManifest
 	doneCh          chan struct{}
@@ -33,7 +33,7 @@ type LogStreamer struct {
 }
 
 // New creates a new LogStreamer.
-func New(ctx context.Context, bus *logbus.Bus, c cloud.Client, initialManifest *logstream.RunManifest) *LogStreamer {
+func New(ctx context.Context, bus *logbus.Bus, c *cloud.Client, initialManifest *logstream.RunManifest) *LogStreamer {
 	ls := &LogStreamer{
 		bus:             bus,
 		c:               c,

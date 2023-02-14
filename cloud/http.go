@@ -82,7 +82,7 @@ func withBody(body []byte) requestOpt {
 	}
 }
 
-func (c *client) doCall(ctx context.Context, method, url string, opts ...requestOpt) (int, []byte, error) {
+func (c *Client) doCall(ctx context.Context, method, url string, opts ...requestOpt) (int, []byte, error) {
 	const maxAttempt = 10
 	const maxSleepBeforeRetry = time.Second * 3
 
@@ -174,7 +174,7 @@ func shouldRetry(status int, body []byte, callErr error, warnFunc func(string, .
 	}
 }
 
-func (c *client) doCallImp(ctx context.Context, r request, method, url, reqID string, opts ...requestOpt) (int, []byte, error) {
+func (c *Client) doCallImp(ctx context.Context, r request, method, url, reqID string, opts ...requestOpt) (int, []byte, error) {
 	var bodyReader io.Reader
 	var bodyLen int64
 	if r.hasBody {

@@ -666,7 +666,7 @@ func (app *earthlyApp) printLogSharingMessage() {
 		"\tearthly config global.disable_log_sharing true")
 }
 
-func (app *earthlyApp) loginAndSavePasswordCredentials(ctx context.Context, cloudClient cloud.Client, email, password string) error {
+func (app *earthlyApp) loginAndSavePasswordCredentials(ctx context.Context, cloudClient *cloud.Client, email, password string) error {
 	err := cloudClient.SetPasswordCredentials(ctx, email, password)
 	if err != nil {
 		return err

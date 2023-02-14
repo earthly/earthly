@@ -45,7 +45,7 @@ type ProjectBasedAuthProvider interface {
 	AddProject(org, project string)
 }
 
-func NewProvider(cfg *configfile.ConfigFile, cloudClient cloud.Client, console conslogging.ConsoleLogger) session.Attachable {
+func NewProvider(cfg *configfile.ConfigFile, cloudClient *cloud.Client, console conslogging.ConsoleLogger) session.Attachable {
 	return &authProvider{
 		authConfigCache: map[string]*authConfig{},
 		config:          cfg,
@@ -77,7 +77,7 @@ type authProvider struct {
 	// earthly-add on
 	orgProjects     []orgProject
 	seenOrgProjects map[string]struct{}
-	cloudClient     cloud.Client
+	cloudClient     *cloud.Client
 	console         conslogging.ConsoleLogger
 
 	// The need for this mutex is not well understood.

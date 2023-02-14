@@ -97,7 +97,7 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) getBuildkitClient(cliCtx *cli.Context, cloudClient cloud.Client) (*client.Client, error) {
+func (app *earthlyApp) getBuildkitClient(cliCtx *cli.Context, cloudClient *cloud.Client) (*client.Client, error) {
 	err := app.initFrontend(cliCtx)
 	if err != nil {
 		return nil, err
@@ -132,7 +132,7 @@ func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
 	app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
 }
 
-func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient cloud.Client, gitAuthor, gitConfigEmail string) error {
+func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient *cloud.Client, gitAuthor, gitConfigEmail string) error {
 	if cliCtx.IsSet("buildkit-host") && cliCtx.IsSet("satellite") {
 		return errors.New("cannot specify both buildkit-host and satellite")
 	}
@@ -204,7 +204,7 @@ func (app *earthlyApp) isUsingSatellite(cliCtx *cli.Context) bool {
 	return app.cfg.Satellite.Name != "" || app.satelliteName != ""
 }
 
-func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient cloud.Client, name, orgID, gitAuthor, gitConfigEmail string) error {
+func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient *cloud.Client, name, orgID, gitAuthor, gitConfigEmail string) error {
 	console := app.console.WithPrefix("satellite")
 	_, isCI := analytics.DetectCI()
 	out := cloudClient.ReserveSatellite(ctx, name, orgID, gitAuthor, gitConfigEmail, isCI)
