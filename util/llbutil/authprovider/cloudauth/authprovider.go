@@ -289,10 +289,10 @@ func (ap *authProvider) getAuthConfigForProject(ctx context.Context, org, projec
 	switch credHelper {
 	case "", "none": // either empty or ErrNotFound
 		return ap.getAuthConfigUsernamePassword(ctx, host, org, project)
-	case "ecr-login":
+	case ECRCredHelper:
 		return ap.getAuthConfigECR(ctx, host, org, project)
-	case "gcp-login":
-		return ap.getAuthConfigGCR(ctx, fullPathPrefix, pathPrefix, org, project, host)
+	case GCPCredHelper:
+		return ap.getAuthConfigGCP(ctx, host, org, project)
 	default:
 		return nil, fmt.Errorf("unsupported cred_helper %s found at %s", credHelper, credHelperPath)
 	}

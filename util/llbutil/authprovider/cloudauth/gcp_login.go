@@ -10,38 +10,45 @@ import (
 )
 
 const (
-	OauthScope     = "https://www.googleapis.com/auth/cloud-platform"
-	OauthTokenUser = "oauth2accesstoken"
+	GCPCredHelper  = "gcp-login"
+	oauthScope     = "https://www.googleapis.com/auth/cloud-platform"
+	oauthTokenUser = "oauth2accesstoken"
 )
 
-func (ap *authProvider) getAuthConfigGCR(ctx context.Context, fullPathPrefix, pathPrefix, org, project, host string) (*authConfig, error) {
-	jsonKeyPath := pathPrefix + "GCP_KEY"
-	ap.console.VerbosePrintf("looking up GCP_KEY", jsonKeyPath)
-	keyJSON, err := ap.getProjectOrUserSecret(ctx, org, project, jsonKeyPath)
+func (ap *authProvider) getAuthConfigGCP(ctx context.Context, host, org, project string) (*authConfig, error) {
+	gcpJSONPath := getRegistrySecret(host, org, project, "GCP_KEY")
+	credHelperPath := getRegistrySecret(host, org, project, "cred_helper")
+	registryPath := getRegistrySecretPrefix(host, org, project)
+
+	ap.console.VerbosePrintf("looking up %s", gcpJSONPath)
+	gcpJSONSecret, err := ap.cloudClient.GetUserOrProjectSecret(ctx, gcpJSONPath)
 	if err != nil {
 		return nil, err
 	}
-	keyJSON = strings.TrimSpace(keyJSON)
-	if keyJSON == "" {
-		return nil, fmt.Errorf("%sGCP_KEY is missing (or empty), but %scred_helper was set to gcp-login", fullPathPrefix, fullPathPrefix)
+	gcpJSON := strings.TrimSpace(gcpJSONSecret.Value)
+	if gcpJSON == "" {
+		return nil, fmt.Errorf("%s is missing (or empty), but %s was set to %s", gcpJSONPath, credHelperPath, GCPCredHelper)
 	}
 
-	ap.console.VerbosePrintf("creating new a new JWT config for %s", host)
+	ap.console.VerbosePrintf("creating a new JWT config for %s", host)
 
-	jwtCFG, err := google.JWTConfigFromJSON([]byte(keyJSON), OauthScope)
+	jwtCFG, err := google.JWTConfigFromJSON([]byte(gcpJSON), oauthScope)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get a jwt cfg from the service account json in %s", gcpJSONPath)
+	}
 
 	token, err := jwtCFG.TokenSource(ctx).Token()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get a new token using credentials from %s failed: %w", fullPathPrefix, err)
+		return nil, fmt.Errorf("failed to get a new token using credentials from %s failed: %w", registryPath, err)
 	}
-	ap.console.VerbosePrintf("gcp-login succeeded using gcloud credentials stored under %s", fullPathPrefix)
+	ap.console.VerbosePrintf("%s succeeded using gcloud credentials stored under %s", GCPCredHelper, registryPath)
 	cfg := &authConfig{
 		ac: &types.AuthConfig{
-			Username:      OauthTokenUser,
+			Username:      oauthTokenUser,
 			Password:      token.AccessToken,
 			ServerAddress: host,
 		},
-		loc: fullPathPrefix,
+		loc: registryPath,
 	}
 	return cfg, nil
 }
