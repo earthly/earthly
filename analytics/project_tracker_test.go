@@ -2,21 +2,15 @@ package analytics
 
 import (
 	"testing"
-
-	. "github.com/stretchr/testify/assert"
 )
 
 type mockMutex struct {
 	lockCalled   bool
 	unlockCalled bool
-	callback     func()
 }
 
 func (mm *mockMutex) Lock() {
 	mm.lockCalled = true
-	if mm.callback != nil {
-		mm.callback()
-	}
 }
 
 func (mm *mockMutex) Unlock() {
@@ -46,8 +40,8 @@ func TestProjectTracker_AddCLIProject(t *testing.T) {
 	org := "some org"
 	project := "some project"
 	pt.AddCLIProject(org, project)
-	False(t, mm.lockCalled)
-	False(t, mm.unlockCalled)
+	True(t, mm.lockCalled)
+	True(t, mm.unlockCalled)
 	Equal(t, org, pt.cliOrg)
 	Equal(t, project, pt.cliProject)
 }
@@ -59,94 +53,34 @@ func TestProjectTracker_ProjectDetails(t *testing.T) {
 	cliProject := "cli org"
 
 	testCases := map[string]struct {
-		earthfileOrg            string
-		earthfileProject        string
-		expectLockUnlock        bool
-		updatedEarthfileOrg     string
-		updatedEarthfileProject string
-		expectedOrg             string
-		expectedProject         string
+		earthfileOrg     string
+		earthfileProject string
+		expectedOrg      string
+		expectedProject  string
 	}{
-		"use details from earthfile when both set": {
-			earthfileOrg:            earthfileOrg,
-			earthfileProject:        earthfileProject,
-			expectLockUnlock:        false,
-			updatedEarthfileOrg:     "",
-			updatedEarthfileProject: "",
-			expectedOrg:             earthfileOrg,
-			expectedProject:         earthfileProject,
+		"use details from earthfile when both org and project are set": {
+			earthfileOrg:     earthfileOrg,
+			earthfileProject: earthfileProject,
+			expectedOrg:      earthfileOrg,
+			expectedProject:  earthfileProject,
 		},
-		"use org from earthfile after lock when it's initially not set": {
-			earthfileOrg:            "",
-			earthfileProject:        earthfileProject,
-			expectLockUnlock:        true,
-			updatedEarthfileOrg:     earthfileOrg,
-			updatedEarthfileProject: "",
-			expectedOrg:             earthfileOrg,
-			expectedProject:         earthfileProject,
+		"use org from cli when it's initially not set in earthfile": {
+			earthfileOrg:     "",
+			earthfileProject: earthfileProject,
+			expectedOrg:      cliOrg,
+			expectedProject:  earthfileProject,
 		},
-		"use project from earthfile after lock when it's initially not set": {
-			earthfileOrg:            earthfileOrg,
-			earthfileProject:        "",
-			expectLockUnlock:        true,
-			updatedEarthfileOrg:     "",
-			updatedEarthfileProject: earthfileProject,
-			expectedOrg:             earthfileOrg,
-			expectedProject:         earthfileProject,
+		"use project from cli when it's not set in earthfile": {
+			earthfileOrg:     earthfileOrg,
+			earthfileProject: "",
+			expectedOrg:      earthfileOrg,
+			expectedProject:  cliProject,
 		},
-		"use org from cli after lock when it's initially not set": {
-			earthfileOrg:            "",
-			earthfileProject:        earthfileProject,
-			expectLockUnlock:        true,
-			updatedEarthfileOrg:     "",
-			updatedEarthfileProject: "",
-			expectedOrg:             cliOrg,
-			expectedProject:         earthfileProject,
-		},
-		"use project from cli after lock when it's initially not set": {
-			earthfileOrg:            earthfileOrg,
-			earthfileProject:        "",
-			expectLockUnlock:        true,
-			updatedEarthfileOrg:     "",
-			updatedEarthfileProject: "",
-			expectedOrg:             earthfileOrg,
-			expectedProject:         cliProject,
-		},
-		"use org from earthfile and project from cli after lock when initially the former is set and the latter is not": {
-			earthfileOrg:            earthfileOrg,
-			earthfileProject:        "",
-			expectLockUnlock:        true,
-			updatedEarthfileOrg:     earthfileOrg,
-			updatedEarthfileProject: "",
-			expectedOrg:             earthfileOrg,
-			expectedProject:         cliProject,
-		},
-		"use org from cli and project from earthfile after lock when initially the former is not set and the latter is": {
-			earthfileOrg:            "",
-			earthfileProject:        "",
-			expectLockUnlock:        true,
-			updatedEarthfileOrg:     "",
-			updatedEarthfileProject: earthfileProject,
-			expectedOrg:             cliOrg,
-			expectedProject:         earthfileProject,
-		},
-		"use org & project from earthfile after lock when initially they are both not set": {
-			earthfileOrg:            "",
-			earthfileProject:        "",
-			expectLockUnlock:        true,
-			updatedEarthfileOrg:     earthfileOrg,
-			updatedEarthfileProject: earthfileProject,
-			expectedOrg:             earthfileOrg,
-			expectedProject:         earthfileProject,
-		},
-		"use org & project from cli after lock when initially they are both not set": {
-			earthfileOrg:            "",
-			earthfileProject:        "",
-			expectLockUnlock:        true,
-			updatedEarthfileOrg:     "",
-			updatedEarthfileProject: "",
-			expectedOrg:             cliOrg,
-			expectedProject:         cliProject,
+		"use org & project from cli after when they are both not set in earthfile": {
+			earthfileOrg:     "",
+			earthfileProject: "",
+			expectedOrg:      cliOrg,
+			expectedProject:  cliProject,
 		},
 	}
 
@@ -154,6 +88,7 @@ func TestProjectTracker_ProjectDetails(t *testing.T) {
 		name := name
 		tc := tc
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			mm := &mockMutex{}
 			pt := &ProjectTracker{
 				earthfileOrg:     tc.earthfileOrg,
@@ -163,18 +98,9 @@ func TestProjectTracker_ProjectDetails(t *testing.T) {
 				mutex:            mm,
 			}
 
-			mm.callback = func() {
-				if tc.updatedEarthfileOrg != "" {
-					pt.earthfileOrg = tc.updatedEarthfileOrg
-				}
-				if tc.updatedEarthfileProject != "" {
-					pt.earthfileProject = tc.updatedEarthfileProject
-				}
-			}
-
 			org, project := pt.ProjectDetails()
-			Equal(t, tc.expectLockUnlock, mm.lockCalled)
-			Equal(t, tc.expectLockUnlock, mm.unlockCalled)
+			True(t, mm.lockCalled)
+			True(t, mm.unlockCalled)
 			Equal(t, tc.expectedOrg, org)
 			Equal(t, tc.expectedProject, project)
 		})

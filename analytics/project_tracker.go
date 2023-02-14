@@ -22,18 +22,17 @@ func (pt *ProjectTracker) AddEarthfileProject(org, project string) {
 }
 
 func (pt *ProjectTracker) AddCLIProject(org, project string) {
+	pt.mutex.Lock()
+	defer pt.mutex.Unlock()
 	pt.cliOrg = org
 	pt.cliProject = project
 }
 
 func (pt *ProjectTracker) ProjectDetails() (string, string) {
-	if pt.earthfileOrg != "" && pt.earthfileProject != "" {
-		return pt.earthfileOrg, pt.earthfileProject
-	}
-	org := pt.cliOrg
-	project := pt.cliProject
 	pt.mutex.Lock()
 	defer pt.mutex.Unlock()
+	org := pt.cliOrg
+	project := pt.cliProject
 	if pt.earthfileOrg != "" {
 		org = pt.earthfileOrg
 	}
