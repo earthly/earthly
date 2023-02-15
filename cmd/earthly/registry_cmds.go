@@ -95,7 +95,7 @@ func (app *earthlyApp) registryCmds() []*cli.Command {
 				},
 				&cli.StringFlag{
 					Name:        gcpServiceAccountKeyPathFlag,
-					EnvVars:     []string{"GCP_SERVICE_ACCOUNT_KEY_PATH"},
+					EnvVars:     []string{"GCP_SERVICE_ACCOUNT_KEY_PATH", "GOOGLE_APPLICATION_CREDENTIALS"},
 					Usage:       "path to GCP service account key to use for artifact or container registry.",
 					Required:    false,
 					Destination: &app.gcpServiceAccountKeyPath,
