@@ -40,6 +40,14 @@ earthly --org <org-name> org invite <email>
 
 You can join an Earthly org by following the steps outlined in the invitation email sent to you by an Earthly admin.
 
+### Creating a project
+
+To use certain features, such as Earthly CI, or Earthly Cloud Secrets, you will aditionally need to create an Earthly Project. You can create a project by running:
+
+```bash
+earthly project --org <org-name> create <project-name>
+```
+
 ## Logging in from a CI
 
 To be able to use certain Earthly features, such as Cloud Secrets, or Satellites from a CI other than Earthly CI, you will need to log into Earthly. The easiest way to do that is to create an Earthly authentication token by running

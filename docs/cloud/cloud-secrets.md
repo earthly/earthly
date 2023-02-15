@@ -28,6 +28,8 @@ earthly project --org <org-name> create <project-name>
 
 Or alternatively, launch the Earthly web interface by running `earthly web`, and clicking on **New Project**.
 
+Access to secrets is controlled by the project they belong to. Anyone with at least `read+secrets` access level for the org or the specific project will be able to see and use the secrets in their builds. Anyone with `write` access level will be able to create, modify and delete secrets. For more information on managing permissions see the [Managing Permissions page](./managing-permissions.md).
+
 ### Listing secrets
 
 Each Earthly project has its own isolated secret store. Multiple code repositories may be associated with a single Earthly project. To view the secrets within a given project, you can run
