@@ -131,8 +131,7 @@ Or by using the Earthly Web UI.
 
 Please note that we are aware of the following ongoing issues:
 
-* The logs of certain builds do not show up in the UI sometimes. If you run into this problem, please let us know!
-* AWS ECR and GCP Artifact Storage are not supported yet (in general, we don’t yet support registries that require a credential helper). Support for this is coming very soon!
+* The logs of certain builds do not show up in the UI sometimes. If you run into this problem, please let us know and provide us with the URL of the page!
 * Creating an account, or logging in directly in the web UI is not yet available. Use the `earthly web` command instead.
 * GitHub only for now.
 
