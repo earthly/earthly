@@ -173,7 +173,9 @@ type cliFlags struct {
 	registryCredHelper         string
 	awsAccessKeyID             string
 	awsSecretAccessKey         string
-	gcpKey                     string
+	gcpServiceAccountKeyPath   string
+	gcpServiceAccountKey       string
+	gcpServiceAccountKeyStdin  bool
 }
 
 type analyticsMetadata struct {

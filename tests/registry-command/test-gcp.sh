@@ -6,9 +6,9 @@ finish() {
   status="$?"
   ./unlock.sh
   if [ "$status" = "0" ]; then
-    echo "test-ecr passed"
+    echo "$0 passed"
   else
-    echo "test-ecr failed with $status"
+    echo "$0 failed with $status"
   fi
 }
 trap finish EXIT

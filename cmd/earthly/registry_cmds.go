@@ -16,6 +16,16 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+const (
+	gcpServiceAccountKeyFlag      = "gcp-service-account-key"
+	gcpServiceAccountKeyPathFlag  = "gcp-service-account-key-path"
+	gcpServiceAccountKeyStdinFlag = "gcp-service-account-key-stdin"
+)
+
+var (
+	errMultipleGCPServiceAccountFlags = fmt.Errorf("the --%s --%s --%s flags are mutually exclusive", gcpServiceAccountKeyFlag, gcpServiceAccountKeyPathFlag, gcpServiceAccountKeyStdinFlag)
+)
+
 func (app *earthlyApp) registryCmds() []*cli.Command {
 	return []*cli.Command{
 		{
@@ -78,11 +88,25 @@ func (app *earthlyApp) registryCmds() []*cli.Command {
 					Destination: &app.awsSecretAccessKey,
 				},
 				&cli.StringFlag{
-					Name:        "gcp-key",
-					EnvVars:     []string{"GCP_KEY"},
+					Name:        gcpServiceAccountKeyFlag,
+					EnvVars:     []string{"GCP_SERVICE_ACCOUNT_KEY"},
 					Usage:       "GCP key to use for artifact or container registry.",
 					Required:    false,
-					Destination: &app.gcpKey,
+					Destination: &app.gcpServiceAccountKey,
+				},
+				&cli.StringFlag{
+					Name:        gcpServiceAccountKeyPathFlag,
+					EnvVars:     []string{"GCP_SERVICE_ACCOUNT_KEY_PATH"},
+					Usage:       "GCP key to use for artifact or container registry.",
+					Required:    false,
+					Destination: &app.gcpServiceAccountKeyPath,
+				},
+				&cli.BoolFlag{
+					Name:        gcpServiceAccountKeyStdinFlag,
+					EnvVars:     []string{"GCP_SERVICE_ACCOUNT_KEY_STDIN"},
+					Usage:       "GCP key to use for artifact or container registry.",
+					Required:    false,
+					Destination: &app.gcpServiceAccountKeyStdin,
 				},
 			},
 		},
@@ -188,14 +212,41 @@ func (app *earthlyApp) actionRegistrySetupECRLogin(cliCtx *cli.Context, path str
 }
 
 func (app *earthlyApp) actionRegistrySetupGCloud(cliCtx *cli.Context, path string, cloudClient *cloud.Client, host string) error {
-	if app.gcpKey == "" {
-		return fmt.Errorf("--gcp-key is missing (or empty)")
+	serviceAccountKey := app.gcpServiceAccountKey
+	if app.gcpServiceAccountKeyPath != "" {
+		if serviceAccountKey != "" {
+			return errMultipleGCPServiceAccountFlags
+		}
+		data, err := os.ReadFile(app.gcpServiceAccountKeyPath)
+		if err != nil {
+			return fmt.Errorf("failed to read %s: %w", app.gcpServiceAccountKeyPath, err)
+		}
+		if len(data) == 0 {
+			return fmt.Errorf("service account file %s is empty", app.gcpServiceAccountKeyPath)
+		}
+		serviceAccountKey = string(data)
+	}
+	if app.gcpServiceAccountKeyStdin {
+		if serviceAccountKey != "" {
+			return errMultipleGCPServiceAccountFlags
+		}
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return errors.Wrap(err, "failed to read from stdin")
+		}
+		if len(data) == 0 {
+			return fmt.Errorf("no data was read from stdin")
+		}
+		serviceAccountKey = string(data)
+	}
+	if serviceAccountKey == "" {
+		return fmt.Errorf("no gcp service key was provided")
 	}
 	err := cloudClient.SetSecret(cliCtx.Context, path+host+"/cred_helper", []byte("gcloud"))
 	if err != nil {
 		return err
 	}
-	return cloudClient.SetSecret(cliCtx.Context, path+host+"/GCP_KEY", []byte(app.gcpKey))
+	return cloudClient.SetSecret(cliCtx.Context, path+host+"/GCP_KEY", []byte(serviceAccountKey))
 }
 
 func (app *earthlyApp) actionRegistrySetupUsernamePassword(cliCtx *cli.Context, path string, cloudClient *cloud.Client, host string) error {

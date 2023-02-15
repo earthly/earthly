@@ -23,8 +23,8 @@ earthly registry --org "$ORG" --project "$PROJECT" list | grep -v "$GCP_SERVER"
 # set credentials
 set +x # don't remove, or keys will be leaked
 test -n "$GCP_KEY" || (echo "GCP_KEY is empty" && exit 1)
+echo "$GCP_KEY" | earthly registry --org "$ORG" --project "$PROJECT" setup --cred-helper=gcloud --gcp-access-key-stdin "$GCP_SERVER"
 set -x
-earthly registry --org "$ORG" --project "$PROJECT" setup --cred-helper=gcloud "$GCP_SERVER"
 
 # test credentials exist
 earthly registry --org "$ORG" --project "$PROJECT" list | grep "$GCP_SERVER"

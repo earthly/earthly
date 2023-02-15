@@ -19,6 +19,7 @@ earthly registry list | grep -v "$GCP_SERVER"
 # set credentials
 set +x # don't remove, or keys will be leaked
 test -n "$GCP_KEY" || (echo "GCP_KEY is empty" && exit 1)
+export GCP_SERVICE_ACCOUNT_KEY="$GCP_KEY" # registry setup reads from this env
 set -x
 earthly registry setup --cred-helper=gcloud "$GCP_SERVER"
 
