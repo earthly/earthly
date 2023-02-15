@@ -235,7 +235,7 @@ integration-test:
 ```
 The `WITH DOCKER` has a `--compose` flag that we use to start up our docker-compose and run our integration tests in that context.
 
-We can now run our it tests both locally and in the CI pipeline, in a reproducible way:
+We can now run our tests both locally and in the CI pipeline, in a reproducible way:
 
 ``` bash
 > earthly -P +integration-test
