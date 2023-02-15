@@ -68,7 +68,7 @@ earthly web
 
 This will associate your Earthly account with your GitHub login and then take you to the Earthly Web UI.
 
-### 5. Continue with instructions in the UI
+### 5. Create your first Earthly pipeline
 
 In the Earthly Web UI, under the Organizations drop-down in the top-left of the screen, select the organization that was granted access to Earthly CI. Then follow the instructions on the screen to create a new Earthly CI project, add your first repository, create your pipeline via a new or an existing Earthfile, and then run your first build.
 
@@ -136,3 +136,14 @@ Please note that we are aware of the following ongoing issues:
 * GitHub only for now.
 
 If you run into any issues please let us know either via [Slack](https://earthly.dev/slack), [GitHub issues](https://github.com/earthly/cloud-issues/issues) or by [emailing support](mailto:support+ci@earthly.dev).
+
+## Next
+
+Check out the following additinal resources:
+
+* [Earthly Cloud overview](./overview.md)
+* [PIPELINE command reference](../earthfile/earthfile.md#pipeline-beta)
+* [TRIGGER command reference](../earthfile/earthfile.md#trigger-beta)
+* [PROJECT command reference](../earthfile/earthfile.md#project)
+* [Earthly CI secrets](./cloud-secrets.md)
+* [Earthly registry command reference](../earthly-command/earthly-command.md#earthly-registry)
