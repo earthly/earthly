@@ -650,7 +650,17 @@ Removes a secret from the secrets store.
 
 Contains sub-commands for managing registry access in cloud-based secrets.
 
-#### earthly registry setup
+### Options
+
+#### `--org`
+
+The organization to store the credentials under; must be used in combination with `--project`. If omitted, the user's personal secret store will be used instead.
+
+#### `--project`
+
+The organization's project to store the credentials under; the user's secret store will be used if empty.
+
+### earthly registry setup
 
 #### Synopsis
 
@@ -658,21 +668,21 @@ Contains sub-commands for managing registry access in cloud-based secrets.
   earthly registry setup [--org <org> --project <project>] [--cred-helper <none|ecr-login|gcloud>] ...
   ```
 
-###### username/password based registry (`--cred-helper=none`)
+##### username/password based registry (`--cred-helper=none`)
 
 * ```
   earthly registry setup --username <username> --password <password> [<host>]
   earthly registry setup --org <org> --project <project> --username <username> --password <password> [<host>]
   ```
 
-###### AWS elastic container registry (`--cred-helper=ecr-login`)
+##### AWS elastic container registry (`--cred-helper=ecr-login`)
 
 * ```
   earthly registry setup --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>
   earthly registry setup --org <org> --project <project> --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>
   ```
 
-###### GCP artifact or container registry (`--cred-helper=gcloud`)
+##### GCP artifact or container registry (`--cred-helper=gcloud`)
 
 * ```
   earthly registry setup --cred-helper gcloud --gcp-key <key> <host>
@@ -694,14 +704,6 @@ The `earthly registry ...` commands exist for convience; however, it is possible
 
 
 #### Options
-
-##### `--org`
-
-The organization to store the credentials under; must be used in combination with `--project`. If omitted, the user's personal secret store will be used instead.
-
-##### `--project`
-
-The organization's project to store the credentials under; the user's secret store will be used if empty.
 
 ##### `--cred-helper`
 
@@ -747,45 +749,25 @@ Also available as an env var setting: `GCP_KEY=<key>`.
 
 #### earthly registry list
 
-#### Synopsis
+##### Synopsis
 
 * ```
   earthly registry list [--org <org> --project <project>]
   ```
 
-#### Description
+##### Description
 
 Display the configured registries.
 
-#### Options
-
-##### `--org`
-
-The organization to list the credentials from; must be used in combination with `--project`. If omitted, the user's personal secret store will be used instead.
-
-##### `--project`
-
-The organization's project to list the credentials from; the user's secret store will be used if empty.
-
 #### earthly registry remove
 
-#### Synopsis
+##### Synopsis
 
 * ```
   earthly registry remove [--org <org> --project <project>] <host>
   ```
 
-#### Options
-
-##### `--org`
-
-The organization to remove the credentials from; must be used in combination with `--project`. If omitted, the user's personal secret store will be used instead.
-
-##### `--project`
-
-The organization's project to remove the credentials from; the user's secret store will be used if empty.
-
-#### Description
+##### Description
 
 Remove a configured registry, and delete all stored credentials.
 
