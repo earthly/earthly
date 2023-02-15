@@ -28,7 +28,7 @@ test "$(earthly secrets --org "$ORG" --project "$PROJECT" get std/registry/regis
 test "$(earthly secrets --org "$ORG" --project "$PROJECT" get std/registry/registry-1.docker.io/password)" = "keepitsecret"
 
 # test a different host
-echo -n keepitsecret2  | earthly registry login --org "$ORG" --project "$PROJECT" --username myprojecttest2 --password-stdin corp-registry.earthly.dev
+echo -n keepitsecret2  | earthly registry --org "$ORG" --project "$PROJECT" setup --username myprojecttest2 --password-stdin corp-registry.earthly.dev
 
 # both dockerhub and corp-registry should exist
 earthly registry --org "$ORG" --project "$PROJECT" list | grep registry-1.docker.io
@@ -39,5 +39,8 @@ test "$(earthly secrets --org "$ORG" --project "$PROJECT" get std/registry/regis
 test "$(earthly secrets --org "$ORG" --project "$PROJECT" get std/registry/registry-1.docker.io/password)" = "keepitsecret"
 test "$(earthly secrets --org "$ORG" --project "$PROJECT" get std/registry/corp-registry.earthly.dev/username)" = "myprojecttest2"
 test "$(earthly secrets --org "$ORG" --project "$PROJECT" get std/registry/corp-registry.earthly.dev/password)" = "keepitsecret2"
+
+earthly registry --org "$ORG" --project "$PROJECT" remove
+earthly registry --org "$ORG" --project "$PROJECT" list | grep -v registry-1.docker.io
 
 clearprojectsecrets
