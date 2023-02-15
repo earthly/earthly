@@ -103,4 +103,4 @@ jobs:
           command: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.RUN_EARTHLY_TEST_ARGS}} ./tests/local+all --FRONTEND=${{inputs.BINARY}} --FRONTEND_COMPOSE=${{inputs.BINARY_COMPOSE}}"
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd 2>&1
-        if: ${{ failure() }}
+        if: ${{ failure() && !inputs.USE_SATELLITE }}

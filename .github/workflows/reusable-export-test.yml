@@ -84,4 +84,4 @@ jobs:
         run: env earthly=${{inputs.BUILT_EARTHLY_PATH}} frontend=${{inputs.BINARY}} scripts/tests/export.sh
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
-        if: ${{ failure() }}
+        if: ${{ failure() && !inputs.USE_SATELLITE }}

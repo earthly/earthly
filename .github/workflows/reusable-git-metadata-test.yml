@@ -101,4 +101,4 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
-        if: ${{ failure() }}
+        if: ${{ failure() && !inputs.USE_SATELLITE }}
