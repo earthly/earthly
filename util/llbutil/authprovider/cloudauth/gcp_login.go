@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	GCPCredHelper  = "gcp-login"
+	GCPCredHelper  = "gcloud"
 	oauthScope     = "https://www.googleapis.com/auth/cloud-platform"
 	oauthTokenUser = "oauth2accesstoken"
 )

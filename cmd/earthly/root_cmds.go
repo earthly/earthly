@@ -292,6 +292,22 @@ Set up a whole custom git repository for a server called example.com, using a si
 			Aliases:     []string{"registries"},
 			Description: "Manage registry access *beta*",
 			Usage:       "Manage registry access *beta*",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "org",
+					EnvVars:     []string{"EARTHLY_ORG"},
+					Usage:       "The organization to which the project belongs.",
+					Required:    false,
+					Destination: &app.orgName,
+				},
+				&cli.StringFlag{
+					Name:        "project",
+					EnvVars:     []string{"EARTHLY_PROJECT"},
+					Usage:       "The organization project in which to store registry credentials.",
+					Required:    false,
+					Destination: &app.projectName,
+				},
+			},
 			Subcommands: app.registryCmds(),
 		},
 		{

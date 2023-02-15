@@ -9,28 +9,22 @@ clearusersecrets() {
 }
 
 test -n "$earthly_config" # set by earthly-entrypoint.sh
-which earthly
 
 # clear out secrets from previous test
 clearusersecrets
 
-# test dockerhub credentials do not exist
-earthly registry list | grep -v $GCP_SERVER
+# test credentials do not exist
+earthly registry list | grep -v "$GCP_SERVER"
 
-# set dockerhub credentials
-
-# TODO implement registry login command for gcloud artifact registry, then switch this test over
-
-echo "setting up cred helper manually"
-earthly secrets set /user/std/registry/$GCP_SERVER/cred_helper gcp-login
+# set credentials
 set +x # don't remove, or keys will be leaked
 test -n "$GCP_KEY" || (echo "GCP_KEY is empty" && exit 1)
-echo $GCP_KEY | earthly secrets set --stdin /user/std/registry/$GCP_SERVER/GCP_KEY
+export GCP_SERVICE_ACCOUNT_KEY="$GCP_KEY" # registry setup reads from this env
 set -x
-echo "done setting up cred helper (and secrets)"
+earthly registry setup --cred-helper=gcloud "$GCP_SERVER"
 
-# test dockerhub credentials exist
-earthly registry list # TODO validate this works
+# test credentials exist
+earthly registry list | grep "$GCP_SERVER"
 
 uuid="$(uuidgen)"
 
@@ -49,6 +43,9 @@ EOF
 # --no-output is required for earthly-in-earthly; however a --push to gcp will still occur
 earthly --config "$earthly_config" --verbose +pull
 earthly --config "$earthly_config" --no-output --push --verbose +push
+
+earthly registry remove "$GCP_SERVER"
+earthly registry list | grep -v $GCP_SERVER
 
 # clear out secrets (just in case project-based registry accidentally uses user-based)
 clearusersecrets

@@ -14,24 +14,18 @@ test -n "$ECR_REGISTRY_HOST"
 # clear out secrets from previous test
 clearusersecrets
 
-# test dockerhub credentials do not exist
+# test credentials do not exist
 earthly registry list | grep -v $ECR_REGISTRY_HOST
 
-# set dockerhub credentials
-#earthly registry login --username mytest --password keepitsafe
-
-echo "setting up cred helper manually"
-earthly secrets set /user/std/registry/$ECR_REGISTRY_HOST/cred_helper ecr-login
+# set ecr credentials
 set +x # don't remove, or keys will be leaked
 test -n "$AWS_ACCESS_KEY_ID" || (echo "AWS_ACCESS_KEY_ID is empty" && exit 1)
 test -n "$AWS_SECRET_ACCESS_KEY" || (echo "AWS_SECRET_ACCESS_KEY is empty" && exit 1)
-echo $AWS_ACCESS_KEY_ID | earthly secrets set --stdin /user/std/registry/$ECR_REGISTRY_HOST/AWS_ACCESS_KEY_ID
-echo $AWS_SECRET_ACCESS_KEY | earthly secrets set --stdin /user/std/registry/$ECR_REGISTRY_HOST/AWS_SECRET_ACCESS_KEY
 set -x
+earthly registry setup --cred-helper=ecr-login "$ECR_REGISTRY_HOST"
 echo "done setting up cred helper (and secrets)"
 
-# test dockerhub credentials exist
-earthly registry list # TODO validate this works
+earthly registry list | grep "$ECR_REGISTRY_HOST"
 
 uuid="$(uuidgen)"
 
@@ -50,6 +44,9 @@ EOF
 # --no-output is required for earthly-in-earthly; however a --push to ecr will still occur
 earthly --config "$earthly_config" --verbose +pull
 earthly --config "$earthly_config" --no-output --push --verbose +push
+
+earthly registry remove "$ECR_REGISTRY_HOST"
+earthly registry list | grep -v $ECR_REGISTRY_HOST
 
 # clear out secrets (just in case project-based registry accidentally uses user-based)
 clearusersecrets

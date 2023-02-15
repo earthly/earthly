@@ -4,42 +4,36 @@ set -ex
 # WARNING -- RACE-CONDITION: this test is not thread-safe (since it makes use of a shared user's secrets)
 # the lock.sh and unlock.sh scripts must first be run
 
-clearusersecrets() {
-    earthly secrets ls /user/std/ | xargs -r -n 1 earthly secrets rm
-}
-
-test -n "$earthly_config" # set by earthly-entrypoint.sh
-which earthly
-
-# clear out secrets from previous test
-clearusersecrets
-
-# test dockerhub credentials do not exist
-earthly registry list | grep -v $GCP_SERVER
-
-# set dockerhub credentials
-
-# TODO implement registry login command for gcloud artifact registry, then switch this test over
-
 ORG="ryan-test"
 PROJECT="registry-command-test-project"
 
-echo "setting up cred helper manually"
-earthly secrets --org "$ORG" --project "$PROJECT" set std/registry/$GCP_SERVER/cred_helper gcp-login
+clearprojectsecrets() {
+    earthly secrets --org "$ORG" --project "$PROJECT" ls std/ | xargs -r -n 1 earthly secrets --org "$ORG" --project "$PROJECT" rm
+}
+
+test -n "$earthly_config" # set by earthly-entrypoint.sh
+
+# clear out secrets from previous test
+clearprojectsecrets
+
+# test credentials do not exist
+earthly registry list | grep -v "$GCP_SERVER" # just in case
+earthly registry --org "$ORG" --project "$PROJECT" list | grep -v "$GCP_SERVER"
+
+# set credentials
 set +x # don't remove, or keys will be leaked
 test -n "$GCP_KEY" || (echo "GCP_KEY is empty" && exit 1)
-echo $GCP_KEY | earthly secrets --org "$ORG" --project "$PROJECT" set --stdin std/registry/$GCP_SERVER/GCP_KEY
+echo "$GCP_KEY" | earthly registry --org "$ORG" --project "$PROJECT" setup --cred-helper=gcloud --gcp-service-account-key-stdin "$GCP_SERVER"
 set -x
-echo "done setting up cred helper (and secrets)"
 
-# test dockerhub credentials exist
-earthly registry list # TODO validate this works
+# test credentials exist
+earthly registry --org "$ORG" --project "$PROJECT" list | grep "$GCP_SERVER"
 
 uuid="$(uuidgen)"
 
 cat > Earthfile <<EOF
 VERSION 0.7
-PROJECT ryan-test/registry-command-test-project
+PROJECT $ORG/$PROJECT
 pull:
   FROM $GCP_FULL_ADDRESS/$IMAGE:latest
   RUN test -f /etc/passwd
@@ -54,5 +48,8 @@ EOF
 earthly --config "$earthly_config" --verbose +pull
 earthly --config "$earthly_config" --no-output --push --verbose +push
 
+earthly registry --org "$ORG" --project "$PROJECT" remove "$GCP_SERVER"
+earthly registry --org "$ORG" --project "$PROJECT" list | grep -v $GCP_SERVER
+
 # clear out secrets (just in case project-based registry accidentally uses user-based)
-clearusersecrets
+clearprojectsecrets
