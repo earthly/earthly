@@ -6,7 +6,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 The default size when launching a new satellite is now medium instead of large.
 
-## v0.7.0-rc3 - 2023-02-07
+## v0.7.0-rc3 - 2023-02-15
 
 The documentation for this version is available at the [Earthly 0.7 documentation page](https://docs.earthly.dev/v/earthly-0.7/).
 
