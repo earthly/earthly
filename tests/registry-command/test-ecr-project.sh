@@ -26,10 +26,10 @@ set +x # don't remove, or keys will be leaked
 test -n "$AWS_ACCESS_KEY_ID" || (echo "AWS_ACCESS_KEY_ID is empty" && exit 1)
 test -n "$AWS_SECRET_ACCESS_KEY" || (echo "AWS_SECRET_ACCESS_KEY is empty" && exit 1)
 set -x
-earthly registry setup --org "$ORG" --project "$PROJECT" --cred-helper=ecr-login "$ECR_REGISTRY_HOST"
+earthly registry --org "$ORG" --project "$PROJECT" setup --cred-helper=ecr-login "$ECR_REGISTRY_HOST"
 
 # test credentials exist
-earthly registry list --org "$ORG" --project "$PROJECT" | grep "$ECR_REGISTRY_HOST"
+earthly registry --org "$ORG" --project "$PROJECT" list | grep "$ECR_REGISTRY_HOST"
 
 uuid="$(uuidgen)"
 
@@ -50,8 +50,8 @@ EOF
 earthly --config "$earthly_config" --verbose +pull
 earthly --config "$earthly_config" --no-output --push --verbose +push
 
-earthly registry remove --org "$ORG" --project "$PROJECT" "$ECR_REGISTRY_HOST"
-earthly registry list --org "$ORG" --project "$PROJECT" | grep -v $ECR_REGISTRY_HOST
+earthly registry --org "$ORG" --project "$PROJECT" remove "$ECR_REGISTRY_HOST"
+earthly registry --org "$ORG" --project "$PROJECT" list | grep -v $ECR_REGISTRY_HOST
 
 # clear out secrets (just in case project-based registry accidentally uses user-based)
 clearprojectsecrets
