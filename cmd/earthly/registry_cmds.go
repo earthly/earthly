@@ -11,7 +11,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/earthly/earthly/cloud"
-	"github.com/moby/buildkit/session/secrets"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -269,7 +268,7 @@ func (app *earthlyApp) actionRegistrySetupUsernamePassword(cliCtx *cli.Context, 
 
 	err = cloudClient.RemoveSecret(cliCtx.Context, path.Join(regPath, host, "cred_helper"))
 	if err != nil {
-		if !errors.Is(err, secrets.ErrNotFound) {
+		if !errors.Is(err, cloud.ErrNotFound) {
 			return err
 		}
 	}
