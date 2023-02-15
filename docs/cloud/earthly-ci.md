@@ -98,12 +98,12 @@ Please note that the `PROJECT` declaration needs to match the name of your organ
 
 ### 6. Set up registry access
 
-During your experimentation with Earthly CI, you may encounter DockerHub rate limiting errors. To avoid this, you can log into your DockerHub account by using the command `earthly registry setup`.
+During your experimentation with Earthly CI, you may encounter DockerHub rate limiting errors. To avoid this, you can setup your DockerHub account by using the command `earthly registry setup`.
 
 ```bash
 earthly registry --org <org-name> --project <project-name> \
 setup --username <registry-user-name> --password-stdin \
-<registry-host>
+<host>
 ```
 
 If the registry is DockerHub, then you can leave out the registry host argument.
@@ -112,9 +112,9 @@ You may additionally log into other registries, such as AWS ECR, or GCP Artifact
 
 ```bash
 # For AWS ECR
-earthly registry --org <org-name> --project <project-name> setup  --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>
+earthly registry --org <org-name> --project <project-name> setup --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>
 # For GCP Artifact Registry
-earthly registry --org <org-name> --project <project-name> setup --cred-helper gcloud --gcp-key <key> <host>
+earthly registry --org <org-name> --project <project-name> setup --cred-helper gcloud --gcp-service-account-key <key> <host>
 ```
 
 ### 7. Invite your team
