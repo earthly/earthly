@@ -665,28 +665,28 @@ The organization's project to store the credentials under; the user's secret sto
 #### Synopsis
 
 * ```
-  earthly registry setup [--org <org> --project <project>] [--cred-helper <none|ecr-login|gcloud>] ...
+  earthly registry [--org <org> --project <project>] setup [--cred-helper <none|ecr-login|gcloud>] ...
   ```
 
 ##### username/password based registry (`--cred-helper=none`)
 
 * ```
   earthly registry setup --username <username> --password <password> [<host>]
-  earthly registry setup --org <org> --project <project> --username <username> --password <password> [<host>]
+  earthly registry --org <org> --project <project> setup --username <username> --password <password> [<host>]
   ```
 
 ##### AWS elastic container registry (`--cred-helper=ecr-login`)
 
 * ```
   earthly registry setup --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>
-  earthly registry setup --org <org> --project <project> --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>
+  earthly registry --org <org> --project <project> setup --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>
   ```
 
 ##### GCP artifact or container registry (`--cred-helper=gcloud`)
 
 * ```
   earthly registry setup --cred-helper gcloud --gcp-key <key> <host>
-  earthly registry setup --org <org> --project <project> --cred-helper gcloud --gcp-key <key> <host>
+  earthly registry --org <org> --project setup <project> --cred-helper gcloud --gcp-service-account-key <key> <host>
   ```
 
 #### Description
@@ -741,11 +741,23 @@ The AWS secret access key to use when requesting a registry token, only applicab
 
 Also available as an env var setting: `AWS_SECRET_ACCESS_KEY=<secret>`.
 
-##### `--gcp-key <key>`
+##### `--gcp-service-account-key <key>`
 
-The GCP key to use when requesting a registry token, only applicable when `--cred-helper=gcloud`.
+The GCP service account key to use when requesting a registry token, only applicable when `--cred-helper=gcloud`.
 
-Also available as an env var setting: `GCP_KEY=<key>`.
+Also available as an env var setting: `GCP_SERVICE_ACCOUNT_KEY=<key>`.
+
+##### `--gcp-service-account-key-path <path>`
+
+Similar to `--gcp-service-account-key`, but read the key from the specified file.
+
+Also available as an env var setting: `GCP_SERVICE_ACCOUNT_KEY_PATH=<path>`, or `GOOGLE_APPLICATION_CREDENTIALS=<path>`.
+
+##### `--gcp-service-account-key-stdin`
+
+Similar to `--gcp-service-account-key`, but read the key from stdin.
+
+Also available as an env var setting: `GCP_SERVICE_ACCOUNT_KEY_PATH_STDIN=true`.
 
 #### earthly registry list
 
