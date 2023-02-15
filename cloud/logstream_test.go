@@ -21,9 +21,11 @@ func TestStreamLogs(topT *testing.T) {
 	type testCtx struct {
 		t      *testing.T
 		expect expect.Expectation
-		conn   *mockGRPCConn
-		deltas *mockDeltas
-		client *cloud.Client
+
+		mockConn   *mockGRPCConn
+		mockDeltas *mockDeltas
+
+		cloudClient *cloud.Client
 	}
 
 	o := onpar.BeforeEach(onpar.New(topT), func(t *testing.T) testCtx {
@@ -32,11 +34,12 @@ func TestStreamLogs(topT *testing.T) {
 		client, err := cloud.NewClientOpts(context.Background(), cloud.WithGRPCConn(mockConn))
 		expect(err).To(not(haveOccurred()))
 		return testCtx{
-			t:      t,
-			expect: expect,
-			conn:   mockConn,
-			deltas: newMockDeltas(t, testTimeout),
-			client: client,
+			t:          t,
+			expect:     expect,
+			mockConn:   mockConn,
+			mockDeltas: newMockDeltas(t, testTimeout),
+
+			cloudClient: client,
 		}
 	})
 
@@ -46,11 +49,11 @@ func TestStreamLogs(topT *testing.T) {
 
 		errs := make(chan error)
 		go func() {
-			errs <- tt.client.StreamLogs(ctx, "foo", tt.deltas)
+			errs <- tt.cloudClient.StreamLogs(ctx, "foo", tt.mockDeltas)
 		}()
 
 		stream := newMockClientStream(tt.t, testTimeout)
-		tt.expect(tt.conn).To(haveMethodExecuted(
+		tt.expect(tt.mockConn).To(haveMethodExecuted(
 			"NewStream",
 			within(testTimeout),
 			withArgs(pers.Any, pers.Any, "/api.public.logstream.LogStream/StreamLogs", pers.VariadicAny),
@@ -73,7 +76,7 @@ func TestStreamLogs(topT *testing.T) {
 		// since that's the error we expect.
 		time.Sleep(100 * time.Millisecond)
 
-		pers.Return(tt.deltas.NextOutput, nil, errors.New("boom"))
+		pers.Return(tt.mockDeltas.NextOutput, nil, errors.New("boom"))
 
 		select {
 		case err := <-errs:
@@ -90,12 +93,12 @@ func TestStreamLogs(topT *testing.T) {
 
 		errs := make(chan error)
 		go func() {
-			errs <- tt.client.StreamLogs(ctx, "foo", tt.deltas)
+			errs <- tt.cloudClient.StreamLogs(ctx, "foo", tt.mockDeltas)
 		}()
 
 		stream := newMockClientStream(tt.t, testTimeout)
 
-		tt.expect(tt.conn).To(haveMethodExecuted(
+		tt.expect(tt.mockConn).To(haveMethodExecuted(
 			"NewStream",
 			within(testTimeout),
 			withArgs(pers.Any, pers.Any, "/api.public.logstream.LogStream/StreamLogs", pers.VariadicAny),
@@ -112,7 +115,7 @@ func TestStreamLogs(topT *testing.T) {
 			},
 		}
 		deltas := []*logstream.Delta{delta}
-		pers.Return(tt.deltas.NextOutput, deltas, nil)
+		pers.Return(tt.mockDeltas.NextOutput, deltas, nil)
 
 		tt.expect(stream).To(haveMethodExecuted(
 			"SendMsg",
@@ -126,7 +129,7 @@ func TestStreamLogs(topT *testing.T) {
 		))
 
 		tt.t.Cleanup(func() {
-			pers.Return(tt.deltas.NextOutput, nil, io.EOF)
+			pers.Return(tt.mockDeltas.NextOutput, nil, io.EOF)
 			tt.expect(stream).To(haveMethodExecuted(
 				"SendMsg",
 				within(testTimeout),
