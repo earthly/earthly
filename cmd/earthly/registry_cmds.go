@@ -154,7 +154,7 @@ func (app *earthlyApp) getRegistriesPath() (string, error) {
 func (app *earthlyApp) actionRegistrySetup(cliCtx *cli.Context) error {
 	app.commandName = "registrySetup"
 
-	path, err := app.getRegistriesPath()
+	regPath, err := app.getRegistriesPath()
 	if err != nil {
 		return err
 	}
@@ -179,39 +179,39 @@ func (app *earthlyApp) actionRegistrySetup(cliCtx *cli.Context) error {
 
 	switch app.registryCredHelper {
 	case "", "none":
-		return app.actionRegistrySetupUsernamePassword(cliCtx, path, cloudClient, host)
+		return app.actionRegistrySetupUsernamePassword(cliCtx, regPath, cloudClient, host)
 	case "ecr-login":
-		return app.actionRegistrySetupECRLogin(cliCtx, path, cloudClient, host)
+		return app.actionRegistrySetupECRLogin(cliCtx, regPath, cloudClient, host)
 	case "gcloud":
-		return app.actionRegistrySetupGCloud(cliCtx, path, cloudClient, host)
+		return app.actionRegistrySetupGCloud(cliCtx, regPath, cloudClient, host)
 	default:
 		return fmt.Errorf("unsupported credential helper %s", app.registryCredHelper)
 	}
 }
 
-func (app *earthlyApp) actionRegistrySetupECRLogin(cliCtx *cli.Context, path string, cloudClient *cloud.Client, host string) error {
+func (app *earthlyApp) actionRegistrySetupECRLogin(cliCtx *cli.Context, regPath string, cloudClient *cloud.Client, host string) error {
 	if app.awsAccessKeyID == "" {
 		return fmt.Errorf("--aws-access-key-id is missing (or empty)")
 	}
 	if app.awsSecretAccessKey == "" {
 		return fmt.Errorf("--aws-secret-access-key is missing (or empty)")
 	}
-	err := cloudClient.SetSecret(cliCtx.Context, path+host+"/cred_helper", []byte("ecr-login"))
+	err := cloudClient.SetSecret(cliCtx.Context, regPath+host+"/cred_helper", []byte("ecr-login"))
 	if err != nil {
 		return err
 	}
-	err = cloudClient.SetSecret(cliCtx.Context, path+host+"/AWS_ACCESS_KEY_ID", []byte(app.awsAccessKeyID))
+	err = cloudClient.SetSecret(cliCtx.Context, regPath+host+"/AWS_ACCESS_KEY_ID", []byte(app.awsAccessKeyID))
 	if err != nil {
 		return err
 	}
-	err = cloudClient.SetSecret(cliCtx.Context, path+host+"/AWS_SECRET_ACCESS_KEY", []byte(app.awsSecretAccessKey))
+	err = cloudClient.SetSecret(cliCtx.Context, regPath+host+"/AWS_SECRET_ACCESS_KEY", []byte(app.awsSecretAccessKey))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (app *earthlyApp) actionRegistrySetupGCloud(cliCtx *cli.Context, path string, cloudClient *cloud.Client, host string) error {
+func (app *earthlyApp) actionRegistrySetupGCloud(cliCtx *cli.Context, regPath string, cloudClient *cloud.Client, host string) error {
 	serviceAccountKey := app.gcpServiceAccountKey
 	if app.gcpServiceAccountKeyPath != "" {
 		if serviceAccountKey != "" {
@@ -242,14 +242,14 @@ func (app *earthlyApp) actionRegistrySetupGCloud(cliCtx *cli.Context, path strin
 	if serviceAccountKey == "" {
 		return fmt.Errorf("no gcp service key was provided")
 	}
-	err := cloudClient.SetSecret(cliCtx.Context, path+host+"/cred_helper", []byte("gcloud"))
+	err := cloudClient.SetSecret(cliCtx.Context, path.Join(regPath, host, "cred_helper"), []byte("gcloud"))
 	if err != nil {
 		return err
 	}
-	return cloudClient.SetSecret(cliCtx.Context, path+host+"/GCP_KEY", []byte(serviceAccountKey))
+	return cloudClient.SetSecret(cliCtx.Context, path.Join(regPath, host, "GCP_KEY"), []byte(serviceAccountKey))
 }
 
-func (app *earthlyApp) actionRegistrySetupUsernamePassword(cliCtx *cli.Context, path string, cloudClient *cloud.Client, host string) error {
+func (app *earthlyApp) actionRegistrySetupUsernamePassword(cliCtx *cli.Context, regPath string, cloudClient *cloud.Client, host string) error {
 	var err error
 	var password []byte
 	if app.registryPasswordStdin {
@@ -267,18 +267,18 @@ func (app *earthlyApp) actionRegistrySetupUsernamePassword(cliCtx *cli.Context, 
 		return fmt.Errorf("password can not be empty")
 	}
 
-	err = cloudClient.RemoveSecret(cliCtx.Context, path+host+"/cred_helper")
+	err = cloudClient.RemoveSecret(cliCtx.Context, path.Join(regPath, host, "cred_helper"))
 	if err != nil {
 		if !errors.Is(err, secrets.ErrNotFound) {
 			return err
 		}
 	}
 
-	err = cloudClient.SetSecret(cliCtx.Context, path+host+"/username", []byte(app.registryUsername))
+	err = cloudClient.SetSecret(cliCtx.Context, path.Join(regPath, host, "username"), []byte(app.registryUsername))
 	if err != nil {
 		return err
 	}
-	err = cloudClient.SetSecret(cliCtx.Context, path+host+"/password", password)
+	err = cloudClient.SetSecret(cliCtx.Context, path.Join(regPath, host, "password"), password)
 	if err != nil {
 		return err
 	}
