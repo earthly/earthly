@@ -17,16 +17,17 @@ test -n "$earthly_config" # set by earthly-entrypoint.sh
 clearprojectsecrets
 
 # test credentials do not exist
-earthly registry list | grep -v "$GCP_SERVER"
+earthly registry list | grep -v "$GCP_SERVER" # just in case
+earthly registry --org "$ORG" --project "$PROJECT" list | grep -v "$GCP_SERVER"
 
 # set credentials
 set +x # don't remove, or keys will be leaked
 test -n "$GCP_KEY" || (echo "GCP_KEY is empty" && exit 1)
 set -x
-earthly registry setup --org "$ORG" --project "$PROJECT" --cred-helper=gcloud "$GCP_SERVER"
+earthly registry --org "$ORG" --project "$PROJECT" setup --cred-helper=gcloud "$GCP_SERVER"
 
 # test credentials exist
-earthly registry list --org "$ORG" --project "$PROJECT" | grep "$GCP_SERVER"
+earthly registry --org "$ORG" --project "$PROJECT" list | grep "$GCP_SERVER"
 
 uuid="$(uuidgen)"
 
@@ -47,8 +48,8 @@ EOF
 earthly --config "$earthly_config" --verbose +pull
 earthly --config "$earthly_config" --no-output --push --verbose +push
 
-earthly registry remove --org "$ORG" --project "$PROJECT" "$GCP_SERVER"
-earthly registry list --org "$ORG" --project "$PROJECT" | grep -v $GCP_SERVER
+earthly registry --org "$ORG" --project "$PROJECT" remove "$GCP_SERVER"
+earthly registry --org "$ORG" --project "$PROJECT" list | grep -v $GCP_SERVER
 
 # clear out secrets (just in case project-based registry accidentally uses user-based)
 clearprojectsecrets

@@ -18,7 +18,8 @@ test -n "$ECR_REGISTRY_HOST"
 clearprojectsecrets
 
 # test credentials do not exist
-earthly registry list | grep -v "$ECR_REGISTRY_HOST"
+earthly registry list | grep -v "$ECR_REGISTRY_HOST" # just in case
+earthly registry --org "$ORG" --project "$PROJECT" list | grep -v "$ECR_REGISTRY_HOST"
 
 # set credentials
 set +x # don't remove, or keys will be leaked

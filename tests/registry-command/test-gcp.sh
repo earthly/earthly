@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -ex
 ./lock.sh
 
 finish() {

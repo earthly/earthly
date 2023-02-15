@@ -25,28 +25,16 @@ func (app *earthlyApp) registryCmds() []*cli.Command {
 			UsageText: "earthly registry setup [--org <org> --project <project>] [--cred-helper <none|ecr-login|gcloud>] ...\n\n" +
 				"username/password based registry (--cred-helper=none):\n" +
 				"	earthly registry setup --username <username> --password <password> [<host>]\n" +
-				"	earthly registry setup --org <org> --project <project> --username <username> --password <password> [<host>]\n\n" +
+				"	earthly registry --org <org> --project <project> setup --username <username> --password <password> [<host>]\n\n" +
 				"AWS elastic container registry (--cred-helper=ecr-login):\n" +
 				"	earthly registry setup --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>\n" +
-				"	earthly registry setup --org <org> --project <project> --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>\n\n" +
+				"	earthly registry --org <org> --project <project> setup --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>\n\n" +
 				"GCP artifact or container registry (--cred-helper=gcloud):\n" +
 				"	earthly registry setup --cred-helper gcloud --gcp-key <key> <host>\n" +
-				"	earthly registry setup --org <org> --project <project> --cred-helper gcloud --gcp-key <key> <host>\n" +
+				"	earthly registry --org <org> --project <project> setup --cred-helper gcloud --gcp-key <key> <host>\n" +
 				"",
 			Action: app.actionRegistrySetup,
 			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:        "org",
-					Usage:       "The organization to which the project belongs.",
-					Required:    false,
-					Destination: &app.orgName,
-				},
-				&cli.StringFlag{
-					Name:        "project",
-					Usage:       "The organization project in which to store registry credentials, if empty credentials will be stored under the user's secret storage.",
-					Required:    false,
-					Destination: &app.projectName,
-				},
 				&cli.StringFlag{
 					Name:        "cred-helper",
 					EnvVars:     []string{"EARTHLY_REGISTRY_CRED_HELPER"},
@@ -102,43 +90,15 @@ func (app *earthlyApp) registryCmds() []*cli.Command {
 			Name:  "list",
 			Usage: "List configured registries *beta*",
 			UsageText: "earthly registry list\n" +
-				"	earthly registry list --org <org> --project <project>\n",
+				"	earthly registry --org <org> --project <project> list\n",
 			Action: app.actionRegistryList,
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:        "org",
-					Usage:       "The organization to which the project belongs.",
-					Required:    false,
-					Destination: &app.orgName,
-				},
-				&cli.StringFlag{
-					Name:        "project",
-					Usage:       "The organization project in which to store registry credentials, if empty credentials will be stored under the user's secret storage.",
-					Required:    false,
-					Destination: &app.projectName,
-				},
-			},
 		},
 		{
 			Name:  "remove",
 			Usage: "Remove stored registry credentials *beta*",
 			UsageText: "earthly registry remove [<host>]\n" +
-				"	earthly registry remove [--org <org> --project <project>] <host>\n",
+				"	earthly registry [--org <org> --project <project>] remove <host>\n",
 			Action: app.actionRegistryRemove,
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:        "org",
-					Usage:       "The organization to which the project belongs.",
-					Required:    false,
-					Destination: &app.orgName,
-				},
-				&cli.StringFlag{
-					Name:        "project",
-					Usage:       "The organization project in which to store registry credentials, if empty credentials will be stored under the user's secret storage.",
-					Required:    false,
-					Destination: &app.projectName,
-				},
-			},
 		},
 	}
 }
