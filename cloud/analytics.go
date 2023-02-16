@@ -2,6 +2,8 @@ package cloud
 
 import (
 	"context"
+	"fmt"
+	"google.golang.org/grpc/status"
 
 	"github.com/earthly/cloud-api/analytics"
 	"github.com/pkg/errors"
@@ -9,6 +11,9 @@ import (
 
 // SendAnalytics send an analytics event to the Cloud server.
 func (c *Client) SendAnalytics(ctx context.Context, data *analytics.SendAnalyticsRequest) error {
+	if c.IsLoggedIn(ctx) {
+		ctx = c.withAuth(ctx)
+	}
 	if _, err := c.analytics.SendAnalytics(ctx, data); err != nil {
 		return errors.Wrap(err, "failed sending analytics")
 	}
