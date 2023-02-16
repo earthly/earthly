@@ -2,8 +2,6 @@ package cloud
 
 import (
 	"context"
-	"fmt"
-	"google.golang.org/grpc/status"
 
 	"github.com/earthly/cloud-api/analytics"
 	"github.com/pkg/errors"
