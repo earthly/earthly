@@ -1,6 +1,6 @@
 # Introduction
 
-Earthly is a versatile, approachable CI/CD framework that gives you repeatable builds by running each build inside containers *– write builds once, and they will run anywhere*. Earthly has a super simple, instantly recognizable syntax that is easy to write and understand *– like Dockerfile and Makefile had a baby*. And it leverages and augments popular build tools instead of replacing them, *so you don’t have to rewrite all your builds no matter what languages you use*. With Earthly, you can create Docker images and build artifacts (e.g. binaries, packages, and arbitrary files).
+Earthly is a super simple CI/CD framework that gives you repeatable builds that you write once and run anywhere; has a simple, instantly recognizable syntax; and works with every language, framework, and build tool. With Earthly, you can create Docker images and build artifacts (e.g. binaries, packages, and arbitrary files).
 
 Earthly can run locally or on top of popular CI systems – such as [Jenkins](./ci-integration/guides/jenkins.md), [CircleCI](./ci-integration/guides/circle-integration.md), [GitHub Actions](./ci-integration/guides/gh-actions-integration.md), [AWS CodeBuild](./ci-integration/guides/codebuild-integration.md), [Google Cloud Build](./ci-integration/guides/google-cloud-build.md), and [GitLab CI/CD](./ci-integration/guides/gitlab-integration.md)). It typically acts as the layer between language-specific tooling (such as maven, gradle, npm, pip, and go build) and the CI build spec.
 
