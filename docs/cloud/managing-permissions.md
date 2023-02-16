@@ -70,6 +70,11 @@ To grant access to an Earthly project, you must invite the user to the project. 
 earthly project --org <org-name> --project <project-name> member add --permission <access-level> <email>
 ```
 
+{% hint style='info' %}
+##### Note
+You can only invite a user to a project if they are already part of the organization.
+{% endhint %}
+
 If the user is already part of the project, you can change their access level by running:
 
 ```bash
