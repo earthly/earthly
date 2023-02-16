@@ -26,7 +26,13 @@ This command will prompt you to set a password, and to optionally register a pub
 
 ### Creating or joining an Earthly org
 
-An Earthly org allows you to share projects, secrets, satellites and pipelines with colleagues. To create an Earthly org you can run:
+An Earthly org allows you to share projects, secrets, satellites and pipelines with colleagues. To view the orgs you belong to, run:
+
+```bash
+earthly org ls
+```
+
+To create an Earthly org you can run:
 
 ```bash
 earthly org create <org-name>
@@ -62,4 +68,4 @@ This token can then be exported as an environment variable in the CI of choice.
 EARTHLY_TOKEN=...
 ```
 
-Which will then force Earthly to use that token when accessing secrets.
+Which will then force Earthly to use that token when accessing secrets or satellites.
