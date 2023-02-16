@@ -646,6 +646,142 @@ List secrets the current account has access to.
 
 Removes a secret from the secrets store.
 
+## earthly registry
+
+Contains sub-commands for managing registry access in cloud-based secrets.
+
+### Options
+
+#### `--org`
+
+The organization to store the credentials under; must be used in combination with `--project`. If omitted, the user's personal secret store will be used instead.
+
+#### `--project`
+
+The organization's project to store the credentials under; the user's secret store will be used if empty.
+
+### earthly registry setup
+
+#### Synopsis
+
+* ```
+  earthly registry [--org <org> --project <project>] setup [--cred-helper <none|ecr-login|gcloud>] ...
+  ```
+
+##### username/password based registry (`--cred-helper=none`)
+
+* ```
+  earthly registry setup --username <username> --password <password> [<host>]
+  earthly registry --org <org> --project <project> setup --username <username> --password <password> [<host>]
+  ```
+
+##### AWS elastic container registry (`--cred-helper=ecr-login`)
+
+* ```
+  earthly registry setup --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>
+  earthly registry --org <org> --project <project> setup --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>
+  ```
+
+##### GCP artifact or container registry (`--cred-helper=gcloud`)
+
+* ```
+  earthly registry setup --cred-helper gcloud --gcp-key <key> <host>
+  earthly registry --org <org> --project setup <project> --cred-helper gcloud --gcp-service-account-key <key> <host>
+  ```
+
+#### Description
+
+Store registry credentials in the earthly-cloud secrets store. These credentials are used to authenticate with the registry.
+When they are associated with a project, by specifying `--org`, and `--project` flags, they will be associated with the project (as referenced by the
+`PROJECT` Earthfile command), which is used when running in CI.
+
+{% hint style='info' %}
+##### Note
+Registry credentials are stored under `std/registry/<host>/...` of either the user, or project based secrets.
+
+The `earthly registry ...` commands exist for convience; however, it is possible to set (or delete) these values using the `earthly secrets ...` commands.
+{% endhint %}
+
+
+#### Options
+
+##### `--cred-helper`
+
+When specified, use a credential helper for authenticating with the registry. Values can be `ecr-login`, `gcloud`, or `none`.
+
+Also available as an env var setting: `EARTHLY_REGISTRY_CRED_HELPER=<value>`.
+
+##### `--username <username>`
+
+The username to use; only applicable when `--cred-helper` is omitted (or `none`).
+
+Also available as an env var setting: `EARTHLY_REGISTRY_USERNAME=<value>`.
+
+##### `--password <password>`
+
+The password to use; only applicable when `--cred-helper` is omitted (or `none`).
+
+Also available as an env var setting: `EARTHLY_REGISTRY_PASSWORD=<value>`.
+
+##### `--password-stdin`
+
+When set, read the password from stdin; only applicable when `--cred-helper` is omitted (or `none`).
+
+Also available as an env var setting: EARTHLY_REGISTRY_PASSWORD_STDIN=true.
+
+##### `--aws-access-key-id <identifier>`
+
+The AWS access key ID to use when requesting a registry token, only applicable when `--cred-helper=ecr-login`.
+
+Also available as an env var setting: `AWS_ACCESS_KEY_ID=<identifier>`.
+
+##### `--aws-secret-access-key <secret>`
+
+The AWS secret access key to use when requesting a registry token, only applicable when `--cred-helper=ecr-login`.
+
+Also available as an env var setting: `AWS_SECRET_ACCESS_KEY=<secret>`.
+
+##### `--gcp-service-account-key <key>`
+
+The GCP service account key to use when requesting a registry token, only applicable when `--cred-helper=gcloud`.
+
+Also available as an env var setting: `GCP_SERVICE_ACCOUNT_KEY=<key>`.
+
+##### `--gcp-service-account-key-path <path>`
+
+Similar to `--gcp-service-account-key`, but read the key from the specified file.
+
+Also available as an env var setting: `GCP_SERVICE_ACCOUNT_KEY_PATH=<path>`, or `GOOGLE_APPLICATION_CREDENTIALS=<path>`.
+
+##### `--gcp-service-account-key-stdin`
+
+Similar to `--gcp-service-account-key`, but read the key from stdin.
+
+Also available as an env var setting: `GCP_SERVICE_ACCOUNT_KEY_PATH_STDIN=true`.
+
+#### earthly registry list
+
+##### Synopsis
+
+* ```
+  earthly registry list [--org <org> --project <project>]
+  ```
+
+##### Description
+
+Display the configured registries.
+
+#### earthly registry remove
+
+##### Synopsis
+
+* ```
+  earthly registry remove [--org <org> --project <project>] <host>
+  ```
+
+##### Description
+
+Remove a configured registry, and delete all stored credentials.
 
 ## earthly bootstrap
 
