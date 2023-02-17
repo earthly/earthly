@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
@@ -537,10 +538,13 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	// Kick off logstream upload only when we've passed the necessary information to logbusSetup.
 	// This information is passed back right at the beginning of the build within earthfile2llb.
 	go func() {
+		now := time.Now()
 		select {
 		case <-cliCtx.Context.Done():
+			app.console.Warnf("========== CONTEXT DONE BEFORE LOGSTREAMER STARTED AT %s (%s ms later) ==========", time.Now().Format(time.RFC3339Nano), time.Now().Sub(now).Nanoseconds())
 			return
 		case details := <-buildOpts.MainTargetDetailsFuture:
+			app.console.Warnf("========== SETTING ORG AND PROJECT AT %s (%s ms later) ==========", time.Now().Format(time.RFC3339Nano), time.Now().Sub(now).Nanoseconds())
 			if app.logstream {
 				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
 				if doLogstreamUpload {
