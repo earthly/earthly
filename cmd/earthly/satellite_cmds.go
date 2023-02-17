@@ -62,6 +62,13 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 					Required:    false,
 					Destination: &app.satelliteMaintenanceWindow,
 				},
+				&cli.BoolFlag{
+					Name:        "maintenance-weekends-only",
+					Aliases:     []string{"wo"},
+					Usage:       "When set, satellite auto-updates will only occur on Saturday or Sunday during the specified maintenance window.",
+					Required:    false,
+					Destination: &app.satelliteMaintenaceWeekendsOnly,
+				},
 				&cli.StringFlag{
 					Name:        "version",
 					Usage:       "Launch and pin a satellite at a specific version (disables auto-updates)",
@@ -335,7 +342,17 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	app.console.Printf("Launching Satellite '%s' with auto-updates set to run at %s (%s)\n",
 		app.satelliteName, localWindow, zone)
 	app.console.Printf("Please wait...\n")
-	err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID, platform, size, version, window, ffs)
+
+	err = cloudClient.LaunchSatellite(cliCtx.Context, cloud.LaunchSatelliteOpt{
+		Name:                    app.satelliteName,
+		OrgID:                   orgID,
+		Platform:                platform,
+		Size:                    size,
+		PinnedVersion:           version,
+		MaintenanceWindowStart:  window,
+		FeatureFlags:            ffs,
+		MaintenanceWeekendsOnly: app.satelliteMaintenaceWeekendsOnly,
+	})
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			app.console.Printf("Operation interrupted. Satellite should finish launching in background (if server received request).\n")

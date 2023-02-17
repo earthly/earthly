@@ -120,15 +120,27 @@ func (c *Client) DeleteSatellite(ctx context.Context, name, orgID string) error 
 	return nil
 }
 
-func (c *Client) LaunchSatellite(ctx context.Context, name, orgID, platform, size, version, maintenanceWindow string, features []string) error {
+type LaunchSatelliteOpt struct {
+	Name                    string
+	OrgID                   string
+	Size                    string
+	Platform                string
+	PinnedVersion           string
+	MaintenanceWindowStart  string
+	MaintenanceWeekendsOnly bool
+	FeatureFlags            []string
+}
+
+func (c *Client) LaunchSatellite(ctx context.Context, opt LaunchSatelliteOpt) error {
 	req := &pb.LaunchSatelliteRequest{
-		OrgId:                  orgID,
-		Name:                   name,
-		Platform:               platform,
-		Size:                   size,
-		FeatureFlags:           features,
-		Version:                version,
-		MaintenanceWindowStart: maintenanceWindow,
+		OrgId:                   opt.OrgID,
+		Name:                    opt.Name,
+		Platform:                opt.Platform,
+		Size:                    opt.Size,
+		FeatureFlags:            opt.FeatureFlags,
+		Version:                 opt.PinnedVersion,
+		MaintenanceWindowStart:  opt.MaintenanceWindowStart,
+		MaintenanceWeekendsOnly: opt.MaintenanceWeekendsOnly,
 	}
 	_, err := c.compute.LaunchSatellite(c.withAuth(ctx), req)
 	if err != nil {
