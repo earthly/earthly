@@ -21,7 +21,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const testTimeout = 10 * time.Second
+const chaosTestTimeout = 10 * time.Second
 
 func newTestLogStreamer(ctx context.Context, client *mockCloudClient, initMani *logstream.RunManifest, opts ...logstreamer.Opt) (*logstreamer.LogStreamer, func(*testing.T)) {
 	str := logstreamer.New(ctx, logbus.New(), client, initMani, opts...)
@@ -47,8 +47,8 @@ func TestDataRace_InitManifest(t *testing.T) {
 }
 
 func exerciseInitManifest(t *testing.T) {
-	client := newMockCloudClient(t, testTimeout)
-	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+	client := newMockCloudClient(t, chaosTestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), chaosTestTimeout)
 	defer cancel()
 
 	initManifest := &logstream.RunManifest{
@@ -97,7 +97,7 @@ func exerciseInitManifest(t *testing.T) {
 	expect.Expect(t, client).To(
 		pers.HaveMethodExecuted(
 			"StreamLogs",
-			pers.Within(testTimeout),
+			pers.Within(chaosTestTimeout),
 			pers.StoreArgs(&streamCtx, &buildID, &deltas),
 		),
 	)
@@ -150,8 +150,8 @@ func exerciseDeadlock(t *testing.T) {
 	runtime.GOMAXPROCS(2)
 	const chSize = 10
 
-	client := newMockCloudClient(t, testTimeout)
-	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+	client := newMockCloudClient(t, chaosTestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), chaosTestTimeout)
 	defer cancel()
 
 	// We need a heavily congested log streamer, with a full channel.
@@ -164,7 +164,7 @@ func exerciseDeadlock(t *testing.T) {
 	expect.Expect(t, client).To(
 		pers.HaveMethodExecuted(
 			"StreamLogs",
-			pers.Within(testTimeout),
+			pers.Within(chaosTestTimeout),
 			pers.WithArgs(pers.Any, "foo", pers.Any),
 		),
 	)
@@ -219,7 +219,7 @@ func exerciseDeadlock(t *testing.T) {
 	// to `WriteAsync` should eventually unblock, so all done channels should
 	// close.
 
-	timeout := time.After(testTimeout)
+	timeout := time.After(chaosTestTimeout)
 
 	for i, ch := range append(unblocked, extrasUnblocked...) {
 		select {
