@@ -56,7 +56,7 @@ build {
   name    = "earthly-build"
   sources = [
     "source.amazon-ebs.x86_64",
-    "source.amazon-ebs.arm64"
+    //"source.amazon-ebs.arm64"
   ]
 
   # https://developer.hashicorp.com/packer/docs/debugging#issues-installing-ubuntu-packages

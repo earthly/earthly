@@ -28,7 +28,12 @@ echo \
   stable main" | sudo tee /etc/apt/sources.list.d/earthly.list > /dev/null
 
 sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io earthly="$EARTHLY_VERSION"
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+
+sudo curl https://github.com/earthly/earthly/releases/download/v0.7.0-rc3/earthly-linux-amd64 -o /usr/local/bin/earthly
+sudo chmod +x /usr/local/bin/earthly
+
+earthly bootstrap
 
 docker -v
 earthly -v
