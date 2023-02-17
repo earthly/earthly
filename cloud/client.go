@@ -56,7 +56,7 @@ type Client struct {
 }
 
 // NewClient provides a new Earthly Cloud client
-func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, authJWTOverride, installationName, requestID string, warnFunc func(string, ...interface{})) (*Client, error) {
+func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, authJWTOverride, installationName, requestID string, warnFunc func(string, ...interface{}), logstreamAddressOverride string) (*Client, error) {
 	c := &Client{
 		httpAddr: httpAddr,
 		sshAgent: &lazySSHAgent{
@@ -99,7 +99,12 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	}
 	c.pipelines = pipelines.NewPipelinesClient(conn)
 	c.compute = compute.NewComputeClient(conn)
-	c.logstream = logstream.NewLogStreamClient(conn)
+
+	logstreamConn, err := grpc.DialContext(ctx, logstreamAddressOverride, dialOpts...)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed dialing logstream grpc")
+	}
+	c.logstream = logstream.NewLogStreamClient(logstreamConn)
 	return c, nil
 }
 

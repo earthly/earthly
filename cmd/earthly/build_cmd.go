@@ -176,7 +176,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := app.newCloudClient("http://localhost:8080")
 	if err != nil {
 		return err
 	}
