@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"time"
 
 	"github.com/earthly/cloud-api/compute"
@@ -16,6 +17,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -43,6 +45,7 @@ type Client struct {
 	email                 string
 	password              string
 	authToken             string
+	originalJWTOverride   string
 	authTokenExpiry       time.Time
 	authCredToken         string
 	authDir               string
@@ -62,10 +65,11 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 		sshAgent: &lazySSHAgent{
 			sockPath: agentSockPath,
 		},
-		warnFunc:         warnFunc,
-		jum:              &protojson.UnmarshalOptions{DiscardUnknown: true},
-		installationName: installationName,
-		requestID:        requestID,
+		warnFunc:            warnFunc,
+		jum:                 &protojson.UnmarshalOptions{DiscardUnknown: true},
+		installationName:    installationName,
+		requestID:           requestID,
+		originalJWTOverride: authJWTOverride,
 	}
 	if authJWTOverride != "" {
 		c.authToken = authJWTOverride
@@ -87,12 +91,13 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 		grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...), c.StreamInterceptor()),
 		grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...), c.UnaryInterceptor()),
 	}
+	var transportCredential credentials.TransportCredentials
 	if useInsecure {
-		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		transportCredential = insecure.NewCredentials()
 	} else {
-		tlsConfig := credentials.NewTLS(&tls.Config{})
-		dialOpts = append(dialOpts, grpc.WithTransportCredentials(tlsConfig))
+		transportCredential = credentials.NewTLS(&tls.Config{})
 	}
+	dialOpts = append(dialOpts, grpc.WithTransportCredentials(transportCredential))
 	conn, err := grpc.DialContext(ctx, grpcAddr, dialOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed dialing pipelines grpc")
@@ -100,7 +105,33 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	c.pipelines = pipelines.NewPipelinesClient(conn)
 	c.compute = compute.NewComputeClient(conn)
 
-	logstreamConn, err := grpc.DialContext(ctx, logstreamAddressOverride, dialOpts...)
+	var withStaticToken grpc.UnaryClientInterceptor = func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		md, ok := metadata.FromOutgoingContext(ctx)
+		if ok {
+			md.Delete("authorization")
+		} else {
+			md = metadata.New(map[string]string{})
+		}
+		ctx = metadata.NewOutgoingContext(ctx, md)
+		return invoker(metadata.AppendToOutgoingContext(ctx, "authorization", fmt.Sprintf("Bearer %s", c.originalJWTOverride)), method, req, reply, cc, opts...)
+	}
+
+	var withStaticTokenStream grpc.StreamClientInterceptor = func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+		md, ok := metadata.FromOutgoingContext(ctx)
+		if ok {
+			md.Delete("authorization")
+		} else {
+			md = metadata.New(map[string]string{})
+		}
+		ctx = metadata.NewOutgoingContext(ctx, md)
+		return streamer(metadata.AppendToOutgoingContext(ctx, "authorization", fmt.Sprintf("Bearer %s", c.originalJWTOverride)), desc, cc, method, opts...)
+	}
+
+	logstreamConn, err := grpc.DialContext(ctx, logstreamAddressOverride,
+		grpc.WithTransportCredentials(transportCredential),
+		grpc.WithUnaryInterceptor(withStaticToken),
+		grpc.WithStreamInterceptor(withStaticTokenStream),
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed dialing logstream grpc")
 	}
