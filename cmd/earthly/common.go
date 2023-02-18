@@ -17,13 +17,9 @@ import (
 	"github.com/earthly/earthly/util/fileutil"
 )
 
-func (app *earthlyApp) newCloudClient(logstreamAddressOverride ...string) (*cloud.Client, error) {
-	logstreamOverride := app.cloudGRPCAddr
-	if len(logstreamAddressOverride) > 0 {
-		logstreamOverride = logstreamAddressOverride[0]
-	}
+func (app *earthlyApp) newCloudClient(opts ...cloud.ClientOpt) (*cloud.Client, error) {
 	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock,
-		app.authToken, app.authJWT, app.installationName, app.requestID, app.console.Warnf, logstreamOverride)
+		app.authToken, app.authJWT, app.installationName, app.requestID, app.console.Warnf, opts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create cloud client")
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cleanup"
+	"github.com/earthly/earthly/cloud"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/domain"
@@ -176,7 +177,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	cloudClient, err := app.newCloudClient("localhost:8080")
+	cloudClient, err := app.newCloudClient(cloud.WithLogstreamGRPCAddressOverride(app.logstreamAddressOverride))
 	if err != nil {
 		return err
 	}

@@ -3,7 +3,6 @@ package cloud
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"time"
 
 	"github.com/earthly/cloud-api/compute"
@@ -17,7 +16,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -37,29 +35,38 @@ const (
 )
 
 type Client struct {
-	httpAddr              string
-	sshKeyBlob            []byte // sshKey to use
-	forceSSHKey           bool   // if true only use the above ssh key, don't attempt to guess others
-	sshAgent              agent.ExtendedAgent
-	warnFunc              func(string, ...interface{})
-	email                 string
-	password              string
-	authToken             string
-	originalJWTOverride   string
-	authTokenExpiry       time.Time
-	authCredToken         string
-	authDir               string
-	disableSSHKeyGuessing bool
-	jum                   *protojson.UnmarshalOptions
-	pipelines             pipelines.PipelinesClient
-	compute               compute.ComputeClient
-	logstream             logstream.LogStreamClient
-	requestID             string
-	installationName      string
+	httpAddr                 string
+	sshKeyBlob               []byte // sshKey to use
+	forceSSHKey              bool   // if true only use the above ssh key, don't attempt to guess others
+	sshAgent                 agent.ExtendedAgent
+	warnFunc                 func(string, ...interface{})
+	email                    string
+	password                 string
+	authToken                string
+	originalJWTOverride      string
+	authTokenExpiry          time.Time
+	authCredToken            string
+	authDir                  string
+	disableSSHKeyGuessing    bool
+	jum                      *protojson.UnmarshalOptions
+	pipelines                pipelines.PipelinesClient
+	compute                  compute.ComputeClient
+	logstream                logstream.LogStreamClient
+	requestID                string
+	installationName         string
+	logstreamAddressOverride string
+}
+
+type ClientOpt func(*Client)
+
+func WithLogstreamGRPCAddressOverride(address string) ClientOpt {
+	return func(client *Client) {
+		client.logstreamAddressOverride = address
+	}
 }
 
 // NewClient provides a new Earthly Cloud client
-func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, authJWTOverride, installationName, requestID string, warnFunc func(string, ...interface{}), logstreamAddressOverride string) (*Client, error) {
+func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, authJWTOverride, installationName, requestID string, warnFunc func(string, ...interface{}), opts ...ClientOpt) (*Client, error) {
 	c := &Client{
 		httpAddr: httpAddr,
 		sshAgent: &lazySSHAgent{
@@ -81,6 +88,11 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 			return nil, err
 		}
 	}
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
 	ctx := context.Background()
 	retryOpts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(10),
@@ -104,38 +116,16 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	}
 	c.pipelines = pipelines.NewPipelinesClient(conn)
 	c.compute = compute.NewComputeClient(conn)
-
-	var withStaticToken grpc.UnaryClientInterceptor = func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		md, ok := metadata.FromOutgoingContext(ctx)
-		if ok {
-			md.Delete("authorization")
-		} else {
-			md = metadata.New(map[string]string{})
+	if c.logstreamAddressOverride == "" {
+		c.logstream = logstream.NewLogStreamClient(conn)
+	} else {
+		logstreamConn, err := grpc.DialContext(ctx, c.logstreamAddressOverride, dialOpts...)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed dialing logstream grpc")
 		}
-		ctx = metadata.NewOutgoingContext(ctx, md)
-		return invoker(metadata.AppendToOutgoingContext(ctx, "authorization", fmt.Sprintf("Bearer %s", c.originalJWTOverride)), method, req, reply, cc, opts...)
+		c.logstream = logstream.NewLogStreamClient(logstreamConn)
 	}
 
-	var withStaticTokenStream grpc.StreamClientInterceptor = func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
-		md, ok := metadata.FromOutgoingContext(ctx)
-		if ok {
-			md.Delete("authorization")
-		} else {
-			md = metadata.New(map[string]string{})
-		}
-		ctx = metadata.NewOutgoingContext(ctx, md)
-		return streamer(metadata.AppendToOutgoingContext(ctx, "authorization", fmt.Sprintf("Bearer %s", c.originalJWTOverride)), desc, cc, method, opts...)
-	}
-
-	logstreamConn, err := grpc.DialContext(ctx, logstreamAddressOverride,
-		grpc.WithTransportCredentials(transportCredential),
-		grpc.WithUnaryInterceptor(withStaticToken),
-		grpc.WithStreamInterceptor(withStaticTokenStream),
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed dialing logstream grpc")
-	}
-	c.logstream = logstream.NewLogStreamClient(logstreamConn)
 	return c, nil
 }
 
