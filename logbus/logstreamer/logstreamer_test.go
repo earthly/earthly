@@ -3,6 +3,7 @@ package logstreamer_test
 import (
 	"context"
 	"io"
+	"runtime"
 	"testing"
 	"time"
 
@@ -106,6 +107,37 @@ func TestLogstreamer(topT *testing.T) {
 		pers.Return(tt.mockClient.StreamLogsOutput, nil)
 
 		tt.expect(tt.streamer.Close()).To(not(haveOccurred()))
+	})
+
+	o.Spec("it finishes sending deltas", func(tt testCtx) {
+		var (
+			ctx     context.Context
+			buildID string
+			deltas  cloud.Deltas
+		)
+		tt.expect(tt.mockClient).To(haveMethodExecuted(
+			"StreamLogs",
+			within(testTimeout),
+			storeArgs(&ctx, &buildID, &deltas),
+		))
+		_, _ = deltas.Next(tt.ctx) // ignore the initial manifest
+
+		const toSend = 5
+		for i := 0; i < toSend; i++ {
+			tt.streamer.Write(&logstream.Delta{})
+		}
+		go tt.streamer.Close()
+
+		runtime.Gosched() // ensure that Close() has a chance to close the deltas
+
+		for i := 0; i < toSend; i++ {
+			_, err := deltas.Next(tt.ctx)
+			tt.expect(err).To(not(haveOccurred()))
+		}
+		_, err := deltas.Next(tt.ctx)
+		tt.expect(err).To(beErr(io.EOF))
+
+		pers.Return(tt.mockClient.StreamLogsOutput, nil)
 	})
 }
 
