@@ -44,7 +44,6 @@ type Client struct {
 	email                    string
 	password                 string
 	authToken                string
-	originalJWTOverride      string
 	authTokenExpiry          time.Time
 	authCredToken            string
 	authDir                  string
@@ -74,11 +73,10 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 		sshAgent: &lazySSHAgent{
 			sockPath: agentSockPath,
 		},
-		warnFunc:            warnFunc,
-		jum:                 &protojson.UnmarshalOptions{DiscardUnknown: true},
-		installationName:    installationName,
-		requestID:           requestID,
-		originalJWTOverride: authJWTOverride,
+		warnFunc:         warnFunc,
+		jum:              &protojson.UnmarshalOptions{DiscardUnknown: true},
+		installationName: installationName,
+		requestID:        requestID,
 	}
 	if authJWTOverride != "" {
 		c.authToken = authJWTOverride
