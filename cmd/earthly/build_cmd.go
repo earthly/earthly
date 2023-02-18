@@ -11,6 +11,7 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
+	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
@@ -546,6 +547,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			return
 		case details := <-buildOpts.MainTargetDetailsFuture:
 			app.console.Warnf("========== SETTING ORG AND PROJECT AT %s (%s ms later) ==========", time.Now().Format(time.RFC3339Nano), time.Now().Sub(now).Nanoseconds())
+			analytics.AddEarthfileProject(details.EarthlyOrgName, details.EarthlyProjectName)
 			if app.logstream {
 				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
 				if doLogstreamUpload {

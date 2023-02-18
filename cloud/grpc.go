@@ -31,12 +31,38 @@ func getReqID(ctx context.Context) string {
 	return ""
 }
 
+type interceptorOpts struct {
+	skipAuth map[string]struct{}
+}
+
+type InterceptorOpt func(opt *interceptorOpts)
+
+func WithSkipAuth(methods ...string) InterceptorOpt {
+	return func(opts *interceptorOpts) {
+		if opts.skipAuth == nil {
+			opts.skipAuth = map[string]struct{}{}
+		}
+		for _, method := range methods {
+			opts.skipAuth[method] = struct{}{}
+		}
+	}
+}
+
 // UnaryInterceptor is a unary middleware function for the Earthly gRPC client which
 // handle re-authentication when necessary, and automatically
 // prints requestIDs to errors when errors are received from the server.
-func (c *Client) UnaryInterceptor() grpc.UnaryClientInterceptor {
+func (c *Client) UnaryInterceptor(opts ...InterceptorOpt) grpc.UnaryClientInterceptor {
+	interceptorOpts := &interceptorOpts{}
+	for _, opt := range opts {
+		opt(interceptorOpts)
+	}
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		ctx = c.withReqID(ctx)
+		if _, ok := interceptorOpts.skipAuth[method]; ok {
+			// It would probably be better to break this interceptor into multiple so that skipping auth doesn't affect anything else that
+			// might be added here in the future
+			return invoker(ctx, method, req, reply, cc, opts...)
+		}
 		ctx, err := c.reAuthIfExpired(ctx)
 		if err != nil {
 			return errors.Wrap(err, "failed refreshing expired token")

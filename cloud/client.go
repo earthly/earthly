@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"time"
 
+	"github.com/earthly/cloud-api/analytics"
 	"github.com/earthly/cloud-api/compute"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/cloud-api/pipelines"
@@ -52,6 +53,7 @@ type Client struct {
 	pipelines                pipelines.PipelinesClient
 	compute                  compute.ComputeClient
 	logstream                logstream.LogStreamClient
+	analytics                analytics.AnalyticsClient
 	requestID                string
 	installationName         string
 	logstreamAddressOverride string
@@ -101,7 +103,7 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	}
 	dialOpts := []grpc.DialOption{
 		grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...), c.StreamInterceptor()),
-		grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...), c.UnaryInterceptor()),
+		grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...), c.UnaryInterceptor(WithSkipAuth("/api.public.analytics.Analytics/SendAnalytics"))),
 	}
 	var transportCredential credentials.TransportCredentials
 	if useInsecure {
@@ -116,6 +118,7 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	}
 	c.pipelines = pipelines.NewPipelinesClient(conn)
 	c.compute = compute.NewComputeClient(conn)
+	c.analytics = analytics.NewAnalyticsClient(conn)
 	if c.logstreamAddressOverride == "" {
 		c.logstream = logstream.NewLogStreamClient(conn)
 	} else {

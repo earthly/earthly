@@ -314,6 +314,8 @@ func main() {
 		if err != nil && displayErrors {
 			app.console.Warnf("unable to start cloud client: %s", err)
 		} else if err == nil {
+			analytics.AddCLIProject(app.orgName, app.projectName)
+			org, project := analytics.ProjectDetails()
 			analytics.CollectAnalytics(
 				ctxTimeout, cloudClient, displayErrors, analytics.Meta{
 					Version:          Version,
@@ -327,6 +329,8 @@ func main() {
 					SatelliteVersion: app.analyticsMetadata.satelliteCurrentVersion,
 					IsRemoteBuildkit: app.analyticsMetadata.isRemoteBuildkit,
 					Realtime:         time.Since(startTime),
+					OrgName:          org,
+					ProjectName:      project,
 				},
 				app.installationName,
 			)
