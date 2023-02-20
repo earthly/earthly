@@ -237,13 +237,17 @@ type deltasIter struct {
 	mu     sync.Mutex
 	chSize int
 	ch     chan []*logstream.Delta
+	closed bool
 	init   *logstream.RunManifest
 }
 
-func (d *deltasIter) deltas() chan []*logstream.Delta {
+func (d *deltasIter) deltas() (chan []*logstream.Delta, bool) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	return d.ch
+	if d.closed {
+		return d.ch, false
+	}
+	return d.ch, true
 }
 
 func (d *deltasIter) reset() {
@@ -265,8 +269,8 @@ func (d *deltasIter) reset() {
 }
 
 func (d *deltasIter) sendAsync(sent chan<- struct{}, deltas ...*logstream.Delta) bool {
-	ch := d.deltas()
-	if ch == nil {
+	ch, ok := d.deltas()
+	if !ok {
 		close(sent)
 		return false
 	}
@@ -278,8 +282,8 @@ func (d *deltasIter) sendAsync(sent chan<- struct{}, deltas ...*logstream.Delta)
 }
 
 func (d *deltasIter) send(deltas ...*logstream.Delta) bool {
-	ch := d.deltas()
-	if ch == nil {
+	ch, ok := d.deltas()
+	if !ok {
 		return false
 	}
 	ch <- deltas
@@ -289,15 +293,14 @@ func (d *deltasIter) send(deltas ...*logstream.Delta) bool {
 func (d *deltasIter) close() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	decongest(d.ch)
 	close(d.ch)
-	d.ch = nil
+	d.closed = true
 }
 
 func (d *deltasIter) Next(ctx context.Context) ([]*logstream.Delta, error) {
-	deltas := d.deltas()
+	deltas, _ := d.deltas()
 	if deltas == nil {
-		return nil, errors.Wrap(io.EOF, "logstreamer: channel closed")
+		return nil, errors.Wrap(io.EOF, "logstreamer: buffer not yet allocated")
 	}
 	select {
 	case <-ctx.Done():
