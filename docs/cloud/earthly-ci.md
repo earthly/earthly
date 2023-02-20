@@ -23,7 +23,7 @@ Earthly CI uses Earthfiles as the build configuration language.
 * **Ridiculously fast** - Earthly CI uses the same build cache and build parallelization technology as Earthly Satellites, so builds are 2-20X faster compared to a traditional CI.
 * **Super simple** - Earthfiles have a super simple, instantly recognizable syntax – like Dockerfile and Makefile had a baby.
 * **Great for Monorepos and Polyrepos** - Earthly CI is great for both monorepos and polyrepos. You can organize your build logic however makes the most sense for your project. The caching ensures that only what has changed is rebuilt.
-* **Remote build runners** - Earthly CI comes with access to Earthly Satellites. This means that you can run builds from your laptop without having to commit code to Git with every attempt.
+* **Remote build runners** - Earthly CI comes with access to Earthly Satellites. This means that you can run ad-hoc remote builds in CI from your laptop without having to commit code to Git with every attempt.
 
 If you are upgrading from Earthly Satellites, the main benefit of using Earthly CI is that you no longer need to use a traditional CI in combination. This means less moving parts, simpler setup, slightly faster builds (no need to download Earthly during the build), and less bills to pay!
 
