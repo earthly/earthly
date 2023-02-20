@@ -145,7 +145,7 @@ func (s *tarImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget
 	})
 	go func() {
 		<-ctx.Done()
-		// CloseLastLogstreamer read pipe on cancels, otherwise the whole thing hangs.
+		// Close read pipe on cancels, otherwise the whole thing hangs.
 		pipeR.Close()
 	}()
 	err = eg.Wait()
