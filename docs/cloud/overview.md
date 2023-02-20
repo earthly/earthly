@@ -4,7 +4,7 @@ Earthly Cloud is a collection of features that enrich the Earthly experience via
 
 * [Earthly Cloud Secrets](./cloud-secrets.md): A secret management system that allows you to store secrets in a cloud-based service and use them across builds.
 * [Earthly Satellites](./satellites.md): Cloud-based Buildkit instances managed by the Earthly team.
-* **Earthly CI** (coming soon): A cloud-based continuous integration / continuous delivery system that allows you to continuously build your code in the cloud.
+* [Earthly CI](./earthly-ci.md): A cloud-based CI/CD system that allows you to continuously build your code in the cloud.
 
 ## Getting started
 
@@ -26,7 +26,13 @@ This command will prompt you to set a password, and to optionally register a pub
 
 ### Creating or joining an Earthly org
 
-An Earthly org allows you to share projects, secrets, satellites and pipelines with colleagues. To create an Earthly org you can run:
+An Earthly org allows you to share projects, secrets, satellites and pipelines with colleagues. To view the orgs you belong to, run:
+
+```bash
+earthly org ls
+```
+
+To create an Earthly org you can run:
 
 ```bash
 earthly org create <org-name>
@@ -39,6 +45,14 @@ earthly --org <org-name> org invite <email>
 ```
 
 You can join an Earthly org by following the steps outlined in the invitation email sent to you by an Earthly admin.
+
+### Creating a project
+
+To use certain features, such as Earthly CI, or Earthly Cloud Secrets, you will aditionally need to create an Earthly Project. You can create a project by running:
+
+```bash
+earthly project --org <org-name> create <project-name>
+```
 
 ## Logging in from a CI
 
@@ -54,4 +68,4 @@ This token can then be exported as an environment variable in the CI of choice.
 EARTHLY_TOKEN=...
 ```
 
-Which will then force Earthly to use that token when accessing secrets.
+Which will then force Earthly to use that token when accessing secrets or satellites.
