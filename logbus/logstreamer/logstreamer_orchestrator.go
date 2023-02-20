@@ -27,9 +27,10 @@ type LOpt func(orchestrator *LogstreamOrchestrator) *LogstreamOrchestrator
 
 func NewLogstreamOrchestrator(bus LogBus, c CloudClient, initialManifest *logstream.RunManifest, opts ...LOpt) *LogstreamOrchestrator {
 	ls := &LogstreamOrchestrator{
-		bus:     bus,
-		c:       c,
-		buildID: initialManifest.GetBuildId(),
+		buildID:         initialManifest.GetBuildId(),
+		bus:             bus,
+		c:               c,
+		initialManifest: initialManifest,
 	}
 	ls.retries.Store(10)
 	for _, o := range opts {
@@ -71,6 +72,9 @@ func (l *LogstreamOrchestrator) CloseLastLogstreamer() {
 }
 
 func (l *LogstreamOrchestrator) addError(err error) {
+	if err == nil {
+		return
+	}
 	l.errMu.Lock()
 	defer l.errMu.Unlock()
 	l.errors = append(l.errors, err)
