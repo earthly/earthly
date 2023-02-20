@@ -26,7 +26,7 @@ type BusSetup struct {
 	Formatter       *formatter.Formatter
 	SolverMonitor   *solvermon.SolverMonitor
 	BusDebugWriter  *writersub.RawWriterSub
-	LogStreamer     *logstreamer.LogStreamer
+	LogStreamer     *logstreamer.LogstreamOrchestrator
 	InitialManifest *logstream.RunManifest
 }
 
@@ -73,7 +73,8 @@ func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
 // StartLogStreamer starts a LogStreamer for the given build. The
 // LogStreamer streams logs to the cloud.
 func (bs *BusSetup) StartLogStreamer(ctx context.Context, c *cloud.Client) {
-	bs.LogStreamer = logstreamer.New(ctx, bs.Bus, c, bs.InitialManifest)
+	bs.LogStreamer = logstreamer.NewLogstreamOrchestrator(bs.Bus, c, bs.InitialManifest)
+	bs.LogStreamer.StartLogstreamer(ctx)
 }
 
 // DumpManifestToFile dumps the manifest to the given file.

@@ -144,7 +144,7 @@ func exerciseDeadlock(t *testing.T) {
 	// scheduling a lot of non-logging work.
 	//
 	// chSize: shrink the size of the channel to make everything fill up and
-	// drain more quickly. We expect this edge case to trigger maybe once every
+	// getErrors more quickly. We expect this edge case to trigger maybe once every
 	// several days in practice - in a unit test, we need to shorten that time
 	// period by quite a lot.
 	runtime.GOMAXPROCS(2)

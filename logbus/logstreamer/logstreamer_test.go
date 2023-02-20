@@ -81,7 +81,7 @@ func TestLogstreamer(topT *testing.T) {
 		pers.Return(tt.mockClient.StreamLogsOutput, nil)
 	})
 
-	o.Spec("Close can finish even when it is being flooded with Write calls", func(tt testCtx) {
+	o.Spec("CloseLastLogstreamer can finish even when it is being flooded with Write calls", func(tt testCtx) {
 		tt.expect(tt.mockClient).To(haveMethodExecuted(
 			"StreamLogs",
 			within(testTimeout),
@@ -128,7 +128,7 @@ func TestLogstreamer(topT *testing.T) {
 		}
 		go tt.streamer.Close()
 
-		runtime.Gosched() // ensure that Close() has a chance to close the deltas
+		runtime.Gosched() // ensure that CloseLastLogstreamer() has a chance to close the deltas
 
 		for i := 0; i < toSend; i++ {
 			_, err := deltas.Next(tt.ctx)
