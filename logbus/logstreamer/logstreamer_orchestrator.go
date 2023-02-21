@@ -15,6 +15,9 @@ type LogstreamOrchestrator struct {
 	c               CloudClient
 	initialManifest *logstream.RunManifest
 
+	doneMU sync.Mutex
+	doneCH chan struct{}
+
 	errMu    sync.Mutex
 	errors   []error
 	started  atomic.Bool
@@ -46,12 +49,14 @@ func (l *LogstreamOrchestrator) StartLogstreamer(ctx context.Context) {
 	}
 	go func() {
 		for l.retries.Add(-1) > 0 {
+			l.start()
 			l.CloseLastLogstreamer()
 			l.deltas = newDeltasIter(DefaultBufferSize, l.initialManifest)
 			go l.bus.AddSubscriber(l.deltas)
 			l.streamer = New(l.c, l.buildID, l.deltas)
 			shouldRetry, err := l.streamer.tryStream(ctx)
 			l.addError(err)
+			l.markDone()
 			if !shouldRetry {
 				return
 			}
@@ -90,14 +95,37 @@ func (l *LogstreamOrchestrator) getError() error {
 	return retErr
 }
 
-func (l *LogstreamOrchestrator) Close() error {
+func (l *LogstreamOrchestrator) Close() (int32, int32, error) {
+	var logsWritten int32
+	var manifestsWritten int32
 	if l.deltas != nil {
 		l.bus.RemoveSubscriber(l.deltas)
-		l.deltas.close()
+		manifestsWritten, logsWritten = l.deltas.close()
 	}
 	if l.streamer != nil {
 		l.addError(l.streamer.Close())
-		return l.getError()
+		return manifestsWritten, logsWritten, l.getError()
 	}
-	return nil
+	return manifestsWritten, logsWritten, nil
+}
+
+// Done returns a channel that is closed once the Logstreamer has finished
+// communicating wit the server.
+// Callers should listen to the Done channel before exiting
+func (l *LogstreamOrchestrator) Done() chan struct{} {
+	l.doneMU.Lock()
+	defer l.doneMU.Unlock()
+	return l.doneCH
+}
+
+func (l *LogstreamOrchestrator) markDone() {
+	l.doneMU.Lock()
+	defer l.doneMU.Unlock()
+	close(l.doneCH)
+}
+
+func (l *LogstreamOrchestrator) start() {
+	l.doneMU.Lock()
+	defer l.doneMU.Unlock()
+	l.doneCH = make(chan struct{})
 }

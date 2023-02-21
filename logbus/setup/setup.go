@@ -2,6 +2,7 @@ package logbus
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 
@@ -134,10 +135,12 @@ func (bs *BusSetup) Close() error {
 		}
 	}
 	if bs.LogStreamer != nil {
-		err := bs.LogStreamer.Close()
+		manifestsWritten, logsWritten, err := bs.LogStreamer.Close()
 		if err != nil {
 			retErr = multierror.Append(retErr, errors.Wrap(err, "log streamer"))
 		}
+		fmt.Fprintf(os.Stderr, "========== WROTE %d MANIFESTS AND %d LOGS TO ITER==========\n", manifestsWritten, logsWritten)
+		<-bs.LogStreamer.Done()
 	}
 	return retErr
 }

@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"sync"
+	"sync/atomic"
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/pkg/errors"
@@ -13,9 +14,11 @@ import (
 )
 
 type deltasIter struct {
-	mu     sync.Mutex
-	ch     chan []*logstream.Delta
-	closed bool
+	mu                   sync.Mutex
+	ch                   chan []*logstream.Delta
+	closed               bool
+	manifestsWritten     atomic.Int32
+	formattedLogsWritten atomic.Int32
 }
 
 func newDeltasIter(bufferSize int, initialManifest *logstream.RunManifest) *deltasIter {
@@ -68,14 +71,20 @@ func (d *deltasIter) Write(delta *logstream.Delta) {
 		}
 		fmt.Fprintf(os.Stderr, "Log streamer closed, dropping delta %v\n", string(dt))
 	}
+	if delta.GetDeltaFormattedLog() != nil {
+		d.formattedLogsWritten.Add(1)
+	} else if delta.GetDeltaManifest() != nil {
+		d.manifestsWritten.Add(1)
+	}
 	ch <- []*logstream.Delta{delta}
 }
 
-func (d *deltasIter) close() {
+func (d *deltasIter) close() (int32, int32) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	close(d.ch)
 	d.closed = true
+	return d.manifestsWritten.Load(), d.formattedLogsWritten.Load()
 }
 
 func (d *deltasIter) Next(ctx context.Context) ([]*logstream.Delta, error) {
@@ -84,8 +93,8 @@ func (d *deltasIter) Next(ctx context.Context) ([]*logstream.Delta, error) {
 		return nil, errors.Wrap(io.EOF, "logstreamer: buffer not yet allocated")
 	}
 	select {
-	// case <-ctx.Done():	// TODO: Is draining it right here - or will it result in dropped deltas?
-	// return nil, errors.Wrap(ctx.Err(), "logstreamer: context closed while waiting on next delta")
+	case <-ctx.Done():
+		return nil, errors.Wrap(ctx.Err(), "logstreamer: context closed while waiting on next delta")
 	case delta, ok := <-deltas:
 		if !ok {
 			return nil, errors.Wrap(io.EOF, "logstreamer: channel closed")
