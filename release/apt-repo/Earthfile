@@ -1,4 +1,5 @@
 VERSION 0.7
+PROJECT earthly-technologies/core
 FROM alpine:3.15
 
 deps:
@@ -47,7 +48,7 @@ deb-all:
 
 # If for any reason you need to generate a new PGP key, it can be done with
 # this target; however this has already been done once, and our official key has
-# been saved under +secrets/earthly-technologies/release/keys/earthly-private.pgp (and earthly-public.pgp)
+# been saved under /release/keys/earthly-private.pgp (and earthly-public.pgp)
 generate-new-gpg-key:
     FROM +deps
     WORKDIR /root/pgp-key
@@ -121,7 +122,7 @@ index-and-sign:
 
     # Next move on to signing it
     RUN \
-        --mount type=secret,id=+secrets/earthly-technologies/release/keys/earthly-private.pgp,target=/release-key/earthly-private.pgp \
+        --mount type=secret,id=release/keys/earthly-private.pgp,target=/release-key/earthly-private.pgp \
         gpg --import /release-key/earthly-private.pgp
     RUN gpg --default-key earthly-apt -abs -o /repo/dists/stable/Release.gpg /repo/dists/stable/Release
     RUN cat /repo/dists/stable/Release | gpg --default-key earthly-apt -abs --clearsign --no-emit-version > /repo/dists/stable/InRelease
@@ -147,7 +148,7 @@ upload:
     # upload public key
     ARG --required S3_BUCKET
     RUN --push \
-        --mount type=secret,id=+secrets/earthly-technologies/release/keys/earthly-public.pgp,target=/release-key/earthly-public.pgp \
+        --mount type=secret,id=release/keys/earthly-public.pgp,target=/release-key/earthly-public.pgp \
         --secret MFA_ARN=+secrets/user/earthly-technologies/aws/mfa-arn \
         --secret MFA_KEY=+secrets/user/earthly-technologies/aws/mfa-key \
         --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \
