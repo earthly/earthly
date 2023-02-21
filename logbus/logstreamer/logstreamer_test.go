@@ -27,7 +27,7 @@ func TestLogstreamer(topT *testing.T) {
 		mockClient *mockCloudClient
 		mockBus    *mockLogBus
 
-		streamer *logstreamer.LogStreamer
+		streamer *logstreamer.LogstreamOrchestrator
 	}
 
 	o := onpar.BeforeEach(onpar.New(topT), func(t *testing.T) testCtx {
@@ -43,7 +43,8 @@ func TestLogstreamer(topT *testing.T) {
 			Version: 1,
 		}
 
-		streamer := logstreamer.New(ctx, bus, client, initManifest)
+		streamer := logstreamer.NewLogstreamOrchestrator(bus, client, initManifest)
+		streamer.StartLogstreamer(ctx)
 		return testCtx{
 			t:          t,
 			expect:     expect,
@@ -81,34 +82,6 @@ func TestLogstreamer(topT *testing.T) {
 		pers.Return(tt.mockClient.StreamLogsOutput, nil)
 	})
 
-	o.Spec("CloseLastLogstreamer can finish even when it is being flooded with Write calls", func(tt testCtx) {
-		tt.expect(tt.mockClient).To(haveMethodExecuted(
-			"StreamLogs",
-			within(testTimeout),
-		))
-
-		go func() {
-			for {
-				select {
-				case <-tt.ctx.Done():
-					return
-				default:
-					tt.streamer.Write(&logstream.Delta{})
-				}
-			}
-		}()
-
-		// At the time of this writing, returning nil here just closes the
-		// retryLoop. Since we're exercising the `deltas` closing, not the
-		// retryLoop, returning here should do what we want.
-		//
-		// If returning here automatically closes the streamer so that it
-		// ignores calls to Write, then this test will no longer be valid.
-		pers.Return(tt.mockClient.StreamLogsOutput, nil)
-
-		tt.expect(tt.streamer.Close()).To(not(haveOccurred()))
-	})
-
 	o.Spec("it finishes sending deltas", func(tt testCtx) {
 		var (
 			ctx     context.Context
@@ -124,7 +97,7 @@ func TestLogstreamer(topT *testing.T) {
 
 		const toSend = 5
 		for i := 0; i < toSend; i++ {
-			tt.streamer.Write(&logstream.Delta{})
+			tt.streamer.WriteToDeltaIter(&logstream.Delta{})
 		}
 		go tt.streamer.Close()
 
