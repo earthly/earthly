@@ -14,9 +14,8 @@ type Orchestrator struct {
 	c               CloudClient
 	initialManifest *logstream.RunManifest
 
-	doneMU sync.Mutex
-	mu     sync.Mutex
-	errMu  sync.Mutex
+	mu    sync.Mutex
+	errMu sync.Mutex
 
 	doneCH chan struct{}
 	subCH  chan struct{}
@@ -70,15 +69,14 @@ func NewOrchestrator(bus LogBus, c CloudClient, initialManifest *logstream.RunMa
 func (l *Orchestrator) Start(ctx context.Context) {
 	l.startOnce.Do(func() {
 		go func() {
+			defer l.markDone()
 			for i := 0; i < l.retries; i++ {
 				l.subscribe()
 				shouldRetry, err := l.streamer.Stream(ctx)
 				l.addError(err)
-				l.markDone()
 				if !shouldRetry {
 					return
 				}
-				l.restart()
 			}
 		}()
 	})
@@ -106,18 +104,7 @@ func (l *Orchestrator) getError() error {
 // Close will mark the deltas and streamer as closed and prevent further writes to the cloud
 // Callers should listen to Done() to know when it is safe to exit.
 func (l *Orchestrator) Close() (manifestsWritten int32, logsWritten int32, _ error) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	if l.deltas != nil {
-		l.bus.RemoveSubscriber(l.deltas)
-		manifestsWritten, logsWritten = l.deltas.close()
-	}
-	if l.streamer != nil {
-		l.streamer.Close()
-		return manifestsWritten, logsWritten, l.getError()
-	}
-	return manifestsWritten, logsWritten, nil
+	return l.closePreviousStreamer()
 }
 
 func (l *Orchestrator) WriteToDeltaIter(delta *logstream.Delta) {
@@ -131,21 +118,11 @@ func (l *Orchestrator) WriteToDeltaIter(delta *logstream.Delta) {
 // communicating with the server.
 // Callers should listen to the Done channel before exiting
 func (l *Orchestrator) Done() chan struct{} {
-	l.doneMU.Lock()
-	defer l.doneMU.Unlock()
 	return l.doneCH
 }
 
 func (l *Orchestrator) markDone() {
-	l.doneMU.Lock()
-	defer l.doneMU.Unlock()
 	close(l.doneCH)
-}
-
-func (l *Orchestrator) restart() {
-	l.doneMU.Lock()
-	defer l.doneMU.Unlock()
-	l.doneCH = make(chan struct{})
 }
 
 func (l *Orchestrator) subscribe() {
@@ -155,9 +132,7 @@ func (l *Orchestrator) subscribe() {
 	if hasPreviouslySubscribed {
 		// wait for previous subscriber to finish being added
 		<-l.subCH
-		l.bus.RemoveSubscriber(l.deltas)
-		l.deltas.close()
-		l.streamer.Close()
+		_, _, _ = l.closePreviousStreamer()
 	}
 	l.deltas = newDeltasIter(l.deltaBuffer, l.initialManifest, l.verbose)
 	l.streamer = New(l.c, l.buildID, l.deltas)
@@ -166,4 +141,19 @@ func (l *Orchestrator) subscribe() {
 		defer close(subCH)
 		l.bus.AddSubscriber(l.deltas)
 	}(l.subCH)
+}
+
+func (l *Orchestrator) closePreviousStreamer() (manifestsWritten int32, logsWritten int32, _ error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.deltas != nil {
+		l.bus.RemoveSubscriber(l.deltas)
+		manifestsWritten, logsWritten = l.deltas.close()
+		l.deltas = nil
+	}
+	if l.streamer != nil {
+		l.streamer.Close()
+		l.streamer = nil
+	}
+	return manifestsWritten, logsWritten, l.getError()
 }
