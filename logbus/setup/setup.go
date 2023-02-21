@@ -29,6 +29,8 @@ type BusSetup struct {
 	BusDebugWriter  *writersub.RawWriterSub
 	LogStreamer     *logstreamer.LogstreamOrchestrator
 	InitialManifest *logstream.RunManifest
+
+	verbose bool
 }
 
 // New creates a new BusSetup.
@@ -43,6 +45,7 @@ func New(ctx context.Context, bus *logbus.Bus, debug, verbose, forceColor, noCol
 			Version:            deltautil.Version,
 			CreatedAtUnixNanos: uint64(bus.CreatedAt().UnixNano()),
 		},
+		verbose: verbose,
 	}
 	bs.Formatter = formatter.New(ctx, bs.Bus, debug, verbose, forceColor, noColor, disableOngoingUpdates)
 	bs.Bus.AddRawSubscriber(bs.Formatter)
@@ -74,7 +77,7 @@ func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
 // StartLogStreamer starts a LogStreamer for the given build. The
 // LogStreamer streams logs to the cloud.
 func (bs *BusSetup) StartLogStreamer(ctx context.Context, c *cloud.Client) {
-	bs.LogStreamer = logstreamer.NewLogstreamOrchestrator(bs.Bus, c, bs.InitialManifest)
+	bs.LogStreamer = logstreamer.NewLogstreamOrchestrator(bs.Bus, c, bs.InitialManifest, logstreamer.WithVerbose(bs.verbose))
 	bs.LogStreamer.StartLogstreamer(ctx)
 }
 

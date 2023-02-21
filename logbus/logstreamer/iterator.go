@@ -19,13 +19,14 @@ type deltasIter struct {
 	closed               bool
 	manifestsWritten     atomic.Int32
 	formattedLogsWritten atomic.Int32
+	verbose              bool
 }
 
-func newDeltasIter(bufferSize int, initialManifest *logstream.RunManifest) *deltasIter {
+func newDeltasIter(bufferSize int, initialManifest *logstream.RunManifest, verbose bool) *deltasIter {
 	d := &deltasIter{
-		mu:     sync.Mutex{},
-		ch:     make(chan []*logstream.Delta, bufferSize),
-		closed: false,
+		mu:      sync.Mutex{},
+		ch:      make(chan []*logstream.Delta, bufferSize),
+		verbose: verbose,
 	}
 	d.ch <- []*logstream.Delta{{
 		DeltaTypeOneof: &logstream.Delta_DeltaManifest{
@@ -46,30 +47,19 @@ func (d *deltasIter) deltas() (chan []*logstream.Delta, bool) {
 	return d.ch, true
 }
 
-func (d *deltasIter) sendAsync(sent chan<- struct{}, deltas ...*logstream.Delta) bool {
-	ch, ok := d.deltas()
-	if !ok {
-		close(sent)
-		return false
-	}
-	go func() {
-		defer close(sent)
-		ch <- deltas
-	}()
-	return true
-}
-
 func (d *deltasIter) Write(delta *logstream.Delta) {
 	ch, ok := d.deltas()
 	if !ok {
-		// TODO (vladaionescu): If these messages show up, we need to rethink
-		//						the closing sequence.
-		// TODO (vladaionescu): We should only log this if verbose is enabled.
-		dt, err := protojson.Marshal(delta)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Log streamer closed, but failed to marshal log delta: %v", err)
+		//  (vladaionescu): If these messages show up, we need to rethink
+		//					the closing sequence.
+		if d.verbose {
+			dt, err := protojson.Marshal(delta)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Log streamer closed, but failed to marshal log delta: %v", err)
+			}
+			fmt.Fprintf(os.Stderr, "Log streamer closed, dropping delta %v\n", string(dt))
 		}
-		fmt.Fprintf(os.Stderr, "Log streamer closed, dropping delta %v\n", string(dt))
+		return
 	}
 	if delta.GetDeltaFormattedLog() != nil {
 		d.formattedLogsWritten.Add(1)

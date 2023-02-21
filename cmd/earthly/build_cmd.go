@@ -540,13 +540,29 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	// Kick off logstream upload only when we've passed the necessary information to logbusSetup.
 	// This information is passed back right at the beginning of the build within earthfile2llb.
 	go func() {
-		now := time.Now()
+		beforeSelect := time.Now()
 		select {
 		case <-cliCtx.Context.Done():
-			app.console.Warnf("========== CONTEXT DONE BEFORE LOGSTREAMER STARTED AT %s (%s ms later) ==========", time.Now().Format(time.RFC3339Nano), time.Now().Sub(now).Nanoseconds())
+			if app.verbose {
+				now := time.Now()
+				app.console.Warnf(
+					"========== CONTEXT DONE BEFORE LOGSTREAMER STARTED AT %s (%s ms later) ==========",
+					now.Format(time.RFC3339Nano),
+					now.Sub(beforeSelect).Nanoseconds(),
+				)
+			}
 			return
 		case details := <-buildOpts.MainTargetDetailsFuture:
-			app.console.Warnf("========== SETTING ORG AND PROJECT AT %s (%s ms later) ==========", time.Now().Format(time.RFC3339Nano), time.Now().Sub(now).Nanoseconds())
+			if app.verbose {
+				now := time.Now()
+				app.console.Warnf(
+					"========== SETTING ORG AND PROJECT %s/%s AT %s (%s ms later) ==========",
+					details.EarthlyOrgName,
+					details.EarthlyProjectName,
+					now.Format(time.RFC3339Nano),
+					now.Sub(beforeSelect).Nanoseconds(),
+				)
+			}
 			analytics.AddEarthfileProject(details.EarthlyOrgName, details.EarthlyProjectName)
 			if app.logstream {
 				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)

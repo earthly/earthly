@@ -52,15 +52,13 @@ func New(c CloudClient, buildID string, deltas *deltasIter) *LogStreamer {
 	return ls
 }
 
-func (ls *LogStreamer) tryStream(ctx context.Context) (bool, error) {
+// Stream will attempt to stream deltas from the deltasIter to the Cloud
+// This also returns a bool indicating whether the error that occurred should be considered retryable
+func (ls *LogStreamer) Stream(ctx context.Context) (bool, error) {
 	ctxTry, cancelTry := context.WithCancel(ctx)
 	defer cancelTry()
 	ls.mu.Lock()
 	if ls.cancelled {
-		// TODO (vladaionescu): It would be nice if on cancellation we could
-		// 						still go through the entire retry loop.
-		//						This would require that we close ls.ch on each
-		//						retry somehow safely.
 		ls.mu.Unlock()
 		return false, errors.New("log streamer closed")
 	}

@@ -24,9 +24,18 @@ type LogstreamOrchestrator struct {
 	retries  atomic.Int32
 	streamer *LogStreamer
 	deltas   *deltasIter
+	verbose  bool
 }
 
-type LOpt func(orchestrator *LogstreamOrchestrator) *LogstreamOrchestrator
+type LOpt func(*LogstreamOrchestrator) *LogstreamOrchestrator
+
+// WithVerbose sets the verbose option on the LogstreamOrchestrator
+func WithVerbose(verbose bool) func(orchestrator *LogstreamOrchestrator) *LogstreamOrchestrator {
+	return func(orchestrator *LogstreamOrchestrator) *LogstreamOrchestrator {
+		orchestrator.verbose = verbose
+		return orchestrator
+	}
+}
 
 func NewLogstreamOrchestrator(bus LogBus, c CloudClient, initialManifest *logstream.RunManifest, opts ...LOpt) *LogstreamOrchestrator {
 	ls := &LogstreamOrchestrator{
@@ -42,6 +51,8 @@ func NewLogstreamOrchestrator(bus LogBus, c CloudClient, initialManifest *logstr
 	return ls
 }
 
+// StartLogstreamer will start streaming to the cloud retrying up the retry count
+// Callers should listen to Done to be notified when the streaming contract completes
 func (l *LogstreamOrchestrator) StartLogstreamer(ctx context.Context) {
 	if l.started.Swap(true) {
 		// Can only start once
@@ -51,10 +62,10 @@ func (l *LogstreamOrchestrator) StartLogstreamer(ctx context.Context) {
 		for l.retries.Add(-1) > 0 {
 			l.start()
 			l.CloseLastLogstreamer()
-			l.deltas = newDeltasIter(DefaultBufferSize, l.initialManifest)
+			l.deltas = newDeltasIter(DefaultBufferSize, l.initialManifest, l.verbose)
 			go l.bus.AddSubscriber(l.deltas)
 			l.streamer = New(l.c, l.buildID, l.deltas)
-			shouldRetry, err := l.streamer.tryStream(ctx)
+			shouldRetry, err := l.streamer.Stream(ctx)
 			l.addError(err)
 			l.markDone()
 			if !shouldRetry {
@@ -64,6 +75,7 @@ func (l *LogstreamOrchestrator) StartLogstreamer(ctx context.Context) {
 	}()
 }
 
+// CloseLastLogstreamer Will close any previous logstreamer / deltas.
 func (l *LogstreamOrchestrator) CloseLastLogstreamer() {
 	if l.deltas != nil {
 		l.bus.RemoveSubscriber(l.deltas)
@@ -95,6 +107,8 @@ func (l *LogstreamOrchestrator) getError() error {
 	return retErr
 }
 
+// Close will mark the deltas and streamer as closed and prevent further writes to the cloud
+// Callers should listen to Done() to know when it is safe to exit.
 func (l *LogstreamOrchestrator) Close() (int32, int32, error) {
 	var logsWritten int32
 	var manifestsWritten int32
