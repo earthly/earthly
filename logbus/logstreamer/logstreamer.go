@@ -35,6 +35,12 @@ type CloudClient interface {
 	StreamLogs(ctx context.Context, buildID string, deltas cloud.Deltas) error
 }
 
+// LogBus is a type that LogStreamer subscribes to.
+type LogBus interface {
+	AddSubscriber(logbus.Subscriber)
+	RemoveSubscriber(logbus.Subscriber)
+}
+
 // Opt is an option function, used to adjust optional attributes of a
 // LogStreamer during New().
 type Opt func(*LogStreamer) *LogStreamer
@@ -51,7 +57,7 @@ func WithBuffer(size int) Opt {
 // LogStreamer is a log streamer. It uses the cloud client to send
 // log deltas to the cloud. It retries on transient errors.
 type LogStreamer struct {
-	bus     *logbus.Bus
+	bus     LogBus
 	c       CloudClient
 	buildID string
 	doneCh  chan struct{}
@@ -63,7 +69,7 @@ type LogStreamer struct {
 }
 
 // New creates a new LogStreamer.
-func New(ctx context.Context, bus *logbus.Bus, c CloudClient, initialManifest *logstream.RunManifest, opts ...Opt) *LogStreamer {
+func New(ctx context.Context, bus LogBus, c CloudClient, initialManifest *logstream.RunManifest, opts ...Opt) *LogStreamer {
 	ls := &LogStreamer{
 		bus:     bus,
 		c:       c,
@@ -289,10 +295,14 @@ func (d *deltasIter) close() {
 }
 
 func (d *deltasIter) Next(ctx context.Context) ([]*logstream.Delta, error) {
+	deltas := d.deltas()
+	if deltas == nil {
+		return nil, errors.Wrap(io.EOF, "logstreamer: channel closed")
+	}
 	select {
 	case <-ctx.Done():
 		return nil, errors.Wrap(ctx.Err(), "logstreamer: context closed while waiting on next delta")
-	case delta, ok := <-d.deltas():
+	case delta, ok := <-deltas:
 		if !ok {
 			return nil, errors.Wrap(io.EOF, "logstreamer: channel closed")
 		}

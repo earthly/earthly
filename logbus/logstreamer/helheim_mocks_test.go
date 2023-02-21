@@ -14,6 +14,7 @@ import (
 	"git.sr.ht/~nelsam/hel/v4/vegr"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/cloud"
+	"github.com/earthly/earthly/logbus"
 )
 
 type mockCloudClient struct {
@@ -47,6 +48,38 @@ func (m *mockCloudClient) StreamLogs(ctx context.Context, buildID string, deltas
 	m.StreamLogsInput.Deltas <- deltas
 	vegr.PopulateReturns(m.t, "StreamLogs", m.timeout, m.StreamLogsOutput, &ret0)
 	return ret0
+}
+
+type mockLogBus struct {
+	t                   vegr.T
+	timeout             time.Duration
+	AddSubscriberCalled chan bool
+	AddSubscriberInput  struct {
+		Arg0 chan logbus.Subscriber
+	}
+	RemoveSubscriberCalled chan bool
+	RemoveSubscriberInput  struct {
+		Arg0 chan logbus.Subscriber
+	}
+}
+
+func newMockLogBus(t vegr.T, timeout time.Duration) *mockLogBus {
+	m := &mockLogBus{t: t, timeout: timeout}
+	m.AddSubscriberCalled = make(chan bool, 100)
+	m.AddSubscriberInput.Arg0 = make(chan logbus.Subscriber, 100)
+	m.RemoveSubscriberCalled = make(chan bool, 100)
+	m.RemoveSubscriberInput.Arg0 = make(chan logbus.Subscriber, 100)
+	return m
+}
+func (m *mockLogBus) AddSubscriber(arg0 logbus.Subscriber) {
+	m.t.Helper()
+	m.AddSubscriberCalled <- true
+	m.AddSubscriberInput.Arg0 <- arg0
+}
+func (m *mockLogBus) RemoveSubscriber(arg0 logbus.Subscriber) {
+	m.t.Helper()
+	m.RemoveSubscriberCalled <- true
+	m.RemoveSubscriberInput.Arg0 <- arg0
 }
 
 type mockContext struct {
@@ -141,4 +174,25 @@ func (m *mockDeltas) Next(ctx context.Context) (ret0 []*logstream.Delta, ret1 er
 	m.NextInput.Ctx <- ctx
 	vegr.PopulateReturns(m.t, "Next", m.timeout, m.NextOutput, &ret0, &ret1)
 	return ret0, ret1
+}
+
+type mockSubscriber struct {
+	t           vegr.T
+	timeout     time.Duration
+	WriteCalled chan bool
+	WriteInput  struct {
+		Arg0 chan *logstream.Delta
+	}
+}
+
+func newMockSubscriber(t vegr.T, timeout time.Duration) *mockSubscriber {
+	m := &mockSubscriber{t: t, timeout: timeout}
+	m.WriteCalled = make(chan bool, 100)
+	m.WriteInput.Arg0 = make(chan *logstream.Delta, 100)
+	return m
+}
+func (m *mockSubscriber) Write(arg0 *logstream.Delta) {
+	m.t.Helper()
+	m.WriteCalled <- true
+	m.WriteInput.Arg0 <- arg0
 }
