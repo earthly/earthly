@@ -52,17 +52,18 @@ const DefaultSatelliteSize = SatelliteSizeMedium
 
 // SatelliteInstance contains details about a remote Buildkit instance.
 type SatelliteInstance struct {
-	Name                   string
-	Org                    string
-	State                  string
-	Platform               string
-	Size                   string
-	Version                string
-	VersionPinned          bool
-	FeatureFlags           []string
-	MaintenanceWindowStart string
-	MaintenanceWindowEnd   string
-	RevisionID             int32
+	Name                    string
+	Org                     string
+	State                   string
+	Platform                string
+	Size                    string
+	Version                 string
+	VersionPinned           bool
+	FeatureFlags            []string
+	MaintenanceWindowStart  string
+	MaintenanceWindowEnd    string
+	MaintenanceWeekendsOnly bool
+	RevisionID              int32
 }
 
 func (c *Client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error) {
@@ -95,17 +96,18 @@ func (c *Client) GetSatellite(ctx context.Context, name, orgID string) (*Satelli
 		return nil, errors.Wrap(err, "failed getting satellite")
 	}
 	return &SatelliteInstance{
-		Name:                   name,
-		Org:                    orgID,
-		State:                  satelliteStatus(resp.Status),
-		Platform:               resp.Platform,
-		Size:                   resp.Size,
-		Version:                resp.Version,
-		VersionPinned:          resp.VersionPinned,
-		FeatureFlags:           resp.FeatureFlags,
-		MaintenanceWindowStart: resp.MaintenanceWindowStart,
-		MaintenanceWindowEnd:   resp.MaintenanceWindowEnd,
-		RevisionID:             resp.RevisionId,
+		Name:                    name,
+		Org:                     orgID,
+		State:                   satelliteStatus(resp.Status),
+		Platform:                resp.Platform,
+		Size:                    resp.Size,
+		Version:                 resp.Version,
+		VersionPinned:           resp.VersionPinned,
+		FeatureFlags:            resp.FeatureFlags,
+		MaintenanceWindowStart:  resp.MaintenanceWindowStart,
+		MaintenanceWindowEnd:    resp.MaintenanceWindowEnd,
+		MaintenanceWeekendsOnly: resp.MaintenanceWeekendsOnly,
+		RevisionID:              resp.RevisionId,
 	}, nil
 }
 
@@ -120,15 +122,27 @@ func (c *Client) DeleteSatellite(ctx context.Context, name, orgID string) error 
 	return nil
 }
 
-func (c *Client) LaunchSatellite(ctx context.Context, name, orgID, platform, size, version, maintenanceWindow string, features []string) error {
+type LaunchSatelliteOpt struct {
+	Name                    string
+	OrgID                   string
+	Size                    string
+	Platform                string
+	PinnedVersion           string
+	MaintenanceWindowStart  string
+	MaintenanceWeekendsOnly bool
+	FeatureFlags            []string
+}
+
+func (c *Client) LaunchSatellite(ctx context.Context, opt LaunchSatelliteOpt) error {
 	req := &pb.LaunchSatelliteRequest{
-		OrgId:                  orgID,
-		Name:                   name,
-		Platform:               platform,
-		Size:                   size,
-		FeatureFlags:           features,
-		Version:                version,
-		MaintenanceWindowStart: maintenanceWindow,
+		OrgId:                   opt.OrgID,
+		Name:                    opt.Name,
+		Platform:                opt.Platform,
+		Size:                    opt.Size,
+		FeatureFlags:            opt.FeatureFlags,
+		Version:                 opt.PinnedVersion,
+		MaintenanceWindowStart:  opt.MaintenanceWindowStart,
+		MaintenanceWeekendsOnly: opt.MaintenanceWeekendsOnly,
 	}
 	_, err := c.compute.LaunchSatellite(c.withAuth(ctx), req)
 	if err != nil {
@@ -253,14 +267,25 @@ func (c *Client) SleepSatellite(ctx context.Context, name, orgID string) (out ch
 	return out
 }
 
-func (c *Client) UpdateSatellite(ctx context.Context, name, orgID, version, maintenanceWindow string, dropCache bool, featureFlags []string) error {
+type UpdateSatelliteOpt struct {
+	Name                    string
+	OrgID                   string
+	PinnedVersion           string
+	MaintenanceWindowStart  string
+	MaintenanceWeekendsOnly bool
+	DropCache               bool
+	FeatureFlags            []string
+}
+
+func (c *Client) UpdateSatellite(ctx context.Context, opt UpdateSatelliteOpt) error {
 	req := &pb.UpdateSatelliteRequest{
-		OrgId:                  orgID,
-		Name:                   name,
-		Version:                version,
-		DropCache:              dropCache,
-		FeatureFlags:           featureFlags,
-		MaintenanceWindowStart: maintenanceWindow,
+		OrgId:                   opt.OrgID,
+		Name:                    opt.Name,
+		Version:                 opt.PinnedVersion,
+		DropCache:               opt.DropCache,
+		FeatureFlags:            opt.FeatureFlags,
+		MaintenanceWindowStart:  opt.MaintenanceWindowStart,
+		MaintenanceWeekendsOnly: opt.MaintenanceWeekendsOnly,
 	}
 	_, err := c.compute.UpdateSatellite(c.withAuth(ctx), req)
 	if err != nil {

@@ -62,6 +62,13 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 					Required:    false,
 					Destination: &app.satelliteMaintenanceWindow,
 				},
+				&cli.BoolFlag{
+					Name:        "maintenance-weekends-only",
+					Aliases:     []string{"wo"},
+					Usage:       "When set, satellite auto-updates will only occur on Saturday or Sunday during the specified maintenance window.",
+					Required:    false,
+					Destination: &app.satelliteMaintenaceWeekendsOnly,
+				},
 				&cli.StringFlag{
 					Name:        "version",
 					Usage:       "Launch and pin a satellite at a specific version (disables auto-updates)",
@@ -150,6 +157,13 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 					Usage:       "Set a new custom maintenance window for future satellite auto-updates",
 					Required:    false,
 					Destination: &app.satelliteMaintenanceWindow,
+				},
+				&cli.BoolFlag{
+					Name:        "maintenance-weekends-only",
+					Aliases:     []string{"wo"},
+					Usage:       "When set, satellite auto-updates will only occur on Saturday or Sunday during the specified maintenance window.",
+					Required:    false,
+					Destination: &app.satelliteMaintenaceWeekendsOnly,
 				},
 				&cli.BoolFlag{
 					Name:        "drop-cache",
@@ -335,7 +349,17 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	app.console.Printf("Launching Satellite '%s' with auto-updates set to run at %s (%s)\n",
 		app.satelliteName, localWindow, zone)
 	app.console.Printf("Please wait...\n")
-	err = cloudClient.LaunchSatellite(cliCtx.Context, app.satelliteName, orgID, platform, size, version, window, ffs)
+
+	err = cloudClient.LaunchSatellite(cliCtx.Context, cloud.LaunchSatelliteOpt{
+		Name:                    app.satelliteName,
+		OrgID:                   orgID,
+		Platform:                platform,
+		Size:                    size,
+		PinnedVersion:           version,
+		MaintenanceWindowStart:  window,
+		FeatureFlags:            ffs,
+		MaintenanceWeekendsOnly: app.satelliteMaintenaceWeekendsOnly,
+	})
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			app.console.Printf("Operation interrupted. Satellite should finish launching in background (if server received request).\n")
@@ -499,7 +523,11 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "failed converting maintenance window end to local time")
 		}
-		app.console.Printf("Maintenance Window: [%s - %s]", mwStart, mwEnd)
+		var weekends string
+		if satellite.MaintenanceWeekendsOnly {
+			weekends = " (weekends only)"
+		}
+		app.console.Printf("Maintenance Window: [%s - %s]%s", mwStart, mwEnd, weekends)
 	}
 	app.console.Printf("Currently selected: %s", selected)
 	app.console.Printf("")
@@ -700,7 +728,15 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 		app.console.Printf("Auto-update maintenance window set to %s (%s)\n", app.satelliteMaintenanceWindow, z)
 	}
 
-	err = cloudClient.UpdateSatellite(cliCtx.Context, app.satelliteName, orgID, version, window, dropCache, ffs)
+	err = cloudClient.UpdateSatellite(cliCtx.Context, cloud.UpdateSatelliteOpt{
+		Name:                    app.satelliteName,
+		OrgID:                   orgID,
+		PinnedVersion:           version,
+		MaintenanceWindowStart:  window,
+		MaintenanceWeekendsOnly: app.satelliteMaintenaceWeekendsOnly,
+		DropCache:               dropCache,
+		FeatureFlags:            ffs,
+	})
 	if err != nil {
 		return errors.Wrap(err, "failed starting satellite update")
 	}
