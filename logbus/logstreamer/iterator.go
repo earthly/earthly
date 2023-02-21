@@ -13,6 +13,11 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+const (
+	// DefaultBufferSize is the default size of the buffer in a deltasIter.
+	DefaultBufferSize = 10240
+)
+
 type deltasIter struct {
 	mu                   sync.Mutex
 	ch                   chan []*logstream.Delta

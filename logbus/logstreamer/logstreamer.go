@@ -4,18 +4,13 @@ package logstreamer
 
 import (
 	"context"
-	"sync"
+	"sync/atomic"
 
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/logbus"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-)
-
-const (
-	// DefaultBufferSize is the default size of the buffer in a LogStreamer.
-	DefaultBufferSize = 10240
 )
 
 // CloudClient is the type of client that a LogStreamer needs to connect to
@@ -36,8 +31,7 @@ type LogStreamer struct {
 	c       CloudClient
 	buildID string
 
-	mu        sync.Mutex
-	cancelled bool
+	cancelled atomic.Bool
 	deltas    cloud.Deltas
 }
 
@@ -56,12 +50,9 @@ func New(c CloudClient, buildID string, deltas *deltasIter) *LogStreamer {
 func (ls *LogStreamer) Stream(ctx context.Context) (bool, error) {
 	ctxTry, cancelTry := context.WithCancel(ctx)
 	defer cancelTry()
-	ls.mu.Lock()
-	if ls.cancelled {
-		ls.mu.Unlock()
+	if ls.cancelled.Load() {
 		return false, errors.New("log streamer closed")
 	}
-	ls.mu.Unlock()
 	if err := ls.c.StreamLogs(ctxTry, ls.buildID, ls.deltas); err != nil {
 		s, ok := status.FromError(errors.Cause(err))
 		if !ok {
@@ -79,7 +70,5 @@ func (ls *LogStreamer) Stream(ctx context.Context) (bool, error) {
 
 // Close closes the log streamer.
 func (ls *LogStreamer) Close() {
-	ls.mu.Lock()
-	ls.cancelled = true
-	ls.mu.Unlock()
+	ls.cancelled.Store(true)
 }

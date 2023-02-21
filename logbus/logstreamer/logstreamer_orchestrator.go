@@ -3,6 +3,7 @@ package logstreamer
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/hashicorp/go-multierror"
@@ -14,14 +15,16 @@ type Orchestrator struct {
 	c               CloudClient
 	initialManifest *logstream.RunManifest
 
-	mu    sync.Mutex
-	errMu sync.Mutex
+	mu     sync.Mutex
+	prevMU sync.Mutex
+	errMu  sync.Mutex
 
 	doneCH chan struct{}
 	subCH  chan struct{}
 
 	errors      []error
 	startOnce   sync.Once
+	closed      atomic.Bool
 	retries     int
 	streamer    *LogStreamer
 	deltas      *deltasIter
@@ -74,7 +77,7 @@ func (l *Orchestrator) Start(ctx context.Context) {
 				l.subscribe()
 				shouldRetry, err := l.streamer.Stream(ctx)
 				l.addError(err)
-				if !shouldRetry {
+				if !shouldRetry || l.closed.Load() {
 					return
 				}
 			}
@@ -104,6 +107,7 @@ func (l *Orchestrator) getError() error {
 // Close will mark the deltas and streamer as closed and prevent further writes to the cloud
 // Callers should listen to Done() to know when it is safe to exit.
 func (l *Orchestrator) Close() (manifestsWritten int32, logsWritten int32, _ error) {
+	l.closed.Store(true)
 	return l.closePreviousStreamer()
 }
 
@@ -128,12 +132,7 @@ func (l *Orchestrator) markDone() {
 func (l *Orchestrator) subscribe() {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	hasPreviouslySubscribed := l.deltas != nil && l.streamer != nil
-	if hasPreviouslySubscribed {
-		// wait for previous subscriber to finish being added
-		<-l.subCH
-		_, _, _ = l.closePreviousStreamer()
-	}
+	_, _, _ = l.closePreviousStreamer()
 	l.deltas = newDeltasIter(l.deltaBuffer, l.initialManifest, l.verbose)
 	l.streamer = New(l.c, l.buildID, l.deltas)
 	l.subCH = make(chan struct{})
@@ -144,16 +143,22 @@ func (l *Orchestrator) subscribe() {
 }
 
 func (l *Orchestrator) closePreviousStreamer() (manifestsWritten int32, logsWritten int32, _ error) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	if l.deltas != nil {
-		l.bus.RemoveSubscriber(l.deltas)
-		manifestsWritten, logsWritten = l.deltas.close()
-		l.deltas = nil
+	l.prevMU.Lock()
+	defer l.prevMU.Unlock()
+
+	hasPreviouslySubscribed := l.deltas != nil && l.streamer != nil
+	if !hasPreviouslySubscribed {
+		return
 	}
-	if l.streamer != nil {
-		l.streamer.Close()
-		l.streamer = nil
-	}
+
+	<-l.subCH
+
+	l.bus.RemoveSubscriber(l.deltas)
+	manifestsWritten, logsWritten = l.deltas.close()
+	l.streamer.Close()
+
+	l.deltas = nil
+	l.streamer = nil
+
 	return manifestsWritten, logsWritten, l.getError()
 }
