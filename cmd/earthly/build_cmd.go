@@ -543,26 +543,22 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		beforeSelect := time.Now()
 		select {
 		case <-cliCtx.Context.Done():
-			if app.verbose {
-				now := time.Now()
-				app.console.VerbosePrintf(
-					"========== CONTEXT DONE BEFORE LOGSTREAMER STARTED AT %s (%d ms later) ==========",
-					now.Format(time.RFC3339Nano),
-					now.Sub(beforeSelect).Milliseconds(),
-				)
-			}
+			now := time.Now()
+			app.console.VerbosePrintf(
+				"========== CONTEXT DONE BEFORE LOGSTREAMER STARTED AT %s (%d ms later) ==========",
+				now.Format(time.RFC3339Nano),
+				now.Sub(beforeSelect).Milliseconds(),
+			)
 			return
 		case details := <-buildOpts.MainTargetDetailsFuture:
-			if app.verbose {
-				now := time.Now()
-				app.console.VerbosePrintf(
-					"========== SETTING ORG AND PROJECT %s/%s AT %s (%d ms later) ==========",
-					details.EarthlyOrgName,
-					details.EarthlyProjectName,
-					now.Format(time.RFC3339Nano),
-					now.Sub(beforeSelect).Milliseconds(),
-				)
-			}
+			now := time.Now()
+			app.console.VerbosePrintf(
+				"========== SETTING ORG AND PROJECT %s/%s AT %s (%d ms later) ==========",
+				details.EarthlyOrgName,
+				details.EarthlyProjectName,
+				now.Format(time.RFC3339Nano),
+				now.Sub(beforeSelect).Milliseconds(),
+			)
 			analytics.AddEarthfileProject(details.EarthlyOrgName, details.EarthlyProjectName)
 			if app.logstream {
 				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
