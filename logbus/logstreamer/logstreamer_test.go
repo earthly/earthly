@@ -27,7 +27,7 @@ func TestLogstreamer(topT *testing.T) {
 		mockClient *mockCloudClient
 		mockBus    *mockLogBus
 
-		streamer *logstreamer.LogstreamOrchestrator
+		streamer *logstreamer.Orchestrator
 	}
 
 	o := onpar.BeforeEach(onpar.New(topT), func(t *testing.T) testCtx {
@@ -43,8 +43,8 @@ func TestLogstreamer(topT *testing.T) {
 			Version: 1,
 		}
 
-		streamer := logstreamer.NewLogstreamOrchestrator(bus, client, initManifest)
-		streamer.StartLogstreamer(ctx)
+		streamer := logstreamer.NewOrchestrator(bus, client, initManifest)
+		streamer.Start(ctx)
 		return testCtx{
 			t:          t,
 			expect:     expect,
@@ -101,7 +101,7 @@ func TestLogstreamer(topT *testing.T) {
 		}
 		go tt.streamer.Close()
 
-		runtime.Gosched() // ensure that CloseLastLogstreamer() has a chance to close the deltas
+		runtime.Gosched() // ensure that closeLastLogstreamer() has a chance to close the deltas
 
 		for i := 0; i < toSend; i++ {
 			_, err := deltas.Next(tt.ctx)

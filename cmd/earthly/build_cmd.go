@@ -545,19 +545,19 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		case <-cliCtx.Context.Done():
 			now := time.Now()
 			app.console.VerbosePrintf(
-				"========== CONTEXT DONE BEFORE LOGSTREAMER STARTED AT %s (%d ms later) ==========",
+				"========== CONTEXT DONE BEFORE LOGSTREAMER STARTED AT %s (%s later) ==========",
 				now.Format(time.RFC3339Nano),
-				now.Sub(beforeSelect).Milliseconds(),
+				now.Sub(beforeSelect),
 			)
 			return
 		case details := <-buildOpts.MainTargetDetailsFuture:
 			now := time.Now()
 			app.console.VerbosePrintf(
-				"========== SETTING ORG AND PROJECT %s/%s AT %s (%d ms later) ==========",
+				"========== SETTING ORG AND PROJECT %s/%s AT %s (%s later) ==========",
 				details.EarthlyOrgName,
 				details.EarthlyProjectName,
 				now.Format(time.RFC3339Nano),
-				now.Sub(beforeSelect).Milliseconds(),
+				now.Sub(beforeSelect),
 			)
 			analytics.AddEarthfileProject(details.EarthlyOrgName, details.EarthlyProjectName)
 			if app.logstream {

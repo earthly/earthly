@@ -117,14 +117,9 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	c.pipelines = pipelines.NewPipelinesClient(conn)
 	c.compute = compute.NewComputeClient(conn)
 	c.analytics = analytics.NewAnalyticsClient(conn)
-	if c.logstreamAddressOverride == "" {
-		c.logstream = logstream.NewLogStreamClient(conn)
-	} else {
-		logstreamConn, err := grpc.DialContext(ctx, c.logstreamAddressOverride, dialOpts...)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed dialing logstream grpc")
-		}
-		c.logstream = logstream.NewLogStreamClient(logstreamConn)
+	c.logstream, err = logstreamClient(ctx, conn, c.logstreamAddressOverride, dialOpts...)
+	if err != nil {
+		return nil, errors.Wrap(err, "cloud: could not create logstream client")
 	}
 
 	return c, nil
@@ -135,4 +130,15 @@ func (c *Client) getRequestID() string {
 		return c.requestID
 	}
 	return uuid.NewString()
+}
+
+func logstreamClient(ctx context.Context, defaultConn grpc.ClientConnInterface, overrideAddr string, dialOpts ...grpc.DialOption) (logstream.LogStreamClient, error) {
+	if overrideAddr == "" {
+		return logstream.NewLogStreamClient(defaultConn), nil
+	}
+	conn, err := grpc.DialContext(ctx, overrideAddr, dialOpts...)
+	if err != nil {
+		return nil, errors.Wrap(err, "cloud: failed dialing logstream grpc")
+	}
+	return logstream.NewLogStreamClient(conn), nil
 }

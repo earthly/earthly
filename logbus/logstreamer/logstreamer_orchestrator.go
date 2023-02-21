@@ -3,13 +3,12 @@ package logstreamer
 import (
 	"context"
 	"sync"
-	"sync/atomic"
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/hashicorp/go-multierror"
 )
 
-type LogstreamOrchestrator struct {
+type Orchestrator struct {
 	buildID         string
 	bus             LogBus
 	c               CloudClient
@@ -17,11 +16,13 @@ type LogstreamOrchestrator struct {
 
 	doneMU sync.Mutex
 	mu     sync.Mutex
-	doneCH chan struct{}
+	errMu  sync.Mutex
 
-	errMu       sync.Mutex
+	doneCH chan struct{}
+	subCH  chan struct{}
+
 	errors      []error
-	started     atomic.Bool
+	startOnce   sync.Once
 	retries     int
 	streamer    *LogStreamer
 	deltas      *deltasIter
@@ -29,31 +30,33 @@ type LogstreamOrchestrator struct {
 	deltaBuffer int
 }
 
-type LOpt func(*LogstreamOrchestrator) *LogstreamOrchestrator
+type LOpt func(*Orchestrator) *Orchestrator
 
-// WithVerbose sets the verbose option on the LogstreamOrchestrator
-func WithVerbose(verbose bool) func(orchestrator *LogstreamOrchestrator) *LogstreamOrchestrator {
-	return func(orchestrator *LogstreamOrchestrator) *LogstreamOrchestrator {
+// WithVerbose sets the verbose option on the Orchestrator
+func WithVerbose(verbose bool) func(orchestrator *Orchestrator) *Orchestrator {
+	return func(orchestrator *Orchestrator) *Orchestrator {
 		orchestrator.verbose = verbose
 		return orchestrator
 	}
 }
 
-func WithDeltaBuffer(buffer int) func(orchestrator *LogstreamOrchestrator) *LogstreamOrchestrator {
-	return func(orchestrator *LogstreamOrchestrator) *LogstreamOrchestrator {
+func WithDeltaBuffer(buffer int) func(orchestrator *Orchestrator) *Orchestrator {
+	return func(orchestrator *Orchestrator) *Orchestrator {
 		orchestrator.deltaBuffer = buffer
 		return orchestrator
 	}
 }
 
-func NewLogstreamOrchestrator(bus LogBus, c CloudClient, initialManifest *logstream.RunManifest, opts ...LOpt) *LogstreamOrchestrator {
-	ls := &LogstreamOrchestrator{
+func NewOrchestrator(bus LogBus, c CloudClient, initialManifest *logstream.RunManifest, opts ...LOpt) *Orchestrator {
+	ls := &Orchestrator{
 		buildID:         initialManifest.GetBuildId(),
 		bus:             bus,
 		c:               c,
 		initialManifest: initialManifest,
 		retries:         10,
 		deltaBuffer:     DefaultBufferSize,
+		doneCH:          make(chan struct{}),
+		subCH:           nil, // nil on purpose - only use when subscribing
 	}
 	for _, o := range opts {
 		ls = o(ls)
@@ -61,49 +64,27 @@ func NewLogstreamOrchestrator(bus LogBus, c CloudClient, initialManifest *logstr
 	return ls
 }
 
-// StartLogstreamer will start streaming to the cloud retrying up the retry count
+// Start will restart streaming to the cloud retrying up the retry count
 // Callers should listen to Done to be notified when the streaming contract completes
-// StartLogstreamer may only be called once
-func (l *LogstreamOrchestrator) StartLogstreamer(ctx context.Context) {
-	if l.started.Swap(true) {
-		// Can only start once
-		return
-	}
-	go func() {
-		for i := 0; i < l.retries; i++ {
-			l.start()
-			l.CloseLastLogstreamer()
-
-			l.mu.Lock()
-			l.deltas = newDeltasIter(l.deltaBuffer, l.initialManifest, l.verbose)
-			l.streamer = New(l.c, l.buildID, l.deltas)
-			l.mu.Unlock()
-
-			go l.bus.AddSubscriber(l.deltas)
-			shouldRetry, err := l.streamer.Stream(ctx)
-			l.addError(err)
-			l.markDone()
-			if !shouldRetry {
-				return
+// Start may only be called once
+func (l *Orchestrator) Start(ctx context.Context) {
+	l.startOnce.Do(func() {
+		go func() {
+			for i := 0; i < l.retries; i++ {
+				l.subscribe()
+				shouldRetry, err := l.streamer.Stream(ctx)
+				l.addError(err)
+				l.markDone()
+				if !shouldRetry {
+					return
+				}
+				l.restart()
 			}
-		}
-	}()
+		}()
+	})
 }
 
-// CloseLastLogstreamer Will close any previous logstreamer / deltas.
-func (l *LogstreamOrchestrator) CloseLastLogstreamer() {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	if l.deltas != nil {
-		l.bus.RemoveSubscriber(l.deltas)
-		l.deltas.close()
-	}
-	if l.streamer != nil {
-		l.streamer.Close()
-	}
-}
-
-func (l *LogstreamOrchestrator) addError(err error) {
+func (l *Orchestrator) addError(err error) {
 	if err == nil {
 		return
 	}
@@ -112,7 +93,7 @@ func (l *LogstreamOrchestrator) addError(err error) {
 	l.errors = append(l.errors, err)
 }
 
-func (l *LogstreamOrchestrator) getError() error {
+func (l *Orchestrator) getError() error {
 	l.errMu.Lock()
 	defer l.errMu.Unlock()
 	var retErr error
@@ -124,12 +105,10 @@ func (l *LogstreamOrchestrator) getError() error {
 
 // Close will mark the deltas and streamer as closed and prevent further writes to the cloud
 // Callers should listen to Done() to know when it is safe to exit.
-func (l *LogstreamOrchestrator) Close() (int32, int32, error) {
+func (l *Orchestrator) Close() (manifestsWritten int32, logsWritten int32, _ error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	var logsWritten int32
-	var manifestsWritten int32
 	if l.deltas != nil {
 		l.bus.RemoveSubscriber(l.deltas)
 		manifestsWritten, logsWritten = l.deltas.close()
@@ -141,30 +120,53 @@ func (l *LogstreamOrchestrator) Close() (int32, int32, error) {
 	return manifestsWritten, logsWritten, nil
 }
 
-func (l *LogstreamOrchestrator) WriteToDeltaIter(delta *logstream.Delta) {
+func (l *Orchestrator) WriteToDeltaIter(delta *logstream.Delta) {
 	l.mu.Lock()
-	d := l.deltas
 	defer l.mu.Unlock()
+	d := l.deltas
 	d.Write(delta)
 }
 
 // Done returns a channel that is closed once the Logstreamer has finished
-// communicating wit the server.
+// communicating with the server.
 // Callers should listen to the Done channel before exiting
-func (l *LogstreamOrchestrator) Done() chan struct{} {
+func (l *Orchestrator) Done() chan struct{} {
 	l.doneMU.Lock()
 	defer l.doneMU.Unlock()
 	return l.doneCH
 }
 
-func (l *LogstreamOrchestrator) markDone() {
+func (l *Orchestrator) markDone() {
 	l.doneMU.Lock()
 	defer l.doneMU.Unlock()
 	close(l.doneCH)
 }
 
-func (l *LogstreamOrchestrator) start() {
+func (l *Orchestrator) restart() {
 	l.doneMU.Lock()
 	defer l.doneMU.Unlock()
 	l.doneCH = make(chan struct{})
+}
+
+func (l *Orchestrator) subscribe() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.deltas != nil {
+		// wait for previous subscriber to finish being added (if there is one)
+		if l.subCH != nil {
+			<-l.subCH
+		}
+		l.bus.RemoveSubscriber(l.deltas)
+		l.deltas.close()
+	}
+	if l.streamer != nil {
+		l.streamer.Close()
+	}
+	l.deltas = newDeltasIter(l.deltaBuffer, l.initialManifest, l.verbose)
+	l.streamer = New(l.c, l.buildID, l.deltas)
+	l.subCH = make(chan struct{})
+	go func(subCH chan struct{}) {
+		defer close(subCH)
+		l.bus.AddSubscriber(l.deltas)
+	}(l.subCH)
 }
