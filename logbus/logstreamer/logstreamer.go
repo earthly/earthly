@@ -35,7 +35,6 @@ type LogBus interface {
 type LogStreamer struct {
 	c       CloudClient
 	buildID string
-	errors  []error
 
 	mu        sync.Mutex
 	cancelled bool

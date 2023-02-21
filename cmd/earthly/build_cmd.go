@@ -546,9 +546,9 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			if app.verbose {
 				now := time.Now()
 				app.console.Warnf(
-					"========== CONTEXT DONE BEFORE LOGSTREAMER STARTED AT %s (%s ms later) ==========",
+					"========== CONTEXT DONE BEFORE LOGSTREAMER STARTED AT %s (%d ms later) ==========",
 					now.Format(time.RFC3339Nano),
-					now.Sub(beforeSelect).Nanoseconds(),
+					now.Sub(beforeSelect).Milliseconds(),
 				)
 			}
 			return
@@ -556,11 +556,11 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			if app.verbose {
 				now := time.Now()
 				app.console.Warnf(
-					"========== SETTING ORG AND PROJECT %s/%s AT %s (%s ms later) ==========",
+					"========== SETTING ORG AND PROJECT %s/%s AT %s (%d ms later) ==========",
 					details.EarthlyOrgName,
 					details.EarthlyProjectName,
 					now.Format(time.RFC3339Nano),
-					now.Sub(beforeSelect).Nanoseconds(),
+					now.Sub(beforeSelect).Milliseconds(),
 				)
 			}
 			analytics.AddEarthfileProject(details.EarthlyOrgName, details.EarthlyProjectName)
