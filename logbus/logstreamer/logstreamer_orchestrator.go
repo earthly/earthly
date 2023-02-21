@@ -16,15 +16,17 @@ type LogstreamOrchestrator struct {
 	initialManifest *logstream.RunManifest
 
 	doneMU sync.Mutex
+	mu     sync.Mutex
 	doneCH chan struct{}
 
-	errMu    sync.Mutex
-	errors   []error
-	started  atomic.Bool
-	retries  int
-	streamer *LogStreamer
-	deltas   *deltasIter
-	verbose  bool
+	errMu       sync.Mutex
+	errors      []error
+	started     atomic.Bool
+	retries     int
+	streamer    *LogStreamer
+	deltas      *deltasIter
+	verbose     bool
+	deltaBuffer int
 }
 
 type LOpt func(*LogstreamOrchestrator) *LogstreamOrchestrator
@@ -37,6 +39,13 @@ func WithVerbose(verbose bool) func(orchestrator *LogstreamOrchestrator) *Logstr
 	}
 }
 
+func WithDeltaBuffer(buffer int) func(orchestrator *LogstreamOrchestrator) *LogstreamOrchestrator {
+	return func(orchestrator *LogstreamOrchestrator) *LogstreamOrchestrator {
+		orchestrator.deltaBuffer = buffer
+		return orchestrator
+	}
+}
+
 func NewLogstreamOrchestrator(bus LogBus, c CloudClient, initialManifest *logstream.RunManifest, opts ...LOpt) *LogstreamOrchestrator {
 	ls := &LogstreamOrchestrator{
 		buildID:         initialManifest.GetBuildId(),
@@ -44,6 +53,7 @@ func NewLogstreamOrchestrator(bus LogBus, c CloudClient, initialManifest *logstr
 		c:               c,
 		initialManifest: initialManifest,
 		retries:         10,
+		deltaBuffer:     DefaultBufferSize,
 	}
 	for _, o := range opts {
 		ls = o(ls)
@@ -63,9 +73,13 @@ func (l *LogstreamOrchestrator) StartLogstreamer(ctx context.Context) {
 		for i := 0; i < l.retries; i++ {
 			l.start()
 			l.CloseLastLogstreamer()
-			l.deltas = newDeltasIter(DefaultBufferSize, l.initialManifest, l.verbose)
-			go l.bus.AddSubscriber(l.deltas)
+
+			l.mu.Lock()
+			l.deltas = newDeltasIter(l.deltaBuffer, l.initialManifest, l.verbose)
 			l.streamer = New(l.c, l.buildID, l.deltas)
+			l.mu.Unlock()
+
+			go l.bus.AddSubscriber(l.deltas)
 			shouldRetry, err := l.streamer.Stream(ctx)
 			l.addError(err)
 			l.markDone()
@@ -78,6 +92,8 @@ func (l *LogstreamOrchestrator) StartLogstreamer(ctx context.Context) {
 
 // CloseLastLogstreamer Will close any previous logstreamer / deltas.
 func (l *LogstreamOrchestrator) CloseLastLogstreamer() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if l.deltas != nil {
 		l.bus.RemoveSubscriber(l.deltas)
 		l.deltas.close()
@@ -109,6 +125,9 @@ func (l *LogstreamOrchestrator) getError() error {
 // Close will mark the deltas and streamer as closed and prevent further writes to the cloud
 // Callers should listen to Done() to know when it is safe to exit.
 func (l *LogstreamOrchestrator) Close() (int32, int32, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
 	var logsWritten int32
 	var manifestsWritten int32
 	if l.deltas != nil {
@@ -120,6 +139,13 @@ func (l *LogstreamOrchestrator) Close() (int32, int32, error) {
 		return manifestsWritten, logsWritten, l.getError()
 	}
 	return manifestsWritten, logsWritten, nil
+}
+
+func (l *LogstreamOrchestrator) WriteToDeltaIter(delta *logstream.Delta) {
+	l.mu.Lock()
+	d := l.deltas
+	defer l.mu.Unlock()
+	d.Write(delta)
 }
 
 // Done returns a channel that is closed once the Logstreamer has finished
