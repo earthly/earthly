@@ -56,7 +56,7 @@ func NewOrchestrator(bus LogBus, c CloudClient, initialManifest *logstream.RunMa
 		retries:         10,
 		deltaBuffer:     DefaultBufferSize,
 		doneCH:          make(chan struct{}),
-		subCH:           nil, // nil on purpose - only use when subscribing
+		subCH:           make(chan struct{}),
 	}
 	for _, o := range opts {
 		ls = o(ls)
@@ -151,15 +151,12 @@ func (l *Orchestrator) restart() {
 func (l *Orchestrator) subscribe() {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if l.deltas != nil {
-		// wait for previous subscriber to finish being added (if there is one)
-		if l.subCH != nil {
-			<-l.subCH
-		}
+	hasPreviouslySubscribed := l.deltas != nil && l.streamer != nil
+	if hasPreviouslySubscribed {
+		// wait for previous subscriber to finish being added
+		<-l.subCH
 		l.bus.RemoveSubscriber(l.deltas)
 		l.deltas.close()
-	}
-	if l.streamer != nil {
 		l.streamer.Close()
 	}
 	l.deltas = newDeltasIter(l.deltaBuffer, l.initialManifest, l.verbose)
