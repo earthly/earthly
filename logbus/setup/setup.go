@@ -142,7 +142,9 @@ func (bs *BusSetup) Close() error {
 		if err != nil {
 			retErr = multierror.Append(retErr, errors.Wrap(err, "log streamer"))
 		}
-		fmt.Fprintf(os.Stderr, "========== WROTE %d MANIFESTS AND %d LOGS TO ITER==========\n", manifestsWritten, logsWritten)
+		if bs.verbose {
+			fmt.Fprintf(os.Stderr, "========== WROTE %d MANIFESTS AND %d LOGS TO ITER==========\n", manifestsWritten, logsWritten)
+		}
 		<-bs.LogStreamer.Done()
 	}
 	return retErr

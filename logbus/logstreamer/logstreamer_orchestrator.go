@@ -21,7 +21,7 @@ type LogstreamOrchestrator struct {
 	errMu    sync.Mutex
 	errors   []error
 	started  atomic.Bool
-	retries  atomic.Int32
+	retries  int
 	streamer *LogStreamer
 	deltas   *deltasIter
 	verbose  bool
@@ -43,8 +43,8 @@ func NewLogstreamOrchestrator(bus LogBus, c CloudClient, initialManifest *logstr
 		bus:             bus,
 		c:               c,
 		initialManifest: initialManifest,
+		retries:         10,
 	}
-	ls.retries.Store(10)
 	for _, o := range opts {
 		ls = o(ls)
 	}
@@ -53,13 +53,14 @@ func NewLogstreamOrchestrator(bus LogBus, c CloudClient, initialManifest *logstr
 
 // StartLogstreamer will start streaming to the cloud retrying up the retry count
 // Callers should listen to Done to be notified when the streaming contract completes
+// StartLogstreamer may only be called once
 func (l *LogstreamOrchestrator) StartLogstreamer(ctx context.Context) {
 	if l.started.Swap(true) {
 		// Can only start once
 		return
 	}
 	go func() {
-		for l.retries.Add(-1) > 0 {
+		for i := 0; i < l.retries; i++ {
 			l.start()
 			l.CloseLastLogstreamer()
 			l.deltas = newDeltasIter(DefaultBufferSize, l.initialManifest, l.verbose)
@@ -82,9 +83,7 @@ func (l *LogstreamOrchestrator) CloseLastLogstreamer() {
 		l.deltas.close()
 	}
 	if l.streamer != nil {
-		go func(streamer *LogStreamer) {
-			l.addError(streamer.Close())
-		}(l.streamer)
+		l.streamer.Close()
 	}
 }
 
@@ -117,7 +116,7 @@ func (l *LogstreamOrchestrator) Close() (int32, int32, error) {
 		manifestsWritten, logsWritten = l.deltas.close()
 	}
 	if l.streamer != nil {
-		l.addError(l.streamer.Close())
+		l.streamer.Close()
 		return manifestsWritten, logsWritten, l.getError()
 	}
 	return manifestsWritten, logsWritten, nil

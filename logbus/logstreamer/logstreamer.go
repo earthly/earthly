@@ -39,7 +39,7 @@ type LogStreamer struct {
 
 	mu        sync.Mutex
 	cancelled bool
-	deltas    *deltasIter
+	deltas    cloud.Deltas
 }
 
 // New creates a new LogStreamer.
@@ -79,9 +79,8 @@ func (ls *LogStreamer) Stream(ctx context.Context) (bool, error) {
 }
 
 // Close closes the log streamer.
-func (ls *LogStreamer) Close() error {
+func (ls *LogStreamer) Close() {
 	ls.mu.Lock()
 	ls.cancelled = true
 	ls.mu.Unlock()
-	return nil
 }
