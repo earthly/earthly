@@ -138,7 +138,7 @@ func NewClientOpts(ctx context.Context, opts ...Opt) (*Client, error) {
 	c.pipelines = pipelines.NewPipelinesClient(c.grpcConn)
 	c.compute = compute.NewComputeClient(c.grpcConn)
 	c.logstream = logstream.NewLogStreamClient(c.grpcConn)
-	c.analytics = analytics.NewAnalyticsClient(conn)
+	c.analytics = analytics.NewAnalyticsClient(c.grpcConn)
 
 	return c, nil
 }
