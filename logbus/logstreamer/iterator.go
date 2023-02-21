@@ -73,8 +73,6 @@ func (d *deltasIter) close() (int32, int32) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	close(d.ch)
-	for range d.ch {
-	}
 	d.closed = true
 	return d.manifestsWritten.Load(), d.formattedLogsWritten.Load()
 }
