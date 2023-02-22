@@ -5,7 +5,7 @@ This feature is part of the Earthly CI paid plan.
 {% hint style='danger' %}
 ##### Important
 
-This feature is currently in **Alpha** stage. **We do not recommend using Earthly CI Alpha for mission-critical pipelines.**
+This feature is currently in **Beta** stage
 
 * The feature may break or change significantly in future versions of Earthly.
 * Give us feedback on
@@ -35,17 +35,10 @@ Follow the steps in the [Earthly Cloud overview](./overview.md#getting-started) 
 
 ### 2. Gain access to Earthly CI
 
-Fill out the [Earthly CI signup form](https://forms.gle/iwSLazNv7FjYqyqY6). You will need to wait for an Earthly team member to approve your request.
-
-<!-- Use this after alpha.
 Fill out the [Earthly CI signup form](https://earthly.dev/signup/earthly-ci/). You will need to wait for an Earthly team member to approve your request.
--->
 
 ### 3. Ensure that you have the latest version of Earthly
 
-You need to make sure that you are using the [latest Earthly 0.7 release candidate](https://github.com/earthly/earthly/releases). Since this is a release candidate, it will not show up in the regular update channels, such as brew. You have to download the binary manually and add it to your `PATH`. Please note that there are some key changes from 0.6 to 0.7 - one of the important ones is that the cloud-based secret storage has a new format. See the [secrets migration guide](./cloud-secrets.md#migrating-from-the-old-0.6-experimental-version-of-earthly-secrets) for more information.
-
-<!-- Use this after alpha.
 Because this feature is under heavy development right now, it is very important that you use the latest version of Earthly available.
 
 **On Linux**, simply repeat the [installation steps](https://earthly.dev/get-earthly) to upgrade.
@@ -56,7 +49,6 @@ Because this feature is under heavy development right now, it is very important 
 brew update
 brew upgrade earthly/earthly/earthly
 ```
--->
 
 ### 4. Open the Earthly Web UI
 
