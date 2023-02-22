@@ -4,16 +4,23 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
+	"time"
 
+	"github.com/avast/retry-go"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/hashicorp/go-multierror"
 )
 
+const (
+	maxRetryCount = 10
+)
+
 type Orchestrator struct {
-	buildID         string
-	bus             LogBus
-	c               CloudClient
-	initialManifest *logstream.RunManifest
+	buildID             string
+	bus                 LogBus
+	c                   CloudClient
+	initialManifest     *logstream.RunManifest
+	maxLogstreamTimeout time.Duration
 
 	mu     sync.Mutex
 	prevMU sync.Mutex
@@ -30,6 +37,7 @@ type Orchestrator struct {
 	deltas      *deltasIter
 	verbose     bool
 	deltaBuffer int
+	cancel      func()
 }
 
 type LOpt func(*Orchestrator) *Orchestrator
@@ -42,6 +50,15 @@ func WithVerbose(verbose bool) func(orchestrator *Orchestrator) *Orchestrator {
 	}
 }
 
+// WithMaxLogstreamDuration sets the maximum duration the Logstreamer will retry for before triggering Done.
+func WithMaxLogstreamDuration(duration time.Duration) func(orchestrator *Orchestrator) *Orchestrator {
+	return func(orchestrator *Orchestrator) *Orchestrator {
+		orchestrator.maxLogstreamTimeout = duration
+		return orchestrator
+	}
+}
+
+// WithDeltaBuffer allows overwriting the buffer size
 func WithDeltaBuffer(buffer int) func(orchestrator *Orchestrator) *Orchestrator {
 	return func(orchestrator *Orchestrator) *Orchestrator {
 		orchestrator.deltaBuffer = buffer
@@ -51,14 +68,16 @@ func WithDeltaBuffer(buffer int) func(orchestrator *Orchestrator) *Orchestrator 
 
 func NewOrchestrator(bus LogBus, c CloudClient, initialManifest *logstream.RunManifest, opts ...LOpt) *Orchestrator {
 	ls := &Orchestrator{
-		buildID:         initialManifest.GetBuildId(),
-		bus:             bus,
-		c:               c,
-		initialManifest: initialManifest,
-		retries:         10,
-		deltaBuffer:     DefaultBufferSize,
-		doneCH:          make(chan struct{}),
-		subCH:           make(chan struct{}),
+		buildID:             initialManifest.GetBuildId(),
+		bus:                 bus,
+		c:                   c,
+		maxLogstreamTimeout: time.Second * 30,
+		initialManifest:     initialManifest,
+		retries:             10,
+		deltaBuffer:         DefaultBufferSize,
+		doneCH:              make(chan struct{}),
+		subCH:               make(chan struct{}),
+		cancel:              func() {},
 	}
 	for _, o := range opts {
 		ls = o(ls)
@@ -71,16 +90,28 @@ func NewOrchestrator(bus LogBus, c CloudClient, initialManifest *logstream.RunMa
 // Start may only be called once
 func (l *Orchestrator) Start(ctx context.Context) {
 	l.startOnce.Do(func() {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		l.cancel = cancel
 		go func() {
 			defer l.markDone()
-			for i := 0; i < l.retries; i++ {
+			retryOptions := []retry.Option{
+				retry.Context(ctx),
+				retry.DelayType(retry.RandomDelay),
+				// Minimum 5 second jitter between retries
+				retry.MaxJitter(maxDur(l.maxLogstreamTimeout/maxRetryCount, time.Second*5)),
+				retry.Attempts(maxRetryCount),
+			}
+			err := retry.Do(func() error {
 				l.subscribe()
 				shouldRetry, err := l.streamer.Stream(ctx)
 				l.addError(err)
-				if !shouldRetry || l.closed.Load() {
-					return
+				if !shouldRetry {
+					return nil
 				}
-			}
+				return nil
+			}, retryOptions...)
+			l.addError(err)
 		}()
 	})
 }
@@ -107,6 +138,18 @@ func (l *Orchestrator) getError() error {
 // Close will mark the deltas and streamer as closed and prevent further writes to the cloud
 // Callers should listen to Done() to know when it is safe to exit.
 func (l *Orchestrator) Close() (manifestsWritten int32, logsWritten int32, _ error) {
+	go func() {
+		// Wait a maximum amount of time before we cancel the streamer.
+		// This ensures Done returns within l.maxLogstreamTimeout.
+		select {
+		case <-l.doneCH:
+			// Finished before timeout
+			return
+		case <-time.After(l.maxLogstreamTimeout):
+			// timeout - force cancellation
+			l.cancel()
+		}
+	}()
 	l.closed.Store(true)
 	return l.closePreviousStreamer()
 }
@@ -161,4 +204,11 @@ func (l *Orchestrator) closePreviousStreamer() (manifestsWritten int32, logsWrit
 	l.streamer = nil
 
 	return manifestsWritten, logsWritten, l.getError()
+}
+
+func maxDur(d1, d2 time.Duration) time.Duration {
+	if d1 > d2 {
+		return d1
+	}
+	return d2
 }

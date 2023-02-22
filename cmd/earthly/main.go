@@ -59,6 +59,8 @@ const (
 
 	defaultSecretFile = ".secret"
 	secretFileFlag    = "secret-file-path"
+
+	defaultLogstreamMaxTimeout = time.Second * 30
 )
 
 type earthlyApp struct {
@@ -166,6 +168,7 @@ type cliFlags struct {
 	logstreamDebugFile              string
 	logstreamDebugManifestFile      string
 	logstreamAddressOverride        string
+	logstreamMaxTimeout             time.Duration
 	requestID                       string
 	buildID                         string
 	loginProvider                   string
@@ -441,7 +444,7 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 		var err error
 		app.logbusSetup, err = logbussetup.New(
 			cliCtx.Context, app.logbus, app.debug, app.verbose, forceColor, noColor,
-			disableOngoingUpdates, app.logstreamDebugFile, app.buildID)
+			disableOngoingUpdates, app.logstreamDebugFile, app.buildID, app.logstreamMaxTimeout)
 		if err != nil {
 			return errors.Wrap(err, "logbus setup")
 		}

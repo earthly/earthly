@@ -188,6 +188,14 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Destination: &app.logstreamDebugManifestFile,
 			Hidden:      true, // Internal.
 		},
+		&cli.DurationFlag{
+			Name:        "logstream-maximum-timeout",
+			EnvVars:     []string{"EARTHLY_LOGSTREAM_MAXIMUM_TIMEOUT"},
+			Usage:       "Specify the maximum time log streaming will retry after the build finishes",
+			Value:       defaultLogstreamMaxTimeout,
+			Destination: &app.logstreamMaxTimeout,
+			Hidden:      true,
+		},
 		&cli.StringFlag{
 			Name:        "logstream-address",
 			EnvVars:     []string{"EARTHLY_LOGSTREAM_ADDRESS"},

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/cloud"
@@ -30,11 +31,12 @@ type BusSetup struct {
 	LogStreamer     *logstreamer.Orchestrator
 	InitialManifest *logstream.RunManifest
 
-	verbose bool
+	verbose             bool
+	maxLogstreamTimeout time.Duration
 }
 
 // New creates a new BusSetup.
-func New(ctx context.Context, bus *logbus.Bus, debug, verbose, forceColor, noColor, disableOngoingUpdates bool, busDebugFile string, buildID string) (*BusSetup, error) {
+func New(ctx context.Context, bus *logbus.Bus, debug, verbose, forceColor, noColor, disableOngoingUpdates bool, busDebugFile string, buildID string, maxLogstreamTimeout time.Duration) (*BusSetup, error) {
 	bs := &BusSetup{
 		Bus:           bus,
 		ConsoleWriter: writersub.New(os.Stderr, "_full"),
@@ -45,7 +47,8 @@ func New(ctx context.Context, bus *logbus.Bus, debug, verbose, forceColor, noCol
 			Version:            deltautil.Version,
 			CreatedAtUnixNanos: uint64(bus.CreatedAt().UnixNano()),
 		},
-		verbose: verbose,
+		verbose:             verbose,
+		maxLogstreamTimeout: maxLogstreamTimeout,
 	}
 	bs.Formatter = formatter.New(ctx, bs.Bus, debug, verbose, forceColor, noColor, disableOngoingUpdates)
 	bs.Bus.AddRawSubscriber(bs.Formatter)
@@ -77,7 +80,7 @@ func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
 // StartLogStreamer starts a LogStreamer for the given build. The
 // LogStreamer streams logs to the cloud.
 func (bs *BusSetup) StartLogStreamer(ctx context.Context, c *cloud.Client) {
-	bs.LogStreamer = logstreamer.NewOrchestrator(bs.Bus, c, bs.InitialManifest, logstreamer.WithVerbose(bs.verbose))
+	bs.LogStreamer = logstreamer.NewOrchestrator(bs.Bus, c, bs.InitialManifest, logstreamer.WithVerbose(bs.verbose), logstreamer.WithMaxLogstreamDuration(bs.maxLogstreamTimeout))
 	bs.LogStreamer.Start(ctx)
 }
 

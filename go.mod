@@ -7,6 +7,7 @@ require (
 	github.com/adrg/xdg v0.4.0
 	github.com/alessio/shellescape v1.4.1
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
+	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/aws/aws-sdk-go-v2 v1.17.4
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20230206222643-feb497de7dbc
 	github.com/containerd/containerd v1.6.12
