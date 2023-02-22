@@ -146,20 +146,6 @@ Note that satellites on pinned versions may still receive auto-updates during a 
 earthly satellite launch --version v0.6.29 my-satellite
 ```
 
-#### Weekends-Only Mode
-
-In cases where nightly maintenance schedules are not suitable, you can configure your auto-updates so that they will only run on Saturday using the following launch flag:
-
-```bash
-earthly satellite launch --maintenance-weekends-only my-satellite
-```
-
-{% hint style='info' %}
-##### Note
-At the time of writing, the day of the week is determined based on the UTC timezone.
-In the future, maintenance windows will be expanded to better incorporate user timezones and custom schedules.
-{% endhint %}
-
 #### Manually Updating a Satellite
 
 Satellites can also be manually updated using the `update` command. The update command can be used to not only trigger a version upgrade, but also to change other parameters of the satellite, such as feature-flags or its cache. 
