@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
@@ -16,6 +17,7 @@ import (
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cleanup"
+	"github.com/earthly/earthly/cloud"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/domain"
@@ -176,7 +178,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := app.newCloudClient(cloud.WithLogstreamGRPCAddressOverride(app.logstreamAddressOverride))
 	if err != nil {
 		return err
 	}
@@ -538,10 +540,25 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	// Kick off logstream upload only when we've passed the necessary information to logbusSetup.
 	// This information is passed back right at the beginning of the build within earthfile2llb.
 	go func() {
+		beforeSelect := time.Now()
 		select {
 		case <-cliCtx.Context.Done():
+			now := time.Now()
+			app.console.VerbosePrintf(
+				"========== CONTEXT DONE BEFORE LOGSTREAMER STARTED AT %s (%s later) ==========",
+				now.Format(time.RFC3339Nano),
+				now.Sub(beforeSelect),
+			)
 			return
 		case details := <-buildOpts.MainTargetDetailsFuture:
+			now := time.Now()
+			app.console.VerbosePrintf(
+				"========== SETTING ORG AND PROJECT %s/%s AT %s (%s later) ==========",
+				details.EarthlyOrgName,
+				details.EarthlyProjectName,
+				now.Format(time.RFC3339Nano),
+				now.Sub(beforeSelect),
+			)
 			analytics.AddEarthfileProject(details.EarthlyOrgName, details.EarthlyProjectName)
 			if app.logstream {
 				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)

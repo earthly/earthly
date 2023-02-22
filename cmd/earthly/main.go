@@ -165,6 +165,7 @@ type cliFlags struct {
 	logstreamUpload                 bool
 	logstreamDebugFile              string
 	logstreamDebugManifestFile      string
+	logstreamAddressOverride        string
 	requestID                       string
 	buildID                         string
 	loginProvider                   string

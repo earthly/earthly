@@ -2,6 +2,7 @@ package logbus
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 
@@ -26,8 +27,10 @@ type BusSetup struct {
 	Formatter       *formatter.Formatter
 	SolverMonitor   *solvermon.SolverMonitor
 	BusDebugWriter  *writersub.RawWriterSub
-	LogStreamer     *logstreamer.LogStreamer
+	LogStreamer     *logstreamer.Orchestrator
 	InitialManifest *logstream.RunManifest
+
+	verbose bool
 }
 
 // New creates a new BusSetup.
@@ -42,6 +45,7 @@ func New(ctx context.Context, bus *logbus.Bus, debug, verbose, forceColor, noCol
 			Version:            deltautil.Version,
 			CreatedAtUnixNanos: uint64(bus.CreatedAt().UnixNano()),
 		},
+		verbose: verbose,
 	}
 	bs.Formatter = formatter.New(ctx, bs.Bus, debug, verbose, forceColor, noColor, disableOngoingUpdates)
 	bs.Bus.AddRawSubscriber(bs.Formatter)
@@ -73,7 +77,8 @@ func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
 // StartLogStreamer starts a LogStreamer for the given build. The
 // LogStreamer streams logs to the cloud.
 func (bs *BusSetup) StartLogStreamer(ctx context.Context, c *cloud.Client) {
-	bs.LogStreamer = logstreamer.New(ctx, bs.Bus, c, bs.InitialManifest)
+	bs.LogStreamer = logstreamer.NewOrchestrator(bs.Bus, c, bs.InitialManifest, logstreamer.WithVerbose(bs.verbose))
+	bs.LogStreamer.Start(ctx)
 }
 
 // DumpManifestToFile dumps the manifest to the given file.
@@ -133,10 +138,14 @@ func (bs *BusSetup) Close() error {
 		}
 	}
 	if bs.LogStreamer != nil {
-		err := bs.LogStreamer.Close()
+		manifestsWritten, logsWritten, err := bs.LogStreamer.Close()
 		if err != nil {
 			retErr = multierror.Append(retErr, errors.Wrap(err, "log streamer"))
 		}
+		if bs.verbose {
+			fmt.Fprintf(os.Stderr, "========== WROTE %d MANIFESTS AND %d LOGS TO ITER==========\n", manifestsWritten, logsWritten)
+		}
+		<-bs.LogStreamer.Done()
 	}
 	return retErr
 }

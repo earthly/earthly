@@ -3,6 +3,7 @@ package logstreamer_test
 import (
 	"context"
 	"io"
+	"runtime"
 	"testing"
 	"time"
 
@@ -26,7 +27,7 @@ func TestLogstreamer(topT *testing.T) {
 		mockClient *mockCloudClient
 		mockBus    *mockLogBus
 
-		streamer *logstreamer.LogStreamer
+		streamer *logstreamer.Orchestrator
 	}
 
 	o := onpar.BeforeEach(onpar.New(topT), func(t *testing.T) testCtx {
@@ -42,7 +43,8 @@ func TestLogstreamer(topT *testing.T) {
 			Version: 1,
 		}
 
-		streamer := logstreamer.New(ctx, bus, client, initManifest)
+		streamer := logstreamer.NewOrchestrator(bus, client, initManifest)
+		streamer.Start(ctx)
 		return testCtx{
 			t:          t,
 			expect:     expect,
@@ -80,32 +82,35 @@ func TestLogstreamer(topT *testing.T) {
 		pers.Return(tt.mockClient.StreamLogsOutput, nil)
 	})
 
-	o.Spec("Close can finish even when it is being flooded with Write calls", func(tt testCtx) {
+	o.Spec("it finishes sending deltas", func(tt testCtx) {
+		var (
+			ctx     context.Context
+			buildID string
+			deltas  cloud.Deltas
+		)
 		tt.expect(tt.mockClient).To(haveMethodExecuted(
 			"StreamLogs",
 			within(testTimeout),
+			storeArgs(&ctx, &buildID, &deltas),
 		))
+		_, _ = deltas.Next(tt.ctx) // ignore the initial manifest
 
-		go func() {
-			for {
-				select {
-				case <-tt.ctx.Done():
-					return
-				default:
-					tt.streamer.Write(&logstream.Delta{})
-				}
-			}
-		}()
+		const toSend = 5
+		for i := 0; i < toSend; i++ {
+			tt.streamer.WriteToDeltaIter(&logstream.Delta{})
+		}
+		go tt.streamer.Close()
 
-		// At the time of this writing, returning nil here just closes the
-		// retryLoop. Since we're exercising the `deltas` closing, not the
-		// retryLoop, returning here should do what we want.
-		//
-		// If returning here automatically closes the streamer so that it
-		// ignores calls to Write, then this test will no longer be valid.
+		runtime.Gosched() // ensure that closeLastLogstreamer() has a chance to close the deltas
+
+		for i := 0; i < toSend; i++ {
+			_, err := deltas.Next(tt.ctx)
+			tt.expect(err).To(not(haveOccurred()))
+		}
+		_, err := deltas.Next(tt.ctx)
+		tt.expect(err).To(beErr(io.EOF))
+
 		pers.Return(tt.mockClient.StreamLogsOutput, nil)
-
-		tt.expect(tt.streamer.Close()).To(not(haveOccurred()))
 	})
 }
 

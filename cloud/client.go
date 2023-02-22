@@ -36,29 +36,38 @@ const (
 )
 
 type Client struct {
-	httpAddr              string
-	sshKeyBlob            []byte // sshKey to use
-	forceSSHKey           bool   // if true only use the above ssh key, don't attempt to guess others
-	sshAgent              agent.ExtendedAgent
-	warnFunc              func(string, ...interface{})
-	email                 string
-	password              string
-	authToken             string
-	authTokenExpiry       time.Time
-	authCredToken         string
-	authDir               string
-	disableSSHKeyGuessing bool
-	jum                   *protojson.UnmarshalOptions
-	pipelines             pipelines.PipelinesClient
-	compute               compute.ComputeClient
-	logstream             logstream.LogStreamClient
-	analytics             analytics.AnalyticsClient
-	requestID             string
-	installationName      string
+	httpAddr                 string
+	sshKeyBlob               []byte // sshKey to use
+	forceSSHKey              bool   // if true only use the above ssh key, don't attempt to guess others
+	sshAgent                 agent.ExtendedAgent
+	warnFunc                 func(string, ...interface{})
+	email                    string
+	password                 string
+	authToken                string
+	authTokenExpiry          time.Time
+	authCredToken            string
+	authDir                  string
+	disableSSHKeyGuessing    bool
+	jum                      *protojson.UnmarshalOptions
+	pipelines                pipelines.PipelinesClient
+	compute                  compute.ComputeClient
+	logstream                logstream.LogStreamClient
+	analytics                analytics.AnalyticsClient
+	requestID                string
+	installationName         string
+	logstreamAddressOverride string
+}
+
+type ClientOpt func(*Client)
+
+func WithLogstreamGRPCAddressOverride(address string) ClientOpt {
+	return func(client *Client) {
+		client.logstreamAddressOverride = address
+	}
 }
 
 // NewClient provides a new Earthly Cloud client
-func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, authJWTOverride, installationName, requestID string, warnFunc func(string, ...interface{})) (*Client, error) {
+func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, authJWTOverride, installationName, requestID string, warnFunc func(string, ...interface{}), opts ...ClientOpt) (*Client, error) {
 	c := &Client{
 		httpAddr: httpAddr,
 		sshAgent: &lazySSHAgent{
@@ -79,6 +88,11 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 			return nil, err
 		}
 	}
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
 	ctx := context.Background()
 	retryOpts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(10),
@@ -89,20 +103,25 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 		grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...), c.StreamInterceptor()),
 		grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...), c.UnaryInterceptor(WithSkipAuth("/api.public.analytics.Analytics/SendAnalytics"))),
 	}
+	var transportCredential credentials.TransportCredentials
 	if useInsecure {
-		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		transportCredential = insecure.NewCredentials()
 	} else {
-		tlsConfig := credentials.NewTLS(&tls.Config{})
-		dialOpts = append(dialOpts, grpc.WithTransportCredentials(tlsConfig))
+		transportCredential = credentials.NewTLS(&tls.Config{})
 	}
+	dialOpts = append(dialOpts, grpc.WithTransportCredentials(transportCredential))
 	conn, err := grpc.DialContext(ctx, grpcAddr, dialOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed dialing pipelines grpc")
 	}
 	c.pipelines = pipelines.NewPipelinesClient(conn)
 	c.compute = compute.NewComputeClient(conn)
-	c.logstream = logstream.NewLogStreamClient(conn)
 	c.analytics = analytics.NewAnalyticsClient(conn)
+	c.logstream, err = logstreamClient(ctx, conn, c.logstreamAddressOverride, dialOpts...)
+	if err != nil {
+		return nil, errors.Wrap(err, "cloud: could not create logstream client")
+	}
+
 	return c, nil
 }
 
@@ -111,4 +130,15 @@ func (c *Client) getRequestID() string {
 		return c.requestID
 	}
 	return uuid.NewString()
+}
+
+func logstreamClient(ctx context.Context, defaultConn grpc.ClientConnInterface, overrideAddr string, dialOpts ...grpc.DialOption) (logstream.LogStreamClient, error) {
+	if overrideAddr == "" {
+		return logstream.NewLogStreamClient(defaultConn), nil
+	}
+	conn, err := grpc.DialContext(ctx, overrideAddr, dialOpts...)
+	if err != nil {
+		return nil, errors.Wrap(err, "cloud: failed dialing logstream grpc")
+	}
+	return logstream.NewLogStreamClient(conn), nil
 }
