@@ -156,7 +156,7 @@ earthly satellite launch --maintenance-weekends-only my-satellite
 
 {% hint style='info' %}
 ##### Note
-At the time of writing, the day of the week is determined based on the UTC timezone.
+The day of the week is determined based on the UTC timezone.
 Maintenance windows will be expanded to better incorporate user timezones and custom schedules in the future.
 {% endhint %}
 
