@@ -51,8 +51,8 @@ Ensure that you have correct permissions to push and pull the images. Please ref
 Earthly also works with Service Principals; and these do not require `az acr login`. You can simply login directly with `docker` like this: 
 
 ```
-RUN --secret AZ_USERNAME=+secrets/earthly-technologies/azure/ci-cd-username \
-    --secret AZ_PASSWORD=+secrets/earthly-technologies/azure/ci-cd-password \
+RUN --secret AZ_USERNAME=earthly-technologies/azure/ci-cd-username \
+    --secret AZ_PASSWORD=earthly-technologies/azure/ci-cd-password \
     docker login helloearthly.azurecr.io --username $AZ_USERNAME --password $AZ_PASSWORD
 ```
 

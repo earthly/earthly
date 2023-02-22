@@ -182,7 +182,7 @@ Also available as an env var setting: `EARTHLY_SECRETS="<secret-id>=<value>,<sec
 
 Passes a secret with ID `<secret-id>` to the build environments. If `<value>` is not specified, then the value becomes the value of the environment variable with the same name as `<secret-id>`.
 
-The secret can be referenced within Earthfile recipes as `RUN --secret <arbitrary-env-var-name>=+secrets/<secret-id>`. For more information see the [`RUN --secret` Earthfile command](../earthfile/earthfile.md#run).
+The secret can be referenced within Earthfile recipes as `RUN --secret <arbitrary-env-var-name>=<secret-id>`. For more information see the [`RUN --secret` Earthfile command](../earthfile/earthfile.md#run).
 
 ##### `--secret-file <secret-id>=<path>`
 
@@ -190,7 +190,7 @@ Also available as an env var setting: `EARTHLY_SECRET_FILES="<secret-id>=<path>,
 
 Loads the contents of a file located at `<path>` into a secret with ID `<secret-id>` for use within the build environments.
 
-The secret can be referenced within Earthfile recipes as `RUN --secret <arbitrary-env-var-name>=+secrets/<secret-id>`. For more information see the [`RUN --secret` Earthfile command](../earthfile/earthfile.md#run).
+The secret can be referenced within Earthfile recipes as `RUN --secret <arbitrary-env-var-name>=<secret-id>`. For more information see the [`RUN --secret` Earthfile command](../earthfile/earthfile.md#run).
 
 ##### `--push`
 
@@ -646,6 +646,142 @@ List secrets the current account has access to.
 
 Removes a secret from the secrets store.
 
+## earthly registry
+
+Contains sub-commands for managing registry access in cloud-based secrets.
+
+### Options
+
+#### `--org`
+
+The organization to store the credentials under; must be used in combination with `--project`. If omitted, the user's personal secret store will be used instead.
+
+#### `--project`
+
+The organization's project to store the credentials under; the user's secret store will be used if empty.
+
+### earthly registry setup
+
+#### Synopsis
+
+* ```
+  earthly registry [--org <org> --project <project>] setup [--cred-helper <none|ecr-login|gcloud>] ...
+  ```
+
+##### username/password based registry (`--cred-helper=none`)
+
+* ```
+  earthly registry setup --username <username> --password <password> [<host>]
+  earthly registry --org <org> --project <project> setup --username <username> --password <password> [<host>]
+  ```
+
+##### AWS elastic container registry (`--cred-helper=ecr-login`)
+
+* ```
+  earthly registry setup --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>
+  earthly registry --org <org> --project <project> setup --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>
+  ```
+
+##### GCP artifact or container registry (`--cred-helper=gcloud`)
+
+* ```
+  earthly registry setup --cred-helper gcloud --gcp-key <key> <host>
+  earthly registry --org <org> --project setup <project> --cred-helper gcloud --gcp-service-account-key <key> <host>
+  ```
+
+#### Description
+
+Store registry credentials in the earthly-cloud secrets store. These credentials are used to authenticate with the registry.
+When they are associated with a project, by specifying `--org`, and `--project` flags, they will be associated with the project (as referenced by the
+`PROJECT` Earthfile command), which is used when running in CI.
+
+{% hint style='info' %}
+##### Note
+Registry credentials are stored under `std/registry/<host>/...` of either the user, or project based secrets.
+
+The `earthly registry ...` commands exist for convience; however, it is possible to set (or delete) these values using the `earthly secrets ...` commands.
+{% endhint %}
+
+
+#### Options
+
+##### `--cred-helper`
+
+When specified, use a credential helper for authenticating with the registry. Values can be `ecr-login`, `gcloud`, or `none`.
+
+Also available as an env var setting: `EARTHLY_REGISTRY_CRED_HELPER=<value>`.
+
+##### `--username <username>`
+
+The username to use; only applicable when `--cred-helper` is omitted (or `none`).
+
+Also available as an env var setting: `EARTHLY_REGISTRY_USERNAME=<value>`.
+
+##### `--password <password>`
+
+The password to use; only applicable when `--cred-helper` is omitted (or `none`).
+
+Also available as an env var setting: `EARTHLY_REGISTRY_PASSWORD=<value>`.
+
+##### `--password-stdin`
+
+When set, read the password from stdin; only applicable when `--cred-helper` is omitted (or `none`).
+
+Also available as an env var setting: EARTHLY_REGISTRY_PASSWORD_STDIN=true.
+
+##### `--aws-access-key-id <identifier>`
+
+The AWS access key ID to use when requesting a registry token, only applicable when `--cred-helper=ecr-login`.
+
+Also available as an env var setting: `AWS_ACCESS_KEY_ID=<identifier>`.
+
+##### `--aws-secret-access-key <secret>`
+
+The AWS secret access key to use when requesting a registry token, only applicable when `--cred-helper=ecr-login`.
+
+Also available as an env var setting: `AWS_SECRET_ACCESS_KEY=<secret>`.
+
+##### `--gcp-service-account-key <key>`
+
+The GCP service account key to use when requesting a registry token, only applicable when `--cred-helper=gcloud`.
+
+Also available as an env var setting: `GCP_SERVICE_ACCOUNT_KEY=<key>`.
+
+##### `--gcp-service-account-key-path <path>`
+
+Similar to `--gcp-service-account-key`, but read the key from the specified file.
+
+Also available as an env var setting: `GCP_SERVICE_ACCOUNT_KEY_PATH=<path>`, or `GOOGLE_APPLICATION_CREDENTIALS=<path>`.
+
+##### `--gcp-service-account-key-stdin`
+
+Similar to `--gcp-service-account-key`, but read the key from stdin.
+
+Also available as an env var setting: `GCP_SERVICE_ACCOUNT_KEY_PATH_STDIN=true`.
+
+#### earthly registry list
+
+##### Synopsis
+
+* ```
+  earthly registry list [--org <org> --project <project>]
+  ```
+
+##### Description
+
+Display the configured registries.
+
+#### earthly registry remove
+
+##### Synopsis
+
+* ```
+  earthly registry remove [--org <org> --project <project>] <host>
+  ```
+
+##### Description
+
+Remove a configured registry, and delete all stored credentials.
 
 ## earthly bootstrap
 
@@ -695,3 +831,113 @@ Prints help information about earthly.
 #### Description
 
 Prints version information about earthly.
+
+## earthly ls
+
+#### Synopsis
+
+* ```
+  earthly ls [<project-ref>]
+  ```
+
+#### Description
+
+Prints all targets in an `Earthfile` in a project.
+
+#### Options
+
+##### `--args`
+
+Show arguments (`ARG` statements) in the targets.
+
+##### `--long`
+
+Show full, canonical target references (includes the project part of the reference, if applicable).
+
+## earthly doc
+
+#### Synopsis
+
+* ```
+  earthly doc [<project-ref>[+<target-ref>]]
+  ```
+
+#### Description
+
+Prints documentation comments for documented targets in an `Earthfile` in a
+project. Documentation on a target is any comment block that ends on the line
+immediately above the target definition and begins with the name of the target.
+
+#### Examples
+
+Given the following `Earthfile`:
+
+```
+VERSION 0.7
+FROM golang:1.19-alpine3.15
+
+deps:
+    COPY go.mod go.sum .
+    RUN go mod download
+
+# build runs 'go build' and saves the artifact locally.
+build:
+    FROM +deps
+    COPY . .
+    ARG output=./build/something
+    RUN go build -o /bin/something
+    SAVE ARTIFACT /bin/something AS LOCAL $output
+
+# tidy runs 'go mod tidy' and saves go.mod/go.sum locally.
+tidy:
+    FROM +deps
+    COPY . .
+    RUN go mod tidy
+    SAVE ARTIFACT go.mod AS LOCAL go.mod
+    SAVE ARTIFACT go.sum AS LOCAL go.sum
+```
+
+##### Print the doc comments for all documented targets:
+
+```
+$ earthly doc
+TARGETS:
+  +build
+    build runs 'go build' and saves the artifact locally.
+  +tidy
+    tidy runs 'go mod tidy' and saves go.mod/go.sum locally.
+```
+
+Note that, unlike `earthly ls`, `earthly doc` does not mention the `deps`
+target. Since it has no documentation, the `deps` target is not included in the
+output.
+
+##### Print the doc comments for a specific target:
+
+```
+$ earthly doc +build
++build
+  build runs 'go build' and saves the artifact locally.
+```
+
+## earthly web
+
+#### Synopsis
+
+* ```
+  earthly web [--provider=<provider-ref>]]
+  ```
+
+#### Description
+
+Prints a url for entering the CI application and attempts to open your default browser with that url.
+If the provider argument is given the CI application will automatically begin an OAuth flow with the given provider.
+If you are logged into the CLI the url will contain a token used to link your OAuth credentials to your Earthly user.
+
+#### Examples
+
+##### Login to the CI application with GitHub
+
+* ```
+  earthly web --provider=github
+  ```

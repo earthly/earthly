@@ -118,7 +118,7 @@ This allows you to push to remote repositories.
 
 ```Dockerfile
 release:
-    RUN --push --secret GITHUB_TOKEN=+secrets/GH_TOKEN github-release upload
+    RUN --push --secret GITHUB_TOKEN=GH_TOKEN github-release upload
 ```
 ```bash
 earthly --push +release

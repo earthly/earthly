@@ -10,7 +10,7 @@ the feature enabled by default.
 ## Specifying Version and features
 
 Each Earthfile should list the current earthly version it depends on using the [`VERSION`](../earthfile/earthfile.md#version) command.
-The `VERSION` command was first introduced under `0.5` and is optional as of `0.6`; however, it will become mandatory in a future version.
+The `VERSION` command was first introduced under `0.5` and is required as of `0.7`.
 
 ```Dockerfile
 VERSION [<flags>...] <version-number>
@@ -35,14 +35,30 @@ to require version `0.X` (or later), and could be rewritten as `VERSION 0.X`.
 
 | Feature flag | status | description |
 | --- | --- | --- |
+| `--use-registry-for-with-docker` | 0.5 | Makes use of the embedded BuildKit Docker registry (instead of tar files) for `WITH DOCKER` loads and pulls |
 | `--use-copy-include-patterns` | 0.6 | Speeds up COPY transfers |
 | `--referenced-save-only` | 0.6 | Changes the behavior of SAVE commands in a significant way |
 | `--for-in` | 0.6 | Enables support for `FOR ... IN ...` commands |
 | `--require-force-for-unsafe-saves` | 0.6 | Requires `--force` for saving artifacts locally outside the Earthfile's directory  |
 | `--no-implicit-ignore` | 0.6 | Eliminates implicit `.earthlyignore` entries, such as `Earthfile` and `.tmp-earthly-out` |
-| `--earthly-version-arg` | Beta | Enables builtin ARGs: `EARTHLY_VERSION` and `EARTHLY_BUILD_SHA` |
-| `--shell-out-anywhere` | Experimental | Allows shelling-out in any earthly command (including in the middle of `ARG`) |
-| `--use-registry-for-with-docker` | Experimental | Makes use of the embedded BuildKit Docker registry (instead of tar files) for `WITH DOCKER` loads and pulls |
+| `--earthly-version-arg` | 0.7 | Enables builtin ARGs: `EARTHLY_VERSION` and `EARTHLY_BUILD_SHA` |
+| `--shell-out-anywhere` | 0.7 | Allows shelling-out in any earthly command (including in the middle of `ARG`) |
+| `--explicit-global` | 0.7 | Base target args must have a `--global` flag in order to be considered global args |
+| `--check-duplicate-images` | 0.7 | Check for duplicate images during output |
+| `--use-cache-command` | 0.7 | Allow use of `CACHE` command in Earthfiles |
+| `--use-host-command` | 0.7 | Allow use of `HOST` command in Earthfiles |
+| `--use-copy-link` | 0.7 | Use the equivalent of `COPY --link` for all copy-like operations |
+| `--new-platform` | 0.7 | Enable new platform behavior |
+| `--no-tar-build-output` | 0.7 | Do not print output when creating a tarball to load into `WITH DOCKER` |
+| `--use-no-manifest-list` | 0.7 | Enable the `SAVE IMAGE --no-manifest-list` option |
+| `--use-chmod` | 0.7 | Enable the `COPY --chmod` option |
+| `--earthly-locally-arg` | 0.7 | Enable the `EARTHLY_LOCALLY` arg |
+| `--use-project-secrets` | 0.7 | Enable project-based secret resolution |
+| `--use-pipelines` | 0.7 | Enable the `PIPELINE` and `TRIGGER` commands |
+| `--earthly-git-author-args` | 0.7 | Enable the `EARTHLY_GIT_AUTHOR` and `EARTHLY_GIT_CO_AUTHORS` args |
+| `--wait-block` | 0.7 | Enable the `WAIT` / `END` block commands |
+| `--try` | Experimental | Enable the `TRY` / `FINALLY` / `END` block commands |
+
 
 Note that the features flags are disabled by default in Earthly versions lower than the version listed in the "status" column above.
 

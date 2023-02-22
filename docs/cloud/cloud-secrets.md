@@ -3,11 +3,9 @@
 {% hint style='danger' %}
 ##### Important
 
-This feature is currently in **Experimental** stage
+This feature is currently in **Beta** stage
 
-* The feature may break, be changed drastically with no warning, or be removed altogether in future versions of Earthly.
-* Check the [GitHub tracking issue](https://github.com/earthly/earthly/issues/575) for any known problems.
-* Give us feedback on [Slack](https://earthly.dev/slack) in the `#cloud-secrets` channel.
+* If you encounter any issues, please give us feedback on [Slack](https://earthly.dev/slack) in the `#cloud-secrets` channel.
 {% endhint %}
 
 Earthly has the ability to use secure cloud-based storage for build secrets. This page goes through the basic setup and usage examples.
@@ -22,148 +20,109 @@ This document covers the use of cloud-hosted secrets. It builds upon the underst
 
 In order to be able to use cloud secrets, you need to first register an Earthly cloud account and create an Earthly org. Follow the steps in the [Earthly Cloud overview](../overview.md#getting-started) to get started.
 
-### Interacting with the private user secret store from the command line
-
-Each user has a non-sharable private user space which can be referenced by `/user/...`; this can be thought of as your home directory.
-To view this workspace, try running:
+Then, you need create an Earthly project. To do that, you may use the command
 
 ```bash
-earthly secrets ls
-earthly secrets ls /user
+earthly project --org <org-name> create <project-name>
 ```
 
-Secrets are referenced by a path, and can contain up to 512 bytes.
+Or alternatively, launch the Earthly web interface by running `earthly web`, and clicking on **New Project**.
+
+Access to secrets is controlled by the project they belong to. Anyone with at least `read+secrets` access level for the org or the specific project will be able to see and use the secrets in their builds. Anyone with `write` access level will be able to create, modify and delete secrets. For more information on managing permissions see the [Managing Permissions page](./managing-permissions.md).
+
+### Listing secrets
+
+Each Earthly project has its own isolated secret store. Multiple code repositories may be associated with a single Earthly project. To view the secrets within a given project, you can run
+
+```bash
+earthly secret --org <org-name> --project <project-name> ls
+```
 
 ### Setting a value
 
-To set a secret value, use the `secrets set` command:
+To set a secret value, use the `secret set` command:
 
 ```bash
-earthly secrets set /user/my_key 'hello world'
+earthly secret --org <org-name> --project <project-name> set my_key 'hello world'
 ```
 
 ### Getting a value
 
-To view a secret value, use the `secrets get` command:
+To view a secret value, use the `secret get` command:
 
 ```bash
-earthly secrets ls /user
-earthly secrets get /user/my_key
+earthly secret --org <org-name> --project <project-name> ls
+earthly secret --org <org-name> --project <project-name> get my_key
+```
+
+### User secrets
+
+If a secret key starts with `/user/`, then the secret is stored in a special location accessible only by the current user. These secrets can never be shared. This may be useful, in cases where builds require that each developer uses their own set of credentials to access certain resources during builds.
+
+When using the `/user/` prefix, the org name and project name are no longer required. These secrets may otherwise be accessed the same way.
+
+```bash
+earthly secret ls /user
+earthly secret set /user/my_private_key 'hello private world'
+earthly secret ls /user
+earthly secret get /user/my_private_key
 ```
 
 ## Using cloud secrets in builds
 
-Cloud secrets can be referenced in an Earthfile, in a similar way to [locally-defined secrets](../guides/build-args.md).
-
-Consider the Earthfile:
+When secrets need to be referenced in an Earthfile, you need to declare the project the secrets belong to at the top of the Earthfile, after the `VERSION` declaration.
 
 ```Dockerfile
-FROM alpine:latest
-
-build:
-    RUN --secret MY_KEY=+secrets/user/my_key echo $MY_KEY
-    SAVE IMAGE myimage:latest
+VERSION 0.7
+PROJECT <org-name>/<project-name>
 ```
 
-The env variable `MY_KEY` will be set with the value stored under your private `/user/my_key` secret.
+Then, cloud secrets can be referenced in a similar way to [locally-defined secrets](../guides/build-args.md).
 
-You can build it via:
+For example:
 
-```bash
-earthly +build
+```Dockerfile
+RUN --secret MY_KEY=my_key echo $MY_KEY
 ```
 
-{% hint style='info' %}
-### Naming of local and cloud-based secrets
+The env variable `MY_KEY` will be set with the value stored under the secret key `my_key`.
 
-The only difference between the naming of locally-supplied and cloud-based secrets is that cloud secrets will contain
-two or more slashes since all cloud secrets must start with a `+secrets/<user or organization>/` prefix, whereas locally-defined secrets
-will only start with the `+secrets/` suffix, followed by a single name which cannot contain slashes.
-{% endhint %}
+Or, to reference a user secret:
 
-## Sharing secrets
-
-To share secrets between teams, an organization must first be created:
-
-```bash
-earthly org create <org-name>
+```Dockerfile
+RUN --secret MY_KEY=/user/my_private_key echo $MY_KEY
 ```
 
-Then additional users can be invited into the organization:
-
-```bash
-earthly org invite /<org-name>/ <email>
-```
-
-By default this will grant the invited user read privileges to all keys under the organization. It's also possible to
-use the `--write` flag to grant write permission too. Additionally, the permissions can be set to lower paths.
-
-### Sharing example
-
-Alice and Bob sign up for earthly accounts using alice@example.com and bob@example.com respectively:
-
-```bash
-earthly account register --email alice@example.com --token ...
-earthly account register --email bob@example.com --token ...
-```
-
-Alice then creates an organization called hush-co:
-
-```bash
-earthly org create hush-co
-```
-
-Alice then creates a secret under the `project-zulu` sub directory:
-
-```bash
-earthly secrets set /hush-co/project-zulu/transponder-code peanut
-```
-
-Alice then grants Bob read permission on all of `project-zulu`:
-
-```bash
-earthly org invite /hush-co/project-zulu/ bob@example.com
-```
-
-Bob now has permission to everything under the `/hush-co/project-zulu/` directory. If he runs
-
-```bash
-earthly secrets ls /hush-co/
-```
-
-he will see:
-
-```
-/hush-co/project-zulu/transponder-code
-```
-
-However if Alice were to create any secrets outside of `project-zulu`, Bob would not be able to list or retrieve them.
-
-## Using cloud secrets in CI
-
-To reference secrets from a CI environment, you can make use of the password or ssh-key authentication referenced under the login/logout section, or you can generate an authentication token by running:
-
-```bash
-earthly account create-token [--write] <token-name>
-```
-
-This token can then be exported as
-
-```bash
-EARTHLY_TOKEN=...
-```
-
-Which will then force Earthly to use that token when accessing secrets. This is useful for cases where running an ssh-agent is impractical.
-
-# Security Details
+## Security Details
 
 The Earthly command uses HTTPS to communicate with the cloud secrets server. The server encrypts all secrets using OpenPGP's implementation of AES256 before storing it in a database. We use industry-standard security practices for managing our encryption keys in the cloud. For more information see our [Security page](https://earthly.dev/security).
 
-Secrets are presented to BuildKit in a similar fashion as [locally-supplied secrets](build-args.md#storage-of-secrets):
-When BuildKit encounters a `RUN` command that requires a secret, the BuildKit daemon will request the secret
-from the earthly command-line process -- `earthly` will then make a request to earthly's cloud storage server
-(along with the auth token); once the server returns the secret, that secret will be passed to BuildKit.
+## Migrating from the old 0.6 experimental version of Earthly secrets
 
-# Feedback
+The 0.6 version of Earthly cloud secrets is no longer supported. To help migrate to the new version, a migration command has been made available.
 
-The secrets store is still an experimental feature, we would love to hear feedback in our  [Slack](https://earthly.dev/slack) community.
+In the 0.6 version, the secrets were stored globally as part of an Earthly organization. In the new version, secrets are stored per project. To migrate, you need to first create a new project using `earthly` 0.7+ (if you haven't already), and then run the migration command.
+
+You will first need to have read access to the source organization, and write access to the project you will be migrating to. The source organization can be the same as the destination one.
+
+```bash
+earthly project --org <org-name> create <project-name>
+earthly secret --org <org-name> --project <project-name> migrate <source-org-name>
+```
+
+Once migration is complete, you can view the secrets in the new project using `earthly secret ls`.
+
+```bash
+earthly secret --org <org-name> --project <project-name> ls
+```
+
+To update your Earthfile to use the new secrets, you need to add the `PROJECT` declaration at the top of any Earthfile that needs secret access.
+
+```Dockerfile
+VERSION 0.7
+PROJECT <org-name>/<project-name>
+```
+
+Secret references then need to be changed from `RUN --secret <env-var>=+secrets/<org-name>/<secret-key>` to `RUN --secret <env-var>=<secret-key>`. So the prefix `+secrets/<org-name>/` needs to be removed. For user secrets, only the prefix `+secrets` needs to be removed, such that the key of the secret contains the `/user/` prefix.
+
+Please note that user secrets are not migrated by the `migrate` command. You will need to manually re-create them.

@@ -70,7 +70,9 @@
 ## ☁️ Earthly Cloud
 
 * [Overview](cloud/overview.md)
+* [Managing permissions](cloud/managing-permissions.md)
 * [Cloud secrets](cloud/cloud-secrets.md)
 * [Satellites](cloud/satellites.md)
     * [Managing Satellites](cloud/satellites/managing.md)
     * [Using Satellites](cloud/satellites/using.md)
+* [Earthly CI](cloud/earthly-ci.md)
