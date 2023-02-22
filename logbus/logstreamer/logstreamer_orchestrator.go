@@ -9,6 +9,7 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -95,21 +96,23 @@ func (l *Orchestrator) Start(ctx context.Context) {
 		l.cancel = cancel
 		go func() {
 			defer l.markDone()
+			shouldRetry := true
 			retryOptions := []retry.Option{
 				retry.Context(ctx),
 				retry.DelayType(retry.RandomDelay),
 				// Minimum 5 second jitter between retries
 				retry.MaxJitter(maxDur(l.maxLogstreamTimeout/maxRetryCount, time.Second*5)),
 				retry.Attempts(maxRetryCount),
+				retry.RetryIf(func(err error) bool {
+					return shouldRetry && !errors.Is(err, context.Canceled)
+				}),
 			}
 			err := retry.Do(func() error {
 				l.subscribe()
-				shouldRetry, err := l.streamer.Stream(ctx)
+				var err error
+				shouldRetry, err = l.streamer.Stream(ctx)
 				l.addError(err)
-				if !shouldRetry {
-					return nil
-				}
-				return nil
+				return err
 			}, retryOptions...)
 			l.addError(err)
 		}()
