@@ -163,6 +163,59 @@ func (l *lexer) NextToken() antlr.Token {
 	return ret
 }
 
+type seeker interface {
+	Index() int
+	Seek(int)
+}
+
+// handleCommentIndentLevel checks whether or not a comment may need to trigger
+// an INDENT or DEDENT. The indent level will be set during this function if
+// necessary. This happens mainly in the following scenarios:
+//
+//   - When a comment is unindented after a recipe body and is followed by a new
+//     recipe.
+//
+//   - When a comment is indented as the first line of a recipe body and is
+//     followed by a non-comment token.
+//
+// In these scenarios, the comment may be documentation and needs to trigger the
+// INDENT/DEDENT _before_ the comment in the token sequence.
+func (l *lexer) handleCommentIndentLevel(seeker seeker, comment antlr.Token) bool {
+	idx := seeker.Index()
+	defer seeker.Seek(idx)
+
+	text := comment.GetText()
+	// TODO: with whitespace on its own channel, we can probably remove the
+	// whitespace from the COMMENT token and read these as WS tokens instead.
+	indented := strings.HasPrefix(text, " ") || strings.HasPrefix(text, "\t")
+
+	next := l.EarthLexer.NextToken()
+	for ; next.GetTokenType() == parser.EarthLexerCOMMENT || next.GetTokenType() == parser.EarthLexerNL; next = l.EarthLexer.NextToken() {
+		if next.GetTokenType() != parser.EarthLexerCOMMENT {
+			continue
+		}
+		text := next.GetText()
+		alsoIndented := strings.HasPrefix(text, " ") || strings.HasPrefix(text, "\t")
+		if indented != alsoIndented {
+			return false
+		}
+	}
+	switch next.GetTokenType() {
+	case parser.EarthLexerWS:
+		if indented {
+			l.indentLevel = 1
+			return true
+		}
+		return false
+	default:
+		if !indented {
+			l.indentLevel = 0
+			return true
+		}
+		return false
+	}
+}
+
 func (l *lexer) processIndentation(peek antlr.Token) {
 	switch peek.GetTokenType() {
 	case parser.EarthLexerWS:
@@ -180,37 +233,9 @@ func (l *lexer) processIndentation(peek antlr.Token) {
 		}
 
 		l.afterLineComment = true
-		// In cases where comments are on a line by themselves, they could be
-		// documentation. We want to inject the INDENT/DEDENT token before the
-		// comment block, but only if (a) the whole block has matching
-		// indentation and (b) the indentation matches the token following it.
-		seeker := l.GetInputStream()
-		idx := seeker.Index()
 
-		text := peek.GetText()
-		indented := strings.HasPrefix(text, " ") || strings.HasPrefix(text, "\t")
-
-		next := l.EarthLexer.NextToken()
-		for ; next.GetTokenType() == parser.EarthLexerCOMMENT || next.GetTokenType() == parser.EarthLexerNL; next = l.EarthLexer.NextToken() {
-			text := next.GetText()
-			alsoIndented := strings.HasPrefix(text, " ") || strings.HasPrefix(text, "\t")
-			if indented != alsoIndented {
-				return
-			}
-		}
-		seeker.Seek(idx)
-
-		switch next.GetTokenType() {
-		case parser.EarthLexerWS:
-			if indented {
-				l.indentLevel = 1
-				l.handleIndentLevel(peek)
-			}
-		default:
-			if !indented {
-				l.indentLevel = 0
-				l.handleIndentLevel(peek)
-			}
+		if l.handleCommentIndentLevel(l.GetInputStream(), peek) {
+			l.handleIndentLevel(peek)
 		}
 	default:
 		l.handleIndentLevel(peek)

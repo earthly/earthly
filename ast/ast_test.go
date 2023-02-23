@@ -326,6 +326,26 @@ bar:
 			tt.expect(tgt.Name).To(equal("bar"))
 			tt.expect(tgt.Docs).To(equal("bar is a documented target\n"))
 		})
+
+		o.Spec("it does not treat comments in otherwise-empty targets as documentation for the next target", func(tt testCtx) {
+			mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.7
+
+
+foo:
+    # bar is not a documentation line
+
+bar:
+    RUN echo bar
+`))
+			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+			tt.expect(err).To(not(haveOccurred()))
+
+			tt.expect(f.Targets).To(haveLen(2))
+			tgt := f.Targets[1]
+			tt.expect(tgt.Name).To(equal("bar"))
+			tt.expect(tgt.Docs).To(equal(""))
+		})
 	})
 }
 
