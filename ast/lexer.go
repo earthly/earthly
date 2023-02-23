@@ -189,30 +189,36 @@ func (l *lexer) handleCommentIndentLevel(seeker seeker, comment antlr.Token) boo
 	// whitespace from the COMMENT token and read these as WS tokens instead.
 	indented := strings.HasPrefix(text, " ") || strings.HasPrefix(text, "\t")
 
-	next := l.EarthLexer.NextToken()
-	for ; next.GetTokenType() == parser.EarthLexerCOMMENT || next.GetTokenType() == parser.EarthLexerNL; next = l.EarthLexer.NextToken() {
-		if next.GetTokenType() != parser.EarthLexerCOMMENT {
+	for {
+		next := l.EarthLexer.NextToken()
+		switch next.GetTokenType() {
+		case parser.EarthLexerCOMMENT:
+			text := next.GetText()
+			alsoIndented := strings.HasPrefix(text, " ") || strings.HasPrefix(text, "\t")
+			if indented != alsoIndented {
+				return false
+			}
+		case parser.EarthLexerNL:
 			continue
-		}
-		text := next.GetText()
-		alsoIndented := strings.HasPrefix(text, " ") || strings.HasPrefix(text, "\t")
-		if indented != alsoIndented {
+		case parser.EarthLexerWS:
+			// At the time of writing, COMMENT tokens consume their leading
+			// whitespace, so this can't be a comment line.
+			//
+			// TODO: it would be cleaner to set a local indentLevel and only
+			// return in the default case. We tried that, though, and it
+			// resulted in parser errors.
+			if indented {
+				l.indentLevel = 1
+				return true
+			}
+			return false
+		default:
+			if !indented {
+				l.indentLevel = 0
+				return true
+			}
 			return false
 		}
-	}
-	switch next.GetTokenType() {
-	case parser.EarthLexerWS:
-		if indented {
-			l.indentLevel = 1
-			return true
-		}
-		return false
-	default:
-		if !indented {
-			l.indentLevel = 0
-			return true
-		}
-		return false
 	}
 }
 
