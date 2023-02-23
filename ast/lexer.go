@@ -163,9 +163,16 @@ func (l *lexer) NextToken() antlr.Token {
 	return ret
 }
 
-type seeker interface {
-	Index() int
-	Seek(int)
+func (l *lexer) pos() (line, column, index int) {
+	atn := l.Interpreter.(*antlr.LexerATNSimulator)
+	return atn.Line, atn.CharPositionInLine, l.GetInputStream().Index()
+}
+
+func (l *lexer) seek(line, column, index int) {
+	atn := l.Interpreter.(*antlr.LexerATNSimulator)
+	atn.Line = line
+	atn.CharPositionInLine = column
+	l.GetInputStream().Seek(index)
 }
 
 // handleCommentIndentLevel checks whether or not a comment may need to trigger
@@ -180,9 +187,9 @@ type seeker interface {
 //
 // In these scenarios, the comment may be documentation and needs to trigger the
 // INDENT/DEDENT _before_ the comment in the token sequence.
-func (l *lexer) handleCommentIndentLevel(seeker seeker, comment antlr.Token) bool {
-	idx := seeker.Index()
-	defer seeker.Seek(idx)
+func (l *lexer) handleCommentIndentLevel(comment antlr.Token) bool {
+	line, col, idx := l.pos()
+	defer l.seek(line, col, idx)
 
 	text := comment.GetText()
 	// TODO: with whitespace on its own channel, we can probably remove the
@@ -240,7 +247,7 @@ func (l *lexer) processIndentation(peek antlr.Token) {
 
 		l.afterLineComment = true
 
-		if l.handleCommentIndentLevel(l.GetInputStream(), peek) {
+		if l.handleCommentIndentLevel(peek) {
 			l.handleIndentLevel(peek)
 		}
 	default:
