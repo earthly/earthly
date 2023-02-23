@@ -175,14 +175,42 @@ func (l *lexer) processIndentation(peek antlr.Token) {
 		l.indentLevel = 0
 		l.afterNewLine = true
 	case parser.EarthLexerCOMMENT:
-		if l.afterNewLine {
-			// In cases where comments are on a line by themselves, they could
-			// be documentation - in which case we need handle INDENT/DEDENT.
-			l.afterLineComment = true
-			if strings.HasPrefix(peek.GetText(), " ") || strings.HasPrefix(peek.GetText(), "\t") {
-				l.indentLevel = 1
+		if !l.afterNewLine {
+			return
+		}
+
+		l.afterLineComment = true
+		// In cases where comments are on a line by themselves, they could be
+		// documentation. We want to inject the INDENT/DEDENT token before the
+		// comment block, but only if (a) the whole block has matching
+		// indentation and (b) the indentation matches the token following it.
+		seeker := l.GetInputStream()
+		idx := seeker.Index()
+
+		text := peek.GetText()
+		indented := strings.HasPrefix(text, " ") || strings.HasPrefix(text, "\t")
+
+		next := l.EarthLexer.NextToken()
+		for ; next.GetTokenType() == parser.EarthLexerCOMMENT || next.GetTokenType() == parser.EarthLexerNL; next = l.EarthLexer.NextToken() {
+			text := next.GetText()
+			alsoIndented := strings.HasPrefix(text, " ") || strings.HasPrefix(text, "\t")
+			if indented != alsoIndented {
+				return
 			}
-			l.handleIndentLevel(peek)
+		}
+		seeker.Seek(idx)
+
+		switch next.GetTokenType() {
+		case parser.EarthLexerWS:
+			if indented {
+				l.indentLevel = 1
+				l.handleIndentLevel(peek)
+			}
+		default:
+			if !indented {
+				l.indentLevel = 0
+				l.handleIndentLevel(peek)
+			}
 		}
 	default:
 		l.handleIndentLevel(peek)

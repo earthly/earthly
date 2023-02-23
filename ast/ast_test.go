@@ -199,6 +199,19 @@ foo:
 		tt.expect(env.Command.Args).To(equal([]string{"foo", "=", "$ ( foo )"}))
 	})
 
+	o.Spec("it successfully parses unindented comments mid-recipe", func(tt testCtx) {
+		mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.7
+
+foo:
+    RUN some_command
+# Comment regarding something
+    SAVE ARTIFACT /stuff
+`))
+		_, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+		tt.expect(err).To(not(haveOccurred()))
+	})
+
 	o.Group("target docs", func() {
 		o.Spec("it parses target documentation", func(tt testCtx) {
 			mockEarthfile(tt.t, tt.reader, []byte(`
@@ -292,6 +305,26 @@ foo:
 			tgt := f.Targets[0]
 			tt.expect(tgt.Name).To(equal("foo"))
 			tt.expect(tgt.Docs).To(equal("echoes 'foo'\n"))
+		})
+
+		o.Spec("it skips comments that have different indentation", func(tt testCtx) {
+			mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.6
+
+foo:
+    RUN echo foo
+    # this is a trailing comment in foo
+# bar is a documented target
+bar:
+    RUN echo bar
+`))
+			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+			tt.expect(err).To(not(haveOccurred()))
+
+			tt.expect(f.Targets).To(haveLen(2))
+			tgt := f.Targets[1]
+			tt.expect(tgt.Name).To(equal("bar"))
+			tt.expect(tgt.Docs).To(equal("bar is a documented target\n"))
 		})
 	})
 }
