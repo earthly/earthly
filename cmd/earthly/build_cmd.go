@@ -293,6 +293,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return errors.Errorf("multi-platform builds are not yet supported on the command line. You may, however, create a target with the instruction BUILD --platform ... --platform ... %s", target)
 	}
 
+	showUnexpectedEnvWarnings := true
 	dotEnvMap, err := godotenv.Read(app.envFile)
 	if err != nil {
 		// ignore ErrNotExist when using default .env file
@@ -300,26 +301,31 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			return errors.Wrapf(err, "read %s", app.envFile)
 		}
 	}
-	validEnvNames := cliutil.GetValidEnvNames(app.cliApp)
-	for k := range dotEnvMap {
-		if _, found := validEnvNames[k]; !found {
-			app.console.Warnf("unexpected env \"%s\": as of v0.7.0, --build-arg values must be defined in .arg (and --secret values in .secret)", k)
-		}
-	}
-
 	argMap, err := godotenv.Read(app.argFile)
-	if err != nil {
+	if err == nil {
+		showUnexpectedEnvWarnings = false
+	} else {
 		// ignore ErrNotExist when using default .env file
 		if cliCtx.IsSet(argFileFlag) || !errors.Is(err, os.ErrNotExist) {
 			return errors.Wrapf(err, "read %s", app.argFile)
 		}
 	}
-
 	secretsFileMap, err := godotenv.Read(app.secretFile)
-	if err != nil {
+	if err == nil {
+		showUnexpectedEnvWarnings = false
+	} else {
 		// ignore ErrNotExist when using default .env file
 		if cliCtx.IsSet(secretFileFlag) || !errors.Is(err, os.ErrNotExist) {
 			return errors.Wrapf(err, "read %s", app.secretFile)
+		}
+	}
+
+	if showUnexpectedEnvWarnings {
+		validEnvNames := cliutil.GetValidEnvNames(app.cliApp)
+		for k := range dotEnvMap {
+			if _, found := validEnvNames[k]; !found {
+				app.console.Warnf("unexpected env \"%s\": as of v0.7.0, --build-arg values must be defined in .arg (and --secret values in .secret)", k)
+			}
 		}
 	}
 

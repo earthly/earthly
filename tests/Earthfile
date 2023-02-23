@@ -620,10 +620,15 @@ chown-test:
 
 dotenv-test:
     RUN echo "TEST_IN_DOTENV=this-should-not-appear-as-a-build-arg" >.env
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-dotenv --output_contain="unexpected env .TEST_IN_DOTENV.: as of v0.7.0, --build-arg values must be defined in .arg"
+
+    RUN touch .arg
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-dotenv --output_does_not_contain="unexpected env .TEST_IN_DOTENV.: as of v0.7.0, --build-arg values must be defined in .arg"
+
     RUN echo "TEST_ARG_1=abracadabra" >.arg
     RUN echo "TEST_SEC_2=foo" >.secret
     RUN echo "TEST_ARG_3=bar" >>.arg
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test --output_contains="unexpected env .TEST_IN_DOTENV.: as of v0.7.0, --build-arg values must be defined in .arg"
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test
 
     # test non-standard .arg paths can be used
     RUN mv .arg .some-other-arg
@@ -1272,6 +1277,7 @@ RUN_EARTHLY:
     ARG use_tmpfs=true
     ARG exec_cmd=
     ARG output_contains=
+    ARG output_does_not_contain=
     ARG grep_flags=
     ARG verbose=1
     IF [ ! -z "$earthfile" ]
@@ -1329,7 +1335,13 @@ RUN_EARTHLY:
         fi
         if [ -n \"$output_contains\" ]; then
             if ! grep $grep_flags \"$output_contains\" earthly.output >/dev/null; then
-                echo ERROR: earthly output did not contain \\\"$output_contains\\\"
+                echo \"ERROR: earthly output did not contain \\\"$output_contains\\\"\"
+                exit 1
+            fi
+        fi
+        if [ -n \"$output_does_not_contain\" ]; then
+            if grep $grep_flags \"$output_does_not_contain\" earthly.output >/dev/null; then
+                echo \"ERROR: earthly output contains \\\"$output_does_not_contain\\\" (which is unexpected)\"
                 exit 1
             fi
         fi
