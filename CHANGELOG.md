@@ -8,6 +8,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 - The `unexpected env` warning can now be silenced by creating a `.arg` or `.secret` file. [#2696](https://github.com/earthly/earthly/issues/2696).
 
+### Fixed
+
+- Unindented comments in the middle of recipe blocks no longer cause parser errors. [#2697](https://github.com/earthly/earthly/issues/2697)
+
 ## v0.7.0 - 2023-02-21
 
 The documentation for this version is available at the [Earthly 0.7 documentation page](https://docs.earthly.dev/v/earthly-0.7/).
