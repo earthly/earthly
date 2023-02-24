@@ -2,8 +2,6 @@ package stringutil
 
 import (
 	"testing"
-
-	. "github.com/stretchr/testify/assert"
 )
 
 func TestScrub(t *testing.T) {

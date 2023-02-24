@@ -34,6 +34,11 @@ set -ex
 #    env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG=v0.6.0 ./release.sh
 #
 
+# must happen before we change dirs
+if [[ "$earthly" == .* ]]; then
+  earthly="$(pwd)/$earthly"
+fi
+
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd "$SCRIPT_DIR"
 
@@ -42,12 +47,12 @@ test -n "$RELEASE_TAG" || (echo "ERROR: RELEASE_TAG is not set" && exit 1);
 (echo "$RELEASE_TAG" | grep '^v[0-9]\+.[0-9]\+.[0-9]\+\(-rc[0-9]\+\)\?$' > /dev/null) || (echo "ERROR: RELEASE_TAG must be formatted as v1.2.3 (or v1.2.3-RC1); instead got \"$RELEASE_TAG\""; exit 1);
 command -v jq || (echo "ERROR: jq is not installed"; exit 1);
 
-if [[ "$earthly" == .* ]]; then
-  earthly="$(pwd)/$earthly"
-elif [ -z "$earthly" ]; then
+if [ -z "$earthly" ]; then
   ../earthly upgrade
   earthly="../earthly"
 fi
+
+test -f "$earthly" || (echo "ERROR: earthly is set to $earthly which does not exist" && exit 1)
 
 # TODO once v 0.7 is fully released, we can remove this
 if ! "$earthly" secrets --help 2>&1 | grep migrate > /dev/null; then

@@ -190,6 +190,16 @@ markdown-spellcheck:
     # TODO remove the greps once the corresponding markdown files have spelling fixed (or techterms added to .vale/styles/HouseStyle/tech-terms/...
     RUN find . -type f -iname '*.md' | xargs vale --config /etc/vale/vale.ini --output line --minAlertLevel error
 
+# mocks runs 'go generate' against this module and saves generated mock files
+# locally.
+mocks:
+    FROM +code
+    RUN go install git.sr.ht/~nelsam/hel/v4@latest && go install golang.org/x/tools/cmd/goimports@latest
+    RUN go generate ./...
+    FOR mockfile IN $(find . -name 'helheim*_test.go')
+        SAVE ARTIFACT $mockfile AS LOCAL $mockfile
+    END
+
 # unit-test runs unit tests (and some integration tests).
 unit-test:
     FROM +code
@@ -233,6 +243,16 @@ unit-test:
     # The not-a-unit-test.sh script above actually DOES run unit-tests as well
     BUILD ./ast+unit-test
     BUILD ./util/deltautil+unit-test
+
+# chaos-test runs tests that use chaos and load in order to exercise components
+# of earthly. These tests may be more resource-intensive or flaky than typical
+# unit or integration tests.
+#
+# Since the race detector (-race) sets a goroutine limit, these tests are run
+# without -race.
+chaos-test:
+    FROM +code
+    RUN go test -tags chaos ./...
 
 # submodule-decouple-check checks that go submodules within earthly do not
 # depend on the core earthly project.
@@ -542,6 +562,7 @@ lint-docs:
 # TODO: Document qemu vs non-qemu
 test-no-qemu:
     BUILD +unit-test
+    BUILD +chaos-test
     BUILD +earthly-script-no-stdout
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false

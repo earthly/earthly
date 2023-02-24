@@ -1,4 +1,5 @@
 VERSION 0.7
+PROJECT earthly-technologies/core
 FROM alpine:3.15
 
 deps:
@@ -89,7 +90,7 @@ index-and-sign:
     WORKDIR /repo
     # Next move on to signing it (we sign the rpm repo with the same key we use for signing our apt repo)
     RUN --no-cache \
-        --mount type=secret,id=+secrets/earthly-technologies/release/keys/earthly-private.pgp,target=/release-key/earthly-private.pgp \
+        --mount type=secret,id=release/keys/earthly-private.pgp,target=/release-key/earthly-private.pgp \
         gpg --import /release-key/earthly-private.pgp
 
     RUN echo "%_signature gpg
@@ -121,7 +122,7 @@ upload:
     # upload public key
     ARG --required S3_BUCKET
     RUN --push \
-        --mount type=secret,id=+secrets/earthly-technologies/release/keys/earthly-public.pgp,target=/release-key/earthly-public.pgp \
+        --mount type=secret,id=release/keys/earthly-public.pgp,target=/release-key/earthly-public.pgp \
         --secret MFA_ARN=+secrets/user/earthly-technologies/aws/mfa-arn \
         --secret MFA_KEY=+secrets/user/earthly-technologies/aws/mfa-key \
         --mount type=secret,id=+secrets/user/earthly-technologies/aws/credentials,target=/root/.aws/credentials \

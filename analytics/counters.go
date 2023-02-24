@@ -2,11 +2,13 @@ package analytics
 
 import (
 	"sync"
+
+	"github.com/earthly/cloud-api/analytics"
 )
 
 // Counters is a threadsafe collection of counters
 type Counters struct {
-	counts map[string]map[string]int
+	counts map[string]*analytics.SendAnalyticsRequest_SubSystem
 	mutex  sync.Mutex
 }
 
@@ -17,19 +19,19 @@ func (c *Counters) Count(subsystem, key string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	if c.counts == nil {
-		c.counts = map[string]map[string]int{}
+		c.counts = make(map[string]*analytics.SendAnalyticsRequest_SubSystem)
 	}
 	m, ok := c.counts[subsystem]
 	if !ok {
-		m = map[string]int{}
+		m = &analytics.SendAnalyticsRequest_SubSystem{SubSystem: make(map[string]int32)}
 		c.counts[subsystem] = m
 	}
-	m[key]++
+	m.SubSystem[key]++
 }
 
 // getMap locks the Counter mutex, and returns the underlying counters map,
 // and a function that must be called when the map is no longer being used.
-func (c *Counters) getMap() (map[string]map[string]int, func()) {
+func (c *Counters) getMap() (map[string]*analytics.SendAnalyticsRequest_SubSystem, func()) {
 	c.mutex.Lock()
 	return c.counts, c.mutex.Unlock
 }

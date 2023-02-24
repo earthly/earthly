@@ -23,7 +23,7 @@ import (
 // Credentials may be either email/password, ssh-based, or a custom token.
 // Upon successful authenticate, the JWT provided by the server is stored in
 // ~/.earthly/auth.jwt, and can be refreshed any time via another call to Authenticate().
-func (c *client) Authenticate(ctx context.Context) error {
+func (c *Client) Authenticate(ctx context.Context) error {
 	var err error
 	switch {
 	case c.email != "" && c.password != "":
@@ -42,11 +42,11 @@ func (c *client) Authenticate(ctx context.Context) error {
 	return c.saveToken()
 }
 
-func (c *client) IsLoggedIn(ctx context.Context) bool {
+func (c *Client) IsLoggedIn(ctx context.Context) bool {
 	return c.authToken != "" || c.authCredToken != ""
 }
 
-func (c *client) FindSSHCredentials(ctx context.Context, emailToFind string) error {
+func (c *Client) FindSSHCredentials(ctx context.Context, emailToFind string) error {
 	keys, err := c.GetPublicKeys(ctx)
 	if err != nil {
 		return err
@@ -80,7 +80,7 @@ func (c *client) FindSSHCredentials(ctx context.Context, emailToFind string) err
 	return ErrNoAuthorizedPublicKeys
 }
 
-func (c *client) GetAuthToken(ctx context.Context) (string, error) {
+func (c *Client) GetAuthToken(ctx context.Context) (string, error) {
 	err := c.Authenticate(ctx) // Ensure the current token is valid
 	if err != nil {
 		return "", errors.Wrap(err, "could not authenticate")
@@ -88,7 +88,7 @@ func (c *client) GetAuthToken(ctx context.Context) (string, error) {
 	return c.authToken, nil
 }
 
-func (c *client) SetSSHCredentials(ctx context.Context, email, sshKey string) error {
+func (c *Client) SetSSHCredentials(ctx context.Context, email, sshKey string) error {
 	sshKeyType, sshKeyBlob, _, err := parseSSHKey(sshKey)
 	if err != nil {
 		return err
@@ -113,7 +113,7 @@ func (c *client) SetSSHCredentials(ctx context.Context, email, sshKey string) er
 	return c.saveCredentials(ctx, email, sshKeyType, sshKeyBlob)
 }
 
-func (c *client) DeleteCachedToken(ctx context.Context) error {
+func (c *Client) DeleteCachedToken(ctx context.Context) error {
 	var zero time.Time
 	c.authToken = ""
 	c.authTokenExpiry = zero
@@ -130,7 +130,7 @@ func (c *client) DeleteCachedToken(ctx context.Context) error {
 	return nil
 }
 
-func (c *client) DeleteAuthCache(ctx context.Context) error {
+func (c *Client) DeleteAuthCache(ctx context.Context) error {
 	err := c.DeleteCachedToken(ctx)
 	if err != nil {
 		return err
@@ -142,7 +142,7 @@ func (c *client) DeleteAuthCache(ctx context.Context) error {
 	return nil
 }
 
-func (c *client) SetTokenCredentials(ctx context.Context, token string) (string, error) {
+func (c *Client) SetTokenCredentials(ctx context.Context, token string) (string, error) {
 	c.email = ""
 	c.password = ""
 	c.authCredToken = token
@@ -157,15 +157,15 @@ func (c *client) SetTokenCredentials(ctx context.Context, token string) (string,
 	return email, nil
 }
 
-func (c *client) DisableSSHKeyGuessing(ctx context.Context) {
+func (c *Client) DisableSSHKeyGuessing(ctx context.Context) {
 	c.disableSSHKeyGuessing = true
 }
 
-func (c *client) SetAuthTokenDir(ctx context.Context, path string) {
+func (c *Client) SetAuthTokenDir(ctx context.Context, path string) {
 	c.authDir = path
 }
 
-func (c *client) SetPasswordCredentials(ctx context.Context, email, password string) error {
+func (c *Client) SetPasswordCredentials(ctx context.Context, email, password string) error {
 	c.authCredToken = ""
 	c.email = email
 	c.password = password
@@ -185,7 +185,7 @@ func IsValidEmail(ctx context.Context, email string) bool {
 	return len(parts) == 2
 }
 
-func (c *client) loadCredentials() error {
+func (c *Client) loadCredentials() error {
 	credPath, err := c.getCredentialsPath(false)
 	if err != nil {
 		return err
@@ -223,7 +223,7 @@ func (c *client) loadCredentials() error {
 	return nil
 }
 
-func (c *client) loadToken() error {
+func (c *Client) loadToken() error {
 	tokenPath, err := c.getTokenPath(false)
 	if err != nil {
 		return err
@@ -252,7 +252,7 @@ func (c *client) loadToken() error {
 	return nil
 }
 
-func (c *client) getCredentialsPath(create bool) (string, error) {
+func (c *Client) getCredentialsPath(create bool) (string, error) {
 	confDirPath := c.authDir
 	if confDirPath == "" {
 		if create {
@@ -269,7 +269,7 @@ func (c *client) getCredentialsPath(create bool) (string, error) {
 	return credPath, nil
 }
 
-func (c *client) migrateOldToken() error {
+func (c *Client) migrateOldToken() error {
 	confDirPath := c.authDir
 	if confDirPath == "" {
 		confDirPath = cliutil.GetEarthlyDir(c.installationName)
@@ -284,7 +284,7 @@ func (c *client) migrateOldToken() error {
 	return nil
 }
 
-func (c *client) getTokenPath(create bool) (string, error) {
+func (c *Client) getTokenPath(create bool) (string, error) {
 	confDirPath := c.authDir
 	if confDirPath == "" {
 		if create {
@@ -301,7 +301,7 @@ func (c *client) getTokenPath(create bool) (string, error) {
 	return tokenPath, nil
 }
 
-func (c *client) saveCredentials(ctx context.Context, email, tokenType, tokenValue string) error {
+func (c *Client) saveCredentials(ctx context.Context, email, tokenType, tokenValue string) error {
 	tokenPath, err := c.getCredentialsPath(true)
 	if err != nil {
 		return err
@@ -325,7 +325,7 @@ func (c *client) saveCredentials(ctx context.Context, email, tokenType, tokenVal
 	return nil
 }
 
-func (c *client) saveSSHCredentials(ctx context.Context, email, sshKey string) error {
+func (c *Client) saveSSHCredentials(ctx context.Context, email, sshKey string) error {
 	sshKeyType, sshKeyBlob, _, err := parseSSHKey(sshKey)
 	if err != nil {
 		return err
@@ -333,12 +333,12 @@ func (c *client) saveSSHCredentials(ctx context.Context, email, sshKey string) e
 	return c.saveCredentials(ctx, email, sshKeyType, sshKeyBlob)
 }
 
-func (c *client) savePasswordCredentials(ctx context.Context, email, password string) error {
+func (c *Client) savePasswordCredentials(ctx context.Context, email, password string) error {
 	password64 := base64.StdEncoding.EncodeToString([]byte(password))
 	return c.saveCredentials(ctx, email, "password", password64)
 }
 
-func (c *client) deleteCachedCredentials() error {
+func (c *Client) deleteCachedCredentials() error {
 	c.email = ""
 	c.password = ""
 	c.authCredToken = ""
@@ -360,7 +360,7 @@ func (c *client) deleteCachedCredentials() error {
 //   - ~/.earthly/auth.jwt
 //
 // If a an old-style auth.token file exists, it is automatically migrated and removed.
-func (c *client) loadAuthStorage() error {
+func (c *Client) loadAuthStorage() error {
 	if err := c.migrateOldToken(); err != nil {
 		return err
 	}
@@ -373,7 +373,7 @@ func (c *client) loadAuthStorage() error {
 	return nil
 }
 
-func (c *client) saveToken() error {
+func (c *Client) saveToken() error {
 	path, err := c.getTokenPath(true)
 	if err != nil {
 		return err
@@ -388,20 +388,20 @@ func (c *client) saveToken() error {
 	return nil
 }
 
-func (c *client) loginWithPassword(ctx context.Context) error {
+func (c *Client) loginWithPassword(ctx context.Context) error {
 	var err error
 	c.authCredToken = getPasswordAuthToken(c.email, c.password)
 	c.authToken, c.authTokenExpiry, err = c.login(ctx, c.authCredToken)
 	return err
 }
 
-func (c *client) loginWithToken(ctx context.Context) error {
+func (c *Client) loginWithToken(ctx context.Context) error {
 	var err error
 	c.authToken, c.authTokenExpiry, err = c.login(ctx, "token "+c.authCredToken)
 	return err
 }
 
-func (c *client) loginWithSSH(ctx context.Context) error {
+func (c *Client) loginWithSSH(ctx context.Context) error {
 	if c.disableSSHKeyGuessing {
 		return ErrNoAuthorizedPublicKeys
 	}
@@ -436,7 +436,7 @@ func (c *client) loginWithSSH(ctx context.Context) error {
 // login calls the login endpoint on the cloud server, passing the provided credentials.
 // If auth succeeds, a new jwt token is returned with it's expiry date.
 // ErrUnauthorized is returned if the credentials are not valid.
-func (c *client) login(ctx context.Context, credentials string) (token string, expiry time.Time, err error) {
+func (c *Client) login(ctx context.Context, credentials string) (token string, expiry time.Time, err error) {
 	var zero time.Time
 	status, body, err := c.doCall(ctx, "POST", "/api/v0/account/login",
 		withHeader("Authorization", credentials))
@@ -457,7 +457,7 @@ func (c *client) login(ctx context.Context, credentials string) (token string, e
 	return resp.Token, resp.Expiry.AsTime().UTC(), nil
 }
 
-func (c *client) getChallenge(ctx context.Context) (string, error) {
+func (c *Client) getChallenge(ctx context.Context) (string, error) {
 	status, body, err := c.doCall(ctx, "GET", "/api/v0/account/auth-challenge")
 	if err != nil {
 		return "", err
@@ -479,7 +479,7 @@ func (c *client) getChallenge(ctx context.Context) (string, error) {
 	return challengeResponse.Challenge, nil
 }
 
-func (c *client) signChallenge(challenge string, key *agent.Key) (string, string, error) {
+func (c *Client) signChallenge(challenge string, key *agent.Key) (string, string, error) {
 	sig, err := c.sshAgent.SignWithFlags(key, []byte(challenge), agent.SignatureFlagRsaSha512)
 	if err != nil {
 		return "", "", err
@@ -488,7 +488,7 @@ func (c *client) signChallenge(challenge string, key *agent.Key) (string, string
 	return sig.Format, s, nil
 }
 
-func (c *client) getSSHCredentials(challenge string, key *agent.Key) (credentials string, err error) {
+func (c *Client) getSSHCredentials(challenge string, key *agent.Key) (credentials string, err error) {
 	sigFormat, sig, err := c.signChallenge(challenge, key)
 	if err != nil {
 		return credentials, err

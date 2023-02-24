@@ -7,14 +7,17 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
+	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cleanup"
+	"github.com/earthly/earthly/cloud"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/domain"
@@ -175,7 +178,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := app.newCloudClient(cloud.WithLogstreamGRPCAddressOverride(app.logstreamAddressOverride))
 	if err != nil {
 		return err
 	}
@@ -290,6 +293,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return errors.Errorf("multi-platform builds are not yet supported on the command line. You may, however, create a target with the instruction BUILD --platform ... --platform ... %s", target)
 	}
 
+	showUnexpectedEnvWarnings := true
 	dotEnvMap, err := godotenv.Read(app.envFile)
 	if err != nil {
 		// ignore ErrNotExist when using default .env file
@@ -297,26 +301,31 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			return errors.Wrapf(err, "read %s", app.envFile)
 		}
 	}
-	validEnvNames := cliutil.GetValidEnvNames(app.cliApp)
-	for k := range dotEnvMap {
-		if _, found := validEnvNames[k]; !found {
-			app.console.Warnf("unexpected env \"%s\": as of v0.7.0, --build-arg values must be defined in .arg (and --secret values in .secret)", k)
-		}
-	}
-
 	argMap, err := godotenv.Read(app.argFile)
-	if err != nil {
+	if err == nil {
+		showUnexpectedEnvWarnings = false
+	} else {
 		// ignore ErrNotExist when using default .env file
 		if cliCtx.IsSet(argFileFlag) || !errors.Is(err, os.ErrNotExist) {
 			return errors.Wrapf(err, "read %s", app.argFile)
 		}
 	}
-
 	secretsFileMap, err := godotenv.Read(app.secretFile)
-	if err != nil {
+	if err == nil {
+		showUnexpectedEnvWarnings = false
+	} else {
 		// ignore ErrNotExist when using default .env file
 		if cliCtx.IsSet(secretFileFlag) || !errors.Is(err, os.ErrNotExist) {
 			return errors.Wrapf(err, "read %s", app.secretFile)
+		}
+	}
+
+	if showUnexpectedEnvWarnings {
+		validEnvNames := cliutil.GetValidEnvNames(app.cliApp)
+		for k := range dotEnvMap {
+			if _, found := validEnvNames[k]; !found {
+				app.console.Warnf("unexpected env \"%s\": as of v0.7.0, --build-arg values must be defined in .arg (and --secret values in .secret)", k)
+			}
 		}
 	}
 
@@ -537,10 +546,26 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	// Kick off logstream upload only when we've passed the necessary information to logbusSetup.
 	// This information is passed back right at the beginning of the build within earthfile2llb.
 	go func() {
+		beforeSelect := time.Now()
 		select {
 		case <-cliCtx.Context.Done():
+			now := time.Now()
+			app.console.VerbosePrintf(
+				"========== CONTEXT DONE BEFORE LOGSTREAMER STARTED AT %s (%s later) ==========",
+				now.Format(time.RFC3339Nano),
+				now.Sub(beforeSelect),
+			)
 			return
 		case details := <-buildOpts.MainTargetDetailsFuture:
+			now := time.Now()
+			app.console.VerbosePrintf(
+				"========== SETTING ORG AND PROJECT %s/%s AT %s (%s later) ==========",
+				details.EarthlyOrgName,
+				details.EarthlyProjectName,
+				now.Format(time.RFC3339Nano),
+				now.Sub(beforeSelect),
+			)
+			analytics.AddEarthfileProject(details.EarthlyOrgName, details.EarthlyProjectName)
 			if app.logstream {
 				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
 				if doLogstreamUpload {

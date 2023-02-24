@@ -163,6 +163,72 @@ func (l *lexer) NextToken() antlr.Token {
 	return ret
 }
 
+func (l *lexer) pos() (line, column, index int) {
+	atn := l.Interpreter.(*antlr.LexerATNSimulator)
+	return atn.Line, atn.CharPositionInLine, l.GetInputStream().Index()
+}
+
+func (l *lexer) seek(line, column, index int) {
+	atn := l.Interpreter.(*antlr.LexerATNSimulator)
+	atn.Line = line
+	atn.CharPositionInLine = column
+	l.GetInputStream().Seek(index)
+}
+
+// handleCommentIndentLevel checks whether or not a comment may need to trigger
+// an INDENT or DEDENT. The indent level will be set during this function if
+// necessary. This happens mainly in the following scenarios:
+//
+//   - When a comment is unindented after a recipe body and is followed by a new
+//     recipe.
+//
+//   - When a comment is indented as the first line of a recipe body and is
+//     followed by a non-comment token.
+//
+// In these scenarios, the comment may be documentation and needs to trigger the
+// INDENT/DEDENT _before_ the comment in the token sequence.
+func (l *lexer) handleCommentIndentLevel(comment antlr.Token) bool {
+	line, col, idx := l.pos()
+	defer l.seek(line, col, idx)
+
+	text := comment.GetText()
+	// TODO: with whitespace on its own channel, we can probably remove the
+	// whitespace from the COMMENT token and read these as WS tokens instead.
+	indented := strings.HasPrefix(text, " ") || strings.HasPrefix(text, "\t")
+
+	for {
+		next := l.EarthLexer.NextToken()
+		switch next.GetTokenType() {
+		case parser.EarthLexerCOMMENT:
+			text := next.GetText()
+			alsoIndented := strings.HasPrefix(text, " ") || strings.HasPrefix(text, "\t")
+			if indented != alsoIndented {
+				return false
+			}
+		case parser.EarthLexerNL:
+			continue
+		case parser.EarthLexerWS:
+			// At the time of writing, COMMENT tokens consume their leading
+			// whitespace, so this can't be a comment line.
+			//
+			// TODO: it would be cleaner to set a local indentLevel and only
+			// return in the default case. We tried that, though, and it
+			// resulted in parser errors.
+			if indented {
+				l.indentLevel = 1
+				return true
+			}
+			return false
+		default:
+			if !indented {
+				l.indentLevel = 0
+				return true
+			}
+			return false
+		}
+	}
+}
+
 func (l *lexer) processIndentation(peek antlr.Token) {
 	switch peek.GetTokenType() {
 	case parser.EarthLexerWS:
@@ -175,13 +241,13 @@ func (l *lexer) processIndentation(peek antlr.Token) {
 		l.indentLevel = 0
 		l.afterNewLine = true
 	case parser.EarthLexerCOMMENT:
-		if l.afterNewLine {
-			// In cases where comments are on a line by themselves, they could
-			// be documentation - in which case we need handle INDENT/DEDENT.
-			l.afterLineComment = true
-			if strings.HasPrefix(peek.GetText(), " ") || strings.HasPrefix(peek.GetText(), "\t") {
-				l.indentLevel = 1
-			}
+		if !l.afterNewLine {
+			return
+		}
+
+		l.afterLineComment = true
+
+		if l.handleCommentIndentLevel(peek) {
 			l.handleIndentLevel(peek)
 		}
 	default:

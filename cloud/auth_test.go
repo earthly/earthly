@@ -23,7 +23,7 @@ var testTokenExp = time.Now().Add(24 * time.Hour).UTC()
 
 func TestClient_Authenticate(t *testing.T) {
 	srv := mockServer(t)
-	cc := &client{
+	cc := &Client{
 		httpAddr: srv.URL,
 		email:    testEmail,
 		password: testPass,
@@ -45,7 +45,7 @@ func TestClient_Authenticate(t *testing.T) {
 }
 
 func TestClient_loadAuthStorage(t *testing.T) {
-	cc := &client{
+	cc := &Client{
 		authToken:       testToken,
 		authTokenExpiry: testTokenExp,
 		email:           testEmail,

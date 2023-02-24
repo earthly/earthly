@@ -35,22 +35,38 @@ const (
 	SatelliteStatusUnknown = "Unknown"
 )
 
+const (
+	SatelliteSizeXSmall = "xsmall"
+	SatelliteSizeSmall  = "small"
+	SatelliteSizeMedium = "medium"
+	SatelliteSizeLarge  = "large"
+	SatelliteSizeXLarge = "xlarge"
+)
+
+const (
+	SatellitePlatformAMD64 = "linux/amd64"
+	SatellitePlatformARM64 = "linux/arm64"
+)
+
+const DefaultSatelliteSize = SatelliteSizeMedium
+
 // SatelliteInstance contains details about a remote Buildkit instance.
 type SatelliteInstance struct {
-	Name                   string
-	Org                    string
-	State                  string
-	Platform               string
-	Size                   string
-	Version                string
-	VersionPinned          bool
-	FeatureFlags           []string
-	MaintenanceWindowStart string
-	MaintenanceWindowEnd   string
-	RevisionID             int32
+	Name                    string
+	Org                     string
+	State                   string
+	Platform                string
+	Size                    string
+	Version                 string
+	VersionPinned           bool
+	FeatureFlags            []string
+	MaintenanceWindowStart  string
+	MaintenanceWindowEnd    string
+	MaintenanceWeekendsOnly bool
+	RevisionID              int32
 }
 
-func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error) {
+func (c *Client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error) {
 	resp, err := c.compute.ListSatellites(c.withAuth(ctx), &pb.ListSatellitesRequest{
 		OrgId: orgID,
 	})
@@ -71,7 +87,7 @@ func (c *client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteI
 	return instances, nil
 }
 
-func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error) {
+func (c *Client) GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error) {
 	resp, err := c.compute.GetSatellite(c.withAuth(ctx), &pb.GetSatelliteRequest{
 		OrgId: orgID,
 		Name:  name,
@@ -80,21 +96,22 @@ func (c *client) GetSatellite(ctx context.Context, name, orgID string) (*Satelli
 		return nil, errors.Wrap(err, "failed getting satellite")
 	}
 	return &SatelliteInstance{
-		Name:                   name,
-		Org:                    orgID,
-		State:                  satelliteStatus(resp.Status),
-		Platform:               resp.Platform,
-		Size:                   resp.Size,
-		Version:                resp.Version,
-		VersionPinned:          resp.VersionPinned,
-		FeatureFlags:           resp.FeatureFlags,
-		MaintenanceWindowStart: resp.MaintenanceWindowStart,
-		MaintenanceWindowEnd:   resp.MaintenanceWindowEnd,
-		RevisionID:             resp.RevisionId,
+		Name:                    name,
+		Org:                     orgID,
+		State:                   satelliteStatus(resp.Status),
+		Platform:                resp.Platform,
+		Size:                    resp.Size,
+		Version:                 resp.Version,
+		VersionPinned:           resp.VersionPinned,
+		FeatureFlags:            resp.FeatureFlags,
+		MaintenanceWindowStart:  resp.MaintenanceWindowStart,
+		MaintenanceWindowEnd:    resp.MaintenanceWindowEnd,
+		MaintenanceWeekendsOnly: resp.MaintenanceWeekendsOnly,
+		RevisionID:              resp.RevisionId,
 	}, nil
 }
 
-func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error {
+func (c *Client) DeleteSatellite(ctx context.Context, name, orgID string) error {
 	_, err := c.compute.DeleteSatellite(c.withAuth(ctx), &pb.DeleteSatelliteRequest{
 		OrgId: orgID,
 		Name:  name,
@@ -105,15 +122,27 @@ func (c *client) DeleteSatellite(ctx context.Context, name, orgID string) error 
 	return nil
 }
 
-func (c *client) LaunchSatellite(ctx context.Context, name, orgID, platform, size, version, maintenanceWindow string, features []string) error {
+type LaunchSatelliteOpt struct {
+	Name                    string
+	OrgID                   string
+	Size                    string
+	Platform                string
+	PinnedVersion           string
+	MaintenanceWindowStart  string
+	MaintenanceWeekendsOnly bool
+	FeatureFlags            []string
+}
+
+func (c *Client) LaunchSatellite(ctx context.Context, opt LaunchSatelliteOpt) error {
 	req := &pb.LaunchSatelliteRequest{
-		OrgId:                  orgID,
-		Name:                   name,
-		Platform:               platform,
-		Size:                   size,
-		FeatureFlags:           features,
-		Version:                version,
-		MaintenanceWindowStart: maintenanceWindow,
+		OrgId:                   opt.OrgID,
+		Name:                    opt.Name,
+		Platform:                opt.Platform,
+		Size:                    opt.Size,
+		FeatureFlags:            opt.FeatureFlags,
+		Version:                 opt.PinnedVersion,
+		MaintenanceWindowStart:  opt.MaintenanceWindowStart,
+		MaintenanceWeekendsOnly: opt.MaintenanceWeekendsOnly,
 	}
 	_, err := c.compute.LaunchSatellite(c.withAuth(ctx), req)
 	if err != nil {
@@ -127,7 +156,7 @@ type SatelliteStatusUpdate struct {
 	Err   error
 }
 
-func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, gitConfigEmail string, isCI bool) (out chan SatelliteStatusUpdate) {
+func (c *Client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, gitConfigEmail string, isCI bool) (out chan SatelliteStatusUpdate) {
 	out = make(chan SatelliteStatusUpdate)
 	go func() {
 		// Some notes on the 10-minute timeout here:
@@ -169,7 +198,7 @@ func (c *client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, g
 	return out
 }
 
-func (c *client) WakeSatellite(ctx context.Context, name, orgID string) (out chan SatelliteStatusUpdate) {
+func (c *Client) WakeSatellite(ctx context.Context, name, orgID string) (out chan SatelliteStatusUpdate) {
 	out = make(chan SatelliteStatusUpdate)
 	go func() {
 		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -203,7 +232,7 @@ func (c *client) WakeSatellite(ctx context.Context, name, orgID string) (out cha
 	return out
 }
 
-func (c *client) SleepSatellite(ctx context.Context, name, orgID string) (out chan SatelliteStatusUpdate) {
+func (c *Client) SleepSatellite(ctx context.Context, name, orgID string) (out chan SatelliteStatusUpdate) {
 	out = make(chan SatelliteStatusUpdate)
 	go func() {
 		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -238,14 +267,25 @@ func (c *client) SleepSatellite(ctx context.Context, name, orgID string) (out ch
 	return out
 }
 
-func (c *client) UpdateSatellite(ctx context.Context, name, orgID, version, maintenanceWindow string, dropCache bool, featureFlags []string) error {
+type UpdateSatelliteOpt struct {
+	Name                    string
+	OrgID                   string
+	PinnedVersion           string
+	MaintenanceWindowStart  string
+	MaintenanceWeekendsOnly bool
+	DropCache               bool
+	FeatureFlags            []string
+}
+
+func (c *Client) UpdateSatellite(ctx context.Context, opt UpdateSatelliteOpt) error {
 	req := &pb.UpdateSatelliteRequest{
-		OrgId:                  orgID,
-		Name:                   name,
-		Version:                version,
-		DropCache:              dropCache,
-		FeatureFlags:           featureFlags,
-		MaintenanceWindowStart: maintenanceWindow,
+		OrgId:                   opt.OrgID,
+		Name:                    opt.Name,
+		Version:                 opt.PinnedVersion,
+		DropCache:               opt.DropCache,
+		FeatureFlags:            opt.FeatureFlags,
+		MaintenanceWindowStart:  opt.MaintenanceWindowStart,
+		MaintenanceWeekendsOnly: opt.MaintenanceWeekendsOnly,
 	}
 	_, err := c.compute.UpdateSatellite(c.withAuth(ctx), req)
 	if err != nil {
@@ -302,4 +342,25 @@ func satelliteStatus(status pb.SatelliteStatus) string {
 	default:
 		return SatelliteStatusUnknown
 	}
+}
+
+var validSizes = map[string]bool{
+	SatelliteSizeXSmall: true,
+	SatelliteSizeSmall:  true,
+	SatelliteSizeMedium: true,
+	SatelliteSizeLarge:  true,
+	SatelliteSizeXLarge: true,
+}
+
+func ValidSatelliteSize(size string) bool {
+	return validSizes[size]
+}
+
+var validPlatforms = map[string]bool{
+	SatellitePlatformAMD64: true,
+	SatellitePlatformARM64: true,
+}
+
+func ValidSatellitePlatform(size string) bool {
+	return validPlatforms[size]
 }

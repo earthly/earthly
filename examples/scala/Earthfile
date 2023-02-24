@@ -1,4 +1,4 @@
-VERSION 0.6
+VERSION 0.7
 FROM hseeberger/scala-sbt:11.0.7_1.3.13_2.11.12
 WORKDIR /scala-example
 

@@ -17,6 +17,7 @@ import (
 
 var ShellOutEnvs = map[string]struct{}{
 	"HOME": struct{}{},
+	"PATH": struct{}{},
 }
 
 type stackFrame struct {

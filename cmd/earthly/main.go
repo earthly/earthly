@@ -73,103 +73,111 @@ type earthlyApp struct {
 }
 
 type cliFlags struct {
-	platformsStr               cli.StringSlice
-	buildArgs                  cli.StringSlice
-	secrets                    cli.StringSlice
-	secretFiles                cli.StringSlice
-	artifactMode               bool
-	imageMode                  bool
-	pull                       bool
-	push                       bool
-	ci                         bool
-	output                     bool
-	noOutput                   bool
-	noCache                    bool
-	pruneAll                   bool
-	pruneReset                 bool
-	buildkitdSettings          buildkitd.Settings
-	allowPrivileged            bool
-	enableProfiler             bool
-	buildkitHost               string
-	buildkitdImage             string
-	containerName              string
-	installationName           string
-	cacheFrom                  cli.StringSlice
-	remoteCache                string
-	maxRemoteCache             bool
-	saveInlineCache            bool
-	useInlineCache             bool
-	configPath                 string
-	gitUsernameOverride        string
-	gitPasswordOverride        string
-	interactiveDebugging       bool
-	sshAuthSock                string
-	verbose                    bool
-	dryRun                     bool
-	debug                      bool
-	homebrewSource             string
-	bootstrapNoBuildkit        bool
-	bootstrapWithAutocomplete  bool
-	email                      string
-	token                      string
-	password                   string
-	disableNewLine             bool
-	secretStdin                bool
-	cloudHTTPAddr              string
-	cloudGRPCAddr              string
-	cloudGRPCInsecure          bool
-	satelliteAddress           string
-	writePermission            bool
-	registrationPublicKey      string
-	dockerfilePath             string
-	earthfilePath              string
-	earthfileFinalImage        string
-	expiry                     string
-	termsConditionsPrivacy     bool
-	authToken                  string
-	authJWT                    string
-	noFakeDep                  bool
-	enableSourceMap            bool
-	configDryRun               bool
-	strict                     bool
-	conversionParallelism      int
-	certPath                   string
-	keyPath                    string
-	disableAnalytics           bool
-	featureFlagOverrides       string
-	localRegistryHost          string
-	envFile                    string
-	argFile                    string
-	secretFile                 string
-	lsShowLong                 bool
-	lsShowArgs                 bool
-	containerFrontend          containerutil.ContainerFrontend
-	satelliteName              string
-	noSatellite                bool
-	satelliteFeatureFlags      cli.StringSlice
-	satellitePlatform          string
-	satelliteSize              string
-	satellitePrintJSON         bool
-	satelliteMaintenanceWindow string
-	satelliteDropCache         bool
-	satelliteVersion           string
-	userPermission             string
-	noBuildkitUpdate           bool
-	globalWaitEnd              bool // for feature-flipping builder.go code removal
-	projectName                string
-	orgName                    string
-	invitePermission           string
-	inviteMessage              string
-	logstream                  bool
-	logstreamUpload            bool
-	logstreamDebugFile         string
-	logstreamDebugManifestFile string
-	requestID                  string
-	buildID                    string
-	loginProvider              string
-	registryUsername           string
-	registryPassword           string
-	registryPasswordStdin      bool
+	platformsStr                    cli.StringSlice
+	buildArgs                       cli.StringSlice
+	secrets                         cli.StringSlice
+	secretFiles                     cli.StringSlice
+	artifactMode                    bool
+	imageMode                       bool
+	pull                            bool
+	push                            bool
+	ci                              bool
+	output                          bool
+	noOutput                        bool
+	noCache                         bool
+	pruneAll                        bool
+	pruneReset                      bool
+	buildkitdSettings               buildkitd.Settings
+	allowPrivileged                 bool
+	enableProfiler                  bool
+	buildkitHost                    string
+	buildkitdImage                  string
+	containerName                   string
+	installationName                string
+	cacheFrom                       cli.StringSlice
+	remoteCache                     string
+	maxRemoteCache                  bool
+	saveInlineCache                 bool
+	useInlineCache                  bool
+	configPath                      string
+	gitUsernameOverride             string
+	gitPasswordOverride             string
+	interactiveDebugging            bool
+	sshAuthSock                     string
+	verbose                         bool
+	dryRun                          bool
+	debug                           bool
+	homebrewSource                  string
+	bootstrapNoBuildkit             bool
+	bootstrapWithAutocomplete       bool
+	email                           string
+	token                           string
+	password                        string
+	disableNewLine                  bool
+	secretStdin                     bool
+	cloudHTTPAddr                   string
+	cloudGRPCAddr                   string
+	cloudGRPCInsecure               bool
+	satelliteAddress                string
+	writePermission                 bool
+	registrationPublicKey           string
+	dockerfilePath                  string
+	earthfilePath                   string
+	earthfileFinalImage             string
+	expiry                          string
+	termsConditionsPrivacy          bool
+	authToken                       string
+	authJWT                         string
+	noFakeDep                       bool
+	enableSourceMap                 bool
+	configDryRun                    bool
+	strict                          bool
+	conversionParallelism           int
+	certPath                        string
+	keyPath                         string
+	disableAnalytics                bool
+	featureFlagOverrides            string
+	localRegistryHost               string
+	envFile                         string
+	argFile                         string
+	secretFile                      string
+	lsShowLong                      bool
+	lsShowArgs                      bool
+	containerFrontend               containerutil.ContainerFrontend
+	satelliteName                   string
+	noSatellite                     bool
+	satelliteFeatureFlags           cli.StringSlice
+	satellitePlatform               string
+	satelliteSize                   string
+	satellitePrintJSON              bool
+	satelliteMaintenanceWindow      string
+	satelliteMaintenaceWeekendsOnly bool
+	satelliteDropCache              bool
+	satelliteVersion                string
+	userPermission                  string
+	noBuildkitUpdate                bool
+	globalWaitEnd                   bool // for feature-flipping builder.go code removal
+	projectName                     string
+	orgName                         string
+	invitePermission                string
+	inviteMessage                   string
+	logstream                       bool
+	logstreamUpload                 bool
+	logstreamDebugFile              string
+	logstreamDebugManifestFile      string
+	logstreamAddressOverride        string
+	requestID                       string
+	buildID                         string
+	loginProvider                   string
+	registryUsername                string
+	registryPassword                string
+	registryPasswordStdin           bool
+	registryCredHelper              string
+	awsAccessKeyID                  string
+	awsSecretAccessKey              string
+	gcpServiceAccountKeyPath        string
+	gcpServiceAccountKey            string
+	gcpServiceAccountKeyStdin       bool
 }
 
 type analyticsMetadata struct {
@@ -307,6 +315,8 @@ func main() {
 		if err != nil && displayErrors {
 			app.console.Warnf("unable to start cloud client: %s", err)
 		} else if err == nil {
+			analytics.AddCLIProject(app.orgName, app.projectName)
+			org, project := analytics.ProjectDetails()
 			analytics.CollectAnalytics(
 				ctxTimeout, cloudClient, displayErrors, analytics.Meta{
 					Version:          Version,
@@ -320,6 +330,8 @@ func main() {
 					SatelliteVersion: app.analyticsMetadata.satelliteCurrentVersion,
 					IsRemoteBuildkit: app.analyticsMetadata.isRemoteBuildkit,
 					Realtime:         time.Since(startTime),
+					OrgName:          org,
+					ProjectName:      project,
 				},
 				app.installationName,
 			)

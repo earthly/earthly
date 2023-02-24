@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/earthly/cloud-api/analytics"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
@@ -187,10 +188,12 @@ type Meta struct {
 	SatelliteVersion string
 	IsRemoteBuildkit bool
 	Realtime         time.Duration
+	OrgName          string
+	ProjectName      string
 }
 
 // CollectAnalytics sends analytics to api.earthly.dev
-func CollectAnalytics(ctx context.Context, cloudClient cloud.Client, displayErrors bool, meta Meta, installationName string) {
+func CollectAnalytics(ctx context.Context, cloudClient *cloud.Client, displayErrors bool, meta Meta, installationName string) {
 	var err error
 	ciName, ci := DetectCI()
 	repoHash := getRepoHash()
@@ -225,16 +228,16 @@ func CollectAnalytics(ctx context.Context, cloudClient cloud.Client, displayErro
 		countsMap, countsMapUnlock := counts.getMap()
 		defer countsMapUnlock()
 
-		err := cloudClient.SendAnalytics(ctx, &cloud.EarthlyAnalytics{
+		err := cloudClient.SendAnalytics(ctx, &analytics.SendAnalyticsRequest{
 			Key:              key,
-			InstallID:        installID,
+			InstallId:        installID,
 			Version:          meta.Version,
 			Platform:         meta.Platform,
 			BuildkitPlatform: meta.BuildkitPlatform,
 			UserPlatform:     meta.UserPlatform,
-			GitSHA:           meta.GitSHA,
-			ExitCode:         meta.ExitCode,
-			CI:               ciName,
+			GitSha:           meta.GitSHA,
+			ExitCode:         int32(meta.ExitCode),
+			CiName:           ciName,
 			IsSatellite:      meta.IsSatellite,
 			SatelliteVersion: meta.SatelliteVersion,
 			IsRemoteBuildkit: meta.IsRemoteBuildkit,
@@ -242,6 +245,8 @@ func CollectAnalytics(ctx context.Context, cloudClient cloud.Client, displayErro
 			ExecutionSeconds: meta.Realtime.Seconds(),
 			Terminal:         isTerminal(),
 			Counts:           countsMap,
+			OrgName:          meta.OrgName,
+			ProjectName:      meta.ProjectName,
 		})
 		if err != nil && displayErrors {
 			fmt.Fprintf(os.Stderr, "error while sending analytics to earthly: %s\n", err.Error())
@@ -252,4 +257,16 @@ func CollectAnalytics(ctx context.Context, cloudClient cloud.Client, displayErro
 	if !ok && displayErrors {
 		fmt.Fprintf(os.Stderr, "Warning: timed out while sending analytics\n")
 	}
+}
+
+func AddEarthfileProject(org, project string) {
+	projectTracker.AddEarthfileProject(org, project)
+}
+
+func AddCLIProject(org, project string) {
+	projectTracker.AddCLIProject(org, project)
+}
+
+func ProjectDetails() (string, string) {
+	return projectTracker.ProjectDetails()
 }

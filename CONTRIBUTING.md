@@ -144,14 +144,24 @@ You may need to adjust the docker login command in the `earthly-integration-test
 
 ### Documentation
 
-Changes to the contents of `docs/` will be automatically updated to [docs.earthly.dev](https://docs.earthly.dev/); this is a problem for new features since the published documentation will reference features which are missing from the current released version of earthly. To ensure docs stay in sync, documentation for new features must be submitted via a seperate PR to the `next` branch.
+We maintain two different branches for [0.6](https://github.com/earthly/earthly/tree/docs-0.6) and [0.7](https://github.com/earthly/earthly/tree/docs-0.7) docs, which are automatically propagated to [docs.earthly.dev](https://docs.earthly.dev/) (which has a dropdown options to switch between versions).
 
-When a new version of earthly is [released](release/README.md), the `next` branch gets merged into the `main` branch, which then propigates to the published documentation.
+Documentation related to new unreleased features should be submitted in a PR to `main`, which we will merge into the `docs-0.7` branch when we perform a release.
+
+To contribute improvements to documentation related to currently released features, please open a PR against the `docs-0.7` branch; we will cherry-pick these changes to the older documentation branches if necessary.
 
 ### Config
 
 Starting with [v0.6.30](CHANGELOG.md#v0630---2022-11-22), the default location of the built binary's config file has
 changed to `~/.earthly-dev/config.yml`. The standard location is not used as a fallback; it is possible to `export EARTHLY_CONFIG=~/.earthly/config.yml`, or create a symlink if required.
+
+## Prereleases
+
+In addition to the `./earthly` prerelease script, we maintain a repository dedicated to [prereleases versions](https://github.com/earthly/earthly-staging/releases) of earthly.
+
+The prerelease versions follow a pseudo-semantic versioning scheme: `0.<epoch>.<decimal-git-sha>`; which is described in greater detail in the repository's [README](https://github.com/earthly/earthly-staging).
+
+Additionally, prerelease docker images are pushed to [earthly/earthly-staging](https://hub.docker.com/r/earthly/earthly-staging/tags) and [earthly/buildkitd-staging](https://hub.docker.com/r/earthly/buildkitd-staging/tags).
 
 ## CLA
 

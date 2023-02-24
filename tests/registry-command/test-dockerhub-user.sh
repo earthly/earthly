@@ -15,7 +15,7 @@ clearusersecrets
 earthly registry list | grep -v registry-1.docker.io
 
 # set dockerhub credentials
-earthly registry login --username mytest --password keepitsafe
+earthly registry setup --username mytest --password keepitsafe
 
 # test dockerhub credentials exist
 earthly registry list | grep registry-1.docker.io
@@ -23,6 +23,9 @@ earthly registry list | grep registry-1.docker.io
 # test username and password were correctly stored in underlying std secret
 test "$(earthly secrets get /user/std/registry/registry-1.docker.io/username)" = "mytest"
 test "$(earthly secrets get /user/std/registry/registry-1.docker.io/password)" = "keepitsafe"
+
+earthly registry remove
+earthly registry list | grep -v registry-1.docker.io
 
 # clear out secrets (just in case project-based registry accidentally uses user-based)
 clearusersecrets

@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *client) UploadLog(ctx context.Context, pathOnDisk string) (string, error) {
+func (c *Client) UploadLog(ctx context.Context, pathOnDisk string) (string, error) {
 	status, body, err := c.doCall(ctx, http.MethodPost, "/api/v0/logs", withAuth(), withFileBody(pathOnDisk), withHeader("Content-Type", "application/gzip"))
 	if err != nil {
 		return "", err

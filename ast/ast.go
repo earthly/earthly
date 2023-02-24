@@ -51,9 +51,8 @@ func ParseOpts(ctx context.Context, from FromOpt, opts ...Opt) (spec.Earthfile, 
 		return spec.Earthfile{}, err
 	}
 
-	// Convert.
 	errorListener := antlrhandler.NewReturnErrorListener()
-	errorStrategy := antlrhandler.NewReturnErrorStrategy()
+	errorStrategy := antlrhandler.NewReturnErrorStrategy(parser.GetLexerLiteralNames(), parser.GetLexerSymbolicNames())
 
 	if _, err := prefs.reader.Seek(0, 0); err != nil {
 		return spec.Earthfile{}, errors.Wrap(err, "ast: could not seek to beginning of file")
@@ -75,12 +74,16 @@ func ParseOpts(ctx context.Context, from FromOpt, opts ...Opt) (spec.Earthfile, 
 		return spec.Earthfile{}, errors.Errorf(strings.Join(errString, "\n"))
 	}
 	if errorStrategy.Err != nil {
-		return spec.Earthfile{}, errors.Wrapf(
+		err := errors.Wrapf(
 			errorStrategy.Err, "%s line %d:%d '%s'",
 			prefs.reader.Name(),
 			errorStrategy.RE.GetOffendingToken().GetLine(),
 			errorStrategy.RE.GetOffendingToken().GetColumn(),
 			errorStrategy.RE.GetOffendingToken().GetText())
+		if errorStrategy.Hint != "" {
+			err = antlrhandler.WithHints(err, errorStrategy.Hint)
+		}
+		return spec.Earthfile{}, err
 	}
 	if walkErr != nil {
 		return spec.Earthfile{}, walkErr
