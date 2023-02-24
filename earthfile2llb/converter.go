@@ -1817,10 +1817,11 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 
 	runOpts = append(runOpts, mountRunOpts...)
 	commandStr := fmt.Sprintf(
-		"%s %s%s%s%s%s%s",
+		"%s %s%s%s%s%s%s%s",
 		opts.CommandName, // e.g. "RUN", "IF", "FOR", "ARG"
 		strIf(opts.Privileged, "--privileged "),
 		strIf(opts.Push, "--push "),
+		strIf(opts.WithSSH, "--ssh "),
 		strIf(opts.NoCache, "--no-cache "),
 		strIf(opts.Interactive, "--interactive "),
 		strIf(opts.InteractiveKeep, "--interactive-keep "),
