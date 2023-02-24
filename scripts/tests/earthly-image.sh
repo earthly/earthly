@@ -88,7 +88,7 @@ if [ "$FRONTEND" = "docker" ]; then
 fi
 
 echo "Test satellite (not privileged, no buildkit)."
-"$FRONTEND" run --rm -e EARTHLY_ADDITIONAL_BUILDKIT_CONFIG -v "$dockerconfig:/root/.docker/config.json" -e EARTHLY_TOKEN="${EARTHLY_TOKEN}" -e NO_BUILDKIT=1 "${EARTHLY_IMAGE}" --org earthly-technologies --sat core-test --no-cache github.com/earthly/hello-world+hello 2>&1 | tee output.txt
+"$FRONTEND" run --rm -e EARTHLY_TOKEN="${EARTHLY_TOKEN}" -e NO_BUILDKIT=1 "${EARTHLY_IMAGE}" --org earthly-technologies --sat core-test --no-cache github.com/earthly/hello-world+hello 2>&1 | tee output.txt
 grep "Hello World" output.txt
 grep "Earthly installation is working correctly" output.txt
 
