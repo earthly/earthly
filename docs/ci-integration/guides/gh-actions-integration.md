@@ -45,7 +45,7 @@ jobs:
       run: earthly --push +build
 ```
 
-Alternatively, you can skip using the `earthly/actions/setup-earthly` job, and include
+Alternatively, you can skip using the `earthly/actions/setup-earthly` job and include
 a step to download earthly instead:
 
 ```yml
