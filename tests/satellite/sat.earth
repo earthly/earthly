@@ -1,0 +1,6 @@
+VERSION 0.7
+
+test:
+  FROM alpine:3.17
+  RUN echo hello > data
+  SAVE ARTIFACT data AS LOCAL data

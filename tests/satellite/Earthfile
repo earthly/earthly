@@ -1,0 +1,58 @@
+VERSION 0.7
+PROJECT earthly-technologies/core
+
+ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+ARG DOCKERHUB_MIRROR
+ARG DOCKERHUB_MIRROR_INSECURE=false
+ARG DOCKERHUB_MIRROR_HTTP=false
+ARG DOCKERHUB_AUTH=true
+FROM ../..+earthly-integration-test-base \
+    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+    --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+
+SAVE ARTIFACT /usr/bin/earthly earthly
+
+test:
+    FROM alpine:3.17
+    COPY +base/earthly /usr/bin/earthly
+    WORKDIR /sat-test
+    COPY sat.earth Earthfile
+    RUN --secret EARTHLY_TOKEN=earthly-token-for-satellite-tests \
+        set -ex; \
+        which earthly; \
+        ! which docker; \
+        ! which podman; \
+        earthly sat select core-test; \
+        ls -la; \
+        earthly +test 2>&1 | tee earthly.log; \
+        ls -la data; \
+        md5sum data | grep b1946ac92492d2347c6235b4d2611184; \
+        cat earthly.log
+
+test-dont-run-docker:
+    FROM alpine:3.17
+    COPY +base/earthly /usr/bin/earthly
+    COPY fake-docker /usr/bin/docker
+    WORKDIR /sat-test
+    COPY sat.earth Earthfile
+    RUN --secret EARTHLY_TOKEN=earthly-token-for-satellite-tests \
+        set -ex; \
+        which earthly; \
+        which docker; \
+        ! which podman; \
+        earthly sat select core-test; \
+        ls -la; \
+        earthly --verbose +test 2>&1 | tee earthly.log; \
+        ls -la data; \
+        md5sum data | grep b1946ac92492d2347c6235b4d2611184; \
+        cat earthly.log; \
+        ! ls -la /fake-docker-was-run
+
+all:
+    BUILD +test
+    BUILD +test-dont-run-docker

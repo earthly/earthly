@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+touch /fake-docker-was-run
+exit 1
