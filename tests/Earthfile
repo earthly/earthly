@@ -226,6 +226,7 @@ ga-no-qemu:
     BUILD +build-after-from
     BUILD +pipelines
     BUILD +doc
+    BUILD +no-network
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -1196,6 +1197,9 @@ ls-subdir:
     RUN earthly ls ./subdir 2>/dev/null | tee actual
     RUN echo -e "+alpha\n+base\n+bravo\n+charlie" > expected
     RUN diff expected actual
+
+no-network:
+    DO +RUN_EARTHLY --earthfile=no-network.earth --target=+test --should_fail=true --output_contains="wget: bad address .earthly.dev."
 
 ssh:
     ARG FRONTEND=docker

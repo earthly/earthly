@@ -32,6 +32,7 @@ type runOpts struct {
 	InteractiveKeep bool     `long:"interactive-keep" description:"Run this command with an interactive session, saving changes"`
 	Secrets         []string `long:"secret" description:"Make available a secret"`
 	Mounts          []string `long:"mount" description:"Mount a file or directory"`
+	Network         string   `long:"network" description:"Network to use; currently network=none is only supported"`
 }
 
 type fromOpts struct {
