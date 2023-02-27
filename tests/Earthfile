@@ -1161,19 +1161,40 @@ help:
 doc:
     DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --output_contains="TARGETS:
   +documented-target
+      documented-target is a target with documentation
+      that spans multiple lines.
+
+      It also has a separator between paragraphs."
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --grep_flags="-v" --output_contains="undocumented-target"
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --grep_flags="-v" --output_contains="incorrectly-documented-target"
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+documented-target" --output_contains="+documented-target
     documented-target is a target with documentation
     that spans multiple lines.
 
     It also has a separator between paragraphs."
-    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --grep_flags="-v" --output_contains="undocumented-target"
-    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --grep_flags="-v" --output_contains="incorrectly-documented-target"
-    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+documented-target" --output_contains="+documented-target
-  documented-target is a target with documentation
-  that spans multiple lines.
-
-  It also has a separator between paragraphs."
     DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+undocumented-target" --should_fail=true --output_contains="no doc comment found"
     DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+incorrectly-documented-target" --should_fail=true --output_contains="no doc comment found"
+
+    DO +RUN_EARTHLY --earthfile=recipe-block-docs.earth --extra_args="doc" --target="" --output_contains="TARGETS:
+  +foo [--withDefault=bar] [--withDocs] [--withoutDocs] --requiredArg
+      foo is a target with documentation. Targets without documentation won't show
+      up in `earthly doc` even if they have documented commands in their recipe.
+    REQUIRED ARGS:
+      --requiredArg
+    OPTIONAL ARGS:
+      --withDefault=bar
+        withDefault is a documented argument with a default.
+      --withDocs
+        withDocs is a documented argument.
+      --withoutDocs
+    ARTIFACTS:
+      bar.txt
+        bar.txt is a documented artifact.
+      baz.txt
+    IMAGES:
+      baz
+        baz is a documented image.
+      bar"
 
 cache-cmd:
     DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test

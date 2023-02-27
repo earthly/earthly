@@ -343,3 +343,38 @@ func GetTargetArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 	return args, nil
 
 }
+
+// Name returns the parsed user-defined name(s) of a spec.Command. For example,
+// `ARG --required foo` would return ["foo"].
+//
+// If the spec.Command has no name (e.g. `SAVE IMAGE --cache-hint`) or is not a
+// supported type, the returned value will be an empty string.
+func Name(ctx context.Context, cmd spec.Command) ([]string, error) {
+	switch cmd.Name {
+	case "ARG":
+		const (
+			pretendBase             = true
+			careAboutExplicitGlobal = false
+		)
+		_, argName, _, err := parseArgArgs(ctx, cmd, pretendBase, careAboutExplicitGlobal)
+		if err != nil {
+			return nil, errors.Wrapf(err, "could not parse opts for ARG [%v]", cmd)
+		}
+		return []string{argName}, nil
+	case "SAVE TARGET":
+		_, to, _, err := parseSaveArtifactArgs(cmd.Args)
+		if !ok {
+			return nil, errors.Errorf("could not parse opts for SAVE TARGET [%v]", cmd)
+		}
+		return []string{to}, nil
+	case "SAVE IMAGE":
+		var opts saveImageOpts
+		args, err := parseArgs("SAVE IMAGE", &opts, getArgsCopy(cmd))
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid SAVE IMAGE arguments %v", cmd.Args)
+		}
+		return args, nil
+	default:
+		return nil, nil
+	}
+}

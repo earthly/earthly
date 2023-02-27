@@ -90,7 +90,9 @@ func (l *listener) docs(c antlr.ParserRuleContext) string {
 	comments := l.tokStream.GetHiddenTokensToLeft(c.GetStart().GetTokenIndex(), parser.EarthLexerCOMMENTS_CHANNEL)
 	var docs string
 	for _, c := range comments {
-		line := strings.TrimSpace(strings.TrimPrefix(c.GetText(), "#"))
+		line := strings.TrimSpace(c.GetText())
+		line = strings.TrimPrefix(line, "#")
+		line = strings.TrimSpace(line)
 		docs += line + "\n"
 	}
 	return docs
@@ -182,7 +184,9 @@ func (l *listener) ExitStmt(c *parser.StmtContext) {
 // Command --------------------------------------------------------------------
 
 func (l *listener) EnterCommandStmt(c *parser.CommandStmtContext) {
-	l.command = new(spec.Command)
+	l.command = &spec.Command{
+		Docs: l.docs(c),
+	}
 	if l.enableSourceMap {
 		l.command.SourceLocation = &spec.SourceLocation{
 			File:        l.filePath,

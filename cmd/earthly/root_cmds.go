@@ -642,18 +642,15 @@ func (app *earthlyApp) actionDocumentTarget(cliCtx *cli.Context) error {
 
 	tgts := bc.Earthfile.Targets
 	fmt.Println("TARGETS:")
-	const (
-		nameIndent = docsIndent
-		bodyIndent = docsIndent + docsIndent
-	)
+	const tgtIndent = docsIndent
 	for _, tgt := range tgts {
-		_ = app.documentSingleTarget(nameIndent, bodyIndent, tgt)
+		_ = app.documentSingleTarget(tgtIndent, docsIndent, tgt)
 	}
 
 	return nil
 }
 
-func (app *earthlyApp) documentSingleTarget(nameIndent, docIndent string, tgt spec.Target) error {
+func (app *earthlyApp) documentSingleTarget(currIndent, scopeIndent string, tgt spec.Target) error {
 	if tgt.Docs == "" {
 		return errors.Errorf("no doc comment found [hint: add a comment starting with the word '%s' on the line immediately above this target]", tgt.Name)
 	}
@@ -667,9 +664,30 @@ func (app *earthlyApp) documentSingleTarget(nameIndent, docIndent string, tgt sp
 		return errors.Errorf("no doc comment found [hint: a comment was found but the first word was not '%s']", tgt.Name)
 	}
 
-	fmt.Println(indent(nameIndent, "+"+tgt.Name))
+	fmt.Println(indent(currIndent, "+"+tgt.Name))
+	docIndent := currIndent + scopeIndent + scopeIndent
 	indented := indent(docIndent, tgt.Docs)
 	fmt.Println(strings.Trim(indented, "\n"))
+
+	var required, optional, artifacts, images []spec.Command
+	for _, rb := range tgt.Recipe {
+		if rb.Command == nil {
+			continue
+		}
+		cmd := *rb.Command
+		switch cmd.Name {
+		case "ARG":
+			if isRequired(cmd) {
+				required = append(required, cmd)
+				continue
+			}
+			optional = append(optional, cmd)
+		case "SAVE ARTIFACT":
+			artifacts = append(artifacts, cmd)
+		case "SAVE IMAGE":
+			images = append(images, cmd)
+		}
+	}
 	return nil
 }
 
@@ -809,6 +827,15 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	}
 	app.console.Printf("Freed %s\n", humanize.Bytes(total))
 	return nil
+}
+
+func isRequired(cmd spec.Command) bool {
+	for _, arg := range cmd.Args {
+		if arg == "--required" {
+			return true
+		}
+	}
+	return false
 }
 
 func findTarget(ef spec.Earthfile, name string) (spec.Target, error) {
