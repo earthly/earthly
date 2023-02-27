@@ -2,15 +2,18 @@ package parser
 
 // GetLexerModeNames returns the generated mode names.
 func GetLexerModeNames() []string {
-	return lexerModeNames
+	EarthLexerInit()
+	return earthlexerLexerStaticData.modeNames
 }
 
 // GetLexerSymbolicNames returns the generated token names.
 func GetLexerSymbolicNames() []string {
-	return lexerSymbolicNames
+	EarthLexerInit()
+	return earthlexerLexerStaticData.symbolicNames
 }
 
 // GetLexerLiteralNames returns the generated literal names.
 func GetLexerLiteralNames() []string {
-	return lexerLiteralNames
+	EarthLexerInit()
+	return earthlexerLexerStaticData.literalNames
 }

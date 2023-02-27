@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install antlr.
 WORKDIR /usr/local/lib
-ARG ANTLR_VERSION=4.9.1
+ARG ANTLR_VERSION=4.12.0
 RUN curl -O https://www.antlr.org/download/antlr-${ANTLR_VERSION}-complete.jar
 WORKDIR /earthly
 

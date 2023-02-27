@@ -1,8 +1,8 @@
-// Code generated from ast/parser/EarthParser.g4 by ANTLR 4.9.1. DO NOT EDIT.
+// Code generated from ast/parser/EarthParser.g4 by ANTLR 4.12.0. DO NOT EDIT.
 
 package parser // EarthParser
 
-import "github.com/antlr/antlr4/runtime/Go/antlr"
+import "github.com/antlr/antlr4/runtime/Go/antlr/v4"
 
 // EarthParserListener is a complete listener for a parse tree produced by EarthParser.
 type EarthParserListener interface {
