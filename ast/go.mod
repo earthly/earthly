@@ -11,5 +11,5 @@ require (
 
 require (
 	github.com/poy/onpar v1.1.2 // indirect
-	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
+	golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2 // indirect
 )
