@@ -39,18 +39,18 @@ The key benefit of this approach is that you get the upload for free if you anyw
 
 #### How to use inline caching
 
-In order to enable inline caching, simply add `--ci` in your invocation of `earthly` in your CI, or `--use-inline-cache` on individual developer's machines. If the `--push` command is also specified, the use of the cache will be read-write.
+In order to enable inline caching, add `--ci --use-inline-cache --save-inline-cache` in your invocation of `earthly` in your CI, or `--use-inline-cache` on individual developer's machines. If the `--push` command is also specified, the use of the cache will be read-write.
 
 In CI, read-only inline cache (typically in PR builds):
 
 ```bash
-earthly --ci +some-target
+earthly --ci --use-inline-cache --save-inline-cache +some-target
 ```
 
 In CI, read-write inline cache (typically in master/main branch builds):
 
 ```bash
-earthly --ci --push +some-target
+earthly --ci --use-inline-cache --save-inline-cache --push +some-target
 ```
 
 On developer's computer (optional):
@@ -73,7 +73,7 @@ SAVE IMAGE --cache-from=mycompany/myimage:master --push mycompany/myimage:$BRANC
 ```
 
 {% hint style='info' %}
-The `--ci` flag will enable, among other things, both `--use-inline-cache` and `--save-inline-cache` flags. The `--use-inline-cache` flag is required to enable importing existing caches, and the `--save-inline-cache` flag is required to enable exporting images to the remote cache.
+The `--use-inline-cache` flag is required to enable importing existing caches, and the `--save-inline-cache` flag is required to enable exporting images to the remote cache.
 
 Since `VERSION 0.6` the inline cache is only exported to images [that are connected to the initial target through a chain of BUILD commands](https://docs.earthly.dev/docs/earthfile#build).
 {% endhint %}
@@ -101,7 +101,7 @@ In the Scala case, time is saved from processing the dependencies, resulting in 
 In both cases, a major benefit is that we are anyway pushing the images to the cloud via the `SAVE IMAGE --push` commands. So there is no performance penalty on the cache upload side. The command that would be used in the CI to execute the builds together with inline caching is
 
 ```bash
-earthly --ci --push +docker
+earthly --ci --use-inline-cache --save-inline-cache --push +docker
 ```
 
 ### Explicit cache (advanced)
