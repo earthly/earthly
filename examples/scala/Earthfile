@@ -1,5 +1,5 @@
 VERSION 0.7
-FROM hseeberger/scala-sbt:11.0.7_1.3.13_2.11.12
+FROM sbtscala/scala-sbt:eclipse-temurin-jammy-17.0.5_8_1.8.2_2.13.10
 WORKDIR /scala-example
 
 deps:
