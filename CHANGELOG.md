@@ -4,6 +4,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.1 - 2023-03-01
+
 ### Added
 
 - Support for `RUN --network=none`, which prevents programs from using any network resources. [#834](https://github.com/earthly/earthly/issues/834)
