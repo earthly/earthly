@@ -4,9 +4,13 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- Support for `RUN --network=none`, which prevents programs from using any network resources. [#834](https://github.com/earthly/earthly/issues/834)
+
 ### Changed
 
-- The `unexpected env` warning can now be silenced by creating a `.arg` or `.secret` file. [#2696](https://github.com/earthly/earthly/issues/2696).
+- The `unexpected env` warning can now be silenced by creating a `.arg` or `.secret` file. [#2696](https://github.com/earthly/earthly/issues/2696)
 
 ### Fixed
 

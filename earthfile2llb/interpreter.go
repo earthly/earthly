@@ -691,6 +691,17 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		return i.errorf(cmd.SourceLocation, "Permission denied: unwilling to run privileged command; did you reference a remote Earthfile without the --allow-privileged flag?")
 	}
 
+	var noNetwork bool
+	if opts.Network != "" {
+		if !i.converter.ftrs.NoNetwork {
+			return i.errorf(cmd.SourceLocation, "the RUN --network=none flag must be enabled with the VERSION --no-network feature flag.")
+		}
+		if opts.Network != "none" {
+			return i.errorf(cmd.SourceLocation, "invalid network value %s; only \"none\" is currently supported", opts.Network)
+		}
+		noNetwork = true
+	}
+
 	if i.withDocker == nil {
 		if opts.WithDocker {
 			return i.errorf(cmd.SourceLocation, "--with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
@@ -704,6 +715,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			WithShell:            withShell,
 			WithEntrypoint:       opts.WithEntrypoint,
 			Privileged:           opts.Privileged,
+			NoNetwork:            noNetwork,
 			Push:                 opts.Push,
 			WithSSH:              opts.WithSSH,
 			NoCache:              opts.NoCache,
