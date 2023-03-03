@@ -41,7 +41,9 @@ if [ -z "$EARTHLY_CACHE_VERSION" ]; then
     exit 1
 fi
 
-if [ -f "/sys/fs/cgroup/cgroup.controllers" ]; then
+if [ "$EARTHLY_SKIP_CGROUP_SETUP" = "true" ]; then
+    echo "cgroup setup skipped; buildkit/entrypoint.sh running under pid=$$"
+elif [ -f "/sys/fs/cgroup/cgroup.controllers" ]; then
     echo "detected cgroups v2; buildkit/entrypoint.sh running under pid=$$"
 
     cat /sys/fs/cgroup/cgroup.procs > /dev/null || (echo "failed to cat cgroup.procs, unable to proceed." && exit 1)
