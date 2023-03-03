@@ -44,6 +44,8 @@ fi
 if [ -f "/sys/fs/cgroup/cgroup.controllers" ]; then
     echo "detected cgroups v2; buildkit/entrypoint.sh running under pid=$$"
 
+    cat /sys/fs/cgroup/cgroup.procs > /dev/null || (echo "failed to cat cgroup.procs, unable to proceed." && exit 1)
+
     mkdir -p /sys/fs/cgroup/earthly
     mkdir -p /sys/fs/cgroup/buildkit
     echo "$$" > /sys/fs/cgroup/earthly/cgroup.procs
