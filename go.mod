@@ -9,7 +9,7 @@ require (
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/aws/aws-sdk-go-v2 v1.17.5
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20230227212328-9f4511cd144a
-	github.com/containerd/containerd v1.6.13
+	github.com/containerd/containerd v1.6.18
 	github.com/creack/pty v1.1.18
 	github.com/docker/cli v23.0.0-beta.1+incompatible
 	github.com/docker/distribution v2.8.1+incompatible
