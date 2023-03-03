@@ -20,8 +20,8 @@ github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuy
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/alessio/shellescape v1.4.1 h1:V7yhSDDn8LP4lc4jS8pFkt0zCnzVJlG5JXy9BVKJUX0=
 github.com/alessio/shellescape v1.4.1/go.mod h1:PZAiSCk0LJaZkiCSkPv8qIobYglO3FPpyFjDCtHLS30=
-github.com/alexcb/fsutil v0.0.0-20230301230713-39d6a65e3f5d h1:dSh7qwt8k3i4NsKx0KofUNDe94QL0DLFsa1onsbyl10=
-github.com/alexcb/fsutil v0.0.0-20230301230713-39d6a65e3f5d/go.mod h1:AvLEd1LEIl64G2Jpgwo7aVV5lGH0ePcKl0ygGIHNYl8=
+github.com/alexcb/fsutil v0.0.0-20230301235611-cfcb9a7e5ddc h1:lsd+1g3tDMAxLIGMbjXIbFMiPTW29KdRMXzkx7MDAMs=
+github.com/alexcb/fsutil v0.0.0-20230301235611-cfcb9a7e5ddc/go.mod h1:AvLEd1LEIl64G2Jpgwo7aVV5lGH0ePcKl0ygGIHNYl8=
 github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5 h1:im0niQRZXdxO8F1rw4zwb5rJmOJ9XnNtlnMFyfLenYE=
 github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5/go.mod h1:Fw0T6WPc1dYxT4mKEZRfG5kJhaTDP9pj1c2EWnYs/m4=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=

@@ -133,5 +133,5 @@ replace (
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
 	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20230301235811-4f489c1ecd2c
-	github.com/tonistiigi/fsutil => github.com/alexcb/fsutil v0.0.0-20230301230713-39d6a65e3f5d
+	github.com/tonistiigi/fsutil => github.com/alexcb/fsutil v0.0.0-20230301235611-cfcb9a7e5ddc
 )
