@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- new ARG `EARTHLY_GIT_BRANCH` will contain the branch of the current git commit, this ARG must be enabled with the `VERSION --git-branch` feature flag. [#2735](https://github.com/earthly/earthly/pull/2735)
+
 ## v0.7.1 - 2023-03-01
 
 ### Added
