@@ -61,6 +61,8 @@ const (
 	secretFileFlag    = "secret-file-path"
 )
 
+var runExitCodeRegexp = regexp.MustCompile(`did not complete successfully: exit code: [^0][0-9]*$`)
+
 type earthlyApp struct {
 	cliApp      *cli.App
 	console     conslogging.ConsoleLogger
@@ -647,6 +649,9 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		}
 
 		switch {
+		case runExitCodeRegexp.MatchString(err.Error()):
+			// error has already been displayed in console, don't display it again
+			return 1
 		case strings.Contains(err.Error(), "security.insecure is not allowed"):
 			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_NEEDS_PRIVILEGED, err.Error())
 			app.console.Warnf("Error: earthly --allow-privileged (earthly -P) flag is required\n")
