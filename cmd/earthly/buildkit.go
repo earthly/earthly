@@ -169,11 +169,6 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient *clou
 	app.analyticsMetadata.isSatellite = true
 	app.analyticsMetadata.satelliteCurrentVersion = "" // TODO
 
-	app.console.Printf("") // newline
-	app.console.Printf("The following feature flag is recommended for use with Satellites and will be auto-enabled:")
-	app.console.Printf("  --new-platform")
-	app.console.Printf("") // newline
-
 	if app.featureFlagOverrides != "" {
 		app.featureFlagOverrides += ","
 	}
