@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+
+- Simplified error message when a RUN command fails with an exit code. [#2742](https://github.com/earthly/earthly/issues/2742)
+
 ## v0.7.1 - 2023-03-01
 
 ### Added
