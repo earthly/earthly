@@ -29,11 +29,15 @@ func newSaveImage(si states.SaveImage, c *Converter, push, localExport bool) wai
 func (siwi *saveImageWaitItem) SetDoSave() {
 	siwi.mu.Lock()
 	defer siwi.mu.Unlock()
-	siwi.localExport = true
+	if siwi.si.DockerTag != "" {
+		siwi.localExport = true
+	}
 }
 
 func (siwi *saveImageWaitItem) SetDoPush() {
 	siwi.mu.Lock()
 	defer siwi.mu.Unlock()
-	siwi.push = true
+	if siwi.si.DockerTag != "" {
+		siwi.push = true
+	}
 }

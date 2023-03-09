@@ -4,6 +4,8 @@
 set -uxe
 set -o pipefail
 
+CHECK_TAG_WAS_PUSHED=${CHECK_TAG_WAS_PUSHED:-false}
+
 initialwd="$(pwd)"
 cd "$(dirname "$0")"
 
