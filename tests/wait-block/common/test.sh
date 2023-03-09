@@ -79,6 +79,15 @@ set +e
 exit_code="$?"
 set -e
 
+if [ "$CHECK_TAG_WAS_PUSHED" = "true" ]; then
+    manifest_output=$(mktemp /tmp/earthly-wait-block-test.XXXXX)
+    which jq || (echo "jq must be installed" && exit 1)
+    which curl || (echo "curl must be installed" && exit 1)
+    curl -k "https://$REGISTRY/v2/myuser/myimg/manifests/$tag" > $manifest_output
+    test "$(cat "$manifest_output" | jq -r .tag)" = "$tag"
+    rm $manifest_output
+fi
+
 # Cleanup.
 docker stop "$registry_name" || true
 
