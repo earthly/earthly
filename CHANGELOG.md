@@ -6,8 +6,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Added
 
-- Support for [Rosetta](https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment) translation environment (emulator) in buildkit as an alternative to QEMU.  
-To enable, go to Docker Desktop -> Settings -> Features in development -> Check `Use Rosetta for x86/amd64 emulation on Apple Silicon`.
+- Support for [Rosetta](https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment) translation environment (emulator) in buildkit as an alternative to QEMU. To enable, go to Docker Desktop -> Settings -> Features in development -> Check `Use Rosetta for x86/amd64 emulation on Apple Silicon`.
 
 ### Changed
 
