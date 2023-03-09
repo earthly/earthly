@@ -331,7 +331,7 @@ func GetTargetArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 	for _, stmt := range t.Recipe {
 		if stmt.Command != nil && stmt.Command.Name == "ARG" {
 			isBase := t.Name == "base"
-			// since Arg opts are ignored (and feature flags are not available) we set explicitGlobalArgFlag as false
+			// since Arg opts are ignored (and feature flags are not available) we set feature flags to false
 			explicitGlobal := false
 			_, argName, _, err := parseArgArgs(ctx, *stmt.Command, isBase, explicitGlobal)
 			if err != nil {
@@ -341,5 +341,4 @@ func GetTargetArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 		}
 	}
 	return args, nil
-
 }

@@ -171,19 +171,23 @@ func (i *Interpreter) handleStatement(ctx context.Context, stmt spec.Statement) 
 	ctx = ContextWithSourceLocation(ctx, stmt.SourceLocation)
 	if stmt.Command != nil {
 		return i.handleCommand(ctx, *stmt.Command)
-	} else if stmt.With != nil {
-		return i.handleWith(ctx, *stmt.With)
-	} else if stmt.If != nil {
-		return i.handleIf(ctx, *stmt.If)
-	} else if stmt.For != nil {
-		return i.handleFor(ctx, *stmt.For)
-	} else if stmt.Wait != nil {
-		return i.handleWait(ctx, *stmt.Wait)
-	} else if stmt.Try != nil {
-		return i.handleTry(ctx, *stmt.Try)
-	} else {
-		return i.errorf(stmt.SourceLocation, "unexpected statement type")
 	}
+	if stmt.With != nil {
+		return i.handleWith(ctx, *stmt.With)
+	}
+	if stmt.If != nil {
+		return i.handleIf(ctx, *stmt.If)
+	}
+	if stmt.For != nil {
+		return i.handleFor(ctx, *stmt.For)
+	}
+	if stmt.Wait != nil {
+		return i.handleWait(ctx, *stmt.Wait)
+	}
+	if stmt.Try != nil {
+		return i.handleTry(ctx, *stmt.Try)
+	}
+	return i.errorf(stmt.SourceLocation, "unexpected statement type")
 }
 
 func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err error) {

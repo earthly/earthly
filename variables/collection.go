@@ -16,8 +16,8 @@ import (
 )
 
 var ShellOutEnvs = map[string]struct{}{
-	"HOME": struct{}{},
-	"PATH": struct{}{},
+	"HOME": {},
+	"PATH": {},
 }
 
 type stackFrame struct {
@@ -155,26 +155,26 @@ func (c *Collection) SetLocally(locally bool) {
 	c.effectiveCache = nil
 }
 
-// GetActive returns an active variable by name.
-func (c *Collection) GetActive(name string) (string, bool) {
-	return c.effective().GetActive(name)
+// Get returns a variable by name.
+func (c *Collection) Get(name string, opts ...ScopeOpt) (string, bool) {
+	return c.effective().Get(name, opts...)
 }
 
-// SortedActiveVariables returns the active variable names in a sorted slice.
-func (c *Collection) SortedActiveVariables() []string {
-	return c.effective().SortedActive()
+// SortedVariables returns the current variable names in a sorted slice.
+func (c *Collection) SortedVariables(opts ...ScopeOpt) []string {
+	return c.effective().Sorted(opts...)
 }
 
 // SortedOverridingVariables returns the overriding variable names in a sorted slice.
 func (c *Collection) SortedOverridingVariables() []string {
-	return c.overriding().SortedAny()
+	return c.overriding().Sorted()
 }
 
 // ExpandOld expands variables within the given word, it does not perform shelling-out.
 // it will eventually be removed when the ShellOutAnywhere feature is fully-adopted
 func (c *Collection) ExpandOld(word string) string {
 	shlex := dfShell.NewLex('\\')
-	varMap := c.effective().ActiveValueMap()
+	varMap := c.effective().Map(WithActive())
 	ret, err := shlex.ProcessWordWithMap(word, varMap)
 	if err != nil {
 		// No effect if there is an error.
@@ -187,7 +187,7 @@ func (c *Collection) ExpandOld(word string) string {
 func (c *Collection) Expand(word string, shellOut shell.EvalShellOutFn) (string, error) {
 	shlex := shell.NewLex('\\')
 	shlex.ShellOut = shellOut
-	varMap := c.effective().ActiveValueMap()
+	varMap := c.effective().Map(WithActive())
 	return shlex.ProcessWordWithMap(word, varMap, ShellOutEnvs)
 }
 
@@ -197,7 +197,7 @@ func (c *Collection) DeclareArg(name string, defaultValue string, global bool, p
 	ef := c.effective()
 	finalDefaultValue := defaultValue
 	var finalValue string
-	existing, found := ef.GetAny(name)
+	existing, found := ef.Get(name)
 	if found {
 		finalValue = existing
 	} else {
@@ -208,9 +208,10 @@ func (c *Collection) DeclareArg(name string, defaultValue string, global bool, p
 		finalValue = v
 		finalDefaultValue = v
 	}
-	c.args().AddActive(name, finalValue)
+	opts := []ScopeOpt{WithActive()}
+	c.args().Add(name, finalValue, opts...)
 	if global {
-		c.globals().AddActive(name, finalValue)
+		c.globals().Add(name, finalValue, opts...)
 	}
 	c.effectiveCache = nil
 	return finalValue, finalDefaultValue, nil
@@ -218,7 +219,7 @@ func (c *Collection) DeclareArg(name string, defaultValue string, global bool, p
 
 // SetArg sets the value of an arg.
 func (c *Collection) SetArg(name string, value string) {
-	c.args().AddActive(name, value)
+	c.args().Add(name, value, WithActive())
 	c.effectiveCache = nil
 }
 
@@ -230,7 +231,7 @@ func (c *Collection) UnsetArg(name string) {
 
 // DeclareEnv declares an env var.
 func (c *Collection) DeclareEnv(name string, value string) {
-	c.envs.AddActive(name, value)
+	c.envs.Add(name, value, WithActive())
 	c.effectiveCache = nil
 }
 
@@ -275,11 +276,11 @@ func (c *Collection) IsStackAtBase() bool {
 func (c *Collection) StackString() string {
 	builder := make([]string, 0, len(c.stack))
 	for i := len(c.stack) - 1; i >= 0; i-- {
-		activeNames := c.stack[i].args.SortedActive()
+		activeNames := c.stack[i].args.Sorted(WithActive())
 		row := make([]string, 0, len(activeNames)+1)
 		row = append(row, c.stack[i].frameName)
 		for _, k := range activeNames {
-			v, _ := c.stack[i].overriding.GetAny(k)
+			v, _ := c.stack[i].overriding.Get(k)
 			row = append(row, fmt.Sprintf("--%s=%s", k, v))
 		}
 		builder = append(builder, strings.Join(row, " "))
