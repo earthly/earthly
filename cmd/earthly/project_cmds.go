@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/pkg/errors"
@@ -25,8 +26,8 @@ func (app *earthlyApp) projectCmds() []*cli.Command {
 		},
 		{
 			Name:        "rm",
-			Usage:       "Remove an existing project from the organization *beta*",
-			Description: "Remove an existing project from the organization *beta*",
+			Usage:       "Remove an existing project and all of its associated pipelines and secrets *beta*",
+			Description: "Remove an existing project and all of its associated pipelines and secrets *beta*",
 			UsageText:   "earthly project [--org <organization-name>] rm <project-name>",
 			Action:      app.actionProjectRemove,
 		},
@@ -122,6 +123,17 @@ func (app *earthlyApp) actionProjectRemove(cliCtx *cli.Context) error {
 	projectName := cliCtx.Args().Get(0)
 	if projectName == "" {
 		return errors.New("project name is required")
+	}
+
+	answer, err := promptInput(cliCtx.Context,
+		"WARNING: you are about to permanently delete this project and its associated pipelines, build history, and secrets.\n"+
+			"Would you like to continue?\n"+
+			"Type 'y' or 'yes': ")
+	answer = strings.TrimSpace(strings.ToLower(answer))
+
+	if answer != "y" && answer != "yes" {
+		app.console.Printf("Operation aborted.")
+		return nil
 	}
 
 	err = cloudClient.DeleteProject(cliCtx.Context, orgName, projectName)
