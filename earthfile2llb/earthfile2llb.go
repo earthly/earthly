@@ -247,12 +247,19 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		opt.MainTargetDetailsFuture = nil
 	}
 	if found {
+		// The found target may have initially been created by a FROM or a COPY;
+		// however, if it is referenced a second time by a BUILD, it may contain items that
+		// require a save (export to the local host) or a push
 		if opt.DoSaves {
-			// Set the do saves flag, in case it was not set before.
 			sts.SetDoSaves()
+		}
+		if opt.DoPushes {
+			sts.SetDoPushes()
+		}
+		if opt.DoSaves || opt.DoPushes {
 			err := sts.Wait(ctx)
 			if err != nil {
-				return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
+				return nil, errors.Wrapf(err, "wait failed on target %s", target.String())
 			}
 		}
 		sts.AttachTopLevelWaitItems(ctx, opt.waitBlock)
