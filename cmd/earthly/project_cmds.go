@@ -126,7 +126,7 @@ func (app *earthlyApp) actionProjectRemove(cliCtx *cli.Context) error {
 	}
 
 	answer, err := promptInput(cliCtx.Context,
-		"WARNING: you are about to permanently delete this project and its associated pipelines, build history, and secrets.\n"+
+		"WARNING: you are about to permanently delete this project and all of its associated pipelines, build history and secrets.\n"+
 			"Would you like to continue?\n"+
 			"Type 'y' or 'yes': ")
 	answer = strings.TrimSpace(strings.ToLower(answer))
