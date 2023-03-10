@@ -107,7 +107,7 @@ func ParseEnvVars(envVars []string) *Scope {
 	ret := NewScope()
 	for _, envVar := range envVars {
 		k, v, _ := ParseKeyValue(envVar)
-		ret.Add(k, v, WithActive())
+		ret.Add(k, v, WithActive(), WithEnv())
 	}
 	return ret
 }

@@ -387,12 +387,18 @@ func (i *Interpreter) handleFor(ctx context.Context, forStmt spec.ForStatement) 
 	if !i.converter.ftrs.ForIn {
 		return i.errorf(forStmt.SourceLocation, "the FOR command is not supported in this version")
 	}
-	variable, instances, err := i.handleForArgs(ctx, forStmt.Args, forStmt.SourceLocation)
+	variable, instances, isEnv, err := i.handleForArgs(ctx, forStmt.Args, forStmt.SourceLocation)
 	if err != nil {
 		return err
 	}
+	if !i.converter.ftrs.ArgExplicitEnv {
+		if isEnv {
+			return i.errorf(forStmt.SourceLocation, "unknown flag --env")
+		}
+		isEnv = true
+	}
 	for _, instance := range instances {
-		err = i.converter.SetArg(ctx, variable, instance)
+		err = i.converter.SetArg(ctx, variable, instance, isEnv)
 		if err != nil {
 			return i.wrapError(err, forStmt.SourceLocation, "set %s=%s", variable, instance)
 		}
@@ -408,24 +414,32 @@ func (i *Interpreter) handleFor(ctx context.Context, forStmt spec.ForStatement) 
 	return nil
 }
 
-func (i *Interpreter) handleForArgs(ctx context.Context, forArgs []string, sl *spec.SourceLocation) (string, []string, error) {
+func (i *Interpreter) handleForArgs(ctx context.Context, forArgs []string, sl *spec.SourceLocation) (string, []string, bool, error) {
 	opts := forOpts{
 		Separators: "\n\t ",
 	}
 	args, err := parseArgs("FOR", &opts, forArgs)
 	if err != nil {
-		return "", nil, i.wrapError(err, sl, "invalid FOR arguments %v", forArgs)
+		return "", nil, false, i.wrapError(err, sl, "invalid FOR arguments %v", forArgs)
 	}
 	if len(args) < 3 {
-		return "", nil, i.errorf(sl, "not enough arguments for FOR")
+		return "", nil, false, i.errorf(sl, "not enough arguments for FOR")
 	}
 	if args[1] != "IN" {
-		return "", nil, i.errorf(sl, "expected IN, got %s", args[1])
+		return "", nil, false, i.errorf(sl, "expected IN, got %s", args[1])
 	}
 	variable := args[0]
+	values := args[2:]
+	if i.converter.ftrs.ArgExplicitEnv {
+		newVals, err := i.expandArgsSlice(ctx, values, false, false)
+		if err != nil {
+			return "", nil, false, i.errorf(sl, "failed to interpolate variables in FOR values")
+		}
+		values = newVals
+	}
 	runOpts := ConvertRunOpts{
 		CommandName: "FOR",
-		Args:        args[2:],
+		Args:        values,
 		Locally:     i.local,
 		Mounts:      opts.Mounts,
 		Secrets:     opts.Secrets,
@@ -437,12 +451,12 @@ func (i *Interpreter) handleForArgs(ctx context.Context, forArgs []string, sl *s
 	}
 	output, err := i.converter.RunExpression(ctx, variable, runOpts)
 	if err != nil {
-		return "", nil, i.wrapError(err, sl, "apply FOR ... IN")
+		return "", nil, false, i.wrapError(err, sl, "apply FOR ... IN")
 	}
 	instances := strings.FieldsFunc(output, func(r rune) bool {
 		return strings.ContainsRune(opts.Separators, r)
 	})
-	return variable, instances, nil
+	return variable, instances, opts.Env, nil
 }
 
 func (i *Interpreter) handleWait(ctx context.Context, waitStmt spec.WaitStatement) error {
@@ -665,6 +679,13 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	args, err := parseArgsWithValueModifier("RUN", &opts, getArgsCopy(cmd), i.flagValModifierFuncWithContext(ctx))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid RUN arguments %v", cmd.Args)
+	}
+	if i.converter.ftrs.ArgExplicitEnv {
+		interpArgs, err := i.expandArgsSlice(ctx, args, false, false)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to interpolate ARGs into RUN command")
+		}
+		args = interpArgs
 	}
 	withShell := !cmd.ExecMode
 	if opts.WithDocker {
@@ -1368,7 +1389,7 @@ var errGlobalArgNotInBase = errors.New("global ARG can only be set in the base t
 
 // parseArgArgs parses the ARG command's arguments
 // and returns the argOpts, key, value (or nil if missing), or error
-func parseArgArgs(ctx context.Context, cmd spec.Command, isBaseTarget bool, explicitGlobalFeature bool) (argOpts, string, *string, error) {
+func parseArgArgs(ctx context.Context, cmd spec.Command, isBaseTarget bool, explicitGlobalFeature, explicitEnvFeature bool) (argOpts, string, *string, error) {
 	opts := argOpts{}
 	args, err := parseArgs("ARG", &opts, getArgsCopy(cmd))
 	if err != nil {
@@ -1386,6 +1407,12 @@ func parseArgArgs(ctx context.Context, cmd spec.Command, isBaseTarget bool, expl
 	} else if !explicitGlobalFeature {
 		// if the feature flag is off, all base target args are considered global
 		opts.Global = isBaseTarget
+	}
+	if !explicitEnvFeature {
+		if opts.Env {
+			return argOpts{}, "", nil, errors.New("unknown flag --env")
+		}
+		opts.Env = true
 	}
 	switch len(args) {
 	case 3:
@@ -1407,7 +1434,7 @@ func (i *Interpreter) handleArg(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	opts, key, valueOrNil, err := parseArgArgs(ctx, cmd, i.isBase, i.converter.ftrs.ExplicitGlobal)
+	opts, key, valueOrNil, err := parseArgArgs(ctx, cmd, i.isBase, i.converter.ftrs.ExplicitGlobal, i.converter.ftrs.ArgExplicitEnv)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid ARG arguments %v", cmd.Args)
 	}

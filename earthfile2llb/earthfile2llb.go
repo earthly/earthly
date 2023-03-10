@@ -333,7 +333,8 @@ func GetTargetArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 			isBase := t.Name == "base"
 			// since Arg opts are ignored (and feature flags are not available) we set feature flags to false
 			explicitGlobal := false
-			_, argName, _, err := parseArgArgs(ctx, *stmt.Command, isBase, explicitGlobal)
+			explicitEnv := false
+			_, argName, _, err := parseArgArgs(ctx, *stmt.Command, isBase, explicitGlobal, explicitEnv)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to parse ARG arguments %v", stmt.Command.Args)
 			}

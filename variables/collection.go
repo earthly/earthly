@@ -93,6 +93,8 @@ func (c *Collection) ResetEnvVars(envs *Scope) {
 		envs = NewScope()
 	}
 	c.envs = envs
+	// TODO: if the new envs are equal to the old envs, should we really drop
+	// the effective cache?
 	c.effectiveCache = nil
 }
 
@@ -155,7 +157,7 @@ func (c *Collection) SetLocally(locally bool) {
 	c.effectiveCache = nil
 }
 
-// Get returns a variable by name.
+// GetActive returns a variable by name.
 func (c *Collection) Get(name string, opts ...ScopeOpt) (string, bool) {
 	return c.effective().Get(name, opts...)
 }
@@ -193,7 +195,7 @@ func (c *Collection) Expand(word string, shellOut shell.EvalShellOutFn) (string,
 
 // DeclareArg declares an arg. The effective value may be
 // different than the default, if the variable has been overridden.
-func (c *Collection) DeclareArg(name string, defaultValue string, global bool, pncvf ProcessNonConstantVariableFunc) (string, string, error) {
+func (c *Collection) DeclareArg(name string, defaultValue string, global bool, env bool, pncvf ProcessNonConstantVariableFunc) (string, string, error) {
 	ef := c.effective()
 	finalDefaultValue := defaultValue
 	var finalValue string
@@ -209,6 +211,9 @@ func (c *Collection) DeclareArg(name string, defaultValue string, global bool, p
 		finalDefaultValue = v
 	}
 	opts := []ScopeOpt{WithActive()}
+	if env {
+		opts = append(opts, WithEnv())
+	}
 	c.args().Add(name, finalValue, opts...)
 	if global {
 		c.globals().Add(name, finalValue, opts...)
@@ -218,8 +223,12 @@ func (c *Collection) DeclareArg(name string, defaultValue string, global bool, p
 }
 
 // SetArg sets the value of an arg.
-func (c *Collection) SetArg(name string, value string) {
-	c.args().Add(name, value, WithActive())
+func (c *Collection) SetArg(name string, value string, env bool) {
+	opts := []ScopeOpt{WithActive()}
+	if env {
+		opts = append(opts, WithEnv())
+	}
+	c.args().Add(name, value, opts...)
 	c.effectiveCache = nil
 }
 
@@ -231,7 +240,7 @@ func (c *Collection) UnsetArg(name string) {
 
 // DeclareEnv declares an env var.
 func (c *Collection) DeclareEnv(name string, value string) {
-	c.envs.Add(name, value, WithActive())
+	c.envs.Add(name, value, WithActive(), WithEnv())
 	c.effectiveCache = nil
 }
 

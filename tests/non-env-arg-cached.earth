@@ -1,0 +1,23 @@
+VERSION --arg-explicit-env 0.7
+test:
+    FROM alpine:3.15
+    ARG foo = bar
+    RUN echo bar
+    RUN echo $foo
+
+    # --env should force the next RUN command to cache-bust on variable change.
+    ARG --env bar = foo
+    RUN echo baz
+
+test-for:
+    FROM alpine:3.15
+    ARG foo = bar
+    FOR f IN $foo
+        RUN echo bacon
+        RUN echo $foo
+    END
+
+    # --env should force the cache bust even though ARG foo does not have --env.
+    FOR --env f IN $foo
+        RUN echo eggs
+    END

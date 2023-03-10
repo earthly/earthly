@@ -10,6 +10,9 @@ type Scope struct {
 	// activeVariables are variables that are active right now as we have passed the point of
 	// their declaration.
 	activeVariables map[string]bool
+	// envVariables are variables that must be passed to RUN commands as
+	// environment variables
+	envVariables map[string]bool
 }
 
 // NewScope creates a new variable scope.
@@ -17,6 +20,7 @@ func NewScope() *Scope {
 	return &Scope{
 		variables:       make(map[string]string),
 		activeVariables: make(map[string]bool),
+		envVariables:    make(map[string]bool),
 	}
 }
 
@@ -29,6 +33,9 @@ func (s *Scope) Clone() *Scope {
 	for k := range s.activeVariables {
 		ret.activeVariables[k] = true
 	}
+	for k := range s.envVariables {
+		ret.envVariables[k] = true
+	}
 	return ret
 }
 
@@ -37,6 +44,9 @@ func (s *Scope) Get(name string, opts ...ScopeOpt) (string, bool) {
 	opt := applyOpts(opts...)
 	v, ok := s.variables[name]
 	if !ok {
+		return "", false
+	}
+	if opt.env && !s.envVariables[name] {
 		return "", false
 	}
 	if opt.active && !s.activeVariables[name] {
@@ -54,6 +64,9 @@ func (s *Scope) Add(name, value string, opts ...ScopeOpt) bool {
 		return false
 	}
 	s.variables[name] = value
+	if opt.env {
+		s.envVariables[name] = true
+	}
 	if opt.active {
 		s.activeVariables[name] = true
 	}
@@ -64,6 +77,7 @@ func (s *Scope) Add(name, value string, opts ...ScopeOpt) bool {
 func (s *Scope) Remove(name string) {
 	delete(s.variables, name)
 	delete(s.activeVariables, name)
+	delete(s.envVariables, name)
 }
 
 // Map returns a name->value variable map of variables in this scope.
@@ -71,6 +85,9 @@ func (s *Scope) Map(opts ...ScopeOpt) map[string]string {
 	opt := applyOpts(opts...)
 	m := make(map[string]string)
 	for k, v := range s.variables {
+		if opt.env && !s.envVariables[k] {
+			continue
+		}
 		if opt.active && !s.activeVariables[k] {
 			continue
 		}
@@ -87,6 +104,9 @@ func (s *Scope) Sorted(opts ...ScopeOpt) []string {
 		if opt.active && !s.activeVariables[k] {
 			continue
 		}
+		if opt.env && !s.envVariables[k] {
+			continue
+		}
 		sorted = append(sorted, k)
 	}
 	sort.Strings(sorted)
@@ -96,13 +116,17 @@ func (s *Scope) Sorted(opts ...ScopeOpt) []string {
 // CombineScopes combines all the variables across all scopes, with the
 // following precedence:
 //
-// 1. Active variables
-// 2. Inactive variables
-// 3. All other things equal, left-most scopes have precedence
+// 1. Active env variables
+// 2. Active variables
+// 3. Inactive env variables
+// 4. Inactive variables
+// 5. All other things equal, left-most scopes have precedence
 func CombineScopes(scopes ...*Scope) *Scope {
 	s := NewScope()
 	precedence := [][]ScopeOpt{
+		{WithActive(), WithEnv()},
 		{WithActive()},
+		{WithEnv()},
 		nil,
 	}
 	for _, opts := range precedence {
@@ -118,6 +142,7 @@ func CombineScopes(scopes ...*Scope) *Scope {
 
 type scopeOpts struct {
 	active     bool
+	env        bool
 	noOverride bool
 }
 
@@ -139,6 +164,16 @@ type ScopeOpt func(scopeOpts) scopeOpts
 func WithActive() ScopeOpt {
 	return func(o scopeOpts) scopeOpts {
 		o.active = true
+		return o
+	}
+}
+
+// WithEnv is a ScopeOpt for environment variables. When passed to Add, it sets
+// the variable to be an environment variable. When passed to Get or Map, it
+// causes them to only return environment variables.
+func WithEnv() ScopeOpt {
+	return func(o scopeOpts) scopeOpts {
+		o.env = true
 		return o
 	}
 }

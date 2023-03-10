@@ -19,6 +19,7 @@ type forOpts struct {
 	Secrets    []string `long:"secret" description:"Make available a secret"`
 	Mounts     []string `long:"mount" description:"Mount a file or directory"`
 	Separators string   `long:"sep" description:"The separators to use for tokenizing the output of the IN expression. Defaults to '\n\t '"`
+	Env        bool     `long:"env" description:"Pass the FOR variable to the buildkit context as an environment variable"`
 }
 
 type runOpts struct {
@@ -117,6 +118,7 @@ type importOpts struct {
 type argOpts struct {
 	Required bool `long:"required" description:"Require argument to be non-empty"`
 	Global   bool `long:"global" description:"Global argument to make available to all other targets"`
+	Env      bool `long:"env" description:"Env argument to be passed through to the buildkit context"`
 }
 
 type pipelineOpts struct {

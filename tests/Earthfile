@@ -207,6 +207,7 @@ ga-no-qemu:
     BUILD +infinite-recursion
     BUILD +from-dockerfile-arg
     BUILD +cache-mount-arg
+    BUILD +non-env-arg-cached
     BUILD +true-false-flag
     BUILD +true-false-flag-invalid
     BUILD +dont-save-indirect-remote-artifact
@@ -330,6 +331,17 @@ cache-test:
         --post_command=">output.txt 2>&1" # check that all is still cached if re-running the prev version
     RUN cat output.txt
     RUN cat output.txt | grep '\*cached\* --> RUN echo hey'
+
+non-env-arg-cached:
+    DO +RUN_EARTHLY --earthfile=non-env-arg-cached.earth --target=+test --use_tmpfs=false
+    DO +RUN_EARTHLY --earthfile=non-env-arg-cached.earth --target="+test --foo=baz" --use_tmpfs=false --output_contains="\*cached\* --> RUN echo bar"
+    DO +RUN_EARTHLY --earthfile=non-env-arg-cached.earth --target="+test --foo=bacon" --use_tmpfs=false --output_contains="| bacon"
+    DO +RUN_EARTHLY --earthfile=non-env-arg-cached.earth --target="+test --foo=eggs" --use_tmpfs=false --output_not_contains="\*cached\* --> RUN echo baz"
+
+    DO +RUN_EARTHLY --earthfile=non-env-arg-cached.earth --target=+test-for --use_tmpfs=false
+    DO +RUN_EARTHLY --earthfile=non-env-arg-cached.earth --target="+test-for --foo=baz" --use_tmpfs=false --output_contains="\*cached\* --> RUN echo bacon"
+    DO +RUN_EARTHLY --earthfile=non-env-arg-cached.earth --target="+test-for --foo=bacon" --use_tmpfs=false --output_contains="| bacon"
+    DO +RUN_EARTHLY --earthfile=non-env-arg-cached.earth --target="+test-for --foo=eggs" --use_tmpfs=false --output_not_contains="\*cached\* --> RUN echo eggs"
 
 git-clone-test:
     DO +RUN_EARTHLY --earthfile=git-clone.earth --target=+test

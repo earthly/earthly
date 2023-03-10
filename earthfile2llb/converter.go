@@ -1275,7 +1275,7 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
 
-	effective, effectiveDefault, err := c.varCollection.DeclareArg(argKey, defaultArgValue, opts.Global, pncvf)
+	effective, effectiveDefault, err := c.varCollection.DeclareArg(argKey, defaultArgValue, opts.Global, opts.Env, pncvf)
 	if err != nil {
 		return err
 	}
@@ -1296,13 +1296,13 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 }
 
 // SetArg sets an arg to a specific value.
-func (c *Converter) SetArg(ctx context.Context, argKey string, argValue string) error {
+func (c *Converter) SetArg(ctx context.Context, argKey string, argValue string, env bool) error {
 	err := c.checkAllowed(argCmd)
 	if err != nil {
 		return err
 	}
 	c.nonSaveCommand()
-	c.varCollection.SetArg(argKey, argValue)
+	c.varCollection.SetArg(argKey, argValue, env)
 	return nil
 }
 
@@ -1859,8 +1859,8 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		}
 	}
 	// Build args.
-	for _, buildArgName := range c.varCollection.SortedVariables(variables.WithActive()) {
-		ba, _ := c.varCollection.Get(buildArgName, variables.WithActive())
+	for _, buildArgName := range c.varCollection.SortedVariables(variables.WithActive(), variables.WithEnv()) {
+		ba, _ := c.varCollection.Get(buildArgName, variables.WithActive(), variables.WithEnv())
 		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba)))
 	}
 	if !opts.Locally {
@@ -2211,8 +2211,8 @@ func (c *Converter) checkOldPlatformIncompatibility(platform platutil.Platform) 
 func (c *Converter) applyFromImage(state pllb.State, img *image.Image) (pllb.State, *image.Image, *variables.Scope) {
 	// Reset variables.
 	ev := variables.ParseEnvVars(img.Config.Env)
-	for _, name := range ev.Sorted(variables.WithActive()) {
-		v, _ := ev.Get(name, variables.WithActive())
+	for _, name := range ev.Sorted(variables.WithActive(), variables.WithEnv()) {
+		v, _ := ev.Get(name, variables.WithActive(), variables.WithEnv())
 		state = state.AddEnv(name, v)
 	}
 	// Init config maps if not already initialized.

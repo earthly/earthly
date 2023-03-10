@@ -116,6 +116,7 @@ func TestAvailableFlags(t *testing.T) {
 		{"no-use-registry-for-with-docker", "NoUseRegistryForWithDocker"},
 		{"try", "TryFinally"},
 		{"no-network", "NoNetwork"},
+		{"arg-explicit-env", "ArgExplicitEnv"},
 	} {
 		tt := tt
 		t.Run(tt.flag, func(t *testing.T) {

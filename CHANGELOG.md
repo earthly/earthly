@@ -9,6 +9,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Added
 
 - Support for `RUN --network=none`, which prevents programs from using any network resources. [#834](https://github.com/earthly/earthly/issues/834)
+- Added an experimental feature that prevents `ARG` and `FOR ... IN ...` from impacting the environment of commands unless `--env` is used explicitly. [#1575](https://github.com/earthly/earthly/issues/1575)
+  To enable this feature use `VERSION --arg-explicit-env 0.7`.
 
 ### Changed
 
