@@ -1265,12 +1265,7 @@ example:
     END
 ```
 
-## CACHE (beta)
-
-{% hint style='info' %}
-##### Note
-The `CACHE` command is in beta and must be enabled via `VERSION --use-cache-command 0.6`.
-{% endhint %}
+## CACHE
 
 #### Synopsis
 
