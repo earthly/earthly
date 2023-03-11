@@ -1114,8 +1114,6 @@ Same as [`RUN --secret <env-var>=<secret-id>`](#secret-less-than-env-var-greater
 
 ## FOR
 
-Enable via `VERSION 0.6`.
-
 #### Synopsis
 
 * ```
