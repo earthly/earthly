@@ -7,7 +7,7 @@ We will discuss a specific example where dependencies are cached using multiple 
 ```Dockerfile
 # Earthfile
 
-VERSION 0.6
+VERSION 0.7
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
@@ -30,7 +30,7 @@ One option is to use layer-based caching to first download all dependencies and 
 ```Dockerfile
 # Earthfile
 
-VERSION 0.6
+VERSION 0.7
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
@@ -58,7 +58,7 @@ For these cases, the build could use a cache mount. A cache mount is a volume th
 ```Dockerfile
 # Earthfile
 
-VERSION 0.6
+VERSION 0.7
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example

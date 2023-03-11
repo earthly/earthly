@@ -118,7 +118,7 @@ func TestIntegration(t *testing.T) {
 ```
 
 ```Dockerfile
-VERSION 0.6
+VERSION 0.7
 FROM golang:1.15-alpine3.13
 WORKDIR /go-workdir
 
@@ -133,7 +133,7 @@ test-setup:
     COPY main.go .
     COPY main_integration_test.go .
     ENV CGO_ENABLED=0
-    ENTRYPOINT [ "go", "test", "github.com/earthly/earthly/examples/go"]
+    ENTRYPOINT ["go", "test", "github.com/earthly/earthly/examples/go"]
     SAVE IMAGE test:latest
 
 integration-tests:
@@ -299,7 +299,7 @@ The `Earthfile` is at the root of the directory.
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.6
+VERSION 0.7
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
@@ -376,7 +376,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part6/
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.6
+VERSION 0.7
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
@@ -402,13 +402,13 @@ docker:
 
 with-postgresql:
     FROM earthly/dind:alpine
-	  COPY ./docker-compose.yml .
-	  RUN apk update
-	  RUN apk add postgresql-client
-	  WITH DOCKER --compose docker-compose.yml --load app:latest=+docker
-		    RUN while ! pg_isready --host=localhost --port=5432; do sleep 1; done ;\
-			    docker run --network=default_java/part6_default app
-	  END
+    COPY ./docker-compose.yml .
+    RUN apk update
+    RUN apk add postgresql-client
+    WITH DOCKER --compose docker-compose.yml --load app:latest=+docker
+        RUN while ! pg_isready --host=localhost --port=5432; do sleep 1; done ;\
+            docker run --network=default_java/part6_default app
+    END
 
 ```
 
@@ -549,14 +549,14 @@ networks:
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.6
+VERSION 0.7
 FROM python:3
 WORKDIR /code
 
 build:
-  COPY ./requirements.txt .
-  RUN pip install -r requirements.txt
-  COPY . .
+    COPY ./requirements.txt .
+    RUN pip install -r requirements.txt
+    COPY . .
 
 run-tests:
     FROM earthly/dind:alpine

@@ -19,7 +19,7 @@ Let's consider a "hello world" example that allows us to change who is being gre
 We will create a hello target that accepts the `name` argument:
 
 ```Dockerfile
-VERSION 0.6
+VERSION 0.7
 FROM alpine:latest
 
 hello:

@@ -126,7 +126,7 @@ Repo 2:
 
 ```Dockerfile
 # Bad
-VERSION 0.6
+VERSION 0.7
 FROM alpine:3.15
 WORKDIR /work
 print-file:
@@ -147,7 +147,7 @@ repo 1
 
 ```Dockerfile
 # Repo 1 Earthfile
-VERSION 0.6
+VERSION 0.7
 FROM alpine:3.15
 WORKDIR /work
 file:
@@ -159,7 +159,7 @@ Repo 2:
 
 ```Dockerfile
 # Repo 2 Earthfile
-VERSION 0.6
+VERSION 0.7
 IMPORT github.com/my-co/repo-1
 FROM alpine:3.15
 WORKDIR /work
@@ -866,7 +866,7 @@ In the above example, the file `some-file.txt` is copied from the sibling direct
 
 ```Dockerfile
 # ./dir1/Earthfile
-VERSION 0.6
+VERSION 0.7
 FROM alpine:3.15
 WORKDIR /work
 file:
@@ -949,7 +949,7 @@ If a target acts as a wrapper for another target and that other target produces 
 
 ```Dockerfile
 # No pass-through artifacts
-VERSION 0.6
+VERSION 0.7
 FROM alpine:3.15
 build:
     ARG some_arg=...
@@ -963,7 +963,7 @@ build-for-windows:
 
 ```Dockerfile
 # With pass-through artifacts
-VERSION 0.6
+VERSION 0.7
 FROM alpine:3.15
 build:
     ARG some_arg=...
@@ -982,7 +982,7 @@ Similarly, if a target emits an image, then that image can be also emitted by a 
 
 ```Dockerfile
 # No pass-through image
-VERSION 0.6
+VERSION 0.7
 FROM alpine:3.15
 build:
     ARG some_arg=...
@@ -995,7 +995,7 @@ build-wrapper:
 
 ```Dockerfile
 # With pass-through image
-VERSION 0.6
+VERSION 0.7
 FROM alpine:3.15
 build:
     ARG some_arg=...
