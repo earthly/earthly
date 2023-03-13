@@ -10,7 +10,7 @@ version: 2.1
 jobs:
   build:
     machine:
-      image: ubuntu-1604:201903-01
+      image: ubuntu-2004:2023.02.1
     steps:
       - checkout
       - run: docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
