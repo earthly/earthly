@@ -11,6 +11,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Changed
 
 - Simplified error message when a RUN command fails with an exit code. [#2742](https://github.com/earthly/earthly/issues/2742)
+- Improved warning messages when earthly cloud-based registry auth fails. [#2783](https://github.com/earthly/earthly/issues/2783)
 
 ## v0.7.1 - 2023-03-01
 
