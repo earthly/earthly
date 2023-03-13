@@ -63,8 +63,8 @@ export expected_sha=\$(git -C repo rev-parse HEAD)
 export expected_committer_timestamp=\$(git -C repo log -1 --format=\"%ct\")
 export expected_author_timestamp=\$(git -C repo log -1 --format=\"%at\")
 test \"\$expected_committer_timestamp\" -ne \"\$expected_author_timestamp\"
-export expected_branch=\"\$(git rev-parse --abbrev-ref HEAD)\"
-test -n \"$expected_branch\"
+export expected_branch=\"\$(git -C repo rev-parse --abbrev-ref HEAD)\"
+test -n \"\$expected_branch\"
 
 # finally perform earthly tests
 earthly --config \$earthly_config --verbose -D \

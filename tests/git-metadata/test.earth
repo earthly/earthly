@@ -17,11 +17,11 @@ test-git-metadata:
     ARG EARTHLY_GIT_CO_AUTHORS
     ARG EARTHLY_GIT_COMMIT_TIMESTAMP
     ARG EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP
-    ARG EARTHLY_BRANCH
+    ARG EARTHLY_GIT_BRANCH
     RUN test "$EARTHLY_GIT_HASH" = "$expected_sha"
     RUN test "$EARTHLY_GIT_COMMIT_TIMESTAMP" = "$expected_committer_timestamp"
     RUN test "$EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP" = "$expected_author_timestamp"
-    RUN test "$EARTHLY_BRANCH" = "$expected_branch"
+    RUN test "$EARTHLY_GIT_BRANCH" = "$expected_branch"
     RUN test -n "$EARTHLY_GIT_SHORT_HASH"
     RUN echo "$EARTHLY_GIT_HASH" | grep "$EARTHLY_GIT_SHORT_HASH"
     RUN test "$EARTHLY_GIT_AUTHOR" = "onlyspammersemailthis@earthly.dev"

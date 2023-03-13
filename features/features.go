@@ -38,7 +38,6 @@ type Features struct {
 	EarthlyVersionArg        bool `long:"earthly-version-arg" description:"includes EARTHLY_VERSION and EARTHLY_BUILD_SHA ARGs"`
 	ExplicitGlobal           bool `long:"explicit-global" description:"require base target args to have explicit settings to be considered global args"`
 	GitCommitAuthorTimestamp bool `long:"git-commit-author-timestamp" description:"include EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP arg"`
-	GitBranch                bool `long:"git-branch" description:"include EARTHLY_GIT_BRANCH arg"`
 	NewPlatform              bool `long:"new-platform" description:"enable new platform behavior"`
 	NoTarBuildOutput         bool `long:"no-tar-build-output" description:"do not print output when creating a tarball to load into WITH DOCKER"`
 	SaveArtifactKeepOwn      bool `long:"save-artifact-keep-own" description:"always apply the --keep-own flag with SAVE ARTIFACT"`
@@ -56,6 +55,7 @@ type Features struct {
 	NoUseRegistryForWithDocker bool `long:"no-use-registry-for-with-docker" description:"disable use-registry-for-with-docker"`
 	TryFinally                 bool `long:"try" description:"allow the use of the TRY/FINALLY commands"`
 	NoNetwork                  bool `long:"no-network" description:"allow the use of RUN --network=none commands"`
+	GitBranch                  bool `long:"git-branch" description:"include EARTHLY_GIT_BRANCH arg"`
 
 	Major int
 	Minor int
