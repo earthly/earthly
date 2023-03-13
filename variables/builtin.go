@@ -76,6 +76,9 @@ func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gituti
 		if ftrs.GitCommitAuthorTimestamp {
 			ret.AddInactive(arg.EarthlyGitCommitAuthorTimestamp, gitMeta.AuthorTimestamp)
 		}
+		if ftrs.GitBranch && len(gitMeta.Branch) > 0 {
+			ret.AddInactive(arg.EarthlyGitBranch, gitMeta.Branch[0])
+		}
 		if gitMeta.CommitterTimestamp == "" {
 			ret.AddInactive(arg.EarthlySourceDateEpoch, "0")
 		} else {

@@ -55,6 +55,7 @@ type Features struct {
 	NoUseRegistryForWithDocker bool `long:"no-use-registry-for-with-docker" description:"disable use-registry-for-with-docker"`
 	TryFinally                 bool `long:"try" description:"allow the use of the TRY/FINALLY commands"`
 	NoNetwork                  bool `long:"no-network" description:"allow the use of RUN --network=none commands"`
+	GitBranch                  bool `long:"git-branch" description:"include EARTHLY_GIT_BRANCH arg"`
 
 	Major int
 	Minor int
