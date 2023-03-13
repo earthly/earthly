@@ -22,6 +22,7 @@ import (
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/fileutil"
+	"github.com/earthly/earthly/util/stringutil"
 
 	"github.com/jdxcode/netrc"
 	"github.com/moby/buildkit/util/gitutil"
@@ -353,22 +354,27 @@ func (gl *GitLookup) getGitMatcherByPath(path string) (string, *gitMatcher, erro
 	for _, m := range gl.matchers {
 		match := m.re.FindString(path)
 		if match != "" {
+			gl.console.VerbosePrintf("matched earthly reference %s with git config entry %s (regex %s)", path, m.name, m.re)
 			return match, m, nil
 		}
 	}
 	match := gl.catchAll.re.FindString(path)
 	if match != "" {
+		gl.console.VerbosePrintf("matched earthly reference %s with pre-configured catch-all (regex %s)", path, gl.catchAll.re)
 		return match, gl.catchAll, nil
 	}
+	gl.console.VerbosePrintf("failed to match earthly reference %s with any git matchers", path)
 	return "", nil, ErrNoMatch
 }
 
 func (gl *GitLookup) getGitMatcherByName(name string) *gitMatcher {
 	for _, m := range gl.matchers {
 		if m.name == name {
+			gl.console.VerbosePrintf("found git config specific for %s", name)
 			return m
 		}
 	}
+	gl.console.VerbosePrintf("no host-specific git config found for %s, using global git settings", name)
 	return gl.catchAll
 }
 
@@ -582,6 +588,7 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, []string, error) 
 			return "", "", nil, errors.Errorf("failed to determine git path to clone for %q", path)
 		}
 		gitURL := m.re.ReplaceAllString(path, m.sub)
+		gl.console.VerbosePrintf("converted earthly reference %s to git url %s (using regex substitution %s)", path, stringutil.ScrubCredentials(gitURL), stringutil.ScrubCredentials(m.sub))
 		var keyScans []string
 		remote, protocol := gitutil.ParseProtocol(gitURL)
 		if protocol == gitutil.SSHProtocol {
@@ -601,6 +608,7 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, []string, error) 
 	if err != nil {
 		return "", "", nil, err
 	}
+	gl.console.VerbosePrintf("converted earthly reference %s to git url %s", path, stringutil.ScrubCredentials(gitURL))
 	return gitURL, subPath, keyScans, nil
 }
 
