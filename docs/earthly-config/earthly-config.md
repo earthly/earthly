@@ -67,7 +67,7 @@ When used in combination with `cache_size_mb`, the lesser of the two values will
 
 A custom user-supplied program to call which returns a secret for use by earthly. The secret identifier is passed as the first argument to the program.
 
-If no secret is found, the program can instruct earthly to continue searching for secrets under `.env`, by exiting with a status code of `2`, all other non-zero
+If no secret is found, the program can instruct earthly to continue searching for secrets under `.secret`, by exiting with a status code of `2`, all other non-zero
 status codes will cause earthly to exit.
 
 For example, if you have:

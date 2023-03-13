@@ -76,11 +76,11 @@ The build arg overrides only apply to the target being called directly and any o
 
 For more information about build args see the [`ARG` Earthfile command](../earthfile/earthfile.md#arg).
 
-#### Environment Variables and .env File
+#### Environment Variables and .arg File
 
 As specified under the [options section](#options), all flag options have an environment variable equivalent, which can be used as an alternative.
 
-Furthermore, additional environment variables are also read from a file named `.env`, if one exists in the current directory. The syntax of the `.env` file is of the form
+Furthermore, additional environment variables are also read from a file named `.arg`, if one exists in the current directory. The syntax of the `.arg` file is of the form
 
 ```.env
 <NAME_OF_ENV_VAR>=<value>
@@ -92,27 +92,23 @@ as one variable per line, without any surrounding quotes. If quotes are included
 ```.env
 # Settings
 EARTHLY_ALLOW_PRIVILEGED=true
-MY_SETTING=a setting which contains spaces
 
-# Secrets
-MY_SECRET=MmQ1MjFlY2UtYzhlNi00YjJkLWI5YTMtNjIzNzJmYjcwOTJk
-ANOTHER_SECRET=MjA5YjU2ZTItYmIxOS00MDQ3LWFlNzYtNmQ5NGEyZDFlYTQx
+MY_SETTING=a setting which contains spaces
 ```
 
 {% hint style='info' %}
 ##### Note
-The directory used for loading the `.env` file is the directory where `earthly` is called from and not necessarily the directory where the Earthfile is located in.
+The directory used for loading the `.arg` file is the directory where `earthly` is called from and not necessarily the directory where the Earthfile is located in.
 {% endhint %}
 
-The additional environment variables specified in the `.env` file are loaded by `earthly` in three distinct ways:
+The additional environment variables specified in the `.arg` file are loaded by `earthly` in two distinct ways:
 
 * **Setting options for `earthly` itself** - the settings are loaded if they match the environment variable equivalent of an `earthly` option.
 * **Build args** - the settings are passed on to the build and are used to override any [`ARG`](../earthfile/earthfile.md#arg) declaration.
-* **Secrets** - the settings are passed on to the build to be referenced via the [`RUN --secret`](../earthfile/earthfile.md#secret-less-than-env-var-greater-than-less-than-secret-ref-greater-than) option.
 
 {% hint style='danger' %}
 ##### Important
-The `.env` file is meant for settings which are specific to the local environment the build executes in. These settings may cause inconsistencies in the way the build executes on different systems, leading to builds that are difficult to reproduce. Keep the contents of `.env` files to a minimum to avoid such issues.
+The `.arg` file is meant for settings which are specific to the local environment the build executes in. These settings may cause inconsistencies in the way the build executes on different systems, leading to builds that are difficult to reproduce. Keep the contents of `.arg` files to a minimum to avoid such issues.
 {% endhint %}
 
 #### Global Options
