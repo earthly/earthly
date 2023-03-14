@@ -118,6 +118,19 @@ git:
 ```
 {% endhint %}
 
+#### Debugging tips
+
+You can run earthly with `--verbose`, which will provide debugging messages to help understand how a remote earthly reference is transformed into a git URL for cloning.
+
+You can additionally enable low-level git debugging in buildkit, by adding the following to your `~/.earthly/config.yml`:
+
+```yaml
+global:
+  buildkit_additional_args: [ '-e', 'BUILDKIT_DEBUG_GIT=1' ]
+```
+
+The buildkit logs can be displayed with `docker logs earthly-buildkitd`.
+
 ## Docker authentication
 
 Docker credentials are used in Earthly for inheriting from private images (via `FROM`) and for pushing images (via `SAVE IMAGE --push`).
