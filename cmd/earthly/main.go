@@ -162,6 +162,7 @@ type cliFlags struct {
 	noBuildkitUpdate                bool
 	globalWaitEnd                   bool // for feature-flipping builder.go code removal
 	projectName                     string
+	forceRemoveProject              bool
 	orgName                         string
 	invitePermission                string
 	inviteMessage                   string

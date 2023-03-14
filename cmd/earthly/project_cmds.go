@@ -30,6 +30,14 @@ func (app *earthlyApp) projectCmds() []*cli.Command {
 			Description: "Remove an existing project and all of its associated pipelines and secrets *beta*",
 			UsageText:   "earthly project [--org <organization-name>] rm <project-name>",
 			Action:      app.actionProjectRemove,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:        "force",
+					Aliases:     []string{"f"},
+					Usage:       "Force removal without asking permission",
+					Destination: &app.forceRemoveProject,
+				},
+			},
 		},
 		{
 			Name:        "create",
@@ -125,15 +133,19 @@ func (app *earthlyApp) actionProjectRemove(cliCtx *cli.Context) error {
 		return errors.New("project name is required")
 	}
 
-	answer, err := promptInput(cliCtx.Context,
-		"WARNING: you are about to permanently delete this project and all of its associated pipelines, build history and secrets.\n"+
-			"Would you like to continue?\n"+
-			"Type 'y' or 'yes': ")
-	answer = strings.TrimSpace(strings.ToLower(answer))
-
-	if answer != "y" && answer != "yes" {
-		app.console.Printf("Operation aborted.")
-		return nil
+	if !app.forceRemoveProject {
+		answer, err := promptInput(cliCtx.Context,
+			"WARNING: you are about to permanently delete this project and all of its associated pipelines, build history and secrets.\n"+
+				"Would you like to continue?\n"+
+				"Type 'y' or 'yes': ")
+		if err != nil {
+			return errors.Wrap(err, "failed requesting user input")
+		}
+		answer = strings.TrimSpace(strings.ToLower(answer))
+		if answer != "y" && answer != "yes" {
+			app.console.Printf("Operation aborted.")
+			return nil
+		}
 	}
 
 	err = cloudClient.DeleteProject(cliCtx.Context, orgName, projectName)
