@@ -60,7 +60,7 @@ def parse_changelog(changelog_data):
     versions = OrderedDict()
     def save_version(version, release_date, body):
         if version in versions:
-            raise DuplicateVersionError(version)
+            raise DuplicateVersionError(version, line_num)
         versions[version] = {
             'date': release_date,
             'body': '\n'.join(body),

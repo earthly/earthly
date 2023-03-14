@@ -552,12 +552,12 @@ all:
 lint-all:
     BUILD +lint
     BUILD +lint-scripts
-    BUILD +lint-newline-ending
-    BUILD +lint-changelog
+    BUILD +lint-docs
     BUILD +submodule-decouple-check
 
 lint-docs:
     BUILD +lint-newline-ending
+    BUILD +lint-changelog
 
 # TODO: Document qemu vs non-qemu
 test-no-qemu:

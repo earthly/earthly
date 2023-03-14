@@ -226,6 +226,8 @@ ga-no-qemu:
     BUILD +build-after-from
     BUILD +pipelines
     BUILD +doc
+    BUILD +no-network
+    BUILD +test-works-without-earthly-server
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -1197,6 +1199,9 @@ ls-subdir:
     RUN echo -e "+alpha\n+base\n+bravo\n+charlie" > expected
     RUN diff expected actual
 
+no-network:
+    DO +RUN_EARTHLY --earthfile=no-network.earth --target=+test --should_fail=true --output_contains="wget: bad address .earthly.dev."
+
 ssh:
     ARG FRONTEND=docker
     COPY ssh.earth ./Earthfile
@@ -1265,6 +1270,25 @@ pipelines:
         --should_fail=true \
         --output_contains="valid triggers include"
 
+test-works-without-earthly-server:
+    # first warm-up the cache
+    DO +RUN_EARTHLY --verbose=false --earthfile=true.earth --target=+true
+
+    RUN echo "#!/bin/sh
+    set -e
+    unset EARTHLY_DISABLE_ANALYTICS
+    for host in ci.earthly.dev api.earthly.dev; do
+      echo \"blocking \$host\"
+      for ip in \$(getent hosts \$host | awk '{ print \$1 }'); do
+        iptables -A OUTPUT -d \$ip -j DROP
+      done
+    done
+    date +%s > start-time
+    " > /tmp/precommand && chmod +x /tmp/precommand
+    DO +RUN_EARTHLY --verbose=false --pre_command=/tmp/precommand --post_command=" && date +%s > end-time" --earthfile=true.earth --target=+true
+    RUN if grep "failed sending analytics" earthly.output; then echo "analytics should have failed silently, but didnt" && exit 1; fi
+    RUN export duration=$(echo "$(cat end-time) - $(cat start-time)" | bc) && test "$duration" -lt 45 || (echo "it took $duration seconds to run +true, which is too long" && exit 1)
+
 RUN_EARTHLY:
     COMMAND
     ARG earthfile=
@@ -1284,7 +1308,7 @@ RUN_EARTHLY:
         COPY "$earthfile" "$earthfile_dest"
     END
     RUN echo "
-        set -x
+        set -ex
         export EARTHLY_VERBOSE=$verbose
         if $use_tmpfs; then
             export EARTHLY_TMP_DIR=/tmp/earthly-tmpfs
@@ -1303,10 +1327,14 @@ RUN_EARTHLY:
             fi
             export EARTHLY_EXEC_CMD=\"$exec_cmd\"
             echo running earthly with EARTHLY_EXEC_CMD=\$EARTHLY_EXEC_CMD
+            set +e
             (/bin/sh /usr/bin/earthly-entrypoint.sh; echo exit_code=\$?) 2>&1 | tee earthly.output
+            set -e
         else
             echo running earthly with $target
+            set +e
             (eval \"/usr/bin/earthly-entrypoint.sh $extra_args $target $post_command\"; echo exit_code=\$?) 2>&1 | tee earthly.output
+            set -e
         fi
 
         if ! tail -n 1 earthly.output | grep 'exit_code=[0-9]\+'; then

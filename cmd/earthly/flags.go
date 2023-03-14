@@ -317,6 +317,7 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        "tlscert",
+			Aliases:     []string{"tls-cert"},
 			Value:       "./certs/earthly_cert.pem",
 			EnvVars:     []string{"EARTHLY_TLS_CERT"},
 			Usage:       wrap("The path to the client TLS cert", "If relative, will be interpreted as relative to the ~/.earthly folder."),
@@ -325,10 +326,27 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        "tlskey",
+			Aliases:     []string{"tls-key"},
 			Value:       "./certs/earthly_key.pem",
 			EnvVars:     []string{"EARTHLY_TLS_KEY"},
 			Usage:       wrap("The path to the client TLS key.", "If relative, will be interpreted as relative to the ~/.earthly folder."),
 			Destination: &app.keyPath,
+			Hidden:      true,
+		},
+		&cli.StringFlag{
+			Name:        "tlsca",
+			Aliases:     []string{"tls-ca"},
+			Value:       "./certs/earthly_ca.pem",
+			EnvVars:     []string{"EARTHLY_TLS_CA"},
+			Usage:       wrap("The path to the client CA cert.", "If relative, will be interpreted as relative to the ~/.earthly folder."),
+			Destination: &app.caPath,
+			Hidden:      true,
+		},
+		&cli.BoolFlag{
+			Name:        "tls-enabled",
+			EnvVars:     []string{"EARTHLY_TLS_ENABLED"},
+			Usage:       "If TLS should be used to communicate with Buildkit",
+			Destination: &app.tlsEnabled,
 			Hidden:      true,
 		},
 		&cli.StringFlag{

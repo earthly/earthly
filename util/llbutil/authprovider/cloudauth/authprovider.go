@@ -96,6 +96,10 @@ func (ap *authProvider) Register(server *grpc.Server) {
 	auth.RegisterAuthServer(server, ap)
 }
 
+func secondsToDuration(s int) time.Duration {
+	return time.Duration(s) * time.Second
+}
+
 func (ap *authProvider) FetchToken(ctx context.Context, req *auth.FetchTokenRequest) (rr *auth.FetchTokenResponse, err error) {
 	ac, err := ap.getAuthConfig(ctx, req.Host)
 	if err != nil {
@@ -113,7 +117,7 @@ func (ap *authProvider) FetchToken(ctx context.Context, req *auth.FetchTokenRequ
 	}
 
 	if creds.Username != "" {
-		ap.console.Printf("logging into %s with username %s (using credentials from %s)", req.Host, creds.Username, ac.loc)
+		ap.console.VerbosePrintf("attempting to login to %s with username %s (using credentials from %s)", req.Host, creds.Username, ac.loc)
 	}
 
 	to := authutil.TokenOptions{
@@ -148,20 +152,29 @@ func (ap *authProvider) FetchToken(ctx context.Context, req *auth.FetchTokenRequ
 				if (errStatus.StatusCode == 405 && to.Username != "") || errStatus.StatusCode == 404 || errStatus.StatusCode == 401 {
 					resp, err := authutil.FetchToken(ctx, http.DefaultClient, nil, to)
 					if err != nil {
+						ap.console.Warnf("failed to login to %s with username %s (using credentials from %s): %s", req.Host, creds.Username, ac.loc, err)
 						return nil, err
 					}
+					ap.console.Printf("logged into %s with username %s (using credentials from %s)", req.Host, creds.Username, ac.loc)
+					ap.console.VerbosePrintf("%s token was issued at %s, and expires in %s seconds", req.Host, resp.IssuedAt, secondsToDuration(resp.ExpiresIn))
 					return toTokenResponse(resp.Token, resp.IssuedAt, resp.ExpiresIn), nil
 				}
 			}
+			ap.console.Warnf("failed to login to %s with username %s (using credentials from %s): %s", req.Host, creds.Username, ac.loc, err)
 			return nil, err
 		}
+		ap.console.Printf("logged into %s with username %s (using credentials from %s)", req.Host, creds.Username, ac.loc)
+		ap.console.VerbosePrintf("%s token was issued at %s, and expires in %s seconds", req.Host, resp.IssuedAt, secondsToDuration(resp.ExpiresIn))
 		return toTokenResponse(resp.AccessToken, resp.IssuedAt, resp.ExpiresIn), nil
 	}
 	// do request anonymously
 	resp, err := authutil.FetchToken(ctx, http.DefaultClient, nil, to)
 	if err != nil {
+		ap.console.Warnf("failed to login to %s anonymously: %s", req.Host, err)
 		return nil, errors.Wrap(err, "failed to fetch anonymous token")
 	}
+	ap.console.Printf("logged into %s anonymously", req.Host)
+	ap.console.VerbosePrintf("%s token was issued at %s, and expires in %s seconds", req.Host, resp.IssuedAt, secondsToDuration(resp.ExpiresIn))
 	return toTokenResponse(resp.Token, resp.IssuedAt, resp.ExpiresIn), nil
 }
 

@@ -30,7 +30,7 @@ def test_with_exit_code(earthly_path, timeout, exit_code_to_send):
             c.sendline(str(exit_code_to_send))
 
             if exit_code_to_send:
-                expected_text = f'did not complete successfully: exit code: {exit_code_to_send}'
+                expected_text = f'did not complete successfully. Exit code {exit_code_to_send}'
                 try:
                     c.expect(expected_text, timeout=10)
                 except Exception as e:

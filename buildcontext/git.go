@@ -209,6 +209,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 				"git rev-parse HEAD >/dest/git-hash ; " +
 					"git rev-parse --short=8 HEAD >/dest/git-short-hash ; " +
 					"git rev-parse --abbrev-ref HEAD >/dest/git-branch  || touch /dest/git-branch ; " +
+					"ls .git/refs/heads/ | head -n 1 >/dest/git-default-branch  || touch /dest/git-default-branch ; " +
 					"git describe --exact-match --tags >/dest/git-tags || touch /dest/git-tags ; " +
 					"git log -1 --format=%ct >/dest/git-committer-ts || touch /dest/git-committer-ts ; " +
 					"git log -1 --format=%at >/dest/git-author-ts || touch /dest/git-author-ts ; " +
@@ -249,6 +250,12 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		if err != nil {
 			return nil, errors.Wrap(err, "read git-branch")
 		}
+		gitDefaultBranchBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: "git-default-branch",
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "read git-default-branch")
+		}
 		gitTagsBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
 			Filename: "git-tags",
 		})
@@ -287,9 +294,21 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		gitCoAuthors := gitutil.ParseCoAuthorsFromBody(string(gitBodyBytes))
 		var gitBranches2 []string
 		for _, gitBranch := range gitBranches {
-			if gitBranch != "" {
+			if gitBranch != "" && gitBranch != "HEAD" {
 				gitBranches2 = append(gitBranches2, gitBranch)
 			}
+		}
+		if len(gitBranches2) == 0 {
+			// fallback case for when git rev-parse --abbrev-ref fails
+			if gitRef != "" {
+				// use the reference name (if given); but only if it is not the git sha
+				if !strings.HasPrefix(gitRef, gitShortHash) {
+					gitBranches2 = []string{gitRef}
+				}
+			} else {
+				gitBranches2 = []string{strings.SplitN(string(gitDefaultBranchBytes), "\n", 2)[0]}
+			}
+
 		}
 		gitTags := strings.SplitN(string(gitTagsBytes), "\n", 2)
 		var gitTags2 []string

@@ -256,6 +256,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 				},
 				&cli.StringFlag{
 					Name:        "project",
+					Aliases:     []string{"p"},
 					EnvVars:     []string{"EARTHLY_PROJECT"},
 					Usage:       "The project to act on.",
 					Required:    false,

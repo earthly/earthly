@@ -4,9 +4,34 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.2 - 2023-03-14
+
+### Added
+
+- Support for [Rosetta](https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment) translation environment (emulator) in buildkit as an alternative to QEMU. To enable, go to Docker Desktop -> Settings -> Features in development -> Check `Use Rosetta for x86/amd64 emulation on Apple Silicon`.
+- New ARG `EARTHLY_GIT_BRANCH` will contain the branch of the current git commit, this ARG must be enabled with the `VERSION --git-branch` feature flag. [#2735](https://github.com/earthly/earthly/pull/2735)
+- Verbose logging when git configurations perform a regex substitution.
+
+### Fixed
+
+- SAVE IMAGE --push did not always work under `VERSION 0.7`, when image was refrenced by a `FROM` or `COPY`, followed by a `BUILD`. [#2762](https://github.com/earthly/earthly/issues/2762)
+
 ### Changed
 
-- The `unexpected env` warning can now be silenced by creating a `.arg` or `.secret` file. [#2696](https://github.com/earthly/earthly/issues/2696).
+- Simplified error message when a RUN command fails with an exit code. [#2742](https://github.com/earthly/earthly/issues/2742)
+- Improved warning messages when earthly cloud-based registry auth fails. [#2783](https://github.com/earthly/earthly/issues/2783)
+- Deleting a project will prompt for confirmation, unless --force is specified.
+- Updated buildkit with changes up to 4451e1be0e6889ffc56225e54f7e26bd6fdada54.
+
+## v0.7.1 - 2023-03-01
+
+### Added
+
+- Support for `RUN --network=none`, which prevents programs from using any network resources. [#834](https://github.com/earthly/earthly/issues/834)
+
+### Changed
+
+- The `unexpected env` warning can now be silenced by creating a `.arg` or `.secret` file. [#2696](https://github.com/earthly/earthly/issues/2696)
 
 ### Fixed
 
@@ -125,6 +150,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - The platform logic has been improved to allow overriding the platform in situations where previously it was not possible. Additionally, the default platform is now the native platform of the runner, and not of the host running Earthly. This makes platforms work better in remote runner settings. Previously under `VERSION --new-platform 0.6`.
 - Earthly will automatically shellout to determine the `$HOME` value when referenced [#2469](https://github.com/earthly/earthly/issues/2469)
 - Improved error message when invalid shell variable name is configured for a secret. [#2478](https://github.com/earthly/earthly/issues/2478)
+- The `--ci` flag no longer implies `--save-inline-cache` and `--use-inline-cache` since they were 100% CPU usage in some edge cases. These flags may still be explicitly enabled with `--ci`, but earthly will print a warning.
 - `earthly ls` has been promoted from *experimental* to *beta* status.
 - Setting a `VERSION` feature flag boolean to false (or any other value) will now raise an error; previously it was syntactically valid but had no effect.
 - `SAVE ARTIFACT <path> AS LOCAL ...` when used under a `TRY` / `FINALLY` can fail to be fully transferred to the host when the `TRY` command fails (resulting in an partially transferred file); an underflow can still occur, and is now detected and will not export the partial file. [2452](https://github.com/earthly/earthly/issues/2452)
@@ -277,6 +303,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - The platform logic has been improved to allow overriding the platform in situations where previously it was not possible. Additionally, the default platform is now the native platform of the runner, and not of the host running Earthly. This makes platforms work better in remote runner settings. Previously under `VERSION --new-platform 0.6`.
 - Earthly will automatically shellout to determine the `$HOME` value when referenced [#2469](https://github.com/earthly/earthly/issues/2469)
 - Improved error message when invalid shell variable name is configured for a secret. [#2478](https://github.com/earthly/earthly/issues/2478)
+- The `--ci` flag no longer implies `--save-inline-cache` and `--use-inline-cache` since they were 100% CPU usage in some edge cases. These flags may still be explicitly enabled with `--ci`, but earthly will print a warning.
 - `earthly ls` has been promoted from *experimental* to *beta* status.
 - Setting a `VERSION` feature flag boolean to false (or any other value) will now raise an error; previously it was syntactically valid but had no effect.
 - `SAVE ARTIFACT <path> AS LOCAL ...` when used under a `TRY` / `FINALLY` can fail to be fully transferred to the host when the `TRY` command fails (resulting in an partially transferred file); an underflow can still occur, and is now detected and will not export the partial file. [2452](https://github.com/earthly/earthly/issues/2452)
@@ -418,6 +445,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - The platform logic has been improved to allow overriding the platform in situations where previously it was not possible. Additionally, the default platform is now the native platform of the runner, and not of the host running Earthly. This makes platforms work better in remote runner settings. Previously under `VERSION --new-platform 0.6`.
 - Earthly will automatically shellout to determine the `$HOME` value when referenced [#2469](https://github.com/earthly/earthly/issues/2469)
 - Improved error message when invalid shell variable name is configured for a secret. [#2478](https://github.com/earthly/earthly/issues/2478)
+- The `--ci` flag no longer implies `--save-inline-cache` and `--use-inline-cache` since they were 100% CPU usage in some edge cases. These flags may still be explicitly enabled with `--ci`, but earthly will print a warning.
 - `earthly ls` has been promoted from *experimental* to *beta* status.
 - Setting a `VERSION` feature flag boolean to false (or any other value) will now raise an error; previously it was syntactically valid but had no effect.
 - `SAVE ARTIFACT <path> AS LOCAL ...` when used under a `TRY` / `FINALLY` can fail to be fully transferred to the host when the `TRY` command fails (resulting in an partially transferred file); an underflow can still occur, and is now detected and will not export the partial file. [2452](https://github.com/earthly/earthly/issues/2452)
@@ -486,7 +514,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 
 ### Changed
 
-- The Cloud-based secrets model is now project-based; it is not compatable with the older global secrets model. Earthfiles which are defined as `VERSION 0.5` or `VERSION 0.6` will continue to use the old global secrets namespace; however
+- The Cloud-based secrets model is now project-based; it is not compatible with the older global secrets model. Earthfiles which are defined as `VERSION 0.5` or `VERSION 0.6` will continue to use the old global secrets namespace; however
   the earthly command line no longer supports accessing or modifying the global secrets. A new `earthly secrets migrate` command has been added to help transition the global-based secrets to the new project-based secrets.
 - Earthly will automatically shellout to determine the `$HOME` value when referenced; this requires the `--shell-out-anywhere` feature flag. [#2469](https://github.com/earthly/earthly/issues/2469)
 - Improved error message when invalid shell variable name is configured for a secret. [#2478](https://github.com/earthly/earthly/issues/2478)

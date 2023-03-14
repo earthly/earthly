@@ -569,6 +569,7 @@ type ConvertRunOpts struct {
 	WithEntrypoint       bool
 	WithShell            bool
 	Privileged           bool
+	NoNetwork            bool
 	Push                 bool
 	Transient            bool
 	WithSSH              bool
@@ -1790,6 +1791,9 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		if opts.Transient {
 			return pllb.State{}, errors.New("Transient run not supported with LOCALLY")
 		}
+		if opts.NoNetwork {
+			return pllb.State{}, errors.New("--network=none is not supported with LOCALLY")
+		}
 	}
 	if opts.shellWrap == nil {
 		opts.shellWrap = withShellAndEnvVars
@@ -1815,14 +1819,19 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		return pllb.State{}, errors.Wrap(err, "parse mounts")
 	}
 
+	if opts.NoNetwork {
+		runOpts = append(runOpts, llb.Network(llb.NetModeNone))
+	}
+
 	runOpts = append(runOpts, mountRunOpts...)
 	commandStr := fmt.Sprintf(
-		"%s %s%s%s%s%s%s%s",
+		"%s %s%s%s%s%s%s%s%s",
 		opts.CommandName, // e.g. "RUN", "IF", "FOR", "ARG"
 		strIf(opts.Privileged, "--privileged "),
 		strIf(opts.Push, "--push "),
 		strIf(opts.WithSSH, "--ssh "),
 		strIf(opts.NoCache, "--no-cache "),
+		strIf(opts.NoNetwork, "--network=none "),
 		strIf(opts.Interactive, "--interactive "),
 		strIf(opts.InteractiveKeep, "--interactive-keep "),
 		strings.Join(opts.Args, " "))

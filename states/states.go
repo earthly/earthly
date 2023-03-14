@@ -170,6 +170,12 @@ func (sts *SingleTarget) SetDoPushes() {
 	sts.doSavesMu.Lock()
 	defer sts.doSavesMu.Unlock()
 	sts.doPushes = true
+	for _, wi := range sts.WaitItems {
+		wi.SetDoPush()
+	}
+	for _, wb := range sts.WaitBlocks {
+		wb.SetDoPushes()
+	}
 }
 
 // AddWaitBlock adds a wait block to the state
