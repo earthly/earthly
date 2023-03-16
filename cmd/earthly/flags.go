@@ -15,8 +15,16 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 	}
 	return []cli.Flag{
 		&cli.StringFlag{
+			Name:        "installation-name",
+			Value:       defaultInstallationName,
+			EnvVars:     []string{"EARTHLY_INSTALLATION_NAME"},
+			Usage:       "The earthly installation name to use when naming the buildkit container, the docker volume and the ~/.earthly directory",
+			Destination: &app.installationName,
+			Hidden:      true, // Internal.
+		},
+		&cli.StringFlag{
 			Name:        "config",
-			Value:       defaultConfigPath(defaultInstallationName),
+			Value:       "", // the default value will be applied in the "Before" fn, after app.installationName is set.
 			EnvVars:     []string{"EARTHLY_CONFIG"},
 			Usage:       "Path to config file",
 			Destination: &app.configPath,
@@ -371,13 +379,6 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			Usage:       "The docker volume name to use for the buildkit daemon cache",
 			Destination: &app.buildkitdSettings.VolumeName,
 			Hidden:      true,
-		},
-		&cli.StringFlag{
-			Name:        "installation-name",
-			Value:       defaultInstallationName,
-			EnvVars:     []string{"EARTHLY_INSTALLATION_NAME"},
-			Usage:       "The earthly installation name to use when naming the buildkit container, the docker volume and the ~/.earthly directory",
-			Destination: &app.installationName,
 		},
 		&cli.StringSliceFlag{
 			Name:    "cache-from",

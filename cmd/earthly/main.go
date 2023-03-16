@@ -420,6 +420,9 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 	}
 
 	if app.installationName != "" {
+		if !cliCtx.IsSet("config") {
+			app.configPath = defaultConfigPath(app.installationName)
+		}
 		if !cliCtx.IsSet("buildkit-container-name") {
 			app.containerName = fmt.Sprintf("%s-buildkitd", app.installationName)
 		}

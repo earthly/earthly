@@ -21,6 +21,13 @@ if [[ ! -d "$HOME/.earthly-dev" ]]; then
   exit 1
 fi
 
+EARTHLY_INSTALLATION_NAME=earthly-test "$earthly" bootstrap
+
+if [[ ! -d "$HOME/.earthly-test" ]]; then
+  echo ".earthly-test directory was missing after bootstrap"
+  exit 1
+fi
+
 echo "----"
 "$earthly" +test | tee hand_boot_output # Hand boots are gloves ;)
 
@@ -29,7 +36,7 @@ if  cat hand_boot_output | grep -q "bootstrap |"; then
     exit 1
 fi
 
-rm -rf "$HOME/.earthly-dev"
+rm -rf "$HOME/.earthly-dev" "$HOME/.earthly-test"
 
 echo "=== Test 2: Implied Bootstrap ==="
 
@@ -37,6 +44,13 @@ echo "=== Test 2: Implied Bootstrap ==="
 
 if [[ ! -d "$HOME/.earthly-dev" ]]; then
   echo ".earthly-dev directory was missing after bootstrap"
+  exit 1
+fi
+
+EARTHLY_INSTALLATION_NAME=earthly-test "$earthly" +test
+
+if [[ ! -d "$HOME/.earthly-test" ]]; then
+  echo ".earthly-test directory was missing after bootstrap"
   exit 1
 fi
 
@@ -48,7 +62,7 @@ if  cat imp_boot_output | grep -q "bootstrap |"; then
     exit 1
 fi
 
-rm -rf "$HOME/.earthly-dev"
+rm -rf "$HOME/.earthly-dev" "$HOME/.earthly-test"
 
 echo "=== Test 3: CI ==="
 
@@ -59,6 +73,13 @@ if [[ ! -d "$HOME/.earthly-dev" ]]; then
   exit 1
 fi
 
+EARTHLY_INSTALLATION_NAME=earthly-test "$earthly" --ci +test
+
+if [[ ! -d "$HOME/.earthly-test" ]]; then
+ echo ".earthly-dev directory was missing after bootstrap"
+ exit 1
+fi
+
 echo "----"
 "$earthly" --ci +test | tee ci_boot_output
 
@@ -67,7 +88,7 @@ if  cat ci_boot_output | grep -q "bootstrap |"; then
     exit 1
 fi
 
-rm -rf "$HOME/.earthly-dev"
+rm -rf "$HOME/.earthly-dev" "$HOME/.earthly-test"
 
 echo "=== Test 4: With Autocomplete ==="
 
