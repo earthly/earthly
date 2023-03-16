@@ -20,6 +20,7 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			EnvVars:     []string{"EARTHLY_INSTALLATION_NAME"},
 			Usage:       "The earthly installation name to use when naming the buildkit container, the docker volume and the ~/.earthly directory",
 			Destination: &app.installationName,
+			Hidden:      true, // Internal.
 		},
 		&cli.StringFlag{
 			Name:        "config",
