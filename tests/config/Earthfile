@@ -93,6 +93,20 @@ test:
     RUN earthly config global.disable_analytics true
     RUN test "$(cat /home/testuser/.earthly/config.yml)" = "$(cat /test/expected-1.yml)"
 
+    # test correct user location is used when set elsewhere
+    RUN touch ~/.earthly/other-config.yml
+    RUN EARTHLY_CONFIG=~/.earthly/other-config.yml earthly config global.disable_analytics true
+    RUN test "$(cat /home/testuser/.earthly/other-config.yml)" = "$(cat /test/expected-1.yml)"
+
+    # test correct user location is used when set elsewhere with different installation dir
+    RUN RUN mkdir ~/.earthly-not-test && touch ~/.earthly-not-test/other-config.yml
+    RUN EARTHLY_INSTALLATION_NAME=earthly-test EARTHLY_CONFIG=~/.earthly-not-test/other-config.yml earthly config global.disable_analytics true
+    RUN test "$(cat /home/testuser/.earthly-not-test/other-config.yml)" = "$(cat /test/expected-1.yml)"
+
+    # test correct user location is used when set with different installation dir
+    RUN EARTHLY_INSTALLATION_NAME=earthly-test2 earthly config global.disable_analytics true
+    RUN test "$(cat /home/testuser/.earthly-test2/config.yml)" = "$(cat /test/expected-1.yml)"
+
     # check permission error is correctly returned
     COPY hello.earth Earthfile
     RUN ! earthly --config=/tmp/config.yml --verbose +hello > output.txt 2>&1
