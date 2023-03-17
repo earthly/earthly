@@ -522,6 +522,10 @@ func (i *Interpreter) handleTry(ctx context.Context, tryStmt spec.TryStatement) 
 			if strings.Contains(saveAsLocalTo, "$") {
 				return i.errorf(cmd.Command.SourceLocation, "TRY/CATCH/FINALLY does not (currently) support expanding args for SAVE ARTIFACT paths")
 			}
+			destIsDir := strings.HasSuffix(saveAsLocalTo, "/") || saveAsLocalTo == "."
+			if destIsDir {
+				saveAsLocalTo = path.Join(saveAsLocalTo, path.Base(saveFrom))
+			}
 			saveArtifacts = append(saveArtifacts, debuggercommon.SaveFilesSettings{
 				Src:      saveFrom,
 				Dst:      saveAsLocalTo,
