@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -630,6 +631,10 @@ func receiveFileVersion2(ctx context.Context, conn io.ReadWriteCloser, localArti
 
 	if !localArtifactWhiteList.Exists(string(dst)) {
 		return fmt.Errorf("file %s does not appear in the white list", dst)
+	}
+	err = os.MkdirAll(path.Dir(string(dst)), 0755)
+	if err != nil {
+		return err
 	}
 
 	f, err := os.Create(string(dst))
