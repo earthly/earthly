@@ -410,7 +410,6 @@ func (app *earthlyApp) getSatelliteName(ctx context.Context, orgID, satelliteNam
 	}
 	for _, s := range satellites {
 		if satelliteName == s.Name {
-			fmt.Printf("found satellite: %s(%s)\n", s.Name, s.Name)
 			return s.Name, nil
 		}
 	}
@@ -421,7 +420,6 @@ func (app *earthlyApp) getSatelliteName(ctx context.Context, orgID, satelliteNam
 	}
 	for _, p := range pipelines {
 		if satelliteName == p.Name {
-			fmt.Printf("found satellite: %s(%s)\n", p.SatelliteName, p.Name)
 			return p.SatelliteName, nil
 		}
 	}
