@@ -67,11 +67,14 @@ Follow the steps in the [Earthly Cloud overview](./overview.md#getting-started) 
 
 ### 2. Purchase a Satellites Plan
 
-Satellites are now a paid feature and require a valid subscription to begin using. The subscription includes a 14-day free trial which can be canceled before any payment is made. Visit the [pricing page](https://earthly.dev/pricing) for more billing details.
+Satellites are a paid feature which require a subscription to begin using. The subscription includes a 14-day free trial which can be canceled before any payment is made. Visit the [pricing page](https://earthly.dev/pricing) for more billing details.
+
+You can start your free trial by using the checkout form below. Be sure to provide the name of your Earthly org from Step 1.
 
 [**Click here to start your subscription**](https://buy.stripe.com/8wM9Es4BT4Vvb4YbIJ)
 
-Once you've submitted your details on the checkout page, you will receive an email with further instructions. Please reply or [send us an email](mailto:support+satellite@earthly.dev) with your org name from step 1 in order for us to activate the Satellites feature on your account.
+Once you've submitted your details on the checkout page, you will receive an automated confirmation email.
+The Earthly team will send you another follow-up shortly after once the satellites feature has active on your account.
 
 ### 3. Ensure that you have the latest version of Earthly
 
@@ -156,12 +159,7 @@ For more information on managing satellites, see the [Managing Satellites page](
 
 ## Satellite specs
 
-Satellites are currently only available in one size, and it has the following specs:
-
-* 4 CPUs
-* 16 GB of RAM
-* 90 GB of cache storage
-* 5 Gib internet bandwidth
+Satellites are currently only available in different sizes and architectures. Please see the [Pricing Page](https://earthly.dev/pricing) for more details.
 
 ## Using Satellites in CI
 
@@ -195,11 +193,6 @@ before running your Earthly targets.
 
 ## Known limitations
 
-* Satellites currently require a manual re-launch in order to get updated to the latest version available.
-  ```bash
-  earthly sat rm <satellite-name>
-  earthly sat launch <satellite-name>
-  ```
 * The output phase (the phase in which a satellite outputs build results back to the local machine) is slower than it could be. To work around this issue, you can make use of the `--no-output` flag (assuming that local outputs are not needed). You can even use `--no-output` in conjunction with `--push`. We are working on ways in which local outputs can be synchronized more intelligently such that only a diff is transferred over the network.
 
 If you run into any issues please let us know either via [Slack](https://earthly.dev/slack), [GitHub issues](https://github.com/earthly/cloud-issues/issues) or by [emailing support](mailto:support+satellite@earthly.dev).
