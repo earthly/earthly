@@ -121,8 +121,8 @@ github.com/docker/cli v23.0.0-beta.1+incompatible h1:K9CMaN5nHB1eu2f02PURnJhlPhW
 github.com/docker/cli v23.0.0-beta.1+incompatible/go.mod h1:JLrzqnKDaYBop7H2jaqPtU4hHvMKP+vjCwu2uszcLI8=
 github.com/docker/distribution v2.8.1+incompatible h1:Q50tZOPR6T/hjNsyc9g8/syEs6bk8XXApsHjKukMl68=
 github.com/docker/distribution v2.8.1+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
-github.com/docker/docker v20.10.3-0.20220414164044-61404de7df1a+incompatible h1:jnhU41Zm9biz6e4GPOvAtuognZ+pi8S77ZlRir/SHRA=
-github.com/docker/docker v20.10.3-0.20220414164044-61404de7df1a+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
+github.com/docker/docker v23.0.0-beta.1+incompatible h1:0Xv+AFPWxTbmohdLK57pYRPmefCKthtfRF/qQwXHolg=
+github.com/docker/docker v23.0.0-beta.1+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker-credential-helpers v0.7.0 h1:xtCHsjxogADNZcdv1pKUHXryefjlVRqWqIhk/uXJp0A=
 github.com/docker/docker-credential-helpers v0.7.0/go.mod h1:rETQfLdHNT3foU5kuNkFR1R1V12OJRRO5lzt2D1b5X0=
 github.com/docker/go-connections v0.4.0 h1:El9xVISelRB7BuFusrZozjnkIM5YnzCViNKohAFqRJQ=
@@ -133,8 +133,8 @@ github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
-github.com/earthly/buildkit v0.0.1-0.20230314203543-3946dd623aea h1:p8uHMG+q6+IIbAValRN+/8CaNcwUaKxIRudh2vMXukY=
-github.com/earthly/buildkit v0.0.1-0.20230314203543-3946dd623aea/go.mod h1:ZLppI5vEwbI+OUTFiXt1r9SyaxUiqKZ4YqE0hEQkzAc=
+github.com/earthly/buildkit v0.0.1-0.20230321235925-55e715e454d2 h1:vJz2vj6WiXCnC2QJx4hf/gHZ2/zd0OYufgO+sdkcMSo=
+github.com/earthly/buildkit v0.0.1-0.20230321235925-55e715e454d2/go.mod h1:H/LP9uSnFsNzdiyfPVZPhu16YU9jIg5p7wbUDeO3LvY=
 github.com/earthly/cloud-api v1.0.1-0.20230221174908-b8d90bbe26b0 h1:hHltIU1yWP6CmGG7E8w06NNf6f+0B5z2GlsyGaBE0Wg=
 github.com/earthly/cloud-api v1.0.1-0.20230221174908-b8d90bbe26b0/go.mod h1:38rj6sccWnuk+C981DeFFomBmAtwuuvchoPrXdKXi2I=
 github.com/earthly/fsutil v0.0.0-20230303212804-6a28c867693f h1:Tb5QuOCrWJZ4kQTfdlAt3h4JlfzJhptouyFY+hTnCP4=
@@ -277,6 +277,8 @@ github.com/moby/patternmatcher v0.5.0 h1:YCZgJOeULcxLw1Q+sVR636pmS7sPEn1Qo2iAN6M
 github.com/moby/patternmatcher v0.5.0/go.mod h1:hDPoyOpDY7OrrMDLaYoY3hf52gNCR/YOUYxkhApJIxc=
 github.com/moby/sys/mountinfo v0.5.0/go.mod h1:3bMD3Rg+zkqx8MRYPi7Pyb0Ie97QEBmdxbhnCLlSvSU=
 github.com/moby/sys/mountinfo v0.6.2 h1:BzJjoreD5BMFNmD9Rus6gdd1pLuecOFPt8wC+Vygl78=
+github.com/moby/sys/sequential v0.5.0 h1:OPvI35Lzn9K04PBbCLW0g4LcFAJgHsvXsRyewg5lXtc=
+github.com/moby/sys/sequential v0.5.0/go.mod h1:tH2cOOs5V9MlPiXcQzRC+eEyab644PWKGRYaaV5ZZlo=
 github.com/moby/sys/signal v0.7.0 h1:25RW3d5TnQEoKvRbEKUGay6DCQ46IxAVTT9CUMgmsSI=
 github.com/moby/sys/signal v0.7.0/go.mod h1:GQ6ObYZfqacOwTtlXvcmh9A26dVRul/hbOZn88Kg8Tg=
 github.com/morikuni/aec v1.0.0 h1:nP9CBfwrvYnBRgY6qfDQkygYDmYwOilePFkwzv4dU8A=
