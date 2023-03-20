@@ -64,11 +64,13 @@ type SatelliteInstance struct {
 	MaintenanceWindowEnd    string
 	MaintenanceWeekendsOnly bool
 	RevisionID              int32
+	Hidden                  bool
 }
 
-func (c *Client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteInstance, error) {
+func (c *Client) ListSatellites(ctx context.Context, orgID string, includeHidden bool) ([]SatelliteInstance, error) {
 	resp, err := c.compute.ListSatellites(c.withAuth(ctx), &pb.ListSatellitesRequest{
-		OrgId: orgID,
+		OrgId:         orgID,
+		IncludeHidden: includeHidden,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed listing satellites")
@@ -82,6 +84,7 @@ func (c *Client) ListSatellites(ctx context.Context, orgID string) ([]SatelliteI
 			Size:     s.Size,
 			State:    satelliteStatus(s.Status),
 			Version:  s.Version,
+			Hidden:   s.Hidden,
 		}
 	}
 	return instances, nil
@@ -108,6 +111,7 @@ func (c *Client) GetSatellite(ctx context.Context, name, orgID string) (*Satelli
 		MaintenanceWindowEnd:    resp.MaintenanceWindowEnd,
 		MaintenanceWeekendsOnly: resp.MaintenanceWeekendsOnly,
 		RevisionID:              resp.RevisionId,
+		Hidden:                  resp.Hidden,
 	}, nil
 }
 
