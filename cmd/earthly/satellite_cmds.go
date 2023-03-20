@@ -292,7 +292,7 @@ func (app *earthlyApp) printSatellitesTable(satellites []satelliteWithPipelineIn
 
 	for _, s := range satellites {
 		var selected = ""
-		if s.satellite.Name == app.cfg.Satellite.Name && s.satellite.Org == orgID {
+		if (s.satellite.Name == app.cfg.Satellite.Name || (s.pipeline != nil && s.pipeline.Name == app.cfg.Satellite.Name)) && s.satellite.Org == orgID {
 			selected = "*"
 		}
 
@@ -404,25 +404,24 @@ func (app *earthlyApp) getAllPipelinesForAllProjects(ctx context.Context, cloudC
 }
 
 func (app *earthlyApp) getSatelliteName(ctx context.Context, orgID, satelliteName string, cloudClient *cloud.Client) (string, error) {
-	satellites, err := cloudClient.ListSatellites(ctx, orgID, app.satelliteIncludeHidden)
+	satellites, err := cloudClient.ListSatellites(ctx, orgID, true)
 	if err != nil {
 		return "", err
 	}
 	for _, s := range satellites {
-		if s.Name == satelliteName {
+		if satelliteName == s.Name {
+			fmt.Printf("found satellite: %s(%s)\n", s.Name, s.Name)
 			return s.Name, nil
 		}
 	}
 
-	pipelines := make([]cloud.Pipeline, 0)
-	if app.satelliteIncludeHidden {
-		pipelines, err = app.getAllPipelinesForAllProjects(ctx, cloudClient)
-		if err != nil {
-			return "", err
-		}
+	pipelines, err := app.getAllPipelinesForAllProjects(ctx, cloudClient)
+	if err != nil {
+		return "", err
 	}
 	for _, p := range pipelines {
-		if p.SatelliteName == satelliteName {
+		if satelliteName == p.Name {
+			fmt.Printf("found satellite: %s(%s)\n", p.SatelliteName, p.Name)
 			return p.SatelliteName, nil
 		}
 	}
@@ -570,6 +569,24 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 		return err
 	}
 
+	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgID, true)
+	if err != nil {
+		return err
+	}
+
+	found := false
+	for _, s := range satellites {
+		if app.satelliteName == s.Name {
+			found = true
+			if s.Hidden {
+				return errors.New("cannot delete hidden satellites")
+			}
+		}
+	}
+	if !found {
+		return fmt.Errorf("could not find '%s' for deletion", app.satelliteName)
+	}
+
 	app.console.Printf("Destroying Satellite '%s'. This could take a moment...\n", app.satelliteName)
 	err = cloudClient.DeleteSatellite(cliCtx.Context, app.satelliteName, orgID)
 	if err != nil {
@@ -614,7 +631,12 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		return err
 	}
 
-	satellite, err := cloudClient.GetSatellite(cliCtx.Context, satelliteToInspect, orgID)
+	satelliteToInspectName, err := app.getSatelliteName(cliCtx.Context, orgID, satelliteToInspect, cloudClient)
+	if err != nil {
+		return err
+	}
+
+	satellite, err := cloudClient.GetSatellite(cliCtx.Context, satelliteToInspectName, orgID)
 	if err != nil {
 		return err
 	}
@@ -626,7 +648,8 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 
 	app.buildkitdSettings.Timeout = 30 * time.Second
 	app.buildkitdSettings.SatelliteToken = token
-	app.buildkitdSettings.SatelliteName = satelliteToInspect
+	app.buildkitdSettings.SatelliteName = satelliteToInspectName
+	app.buildkitdSettings.SatelliteDisplayName = satelliteToInspect
 	app.buildkitdSettings.SatelliteOrgID = orgID
 	if app.satelliteAddress != "" {
 		app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
@@ -635,7 +658,7 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	}
 
 	selected := "No"
-	if selectedSatellite == satellite.Name {
+	if selectedSatellite == satelliteToInspect {
 		selected = "Yes"
 	}
 
@@ -742,7 +765,7 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 			return err
 		}
 		for _, p := range pipelines {
-			if app.satelliteName == p.SatelliteName {
+			if app.satelliteName == p.Name {
 				found = true
 				// We use the pipeline name, so you know what it belongs to, instead of a UUID.
 				// Reverse lookup at use time is handled via app.getSatelliteName().
@@ -799,7 +822,12 @@ func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
 		return err
 	}
 
-	sat, err := cloudClient.GetSatellite(cliCtx.Context, app.satelliteName, orgID)
+	satName, err := app.getSatelliteName(cliCtx.Context, orgID, app.satelliteName, cloudClient)
+	if err != nil {
+		return err
+	}
+
+	sat, err := cloudClient.GetSatellite(cliCtx.Context, satName, orgID)
 	if err != nil {
 		return err
 	}
@@ -808,7 +836,7 @@ func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
 		app.console.Printf("%s is already awake.", app.satelliteName)
 	}
 
-	out := cloudClient.WakeSatellite(cliCtx.Context, app.satelliteName, orgID)
+	out := cloudClient.WakeSatellite(cliCtx.Context, satName, orgID)
 	err = showSatelliteLoading(app.console, app.satelliteName, out)
 	if err != nil {
 		return errors.Wrap(err, "failed waiting for satellite wake")
@@ -839,7 +867,12 @@ func (app *earthlyApp) actionSatelliteSleep(cliCtx *cli.Context) error {
 		return err
 	}
 
-	out := cloudClient.SleepSatellite(cliCtx.Context, app.satelliteName, orgID)
+	satName, err := app.getSatelliteName(cliCtx.Context, orgID, app.satelliteName, cloudClient)
+	if err != nil {
+		return err
+	}
+
+	out := cloudClient.SleepSatellite(cliCtx.Context, satName, orgID)
 	err = showSatelliteStopping(app.console, app.satelliteName, out)
 	if err != nil {
 		return errors.Wrap(err, "failed waiting for satellite wake")
@@ -874,6 +907,11 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 		return err
 	}
 
+	satName, err := app.getSatelliteName(cliCtx.Context, orgID, app.satelliteName, cloudClient)
+	if err != nil {
+		return err
+	}
+
 	if window != "" {
 		window, err = cloud.LocalMaintenanceWindowToUTC(window, time.Local)
 		if err != nil {
@@ -884,7 +922,7 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 	}
 
 	err = cloudClient.UpdateSatellite(cliCtx.Context, cloud.UpdateSatelliteOpt{
-		Name:                    app.satelliteName,
+		Name:                    satName,
 		OrgID:                   orgID,
 		PinnedVersion:           version,
 		MaintenanceWindowStart:  window,
