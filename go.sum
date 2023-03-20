@@ -135,8 +135,8 @@ github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkp
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/earthly/buildkit v0.0.1-0.20230314203543-3946dd623aea h1:p8uHMG+q6+IIbAValRN+/8CaNcwUaKxIRudh2vMXukY=
 github.com/earthly/buildkit v0.0.1-0.20230314203543-3946dd623aea/go.mod h1:ZLppI5vEwbI+OUTFiXt1r9SyaxUiqKZ4YqE0hEQkzAc=
-github.com/earthly/cloud-api v1.0.1-0.20230221174908-b8d90bbe26b0 h1:hHltIU1yWP6CmGG7E8w06NNf6f+0B5z2GlsyGaBE0Wg=
-github.com/earthly/cloud-api v1.0.1-0.20230221174908-b8d90bbe26b0/go.mod h1:38rj6sccWnuk+C981DeFFomBmAtwuuvchoPrXdKXi2I=
+github.com/earthly/cloud-api v1.0.1-0.20230316192913-d68000c20ba2 h1:y8CxVdQxC4as1PmzmFBWRDCMwBragbxgLh9iTzzcFeg=
+github.com/earthly/cloud-api v1.0.1-0.20230316192913-d68000c20ba2/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
 github.com/earthly/fsutil v0.0.0-20230303212804-6a28c867693f h1:Tb5QuOCrWJZ4kQTfdlAt3h4JlfzJhptouyFY+hTnCP4=
 github.com/earthly/fsutil v0.0.0-20230303212804-6a28c867693f/go.mod h1:AvLEd1LEIl64G2Jpgwo7aVV5lGH0ePcKl0ygGIHNYl8=
 github.com/elastic/go-sysinfo v1.9.0 h1:usICqY/Nw4Mpn9f4LdtpFrKxXroJDe81GaxxUlCckIo=
@@ -478,8 +478,8 @@ golang.org/x/sys v0.0.0-20211116061358-0a5406a5449c/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220825204002-c680a09ffe64/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.5.0 h1:MUK/U/4lj1t1oPg0HfuXDN/Z1wv31ZJ/YcPiGccS4DU=
-golang.org/x/sys v0.5.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.6.0 h1:MVltZSvRTcU2ljQOhs94SXPftV6DCNnZViHeQps87pQ=
+golang.org/x/sys v0.6.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/term v0.5.0 h1:n2a8QNdAb0sZNpU9R1ALUXBbY+w51fCQDN+7EdxNBsY=
 golang.org/x/term v0.5.0/go.mod h1:jMB1sMXY+tzblOD4FWmEbocvup2/aLOaQEp7JmGp78k=
