@@ -234,6 +234,18 @@ type satelliteWithPipelineInfo struct {
 	pipeline  *cloud.Pipeline
 }
 
+func (swp satelliteWithPipelineInfo) satelliteName() string {
+	if swp.pipeline != nil {
+		return pipelineSatelliteName(swp.pipeline)
+	}
+
+	return swp.satellite.Name
+}
+
+func pipelineSatelliteName(p *cloud.Pipeline) string {
+	return fmt.Sprintf("%s/%s", p.Project, p.Name)
+}
+
 func (app *earthlyApp) toSatellitePipelineInfo(satellites []cloud.SatelliteInstance, pipelines []cloud.Pipeline) []satelliteWithPipelineInfo {
 	res := make([]satelliteWithPipelineInfo, 0)
 	for _, s := range satellites {
@@ -292,15 +304,14 @@ func (app *earthlyApp) printSatellitesTable(satellites []satelliteWithPipelineIn
 
 	for _, s := range satellites {
 		var selected = ""
-		if (s.satellite.Name == app.cfg.Satellite.Name || (s.pipeline != nil && s.pipeline.Name == app.cfg.Satellite.Name)) && s.satellite.Org == orgID {
+		if s.satelliteName() == app.cfg.Satellite.Name && s.satellite.Org == orgID {
 			selected = "*"
 		}
 
-		row := []string{selected, s.satellite.Name, s.satellite.Platform, s.satellite.Size, s.satellite.Version, strings.ToLower(s.satellite.State)}
+		row := []string{selected, s.satelliteName(), s.satellite.Platform, s.satellite.Size, s.satellite.Version, strings.ToLower(s.satellite.State)}
 		c := []color.Attribute{color.Reset, color.FgWhite}
 		satType := "Sat"
 		if s.pipeline != nil {
-			row[1] = s.pipeline.Name
 			satType = "Pipe"
 			c = []color.Attribute{color.Faint, color.FgWhite}
 		}
@@ -419,7 +430,7 @@ func (app *earthlyApp) getSatelliteName(ctx context.Context, orgID, satelliteNam
 		return "", err
 	}
 	for _, p := range pipelines {
-		if satelliteName == p.Name {
+		if satelliteName == pipelineSatelliteName(&p) {
 			return p.SatelliteName, nil
 		}
 	}
@@ -763,11 +774,12 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 			return err
 		}
 		for _, p := range pipelines {
-			if app.satelliteName == p.Name {
+			pipelineName := pipelineSatelliteName(&p)
+			if app.satelliteName == pipelineName {
 				found = true
 				// We use the pipeline name, so you know what it belongs to, instead of a UUID.
 				// Reverse lookup at use time is handled via app.getSatelliteName().
-				satelliteName = p.Name
+				satelliteName = pipelineName
 			}
 		}
 	}
