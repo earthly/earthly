@@ -1896,6 +1896,11 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 			}
 			dst := path.Join(localPathAbs, interactiveSaveFile.Dst)
 			c.opt.LocalArtifactWhiteList.Add(dst)
+			// The receiveFile handler will only be given the relative, so needs to whitelisted as well.
+			// This is needed when e.g. the user specifies a destination of "out/", which is then rewritten
+			// to "out/file".  If the user specified a full file path, e.g. "out/file", then this is redundant
+			// since the waitBlock will add that same value.  This makes it explicit.
+			c.opt.LocalArtifactWhiteList.Add(interactiveSaveFile.Dst)
 
 			saveFiles = append(saveFiles, debuggercommon.SaveFilesSettings{
 				Src:      interactiveSaveFile.Src,
