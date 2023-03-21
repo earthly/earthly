@@ -351,57 +351,41 @@ func GetTargetArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 
 }
 
-// Name returns the parsed user-defined name(s) of a spec.Command. For example,
-// `ARG --required foo` would return ["foo"].
-//
-// If the spec.Command has no name (e.g. `SAVE IMAGE --cache-hint`) or is not a
-// supported type, the returned value will be nil.
-//
-// Some details on the returned names:
-//
-// - ARG will return the arg name at index 0 and optionally the default value at
-// index 1.
-//
-// - SAVE ARTIFACT will return the destination name at index 0 and optionally
-// the local path (for AS LOCAL) at index 1.
-//
-// - SAVE IMAGE will return no names for the cache hint form, or 1+ names for
-// any names the image is saved as.
-func Name(ctx context.Context, cmd spec.Command) ([]string, error) {
-	switch cmd.Name {
-	case "ARG":
-		const (
-			pretendBase             = true
-			careAboutExplicitGlobal = false
-		)
-		_, argName, dflt, err := parseArgArgs(ctx, cmd, pretendBase, careAboutExplicitGlobal)
-		if err != nil {
-			return nil, errors.Wrapf(err, "could not parse opts for ARG [%v]", cmd)
-		}
-		if dflt != nil {
-			return []string{argName, *dflt}, nil
-		}
-		return []string{argName}, nil
-	case "SAVE ARTIFACT":
-		from, to, asLocal, ok := parseSaveArtifactArgs(cmd.Args)
-		if !ok {
-			return nil, errors.Errorf("could not parse opts for SAVE TARGET [%v]", cmd)
-		}
-		if to == "./" {
-			to = from
-		}
-		if asLocal == "" {
-			return []string{to}, nil
-		}
-		return []string{to, asLocal}, nil
-	case "SAVE IMAGE":
-		var opts saveImageOpts
-		args, err := parseArgs("SAVE IMAGE", &opts, getArgsCopy(cmd))
-		if err != nil {
-			return nil, errors.Wrapf(err, "invalid SAVE IMAGE arguments %v", cmd.Args)
-		}
-		return args, nil
-	default:
-		return nil, nil
+// ArgName returns the parsed name of an ARG command, the default value (if
+// any), and the state of the --required and --global flags.
+func ArgName(ctx context.Context, cmd spec.Command, isBase bool, explicitGlobal bool) (_ string, _ *string, isRequired bool, isGlobal bool, _ error) {
+	if cmd.Name != "ARG" {
+		return "", nil, false, false, errors.Errorf("ArgName was called with non-arg command type '%v'", cmd.Name)
 	}
+	opts, argName, dflt, err := parseArgArgs(ctx, cmd, isBase, explicitGlobal)
+	if err != nil {
+		return "", nil, false, false, errors.Wrapf(err, "could not parse opts for ARG [%v]", cmd)
+	}
+	return argName, dflt, opts.Required, opts.Global, nil
+}
+
+// ArtifactName returns the parsed name of a SAVE ARTIFACT command and its local
+// name (if any).
+func ArtifactName(ctx context.Context, cmd spec.Command) (string, *string, error) {
+	from, to, asLocal, ok := parseSaveArtifactArgs(cmd.Args)
+	if !ok {
+		return "", nil, errors.Errorf("could not parse opts for SAVE TARGET [%v]", cmd)
+	}
+	if to == "./" {
+		to = from
+	}
+	if asLocal == "" {
+		return to, nil, nil
+	}
+	return to, &asLocal, nil
+}
+
+// ImageNames returns the parsed names of a SAVE IMAGE command.
+func ImageNames(ctx context.Context, cmd spec.Command) ([]string, error) {
+	var opts saveImageOpts
+	args, err := parseArgs("SAVE IMAGE", &opts, getArgsCopy(cmd))
+	if err != nil {
+		return nil, errors.Wrapf(err, "invalid SAVE IMAGE arguments %v", cmd.Args)
+	}
+	return args, nil
 }

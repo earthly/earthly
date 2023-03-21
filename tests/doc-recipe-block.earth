@@ -1,6 +1,10 @@
 VERSION 0.7
 FROM alpine:3.15
 
+# globalArg is a documented global arg. earthly doc does not distinguish between
+# global and non-global args, because they work the same to end users.
+ARG --global globalArg
+
 # foo is a target with documentation. Targets without documentation won't show
 # up in 'earthly doc' even if they have documented commands in their recipe.
 foo:

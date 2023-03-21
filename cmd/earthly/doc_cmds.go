@@ -8,6 +8,7 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/platutil"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
@@ -58,14 +59,14 @@ func (app *earthlyApp) actionDocumentTarget(cliCtx *cli.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to look up target")
 		}
-		return app.documentSingleTarget(cliCtx, "", docsIndent, tgt, true)
+		return app.documentSingleTarget(cliCtx, "", docsIndent, bc.Features, bc.Earthfile.BaseRecipe, tgt, true)
 	}
 
 	tgts := bc.Earthfile.Targets
 	fmt.Println("TARGETS:")
 	const tgtIndent = docsIndent
 	for _, tgt := range tgts {
-		_ = app.documentSingleTarget(cliCtx, tgtIndent, docsIndent, tgt, false)
+		_ = app.documentSingleTarget(cliCtx, tgtIndent, docsIndent, bc.Features, bc.Earthfile.BaseRecipe, tgt, false)
 	}
 
 	return nil
@@ -108,7 +109,6 @@ func docSectionsOutput(currIndent, scopeIndent, title string, sections ...docSec
 }
 
 type blockIO struct {
-	// TODO: globals
 	requiredArgs   []docSection
 	optionalArgs   []docSection
 	artifacts      []docSection
@@ -135,53 +135,81 @@ func (io blockIO) help(indent, scopeIndent string) string {
 		docSectionsOutput(indent, scopeIndent, "IMAGES", io.images...)
 }
 
-func parseDocSections(cliCtx *cli.Context, cmds spec.Block) (*blockIO, error) {
+func addArg(cliCtx *cli.Context, io *blockIO, ft *features.Features, stmt spec.Statement, isBase bool, onlyGlobal bool) error {
+	if stmt.Command == nil {
+		return nil
+	}
+	cmd := *stmt.Command
+	if cmd.Name != "ARG" {
+		return nil
+	}
+	ident, dflt, isRequired, isGlobal, err := earthfile2llb.ArgName(cliCtx.Context, cmd, isBase, ft.ExplicitGlobal)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse ARG statement")
+	}
+	if onlyGlobal && !isGlobal {
+		return nil
+	}
+	docs, _ := docString(cmd.Docs, ident)
+	doc := docSection{
+		identifier: "--" + ident,
+		body:       docs,
+	}
+	if dflt != nil {
+		doc.identifier += "=" + *dflt
+	}
+	if isRequired {
+		io.requiredArgs = append(io.requiredArgs, doc)
+		return nil
+	}
+	io.optionalArgs = append(io.optionalArgs, doc)
+	return nil
+}
+
+func parseDocSections(cliCtx *cli.Context, ft *features.Features, baseRcp, cmds spec.Block) (*blockIO, error) {
 	var io blockIO
+	for _, base := range baseRcp {
+		err := addArg(cliCtx, &io, ft, base, true, true)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse global ARG in base recipe")
+		}
+	}
 	for _, rb := range cmds {
 		if rb.Command == nil {
 			continue
 		}
 		cmd := *rb.Command
-		identifiers, err := earthfile2llb.Name(cliCtx.Context, cmd)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse name(s) of command type %v", cmd.Name)
-		}
 		switch cmd.Name {
 		case "ARG":
-			var dflt string
-			if len(identifiers) == 2 {
-				dflt = identifiers[1]
-				identifiers = identifiers[:1]
+			err := addArg(cliCtx, &io, ft, rb, false, false)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to parse non-global ARG")
 			}
-			if len(identifiers) != 1 {
-				return nil, errors.Errorf("ARG should have exactly 1 identifier after consuming the default; got %v", len(identifiers))
+		case "SAVE ARTIFACT":
+			name, localName, err := earthfile2llb.ArtifactName(cliCtx.Context, cmd)
+			if err != nil {
+				return nil, errors.Wrap(err, "could not parse SAVE ARTIFACT name")
 			}
-			docs, _ := docString(cmd.Docs, identifiers...)
-			argDoc := docSection{
-				identifier: "--" + identifiers[0],
+			idents := []string{name}
+			if localName != nil {
+				idents = append(idents, *localName)
+			}
+			docs, _ := docString(cmd.Docs, idents...)
+			artDoc := docSection{
+				identifier: name,
 				body:       docs,
 			}
-			if dflt != "" {
-				argDoc.identifier += "=" + dflt
-			}
-			if isRequired(cmd) {
-				io.requiredArgs = append(io.requiredArgs, argDoc)
+			if localName != nil {
+				artDoc.identifier += " -> " + *localName
+				io.localArtifacts = append(io.localArtifacts, artDoc)
 				continue
 			}
-			io.optionalArgs = append(io.optionalArgs, argDoc)
-		case "SAVE ARTIFACT":
-			docs, _ := docString(cmd.Docs, identifiers...)
-			artDoc := docSection{
-				body: docs,
-			}
-			if len(identifiers) == 1 {
-				artDoc.identifier = identifiers[0]
-				io.artifacts = append(io.artifacts, artDoc)
-				continue
-			}
-			artDoc.identifier = fmt.Sprintf("%s -> %s", identifiers[0], identifiers[1])
-			io.localArtifacts = append(io.localArtifacts, artDoc)
+			io.artifacts = append(io.artifacts, artDoc)
 		case "SAVE IMAGE":
+			identifiers, err := earthfile2llb.ImageNames(cliCtx.Context, cmd)
+			if err != nil {
+				return nil, errors.Wrap(err, "could not parse SAVE IMAGE name(s)")
+			}
 			if len(identifiers) == 0 {
 				continue
 			}
@@ -195,7 +223,7 @@ func parseDocSections(cliCtx *cli.Context, cmds spec.Block) (*blockIO, error) {
 	return &io, nil
 }
 
-func (app *earthlyApp) documentSingleTarget(cliCtx *cli.Context, currIndent, scopeIndent string, tgt spec.Target, includeBlockDocs bool) error {
+func (app *earthlyApp) documentSingleTarget(cliCtx *cli.Context, currIndent, scopeIndent string, ft *features.Features, baseRcp spec.Block, tgt spec.Target, includeBlockDocs bool) error {
 	if tgt.Docs == "" {
 		return errors.Errorf("no doc comment found [hint: add a comment starting with the word '%s' on the line immediately above this target]", tgt.Name)
 	}
@@ -205,7 +233,7 @@ func (app *earthlyApp) documentSingleTarget(cliCtx *cli.Context, currIndent, sco
 		return err
 	}
 
-	blockIO, err := parseDocSections(cliCtx, tgt.Recipe)
+	blockIO, err := parseDocSections(cliCtx, ft, baseRcp, tgt.Recipe)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse body of recipe '%v'", tgt.Name)
 	}
@@ -237,15 +265,6 @@ func indent(indent, s string) string {
 		lines[i] = indent + l
 	}
 	return strings.Join(lines, "\n")
-}
-
-func isRequired(cmd spec.Command) bool {
-	for _, arg := range cmd.Args {
-		if arg == "--required" {
-			return true
-		}
-	}
-	return false
 }
 
 func findTarget(ef spec.Earthfile, name string) (spec.Target, error) {
