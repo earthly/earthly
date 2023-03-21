@@ -55,29 +55,30 @@ var (
 
 // GlobalConfig contains global config values
 type GlobalConfig struct {
-	DisableAnalytics         bool     `yaml:"disable_analytics"          help:"Controls Earthly telemetry."`
-	BuildkitCacheSizeMb      int      `yaml:"cache_size_mb"              help:"Size of the buildkit cache in Megabytes."`
-	BuildkitCacheSizePct     int      `yaml:"cache_size_pct"             help:"Size of the buildkit cache, as percentage (0-100)."`
-	BuildkitImage            string   `yaml:"buildkit_image"             help:"Choose a specific image for your buildkitd."`
-	BuildkitRestartTimeoutS  int      `yaml:"buildkit_restart_timeout_s" help:"How long to wait for buildkit to (re)start, in seconds."`
-	BuildkitAdditionalArgs   []string `yaml:"buildkit_additional_args"   help:"Additional args to pass to buildkit when it starts. Useful for custom/self-signed certs, or user namespace complications."`
-	BuildkitAdditionalConfig string   `yaml:"buildkit_additional_config" help:"Additional config to use when starting the buildkit container; like using custom/self-signed certificates."`
-	BuildkitMaxParallelism   int      `yaml:"buildkit_max_parallelism"   help:"Max parallelism for buildkit workers"`
-	ConversionParallelism    int      `yaml:"conversion_parallelism"     help:"Set the conversion parallelism for speeding up the use of IF, WITH, DOCKER --load, FROMDOCKERFILE and others. A value of 0 disables the feature"`
-	CniMtu                   uint16   `yaml:"cni_mtu"                    help:"Override auto-detection of the default interface MTU, for all containers within buildkit"`
-	BuildkitHost             string   `yaml:"buildkit_host"              help:"The URL of your buildkit, remote or local."`
-	LocalRegistryHost        string   `yaml:"local_registry_host"        help:"The URL of the local registry used for image exports to Docker."`
-	TLSCA                    string   `yaml:"tlsca"                      help:"The path to the CA cert for verification. Relative paths are interpreted as relative to ~/.earthly."`
-	ClientTLSCert            string   `yaml:"tlscert"                    help:"The path to the client cert for verification. Relative paths are interpreted as relative to ~/.earthly."`
-	ClientTLSKey             string   `yaml:"tlskey"                     help:"The path to the client key for verification. Relative paths are interpreted as relative to ~/.earthly."`
-	ServerTLSCert            string   `yaml:"buildkitd_tlscert"          help:"The path to the server cert for verification. Relative paths are interpreted as relative to ~/.earthly. Only used when Earthly manages buildkit."`
-	ServerTLSKey             string   `yaml:"buildkitd_tlskey"           help:"The path to the server key for verification. Relative paths are interpreted as relative to ~/.earthly. Only used when Earthly manages buildkit."`
-	TLSEnabled               bool     `yaml:"tls_enabled"                help:"If TLS should be used to communicate with Buildkit. Only honored when BuildkitScheme is 'tcp'."`
-	ContainerFrontend        string   `yaml:"container_frontend"         help:"What program should be used to start and stop buildkitd, save images. Default is 'docker'. Valid options are 'docker' and 'podman' (experimental)."`
-	IPTables                 string   `yaml:"ip_tables"                  help:"Which iptables binary to use. Valid values are iptables-legacy or iptables-nft. Bypasses any autodetection."`
-	DisableLogSharing        bool     `yaml:"disable_log_sharing"        help:"Disable cloud log sharing when logged in with an Earthly account, see https://ci.earthly.dev for details."`
-	SecretProvider           string   `yaml:"secret_provider"            help:"Command to execute to retrieve secret."`
-	GitImage                 string   `yaml:"git_image"                  help:"Image used to resolve git repositories"`
+	DisableAnalytics           bool     `yaml:"disable_analytics"              help:"Controls Earthly telemetry."`
+	BuildkitCacheSizeMb        int      `yaml:"cache_size_mb"                  help:"Size of the buildkit cache in Megabytes."`
+	BuildkitCacheSizePct       int      `yaml:"cache_size_pct"                 help:"Size of the buildkit cache, as percentage (0-100)."`
+	BuildkitCacheKeepDurationS int      `yaml:"buildkit_cache_keep_duration_s" help:"The duration in seconds that buildkit will keep the cache. Anything older is thrown away. A value of 0 is the same as unset."`
+	BuildkitImage              string   `yaml:"buildkit_image"                 help:"Choose a specific image for your buildkitd."`
+	BuildkitRestartTimeoutS    int      `yaml:"buildkit_restart_timeout_s"     help:"How long to wait for buildkit to (re)start, in seconds."`
+	BuildkitAdditionalArgs     []string `yaml:"buildkit_additional_args"       help:"Additional args to pass to buildkit when it starts. Useful for custom/self-signed certs, or user namespace complications."`
+	BuildkitAdditionalConfig   string   `yaml:"buildkit_additional_config"     help:"Additional config to use when starting the buildkit container; like using custom/self-signed certificates."`
+	BuildkitMaxParallelism     int      `yaml:"buildkit_max_parallelism"       help:"Max parallelism for buildkit workers"`
+	ConversionParallelism      int      `yaml:"conversion_parallelism"         help:"Set the conversion parallelism for speeding up the use of IF, WITH, DOCKER --load, FROMDOCKERFILE and others. A value of 0 disables the feature"`
+	CniMtu                     uint16   `yaml:"cni_mtu"                        help:"Override auto-detection of the default interface MTU, for all containers within buildkit"`
+	BuildkitHost               string   `yaml:"buildkit_host"                  help:"The URL of your buildkit, remote or local."`
+	LocalRegistryHost          string   `yaml:"local_registry_host"            help:"The URL of the local registry used for image exports to Docker."`
+	TLSCA                      string   `yaml:"tlsca"                          help:"The path to the CA cert for verification. Relative paths are interpreted as relative to ~/.earthly."`
+	ClientTLSCert              string   `yaml:"tlscert"                        help:"The path to the client cert for verification. Relative paths are interpreted as relative to ~/.earthly."`
+	ClientTLSKey               string   `yaml:"tlskey"                         help:"The path to the client key for verification. Relative paths are interpreted as relative to ~/.earthly."`
+	ServerTLSCert              string   `yaml:"buildkitd_tlscert"              help:"The path to the server cert for verification. Relative paths are interpreted as relative to ~/.earthly. Only used when Earthly manages buildkit."`
+	ServerTLSKey               string   `yaml:"buildkitd_tlskey"               help:"The path to the server key for verification. Relative paths are interpreted as relative to ~/.earthly. Only used when Earthly manages buildkit."`
+	TLSEnabled                 bool     `yaml:"tls_enabled"                    help:"If TLS should be used to communicate with Buildkit. Only honored when BuildkitScheme is 'tcp'."`
+	ContainerFrontend          string   `yaml:"container_frontend"             help:"What program should be used to start and stop buildkitd, save images. Default is 'docker'. Valid options are 'docker' and 'podman' (experimental)."`
+	IPTables                   string   `yaml:"ip_tables"                      help:"Which iptables binary to use. Valid values are iptables-legacy or iptables-nft. Bypasses any autodetection."`
+	DisableLogSharing          bool     `yaml:"disable_log_sharing"            help:"Disable cloud log sharing when logged in with an Earthly account, see https://ci.earthly.dev for details."`
+	SecretProvider             string   `yaml:"secret_provider"                help:"Command to execute to retrieve secret."`
+	GitImage                   string   `yaml:"git_image"                      help:"Image used to resolve git repositories"`
 
 	// Obsolete.
 	CachePath      string `yaml:"cache_path"         help:" *Deprecated* The path to keep Earthly's cache."`
