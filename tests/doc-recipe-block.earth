@@ -1,0 +1,41 @@
+VERSION 0.7
+FROM alpine:3.15
+
+# foo is a target with documentation. Targets without documentation won't show
+# up in 'earthly doc' even if they have documented commands in their recipe.
+foo:
+    # withDefault is a documented argument with a default.
+    ARG withDefault = foo
+    # withDocs is a documented argument.
+    ARG withDocs
+    # this is an undocumented argument.
+    ARG withoutDocs
+    # and this is a required argument.
+    ARG --required requiredArg
+
+    RUN echo $withDefault > bar.txt
+    RUN echo $withDocs > baz.txt
+
+    # bar.txt is a documented artifact.
+    SAVE ARTIFACT bar.txt
+
+    # this is an undocumented artifact.
+    SAVE ARTIFACT baz.txt
+
+    # out/baz.txt is a documented artifact that is saved locally.
+    SAVE ARTIFACT baz.txt AS LOCAL out/baz.txt
+
+    # bacon.txt is also a documented artifact that is saved locally.
+    SAVE ARTIFACT baz.txt bacon.txt AS LOCAL out/eggs.txt
+
+    # baz is a documented image.
+    SAVE IMAGE baz
+
+    # this is an undocumented image.
+    SAVE IMAGE bar
+
+    # eggs is just one of the image names, and yet it should still be recognized for this multiple-name SAVE IMAGE format.
+    SAVE IMAGE bacon eggs
+
+    # cache-hint SAVE IMAGE is not currently added to the docs ouptut
+    SAVE IMAGE --cache-hint

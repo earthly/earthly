@@ -226,6 +226,7 @@ ga-no-qemu:
     BUILD +build-after-from
     BUILD +pipelines
     BUILD +doc
+    BUILD +doc-recipe-block
     BUILD +no-network
     BUILD +test-works-without-earthly-server
 
@@ -622,7 +623,7 @@ chown-test:
 
 dotenv-test:
     RUN echo "TEST_IN_DOTENV=this-should-not-appear-as-a-build-arg" >.env
-    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-dotenv --output_contain="unexpected env .TEST_IN_DOTENV.: as of v0.7.0, --build-arg values must be defined in .arg"
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-dotenv --output_contains="unexpected env .TEST_IN_DOTENV.: as of v0.7.0, --build-arg values must be defined in .arg"
 
     RUN touch .arg
     DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-dotenv --output_does_not_contain="unexpected env .TEST_IN_DOTENV.: as of v0.7.0, --build-arg values must be defined in .arg"
@@ -1161,21 +1162,57 @@ help:
     RUN earthly --help | grep 'buildkit-volume-name'
 
 doc:
-    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --output_contains="TARGETS:
-  +documented-target
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --post_command=">output.txt"
+    RUN pcregrep --multiline "TARGETS:
+  \+documented-target
+      documented-target is a target with documentation
+      that spans multiple lines.
+
+      It also has a separator between paragraphs." output.txt
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --grep_flags="-v" --output_contains="undocumented-target"
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --grep_flags="-v" --output_contains="incorrectly-documented-target"
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+documented-target" --post_command=">output.txt"
+    RUN pcregrep --multiline "\+documented-target
     documented-target is a target with documentation
     that spans multiple lines.
 
-    It also has a separator between paragraphs."
-    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --grep_flags="-v" --output_contains="undocumented-target"
-    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --grep_flags="-v" --output_contains="incorrectly-documented-target"
-    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+documented-target" --output_contains="+documented-target
-  documented-target is a target with documentation
-  that spans multiple lines.
-
-  It also has a separator between paragraphs."
+    It also has a separator between paragraphs." output.txt
     DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+undocumented-target" --should_fail=true --output_contains="no doc comment found"
     DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+incorrectly-documented-target" --should_fail=true --output_contains="no doc comment found"
+
+doc-recipe-block:
+    DO +RUN_EARTHLY --earthfile=doc-recipe-block.earth --extra_args="doc" --target="" --post_command=">output.txt"
+    RUN pcregrep --multiline "TARGETS:
+  \+foo --requiredArg \[--withDefault=foo\] \[--withDocs\] \[--withoutDocs\]
+      foo is a target with documentation. Targets without documentation won't show
+      up in 'earthly doc' even if they have documented commands in their recipe." output.txt
+    DO +RUN_EARTHLY --earthfile=doc-recipe-block.earth --extra_args="doc" --target="+foo" --post_command=">output.txt"
+    RUN pcregrep --multiline "\+foo --requiredArg \[--withDefault=foo\] \[--withDocs\] \[--withoutDocs\]
+    foo is a target with documentation. Targets without documentation won't show
+    up in 'earthly doc' even if they have documented commands in their recipe.
+  REQUIRED ARGS:
+    --requiredArg
+  OPTIONAL ARGS:
+    --withDefault=foo
+      withDefault is a documented argument with a default.
+    --withDocs
+      withDocs is a documented argument.
+    --withoutDocs
+  ARTIFACTS:
+    bar.txt
+      bar.txt is a documented artifact.
+    baz.txt
+  LOCAL ARTIFACTS:
+    baz.txt -> out/baz.txt
+      out/baz.txt is a documented artifact that is saved locally.
+    bacon.txt -> out/eggs.txt
+      bacon.txt is also a documented artifact that is saved locally.
+  IMAGES:
+    baz
+      baz is a documented image.
+    bar
+    bacon, eggs
+      eggs is just one of the image names, and yet it should still be recognized for this multiple-name SAVE IMAGE format." output.txt
 
 cache-cmd:
     DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test
