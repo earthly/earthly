@@ -5,9 +5,7 @@
 
   [[worker.oci.gcpolicy]]
     keepBytes = ${SOURCE_FILE_KEEP_BYTES}
-    keepDuration = ${CACHE_KEEP_DURATION}
     filters = [ "type==source.local", "type==source.git.checkout"]
   [[worker.oci.gcpolicy]]
     all = true
     keepBytes = ${CATCH_ALL_KEEP_BYTES}
-    keepDuration = ${CACHE_KEEP_DURATION}

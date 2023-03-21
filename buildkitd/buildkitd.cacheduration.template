@@ -1,0 +1,5 @@
+   # Please note the required indentation to fit in buildkit.toml.template accordingly.
+
+  [[worker.oci.gcpolicy]]
+    all = true
+    keepDuration = ${CACHE_KEEP_DURATION}
