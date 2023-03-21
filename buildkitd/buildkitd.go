@@ -355,10 +355,7 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 			})
 		}
 
-		bkURL, err := url.Parse(settings.BuildkitAddress)
-		if err != nil {
-			panic("Buildkit address was not a URL when attempting to start buildkit")
-		}
+		bkURL, _ := url.Parse(settings.BuildkitAddress) // error ir already handled in addRequiredOpts
 		if settings.UseTCP {
 			hostPort, err := strconv.Atoi(bkURL.Port())
 			if err != nil {
@@ -924,40 +921,44 @@ func makeTLSPath(path string, installationName string) (string, error) {
 }
 
 func addRequiredOpts(settings Settings, installationName string, opts ...client.ClientOpt) ([]client.ClientOpt, error) {
+	server, err := url.Parse(settings.BuildkitAddress)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "invalid buildkit url")
+	}
+
 	if settings.SatelliteName != "" {
-		return append(opts, client.WithAdditionalMetadataContext(
+		opts = append(opts, client.WithAdditionalMetadataContext(
 			"satellite_name", settings.SatelliteName,
 			"satellite_org", settings.SatelliteOrgID,
 			"satellite_token", settings.SatelliteToken),
-			client.WithCredentials("", "", "", ""), // force buildkit to use a TLS connection
-		), nil
+		)
 	}
 
 	if !settings.UseTCP || !settings.UseTLS {
 		return opts, nil
 	}
 
-	server, err := url.Parse(settings.BuildkitAddress)
-	if err != nil {
-		return []client.ClientOpt{}, errors.Wrap(err, "invalid buildkit url")
-	}
+	if settings.TLSCA == "" && settings.ClientTLSCert == "" && settings.ClientTLSKey == "" {
+		opts = append(opts, client.WithCredentials("", "", "", ""))
+	} else {
+		caPath, err := makeTLSPath(settings.TLSCA, installationName)
+		if err != nil {
+			return []client.ClientOpt{}, errors.Wrap(err, "caPath")
+		}
 
-	caPath, err := makeTLSPath(settings.TLSCA, installationName)
-	if err != nil {
-		return []client.ClientOpt{}, errors.Wrap(err, "caPath")
-	}
+		certPath, err := makeTLSPath(settings.ClientTLSCert, installationName)
+		if err != nil {
+			return []client.ClientOpt{}, errors.Wrap(err, "certPath")
+		}
 
-	certPath, err := makeTLSPath(settings.ClientTLSCert, installationName)
-	if err != nil {
-		return []client.ClientOpt{}, errors.Wrap(err, "certPath")
-	}
+		keyPath, err := makeTLSPath(settings.ClientTLSKey, installationName)
+		if err != nil {
+			return []client.ClientOpt{}, errors.Wrap(err, "keyPath")
+		}
 
-	keyPath, err := makeTLSPath(settings.ClientTLSKey, installationName)
-	if err != nil {
-		return []client.ClientOpt{}, errors.Wrap(err, "keyPath")
+		opts = append(opts, client.WithCredentials(server.Hostname(), caPath, certPath, keyPath))
 	}
-
-	return append(opts, client.WithCredentials(server.Hostname(), caPath, certPath, keyPath)), nil
+	return opts, nil
 }
 
 // PrintSatelliteInfo prints the instance's details,

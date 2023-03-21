@@ -135,10 +135,6 @@ type cliFlags struct {
 	configDryRun                    bool
 	strict                          bool
 	conversionParallelism           int
-	certPath                        string
-	keyPath                         string
-	caPath                          string
-	tlsEnabled                      bool
 	disableAnalytics                bool
 	featureFlagOverrides            string
 	localRegistryHost               string

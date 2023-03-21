@@ -77,12 +77,13 @@ This is the address of the remote daemon. It should look something like this: `t
 
 These are the paths to the certificates and keys used by the client when communicating with an mTLS-enabled daemon. These paths are relative to the Earthly config (usually `~/.earthly/config.yaml`, unless absolute paths are specified.
 
-**`tls_enabled`**
+**`tls_disabled`**
 
-Set this to `true` when using TLS is desired.
+TLS will be enabled by default (unless using a local buildkit container).  
+Set this to `false` when using TLS is not desired.
 
 ### Local-Remote
 
-It is also possible to use the remote protocols (TCP and mTLS) locally, while still letting Earthly manage the daemon container. You can do this by enabling mTLS(`tls_enabled`).
+It is also possible to use the remote protocols (TCP and mTLS) locally, while still letting Earthly manage the daemon container.  
 
-By doing this, Earthly will (optionally) generate its own certificates, and connect to the daemon using `tcp://127.0.0.1:8372`. This is a great way to test some of the remote capabilities without having to generate certificates or manage a separate machine.
+Earthly will (optionally) generate its own certificates, and connect to the daemon using `tcp://127.0.0.1:8372`. This is a great way to test some of the remote capabilities without having to generate certificates or manage a separate machine.

@@ -225,14 +225,14 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
 	app.warnIfArgContainsBuildArg(flagArgs)
 
-	err = app.initFrontend(cliCtx)
-	if err != nil {
-		return err
-	}
-
 	err = app.configureSatellite(cliCtx, cloudClient, gitCommitAuthor, gitConfigEmail)
 	if err != nil {
 		return errors.Wrapf(err, "could not construct new buildkit client")
+	}
+
+	err = app.initFrontend(cliCtx)
+	if err != nil {
+		return err
 	}
 
 	var runnerName string

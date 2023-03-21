@@ -61,8 +61,12 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to parse generated buildkit URL")
 	}
 
-	if bkURL.Scheme == "tcp" {
-		app.handleTLSCertificateSettings(cliCtx)
+	if bkURL.Scheme == "tcp" && !app.cfg.Global.TLSDisabled {
+		app.buildkitdSettings.ClientTLSCert = app.cfg.Global.ClientTLSCert
+		app.buildkitdSettings.ClientTLSKey = app.cfg.Global.ClientTLSKey
+		app.buildkitdSettings.TLSCA = app.cfg.Global.TLSCA
+		app.buildkitdSettings.ServerTLSCert = app.cfg.Global.ServerTLSCert
+		app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
 	}
 
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
@@ -72,7 +76,7 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 	app.buildkitdSettings.BuildkitAddress = app.buildkitHost
 	app.buildkitdSettings.LocalRegistryAddress = app.localRegistryHost
 	app.buildkitdSettings.UseTCP = bkURL.Scheme == "tcp"
-	app.buildkitdSettings.UseTLS = app.tlsEnabled || app.cfg.Global.TLSEnabled
+	app.buildkitdSettings.UseTLS = !app.cfg.Global.TLSDisabled
 	app.buildkitdSettings.MaxParallelism = app.cfg.Global.BuildkitMaxParallelism
 	app.buildkitdSettings.CacheSizeMb = app.cfg.Global.BuildkitCacheSizeMb
 	app.buildkitdSettings.CacheSizePct = app.cfg.Global.BuildkitCacheSizePct
@@ -108,31 +112,6 @@ func (app *earthlyApp) getBuildkitClient(cliCtx *cli.Context, cloudClient *cloud
 	}
 
 	return buildkitd.NewClient(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.installationName, app.containerFrontend, Version, app.buildkitdSettings)
-}
-
-func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
-	if !(app.cfg.Global.TLSEnabled || app.tlsEnabled) {
-		return
-	}
-
-	if !context.IsSet("tlscert") && app.cfg.Global.ClientTLSCert != "" {
-		app.certPath = app.cfg.Global.ClientTLSCert
-	}
-
-	if !context.IsSet("tlskey") && app.cfg.Global.ClientTLSKey != "" {
-		app.keyPath = app.cfg.Global.ClientTLSKey
-	}
-
-	if !context.IsSet("tlsca") && app.cfg.Global.TLSCA != "" {
-		app.caPath = app.cfg.Global.TLSCA
-	}
-
-	app.buildkitdSettings.ClientTLSCert = app.certPath
-	app.buildkitdSettings.ClientTLSKey = app.keyPath
-	app.buildkitdSettings.TLSCA = app.caPath
-
-	app.buildkitdSettings.ServerTLSCert = app.cfg.Global.ServerTLSCert
-	app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
 }
 
 func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient *cloud.Client, gitAuthor, gitConfigEmail string) error {
