@@ -355,7 +355,7 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 			})
 		}
 
-		bkURL, _ := url.Parse(settings.BuildkitAddress) // error ir already handled in addRequiredOpts
+		bkURL, _ := url.Parse(settings.BuildkitAddress) // error is already handled in addRequiredOpts
 		if settings.UseTCP {
 			hostPort, err := strconv.Atoi(bkURL.Port())
 			if err != nil {
