@@ -355,7 +355,10 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 			})
 		}
 
-		bkURL, _ := url.Parse(settings.BuildkitAddress) // error is already handled in addRequiredOpts
+		bkURL, err := url.Parse(settings.BuildkitAddress)
+		if err != nil {
+			return errors.Wrap(err, "error parsing buildkit address url")
+		}
 		if settings.UseTCP {
 			hostPort, err := strconv.Atoi(bkURL.Port())
 			if err != nil {
@@ -939,26 +942,24 @@ func addRequiredOpts(settings Settings, installationName string, opts ...client.
 	}
 
 	if settings.TLSCA == "" && settings.ClientTLSCert == "" && settings.ClientTLSKey == "" {
-		opts = append(opts, client.WithCredentials("", "", "", ""))
-	} else {
-		caPath, err := makeTLSPath(settings.TLSCA, installationName)
-		if err != nil {
-			return []client.ClientOpt{}, errors.Wrap(err, "caPath")
-		}
-
-		certPath, err := makeTLSPath(settings.ClientTLSCert, installationName)
-		if err != nil {
-			return []client.ClientOpt{}, errors.Wrap(err, "certPath")
-		}
-
-		keyPath, err := makeTLSPath(settings.ClientTLSKey, installationName)
-		if err != nil {
-			return []client.ClientOpt{}, errors.Wrap(err, "keyPath")
-		}
-
-		opts = append(opts, client.WithCredentials(server.Hostname(), caPath, certPath, keyPath))
+		return append(opts, client.WithCredentials("", "", "", "")), nil
 	}
-	return opts, nil
+	caPath, err := makeTLSPath(settings.TLSCA, installationName)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "caPath")
+	}
+
+	certPath, err := makeTLSPath(settings.ClientTLSCert, installationName)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "certPath")
+	}
+
+	keyPath, err := makeTLSPath(settings.ClientTLSKey, installationName)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrap(err, "keyPath")
+	}
+
+	return append(opts, client.WithCredentials(server.Hostname(), caPath, certPath, keyPath)), nil
 }
 
 // PrintSatelliteInfo prints the instance's details,

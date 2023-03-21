@@ -85,5 +85,4 @@ Set this to `false` when using TLS is not desired.
 ### Local-Remote
 
 It is also possible to use the remote protocols (TCP and mTLS) locally, while still letting Earthly manage the daemon container.  
-
 Earthly will (optionally) generate its own certificates, and connect to the daemon using `tcp://127.0.0.1:8372`. This is a great way to test some of the remote capabilities without having to generate certificates or manage a separate machine.
