@@ -184,16 +184,26 @@ to create your login token.
 
 Copy and paste the value into an environment variable called `EARTHLY_TOKEN` in your CI environment.
 
-Then as part of your CI script, just run
+Then as part of your CI script, simply select your satellite using one of these supported methods
 
-```bash
-earthly sat select <satellite-name>
-```
+* Selection command: `earthly sat select <satellite-name>`
+* Setellite flag: `earthly --sat my-satellite +build`
+* Environment variable: `SATELLITE_NAME=my-satellite`
 
 before running your Earthly targets.
+
+{% hint style='danger' %}
+##### Registry Login
+
+It's best to avoid using an image registry like Dockerhub without authentication, since the IP address from the satellite easily become rate-limited.
+A simple `docker login` command before running your build should be used to pass registry credentials to your satellite.
+See our [Docker authentication](../guides/auth.md) guide for more details.
+
+{% endhint %}
 
 ## Known limitations
 
 * The output phase (the phase in which a satellite outputs build results back to the local machine) is slower than it could be. To work around this issue, you can make use of the `--no-output` flag (assuming that local outputs are not needed). You can even use `--no-output` in conjunction with `--push`. We are working on ways in which local outputs can be synchronized more intelligently such that only a diff is transferred over the network.
+* Pull-through cache is currently not supported
 
 If you run into any issues please let us know either via [Slack](https://earthly.dev/slack), [GitHub issues](https://github.com/earthly/cloud-issues/issues) or by [emailing support](mailto:support+satellite@earthly.dev).

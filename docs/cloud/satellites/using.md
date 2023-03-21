@@ -107,7 +107,7 @@ earthly sat unselect
 
 ### Specifying a satellite for one build only
 
-If a satellite is not currently selected, you can still use it for a specific build by using the `--sat` flag.
+If a satellite is not currently selected, you can still use it for a specific build by using the `--sat` flag or the corresponding `EARTHLY_SATELLITE` environment variable.
 
 ```bash
 earthly --sat <satellite-name> +build
