@@ -207,11 +207,11 @@ func (app *earthlyApp) isUsingSatellite(cliCtx *cli.Context) bool {
 	return app.cfg.Satellite.Name != "" || app.satelliteName != ""
 }
 
-func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient *cloud.Client, name, prettyName, orgID, gitAuthor, gitConfigEmail string) error {
+func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient *cloud.Client, name, displayName, orgID, gitAuthor, gitConfigEmail string) error {
 	console := app.console.WithPrefix("satellite")
 	_, isCI := analytics.DetectCI()
 	out := cloudClient.ReserveSatellite(ctx, name, orgID, gitAuthor, gitConfigEmail, isCI)
-	err := showSatelliteLoading(console, prettyName, out)
+	err := showSatelliteLoading(console, displayName, out)
 	if err != nil {
 		return errors.Wrap(err, "failed reserving satellite for build")
 	}

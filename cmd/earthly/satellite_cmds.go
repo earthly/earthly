@@ -260,7 +260,7 @@ func printRow(t *tabwriter.Writer, c []color.Attribute, items []string) {
 	line := strings.Join(items, "\t")
 	line += "\n"
 
-	_, _ = fmt.Fprintf(t, line)
+	fmt.Fprint(t, line)
 }
 
 func (app *earthlyApp) printSatellitesTable(satellites []satelliteWithPipelineInfo, orgID string) {
@@ -770,6 +770,10 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 				satelliteName = p.Name
 			}
 		}
+	}
+
+	if !found {
+		return fmt.Errorf("no satellite named '%s' found", app.satelliteName)
 	}
 
 	err = app.useSatellite(cliCtx, satelliteName, app.orgName)

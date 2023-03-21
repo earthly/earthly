@@ -52,7 +52,7 @@ func (c *Client) ListPipelines(ctx context.Context, project, org, earthfileHash 
 			}
 		}
 
-		args := make([]*PipelineArg, len(p.Triggers))
+		args := make([]*PipelineArg, len(p.Args))
 		for i, a := range p.Args {
 			args[i] = &PipelineArg{
 				Name:         a.Name,
