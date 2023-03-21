@@ -159,8 +159,8 @@ For more information on managing satellites, see the [Managing Satellites page](
 
 ## Satellite specs
 
-You can choose from a number of instance sizes and architectures when launching a satellite.
-Please see the [Pricing Page](https://earthly.dev/pricing) for the full list of options.
+The satellite size and architecutre can be specified at luanch time using the `--size` and `--platform` flags.
+For the full list of supported options, please see the [Pricing Page](https://earthly.dev/pricing).
 
 ## Using Satellites in CI
 
