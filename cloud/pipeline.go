@@ -26,7 +26,7 @@ type Pipeline struct {
 	RepoId        string
 	Project       string
 	IsPush        bool
-	Id            string
+	ID            string
 	PathHash      string
 	ProviderOrg   string
 	SatelliteName string
@@ -70,7 +70,7 @@ func (c *Client) ListPipelines(ctx context.Context, project, org, earthfileHash 
 			RepoId:        p.RepoId,
 			Project:       p.Project,
 			IsPush:        p.IsPush,
-			Id:            p.Id,
+			ID:            p.Id,
 			PathHash:      p.PathHash,
 			ProviderOrg:   p.ProviderOrg,
 			SatelliteName: p.SatelliteName,

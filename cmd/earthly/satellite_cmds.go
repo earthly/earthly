@@ -435,7 +435,7 @@ func (app *earthlyApp) getSatelliteName(ctx context.Context, orgID, satelliteNam
 		}
 	}
 
-	return "", fmt.Errorf("satellite '%s' not found", satelliteName)
+	return "", fmt.Errorf("satellite %q not found", satelliteName)
 }
 
 func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
@@ -466,10 +466,10 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	}
 
 	if !cloud.ValidSatellitePlatform(platform) {
-		return errors.Errorf("not a valid platform: '%s'", platform)
+		return errors.Errorf("not a valid platform: %q", platform)
 	}
 	if !cloud.ValidSatelliteSize(size) {
-		return errors.Errorf("not a valid size: '%s'", size)
+		return errors.Errorf("not a valid size: %q", size)
 	}
 
 	if window == "" {
@@ -485,7 +485,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		}
 	}
 
-	app.console.Printf("Launching Satellite '%s' with auto-updates set to run at %s (%s)\n",
+	app.console.Printf("Launching Satellite %q with auto-updates set to run at %s (%s)\n",
 		app.satelliteName, localWindow, zone)
 	app.console.Printf("Please wait...\n")
 
@@ -593,10 +593,10 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 		}
 	}
 	if !found {
-		return fmt.Errorf("could not find '%s' for deletion", app.satelliteName)
+		return fmt.Errorf("could not find %q for deletion", app.satelliteName)
 	}
 
-	app.console.Printf("Destroying Satellite '%s'. This could take a moment...\n", app.satelliteName)
+	app.console.Printf("Destroying Satellite %q. This could take a moment...\n", app.satelliteName)
 	err = cloudClient.DeleteSatellite(cliCtx.Context, app.satelliteName, orgID)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
@@ -785,7 +785,7 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 	}
 
 	if !found {
-		return fmt.Errorf("no satellite named '%s' found", app.satelliteName)
+		return fmt.Errorf("no satellite named %q found", app.satelliteName)
 	}
 
 	err = app.useSatellite(cliCtx, satelliteName, app.orgName)
@@ -948,7 +948,7 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed starting satellite update")
 	}
 
-	app.console.Printf("Update now running on satellite '%s'...\n", app.satelliteName)
+	app.console.Printf("Update now running on satellite %q...\n", app.satelliteName)
 	return nil
 }
 
