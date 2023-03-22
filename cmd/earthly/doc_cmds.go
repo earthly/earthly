@@ -40,7 +40,7 @@ func (app *earthlyApp) actionDocumentTarget(cliCtx *cli.Context) error {
 
 	target, err := domain.ParseTarget(tgtPath)
 	if err != nil {
-		return errors.Errorf("unable to parse target [%v]", tgtPath)
+		return errors.Errorf("unable to parse target %q", tgtPath)
 	}
 
 	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
@@ -273,5 +273,5 @@ func findTarget(ef spec.Earthfile, name string) (spec.Target, error) {
 			return tgt, nil
 		}
 	}
-	return spec.Target{}, errors.Errorf("could not find target named [%v]", name)
+	return spec.Target{}, errors.Errorf("could not find target named %q", name)
 }
