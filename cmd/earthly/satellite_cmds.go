@@ -234,6 +234,14 @@ type satelliteWithPipelineInfo struct {
 	pipeline  *cloud.Pipeline
 }
 
+func (swp satelliteWithPipelineInfo) satType() string {
+	if swp.pipeline != nil {
+		return "Pipe"
+	}
+
+	return "Sat"
+}
+
 func (swp satelliteWithPipelineInfo) satelliteName() string {
 	if swp.pipeline != nil {
 		return pipelineSatelliteName(swp.pipeline)
@@ -310,13 +318,11 @@ func (app *earthlyApp) printSatellitesTable(satellites []satelliteWithPipelineIn
 
 		row := []string{selected, s.satelliteName(), s.satellite.Platform, s.satellite.Size, s.satellite.Version, strings.ToLower(s.satellite.State)}
 		c := []color.Attribute{color.Reset, color.FgWhite}
-		satType := "Sat"
 		if s.pipeline != nil {
-			satType = "Pipe"
 			c = []color.Attribute{color.Faint, color.FgWhite}
 		}
 		if includeTypeColumn {
-			row = slices.Insert(row, 2, satType)
+			row = slices.Insert(row, 2, s.satType())
 		}
 
 		printRow(t, c, row)
@@ -334,7 +340,8 @@ type satelliteJSON struct {
 	Size     string `json:"size"`
 	Version  string `json:"version"`
 	Selected bool   `json:"selected"`
-	Hidden   bool   `json:"hidden"`
+	Type     string `json:"type"`
+	Project  string `json:"project"`
 	Pipeline string `json:"pipeline"`
 }
 
@@ -349,9 +356,10 @@ func (app *earthlyApp) printSatellitesJSON(satellites []satelliteWithPipelineInf
 			Platform: s.satellite.Platform,
 			Version:  s.satellite.Version,
 			Selected: selected,
-			Hidden:   s.satellite.Hidden,
+			Type:     s.satType(),
 		}
 		if s.pipeline != nil {
+			jsonSats[i].Project = s.pipeline.Project
 			jsonSats[i].Pipeline = s.pipeline.Name
 		}
 	}
