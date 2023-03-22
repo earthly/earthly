@@ -348,9 +348,6 @@ bar:
 		})
 
 		o.Spec("it parses documentation on ARGs", func(tt testCtx) {
-			// It felt cleaner to check the doc comment's first word against the
-			// target's name at a higher level where we can display hints to the
-			// user about why the comments are not considered documentation.
 			mockEarthfile(tt.t, tt.reader, []byte(`
 VERSION 0.6
 
@@ -391,9 +388,6 @@ ARG --global globalArg
 		})
 
 		o.Spec("it parses documentation on SAVE ARTIFACT", func(tt testCtx) {
-			// It felt cleaner to check the doc comment's first word against the
-			// target's name at a higher level where we can display hints to the
-			// user about why the comments are not considered documentation.
 			mockEarthfile(tt.t, tt.reader, []byte(`
 VERSION 0.6
 
@@ -415,9 +409,6 @@ foo:
 		})
 
 		o.Spec("it parses documentation on SAVE IMAGE", func(tt testCtx) {
-			// It felt cleaner to check the doc comment's first word against the
-			// target's name at a higher level where we can display hints to the
-			// user about why the comments are not considered documentation.
 			mockEarthfile(tt.t, tt.reader, []byte(`
 VERSION 0.6
 
