@@ -66,7 +66,7 @@ func (app *earthlyApp) actionDocumentTarget(cliCtx *cli.Context) error {
 	fmt.Println("TARGETS:")
 	const tgtIndent = docsIndent
 	for _, tgt := range tgts {
-		_ = app.documentSingleTarget(cliCtx, tgtIndent, docsIndent, bc.Features, bc.Earthfile.BaseRecipe, tgt, false)
+		_ = app.documentSingleTarget(cliCtx, tgtIndent, docsIndent, bc.Features, bc.Earthfile.BaseRecipe, tgt, app.docShowLong)
 	}
 
 	return nil

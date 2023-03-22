@@ -118,6 +118,14 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 			Usage:     "Document targets from an Earthfile *beta*",
 			UsageText: "earthly [options] doc [<project-ref>[+<target-ref>]]",
 			Action:    app.actionDocumentTarget,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:        "long",
+					Aliases:     []string{"l"},
+					Usage:       "Show full details for all target inputs and outputs",
+					Destination: &app.docShowLong,
+				},
+			},
 		},
 		{
 			Name:      "ls",
