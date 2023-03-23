@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/fatih/color"
 	"io"
 	"net/url"
 	"os"
@@ -193,7 +194,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 				doLogstreamUpload = true
 				logstreamURL = fmt.Sprintf("%s/builds/%s", app.getCIHost(), app.logbusSetup.InitialManifest.GetBuildId())
 				defer func() {
-					app.console.Printf("View logs at %s\n", logstreamURL)
+					app.console.ColorPrintf(color.New(color.FgHiYellow), "View logs at %s\n", logstreamURL)
 				}()
 			} else {
 				// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
@@ -213,7 +214,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 						app.console.Warnf(err.Error())
 						return
 					}
-					app.console.Printf("Shareable link: %s\n", id)
+					app.console.ColorPrintf(color.New(color.FgHiYellow), "Shareable link: %s\n", id)
 				}()
 			}
 		} else {
@@ -571,11 +572,14 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
 				if doLogstreamUpload {
 					app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient)
-					app.console.Printf("Streaming logs to %s\n", logstreamURL)
 				}
 			}
 		}
 	}()
+
+	if app.logstream && doLogstreamUpload {
+		app.console.ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
+	}
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
 	if err != nil {
 		return errors.Wrap(err, "build target")

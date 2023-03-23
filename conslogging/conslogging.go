@@ -323,6 +323,14 @@ func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 
 // Printf prints formatted text to the console.
 func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
+	c := cl.color(noColor)
+	if cl.metadataMode {
+		c = cl.color(metadataModeColor)
+	}
+	cl.ColorPrintf(c, format, args...)
+}
+
+func (cl ConsoleLogger) ColorPrintf(c *color.Color, format string, args ...interface{}) {
 	if cl.logLevel < Info {
 		return
 	}
@@ -333,10 +341,6 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 		cl.mu.Unlock()
 	}()
 
-	c := cl.color(noColor)
-	if cl.metadataMode {
-		c = cl.color(metadataModeColor)
-	}
 	text := fmt.Sprintf(format, args...)
 	text = strings.TrimSuffix(text, "\n")
 	for _, line := range strings.Split(text, "\n") {
