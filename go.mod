@@ -9,9 +9,9 @@ require (
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/aws/aws-sdk-go-v2 v1.17.5
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20230227212328-9f4511cd144a
-	github.com/containerd/containerd v1.6.13
+	github.com/containerd/containerd v1.6.14
 	github.com/creack/pty v1.1.18
-	github.com/docker/cli v23.0.0-beta.1+incompatible
+	github.com/docker/cli v23.0.0-rc.1+incompatible
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/dustin/go-humanize v1.0.1
@@ -40,7 +40,7 @@ require (
 	github.com/poy/onpar/v2 v2.0.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.1
-	github.com/tonistiigi/fsutil v0.0.0-20221114235510-0127568185cf
+	github.com/tonistiigi/fsutil v0.0.0-20230105215944-fb433841cbfa
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/crypto v0.6.0
 	golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2
@@ -77,7 +77,7 @@ require (
 	github.com/containerd/typeurl v1.0.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/docker/docker v23.0.0-beta.1+incompatible // indirect
+	github.com/docker/docker v23.0.0-rc.1+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/elastic/go-windows v1.0.0 // indirect
@@ -131,6 +131,6 @@ replace (
 	github.com/jdxcode/netrc => github.com/mikejholly/netrc v0.0.0-20221121193719-a154cb29ec2a
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20230323170957-f3e9889d2a96
-	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20230303212804-6a28c867693f
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20230323202516-055b14adde95
+	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20230322211606-d14130b24a8e
 )
