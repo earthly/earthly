@@ -230,6 +230,41 @@ foo:
 			tt.expect(tgt.Docs).To(equal("foo echoes 'foo'\n"))
 		})
 
+		o.Spec("it respects leading whitespace in documentation", func(tt testCtx) {
+			mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.7
+
+# foo outputs formatted JSON
+#
+# Sample output:
+#
+#     $ earthly +foo --json='{"a":"b","c":"d"}'
+#     {
+#         "a": "b",
+#         "c": "d"
+#     }
+foo:
+    ARG json
+    RUN echo $json | jq .
+`))
+			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+			tt.expect(err).To(not(haveOccurred()))
+
+			tt.expect(f.Targets).To(haveLen(1))
+			tgt := f.Targets[0]
+			tt.expect(tgt.Name).To(equal("foo"))
+			tt.expect(tgt.Docs).To(equal(`foo outputs formatted JSON
+
+Sample output:
+
+    $ earthly +foo --json='{"a":"b","c":"d"}'
+    {
+        "a": "b",
+        "c": "d"
+    }
+`))
+		})
+
 		o.Spec("it parses documentation on later targets", func(tt testCtx) {
 			mockEarthfile(tt.t, tt.reader, []byte(`
 VERSION 0.6

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"regexp"
 	"strings"
+	"sync"
+	"unicode"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr/v4"
 	"github.com/earthly/earthly/ast/parser"
@@ -89,10 +91,24 @@ func (l *listener) popBlock() spec.Block {
 func (l *listener) docs(c antlr.ParserRuleContext) string {
 	comments := l.tokStream.GetHiddenTokensToLeft(c.GetStart().GetTokenIndex(), parser.EarthLexerCOMMENTS_CHANNEL)
 	var docs string
+	var leadingTrim string
+	var once sync.Once
 	for _, c := range comments {
 		line := strings.TrimSpace(c.GetText())
 		line = strings.TrimPrefix(line, "#")
-		line = strings.TrimSpace(line)
+		once.Do(func() {
+			runes := []rune(line)
+			var trimRunes []rune
+			for _, r := range runes {
+				if unicode.IsSpace(r) {
+					trimRunes = append(trimRunes, r)
+					continue
+				}
+				break
+			}
+			leadingTrim = string(trimRunes)
+		})
+		line = strings.TrimPrefix(line, leadingTrim)
 		docs += line + "\n"
 	}
 	return docs
