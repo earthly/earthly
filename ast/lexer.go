@@ -135,7 +135,10 @@ func (l *lexer) NextToken() antlr.Token {
 	default:
 		// Don't process indentation for any mode other than DEFAULT_MODE and RECIPE.
 		l.indentLevel = 0
-		l.afterNewLine = true
+		if l.afterNewLine && peek.GetTokenType() == parser.EarthLexerCOMMENT {
+			l.afterLineComment = true
+		}
+		l.afterNewLine = peek.GetTokenType() == parser.EarthLexerNL
 	}
 
 	if l.debug {

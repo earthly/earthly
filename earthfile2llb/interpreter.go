@@ -1001,7 +1001,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	return nil
 }
 
-func parseSaveArtifactArgs(args []string) (string, string, string, bool) {
+func parseSaveArtifactArgs(args []string) (from, to, asLocal string, _ bool) {
 	saveAsLocalTo := ""
 	saveTo := "./"
 	if len(args) >= 4 {
@@ -1368,7 +1368,7 @@ var errGlobalArgNotInBase = errors.New("global ARG can only be set in the base t
 
 // parseArgArgs parses the ARG command's arguments
 // and returns the argOpts, key, value (or nil if missing), or error
-func parseArgArgs(ctx context.Context, cmd spec.Command, isBaseTarget bool, explicitGlobalFeature bool) (argOpts, string, *string, error) {
+func parseArgArgs(ctx context.Context, cmd spec.Command, isBaseTarget bool, explicitGlobalFeature bool) (_ argOpts, name string, dflt *string, _ error) {
 	opts := argOpts{}
 	args, err := parseArgs("ARG", &opts, getArgsCopy(cmd))
 	if err != nil {

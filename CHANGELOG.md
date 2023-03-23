@@ -22,6 +22,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Improved warning messages when earthly cloud-based registry auth fails. [#2783](https://github.com/earthly/earthly/issues/2783)
 - Deleting a project will prompt for confirmation, unless --force is specified.
 - Updated buildkit with changes up to 4451e1be0e6889ffc56225e54f7e26bd6fdada54.
+- `earthly doc` now includes `ARG`s in both summary and detail output, and `ARTIFACT`s and `IMAGE`s in its detail output.
 
 ## v0.7.1 - 2023-03-01
 
