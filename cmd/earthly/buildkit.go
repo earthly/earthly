@@ -76,6 +76,7 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 	app.buildkitdSettings.MaxParallelism = app.cfg.Global.BuildkitMaxParallelism
 	app.buildkitdSettings.CacheSizeMb = app.cfg.Global.BuildkitCacheSizeMb
 	app.buildkitdSettings.CacheSizePct = app.cfg.Global.BuildkitCacheSizePct
+	app.buildkitdSettings.CacheKeepDuration = app.cfg.Global.BuildkitCacheKeepDurationS
 	app.buildkitdSettings.EnableProfiler = app.enableProfiler
 	app.buildkitdSettings.NoUpdate = app.noBuildkitUpdate
 

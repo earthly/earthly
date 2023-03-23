@@ -161,6 +161,13 @@ export BUILDKIT_ROOT_DIR="$EARTHLY_TMP_DIR"/buildkit
 mkdir -p "$BUILDKIT_ROOT_DIR"
 CACHE_SETTINGS=
 
+# Length of time (in seconds) to keep cache. Zero is the same as unset to buildkit.
+CACHE_DURATION_SETTINGS=
+if [ "$CACHE_KEEP_DURATION" -gt 0 ]; then
+  CACHE_DURATION_SETTINGS="$(envsubst </etc/buildkitd.cacheduration.template)"
+fi
+export CACHE_DURATION_SETTINGS
+
 # For clarity; this will be become CACHE_SIZE_MB after everything is calculated.  It is intentionally left unset
 # (and not "0") to simplify the logic.
 EFFECTIVE_CACHE_SIZE_MB=

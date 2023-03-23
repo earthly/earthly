@@ -13,6 +13,7 @@ import (
 type Settings struct {
 	CacheSizeMb          int
 	CacheSizePct         int
+	CacheKeepDuration    int
 	Debug                bool
 	BuildkitAddress      string
 	LocalRegistryAddress string

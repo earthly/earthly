@@ -433,6 +433,10 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 		envOpts["CACHE_SIZE_PCT"] = strconv.FormatInt(int64(settings.CacheSizePct), 10)
 	}
 
+	if settings.CacheKeepDuration > 0 {
+		envOpts["CACHE_KEEP_DURATION"] = strconv.FormatInt(int64(settings.CacheKeepDuration), 10)
+	}
+
 	if settings.EnableProfiler {
 		envOpts["BUILDKIT_PPROF_ENABLED"] = strconv.FormatBool(true)
 	}
