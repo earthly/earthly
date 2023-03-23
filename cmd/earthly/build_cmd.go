@@ -96,7 +96,7 @@ func (app *earthlyApp) warnIfArgContainsBuildArg(flagArgs []string) {
 func (app *earthlyApp) combineVariables(dotEnvMap map[string]string, flagArgs []string) (*variables.Scope, error) {
 	dotEnvVars := variables.NewScope()
 	for k, v := range dotEnvMap {
-		dotEnvVars.AddInactive(k, v)
+		dotEnvVars.Add(k, v)
 	}
 	buildArgs := append([]string{}, app.buildArgs.Value()...)
 	buildArgs = append(buildArgs, flagArgs...)

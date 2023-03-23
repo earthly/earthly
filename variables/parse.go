@@ -39,7 +39,7 @@ func ParseCommandLineArgs(args []string) (*Scope, error) {
 				return nil, errors.Errorf("env var %s not set", key)
 			}
 		}
-		ret.AddInactive(key, value)
+		ret.Add(key, value)
 	}
 	return ret, nil
 }
@@ -52,7 +52,7 @@ func ParseArgs(args []string, pncvf ProcessNonConstantVariableFunc, current *Col
 		if err != nil {
 			return nil, errors.Wrapf(err, "parse build arg %s", arg)
 		}
-		ret.AddInactive(name, variable)
+		ret.Add(name, variable)
 	}
 	return ret, nil
 }
@@ -80,7 +80,7 @@ func parseArg(arg string, pncvf ProcessNonConstantVariableFunc, current *Collect
 		}
 		return name, v, nil
 	}
-	v, ok := current.GetActive(name)
+	v, ok := current.Get(name, WithActive())
 	if !ok {
 		return "", "", errors.Errorf("value not specified for build arg %s and no value can be inferred", name)
 	}
@@ -107,7 +107,7 @@ func ParseEnvVars(envVars []string) *Scope {
 	ret := NewScope()
 	for _, envVar := range envVars {
 		k, v, _ := ParseKeyValue(envVar)
-		ret.AddActive(k, v)
+		ret.Add(k, v, WithActive())
 	}
 	return ret
 }

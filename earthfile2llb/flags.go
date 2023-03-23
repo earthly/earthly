@@ -119,6 +119,8 @@ type argOpts struct {
 	Global   bool `long:"global" description:"Global argument to make available to all other targets"`
 }
 
+type setOpts struct{}
+
 type pipelineOpts struct {
 	Push bool `long:"push" description:"Trigger a build in Cloud CI"`
 }

@@ -88,6 +88,7 @@ const (
 	projectCmd                           // "PROJECT"
 	pipelineCmd                          // "PIPELINE"
 	triggerCmd                           // "TRIGGER"
+	setCmd                               // "SET"
 )
 
 // Converter turns earthly commands to buildkit LLB representation.
@@ -133,10 +134,10 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		GlobalImports:    opt.GlobalImports,
 		Features:         opt.Features,
 	}
-	ovVarsKeysSorted := opt.OverridingVars.SortedAny()
+	ovVarsKeysSorted := opt.OverridingVars.Sorted()
 	ovVars := make([]string, 0, len(ovVarsKeysSorted))
 	for _, k := range ovVarsKeysSorted {
-		v, _ := opt.OverridingVars.GetAny(k)
+		v, _ := opt.OverridingVars.Get(k)
 		ovVars = append(ovVars, fmt.Sprintf("%s=%s", k, v))
 	}
 	logbusTarget, err := opt.Logbus.Run().NewTarget(
@@ -376,7 +377,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		Target:           dfTarget,
 		TargetPlatform:   &plat,
 		LLBCaps:          c.opt.LLBCaps,
-		BuildArgs:        overriding.AllValueMap(),
+		BuildArgs:        overriding.Map(),
 		Excludes:         nil, // TODO: Need to process this correctly.
 	})
 	done()
@@ -1139,12 +1140,12 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 				// TODO: This is a duplication from the forceExecution taking place
 				//       from FinalizeStates. However, this is necessary for apf
 				//       synchronization (needs to be run after target has executed).
-				err = c.forceExecution(ctx, mts.Final.MainState, mts.Final.PlatformResolver)
+				err := c.forceExecution(ctx, mts.Final.MainState, mts.Final.PlatformResolver)
 				if err != nil {
 					return errors.Wrapf(err, "async force execution for %s", fullTargetName)
 				}
 			}
-			err = apf(ctx, mts)
+			err := apf(ctx, mts)
 			if err != nil {
 				return err
 			}
@@ -1291,6 +1292,26 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 			DefaultValue:  effectiveDefault,
 			ConstantValue: effective,
 		})
+	}
+	return nil
+}
+
+// UpdateArg updates an existing arg to a new value. It errors if the arg could
+// not be found.
+func (c *Converter) UpdateArg(ctx context.Context, argKey string, argValue string, isBase bool) error {
+	if err := c.checkAllowed(setCmd); err != nil {
+		return err
+	}
+	c.nonSaveCommand()
+
+	var pncvf variables.ProcessNonConstantVariableFunc
+	if !c.opt.Features.ShellOutAnywhere {
+		pncvf = c.processNonConstantBuildArgFunc(ctx)
+	}
+
+	err := c.varCollection.UpdateArg(argKey, argValue, pncvf, isBase)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -1533,7 +1554,7 @@ func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, ba
 		return err
 	}
 	c.varCollection.EnterFrame(
-		scopeName, command, overriding, baseMts.Final.VarCollection.Globals(),
+		scopeName, command, baseMts.Final.VarCollection.AssignedGlobals(), overriding, baseMts.Final.VarCollection.Globals(),
 		baseMts.Final.GlobalImports)
 	return nil
 }
@@ -1704,7 +1725,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		for _, bai := range mts.Final.TargetInput().BuildArgs {
 			// Check if the build arg has been overridden. If it has, it can no longer be an input
 			// directly, so skip it.
-			_, found := opt.OverridingVars.GetAny(bai.Name)
+			_, found := opt.OverridingVars.Get(bai.Name)
 			if found {
 				continue
 			}
@@ -1713,13 +1734,17 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		if cmdT == fromCmd {
 			// Propagate globals.
 			globals := mts.Final.VarCollection.Globals()
-			for _, k := range globals.SortedActive() {
-				_, alreadyActive := c.varCollection.GetActive(k)
+			assigned := mts.Final.VarCollection.AssignedGlobals()
+			for _, k := range globals.Sorted(variables.WithActive()) {
+				_, alreadyActive := c.varCollection.Get(k, variables.WithActive())
 				if alreadyActive {
 					// Globals don't override any variables in current scope.
 					continue
 				}
-				v, _ := globals.GetActive(k)
+				v, ok := assigned.Get(k, variables.WithActive())
+				if !ok {
+					v, _ = globals.Get(k, variables.WithActive())
+				}
 				// Look for the default arg value in the built target's TargetInput.
 				defaultArgValue := ""
 				for _, childBai := range mts.Final.TargetInput().BuildArgs {
@@ -1736,6 +1761,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 					})
 			}
 			c.varCollection.SetGlobals(globals)
+			c.varCollection.SetAssignedGlobals(assigned)
 			c.varCollection.Imports().SetGlobal(mts.Final.GlobalImports)
 			c.varCollection.SetProject(mts.Final.VarCollection.Project())
 			c.varCollection.SetOrg(mts.Final.VarCollection.Org())
@@ -1859,8 +1885,8 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		}
 	}
 	// Build args.
-	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
-		ba, _ := c.varCollection.GetActive(buildArgName)
+	for _, buildArgName := range c.varCollection.SortedVariables(variables.WithActive()) {
+		ba, _ := c.varCollection.Get(buildArgName, variables.WithActive())
 		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba)))
 	}
 	if !opts.Locally {
@@ -2216,8 +2242,8 @@ func (c *Converter) checkOldPlatformIncompatibility(platform platutil.Platform) 
 func (c *Converter) applyFromImage(state pllb.State, img *image.Image) (pllb.State, *image.Image, *variables.Scope) {
 	// Reset variables.
 	ev := variables.ParseEnvVars(img.Config.Env)
-	for _, name := range ev.SortedActive() {
-		v, _ := ev.GetActive(name)
+	for _, name := range ev.Sorted(variables.WithActive()) {
+		v, _ := ev.Get(name, variables.WithActive())
 		state = state.AddEnv(name, v)
 	}
 	// Init config maps if not already initialized.
@@ -2267,7 +2293,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 func (c *Converter) vertexPrefix(ctx context.Context, local bool, interactive bool, internal bool) string {
 	activeOverriding := make(map[string]string)
 	for _, arg := range c.varCollection.SortedOverridingVariables() {
-		v, ok := c.varCollection.GetActive(arg)
+		v, ok := c.varCollection.Get(arg, variables.WithActive())
 		if ok {
 			activeOverriding[arg] = v
 		}
@@ -2385,12 +2411,16 @@ func (c *Converter) checkAllowed(command cmdType) error {
 		}
 	}
 
+	if command == setCmd && !c.ftrs.ArgScopeSet {
+		return errors.New("--arg-scope-and-set must be enabled in order to use SET")
+	}
+
 	return nil
 }
 
 func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
 	activeBuildArgs := make(map[string]bool)
-	for _, k := range c.varCollection.SortedActiveVariables() {
+	for _, k := range c.varCollection.SortedVariables(variables.WithActive()) {
 		activeBuildArgs[k] = true
 	}
 	return c.mts.Final.TargetInput().WithFilterBuildArgs(activeBuildArgs)
