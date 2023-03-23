@@ -50,7 +50,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 		remoteConsole := console
 		if settings.SatelliteName != "" {
 			remoteConsole = console.WithPrefix("satellite")
-			remoteConsole.Printf("Connecting to %s...", settings.SatelliteName)
+			remoteConsole.Printf("Connecting to %s...", settings.SatelliteDisplayName)
 		} else {
 			remoteConsole = console.WithPrefix("buildkitd")
 			remoteConsole.Printf("Connecting to %s...", settings.BuildkitAddress)
@@ -963,7 +963,7 @@ func addRequiredOpts(settings Settings, installationName string, opts ...client.
 // PrintSatelliteInfo prints the instance's details,
 // including its Buildkit version, current workload, and garbage collection.
 func PrintSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, earthlyVersion string, settings Settings, installationName string) error {
-	console.Printf("Connecting to %s...", settings.SatelliteName)
+	console.Printf("Connecting to %s...", settings.SatelliteDisplayName)
 	opts, err := addRequiredOpts(settings, installationName, []client.ClientOpt{})
 	if err != nil {
 		return errors.Wrap(err, "add required client opts")
