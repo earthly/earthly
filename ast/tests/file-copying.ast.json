@@ -175,6 +175,7 @@
             "args": [
               "+setup-scratch"
             ],
+            "docs": "Note: This is a negative test (should fail).\n",
             "name": "FROM"
           }
         },

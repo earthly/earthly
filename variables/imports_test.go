@@ -1,14 +1,18 @@
-package variables
+package variables_test
 
 import (
-	"github.com/stretchr/testify/assert"
+	"github.com/poy/onpar/matchers"
+	"github.com/stretchr/testify/require"
 )
 
 var (
-	NoError = assert.NoError
-	Equal   = assert.Equal
-	Nil     = assert.Nil
-	True    = assert.True
-	False   = assert.False
-	Error   = assert.Error
+	beTrue  = matchers.BeTrue
+	beFalse = matchers.BeFalse
+	equal   = matchers.Equal
+)
+
+var (
+	NoError = require.NoError
+	Error   = require.Error
+	Equal   = require.Equal
 )

@@ -147,6 +147,7 @@ type cliFlags struct {
 	secretFile                      string
 	lsShowLong                      bool
 	lsShowArgs                      bool
+	docShowLong                     bool
 	containerFrontend               containerutil.ContainerFrontend
 	satelliteName                   string
 	noSatellite                     bool

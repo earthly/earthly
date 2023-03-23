@@ -98,6 +98,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/moby/locker v1.0.1 // indirect
 	github.com/moby/patternmatcher v0.5.0 // indirect
+	github.com/moby/sys/sequential v0.5.0 // indirect
 	github.com/moby/sys/signal v0.7.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opencontainers/runc v1.1.3 // indirect
@@ -125,13 +126,11 @@ require (
 )
 
 replace (
-	github.com/docker/docker => github.com/docker/docker v20.10.3-0.20220414164044-61404de7df1a+incompatible
-
 	github.com/earthly/earthly/ast => ./ast
 	github.com/earthly/earthly/util/deltautil => ./util/deltautil
 	github.com/jdxcode/netrc => github.com/mikejholly/netrc v0.0.0-20221121193719-a154cb29ec2a
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20230314203543-3946dd623aea
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20230323170957-f3e9889d2a96
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20230303212804-6a28c867693f
 )

@@ -405,6 +405,7 @@ earthly-docker:
 
 earthly-integration-test-base:
     FROM +earthly-docker
+    RUN apk add pcre-tools
     ENV NO_DOCKER=1
     ENV NETWORK_MODE=host # Note that this breaks access to embedded registry in WITH DOCKER.
     ENV EARTHLY_VERSION_FLAG_OVERRIDES=no-use-registry-for-with-docker # Use tar-based due to above.
@@ -432,14 +433,21 @@ earthly-integration-test-base:
         # Use a mirror, supports mirroring Docker Hub only.
         ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="[registry.\"docker.io\"]
   mirrors = [\"$DOCKERHUB_MIRROR\"]"
+        ENV MIRROR_CONFIG="[registry.\"$DOCKERHUB_MIRROR\"]"
         IF [ "$DOCKERHUB_MIRROR_INSECURE" = "true" ]
             ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
+  insecure = true"
+            ENV MIRROR_CONFIG="$MIRROR_CONFIG
   insecure = true"
         END
         IF [ "$DOCKERHUB_MIRROR_HTTP" = "true" ]
             ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
   http = true"
+            ENV MIRROR_CONFIG="$MIRROR_CONFIG
+  http = true"
         END
+        ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
+$MIRROR_CONFIG"
 
         # NOTE: newlines+indentation is important here, see https://github.com/earthly/earthly/issues/1764 for potential pitfalls
         # yaml will convert newlines to spaces when using regular quoted-strings, therefore we will use the literal-style (denoted by `|`)

@@ -1,0 +1,43 @@
+VERSION --arg-scope-and-set 0.7
+FROM alpine:3.15
+
+ARG --global foo = bar
+SET foo = ${foo} phone
+
+ARG foo = sports
+SET foo = ${foo} car
+
+ARG topExpected = sports car
+RUN test "$foo" = "$topExpected"
+
+test:
+    ARG bar = baz
+    SET bar = ${bar}inga
+    ARG --required expected
+    RUN test "$bar" = "$expected"
+
+test-global:
+    ARG --required expected
+    RUN test "$foo" = "$expected"
+
+test-set-global-fails:
+    SET foo = toast
+    RUN echo $foo
+
+test-set-nonexistent-fails:
+    SET nonexistent = foo
+    RUN echo $nonexistent
+
+test-if:
+    ARG bar = foo
+    ARG ifSwitch = true
+    IF $ifSwitch
+        SET bar = ifSwitch was true
+    ELSE
+        SET bar = ifSwitch was false
+    END
+    ARG --required expected
+    RUN test "$bar" = "$expected"
+
+test-no-override-imports:
+    BUILD ./imported+test

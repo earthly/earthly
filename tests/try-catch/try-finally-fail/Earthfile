@@ -6,3 +6,27 @@ test:
     FINALLY
         SAVE ARTIFACT data AS LOCAL .testdata
     END
+
+test-save-to-curdir:
+    FROM alpine:3.15
+    TRY
+        RUN echo magic > data && false
+    FINALLY
+        SAVE ARTIFACT data AS LOCAL ./
+    END
+
+test-save-to-child-dir:
+    FROM alpine:3.15
+    TRY
+        RUN echo magic > data && false
+    FINALLY
+        SAVE ARTIFACT data AS LOCAL out/
+    END
+
+test-save-to-child-file:
+    FROM alpine:3.15
+    TRY
+        RUN echo magic > data && false
+    FINALLY
+        SAVE ARTIFACT data AS LOCAL out/.testdata
+    END

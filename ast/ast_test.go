@@ -26,6 +26,26 @@ func TestParse(topT *testing.T) {
 		}
 	})
 
+	o.Spec("it parses SET commands", func(tt testCtx) {
+		mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.7
+
+foo:
+    ARG foo
+    SET foo = bar
+`))
+		f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+		tt.expect(err).To(not(haveOccurred()))
+
+		tt.expect(f.Targets).To(haveLen(1))
+		foo := f.Targets[0]
+		tt.expect(foo.Recipe).To(haveLen(2))
+		set := foo.Recipe[1]
+		tt.expect(set.Command).To(not(beNil()))
+		tt.expect(set.Command.Name).To(equal("SET"))
+		tt.expect(set.Command.Args).To(equal([]string{"foo", "=", "bar"}))
+	})
+
 	o.Spec("it safely ignores comments outside of documentation", func(tt testCtx) {
 		mockEarthfile(tt.t, tt.reader, []byte(`
 # this is an early comment.
@@ -230,6 +250,41 @@ foo:
 			tt.expect(tgt.Docs).To(equal("foo echoes 'foo'\n"))
 		})
 
+		o.Spec("it respects leading whitespace in documentation", func(tt testCtx) {
+			mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.7
+
+# foo outputs formatted JSON
+#
+# Sample output:
+#
+#     $ earthly +foo --json='{"a":"b","c":"d"}'
+#     {
+#         "a": "b",
+#         "c": "d"
+#     }
+foo:
+    ARG json
+    RUN echo $json | jq .
+`))
+			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+			tt.expect(err).To(not(haveOccurred()))
+
+			tt.expect(f.Targets).To(haveLen(1))
+			tgt := f.Targets[0]
+			tt.expect(tgt.Name).To(equal("foo"))
+			tt.expect(tgt.Docs).To(equal(`foo outputs formatted JSON
+
+Sample output:
+
+    $ earthly +foo --json='{"a":"b","c":"d"}'
+    {
+        "a": "b",
+        "c": "d"
+    }
+`))
+		})
+
 		o.Spec("it parses documentation on later targets", func(tt testCtx) {
 			mockEarthfile(tt.t, tt.reader, []byte(`
 VERSION 0.6
@@ -345,6 +400,88 @@ bar:
 			tgt := f.Targets[1]
 			tt.expect(tgt.Name).To(equal("bar"))
 			tt.expect(tgt.Docs).To(equal(""))
+		})
+
+		o.Spec("it parses documentation on ARGs", func(tt testCtx) {
+			mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.6
+
+foo:
+    # foo is the argument that will be echoed
+    ARG foo = bar
+    RUN echo $foo
+`))
+			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+			tt.expect(err).To(not(haveOccurred()))
+
+			tt.expect(f.Targets).To(haveLen(1))
+			tgt := f.Targets[0]
+			tt.expect(tgt.Recipe).To(haveLen(2))
+			arg := tgt.Recipe[0]
+			tt.expect(arg.Command).To(not(beNil()))
+			tt.expect(arg.Command.Name).To(equal("ARG"))
+			tt.expect(arg.Command.Docs).To(equal("foo is the argument that will be echoed\n"))
+		})
+
+		o.Spec("it parses multiline documentation on global ARGs", func(tt testCtx) {
+			mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.7
+FROM alpine:3.15
+
+# globalArg is a documented global arg
+# with multiple lines.
+ARG --global globalArg
+`))
+			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+			tt.expect(err).To(not(haveOccurred()))
+
+			tt.expect(f.BaseRecipe).To(haveLen(2))
+			arg := f.BaseRecipe[1]
+			tt.expect(arg.Command).To(not(beNil()))
+			tt.expect(arg.Command.Name).To(equal("ARG"))
+			tt.expect(arg.Command.Docs).To(equal("globalArg is a documented global arg\nwith multiple lines.\n"))
+		})
+
+		o.Spec("it parses documentation on SAVE ARTIFACT", func(tt testCtx) {
+			mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.6
+
+foo:
+    RUN echo foo > bar.txt
+    # bar.txt will contain the output of this target
+    SAVE ARTIFACT bar.txt
+`))
+			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+			tt.expect(err).To(not(haveOccurred()))
+
+			tt.expect(f.Targets).To(haveLen(1))
+			tgt := f.Targets[0]
+			tt.expect(tgt.Recipe).To(haveLen(2))
+			arg := tgt.Recipe[1]
+			tt.expect(arg.Command).To(not(beNil()))
+			tt.expect(arg.Command.Name).To(equal("SAVE ARTIFACT"))
+			tt.expect(arg.Command.Docs).To(equal("bar.txt will contain the output of this target\n"))
+		})
+
+		o.Spec("it parses documentation on SAVE IMAGE", func(tt testCtx) {
+			mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.6
+
+foo:
+    RUN echo foo > bar.txt
+    # foo is an image that contains a bar.txt file
+    SAVE IMAGE foo
+`))
+			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+			tt.expect(err).To(not(haveOccurred()))
+
+			tt.expect(f.Targets).To(haveLen(1))
+			tgt := f.Targets[0]
+			tt.expect(tgt.Recipe).To(haveLen(2))
+			arg := tgt.Recipe[1]
+			tt.expect(arg.Command).To(not(beNil()))
+			tt.expect(arg.Command.Name).To(equal("SAVE IMAGE"))
+			tt.expect(arg.Command.Docs).To(equal("foo is an image that contains a bar.txt file\n"))
 		})
 	})
 }

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -95,7 +96,7 @@ func (app *earthlyApp) warnIfArgContainsBuildArg(flagArgs []string) {
 func (app *earthlyApp) combineVariables(dotEnvMap map[string]string, flagArgs []string) (*variables.Scope, error) {
 	dotEnvVars := variables.NewScope()
 	for k, v := range dotEnvMap {
-		dotEnvVars.AddInactive(k, v)
+		dotEnvVars.Add(k, v)
 	}
 	buildArgs := append([]string{}, app.buildArgs.Value()...)
 	buildArgs = append(buildArgs, flagArgs...)
@@ -630,6 +631,10 @@ func receiveFileVersion2(ctx context.Context, conn io.ReadWriteCloser, localArti
 
 	if !localArtifactWhiteList.Exists(string(dst)) {
 		return fmt.Errorf("file %s does not appear in the white list", dst)
+	}
+	err = os.MkdirAll(path.Dir(string(dst)), 0755)
+	if err != nil {
+		return err
 	}
 
 	f, err := os.Create(string(dst))
