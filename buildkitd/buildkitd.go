@@ -926,7 +926,7 @@ func makeTLSPath(path string, installationName string) (string, error) {
 func addRequiredOpts(settings Settings, installationName string, opts ...client.ClientOpt) ([]client.ClientOpt, error) {
 	server, err := url.Parse(settings.BuildkitAddress)
 	if err != nil {
-		return []client.ClientOpt{}, errors.Wrap(err, "invalid buildkit url")
+		return []client.ClientOpt{}, errors.Wrapf(err, "failed to parse buildkit url %s", settings.BuildkitAddress)
 	}
 
 	if settings.SatelliteName != "" {
