@@ -26,6 +26,26 @@ func TestParse(topT *testing.T) {
 		}
 	})
 
+	o.Spec("it parses SET commands", func(tt testCtx) {
+		mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.7
+
+foo:
+    ARG foo
+    SET foo = bar
+`))
+		f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+		tt.expect(err).To(not(haveOccurred()))
+
+		tt.expect(f.Targets).To(haveLen(1))
+		foo := f.Targets[0]
+		tt.expect(foo.Recipe).To(haveLen(2))
+		set := foo.Recipe[1]
+		tt.expect(set.Command).To(not(beNil()))
+		tt.expect(set.Command.Name).To(equal("SET"))
+		tt.expect(set.Command.Args).To(equal([]string{"foo", "=", "bar"}))
+	})
+
 	o.Spec("it safely ignores comments outside of documentation", func(tt testCtx) {
 		mockEarthfile(tt.t, tt.reader, []byte(`
 # this is an early comment.

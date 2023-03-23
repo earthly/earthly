@@ -1,12 +1,14 @@
-package features
+package features_test
 
 import (
-	"fmt"
+	"reflect"
 	"testing"
+
+	"github.com/earthly/earthly/features"
 )
 
 func TestFeaturesStringEnabled(t *testing.T) {
-	fts := &Features{
+	fts := &features.Features{
 		Major:              0,
 		Minor:              5,
 		ReferencedSaveOnly: true,
@@ -16,7 +18,7 @@ func TestFeaturesStringEnabled(t *testing.T) {
 }
 
 func TestFeaturesStringDisabled(t *testing.T) {
-	fts := &Features{
+	fts := &features.Features{
 		Major:              1,
 		Minor:              1,
 		ReferencedSaveOnly: false,
@@ -26,8 +28,8 @@ func TestFeaturesStringDisabled(t *testing.T) {
 }
 
 func TestApplyFlagOverrides(t *testing.T) {
-	fts := &Features{}
-	err := ApplyFlagOverrides(fts, "referenced-save-only")
+	fts := &features.Features{}
+	err := features.ApplyFlagOverrides(fts, "referenced-save-only")
 	Nil(t, err)
 	Equal(t, true, fts.ReferencedSaveOnly)
 	Equal(t, false, fts.UseCopyIncludePatterns)
@@ -37,8 +39,8 @@ func TestApplyFlagOverrides(t *testing.T) {
 }
 
 func TestApplyFlagOverridesWithDashDashPrefix(t *testing.T) {
-	fts := &Features{}
-	err := ApplyFlagOverrides(fts, "--referenced-save-only")
+	fts := &features.Features{}
+	err := features.ApplyFlagOverrides(fts, "--referenced-save-only")
 	Nil(t, err)
 	Equal(t, true, fts.ReferencedSaveOnly)
 	Equal(t, false, fts.UseCopyIncludePatterns)
@@ -48,8 +50,8 @@ func TestApplyFlagOverridesWithDashDashPrefix(t *testing.T) {
 }
 
 func TestApplyFlagOverridesMultipleFlags(t *testing.T) {
-	fts := &Features{}
-	err := ApplyFlagOverrides(fts, "referenced-save-only,use-copy-include-patterns,no-implicit-ignore")
+	fts := &features.Features{}
+	err := features.ApplyFlagOverrides(fts, "referenced-save-only,use-copy-include-patterns,no-implicit-ignore")
 	Nil(t, err)
 	Equal(t, true, fts.ReferencedSaveOnly)
 	Equal(t, true, fts.UseCopyIncludePatterns)
@@ -59,8 +61,8 @@ func TestApplyFlagOverridesMultipleFlags(t *testing.T) {
 }
 
 func TestApplyFlagOverridesEmptyString(t *testing.T) {
-	fts := &Features{}
-	err := ApplyFlagOverrides(fts, "")
+	fts := &features.Features{}
+	err := features.ApplyFlagOverrides(fts, "")
 	Nil(t, err)
 	Equal(t, false, fts.ReferencedSaveOnly)
 	Equal(t, false, fts.UseCopyIncludePatterns)
@@ -69,44 +71,66 @@ func TestApplyFlagOverridesEmptyString(t *testing.T) {
 	Equal(t, false, fts.NoImplicitIgnore)
 }
 
-func TestVersionAtLeast(t *testing.T) {
-	tests := []struct {
-		earthlyVer Features
-		major      int
-		minor      int
-		expected   bool
+func TestAvailableFlags(t *testing.T) {
+	// This test feels like it may be overkill, but it's nice to know that if we
+	// introduce a typo we have to introduce it twice for our tests to still
+	// pass.
+	for _, tt := range []struct {
+		flag  string
+		field string
 	}{
-		{
-			earthlyVer: Features{Major: 0, Minor: 6},
-			major:      0,
-			minor:      5,
-			expected:   true,
-		},
-		{
-			earthlyVer: Features{Major: 0, Minor: 6},
-			major:      0,
-			minor:      7,
-			expected:   false,
-		},
-		{
-			earthlyVer: Features{Major: 0, Minor: 6},
-			major:      1,
-			minor:      2,
-			expected:   false,
-		},
-		{
-			earthlyVer: Features{Major: 1, Minor: 2},
-			major:      1,
-			minor:      2,
-			expected:   true,
-		},
-	}
-	for _, test := range tests {
-		title := fmt.Sprintf("earthly version %d.%d is at least %d.%d",
-			test.earthlyVer.Major, test.earthlyVer.Minor, test.major, test.minor)
-		t.Run(title, func(t *testing.T) {
-			actual := versionAtLeast(test.earthlyVer, test.major, test.minor)
-			Equal(t, test.expected, actual)
+		// 0.5
+		{"exec-after-parallel", "ExecAfterParallel"},
+		{"parallel-load", "ParallelLoad"},
+		{"use-registry-for-with-docker", "UseRegistryForWithDocker"},
+
+		// 0.6
+		{"for-in", "ForIn"},
+		{"no-implicit-ignore", "NoImplicitIgnore"},
+		{"referenced-save-only", "ReferencedSaveOnly"},
+		{"require-force-for-unsafe-saves", "RequireForceForUnsafeSaves"},
+		{"use-copy-include-patterns", "UseCopyIncludePatterns"},
+
+		// 0.7
+		{"check-duplicate-images", "CheckDuplicateImages"},
+		{"ci-arg", "EarthlyCIArg"},
+		{"earthly-git-author-args", "EarthlyGitAuthorArgs"},
+		{"earthly-locally-arg", "EarthlyLocallyArg"},
+		{"earthly-version-arg", "EarthlyVersionArg"},
+		{"explicit-global", "ExplicitGlobal"},
+		{"git-commit-author-timestamp", "GitCommitAuthorTimestamp"},
+		{"new-platform", "NewPlatform"},
+		{"no-tar-build-output", "NoTarBuildOutput"},
+		{"save-artifact-keep-own", "SaveArtifactKeepOwn"},
+		{"shell-out-anywhere", "ShellOutAnywhere"},
+		{"use-cache-command", "UseCacheCommand"},
+		{"use-chmod", "UseChmod"},
+		{"use-copy-link", "UseCopyLink"},
+		{"use-host-command", "UseHostCommand"},
+		{"use-no-manifest-list", "UseNoManifestList"},
+		{"use-pipelines", "UsePipelines"},
+		{"use-project-secrets", "UseProjectSecrets"},
+		{"wait-block", "WaitBlock"},
+
+		// unreleased
+		{"no-use-registry-for-with-docker", "NoUseRegistryForWithDocker"},
+		{"try", "TryFinally"},
+		{"no-network", "NoNetwork"},
+		{"git-branch", "GitBranch"},
+		{"arg-scope-and-set", "ArgScopeSet"},
+	} {
+		tt := tt
+		t.Run(tt.flag, func(t *testing.T) {
+			t.Parallel()
+
+			var fts features.Features
+			err := features.ApplyFlagOverrides(&fts, tt.flag)
+			Nil(t, err)
+			field := reflect.ValueOf(fts).FieldByName(tt.field)
+			True(t, field.IsValid(), "field %v does not exist on %T", tt.field, fts)
+			val, ok := field.Interface().(bool)
+			True(t, ok, "field %v was not a boolean", tt.field)
+			True(t, val, "expected field %v to be set to true by flag %v", tt.field, tt.flag)
 		})
 	}
 }
