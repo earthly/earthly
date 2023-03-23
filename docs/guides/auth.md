@@ -118,6 +118,39 @@ git:
 ```
 {% endhint %}
 
+#### GitLab Subgroups
+
+Earthly, by default, assumes git repos are stored under two levels (i.e. `<org>/<path>.git`). A regular expression must be configured in order to support sub groups:
+
+```yaml
+git:
+    gitlab.com:
+        pattern: 'gitlab.com/(example-org)/([^/]+)/([^/]+)'
+        substitute: 'git@gitlab.com:$1/$2/$3.git'
+        auth: ssh
+```
+
+Where `example-org` is the name of your GitLab organisation. Note that the `(` and `)` parenthesis are required, as they are used to assign the matched value to the `$1`, `$2`, ... values.
+
+The pattern will depend on how your subgroups are setup; if you use a mix of 2 and 3 level groupings, you will have to configure them separately:
+
+```yaml
+git:
+    gitlab.com/example-org/projecta:
+        pattern: 'gitlab.com/(example-org)/(project-a)/([^/]+)'
+        substitute: 'git@gitlab.com:$1/$2/$3.git'
+        auth: ssh
+
+    gitlab.com example-org catch-all:
+        pattern: 'gitlab.com/(example-org)/([^/]+)'
+        substitute: 'git@gitlab.com:$1/$2.git'
+        auth: ssh
+```
+
+When a `pattern` is used, the key of the git configuration is simply used by log messages, it is **not** used for any matching.
+
+Note that patterns are evaluated from the top to the bottom, subgroup specific configurations should be listed first.
+
 #### Debugging tips
 
 You can run earthly with `--verbose`, which will provide debugging messages to help understand how a remote earthly reference is transformed into a git URL for cloning.
