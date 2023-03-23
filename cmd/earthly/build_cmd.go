@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/fatih/color"
 	"io"
 	"net/url"
 	"os"
@@ -37,6 +36,7 @@ import (
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
+	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/session"
