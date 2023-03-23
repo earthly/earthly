@@ -72,7 +72,7 @@ type GlobalConfig struct {
 	ClientTLSKey             string   `yaml:"tlskey"                     help:"The path to the client key for verification. Relative paths are interpreted as relative to ~/.earthly."`
 	ServerTLSCert            string   `yaml:"buildkitd_tlscert"          help:"The path to the server cert for verification. Relative paths are interpreted as relative to ~/.earthly. Only used when Earthly manages buildkit."`
 	ServerTLSKey             string   `yaml:"buildkitd_tlskey"           help:"The path to the server key for verification. Relative paths are interpreted as relative to ~/.earthly. Only used when Earthly manages buildkit."`
-	TLSDisabled              bool     `yaml:"tls_disabled"               help:"If TLS should be used to communicate with Buildkit. Only honored when BuildkitScheme is 'tcp'."`
+	TLSEnabled               bool     `yaml:"tls_enabled"                help:"If TLS should be used to communicate with Buildkit. Only honored when BuildkitScheme is 'tcp'."`
 	ContainerFrontend        string   `yaml:"container_frontend"         help:"What program should be used to start and stop buildkitd, save images. Default is 'docker'. Valid options are 'docker' and 'podman' (experimental)."`
 	IPTables                 string   `yaml:"ip_tables"                  help:"Which iptables binary to use. Valid values are iptables-legacy or iptables-nft. Bypasses any autodetection."`
 	DisableLogSharing        bool     `yaml:"disable_log_sharing"        help:"Disable cloud log sharing when logged in with an Earthly account, see https://ci.earthly.dev for details."`
@@ -135,6 +135,7 @@ func ParseConfigFile(yamlData []byte, installationName string) (*Config, error) 
 			ConversionParallelism:   DefaultConversionParallelism,
 			BuildkitMaxParallelism:  DefaultBuildkitMaxParallelism,
 			BuildkitAdditionalArgs:  []string{},
+			TLSEnabled:              true,
 			TLSCA:                   DefaultCA,
 			ClientTLSCert:           DefaultClientTLSCert,
 			ClientTLSKey:            DefaultClientTLSKey,

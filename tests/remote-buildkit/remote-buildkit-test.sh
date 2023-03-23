@@ -14,14 +14,14 @@ function finish {
 }
 trap finish EXIT
 
-"$earthly" config global.tls_disabled true
+"$earthly" config global.tls_enabled false
 # FIXME bootstrap is failing with "open /home/runner/.earthly-dev/certs/ca_cert.pem: permission denied", but generates them nonetheless.
 "$earthly" --verbose --buildkit-host tcp://127.0.0.1:8372 bootstrap || (echo "ignoring bootstrap failure")
 
 # bootstrapping should not generate any pem files
 test $(ls ~/.earthly-dev/certs/*.pem | wc -l) = "0"
 
-"$earthly" config global.tls_disabled false
+"$earthly" config global.tls_enabled true
 # FIXME bootstrap is failing with "open /home/runner/.earthly-dev/certs/ca_cert.pem: permission denied", but generates them nonetheless.
 "$earthly" --verbose --buildkit-host tcp://127.0.0.1:8372 bootstrap || (echo "ignoring bootstrap failure")
 

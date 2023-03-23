@@ -405,7 +405,7 @@ func (app *earthlyApp) bootstrap(cliCtx *cli.Context) error {
 		if err != nil {
 			return errors.Wrapf(err, "invalid buildkit_host: %s", app.cfg.Global.BuildkitHost)
 		}
-		if bkURL.Scheme == "tcp" && !app.cfg.Global.TLSDisabled {
+		if bkURL.Scheme == "tcp" && app.cfg.Global.TLSEnabled {
 			root, err := cliutil.GetOrCreateEarthlyDir(app.installationName)
 			if err != nil {
 				return err

@@ -61,7 +61,7 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to parse generated buildkit URL")
 	}
 
-	if bkURL.Scheme == "tcp" && !app.cfg.Global.TLSDisabled {
+	if bkURL.Scheme == "tcp" && app.cfg.Global.TLSEnabled {
 		app.buildkitdSettings.ClientTLSCert = app.cfg.Global.ClientTLSCert
 		app.buildkitdSettings.ClientTLSKey = app.cfg.Global.ClientTLSKey
 		app.buildkitdSettings.TLSCA = app.cfg.Global.TLSCA
@@ -76,7 +76,7 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 	app.buildkitdSettings.BuildkitAddress = app.buildkitHost
 	app.buildkitdSettings.LocalRegistryAddress = app.localRegistryHost
 	app.buildkitdSettings.UseTCP = bkURL.Scheme == "tcp"
-	app.buildkitdSettings.UseTLS = !app.cfg.Global.TLSDisabled
+	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
 	app.buildkitdSettings.MaxParallelism = app.cfg.Global.BuildkitMaxParallelism
 	app.buildkitdSettings.CacheSizeMb = app.cfg.Global.BuildkitCacheSizeMb
 	app.buildkitdSettings.CacheSizePct = app.cfg.Global.BuildkitCacheSizePct

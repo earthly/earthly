@@ -77,7 +77,7 @@ This is the address of the remote daemon. It should look something like this: `t
 
 These are the paths to the certificates and keys used by the client when communicating with an mTLS-enabled daemon. These paths are relative to the Earthly config (usually `~/.earthly/config.yaml`, unless absolute paths are specified.
 
-**`tls_disabled`**
+**`tls_enabled`**
 
 TLS will be enabled by default (unless using a local buildkit container).  
 Set this to `false` when using TLS is not desired.
