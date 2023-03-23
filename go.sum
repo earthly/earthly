@@ -133,8 +133,8 @@ github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
-github.com/earthly/buildkit v0.0.1-0.20230321235925-55e715e454d2 h1:vJz2vj6WiXCnC2QJx4hf/gHZ2/zd0OYufgO+sdkcMSo=
-github.com/earthly/buildkit v0.0.1-0.20230321235925-55e715e454d2/go.mod h1:H/LP9uSnFsNzdiyfPVZPhu16YU9jIg5p7wbUDeO3LvY=
+github.com/earthly/buildkit v0.0.1-0.20230323170957-f3e9889d2a96 h1:I9YB2Q1Pef8W9IYKElKuESM4/aL8Zx1r1qszUrUTTtc=
+github.com/earthly/buildkit v0.0.1-0.20230323170957-f3e9889d2a96/go.mod h1:NM0u5cS/9C1ULKc0DM6m0zZoExBXH0OH5kcSXc6GI0I=
 github.com/earthly/cloud-api v1.0.1-0.20230221174908-b8d90bbe26b0 h1:hHltIU1yWP6CmGG7E8w06NNf6f+0B5z2GlsyGaBE0Wg=
 github.com/earthly/cloud-api v1.0.1-0.20230221174908-b8d90bbe26b0/go.mod h1:38rj6sccWnuk+C981DeFFomBmAtwuuvchoPrXdKXi2I=
 github.com/earthly/fsutil v0.0.0-20230303212804-6a28c867693f h1:Tb5QuOCrWJZ4kQTfdlAt3h4JlfzJhptouyFY+hTnCP4=
@@ -228,7 +228,7 @@ github.com/hashicorp/errwrap v1.1.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brv
 github.com/hashicorp/go-multierror v1.1.1 h1:H5DkEtf6CXdFp0N0Em5UCwQpXMWke8IA0+lD48awMYo=
 github.com/hashicorp/go-multierror v1.1.1/go.mod h1:iw975J/qwKPdAO1clOe2L8331t/9/fmwbPZ6JB6eMoM=
 github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T20WEQ=
-github.com/in-toto/in-toto-golang v0.3.4-0.20220709202702-fa494aaa0add h1:DAh7mHiRT7wc6kKepYdCpH16ElPciMPQWJaJ7H3l/ng=
+github.com/in-toto/in-toto-golang v0.5.0 h1:hb8bgwr0M2hGdDsLjkJ3ZqJ8JFLL/tgYdAxF/XEFBbY=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/jmespath/go-jmespath v0.4.0 h1:BEgLn5cpjn8UN1mAw4NjwDrS35OdebyEtFe+9YPoQUg=
 github.com/jmespath/go-jmespath v0.4.0/go.mod h1:T8mJZnbsbmF+m6zOOFylbeCJqk5+pHWvzYPziyZiYoo=
