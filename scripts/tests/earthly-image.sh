@@ -21,7 +21,9 @@ cat > "$dockerconfig" <<EOF
 }
 EOF
 
-# Note that it is not possible to use GLOBAL_CONFIG, due to the fact
+export GLOBAL_CONFIG="{tls_enabled: false}"
+
+# Note that it is not possible to use GLOBAL_CONFIG for this, due to the fact
 # earthly-entrypoint.sh starts buildkit instead of the earthly binary,
 # as a result the buildkit_additional_config value in ~/.earthly/config.yml is ignored.
 export EARTHLY_ADDITIONAL_BUILDKIT_CONFIG='[registry."docker.io"]
@@ -76,13 +78,13 @@ grep "core-test" output.txt
 grep "core-test" output.txt
 
 echo "Test hello world with embedded buildkit."
-"$FRONTEND" run --rm --privileged -e EARTHLY_ADDITIONAL_BUILDKIT_CONFIG -v "$dockerconfig:/root/.docker/config.json" "${EARTHLY_IMAGE}" --no-cache github.com/earthly/hello-world+hello 2>&1 | tee output.txt
+"$FRONTEND" run --rm --privileged -e EARTHLY_ADDITIONAL_BUILDKIT_CONFIG -e GLOBAL_CONFIG -v "$dockerconfig:/root/.docker/config.json" "${EARTHLY_IMAGE}" --no-cache github.com/earthly/hello-world+hello 2>&1 | tee output.txt
 grep "Hello World" output.txt
 grep "Earthly installation is working correctly" output.txt
 
 if [ "$FRONTEND" = "docker" ]; then
     echo "Test use /var/run/docker.sock, but not privileged."
-    "$FRONTEND" run --rm -e EARTHLY_ADDITIONAL_BUILDKIT_CONFIG -v "$dockerconfig:/root/.docker/config.json" -e NO_BUILDKIT=1 -e EARTHLY_NO_BUILDKIT_UPDATE=1 -v /var/run/docker.sock:/var/run/docker.sock "${EARTHLY_IMAGE}" --no-cache github.com/earthly/hello-world+hello 2>&1 | tee output.txt
+    "$FRONTEND" run --rm -e EARTHLY_ADDITIONAL_BUILDKIT_CONFIG -e GLOBAL_CONFIG -v "$dockerconfig:/root/.docker/config.json" -e NO_BUILDKIT=1 -e EARTHLY_NO_BUILDKIT_UPDATE=1 -v /var/run/docker.sock:/var/run/docker.sock "${EARTHLY_IMAGE}" --no-cache github.com/earthly/hello-world+hello 2>&1 | tee output.txt
     grep "Hello World" output.txt
     grep "Earthly installation is working correctly" output.txt
 fi
