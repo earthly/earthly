@@ -89,6 +89,8 @@ type cliFlags struct {
 	noCache                         bool
 	pruneAll                        bool
 	pruneReset                      bool
+	pruneTargetSize                 string
+	pruneKeepDuration               time.Duration
 	buildkitdSettings               buildkitd.Settings
 	allowPrivileged                 bool
 	enableProfiler                  bool
