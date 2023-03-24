@@ -150,7 +150,8 @@ jobs:
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
-          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'" && \
+          earthly config global.tls_enabled false
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly/buildkitd image using released earthly
         run: earthly --use-inline-cache ./buildkitd+buildkitd --TAG=race-test
