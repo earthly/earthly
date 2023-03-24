@@ -451,10 +451,11 @@ $MIRROR_CONFIG"
 
         # NOTE: newlines+indentation is important here, see https://github.com/earthly/earthly/issues/1764 for potential pitfalls
         # yaml will convert newlines to spaces when using regular quoted-strings, therefore we will use the literal-style (denoted by `|`)
-        ENV GLOBAL_CONFIG="{disable_analytics: true, tls_enabled: false,
+        ENV GLOBAL_CONFIG="disable_analytics: true
+tls_enabled: false
 buildkit_additional_config: |
 $(echo "$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG" | sed "s/^/  /g")
-}"
+"
         IF [ "$DOCKERHUB_AUTH" = "true" ]
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
                 --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
