@@ -421,7 +421,7 @@ earthly-integration-test-base:
 
     IF [ -z "$DOCKERHUB_MIRROR" ]
         # No mirror, easy CI and local use by all
-        ENV GLOBAL_CONFIG="$GLOBAL_CONFIG{disable_analytics: true, tls_enabled: false}"
+        ENV GLOBAL_CONFIG="{disable_analytics: true, tls_enabled: false}"
         IF [ "$DOCKERHUB_AUTH" = "true" ]
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
                 --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
