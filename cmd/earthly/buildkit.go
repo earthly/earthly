@@ -80,6 +80,7 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 	app.buildkitdSettings.MaxParallelism = app.cfg.Global.BuildkitMaxParallelism
 	app.buildkitdSettings.CacheSizeMb = app.cfg.Global.BuildkitCacheSizeMb
 	app.buildkitdSettings.CacheSizePct = app.cfg.Global.BuildkitCacheSizePct
+	app.buildkitdSettings.CacheKeepDuration = app.cfg.Global.BuildkitCacheKeepDurationS
 	app.buildkitdSettings.EnableProfiler = app.enableProfiler
 	app.buildkitdSettings.NoUpdate = app.noBuildkitUpdate
 
@@ -138,7 +139,12 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient *clou
 	if err != nil {
 		return err
 	}
-	app.buildkitdSettings.SatelliteName = app.satelliteName
+	satelliteName, err := app.getSatelliteName(cliCtx.Context, orgID, app.satelliteName, cloudClient)
+	if err != nil {
+		return err
+	}
+	app.buildkitdSettings.SatelliteName = satelliteName
+	app.buildkitdSettings.SatelliteDisplayName = app.satelliteName
 	app.buildkitdSettings.SatelliteOrgID = orgID
 	if app.satelliteAddress != "" {
 		app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
@@ -161,7 +167,7 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient *clou
 
 	// Reserve the satellite for the upcoming build.
 	// This operation can take a moment if the satellite is asleep.
-	err = app.reserveSatellite(cliCtx.Context, cloudClient, app.satelliteName, orgID, gitAuthor, gitConfigEmail)
+	err = app.reserveSatellite(cliCtx.Context, cloudClient, satelliteName, app.satelliteName, orgID, gitAuthor, gitConfigEmail)
 	if err != nil {
 		return err
 	}
@@ -181,11 +187,11 @@ func (app *earthlyApp) isUsingSatellite(cliCtx *cli.Context) bool {
 	return app.cfg.Satellite.Name != "" || app.satelliteName != ""
 }
 
-func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient *cloud.Client, name, orgID, gitAuthor, gitConfigEmail string) error {
+func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient *cloud.Client, name, displayName, orgID, gitAuthor, gitConfigEmail string) error {
 	console := app.console.WithPrefix("satellite")
 	_, isCI := analytics.DetectCI()
 	out := cloudClient.ReserveSatellite(ctx, name, orgID, gitAuthor, gitConfigEmail, isCI)
-	err := showSatelliteLoading(console, name, out)
+	err := showSatelliteLoading(console, displayName, out)
 	if err != nil {
 		return errors.Wrap(err, "failed reserving satellite for build")
 	}

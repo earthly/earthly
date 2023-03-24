@@ -1,7 +1,9 @@
-package variables
+package variables_test
 
 import (
 	"testing"
+
+	"github.com/earthly/earthly/variables"
 )
 
 func TestParseFlagArgs(t *testing.T) {
@@ -23,7 +25,7 @@ func TestParseFlagArgs(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		kvs, err := ParseFlagArgs(tt.kvFlag)
+		kvs, err := variables.ParseFlagArgs(tt.kvFlag)
 		NoError(t, err)
 		Equal(t, kvs, tt.kv)
 	}
@@ -39,7 +41,7 @@ func TestNegativeParseFlagArgs(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		_, err := ParseFlagArgs(tt.kvFlag)
+		_, err := variables.ParseFlagArgs(tt.kvFlag)
 		Error(t, err)
 	}
 }
@@ -62,7 +64,7 @@ func TestParseFlagArgsWithNonFlags(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		flags, nonFlags, err := ParseFlagArgsWithNonFlags(tt.kvFlag)
+		flags, nonFlags, err := variables.ParseFlagArgsWithNonFlags(tt.kvFlag)
 		NoError(t, err)
 		Equal(t, flags, tt.flags)
 		Equal(t, nonFlags, tt.nonFlags)

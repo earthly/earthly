@@ -96,6 +96,7 @@
               "=",
               "0"
             ],
+            "docs": "Index is used to create parallel tests.\n",
             "name": "ARG"
           }
         },

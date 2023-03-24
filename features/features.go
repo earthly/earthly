@@ -56,6 +56,7 @@ type Features struct {
 	TryFinally                 bool `long:"try" description:"allow the use of the TRY/FINALLY commands"`
 	NoNetwork                  bool `long:"no-network" description:"allow the use of RUN --network=none commands"`
 	GitBranch                  bool `long:"git-branch" description:"include EARTHLY_GIT_BRANCH arg"`
+	ArgScopeSet                bool `long:"arg-scope-and-set" description:"enable SET to reassign ARGs and prevent ARGs from being redeclared in the same scope"`
 
 	Major int
 	Minor int
@@ -238,6 +239,13 @@ func GetFeatures(version *spec.Version) (*Features, bool, error) {
 		ftrs.WaitBlock = true
 	}
 	processNegativeFlags(&ftrs)
+
+	if ftrs.ArgScopeSet && !ftrs.ShellOutAnywhere {
+		// ArgScopeSet uses new ARG declaration logic that requires
+		// ShellOutAnywhere. We're erroring here to ensure that users get that
+		// feedback as early as possible.
+		return nil, false, errors.New("--arg-scope-and-set requires --shell-out-anywhere")
+	}
 
 	return &ftrs, hasVersion, nil
 }

@@ -1,14 +1,14 @@
-package features
+package features_test
 
 import (
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
-	NoError = assert.NoError
-	Equal   = assert.Equal
-	Nil     = assert.Nil
-	True    = assert.True
-	False   = assert.False
-	Error   = assert.Error
+	NoError = require.NoError
+	Equal   = require.Equal
+	Nil     = require.Nil
+	True    = require.True
+	False   = require.False
+	Error   = require.Error
 )

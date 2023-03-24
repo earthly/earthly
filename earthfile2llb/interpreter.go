@@ -171,19 +171,23 @@ func (i *Interpreter) handleStatement(ctx context.Context, stmt spec.Statement) 
 	ctx = ContextWithSourceLocation(ctx, stmt.SourceLocation)
 	if stmt.Command != nil {
 		return i.handleCommand(ctx, *stmt.Command)
-	} else if stmt.With != nil {
-		return i.handleWith(ctx, *stmt.With)
-	} else if stmt.If != nil {
-		return i.handleIf(ctx, *stmt.If)
-	} else if stmt.For != nil {
-		return i.handleFor(ctx, *stmt.For)
-	} else if stmt.Wait != nil {
-		return i.handleWait(ctx, *stmt.Wait)
-	} else if stmt.Try != nil {
-		return i.handleTry(ctx, *stmt.Try)
-	} else {
-		return i.errorf(stmt.SourceLocation, "unexpected statement type")
 	}
+	if stmt.With != nil {
+		return i.handleWith(ctx, *stmt.With)
+	}
+	if stmt.If != nil {
+		return i.handleIf(ctx, *stmt.If)
+	}
+	if stmt.For != nil {
+		return i.handleFor(ctx, *stmt.For)
+	}
+	if stmt.Wait != nil {
+		return i.handleWait(ctx, *stmt.Wait)
+	}
+	if stmt.Try != nil {
+		return i.handleTry(ctx, *stmt.Try)
+	}
+	return i.errorf(stmt.SourceLocation, "unexpected statement type")
 }
 
 func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err error) {
@@ -250,6 +254,8 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 		return i.handleEnv(ctx, cmd)
 	case "ARG":
 		return i.handleArg(ctx, cmd)
+	case "SET":
+		return i.handleSet(ctx, cmd)
 	case "LABEL":
 		return i.handleLabel(ctx, cmd)
 	case "GIT CLONE":
@@ -521,6 +527,10 @@ func (i *Interpreter) handleTry(ctx context.Context, tryStmt spec.TryStatement) 
 			}
 			if strings.Contains(saveAsLocalTo, "$") {
 				return i.errorf(cmd.Command.SourceLocation, "TRY/CATCH/FINALLY does not (currently) support expanding args for SAVE ARTIFACT paths")
+			}
+			destIsDir := strings.HasSuffix(saveAsLocalTo, "/") || saveAsLocalTo == "."
+			if destIsDir {
+				saveAsLocalTo = path.Join(saveAsLocalTo, path.Base(saveFrom))
 			}
 			saveArtifacts = append(saveArtifacts, debuggercommon.SaveFilesSettings{
 				Src:      saveFrom,
@@ -997,7 +1007,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	return nil
 }
 
-func parseSaveArtifactArgs(args []string) (string, string, string, bool) {
+func parseSaveArtifactArgs(args []string) (from, to, asLocal string, _ bool) {
 	saveAsLocalTo := ""
 	saveTo := "./"
 	if len(args) >= 4 {
@@ -1178,15 +1188,15 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	for _, bas := range crossProductBuildArgs {
 		for _, platform := range platformsSlice {
 			if async {
-				err = i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, bas, buildCmd, nil, nil)
+				err := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, bas, buildCmd, nil, nil)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
 				}
-			} else {
-				err = i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, bas)
-				if err != nil {
-					return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
-				}
+				continue
+			}
+			err := i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, bas)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
 			}
 		}
 	}
@@ -1365,7 +1375,7 @@ var errGlobalArgNotInBase = errors.New("global ARG can only be set in the base t
 // parseArgArgs parses the ARG command's arguments
 // and returns the argOpts, key, value (or nil if missing), or error
 func parseArgArgs(ctx context.Context, cmd spec.Command, isBaseTarget bool, explicitGlobalFeature bool) (argOpts, string, *string, error) {
-	opts := argOpts{}
+	var opts argOpts
 	args, err := parseArgs("ARG", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return argOpts{}, "", nil, err
@@ -1421,6 +1431,37 @@ func (i *Interpreter) handleArg(ctx context.Context, cmd spec.Command) error {
 		return i.wrapError(err, cmd.SourceLocation, "apply ARG")
 	}
 	return nil
+}
+
+func parseSetArgs(ctx context.Context, cmd spec.Command) (name, value string, _ error) {
+	var opts setOpts
+	argsCpy := getArgsCopy(cmd)
+	args, err := parseArgs("SET", &opts, argsCpy)
+	if err != nil {
+		return "", "", errors.Wrap(err, "failed to parse SET args")
+	}
+	if len(args) != 3 {
+		return "", "", errInvalidSyntax
+	}
+	if args[1] != "=" {
+		return "", "", errInvalidSyntax
+	}
+	return args[0], args[2], nil
+}
+
+func (i *Interpreter) handleSet(ctx context.Context, cmd spec.Command) error {
+	if !i.converter.ftrs.ArgScopeSet {
+		return errors.New("unknown command SET")
+	}
+	key, value, err := parseSetArgs(ctx, cmd)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse SET arguments")
+	}
+	newVal, err := i.expandArgs(ctx, value, true, false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand SET %s", value)
+	}
+	return i.converter.UpdateArg(ctx, key, newVal, i.isBase)
 }
 
 func (i *Interpreter) handleLabel(ctx context.Context, cmd spec.Command) error {
@@ -1811,8 +1852,8 @@ func (i *Interpreter) handlePipeline(ctx context.Context, cmd spec.Command) erro
 		return i.errorf(cmd.SourceLocation, "invalid number of PIPELINE arguments")
 	}
 
-	opts := &pipelineOpts{}
-	_, err := parseArgs("PIPELINE", opts, getArgsCopy(cmd))
+	var opts pipelineOpts
+	_, err := parseArgs("PIPELINE", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid PIPELINE arguments")
 	}

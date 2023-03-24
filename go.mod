@@ -15,7 +15,7 @@ require (
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/earthly/cloud-api v1.0.1-0.20230221174908-b8d90bbe26b0
+	github.com/earthly/cloud-api v1.0.1-0.20230316192913-d68000c20ba2
 	github.com/earthly/earthly/ast v0.0.0-00010101000000-000000000000
 	github.com/earthly/earthly/util/deltautil v0.0.0-00010101000000-000000000000
 	github.com/elastic/go-sysinfo v1.9.0
@@ -43,6 +43,7 @@ require (
 	github.com/tonistiigi/fsutil v0.0.0-20221114235510-0127568185cf
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/crypto v0.6.0
+	golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2
 	golang.org/x/oauth2 v0.5.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/term v0.5.0
@@ -97,6 +98,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/moby/locker v1.0.1 // indirect
 	github.com/moby/patternmatcher v0.5.0 // indirect
+	github.com/moby/sys/sequential v0.5.0 // indirect
 	github.com/moby/sys/signal v0.7.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opencontainers/runc v1.1.3 // indirect
@@ -111,10 +113,9 @@ require (
 	go.opentelemetry.io/otel/sdk v1.4.1 // indirect
 	go.opentelemetry.io/otel/trace v1.4.1 // indirect
 	go.opentelemetry.io/proto/otlp v0.12.0 // indirect
-	golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2 // indirect
 	golang.org/x/mod v0.6.0 // indirect
 	golang.org/x/net v0.7.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/time v0.1.0 // indirect
 	golang.org/x/tools v0.2.0 // indirect
@@ -125,13 +126,11 @@ require (
 )
 
 replace (
-	github.com/docker/docker => github.com/docker/docker v20.10.3-0.20220414164044-61404de7df1a+incompatible
-
 	github.com/earthly/earthly/ast => ./ast
 	github.com/earthly/earthly/util/deltautil => ./util/deltautil
 	github.com/jdxcode/netrc => github.com/mikejholly/netrc v0.0.0-20221121193719-a154cb29ec2a
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20230314203543-3946dd623aea
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.1-0.20230323170957-f3e9889d2a96
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20230303212804-6a28c867693f
 )

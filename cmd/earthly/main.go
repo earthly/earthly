@@ -143,6 +143,7 @@ type cliFlags struct {
 	secretFile                      string
 	lsShowLong                      bool
 	lsShowArgs                      bool
+	docShowLong                     bool
 	containerFrontend               containerutil.ContainerFrontend
 	satelliteName                   string
 	noSatellite                     bool
@@ -154,6 +155,7 @@ type cliFlags struct {
 	satelliteMaintenaceWeekendsOnly bool
 	satelliteDropCache              bool
 	satelliteVersion                string
+	satelliteIncludeHidden          bool
 	userPermission                  string
 	noBuildkitUpdate                bool
 	globalWaitEnd                   bool // for feature-flipping builder.go code removal

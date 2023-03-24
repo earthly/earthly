@@ -19,6 +19,7 @@
             "args": [
               "documentedArg"
             ],
+            "docs": "documented-arg is an arg with documentation comments\nabove it.\n",
             "name": "ARG"
           }
         }

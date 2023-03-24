@@ -90,6 +90,7 @@
               "=",
               "\"64a72f8aac4bbabf28c23384c15e8a78  /should-exist\""
             ],
+            "docs": "this test is to prevent a bug where the parser might extract \"#world\" from all cases of the earthfile\nwhich would cause the above test command to pass since it would have been removed from both sides of the equation\n",
             "name": "RUN"
           }
         },
@@ -105,6 +106,7 @@
               "echo",
               "\"Done.\""
             ],
+            "docs": "Test that you can write a novel\n",
             "name": "RUN"
           }
         }

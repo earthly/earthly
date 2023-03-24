@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -35,6 +36,7 @@ import (
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
+	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/session"
@@ -95,7 +97,7 @@ func (app *earthlyApp) warnIfArgContainsBuildArg(flagArgs []string) {
 func (app *earthlyApp) combineVariables(dotEnvMap map[string]string, flagArgs []string) (*variables.Scope, error) {
 	dotEnvVars := variables.NewScope()
 	for k, v := range dotEnvMap {
-		dotEnvVars.AddInactive(k, v)
+		dotEnvVars.Add(k, v)
 	}
 	buildArgs := append([]string{}, app.buildArgs.Value()...)
 	buildArgs = append(buildArgs, flagArgs...)
@@ -192,7 +194,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 				doLogstreamUpload = true
 				logstreamURL = fmt.Sprintf("%s/builds/%s", app.getCIHost(), app.logbusSetup.InitialManifest.GetBuildId())
 				defer func() {
-					app.console.Printf("View logs at %s\n", logstreamURL)
+					app.console.ColorPrintf(color.New(color.FgHiYellow), "View logs at %s\n", logstreamURL)
 				}()
 			} else {
 				// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
@@ -212,7 +214,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 						app.console.Warnf(err.Error())
 						return
 					}
-					app.console.Printf("Shareable link: %s\n", id)
+					app.console.ColorPrintf(color.New(color.FgHiYellow), "Shareable link: %s\n", id)
 				}()
 			}
 		} else {
@@ -570,11 +572,14 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
 				if doLogstreamUpload {
 					app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient)
-					app.console.Printf("Streaming logs to %s\n", logstreamURL)
 				}
 			}
 		}
 	}()
+
+	if app.logstream && doLogstreamUpload {
+		app.console.ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
+	}
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
 	if err != nil {
 		return errors.Wrap(err, "build target")
@@ -630,6 +635,10 @@ func receiveFileVersion2(ctx context.Context, conn io.ReadWriteCloser, localArti
 
 	if !localArtifactWhiteList.Exists(string(dst)) {
 		return fmt.Errorf("file %s does not appear in the white list", dst)
+	}
+	err = os.MkdirAll(path.Dir(string(dst)), 0755)
+	if err != nil {
+		return err
 	}
 
 	f, err := os.Create(string(dst))
