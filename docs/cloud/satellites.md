@@ -86,7 +86,7 @@ Because this feature is under heavy development right now, it is very important 
 
 ```bash
 brew update
-brew upgrade earthly/earthly/earthly
+brew upgrade earthly
 ```
 
 ### 4. Launch a new satellite

@@ -27,15 +27,26 @@ Earthly CI uses Earthfiles as the build configuration language.
 
 If you are upgrading from Earthly Satellites, the main benefit of using Earthly CI is that you no longer need to use a traditional CI in combination. This means less moving parts, simpler setup, slightly faster builds (no need to download Earthly during the build), and less bills to pay!
 
+## View a demo
+
+[![Earthly CI Demo](https://img.youtube.com/vi/uHPZH95T_lY/0.jpg)](https://youtu.be/uHPZH95T_lY)
+
 ## Getting started
 
 ### 1. Register an account and create an org
 
 Follow the steps in the [Earthly Cloud overview](./overview.md#getting-started) to register an account and create an org.
 
-### 2. Gain access to Earthly CI
+### 2. Purchase a CI Plan
 
-Fill out the [Earthly CI signup form](https://earthly.dev/signup/earthly-ci/). You will need to wait for an Earthly team member to approve your request.
+Access to Earthly CI requires a subscription to begin using. The subscription includes a 14-day free trial which can be canceled before any payment is made. Visit the [pricing page](https://earthly.dev/pricing) for more billing details.
+
+You can start your free trial by using the checkout form below. Be sure to provide the name of your Earthly org from Step 1.
+
+[**Click here to start your subscription**](https://buy.stripe.com/dR6g2Qect2Nn5KE3cf)
+
+Once you've submitted your details on the checkout page, you will receive an automated confirmation email.
+The Earthly team will send you another follow-up once the satellites feature has been actived on your account.
 
 ### 3. Ensure that you have the latest version of Earthly
 
@@ -47,7 +58,7 @@ Because this feature is under heavy development right now, it is very important 
 
 ```bash
 brew update
-brew upgrade earthly/earthly/earthly
+brew upgrade earthly
 ```
 
 ### 4. Open the Earthly Web UI
@@ -123,9 +134,9 @@ Or by using the Earthly Web UI.
 
 Please note that we are aware of the following ongoing issues:
 
-* The logs of certain builds do not show up in the UI sometimes. If you run into this problem, please let us know and provide us with the URL of the page!
+* The logs of certain builds do not show up in the UI sometimes. This is sometimes due to an error not surfacing correctly (we're working on fixing this!). Oftentimes trying out the build locally via `earthly +pipeline-name` reveals the error. If this doesn't solve your issue, please let us know!
 * Creating an account, or logging in directly in the web UI is not yet available. Use the `earthly web` command instead.
-* GitHub only for now.
+* GitHub only for now. If you are using GitLab, using [Earthly Satellite](./satellites.md) on top of GitLab CI is a great alternative.
 
 If you run into any issues please let us know either via [Slack](https://earthly.dev/slack), [GitHub issues](https://github.com/earthly/cloud-issues/issues) or by [emailing support](mailto:support+ci@earthly.dev).
 
