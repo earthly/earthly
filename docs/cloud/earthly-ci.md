@@ -45,9 +45,6 @@ You can start your free trial by using the checkout form below. Be sure to provi
 
 [**Click here to start your subscription**](https://buy.stripe.com/dR6g2Qect2Nn5KE3cf)
 
-Once you've submitted your details on the checkout page, you will receive an automated confirmation email.
-The Earthly team will send you another follow-up once the satellites feature has been actived on your account.
-
 ### 3. Ensure that you have the latest version of Earthly
 
 Because this feature is under heavy development right now, it is very important that you use the latest version of Earthly available.
