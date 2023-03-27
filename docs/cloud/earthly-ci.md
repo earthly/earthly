@@ -5,7 +5,7 @@ This feature is part of the Earthly CI paid plan.
 {% hint style='danger' %}
 ##### Important
 
-This feature is currently in **Beta** stage
+This feature is currently in **Alpha** stage
 
 * The feature may break or change significantly in future versions of Earthly.
 * Give us feedback on
