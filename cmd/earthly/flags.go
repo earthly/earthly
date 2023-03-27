@@ -61,6 +61,13 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Usage:       "The git password to use for git HTTPS authentication",
 			Destination: &app.gitPasswordOverride,
 		},
+		&cli.StringFlag{
+			Name:        "git-branch",
+			EnvVars:     []string{"EARTHLY_GIT_BRANCH_OVERRIDE"},
+			Usage:       "The git branch the build should be considered running in",
+			Destination: &app.gitBranchOverride,
+			Hidden:      true, // primarily used by CI to pass branch context
+		},
 		&cli.BoolFlag{
 			Name:        "verbose",
 			Aliases:     []string{"V"},
