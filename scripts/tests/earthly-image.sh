@@ -21,7 +21,7 @@ cat > "$dockerconfig" <<EOF
 }
 EOF
 
-export GLOBAL_CONFIG="{tls_enabled: false}"
+#export GLOBAL_CONFIG="{tls_enabled: false}"
 
 # Note that it is not possible to use GLOBAL_CONFIG for this, due to the fact
 # earthly-entrypoint.sh starts buildkit instead of the earthly binary,
