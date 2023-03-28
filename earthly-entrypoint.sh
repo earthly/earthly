@@ -60,6 +60,7 @@ if [ -z "$NO_BUILDKIT" ]; then
 
     EARTHLY_BUILDKIT_HOST="tcp://$(hostname):8372" # hostname is not recognized as local for this reason
     export EARTHLY_BUILDKIT_HOST
+    earthly --config "$earthly_config" config global.tls_enabled false
   else
     export EARTHLY_BUILDKIT_HOST="$BUILDKIT_HOST"
   fi
