@@ -54,6 +54,11 @@ foo:
 VERSION 0.6 # Trailing comments do not cause parsing errors at the top level
 WORKDIR /tmp
 
+# a comment before an IF or a FOR does not cause parser errors
+IF foo
+    RUN echo foo
+END
+
 bar:
 
 baz:
