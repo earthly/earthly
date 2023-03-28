@@ -76,7 +76,7 @@ grep "core-test" output.txt
 grep "core-test" output.txt
 
 echo "Test hello world with embedded buildkit."
-"$FRONTEND" run --rm --privileged -e GLOBAL_CONFIG="{tls_enabled:false}" EARTHLY_ADDITIONAL_BUILDKIT_CONFIG -v "$dockerconfig:/root/.docker/config.json" "${EARTHLY_IMAGE}" --no-cache github.com/earthly/hello-world+hello 2>&1 | tee output.txt
+"$FRONTEND" run --rm --privileged -e GLOBAL_CONFIG="{tls_enabled:false}" -e EARTHLY_ADDITIONAL_BUILDKIT_CONFIG -v "$dockerconfig:/root/.docker/config.json" "${EARTHLY_IMAGE}" --no-cache github.com/earthly/hello-world+hello 2>&1 | tee output.txt
 grep "Hello World" output.txt
 grep "Earthly installation is working correctly" output.txt
 
