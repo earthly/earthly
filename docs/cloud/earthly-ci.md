@@ -29,7 +29,7 @@ If you are upgrading from Earthly Satellites, the main benefit of using Earthly 
 
 ## View a demo
 
-[![Earthly CI Demo](https://img.youtube.com/vi/uHPZH95T_lY/0.jpg)](https://youtu.be/uHPZH95T_lY)
+[![Earthly CI Demo](https://img.youtube.com/vi/X6roODE5zxE/0.jpg)](https://youtu.be/X6roODE5zxE)
 
 ## Getting started
 
