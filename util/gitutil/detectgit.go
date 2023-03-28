@@ -29,18 +29,19 @@ var (
 
 // GitMetadata is a collection of git information about a certain directory.
 type GitMetadata struct {
-	BaseDir            string
-	RelDir             string
-	RemoteURL          string
-	GitURL             string
-	Hash               string
-	ShortHash          string
-	Branch             []string
-	Tags               []string
-	CommitterTimestamp string
-	AuthorTimestamp    string
-	Author             string
-	CoAuthors          []string
+	BaseDir              string
+	RelDir               string
+	RemoteURL            string
+	GitURL               string
+	Hash                 string
+	ShortHash            string
+	BranchOverrideTagArg bool
+	Branch               []string
+	Tags                 []string
+	CommitterTimestamp   string
+	AuthorTimestamp      string
+	Author               string
+	CoAuthors            []string
 }
 
 // Metadata performs git metadata detection on the provided directory.
@@ -120,36 +121,38 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 	}
 
 	return &GitMetadata{
-		BaseDir:            filepath.ToSlash(baseDir),
-		RelDir:             filepath.ToSlash(relDir),
-		RemoteURL:          remoteURL,
-		GitURL:             gitURL,
-		Hash:               hash,
-		ShortHash:          shortHash,
-		Branch:             branch,
-		Tags:               tags,
-		CommitterTimestamp: committerTimestamp,
-		AuthorTimestamp:    authorTimestamp,
-		Author:             author,
-		CoAuthors:          coAuthors,
+		BaseDir:              filepath.ToSlash(baseDir),
+		RelDir:               filepath.ToSlash(relDir),
+		RemoteURL:            remoteURL,
+		GitURL:               gitURL,
+		Hash:                 hash,
+		ShortHash:            shortHash,
+		BranchOverrideTagArg: false,
+		Branch:               branch,
+		Tags:                 tags,
+		CommitterTimestamp:   committerTimestamp,
+		AuthorTimestamp:      authorTimestamp,
+		Author:               author,
+		CoAuthors:            coAuthors,
 	}, retErr
 }
 
 // Clone returns a copy of the GitMetadata object.
 func (gm *GitMetadata) Clone() *GitMetadata {
 	return &GitMetadata{
-		BaseDir:            gm.BaseDir,
-		RelDir:             gm.RelDir,
-		RemoteURL:          gm.RemoteURL,
-		GitURL:             gm.GitURL,
-		Hash:               gm.Hash,
-		ShortHash:          gm.ShortHash,
-		Branch:             gm.Branch,
-		Tags:               gm.Tags,
-		CommitterTimestamp: gm.CommitterTimestamp,
-		AuthorTimestamp:    gm.AuthorTimestamp,
-		Author:             gm.Author,
-		CoAuthors:          gm.CoAuthors,
+		BaseDir:              gm.BaseDir,
+		RelDir:               gm.RelDir,
+		RemoteURL:            gm.RemoteURL,
+		GitURL:               gm.GitURL,
+		Hash:                 gm.Hash,
+		ShortHash:            gm.ShortHash,
+		BranchOverrideTagArg: gm.BranchOverrideTagArg,
+		Branch:               gm.Branch,
+		Tags:                 gm.Tags,
+		CommitterTimestamp:   gm.CommitterTimestamp,
+		AuthorTimestamp:      gm.AuthorTimestamp,
+		Author:               gm.Author,
+		CoAuthors:            gm.CoAuthors,
 	}
 }
 
