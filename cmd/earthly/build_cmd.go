@@ -492,6 +492,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		OverridingVars:                        overridingVars,
 		BuildContextProvider:                  buildContextProvider,
 		GitLookup:                             gitLookup,
+		GitBranchOverride:                     app.gitBranchOverride,
 		UseFakeDep:                            !app.noFakeDep,
 		Strict:                                app.strict,
 		DisableNoOutputUpdates:                app.interactiveDebugging,

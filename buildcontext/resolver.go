@@ -58,20 +58,21 @@ type Resolver struct {
 }
 
 // NewResolver returns a new NewResolver.
-func NewResolver(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides string) *Resolver {
-	return NewResolverCustomGit(cleanCollection, gitLookup, console, featureFlagOverrides, "")
+func NewResolver(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides, gitBranchOverride string) *Resolver {
+	return NewResolverCustomGit(cleanCollection, gitLookup, console, featureFlagOverrides, gitBranchOverride, "")
 }
 
 // NewResolverCustomGit returns a new Resolver instance with a custom gitImage.
-func NewResolverCustomGit(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides string, gitImage string) *Resolver {
+func NewResolverCustomGit(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides, gitBranchOverride, gitImage string) *Resolver {
 	return &Resolver{
 		gr: &gitResolver{
-			gitImage:        gitImage,
-			cleanCollection: cleanCollection,
-			projectCache:    synccache.New(),
-			buildFileCache:  synccache.New(),
-			gitLookup:       gitLookup,
-			console:         console,
+			gitBranchOverride: gitBranchOverride,
+			gitImage:          gitImage,
+			cleanCollection:   cleanCollection,
+			projectCache:      synccache.New(),
+			buildFileCache:    synccache.New(),
+			gitLookup:         gitLookup,
+			console:           console,
 		},
 		lr: &localResolver{
 			buildFileCache: synccache.New(),
