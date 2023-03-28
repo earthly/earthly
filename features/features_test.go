@@ -116,7 +116,6 @@ func TestAvailableFlags(t *testing.T) {
 		{"no-use-registry-for-with-docker", "NoUseRegistryForWithDocker"},
 		{"try", "TryFinally"},
 		{"no-network", "NoNetwork"},
-		{"git-branch", "GitBranch"},
 		{"arg-scope-and-set", "ArgScopeSet"},
 	} {
 		tt := tt
