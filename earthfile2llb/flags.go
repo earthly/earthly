@@ -121,6 +121,8 @@ type argOpts struct {
 
 type setOpts struct{}
 
+type letOpts struct{}
+
 type pipelineOpts struct {
 	Push bool `long:"push" description:"Trigger a build in Cloud CI"`
 }

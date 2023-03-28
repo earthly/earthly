@@ -8,6 +8,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/gitutil"
+	"github.com/earthly/earthly/util/hint"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
 	"github.com/pkg/errors"
@@ -17,9 +18,10 @@ import (
 )
 
 var (
-	ErrRedeclared   = errors.New("ARG was declared twice in the same target")
-	ErrArgNotFound  = errors.New("no matching ARG found in this scope")
+	ErrRedeclared   = errors.New("this variable was declared twice in the same target")
+	ErrVarNotFound  = errors.New("no matching variable found in this scope")
 	ErrInvalidScope = errors.New("this action is not allowed in this scope")
+	ErrSetArg       = errors.New("ARG values cannot be reassigned")
 
 	ShellOutEnvs = map[string]struct{}{
 		"HOME": {},
@@ -41,11 +43,9 @@ type stackFrame struct {
 	args    *Scope
 	globals *Scope
 
-	// Explicitly defined scopes. These are declared using commands to alter
-	// existing values and will always be active, and even override the
-	// overriding scopes.
-	assignedArgs    *Scope
-	assignedGlobals *Scope
+	// Explicitly defined scopes. These are declared as non-argument variables
+	// and will always be active, and even override the overriding scopes.
+	vars *Scope
 }
 
 // Collection is a collection of variable scopes used within a single target.
@@ -95,14 +95,13 @@ func NewCollection(opts NewCollectionOpt) *Collection {
 		errorOnRedeclare: opts.Features.ArgScopeSet,
 		shelloutAnywhere: opts.Features.ShellOutAnywhere,
 		stack: []*stackFrame{{
-			frameName:       target.StringCanonical(),
-			absRef:          target,
-			imports:         domain.NewImportTracker(console, opts.GlobalImports),
-			overriding:      opts.OverridingVars,
-			args:            NewScope(),
-			globals:         NewScope(),
-			assignedArgs:    NewScope(),
-			assignedGlobals: NewScope(),
+			frameName:  target.StringCanonical(),
+			absRef:     target,
+			imports:    domain.NewImportTracker(console, opts.GlobalImports),
+			overriding: opts.OverridingVars,
+			args:       NewScope(),
+			globals:    NewScope(),
+			vars:       NewScope(),
 		}},
 		console: console,
 	}
@@ -150,18 +149,6 @@ func (c *Collection) Globals() *Scope {
 // SetGlobals sets the global variables.
 func (c *Collection) SetGlobals(globals *Scope) {
 	c.frame().globals = globals
-	c.effectiveCache = nil
-}
-
-// AssignedGlobals returns a copy of the assigned globals (i.e. globals that
-// have been reassigned using SET).
-func (c *Collection) AssignedGlobals() *Scope {
-	return c.assignedGlobals().Clone()
-}
-
-// SetAssignedGlobals sets the assigned global variables.
-func (c *Collection) SetAssignedGlobals(assigned *Scope) {
-	c.frame().assignedGlobals = assigned
 	c.effectiveCache = nil
 }
 
@@ -255,38 +242,105 @@ func (c *Collection) declareOldArg(name string, defaultValue string, global bool
 	return finalValue, finalDefaultValue, nil
 }
 
-// DeclareArg declares an arg. The effective value may be
+type declarePrefs struct {
+	val    string
+	global bool
+	arg    bool
+	pncvf  ProcessNonConstantVariableFunc
+}
+
+// DeclareOpt is an option function for declaring variables.
+type DeclareOpt func(declarePrefs) declarePrefs
+
+// WithValue is an option function for setting a variable's value. For ARGs,
+// this is only the default value - it can be overridden when calling a target
+// at the CLI.
+func WithValue(val string) DeclareOpt {
+	return func(o declarePrefs) declarePrefs {
+		o.val = val
+		return o
+	}
+}
+
+// AsGlobal is an option function to declare a global variable.
+func AsGlobal() DeclareOpt {
+	return func(o declarePrefs) declarePrefs {
+		o.global = true
+		return o
+	}
+}
+
+// AsArg is an option function to declare an argument.
+func AsArg() DeclareOpt {
+	return func(o declarePrefs) declarePrefs {
+		o.arg = true
+		return o
+	}
+}
+
+// WithPNCVFunc is an option function to apply a ProcessNonConstantVariableFunc
+// to ARGs. This supports deprecated functionality and is never used in
+// Earthfiles with `VERSION 0.7` and higher.
+func WithPNCVFunc(f ProcessNonConstantVariableFunc) DeclareOpt {
+	return func(o declarePrefs) declarePrefs {
+		o.pncvf = f
+		return o
+	}
+}
+
+// DeclareVar declares a variable. The effective value may be
 // different than the default, if the variable has been overridden.
-func (c *Collection) DeclareArg(name string, defaultValue string, global bool, pncvf ProcessNonConstantVariableFunc) (string, string, error) {
+func (c *Collection) DeclareVar(name string, opts ...DeclareOpt) (string, string, error) {
+	var prefs declarePrefs
+	for _, o := range opts {
+		prefs = o(prefs)
+	}
 	if !c.errorOnRedeclare {
-		return c.declareOldArg(name, defaultValue, global, pncvf)
+		if !prefs.arg {
+			return "", "", errors.New("LET requires the --arg-scope-and-set feature")
+		}
+		return c.declareOldArg(name, prefs.val, prefs.global, prefs.pncvf)
 	}
 	if !c.shelloutAnywhere {
 		return "", "", errors.New("the --arg-scope-and-set feature flag requires --shell-out-anywhere")
 	}
 
-	v, err := c.overridingOrDefault(name, defaultValue, pncvf)
+	c.effectiveCache = nil
+	scope := []ScopeOpt{WithActive(), NoOverride()}
+
+	if !prefs.arg {
+		ok := c.vars().Add(name, prefs.val, scope...)
+		if !ok {
+			return "", "", hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', use 'SET %[1]v = %[2]q'", name, prefs.val)
+		}
+		return prefs.val, prefs.val, nil
+	}
+
+	if _, ok := c.vars().Get(name, WithActive()); ok {
+		return "", "", hint.Wrapf(ErrRedeclared, "'%v' was already declared with LET and cannot be redeclared as an ARG", name)
+	}
+
+	v, err := c.overridingOrDefault(name, prefs.val, prefs.pncvf)
 	if err != nil {
 		return "", "", err
 	}
 
-	c.effectiveCache = nil
-	opts := []ScopeOpt{WithActive(), NoOverride()}
-	if global {
+	if prefs.global {
 		if _, ok := c.args().Get(name); ok {
-			return "", "", errors.Wrapf(ErrRedeclared, "could not override non-global ARG '%[1]v' with global ARG [hint: '%[1]v' was already declared as a non-global ARG in this scope - did you mean to add '--global' to the original declaration?]", name)
+			baseErr := errors.Wrap(ErrRedeclared, "could not override non-global ARG with global ARG")
+			return "", "", hint.Wrapf(baseErr, "'%[1]v' was already declared as a non-global ARG in this scope - did you mean to add '--global' to the original declaration?", name)
 		}
-		ok := c.globals().Add(name, v, opts...)
+		ok := c.globals().Add(name, v, scope...)
 		if !ok {
-			return "", "", errors.Wrapf(ErrRedeclared, "global ARG '%v' redeclared [hint: use SET to reassign an existing ARG]", name)
+			return "", "", hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', redeclare it as a non-argument variable with 'LET %[1]v = %[2]q'", name, prefs.val)
 		}
 		return v, v, nil
 	}
-	ok := c.args().Add(name, v, opts...)
+	ok := c.args().Add(name, v, scope...)
 	if !ok {
-		return "", "", errors.Wrapf(ErrRedeclared, "ARG '%v' redeclared [hint: use SET to reassign an existing ARG]", name)
+		return "", "", hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', redeclare it as a non-argument variable with 'LET %[1]v = %[2]q'", name, prefs.val)
 	}
-	return v, defaultValue, nil
+	return v, prefs.val, nil
 }
 
 // SetArg sets the value of an arg.
@@ -307,35 +361,28 @@ func (c *Collection) DeclareEnv(name string, value string) {
 	c.effectiveCache = nil
 }
 
-// UpdateArg updates the value of an existing ARG. It will override the value of
-// the arg, regardless of where the value was previously defined.
+// UpdateVar updates the value of an existing variable. It will override the
+// value of the variable, regardless of where the value was previously defined.
 //
-// It returns ErrArgNotFound if the variable was not found.
-func (c *Collection) UpdateArg(name, value string, pncvf ProcessNonConstantVariableFunc, isBase bool) (retErr error) {
+// It returns ErrVarNotFound if the variable was not found.
+func (c *Collection) UpdateVar(name, value string, pncvf ProcessNonConstantVariableFunc, isBase bool) (retErr error) {
 	defer func() {
 		if retErr == nil {
 			c.effectiveCache = nil
 		}
 	}()
 	if _, ok := c.effective().Get(name, WithActive()); !ok {
-		return errors.Wrapf(ErrArgNotFound, "could not SET undeclared variable '%[1]v' [hint: '%[1]v' needs to be declared with 'ARG %[1]v' before it can be used with SET]", name)
+		return hint.Wrapf(ErrVarNotFound, "'%[1]v' needs to be declared with 'LET %[1]v = someValue' before it can be used with SET", name)
+	}
+	if _, ok := c.vars().Get(name, WithActive()); !ok {
+		return hint.Wrapf(ErrSetArg, "'%[1]v' is an ARG and cannot be used with SET - try declaring 'LET %[1]v = $%[1]v' first", name)
 	}
 	v, err := parseArgValue(name, value, pncvf)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse SET arg value")
+		return errors.Wrap(err, "failed to parse SET value")
 	}
-	if _, ok := c.args().Get(name, WithActive()); ok {
-		c.assignedArgs().Add(name, v, WithActive())
-		return nil
-	}
-	if _, ok := c.globals().Get(name, WithActive()); ok {
-		if !isBase {
-			return errors.Wrapf(ErrInvalidScope, "could not SET global variable '%[1]v' outside the base target [hint: you can declare a new non-global ARG to be used with SET using 'ARG myArg=$%[1]v']", name)
-		}
-		c.assignedGlobals().Add(name, v, WithActive())
-		return nil
-	}
-	return errors.New("variable %v was found in the effective cache, but not in args or globals - this should not happen, please report this incident in github")
+	c.vars().Add(name, v, WithActive())
+	return nil
 }
 
 // Imports returns the imports tracker of the current frame.
@@ -344,16 +391,15 @@ func (c *Collection) Imports() *domain.ImportTracker {
 }
 
 // EnterFrame creates a new stack frame.
-func (c *Collection) EnterFrame(frameName string, absRef domain.Reference, assignedGlobals *Scope, overriding *Scope, globals *Scope, globalImports map[string]domain.ImportTrackerVal) {
+func (c *Collection) EnterFrame(frameName string, absRef domain.Reference, overriding *Scope, globals *Scope, globalImports map[string]domain.ImportTrackerVal) {
 	c.stack = append(c.stack, &stackFrame{
-		frameName:       frameName,
-		absRef:          absRef,
-		imports:         domain.NewImportTracker(c.console, globalImports),
-		overriding:      overriding,
-		assignedGlobals: assignedGlobals,
-		globals:         globals,
-		assignedArgs:    NewScope(),
-		args:            NewScope(),
+		frameName:  frameName,
+		absRef:     absRef,
+		imports:    domain.NewImportTracker(c.console, globalImports),
+		overriding: overriding,
+		globals:    globals,
+		vars:       NewScope(),
+		args:       NewScope(),
 	})
 	c.effectiveCache = nil
 }
@@ -405,12 +451,8 @@ func (c *Collection) globals() *Scope {
 	return c.frame().globals
 }
 
-func (c *Collection) assignedArgs() *Scope {
-	return c.frame().assignedArgs
-}
-
-func (c *Collection) assignedGlobals() *Scope {
-	return c.frame().assignedGlobals
+func (c *Collection) vars() *Scope {
+	return c.frame().vars
 }
 
 func (c *Collection) overriding() *Scope {
@@ -420,14 +462,7 @@ func (c *Collection) overriding() *Scope {
 // effective returns the variables as a single combined scope.
 func (c *Collection) effective() *Scope {
 	if c.effectiveCache == nil {
-		ag := c.assignedGlobals().Clone()
-		for k := range c.args().Map() {
-			// c.assignedGlobals() override c.overriding(), but not c.args() -
-			// so this effectively creates a difference (in set terms) between
-			// c.assignedGlobals() and c.args() to avoid overriding c.args().
-			ag.Remove(k)
-		}
-		c.effectiveCache = CombineScopes(c.assignedArgs(), ag, c.overriding(), c.builtin, c.args(), c.envs, c.globals())
+		c.effectiveCache = CombineScopes(c.vars(), c.overriding(), c.builtin, c.args(), c.envs, c.globals())
 	}
 	return c.effectiveCache
 }

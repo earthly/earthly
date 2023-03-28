@@ -16,6 +16,7 @@ import (
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/flagutil"
+	"github.com/earthly/earthly/util/hint"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
 	"github.com/earthly/earthly/variables"
@@ -254,6 +255,8 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 		return i.handleEnv(ctx, cmd)
 	case "ARG":
 		return i.handleArg(ctx, cmd)
+	case "LET":
+		return i.handleLet(ctx, cmd)
 	case "SET":
 		return i.handleSet(ctx, cmd)
 	case "LABEL":
@@ -1427,6 +1430,34 @@ func (i *Interpreter) handleArg(ctx context.Context, cmd spec.Command) error {
 	}
 
 	err = i.converter.Arg(ctx, key, value, opts)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "apply ARG")
+	}
+	return nil
+}
+
+func (i *Interpreter) handleLet(ctx context.Context, cmd spec.Command) error {
+	if i.pushOnlyAllowed {
+		return i.pushOnlyErr(cmd.SourceLocation)
+	}
+	var opts letOpts
+	argsCpy := getArgsCopy(cmd)
+	args, err := parseArgs("LET", &opts, argsCpy)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse SET args")
+	}
+	if len(args) != 3 || args[1] != "=" {
+		return hint.Wrap(errInvalidSyntax, "LET requires a variable assignment, e.g. LET foo = bar")
+	}
+
+	key := args[0]
+	baseVal := args[2]
+	val, err := i.expandArgs(ctx, baseVal, true, false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand LET value %q", baseVal)
+	}
+
+	err = i.converter.Let(ctx, key, val)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply ARG")
 	}
