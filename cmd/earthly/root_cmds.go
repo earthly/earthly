@@ -179,6 +179,16 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 					Usage:       "Reset cache entirely by wiping cache dir",
 					Destination: &app.pruneReset,
 				},
+				&cli.GenericFlag{
+					Name:  "size",
+					Usage: "Prune cache to specified size, starting from oldest",
+					Value: &app.pruneTargetSize,
+				},
+				&cli.DurationFlag{
+					Name:        "age",
+					Usage:       "Prune cache older than the specified duration",
+					Destination: &app.pruneKeepDuration,
+				},
 			},
 		},
 		{
@@ -700,9 +710,15 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	}
 	defer bkClient.Close()
 	var opts []client.PruneOption
+
 	if app.pruneAll {
 		opts = append(opts, client.PruneAll)
 	}
+
+	if app.pruneKeepDuration > 0 || app.pruneTargetSize > 0 {
+		opts = append(opts, client.WithKeepOpt(app.pruneKeepDuration, int64(app.pruneTargetSize)))
+	}
+
 	ch := make(chan client.UsageInfo, 1)
 	eg, ctx := errgroup.WithContext(cliCtx.Context)
 	eg.Go(func() error {
