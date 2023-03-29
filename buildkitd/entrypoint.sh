@@ -286,7 +286,7 @@ do
         # all those PIDs, and kills them to prevent accidential "ghost" loads.
         if [ "$PID" != "$execpid" ]; then
             if [ "$OOM_SCORE_ADJ" -ne "0" ]; then
-                ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) killed" >> /var/log/oom_adj
+                ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) killed with OOM_SCORE_ADJ=$OOM_SCORE_ADJ" >> /var/log/oom_adj
                 kill -9 "$PID"
             else 
                 ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) was not killed because OOM_SCORE_ADJ was default or not set" >> /var/log/oom_adj
