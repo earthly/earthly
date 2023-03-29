@@ -1444,7 +1444,7 @@ func (i *Interpreter) handleLet(ctx context.Context, cmd spec.Command) error {
 	argsCpy := getArgsCopy(cmd)
 	args, err := parseArgs("LET", &opts, argsCpy)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse SET args")
+		return errors.Wrap(err, "failed to parse LET args")
 	}
 	if len(args) != 3 || args[1] != "=" {
 		return hint.Wrap(errInvalidSyntax, "LET requires a variable assignment, e.g. LET foo = bar")
@@ -1459,7 +1459,7 @@ func (i *Interpreter) handleLet(ctx context.Context, cmd spec.Command) error {
 
 	err = i.converter.Let(ctx, key, val)
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "apply ARG")
+		return i.wrapError(err, cmd.SourceLocation, "apply LET")
 	}
 	return nil
 }
