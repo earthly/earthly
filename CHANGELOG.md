@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+
+- The `VERSION --git-branch` feature flag has been removed (`EARTHLY_GIT_BRANCH` was always available in the previous version).
+
 ## v0.7.2 - 2023-03-14
 
 ### Added

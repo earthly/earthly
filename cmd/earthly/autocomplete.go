@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/adrg/xdg"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -11,6 +10,8 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+
+	"github.com/adrg/xdg"
 
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
@@ -70,7 +71,7 @@ func (app *earthlyApp) autoCompleteImp(ctx context.Context) (err error) {
 	}
 
 	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
-	resolver := buildcontext.NewResolver(nil, gitLookup, app.console, "")
+	resolver := buildcontext.NewResolver(nil, gitLookup, app.console, "", app.gitBranchOverride)
 	var gwClient gwclient.Client // TODO this is a nil pointer which causes a panic if we try to expand a remotely referenced earthfile
 	// it's expensive to create this gwclient, so we need to implement a lazy eval which returns it when required.
 

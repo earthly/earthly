@@ -31,8 +31,8 @@ func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gituti
 	targetNoTag.Tag = ""
 	ret.Add(arg.EarthlyTargetProjectNoTag, targetNoTag.ProjectCanonical())
 	ret.Add(arg.EarthlyTargetName, target.Target)
-	ret.Add(arg.EarthlyTargetTag, target.Tag)
-	ret.Add(arg.EarthlyTargetTagDocker, llbutil.DockerTagSafe(target.Tag))
+
+	setTargetTag(ret, target, gitMeta)
 	SetPlatformArgs(ret, platr)
 	setUserPlatformArgs(ret, platr)
 	if ftrs.NewPlatform {
@@ -75,9 +75,6 @@ func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gituti
 
 		if ftrs.GitCommitAuthorTimestamp {
 			ret.Add(arg.EarthlyGitCommitAuthorTimestamp, gitMeta.AuthorTimestamp)
-		}
-		if ftrs.GitBranch && len(gitMeta.Branch) > 0 {
-			ret.Add(arg.EarthlyGitBranch, gitMeta.Branch[0])
 		}
 		if gitMeta.CommitterTimestamp == "" {
 			ret.Add(arg.EarthlySourceDateEpoch, "0")
@@ -147,4 +144,17 @@ func getProjectName(s string) string {
 		s = parts[1]
 	}
 	return s
+}
+
+func setTargetTag(ret *Scope, target domain.Target, gitMeta *gitutil.GitMetadata) {
+	// We prefer branch for these tags if the build is triggered from an action on a branch (pr / push)
+	// https://github.com/earthly/cloud-issues/issues/11#issuecomment-1467308267
+	if gitMeta != nil && gitMeta.BranchOverrideTagArg && len(gitMeta.Branch) > 0 {
+		branch := gitMeta.Branch[0]
+		ret.Add(arg.EarthlyTargetTag, branch)
+		ret.Add(arg.EarthlyTargetTagDocker, llbutil.DockerTagSafe(branch))
+		return
+	}
+	ret.Add(arg.EarthlyTargetTag, target.Tag)
+	ret.Add(arg.EarthlyTargetTagDocker, llbutil.DockerTagSafe(target.Tag))
 }

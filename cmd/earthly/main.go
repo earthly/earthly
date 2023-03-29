@@ -106,6 +106,7 @@ type cliFlags struct {
 	configPath                      string
 	gitUsernameOverride             string
 	gitPasswordOverride             string
+	gitBranchOverride               string
 	interactiveDebugging            bool
 	sshAuthSock                     string
 	verbose                         bool
