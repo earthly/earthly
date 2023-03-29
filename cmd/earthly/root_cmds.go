@@ -174,12 +174,12 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 					Destination: &app.pruneReset,
 				},
 				&cli.StringFlag{
-					Name:        "target-size",
+					Name:        "size",
 					Usage:       "Prune cache to specified size, starting from oldest",
 					Destination: &app.pruneTargetSize,
 				},
 				&cli.DurationFlag{
-					Name:        "keep-duration",
+					Name:        "age",
 					Usage:       "Prune cache older than the specified duration",
 					Destination: &app.pruneKeepDuration,
 				},
@@ -791,10 +791,10 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	}
 
 	sizeInBytes := uint64(0)
-	if len(app.pruneTargetSize) > 0 {
+	if app.pruneTargetSize != "" {
 		sizeInBytes, err = humanize.ParseBytes(app.pruneTargetSize)
 		if err != nil {
-			return errors.Wrap(err, "parse prune target size")
+			return errors.Wrapf(err, "parse prune target size (%s)", app.pruneTargetSize)
 		}
 	}
 
