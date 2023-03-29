@@ -173,10 +173,10 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 					Usage:       "Reset cache entirely by wiping cache dir",
 					Destination: &app.pruneReset,
 				},
-				&cli.StringFlag{
-					Name:        "size",
-					Usage:       "Prune cache to specified size, starting from oldest",
-					Destination: &app.pruneTargetSize,
+				&cli.GenericFlag{
+					Name:  "size",
+					Usage: "Prune cache to specified size, starting from oldest",
+					Value: &app.pruneTargetSize,
 				},
 				&cli.DurationFlag{
 					Name:        "age",
@@ -790,16 +790,8 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 		opts = append(opts, client.PruneAll)
 	}
 
-	sizeInBytes := uint64(0)
-	if app.pruneTargetSize != "" {
-		sizeInBytes, err = humanize.ParseBytes(app.pruneTargetSize)
-		if err != nil {
-			return errors.Wrapf(err, "parse prune target size (%s)", app.pruneTargetSize)
-		}
-	}
-
-	if app.pruneKeepDuration > 0 || sizeInBytes > 0 {
-		opts = append(opts, client.WithKeepOpt(app.pruneKeepDuration, int64(sizeInBytes)))
+	if app.pruneKeepDuration > 0 || app.pruneTargetSize > 0 {
+		opts = append(opts, client.WithKeepOpt(app.pruneKeepDuration, int64(app.pruneTargetSize)))
 	}
 
 	ch := make(chan client.UsageInfo, 1)
