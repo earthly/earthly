@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/gitutil"
-	"github.com/earthly/earthly/util/hint"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
 	"github.com/pkg/errors"

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/features"
-	"github.com/earthly/earthly/util/hint"
 	"github.com/earthly/earthly/util/platutil"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"

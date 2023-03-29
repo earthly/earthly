@@ -8,9 +8,9 @@ import (
 
 	"github.com/antlr/antlr4/runtime/Go/antlr/v4"
 	"github.com/earthly/earthly/ast/antlrhandler"
+	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/ast/parser"
 	"github.com/earthly/earthly/ast/spec"
-	"github.com/earthly/earthly/util/hint"
 	"github.com/pkg/errors"
 )
 
