@@ -10,6 +10,7 @@ import (
 	"github.com/earthly/earthly/ast/antlrhandler"
 	"github.com/earthly/earthly/ast/parser"
 	"github.com/earthly/earthly/ast/spec"
+	"github.com/earthly/earthly/util/hint"
 	"github.com/pkg/errors"
 )
 
@@ -81,7 +82,7 @@ func ParseOpts(ctx context.Context, from FromOpt, opts ...Opt) (spec.Earthfile, 
 			errorStrategy.RE.GetOffendingToken().GetColumn(),
 			errorStrategy.RE.GetOffendingToken().GetText())
 		if errorStrategy.Hint != "" {
-			err = antlrhandler.WithHints(err, errorStrategy.Hint)
+			err = hint.Wrap(err, errorStrategy.Hint)
 		}
 		return spec.Earthfile{}, err
 	}
