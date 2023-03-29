@@ -11,9 +11,12 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Support for [Rosetta](https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment) translation environment (emulator) in buildkit as an alternative to QEMU. To enable, go to Docker Desktop -> Settings -> Features in development -> Check `Use Rosetta for x86/amd64 emulation on Apple Silicon`.
 - New ARG `EARTHLY_GIT_BRANCH` will contain the branch of the current git commit, this ARG must be enabled with the `VERSION --git-branch` feature flag. [#2735](https://github.com/earthly/earthly/pull/2735)
 - Verbose logging when git configurations perform a regex substitution.
-- Redeclaring an `ARG` in the same scope as a previous declaration is now an error; this requires the `--arg-scope-and-set` feature flag.
-- `ARG`s inside of targets will no longer have their default value overridden by global `ARG`s; this requires the `--arg-scope-and-set` feature flag.
-- A new command, `SET`, is available for reassigning existing `ARG`s; this requires the `--arg-scope-and-set` feature flag.
+- A host of changes to variables under the `--arg-scope-and-set` feature flag:
+  - Redeclaring an `ARG` in the same scope as a previous declaration is now an error.
+  - `ARG`s inside of targets will no longer have their default value overridden by global `ARG`s.
+  - A new command, `LET`, is available for declaring non-argument variables.
+    - `LET` takes precedence over `ARG`, just like `ARG` takes precedence over `ARG --global`.
+  - A new command, `SET`, is available for changing the value of variables declared with `LET`.
 
 ### Fixed
 
