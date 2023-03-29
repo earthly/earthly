@@ -75,9 +75,10 @@ func NewResolverCustomGit(cleanCollection *cleanup.Collection, gitLookup *GitLoo
 			console:           console,
 		},
 		lr: &localResolver{
-			buildFileCache: synccache.New(),
-			gitMetaCache:   synccache.New(),
-			console:        console,
+			buildFileCache:    synccache.New(),
+			gitMetaCache:      synccache.New(),
+			gitBranchOverride: gitBranchOverride,
+			console:           console,
 		},
 		parseCache:           synccache.New(),
 		console:              console,

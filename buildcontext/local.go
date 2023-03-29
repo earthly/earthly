@@ -19,9 +19,10 @@ import (
 )
 
 type localResolver struct {
-	gitMetaCache   *synccache.SyncCache // local path -> *gitutil.GitMetadata
-	buildFileCache *synccache.SyncCache
-	console        conslogging.ConsoleLogger
+	gitMetaCache      *synccache.SyncCache // local path -> *gitutil.GitMetadata
+	gitBranchOverride string
+	buildFileCache    *synccache.SyncCache
+	console           conslogging.ConsoleLogger
 }
 
 func (lr *localResolver) resolveLocal(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, ref domain.Reference, featureFlagOverrides string) (*Data, error) {
@@ -31,7 +32,7 @@ func (lr *localResolver) resolveLocal(ctx context.Context, gwClient gwclient.Cli
 	}
 
 	metadataValue, err := lr.gitMetaCache.Do(ctx, ref.GetLocalPath(), func(ctx context.Context, _ interface{}) (interface{}, error) {
-		metadata, err := gitutil.Metadata(ctx, ref.GetLocalPath())
+		metadata, err := gitutil.Metadata(ctx, ref.GetLocalPath(), lr.gitBranchOverride)
 		if err != nil {
 			if errors.Is(err, gitutil.ErrNoGitBinary) ||
 				errors.Is(err, gitutil.ErrNotAGitDir) ||
