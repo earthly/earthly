@@ -50,7 +50,7 @@ foo:
 		mockEarthfile(tt.t, tt.reader, []byte(`
 VERSION 0.7
 
-LET --global foo = bar
+LET foo = bar
 
 foo:
     LET bacon = eggs
@@ -62,7 +62,7 @@ foo:
 		global := f.BaseRecipe[0]
 		tt.expect(global.Command).To(not(beNil()))
 		tt.expect(global.Command.Name).To(equal("LET"))
-		tt.expect(global.Command.Args).To(equal([]string{"--global", "foo", "=", "bar"}))
+		tt.expect(global.Command.Args).To(equal([]string{"foo", "=", "bar"}))
 
 		tt.expect(f.Targets).To(haveLen(1))
 		foo := f.Targets[0]
