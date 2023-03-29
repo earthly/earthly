@@ -181,6 +181,7 @@ type cliFlags struct {
 	gcpServiceAccountKeyPath        string
 	gcpServiceAccountKey            string
 	gcpServiceAccountKeyStdin       bool
+	certsHostName                   string
 }
 
 type analyticsMetadata struct {

@@ -30,18 +30,18 @@ const (
 )
 
 // GenerateCertificates creates and saves a CA and certificates for both sides of an mTLS TCP connection.
-func GenerateCertificates(dir string) error {
+func GenerateCertificates(dir, hostname string) error {
 	ca, err := createAndSaveCA(dir)
 	if err != nil {
 		return errors.Wrap(err, "create CA")
 	}
 
-	err = createAndSaveCertificate(ca, buildkit, dir)
+	err = createAndSaveCertificate(ca, buildkit, dir, hostname)
 	if err != nil {
 		return errors.Wrap(err, "create buildkit certificate")
 	}
 
-	err = createAndSaveCertificate(ca, earthly, dir)
+	err = createAndSaveCertificate(ca, earthly, dir, hostname)
 	if err != nil {
 		return errors.Wrap(err, "create earthly certificate")
 	}
@@ -49,7 +49,7 @@ func GenerateCertificates(dir string) error {
 	return nil
 }
 
-func createAndSaveCertificate(ca *certificateData, role, dir string) error {
+func createAndSaveCertificate(ca *certificateData, role, dir, hostname string) error {
 	certKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return errors.Wrapf(err, "generate %s key", role)
@@ -65,7 +65,7 @@ func createAndSaveCertificate(ca *certificateData, role, dir string) error {
 		Subject: pkix.Name{
 			Organization: []string{fmt.Sprintf("Earthly GRPC: %v side", role)},
 		},
-		DNSNames:     []string{"localhost"},
+		DNSNames:     []string{hostname},
 		IPAddresses:  []net.IP{net.IPv6loopback, net.ParseIP("127.0.0.1")},
 		NotBefore:    time.Now(),
 		NotAfter:     time.Now().AddDate(10, 0, 0),

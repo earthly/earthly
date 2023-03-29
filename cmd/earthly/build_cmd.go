@@ -229,7 +229,6 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 
 	err = app.initFrontend(cliCtx)
 	if err != nil {
-		fmt.Printf("erroring here\n")
 		return errors.Wrapf(err, "could not init frontend")
 	}
 

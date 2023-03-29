@@ -59,6 +59,14 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 					Usage:       "Add earthly autocompletions",
 					Destination: &app.bootstrapWithAutocomplete,
 				},
+				&cli.StringFlag{
+					Name:        "certs-hostname",
+					Usage:       "hostname to generate certificates for",
+					EnvVars:     []string{"EARTHLY_CERTS_HOSTNAME"},
+					Hidden:      true,
+					Value:       "localhost",
+					Destination: &app.certsHostName,
+				},
 			},
 		},
 		{
@@ -409,7 +417,7 @@ func (app *earthlyApp) bootstrap(cliCtx *cli.Context) error {
 	if !app.bootstrapNoBuildkit && !app.isUsingSatellite(cliCtx) {
 		bkURL, err := url.Parse(app.buildkitHost)
 		if err != nil {
-			return errors.Wrapf(err, "invalid buildkit_host: %s", app.cfg.Global.BuildkitHost)
+			return errors.Wrapf(err, "invalid buildkit_host: %s", app.buildkitHost)
 		}
 		if bkURL.Scheme == "tcp" && app.cfg.Global.TLSEnabled {
 			root, err := cliutil.GetOrCreateEarthlyDir(app.installationName)
@@ -418,7 +426,7 @@ func (app *earthlyApp) bootstrap(cliCtx *cli.Context) error {
 			}
 
 			certsDir := filepath.Join(root, "certs")
-			err = buildkitd.GenerateCertificates(certsDir)
+			err = buildkitd.GenerateCertificates(certsDir, app.certsHostName)
 			if err != nil {
 				return errors.Wrap(err, "setup TLS")
 			}
