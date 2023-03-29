@@ -49,9 +49,18 @@ if [ -z "$NO_BUILDKIT" ]; then
     # generate certificates
     earthly --config "$earthly_config" --buildkit-host=tcp://127.0.0.1:8372 bootstrap --certs-hostname=$(hostname)
 
-    ln -s /root/.earthly/certs/ca_cert.pem /etc/ca.pem
-    ln -s /root/.earthly/certs/buildkit_cert.pem /etc/cert.pem
-    ln -s /root/.earthly/certs/buildkit_key.pem /etc/key.pem
+    if [ ! -f /etc/ca.pem ]; then
+      ln -s /root/.earthly/certs/ca_cert.pem /etc/ca.pem
+    fi
+
+    if [ ! -f /etc/cert.pem ]; then
+      ln -s /root/.earthly/certs/buildkit_cert.pem /etc/cert.pem
+    fi
+
+    if [ ! -f /etc/key.pem ]; then
+      ln -s /root/.earthly/certs/buildkit_key.pem /etc/key.pem
+    fi
+
 
     export BUILDKIT_TCP_TRANSPORT_ENABLED=true
     export BUILDKIT_TLS_ENABLED=true
