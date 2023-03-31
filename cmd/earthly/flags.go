@@ -218,12 +218,12 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Hidden:      true, // Internal.
 		},
 		&cli.IntFlag{
-			Name:        "server-http-timeout",
+			Name:        "server-conn-timeout",
 			Usage:       "The time to wait for the http client to establish a connection to the API server",
-			EnvVars:     []string{"EARTHLY_SERVER_HTTP_TIMEOUT"},
+			EnvVars:     []string{"EARTHLY_SERVER_CONN_TIMEOUT"},
 			Hidden:      true, // Internal.
 			Value:       5,
-			Destination: &app.serverHTTPTimeout,
+			Destination: &app.serverConnTimeout,
 		},
 	}
 }

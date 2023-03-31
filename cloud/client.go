@@ -56,7 +56,7 @@ type Client struct {
 	requestID                string
 	installationName         string
 	logstreamAddressOverride string
-	serverHTTPTimeout        int
+	serverConnTimeout        int
 }
 
 type ClientOpt func(*Client)
@@ -68,7 +68,7 @@ func WithLogstreamGRPCAddressOverride(address string) ClientOpt {
 }
 
 // NewClient provides a new Earthly Cloud client
-func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, authJWTOverride, installationName, requestID string, warnFunc func(string, ...interface{}), serverHTTPTimeout int, opts ...ClientOpt) (*Client, error) {
+func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, authJWTOverride, installationName, requestID string, warnFunc func(string, ...interface{}), serverConnTimeout int, opts ...ClientOpt) (*Client, error) {
 	c := &Client{
 		httpAddr: httpAddr,
 		sshAgent: &lazySSHAgent{
@@ -78,7 +78,7 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 		jum:               &protojson.UnmarshalOptions{DiscardUnknown: true},
 		installationName:  installationName,
 		requestID:         requestID,
-		serverHTTPTimeout: serverHTTPTimeout,
+		serverConnTimeout: serverConnTimeout,
 	}
 	if authJWTOverride != "" {
 		c.authToken = authJWTOverride
