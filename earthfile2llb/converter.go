@@ -2444,7 +2444,7 @@ func (c *Converter) checkAllowed(command cmdType) error {
 	switch command {
 	case setCmd, letCmd:
 		if !c.ftrs.ArgScopeSet {
-			return errors.New("--arg-scope-and-set must be enabled in order to use SET")
+			return errors.New("--arg-scope-and-set must be enabled in order to use LET and SET")
 		}
 	default:
 	}
