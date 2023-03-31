@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/domain"
@@ -83,7 +84,7 @@ func docString(body string, names ...string) (string, error) {
 			return body, nil
 		}
 	}
-	return "", errors.Errorf("no doc comment found [hint: a comment was found but the first word was not one of (%s)]", strings.Join(names, ", "))
+	return "", hint.Wrapf(errors.New("no doc comment found"), "a comment was found but the first word was not one of (%s)", strings.Join(names, ", "))
 }
 
 type docSection struct {
@@ -225,7 +226,7 @@ func parseDocSections(cliCtx *cli.Context, ft *features.Features, baseRcp, cmds 
 
 func (app *earthlyApp) documentSingleTarget(cliCtx *cli.Context, currIndent, scopeIndent string, ft *features.Features, baseRcp spec.Block, tgt spec.Target, includeBlockDocs bool) error {
 	if tgt.Docs == "" {
-		return errors.Errorf("no doc comment found [hint: add a comment starting with the word '%s' on the line immediately above this target]", tgt.Name)
+		return hint.Wrapf(errors.New("no doc comment found"), "add a comment starting with the word '%s' on the line immediately above this target", tgt.Name)
 	}
 
 	docs, err := docString(tgt.Docs, tgt.Name)

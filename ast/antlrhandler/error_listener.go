@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr/v4"
+	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/ast/parser"
 	"github.com/pkg/errors"
 )
@@ -49,12 +50,10 @@ func (rel *ReturnErrorListener) SyntaxError(recognizer antlr.Recognizer, offendi
 	tokCol := currTok.GetColumn()
 	currLit := currTok.GetText()
 
-	hintErr := hintError{
-		err: errors.Errorf("syntax error: line %d:%d: unexpected '%v': %s", tokLine, tokCol, humanName(currLit), msg),
-	}
+	finalErr := errors.Errorf("syntax error: line %d:%d: unexpected '%v': %s", tokLine, tokCol, humanName(currLit), msg)
 
 	expected := p.GetExpectedTokens().StringVerbose(p.LiteralNames, p.SymbolicNames, false)
-	hintErr.hints = []string{fmt.Sprintf("I got lost looking for '%v'", humanName(expected))}
+	hints := []string{fmt.Sprintf("I got lost looking for '%v'", humanName(expected))}
 
 	stream := p.GetInputStream()
 	currIdx := stream.Index()
@@ -74,13 +73,13 @@ func (rel *ReturnErrorListener) SyntaxError(recognizer antlr.Recognizer, offendi
 
 		// Until we can figure that out, the "I got lost looking for..." message
 		// is pretty likely to be misleading.
-		hintErr.hints[0] = "I couldn't find a pattern that completes the current statement - check your quote pairs, paren pairs, and newlines"
+		hints[0] = "I couldn't find a pattern that completes the current statement - check your quote pairs, paren pairs, and newlines"
 	default:
 	}
 
 	// Just to prevent duplicates, since we seem to run into them sometimes
 	hintSet := map[string]struct{}{
-		hintErr.hints[0]: {},
+		hints[0]: {},
 	}
 
 	for idx := currIdx; idx >= 0; idx-- {
@@ -107,10 +106,10 @@ func (rel *ReturnErrorListener) SyntaxError(recognizer antlr.Recognizer, offendi
 					break
 				}
 				hintSet[msg] = struct{}{}
-				hintErr.hints = append(hintErr.hints, msg)
+				hints = append(hints, msg)
 				break
 			}
 		}
 	}
-	rel.Errs = append(rel.Errs, hintErr)
+	rel.Errs = append(rel.Errs, hint.Wrap(finalErr, hints[0], hints[1:]...))
 }

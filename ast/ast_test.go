@@ -31,8 +31,8 @@ func TestParse(topT *testing.T) {
 VERSION 0.7
 
 foo:
-    ARG foo
-    SET foo = bar
+    LET foo = bar
+    SET foo = baz
 `))
 		f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
 		tt.expect(err).To(not(haveOccurred()))
@@ -43,7 +43,34 @@ foo:
 		set := foo.Recipe[1]
 		tt.expect(set.Command).To(not(beNil()))
 		tt.expect(set.Command.Name).To(equal("SET"))
-		tt.expect(set.Command.Args).To(equal([]string{"foo", "=", "bar"}))
+		tt.expect(set.Command.Args).To(equal([]string{"foo", "=", "baz"}))
+	})
+
+	o.Spec("it parses LET commands", func(tt testCtx) {
+		mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.7
+
+LET foo = bar
+
+foo:
+    LET bacon = eggs
+`))
+		f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+		tt.expect(err).To(not(haveOccurred()))
+
+		tt.expect(f.BaseRecipe).To(haveLen(1))
+		global := f.BaseRecipe[0]
+		tt.expect(global.Command).To(not(beNil()))
+		tt.expect(global.Command.Name).To(equal("LET"))
+		tt.expect(global.Command.Args).To(equal([]string{"foo", "=", "bar"}))
+
+		tt.expect(f.Targets).To(haveLen(1))
+		foo := f.Targets[0]
+		tt.expect(foo.Recipe).To(haveLen(1))
+		let := foo.Recipe[0]
+		tt.expect(let.Command).To(not(beNil()))
+		tt.expect(let.Command.Name).To(equal("LET"))
+		tt.expect(let.Command.Args).To(equal([]string{"bacon", "=", "eggs"}))
 	})
 
 	o.Spec("it safely ignores comments outside of documentation", func(tt testCtx) {
