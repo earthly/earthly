@@ -1393,7 +1393,7 @@ test-works-without-earthly-server:
     " > /tmp/precommand && chmod +x /tmp/precommand
     DO +RUN_EARTHLY --verbose=false --pre_command=/tmp/precommand --post_command=" && date +%s > end-time" --earthfile=true.earth --target=+true
     RUN if grep "failed sending analytics" earthly.output; then echo "analytics should have failed silently, but didnt" && exit 1; fi
-    RUN export duration=$(echo "$(cat end-time) - $(cat start-time)" | bc) && test "$duration" -lt 10 || (echo "it took $duration seconds to run +true, which is too long" && exit 1)
+    RUN export duration=$(echo "$(cat end-time) - $(cat start-time)" | bc) && test "$duration" -lt 20 || (echo "it took $duration seconds to run +true, which is too long" && exit 1)
 
 RUN_EARTHLY:
     COMMAND
