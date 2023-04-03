@@ -89,6 +89,7 @@ const (
 	pipelineCmd                          // "PIPELINE"
 	triggerCmd                           // "TRIGGER"
 	setCmd                               // "SET"
+	letCmd                               // "LET"
 )
 
 // Converter turns earthly commands to buildkit LLB representation.
@@ -1276,7 +1277,15 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
 
-	effective, effectiveDefault, err := c.varCollection.DeclareArg(argKey, defaultArgValue, opts.Global, pncvf)
+	declOpts := []variables.DeclareOpt{
+		variables.AsArg(),
+		variables.WithValue(defaultArgValue),
+		variables.WithPNCVFunc(pncvf),
+	}
+	if opts.Global {
+		declOpts = append(declOpts, variables.AsGlobal())
+	}
+	effective, effectiveDefault, err := c.varCollection.DeclareVar(argKey, declOpts...)
 	if err != nil {
 		return err
 	}
@@ -1289,6 +1298,32 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 	if c.varCollection.IsStackAtBase() { // Only when outside of UDC.
 		c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
 			Name:          argKey,
+			DefaultValue:  effectiveDefault,
+			ConstantValue: effective,
+		})
+	}
+	return nil
+}
+
+// Let applies the LET command.
+func (c *Converter) Let(ctx context.Context, key string, value string) error {
+	err := c.checkAllowed(letCmd)
+	if err != nil {
+		return err
+	}
+	c.nonSaveCommand()
+
+	if reserved.IsBuiltIn(key) {
+		return fmt.Errorf("LET cannot override built-in variable %q", key)
+	}
+
+	effective, effectiveDefault, err := c.varCollection.DeclareVar(key, variables.WithValue(value))
+	if err != nil {
+		return err
+	}
+	if c.varCollection.IsStackAtBase() {
+		c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
+			Name:          key,
 			DefaultValue:  effectiveDefault,
 			ConstantValue: effective,
 		})
@@ -1309,7 +1344,7 @@ func (c *Converter) UpdateArg(ctx context.Context, argKey string, argValue strin
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
 
-	err := c.varCollection.UpdateArg(argKey, argValue, pncvf, isBase)
+	err := c.varCollection.UpdateVar(argKey, argValue, pncvf, isBase)
 	if err != nil {
 		return err
 	}
@@ -1554,7 +1589,7 @@ func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, ba
 		return err
 	}
 	c.varCollection.EnterFrame(
-		scopeName, command, baseMts.Final.VarCollection.AssignedGlobals(), overriding, baseMts.Final.VarCollection.Globals(),
+		scopeName, command, overriding, baseMts.Final.VarCollection.Globals(),
 		baseMts.Final.GlobalImports)
 	return nil
 }
@@ -1734,17 +1769,13 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		if cmdT == fromCmd {
 			// Propagate globals.
 			globals := mts.Final.VarCollection.Globals()
-			assigned := mts.Final.VarCollection.AssignedGlobals()
 			for _, k := range globals.Sorted(variables.WithActive()) {
 				_, alreadyActive := c.varCollection.Get(k, variables.WithActive())
 				if alreadyActive {
 					// Globals don't override any variables in current scope.
 					continue
 				}
-				v, ok := assigned.Get(k, variables.WithActive())
-				if !ok {
-					v, _ = globals.Get(k, variables.WithActive())
-				}
+				v, _ := globals.Get(k, variables.WithActive())
 				// Look for the default arg value in the built target's TargetInput.
 				defaultArgValue := ""
 				for _, childBai := range mts.Final.TargetInput().BuildArgs {
@@ -1761,7 +1792,6 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 					})
 			}
 			c.varCollection.SetGlobals(globals)
-			c.varCollection.SetAssignedGlobals(assigned)
 			c.varCollection.Imports().SetGlobal(mts.Final.GlobalImports)
 			c.varCollection.SetProject(mts.Final.VarCollection.Project())
 			c.varCollection.SetOrg(mts.Final.VarCollection.Org())
@@ -2404,15 +2434,19 @@ func (c *Converter) checkAllowed(command cmdType) error {
 
 	if !c.mts.Final.RanFromLike {
 		switch command {
-		case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, importCmd, projectCmd, pipelineCmd:
+		case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, letCmd, setCmd, importCmd, projectCmd, pipelineCmd:
 			return nil
 		default:
 			return errors.New("the first command has to be FROM, FROM DOCKERFILE, LOCALLY, ARG, BUILD or IMPORT")
 		}
 	}
 
-	if command == setCmd && !c.ftrs.ArgScopeSet {
-		return errors.New("--arg-scope-and-set must be enabled in order to use SET")
+	switch command {
+	case setCmd, letCmd:
+		if !c.ftrs.ArgScopeSet {
+			return errors.New("--arg-scope-and-set must be enabled in order to use LET and SET")
+		}
+	default:
 	}
 
 	return nil

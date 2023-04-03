@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/dustin/go-humanize"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -144,3 +145,16 @@ func profhandler() {
 		fmt.Printf("error listening for pprof: %v", err)
 	}
 }
+
+type byteSizeValue uint64
+
+func (b *byteSizeValue) Set(s string) error {
+	v, err := humanize.ParseBytes(s)
+	if err != nil {
+		return err
+	}
+	*b = byteSizeValue(v)
+	return nil
+}
+
+func (b *byteSizeValue) String() string { return humanize.Bytes(uint64(*b)) }

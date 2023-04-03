@@ -168,7 +168,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		gitConfigEmail  string
 	)
 	if !target.IsRemote() {
-		if meta, err := gitutil.Metadata(cliCtx.Context, target.GetLocalPath()); err == nil {
+		if meta, err := gitutil.Metadata(cliCtx.Context, target.GetLocalPath(), app.gitBranchOverride); err == nil {
 			// Git commit detection here is best effort
 			gitCommitAuthor = meta.Author
 		}
@@ -492,6 +492,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		OverridingVars:                        overridingVars,
 		BuildContextProvider:                  buildContextProvider,
 		GitLookup:                             gitLookup,
+		GitBranchOverride:                     app.gitBranchOverride,
 		UseFakeDep:                            !app.noFakeDep,
 		Strict:                                app.strict,
 		DisableNoOutputUpdates:                app.interactiveDebugging,

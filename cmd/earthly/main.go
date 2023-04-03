@@ -89,6 +89,8 @@ type cliFlags struct {
 	noCache                         bool
 	pruneAll                        bool
 	pruneReset                      bool
+	pruneTargetSize                 byteSizeValue
+	pruneKeepDuration               time.Duration
 	buildkitdSettings               buildkitd.Settings
 	allowPrivileged                 bool
 	enableProfiler                  bool
@@ -104,6 +106,7 @@ type cliFlags struct {
 	configPath                      string
 	gitUsernameOverride             string
 	gitPasswordOverride             string
+	gitBranchOverride               string
 	interactiveDebugging            bool
 	sshAuthSock                     string
 	verbose                         bool

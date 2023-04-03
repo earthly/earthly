@@ -32,13 +32,13 @@ const (
 )
 
 type gitResolver struct {
-	cleanCollection *cleanup.Collection
-
-	gitImage       string
-	projectCache   *synccache.SyncCache // "gitURL#gitRef" -> *resolvedGitProject
-	buildFileCache *synccache.SyncCache // project ref -> local path
-	gitLookup      *GitLookup
-	console        conslogging.ConsoleLogger
+	cleanCollection   *cleanup.Collection
+	gitBranchOverride string
+	gitImage          string
+	projectCache      *synccache.SyncCache // "gitURL#gitRef" -> *resolvedGitProject
+	buildFileCache    *synccache.SyncCache // project ref -> local path
+	gitLookup         *GitLookup
+	console           conslogging.ConsoleLogger
 }
 
 type resolvedGitProject struct {
@@ -150,17 +150,18 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 		BuildFilePath:       localBuildFile.path,
 		BuildContextFactory: buildContextFactory,
 		GitMetadata: &gitutil.GitMetadata{
-			BaseDir:            "",
-			RelDir:             subDir,
-			RemoteURL:          gitURL,
-			Hash:               rgp.hash,
-			ShortHash:          rgp.shortHash,
-			Branch:             rgp.branches,
-			Tags:               rgp.tags,
-			CommitterTimestamp: rgp.committerTs,
-			AuthorTimestamp:    rgp.authorTs,
-			Author:             rgp.author,
-			CoAuthors:          rgp.coAuthors,
+			BaseDir:              "",
+			RelDir:               subDir,
+			RemoteURL:            gitURL,
+			Hash:                 rgp.hash,
+			ShortHash:            rgp.shortHash,
+			BranchOverrideTagArg: gr.gitBranchOverride != "",
+			Branch:               rgp.branches,
+			Tags:                 rgp.tags,
+			CommitterTimestamp:   rgp.committerTs,
+			AuthorTimestamp:      rgp.authorTs,
+			Author:               rgp.author,
+			CoAuthors:            rgp.coAuthors,
 		},
 		Features: localBuildFile.ftrs,
 	}, nil
@@ -244,9 +245,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		if err != nil {
 			return nil, errors.Wrap(err, "read git-short-hash")
 		}
-		gitBranchBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
-			Filename: "git-branch",
-		})
+		gitBranch, err := gr.readGitBranch(ctx, gitMetaRef)
 		if err != nil {
 			return nil, errors.Wrap(err, "read git-branch")
 		}
@@ -289,7 +288,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 
 		gitHash := strings.SplitN(string(gitHashBytes), "\n", 2)[0]
 		gitShortHash := strings.SplitN(string(gitShortHashBytes), "\n", 2)[0]
-		gitBranches := strings.SplitN(string(gitBranchBytes), "\n", 2)
+		gitBranches := strings.SplitN(gitBranch, "\n", 2)
 		gitAuthor := strings.SplitN(string(gitAuthorBytes), "\n", 2)[0]
 		gitCoAuthors := gitutil.ParseCoAuthorsFromBody(string(gitBodyBytes))
 		var gitBranches2 []string
@@ -361,4 +360,17 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	}
 	rgp = rgpValue.(*resolvedGitProject)
 	return rgp, gitURL, subDir, nil
+}
+
+func (gr *gitResolver) readGitBranch(ctx context.Context, gitMetaRef gwclient.Reference) (string, error) {
+	if gr.gitBranchOverride != "" {
+		return gr.gitBranchOverride, nil
+	}
+	gitBranchBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
+		Filename: "git-branch",
+	})
+	if err != nil {
+		return "", err
+	}
+	return string(gitBranchBytes), nil
 }

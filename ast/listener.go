@@ -293,6 +293,10 @@ func (l *listener) EnterSetStmt(c *parser.SetStmtContext) {
 	l.command.Name = "SET"
 }
 
+func (l *listener) EnterLetStmt(c *parser.LetStmtContext) {
+	l.command.Name = "LET"
+}
+
 func (l *listener) EnterLabelStmt(c *parser.LabelStmtContext) {
 	l.command.Name = "LABEL"
 }
