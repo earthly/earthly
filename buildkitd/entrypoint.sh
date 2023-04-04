@@ -229,6 +229,7 @@ envsubst </etc/buildkitd.toml.template >/etc/buildkitd.toml
 
 # Set up OOM
 OOM_SCORE_ADJ="${BUILDKIT_OOM_SCORE_ADJ:-0}"
+OOM_EXCLUDED_PIDS="${OOM_EXCLUDED_PIDS}"
 export OOM_SCORE_ADJ
 
 envsubst "\${OOM_SCORE_ADJ} \${BUILDKIT_DEBUG}" </bin/oom-adjust.sh.template >/bin/oom-adjust.sh
