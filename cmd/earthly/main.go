@@ -188,7 +188,7 @@ type cliFlags struct {
 	gcpServiceAccountKeyPath        string
 	gcpServiceAccountKey            string
 	gcpServiceAccountKeyStdin       bool
-	serverConnTimeout               int
+	serverConnTimeout               time.Duration
 }
 
 type analyticsMetadata struct {
