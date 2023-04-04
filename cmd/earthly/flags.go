@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"time"
 
 	"github.com/urfave/cli/v2"
 
@@ -219,10 +220,10 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 		},
 		&cli.DurationFlag{
 			Name:        "server-conn-timeout",
-			Usage:       "The time to wait in seconds for the http client to establish a connection to the API server",
+			Usage:       "Earthly API server connection timeout value",
 			EnvVars:     []string{"EARTHLY_SERVER_CONN_TIMEOUT"},
 			Hidden:      true, // Internal.
-			Value:       5,
+			Value:       5 * time.Second,
 			Destination: &app.serverConnTimeout,
 		},
 	}

@@ -201,7 +201,7 @@ func (c *Client) doCallImp(ctx context.Context, r request, method, url, reqID st
 	client := &http.Client{
 		Transport: &http.Transport{
 			DialContext: (&net.Dialer{
-				Timeout: c.serverConnTimeout * time.Second,
+				Timeout: c.serverConnTimeout,
 			}).DialContext,
 		},
 	}
