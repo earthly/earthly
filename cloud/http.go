@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -197,7 +198,13 @@ func (c *Client) doCallImp(ctx context.Context, r request, method, url, reqID st
 	}
 	req.Header.Add(requestID, reqID)
 
-	client := &http.Client{}
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout: c.serverConnTimeout,
+			}).DialContext,
+		},
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {

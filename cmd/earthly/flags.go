@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"time"
 
 	"github.com/urfave/cli/v2"
 
@@ -216,6 +217,14 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Usage:       "The build ID to use for identifying the build in Earthly Cloud. If not specified, a random ID will be generated",
 			Destination: &app.buildID,
 			Hidden:      true, // Internal.
+		},
+		&cli.DurationFlag{
+			Name:        "server-conn-timeout",
+			Usage:       "Earthly API server connection timeout value",
+			EnvVars:     []string{"EARTHLY_SERVER_CONN_TIMEOUT"},
+			Hidden:      true, // Internal.
+			Value:       5 * time.Second,
+			Destination: &app.serverConnTimeout,
 		},
 	}
 }
