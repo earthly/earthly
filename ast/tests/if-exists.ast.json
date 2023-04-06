@@ -361,6 +361,57 @@
           }
         }
       ]
+    },
+    {
+      "name": "artifact-copy-exists",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "+save/ok",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "ok"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artifact-copy-not-exist",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "+save/not_ok",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "!",
+              "-f",
+              "not_ok"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
     }
   ],
   "version": {

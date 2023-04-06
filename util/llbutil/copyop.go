@@ -39,6 +39,8 @@ func CopyOp(ctx context.Context, srcState pllb.State, srcs []string, destState p
 
 			//Normalize path by dropping './'
 			src = strings.TrimPrefix(src, "./")
+			// A target source will always have a leading '/' and never match, so strip that as well
+			src = strings.TrimPrefix(src, "/")
 			src = fmt.Sprintf("[%s]%s", string(src[0]), string(src[1:]))
 		}
 		copyOpts := append([]llb.CopyOption{
