@@ -66,6 +66,7 @@
     * [Google Cloud Build](ci-integration/guides/google-cloud-build.md)
     * [GitLab CI/CD](ci-integration/guides/gitlab-integration.md)
     * [Woodpecker CI](ci-integration/guides/woodpecker-integration.md)
+    * [Bitbucket Pipelines](ci-integration/guides/bitbucket-pipelines-integration.md)
 
 ## ☁️ Earthly Cloud
 
