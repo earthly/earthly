@@ -4,6 +4,7 @@
 *.interp
 .antlr/
 .env
+.arg
 .vscode
 .idea
 .tmp-earthly-out*
