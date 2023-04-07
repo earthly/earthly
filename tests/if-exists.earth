@@ -55,3 +55,11 @@ classic-copy-exists:
 classic-copy-not-exist:
     COPY --if-exists ./in/this-file-does-not-exist .
     RUN test ! -f this-file-does-not-exist
+
+artifact-copy-exists:
+    COPY --if-exists +save/ok .
+    RUN test -f ok
+
+artifact-copy-not-exist:
+    COPY --if-exists +save/not_ok .
+    RUN test ! -f not_ok

@@ -74,12 +74,27 @@ earthly --config \$earthly_config --verbose -D \
   --build-arg expected_branch \
   ./repo+test-git-metadata
 
+EARTHLY_GIT_BRANCH_OVERRIDE=branch-override earthly --config \$earthly_config --verbose -D \
+  --build-arg expected_sha \
+  --build-arg expected_committer_timestamp \
+  --build-arg expected_author_timestamp \
+  --build-arg expected_branch=branch-override \
+  ./repo+test-git-metadata
+
 rm -rf repo
+
 earthly --config \$earthly_config --verbose -D \
   --build-arg expected_sha \
   --build-arg expected_committer_timestamp \
   --build-arg expected_author_timestamp \
   --build-arg expected_branch \
+  git.example.com/testuser/repo:main+test-git-metadata
+
+EARTHLY_GIT_BRANCH_OVERRIDE=branch-override earthly --config \$earthly_config --verbose -D \
+  --build-arg expected_sha \
+  --build-arg expected_committer_timestamp \
+  --build-arg expected_author_timestamp \
+  --build-arg expected_branch=branch-override \
   git.example.com/testuser/repo:main+test-git-metadata
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
     DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --exec_cmd=/tmp/test-earthly-script

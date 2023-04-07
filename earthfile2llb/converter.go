@@ -18,6 +18,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alessio/shellescape"
+	"github.com/containerd/containerd/platforms"
+	"github.com/docker/distribution/reference"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
@@ -42,20 +45,18 @@ import (
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
-	"github.com/alessio/shellescape"
-	"github.com/containerd/containerd/platforms"
-	"github.com/docker/distribution/reference"
 	"github.com/moby/buildkit/client/llb"
 	dockerimage "github.com/moby/buildkit/exporter/containerimage/image"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
+	"github.com/moby/buildkit/frontend/dockerui"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session/localhost"
 	solverpb "github.com/moby/buildkit/solver/pb"
 	"github.com/moby/buildkit/util/apicaps"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type cmdType int
@@ -89,6 +90,7 @@ const (
 	pipelineCmd                          // "PIPELINE"
 	triggerCmd                           // "TRIGGER"
 	setCmd                               // "SET"
+	letCmd                               // "LET"
 )
 
 // Converter turns earthly commands to buildkit LLB representation.
@@ -360,6 +362,10 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		}
 		BuildContextFactory = data.BuildContextFactory
 	}
+	bc, err := dockerui.NewClient(c.opt.GwClient)
+	if err != nil {
+		return errors.Wrap(err, "dockerui.NewClient")
+	}
 	var pncvf variables.ProcessNonConstantVariableFunc
 	if !c.opt.Features.ShellOutAnywhere {
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
@@ -369,16 +375,17 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		return err
 	}
 	bcRawState, done := BuildContextFactory.Construct().RawState()
+	bc.SetBuildContext(&bcRawState, c.mts.FinalTarget().String())
 	state, dfImg, _, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
-		BuildContext:     &bcRawState,
-		ContextLocalName: c.mts.FinalTarget().String(),
-		MetaResolver:     c.opt.MetaResolver,
-		ImageResolveMode: c.opt.ImageResolveMode,
-		Target:           dfTarget,
-		TargetPlatform:   &plat,
-		LLBCaps:          c.opt.LLBCaps,
-		BuildArgs:        overriding.Map(),
-		Excludes:         nil, // TODO: Need to process this correctly.
+		MetaResolver: c.opt.MetaResolver,
+		LLBCaps:      c.opt.LLBCaps,
+		Config: dockerui.Config{
+			BuildArgs:        overriding.Map(),
+			Target:           dfTarget,
+			TargetPlatforms:  []specs.Platform{plat},
+			ImageResolveMode: c.opt.ImageResolveMode,
+		},
+		Client: bc,
 	})
 	done()
 	if err != nil {
@@ -1276,7 +1283,15 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
 
-	effective, effectiveDefault, err := c.varCollection.DeclareArg(argKey, defaultArgValue, opts.Global, pncvf)
+	declOpts := []variables.DeclareOpt{
+		variables.AsArg(),
+		variables.WithValue(defaultArgValue),
+		variables.WithPNCVFunc(pncvf),
+	}
+	if opts.Global {
+		declOpts = append(declOpts, variables.AsGlobal())
+	}
+	effective, effectiveDefault, err := c.varCollection.DeclareVar(argKey, declOpts...)
 	if err != nil {
 		return err
 	}
@@ -1289,6 +1304,32 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 	if c.varCollection.IsStackAtBase() { // Only when outside of UDC.
 		c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
 			Name:          argKey,
+			DefaultValue:  effectiveDefault,
+			ConstantValue: effective,
+		})
+	}
+	return nil
+}
+
+// Let applies the LET command.
+func (c *Converter) Let(ctx context.Context, key string, value string) error {
+	err := c.checkAllowed(letCmd)
+	if err != nil {
+		return err
+	}
+	c.nonSaveCommand()
+
+	if reserved.IsBuiltIn(key) {
+		return fmt.Errorf("LET cannot override built-in variable %q", key)
+	}
+
+	effective, effectiveDefault, err := c.varCollection.DeclareVar(key, variables.WithValue(value))
+	if err != nil {
+		return err
+	}
+	if c.varCollection.IsStackAtBase() {
+		c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
+			Name:          key,
 			DefaultValue:  effectiveDefault,
 			ConstantValue: effective,
 		})
@@ -1309,7 +1350,7 @@ func (c *Converter) UpdateArg(ctx context.Context, argKey string, argValue strin
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
 
-	err := c.varCollection.UpdateArg(argKey, argValue, pncvf, isBase)
+	err := c.varCollection.UpdateVar(argKey, argValue, pncvf, isBase)
 	if err != nil {
 		return err
 	}
@@ -1554,7 +1595,7 @@ func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, ba
 		return err
 	}
 	c.varCollection.EnterFrame(
-		scopeName, command, baseMts.Final.VarCollection.AssignedGlobals(), overriding, baseMts.Final.VarCollection.Globals(),
+		scopeName, command, overriding, baseMts.Final.VarCollection.Globals(),
 		baseMts.Final.GlobalImports)
 	return nil
 }
@@ -1734,17 +1775,13 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		if cmdT == fromCmd {
 			// Propagate globals.
 			globals := mts.Final.VarCollection.Globals()
-			assigned := mts.Final.VarCollection.AssignedGlobals()
 			for _, k := range globals.Sorted(variables.WithActive()) {
 				_, alreadyActive := c.varCollection.Get(k, variables.WithActive())
 				if alreadyActive {
 					// Globals don't override any variables in current scope.
 					continue
 				}
-				v, ok := assigned.Get(k, variables.WithActive())
-				if !ok {
-					v, _ = globals.Get(k, variables.WithActive())
-				}
+				v, _ := globals.Get(k, variables.WithActive())
 				// Look for the default arg value in the built target's TargetInput.
 				defaultArgValue := ""
 				for _, childBai := range mts.Final.TargetInput().BuildArgs {
@@ -1761,7 +1798,6 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 					})
 			}
 			c.varCollection.SetGlobals(globals)
-			c.varCollection.SetAssignedGlobals(assigned)
 			c.varCollection.Imports().SetGlobal(mts.Final.GlobalImports)
 			c.varCollection.SetProject(mts.Final.VarCollection.Project())
 			c.varCollection.SetOrg(mts.Final.VarCollection.Org())
@@ -2404,15 +2440,19 @@ func (c *Converter) checkAllowed(command cmdType) error {
 
 	if !c.mts.Final.RanFromLike {
 		switch command {
-		case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, importCmd, projectCmd, pipelineCmd:
+		case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, letCmd, setCmd, importCmd, projectCmd, pipelineCmd:
 			return nil
 		default:
 			return errors.New("the first command has to be FROM, FROM DOCKERFILE, LOCALLY, ARG, BUILD or IMPORT")
 		}
 	}
 
-	if command == setCmd && !c.ftrs.ArgScopeSet {
-		return errors.New("--arg-scope-and-set must be enabled in order to use SET")
+	switch command {
+	case setCmd, letCmd:
+		if !c.ftrs.ArgScopeSet {
+			return errors.New("--arg-scope-and-set must be enabled in order to use LET and SET")
+		}
+	default:
 	}
 
 	return nil

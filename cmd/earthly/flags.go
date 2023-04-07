@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"time"
 
 	"github.com/urfave/cli/v2"
 
@@ -60,6 +61,13 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			EnvVars:     []string{"GIT_PASSWORD"},
 			Usage:       "The git password to use for git HTTPS authentication",
 			Destination: &app.gitPasswordOverride,
+		},
+		&cli.StringFlag{
+			Name:        "git-branch",
+			EnvVars:     []string{"EARTHLY_GIT_BRANCH_OVERRIDE"},
+			Usage:       "The git branch the build should be considered running in",
+			Destination: &app.gitBranchOverride,
+			Hidden:      true, // primarily used by CI to pass branch context
 		},
 		&cli.BoolFlag{
 			Name:        "verbose",
@@ -209,6 +217,14 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Usage:       "The build ID to use for identifying the build in Earthly Cloud. If not specified, a random ID will be generated",
 			Destination: &app.buildID,
 			Hidden:      true, // Internal.
+		},
+		&cli.DurationFlag{
+			Name:        "server-conn-timeout",
+			Usage:       "Earthly API server connection timeout value",
+			EnvVars:     []string{"EARTHLY_SERVER_CONN_TIMEOUT"},
+			Hidden:      true, // Internal.
+			Value:       5 * time.Second,
+			Destination: &app.serverConnTimeout,
 		},
 	}
 }

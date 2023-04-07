@@ -196,6 +196,7 @@ ga-no-qemu:
     BUILD +arg-redeclare-error
     BUILD +arg-scope-requires-shellout-anywhere
     BUILD +arg-set
+    BUILD +let-set
     BUILD +if
     BUILD +for
     BUILD +first-command
@@ -758,6 +759,8 @@ if-exists:
       --output_contains="bad-wildcard-copy"
     DO +RUN_EARTHLY --earthfile=if-exists.earth --should_fail=true --target=+bad-wildcard-save \
       --output_contains="bad-wildcard-save"
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+artifact-copy-exists
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+artifact-copy-not-exist
     RUN mkdir in && \
         echo "this-file-does-exist" > ./in/this-file-does-exist && \
         echo "so-does-this-one" > so-does-this-one
@@ -1020,29 +1023,33 @@ arg-redeclare-error:
     DO +RUN_EARTHLY --earthfile=arg-redeclare-error.earth --target=+test-working-default-override
     DO +RUN_EARTHLY --earthfile=arg-redeclare-error.earth --target=+test-error-conflict --should_fail=true
     DO +RUN_EARTHLY --earthfile=arg-redeclare-error.earth --target=+test-error-conflict-if --should_fail=true
+    DO +RUN_EARTHLY --earthfile=arg-global-after-local.earth --target=+base --should_fail=true --output_contains="Hint: 'foo' was already declared as a non-global ARG in this scope - did you mean to add '--global' to the original declaration?"
 
 arg-scope-requires-shellout-anywhere:
     DO +RUN_EARTHLY --earthfile=arg-scope-requires-shellout-anywhere.earth --target=+base --should_fail=true
 
 arg-set:
-    DO +RUN_EARTHLY --earthfile=arg-set.earth --target=+base
-    DO +RUN_EARTHLY --earthfile=arg-set.earth --target="+test --expected=bazinga"
-    DO +RUN_EARTHLY --earthfile=arg-set.earth --target="+test --bar=eggs --expected=eggsinga"
-    DO +RUN_EARTHLY --earthfile=arg-set.earth --target="+test-global --foo=banana --topExpected='banana car' --expected='banana phone'"
+    DO +RUN_EARTHLY --earthfile=arg-set.earth --target=+base --should_fail=true --output_contains="Hint: 'foo' is an ARG and cannot be used with SET - try declaring 'LET foo = \\\$foo' first"
 
-    DO +RUN_EARTHLY --earthfile=arg-set.earth --target=+test-set-global-fails --should_fail=true --output_contains="could not SET global variable 'foo' outside the base target \[hint: you can declare a new non-global ARG to be used with SET using 'ARG myArg=\\\$foo'\]"
-    DO +RUN_EARTHLY --earthfile=arg-set.earth --target=+test-set-nonexistent-fails --should_fail=true --output_contains="could not SET undeclared variable 'nonexistent' \[hint: 'nonexistent' needs to be declared with 'ARG nonexistent' before it can be used with SET\]"
+let-scope:
+    DO +RUN_EARTHLY --earthfile=let-scope.earth --target=+base
+    DO +RUN_EARTHLY --earthfile=let-scope.earth --target=+let-overrides-arg
+    DO +RUN_EARTHLY --earthfile=let-scope.earth --target=+let-overrides-global-arg
+    DO +RUN_EARTHLY --earthfile=let-scope.earth --target=+arg-after-let-errors --should_fail=true --output_contains="Hint: 'bar' was already declared with LET and cannot be redeclared as an ARG"
+
+let-set:
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target=+base
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target="+test --expected=bazinga"
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target="+test --bar=eggs --expected=eggsinga"
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target="+test-global --foo=banana --topExpected='banana car' --expected='banana phone'"
+
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target=+test-set-global-fails --should_fail=true --output_contains="Hint: 'foo' is an ARG and cannot be used with SET - try declaring 'LET foo = \\\$foo' first"
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target=+test-set-nonexistent-fails --should_fail=true --output_contains="Hint: 'nonexistent' needs to be declared with 'LET nonexistent = someValue' before it can be used with SET"
     # Also ensure that we error when the variable exists in overrides.
-    DO +RUN_EARTHLY --earthfile=arg-set.earth --target="+test-set-nonexistent-fails --nonexistent=foo" --should_fail=true --output_contains="could not SET undeclared variable 'nonexistent' \[hint: 'nonexistent' needs to be declared with 'ARG nonexistent' before it can be used with SET\]"
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target="+test-set-nonexistent-fails --nonexistent=foo" --should_fail=true --output_contains="Hint: 'nonexistent' needs to be declared with 'LET nonexistent = someValue' before it can be used with SET"
 
-    DO +RUN_EARTHLY --earthfile=arg-set.earth --target="+test-if --expected='ifSwitch was true'"
-    DO +RUN_EARTHLY --earthfile=arg-set.earth --target="+test-if --ifSwitch=false --expected='ifSwitch was false'"
-
-    # Ensure that globals from one file can't pollute globals from another file.
-    COPY arg-set-imported.earth ./imported/Earthfile
-    DO +RUN_EARTHLY --earthfile=arg-set.earth --target=+test-no-override-imports
-
-    DO +RUN_EARTHLY --earthfile=arg-global-after-local.earth --target=+base --should_fail=true --output_contains="could not override non-global ARG 'foo' with global ARG \[hint: 'foo' was already declared as a non-global ARG in this scope - did you mean to add '--global' to the original declaration?\]"
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target="+test-if --expected='ifSwitch was true'"
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target="+test-if --ifSwitch=false --expected='ifSwitch was false'"
 
 if:
     RUN touch exists-locally
@@ -1393,7 +1400,7 @@ test-works-without-earthly-server:
     " > /tmp/precommand && chmod +x /tmp/precommand
     DO +RUN_EARTHLY --verbose=false --pre_command=/tmp/precommand --post_command=" && date +%s > end-time" --earthfile=true.earth --target=+true
     RUN if grep "failed sending analytics" earthly.output; then echo "analytics should have failed silently, but didnt" && exit 1; fi
-    RUN export duration=$(echo "$(cat end-time) - $(cat start-time)" | bc) && test "$duration" -lt 45 || (echo "it took $duration seconds to run +true, which is too long" && exit 1)
+    RUN export duration=$(echo "$(cat end-time) - $(cat start-time)" | bc) && test "$duration" -lt 20 || (echo "it took $duration seconds to run +true, which is too long" && exit 1)
 
 RUN_EARTHLY:
     COMMAND

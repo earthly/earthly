@@ -335,6 +335,14 @@ Instructs earthly to issue a "prune all" command to the BuildKit daemon.
 
 Restarts the BuildKit daemon and completely resets the cache directory.
 
+##### `--age`
+
+Prunes cache older than the specified duration. Accepts a duration string, which is a sequence of decimal numbers, each with optional fraction and a unit suffix, such as `300ms`. Valid time units are `ns`, `us`, `ms`, `s`, `m`, `h`.
+
+##### `--size`
+
+Prunes cache to specified size, starting with the oldest cache. It will eliminate cache until it reaches or exceeds the target size.
+
 ## earthly config
 
 #### Synopsis

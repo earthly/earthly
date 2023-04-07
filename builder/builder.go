@@ -71,6 +71,7 @@ type Opt struct {
 	OverridingVars                        *variables.Scope
 	BuildContextProvider                  *provider.BuildContextProvider
 	GitLookup                             *buildcontext.GitLookup
+	GitBranchOverride                     string
 	UseFakeDep                            bool
 	Strict                                bool
 	DisableNoOutputUpdates                bool
@@ -135,7 +136,7 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 		opt:      opt,
 		resolver: nil, // initialized below
 	}
-	b.resolver = buildcontext.NewResolverCustomGit(opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides, opt.GitImage)
+	b.resolver = buildcontext.NewResolverCustomGit(opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides, opt.GitBranchOverride, opt.GitImage)
 	return b, nil
 }
 
