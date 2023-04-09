@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"git.sr.ht/~nelsam/hel/v4/pkg/pers"
+	"git.sr.ht/~nelsam/hel/pkg/pers"
 	"github.com/earthly/earthly/ast"
-	"github.com/poy/onpar/v2"
-	"github.com/poy/onpar/v2/expect"
+	"github.com/poy/onpar"
+	"github.com/poy/onpar/expect"
 )
 
 // timeout is used to catch any hung tests that are not caught by the deadlock
@@ -27,6 +27,7 @@ func TestParseVersion(t *testing.T) {
 			reader: newMockNamedReader(t, timeout),
 		}
 	})
+	defer o.Run()
 
 	o.Spec("it parses a basic version", func(tt testCtx) {
 		go func() {

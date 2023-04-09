@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/earthly/earthly/ast"
-	"github.com/poy/onpar/v2"
-	"github.com/poy/onpar/v2/expect"
+	"github.com/poy/onpar"
+	"github.com/poy/onpar/expect"
 )
 
 type namedReader struct {
@@ -33,6 +33,7 @@ func TestParserErrors(topT *testing.T) {
 			expect: expect.New(t),
 		}
 	})
+	defer o.Run()
 
 	for _, tt := range []struct {
 		name         string
