@@ -716,6 +716,7 @@ examples2:
     BUILD ./examples/typescript-node+docker
     BUILD ./examples/bazel+run
     BUILD ./examples/bazel+image
+    BUILD ./examples/aws-sso+base
 
 license:
     COPY LICENSE ./

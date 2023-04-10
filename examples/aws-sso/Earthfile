@@ -1,0 +1,88 @@
+VERSION 0.7
+FROM amazon/aws-cli
+
+target:
+  BUILD +run --sso_region="us-east-2" --region="us-east-2" --args="sts get-caller-identity"
+
+python:
+  FROM python:3
+  WORKDIR /workspace
+
+ubuntu:
+  FROM ubuntu:jammy
+  WORKDIR /workspace
+  RUN apt update -y
+  RUN apt install -y curl unzip
+
+login:
+  ARG EARTHLY_CI
+  IF [ "$EARTHLY_CI" = "false" ]
+    ARG --required sso_region
+    FROM +python
+    # https://github.com/benkehoe/aws-export-credentials
+    RUN pip install aws-export-credentials
+    BUILD +dev.login.open --sso_region=$sso_region
+    COPY +dev.login/aws /root/.aws
+    RUN aws-export-credentials --profile default --credentials-file-profile default
+    SAVE ARTIFACT /root/.aws/credentials /credentials
+  ELSE IF [ "$EARTHLY_CI" = "true" ]
+    RUN mkdir -p /root/.aws/
+    RUN --secret AWS_ACCESS_KEY_ID --secret AWS_SECRET_ACCESS_KEY --secret AWS_SESSION_TOKEN printf "[default]\naws_access_key_id=$AWS_ACCESS_KEY_ID\naws_secret_access_key=$AWS_SECRET_ACCESS_KEY\naws_session_token=$AWS_SESSION_TOKEN\n" >> /root/.aws/credentials
+  ELSE
+    RUN echo "bad value for EARTHLY_CI" && exit 1
+  END
+  SAVE ARTIFACT /root/.aws/credentials /credentials
+
+dev.login.open:
+  ARG --required sso_region
+  LOCALLY
+  RUN command -v python3 >/dev/null || (echo "python3 is needed locally" && exit 1)
+  # unbuffer will preserve colored output if installed
+  IF command -v unbuffer
+    RUN unbuffer earthly +dev.login 2>&1 | tee /dev/tty | grep --line-buffered -Eo "[A-Z]{4}-[A-Z]{4}" | xargs -I % sh -c "python3 -m webbrowser https://device.sso.$sso_region.amazonaws.com/?user_code=%"
+  ELSE
+    RUN earthly +dev.login 2>&1 | tee /dev/tty | grep --line-buffered -Eo "[A-Z]{4}-[A-Z]{4}" | xargs -I % sh -c "python3 -m webbrowser https://device.sso.$sso_region.amazonaws.com/?user_code=%"
+  END
+
+# Uses `aws sso login` to login to the AWS account
+dev.login:
+  COPY --if-exists ./cache/ /root/.aws/
+  COPY sso_config /root/.aws/config
+  IF --no-cache ! aws sts get-caller-identity
+    RUN --no-cache aws sso login
+    SAVE ARTIFACT /root/.aws AS LOCAL ./cache
+  END
+  SAVE ARTIFACT /root/.aws /aws
+
+# Run a command with the AWS CLI
+run:
+  ARG --required sso_region
+  ARG --required region
+  ARG --required args
+  FROM +ubuntu
+  DO +INSTALL_CLI
+  DO +LOGIN --sso_region=$sso_region
+  ENV AWS_REGION=$region
+  RUN --no-cache aws $args
+
+# Installs the AWS CLI
+INSTALL_CLI:
+  COMMAND
+  ARG TARGETARCH
+  IF [ "$TARGETARCH" = "amd64" ]
+    ARG aws_architecture="x86_64"
+  ELSE IF [ "$TARGETARCH" = "arm64" ]
+    ARG aws_architecture="aarch64"
+  ELSE
+    RUN echo "unknown architecture $TARGETARCH" && exit 1
+  END
+  RUN curl --location --fail --silent --show-error "https://awscli.amazonaws.com/awscli-exe-linux-$aws_architecture.zip" --output "awscliv2.zip" && \
+    unzip -q awscliv2.zip && \
+    ./aws/install && \
+    rm -rf awscliv2.zip aws
+
+LOGIN:
+  COMMAND
+  ARG --required sso_region
+  BUILD +login --sso_region=$sso_region
+  COPY (+login/credentials --sso_region=$sso_region) /root/.aws/credentials

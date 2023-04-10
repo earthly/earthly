@@ -1,0 +1,25 @@
+name: AWS OIDC
+
+on:
+  push:
+  - main
+
+permissions:
+  id-token: write # required for AWS OIDC
+  contents: read # required to clone repository
+
+jobs:
+  aws:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: earthly/actions-setup@v1.0.5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2.0.0
+        with:
+          role-to-assume: <your OIDC role ARN>
+          aws-region: <your AWS region>
+      - name: Run +target
+        run: earthly --secret AWS_ACCESS_KEY_ID --secret AWS_SECRET_ACCESS_KEY --secret AWS_SESSION_TOKEN --ci +target
