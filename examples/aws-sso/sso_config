@@ -1,0 +1,7 @@
+[profile default]
+sso_start_url =
+sso_region =
+sso_account_id =
+sso_role_name =
+region =
+output = json
