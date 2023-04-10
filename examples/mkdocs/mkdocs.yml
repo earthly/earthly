@@ -1,0 +1,3 @@
+site_name: MkDocs
+theme:
+  name: material

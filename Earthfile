@@ -717,6 +717,7 @@ examples2:
     BUILD ./examples/bazel+run
     BUILD ./examples/bazel+image
     BUILD ./examples/aws+base
+    BUILD ./examples/mkdocs+build
 
 license:
     COPY LICENSE ./

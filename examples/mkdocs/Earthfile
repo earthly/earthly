@@ -1,0 +1,58 @@
+VERSION 0.7
+
+pipenv:
+  FROM python:3.8
+  WORKDIR /workspace
+  RUN pip install --upgrade pip
+  RUN pip install pipenv
+  # https://pipenv-fork.readthedocs.io/en/latest/advanced.html#changing-pipenv-s-cache-location
+  ENV PIPENV_CACHE_DIR=/pipenv_cache
+  CACHE $PIPENV_CACHE_DIR
+
+deps:
+  FROM +pipenv
+  RUN apt update -y
+  # https://squidfunk.github.io/mkdocs-material/setup/dependencies/image-processing/#linux
+  RUN apt install -y pngquant libcairo2-dev libfreetype6-dev libffi-dev libjpeg-dev libpng-dev libz-dev
+  WORKDIR docs
+  COPY Pipfile* .
+  RUN pipenv install --deploy --system
+
+lock:
+  FROM +pipenv
+  COPY Pipfile* .
+  RUN pipenv lock
+  SAVE ARTIFACT Pipfile* AS LOCAL .
+
+src:
+  FROM +deps
+  COPY docs docs
+  COPY mkdocs.yml .
+
+build:
+  FROM +src
+  CACHE .cache
+  RUN pipenv run mkdocs build
+  SAVE ARTIFACT site/* AS LOCAL site/
+
+image:
+  FROM +src
+  SAVE IMAGE docs
+
+dev:
+  LOCALLY
+  RUN command -v python3 >/dev/null || (echo "python3 is needed locally" && exit 1)
+  RUN command -v curl >/dev/null || (echo "curl is needed locally" && exit 1)
+  WITH DOCKER --load=+image
+    # Open a web browser once mkdocs is ready
+    RUN (curl --output /dev/null --silent --retry 30 --retry-delay 1 --retry-all-errors \
+        http://localhost:8080 && \
+        python3 -m webbrowser http://localhost:8080) & \
+      docker run \
+        --rm \
+        -p 8080:8080 \
+        -v $(pwd)/docs:/workspace/docs/docs \
+        -v $(pwd)/mkdocs.yml:/workspace/docs/mkdocs.yml \
+        docs \
+        pipenv run mkdocs serve -a 0.0.0.0:8080
+  END
