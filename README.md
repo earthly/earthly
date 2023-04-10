@@ -15,6 +15,8 @@
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
 [![License MPL-2](https://img.shields.io/badge/license-MPL-blue.svg)](./LICENSE)
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=246903803)
+
 **🔁 Repeatable Builds** - *Write builds once, and run them anywhere – on your laptop, remote, and in any CI.*
 
 **❤️ Super Simple** - *Instantly recognizable syntax – like Dockerfile and Makefile had a baby.*
@@ -102,7 +104,7 @@ Earthly executes builds in containers, where execution is isolated. The dependen
 
 We use a target-based system to help users break up complex builds into reusable parts. Nothing is shared between targets other than clearly declared dependencies. Nothing shared means no unexpected race conditions. In fact, the build is executed in parallel whenever possible, without any need for the user to take care of any locking or unexpected environment interactions.
 
-> **ℹ️ Note**  
+> **ℹ️ Note**
 > Earthfiles might seem very similar to Dockerfile multi-stage builds. In fact, the [same technology](https://github.com/moby/buildkit) is used underneath. However, a key difference is that Earthly is designed to be a general-purpose build system, not just a Docker image specification. Read more about [how Earthly is different from Dockerfiles](#how-is-earthly-different-from-dockerfiles).
 
 
@@ -274,7 +276,7 @@ Use `+` to reference other targets and create complex build inter-dependencies.
 Examples
 
 * Same directory (same Earthfile)
-  
+
   ```earthly
   BUILD +some-target
   FROM +some-target

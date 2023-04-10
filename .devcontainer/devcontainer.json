@@ -1,0 +1,32 @@
+{
+  "name": "Ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": true,
+      "azureDnsAutoDetection": true,
+      "installDockerBuildx": true,
+      "version": "latest",
+      "dockerDashComposeVersion": "v2"
+    }
+  },
+  // earthly does best with a fair amount of storage for caching
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb",
+    "storage": "64gb"
+  },
+  "portsAttributes": {
+    "8371": {
+      "label": "Earthly BuildKit",
+      "onAutoForward": "ignore"
+    },
+    "8373": {
+      "label": "Earthly BuildKit",
+      "onAutoForward": "ignore"
+    }
+  }
+}
