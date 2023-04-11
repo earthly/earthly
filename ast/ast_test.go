@@ -5,10 +5,10 @@ import (
 	"io"
 	"testing"
 
-	"git.sr.ht/~nelsam/hel/v4/pkg/pers"
+	"git.sr.ht/~nelsam/hel/pkg/pers"
 	"github.com/earthly/earthly/ast"
-	"github.com/poy/onpar/v2"
-	"github.com/poy/onpar/v2/expect"
+	"github.com/poy/onpar"
+	"github.com/poy/onpar/expect"
 )
 
 func TestParse(topT *testing.T) {
@@ -25,6 +25,7 @@ func TestParse(topT *testing.T) {
 			reader: newMockNamedReader(t, timeout),
 		}
 	})
+	defer o.Run()
 
 	o.Spec("it parses SET commands", func(tt testCtx) {
 		mockEarthfile(tt.t, tt.reader, []byte(`

@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/earthly/earthly/variables"
+	"github.com/poy/onpar"
 	"github.com/poy/onpar/expect"
-	"github.com/poy/onpar/v2"
 )
 
 func TestScope(topT *testing.T) {
@@ -22,6 +22,7 @@ func TestScope(topT *testing.T) {
 			scope:  variables.NewScope(),
 		}
 	})
+	defer o.Run()
 
 	o.Spec("it returns false for unset variables", func(tc testCtx) {
 		_, ok := tc.scope.Get("foo")

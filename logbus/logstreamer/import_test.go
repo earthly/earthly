@@ -1,7 +1,7 @@
 package logstreamer_test
 
 import (
-	"git.sr.ht/~nelsam/hel/v4/pkg/pers"
+	"git.sr.ht/~nelsam/hel/pkg/pers"
 	"github.com/poy/onpar/matchers"
 )
 

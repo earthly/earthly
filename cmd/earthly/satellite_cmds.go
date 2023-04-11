@@ -4,22 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/fatih/color"
-	"golang.org/x/exp/slices"
 	"math/rand"
 	"os"
 	"strings"
 	"text/tabwriter"
 	"time"
 
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
-
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/containerutil"
+	"github.com/fatih/color"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
+	"golang.org/x/exp/slices"
 )
 
 func (app *earthlyApp) satelliteCmds() []*cli.Command {
@@ -1055,7 +1054,7 @@ func getSatelliteLoadingMessages() []string {
 		"modifying downlink frequency",
 	}
 	msgs := baseMessages
-	rand.Seed(time.Now().UnixNano())
+	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
 	rand.Shuffle(len(msgs), func(i, j int) { msgs[i], msgs[j] = msgs[j], msgs[i] })
 	return msgs
 }

@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"git.sr.ht/~nelsam/hel/v4/pkg/pers"
+	"git.sr.ht/~nelsam/hel/pkg/pers"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/logbus/logstreamer"
 	"github.com/pkg/errors"
+	"github.com/poy/onpar"
 	"github.com/poy/onpar/expect"
-	"github.com/poy/onpar/v2"
 )
 
 const testTimeout = time.Second
@@ -54,6 +54,7 @@ func TestLogstreamer(topT *testing.T) {
 			streamer:   streamer,
 		}
 	})
+	defer o.Run()
 
 	o.Spec("after close, the deltas continually return EOF", func(tt testCtx) {
 		var (
