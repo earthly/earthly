@@ -12,43 +12,41 @@ variable "earthly_version" {
 }
 
 locals {
-  timestamp           = replace(timestamp(), ":", "-")
-  earthly_version_apt = trimprefix(var.earthly_version, "v")
+  timestamp       = replace(timestamp(), ":", "-")
+  earthly_version = trimprefix(var.earthly_version, "v")
 }
 
-# https://cloud-images.ubuntu.com/locator/ec2/
-
 source "amazon-ebs" "x86_64" {
-  ami_name      = "earthly-${var.earthly_version}-amd64-${local.timestamp}"
+  ami_name      = "earthly-${var.earthly_version}-amzn-amd64-${local.timestamp}"
   instance_type = "t2.micro"
   region        = "us-west-2"
   source_ami_filter {
     filters = {
-      name                = "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"
+      name                = "amzn2-ami-kernel-5.10-hvm-2.0.*-x86_64-gp2"
       root-device-type    = "ebs"
       virtualization-type = "hvm"
     }
     most_recent = true
-    owners      = ["099720109477"]
+    owners      = ["137112412989"]
   }
-  ssh_username           = "ubuntu"
+  ssh_username           = "ec2-user"
   ssh_read_write_timeout = "5m" # Allow reboots
 }
 
 source "amazon-ebs" "arm64" {
-  ami_name      = "earthly-${var.earthly_version}-arm64-${local.timestamp}"
+  ami_name      = "earthly-${var.earthly_version}-amzn-arm64-${local.timestamp}"
   instance_type = "a1.medium"
   region        = "us-west-2"
   source_ami_filter {
     filters = {
-      name                = "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-arm64-server-*"
+      name                = "amzn2-ami-kernel-5.10-hvm-2.0.*-arm64-gp2"
       root-device-type    = "ebs"
       virtualization-type = "hvm"
     }
     most_recent = true
-    owners      = ["099720109477"]
+    owners      = ["137112412989"]
   }
-  ssh_username           = "ubuntu"
+  ssh_username           = "ec2-user"
   ssh_read_write_timeout = "5m" # Allow reboots
 }
 
@@ -62,7 +60,7 @@ build {
   # https://developer.hashicorp.com/packer/docs/debugging#issues-installing-ubuntu-packages
   provisioner "shell" {
     inline = [
-      "cloud-init status --wait"
+      "sudo cloud-init status --wait"
     ]
   }
 
@@ -73,7 +71,7 @@ build {
   }
   provisioner "shell" {
     environment_vars = [
-      "EARTHLY_VERSION=${local.earthly_version_apt}"
+      "EARTHLY_VERSION=${local.earthly_version}"
     ]
     inline = [
       "cd /tmp",

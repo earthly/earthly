@@ -18,6 +18,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alessio/shellescape"
+	"github.com/containerd/containerd/platforms"
+	"github.com/docker/distribution/reference"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
@@ -42,20 +45,18 @@ import (
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
-	"github.com/alessio/shellescape"
-	"github.com/containerd/containerd/platforms"
-	"github.com/docker/distribution/reference"
 	"github.com/moby/buildkit/client/llb"
 	dockerimage "github.com/moby/buildkit/exporter/containerimage/image"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
+	"github.com/moby/buildkit/frontend/dockerui"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session/localhost"
 	solverpb "github.com/moby/buildkit/solver/pb"
 	"github.com/moby/buildkit/util/apicaps"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type cmdType int
@@ -361,6 +362,10 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		}
 		BuildContextFactory = data.BuildContextFactory
 	}
+	bc, err := dockerui.NewClient(c.opt.GwClient)
+	if err != nil {
+		return errors.Wrap(err, "dockerui.NewClient")
+	}
 	var pncvf variables.ProcessNonConstantVariableFunc
 	if !c.opt.Features.ShellOutAnywhere {
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
@@ -370,16 +375,17 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		return err
 	}
 	bcRawState, done := BuildContextFactory.Construct().RawState()
+	bc.SetBuildContext(&bcRawState, c.mts.FinalTarget().String())
 	state, dfImg, _, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
-		BuildContext:     &bcRawState,
-		ContextLocalName: c.mts.FinalTarget().String(),
-		MetaResolver:     c.opt.MetaResolver,
-		ImageResolveMode: c.opt.ImageResolveMode,
-		Target:           dfTarget,
-		TargetPlatform:   &plat,
-		LLBCaps:          c.opt.LLBCaps,
-		BuildArgs:        overriding.Map(),
-		Excludes:         nil, // TODO: Need to process this correctly.
+		MetaResolver: c.opt.MetaResolver,
+		LLBCaps:      c.opt.LLBCaps,
+		Config: dockerui.Config{
+			BuildArgs:        overriding.Map(),
+			Target:           dfTarget,
+			TargetPlatforms:  []specs.Platform{plat},
+			ImageResolveMode: c.opt.ImageResolveMode,
+		},
+		Client: bc,
 	})
 	done()
 	if err != nil {

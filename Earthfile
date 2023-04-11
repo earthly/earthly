@@ -1,6 +1,6 @@
 VERSION --shell-out-anywhere --use-copy-link 0.6
 
-FROM golang:1.19-alpine3.15
+FROM golang:1.20-alpine3.17
 
 RUN apk add --update --no-cache \
     bash \
@@ -24,7 +24,7 @@ WORKDIR /earthly
 # go.mod and go.sum will be updated locally.
 deps:
     FROM +base
-    RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.0
+    RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.52.2
     COPY go.mod go.sum ./
     COPY ./ast/go.mod ./ast/go.sum ./ast
     COPY ./util/deltautil/go.mod ./util/deltautil/go.sum ./util/deltautil
@@ -194,7 +194,7 @@ markdown-spellcheck:
 # locally.
 mocks:
     FROM +code
-    RUN go install git.sr.ht/~nelsam/hel/v4@latest && go install golang.org/x/tools/cmd/goimports@latest
+    RUN go install git.sr.ht/~nelsam/hel@latest && go install golang.org/x/tools/cmd/goimports@latest
     RUN go generate ./...
     FOR mockfile IN $(find . -name 'helheim*_test.go')
         SAVE ARTIFACT $mockfile AS LOCAL $mockfile
@@ -203,7 +203,7 @@ mocks:
 # unit-test runs unit tests (and some integration tests).
 unit-test:
     FROM +code
-    RUN apk add --no-cache --update podman
+    RUN apk add --no-cache --update podman fuse-overlayfs
     COPY not-a-unit-test.sh .
 
     ARG testname # when specified, only run specific unit-test, otherwise run all.

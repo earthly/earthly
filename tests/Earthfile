@@ -759,6 +759,8 @@ if-exists:
       --output_contains="bad-wildcard-copy"
     DO +RUN_EARTHLY --earthfile=if-exists.earth --should_fail=true --target=+bad-wildcard-save \
       --output_contains="bad-wildcard-save"
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+artifact-copy-exists
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+artifact-copy-not-exist
     RUN mkdir in && \
         echo "this-file-does-exist" > ./in/this-file-does-exist && \
         echo "so-does-this-one" > so-does-this-one
@@ -1398,7 +1400,7 @@ test-works-without-earthly-server:
     " > /tmp/precommand && chmod +x /tmp/precommand
     DO +RUN_EARTHLY --verbose=false --pre_command=/tmp/precommand --post_command=" && date +%s > end-time" --earthfile=true.earth --target=+true
     RUN if grep "failed sending analytics" earthly.output; then echo "analytics should have failed silently, but didnt" && exit 1; fi
-    RUN export duration=$(echo "$(cat end-time) - $(cat start-time)" | bc) && test "$duration" -lt 45 || (echo "it took $duration seconds to run +true, which is too long" && exit 1)
+    RUN export duration=$(echo "$(cat end-time) - $(cat start-time)" | bc) && test "$duration" -lt 20 || (echo "it took $duration seconds to run +true, which is too long" && exit 1)
 
 RUN_EARTHLY:
     COMMAND
