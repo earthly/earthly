@@ -236,11 +236,9 @@ fi
 
 ignored_by_oom() {
   if echo ",$OOM_EXCLUDED_PIDS," | grep -q ",$1,"; then
-    echo "matched"
-    return 1
+    echo "true"
   else
-    echo "no match"
-    return 0
+    echo "false"
   fi
 }
 
