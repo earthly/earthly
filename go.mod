@@ -134,6 +134,6 @@ replace (
 	github.com/jdxcode/netrc => github.com/mikejholly/netrc v0.0.0-20221121193719-a154cb29ec2a
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/alexcb/buildkit v0.0.1-0.20230411212043-8112b93b8385
+	github.com/moby/buildkit => github.com/alexcb/buildkit v0.0.1-0.20230411214944-6c4afba013d4
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20230322211606-d14130b24a8e
 )
