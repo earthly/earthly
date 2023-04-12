@@ -295,7 +295,7 @@ do
         # Sometimes, child processes can be reparented to the init (this script). One
         # common instance is when something is OOM killed, for instance. This enumerates
         # all those PIDs, and kills them to prevent accidential "ghost" loads.
-        if [ "$PID" != "$execpid" ] && [ $(excluded_by_oom "$PID") ]; then
+        if [ "$PID" != "$execpid" ] && [ "$(ignored_by_oom $PID)" = "false" ]; then
             if [ "$OOM_SCORE_ADJ" -ne "0" ]; then
                 ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) killed with OOM_SCORE_ADJ=$OOM_SCORE_ADJ" >> /var/log/oom_adj
                 kill -9 "$PID"
