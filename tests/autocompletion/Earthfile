@@ -70,9 +70,6 @@ test-target-with-build-args:
     RUN echo "--city=
 --country=" > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly +othertargetwithargs -"
-
-    RUN echo "--city=
---country=" > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly +othertargetwithargs --c"
 
     RUN echo "--city=" > expected
@@ -80,8 +77,6 @@ test-target-with-build-args:
 
     RUN > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly +othertargetwithargs --city="
-
-    RUN > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly +othertargetwithargs --city=foo"
 
 test-target-with-build-args-artifact-mode:
@@ -92,17 +87,8 @@ test-target-with-build-args-artifact-mode:
     RUN echo "--city=
 --country=" > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly +othertargetwithargs/out -"
-
-    RUN echo "--city=
---country=" > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly -a +othertargetwithargs/out -"
-
-    RUN echo "--city=
---country=" > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly -a +othertargetwithargs/some/directory/out -"
-
-    RUN echo "--city=
---country=" > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly -a +othertargetwithargs/out --c"
 
     RUN echo "--city=" > expected
@@ -110,8 +96,6 @@ test-target-with-build-args-artifact-mode:
 
     RUN > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly -a +othertargetwithargs/out --city="
-
-    RUN > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly -a +othertargetwithargs/out --city=foo"
 
 test-targets-from-other-dir:
@@ -134,9 +118,6 @@ test-target-with-build-args-from-other-dir:
     RUN echo "--city=
 --country=" > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly ./child/dir+othertargetwithargs -"
-
-    RUN echo "--city=
---country=" > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly ./child/dir+othertargetwithargs --c"
 
     RUN echo "--city=" > expected
