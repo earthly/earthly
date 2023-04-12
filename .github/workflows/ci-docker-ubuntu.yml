@@ -130,6 +130,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ACTIONS_STEP_DEBUG: true
     steps:
       - uses: earthly/actions-setup@main
       - name: Set up QEMU
@@ -182,6 +183,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ACTIONS_STEP_DEBUG: true
     steps:
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
@@ -227,6 +229,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ACTIONS_STEP_DEBUG: true
     steps:
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
@@ -278,6 +281,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ACTIONS_STEP_DEBUG: true
     steps:
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
@@ -329,6 +333,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ACTIONS_STEP_DEBUG: true
     steps:
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
@@ -379,6 +384,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ACTIONS_STEP_DEBUG: true
     steps:
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
@@ -431,6 +437,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ACTIONS_STEP_DEBUG: true
     steps:
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
@@ -500,6 +507,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ACTIONS_STEP_DEBUG: true
     steps:
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
