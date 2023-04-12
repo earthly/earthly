@@ -27,8 +27,7 @@ prune
 registry 
 satellite 
 secret " > expected
-    RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly "
 
 test-hidden-root-commands:
     ENV EARTHLY_SHOW_HIDDEN=1
@@ -48,8 +47,7 @@ registry
 satellite 
 secret 
 web " > expected
-    RUN COMP_LINE="earthly " COMP_POINT=8 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly "
 
 test-build-flags:
     RUN COMP_LINE="earthly --" COMP_POINT=10 earthly | grep -- "--allow-privileged"
@@ -61,37 +59,30 @@ test-targets:
 +othertarget 
 +othertargetwithargs 
 +targetwithrequiredarg " > expected
-    RUN COMP_LINE="earthly +" COMP_POINT=9 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly +"
 
     RUN echo "+mytarget " > expected
-    RUN COMP_LINE="earthly +m" COMP_POINT=10 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly +m"
 
 test-target-with-build-args:
     COPY fake.earth ./Earthfile
 
     RUN echo "--city=
 --country=" > expected
-    RUN COMP_LINE="earthly +othertargetwithargs -" COMP_POINT=30 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly +othertargetwithargs -"
 
     RUN echo "--city=
 --country=" > expected
-    RUN COMP_LINE="earthly +othertargetwithargs --c" COMP_POINT=32 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly +othertargetwithargs --c"
 
     RUN echo "--city=" > expected
-    RUN COMP_LINE="earthly +othertargetwithargs --ci" COMP_POINT=33 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly +othertargetwithargs --ci"
 
     RUN > expected
-    RUN COMP_LINE="earthly +othertargetwithargs --city=" COMP_POINT=36 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly +othertargetwithargs --city="
 
     RUN > expected
-    RUN COMP_LINE="earthly +othertargetwithargs --city=foo" COMP_POINT=39 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly +othertargetwithargs --city=foo"
 
 test-target-with-build-args-artifact-mode:
     COPY fake.earth ./Earthfile
@@ -100,35 +91,28 @@ test-target-with-build-args-artifact-mode:
     # for a target with an (assumed) artifact path
     RUN echo "--city=
 --country=" > expected
-    RUN COMP_LINE="earthly +othertargetwithargs/out -" COMP_POINT=34 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly +othertargetwithargs/out -"
 
     RUN echo "--city=
 --country=" > expected
-    RUN COMP_LINE="earthly -a +othertargetwithargs/out -" COMP_POINT=37 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly -a +othertargetwithargs/out -"
 
     RUN echo "--city=
 --country=" > expected
-    RUN COMP_LINE="earthly -a +othertargetwithargs/some/directory/out -" COMP_POINT=52 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly -a +othertargetwithargs/some/directory/out -"
 
     RUN echo "--city=
 --country=" > expected
-    RUN COMP_LINE="earthly -a +othertargetwithargs/out --c" COMP_POINT=39 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly -a +othertargetwithargs/out --c"
 
     RUN echo "--city=" > expected
-    RUN COMP_LINE="earthly -a +othertargetwithargs/out --ci" COMP_POINT=40 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly -a +othertargetwithargs/out --ci"
 
     RUN > expected
-    RUN COMP_LINE="earthly -a +othertargetwithargs/out --city=" COMP_POINT=43 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly -a +othertargetwithargs/out --city="
 
     RUN > expected
-    RUN COMP_LINE="earthly -a +othertargetwithargs/out --city=foo" COMP_POINT=46 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly -a +othertargetwithargs/out --city=foo"
 
 test-targets-from-other-dir:
     RUN mkdir -p child/dir
@@ -138,12 +122,10 @@ test-targets-from-other-dir:
 ./child/dir+othertarget 
 ./child/dir+othertargetwithargs 
 ./child/dir+targetwithrequiredarg " > expected
-    RUN COMP_LINE="earthly ./child/dir+" COMP_POINT=20 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly ./child/dir+"
 
     RUN echo "./child/dir+mytarget " > expected
-    RUN COMP_LINE="earthly ./child/dir+m" COMP_POINT=21 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly ./child/dir+m"
 
 test-target-with-build-args-from-other-dir:
     RUN mkdir -p child/dir
@@ -151,36 +133,30 @@ test-target-with-build-args-from-other-dir:
 
     RUN echo "--city=
 --country=" > expected
-    RUN COMP_LINE="earthly ./child/dir+othertargetwithargs -" COMP_POINT=41 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly ./child/dir+othertargetwithargs -"
 
     RUN echo "--city=
 --country=" > expected
-    RUN COMP_LINE="earthly ./child/dir+othertargetwithargs --c" COMP_POINT=43 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly ./child/dir+othertargetwithargs --c"
 
     RUN echo "--city=" > expected
-    RUN COMP_LINE="earthly ./child/dir+othertargetwithargs --ci" COMP_POINT=44 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly ./child/dir+othertargetwithargs --ci"
 
 test-target-with-required-arg:
     COPY fake.earth Earthfile
 
     RUN echo "--musthave=" > expected
-    RUN COMP_LINE="earthly +targetwithrequiredarg -" COMP_POINT=32 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly +targetwithrequiredarg -"
 
 test-base-only-target:
     COPY base.earth ./Earthfile
     RUN echo "+base " > expected
-    RUN COMP_LINE="earthly +" COMP_POINT=9 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly +"
 
 test-no-parent-at-root:
     WORKDIR /
     RUN echo "./" > expected
-    RUN COMP_LINE="earthly ." COMP_POINT=9 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly ."
 
 test-no-parent-at-root-from-home:
     WORKDIR /home
@@ -194,22 +170,19 @@ test-no-parent-at-root-from-home:
 ../sys/
 ../usr/
 ../var/" > expected
-    RUN COMP_LINE="earthly ../" COMP_POINT=11 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly ../"
 
 test-relative-dir-targets:
     RUN mkdir -p /test/foo
     COPY fake.earth /test/foo/Earthfile
     WORKDIR /test/
     RUN echo "./foo+" > expected
-    RUN COMP_LINE="earthly ./" COMP_POINT=10 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly ./"
     RUN echo "./foo+mytarget 
 ./foo+othertarget 
 ./foo+othertargetwithargs 
 ./foo+targetwithrequiredarg " > expected
-    RUN COMP_LINE="earthly ./foo+" COMP_POINT=14 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly ./foo+"
 
 test-targets-in-dir-and-subdir:
     RUN mkdir -p /test/foo/subdir
@@ -219,14 +192,9 @@ test-targets-in-dir-and-subdir:
     WORKDIR /test/
     RUN echo "./foo+
 ./foo/" > expected
-    RUN COMP_LINE="earthly ./" COMP_POINT=10 earthly > actual
-    RUN diff expected actual
-
-    RUN COMP_LINE="earthly ./f" COMP_POINT=11 earthly > actual
-    RUN diff expected actual
-
-    RUN COMP_LINE="earthly ./foo" COMP_POINT=13 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly ./"
+    DO +COMPLETION_TEST --COMP_LINE="earthly ./f"
+    DO +COMPLETION_TEST --COMP_LINE="earthly ./foo"
 
 test-targets-in-two-subdirs-that-are-similar:
     COPY fake.earth /test/foo/subdir/Earthfile
@@ -235,14 +203,9 @@ test-targets-in-two-subdirs-that-are-similar:
     WORKDIR /test/
     RUN echo "./foo/
 ./food/" > expected
-    RUN COMP_LINE="earthly ./" COMP_POINT=10 earthly > actual
-    RUN diff expected actual
-
-    RUN COMP_LINE="earthly ./f" COMP_POINT=11 earthly > actual
-    RUN diff expected actual
-
-    RUN COMP_LINE="earthly ./foo" COMP_POINT=13 earthly > actual
-    RUN diff expected actual
+    DO +COMPLETION_TEST --COMP_LINE="earthly ./"
+    DO +COMPLETION_TEST --COMP_LINE="earthly ./f"
+    DO +COMPLETION_TEST --COMP_LINE="earthly ./foo"
 
 test-no-errors-are-displayed:
     COPY bad-version-flag.earth ./Earthfile
@@ -250,6 +213,15 @@ test-no-errors-are-displayed:
     RUN > expected
     RUN ! COMP_LINE="earthly +" COMP_POINT=9 earthly > actual
     RUN diff expected actual
+
+COMPLETION_TEST:
+    COMMAND
+    ARG --required COMP_LINE
+    ARG COMP_POINT="$(echo -n "$COMP_LINE" | wc -m)"
+    ARG expected_file='expected'
+    ARG actual_file='actual'
+    RUN COMP_LINE="$COMP_LINE" COMP_POINT=$COMP_POINT earthly > "$actual_file"
+    RUN diff "$expected_file" "$actual_file"
 
 test-all:
     BUILD +test-root-commands
