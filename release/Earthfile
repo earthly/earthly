@@ -88,6 +88,7 @@ release-github:
     ARG --required RELEASE_TAG
     ARG GITHUB_USER="earthly"
     ARG EARTHLY_REPO="earthly"
+    ARG DOCKERHUB_HOST="docker.io"
     ARG DOCKERHUB_USER="earthly"
     ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
     ARG PRERELEASE="false"
@@ -96,7 +97,7 @@ release-github:
     COPY +release-notes/notes.txt release-notes.txt
     COPY (../+earthly-all/* \
          --VERSION=$RELEASE_TAG \
-         --DEFAULT_BUILDKITD_IMAGE="$DOCKERHUB_USER/$DOCKERHUB_BUILDKIT_IMG:$RELEASE_TAG" \
+         --DEFAULT_BUILDKITD_IMAGE="$DOCKERHUB_HOST/$DOCKERHUB_USER/$DOCKERHUB_BUILDKIT_IMG:$RELEASE_TAG" \
          --DEFAULT_INSTALLATION_NAME="earthly" \
          ) ./release/
     RUN ls ./release
@@ -112,6 +113,19 @@ release-github:
     RUN file ./release/earthly-linux-arm64 | grep "aarch64"
     RUN file ./release/earthly-linux-arm64 | grep "ELF 64-bit"
     RUN file ./release/earthly-windows-amd64.exe | grep "PE32"
+
+    # TODO: at this point, we should run (some of?) the binaries through
+    # end-to-end or acceptance tests. This would guarantee that the release
+    # binaries pass our tests. Right now, all we guarantee is that we built our
+    # release binaries from a commit that passed our tests, which has caused
+    # some bugs in the past.
+    #
+    # This may require work on the "variable types" proposal so that we can pass
+    # our artifacts to our test targets.
+    FOR release IN linux-amd64 linux-arm64 darwin-amd64 darwin-arm64 windows-amd64.exe
+        RUN grep "$DOCKERHUB_HOST/$DOCKERHUB_USER/$DOCKERHUB_BUILDKIT_IMG:$RELEASE_TAG" ./release/earthly-$release
+    END
+
     ARG GITHUB_SECRET_PATH="littleredcorvette-github-token"
     RUN --push \
         --secret GITHUB_TOKEN="$GITHUB_SECRET_PATH" \

@@ -31,6 +31,8 @@ source "amazon-ebs" "x86_64" {
   }
   ssh_username           = "ec2-user"
   ssh_read_write_timeout = "5m" # Allow reboots
+
+  encrypt_boot = true
 }
 
 source "amazon-ebs" "arm64" {
@@ -48,6 +50,8 @@ source "amazon-ebs" "arm64" {
   }
   ssh_username           = "ec2-user"
   ssh_read_write_timeout = "5m" # Allow reboots
+
+  encrypt_boot = true
 }
 
 build {
