@@ -4,6 +4,11 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.4 - 2023-04-12
+
+### Changed
+- Updated the github ssh-rsa public key in the pre-populated buildkitd known_hosts entries.
+
 ## v0.7.3 - 2023-04-12
 
 ### Added
