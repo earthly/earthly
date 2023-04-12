@@ -53,7 +53,6 @@ import (
 	"github.com/moby/buildkit/session/localhost"
 	solverpb "github.com/moby/buildkit/solver/pb"
 	"github.com/moby/buildkit/util/apicaps"
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -382,10 +381,10 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		Config: dockerui.Config{
 			BuildArgs:        overriding.Map(),
 			Target:           dfTarget,
-			TargetPlatforms:  []specs.Platform{plat},
 			ImageResolveMode: c.opt.ImageResolveMode,
 		},
-		Client: bc,
+		TargetPlatform: &plat,
+		Client:         bc,
 	})
 	done()
 	if err != nil {
