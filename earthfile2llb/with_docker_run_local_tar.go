@@ -15,7 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type withDockerRunLocal struct {
+type withDockerRunLocalTar struct {
 	c   *Converter
 	sem semutil.Semaphore
 
@@ -25,12 +25,12 @@ type withDockerRunLocal struct {
 	tarLoads []tarLoadLocal
 }
 
-func newWithDockerRunLocal(c *Converter, enableParallel bool) *withDockerRunLocal {
+func newWithDockerRunLocal(c *Converter, enableParallel bool) *withDockerRunLocalTar {
 	// This semaphore ensures that there is at least one thread allowed to progress,
 	// even if parallelism is completely starved.
 	sem := semutil.NewMultiSem(c.opt.Parallelism, semutil.NewWeighted(1))
 
-	return &withDockerRunLocal{
+	return &withDockerRunLocalTar{
 		c:              c,
 		sem:            sem,
 		enableParallel: enableParallel,
@@ -42,7 +42,7 @@ type tarLoadLocal struct {
 	imgFile string
 }
 
-func (wdrl *withDockerRunLocal) Run(ctx context.Context, args []string, opt WithDockerOpt) error {
+func (wdrl *withDockerRunLocalTar) Run(ctx context.Context, args []string, opt WithDockerOpt) error {
 	err := wdrl.c.checkAllowed(runCmd)
 	if err != nil {
 		return err
@@ -100,7 +100,7 @@ func (wdrl *withDockerRunLocal) Run(ctx context.Context, args []string, opt With
 	return nil
 }
 
-func (wdrl *withDockerRunLocal) load(ctx context.Context, opt DockerLoadOpt) (chan DockerLoadOpt, error) {
+func (wdrl *withDockerRunLocalTar) load(ctx context.Context, opt DockerLoadOpt) (chan DockerLoadOpt, error) {
 	optPromise := make(chan DockerLoadOpt, 1)
 	depTarget, err := domain.ParseTarget(opt.Target)
 	if err != nil {
@@ -148,7 +148,7 @@ func (wdrl *withDockerRunLocal) load(ctx context.Context, opt DockerLoadOpt) (ch
 	return optPromise, nil
 }
 
-func (wdrl *withDockerRunLocal) solveImage(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
+func (wdrl *withDockerRunLocalTar) solveImage(ctx context.Context, mts *states.MultiTarget, opName string, dockerTag string, opts ...llb.RunOption) error {
 	outDir, err := os.MkdirTemp(os.TempDir(), "earthly-docker-load")
 	if err != nil {
 		return errors.Wrap(err, "mk temp dir for docker load")

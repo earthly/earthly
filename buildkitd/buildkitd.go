@@ -946,7 +946,7 @@ func addRequiredOpts(settings Settings, installationName string, opts ...client.
 	}
 
 	if settings.TLSCA == "" && settings.ClientTLSCert == "" && settings.ClientTLSKey == "" {
-		return append(opts, client.WithCredentials("", "", "", "")), nil
+		return append(opts, client.WithServerConfigSystem("")), nil
 	}
 	caPath, err := makeTLSPath(settings.TLSCA, installationName)
 	if err != nil {
@@ -963,14 +963,19 @@ func addRequiredOpts(settings Settings, installationName string, opts ...client.
 		return []client.ClientOpt{}, errors.Wrap(err, "keyPath")
 	}
 
-	return append(opts, client.WithCredentials(server.Hostname(), caPath, certPath, keyPath)), nil
+	opts = append(opts,
+		client.WithCredentials(certPath, keyPath),
+		client.WithServerConfig(server.Hostname(), caPath),
+	)
+
+	return opts, nil
 }
 
 // PrintSatelliteInfo prints the instance's details,
 // including its Buildkit version, current workload, and garbage collection.
 func PrintSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, earthlyVersion string, settings Settings, installationName string) error {
 	console.Printf("Connecting to %s...", settings.SatelliteDisplayName)
-	opts, err := addRequiredOpts(settings, installationName, []client.ClientOpt{})
+	opts, err := addRequiredOpts(settings, installationName)
 	if err != nil {
 		return errors.Wrap(err, "add required client opts")
 	}

@@ -1,0 +1,7 @@
+This Dockerfile is used in the interactive compose test.
+It used to be referenced in the docker-compose file; however, it was
+prebuilt with:
+
+    docker buildx build --tag earthly/rot13:latest --push .
+
+to speed up the test.
