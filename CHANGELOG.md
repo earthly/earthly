@@ -4,9 +4,31 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.3 - 2023-04-12
+
+### Added
+- A host of changes to variables under the `--arg-scope-and-set` feature flag:
+  - Redeclaring an `ARG` in the same scope as a previous declaration is now an error.
+  - `ARG`s inside of targets will no longer have their default value overridden by global `ARG`s.
+  - A new command, `LET`, is available for declaring non-argument variables.
+    - `LET` takes precedence over `ARG`, just like `ARG` takes precedence over `ARG --global`.
+  - A new command, `SET`, is available for changing the value of variables declared with `LET`.
+- Introduced `--size` and `--age` flags to the prune command, to allow better control.
+
 ### Changed
 
+- Updated buildkit with changes up to 3187d2d056de7e3f976ef62cd548499dc3472a7e.
 - The `VERSION --git-branch` feature flag has been removed (`EARTHLY_GIT_BRANCH` was always available in the previous version).
+- Improved earthly API connection timeout logic.
+- `earthly doc` now includes `ARG`s in both summary and detail output, and `ARTIFACT`s and `IMAGE`s in its detail output.
+
+### Fixed
+
+- Fixed `Could not detect digest for image` warnings for when using `WITH DOCKER --load` which referenced an earthly target that
+  included a `FROM` referencing an image following the `docker.io/<user>/<img>` naming scheme (rather than the `docker.io/library/<user>/<img>` scheme).
+- Fixed `COPY --if-exists` to work with earthly targets.  [#2541](https://github.com/earthly/earthly/issues/2541)
+- Intentional-indentation of comments is no longer removed by the doc command. [#2747](https://github.com/earthly/earthly/issues/2747)
+- `SAVE ARTIFACT ... AS LOCAL ...` could not write to non-current directories upon failure of a TRY/FINALLY block. [#2800](https://github.com/earthly/earthly/issues/2800)
 
 ## v0.7.2 - 2023-03-14
 
@@ -15,12 +37,6 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Support for [Rosetta](https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment) translation environment (emulator) in buildkit as an alternative to QEMU. To enable, go to Docker Desktop -> Settings -> Features in development -> Check `Use Rosetta for x86/amd64 emulation on Apple Silicon`.
 - New ARG `EARTHLY_GIT_BRANCH` will contain the branch of the current git commit, this ARG must be enabled with the `VERSION --git-branch` feature flag. [#2735](https://github.com/earthly/earthly/pull/2735)
 - Verbose logging when git configurations perform a regex substitution.
-- A host of changes to variables under the `--arg-scope-and-set` feature flag:
-  - Redeclaring an `ARG` in the same scope as a previous declaration is now an error.
-  - `ARG`s inside of targets will no longer have their default value overridden by global `ARG`s.
-  - A new command, `LET`, is available for declaring non-argument variables.
-    - `LET` takes precedence over `ARG`, just like `ARG` takes precedence over `ARG --global`.
-  - A new command, `SET`, is available for changing the value of variables declared with `LET`.
 
 ### Fixed
 
@@ -32,7 +48,6 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Improved warning messages when earthly cloud-based registry auth fails. [#2783](https://github.com/earthly/earthly/issues/2783)
 - Deleting a project will prompt for confirmation, unless --force is specified.
 - Updated buildkit with changes up to 4451e1be0e6889ffc56225e54f7e26bd6fdada54.
-- `earthly doc` now includes `ARG`s in both summary and detail output, and `ARTIFACT`s and `IMAGE`s in its detail output.
 
 ## v0.7.1 - 2023-03-01
 
