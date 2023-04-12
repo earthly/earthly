@@ -93,6 +93,43 @@ test-target-with-build-args:
     RUN COMP_LINE="earthly +othertargetwithargs --city=foo" COMP_POINT=39 earthly > actual
     RUN diff expected actual
 
+test-target-with-build-args-artifact-mode:
+    COPY fake.earth ./Earthfile
+
+    # autocomplete doesn't actually enforce artifact mode when offering completions
+    # for a target with an (assumed) artifact path
+    RUN echo "--city=
+--country=" > expected
+    RUN COMP_LINE="earthly +othertargetwithargs/out -" COMP_POINT=34 earthly > actual
+    RUN diff expected actual
+
+    RUN echo "--city=
+--country=" > expected
+    RUN COMP_LINE="earthly -a +othertargetwithargs/out -" COMP_POINT=37 earthly > actual
+    RUN diff expected actual
+
+    RUN echo "--city=
+--country=" > expected
+    RUN COMP_LINE="earthly -a +othertargetwithargs/some/directory/out -" COMP_POINT=52 earthly > actual
+    RUN diff expected actual
+
+    RUN echo "--city=
+--country=" > expected
+    RUN COMP_LINE="earthly -a +othertargetwithargs/out --c" COMP_POINT=39 earthly > actual
+    RUN diff expected actual
+
+    RUN echo "--city=" > expected
+    RUN COMP_LINE="earthly -a +othertargetwithargs/out --ci" COMP_POINT=40 earthly > actual
+    RUN diff expected actual
+
+    RUN > expected
+    RUN COMP_LINE="earthly -a +othertargetwithargs/out --city=" COMP_POINT=43 earthly > actual
+    RUN diff expected actual
+
+    RUN > expected
+    RUN COMP_LINE="earthly -a +othertargetwithargs/out --city=foo" COMP_POINT=46 earthly > actual
+    RUN diff expected actual
+
 test-targets-from-other-dir:
     RUN mkdir -p child/dir
     COPY fake.earth child/dir/Earthfile
@@ -221,6 +258,7 @@ test-all:
     BUILD +test-targets
     BUILD +test-targets-from-other-dir
     BUILD +test-target-with-build-args
+    BUILD +test-target-with-build-args-artifact-mode
     BUILD +test-target-with-build-args-from-other-dir
     BUILD +test-target-with-required-arg
     BUILD +test-base-only-target

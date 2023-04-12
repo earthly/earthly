@@ -217,7 +217,15 @@ func getPotentialPaths(ctx context.Context, resolver *buildcontext.Resolver, gwC
 func getPotentialBuildArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, targetStr string) ([]string, error) {
 	target, err := domain.ParseTarget(targetStr)
 	if err != nil {
-		return nil, err
+		// An artifact path ("earthly -a +target/out -<TAB>") will land us here as the separator fails
+		// target name validation.  We'll (naively) assume an error was due to being an artifact, parse it,
+		// and use that target instead.
+		// Note that there's no enforcement that the --artifact flag was actually used.
+		artifact, err := domain.ParseArtifact(targetStr)
+		if err != nil {
+			return nil, err
+		}
+		target = artifact.Target
 	}
 	envArgs, err := earthfile2llb.GetTargetArgs(ctx, resolver, gwClient, target)
 	if err != nil {
