@@ -27,9 +27,9 @@ def test_interactive(earthly_path, timeout):
             time.sleep(5)
 
             # test we can obtain decoded text from the rot13 echo server that is created via docker-compose
-            c.sendline('docker exec test_rot13_1 sh -c \'(echo Nstunavfgna; sleep 1) | ncat localhost 5432\'')
+            c.sendline('docker exec test_rot13_1 sh -c \'(echo guvf vf zl Frpe3g Z3ff4tr; sleep 1) | ncat localhost 5432\'')
             try:
-                c.expect('Afghanistan', timeout=timeout)
+                c.expect('this is my Secr3t M3ss4ge', timeout=timeout)
             except Exception as e:
                 raise RuntimeError('failed to find Afghanistan in output (indicating we were unable to obtain decoded text from the rot13 echo server that was started via docker compose)')
 
