@@ -230,7 +230,7 @@ envsubst </etc/buildkitd.toml.template >/etc/buildkitd.toml
 # Set up OOM
 OOM_SCORE_ADJ="${BUILDKIT_OOM_SCORE_ADJ:-0}"
 export OOM_SCORE_ADJ
-if [ ! -z "$OOM_EXCLUDED_PIDS" ]; then
+if [ -n "$OOM_EXCLUDED_PIDS" ]; then
   echo "The following PIDs will be ignored by the OOM reaper: $OOM_EXCLUDED_PIDS"
 fi
 
@@ -295,7 +295,7 @@ do
         # Sometimes, child processes can be reparented to the init (this script). One
         # common instance is when something is OOM killed, for instance. This enumerates
         # all those PIDs, and kills them to prevent accidential "ghost" loads.
-        if [ "$PID" != "$execpid" ] && [ "$(ignored_by_oom $PID)" = "false" ]; then
+        if [ "$PID" != "$execpid" ] && [ "$(ignored_by_oom "$PID")" = "false" ]; then
             if [ "$OOM_SCORE_ADJ" -ne "0" ]; then
                 ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) killed with OOM_SCORE_ADJ=$OOM_SCORE_ADJ" >> /var/log/oom_adj
                 kill -9 "$PID"
