@@ -1700,8 +1700,14 @@ func (c *Converter) StackString() string {
 func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, error) {
 	c.markFakeDeps()
 
-	if c.shortCircuit {
+	if c.shortCircuit && c.shortCircuitHash != nil {
 		fmt.Printf("TODO check if %x has already run sucessfully\n", c.shortCircuitHash)
+
+		if c.shortCircuitHash[0] == 0xa4 {
+			fmt.Printf("returning nil (to simulate detecting a previous successful run)\n")
+			return nil, nil
+		}
+
 	} else {
 		fmt.Printf("unable to short circuit\n")
 	}

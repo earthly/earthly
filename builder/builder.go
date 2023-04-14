@@ -240,6 +240,11 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 		// *** DO NOT ADD CODE TO THE bf BELOW ***
 
+		if mts == nil {
+			// short circuiting occured
+			return nil, nil
+		}
+
 		gwCrafter := gatewaycrafter.NewGatewayCrafter()
 		if !b.builtMain {
 			ref, err := b.stateToRef(childCtx, gwClient, mts.Final.MainState, mts.Final.PlatformResolver)
@@ -525,6 +530,12 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		b.opt.Console.PrintPhaseFooter(PhaseBuild, false, "")
 	}
 	b.builtMain = true
+
+	if mts == nil {
+		// short-circuited
+		b.opt.Console.Printf("skipping build due to no detected changes since last successful run\n")
+		return nil, nil
+	}
 
 	if opt.PrintPhases {
 		b.opt.Console.PrintPhaseHeader(PhasePush, !opt.Push, "")
