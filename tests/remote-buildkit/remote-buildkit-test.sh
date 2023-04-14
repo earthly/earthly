@@ -22,7 +22,7 @@ echo "=== Test 1: TLS Enabled ==="
 # bootstrapping should generate six pem files
 test $(ls ~/.earthly-dev/certs/*.pem | wc -l) = "6"
 
-"$earthly" --verbose --buildkit-host tcp://127.0.0.1:8372 +target 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /running under remote-buildkit test/;'
+"$earthly" --no-cache --verbose --buildkit-host tcp://127.0.0.1:8372 +target 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /running under remote-buildkit test/;'
 
 rm -rf ~/.earthly-dev/certs
 
@@ -36,10 +36,13 @@ echo "=== Test 2: TLS Enabled with different hostname ==="
 # bootstrapping should generate six pem files
 test $(ls ~/.earthly-dev/certs/*.pem | wc -l) = "6"
 
-"$earthly" --verbose --buildkit-host tcp://127.0.0.1:8372 +target 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /running under remote-buildkit test/;'
-"$earthly" --verbose --buildkit-host "tcp://$host:8372" +target 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /running under remote-buildkit test/;'
+"$earthly" --no-cache --verbose --buildkit-host tcp://127.0.0.1:8372 +target 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /running under remote-buildkit test/;'
+"$earthly" --no-cache --verbose --buildkit-host "tcp://$host:8372" +target 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /running under remote-buildkit test/;'
 
 rm -rf ~/.earthly-dev/certs
+
+# force buildkit restart before next test
+"$earthly" bootstrap || (echo "ignoring bootstrap failure")
 
 echo "=== Test 3: TLS Disabled ==="
 "$earthly" config global.tls_enabled false
@@ -49,4 +52,4 @@ echo "=== Test 3: TLS Disabled ==="
 # bootstrapping should not generate any pem files
 test $(ls ~/.earthly-dev/certs/*.pem | wc -l) = "0"
 
-"$earthly" --verbose --buildkit-host tcp://127.0.0.1:8372 +target 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /running under remote-buildkit test/;'
+"$earthly" --no-cache --verbose --buildkit-host tcp://127.0.0.1:8372 +target 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /running under remote-buildkit test/;'
