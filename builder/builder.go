@@ -218,6 +218,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				MainTargetDetailsFuture:              opt.MainTargetDetailsFuture,
 				Runner:                               opt.Runner,
 				CloudStoredAuthProvider:              opt.CloudStoredAuthProvider,
+				ShortCircuit:                         true,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {

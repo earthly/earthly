@@ -114,6 +114,7 @@ type Converter struct {
 	isPipeline          bool
 	logbusTarget        *logbus.Target
 	shortCircuit        bool
+	shortCircuitHash    []byte
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -151,6 +152,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	}
 	logbusTarget.SetStart(time.Now())
 
+	fmt.Printf("new Converted with shortCircuit %v\n", opt.ShortCircuit)
 	c := &Converter{
 		target:              target,
 		gitMeta:             bc.GitMetadata,
@@ -550,11 +552,32 @@ func sha1sum(path string) []byte {
 	return h.Sum(nil)
 }
 
-func getInputHash(srcs []string) []byte {
-	if len(srcs) != 1 {
-		panic("only a single src for now")
+func (c *Converter) updateInputHashWithFiles(srcs []string) {
+	h := sha1.New()
+	if c.shortCircuitHash != nil {
+		h.Write(c.shortCircuitHash)
 	}
-	return sha1sum(srcs[0])
+	for _, src := range srcs {
+		fmt.Printf("hashing COPY %v\n", src)
+		// TODO handle hashing destination name
+		h.Write(sha1sum(filepath.Join(c.localWorkingDir, src)))
+	}
+	c.shortCircuitHash = h.Sum(nil)
+}
+func (c *Converter) updateInputHashWithRunCommand(opts *ConvertRunOpts) {
+	fmt.Printf("hashing RUN %v\n", opts.Args)
+	h := sha1.New()
+	if c.shortCircuitHash != nil {
+		h.Write(c.shortCircuitHash)
+	}
+	h.Write([]byte(fmt.Sprintf("%d", len(opts.Args))))
+	for _, arg := range opts.Args {
+		h.Write([]byte(fmt.Sprintf("%d", len(arg))))
+		h.Write([]byte(arg))
+	}
+	c.shortCircuitHash = h.Sum(nil)
+
+	// TODO use the rest of opts in determining the hash
 }
 
 // CopyClassical applies the earthly COPY command, with classical args.
@@ -568,8 +591,8 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		return fmt.Errorf("COPY --chmod is not supported in this version")
 	}
 
-	hsh := getInputHash(srcs)
-	fmt.Printf("input is %x\n", hsh)
+	c.updateInputHashWithFiles(srcs)
+	fmt.Printf("input is %x\n", c.shortCircuitHash)
 
 	var srcState pllb.State
 	if c.ftrs.UseCopyIncludePatterns {
@@ -631,6 +654,7 @@ func (c *Converter) Run(ctx context.Context, opts ConvertRunOpts) error {
 		return err
 	}
 	c.updateShortCircuit(runCmd)
+	c.updateInputHashWithRunCommand(&opts)
 	c.nonSaveCommand()
 
 	for _, cache := range c.persistentCacheDirs {
@@ -1676,6 +1700,12 @@ func (c *Converter) StackString() string {
 func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, error) {
 	c.markFakeDeps()
 
+	if c.shortCircuit {
+		fmt.Printf("TODO check if %x has already run sucessfully\n", c.shortCircuitHash)
+	} else {
+		fmt.Printf("unable to short circuit\n")
+	}
+
 	if !c.varCollection.IsStackAtBase() {
 		// Should never happen.
 		return nil, errors.New("internal error: stack not at base in FinalizeStates")
@@ -2490,6 +2520,7 @@ func (c *Converter) updateShortCircuit(command cmdType) {
 	case copyCmd, runCmd, fromCmd:
 		break
 	default:
+		fmt.Printf("setting shortCircuit to false to do command %v\n", command)
 		c.shortCircuit = false
 	}
 }
