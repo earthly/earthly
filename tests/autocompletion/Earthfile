@@ -82,11 +82,9 @@ test-target-with-build-args:
 test-target-with-build-args-artifact-mode:
     COPY fake.earth ./Earthfile
 
-    # autocomplete doesn't actually enforce artifact mode when offering completions
-    # for a target with an (assumed) artifact path
     RUN echo "--city=
 --country=" > expected
-    DO +COMPLETION_TEST --COMP_LINE="earthly +othertargetwithargs/out -"
+    DO +COMPLETION_TEST --COMP_LINE="earthly --artifact +othertargetwithargs/out -"
     DO +COMPLETION_TEST --COMP_LINE="earthly -a +othertargetwithargs/out -"
     DO +COMPLETION_TEST --COMP_LINE="earthly -a +othertargetwithargs/some/directory/out -"
     DO +COMPLETION_TEST --COMP_LINE="earthly -a +othertargetwithargs/out --c"
@@ -97,6 +95,25 @@ test-target-with-build-args-artifact-mode:
     RUN > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly -a +othertargetwithargs/out --city="
     DO +COMPLETION_TEST --COMP_LINE="earthly -a +othertargetwithargs/out --city=foo"
+
+    # All previous scenarios should never complete without '-a' or '--artifact'
+    RUN > expected
+    DO +COMPLETION_TEST --should_fail='true' --COMP_LINE="earthly +othertargetwithargs/out -"
+    DO +COMPLETION_TEST --should_fail='true' --COMP_LINE="earthly +othertargetwithargs/out -"
+    DO +COMPLETION_TEST --should_fail='true' --COMP_LINE="earthly +othertargetwithargs/some/directory/out -"
+    DO +COMPLETION_TEST --should_fail='true' --COMP_LINE="earthly +othertargetwithargs/out --c"
+    DO +COMPLETION_TEST --should_fail='true' --COMP_LINE="earthly +othertargetwithargs/out --ci"
+    # This is also an 'invalid' scenarios, but special.  The previous tests should fail because the
+    # command is at a point where a completion is warranted, but there's nothing to offer up as the command
+    # is invalid up to that point.  This commands is also invalid, but is at a 'terminal' point; there
+    # are no completions that could possibly be offered, even if the command was valid.
+    DO +COMPLETION_TEST --should_fail='false' --COMP_LINE="earthly +othertargetwithargs/out --city="
+    # This test should probably be deleted, as it more documents existing behavior rather than asserting
+    # expectations; it may break in the future.  You'd think this is also a 'terminal' state, since even
+    # a legitimate command does not offer up suggestions.  But it's not terminal; completions are still
+    # calculated (thus why this is --should_fail), but nothing is actually offered unless an actual '-'
+    # was typed first.
+    DO +COMPLETION_TEST --should_fail='true' --COMP_LINE="earthly +othertargetwithargs/out --city=foo"
 
 test-targets-from-other-dir:
     RUN mkdir -p child/dir
@@ -201,7 +218,21 @@ COMPLETION_TEST:
     ARG COMP_POINT="$(echo -n "$COMP_LINE" | wc -m)"
     ARG expected_file='expected'
     ARG actual_file='actual'
-    RUN COMP_LINE="$COMP_LINE" COMP_POINT=$COMP_POINT earthly > "$actual_file"
+    ARG should_fail='false'
+    RUN COMP_LINE="$COMP_LINE" COMP_POINT=$COMP_POINT earthly > "$actual_file"; ret=$?; \
+        if $should_fail; then \
+            if [ $ret -eq 0 ]; then \
+                echo 'completion should have failed (but passed)'; \
+                exit 1; \
+            fi; \
+            exit 0; \
+        else \
+            if [ $ret -ne 0 ]; then \
+                echo 'completion should have passed (but failed)'; \
+                exit $ret; \
+            fi; \
+            exit 0; \
+        fi
     RUN diff "$expected_file" "$actual_file"
 
 test-all:

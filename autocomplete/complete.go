@@ -214,24 +214,24 @@ func getPotentialPaths(ctx context.Context, resolver *buildcontext.Resolver, gwC
 	return paths, nil
 }
 
-func getPotentialBuildArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, targetStr string) ([]string, error) {
+func getPotentialTargetBuildArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, targetStr string) ([]string, error) {
 	target, err := domain.ParseTarget(targetStr)
 	if err != nil {
-		// An artifact path ("earthly -a +target/out -<TAB>") will land us here as the separator fails
-		// target name validation.  We'll (naively) assume an error was due to being an artifact, parse it,
-		// and use that target instead.
-		// Note that there's no enforcement that the --artifact flag was actually used.
-		artifact, err := domain.ParseArtifact(targetStr)
-		if err != nil {
-			return nil, err
-		}
-		target = artifact.Target
+		return nil, err
 	}
 	envArgs, err := earthfile2llb.GetTargetArgs(ctx, resolver, gwClient, target)
 	if err != nil {
 		return nil, err
 	}
 	return envArgs, nil
+}
+
+func getPotentialArtifactBuildArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, artifactStr string) ([]string, error) {
+	artifact, err := domain.ParseArtifact(artifactStr)
+	if err != nil {
+		return nil, err
+	}
+	return getPotentialTargetBuildArgs(ctx, resolver, gwClient, artifact.Target.String())
 }
 
 // isVisibleFlag returns if a flag is hidden or not
@@ -331,7 +331,8 @@ const (
 	commandState                        // 4
 	targetState                         // 5
 	targetFlagState                     // 6
-	endOfSuggestionsState               // 7
+	artifactFlagState                   // 7
+	endOfSuggestionsState               // 8
 )
 
 // GetPotentials returns a list of potential arguments for shell auto completion
@@ -367,6 +368,7 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 
 	state := rootState
 	var target string
+	var artifactMode bool
 
 	var cmd *cli.Command
 	getFlags := func() []cli.Flag {
@@ -391,6 +393,9 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 			state = flagValueState
 		} else if state == rootState || state == commandState || state == flagState {
 			if strings.HasPrefix(w, "-") {
+				if w == "-a" || w == "--artifact" {
+					artifactMode = true
+				}
 				state = flagState
 			} else {
 				// targets only work under the root command
@@ -414,7 +419,11 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 				if strings.HasSuffix(w, "=") {
 					state = endOfSuggestionsState
 				} else {
-					state = targetFlagState
+					if artifactMode {
+						state = artifactFlagState
+					} else {
+						state = targetFlagState
+					}
 				}
 			}
 		}
@@ -459,7 +468,15 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 
 	case targetFlagState:
 		var err error
-		potentials, err = getPotentialBuildArgs(ctx, resolver, gwClient, target)
+		potentials, err = getPotentialTargetBuildArgs(ctx, resolver, gwClient, target)
+		if err != nil {
+			return nil, err
+		}
+		potentials = padStrings(potentials, "--", "=")
+
+	case artifactFlagState:
+		var err error
+		potentials, err = getPotentialArtifactBuildArgs(ctx, resolver, gwClient, target)
 		if err != nil {
 			return nil, err
 		}
