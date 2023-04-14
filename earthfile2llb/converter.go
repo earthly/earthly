@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"net"
 	"net/url"
@@ -112,6 +113,7 @@ type Converter struct {
 	waitBlockStack      []*waitBlock
 	isPipeline          bool
 	logbusTarget        *logbus.Target
+	shortCircuit        bool
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -164,6 +166,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		containerFrontend:   opt.ContainerFrontend,
 		waitBlockStack:      []*waitBlock{opt.waitBlock},
 		logbusTarget:        logbusTarget,
+		shortCircuit:        opt.ShortCircuit,
 	}
 
 	if c.opt.GlobalWaitBlockFtr {
@@ -178,6 +181,7 @@ func (c *Converter) From(ctx context.Context, imageName string, platform platuti
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(fromCmd)
 	c.nonSaveCommand()
 	if len(c.persistentCacheDirs) > 0 {
 		c.persistentCacheDirs = make(map[string]llb.RunOption)
@@ -257,6 +261,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(fromDockerfileCmd)
 	err = c.checkOldPlatformIncompatibility(platform)
 	if err != nil {
 		return err
@@ -414,6 +419,7 @@ func (c *Converter) Locally(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(locallyCmd)
 	if !c.opt.AllowLocally {
 		return errors.New("LOCALLY cannot be used when --strict is specified or otherwise implied")
 	}
@@ -443,6 +449,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(copyCmd)
 	c.nonSaveCommand()
 	artifact, err := domain.ParseArtifact(artifactName)
 	if err != nil {
@@ -490,6 +497,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(copyCmd)
 	if chmod != nil && !c.ftrs.UseChmod {
 		return fmt.Errorf("COPY --chmod is not supported in this version")
 	}
@@ -527,16 +535,41 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	return nil
 }
 
+// TODO cache (similar to how git works; even better if we use git's cache)
+func sha1sum(path string) []byte {
+	f, err := os.Open(path)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	h := sha1.New()
+	if _, err := io.Copy(h, f); err != nil {
+		panic(err)
+	}
+	return h.Sum(nil)
+}
+
+func getInputHash(srcs []string) []byte {
+	if len(srcs) != 1 {
+		panic("only a single src for now")
+	}
+	return sha1sum(srcs[0])
+}
+
 // CopyClassical applies the earthly COPY command, with classical args.
 func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, keepTs bool, keepOwn bool, chown string, chmod *fs.FileMode, ifExists bool) error {
 	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
 	}
-
+	c.updateShortCircuit(copyCmd)
 	if chmod != nil && !c.ftrs.UseChmod {
 		return fmt.Errorf("COPY --chmod is not supported in this version")
 	}
+
+	hsh := getInputHash(srcs)
+	fmt.Printf("input is %x\n", hsh)
 
 	var srcState pllb.State
 	if c.ftrs.UseCopyIncludePatterns {
@@ -597,6 +630,7 @@ func (c *Converter) Run(ctx context.Context, opts ConvertRunOpts) error {
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(runCmd)
 	c.nonSaveCommand()
 
 	for _, cache := range c.persistentCacheDirs {
@@ -612,6 +646,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 	if err != nil {
 		return 0, err
 	}
+	c.updateShortCircuit(runCmd)
 	c.nonSaveCommand()
 	for _, cache := range c.persistentCacheDirs {
 		opts.extraRunOpts = append(opts.extraRunOpts, cache)
@@ -697,6 +732,7 @@ func (c *Converter) runCommand(ctx context.Context, outputFileName string, isExp
 	if err != nil {
 		return "", err
 	}
+	c.updateShortCircuit(runCmd)
 	c.nonSaveCommand()
 
 	if !opts.WithShell {
@@ -772,6 +808,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(saveArtifactCmd)
 	absSaveFrom, err := llbutil.Abs(ctx, c.mts.Final.MainState, saveFrom)
 	if err != nil {
 		return err
@@ -938,6 +975,7 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(saveArtifactCmd)
 	src, err := filepath.Abs(saveFrom)
 	if err != nil {
 		return err
@@ -1026,6 +1064,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(saveImageCmd)
 	if noManifestList && !c.ftrs.UseNoManifestList {
 		return fmt.Errorf("SAVE IMAGE --no-manifest-list is not supported in this version")
 	}
@@ -1115,6 +1154,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform p
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(buildCmd)
 	c.nonSaveCommand()
 	_, err = c.buildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, true, buildCmd)
 	return err
@@ -1167,6 +1207,7 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(workdirCmd)
 	c.nonSaveCommand()
 	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workdirPath)
 	workdirAbs := workdirPath
@@ -1197,6 +1238,7 @@ func (c *Converter) User(ctx context.Context, user string) error {
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(userCmd)
 	c.nonSaveCommand()
 	c.mts.Final.MainState = c.mts.Final.MainState.User(user)
 	c.mts.Final.MainImage.Config.User = user
@@ -1209,6 +1251,7 @@ func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool)
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(cmdCmd)
 	c.nonSaveCommand()
 	c.mts.Final.MainImage.Config.Cmd = withShell(cmdArgs, isWithShell)
 	c.cmdSet = true
@@ -1221,6 +1264,7 @@ func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isW
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(entrypointCmd)
 	c.nonSaveCommand()
 	c.mts.Final.MainImage.Config.Entrypoint = withShell(entrypointArgs, isWithShell)
 	if !c.cmdSet {
@@ -1235,6 +1279,7 @@ func (c *Converter) Expose(ctx context.Context, ports []string) error {
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(exposeCmd)
 	c.nonSaveCommand()
 	for _, port := range ports {
 		c.mts.Final.MainImage.Config.ExposedPorts[port] = struct{}{}
@@ -1248,6 +1293,7 @@ func (c *Converter) Volume(ctx context.Context, volumes []string) error {
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(volumeCmd)
 	c.nonSaveCommand()
 	for _, volume := range volumes {
 		c.mts.Final.MainImage.Config.Volumes[volume] = struct{}{}
@@ -1261,6 +1307,7 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) err
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(envCmd)
 	c.nonSaveCommand()
 	c.varCollection.DeclareEnv(envKey, envValue)
 	c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
@@ -1275,6 +1322,7 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(argCmd)
 	c.nonSaveCommand()
 
 	var pncvf variables.ProcessNonConstantVariableFunc
@@ -1316,6 +1364,7 @@ func (c *Converter) Let(ctx context.Context, key string, value string) error {
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(letCmd)
 	c.nonSaveCommand()
 
 	if reserved.IsBuiltIn(key) {
@@ -1342,6 +1391,7 @@ func (c *Converter) UpdateArg(ctx context.Context, argKey string, argValue strin
 	if err := c.checkAllowed(setCmd); err != nil {
 		return err
 	}
+	c.updateShortCircuit(setCmd)
 	c.nonSaveCommand()
 
 	var pncvf variables.ProcessNonConstantVariableFunc
@@ -1362,6 +1412,7 @@ func (c *Converter) SetArg(ctx context.Context, argKey string, argValue string) 
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(argCmd)
 	c.nonSaveCommand()
 	c.varCollection.SetArg(argKey, argValue)
 	return nil
@@ -1373,6 +1424,7 @@ func (c *Converter) UnsetArg(ctx context.Context, argKey string) error {
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(argCmd)
 	c.nonSaveCommand()
 	c.varCollection.UnsetArg(argKey)
 	return nil
@@ -1384,6 +1436,7 @@ func (c *Converter) Label(ctx context.Context, labels map[string]string) error {
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(labelCmd)
 	c.nonSaveCommand()
 	for key, value := range labels {
 		c.mts.Final.MainImage.Config.Labels[key] = value
@@ -1397,6 +1450,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(gitCloneCmd)
 	c.nonSaveCommand()
 	gitURLScrubbed := stringutil.ScrubCredentials(gitURL)
 	gitOpts := []llb.GitOption{
@@ -1423,6 +1477,7 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(runCmd)
 
 	c.nonSaveCommand()
 
@@ -1447,6 +1502,7 @@ func (c *Converter) WithDockerRunLocal(ctx context.Context, args []string, opt W
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(runCmd)
 	c.nonSaveCommand()
 	enableParallel := allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad
 
@@ -1465,6 +1521,7 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(healthcheckCmd)
 	c.nonSaveCommand()
 	hc := &dockerimage.HealthConfig{}
 	if isNone {
@@ -1488,6 +1545,7 @@ func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal, 
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(importCmd)
 	return c.varCollection.Imports().Add(importStr, as, isGlobal, currentlyPrivileged, allowPrivilegedFlag)
 }
 
@@ -1499,6 +1557,7 @@ func (c *Converter) Cache(ctx context.Context, mountTarget string, sharing strin
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(cacheCmd)
 	c.nonSaveCommand()
 
 	key, err := cacheKeyTargetInput(c.targetInputActiveOnly())
@@ -1532,6 +1591,7 @@ func (c *Converter) Host(ctx context.Context, hostname string, ip net.IP) error 
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(hostCmd)
 	c.nonSaveCommand()
 	c.mts.Final.MainState = c.mts.Final.MainState.AddExtraHost(hostname, ip)
 	return nil
@@ -1543,6 +1603,7 @@ func (c *Converter) Project(ctx context.Context, org, project string) error {
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(projectCmd)
 	c.nonSaveCommand()
 	c.varCollection.SetOrg(org)
 	c.varCollection.SetProject(project)
@@ -1556,6 +1617,7 @@ func (c *Converter) Pipeline(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	c.updateShortCircuit(pipelineCmd)
 	c.isPipeline = true
 	c.mts.Final.RanFromLike = true
 	return nil
@@ -2418,6 +2480,18 @@ func (c *Converter) setPlatform(platform platutil.Platform) platutil.Platform {
 
 func (c *Converter) joinRefs(relRef domain.Reference) (domain.Reference, error) {
 	return domain.JoinReferences(c.varCollection.AbsRef(), relRef)
+}
+
+func (c *Converter) updateShortCircuit(command cmdType) {
+	if !c.shortCircuit {
+		return
+	}
+	switch command {
+	case copyCmd, runCmd, fromCmd:
+		break
+	default:
+		c.shortCircuit = false
+	}
 }
 
 func (c *Converter) checkAllowed(command cmdType) error {

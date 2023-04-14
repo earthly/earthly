@@ -64,6 +64,8 @@ type ConvertOpt struct {
 	// UseInlineCache enables the inline caching feature (use any SAVE IMAGE --push declaration as
 	// cache import).
 	UseInlineCache bool
+	// ShortCircuit
+	ShortCircuit bool
 	// UseFakeDep is an internal feature flag for fake dep.
 	UseFakeDep bool
 	// AllowLocally is an internal feature flag for controlling if LOCALLY directives can be used.
