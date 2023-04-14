@@ -4,6 +4,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+- Remote BuildKit will use TLS by default.
+
 ## v0.7.4 - 2023-04-12
 
 ### Changed
