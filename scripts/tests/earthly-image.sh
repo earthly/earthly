@@ -21,7 +21,7 @@ cat > "$dockerconfig" <<EOF
 }
 EOF
 
-# Note that it is not possible to use GLOBAL_CONFIG, due to the fact
+# Note that it is not possible to use GLOBAL_CONFIG for this, due to the fact
 # earthly-entrypoint.sh starts buildkit instead of the earthly binary,
 # as a result the buildkit_additional_config value in ~/.earthly/config.yml is ignored.
 export EARTHLY_ADDITIONAL_BUILDKIT_CONFIG='[registry."docker.io"]

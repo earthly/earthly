@@ -357,7 +357,7 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 
 		bkURL, err := url.Parse(settings.BuildkitAddress)
 		if err != nil {
-			panic("Buildkit address was not a URL when attempting to start buildkit")
+			return errors.Wrap(err, "error parsing buildkit address url")
 		}
 		if settings.UseTCP {
 			hostPort, err := strconv.Atoi(bkURL.Port())
@@ -928,24 +928,26 @@ func makeTLSPath(path string, installationName string) (string, error) {
 }
 
 func addRequiredOpts(settings Settings, installationName string, opts ...client.ClientOpt) ([]client.ClientOpt, error) {
+	server, err := url.Parse(settings.BuildkitAddress)
+	if err != nil {
+		return []client.ClientOpt{}, errors.Wrapf(err, "failed to parse buildkit url %s", settings.BuildkitAddress)
+	}
+
 	if settings.SatelliteName != "" {
-		return append(opts, client.WithAdditionalMetadataContext(
+		opts = append(opts, client.WithAdditionalMetadataContext(
 			"satellite_name", settings.SatelliteName,
 			"satellite_org", settings.SatelliteOrgID,
 			"satellite_token", settings.SatelliteToken),
-			client.WithServerConfigSystem(""), // force buildkit to use a TLS connection (using system CAs)
-		), nil
+		)
 	}
 
 	if !settings.UseTCP || !settings.UseTLS {
 		return opts, nil
 	}
 
-	server, err := url.Parse(settings.BuildkitAddress)
-	if err != nil {
-		return []client.ClientOpt{}, errors.Wrap(err, "invalid buildkit url")
+	if settings.TLSCA == "" && settings.ClientTLSCert == "" && settings.ClientTLSKey == "" {
+		return append(opts, client.WithServerConfigSystem("")), nil
 	}
-
 	caPath, err := makeTLSPath(settings.TLSCA, installationName)
 	if err != nil {
 		return []client.ClientOpt{}, errors.Wrap(err, "caPath")

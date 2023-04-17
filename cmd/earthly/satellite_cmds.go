@@ -662,6 +662,8 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to get auth token")
 	}
 
+	app.buildkitdSettings.UseTCP = true
+	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
 	app.buildkitdSettings.Timeout = 30 * time.Second
 	app.buildkitdSettings.SatelliteToken = token
 	app.buildkitdSettings.SatelliteName = satelliteToInspectName

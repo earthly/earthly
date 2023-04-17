@@ -136,6 +136,7 @@ func ParseConfigFile(yamlData []byte, installationName string) (*Config, error) 
 			ConversionParallelism:   DefaultConversionParallelism,
 			BuildkitMaxParallelism:  DefaultBuildkitMaxParallelism,
 			BuildkitAdditionalArgs:  []string{},
+			TLSEnabled:              true,
 			TLSCA:                   DefaultCA,
 			ClientTLSCert:           DefaultClientTLSCert,
 			ClientTLSKey:            DefaultClientTLSKey,

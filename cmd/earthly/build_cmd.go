@@ -229,12 +229,12 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 
 	err = app.initFrontend(cliCtx)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "could not init frontend")
 	}
 
 	err = app.configureSatellite(cliCtx, cloudClient, gitCommitAuthor, gitConfigEmail)
 	if err != nil {
-		return errors.Wrapf(err, "could not construct new buildkit client")
+		return errors.Wrapf(err, "could not configure satellite")
 	}
 
 	var runnerName string
