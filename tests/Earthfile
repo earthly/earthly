@@ -342,15 +342,24 @@ git-clone-test:
 
 builtin-args-test:
     DO +RUN_EARTHLY --earthfile=builtin-args.earth --target=+builtin-args-test
+    RUN sed -i "1s/VERSION \(.*\)/VERSION --arg-scope-and-set \1/" Earthfile
+    DO +RUN_EARTHLY --target=+builtin-args-test
 
 builtin-args-invalid-default-test:
     DO +RUN_EARTHLY --earthfile=builtin-args-invalid-default.earth --should_fail=true --target=+test --output_contains="arg default value supplied for built-in ARG"
+    RUN sed -i "1s/VERSION \(.*\)/VERSION --arg-scope-and-set \1/" Earthfile
+    DO +RUN_EARTHLY --should_fail=true --target=+test --output_contains="arg default value supplied for built-in ARG"
 
 builtin-args-invalid-pass-test:
     DO +RUN_EARTHLY --earthfile=builtin-args-invalid-pass.earth --should_fail=true --target=+test --output_contains="value cannot be specified for built-in build arg EARTHLY_VERSION"
+    RUN sed -i "1s/VERSION \(.*\)/VERSION --arg-scope-and-set \1/" Earthfile
+    DO +RUN_EARTHLY --should_fail=true --target=+test --output_contains="value cannot be specified for built-in build arg EARTHLY_VERSION"
 
 builtin-args-cli-tests:
     DO +RUN_EARTHLY --earthfile=builtin-args.earth --should_fail=true --extra_args="--build-arg EARTHLY_VERSION=123" --target=+builtin-args-test \
+        --output_contains="cannot be passed on the command line"
+    RUN sed -i "1s/VERSION \(.*\)/VERSION --arg-scope-and-set \1/" Earthfile
+    DO +RUN_EARTHLY --should_fail=true --extra_args="--build-arg EARTHLY_VERSION=123" --target=+builtin-args-test \
         --output_contains="cannot be passed on the command line"
 
 smoke-test:

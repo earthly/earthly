@@ -89,6 +89,9 @@ type NewCollectionOpt struct {
 func NewCollection(opts NewCollectionOpt) *Collection {
 	target := opts.Target
 	console := opts.Console
+	if opts.OverridingVars == nil {
+		opts.OverridingVars = NewScope()
+	}
 	return &Collection{
 		builtin:          BuiltinArgs(target, opts.PlatformResolver, opts.GitMeta, opts.BuiltinArgs, opts.Features, opts.Push, opts.CI),
 		envs:             NewScope(),
@@ -213,6 +216,9 @@ func (c *Collection) Expand(word string, shellOut shell.EvalShellOutFn) (string,
 
 func (c *Collection) overridingOrDefault(name string, defaultValue string, pncvf ProcessNonConstantVariableFunc) (string, error) {
 	if v, ok := c.overriding().Get(name); ok {
+		return v, nil
+	}
+	if v, ok := c.builtin.Get(name); ok {
 		return v, nil
 	}
 	return parseArgValue(name, defaultValue, pncvf)
