@@ -476,21 +476,8 @@ jobs:
     name: --push +prerelease
     if: github.event_name == 'push'
     needs:
-      - docker-tests
-      - docker-examples-1
-      - docker-examples-2
-      - docker-test-local
-      - docker-push-integrations
-      - docker-secret-integrations
-      - docker-bootstrap-integrations
-      - docker-repo-auth-tests
-      - docker-export-test
-      - docker-misc-test
-      - race-tests
-      - tutorial
       - buildkitd-amd64
       - buildkitd-arm64
-      - all-dind
       - prerelease
       - earthly
     runs-on: ubuntu-latest
