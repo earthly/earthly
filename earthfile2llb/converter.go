@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -113,8 +114,8 @@ type Converter struct {
 	waitBlockStack      []*waitBlock
 	isPipeline          bool
 	logbusTarget        *logbus.Target
-	shortCircuit        bool
-	shortCircuitHash    []byte
+	skipBuildkit        bool
+	skipBuildkitHash    []byte
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -152,7 +153,8 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	}
 	logbusTarget.SetStart(time.Now())
 
-	fmt.Printf("new Converted with shortCircuit %v\n", opt.ShortCircuit)
+	fmt.Printf("NewConverter for %s with %v\n", target, opt.BuildkitSkipper)
+
 	c := &Converter{
 		target:              target,
 		gitMeta:             bc.GitMetadata,
@@ -168,7 +170,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		containerFrontend:   opt.ContainerFrontend,
 		waitBlockStack:      []*waitBlock{opt.waitBlock},
 		logbusTarget:        logbusTarget,
-		shortCircuit:        opt.ShortCircuit,
+		skipBuildkit:        opt.BuildkitSkipper != nil,
 	}
 
 	if c.opt.GlobalWaitBlockFtr {
@@ -183,7 +185,7 @@ func (c *Converter) From(ctx context.Context, imageName string, platform platuti
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(fromCmd)
+	c.updateSkipBuildkit(fromCmd)
 	c.nonSaveCommand()
 	if len(c.persistentCacheDirs) > 0 {
 		c.persistentCacheDirs = make(map[string]llb.RunOption)
@@ -216,6 +218,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	} else {
 		internal = false
 	}
+	fmt.Printf("converter.FROM %s\n", imageName)
 	state, img, envVars, err := c.internalFromClassical(
 		ctx, imageName, platform,
 		llb.WithCustomNamef("%sFROM %s", c.vertexPrefix(ctx, local, false, internal), imageName))
@@ -263,7 +266,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(fromDockerfileCmd)
+	c.updateSkipBuildkit(fromDockerfileCmd)
 	err = c.checkOldPlatformIncompatibility(platform)
 	if err != nil {
 		return err
@@ -421,7 +424,7 @@ func (c *Converter) Locally(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(locallyCmd)
+	c.updateSkipBuildkit(locallyCmd)
 	if !c.opt.AllowLocally {
 		return errors.New("LOCALLY cannot be used when --strict is specified or otherwise implied")
 	}
@@ -451,7 +454,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(copyCmd)
+	c.updateSkipBuildkit(copyCmd)
 	c.nonSaveCommand()
 	artifact, err := domain.ParseArtifact(artifactName)
 	if err != nil {
@@ -499,7 +502,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(copyCmd)
+	c.updateSkipBuildkit(copyCmd)
 	if chmod != nil && !c.ftrs.UseChmod {
 		return fmt.Errorf("COPY --chmod is not supported in this version")
 	}
@@ -554,28 +557,28 @@ func sha1sum(path string) []byte {
 
 func (c *Converter) updateInputHashWithFiles(srcs []string) {
 	h := sha1.New()
-	if c.shortCircuitHash != nil {
-		h.Write(c.shortCircuitHash)
+	if c.skipBuildkitHash != nil {
+		h.Write(c.skipBuildkitHash)
 	}
 	for _, src := range srcs {
 		fmt.Printf("hashing COPY %v\n", src)
 		// TODO handle hashing destination name
 		h.Write(sha1sum(filepath.Join(c.localWorkingDir, src)))
 	}
-	c.shortCircuitHash = h.Sum(nil)
+	c.skipBuildkitHash = h.Sum(nil)
 }
 func (c *Converter) updateInputHashWithRunCommand(opts *ConvertRunOpts) {
 	fmt.Printf("hashing RUN %v\n", opts.Args)
 	h := sha1.New()
-	if c.shortCircuitHash != nil {
-		h.Write(c.shortCircuitHash)
+	if c.skipBuildkitHash != nil {
+		h.Write(c.skipBuildkitHash)
 	}
 	h.Write([]byte(fmt.Sprintf("%d", len(opts.Args))))
 	for _, arg := range opts.Args {
 		h.Write([]byte(fmt.Sprintf("%d", len(arg))))
 		h.Write([]byte(arg))
 	}
-	c.shortCircuitHash = h.Sum(nil)
+	c.skipBuildkitHash = h.Sum(nil)
 
 	// TODO use the rest of opts in determining the hash
 }
@@ -586,13 +589,13 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(copyCmd)
+	c.updateSkipBuildkit(copyCmd)
 	if chmod != nil && !c.ftrs.UseChmod {
 		return fmt.Errorf("COPY --chmod is not supported in this version")
 	}
 
 	c.updateInputHashWithFiles(srcs)
-	fmt.Printf("input is %x\n", c.shortCircuitHash)
+	fmt.Printf("input is %x\n", c.skipBuildkitHash)
 
 	var srcState pllb.State
 	if c.ftrs.UseCopyIncludePatterns {
@@ -653,7 +656,7 @@ func (c *Converter) Run(ctx context.Context, opts ConvertRunOpts) error {
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(runCmd)
+	c.updateSkipBuildkit(runCmd)
 	c.updateInputHashWithRunCommand(&opts)
 	c.nonSaveCommand()
 
@@ -670,7 +673,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 	if err != nil {
 		return 0, err
 	}
-	c.updateShortCircuit(runCmd)
+	c.updateSkipBuildkit(runCmd)
 	c.nonSaveCommand()
 	for _, cache := range c.persistentCacheDirs {
 		opts.extraRunOpts = append(opts.extraRunOpts, cache)
@@ -756,7 +759,7 @@ func (c *Converter) runCommand(ctx context.Context, outputFileName string, isExp
 	if err != nil {
 		return "", err
 	}
-	c.updateShortCircuit(runCmd)
+	c.updateSkipBuildkit(runCmd)
 	c.nonSaveCommand()
 
 	if !opts.WithShell {
@@ -832,7 +835,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(saveArtifactCmd)
+	c.updateSkipBuildkit(saveArtifactCmd)
 	absSaveFrom, err := llbutil.Abs(ctx, c.mts.Final.MainState, saveFrom)
 	if err != nil {
 		return err
@@ -999,7 +1002,7 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(saveArtifactCmd)
+	c.updateSkipBuildkit(saveArtifactCmd)
 	src, err := filepath.Abs(saveFrom)
 	if err != nil {
 		return err
@@ -1088,7 +1091,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(saveImageCmd)
+	c.updateSkipBuildkit(saveImageCmd)
 	if noManifestList && !c.ftrs.UseNoManifestList {
 		return fmt.Errorf("SAVE IMAGE --no-manifest-list is not supported in this version")
 	}
@@ -1178,9 +1181,11 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform p
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(buildCmd)
+	c.updateSkipBuildkit(buildCmd)
 	c.nonSaveCommand()
+	fmt.Printf("Build %s\n", fullTargetName)
 	_, err = c.buildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, true, buildCmd)
+	fmt.Printf("Build %s returning\n", fullTargetName)
 	return err
 }
 
@@ -1192,6 +1197,7 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 	if err != nil {
 		return err
 	}
+	fmt.Printf("BuildAsync %s\n", fullTargetName)
 	c.opt.ErrorGroup.Go(func() error {
 		if sem == nil {
 			sem = c.opt.Parallelism
@@ -1206,7 +1212,11 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 			return errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
 		}
 		if apf != nil {
-			if c.ftrs.ExecAfterParallel && mts != nil && mts.Final != nil {
+			skip, err := c.shouldSkipBuildkit(ctx, false)
+			if err != nil {
+				c.opt.Console.Warnf("failed to check if hash %x exists in the BuildkitSkipper: %v", c.skipBuildkitHash, err)
+			}
+			if c.ftrs.ExecAfterParallel && mts != nil && mts.Final != nil && !skip {
 				// TODO: This is a duplication from the forceExecution taking place
 				//       from FinalizeStates. However, this is necessary for apf
 				//       synchronization (needs to be run after target has executed).
@@ -1215,13 +1225,14 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 					return errors.Wrapf(err, "async force execution for %s", fullTargetName)
 				}
 			}
-			err := apf(ctx, mts)
+			err = apf(ctx, mts)
 			if err != nil {
 				return err
 			}
 		}
 		return nil
 	})
+	fmt.Printf("BuildAsync %s returning\n", fullTargetName)
 	return nil
 }
 
@@ -1231,7 +1242,7 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(workdirCmd)
+	c.updateSkipBuildkit(workdirCmd)
 	c.nonSaveCommand()
 	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workdirPath)
 	workdirAbs := workdirPath
@@ -1262,7 +1273,7 @@ func (c *Converter) User(ctx context.Context, user string) error {
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(userCmd)
+	c.updateSkipBuildkit(userCmd)
 	c.nonSaveCommand()
 	c.mts.Final.MainState = c.mts.Final.MainState.User(user)
 	c.mts.Final.MainImage.Config.User = user
@@ -1275,7 +1286,7 @@ func (c *Converter) Cmd(ctx context.Context, cmdArgs []string, isWithShell bool)
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(cmdCmd)
+	c.updateSkipBuildkit(cmdCmd)
 	c.nonSaveCommand()
 	c.mts.Final.MainImage.Config.Cmd = withShell(cmdArgs, isWithShell)
 	c.cmdSet = true
@@ -1288,7 +1299,7 @@ func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isW
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(entrypointCmd)
+	c.updateSkipBuildkit(entrypointCmd)
 	c.nonSaveCommand()
 	c.mts.Final.MainImage.Config.Entrypoint = withShell(entrypointArgs, isWithShell)
 	if !c.cmdSet {
@@ -1303,7 +1314,7 @@ func (c *Converter) Expose(ctx context.Context, ports []string) error {
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(exposeCmd)
+	c.updateSkipBuildkit(exposeCmd)
 	c.nonSaveCommand()
 	for _, port := range ports {
 		c.mts.Final.MainImage.Config.ExposedPorts[port] = struct{}{}
@@ -1317,7 +1328,7 @@ func (c *Converter) Volume(ctx context.Context, volumes []string) error {
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(volumeCmd)
+	c.updateSkipBuildkit(volumeCmd)
 	c.nonSaveCommand()
 	for _, volume := range volumes {
 		c.mts.Final.MainImage.Config.Volumes[volume] = struct{}{}
@@ -1331,7 +1342,7 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) err
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(envCmd)
+	c.updateSkipBuildkit(envCmd)
 	c.nonSaveCommand()
 	c.varCollection.DeclareEnv(envKey, envValue)
 	c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
@@ -1346,7 +1357,7 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(argCmd)
+	c.updateSkipBuildkit(argCmd)
 	c.nonSaveCommand()
 
 	var pncvf variables.ProcessNonConstantVariableFunc
@@ -1388,7 +1399,7 @@ func (c *Converter) Let(ctx context.Context, key string, value string) error {
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(letCmd)
+	c.updateSkipBuildkit(letCmd)
 	c.nonSaveCommand()
 
 	if reserved.IsBuiltIn(key) {
@@ -1415,7 +1426,7 @@ func (c *Converter) UpdateArg(ctx context.Context, argKey string, argValue strin
 	if err := c.checkAllowed(setCmd); err != nil {
 		return err
 	}
-	c.updateShortCircuit(setCmd)
+	c.updateSkipBuildkit(setCmd)
 	c.nonSaveCommand()
 
 	var pncvf variables.ProcessNonConstantVariableFunc
@@ -1436,7 +1447,7 @@ func (c *Converter) SetArg(ctx context.Context, argKey string, argValue string) 
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(argCmd)
+	c.updateSkipBuildkit(argCmd)
 	c.nonSaveCommand()
 	c.varCollection.SetArg(argKey, argValue)
 	return nil
@@ -1448,7 +1459,7 @@ func (c *Converter) UnsetArg(ctx context.Context, argKey string) error {
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(argCmd)
+	c.updateSkipBuildkit(argCmd)
 	c.nonSaveCommand()
 	c.varCollection.UnsetArg(argKey)
 	return nil
@@ -1460,7 +1471,7 @@ func (c *Converter) Label(ctx context.Context, labels map[string]string) error {
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(labelCmd)
+	c.updateSkipBuildkit(labelCmd)
 	c.nonSaveCommand()
 	for key, value := range labels {
 		c.mts.Final.MainImage.Config.Labels[key] = value
@@ -1474,7 +1485,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(gitCloneCmd)
+	c.updateSkipBuildkit(gitCloneCmd)
 	c.nonSaveCommand()
 	gitURLScrubbed := stringutil.ScrubCredentials(gitURL)
 	gitOpts := []llb.GitOption{
@@ -1501,7 +1512,7 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(runCmd)
+	c.updateSkipBuildkit(runCmd)
 
 	c.nonSaveCommand()
 
@@ -1526,7 +1537,7 @@ func (c *Converter) WithDockerRunLocal(ctx context.Context, args []string, opt W
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(runCmd)
+	c.updateSkipBuildkit(runCmd)
 	c.nonSaveCommand()
 	enableParallel := allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad
 
@@ -1545,7 +1556,7 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(healthcheckCmd)
+	c.updateSkipBuildkit(healthcheckCmd)
 	c.nonSaveCommand()
 	hc := &dockerimage.HealthConfig{}
 	if isNone {
@@ -1569,7 +1580,7 @@ func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal, 
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(importCmd)
+	c.updateSkipBuildkit(importCmd)
 	return c.varCollection.Imports().Add(importStr, as, isGlobal, currentlyPrivileged, allowPrivilegedFlag)
 }
 
@@ -1581,7 +1592,7 @@ func (c *Converter) Cache(ctx context.Context, mountTarget string, sharing strin
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(cacheCmd)
+	c.updateSkipBuildkit(cacheCmd)
 	c.nonSaveCommand()
 
 	key, err := cacheKeyTargetInput(c.targetInputActiveOnly())
@@ -1615,7 +1626,7 @@ func (c *Converter) Host(ctx context.Context, hostname string, ip net.IP) error 
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(hostCmd)
+	c.updateSkipBuildkit(hostCmd)
 	c.nonSaveCommand()
 	c.mts.Final.MainState = c.mts.Final.MainState.AddExtraHost(hostname, ip)
 	return nil
@@ -1627,7 +1638,7 @@ func (c *Converter) Project(ctx context.Context, org, project string) error {
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(projectCmd)
+	c.updateSkipBuildkit(projectCmd)
 	c.nonSaveCommand()
 	c.varCollection.SetOrg(org)
 	c.varCollection.SetProject(project)
@@ -1641,7 +1652,7 @@ func (c *Converter) Pipeline(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	c.updateShortCircuit(pipelineCmd)
+	c.updateSkipBuildkit(pipelineCmd)
 	c.isPipeline = true
 	c.mts.Final.RanFromLike = true
 	return nil
@@ -1700,16 +1711,10 @@ func (c *Converter) StackString() string {
 func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, error) {
 	c.markFakeDeps()
 
-	if c.shortCircuit && c.shortCircuitHash != nil {
-		fmt.Printf("TODO check if %x has already run sucessfully\n", c.shortCircuitHash)
-
-		if c.shortCircuitHash[0] == 0xa4 {
-			fmt.Printf("returning nil (to simulate detecting a previous successful run)\n")
-			return nil, nil
-		}
-
-	} else {
-		fmt.Printf("unable to short circuit\n")
+	skip, err := c.shouldSkipBuildkit(ctx, true)
+	if err != nil {
+		// best effort, but dont fail the build
+		c.opt.Console.Warnf("failed to check if hash %x exists in the BuildkitSkipper: %v", c.skipBuildkitHash, err)
 	}
 
 	if !c.varCollection.IsStackAtBase() {
@@ -1734,6 +1739,11 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		c.waitBlock().AddItem(newStateWaitItem(&c.mts.Final.MainState, c))
 	}
 	close(c.mts.Final.Done())
+
+	if skip {
+		c.mts.Final.SkipBuildkit = true
+		return c.mts, nil
+	}
 
 	// Force execution asynchronously, and then mark the logbusTarget as finished.
 	// This ensures that the execution actually took place, for timing purposes.
@@ -1856,7 +1866,12 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
 	}
-	c.directDeps = append(c.directDeps, mts.Final)
+	if mts.Final.SkipBuildkit {
+		fmt.Printf("skipping BUILD %s due to no detected changes since last successful run\n", fullTargetName)
+		return mts, nil
+	}
+	fmt.Printf("adding direct dep for %s\n", fullTargetName)
+	c.directDeps = append(c.directDeps, mts.Final) // TODO need to save the hash for these targets once they build
 	if propagateBuildArgs {
 		// Propagate build arg inputs upwards (a child target depending on a build arg means
 		// that the parent also depends on that build arg).
@@ -2271,6 +2286,7 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 }
 
 func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr *platutil.Resolver) error {
+	fmt.Printf("forceExecution called on %s from %s\n", c.target, debug.Stack())
 	if state.Output() == nil {
 		// Scratch - no need to execute.
 		return nil
@@ -2289,6 +2305,13 @@ func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr 
 	_, err = ref.ReadDir(ctx, gwclient.ReadDirRequest{Path: "/"})
 	if err != nil {
 		return errors.Wrap(err, "unlazy force execution")
+	}
+	// Mark this has been built
+	if c.skipBuildkitHash != nil {
+		if err := c.opt.BuildkitSkipper.Add(ctx, c.skipBuildkitHash); err != nil {
+			// best effort (if offline, we shouldn't prevent build from working)
+			c.opt.Console.Warnf("failed to record %x as executed in the BuildkitSkipper: %v", c.skipBuildkitHash, err)
+		}
 	}
 	return nil
 }
@@ -2518,17 +2541,43 @@ func (c *Converter) joinRefs(relRef domain.Reference) (domain.Reference, error) 
 	return domain.JoinReferences(c.varCollection.AbsRef(), relRef)
 }
 
-func (c *Converter) updateShortCircuit(command cmdType) {
-	if !c.shortCircuit {
+func (c *Converter) updateSkipBuildkit(command cmdType) {
+	if !c.skipBuildkit {
 		return
 	}
 	switch command {
-	case copyCmd, runCmd, fromCmd:
+	case copyCmd, runCmd, fromCmd, buildCmd:
 		break
 	default:
-		fmt.Printf("setting shortCircuit to false to do command %v\n", command)
-		c.shortCircuit = false
+		fmt.Printf("setting skipBuildkit to false to do command %v found under %s\n", command, c.target)
+		c.skipBuildkit = false
 	}
+}
+
+func (c *Converter) shouldSkipBuildkit(ctx context.Context, setFinal bool) (bool, error) {
+	if !c.skipBuildkit {
+		fmt.Printf("%s: cant skip\n", c.target)
+		return false, nil
+	}
+	if c.skipBuildkitHash == nil {
+		fmt.Printf("%s: hash is nil, skipping\n", c.target)
+		// empty target (or scratch container)
+		return true, nil
+	}
+	exists, err := c.opt.BuildkitSkipper.Exists(ctx, c.skipBuildkitHash)
+	if err != nil {
+		// best effort
+		c.opt.Console.Warnf("failed to check if %x exists in the BuildkitSkipper: %s", c.skipBuildkitHash, err)
+	}
+	if exists {
+		fmt.Printf("%s: hash %x found, skipping\n", c.target, c.skipBuildkitHash)
+	} else {
+		fmt.Printf("%s: hash %x not found, can't skip\n", c.target, c.skipBuildkitHash)
+	}
+	if setFinal {
+		c.mts.Final.MainStateBuildkitHash = c.skipBuildkitHash // TODO re-evaluate if this should be here (or rename method to make it more clear)
+	}
+	return exists, nil
 }
 
 func (c *Converter) checkAllowed(command cmdType) error {

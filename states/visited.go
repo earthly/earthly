@@ -2,6 +2,7 @@ package states
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/earthly/earthly/domain"
@@ -45,6 +46,7 @@ func (vc *VisitedCollection) Add(ctx context.Context, target domain.Target, plat
 		parentDepSub <- depID
 	}
 	defer vc.mu.Unlock()
+	defer fmt.Printf("unlocking")
 	for _, sts := range vc.visited[target.StringCanonical()] {
 		same, err := CompareTargetInputs(target, platr, allowPrivileged, overridingVars, sts.TargetInput())
 		if err != nil {
@@ -83,17 +85,20 @@ func (vc *VisitedCollection) Add(ctx context.Context, target domain.Target, plat
 // waitAllDoneAndLock acquires mu at a point when all sts are done for a particular
 // target, allowing for comparisons across the board while the lock is held.
 func (vc *VisitedCollection) waitAllDoneAndLock(ctx context.Context, target domain.Target, parentDepSub chan string) (map[string]bool, error) {
+	fmt.Printf("waitAllDoneAndLock for %s\n", target)
 	// Build up dependents from parentDepSub. The list needs to be complete when returning
 	// from this function for proper infinite loop detection.
 	dependents := make(map[string]bool)
 	// wait all done & lock loop
 	prevLenList := 0
 	for {
+		fmt.Printf("loop wait %s\n", target)
 		vc.mu.Lock()
 		list := append([]*SingleTarget{}, vc.visited[target.StringCanonical()]...)
 		if prevLenList == len(list) {
 			// The list we have now is the same we just checked if it's done or waiting on us.
 			// We are finished.
+			fmt.Printf("returning dependentss %s\n", target)
 			return dependents, nil // no unlocking on purpose
 		}
 		prevLenList = len(list)
@@ -107,6 +112,7 @@ func (vc *VisitedCollection) waitAllDoneAndLock(ctx context.Context, target doma
 				continue
 			}
 			for {
+				fmt.Printf("waiting on channel %s\n", target)
 				select {
 				case <-ctx.Done():
 					return nil, ctx.Err()

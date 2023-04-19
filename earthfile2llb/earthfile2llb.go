@@ -2,6 +2,7 @@ package earthfile2llb
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
@@ -11,6 +12,7 @@ import (
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/buildkitskipper"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/llbutil/authprovider/cloudauth"
@@ -64,8 +66,8 @@ type ConvertOpt struct {
 	// UseInlineCache enables the inline caching feature (use any SAVE IMAGE --push declaration as
 	// cache import).
 	UseInlineCache bool
-	// ShortCircuit
-	ShortCircuit bool
+	// BuildkitSkipper is used to skip buildkit if it's already been run
+	BuildkitSkipper buildkitskipper.BuildkitSkipper
 	// UseFakeDep is an internal feature flag for fake dep.
 	UseFakeDep bool
 	// AllowLocally is an internal feature flag for controlling if LOCALLY directives can be used.
@@ -234,10 +236,13 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	}
 
 	targetWithMetadata := bc.Ref.(domain.Target)
+	fmt.Printf("calling visited.Add\n")
 	sts, found, err := opt.Visited.Add(ctx, targetWithMetadata, opt.PlatformResolver, opt.AllowPrivileged, opt.OverridingVars, opt.parentDepSub)
 	if err != nil {
+		fmt.Printf("visited.Add err\n")
 		return nil, err
 	}
+	fmt.Printf("visited.Add done\n")
 	if opt.MainTargetDetailsFuture != nil {
 		// TODO (vladaionescu): These should perhaps be passed back via logbus instead.
 		opt.MainTargetDetailsFuture <- TargetDetails{
@@ -265,6 +270,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		sts.AttachTopLevelWaitItems(ctx, opt.waitBlock)
 
 		// This target has already been done.
+		fmt.Printf("returning already done target\n")
 		return &states.MultiTarget{
 			Final:   sts,
 			Visited: opt.Visited,
@@ -294,10 +300,13 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 
 	if egWait {
 		egWait = false
+		fmt.Printf("waiting\n")
 		err := opt.ErrorGroup.Wait()
 		if err != nil {
 			return nil, err
 		}
+		fmt.Printf("waiting done\n")
 	}
+	fmt.Printf("returning new target\n")
 	return mts, nil
 }

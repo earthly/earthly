@@ -25,6 +25,7 @@ import (
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/buildkitskipper"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
@@ -473,6 +474,12 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if app.logstream {
 		logbusSM = app.logbusSetup.SolverMonitor
 	}
+	buildkitSkipperDBPath := "/tmp/earthly-bks.db"
+	buildkitSkipper, err := buildkitskipper.NewLocal(buildkitSkipperDBPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to open buildkit skipper database %s", buildkitSkipperDBPath)
+	}
+
 	builderOpts := builder.Opt{
 		BkClient:                              bkClient,
 		LogBusSolverMonitor:                   logbusSM,
@@ -505,6 +512,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		InteractiveDebugging:                  app.interactiveDebugging,
 		InteractiveDebuggingDebugLevelLogging: app.debug,
 		GitImage:                              app.cfg.Global.GitImage,
+		BuildkitSkipper:                       buildkitSkipper,
 	}
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
 	if err != nil {

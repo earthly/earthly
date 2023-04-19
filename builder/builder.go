@@ -19,6 +19,7 @@ import (
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/buildkitskipper"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/dockerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
@@ -84,6 +85,7 @@ type Opt struct {
 	InteractiveDebugging                  bool
 	InteractiveDebuggingDebugLevelLogging bool
 	GitImage                              string
+	BuildkitSkipper                       buildkitskipper.BuildkitSkipper
 }
 
 // BuildOpt is a collection of build options.
@@ -218,7 +220,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				MainTargetDetailsFuture:              opt.MainTargetDetailsFuture,
 				Runner:                               opt.Runner,
 				CloudStoredAuthProvider:              opt.CloudStoredAuthProvider,
-				ShortCircuit:                         true,
+				BuildkitSkipper:                      b.opt.BuildkitSkipper,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
@@ -241,7 +243,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		// *** DO NOT ADD CODE TO THE bf BELOW ***
 
 		if mts == nil {
-			// short circuiting occured
+			// hash already exists, skip buildkit
 			return nil, nil
 		}
 
@@ -268,6 +270,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		isMultiPlatform := make(map[string]bool)    // DockerTag -> bool
 		noManifestListImgs := make(map[string]bool) // DockerTag -> bool
 		for _, sts := range mts.All() {
+			if sts == nil {
+				panic("got a nil sts")
+			}
 			if sts.PlatformResolver.Current() == platutil.DefaultPlatform {
 				continue
 			}
@@ -287,12 +292,14 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 
 		for _, sts := range mts.All() {
+			fmt.Printf("bf: %+v\n", sts)
 			hasRunPush := (sts.GetDoPushes() && sts.RunPush.HasState)
 			if (sts.HasDangling && !b.opt.UseFakeDep) || (b.builtMain && hasRunPush) {
 				depRef, err := b.stateToRef(childCtx, gwClient, b.targetPhaseState(sts), sts.PlatformResolver)
 				if err != nil {
 					return nil, err
 				}
+				fmt.Printf("adding dep ref %+v\n", sts)
 				refKey := fmt.Sprintf("dep-%d", depIndex)
 				gwCrafter.AddRef(refKey, depRef)
 				depIndex++
@@ -422,7 +429,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				}
 			}
 		}
-		return gwCrafter.GetResult(), nil
+		ressss := gwCrafter.GetResult()
+		fmt.Printf("returning results %+v\n", ressss)
+		return ressss, nil
 	}
 	exportedTarImageManifestKeys := map[string]struct{}{}
 	var exportedImagesMutex sync.Mutex
@@ -684,6 +693,13 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 					}
 				}
 			}
+		}
+	}
+
+	if mts.Final.MainStateBuildkitHash != nil {
+		if err := b.opt.BuildkitSkipper.Add(ctx, mts.Final.MainStateBuildkitHash); err != nil {
+			// best effort (if offline, we shouldn't prevent build from working)
+			b.opt.Console.Warnf("failed to record %x as executed in the BuildkitSkipper: %v", mts.Final.MainStateBuildkitHash, err)
 		}
 	}
 
