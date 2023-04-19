@@ -292,14 +292,12 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		}
 
 		for _, sts := range mts.All() {
-			fmt.Printf("bf: %+v\n", sts)
 			hasRunPush := (sts.GetDoPushes() && sts.RunPush.HasState)
 			if (sts.HasDangling && !b.opt.UseFakeDep) || (b.builtMain && hasRunPush) {
 				depRef, err := b.stateToRef(childCtx, gwClient, b.targetPhaseState(sts), sts.PlatformResolver)
 				if err != nil {
 					return nil, err
 				}
-				fmt.Printf("adding dep ref %+v\n", sts)
 				refKey := fmt.Sprintf("dep-%d", depIndex)
 				gwCrafter.AddRef(refKey, depRef)
 				depIndex++
@@ -429,9 +427,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				}
 			}
 		}
-		ressss := gwCrafter.GetResult()
-		fmt.Printf("returning results %+v\n", ressss)
-		return ressss, nil
+		return gwCrafter.GetResult(), nil
 	}
 	exportedTarImageManifestKeys := map[string]struct{}{}
 	var exportedImagesMutex sync.Mutex

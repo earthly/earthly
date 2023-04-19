@@ -39,7 +39,6 @@ func (lbks *LocalBuildkitSkipper) Add(ctx context.Context, data []byte) error {
 	if len(data) != sha1.Size {
 		return errInvalidHash
 	}
-	fmt.Printf("Adding %x\n", data)
 	return lbks.db.Update(func(tx *bolt.Tx) error {
 		payload := []byte(fmt.Sprintf("TODO serialize %v", time.Now()))
 		err := tx.Bucket([]byte("builds")).Put(data, payload)
@@ -54,12 +53,10 @@ func (lbks *LocalBuildkitSkipper) Exists(ctx context.Context, data []byte) (bool
 	if len(data) != sha1.Size {
 		return false, errInvalidHash
 	}
-	fmt.Printf("checking if %x exists\n", data)
 	var found bool
 	err := lbks.db.View(func(tx *bolt.Tx) error {
 		payload := tx.Bucket([]byte("builds")).Get(data)
 		if payload != nil {
-			fmt.Printf("got payload for %x: %s\n", data, payload)
 			found = true
 		}
 		return nil

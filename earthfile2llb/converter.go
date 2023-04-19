@@ -15,7 +15,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -153,8 +152,6 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	}
 	logbusTarget.SetStart(time.Now())
 
-	fmt.Printf("NewConverter for %s with %v\n", target, opt.BuildkitSkipper)
-
 	c := &Converter{
 		target:              target,
 		gitMeta:             bc.GitMetadata,
@@ -218,7 +215,6 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	} else {
 		internal = false
 	}
-	fmt.Printf("converter.FROM %s\n", imageName)
 	state, img, envVars, err := c.internalFromClassical(
 		ctx, imageName, platform,
 		llb.WithCustomNamef("%sFROM %s", c.vertexPrefix(ctx, local, false, internal), imageName))
@@ -561,14 +557,12 @@ func (c *Converter) updateInputHashWithFiles(srcs []string) {
 		h.Write(c.skipBuildkitHash)
 	}
 	for _, src := range srcs {
-		fmt.Printf("hashing COPY %v\n", src)
 		// TODO handle hashing destination name
 		h.Write(sha1sum(filepath.Join(c.localWorkingDir, src)))
 	}
 	c.skipBuildkitHash = h.Sum(nil)
 }
 func (c *Converter) updateInputHashWithRunCommand(opts *ConvertRunOpts) {
-	fmt.Printf("hashing RUN %v\n", opts.Args)
 	h := sha1.New()
 	if c.skipBuildkitHash != nil {
 		h.Write(c.skipBuildkitHash)
@@ -595,7 +589,6 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	}
 
 	c.updateInputHashWithFiles(srcs)
-	fmt.Printf("input is %x\n", c.skipBuildkitHash)
 
 	var srcState pllb.State
 	if c.ftrs.UseCopyIncludePatterns {
@@ -1183,9 +1176,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform p
 	}
 	c.updateSkipBuildkit(buildCmd)
 	c.nonSaveCommand()
-	fmt.Printf("Build %s\n", fullTargetName)
 	_, err = c.buildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, true, buildCmd)
-	fmt.Printf("Build %s returning\n", fullTargetName)
 	return err
 }
 
@@ -1197,7 +1188,6 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 	if err != nil {
 		return err
 	}
-	fmt.Printf("BuildAsync %s\n", fullTargetName)
 	c.opt.ErrorGroup.Go(func() error {
 		if sem == nil {
 			sem = c.opt.Parallelism
@@ -1232,7 +1222,6 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 		}
 		return nil
 	})
-	fmt.Printf("BuildAsync %s returning\n", fullTargetName)
 	return nil
 }
 
@@ -1741,6 +1730,7 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	close(c.mts.Final.Done())
 
 	if skip {
+		c.opt.Console.Printf("skipping %s (hash %x was already executed)\n", c.target, c.skipBuildkitHash)
 		c.mts.Final.SkipBuildkit = true
 		return c.mts, nil
 	}
@@ -1867,10 +1857,8 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
 	}
 	if mts.Final.SkipBuildkit {
-		fmt.Printf("skipping BUILD %s due to no detected changes since last successful run\n", fullTargetName)
 		return mts, nil
 	}
-	fmt.Printf("adding direct dep for %s\n", fullTargetName)
 	c.directDeps = append(c.directDeps, mts.Final) // TODO need to save the hash for these targets once they build
 	if propagateBuildArgs {
 		// Propagate build arg inputs upwards (a child target depending on a build arg means
@@ -2286,7 +2274,6 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 }
 
 func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr *platutil.Resolver) error {
-	fmt.Printf("forceExecution called on %s from %s\n", c.target, debug.Stack())
 	if state.Output() == nil {
 		// Scratch - no need to execute.
 		return nil
@@ -2549,30 +2536,22 @@ func (c *Converter) updateSkipBuildkit(command cmdType) {
 	case copyCmd, runCmd, fromCmd, buildCmd:
 		break
 	default:
-		fmt.Printf("setting skipBuildkit to false to do command %v found under %s\n", command, c.target)
 		c.skipBuildkit = false
 	}
 }
 
 func (c *Converter) shouldSkipBuildkit(ctx context.Context, setFinal bool) (bool, error) {
 	if !c.skipBuildkit {
-		fmt.Printf("%s: cant skip\n", c.target)
 		return false, nil
 	}
 	if c.skipBuildkitHash == nil {
-		fmt.Printf("%s: hash is nil, skipping\n", c.target)
 		// empty target (or scratch container)
-		return true, nil
+		return false, nil
 	}
 	exists, err := c.opt.BuildkitSkipper.Exists(ctx, c.skipBuildkitHash)
 	if err != nil {
 		// best effort
 		c.opt.Console.Warnf("failed to check if %x exists in the BuildkitSkipper: %s", c.skipBuildkitHash, err)
-	}
-	if exists {
-		fmt.Printf("%s: hash %x found, skipping\n", c.target, c.skipBuildkitHash)
-	} else {
-		fmt.Printf("%s: hash %x not found, can't skip\n", c.target, c.skipBuildkitHash)
 	}
 	if setFinal {
 		c.mts.Final.MainStateBuildkitHash = c.skipBuildkitHash // TODO re-evaluate if this should be here (or rename method to make it more clear)
