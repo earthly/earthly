@@ -41,11 +41,8 @@ var (
 // NewClient returns a new buildkitd client. If the buildkitd daemon is local, this function
 // might start one up, if not already started.
 func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, containerName, installationName string, fe containerutil.ContainerFrontend, earthlyVersion string, settings Settings, opts ...client.ClientOpt) (*client.Client, error) {
-	opts, err := addRequiredOpts(settings, installationName, opts...)
+	opts, err := addRequiredOpts(settings, installationName, fe.Config().Setting == containerutil.FrontendPodmanShell, opts...)
 	if err != nil {
-		if fe.Config().Setting == containerutil.FrontendPodmanShell {
-			return nil, hint.Wrap(err, "podman now requires TLS certs - try re-running 'earthly bootstrap'")
-		}
 		return nil, errors.Wrap(err, "add required client opts")
 	}
 
@@ -98,11 +95,8 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image, c
 		return errors.New("cannot reset cache of a provided buildkit-host setting")
 	}
 
-	opts, err := addRequiredOpts(settings, installationName, opts...)
+	opts, err := addRequiredOpts(settings, installationName, fe.Config().Setting == containerutil.FrontendPodmanShell, opts...)
 	if err != nil {
-		if fe.Config().Setting == containerutil.FrontendPodmanShell {
-			return hint.Wrap(err, "podman now requires TLS certs - try re-running 'earthly bootstrap'")
-		}
 		return errors.Wrap(err, "add required client opts")
 	}
 
@@ -934,7 +928,7 @@ func makeTLSPath(path string, installationName string) (string, error) {
 	return fullPath, nil
 }
 
-func addRequiredOpts(settings Settings, installationName string, opts ...client.ClientOpt) ([]client.ClientOpt, error) {
+func addRequiredOpts(settings Settings, installationName string, isUsingPodman bool, opts ...client.ClientOpt) ([]client.ClientOpt, error) {
 	server, err := url.Parse(settings.BuildkitAddress)
 	if err != nil {
 		return []client.ClientOpt{}, errors.Wrapf(err, "failed to parse buildkit url %s", settings.BuildkitAddress)
@@ -957,17 +951,17 @@ func addRequiredOpts(settings Settings, installationName string, opts ...client.
 	}
 	caPath, err := makeTLSPath(settings.TLSCA, installationName)
 	if err != nil {
-		return []client.ClientOpt{}, errors.Wrap(err, "caPath")
+		return []client.ClientOpt{}, maybeWrapWithPodmanHint(isUsingPodman, errors.Wrap(err, "caPath"))
 	}
 
 	certPath, err := makeTLSPath(settings.ClientTLSCert, installationName)
 	if err != nil {
-		return []client.ClientOpt{}, errors.Wrap(err, "certPath")
+		return []client.ClientOpt{}, maybeWrapWithPodmanHint(isUsingPodman, errors.Wrap(err, "certPath"))
 	}
 
 	keyPath, err := makeTLSPath(settings.ClientTLSKey, installationName)
 	if err != nil {
-		return []client.ClientOpt{}, errors.Wrap(err, "keyPath")
+		return []client.ClientOpt{}, maybeWrapWithPodmanHint(isUsingPodman, errors.Wrap(err, "keyPath"))
 	}
 
 	opts = append(opts,
@@ -982,7 +976,7 @@ func addRequiredOpts(settings Settings, installationName string, opts ...client.
 // including its Buildkit version, current workload, and garbage collection.
 func PrintSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, earthlyVersion string, settings Settings, installationName string) error {
 	console.Printf("Connecting to %s...", settings.SatelliteDisplayName)
-	opts, err := addRequiredOpts(settings, installationName)
+	opts, err := addRequiredOpts(settings, installationName, false)
 	if err != nil {
 		return errors.Wrap(err, "add required client opts")
 	}
@@ -992,4 +986,11 @@ func PrintSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, 
 	}
 	printBuildkitInfo(console, info, workerInfo, earthlyVersion, false)
 	return nil
+}
+
+func maybeWrapWithPodmanHint(isUsingPodman bool, err error) error {
+	if isUsingPodman {
+		return hint.Wrap(err, "podman now requires TLS certs - try re-running 'earthly bootstrap'")
+	}
+	return err
 }
