@@ -228,5 +228,6 @@ func recvDiffCopy(ds grpc.ClientStream, dest string, cu filesync.CacheUpdater, p
 		ContentHasher: ch,
 		ProgressCb:    progress,
 		Filter:        fsutil.FilterFunc(filter),
+		Differ:        fsutil.DiffContent,
 	}))
 }
