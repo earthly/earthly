@@ -310,6 +310,13 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			Destination: &app.noCache,
 		},
 		&cli.BoolFlag{
+			Name:        "ultra-cache",
+			EnvVars:     []string{"EARTHLY_ULTRA_CACHE"},
+			Usage:       "Skip buildkit if target has already been built",
+			Destination: &app.skipBuildkit,
+			Hidden:      true,
+		},
+		&cli.BoolFlag{
 			Name:        "allow-privileged",
 			Aliases:     []string{"P"},
 			EnvVars:     []string{"EARTHLY_ALLOW_PRIVILEGED"},

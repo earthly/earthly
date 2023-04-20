@@ -557,6 +557,21 @@ func (c *Converter) updateInputHashWithFiles(srcs []string) {
 		h.Write(c.skipBuildkitHash)
 	}
 	for _, src := range srcs {
+		// TODO add support for globbing
+		stat, err := os.Stat(src)
+		if err != nil {
+			c.opt.Console.Warnf("unable to hash input %s: %v\n", src, err)
+			c.skipBuildkit = false
+			break
+		}
+
+		if stat.IsDir() {
+			// TODO add support for directories
+			c.opt.Console.Warnf("unable to hash directory input %s\n", src)
+			c.skipBuildkit = false
+			break
+		}
+
 		// TODO handle hashing destination name
 		h.Write(sha1sum(filepath.Join(c.localWorkingDir, src)))
 	}

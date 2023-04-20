@@ -475,9 +475,16 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		logbusSM = app.logbusSetup.SolverMonitor
 	}
 	buildkitSkipperDBPath := "/tmp/earthly-bks.db"
-	buildkitSkipper, err := buildkitskipper.NewLocal(buildkitSkipperDBPath)
-	if err != nil {
-		return errors.Wrapf(err, "failed to open buildkit skipper database %s", buildkitSkipperDBPath)
+
+	var buildkitSkipper buildkitskipper.BuildkitSkipper
+	if app.skipBuildkit {
+		var err error
+		buildkitSkipper, err = buildkitskipper.NewLocal(buildkitSkipperDBPath)
+		if err != nil {
+			return errors.Wrapf(err, "failed to open buildkit skipper database %s", buildkitSkipperDBPath)
+		}
+	} else {
+		buildkitSkipper = buildkitskipper.NewNoSkip()
 	}
 
 	builderOpts := builder.Opt{
