@@ -21,6 +21,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/buildkitutil"
 	"github.com/earthly/earthly/util/cliutil"
@@ -42,6 +43,9 @@ var (
 func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, containerName, installationName string, fe containerutil.ContainerFrontend, earthlyVersion string, settings Settings, opts ...client.ClientOpt) (*client.Client, error) {
 	opts, err := addRequiredOpts(settings, installationName, opts...)
 	if err != nil {
+		if fe.Config().Setting == containerutil.FrontendPodmanShell {
+			return nil, hint.Wrap(err, "podman now requires TLS certs - try re-running 'earthly bootstrap'")
+		}
 		return nil, errors.Wrap(err, "add required client opts")
 	}
 
@@ -96,6 +100,9 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image, c
 
 	opts, err := addRequiredOpts(settings, installationName, opts...)
 	if err != nil {
+		if fe.Config().Setting == containerutil.FrontendPodmanShell {
+			return hint.Wrap(err, "podman now requires TLS certs - try re-running 'earthly bootstrap'")
+		}
 		return errors.Wrap(err, "add required client opts")
 	}
 
