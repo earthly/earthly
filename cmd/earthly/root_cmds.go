@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/earthly/earthly/util/containerutil"
 	"net/url"
 	"os"
 	"path"
@@ -24,6 +23,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/util/cliutil"
+	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/termutil"
 )
