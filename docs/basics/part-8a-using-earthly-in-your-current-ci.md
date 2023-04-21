@@ -15,7 +15,6 @@ To use Earthly in a CI, you typically encode the following steps in your CI's bu
 For example, here is how this would work in GitHub Actions:
 
 ```yaml
-```yml
 # .github/workflows/ci.yml
 
 name: CI
@@ -78,7 +77,7 @@ earthly account create-token my-ci-token
 
 You would then set the produced token as a secret in your CI of choice, and then use that secret to set an environment variable. In GitHub Actions, this looks like this:
 
-```yml
+```yaml
 env:
   EARTHLY_TOKEN: ${{ secrets.EARTHLY_TOKEN }}
 ```
