@@ -620,6 +620,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			}
 		}
 	}()
+	app.logbus.Run().SetStart(time.Now())
 	// Initialize log streaming early if we're passed the organization and
 	// project names as environmental variables. This will allow nearly all
 	// initialization errors to be surfaced to the log streaming service. Access
@@ -639,7 +640,6 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			app.console.ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
 		}
 	}
-	app.logbus.Run().SetStart(time.Now())
 	defer func() {
 		// Just in case this is forgotten somewhere else.
 		app.logbus.Run().SetFatalError(
