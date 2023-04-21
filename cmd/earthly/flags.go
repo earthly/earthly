@@ -310,8 +310,8 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			Destination: &app.noCache,
 		},
 		&cli.BoolFlag{
-			Name:        "ultra-cache",
-			EnvVars:     []string{"EARTHLY_ULTRA_CACHE"},
+			Name:        "auto-skip",
+			EnvVars:     []string{"EARTHLY_AUTO_SKIP"},
 			Usage:       "Skip buildkit if target has already been built",
 			Destination: &app.skipBuildkit,
 			Hidden:      true,

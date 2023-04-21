@@ -170,6 +170,9 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		skipBuildkit:        opt.BuildkitSkipper != nil,
 	}
 
+	// TODO include version features in this hash?
+	c.updateInputHashWithString("it has begun") // initial hash for new converters (i.e. scratch states)
+
 	if c.opt.GlobalWaitBlockFtr {
 		c.ftrs.WaitBlock = true
 	}
@@ -215,6 +218,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	} else {
 		internal = false
 	}
+	c.updateInputHashWithFromClassic(imageName)
 	state, img, envVars, err := c.internalFromClassical(
 		ctx, imageName, platform,
 		llb.WithCustomNamef("%sFROM %s", c.vertexPrefix(ctx, local, false, internal), imageName))
@@ -242,6 +246,11 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	}
 	if depTarget.IsLocalInternal() {
 		depTarget.LocalPath = c.mts.Final.Target.LocalPath
+	}
+	if mts.Final.MainStateBuildkitHash != nil {
+		c.updateInputHashWithBytes(mts.Final.MainStateBuildkitHash)
+	} else {
+		c.skipBuildkit = false
 	}
 	// Look for the built state in the dep states, after we've built it.
 	relevantDepState := mts.Final
@@ -534,63 +543,6 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 		return errors.Wrapf(err, "copyOp CopyArtifact")
 	}
 	return nil
-}
-
-// TODO cache (similar to how git works; even better if we use git's cache)
-func sha1sum(path string) []byte {
-	f, err := os.Open(path)
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-
-	h := sha1.New()
-	if _, err := io.Copy(h, f); err != nil {
-		panic(err)
-	}
-	return h.Sum(nil)
-}
-
-func (c *Converter) updateInputHashWithFiles(srcs []string) {
-	h := sha1.New()
-	if c.skipBuildkitHash != nil {
-		h.Write(c.skipBuildkitHash)
-	}
-	for _, src := range srcs {
-		path := filepath.Join(c.localWorkingDir, src)
-		// TODO add support for globbing
-		stat, err := os.Stat(path)
-		if err != nil {
-			c.opt.Console.Warnf("unable to hash input %s: %v\n", src, err)
-			c.skipBuildkit = false
-			break
-		}
-
-		if stat.IsDir() {
-			// TODO add support for directories
-			c.opt.Console.Warnf("unable to hash directory input %s\n", src)
-			c.skipBuildkit = false
-			break
-		}
-
-		// TODO handle hashing destination name
-		h.Write(sha1sum(path))
-	}
-	c.skipBuildkitHash = h.Sum(nil)
-}
-func (c *Converter) updateInputHashWithRunCommand(opts *ConvertRunOpts) {
-	h := sha1.New()
-	if c.skipBuildkitHash != nil {
-		h.Write(c.skipBuildkitHash)
-	}
-	h.Write([]byte(fmt.Sprintf("%d", len(opts.Args))))
-	for _, arg := range opts.Args {
-		h.Write([]byte(fmt.Sprintf("%d", len(arg))))
-		h.Write([]byte(arg))
-	}
-	c.skipBuildkitHash = h.Sum(nil)
-
-	// TODO use the rest of opts in determining the hash
 }
 
 // CopyClassical applies the earthly COPY command, with classical args.
@@ -1218,7 +1170,7 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 			return errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
 		}
 		if apf != nil {
-			skip, err := c.shouldSkipBuildkit(ctx, false)
+			skip, err := c.shouldSkipBuildkit(ctx)
 			if err != nil {
 				c.opt.Console.Warnf("failed to check if hash %x exists in the BuildkitSkipper: %v", c.skipBuildkitHash, err)
 			}
@@ -1716,11 +1668,13 @@ func (c *Converter) StackString() string {
 func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, error) {
 	c.markFakeDeps()
 
-	skip, err := c.shouldSkipBuildkit(ctx, true)
+	skip, err := c.shouldSkipBuildkit(ctx)
 	if err != nil {
 		// best effort, but dont fail the build
 		c.opt.Console.Warnf("failed to check if hash %x exists in the BuildkitSkipper: %v", c.skipBuildkitHash, err)
 	}
+
+	c.mts.Final.MainStateBuildkitHash = c.skipBuildkitHash
 
 	if !c.varCollection.IsStackAtBase() {
 		// Should never happen.
@@ -2556,7 +2510,83 @@ func (c *Converter) updateSkipBuildkit(command cmdType) {
 	}
 }
 
-func (c *Converter) shouldSkipBuildkit(ctx context.Context, setFinal bool) (bool, error) {
+// TODO cache (similar to how git works; even better if we use git's cache)
+func sha1sum(path string) []byte {
+	f, err := os.Open(path)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	h := sha1.New()
+	if _, err := io.Copy(h, f); err != nil {
+		panic(err)
+	}
+	return h.Sum(nil)
+}
+
+func (c *Converter) updateInputHashWithFiles(srcs []string) {
+	h := sha1.New()
+	if c.skipBuildkitHash != nil {
+		h.Write(c.skipBuildkitHash)
+	}
+	for _, src := range srcs {
+		path := filepath.Join(c.localWorkingDir, src)
+		// TODO add support for globbing
+		stat, err := os.Stat(path)
+		if err != nil {
+			c.opt.Console.Warnf("unable to hash input %s: %v\n", src, err)
+			c.skipBuildkit = false
+			break
+		}
+
+		if stat.IsDir() {
+			// TODO add support for directories
+			c.opt.Console.Warnf("unable to hash directory input %s\n", src)
+			c.skipBuildkit = false
+			break
+		}
+
+		// TODO handle hashing destination name
+		h.Write(sha1sum(path))
+	}
+	c.skipBuildkitHash = h.Sum(nil)
+}
+
+func (c *Converter) updateInputHashWithString(s string) {
+	c.updateInputHashWithBytes([]byte(s))
+}
+
+func (c *Converter) updateInputHashWithBytes(b []byte) {
+	h := sha1.New()
+	if c.skipBuildkitHash != nil {
+		h.Write(c.skipBuildkitHash)
+	}
+	h.Write([]byte(fmt.Sprintf("%d", len(b))))
+	h.Write(b)
+	c.skipBuildkitHash = h.Sum(nil)
+}
+
+func (c *Converter) updateInputHashWithFromClassic(imageName string) {
+	c.updateInputHashWithString(imageName)
+}
+
+func (c *Converter) updateInputHashWithRunCommand(opts *ConvertRunOpts) {
+	h := sha1.New()
+	if c.skipBuildkitHash != nil {
+		h.Write(c.skipBuildkitHash)
+	}
+	h.Write([]byte(fmt.Sprintf("%d", len(opts.Args))))
+	for _, arg := range opts.Args {
+		h.Write([]byte(fmt.Sprintf("%d", len(arg))))
+		h.Write([]byte(arg))
+	}
+	c.skipBuildkitHash = h.Sum(nil)
+
+	// TODO use the rest of opts in determining the hash
+}
+
+func (c *Converter) shouldSkipBuildkit(ctx context.Context) (bool, error) {
 	if !c.skipBuildkit {
 		return false, nil
 	}
@@ -2568,9 +2598,6 @@ func (c *Converter) shouldSkipBuildkit(ctx context.Context, setFinal bool) (bool
 	if err != nil {
 		// best effort
 		c.opt.Console.Warnf("failed to check if %x exists in the BuildkitSkipper: %s", c.skipBuildkitHash, err)
-	}
-	if setFinal {
-		c.mts.Final.MainStateBuildkitHash = c.skipBuildkitHash // TODO re-evaluate if this should be here (or rename method to make it more clear)
 	}
 	return exists, nil
 }

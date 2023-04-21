@@ -242,7 +242,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 		// *** DO NOT ADD CODE TO THE bf BELOW ***
 
-		if mts == nil {
+		if mts.Final.SkipBuildkit {
 			// hash already exists, skip buildkit
 			return nil, nil
 		}
