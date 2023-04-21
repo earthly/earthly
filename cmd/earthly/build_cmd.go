@@ -550,7 +550,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	// information to logbusSetup. This function will be called right at the
 	// beginning of the build within earthfile2llb.
 	buildOpts.MainTargetDetailsFunc = func(d earthfile2llb.TargetDetails) error {
-		if app.logbusSetup.LogStreamer.Started() {
+		if app.logbusSetup.LogStreamerStarted() {
 			// If the org & project have been provided by envs, let's verify
 			// that they're correct once we've parsed them from the Earthfile.
 			if app.orgName != d.EarthlyOrgName || app.projectName != d.EarthlyProjectName {
@@ -570,7 +570,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return nil
 	}
 
-	if app.logstream && doLogstreamUpload && !app.logbusSetup.LogStreamer.Started() {
+	if app.logstream && doLogstreamUpload && !app.logbusSetup.LogStreamerStarted() {
 		app.console.ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
 	}
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)

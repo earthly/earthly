@@ -22,7 +22,6 @@ type Orchestrator struct {
 	doneCH chan struct{}
 	subCH  chan struct{}
 
-	started     bool
 	errors      []error
 	startOnce   sync.Once
 	closed      atomic.Bool
@@ -67,17 +66,11 @@ func NewOrchestrator(bus LogBus, c CloudClient, initialManifest *logstream.RunMa
 	return ls
 }
 
-// Started will return true if Start has been called.
-func (l *Orchestrator) Started() bool {
-	return l.started
-}
-
 // Start will restart streaming to the cloud retrying up the retry count
 // Callers should listen to Done to be notified when the streaming contract completes
 // Start may only be called once
 func (l *Orchestrator) Start(ctx context.Context) {
 	l.startOnce.Do(func() {
-		l.started = true
 		go func() {
 			defer l.markDone()
 			for i := 0; i < l.retries; i++ {
