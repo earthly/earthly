@@ -68,6 +68,11 @@ func (bs *BusSetup) SetDefaultPlatform(platform string) {
 	bs.Formatter.SetDefaultPlatform(platform)
 }
 
+// OrgAndProjectSet returns true if the org and project have already been set.
+func (bs *BusSetup) OrgAndProjectSet() bool {
+	return bs.InitialManifest.GetOrgName() != "" && bs.InitialManifest.GetProjectName() != ""
+}
+
 // SetOrgAndProject sets the org and project for the manifest.
 func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
 	bs.InitialManifest.OrgName = orgName
