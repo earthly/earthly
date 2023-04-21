@@ -556,7 +556,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			app.console.VerbosePrintf("Logbus: hit context deadline at %s (%s later)", now.Format(time.RFC3339Nano), now.Sub(beforeSelect))
 			return
 		case details := <-buildOpts.MainTargetDetailsFuture:
-			if app.logbusSetup.OrgAndProjectSet() {
+			if app.logbusSetup.LogStreamer.Started() {
 				app.console.VerbosePrintf("Organization and project already set via environmental")
 				return
 			}
@@ -578,7 +578,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		}
 	}()
 
-	if app.logstream && doLogstreamUpload && !app.logbusSetup.OrgAndProjectSet() {
+	if app.logstream && doLogstreamUpload && !app.logbusSetup.LogStreamer.Started() {
 		app.console.ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
 	}
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
