@@ -23,6 +23,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/util/cliutil"
+	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/termutil"
 )
@@ -429,7 +430,7 @@ func (app *earthlyApp) bootstrap(cliCtx *cli.Context) error {
 		if err != nil {
 			return errors.Wrapf(err, "invalid buildkit_host: %s", app.buildkitHost)
 		}
-		if bkURL.Scheme == "tcp" && app.cfg.Global.TLSEnabled {
+		if (bkURL.Scheme == "tcp" || app.cfg.Global.ContainerFrontend == containerutil.FrontendPodmanShell) && app.cfg.Global.TLSEnabled {
 			root, err := cliutil.GetOrCreateEarthlyDir(app.installationName)
 			if err != nil {
 				return err
