@@ -6,7 +6,7 @@ Earthly supports running builds remotely via remote runners. Remote runners allo
 
 Typical use cases for remote runners include:
 
-* Speeding up CI builds in sandboxed CI environments such as GitHub Actions, GitLab, CircleCI, and others. Most CI build times are improved by a factor of 2-4X via Satellites.
+* Speeding up CI builds in sandboxed CI environments such as GitHub Actions, GitLab, CircleCI, and others. Most CI build times are improved by a factor of 2-20X via Satellites.
 * Executing builds on AMD64/Intel architecture natively when working from an Apple Silicon machine (Apple M1/M2).
 * Sharing compute and cache with coworkers or with the CI.
 * Benefiting from high-bandwidth internet access from the cloud, thus allowing for fast downloads of dependencies and fast pushes for deployments. This is particularly useful if operating from a location with slow internet.

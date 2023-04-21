@@ -148,7 +148,7 @@ When we use the `--compose` flag, Earthly will start up the services defined in 
 You'll need to use `--allow-privileged` (or `-P` for short) to run this example. 
 
 ```bash
-earthly --allow-privileged +integration-tests
+earthly -P +integration-tests
 ```
 
 

@@ -11,7 +11,7 @@ build:
     COPY src src
     SAVE ARTIFACT src /src
 
-with-docker-example:
+integration-tests:
 	FROM earthly/dind:alpine
 	COPY ./docker-compose.yml .
 	COPY ./tests ./tests

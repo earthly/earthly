@@ -61,7 +61,7 @@ test-part6:
         --lang=java \
         --lang=python \
         --part=part6 \
-        --target=with-docker-example
+        --target=integration-tests
 
 test-part:
     LOCALLY
