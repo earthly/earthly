@@ -631,7 +631,7 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			return 1
 		}
 		if cloudClient.IsLoggedIn(ctx) {
-			app.console.VerbosePrintf("Logbus: setting organization %q and project %q at %s (%s later)", app.orgName, app.projectName)
+			app.console.VerbosePrintf("Logbus: setting organization %q and project %q", app.orgName, app.projectName)
 			analytics.AddEarthfileProject(app.orgName, app.projectName)
 			app.logbusSetup.SetOrgAndProject(app.orgName, app.projectName)
 			app.logbusSetup.StartLogStreamer(ctx, cloudClient)
