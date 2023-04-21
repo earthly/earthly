@@ -170,8 +170,8 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		skipBuildkit:        opt.BuildkitSkipper != nil,
 	}
 
-	// TODO include version features in this hash?
 	c.updateInputHashWithString("it has begun") // initial hash for new converters (i.e. scratch states)
+	c.updateInputHashWithString(fmt.Sprintf("%+v", bc.Features))
 
 	if c.opt.GlobalWaitBlockFtr {
 		c.ftrs.WaitBlock = true
@@ -494,7 +494,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 			dest),
 	}
 	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
-	err = c.forceExecution(ctx, c.mts.Final.MainState, c.platr)
+	err = c.forceExecution(ctx, c.mts.Final.MainState, c.platr, false)
 	if err != nil {
 		return err
 	}
@@ -791,12 +791,15 @@ func (c *Converter) runCommand(ctx context.Context, outputFileName string, isExp
 }
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
-func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists, symlinkNoFollow, force bool, isPush bool) error {
+func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLocalTo string, keepTs, keepOwn, ifExists, symlinkNoFollow, force, isPush bool) error {
 	err := c.checkAllowed(saveArtifactCmd)
 	if err != nil {
 		return err
 	}
+
 	c.updateSkipBuildkit(saveArtifactCmd)
+	c.updateInputHashWithString(fmt.Sprintf("saveArtifactCmd %q %q %q %v %v %v %v %v %v", saveFrom, saveTo, saveAsLocalTo, keepTs, keepOwn, ifExists, symlinkNoFollow, force, isPush))
+
 	absSaveFrom, err := llbutil.Abs(ctx, c.mts.Final.MainState, saveFrom)
 	if err != nil {
 		return err
@@ -1000,7 +1003,7 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 	if err != nil {
 		return errors.Wrapf(err, "copyOp save artifact from local")
 	}
-	err = c.forceExecution(ctx, c.mts.Final.ArtifactsState, c.platr)
+	err = c.forceExecution(ctx, c.mts.Final.ArtifactsState, c.platr, true)
 	if err != nil {
 		return err
 	}
@@ -1053,6 +1056,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 		return err
 	}
 	c.updateSkipBuildkit(saveImageCmd)
+	c.updateInputHashWithString(fmt.Sprintf("saveImageCmd %v %v %v %v %v %v", imageNames, pushImages, insecurePush, cacheHint, cacheFrom, noManifestList))
 	if noManifestList && !c.ftrs.UseNoManifestList {
 		return fmt.Errorf("SAVE IMAGE --no-manifest-list is not supported in this version")
 	}
@@ -1170,15 +1174,11 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 			return errors.Wrapf(err, "async earthfile2llb for %s", fullTargetName)
 		}
 		if apf != nil {
-			skip, err := c.shouldSkipBuildkit(ctx)
-			if err != nil {
-				c.opt.Console.Warnf("failed to check if hash %x exists in the BuildkitSkipper: %v", c.skipBuildkitHash, err)
-			}
-			if c.ftrs.ExecAfterParallel && mts != nil && mts.Final != nil && !skip {
+			if c.ftrs.ExecAfterParallel && mts != nil && mts.Final != nil {
 				// TODO: This is a duplication from the forceExecution taking place
 				//       from FinalizeStates. However, this is necessary for apf
 				//       synchronization (needs to be run after target has executed).
-				err := c.forceExecution(ctx, mts.Final.MainState, mts.Final.PlatformResolver)
+				err := c.forceExecution(ctx, mts.Final.MainState, mts.Final.PlatformResolver, true)
 				if err != nil {
 					return errors.Wrapf(err, "async force execution for %s", fullTargetName)
 				}
@@ -1200,6 +1200,7 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 		return err
 	}
 	c.updateSkipBuildkit(workdirCmd)
+	c.updateInputHashWithString(fmt.Sprintf("workdirCmd %q", workdirPath))
 	c.nonSaveCommand()
 	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workdirPath)
 	workdirAbs := workdirPath
@@ -1257,6 +1258,7 @@ func (c *Converter) Entrypoint(ctx context.Context, entrypointArgs []string, isW
 		return err
 	}
 	c.updateSkipBuildkit(entrypointCmd)
+	c.updateInputHashWithString(fmt.Sprintf("entrypointCmd %v %q", entrypointArgs, isWithShell))
 	c.nonSaveCommand()
 	c.mts.Final.MainImage.Config.Entrypoint = withShell(entrypointArgs, isWithShell)
 	if !c.cmdSet {
@@ -1673,7 +1675,9 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		// best effort, but dont fail the build
 		c.opt.Console.Warnf("failed to check if hash %x exists in the BuildkitSkipper: %v", c.skipBuildkitHash, err)
 	}
-
+	if skip {
+		c.mts.Final.SkipBuildkit = true
+	}
 	c.mts.Final.MainStateBuildkitHash = c.skipBuildkitHash
 
 	if !c.varCollection.IsStackAtBase() {
@@ -1700,8 +1704,8 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	close(c.mts.Final.Done())
 
 	if skip {
+		// short-circuit calling forceExecution (to avoid calling shouldSkipBuildkit twice)
 		c.opt.Console.Printf("skipping %s (hash %x was already executed)\n", c.target, c.skipBuildkitHash)
-		c.mts.Final.SkipBuildkit = true
 		return c.mts, nil
 	}
 
@@ -1714,7 +1718,7 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		}
 		defer rel()
 		if c.ftrs.ExecAfterParallel {
-			err = c.forceExecution(ctx, c.mts.Final.MainState, c.mts.Final.PlatformResolver)
+			err = c.forceExecution(ctx, c.mts.Final.MainState, c.mts.Final.PlatformResolver, false)
 			if err != nil {
 				return errors.Wrapf(err, "async force execution for %s", c.mts.FinalTarget().String())
 			}
@@ -2165,7 +2169,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		c.mts.Final.MainState = state.Run(runOpts...).Root()
 
 		if opts.Locally {
-			err = c.forceExecution(ctx, c.mts.Final.MainState, c.platr)
+			err = c.forceExecution(ctx, c.mts.Final.MainState, c.platr, false)
 			if err != nil {
 				return pllb.State{}, err
 			}
@@ -2243,7 +2247,17 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 	return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=+secrets/<secret-id> or <secret-id>", secretKeyValue)
 }
 
-func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr *platutil.Resolver) error {
+func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr *platutil.Resolver, allowSkip bool) error {
+	if allowSkip {
+		skip, err := c.shouldSkipBuildkit(ctx)
+		if err != nil {
+			c.opt.Console.Warnf("failed to check if hash %x exists in the BuildkitSkipper: %v", c.skipBuildkitHash, err)
+		}
+		if skip {
+			c.opt.Console.Printf("skipping %s (hash %x was already executed)\n", c.target, c.skipBuildkitHash)
+			return nil
+		}
+	}
 	if state.Output() == nil {
 		// Scratch - no need to execute.
 		return nil
@@ -2503,9 +2517,10 @@ func (c *Converter) updateSkipBuildkit(command cmdType) {
 		return
 	}
 	switch command {
-	case copyCmd, runCmd, fromCmd, buildCmd:
+	case copyCmd, runCmd, fromCmd, buildCmd, saveArtifactCmd, entrypointCmd, saveImageCmd, workdirCmd:
 		break
 	default:
+		c.opt.Console.Warnf("unable to hash input for %d command\n", command)
 		c.skipBuildkit = false
 	}
 }
@@ -2584,6 +2599,14 @@ func (c *Converter) updateInputHashWithRunCommand(opts *ConvertRunOpts) {
 	c.skipBuildkitHash = h.Sum(nil)
 
 	// TODO use the rest of opts in determining the hash
+}
+
+func (c *Converter) shouldSkipBuildkitBestEffort(ctx context.Context) bool {
+	skip, err := c.shouldSkipBuildkit(ctx)
+	if err != nil {
+		c.opt.Console.Warnf("failed to check if %x exists in the BuildkitSkipper: %s", c.skipBuildkitHash, err)
+	}
+	return skip
 }
 
 func (c *Converter) shouldSkipBuildkit(ctx context.Context) (bool, error) {

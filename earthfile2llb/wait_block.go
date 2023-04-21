@@ -104,6 +104,7 @@ func (wb *waitBlock) saveImages(ctx context.Context, pushesAllowed, localExports
 	platformImgNames := make(map[string]bool)
 	singPlatImgNames := make(map[string]bool) // ensure that these are unique
 
+	canSkip := true
 	imageWaitItems := []*saveImageWaitItem{}
 	for _, item := range wb.items {
 		saveImage, ok := item.(*saveImageWaitItem)
@@ -113,6 +114,10 @@ func (wb *waitBlock) saveImages(ctx context.Context, pushesAllowed, localExports
 
 		if !saveImage.push && !saveImage.localExport {
 			continue
+		}
+
+		if !saveImage.c.shouldSkipBuildkitBestEffort(ctx) {
+			canSkip = false
 		}
 
 		if hasPlatform, ok := isMultiPlatform[saveImage.si.DockerTag]; ok {
@@ -140,7 +145,7 @@ func (wb *waitBlock) saveImages(ctx context.Context, pushesAllowed, localExports
 		}
 		imageWaitItems = append(imageWaitItems, saveImage)
 	}
-	if len(imageWaitItems) == 0 {
+	if len(imageWaitItems) == 0 || canSkip {
 		return nil
 	}
 
@@ -284,7 +289,7 @@ func (wb *waitBlock) waitStates(ctx context.Context) error {
 				return errors.Wrapf(err, "acquiring parallelism semaphore during waitStates for %s", item.c.target.String())
 			}
 			defer rel()
-			return item.c.forceExecution(ctx, *item.state, item.c.platr)
+			return item.c.forceExecution(ctx, *item.state, item.c.platr, true)
 		})
 	}
 	return errGroup.Wait()
@@ -305,6 +310,7 @@ func (wb *waitBlock) saveArtifactLocal(ctx context.Context) error {
 	var console conslogging.ConsoleLogger
 	var exportCoordinator *gatewaycrafter.ExportCoordinator
 	artifacts := []saveArtifactLocalEntry{}
+	canSkip := true
 
 	for refID, item := range wb.items {
 		saveLocalItem, ok := item.(*saveArtifactLocalWaitItem)
@@ -317,6 +323,10 @@ func (wb *waitBlock) saveArtifactLocal(ctx context.Context) error {
 		gatewayClient = c.opt.GwClient
 		console = c.opt.Console
 		exportCoordinator = c.opt.ExportCoordinator
+
+		if !c.shouldSkipBuildkitBestEffort(ctx) {
+			canSkip = false
+		}
 
 		state := c.mts.Final.SeparateArtifactsState[i]
 
@@ -350,6 +360,10 @@ func (wb *waitBlock) saveArtifactLocal(ctx context.Context) error {
 
 	}
 
+	if canSkip {
+		return nil
+	}
+
 	refs, metadata := gwCrafter.GetRefsAndMetadata()
 	if len(refs) == 0 {
 		if len(metadata) != 0 {
@@ -374,5 +388,6 @@ func (wb *waitBlock) saveArtifactLocal(ctx context.Context) error {
 		}
 
 	}
+
 	return nil
 }

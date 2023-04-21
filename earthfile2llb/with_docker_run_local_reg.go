@@ -115,7 +115,7 @@ func (w *withDockerRunLocalReg) Run(ctx context.Context, args []string, opt With
 
 	// Force synchronous command execution if we're using the local registry for
 	// loads and pulls.
-	return w.c.forceExecution(ctx, w.c.mts.Final.MainState, w.c.platr)
+	return w.c.forceExecution(ctx, w.c.mts.Final.MainState, w.c.platr, false)
 }
 
 func (w *withDockerRunLocalReg) load(ctx context.Context, opt DockerLoadOpt) (chan *states.ImageDef, error) {

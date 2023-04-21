@@ -118,6 +118,8 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 		return err
 	}
 
+	w.c.updateInputHashWithString(fmt.Sprintf("WITH DOCKER %v %+v", args, opt)) // TODO fine tune which options are hashed
+
 	w.c.nonSaveCommand()
 
 	err = w.installDeps(ctx, opt)
@@ -236,7 +238,7 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 
 	// Force synchronous command execution if we're using the local registry for
 	// loads and pulls.
-	return w.c.forceExecution(ctx, w.c.mts.Final.MainState, w.c.platr)
+	return w.c.forceExecution(ctx, w.c.mts.Final.MainState, w.c.platr, true)
 }
 
 func (w *withDockerRunRegistry) pull(ctx context.Context, opt DockerPullOpt) (*states.ImageDef, error) {
