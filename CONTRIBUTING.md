@@ -51,7 +51,37 @@ For development purposes, you may use the built `earthly` binary to rebuild itse
     ```bash
     ./build/darwin/amd64/earthly +for-darwin-m1
     ```
-  
+
+## Delve
+
+To use the [delve debugger](https://github.com/go-delve/delve) with the earthly binary, you need to disable optimizations in the 'go build' command. This is done using the -GO_GCFLAGS arg:
+
+```
+./earthly +for-own -GO_GCFLAGS='all=-N -l'
+```
+
+From there, you may use `dlv exec` against the binary, using `--` to separate dlv args from earthly args:
+
+```
+dlv exec ./build/own/earthly -- +base
+Type 'help' for list of commands.
+
+(dlv) break /earthly/earthfile2llb/interpreter.go:670
+Breakpoint 1 set at 0x182866a for github.com/earthly/earthly/earthfile2llb.(*Interpreter).handleRun() /earthly/earthfile2llb/interpreter.go:670
+(dlv) continue
+ Init 🚀
+————————————————————————————————————————————————————————————————————————————————
+
+           buildkitd | Found buildkit daemon as podman container (earthly-dev-buildkitd)
+
+ Build 🔧
+————————————————————————————————————————————————————————————————————————————————
+
+golang:1.20-alpine3.17 | --> Load metadata golang:1.20-alpine3.17 linux/amd64
+> github.com/earthly/earthly/earthfile2llb.(*Interpreter).handleRun() /earthly/earthfile2llb/interpreter.go:670 (hits goroutine(295):1 total:1) (PC: 0x182866a)
+(dlv)
+```
+
 ## Running tests
 
 To run most tests you can issue
