@@ -58,9 +58,9 @@ Then, in the Earthly Web UI, you can create a new project, and add the repositor
 
 The pipeline should start executing automatically. Its status can be seen in the Earthly Web UI.
 
-<!--
-TODO(vladaionescu): Add screenshots.
--->
+![Earthly CI pipeline summary](./img/status-1.png)
+
+![Earthly CI pipeline detail](./img/status-2.png)
 
 Earthly CI pipelines can also be executed locally the same way as any other Earthly target. This is useful for testing the pipeline locally before pushing it to the repository.
 
