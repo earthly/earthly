@@ -4,7 +4,7 @@ The main benefit of using Earthly in an existing CI is that it provides consiste
 
 In this section, we will explore how to use Earthly in a well-known CI system, such as GitHub Actions. For more information on how to use Earthly in other CIs such as GitLab, Jenkins, or CircleCI, you can check out the [CI Integration page](../ci-integration/overview.md).
 
-## Using Earthly in your current CI
+## Using Earthly in Your Current CI
 
 To use Earthly in a CI, you typically encode the following steps in your CI's build configuration:
 
@@ -49,14 +49,14 @@ jobs:
     - name: Docker Login
       run: docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
     - name: Run build
-      run: earthly --push +build
+      run: earthly --ci --push +build
 ```
 
 Here is an explanation of the steps above:
 
 * The action `earthly/actions/setup-earthly@v1` downloads and installs Earthly. Running this action is similar to running the Earthly installation one-liner `sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.6.30/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'`
 * The command `docker login` performs a login to the DockerHub registry. This is required, to prevent rate-limiting issues when using popular base images.
-* The command `earthly --ci --push +build` executes the build. The `--ci` flag is used here, in order to force the use of `--strict` mode -- in this mode, Earthly prevents the use of features that make the build less repeatable -- and also to disable local outputs. Artifacts and images resulting from the build are not needed within the CI environment. Any outputs should be pushed via `RUN --push` or `SAVE IMAGE --push` commands.
+* The command `earthly --ci --push +build` executes the build. The `--ci` flag is used here, in order to force the use of `--strict` mode. In `--strict` mode, Earthly prevents the use of features that make the build less repeatable and also disables local outputs -- because artifacts and images resulting from the build are not needed within the CI environment. Any outputs should be pushed via `RUN --push` or `SAVE IMAGE --push` commands.
 
 ### Using Earthly Satellites in CI (optional)
 
@@ -69,7 +69,7 @@ To use a satellite in your CI, you need to:
 1. Generate an Earthly token and set it as an environment variable in your CI
 2. Specify the satellite name to use as part of the `earthly` command.
 
-To generate an Earthly token, assuming that you are logged in, you can use the command
+To generate an Earthly token, assuming that you are logged in, you can use the command...
 
 ```bash
 earthly account create-token my-ci-token

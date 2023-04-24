@@ -1,6 +1,6 @@
 Earthly has the ability to run builds both locally and remotely. If you followed the standard [installation instructions](https://earthly.dev/get-earthly), then you most likely have only run local builds so far. In this section, we will explore how to use remote runners to perform builds on remote machines.
 
-## Remote runners
+## Remote Runners
 
 Earthly is able to use remote runners for performing builds on remote machines. When Earthly uses a remote runner, the inputs of the build are picked up from the local environment, then the execution takes place remotely, including any pushes (`RUN --push` commands, and `SAVE IMAGE --push` commands), but any local outputs are sent back to the local environment. All this takes place while your local Earthly process still provides the logs of the build in real time locally.
 
@@ -15,9 +15,9 @@ Remote runners are especially useful in a few specific circumstances:
 There are two types of remote runners:
 
 * Remote Buildkit (self-hosted)
-* Earthly Satellites
+* Earthly Satellites (managed by Earthly)
 
-### Using a remote Buildkit
+### Using a Remote Buildkit
 
 A common way to use remote runners is to deploy your own instance of Buildkit and have Earthly connect to it. The [remote Buildkit page](../ci-integration/remote-buildkit.md) has more information on how to set this up.
 
@@ -37,19 +37,19 @@ earthly +my-target
 
 Another way to use remote runners is to use Earthly Satellites. Earthly Satellites are remote runners managed by the Earthly team. They are a paid feature as part of the [Earthly Satellites or Earthly CI plans](https://earthly.dev/pricing).
 
-To get started, first you need create an Earthly Cloud account.
+To get started, first you need to create an Earthly Cloud account.
 
 ```bash
 earthly account register --email <your-email>
 ```
 
-Then, follow instructions in the email received. Then, create an organization.
+Follow instructions in the email received to complete the registration. You will additionally need to create an organization.
 
 ```bash
 earthly org create my-org
 ```
 
-Then, subscribe to a paid plan. The subscription has a 14-day trial -- your credit card is not charged if you cancel before then.
+You must subscribe to a paid plan to use Earthly Satellites. The subscription has a 14-day trial -- your credit card is not charged if you cancel before then.
 
 [**Click here to start your subscription**](https://buy.stripe.com/8wM9Es4BT4Vvb4YbIJ)
 
@@ -59,10 +59,16 @@ Then, you can create a satellite.
 earthly sat launch my-satellite
 ```
 
-You can then select the satellite via
+Once a satellite has been launched it is automatically selected for use. If you ever need to switch the satellite yourself, you can can use the command...
 
 ```bash
 earthly sat select my-satellite
+```
+
+Additionally, you can go back to performing local builds with the command...
+
+```bash
+earthly sat unselect
 ```
 
 And then run Earthly builds as usual.
