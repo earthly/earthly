@@ -38,7 +38,7 @@ An Earthly CI pipeline is defined as an Earthly target that begins with the comm
 VERSION 0.7
 PROJECT my-org/my-project
 
-FROM alpine:3.15
+FROM alpine:3.17
 
 hello-world-pipeline:
     PIPELINE
