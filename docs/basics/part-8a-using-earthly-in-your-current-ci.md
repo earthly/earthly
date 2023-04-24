@@ -1,8 +1,10 @@
 Earthly was designed to be used as the main CI build specification. It can be integrated with any CI system and used instead of the CI's own native syntax.
 
-The main benefit of using Earthly in an existing CI is that it provides consistency between local and CI builds. This allows you to debug, test, and iterate on your CI builds locally, before pushing them to the CI. The fact that Earthly uses containers underneath provides a level of guarantee that the build behaves the same no matter where it is run from. This is what we call **repeatability**.
+The main benefit of using Earthly in CI is that it provides consistency between local and CI builds. This allows you to debug, test, and iterate on your builds locally, before pushing them to the CI. The fact that Earthly uses containers underneath provides a level of guarantee that the build behaves the same no matter where it is run from. This is what we call **repeatability**.
 
-In this section, we will explore how to use Earthly in a well-known CI system, such as GitHub Actions. For more information on how to use Earthly in other CIs such as GitLab, Jenkins, or CircleCI, you can check out the [CI Integration page](../ci-integration/overview.md).
+In this section, we will explore how to use Earthly in a traditional CI system, such as GitHub Actions. **If you would like an introduction to using Earthly CI, see [Part 8b](./part-8b-using-earthly-ci.md) of this tutorial.**
+
+For more information on how to use Earthly in other CIs such as GitLab, Jenkins, or CircleCI, you can check out the [CI Integration page](../ci-integration/overview.md).
 
 ## Using Earthly in Your Current CI
 
@@ -90,4 +92,4 @@ earthly --sat my-satellite --ci --push +build
 
 For more information on how to use Earthly Satellites, you can check out the [Satellites page](../cloud/satellites.md).
 
-For more information about integrating Earthly with other CI systems, you can check out the [CI Integration page](../ci-integration/overview.md).
+For more information about integrating Earthly with other traditional CI systems, you can check out the [CI Integration page](../ci-integration/overview.md).

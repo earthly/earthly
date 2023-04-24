@@ -1,6 +1,6 @@
 *The code of this example is available in the [earthly/earthly-example-ci repository on GitHub](https://github.com/earthly/earthly-example-ci).*
 
-An alternative to using a traditional CI system is to use Earthly CI. With Earthly CI, you don't need any other build specification other than the Earthfile. Earthly CI uses the same technology underneath as Earthly Satellites, which means that it is dramatically faster than traditional CI systems through the use of its instantly-available cache.
+An alternative to using a traditional CI system (see [part 8a](./part-8a-using-earthly-in-your-current-ci.md)) is to use Earthly CI. With Earthly CI, you don't need any other build specification other than the Earthfile. Earthly CI uses the same technology underneath as Earthly Satellites, which means that it is dramatically faster than traditional CI systems through the use of its instantly-available cache.
 
 Earthly CI is a [paid feature](https://earthly.dev/pricing), although there is a 14-day free trial available. This section will walk you through the steps to get started with Earthly CI.
 
