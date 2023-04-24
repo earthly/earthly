@@ -905,16 +905,21 @@ func getCacheSize(ctx context.Context, volumeName string, fe containerutil.Conta
 	return int(infos[volumeName].SizeBytes), nil
 }
 
+func cfgPath(instName, path string) (string, error) {
+	if filepath.IsAbs(path) {
+		return path, nil
+	}
+	cfgDir, err := cliutil.GetOrCreateEarthlyDir(instName)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(cfgDir, path), nil
+}
+
 func makeTLSPath(path string, installationName string) (string, error) {
-	fullPath := path
-
-	if !filepath.IsAbs(path) {
-		earthlyDir, err := cliutil.GetOrCreateEarthlyDir(installationName)
-		if err != nil {
-			return "", err
-		}
-
-		fullPath = filepath.Join(earthlyDir, path)
+	fullPath, err := cfgPath(installationName, path)
+	if err != nil {
+		return "", errors.Wrap(err, "could not create TLS path")
 	}
 
 	exists, err := fileutil.FileExists(fullPath)
@@ -922,7 +927,7 @@ func makeTLSPath(path string, installationName string) (string, error) {
 		return "", errors.Wrapf(err, "failed to check if %s exists", fullPath)
 	}
 	if !exists {
-		return "", fmt.Errorf("path '%s' does not exist", path)
+		return "", errors.Wrapf(os.ErrNotExist, "read file '%s'", fullPath)
 	}
 
 	return fullPath, nil

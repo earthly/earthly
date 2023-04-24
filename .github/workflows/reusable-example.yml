@@ -71,6 +71,9 @@ jobs:
       - name: Podman debug info
         run: podman version && podman info && podman info --debug
         if: inputs.binary == 'podman'
+      - name: Bootstrap Earthly
+        run: earthly bootstrap
+        if: inputs.binary == 'podman'
       - name: Install QEMU for Podman multi-arch building
         # qemu-user-static needed for cross-compilation (--platform) targets
         run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y qemu-user-static

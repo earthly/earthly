@@ -52,6 +52,9 @@ jobs:
       - name: Podman debug info
         run: podman version && podman info && podman info --debug
         if: inputs.binary == 'podman'
+      - name: Bootstrap Earthly
+        run: earthly bootstrap
+        if: inputs.binary == 'podman'
       - name: Configure Satellites (Earthly Only)
         run: earthly sat ls && earthly satellite select ${{inputs.SATELLITE_NAME}}
         if: (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && inputs.USE_SATELLITE

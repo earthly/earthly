@@ -57,8 +57,12 @@ jobs:
           earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Bootstrap Earthly using released earthly
+        run: earthly bootstrap
       - name: Build latest earthly using released earthly
         run: earthly -P --use-inline-cache +for-darwin
+      - name: Re-bootstrap Earthly using latest earthly build
+        run: ${{ env.BUILT_EARTHLY_PATH }} bootstrap
       - name: rebuild earthly using latest earthly build
         run: ${{ env.BUILT_EARTHLY_PATH }} -P --use-inline-cache +for-darwin
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
