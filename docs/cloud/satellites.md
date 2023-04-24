@@ -2,18 +2,6 @@
 
 This feature is part of the Earthly Satellites & Earthly CI paid plans.
 
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Beta** stage
-
-* The feature may break or change significantly in future versions of Earthly.
-* Give us feedback on
-  * [Slack](https://earthly.dev/slack)
-  * [GitHub issues](https://github.com/earthly/cloud-issues/issues)
-  * [Emailing support](mailto:support+satellite@earthly.dev)
-{% endhint %}
-
 Earthly Satellites are [remote runner](../remote-runners.md) instances managed by the Earthly team. They allow you to perform builds in the cloud, while retaining cache between runs.
 
 When using Earthly Satellites, even though the build executes remotely, the following pieces of functionality are still available:
