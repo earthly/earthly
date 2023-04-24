@@ -322,6 +322,7 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			Usage:       wrap("The name of the organization that the satellite belongs to. ", "Required when using --satellite and user is a member of multiple organizations."),
 			Required:    false,
 			Destination: &app.orgName,
+			Hidden:      true,
 		},
 		&cli.StringFlag{
 			Name:        "project",
