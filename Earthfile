@@ -58,6 +58,7 @@ code:
         dockertar docker2earthly domain features outmon slog cloud states util variables ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
+    COPY --dir inputgraph/*.go inputgraph/
     COPY --dir ast/antlrhandler ast/spec ast/hint ast/*.go ast/
 
 # update-buildkit updates earthly's buildkit dependency.

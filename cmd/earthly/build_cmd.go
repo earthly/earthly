@@ -23,6 +23,7 @@ import (
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/inputgraph"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/cliutil"
@@ -222,6 +223,11 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 				app.console.Printf("Share your logs with an Earthly account (experimental)! Register for one at https://ci.earthly.dev.")
 			}()
 		}
+	}
+
+	inputgraph.Load(cliCtx.Context, target, app.console)
+	if true { // TODO perform auto-skip here
+		return nil
 	}
 
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
@@ -581,6 +587,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if app.logstream && doLogstreamUpload {
 		app.console.ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
 	}
+
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
 	if err != nil {
 		return errors.Wrap(err, "build target")
