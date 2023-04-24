@@ -13,48 +13,15 @@ import (
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
-	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 )
 
 func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
-	console := app.console.WithPrefix("frontend")
-	feConfig := &containerutil.FrontendConfig{
-		BuildkitHostCLIValue:       app.buildkitHost,
-		BuildkitHostFileValue:      app.cfg.Global.BuildkitHost,
-		LocalRegistryHostFileValue: app.cfg.Global.LocalRegistryHost,
-		InstallationName:           app.installationName,
-		DefaultPort:                8372 + config.PortOffset(app.installationName),
-		Console:                    console,
-	}
-	fe, err := containerutil.FrontendForSetting(cliCtx.Context, app.cfg.Global.ContainerFrontend, feConfig)
-	if err != nil {
-		origErr := err
-		fe, err = containerutil.NewStubFrontend(cliCtx.Context, feConfig)
-		if err != nil {
-			return errors.Wrap(err, "failed stub frontend initialization")
-		}
-
-		if !app.verbose {
-			console.Printf("No frontend initialized. Use --verbose to see details\n")
-		}
-		console.VerbosePrintf("%s frontend initialization failed due to %s", app.cfg.Global.ContainerFrontend, origErr.Error())
-	} else {
-		console.VerbosePrintf("%s frontend initialized.\n", fe.Config().Setting)
-	}
-	app.containerFrontend = fe
-
 	// command line option overrides the config which overrides the default value
 	if !cliCtx.IsSet("buildkit-image") && app.cfg.Global.BuildkitImage != "" {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
-
-	// These URLs were calculated relative to the configured frontend. In the case of an automatically detected frontend,
-	// they are calculated according to the first selected one in order of precedence.
-	buildkitURLs := fe.Config().FrontendURLs
-	app.buildkitHost = buildkitURLs.BuildkitHost.String()
-	app.localRegistryHost = buildkitURLs.LocalRegistryHost.String()
 
 	bkURL, err := url.Parse(app.buildkitHost) // Not validated because we already did that when we calculated it.
 	if err != nil {
@@ -64,7 +31,7 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 	if bkURL.Scheme == "tcp" && app.cfg.Global.TLSEnabled {
 		app.buildkitdSettings.ClientTLSCert = app.cfg.Global.ClientTLSCert
 		app.buildkitdSettings.ClientTLSKey = app.cfg.Global.ClientTLSKey
-		app.buildkitdSettings.TLSCA = app.cfg.Global.TLSCA
+		app.buildkitdSettings.TLSCA = app.cfg.Global.TLSCACert
 		app.buildkitdSettings.ServerTLSCert = app.cfg.Global.ServerTLSCert
 		app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
 	}

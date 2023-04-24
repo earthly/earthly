@@ -2,10 +2,10 @@ package buildkitd
 
 import (
 	"context"
+	"crypto/rsa"
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -24,7 +24,6 @@ import (
 	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/buildkitutil"
-	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/semverutil"
@@ -40,7 +39,40 @@ var (
 
 // NewClient returns a new buildkitd client. If the buildkitd daemon is local, this function
 // might start one up, if not already started.
-func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, containerName, installationName string, fe containerutil.ContainerFrontend, earthlyVersion string, settings Settings, opts ...client.ClientOpt) (*client.Client, error) {
+func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, containerName, installationName string, fe containerutil.ContainerFrontend, earthlyVersion string, settings Settings, opts ...client.ClientOpt) (_ *client.Client, retErr error) {
+	defer func() {
+		if retErr == nil {
+			return
+		}
+		if errors.Is(retErr, os.ErrNotExist) {
+			switch fe.Config().Setting {
+			case containerutil.FrontendPodman, containerutil.FrontendPodmanShell:
+				tlsPaths := []string{
+					settings.TLSCA,
+					settings.ServerTLSKey,
+					settings.ServerTLSCert,
+					settings.ClientTLSKey,
+					settings.ClientTLSCert,
+				}
+				if containsAny(retErr.Error(), tlsPaths...) {
+					retErr = hint.Wrap(retErr,
+						"podman now requires TLS certs by default - try stopping the earthly-buildkitd container and re-running 'earthly bootstrap'",
+						"alternatively, run 'earthly config global.tls_enabled false' to disable TLS",
+					)
+				}
+			default:
+			}
+			return
+		}
+		if strings.Contains(retErr.Error(), rsa.ErrVerification.Error()) {
+			// verification errors can happen server-side, which means
+			// errors.Is() won't work. We use strings.Contains instead to handle
+			// that case.
+			retErr = hint.Wrap(retErr, "did earthly's certificates get regenerated? you may need to manually stop the earthly-buildkitd container.")
+			return
+		}
+	}()
+
 	opts, err := addRequiredOpts(settings, installationName, fe.Config().Setting == containerutil.FrontendPodmanShell, opts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "add required client opts")
@@ -76,7 +108,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 		bkCons.Printf("Is %[1]s installed and running? Are you part of any needed groups?\n", fe.Config().Binary)
 		return nil, fmt.Errorf("%s not available", fe.Config().Binary)
 	}
-	info, workerInfo, err := MaybeStart(ctx, console, image, containerName, installationName, fe, settings, opts...)
+	info, workerInfo, err := maybeStart(ctx, console, image, containerName, installationName, fe, settings, opts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "maybe start buildkitd")
 	}
@@ -136,9 +168,9 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image, c
 	return nil
 }
 
-// MaybeStart ensures that the buildkitd daemon is started. It returns the URL
+// maybeStart ensures that the buildkitd daemon is started. It returns the URL
 // that can be used to connect to it.
-func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, containerName, installationName string, fe containerutil.ContainerFrontend, settings Settings, opts ...client.ClientOpt) (cinfo *client.Info, winfo *client.WorkerInfo, finalErr error) {
+func maybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, containerName, installationName string, fe containerutil.ContainerFrontend, settings Settings, opts ...client.ClientOpt) (cinfo *client.Info, winfo *client.WorkerInfo, finalErr error) {
 	if settings.StartUpLockPath != "" {
 		startLock := flock.New(settings.StartUpLockPath)
 		timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -169,7 +201,7 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, c
 		console.
 			WithPrefix("buildkitd").
 			Printf("Found buildkit daemon as %s container (%s)\n", fe.Config().Binary, containerName)
-		info, workerInfo, err := MaybeRestart(ctx, console, image, containerName, installationName, fe, settings, opts...)
+		info, workerInfo, err := maybeRestart(ctx, console, image, containerName, installationName, fe, settings, opts...)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "maybe restart")
 		}
@@ -192,14 +224,14 @@ func MaybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, c
 	return info, workerInfo, nil
 }
 
-// MaybeRestart checks whether the there is a different buildkitd image available locally or if
+// maybeRestart checks whether the there is a different buildkitd image available locally or if
 // settings of the current container are different from the provided settings. In either case,
 // the container is restarted.
-func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image, containerName, installationName string, fe containerutil.ContainerFrontend, settings Settings, opts ...client.ClientOpt) (*client.Info, *client.WorkerInfo, error) {
+func maybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image, containerName, installationName string, fe containerutil.ContainerFrontend, settings Settings, opts ...client.ClientOpt) (*client.Info, *client.WorkerInfo, error) {
 	bkCons := console.WithPrefix("buildkitd")
 	containerImageID, err := GetContainerImageID(ctx, containerName, fe)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "could not get container image ID")
 	}
 	availableImageID, err := GetAvailableImageID(ctx, image, fe)
 	if err != nil {
@@ -213,7 +245,7 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image,
 		// Images are the same. Check settings hash.
 		hash, err := GetSettingsHash(ctx, containerName, fe)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, errors.Wrap(err, "could not get settings hash")
 		}
 		ok, err := settings.VerifyHash(hash)
 		if err != nil {
@@ -224,7 +256,7 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image,
 			bkCons.VerbosePrintf("Settings hashes match (%q), no restart required\n", hash)
 			info, workerInfo, err := checkConnection(ctx, settings.BuildkitAddress, 5*time.Second, opts...)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, errors.Wrap(err, "could not connect to buildkitd to shut down container")
 			}
 			return info, workerInfo, nil
 		}
@@ -234,7 +266,7 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image,
 			bkCons.Printf("Updated image available. But update was inhibited.\n")
 			info, workerInfo, err := checkConnection(ctx, settings.BuildkitAddress, 5*time.Second, opts...)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, errors.Wrap(err, "could not verify connection to buildkitd container")
 			}
 			return info, workerInfo, nil
 		}
@@ -244,19 +276,19 @@ func MaybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image,
 	// Replace.
 	err = Stop(ctx, containerName, fe)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrapf(err, "could not shut down container %q", containerName)
 	}
 	err = WaitUntilStopped(ctx, containerName, settings.Timeout, fe)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrapf(err, "could not wait for container %q to stop", containerName)
 	}
 	err = Start(ctx, console, image, containerName, installationName, fe, settings, false)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrapf(err, "could not start container %q", containerName)
 	}
 	info, workerInfo, err := WaitUntilStarted(ctx, console, containerName, settings.VolumeName, settings.BuildkitAddress, settings.Timeout, fe, opts...)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrapf(err, "could not wait for container %q to start", containerName)
 	}
 	bkCons.Printf("...Done\n")
 	return info, workerInfo, nil
@@ -381,39 +413,36 @@ func Start(ctx context.Context, console conslogging.ConsoleLogger, image, contai
 			}
 			if settings.UseTLS {
 				if settings.TLSCA != "" {
-					caPath, err := makeTLSPath(settings.TLSCA, installationName)
-					if err != nil {
-						return errors.Wrap(err, "start buildkitd")
+					if exists, _ := fileutil.FileExists(settings.TLSCA); !exists {
+						return errors.Wrapf(os.ErrNotExist, "TLS CA file %q is missing", settings.TLSCA)
 					}
 					volumeOpts = append(volumeOpts, containerutil.Mount{
 						Type:     containerutil.MountBind,
-						Source:   caPath,
+						Source:   settings.TLSCA,
 						Dest:     "/etc/ca.pem",
 						ReadOnly: true,
 					})
 				}
 
 				if settings.ServerTLSCert != "" {
-					certPath, err := makeTLSPath(settings.ServerTLSCert, installationName)
-					if err != nil {
-						return errors.Wrap(err, "start buildkitd")
+					if exists, _ := fileutil.FileExists(settings.ServerTLSCert); !exists {
+						return errors.Wrapf(os.ErrNotExist, "TLS certificate %q is missing", settings.ServerTLSCert)
 					}
 					volumeOpts = append(volumeOpts, containerutil.Mount{
 						Type:     containerutil.MountBind,
-						Source:   certPath,
+						Source:   settings.ServerTLSCert,
 						Dest:     "/etc/cert.pem",
 						ReadOnly: true,
 					})
 				}
 
 				if settings.ServerTLSKey != "" {
-					keyPath, err := makeTLSPath(settings.ServerTLSKey, installationName)
-					if err != nil {
-						return errors.Wrap(err, "start buildkitd")
+					if exists, _ := fileutil.FileExists(settings.ServerTLSKey); !exists {
+						return errors.Wrapf(os.ErrNotExist, "TLS private key %q is missing", settings.ServerTLSKey)
 					}
 					volumeOpts = append(volumeOpts, containerutil.Mount{
 						Type:     containerutil.MountBind,
-						Source:   keyPath,
+						Source:   settings.ServerTLSKey,
 						Dest:     "/etc/key.pem",
 						ReadOnly: true,
 					})
@@ -905,34 +934,6 @@ func getCacheSize(ctx context.Context, volumeName string, fe containerutil.Conta
 	return int(infos[volumeName].SizeBytes), nil
 }
 
-func cfgPath(instName, path string) (string, error) {
-	if filepath.IsAbs(path) {
-		return path, nil
-	}
-	cfgDir, err := cliutil.GetOrCreateEarthlyDir(instName)
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(cfgDir, path), nil
-}
-
-func makeTLSPath(path string, installationName string) (string, error) {
-	fullPath, err := cfgPath(installationName, path)
-	if err != nil {
-		return "", errors.Wrap(err, "could not create TLS path")
-	}
-
-	exists, err := fileutil.FileExists(fullPath)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to check if %s exists", fullPath)
-	}
-	if !exists {
-		return "", errors.Wrapf(os.ErrNotExist, "read file '%s'", fullPath)
-	}
-
-	return fullPath, nil
-}
-
 func addRequiredOpts(settings Settings, installationName string, isUsingPodman bool, opts ...client.ClientOpt) ([]client.ClientOpt, error) {
 	server, err := url.Parse(settings.BuildkitAddress)
 	if err != nil {
@@ -954,24 +955,10 @@ func addRequiredOpts(settings Settings, installationName string, isUsingPodman b
 	if settings.TLSCA == "" && settings.ClientTLSCert == "" && settings.ClientTLSKey == "" {
 		return append(opts, client.WithServerConfigSystem("")), nil
 	}
-	caPath, err := makeTLSPath(settings.TLSCA, installationName)
-	if err != nil {
-		return []client.ClientOpt{}, maybeWrapWithPodmanHint(isUsingPodman, errors.Wrap(err, "caPath"))
-	}
-
-	certPath, err := makeTLSPath(settings.ClientTLSCert, installationName)
-	if err != nil {
-		return []client.ClientOpt{}, maybeWrapWithPodmanHint(isUsingPodman, errors.Wrap(err, "certPath"))
-	}
-
-	keyPath, err := makeTLSPath(settings.ClientTLSKey, installationName)
-	if err != nil {
-		return []client.ClientOpt{}, maybeWrapWithPodmanHint(isUsingPodman, errors.Wrap(err, "keyPath"))
-	}
 
 	opts = append(opts,
-		client.WithCredentials(certPath, keyPath),
-		client.WithServerConfig(server.Hostname(), caPath),
+		client.WithCredentials(settings.ClientTLSCert, settings.ClientTLSKey),
+		client.WithServerConfig(server.Hostname(), settings.TLSCA),
 	)
 
 	return opts, nil
@@ -993,9 +980,11 @@ func PrintSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, 
 	return nil
 }
 
-func maybeWrapWithPodmanHint(isUsingPodman bool, err error) error {
-	if isUsingPodman {
-		return hint.Wrap(err, "podman now requires TLS certs - try re-running 'earthly bootstrap'")
+func containsAny(hs string, needles ...string) bool {
+	for _, n := range needles {
+		if strings.Contains(hs, n) {
+			return true
+		}
 	}
-	return err
+	return false
 }

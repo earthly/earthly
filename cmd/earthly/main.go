@@ -418,6 +418,45 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 	return app
 }
 
+func (app *earthlyApp) parseFrontend(cliCtx *cli.Context, cfg *config.Config) error {
+	console := app.console.WithPrefix("frontend")
+	feCfg := &containerutil.FrontendConfig{
+		BuildkitHostCLIValue:       app.buildkitHost,
+		BuildkitHostFileValue:      app.cfg.Global.BuildkitHost,
+		LocalRegistryHostFileValue: app.cfg.Global.LocalRegistryHost,
+		InstallationName:           app.installationName,
+		DefaultPort:                8372 + config.PortOffset(app.installationName),
+		Console:                    console,
+	}
+	fe, err := containerutil.FrontendForSetting(cliCtx.Context, app.cfg.Global.ContainerFrontend, feCfg)
+	if err != nil {
+		origErr := err
+		stub, err := containerutil.NewStubFrontend(cliCtx.Context, feCfg)
+		if err != nil {
+			return errors.Wrap(err, "failed stub frontend initialization")
+		}
+		app.containerFrontend = stub
+
+		if !app.verbose {
+			console.Printf("No frontend initialized. Use --verbose to see details\n")
+		}
+		console.VerbosePrintf("%s frontend initialization failed due to %s", app.cfg.Global.ContainerFrontend, origErr.Error())
+		return nil
+	}
+
+	console.VerbosePrintf("%s frontend initialized.\n", fe.Config().Setting)
+	app.containerFrontend = fe
+
+	// These URLs were calculated relative to the configured frontend. In the
+	// case of an automatically detected frontend, they are calculated according
+	// to the first selected one in order of precedence.
+	buildkitURLs := app.containerFrontend.Config().FrontendURLs
+	app.buildkitHost = buildkitURLs.BuildkitHost.String()
+	app.localRegistryHost = buildkitURLs.LocalRegistryHost.String()
+
+	return nil
+}
+
 func (app *earthlyApp) before(cliCtx *cli.Context) error {
 	if app.enableProfiler {
 		go profhandler()
@@ -474,17 +513,18 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 		}
 	}
 
-	var err error
-	app.cfg, err = config.ParseConfigFile(yamlData, app.installationName)
+	cfg, err := config.ParseYAML(yamlData, app.installationName)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse %s", app.configPath)
 	}
-
-	if app.cfg.Git == nil {
-		app.cfg.Git = map[string]config.GitConfig{}
-	}
+	app.cfg = &cfg
 
 	err = app.processDeprecatedCommandOptions(cliCtx, app.cfg)
+	if err != nil {
+		return err
+	}
+
+	err = app.parseFrontend(cliCtx, app.cfg)
 	if err != nil {
 		return err
 	}

@@ -69,7 +69,7 @@ jobs:
         run: podman version && podman info && podman info --debug
         if: inputs.binary == 'podman'
       - name: Bootstrap Earthly
-        run: earthly bootstrap
+        run: ${{inputs.SUDO}} $(which earthly) bootstrap
         if: inputs.binary == 'podman'
       - name: Configure Satellites (Earthly Only)
         run: earthly sat ls && earthly satellite select ${{inputs.SATELLITE_NAME}}
