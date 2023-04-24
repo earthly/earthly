@@ -2556,6 +2556,7 @@ func (c *Converter) updateInputHashWithFiles(srcs []string) {
 		}
 
 		if stat.IsDir() {
+			hashDir(path)
 			// TODO add support for directories
 			c.opt.Console.Warnf("unable to hash directory input %s\n", src)
 			c.skipBuildkit = false
