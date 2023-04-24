@@ -77,6 +77,9 @@ func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
 
 // LogStreamerStarted returns true if the log streamer has been started.
 func (bs *BusSetup) LogStreamerStarted() bool {
+	if bs == nil {
+		return false
+	}
 	return bs.logStreamerStarted
 }
 
