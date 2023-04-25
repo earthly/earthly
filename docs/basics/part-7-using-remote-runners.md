@@ -33,6 +33,12 @@ And then run Earthly builds as usual.
 earthly +my-target
 ```
 
+Another option is to use the `--buildkit-host` flag on the command line, instead of setting the configuration option.
+
+```bash
+earthly --buildkit-host earthly-remote-buildkit.example.com +my-target
+```
+
 ### Using an Earthly Satellite
 
 Another way to use remote runners is to use Earthly Satellites. Earthly Satellites are remote runners managed by the Earthly team. They are a paid feature as part of the [Earthly Satellites or Earthly CI plans](https://earthly.dev/pricing).
@@ -59,7 +65,7 @@ Then, you can create a satellite.
 earthly sat launch my-satellite
 ```
 
-Once a satellite has been launched it is automatically selected for use. If you ever need to switch the satellite yourself, you can can use the command...
+Once a satellite has been launched it is automatically selected for use. If you ever need to switch the satellite yourself, you can use the command...
 
 ```bash
 earthly sat select my-satellite
