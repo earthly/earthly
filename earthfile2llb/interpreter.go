@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/earthly/earthly/analytics"
+	"github.com/earthly/earthly/ast/commands"
 	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
@@ -135,12 +136,12 @@ func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, sta
 		stmt := b[index]
 		if stmt.Command != nil {
 			switch stmt.Command.Name {
-			case "ARG", "LOCALLY", "FROM", "FROM DOCKERFILE":
+			case commands.Arg, commands.Locally, commands.From, commands.FromDockerfile:
 				// Cannot do any further parallel builds - these commands need to be
 				// executed to ensure that they don't impact the outcome. As such,
 				// commands following these cannot be executed preemptively.
 				return nil
-			case "BUILD":
+			case commands.Build:
 				err := i.handleBuild(ctx, *stmt.Command, true)
 				if err != nil {
 					if errors.Is(err, errCannotAsync) {
@@ -148,12 +149,12 @@ func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, sta
 					}
 					return err
 				}
-			case "COPY":
+			case commands.Copy:
 				// TODO
 			}
 		} else if stmt.With != nil {
 			switch stmt.With.Command.Name {
-			case "DOCKER":
+			case commands.Docker:
 				// TODO
 			}
 		} else if stmt.If != nil || stmt.For != nil || stmt.Wait != nil || stmt.Try != nil {
@@ -215,7 +216,7 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 
 	if i.isWith {
 		switch cmd.Name {
-		case "DOCKER":
+		case commands.Docker:
 			return i.handleWithDocker(ctx, cmd)
 		default:
 			return i.errorf(cmd.SourceLocation, "unexpected WITH command %s", cmd.Name)
@@ -223,69 +224,69 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 	}
 
 	switch cmd.Name {
-	case "FROM":
+	case commands.From:
 		return i.handleFrom(ctx, cmd)
-	case "RUN":
+	case commands.Run:
 		return i.handleRun(ctx, cmd)
-	case "FROM DOCKERFILE":
+	case commands.FromDockerfile:
 		return i.handleFromDockerfile(ctx, cmd)
-	case "LOCALLY":
+	case commands.Locally:
 		return i.handleLocally(ctx, cmd)
-	case "COPY":
+	case commands.Copy:
 		return i.handleCopy(ctx, cmd)
-	case "SAVE ARTIFACT":
+	case commands.SaveArtifact:
 		return i.handleSaveArtifact(ctx, cmd)
-	case "SAVE IMAGE":
+	case commands.SaveImage:
 		return i.handleSaveImage(ctx, cmd)
-	case "BUILD":
+	case commands.Build:
 		return i.handleBuild(ctx, cmd, false)
-	case "WORKDIR":
+	case commands.Workdir:
 		return i.handleWorkdir(ctx, cmd)
-	case "USER":
+	case commands.User:
 		return i.handleUser(ctx, cmd)
-	case "CMD":
+	case commands.Cmd:
 		return i.handleCmd(ctx, cmd)
-	case "ENTRYPOINT":
+	case commands.Entrypoint:
 		return i.handleEntrypoint(ctx, cmd)
-	case "EXPOSE":
+	case commands.Expose:
 		return i.handleExpose(ctx, cmd)
-	case "VOLUME":
+	case commands.Volume:
 		return i.handleVolume(ctx, cmd)
-	case "ENV":
+	case commands.Env:
 		return i.handleEnv(ctx, cmd)
-	case "ARG":
+	case commands.Arg:
 		return i.handleArg(ctx, cmd)
-	case "LET":
+	case commands.Let:
 		return i.handleLet(ctx, cmd)
-	case "SET":
+	case commands.Set:
 		return i.handleSet(ctx, cmd)
-	case "LABEL":
+	case commands.Label:
 		return i.handleLabel(ctx, cmd)
-	case "GIT CLONE":
+	case commands.GitClone:
 		return i.handleGitClone(ctx, cmd)
-	case "HEALTHCHECK":
+	case commands.HealthCheck:
 		return i.handleHealthcheck(ctx, cmd)
-	case "ADD":
+	case commands.Add:
 		return i.handleAdd(ctx, cmd)
-	case "STOPSIGNAL":
+	case commands.StopSignal:
 		return i.handleStopsignal(ctx, cmd)
-	case "ONBUILD":
+	case commands.OnBuild:
 		return i.handleOnbuild(ctx, cmd)
-	case "SHELL":
+	case commands.Shell:
 		return i.handleShell(ctx, cmd)
-	case "COMMAND":
+	case commands.Command:
 		return i.handleUserCommand(ctx, cmd)
-	case "DO":
+	case commands.Do:
 		return i.handleDo(ctx, cmd)
-	case "IMPORT":
+	case commands.Import:
 		return i.handleImport(ctx, cmd)
-	case "CACHE":
+	case commands.Cache:
 		return i.handleCache(ctx, cmd)
-	case "HOST":
+	case commands.Host:
 		return i.handleHost(ctx, cmd)
-	case "PROJECT":
+	case commands.Project:
 		return i.handleProject(ctx, cmd)
-	case "TRIGGER":
+	case commands.Trigger:
 		return i.handleTrigger(ctx, cmd)
 	default:
 		return i.errorf(cmd.SourceLocation, "unexpected command %q", cmd.Name)
@@ -1858,13 +1859,13 @@ func (i *Interpreter) handlePipelineBlock(ctx context.Context, name string, bloc
 		ctx = ContextWithSourceLocation(ctx, cmd.SourceLocation)
 		var err error
 		switch cmd.Name {
-		case "PIPELINE":
+		case commands.Pipeline:
 			err = i.handlePipeline(ctx, cmd)
-		case "TRIGGER":
+		case commands.Trigger:
 			err = i.handleTrigger(ctx, cmd)
-		case "ARG":
+		case commands.Arg:
 			err = i.handleArg(ctx, cmd)
-		case "BUILD":
+		case commands.Build:
 			err = i.handleBuild(ctx, cmd, false)
 		default:
 			return i.errorf(cmd.SourceLocation, "pipeline targets only support PIPELINE, TRIGGER, ARG, and BUILD commands")
