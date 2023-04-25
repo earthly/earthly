@@ -58,10 +58,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type cmdType int
+type CmdType int
 
 const (
-	argCmd            cmdType = iota + 1 // "ARG"
+	argCmd            CmdType = iota + 1 // "ARG"
 	buildCmd                             // "BUILD"
 	cmdCmd                               // "CMD"
 	copyCmd                              // "COPY"
@@ -112,6 +112,57 @@ type Converter struct {
 	waitBlockStack      []*waitBlock
 	isPipeline          bool
 	logbusTarget        *logbus.Target
+}
+
+type ConverterIfce interface {
+	Ftrs() *features.Features
+	From(ctx context.Context, imageName string, platform platutil.Platform, allowPrivileged bool, buildArgs []string) error
+	FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform platutil.Platform, buildArgs []string) error
+	Locally(ctx context.Context) error
+	CopyArtifactLocal(ctx context.Context, artifactName string, dest string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, isDir bool) error
+	CopyArtifact(ctx context.Context, artifactName string, dest string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, chmod *fs.FileMode, ifExists, symlinkNoFollow bool) error
+	CopyClassical(ctx context.Context, srcs []string, dest string, isDir bool, keepTs bool, keepOwn bool, chown string, chmod *fs.FileMode, ifExists bool) error
+	Run(ctx context.Context, opts ConvertRunOpts) error
+	RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, error)
+	RunExpression(ctx context.Context, expressionName string, opts ConvertRunOpts) (string, error)
+	RunCommand(ctx context.Context, commandName string, opts ConvertRunOpts) (string, error)
+	SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists, symlinkNoFollow, force bool, isPush bool) error
+	SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo string, keepTs, keepOwn bool, chown string) error
+	PushWaitBlock(ctx context.Context) error
+	PopWaitBlock(ctx context.Context) error
+	SaveImage(ctx context.Context, imageNames []string, pushImages bool, insecurePush bool, cacheHint bool, cacheFrom []string, noManifestList bool) error
+	Build(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged bool, buildArgs []string) error
+	BuildAsync(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, cmdT CmdType, apf AfterParallelFunc, sem semutil.Semaphore) error
+	Workdir(ctx context.Context, workdirPath string) error
+	User(ctx context.Context, user string) error
+	Cmd(ctx context.Context, cmdArgs []string, isWithShell bool) error
+	Entrypoint(ctx context.Context, entrypointArgs []string, isWithShell bool) error
+	Expose(ctx context.Context, ports []string) error
+	Volume(ctx context.Context, volumes []string) error
+	Env(ctx context.Context, envKey string, envValue string) error
+	Arg(ctx context.Context, argKey string, defaultArgValue string, opts ArgOpts) error
+	Let(ctx context.Context, key string, value string) error
+	UpdateArg(ctx context.Context, argKey string, argValue string, isBase bool) error
+	SetArg(ctx context.Context, argKey string, argValue string) error
+	UnsetArg(ctx context.Context, argKey string) error
+	Label(ctx context.Context, labels map[string]string) error
+	GitClone(ctx context.Context, gitURL string, branch string, dest string, keepTs bool) error
+	WithDockerRun(ctx context.Context, args []string, opt WithDockerOpt, allowParallel bool) error
+	WithDockerRunLocal(ctx context.Context, args []string, opt WithDockerOpt, allowParallel bool) error
+	Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int) error
+	Import(ctx context.Context, importStr, as string, isGlobal, currentlyPrivileged, allowPrivilegedFlag bool) error
+	Cache(ctx context.Context, mountTarget string, sharing string) error
+	Host(ctx context.Context, hostname string, ip net.IP) error
+	Project(ctx context.Context, org, project string) error
+	Pipeline(ctx context.Context) error
+	ResolveReference(ctx context.Context, ref domain.Reference) (bc *buildcontext.Data, allowPrivileged, allowPrivilegedSet bool, err error)
+	EnterScopeDo(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged bool, scopeName string, buildArgs []string) error
+	ExitScope(ctx context.Context) error
+	StackString() string
+	FinalizeStates(ctx context.Context) (*states.MultiTarget, error)
+	RecordTargetFailure(ctx context.Context, err error)
+	ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word string, allowShellOut bool) (string, error)
+	PlatrParse(str string) (platutil.Platform, error)
 }
 
 // NewConverter constructs a new converter for a given earthly target.
@@ -249,6 +300,10 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	c.mts.Final.RanInteractive = mts.Final.RanInteractive
 	c.platr.UpdatePlatform(mts.Final.PlatformResolver.Current())
 	return nil
+}
+
+func (c *Converter) Ftrs() *features.Features {
+	return c.ftrs
 }
 
 // FromDockerfile applies the earthly FROM DOCKERFILE command.
@@ -1120,10 +1175,10 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform p
 	return err
 }
 
-type afterParallelFunc func(context.Context, *states.MultiTarget) error
+type AfterParallelFunc func(context.Context, *states.MultiTarget) error
 
 // BuildAsync applies the earthly BUILD command asynchronously.
-func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, cmdT cmdType, apf afterParallelFunc, sem semutil.Semaphore) error {
+func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, cmdT CmdType, apf AfterParallelFunc, sem semutil.Semaphore) error {
 	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, true, cmdT)
 	if err != nil {
 		return err
@@ -1270,7 +1325,7 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) err
 }
 
 // Arg applies the ARG command.
-func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, opts argOpts) error {
+func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, opts ArgOpts) error {
 	err := c.checkAllowed(argCmd)
 	if err != nil {
 		return err
@@ -1686,7 +1741,7 @@ func (c *Converter) ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word
 	})
 }
 
-func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, cmdT cmdType) (domain.Target, ConvertOpt, bool, error) {
+func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, cmdT CmdType) (domain.Target, ConvertOpt, bool, error) {
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return domain.Target{}, ConvertOpt{}, false, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
@@ -1749,7 +1804,7 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	return target, opt, propagateBuildArgs, nil
 }
 
-func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, cmdT cmdType) (*states.MultiTarget, error) {
+func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, cmdT CmdType) (*states.MultiTarget, error) {
 	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, isDangling, cmdT)
 	if err != nil {
 		return nil, err
@@ -2420,7 +2475,7 @@ func (c *Converter) joinRefs(relRef domain.Reference) (domain.Reference, error) 
 	return domain.JoinReferences(c.varCollection.AbsRef(), relRef)
 }
 
-func (c *Converter) checkAllowed(command cmdType) error {
+func (c *Converter) checkAllowed(command CmdType) error {
 	if command == projectCmd && !c.ftrs.UseProjectSecrets {
 		return errors.New("--use-project-secrets must be enabled in order to use PROJECT")
 	}
@@ -2455,6 +2510,10 @@ func (c *Converter) checkAllowed(command cmdType) error {
 	}
 
 	return nil
+}
+
+func (c *Converter) PlatrParse(str string) (platutil.Platform, error) {
+	return c.platr.Parse(str)
 }
 
 func (c *Converter) targetInputActiveOnly() dedup.TargetInput {

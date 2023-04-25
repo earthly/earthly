@@ -114,7 +114,7 @@ type importOpts struct {
 	AllowPrivileged bool `long:"allow-privileged" description:"Allow targets to assume privileged mode"`
 }
 
-type argOpts struct {
+type ArgOpts struct {
 	Required bool `long:"required" description:"Require argument to be non-empty"`
 	Global   bool `long:"global" description:"Global argument to make available to all other targets"`
 }
