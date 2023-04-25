@@ -102,7 +102,7 @@ type BuildOpt struct {
 	GlobalWaitBlockFtr         bool
 	LocalArtifactWhiteList     *gatewaycrafter.LocalArtifactWhiteList
 	Logbus                     *logbus.Bus
-	MainTargetDetailsFuture    chan earthfile2llb.TargetDetails
+	MainTargetDetailsFunc      func(earthfile2llb.TargetDetails) error
 	Runner                     string
 	CloudStoredAuthProvider    cloudauth.ProjectBasedAuthProvider
 }
@@ -215,7 +215,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				InteractiveDebuggerEnabled:           b.opt.InteractiveDebugging,
 				InteractiveDebuggerDebugLevelLogging: b.opt.InteractiveDebuggingDebugLevelLogging,
 				Logbus:                               opt.Logbus,
-				MainTargetDetailsFuture:              opt.MainTargetDetailsFuture,
+				MainTargetDetailsFunc:                opt.MainTargetDetailsFunc,
 				Runner:                               opt.Runner,
 				CloudStoredAuthProvider:              opt.CloudStoredAuthProvider,
 			}

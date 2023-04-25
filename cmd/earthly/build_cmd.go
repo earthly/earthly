@@ -528,7 +528,6 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		BuiltinArgs:                builtinArgs,
 		LocalArtifactWhiteList:     localArtifactWhiteList,
 		Logbus:                     app.logbus,
-		MainTargetDetailsFuture:    make(chan earthfile2llb.TargetDetails, 1),
 		Runner:                     runnerName,
 
 		// feature-flip the removal of builder.go code
@@ -546,39 +545,32 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		buildOpts.OnlyArtifact = &artifact
 		buildOpts.OnlyArtifactDestPath = destPath
 	}
-	// Kick off logstream upload only when we've passed the necessary information to logbusSetup.
-	// This information is passed back right at the beginning of the build within earthfile2llb.
-	go func() {
-		beforeSelect := time.Now()
-		select {
-		case <-cliCtx.Context.Done():
-			now := time.Now()
-			app.console.VerbosePrintf(
-				"========== CONTEXT DONE BEFORE LOGSTREAMER STARTED AT %s (%s later) ==========",
-				now.Format(time.RFC3339Nano),
-				now.Sub(beforeSelect),
-			)
-			return
-		case details := <-buildOpts.MainTargetDetailsFuture:
-			now := time.Now()
-			app.console.VerbosePrintf(
-				"========== SETTING ORG AND PROJECT %s/%s AT %s (%s later) ==========",
-				details.EarthlyOrgName,
-				details.EarthlyProjectName,
-				now.Format(time.RFC3339Nano),
-				now.Sub(beforeSelect),
-			)
-			analytics.AddEarthfileProject(details.EarthlyOrgName, details.EarthlyProjectName)
-			if app.logstream {
-				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
-				if doLogstreamUpload {
-					app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient)
-				}
+
+	// Kick off logstream upload only when we've passed the necessary
+	// information to logbusSetup. This function will be called right at the
+	// beginning of the build within earthfile2llb.
+	buildOpts.MainTargetDetailsFunc = func(d earthfile2llb.TargetDetails) error {
+		if app.logbusSetup.LogStreamerStarted() {
+			// If the org & project have been provided by envs, let's verify
+			// that they're correct once we've parsed them from the Earthfile.
+			if app.orgName != d.EarthlyOrgName || app.projectName != d.EarthlyProjectName {
+				return fmt.Errorf("organization or project do not match PROJECT statement")
+			}
+			app.console.VerbosePrintf("Organization and project already set via environmental")
+			return nil
+		}
+		app.console.VerbosePrintf("Logbus: setting organization %q and project %q at %s", d.EarthlyOrgName, d.EarthlyProjectName, time.Now().Format(time.RFC3339Nano))
+		analytics.AddEarthfileProject(d.EarthlyOrgName, d.EarthlyProjectName)
+		if app.logstream {
+			app.logbusSetup.SetOrgAndProject(d.EarthlyOrgName, d.EarthlyProjectName)
+			if doLogstreamUpload {
+				app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient)
 			}
 		}
-	}()
+		return nil
+	}
 
-	if app.logstream && doLogstreamUpload {
+	if app.logstream && doLogstreamUpload && !app.logbusSetup.LogStreamerStarted() {
 		app.console.ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
 	}
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)

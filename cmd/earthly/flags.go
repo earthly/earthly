@@ -319,9 +319,18 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 		&cli.StringFlag{
 			Name:        "org",
 			EnvVars:     []string{"EARTHLY_ORG"},
-			Usage:       wrap("The name of the organization the satellite belongs to. ", "Required when using --satellite and user is a member of multiple organizations."),
+			Usage:       wrap("The name of the organization that the satellite belongs to. ", "Required when using --satellite and user is a member of multiple organizations."),
 			Required:    false,
 			Destination: &app.orgName,
+			Hidden:      true,
+		},
+		&cli.StringFlag{
+			Name:        "project",
+			EnvVars:     []string{"EARTHLY_PROJECT"},
+			Usage:       "The name of the project that may be used during log streaming.",
+			Required:    false,
+			Destination: &app.projectName,
+			Hidden:      true,
 		},
 		&cli.StringFlag{
 			Name:        "satellite",

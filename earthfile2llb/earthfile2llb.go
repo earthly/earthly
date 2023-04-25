@@ -155,8 +155,8 @@ type ConvertOpt struct {
 	// LLBCaps indicates that builder's capabilities
 	LLBCaps *apicaps.CapSet
 
-	// MainTargetDetailsFuture is a channel that is used to signal the main target details, once known.
-	MainTargetDetailsFuture chan TargetDetails
+	// MainTargetDetailsFunc is a custom function used to handle the target details, once known.
+	MainTargetDetailsFunc func(TargetDetails) error
 
 	// Logbus is the bus used for logging and metadata reporting.
 	Logbus *logbus.Bus
@@ -236,13 +236,15 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if err != nil {
 		return nil, err
 	}
-	if opt.MainTargetDetailsFuture != nil {
-		// TODO (vladaionescu): These should perhaps be passed back via logbus instead.
-		opt.MainTargetDetailsFuture <- TargetDetails{
+	if opt.MainTargetDetailsFunc != nil {
+		err := opt.MainTargetDetailsFunc(TargetDetails{
 			EarthlyOrgName:     bc.EarthlyOrgName,
 			EarthlyProjectName: bc.EarthlyProjectName,
+		})
+		if err != nil {
+			return nil, errors.Wrapf(err, "target details handler error: %v", err)
 		}
-		opt.MainTargetDetailsFuture = nil
+		opt.MainTargetDetailsFunc = nil
 	}
 	if found {
 		// The found target may have initially been created by a FROM or a COPY;

@@ -34,6 +34,7 @@ import (
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
+	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/earthfile2llb"
@@ -620,6 +621,25 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		}
 	}()
 	app.logbus.Run().SetStart(time.Now())
+	// Initialize log streaming early if we're passed the organization and
+	// project names as environmental variables. This will allow nearly all
+	// initialization errors to be surfaced to the log streaming service. Access
+	// to this organization and project will be verified when the stream begins.
+	if app.orgName != "" && app.projectName != "" && !app.cfg.Global.DisableLogSharing && app.logstreamUpload {
+		cloudClient, err := app.newCloudClient(cloud.WithLogstreamGRPCAddressOverride(app.logstreamAddressOverride))
+		if err != nil {
+			app.console.Warnf("Failed to initialize cloud client: %v", err)
+			return 1
+		}
+		if cloudClient.IsLoggedIn(ctx) {
+			app.console.VerbosePrintf("Logbus: setting organization %q and project %q", app.orgName, app.projectName)
+			analytics.AddEarthfileProject(app.orgName, app.projectName)
+			app.logbusSetup.SetOrgAndProject(app.orgName, app.projectName)
+			app.logbusSetup.StartLogStreamer(ctx, cloudClient)
+			logstreamURL := fmt.Sprintf("%s/builds/%s", app.getCIHost(), app.logbusSetup.InitialManifest.GetBuildId())
+			app.console.ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
+		}
+	}
 	defer func() {
 		// Just in case this is forgotten somewhere else.
 		app.logbus.Run().SetFatalError(
