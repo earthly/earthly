@@ -65,7 +65,7 @@ Then, you can create a satellite.
 earthly sat launch my-satellite
 ```
 
-Once a satellite has been launched it is automatically selected for use. If you ever need to switch the satellite yourself, you can can use the command...
+Once a satellite has been launched it is automatically selected for use. If you ever need to switch the satellite yourself, you can use the command...
 
 ```bash
 earthly sat select my-satellite
