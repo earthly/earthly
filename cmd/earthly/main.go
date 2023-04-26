@@ -88,6 +88,8 @@ type cliFlags struct {
 	output                          bool
 	noOutput                        bool
 	noCache                         bool
+	skipBuildkit                    bool
+	localSkipDB                     string
 	pruneAll                        bool
 	pruneReset                      bool
 	pruneTargetSize                 byteSizeValue

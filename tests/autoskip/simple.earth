@@ -1,0 +1,14 @@
+VERSION 0.7
+PROJECT testorg/testproj
+
+deps:
+  FROM alpine:3.17
+  COPY my-file .
+
+mytarget:
+  FROM +deps
+  RUN echo SSB3YXMgcnVuCg== | base64 -d
+
+mypipeline:
+  PIPELINE
+  BUILD +mytarget

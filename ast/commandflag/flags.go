@@ -119,12 +119,15 @@ type ArgOpts struct {
 	Global   bool `long:"global" description:"Global argument to make available to all other targets"`
 }
 
+type ProjectOpts struct{}
+
 type SetOpts struct{}
 
 type LetOpts struct{}
 
 type PipelineOpts struct {
-	Push bool `long:"push" description:"Trigger a build in Cloud CI"`
+	Push            bool `long:"push" description:"Trigger a build in Cloud CI"`
+	NoPipelineCache bool `long:"no-pipeline-cache" description:"Disable pipeline caching"`
 }
 
 type CacheOpts struct {

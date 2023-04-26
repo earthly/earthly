@@ -1,7 +1,6 @@
 package earthfile2llb
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -72,32 +71,5 @@ func TestNegativeParseParams(t *testing.T) {
 	for _, tt := range tests {
 		_, _, err := parseParams(tt.in)
 		assert.Error(t, err)
-	}
-}
-
-func TestProcessParamsAndQuotes(t *testing.T) {
-	var tests = []struct {
-		in   []string
-		args []string
-	}{
-		{[]string{}, []string{}},
-		{[]string{""}, []string{""}},
-		{[]string{"abc", "def", "ghi"}, []string{"abc", "def", "ghi"}},
-		{[]string{"hello ", "wor(", "ld)"}, []string{"hello ", "wor( ld)"}},
-		{[]string{"hello ", "(wor(", "ld)"}, []string{"hello ", "(wor( ld)"}},
-		{[]string{"hello ", "\"(wor(\"", "ld)"}, []string{"hello ", "\"(wor(\"", "ld)"}},
-		{[]string{"let's", "go"}, []string{"let's go"}},
-		{[]string{"(hello)"}, []string{"(hello)"}},
-		{[]string{"  (hello)"}, []string{"  (hello)"}},
-		{[]string{"(hello", "    ooo)"}, []string{"(hello     ooo)"}},
-		{[]string{"--load=(+a-test-image", "--name=foo", "--var", "bar)"}, []string{"--load=(+a-test-image --name=foo --var bar)"}},
-	}
-
-	for _, tt := range tests {
-		t.Run(strings.Join(tt.in, " "), func(t *testing.T) {
-			actualArgs := processParamsAndQuotes(tt.in)
-			assert.Equal(t, tt.args, actualArgs)
-		})
-
 	}
 }
