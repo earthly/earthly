@@ -1,4 +1,4 @@
-package commandflags
+package commandflag
 
 import (
 	"time"
