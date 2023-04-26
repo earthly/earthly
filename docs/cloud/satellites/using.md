@@ -1,6 +1,19 @@
 # Managing Satellites
 
 This feature is part of the Earthly Satellites paid plan.
+
+{% hint style='danger' %}
+##### Important
+
+This feature is currently in **Beta** stage
+
+* The feature may break or change significantly in future versions of Earthly.
+* Give us feedback on
+  * [Slack](https://earthly.dev/slack)
+  * [GitHub issues](https://github.com/earthly/earthly/issues)
+  * [Emailing support](mailto:support+satellite@earthly.dev)
+{% endhint %}
+
 This page describes how to use [Earthly Satellites](../satellites.md).
 
 ## Prerequisites
