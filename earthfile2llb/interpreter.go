@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/earthly/earthly/analytics"
+	"github.com/earthly/earthly/ast/commandflags"
 	"github.com/earthly/earthly/ast/commands"
 	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/ast/spec"
@@ -346,7 +347,7 @@ func (i *Interpreter) handleIfExpression(ctx context.Context, expression []strin
 	if len(expression) < 1 {
 		return false, i.errorf(sl, "not enough arguments for IF")
 	}
-	opts := ifOpts{}
+	opts := commandflags.IfOpts{}
 	args, err := parseArgs("IF", &opts, expression)
 	if err != nil {
 		return false, i.wrapError(err, sl, "invalid IF arguments %v", expression)
@@ -415,7 +416,7 @@ func (i *Interpreter) handleFor(ctx context.Context, forStmt spec.ForStatement) 
 }
 
 func (i *Interpreter) handleForArgs(ctx context.Context, forArgs []string, sl *spec.SourceLocation) (string, []string, error) {
-	opts := forOpts{
+	opts := commandflags.ForOpts{
 		Separators: "\n\t ",
 	}
 	args, err := parseArgs("FOR", &opts, forArgs)
@@ -510,7 +511,7 @@ func (i *Interpreter) handleTry(ctx context.Context, tryStmt spec.TryStatement) 
 			if cmd.Command == nil || cmd.Command.Name != "SAVE ARTIFACT" {
 				return i.errorf(tryStmt.SourceLocation, "CATCH/FINALLY body only (currently) supports SAVE ARTIFACT ... AS LOCAL commands; got %s", cmd.Command.Name)
 			}
-			opts := saveArtifactOpts{}
+			opts := commandflags.SaveArtifactOpts{}
 			args, err := parseArgs("SAVE ARTIFACT", &opts, getArgsCopy(*cmd.Command))
 			if err != nil {
 				return i.wrapError(err, cmd.Command.SourceLocation, "invalid SAVE ARTIFACT arguments %v", cmd.Command.Args)
@@ -571,7 +572,7 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	opts := fromOpts{}
+	opts := commandflags.FromOpts{}
 	args, err := parseArgs("FROM", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid FROM arguments %v", cmd.Args)
@@ -671,7 +672,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	if len(cmd.Args) < 1 {
 		return i.errorf(cmd.SourceLocation, "not enough arguments for RUN")
 	}
-	opts := runOpts{}
+	opts := commandflags.RunOpts{}
 	args, err := parseArgsWithValueModifier("RUN", &opts, getArgsCopy(cmd), i.flagValModifierFuncWithContext(ctx))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid RUN arguments %v", cmd.Args)
@@ -789,7 +790,7 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	opts := fromDockerfileOpts{}
+	opts := commandflags.FromDockerfileOpts{}
 	args, err := parseArgs("FROM DOCKERFILE", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid FROM DOCKERFILE arguments %v", cmd.Args)
@@ -867,7 +868,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	opts := copyOpts{}
+	opts := commandflags.CopyOpts{}
 	args, err := parseArgs("COPY", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid COPY arguments %v", cmd.Args)
@@ -1033,7 +1034,7 @@ func parseSaveArtifactArgs(args []string) (from, to, asLocal string, _ bool) {
 }
 
 func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) error {
-	opts := saveArtifactOpts{}
+	opts := commandflags.SaveArtifactOpts{}
 	args, err := parseArgs("SAVE ARTIFACT", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid SAVE ARTIFACT arguments %v", cmd.Args)
@@ -1089,7 +1090,7 @@ func (i *Interpreter) handleSaveArtifact(ctx context.Context, cmd spec.Command) 
 }
 
 func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) error {
-	opts := saveImageOpts{}
+	opts := commandflags.SaveImageOpts{}
 	args, err := parseArgs("SAVE IMAGE", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid SAVE IMAGE arguments %v", cmd.Args)
@@ -1131,7 +1132,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	opts := buildOpts{}
+	opts := commandflags.BuildOpts{}
 	args, err := parseArgs("BUILD", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid BUILD arguments %v", cmd.Args)
@@ -1378,20 +1379,20 @@ var errGlobalArgNotInBase = errors.New("global ARG can only be set in the base t
 
 // parseArgArgs parses the ARG command's arguments
 // and returns the argOpts, key, value (or nil if missing), or error
-func parseArgArgs(ctx context.Context, cmd spec.Command, isBaseTarget bool, explicitGlobalFeature bool) (argOpts, string, *string, error) {
-	var opts argOpts
+func parseArgArgs(ctx context.Context, cmd spec.Command, isBaseTarget bool, explicitGlobalFeature bool) (commandflags.ArgOpts, string, *string, error) {
+	var opts commandflags.ArgOpts
 	args, err := parseArgs("ARG", &opts, getArgsCopy(cmd))
 	if err != nil {
-		return argOpts{}, "", nil, err
+		return commandflags.ArgOpts{}, "", nil, err
 	}
 	if opts.Global {
 		// since the global flag is part of the struct, we need to manually return parsing error if it's used while the feature flag is off
 		if !explicitGlobalFeature {
-			return argOpts{}, "", nil, errors.New("unknown flag --global")
+			return commandflags.ArgOpts{}, "", nil, errors.New("unknown flag --global")
 		}
 		// global flag can only bet set on base targets
 		if !isBaseTarget {
-			return argOpts{}, "", nil, errGlobalArgNotInBase
+			return commandflags.ArgOpts{}, "", nil, errGlobalArgNotInBase
 		}
 	} else if !explicitGlobalFeature {
 		// if the feature flag is off, all base target args are considered global
@@ -1400,16 +1401,16 @@ func parseArgArgs(ctx context.Context, cmd spec.Command, isBaseTarget bool, expl
 	switch len(args) {
 	case 3:
 		if args[1] != "=" {
-			return argOpts{}, "", nil, errInvalidSyntax
+			return commandflags.ArgOpts{}, "", nil, errInvalidSyntax
 		}
 		if opts.Required {
-			return argOpts{}, "", nil, errRequiredArgHasDefault
+			return commandflags.ArgOpts{}, "", nil, errRequiredArgHasDefault
 		}
 		return opts, args[0], &args[2], nil
 	case 1:
 		return opts, args[0], nil, nil
 	default:
-		return argOpts{}, "", nil, errInvalidSyntax
+		return commandflags.ArgOpts{}, "", nil, errInvalidSyntax
 	}
 }
 
@@ -1441,7 +1442,7 @@ func (i *Interpreter) handleLet(ctx context.Context, cmd spec.Command) error {
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	var opts letOpts
+	var opts commandflags.LetOpts
 	argsCpy := getArgsCopy(cmd)
 	args, err := parseArgs("LET", &opts, argsCpy)
 	if err != nil {
@@ -1466,7 +1467,7 @@ func (i *Interpreter) handleLet(ctx context.Context, cmd spec.Command) error {
 }
 
 func parseSetArgs(ctx context.Context, cmd spec.Command) (name, value string, _ error) {
-	var opts setOpts
+	var opts commandflags.SetOpts
 	argsCpy := getArgsCopy(cmd)
 	args, err := parseArgs("SET", &opts, argsCpy)
 	if err != nil {
@@ -1544,7 +1545,7 @@ func (i *Interpreter) handleGitClone(ctx context.Context, cmd spec.Command) erro
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	opts := gitCloneOpts{}
+	opts := commandflags.GitCloneOpts{}
 	args, err := parseArgs("GIT CLONE", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid GIT CLONE arguments %v", cmd.Args)
@@ -1582,7 +1583,7 @@ func (i *Interpreter) handleHealthcheck(ctx context.Context, cmd spec.Command) e
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
 	}
-	opts := healthCheckOpts{}
+	opts := commandflags.HealthCheckOpts{}
 	args, err := parseArgs("HEALTHCHECK", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid HEALTHCHECK arguments %v", cmd.Args)
@@ -1630,7 +1631,7 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 	if i.withDocker != nil {
 		return i.errorf(cmd.SourceLocation, "cannot use WITH DOCKER within WITH DOCKER")
 	}
-	opts := withDockerOpts{}
+	opts := commandflags.WithDockerOpts{}
 	args, err := parseArgs("WITH DOCKER", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid WITH DOCKER arguments %v", cmd.Args)
@@ -1742,7 +1743,7 @@ func (i *Interpreter) handleUserCommand(ctx context.Context, cmd spec.Command) e
 }
 
 func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
-	opts := doOpts{}
+	opts := commandflags.DoOpts{}
 	args, err := parseArgs("DO", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid DO arguments %v", cmd.Args)
@@ -1794,7 +1795,7 @@ func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 }
 
 func (i *Interpreter) handleImport(ctx context.Context, cmd spec.Command) error {
-	opts := importOpts{}
+	opts := commandflags.ImportOpts{}
 	args, err := parseArgs("IMPORT", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid IMPORT arguments %v", cmd.Args)
@@ -1884,7 +1885,7 @@ func (i *Interpreter) handlePipeline(ctx context.Context, cmd spec.Command) erro
 		return i.errorf(cmd.SourceLocation, "invalid number of PIPELINE arguments")
 	}
 
-	var opts pipelineOpts
+	var opts commandflags.PipelineOpts
 	_, err := parseArgs("PIPELINE", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid PIPELINE arguments")
@@ -1919,7 +1920,7 @@ func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
 	if !i.converter.ftrs.UseCacheCommand {
 		return i.errorf(cmd.SourceLocation, "the CACHE command is not supported in this version")
 	}
-	opts := cacheOpts{}
+	opts := commandflags.CacheOpts{}
 	args, err := parseArgs("CACHE", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid IMPORT arguments %v", cmd.Args)
