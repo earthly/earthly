@@ -1,4 +1,4 @@
-package commands
+package command
 
 const (
 	Add            = "ADD"

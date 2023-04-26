@@ -1,4 +1,4 @@
-package commands
+package command
 
 var cmdMap map[Type]string
 
