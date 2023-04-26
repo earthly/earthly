@@ -1,24 +1,13 @@
 # Managing Satellites
 
-This feature is part of the Earthly Satellites paid plan.
-
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Beta** stage
-
-* The feature may break or change significantly in future versions of Earthly.
-* Give us feedback on
-  * [Slack](https://earthly.dev/slack)
-  * [GitHub issues](https://github.com/earthly/earthly/issues)
-  * [Emailing support](mailto:support+satellite@earthly.dev)
-{% endhint %}
+This feature is part of the [Earthly CI paid plan](https://earthly.dev/pricing).
 
 This page describes how to manage [Earthly Satellites](../satellites.md).
 
 ## Prerequisites
 
-In order to manage Earthly Satellites, you must have an Earthly account and an Earthly organization, and you must request access to the Satellite private beta program. For more information, see the [Earthly Cloud overview](../overview.md) and the [Satellites page](../satellites.md).
+In order to manage Earthly Satellites, you must have an Earthly account and an organization.
+For more information, see the [Earthly Cloud overview](../overview.md) and the [Satellites page](../satellites.md).
 
 ## Managing Satellites
 
