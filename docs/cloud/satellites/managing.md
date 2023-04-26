@@ -1,12 +1,12 @@
 # Managing Satellites
 
-This feature is part of the Earthly Satellites paid plan.
+This feature is part of the [Earthly CI paid plan](https://earthly.dev/pricing).
 
 This page describes how to manage [Earthly Satellites](../satellites.md).
 
 ## Prerequisites
 
-In order to manage Earthly Satellites, you must have an Earthly account and an Earthly organization which is subscribed to the satellites paid plan. 
+In order to manage Earthly Satellites, you must have an Earthly account and an organization.
 For more information, see the [Earthly Cloud overview](../overview.md) and the [Satellites page](../satellites.md).
 
 ## Managing Satellites

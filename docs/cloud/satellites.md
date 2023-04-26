@@ -1,6 +1,6 @@
 # Earthly Satellites
 
-This feature is part of the Earthly Satellites & Earthly CI paid plans.
+This feature is part of the [Earthly CI paid plan](https://earthly.dev/pricing).
 
 Earthly Satellites are [remote runner](../remote-runners.md) instances managed by the Earthly team. They allow you to perform builds in the cloud, while retaining cache between runs.
 
