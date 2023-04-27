@@ -23,6 +23,7 @@ import (
 	"github.com/docker/distribution/reference"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/analytics"
+	"github.com/earthly/earthly/ast/commandflag"
 	"github.com/earthly/earthly/buildcontext"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
@@ -1270,7 +1271,7 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) err
 }
 
 // Arg applies the ARG command.
-func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, opts argOpts) error {
+func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, opts commandflag.ArgOpts) error {
 	err := c.checkAllowed(argCmd)
 	if err != nil {
 		return err

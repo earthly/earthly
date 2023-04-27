@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/earthly/earthly/ast/commandflag"
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/domain"
@@ -95,7 +96,7 @@ func ArtifactName(ctx context.Context, cmd spec.Command) (string, *string, error
 
 // ImageNames returns the parsed names of a SAVE IMAGE command.
 func ImageNames(ctx context.Context, cmd spec.Command) ([]string, error) {
-	var opts saveImageOpts
+	var opts commandflag.SaveImageOpts
 	args, err := parseArgs("SAVE IMAGE", &opts, getArgsCopy(cmd))
 	if err != nil {
 		return nil, errors.Wrapf(err, "invalid SAVE IMAGE arguments %v", cmd.Args)
