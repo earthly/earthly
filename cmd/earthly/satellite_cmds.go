@@ -10,23 +10,24 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/fatih/color"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
+	"golang.org/x/exp/slices"
+
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/containerutil"
-	"github.com/fatih/color"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
-	"golang.org/x/exp/slices"
 )
 
 func (app *earthlyApp) satelliteCmds() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:        "launch",
-			Usage:       "Launch a new Earthly Satellite *beta*",
-			Description: "Launch a new Earthly Satellite *beta*",
+			Usage:       "Launch a new Earthly Satellite",
+			Description: "Launch a new Earthly Satellite",
 			UsageText: "earthly satellite launch <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] launch <satellite-name>",
 			Action: app.actionSatelliteLaunch,
@@ -81,16 +82,16 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 		},
 		{
 			Name:        "rm",
-			Usage:       "Destroy an Earthly Satellite *beta*",
-			Description: "Destroy an Earthly Satellite *beta*",
+			Usage:       "Destroy an Earthly Satellite",
+			Description: "Destroy an Earthly Satellite",
 			UsageText: "earthly satellite rm <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] rm <satellite-name>",
 			Action: app.actionSatelliteRemove,
 		},
 		{
 			Name:        "ls",
-			Description: "List your Earthly Satellites *beta*",
-			Usage:       "List your Earthly Satellites *beta*",
+			Description: "List your Earthly Satellites",
+			Usage:       "List your Earthly Satellites",
 			UsageText: "earthly satellite ls\n" +
 				"	earthly satellite [--org <organization-name>] ls",
 			Action: app.actionSatelliteList,
@@ -112,8 +113,8 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 		},
 		{
 			Name:        "inspect",
-			Description: "Show additional details about a Satellite instance *beta*",
-			Usage:       "Show additional details about a Satellite instance *beta*",
+			Description: "Show additional details about a Satellite instance",
+			Usage:       "Show additional details about a Satellite instance",
 			UsageText: "earthly satellite inspect <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] inspect <satellite-name>",
 			Action: app.actionSatelliteInspect,
@@ -121,8 +122,8 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 		{
 			Name:        "select",
 			Aliases:     []string{"s"},
-			Usage:       "Choose which satellite to use to build your app *beta*",
-			Description: "Choose which satellite to use to build your app *beta*",
+			Usage:       "Choose which satellite to use to build your app",
+			Description: "Choose which satellite to use to build your app",
 			UsageText: "earthly satellite select <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] select <satellite-name>",
 			Action: app.actionSatelliteSelect,
@@ -130,31 +131,31 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 		{
 			Name:        "unselect",
 			Aliases:     []string{"uns"},
-			Usage:       "Remove any currently selected Satellite instance from your Earthly configuration *beta*",
-			Description: "Remove any currently selected Satellite instance from your Earthly configuration *beta*",
+			Usage:       "Remove any currently selected Satellite instance from your Earthly configuration",
+			Description: "Remove any currently selected Satellite instance from your Earthly configuration",
 			UsageText:   "earthly satellite unselect",
 			Action:      app.actionSatelliteUnselect,
 		},
 		{
 			Name:        "wake",
-			Usage:       "Manually force a Satellite to wake up from a sleep state *beta*",
-			Description: "Manually force a Satellite to wake up from a sleep state *beta*",
+			Usage:       "Manually force a Satellite to wake up from a sleep state",
+			Description: "Manually force a Satellite to wake up from a sleep state",
 			UsageText: "earthly satellite wake <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] wake <satellite-name>",
 			Action: app.actionSatelliteWake,
 		},
 		{
 			Name:        "sleep",
-			Usage:       "Manually force a Satellite to sleep from an operational state *beta*",
-			Description: "Manually force a Satellite to sleep from an operational state *beta*",
+			Usage:       "Manually force a Satellite to sleep from an operational state",
+			Description: "Manually force a Satellite to sleep from an operational state",
 			UsageText: "earthly satellite sleep <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] sleep <satellite-name>",
 			Action: app.actionSatelliteSleep,
 		},
 		{
 			Name:        "update",
-			Usage:       "Manually update a satellite to the latest version (may cause downtime) *beta*",
-			Description: "Manually update a satellite to the latest version (may cause downtime) *beta*",
+			Usage:       "Manually update a satellite to the latest version (may cause downtime)",
+			Description: "Manually update a satellite to the latest version (may cause downtime)",
 			UsageText: "earthly satellite update <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] update <satellite-name>",
 			Action: app.actionSatelliteUpdate,
