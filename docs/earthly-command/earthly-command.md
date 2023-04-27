@@ -74,25 +74,20 @@ In the target and image forms the build args are passed after the target referen
 
 The build arg overrides only apply to the target being called directly and any other target referenced as part of the same Earthfile. Build arg overrides, will not apply to targets referenced from other directories or other repositories.
 
-For more information about build args see the [`ARG` Earthfile command](../earthfile/earthfile.md#arg).
+##### Storing values in the `.arg` File
 
-#### Environment Variables and .arg File
-
-As specified under the [options section](#options), all flag options have an environment variable equivalent, which can be used as an alternative.
-
-Furthermore, additional environment variables are also read from a file named `.arg`, if one exists in the current directory. The syntax of the `.arg` file is of the form
+Build args can also be specified using a `.arg` file, relative to the current working directory where `earthly` is executed from, using the syntax:
 
 ```.env
-<NAME_OF_ENV_VAR>=<value>
+<NAME_OF_BUILD_ARG>=<value>
 ...
 ```
 
-as one variable per line, without any surrounding quotes. If quotes are included, they will become part of the value. Lines beginning with `#` are treated as comments. Blank lines are allowed. Here is a simple example:
+Each variable must be specified on a separate line, without any surrounding quotes. If quotes are included, they will become part of the value.
+Lines beginning with `#` are treated as comments. Blank lines are allowed. Here is a simple example:
 
 ```.env
-# Settings
-EARTHLY_ALLOW_PRIVILEGED=true
-
+# an example build arg
 MY_SETTING=a setting which contains spaces
 ```
 
@@ -101,15 +96,34 @@ MY_SETTING=a setting which contains spaces
 The directory used for loading the `.arg` file is the directory where `earthly` is called from and not necessarily the directory where the Earthfile is located in.
 {% endhint %}
 
-The additional environment variables specified in the `.arg` file are loaded by `earthly` in two distinct ways:
-
-* **Setting options for `earthly` itself** - the settings are loaded if they match the environment variable equivalent of an `earthly` option.
-* **Build args** - the settings are passed on to the build and are used to override any [`ARG`](../earthfile/earthfile.md#arg) declaration.
-
 {% hint style='danger' %}
 ##### Important
 The `.arg` file is meant for settings which are specific to the local environment the build executes in. These settings may cause inconsistencies in the way the build executes on different systems, leading to builds that are difficult to reproduce. Keep the contents of `.arg` files to a minimum to avoid such issues.
 {% endhint %}
+
+##### Additional Information
+
+For more information about build args see the [`ARG` Earthfile command](../earthfile/earthfile.md#arg), and the [build args guide](../guides/build-args.md).
+
+#### Environment Variables and .env File
+
+Flag options can either be set on the command line, or by using an equivalent environment variable, as specified under the [options section](#options).
+
+It is also possible to set these flag options in an `.env` file, relative to the current working directory where `earthly` is executed from, using the syntax:
+
+```.env
+<NAME_OF_ENV_VAR>=<value>
+...
+```
+
+Each variable must be specified on a separate line, without any surrounding quotes. If quotes are included, they will become part of the value.
+Lines beginning with `#` are treated as comments. Blank lines are allowed. Here is a simple example:
+
+```.env
+# Settings
+EARTHLY_ALLOW_PRIVILEGED=true
+EARTHLY_VERBOSE=true
+```
 
 #### Global Options
 
@@ -179,6 +193,8 @@ Also available as an env var setting: `EARTHLY_SECRETS="<secret-id>=<value>,<sec
 Passes a secret with ID `<secret-id>` to the build environments. If `<value>` is not specified, then the value becomes the value of the environment variable with the same name as `<secret-id>`.
 
 The secret can be referenced within Earthfile recipes as `RUN --secret <arbitrary-env-var-name>=<secret-id>`. For more information see the [`RUN --secret` Earthfile command](../earthfile/earthfile.md#run).
+
+Secrets can also be stored in a `.secret` file using the same syntax as an `.arg` file; an example is given under the [build args guide](../guides/build-args.md#setting-secret-values).
 
 ##### `--secret-file <secret-id>=<path>`
 
