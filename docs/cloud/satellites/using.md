@@ -1,6 +1,6 @@
 # Managing Satellites
 
-This feature is part of the [Earthly CI paid plan](https://earthly.dev/pricing).
+This feature is part of the [Earthly Satellites & Earthly CI paid plans](https://earthly.dev/pricing).
 
 This page describes how to use [Earthly Satellites](../satellites.md).
 
