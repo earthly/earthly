@@ -783,10 +783,12 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			}
 			return 6
 		case errors.Is(err, context.Canceled):
+			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
 			app.logbus.Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
 			app.console.Warnf("Canceled\n")
 			return 2
 		case status.Code(errors.Cause(err)) == codes.Canceled:
+			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_CANCELED, err.Error())
 			app.logbus.Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
 			app.console.Warnf("Canceled\n")
 			if containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress) {
