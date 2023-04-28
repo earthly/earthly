@@ -102,6 +102,9 @@ jobs:
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
+      - name: Re-bootstrap Earthly using latest earthly build
+        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} bootstrap
+        if: inputs.binary == 'podman'
       - name: Build ${{inputs.EXAMPLE_NAME}} (PR build)
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P ${{inputs.EXAMPLE_NAME}}
         if: github.event_name != 'push'
