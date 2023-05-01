@@ -251,14 +251,10 @@ Also available as an env var setting: `EARTHLY_CI=true`
 In *target mode*, this option is an alias for
 
 ```
---use-inline-cache --save-inline-cache --no-output --strict
+--no-output --strict
 ```
 
-In *artifact* and *image modes* , this option is an alias for
-
-```
---use-inline-cache --save-inline-cache
-```
+In *artifact* and *image modes* , this option has no effect.
 
 ##### `--platform <platform>`
 
