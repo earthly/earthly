@@ -53,7 +53,10 @@ jobs:
         run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
         if: inputs.binary == 'podman'
       - name: Install Podman (with apt-get)
-        run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman && ${{inputs.SUDO}} rm -f /etc/containers/registries.conf
+        run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman
+        if: inputs.binary == 'podman'
+      - name: Back up and remove GHA registry config
+        run: ${{inputs.SUDO}} mv /etc/containers/registries.conf /tmp/ctr_registries.conf
         if: inputs.binary == 'podman'
       - name: Podman debug info
         run: podman version && podman info && podman info --debug

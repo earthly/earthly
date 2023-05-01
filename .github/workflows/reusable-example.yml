@@ -66,7 +66,10 @@ jobs:
         run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
         if: inputs.binary == 'podman'
       - name: Install Podman (with apt-get)
-        run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman && ${{inputs.SUDO}} rm -f /etc/containers/registries.conf
+        run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman
+        if: inputs.binary == 'podman'
+      - name: Back up and remove GHA registry config
+        run: ${{inputs.SUDO}} mv /etc/containers/registries.conf /tmp/ctr_registries.conf
         if: inputs.binary == 'podman'
       - name: Podman debug info
         run: podman version && podman info && podman info --debug
@@ -90,9 +93,6 @@ jobs:
 
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Docker Login (main build)
-        run: ${{inputs.SUDO}} ${{inputs.BINARY}} login docker.io --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
-        if: github.event_name == 'push'
       - name: Link Earthly dir to Earthly dev dir
         run: mkdir -p ~/.earthly && ln -s ~/.earthly ~/.earthly-dev
       - name: Build latest earthly using released earthly
@@ -108,6 +108,12 @@ jobs:
       - name: Build ${{inputs.EXAMPLE_NAME}} (PR build)
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P ${{inputs.EXAMPLE_NAME}}
         if: github.event_name != 'push'
+      - name: Restore GHA registry config
+        run: ${{inputs.SUDO}} mv /tmp/ctr_registries.conf /etc/containers/registries.conf
+        if: github.event_name == 'push' && inputs.binary == 'podman'
+      - name: Docker Login (main build)
+        run: ${{inputs.SUDO}} ${{inputs.BINARY}} login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        if: github.event_name == 'push'
       - name: Build ${{inputs.EXAMPLE_NAME}} (main build)
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci --push -P ${{inputs.EXAMPLE_NAME}}
         if: github.event_name == 'push'
