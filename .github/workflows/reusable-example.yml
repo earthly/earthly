@@ -105,18 +105,13 @@ jobs:
       - name: Re-bootstrap Earthly using latest earthly build
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} bootstrap
         if: inputs.binary == 'podman'
-      - name: Build ${{inputs.EXAMPLE_NAME}} (PR build)
-        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P ${{inputs.EXAMPLE_NAME}}
-        if: github.event_name != 'push'
       - name: Restore GHA registry config
         run: ${{inputs.SUDO}} mv /tmp/ctr_registries.conf /etc/containers/registries.conf
-        if: github.event_name == 'push' && inputs.binary == 'podman'
+        if: inputs.binary == 'podman'
       - name: Docker Login (main build)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
-        if: github.event_name == 'push'
       - name: Build ${{inputs.EXAMPLE_NAME}} (main build)
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci --push -P ${{inputs.EXAMPLE_NAME}}
-        if: github.event_name == 'push'
       - name: Build and test multi-platform example
         run: |
           ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ./examples/multiplatform+all
