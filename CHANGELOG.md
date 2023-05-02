@@ -6,6 +6,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Changed
 - Remote BuildKit will use TLS by default.
+- Deprecation warning: Secret IDs naming scheme should follow the ARG naming scheme; i.e. a letter followed by alphanumeric characters or hyphens. [#2883](https://github.com/earthly/earthly/issues/2883)
 
 ## v0.7.4 - 2023-04-12
 

@@ -13,6 +13,7 @@ import (
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
 	"github.com/earthly/earthly/analytics"
+	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
@@ -334,6 +335,12 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	secretsMap, err := processSecrets(app.secrets.Value(), app.secretFiles.Value(), secretsFileMap)
 	if err != nil {
 		return err
+	}
+	for secretKey := range secretsMap {
+		if !ast.IsValidEnvVarName(secretKey) {
+			// TODO If the year is 2024 or later, please move this check into processSecrets, and turn it into an error; see https://github.com/earthly/earthly/issues/2883
+			app.console.Warnf("Deprecation: secret key %q does not follow the recommended naming convention (a letter followed by alphanumeric characters or hyphens); this will become an error in a future version of earthly.", secretKey)
+		}
 	}
 
 	localhostProvider, err := localhostprovider.NewLocalhostProvider()
