@@ -212,6 +212,13 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Hidden:      true, // Internal.
 		},
 		&cli.StringFlag{
+			Name:        "logstream-run-type",
+			EnvVars:     []string{"EARTHLY_LOGSTREAM_RUN_TYPE"},
+			Usage:       "Instruct Logstream of the invocation type of the build.",
+			Destination: &app.logstreamRunType,
+			Hidden:      true, // Internal.
+		},
+		&cli.StringFlag{
 			Name:        "build-id",
 			EnvVars:     []string{"EARTHLY_BUILD_ID"},
 			Usage:       "The build ID to use for identifying the build in Earthly Cloud. If not specified, a random ID will be generated",

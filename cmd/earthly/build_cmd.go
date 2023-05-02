@@ -12,6 +12,7 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
+	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
@@ -237,6 +238,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return errors.Wrapf(err, "could not configure satellite")
 	}
 
+	var runType logstream.RunType
+
 	var runnerName string
 	isLocal := containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress)
 	if isLocal {
@@ -246,11 +249,14 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			hostname = "unknown"
 		}
 		runnerName = fmt.Sprintf("local:%s", hostname)
+		runType = logstream.RunType_RUN_TYPE_LOCAL
 	} else {
 		if app.satelliteName != "" {
 			runnerName = fmt.Sprintf("sat:%s/%s", app.orgName, app.satelliteName)
+			runType = logstream.RunType_RUN_TYPE_SATELLITE
 		} else {
 			runnerName = fmt.Sprintf("bk:%s", app.buildkitdSettings.BuildkitAddress)
+			runType = logstream.RunType_RUN_TYPE_REMOTE
 		}
 	}
 	if !isLocal && (app.useInlineCache || app.saveInlineCache) {
@@ -273,6 +279,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return errors.Wrap(err, "get native platform via buildkit client")
 	}
 	if app.logstream {
+		app.logbusSetup.SetRunType(logstreamRunType(app.logstreamRunType, runType))
 		app.logbusSetup.SetDefaultPlatform(platforms.Format(nativePlatform))
 	}
 	platr := platutil.NewResolver(nativePlatform)
@@ -681,5 +688,23 @@ func getTryCatchSaveFileHandler(localArtifactWhiteList *gatewaycrafter.LocalArti
 		default:
 			return fmt.Errorf("unexpected version %d", protocolVersion)
 		}
+	}
+}
+
+func logstreamRunType(val string, fallback logstream.RunType) logstream.RunType {
+	if val == "" {
+		return fallback
+	}
+	switch val {
+	case "local":
+		return logstream.RunType_RUN_TYPE_LOCAL
+	case "ci":
+		return logstream.RunType_RUN_TYPE_CI
+	case "satellite":
+		return logstream.RunType_RUN_TYPE_SATELLITE
+	case "remote":
+		return logstream.RunType_RUN_TYPE_REMOTE
+	default:
+		return fallback
 	}
 }

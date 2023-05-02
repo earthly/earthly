@@ -173,6 +173,7 @@ type cliFlags struct {
 	logstreamDebugFile              string
 	logstreamDebugManifestFile      string
 	logstreamAddressOverride        string
+	logstreamRunType                string
 	requestID                       string
 	buildID                         string
 	loginProvider                   string

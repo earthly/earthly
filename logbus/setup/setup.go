@@ -69,6 +69,11 @@ func (bs *BusSetup) SetDefaultPlatform(platform string) {
 	bs.Formatter.SetDefaultPlatform(platform)
 }
 
+// SetRunType sets the overall build invocation type.
+func (bs *BusSetup) SetRunType(runType logstream.RunType) {
+	bs.InitialManifest.Type = runType
+}
+
 // SetOrgAndProject sets the org and project for the manifest.
 func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
 	bs.InitialManifest.OrgName = orgName
