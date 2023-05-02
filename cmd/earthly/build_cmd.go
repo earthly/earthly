@@ -239,7 +239,6 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	}
 
 	var runType logstream.RunType
-
 	var runnerName string
 	isLocal := containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress)
 	if isLocal {
