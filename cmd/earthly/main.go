@@ -174,6 +174,11 @@ type cliFlags struct {
 	logstreamDebugManifestFile      string
 	logstreamAddressOverride        string
 	logstreamRunType                string
+	logstreamPipelineID             string
+	logstreamPipelineName           string
+	logstreamGitOwner               string
+	logstreamGitRepo                string
+	logstreamGitSHA                 string
 	requestID                       string
 	buildID                         string
 	loginProvider                   string
@@ -675,6 +680,9 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		if cloudClient.IsLoggedIn(ctx) {
 			app.console.VerbosePrintf("Logbus: setting organization %q and project %q", app.orgName, app.projectName)
 			analytics.AddEarthfileProject(app.orgName, app.projectName)
+			app.logbusSetup.SetPipeline(app.logstreamPipelineID, app.logstreamPipelineName)
+			app.logbusSetup.SetGitInfo(app.logstreamGitOwner, app.logstreamGitRepo, app.logstreamGitSHA)
+			app.logbusSetup.SetRunType(logstream.RunType_RUN_TYPE_CI)
 			app.logbusSetup.SetOrgAndProject(app.orgName, app.projectName)
 			app.logbusSetup.StartLogStreamer(ctx, cloudClient)
 			logstreamURL := fmt.Sprintf("%s/builds/%s", app.getCIHost(), app.logbusSetup.InitialManifest.GetBuildId())

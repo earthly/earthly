@@ -219,6 +219,41 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Hidden:      true, // Internal.
 		},
 		&cli.StringFlag{
+			Name:        "logstream-pipeline-id",
+			EnvVars:     []string{"EARTHLY_LOGSTREAM_PIPELINE_ID"},
+			Usage:       "The ID of the pipeline if one is being run.",
+			Destination: &app.logstreamPipelineID,
+			Hidden:      true, // Internal.
+		},
+		&cli.StringFlag{
+			Name:        "logstream-pipeline-name",
+			EnvVars:     []string{"EARTHLY_LOGSTREAM_PIPELINE_NAME"},
+			Usage:       "The name of the pipeline if one is being run.",
+			Destination: &app.logstreamPipelineName,
+			Hidden:      true, // Internal.
+		},
+		&cli.StringFlag{
+			Name:        "logstream-git-owner",
+			EnvVars:     []string{"EARTHLY_LOGSTREAM_GIT_OWNER"},
+			Usage:       "The Git owner or organization to send to Logstream.",
+			Destination: &app.logstreamGitOwner,
+			Hidden:      true, // Internal.
+		},
+		&cli.StringFlag{
+			Name:        "logstream-git-repo",
+			EnvVars:     []string{"EARTHLY_LOGSTREAM_GIT_REPO"},
+			Usage:       "The Git repo name to send to Logstream.",
+			Destination: &app.logstreamGitRepo,
+			Hidden:      true, // Internal.
+		},
+		&cli.StringFlag{
+			Name:        "logstream-git-sha",
+			EnvVars:     []string{"EARTHLY_LOGSTREAM_GIT_SHA"},
+			Usage:       "The Git SHA to send to Logstream.",
+			Destination: &app.logstreamGitSHA,
+			Hidden:      true, // Internal.
+		},
+		&cli.StringFlag{
 			Name:        "build-id",
 			EnvVars:     []string{"EARTHLY_BUILD_ID"},
 			Usage:       "The build ID to use for identifying the build in Earthly Cloud. If not specified, a random ID will be generated",

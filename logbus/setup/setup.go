@@ -74,6 +74,19 @@ func (bs *BusSetup) SetRunType(runType logstream.RunType) {
 	bs.InitialManifest.Type = runType
 }
 
+// SetPipeline sets the pipeline name and ID, if necessary.
+func (bs *BusSetup) SetPipeline(id, name string) {
+	bs.InitialManifest.PipelineId = id
+	bs.InitialManifest.PipelineName = name
+}
+
+// SetGitInfo sets the Git owner, repo, & SHA, if present.
+func (bs *BusSetup) SetGitInfo(owner, repo, sha string) {
+	bs.InitialManifest.GitOwner = owner
+	bs.InitialManifest.GitRepo = repo
+	bs.InitialManifest.GitSha = sha
+}
+
 // SetOrgAndProject sets the org and project for the manifest.
 func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
 	bs.InitialManifest.OrgName = orgName
