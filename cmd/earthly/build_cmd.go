@@ -339,7 +339,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	for secretKey := range secretsMap {
 		if !ast.IsValidEnvVarName(secretKey) {
 			// TODO If the year is 2024 or later, please move this check into processSecrets, and turn it into an error; see https://github.com/earthly/earthly/issues/2883
-			app.console.Warnf("Deprecation: secret key %q does not follow the recommended naming convention (a letter followed by alphanumeric characters or hyphens); this will become an error in a future version of earthly.", secretKey)
+			app.console.Warnf("Deprecation: secret key %q does not follow the recommended naming convention (a letter followed by alphanumeric characters or underscores); this will become an error in a future version of earthly.", secretKey)
 		}
 	}
 
