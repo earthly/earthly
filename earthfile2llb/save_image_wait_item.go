@@ -11,17 +11,18 @@ type saveImageWaitItem struct {
 	c  *Converter
 	si states.SaveImage
 
-	push        bool
+	allowPush   bool
+	doPush      bool
 	localExport bool
 
 	mu sync.Mutex
 }
 
-func newSaveImage(si states.SaveImage, c *Converter, push, localExport bool) waitutil.WaitItem {
+func newSaveImage(si states.SaveImage, c *Converter, allowPush, localExport bool) waitutil.WaitItem {
 	return &saveImageWaitItem{
 		c:           c,
 		si:          si,
-		push:        push,
+		allowPush:   allowPush,
 		localExport: localExport,
 	}
 }
@@ -38,6 +39,6 @@ func (siwi *saveImageWaitItem) SetDoPush() {
 	siwi.mu.Lock()
 	defer siwi.mu.Unlock()
 	if siwi.si.DockerTag != "" {
-		siwi.push = true
+		siwi.doPush = siwi.allowPush
 	}
 }
