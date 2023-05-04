@@ -1,6 +1,7 @@
 package variables
 
 import (
+	"fmt"
 	"sort"
 )
 
@@ -91,6 +92,18 @@ func (s *Scope) Sorted(opts ...ScopeOpt) []string {
 	}
 	sort.Strings(sorted)
 	return sorted
+}
+
+// BuildArgs returns s as a slice of build args, as they would have been passed
+// in originally at the CLI or in a BUILD command.
+func (s *Scope) BuildArgs(opts ...ScopeOpt) []string {
+	vars := s.Sorted(opts...)
+	var args []string
+	for _, v := range vars {
+		val, _ := s.Get(v)
+		args = append(args, fmt.Sprintf("%v=%v", v, val))
+	}
+	return args
 }
 
 // CombineScopes combines all the variables across all scopes, with the

@@ -203,6 +203,7 @@ ga-no-qemu:
     BUILD +platform-output
     BUILD +command
     BUILD +command-explicit-global
+    BUILD +command-nested-global
     BUILD +duplicate
     BUILD +reserved
     BUILD +quotes-test
@@ -1085,6 +1086,9 @@ command:
 
 command-explicit-global:
     DO +RUN_EARTHLY --earthfile=command-explicit-global.earth
+
+command-nested-global:
+    DO +RUN_EARTHLY --earthfile=command-nested-global.earth --target="+test-overriding --foo=expected"
 
 duplicate:
     DO +RUN_EARTHLY --earthfile=duplicate-target-names.earth --should_fail=true --target=+duplicate
