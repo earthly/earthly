@@ -8,6 +8,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Remote BuildKit will use TLS by default.
 - Deprecation warning: Secret IDs naming scheme should follow the ARG naming scheme; i.e. a letter followed by alphanumeric characters or underscores. [#2883](https://github.com/earthly/earthly/issues/2883)
 
+### Added
+- Experimental support for performing a `git lfs pull --include=<path>` when referencing a remote target on the cli, when used with the new `--git-lfs-pull-include` flag. [#2992](https://github.com/earthly/earthly/pull/2922)
+
 ## v0.7.4 - 2023-04-12
 
 ### Changed

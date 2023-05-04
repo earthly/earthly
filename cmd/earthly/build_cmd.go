@@ -512,6 +512,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		InteractiveDebugging:                  app.interactiveDebugging,
 		InteractiveDebuggingDebugLevelLogging: app.debug,
 		GitImage:                              app.cfg.Global.GitImage,
+		GitLFSInclude:                         app.gitLFSPullInclude,
 	}
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
 	if err != nil {
