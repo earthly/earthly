@@ -2,6 +2,7 @@ package stringutil
 
 // ProcessParamsAndQuotes takes in a slice of strings, and rearranges the slices
 // depending on quotes and parenthesis.
+//
 // For example "hello ", "wor(", "ld)" becomes "hello ", "wor( ld)".
 func ProcessParamsAndQuotes(args []string) []string {
 	curQuote := rune(0)
@@ -20,20 +21,20 @@ func ProcessParamsAndQuotes(args []string) []string {
 				if isQuote {
 					curQuote = char
 				}
-			} else {
-				if char == allowedQuotes[curQuote] {
-					curQuote = rune(0)
-				}
+				continue
+			}
+			if char == allowedQuotes[curQuote] {
+				curQuote = rune(0)
 			}
 		}
 		if curQuote == 0 {
 			ret = append(ret, string(newArg))
 			newArg = []rune{}
-		} else {
-			// Unterminated quote - join up two args into one.
-			// Add a space between joined-up args.
-			newArg = append(newArg, ' ')
+			continue
 		}
+		// Unterminated quote - join up two args into one.
+		// Add a space between joined-up args.
+		newArg = append(newArg, ' ')
 	}
 	if curQuote != 0 {
 		// Unterminated quote case.
