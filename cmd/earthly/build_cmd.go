@@ -26,7 +26,6 @@ import (
 	"github.com/earthly/earthly/inputgraph"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
-	"github.com/earthly/earthly/util/buildkitskipper"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
@@ -229,7 +228,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
 	app.warnIfArgContainsBuildArg(flagArgs)
 
-	var skipDB buildkitskipper.BuildkitSkipper
+	var skipDB BuildkitSkipper
 	var targetHash []byte
 	if app.skipBuildkit {
 		var orgName string
@@ -238,16 +237,9 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		if err != nil {
 			app.console.Warnf("unable to calculate hash for %s: %s", target.String(), err.Error())
 		} else {
-			if app.localSkipDB != "" {
-				skipDB, err = buildkitskipper.NewLocal(app.localSkipDB)
-				if err != nil {
-					return errors.Wrapf(err, "failed to open buildkit skipper database %s", app.localSkipDB)
-				}
-			} else {
-				skipDB, err = buildkitskipper.NewCloud(orgName, projectName, target.GetName(), cloudClient)
-				if err != nil {
-					return errors.Wrapf(err, "failed to create cloud-based buildkit skipper database")
-				}
+			skipDB, err = NewBuildkitSkipper(app.localSkipDB, orgName, projectName, target.GetName(), cloudClient)
+			if err != nil {
+				return err
 			}
 			exists, err := skipDB.Exists(cliCtx.Context, targetHash)
 			if err != nil {

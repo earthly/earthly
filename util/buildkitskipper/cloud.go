@@ -4,12 +4,12 @@ import (
 	"context"
 )
 
-type askvClient interface {
+type ASKVClient interface {
 	AutoSkipExists(ctx context.Context, org, project, pipeline string, hash []byte) (bool, error)
 	AutoSkipAdd(ctx context.Context, org, project, pipeline string, hash []byte) error
 }
 
-func NewCloud(org, project, pipeline string, client askvClient) (*CloudClient, error) {
+func NewCloud(org, project, pipeline string, client ASKVClient) (*CloudClient, error) {
 	return &CloudClient{
 		org:      org,
 		project:  project,
@@ -22,7 +22,7 @@ type CloudClient struct {
 	org      string
 	project  string
 	pipeline string
-	c        askvClient
+	c        ASKVClient
 }
 
 func (cc *CloudClient) Add(ctx context.Context, data []byte) error {
