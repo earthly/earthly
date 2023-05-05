@@ -275,6 +275,7 @@ type UpdateSatelliteOpt struct {
 	Name                    string
 	OrgID                   string
 	PinnedVersion           string
+	Size                    string
 	MaintenanceWindowStart  string
 	MaintenanceWeekendsOnly bool
 	DropCache               bool
@@ -290,6 +291,7 @@ func (c *Client) UpdateSatellite(ctx context.Context, opt UpdateSatelliteOpt) er
 		FeatureFlags:            opt.FeatureFlags,
 		MaintenanceWindowStart:  opt.MaintenanceWindowStart,
 		MaintenanceWeekendsOnly: opt.MaintenanceWeekendsOnly,
+		Size:                    opt.Size,
 	}
 	_, err := c.compute.UpdateSatellite(c.withAuth(ctx), req)
 	if err != nil {
