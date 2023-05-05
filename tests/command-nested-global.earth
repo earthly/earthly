@@ -10,7 +10,8 @@ ARG --global foo=default
 
 SHARED:
     COMMAND
-    RUN test "$foo" == "expected"
+    # Note that foo has not yet been declared in the command, therefore we reference the globally declared arg
+    RUN test "$foo" == "expected" 
 
     # foo should be passed in as "baz" when DO +SHARED is called for the
     # purposes of this test. This ensures that DO args do not impact globals but
