@@ -139,6 +139,7 @@ ga-no-qemu:
     BUILD +excludes-test
     BUILD +secrets-test
     BUILD +secrets-optional-prefix-test
+    BUILD +secrets-args-precedence-test
     BUILD +project-secrets-test
     BUILD +build-arg-test
     BUILD +build-arg-explicit-global-test
@@ -414,6 +415,9 @@ project-secrets-test:
         --extra_args="--secret SECRET1=foo --secret SECRET2=bar" \
         --should_fail=false \
         --output_contains="my secrets are foo and bar"
+
+secrets-args-precedence-test:
+    DO +RUN_EARTHLY --earthfile=secrets-args-precedence.earth --target=+test --extra_args="--secret foo=eggs"
 
 build-arg-test:
     DO +RUN_EARTHLY --earthfile=build-arg.earth
