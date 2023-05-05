@@ -19,8 +19,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-var ErrRemoteNotSupported = fmt.Errorf("remote targets not supported")
-var ErrUnableToDetermineHash = fmt.Errorf("unable to determine hash")
+var (
+	ErrRemoteNotSupported    = fmt.Errorf("remote targets not supported")
+	ErrUnableToDetermineHash = fmt.Errorf("unable to determine hash")
+)
 
 func argsContainsStr(args []string, substr string) bool {
 	for _, s := range args {
@@ -101,22 +103,24 @@ func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 	srcs := args[:len(args)-1]
 	for _, src := range srcs {
 		artifactSrc, parseErr := domain.ParseArtifact(src)
-		if parseErr == nil {
-			if artifactSrc.Target.IsRemote() {
-				return errors.Wrap(ErrUnableToDetermineHash, "unable to handle remote target")
-			}
-			targetName := artifactSrc.Target.LocalPath + "+" + artifactSrc.Target.Target
-
-			err := l.loadTargetFromString(ctx, targetName)
-			if err != nil {
-				return err
-			}
-		} else {
+		if parseErr != nil {
+			// COPY classical
 			path := filepath.Join(l.target.GetLocalPath(), src)
 			err := l.hasher.HashFile(ctx, path)
 			if err != nil {
 				return errors.Wrapf(ErrUnableToDetermineHash, "failed to hash file %s: %s", path, err)
 			}
+			continue
+		}
+		// COPY from a different target
+		if artifactSrc.Target.IsRemote() {
+			return errors.Wrap(ErrUnableToDetermineHash, "unable to handle remote target")
+		}
+		targetName := artifactSrc.Target.LocalPath + "+" + artifactSrc.Target.Target
+
+		err := l.loadTargetFromString(ctx, targetName)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -143,8 +147,9 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 		return l.handleCopy(ctx, cmd)
 	case command.Pipeline:
 		return l.handlePipeline(ctx, cmd)
+	default:
+		return nil
 	}
-	return nil
 }
 
 func (l *loader) handleWith(ctx context.Context, with spec.WithStatement) error {
