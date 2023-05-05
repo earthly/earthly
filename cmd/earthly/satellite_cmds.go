@@ -41,7 +41,7 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 				},
 				&cli.StringFlag{
 					Name:        "size",
-					Usage:       "The size of the satellite. See https://earthly.dev/pricing#compute for details on each size. Supported values: small, medium, large.",
+					Usage:       "The size of the satellite. See https://earthly.dev/pricing for details on each size. Supported values: xsmall, small, medium, large, xlarge.",
 					Required:    false,
 					Value:       cloud.SatelliteSizeMedium,
 					Destination: &app.satelliteSize,
@@ -162,7 +162,7 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "size",
-					Usage:       "Change the size of the satellite. See https://earthly.dev/pricing#compute for details on each size. Supported values: small, medium, large.",
+					Usage:       "Change the size of the satellite. See https://earthly.dev/pricing for details on each size. Supported values: xsmall, small, medium, large, xlarge.",
 					Required:    false,
 					Value:       cloud.SatelliteSizeMedium,
 					Destination: &app.satelliteSize,
