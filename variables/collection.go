@@ -155,6 +155,16 @@ func (c *Collection) SetGlobals(globals *Scope) {
 	c.effectiveCache = nil
 }
 
+// TopOverriding returns a copy of the top-level overriding args, for use in
+// commands that may need to re-parse the base target but have drastically
+// different variable scopes.
+func (c *Collection) TopOverriding() *Scope {
+	if len(c.stack) == 0 {
+		return NewScope()
+	}
+	return c.stack[0].overriding.Clone()
+}
+
 // Overriding returns a copy of the overriding args.
 func (c *Collection) Overriding() *Scope {
 	return c.overriding().Clone()
