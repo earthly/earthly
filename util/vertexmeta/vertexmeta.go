@@ -27,6 +27,7 @@ type VertexMeta struct {
 	Local               bool                 `json:"lcl,omitempty"`
 	Interactive         bool                 `json:"itrctv,omitempty"`
 	OverridingArgs      map[string]string    `json:"args,omitempty"`
+	Secrets             []string             `json:"secrets,omitempty"`
 	Internal            bool                 `json:"itrnl,omitempty"`
 	Runner              string               `json:"runner,omitempty"`
 }
@@ -82,7 +83,8 @@ func (vm *VertexMeta) ToVertexPrefix() string {
 	return fmt.Sprintf("[%s] ", b64Str)
 }
 
-// OverridingArgsString returns the string representation of the overriding arguments.
+// OverridingArgsString returns the string representation of the overriding
+// arguments.
 func (vm *VertexMeta) OverridingArgsString() string {
 	if vm.OverridingArgs == nil {
 		return ""
@@ -93,6 +95,15 @@ func (vm *VertexMeta) OverridingArgsString() string {
 	}
 	sort.Strings(args)
 	return strings.Join(args, " ")
+}
+
+// SecretsString returns the string representation of the secrets. It will only
+// include the names of secrets, no values.
+func (vm *VertexMeta) SecretsString() string {
+	if len(vm.Secrets) == 0 {
+		return ""
+	}
+	return "secrets: " + strings.Join(vm.Secrets, " ")
 }
 
 // Salt returns a string identifying the target as uniquely as possible.
