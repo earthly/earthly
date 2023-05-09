@@ -41,7 +41,7 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 				},
 				&cli.StringFlag{
 					Name:        "size",
-					Usage:       "The size of the satellite. See https://earthly.dev/pricing#compute for details on each size. Supported values: small, medium, large.",
+					Usage:       "The size of the satellite. See https://earthly.dev/pricing for details on each size. Supported values: xsmall, small, medium, large, xlarge.",
 					Required:    false,
 					Value:       cloud.SatelliteSizeMedium,
 					Destination: &app.satelliteSize,
@@ -160,6 +160,13 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 				"	earthly satellite [--org <organization-name>] update <satellite-name>",
 			Action: app.actionSatelliteUpdate,
 			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "size",
+					Usage:       "Change the size of the satellite. See https://earthly.dev/pricing for details on each size. Supported values: xsmall, small, medium, large, xlarge.",
+					Required:    false,
+					Value:       cloud.SatelliteSizeMedium,
+					Destination: &app.satelliteSize,
+				},
 				&cli.StringFlag{
 					Name:        "maintenance-window",
 					Aliases:     []string{"mw"},
@@ -920,6 +927,7 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 	ffs := app.satelliteFeatureFlags.Value()
 	dropCache := app.satelliteDropCache
 	version := app.satelliteVersion
+	size := app.satelliteSize
 
 	cloudClient, err := app.newCloudClient()
 	if err != nil {
@@ -945,6 +953,10 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 		app.console.Printf("Auto-update maintenance window set to %s (%s)\n", app.satelliteMaintenanceWindow, z)
 	}
 
+	if size != "" && !cloud.ValidSatelliteSize(size) {
+		return errors.Errorf("not a valid size: %q", size)
+	}
+
 	err = cloudClient.UpdateSatellite(cliCtx.Context, cloud.UpdateSatelliteOpt{
 		Name:                    satName,
 		OrgID:                   orgID,
@@ -953,6 +965,7 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 		MaintenanceWeekendsOnly: app.satelliteMaintenaceWeekendsOnly,
 		DropCache:               dropCache,
 		FeatureFlags:            ffs,
+		Size:                    size,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed starting satellite update")
