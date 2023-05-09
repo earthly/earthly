@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+for bundle in $(ps auxw | grep 'runc.*bundle' | grep -v grep | awk '{print $11}'); do
+  data="$(cat "$bundle/config.json")"
+  if [ -n "$data" ]; then
+    echo "=== $bundle ==="
+    echo "$data" | jq .process.args
+  fi
+done
