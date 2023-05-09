@@ -1022,7 +1022,7 @@ func (c *Converter) PopWaitBlock(ctx context.Context) error {
 }
 
 // SaveImage applies the earthly SAVE IMAGE command.
-func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, insecurePush bool, cacheHint bool, cacheFrom []string, noManifestList bool) error {
+func (c *Converter) SaveImage(ctx context.Context, imageNames []string, hasPushFlag bool, insecurePush bool, cacheHint bool, cacheFrom []string, noManifestList bool) error {
 	err := c.checkAllowed(saveImageCmd)
 	if err != nil {
 		return err
@@ -1052,7 +1052,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					State:               pcState,
 					Image:               c.mts.Final.MainImage.Clone(), // We can get away with this because no Image details can vary in a --push. This should be fixed before then.
 					DockerTag:           imageName,
-					Push:                pushImages,
+					Push:                hasPushFlag,
 					InsecurePush:        insecurePush,
 					CacheHint:           cacheHint,
 					HasPushDependencies: true,
@@ -1065,7 +1065,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 				State:               c.persistCache(c.mts.Final.MainState),
 				Image:               c.mts.Final.MainImage.Clone(),
 				DockerTag:           imageName,
-				Push:                pushImages,
+				Push:                hasPushFlag,
 				InsecurePush:        insecurePush,
 				CacheHint:           cacheHint,
 				HasPushDependencies: false,
@@ -1078,12 +1078,12 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 			}
 
 			if c.ftrs.WaitBlock {
-				shouldPush := pushImages && si.DockerTag != "" && c.opt.DoPushes
+				shouldPush := hasPushFlag && si.DockerTag != ""
 				shouldExportLocally := si.DockerTag != "" && c.opt.DoSaves
 				waitItem := newSaveImage(si, c, shouldPush, shouldExportLocally)
 				c.waitBlock().AddItem(waitItem)
 				c.mts.Final.WaitItems = append(c.mts.Final.WaitItems, waitItem)
-				if pushImages {
+				if hasPushFlag {
 					// only add summary for `SAVE IMAGE --push` commands
 					c.opt.ExportCoordinator.AddPushedImageSummary(c.target.StringCanonical(), si.DockerTag, c.mts.Final.ID, c.opt.DoPushes)
 				}
@@ -1098,7 +1098,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 			c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, si)
 		}
 
-		if pushImages && imageName != "" && c.opt.UseInlineCache {
+		if hasPushFlag && imageName != "" && c.opt.UseInlineCache {
 			// Use this image tag as cache import too.
 			c.opt.CacheImports.Add(imageName)
 		}
