@@ -235,8 +235,7 @@ func CollectAnalytics(ctx context.Context, cloudClient *cloud.Client, displayErr
 	var err error
 	ciName, ci := DetectCI()
 	localRepo := getLocalRepo()
-	repo := getRepo(localRepo, meta.Target)
-	repoHash := hashString(repo)
+	repoHash := hashString(getRepo(localRepo, meta.Target))
 	targetHash := hashString(getTarget(localRepo, meta.Target))
 	installID, overrideInstallID := os.LookupEnv("EARTHLY_INSTALL_ID")
 	if !overrideInstallID {
