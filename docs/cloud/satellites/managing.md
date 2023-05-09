@@ -154,16 +154,32 @@ The following example updates a satellite to the latest revision, respecting any
 earthly satellite update my-satellite
 ```
 
+#### Dropping Cache
+
 The following command updates the satellite and clears its cache during the process. If no updates are available, this command will still clear the cache.
 
 ```bash
 earthly satellite update --drop-cache my-satellite
 ```
 
-Updates can also specify a new pinned earthly version:
+#### Changing Earthly Version
+
+Updates can also specify a new pinned earthly version using the `--version` flag:
+
 ```bash
 earthly satellite update --version v0.6.29 my-satellite
 ```
+
+#### Changing Satellite Size
+
+A new satellite size can be specified using the `--size` flag.
+Note that changing the size of a satellite will also drop its existing cache.
+
+```
+earthly satellite update --size xlarge my-satellite
+```
+
+#### Changing Feature Flags
 
 Feature flags can be set during an update as well.
 When any feature flags are passed in, the entire set of existing feature flags are replaced with the new set.
