@@ -172,7 +172,7 @@ earthly satellite update --version v0.6.29 my-satellite
 
 #### Changing Satellite Size
 
-A new satellite size can be specified using the `--size` flag.
+The size of an existing satellite can be altered using the `--size` flag.
 Note that changing the size of a satellite will also drop its existing cache.
 
 ```
