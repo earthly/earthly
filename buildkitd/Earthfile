@@ -12,7 +12,7 @@ buildkitd:
             ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
         END
     ELSE
-        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:4e601edf402b7c17538b2bd01030ef79b41e142b+build
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:c74acbadc93964160e31d5e7aa93595e95b94a72+build
     END
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
@@ -26,6 +26,7 @@ buildkitd:
         openssh-client \
         pigz \
         util-linux \
+        git-lfs \
         xz
 
     # Add github and gitlab to known hosts.

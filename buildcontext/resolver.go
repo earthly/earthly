@@ -58,16 +58,17 @@ type Resolver struct {
 }
 
 // NewResolver returns a new NewResolver.
-func NewResolver(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides, gitBranchOverride string) *Resolver {
-	return NewResolverCustomGit(cleanCollection, gitLookup, console, featureFlagOverrides, gitBranchOverride, "")
+func NewResolver(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides, gitBranchOverride, gitLFSInclude string) *Resolver {
+	return NewResolverCustomGit(cleanCollection, gitLookup, console, featureFlagOverrides, gitBranchOverride, gitLFSInclude, "")
 }
 
 // NewResolverCustomGit returns a new Resolver instance with a custom gitImage.
-func NewResolverCustomGit(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides, gitBranchOverride, gitImage string) *Resolver {
+func NewResolverCustomGit(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides, gitBranchOverride, gitLFSInclude, gitImage string) *Resolver {
 	return &Resolver{
 		gr: &gitResolver{
 			gitBranchOverride: gitBranchOverride,
 			gitImage:          gitImage,
+			lfsInclude:        gitLFSInclude,
 			cleanCollection:   cleanCollection,
 			projectCache:      synccache.New(),
 			buildFileCache:    synccache.New(),

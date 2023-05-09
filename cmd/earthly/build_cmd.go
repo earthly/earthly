@@ -465,10 +465,10 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			cacheExport = app.remoteCache
 		}
 	}
-	var parallelism semutil.Semaphore
-	if app.cfg.Global.ConversionParallelism != 0 {
-		parallelism = semutil.NewWeighted(int64(app.cfg.Global.ConversionParallelism))
+	if app.cfg.Global.ConversionParallelism <= 0 {
+		return fmt.Errorf("configuration error: \"conversion_parallelism\" must be larger than zero")
 	}
+	parallelism := semutil.NewWeighted(int64(app.cfg.Global.ConversionParallelism))
 	localRegistryAddr := ""
 	if isLocal && app.localRegistryHost != "" {
 		lrURL, err := url.Parse(app.localRegistryHost)
@@ -513,6 +513,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		InteractiveDebugging:                  app.interactiveDebugging,
 		InteractiveDebuggingDebugLevelLogging: app.debug,
 		GitImage:                              app.cfg.Global.GitImage,
+		GitLFSInclude:                         app.gitLFSPullInclude,
 	}
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
 	if err != nil {

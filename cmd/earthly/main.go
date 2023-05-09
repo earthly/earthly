@@ -101,6 +101,7 @@ type cliFlags struct {
 	containerName                   string
 	installationName                string
 	cacheFrom                       cli.StringSlice
+	gitLFSPullInclude               string
 	remoteCache                     string
 	maxRemoteCache                  bool
 	saveInlineCache                 bool
