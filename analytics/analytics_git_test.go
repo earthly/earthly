@@ -5,8 +5,6 @@ package analytics
 
 import (
 	"testing"
-
-	"github.com/earthly/earthly/domain"
 )
 
 // TestGetRepoHash tests the git repo hashing never changes
