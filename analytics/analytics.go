@@ -126,18 +126,19 @@ func isGitDir() bool {
 }
 
 func getRepo(localRepo string, target domain.Target) string {
-	if target.Target != "" && target.IsRemote() {
-		repoAndPath := target.GitURL
-		// Note that this makes an assumption about the typical repo path structure
-		// and the number of slashes. e.g. github.com/foo/bar.
-		// This does not work well for gitlab sometimes.
-		repoAndPathSplit := strings.SplitN(repoAndPath, "/", 4)
-		if len(repoAndPathSplit) < 3 {
-			return repoAndPath
-		}
-		return strings.Join(repoAndPathSplit[0:3], "/")
+	if target.Target == "" || !target.IsRemote() {
+	    return localRepo
 	}
-	return localRepo
+        repoAndPath := target.GitURL
+        // Note that this makes an assumption about the typical repo path structure
+        // and the number of slashes. e.g. github.com/foo/bar.
+        // This does not work well for gitlab sometimes.
+        repoAndPathSplit := strings.SplitN(repoAndPath, "/", 4)
+        if len(repoAndPathSplit) < 3 {
+	        return repoAndPath
+        }
+        return strings.Join(repoAndPathSplit[0:3], "/")
+
 }
 
 func getTarget(localRepo string, target domain.Target) string {
