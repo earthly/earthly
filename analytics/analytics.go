@@ -125,7 +125,7 @@ func isGitDir() bool {
 	return (err == nil)
 }
 
-func getRepo(target domain.Target) string {
+func getRepo(localRepo string, target domain.Target) string {
 	if target.Target != "" && target.IsRemote() {
 		repoAndPath := target.GitURL
 		// Note that this makes an assumption about the typical repo path structure
@@ -137,10 +137,10 @@ func getRepo(target domain.Target) string {
 		}
 		return strings.Join(repoAndPathSplit[0:3], "/")
 	}
-	return getLocalRepo()
+	return localRepo
 }
 
-func getTarget(repo string, target domain.Target) string {
+func getTarget(localRepo string, target domain.Target) string {
 	if target.Target == "" {
 		return ""
 	}
@@ -148,11 +148,14 @@ func getTarget(repo string, target domain.Target) string {
 	if target.Target != "" && target.IsRemote() {
 		repoAndPath = target.GitURL
 	} else {
-		repo := getLocalRepo()
-		if repo == "" || repo == "unknown" {
+		if localRepo == "" || localRepo == "unknown" {
 			return ""
 		}
-		repoAndPath = fmt.Sprintf("%s/%s", repo, strings.TrimPrefix(target.LocalPath, "./"))
+		if target.LocalPath != "" && target.LocalPath != "./" {
+			repoAndPath = fmt.Sprintf("%s/%s", localRepo, strings.TrimPrefix(target.LocalPath, "./"))
+		} else {
+			repoAndPath = localRepo
+		}
 	}
 	// Note that this intentionally excludes any git ref (e.g. branch name) from the target.
 	return fmt.Sprintf("%s+%s", repoAndPath, target.Target)
@@ -231,9 +234,10 @@ type Meta struct {
 func CollectAnalytics(ctx context.Context, cloudClient *cloud.Client, displayErrors bool, meta Meta, installationName string) {
 	var err error
 	ciName, ci := DetectCI()
-	repo := getRepo(meta.Target)
+	localRepo := getLocalRepo()
+	repo := getRepo(localRepo, meta.Target)
 	repoHash := hashString(repo)
-	targetHash := hashString(getTarget(repo, meta.Target))
+	targetHash := hashString(getTarget(localRepo, meta.Target))
 	installID, overrideInstallID := os.LookupEnv("EARTHLY_INSTALL_ID")
 	if !overrideInstallID {
 		if ci {
