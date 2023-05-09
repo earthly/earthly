@@ -37,6 +37,7 @@ import (
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/logbus"
 	logbussetup "github.com/earthly/earthly/logbus/setup"
@@ -195,6 +196,7 @@ type analyticsMetadata struct {
 	satelliteCurrentVersion string
 	buildkitPlatform        string
 	userPlatform            string
+	target                  domain.Target
 }
 
 var (
@@ -335,6 +337,7 @@ func main() {
 					GitSHA:           GitSha,
 					CommandName:      app.commandName,
 					ExitCode:         exitCode,
+					Target:           app.analyticsMetadata.target,
 					IsSatellite:      app.analyticsMetadata.isSatellite,
 					SatelliteVersion: app.analyticsMetadata.satelliteCurrentVersion,
 					IsRemoteBuildkit: app.analyticsMetadata.isRemoteBuildkit,

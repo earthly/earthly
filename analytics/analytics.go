@@ -14,6 +14,7 @@ import (
 
 	"github.com/earthly/cloud-api/analytics"
 	"github.com/earthly/earthly/cloud"
+	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/gitutil"
@@ -60,7 +61,7 @@ func DetectCI() (string, bool) {
 	return "false", false
 }
 
-func getRepo() string {
+func getLocalRepo() string {
 	if isGitInstalled() {
 		if !isGitDir() {
 			return ""
@@ -69,7 +70,11 @@ func getRepo() string {
 		cmd := exec.Command("git", "config", "--get", "remote.origin.url")
 		out, err := cmd.Output()
 		if err == nil {
-			return strings.TrimSpace(string(out))
+			repo := strings.TrimSpace(string(out))
+			consistentRepo, err := gitutil.ParseGitRemoteURL(repo)
+			if err == nil {
+				return consistentRepo
+			}
 		}
 	}
 
@@ -84,7 +89,11 @@ func getRepo() string {
 		"CI_REPOSITORY_URL",
 	} {
 		if v, ok := os.LookupEnv(k); ok {
-			return strings.TrimSpace(v)
+			repo := strings.TrimSpace(v)
+			consistentRepo, err := gitutil.ParseGitRemoteURL(repo)
+			if err == nil {
+				return consistentRepo
+			}
 		}
 	}
 
@@ -92,7 +101,11 @@ func getRepo() string {
 		pair := strings.SplitN(e, "=", 2)
 		if len(pair) == 2 {
 			if strings.Contains(pair[1], "git") {
-				return strings.TrimSpace(pair[1])
+				repo := strings.TrimSpace(pair[1])
+				consistentRepo, err := gitutil.ParseGitRemoteURL(repo)
+				if err == nil {
+					return consistentRepo
+				}
 			}
 		}
 	}
@@ -112,20 +125,41 @@ func isGitDir() bool {
 	return (err == nil)
 }
 
-func getRepoHash() string {
-	return RepoHashFromCloneURL(getRepo())
+func getRepo(target domain.Target) string {
+	if target.Target != "" && target.IsRemote() {
+		repoAndPath := target.GitURL
+		// Note that this makes an assumption about the typical repo path structure
+		// and the number of slashes. e.g. github.com/foo/bar.
+		// This does not work well for gitlab sometimes.
+		repoAndPathSplit := strings.SplitN(repoAndPath, "/", 4)
+		if len(repoAndPathSplit) < 3 {
+			return repoAndPath
+		}
+		return strings.Join(repoAndPathSplit[0:3], "/")
+	}
+	return getLocalRepo()
 }
 
-// RepoHashFromCloneURL returns the repoHash of a ref
-func RepoHashFromCloneURL(repo string) string {
-	if repo == "unknown" || repo == "" {
-		return repo
+func getTarget(repo string, target domain.Target) string {
+	if target.Target == "" {
+		return ""
 	}
-	consistentRepo, err := gitutil.ParseGitRemoteURL(repo)
-	if err == nil {
-		repo = consistentRepo
+	var repoAndPath string
+	if target.Target != "" && target.IsRemote() {
+		repoAndPath = target.GitURL
+	} else {
+		repo := getLocalRepo()
+		if repo == "" || repo == "unknown" {
+			return ""
+		}
+		repoAndPath = fmt.Sprintf("%s/%s", repo, strings.TrimPrefix(target.LocalPath, "./"))
 	}
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(repo)))
+	// Note that this intentionally excludes any git ref (e.g. branch name) from the target.
+	return fmt.Sprintf("%s+%s", repoAndPath, target.Target)
+}
+
+func hashString(s string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
 }
 
 func getInstallID(installationName string) (string, error) {
@@ -184,6 +218,7 @@ type Meta struct {
 	GitSHA           string
 	CommandName      string
 	ExitCode         int
+	Target           domain.Target
 	IsSatellite      bool
 	SatelliteVersion string
 	IsRemoteBuildkit bool
@@ -196,7 +231,9 @@ type Meta struct {
 func CollectAnalytics(ctx context.Context, cloudClient *cloud.Client, displayErrors bool, meta Meta, installationName string) {
 	var err error
 	ciName, ci := DetectCI()
-	repoHash := getRepoHash()
+	repo := getRepo(meta.Target)
+	repoHash := hashString(repo)
+	targetHash := hashString(getTarget(repo, meta.Target))
 	installID, overrideInstallID := os.LookupEnv("EARTHLY_INSTALL_ID")
 	if !overrideInstallID {
 		if ci {
@@ -242,6 +279,7 @@ func CollectAnalytics(ctx context.Context, cloudClient *cloud.Client, displayErr
 			SatelliteVersion: meta.SatelliteVersion,
 			IsRemoteBuildkit: meta.IsRemoteBuildkit,
 			RepoHash:         repoHash,
+			TargetHash:       targetHash,
 			ExecutionSeconds: meta.Realtime.Seconds(),
 			Terminal:         isTerminal(),
 			Counts:           countsMap,
