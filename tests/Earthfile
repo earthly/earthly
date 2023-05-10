@@ -350,7 +350,7 @@ builtin-args-test:
     DO +RUN_EARTHLY --target=+earthly-ci-runner-builtin-arg-test --extra_args="--build-arg EXPECTED_VALUE=true"
     ENV EARTHLY_CI_RUNNER=""
     DO +RUN_EARTHLY --target=+earthly-ci-runner-builtin-arg-test --extra_args="--build-arg EXPECTED_VALUE=false"
-    ENV EARTHLY_CI_RUNNER="other value"
+    ENV EARTHLY_CI_RUNNER="false"
     DO +RUN_EARTHLY --target=+earthly-ci-runner-builtin-arg-test --extra_args="--build-arg EXPECTED_VALUE=false"
 
 builtin-args-invalid-default-test:

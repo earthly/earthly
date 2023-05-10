@@ -75,6 +75,7 @@ type NewCollectionOpt struct {
 	Target           domain.Target
 	Push             bool
 	CI               bool
+	EarthlyCIRunner  bool
 	PlatformResolver *platutil.Resolver
 	NativePlatform   specs.Platform
 	GitMeta          *gitutil.GitMetadata
@@ -93,7 +94,7 @@ func NewCollection(opts NewCollectionOpt) *Collection {
 		opts.OverridingVars = NewScope()
 	}
 	return &Collection{
-		builtin:          BuiltinArgs(target, opts.PlatformResolver, opts.GitMeta, opts.BuiltinArgs, opts.Features, opts.Push, opts.CI),
+		builtin:          BuiltinArgs(target, opts.PlatformResolver, opts.GitMeta, opts.BuiltinArgs, opts.Features, opts.Push, opts.CI, opts.EarthlyCIRunner),
 		envs:             NewScope(),
 		errorOnRedeclare: opts.Features.ArgScopeSet,
 		shelloutAnywhere: opts.Features.ShellOutAnywhere,

@@ -19,26 +19,26 @@ import (
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/syncutil"
-	"github.com/earthly/earthly/variables/reserved"
-
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
 // DetectCI determines if Earthly is being run from a CI environment. It returns
 // the name of the CI tool and true if we detect one.
-func DetectCI() (string, bool) {
+func DetectCI(isEarthlyCIRunner bool) (string, bool) {
+	if isEarthlyCIRunner {
+		return "earthly-ci", true
+	}
 	for k, v := range map[string]string{
-		"GITHUB_WORKFLOW":        "github-actions",
-		"CIRCLECI":               "circle-ci",
-		"JENKINS_HOME":           "jenkins",
-		"BUILDKITE":              "buildkite",
-		"DRONE_BRANCH":           "drone",
-		"TRAVIS":                 "travis",
-		"GITLAB_CI":              "gitlab",
-		"EARTHLY_IMAGE":          "earthly-image",
-		"AGENT_WORKDIR":          "jenkins", // https://github.com/jenkinsci/docker-agent/blob/master/11/alpine/Dockerfile#L35
-		reserved.EarthlyCIRunner: "earthly-ci",
+		"GITHUB_WORKFLOW": "github-actions",
+		"CIRCLECI":        "circle-ci",
+		"JENKINS_HOME":    "jenkins",
+		"BUILDKITE":       "buildkite",
+		"DRONE_BRANCH":    "drone",
+		"TRAVIS":          "travis",
+		"GITLAB_CI":       "gitlab",
+		"EARTHLY_IMAGE":   "earthly-image",
+		"AGENT_WORKDIR":   "jenkins", // https://github.com/jenkinsci/docker-agent/blob/master/11/alpine/Dockerfile#L35
 	} {
 		if _, ok := os.LookupEnv(k); ok {
 			return v, true
@@ -230,12 +230,13 @@ type Meta struct {
 	Realtime         time.Duration
 	OrgName          string
 	ProjectName      string
+	EarthlyCIRunner  bool
 }
 
 // CollectAnalytics sends analytics to api.earthly.dev
 func CollectAnalytics(ctx context.Context, cloudClient *cloud.Client, displayErrors bool, meta Meta, installationName string) {
 	var err error
-	ciName, ci := DetectCI()
+	ciName, ci := DetectCI(meta.EarthlyCIRunner)
 	localRepo := getLocalRepo()
 	repoHash := hashString(getRepo(localRepo, meta.Target))
 	targetHash := hashString(getTarget(localRepo, meta.Target))

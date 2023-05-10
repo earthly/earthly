@@ -2,7 +2,7 @@ package variables
 
 import (
 	"fmt"
-	"os"
+	"strconv"
 	"strings"
 
 	"github.com/containerd/containerd/platforms"
@@ -24,7 +24,7 @@ type DefaultArgs struct {
 }
 
 // BuiltinArgs returns a scope containing the builtin args.
-func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs, ftrs *features.Features, push bool, ci bool) *Scope {
+func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs, ftrs *features.Features, push bool, ci bool, earthlyCIRunner bool) *Scope {
 	ret := NewScope()
 	ret.Add(arg.EarthlyTarget, target.StringCanonical())
 	ret.Add(arg.EarthlyTargetProject, target.ProjectCanonical())
@@ -92,11 +92,7 @@ func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gituti
 	}
 
 	if ftrs.EarthlyCIRunnerArg {
-		value := strings.TrimSpace(os.Getenv(arg.EarthlyCIRunner))
-		if value != "true" {
-			value = "false"
-		}
-		ret.Add(arg.EarthlyCIRunner, value)
+		ret.Add(arg.EarthlyCIRunner, strconv.FormatBool(earthlyCIRunner))
 	}
 	return ret
 }

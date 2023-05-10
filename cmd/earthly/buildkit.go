@@ -167,7 +167,7 @@ func (app *earthlyApp) isUsingSatellite(cliCtx *cli.Context) bool {
 
 func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient *cloud.Client, name, displayName, orgID, gitAuthor, gitConfigEmail string) error {
 	console := app.console.WithPrefix("satellite")
-	_, isCI := analytics.DetectCI()
+	_, isCI := analytics.DetectCI(app.earthlyCIRunner)
 	out := cloudClient.ReserveSatellite(ctx, name, orgID, gitAuthor, gitConfigEmail, isCI)
 	err := showSatelliteLoading(console, displayName, out)
 	if err != nil {
