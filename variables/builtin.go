@@ -2,6 +2,7 @@ package variables
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/containerd/containerd/platforms"
@@ -88,6 +89,14 @@ func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gituti
 	} else {
 		// Ensure SOURCE_DATE_EPOCH is always available
 		ret.Add(arg.EarthlySourceDateEpoch, "0")
+	}
+
+	if ftrs.EarthlyCIRunnerArg {
+		value := strings.TrimSpace(os.Getenv(arg.EarthlyCIRunner))
+		if value != "true" {
+			value = "false"
+		}
+		ret.Add(arg.EarthlyCIRunner, value)
 	}
 	return ret
 }

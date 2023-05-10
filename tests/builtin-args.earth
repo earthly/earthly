@@ -12,6 +12,7 @@ builtin-args-test:
     ARG EARTHLY_VERSION
     ARG EARTHLY_BUILD_SHA
     ARG EARTHLY_LOCALLY
+    ARG EARTHLY_CI_RUNNER
     RUN echo "$EARTHLY_TARGET"
     RUN echo "$EARTHLY_TARGET_PROJECT"
     RUN echo "$EARTHLY_TARGET_NAME"
@@ -29,3 +30,9 @@ builtin-args-test:
     RUN test -n "$EARTHLY_VERSION"
     RUN test -n "$EARTHLY_BUILD_SHA"
     RUN test "$EARTHLY_LOCALLY" = "false"
+    RUN test -z "$EARTHLY_CI_RUNNER"
+
+earthly-ci-runner-builtin-arg-test:
+    ARG EARTHLY_CI_RUNNER
+    ARG EXPECTED_VALUE
+    RUN test "$EARTHLY_CI_RUNNER" = "$EXPECTED_VALUE"

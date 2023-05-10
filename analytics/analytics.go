@@ -19,6 +19,7 @@ import (
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/syncutil"
+	"github.com/earthly/earthly/variables/reserved"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -28,15 +29,16 @@ import (
 // the name of the CI tool and true if we detect one.
 func DetectCI() (string, bool) {
 	for k, v := range map[string]string{
-		"GITHUB_WORKFLOW": "github-actions",
-		"CIRCLECI":        "circle-ci",
-		"JENKINS_HOME":    "jenkins",
-		"BUILDKITE":       "buildkite",
-		"DRONE_BRANCH":    "drone",
-		"TRAVIS":          "travis",
-		"GITLAB_CI":       "gitlab",
-		"EARTHLY_IMAGE":   "earthly-image",
-		"AGENT_WORKDIR":   "jenkins", // https://github.com/jenkinsci/docker-agent/blob/master/11/alpine/Dockerfile#L35
+		"GITHUB_WORKFLOW":        "github-actions",
+		"CIRCLECI":               "circle-ci",
+		"JENKINS_HOME":           "jenkins",
+		"BUILDKITE":              "buildkite",
+		"DRONE_BRANCH":           "drone",
+		"TRAVIS":                 "travis",
+		"GITLAB_CI":              "gitlab",
+		"EARTHLY_IMAGE":          "earthly-image",
+		"AGENT_WORKDIR":          "jenkins", // https://github.com/jenkinsci/docker-agent/blob/master/11/alpine/Dockerfile#L35
+		reserved.EarthlyCIRunner: "earthly-ci",
 	} {
 		if _, ok := os.LookupEnv(k); ok {
 			return v, true

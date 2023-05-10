@@ -56,6 +56,7 @@ type Features struct {
 	TryFinally                 bool `long:"try" description:"allow the use of the TRY/FINALLY commands"`
 	NoNetwork                  bool `long:"no-network" description:"allow the use of RUN --network=none commands"`
 	ArgScopeSet                bool `long:"arg-scope-and-set" description:"enable SET to reassign ARGs and prevent ARGs from being redeclared in the same scope"`
+	EarthlyCIRunnerArg         bool `long:"earthly-ci-runner-arg" description:"includes EARTHLY_CI_RUNNER ARG"`
 
 	Major int
 	Minor int
