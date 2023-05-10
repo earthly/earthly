@@ -36,7 +36,7 @@ type vertexMonitor struct {
 	lastOpenLineSkipped bool
 }
 
-func (vm *vertexMonitor) printHeader() {
+func (vm *vertexMonitor) printHeader(verbose bool) {
 	vm.headerPrinted = true
 	if vm.operation == "" {
 		return
@@ -48,6 +48,9 @@ func (vm *vertexMonitor) printHeader() {
 	}
 	if vm.meta.OverridingArgs != nil {
 		metaParts = append(metaParts, vm.meta.OverridingArgsString())
+	}
+	if verbose && len(vm.meta.Secrets) != 0 {
+		metaParts = append(metaParts, vm.meta.SecretsString())
 	}
 	if len(metaParts) > 0 {
 		c.WithMetadataMode(true).Printf("%s\n", strings.Join(metaParts, " | "))

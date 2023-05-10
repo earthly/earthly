@@ -72,7 +72,7 @@ func (w *withDockerRunBase) installDeps(ctx context.Context, opt WithDockerOpt) 
 		llb.AddMount(
 			dockerAutoInstallScriptPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerAutoInstallScriptPath)),
 		llb.Args(args),
-		llb.WithCustomNamef("%sWITH DOCKER (install deps)", w.c.vertexPrefix(ctx, false, false, false)),
+		llb.WithCustomNamef("%sWITH DOCKER (install deps)", w.c.vertexPrefix(ctx, false, false, false, opt.Secrets)),
 	}
 	w.c.mts.Final.MainState = w.c.mts.Final.MainState.Run(runOpts...).Root()
 	return nil
@@ -153,7 +153,7 @@ func (w *withDockerRunBase) getComposeConfig(ctx context.Context, opt WithDocker
 		llb.AddMount(
 			dockerdWrapperPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)),
 		llb.Args(args),
-		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", w.c.vertexPrefix(ctx, false, false, false)),
+		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", w.c.vertexPrefix(ctx, false, false, false, opt.Secrets)),
 	}
 	state := w.c.mts.Final.MainState.Run(runOpts...).Root()
 	ref, err := llbutil.StateToRef(
