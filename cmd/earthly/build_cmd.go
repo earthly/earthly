@@ -163,6 +163,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			return errors.Wrapf(err, "parse target name %s", targetName)
 		}
 	}
+	app.analyticsMetadata.target = target
 
 	var (
 		gitCommitAuthor string
