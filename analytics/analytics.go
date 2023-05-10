@@ -19,6 +19,7 @@ import (
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/syncutil"
+
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
