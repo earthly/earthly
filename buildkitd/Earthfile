@@ -22,11 +22,12 @@ buildkitd:
     RUN apk add --update --no-cache \
         cni-plugins@edge-community \
         gettext \
+        git-lfs \
         iptables \
+        jq \
         openssh-client \
         pigz \
         util-linux \
-        git-lfs \
         xz
 
     # Add github and gitlab to known hosts.
@@ -60,6 +61,7 @@ buildkitd:
     COPY ./dockerd-wrapper.sh /var/earthly/dockerd-wrapper.sh
     COPY ./docker-auto-install.sh /var/earthly/docker-auto-install.sh
     COPY ./oom-adjust.sh.template /bin/oom-adjust.sh.template
+    COPY ./runc-ps /bin/runc-ps
 
     ENV EARTHLY_RESET_TMP_DIR=false
     ENV EARTHLY_TMP_DIR=/tmp/earthly
