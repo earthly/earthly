@@ -6,15 +6,18 @@ EARTHLY_IMAGE=${EARTHLY_IMAGE:-earthly/earthly:dev-main}
 
 if [ -z "${DOCKERHUB_MIRROR_USERNAME:-}" ] && [ -z "${DOCKERHUB_MIRROR_PASSWORD:-}" ]; then
   echo "using dockerhub credentials from earthly secrets"
-  export DOCKERHUB_MIRROR_USERNAME="$(earthly secrets --org earthly-technologies --project core get dockerhub-mirror/user)"
-  export DOCKERHUB_MIRROR_PASSWORD="$(earthly secrets --org earthly-technologies --project core get dockerhub-mirror/pass)"
+  DOCKERHUB_MIRROR_USERNAME="$(earthly secrets --org earthly-technologies --project core get dockerhub-mirror/user)"
+  export DOCKERHUB_MIRROR_USERNAME
+  DOCKERHUB_MIRROR_PASSWORD="$(earthly secrets --org earthly-technologies --project core get dockerhub-mirror/pass)"
+  export DOCKERHUB_MIRROR_PASSWORD
 fi
 test -n "$DOCKERHUB_MIRROR_USERNAME" || (echo "error: DOCKERHUB_MIRROR_USERNAME is not set" && exit 1)
 test -n "$DOCKERHUB_MIRROR_PASSWORD" || (echo "error: DOCKERHUB_MIRROR_PASSWORD is not set" && exit 1)
 
 if [ -z "${EARTHLY_TOKEN:-}" ]; then
   echo "using EARTHLY_TOKEN from earthly secrets"
-  export EARTHLY_TOKEN="$(earthly secrets --org earthly-technologies --project core get earthly-token-for-satellite-tests)"
+  EARTHLY_TOKEN="$(earthly secrets --org earthly-technologies --project core get earthly-token-for-satellite-tests)"
+  export EARTHLY_TOKEN
 fi
 test -n "$EARTHLY_TOKEN" || (echo "error: EARTHLY_TOKEN is not set" && exit 1)
 
