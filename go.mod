@@ -12,7 +12,7 @@ require (
 	github.com/containerd/containerd v1.7.0
 	github.com/creack/pty v1.1.18
 	github.com/docker/cli v23.0.1+incompatible
-	github.com/docker/distribution v2.8.1+incompatible
+	github.com/docker/distribution v2.8.2+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/earthly/cloud-api v1.0.1-0.20230509135033-ab3df26f706b
