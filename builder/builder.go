@@ -85,6 +85,7 @@ type Opt struct {
 	InteractiveDebuggingDebugLevelLogging bool
 	GitImage                              string
 	GitLFSInclude                         string
+	GitLogLevel                           llb.GitLogLevel
 }
 
 // BuildOpt is a collection of build options.
@@ -137,7 +138,7 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 		opt:      opt,
 		resolver: nil, // initialized below
 	}
-	b.resolver = buildcontext.NewResolverCustomGit(opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides, opt.GitBranchOverride, opt.GitLFSInclude, opt.GitImage)
+	b.resolver = buildcontext.NewResolver(opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides, opt.GitBranchOverride, opt.GitLFSInclude, opt.GitLogLevel, opt.GitImage)
 	return b, nil
 }
 

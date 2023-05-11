@@ -10,6 +10,7 @@ import (
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/logbus"
+	"github.com/earthly/earthly/util/errutil"
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
@@ -86,6 +87,16 @@ func (vm *vertexMonitor) parseError() {
 	case errString == "no active sessions":
 		vm.isCanceled = true
 		errString = "WARN: Canceled"
+	case strings.Contains(errString, errutil.EarthlyGitStdErrMagicString):
+		gitStdErr, shorterErr, ok := errutil.ExtractEarthlyGitStdErr(errString)
+		if ok {
+			errString = fmt.Sprintf(
+				"The%s command '%s' failed: %s\n\n%s", internalStr, vm.operation, shorterErr, gitStdErr)
+		} else {
+			errString = fmt.Sprintf(
+				"The%s command '%s' failed: %s", internalStr, vm.operation, errString)
+		}
+		vm.isFatalError = true
 	default:
 		errString = fmt.Sprintf(
 			"The%s command '%s' failed: %s", internalStr, vm.operation, errString)

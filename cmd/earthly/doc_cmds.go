@@ -45,7 +45,7 @@ func (app *earthlyApp) actionDocumentTarget(cliCtx *cli.Context) error {
 	}
 
 	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
-	resolver := buildcontext.NewResolver(nil, gitLookup, app.console, "", app.gitBranchOverride, "")
+	resolver := buildcontext.NewResolver(nil, gitLookup, app.console, "", app.gitBranchOverride, "", 0, "")
 	platr := platutil.NewResolver(platutil.GetUserPlatform())
 	var gwClient gwclient.Client
 	bc, err := resolver.Resolve(cliCtx.Context, gwClient, platr, target)
