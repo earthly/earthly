@@ -5,6 +5,19 @@ set -eu
 # This host is used to pull images from the embedded BuildKit Docker registry.
 buildkit_docker_registry='172.30.0.1:8371'
 
+detect_docker_compose_cmd() {
+    if command -v docker-compose >/dev/null; then
+        echo "docker-compose"
+        return 0
+    fi
+    if docker help | grep -w compose >/dev/null; then
+        echo "docker compose"
+        return 0
+    fi
+    echo >&2 "failed to detect docker compose / docker-compose command"
+    return 1
+}
+
 # Runs docker-compose with the right -f flags.
 docker_compose_cmd() {
     compose_file_flags=""
@@ -12,8 +25,9 @@ docker_compose_cmd() {
         compose_file_flags="$compose_file_flags -f $f"
     done
     export COMPOSE_HTTP_TIMEOUT=600
+    docker_compose="$(detect_docker_compose_cmd)"
     # shellcheck disable=SC2086
-    docker-compose $compose_file_flags "$@"
+    $docker_compose $compose_file_flags "$@"
 }
 
 write_compose_config() {
