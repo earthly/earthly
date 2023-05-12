@@ -604,6 +604,10 @@ func waitForConnection(ctx context.Context, containerName, address string, opTim
 			if err != nil {
 				// Try again.
 				attemptTimeout *= 2
+				// keep timeout reasonable
+				if attemptTimeout > opTimeout {
+					attemptTimeout = opTimeout
+				}
 				continue
 			}
 			return info, workerInfo, nil
