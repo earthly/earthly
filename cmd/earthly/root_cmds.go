@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/dustin/go-humanize"
+	"github.com/joho/godotenv"
 	"github.com/moby/buildkit/client"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
@@ -25,6 +26,7 @@ import (
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/termutil"
+	"github.com/earthly/earthly/variables"
 )
 
 func (app *earthlyApp) rootCmds() []*cli.Command {
@@ -36,6 +38,37 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 			Action:      app.actionBuild,
 			Flags:       app.buildFlags(),
 			Hidden:      true, // Meant to be used mainly for help output.
+			Subcommands: []*cli.Command{
+				{
+					Name:        "docker",
+					Usage:       "Build a Dockerfile without an Earthfile *experimental*",
+					Description: "Builds a dockerfile",
+					Action:      app.actionDocker,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "file",
+							Aliases:     []string{"f"},
+							EnvVars:     []string{"EARTHLY_DOCKER_FILE"},
+							Usage:       "Path to dockerfile input",
+							Value:       "Dockerfile",
+							Destination: &app.dockerfilePath,
+						},
+						&cli.StringFlag{
+							Name:        "tag",
+							Aliases:     []string{"t"},
+							EnvVars:     []string{"EARTHLY_DOCKER_TAG"},
+							Usage:       "Name and tag for the built image; formatted as 'name:tag'",
+							Destination: &app.earthfileFinalImage,
+						},
+						&cli.StringFlag{
+							Name:        "target",
+							EnvVars:     []string{"EARTHLY_DOCKER_TARGET"},
+							Usage:       "The docker target to build in the specified dockerfile",
+							Destination: &app.dockerTarget,
+						},
+					},
+				},
+			},
 		},
 		{
 			Name:        "bootstrap",
@@ -66,26 +99,6 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 					Hidden:      true,
 					Value:       "localhost",
 					Destination: &app.certsHostName,
-				},
-			},
-		},
-		{
-			Name:        "docker",
-			Usage:       "Build a Dockerfile without converting to an Earthfile *experimental*",
-			Description: "Builds a dockerfile",
-			Hidden:      true, // Experimental.
-			Action:      app.actionDocker,
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:        "dockerfile",
-					Usage:       "Path to dockerfile input, or - for stdin",
-					Value:       "Dockerfile",
-					Destination: &app.dockerfilePath,
-				},
-				&cli.StringFlag{
-					Name:        "tag",
-					Usage:       "Name and tag for the built image; formatted as 'name:tag'",
-					Destination: &app.earthfileFinalImage,
 				},
 			},
 		},
@@ -491,8 +504,22 @@ func symlinkEarthlyToEarth() error {
 func (app *earthlyApp) actionDocker(cliCtx *cli.Context) error {
 	app.commandName = "docker"
 
-	dir := filepath.Dir(app.dockerfilePath)
-	earthfilePath := filepath.Join(dir, "Earthfile")
+	flagArgs, nonFlagArgs, err := variables.ParseFlagArgsWithNonFlags(cliCtx.Args().Slice())
+	if err != nil {
+		return errors.Wrapf(err, "parse args %s", strings.Join(cliCtx.Args().Slice(), " "))
+	}
+	if len(nonFlagArgs) == 0 {
+		_ = cli.ShowAppHelp(cliCtx)
+		return errors.Errorf(
+			"no build context path provided. Try %s docker <path>", cliCtx.App.Name)
+	} else if len(nonFlagArgs) != 1 {
+		_ = cli.ShowAppHelp(cliCtx)
+		return errors.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
+	}
+
+	buildContextPath := nonFlagArgs[0]
+
+	earthfilePath := filepath.Join(buildContextPath, "Earthfile")
 	earthfilePathExists, err := fileutil.FileExists(earthfilePath)
 	if err != nil {
 		return errors.Wrapf(err, "failed to check if %s exists", earthfilePath)
@@ -500,20 +527,25 @@ func (app *earthlyApp) actionDocker(cliCtx *cli.Context) error {
 	if earthfilePathExists {
 		return errors.Errorf("earthfile already exists; please delete it if you wish to continue")
 	}
-	defer os.Remove(earthfilePath)
+	//defer os.Remove(earthfilePath)
 
-	err = docker2earthly.Docker2Earthly(app.dockerfilePath, earthfilePath, app.earthfileFinalImage)
+	argMap, err := godotenv.Read(app.argFile)
+	if err != nil && (cliCtx.IsSet(argFileFlag) || !errors.Is(err, os.ErrNotExist)) {
+		return errors.Wrapf(err, "read %s", app.argFile)
+	}
+
+	buildArgs, err := app.combineVariables(argMap, flagArgs)
+	if err != nil {
+		return errors.Wrapf(err, "combining build args")
+	}
+	err = docker2earthly.DockerWithEarthly(buildContextPath, app.dockerfilePath, earthfilePath, app.earthfileFinalImage, buildArgs.Sorted(), app.platformsStr.Value(), app.dockerTarget)
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "Warning: earthly does not support all dockerfile commands and is highly experimental as a result, use with caution.\n")
-
 	app.imageMode = false
 	app.artifactMode = false
-	app.interactiveDebugging = true
-	flagArgs := []string{}
-	nonFlagArgs := []string{"+build"}
+	nonFlagArgs = []string{buildContextPath + "+docker"}
 
 	return app.actionBuildImp(cliCtx, flagArgs, nonFlagArgs)
 }

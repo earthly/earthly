@@ -139,3 +139,40 @@ func Docker2Earthly(dockerfilePath, earthfilePath, imageTag string) error {
 	fmt.Fprintf(out, "\nbuild:\n    BUILD +subbuild%d\n", i)
 	return nil
 }
+
+func DockerWithEarthly(buildContextPath string, dockerfilePath, earthfilePath, imageTag string, buildArgs []string, platforms []string, target string) error {
+	if exists, _ := fileutil.FileExists(earthfilePath); exists {
+		return errors.Errorf("earthfile already exists; please delete it if you wish to continue")
+	}
+
+	out, err := os.Create(earthfilePath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create Earthfile under %q", earthfilePath)
+	}
+	defer out.Close()
+
+	fmt.Fprintf(out, "VERSION %s\n", earthlyCurrentVersion)
+	fmt.Fprintf(out, "# This Earthfile was generated using docker command\n")
+	fmt.Fprintf(out, "docker:\n")
+
+	for _, ba := range buildArgs {
+		fmt.Fprintf(out, "\tARG %s\n", ba)
+	}
+
+	fmt.Fprintf(out, "\tFROM DOCKERFILE \\\n")
+	for _, ba := range buildArgs {
+		fmt.Fprintf(out, "\t\t --build-arg %s=$%s \\\n", ba, ba)
+	}
+	for _, p := range platforms {
+		fmt.Fprintf(out, "\t\t --platform %s \\\n", p)
+	}
+	if target != "" {
+		fmt.Fprintf(out, "\t\t --target %s \\\n", target)
+	}
+	fmt.Fprintf(out, "\t\t -f %s \\\n", dockerfilePath)
+	fmt.Fprintf(out, "\t\t %s", buildContextPath)
+	fmt.Fprintln(out, "")
+	fmt.Fprintf(out, "\tSAVE IMAGE %s\n", imageTag)
+
+	return nil
+}

@@ -189,6 +189,7 @@ type cliFlags struct {
 	gcpServiceAccountKeyStdin       bool
 	serverConnTimeout               time.Duration
 	certsHostName                   string
+	dockerTarget                    string
 }
 
 type analyticsMetadata struct {

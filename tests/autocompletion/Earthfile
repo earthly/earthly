@@ -37,7 +37,6 @@ build
 config 
 debug 
 doc 
-docker 
 docker2earthly 
 ls 
 org 
