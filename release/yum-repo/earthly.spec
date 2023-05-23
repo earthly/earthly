@@ -41,7 +41,16 @@ then
     echo "docker was not found; skipping earthly bootstrap"
     exit
 fi
+
 if ! docker info 2>/dev/null >/dev/null
+then
+    echo "unable to query docker daemon; skipping earthly bootstrap"
+    exit
+fi
+
+echo "bootstrapping earthly"
+earthly bootstrap
+echo "bootstrapping earthly done"
 
 %postun
 set -e
