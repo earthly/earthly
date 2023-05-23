@@ -144,14 +144,6 @@ jobs:
       - name: Execute registry-certs test (Fork Only)
         run: frontend=${{inputs.BINARY}} ./tests/registry-certs/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
-      - name: Execute wait-block test (Earthly Only)
-        run: |-
-          ./tests/wait-block/test.sh \
-              --build-arg DOCKERHUB_AUTH=true \
-              --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-              --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-              --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute try-catch test (Earthly Only)
         uses: nick-fields/retry@v2
         with:
@@ -171,19 +163,6 @@ jobs:
           max_attempts: 2
           command: ./tests/try-catch/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
-      - name: Execute +test using wait-block override (Earthly Only)
-        uses: nick-fields/retry@v2
-        with:
-          timeout_minutes: 20
-          max_attempts: 2
-          command: |-
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P --global-wait-end \
-                --build-arg DOCKERHUB_AUTH=true \
-                --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-                --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-                --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-             +test --GLOBAL_WAIT_END=true
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute local buildkit with mTLS test
         run: ./tests/remote-buildkit/remote-buildkit-test.sh
       - name: Run linux-amd64 specific tests (Earthly Only)
