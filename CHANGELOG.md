@@ -4,8 +4,15 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.6 - 2023-05-23
+
 ### Added
-- better error messages when git opperations fail.
+- Better error messages when git opperations fail.
+- Added a `runc-ps` script under the earthly-buildkitd container to make it easier to see what processes are running.
+
+### Fixed
+- The builtin 'docker compose' (rather than `docker-compose` script) is now used when using the `WITH DOCKER` command under alpine 3.18 or greater.
+- Fixed context timeout value overflow when connecting to a remote buildkit instance.
 
 ## v0.7.5 - 2023-05-10
 
