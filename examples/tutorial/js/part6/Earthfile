@@ -43,8 +43,7 @@ api-docker:
     ENTRYPOINT ["node", "server.js"]
     SAVE IMAGE js-api:$tag
 
-# Run your app and api side by side
-with-docker-example:
+integration-tests:
     FROM earthly/dind:alpine
     RUN apk add curl
     WITH DOCKER \

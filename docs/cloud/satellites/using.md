@@ -1,18 +1,6 @@
 # Managing Satellites
 
-This feature is part of the Earthly Satellites paid plan.
-
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Beta** stage
-
-* The feature may break or change significantly in future versions of Earthly.
-* Give us feedback on
-  * [Slack](https://earthly.dev/slack)
-  * [GitHub issues](https://github.com/earthly/earthly/issues)
-  * [Emailing support](mailto:support+satellite@earthly.dev)
-{% endhint %}
+This feature is part of the [Earthly Satellites & Earthly CI paid plans](https://earthly.dev/pricing).
 
 This page describes how to use [Earthly Satellites](../satellites.md).
 
@@ -30,7 +18,7 @@ If you are new to Earthly or to Earthly Cloud, you must:
 
   ```bash
   brew update
-  brew upgrade earthly/earthly/earthly
+  brew upgrade earthly
   ```
 * Create an account by visiting the [Earthly CI website](https://ci.earthly.dev/) to log in with GitHub or by using `earthly account register --email <email>` in your terminal.
 * Either [create an Earthly organization](../overview.md), or ask your Earthly admin to add you to an existing organization. In order to be added to an existing Earthly organization you need to first create an Earthly account as described above. To verify that you are part of an organization you can run:
@@ -107,7 +95,7 @@ earthly sat unselect
 
 ### Specifying a satellite for one build only
 
-If a satellite is not currently selected, you can still use it for a specific build by using the `--sat` flag.
+If a satellite is not currently selected, you can still use it for a specific build by using the `--sat` flag or the corresponding `EARTHLY_SATELLITE` environment variable.
 
 ```bash
 earthly --sat <satellite-name> +build

@@ -310,6 +310,20 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			Destination: &app.noCache,
 		},
 		&cli.BoolFlag{
+			Name:        "auto-skip",
+			EnvVars:     []string{"EARTHLY_AUTO_SKIP"},
+			Usage:       "Skip buildkit if target has already been built",
+			Destination: &app.skipBuildkit,
+			Hidden:      true,
+		},
+		&cli.StringFlag{
+			Name:        "auto-skip-db-path",
+			EnvVars:     []string{"EARTHLY_AUTO_SKIP_DB_PATH"},
+			Usage:       "use a local database instead of the cloud db",
+			Destination: &app.localSkipDB,
+			Hidden:      true,
+		},
+		&cli.BoolFlag{
 			Name:        "allow-privileged",
 			Aliases:     []string{"P"},
 			EnvVars:     []string{"EARTHLY_ALLOW_PRIVILEGED"},

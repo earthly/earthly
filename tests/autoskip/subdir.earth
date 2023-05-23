@@ -1,0 +1,27 @@
+VERSION 0.7
+PROJECT test/project
+
+foo:
+  FROM alpine:3.17
+  RUN echo hi from foo
+
+deps:
+  FROM alpine:3.17
+  RUN touch /setup
+
+bar:
+  FROM +deps
+  RUN echo hello from bar
+
+baz:
+  BUILD ./subdir+test
+
+all:
+  BUILD +foo
+  BUILD +bar
+  BUILD +baz
+
+allpipe:
+  PIPELINE
+  BUILD +all
+

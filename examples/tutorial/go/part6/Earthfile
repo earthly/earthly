@@ -28,7 +28,7 @@ test-setup:
     ENTRYPOINT [ "go", "test", "github.com/earthly/earthly/examples/go"]
     SAVE IMAGE test:latest
 
-with-docker-example:
+integration-tests:
     FROM earthly/dind:alpine
     COPY docker-compose.yml ./
     WITH DOCKER --compose docker-compose.yml --load tests:latest=+test-setup
