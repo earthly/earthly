@@ -66,10 +66,13 @@ jobs:
         run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
         if: inputs.binary == 'podman'
       - name: Install Podman (with apt-get)
-        run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman
+        run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman && ${{inputs.SUDO}} rm -f /etc/containers/registries.conf
         if: inputs.binary == 'podman'
       - name: Podman debug info
         run: podman version && podman info && podman info --debug
+        if: inputs.binary == 'podman'
+      - name: Bootstrap Earthly
+        run: earthly bootstrap
         if: inputs.binary == 'podman'
       - name: Install QEMU for Podman multi-arch building
         # qemu-user-static needed for cross-compilation (--platform) targets
@@ -88,7 +91,7 @@ jobs:
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Docker Login (main build)
-        run: ${{inputs.SUDO}} ${{inputs.BINARY}} login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+        run: ${{inputs.SUDO}} ${{inputs.BINARY}} login docker.io --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
         if: github.event_name == 'push'
       - name: Link Earthly dir to Earthly dev dir
         run: mkdir -p ~/.earthly && ln -s ~/.earthly ~/.earthly-dev
@@ -99,6 +102,9 @@ jobs:
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
+      - name: Re-bootstrap Earthly using latest earthly build
+        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} bootstrap
+        if: inputs.binary == 'podman'
       - name: Build ${{inputs.EXAMPLE_NAME}} (PR build)
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P ${{inputs.EXAMPLE_NAME}}
         if: github.event_name != 'push'

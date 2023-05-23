@@ -1,6 +1,6 @@
 VERSION --shell-out-anywhere --use-copy-link 0.6
 
-FROM golang:1.19-alpine3.15
+FROM golang:1.20-alpine3.17
 
 RUN apk add --update --no-cache \
     bash \
@@ -24,7 +24,7 @@ WORKDIR /earthly
 # go.mod and go.sum will be updated locally.
 deps:
     FROM +base
-    RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.0
+    RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.52.2
     COPY go.mod go.sum ./
     COPY ./ast/go.mod ./ast/go.sum ./ast
     COPY ./util/deltautil/go.mod ./util/deltautil/go.sum ./util/deltautil
@@ -58,7 +58,8 @@ code:
         dockertar docker2earthly domain features outmon slog cloud states util variables ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
-    COPY --dir ast/antlrhandler ast/spec ast/*.go ast/
+    COPY --dir ast/antlrhandler ast/spec ast/hint ast/command ast/commandflag ast/*.go ast/
+    COPY --dir inputgraph/*.go inputgraph/
 
 # update-buildkit updates earthly's buildkit dependency.
 update-buildkit:
@@ -194,7 +195,7 @@ markdown-spellcheck:
 # locally.
 mocks:
     FROM +code
-    RUN go install git.sr.ht/~nelsam/hel/v4@latest && go install golang.org/x/tools/cmd/goimports@latest
+    RUN go install git.sr.ht/~nelsam/hel@latest && go install golang.org/x/tools/cmd/goimports@latest
     RUN go generate ./...
     FOR mockfile IN $(find . -name 'helheim*_test.go')
         SAVE ARTIFACT $mockfile AS LOCAL $mockfile
@@ -203,7 +204,7 @@ mocks:
 # unit-test runs unit tests (and some integration tests).
 unit-test:
     FROM +code
-    RUN apk add --no-cache --update podman
+    RUN apk add --no-cache --update podman fuse-overlayfs
     COPY not-a-unit-test.sh .
 
     ARG testname # when specified, only run specific unit-test, otherwise run all.
@@ -297,6 +298,7 @@ debugger:
             cmd/debugger/*.go
     SAVE ARTIFACT build/earth_debugger
 
+# earthly builds the earthly CLI and docker image.
 earthly:
     FROM +code
     ENV CGO_ENABLED=0
@@ -306,6 +308,12 @@ earthly:
     ARG GOARCH=$TARGETARCH
     ARG VARIANT=$TARGETVARIANT
     ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
+    # GO_GCFLAGS may be used to set the -gcflags parameter to 'go build'. This
+    # is particularly useful for disabling optimizations to make the binary work
+    # with delve. To disable optimizations:
+    #
+    #     -GO_GCFLAGS='all=-N -l'
+    ARG GO_GCFLAGS
     ARG EXECUTABLE_NAME="earthly"
     ARG DEFAULT_INSTALLATION_NAME="earthly-dev"
     RUN test -n "$GOOS" && test -n "$GOARCH"
@@ -330,6 +338,7 @@ earthly:
         GOARM=${VARIANT#v} go build \
             -tags "$(cat ./build/tags)" \
             -ldflags "$(cat ./build/ldflags)" \
+            -gcflags="${GO_GCFLAGS}" \
             -o build/$EXECUTABLE_NAME \
             cmd/earthly/*.go
     SAVE ARTIFACT ./build/tags
@@ -338,44 +347,54 @@ earthly:
     SAVE IMAGE --cache-from=earthly/earthly:main
 
 earthly-linux-amd64:
+    ARG GO_GCFLAGS
     COPY (+earthly/* \
         --GOARCH=amd64 \
         --VARIANT= \
+        --GO_GCFLAGS="${GO_GCFLAGS}" \
         ) ./
     SAVE ARTIFACT ./*
 
 earthly-linux-arm64:
+    ARG GO_GCFLAGS
     COPY (+earthly/* \
         --GOARCH=arm64 \
         --VARIANT= \
         --GO_EXTRA_LDFLAGS= \
+        --GO_GCFLAGS="${GO_GCFLAGS}" \
         ) ./
     SAVE ARTIFACT ./*
 
 earthly-darwin-amd64:
+    ARG GO_GCFLAGS=""
     COPY (+earthly/* \
         --GOOS=darwin \
         --GOARCH=amd64 \
         --VARIANT= \
         --GO_EXTRA_LDFLAGS= \
+        --GO_GCFLAGS="${GO_GCFLAGS}" \
         ) ./
     SAVE ARTIFACT ./*
 
 earthly-darwin-arm64:
+    ARG GO_GCFLAGS
     COPY (+earthly/* \
         --GOOS=darwin \
         --GOARCH=arm64 \
         --VARIANT= \
         --GO_EXTRA_LDFLAGS= \
+        --GO_GCFLAGS="${GO_GCFLAGS}" \
         ) ./
     SAVE ARTIFACT ./*
 
 earthly-windows-amd64:
+    ARG GO_GCFLAGS
     COPY (+earthly/* \
         --GOOS=windows \
         --GOARCH=amd64 \
         --VARIANT= \
         --GO_EXTRA_LDFLAGS= \
+        --GO_GCFLAGS="${GO_GCFLAGS}" \
         --EXECUTABLE_NAME=earthly.exe \
         ) ./
     SAVE ARTIFACT ./*
@@ -405,6 +424,7 @@ earthly-docker:
 
 earthly-integration-test-base:
     FROM +earthly-docker
+    RUN apk add pcre-tools
     ENV NO_DOCKER=1
     ENV NETWORK_MODE=host # Note that this breaks access to embedded registry in WITH DOCKER.
     ENV EARTHLY_VERSION_FLAG_OVERRIDES=no-use-registry-for-with-docker # Use tar-based due to above.
@@ -432,14 +452,21 @@ earthly-integration-test-base:
         # Use a mirror, supports mirroring Docker Hub only.
         ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="[registry.\"docker.io\"]
   mirrors = [\"$DOCKERHUB_MIRROR\"]"
+        ENV MIRROR_CONFIG="[registry.\"$DOCKERHUB_MIRROR\"]"
         IF [ "$DOCKERHUB_MIRROR_INSECURE" = "true" ]
             ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
+  insecure = true"
+            ENV MIRROR_CONFIG="$MIRROR_CONFIG
   insecure = true"
         END
         IF [ "$DOCKERHUB_MIRROR_HTTP" = "true" ]
             ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
   http = true"
+            ENV MIRROR_CONFIG="$MIRROR_CONFIG
+  http = true"
         END
+        ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
+$MIRROR_CONFIG"
 
         # NOTE: newlines+indentation is important here, see https://github.com/earthly/earthly/issues/1764 for potential pitfalls
         # yaml will convert newlines to spaces when using regular quoted-strings, therefore we will use the literal-style (denoted by `|`)
@@ -495,37 +522,46 @@ dind-ubuntu:
     ARG DOCKERHUB_USER=earthly
     SAVE IMAGE --push --cache-from=earthly/dind:ubuntu-main $DOCKERHUB_USER/dind:$DIND_UBUNTU_TAG
 
+# for-own builds earthly-buildkitd and the earthly CLI for the current system
+# and saves the final CLI binary locally.
 for-own:
     ARG BUILDKIT_PROJECT
+    # GO_GCFLAGS may be used to set the -gcflags parameter to 'go build'. See
+    # the documentaation on +earthly for extra detail about this option.
+    ARG GO_GCFLAGS
     BUILD ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
-    COPY +earthly/earthly ./
+    COPY (+earthly/earthly --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/own/earthly
 
 for-linux:
     ARG BUILDKIT_PROJECT
+    ARG GO_GCFLAGS
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     BUILD ./ast/parser+parser
-    COPY +earthly-linux-amd64/earthly ./
+    COPY (+earthly-linux-amd64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/linux/amd64/earthly
 
 for-darwin:
     ARG BUILDKIT_PROJECT
+    ARG GO_GCFLAGS
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     BUILD ./ast/parser+parser
-    COPY +earthly-darwin-amd64/earthly ./
+    COPY (+earthly-darwin-amd64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/amd64/earthly
 
 for-darwin-m1:
     ARG BUILDKIT_PROJECT
+    ARG GO_GCFLAGS
     BUILD --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     BUILD ./ast/parser+parser
-    COPY +earthly-darwin-arm64/earthly ./
+    COPY (+earthly-darwin-arm64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/arm64/earthly
 
 for-windows:
+    ARG GO_GCFLAGS
     # BUILD --platform=linux/amd64 ./buildkitd+buildkitd
     BUILD ./ast/parser+parser
-    COPY +earthly-windows-amd64/earthly.exe ./
+    COPY (+earthly-windows-amd64/earthly.exe -GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly.exe AS LOCAL ./build/windows/amd64/earthly.exe
 
 all-buildkitd:
@@ -708,6 +744,8 @@ examples2:
     BUILD ./examples/typescript-node+docker
     BUILD ./examples/bazel+run
     BUILD ./examples/bazel+image
+    BUILD ./examples/aws-sso+base
+    BUILD ./examples/mkdocs+build
 
 license:
     COPY LICENSE ./

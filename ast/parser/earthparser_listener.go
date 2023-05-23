@@ -179,6 +179,12 @@ type EarthParserListener interface {
 	// EnterArgStmt is called when entering the argStmt production.
 	EnterArgStmt(c *ArgStmtContext)
 
+	// EnterSetStmt is called when entering the setStmt production.
+	EnterSetStmt(c *SetStmtContext)
+
+	// EnterLetStmt is called when entering the letStmt production.
+	EnterLetStmt(c *LetStmtContext)
+
 	// EnterOptionalFlag is called when entering the optionalFlag production.
 	EnterOptionalFlag(c *OptionalFlagContext)
 
@@ -421,6 +427,12 @@ type EarthParserListener interface {
 
 	// ExitArgStmt is called when exiting the argStmt production.
 	ExitArgStmt(c *ArgStmtContext)
+
+	// ExitSetStmt is called when exiting the setStmt production.
+	ExitSetStmt(c *SetStmtContext)
+
+	// ExitLetStmt is called when exiting the letStmt production.
+	ExitLetStmt(c *LetStmtContext)
 
 	// ExitOptionalFlag is called when exiting the optionalFlag production.
 	ExitOptionalFlag(c *OptionalFlagContext)

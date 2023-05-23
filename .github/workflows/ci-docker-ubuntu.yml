@@ -111,6 +111,16 @@ jobs:
       SUDO: ""
     secrets: inherit
 
+  docker-wait-block-override:
+    uses: ./.github/workflows/reusable-wait-block-override.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
   docker-git-metadata-test:
     uses: ./.github/workflows/reusable-git-metadata-test.yml
     with:
@@ -143,7 +153,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-go@v1
         with:
-          go-version: 1.19
+          go-version: 1.20
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -476,21 +486,8 @@ jobs:
     name: --push +prerelease
     if: github.event_name == 'push'
     needs:
-      - docker-tests
-      - docker-examples-1
-      - docker-examples-2
-      - docker-test-local
-      - docker-push-integrations
-      - docker-secret-integrations
-      - docker-bootstrap-integrations
-      - docker-repo-auth-tests
-      - docker-export-test
-      - docker-misc-test
-      - race-tests
-      - tutorial
       - buildkitd-amd64
       - buildkitd-arm64
-      - all-dind
       - prerelease
       - earthly
     runs-on: ubuntu-latest

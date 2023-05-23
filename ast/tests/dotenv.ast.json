@@ -76,6 +76,7 @@
               "==",
               "\"\""
             ],
+            "docs": "Not pre-declared - should not be overriden by .env.\n",
             "name": "RUN"
           }
         },

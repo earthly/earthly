@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/dustin/go-humanize"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -19,7 +20,7 @@ import (
 
 func (app *earthlyApp) newCloudClient(opts ...cloud.ClientOpt) (*cloud.Client, error) {
 	cloudClient, err := cloud.NewClient(app.cloudHTTPAddr, app.cloudGRPCAddr, app.cloudGRPCInsecure, app.sshAuthSock,
-		app.authToken, app.authJWT, app.installationName, app.requestID, app.console.Warnf, opts...)
+		app.authToken, app.authJWT, app.installationName, app.requestID, app.console.Warnf, app.serverConnTimeout, opts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create cloud client")
 	}
@@ -144,3 +145,16 @@ func profhandler() {
 		fmt.Printf("error listening for pprof: %v", err)
 	}
 }
+
+type byteSizeValue uint64
+
+func (b *byteSizeValue) Set(s string) error {
+	v, err := humanize.ParseBytes(s)
+	if err != nil {
+		return err
+	}
+	*b = byteSizeValue(v)
+	return nil
+}
+
+func (b *byteSizeValue) String() string { return humanize.Bytes(uint64(*b)) }

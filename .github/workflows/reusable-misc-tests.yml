@@ -43,15 +43,18 @@ jobs:
         if: inputs.BINARY == 'docker'
       - uses: actions/setup-go@v1
         with:
-          go-version: 1.19
+          go-version: 1.20
       - name: remove Docker
         run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
         if: inputs.binary == 'podman'
       - name: Install Podman (with apt-get)
-        run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman
+        run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman && ${{inputs.SUDO}} rm -f /etc/containers/registries.conf
         if: inputs.binary == 'podman'
       - name: Podman debug info
         run: podman version && podman info && podman info --debug
+        if: inputs.binary == 'podman'
+      - name: Bootstrap Earthly
+        run: earthly bootstrap
         if: inputs.binary == 'podman'
       - name: Docker mirror login (Earthly Only)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
@@ -69,6 +72,9 @@ jobs:
         run: mkdir -p ~/.earthly && ln -s ~/.earthly ~/.earthly-dev
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) -P --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
+      - name: Re-bootstrap Earthly using latest earthly build
+        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} bootstrap
+        if: inputs.binary == 'podman'
       - name: rebuild earthly using latest earthly build
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
@@ -138,14 +144,6 @@ jobs:
       - name: Execute registry-certs test (Fork Only)
         run: frontend=${{inputs.BINARY}} ./tests/registry-certs/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
-      - name: Execute wait-block test (Earthly Only)
-        run: |-
-          ./tests/wait-block/test.sh \
-              --build-arg DOCKERHUB_AUTH=true \
-              --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-              --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-              --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute try-catch test (Earthly Only)
         uses: nick-fields/retry@v2
         with:
@@ -165,19 +163,6 @@ jobs:
           max_attempts: 2
           command: ./tests/try-catch/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
-      - name: Execute +test using wait-block override (Earthly Only)
-        uses: nick-fields/retry@v2
-        with:
-          timeout_minutes: 20
-          max_attempts: 2
-          command: |-
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P --global-wait-end \
-                --build-arg DOCKERHUB_AUTH=true \
-                --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-                --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-                --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-             +test --GLOBAL_WAIT_END=true
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute local buildkit with mTLS test
         run: ./tests/remote-buildkit/remote-buildkit-test.sh
       - name: Run linux-amd64 specific tests (Earthly Only)

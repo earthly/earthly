@@ -10,7 +10,6 @@ import (
 	"sort"
 	"sync"
 
-	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/dockertar"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
@@ -20,45 +19,6 @@ import (
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
 )
-
-const (
-	dockerdWrapperPath          = "/var/earthly/dockerd-wrapper.sh"
-	dockerAutoInstallScriptPath = "/var/earthly/docker-auto-install.sh"
-	composeConfigFile           = "compose-config.yml"
-)
-
-// DockerLoadOpt holds parameters for WITH DOCKER --load parameter.
-type DockerLoadOpt struct {
-	Target          string
-	ImageName       string
-	Platform        platutil.Platform
-	BuildArgs       []string
-	AllowPrivileged bool
-}
-
-// DockerPullOpt holds parameters for the WITH DOCKER --pull parameter.
-type DockerPullOpt struct {
-	ImageName string
-	Platform  platutil.Platform
-}
-
-// WithDockerOpt holds parameters for WITH DOCKER run.
-type WithDockerOpt struct {
-	Mounts                []string
-	Secrets               []string
-	WithShell             bool
-	WithEntrypoint        bool
-	WithSSH               bool
-	NoCache               bool
-	Interactive           bool
-	interactiveKeep       bool
-	Pulls                 []DockerPullOpt
-	Loads                 []DockerLoadOpt
-	ComposeFiles          []string
-	ComposeServices       []string
-	TryCatchSaveArtifacts []debuggercommon.SaveFilesSettings
-	extraRunOpts          []llb.RunOption
-}
 
 type withDockerRunTar struct {
 	*withDockerRunBase
@@ -384,7 +344,7 @@ func (w *withDockerRunTar) solveImage(ctx context.Context, mts *states.MultiTarg
 			string(solveID),
 			llb.SessionID(sessionID),
 			llb.Platform(w.c.platr.LLBNative()),
-			llb.WithCustomNamef("%sdocker tar context %s %s", w.c.vertexPrefix(ctx, false, false, true), opName, sessionID),
+			llb.WithCustomNamef("%sdocker tar context %s %s", w.c.vertexPrefix(ctx, false, false, true, nil), opName, sessionID),
 		)
 		// Add directly to build context so that if a later statement forces execution, the images are available.
 		w.c.opt.BuildContextProvider.AddDir(string(solveID), outDir)

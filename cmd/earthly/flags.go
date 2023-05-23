@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"time"
 
 	"github.com/urfave/cli/v2"
 
@@ -60,6 +61,13 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			EnvVars:     []string{"GIT_PASSWORD"},
 			Usage:       "The git password to use for git HTTPS authentication",
 			Destination: &app.gitPasswordOverride,
+		},
+		&cli.StringFlag{
+			Name:        "git-branch",
+			EnvVars:     []string{"EARTHLY_GIT_BRANCH_OVERRIDE"},
+			Usage:       "The git branch the build should be considered running in",
+			Destination: &app.gitBranchOverride,
+			Hidden:      true, // primarily used by CI to pass branch context
 		},
 		&cli.BoolFlag{
 			Name:        "verbose",
@@ -210,6 +218,14 @@ func (app *earthlyApp) rootFlags() []cli.Flag {
 			Destination: &app.buildID,
 			Hidden:      true, // Internal.
 		},
+		&cli.DurationFlag{
+			Name:        "server-conn-timeout",
+			Usage:       "Earthly API server connection timeout value",
+			EnvVars:     []string{"EARTHLY_SERVER_CONN_TIMEOUT"},
+			Hidden:      true, // Internal.
+			Value:       5 * time.Second,
+			Destination: &app.serverConnTimeout,
+		},
 	}
 }
 
@@ -294,6 +310,20 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			Destination: &app.noCache,
 		},
 		&cli.BoolFlag{
+			Name:        "auto-skip",
+			EnvVars:     []string{"EARTHLY_AUTO_SKIP"},
+			Usage:       "Skip buildkit if target has already been built",
+			Destination: &app.skipBuildkit,
+			Hidden:      true,
+		},
+		&cli.StringFlag{
+			Name:        "auto-skip-db-path",
+			EnvVars:     []string{"EARTHLY_AUTO_SKIP_DB_PATH"},
+			Usage:       "use a local database instead of the cloud db",
+			Destination: &app.localSkipDB,
+			Hidden:      true,
+		},
+		&cli.BoolFlag{
 			Name:        "allow-privileged",
 			Aliases:     []string{"P"},
 			EnvVars:     []string{"EARTHLY_ALLOW_PRIVILEGED"},
@@ -303,9 +333,18 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 		&cli.StringFlag{
 			Name:        "org",
 			EnvVars:     []string{"EARTHLY_ORG"},
-			Usage:       wrap("The name of the organization the satellite belongs to. ", "Required when using --satellite and user is a member of multiple organizations."),
+			Usage:       wrap("The name of the organization that the satellite belongs to. ", "Required when using --satellite and user is a member of multiple organizations."),
 			Required:    false,
 			Destination: &app.orgName,
+			Hidden:      true,
+		},
+		&cli.StringFlag{
+			Name:        "project",
+			EnvVars:     []string{"EARTHLY_PROJECT"},
+			Usage:       "The name of the project that may be used during log streaming.",
+			Required:    false,
+			Destination: &app.projectName,
+			Hidden:      true,
 		},
 		&cli.StringFlag{
 			Name:        "satellite",
@@ -322,40 +361,6 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			Usage:       "Disables the use of a selected satellite for this build.",
 			Required:    false,
 			Destination: &app.noSatellite,
-		},
-		&cli.StringFlag{
-			Name:        "tlscert",
-			Aliases:     []string{"tls-cert"},
-			Value:       "./certs/earthly_cert.pem",
-			EnvVars:     []string{"EARTHLY_TLS_CERT"},
-			Usage:       wrap("The path to the client TLS cert", "If relative, will be interpreted as relative to the ~/.earthly folder."),
-			Destination: &app.certPath,
-			Hidden:      true,
-		},
-		&cli.StringFlag{
-			Name:        "tlskey",
-			Aliases:     []string{"tls-key"},
-			Value:       "./certs/earthly_key.pem",
-			EnvVars:     []string{"EARTHLY_TLS_KEY"},
-			Usage:       wrap("The path to the client TLS key.", "If relative, will be interpreted as relative to the ~/.earthly folder."),
-			Destination: &app.keyPath,
-			Hidden:      true,
-		},
-		&cli.StringFlag{
-			Name:        "tlsca",
-			Aliases:     []string{"tls-ca"},
-			Value:       "./certs/earthly_ca.pem",
-			EnvVars:     []string{"EARTHLY_TLS_CA"},
-			Usage:       wrap("The path to the client CA cert.", "If relative, will be interpreted as relative to the ~/.earthly folder."),
-			Destination: &app.caPath,
-			Hidden:      true,
-		},
-		&cli.BoolFlag{
-			Name:        "tls-enabled",
-			EnvVars:     []string{"EARTHLY_TLS_ENABLED"},
-			Usage:       "If TLS should be used to communicate with Buildkit",
-			Destination: &app.tlsEnabled,
-			Hidden:      true,
 		},
 		&cli.StringFlag{
 			Name:        "buildkit-image",
@@ -437,6 +442,13 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			Usage:       "enables global wait-end code in place of builder code",
 			Destination: &app.globalWaitEnd,
 			Hidden:      true, // used to force code-coverage of future builder.go refactor (once we remove support for 0.6)
+		},
+		&cli.StringFlag{
+			Name:        "git-lfs-pull-include",
+			EnvVars:     []string{"EARTHLY_GIT_LFS_PULL_INCLUDE"},
+			Usage:       "When referencing a remote target, perform a git lfs pull include prior to running the target. Note that this flag is (hopefully) temporary, see https://github.com/earthly/earthly/issues/2921 for details.",
+			Destination: &app.gitLFSPullInclude,
+			Hidden:      true, // Experimental
 		},
 	}
 }

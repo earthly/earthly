@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/containerd/containerd/platforms"
+	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/moby/buildkit/client/llb"
@@ -14,6 +15,45 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
+
+const (
+	dockerdWrapperPath          = "/var/earthly/dockerd-wrapper.sh"
+	dockerAutoInstallScriptPath = "/var/earthly/docker-auto-install.sh"
+	composeConfigFile           = "compose-config.yml"
+)
+
+// DockerLoadOpt holds parameters for WITH DOCKER --load parameter.
+type DockerLoadOpt struct {
+	Target          string
+	ImageName       string
+	Platform        platutil.Platform
+	BuildArgs       []string
+	AllowPrivileged bool
+}
+
+// DockerPullOpt holds parameters for the WITH DOCKER --pull parameter.
+type DockerPullOpt struct {
+	ImageName string
+	Platform  platutil.Platform
+}
+
+// WithDockerOpt holds parameters for WITH DOCKER run.
+type WithDockerOpt struct {
+	Mounts                []string
+	Secrets               []string
+	WithShell             bool
+	WithEntrypoint        bool
+	WithSSH               bool
+	NoCache               bool
+	Interactive           bool
+	interactiveKeep       bool
+	Pulls                 []DockerPullOpt
+	Loads                 []DockerLoadOpt
+	ComposeFiles          []string
+	ComposeServices       []string
+	TryCatchSaveArtifacts []debuggercommon.SaveFilesSettings
+	extraRunOpts          []llb.RunOption
+}
 
 type withDockerRunBase struct {
 	c *Converter
@@ -32,7 +72,7 @@ func (w *withDockerRunBase) installDeps(ctx context.Context, opt WithDockerOpt) 
 		llb.AddMount(
 			dockerAutoInstallScriptPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerAutoInstallScriptPath)),
 		llb.Args(args),
-		llb.WithCustomNamef("%sWITH DOCKER (install deps)", w.c.vertexPrefix(ctx, false, false, false)),
+		llb.WithCustomNamef("%sWITH DOCKER (install deps)", w.c.vertexPrefix(ctx, false, false, false, opt.Secrets)),
 	}
 	w.c.mts.Final.MainState = w.c.mts.Final.MainState.Run(runOpts...).Root()
 	return nil
@@ -113,7 +153,7 @@ func (w *withDockerRunBase) getComposeConfig(ctx context.Context, opt WithDocker
 		llb.AddMount(
 			dockerdWrapperPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)),
 		llb.Args(args),
-		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", w.c.vertexPrefix(ctx, false, false, false)),
+		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", w.c.vertexPrefix(ctx, false, false, false, opt.Secrets)),
 	}
 	state := w.c.mts.Final.MainState.Run(runOpts...).Root()
 	ref, err := llbutil.StateToRef(

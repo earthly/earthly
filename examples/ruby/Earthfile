@@ -1,5 +1,5 @@
 VERSION 0.7
-FROM ruby:2.7.1
+FROM ruby:3.2.2
 WORKDIR /ruby-example
 
 deps:

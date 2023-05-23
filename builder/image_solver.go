@@ -233,12 +233,15 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 			for k, v := range resp {
 				pref1 := result.FinalImageName + "|"
 				pref2 := fmt.Sprintf("docker.io/library/%s|", result.FinalImageName)
+				pref3 := fmt.Sprintf("docker.io/%s|", result.FinalImageName)
 				var k2 string
 				switch {
 				case strings.HasPrefix(k, pref1):
 					k2 = strings.TrimPrefix(k, pref1)
 				case strings.HasPrefix(k, pref2):
 					k2 = strings.TrimPrefix(k, pref2)
+				case strings.HasPrefix(k, pref3):
+					k2 = strings.TrimPrefix(k, pref3)
 				default:
 					continue
 				}

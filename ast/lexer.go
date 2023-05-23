@@ -135,7 +135,10 @@ func (l *lexer) NextToken() antlr.Token {
 	default:
 		// Don't process indentation for any mode other than DEFAULT_MODE and RECIPE.
 		l.indentLevel = 0
-		l.afterNewLine = true
+		if l.afterNewLine && peek.GetTokenType() == parser.EarthLexerCOMMENT {
+			l.afterLineComment = true
+		}
+		l.afterNewLine = peek.GetTokenType() == parser.EarthLexerNL
 	}
 
 	if l.debug {
@@ -188,6 +191,11 @@ func (l *lexer) seek(line, column, index int) {
 // In these scenarios, the comment may be documentation and needs to trigger the
 // INDENT/DEDENT _before_ the comment in the token sequence.
 func (l *lexer) handleCommentIndentLevel(comment antlr.Token) bool {
+	if l.getMode() != parser.EarthLexerRECIPE {
+		// if we're not in RECIPE mode, INDENT/DEDENT tokens are not valid, so
+		// there's no scenario where we would want to consider either of them.
+		return false
+	}
 	line, col, idx := l.pos()
 	defer l.seek(line, col, idx)
 

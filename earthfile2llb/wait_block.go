@@ -111,7 +111,7 @@ func (wb *waitBlock) saveImages(ctx context.Context, pushesAllowed, localExports
 			continue
 		}
 
-		if !saveImage.push && !saveImage.localExport {
+		if !saveImage.doPush && !saveImage.localExport {
 			continue
 		}
 
@@ -189,7 +189,7 @@ func (wb *waitBlock) saveImages(ctx context.Context, pushesAllowed, localExports
 			}
 		}
 
-		refPrefix, err := gwCrafter.AddPushImageEntry(ref, refID, item.si.DockerTag, item.push, item.si.InsecurePush, item.si.Image, platformBytes)
+		refPrefix, err := gwCrafter.AddPushImageEntry(ref, refID, item.si.DockerTag, item.doPush, item.si.InsecurePush, item.si.Image, platformBytes)
 		if err != nil {
 			return err
 		}

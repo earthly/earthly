@@ -5,6 +5,7 @@
         "args": [
           "alpine:3.15"
         ],
+        "docs": "This is a smoke test for parsing. We don't actually check that the config was\nset correctly.\n",
         "name": "FROM"
       }
     }

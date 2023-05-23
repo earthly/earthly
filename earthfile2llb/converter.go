@@ -18,8 +18,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alessio/shellescape"
+	"github.com/containerd/containerd/platforms"
+	"github.com/docker/distribution/reference"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/analytics"
+	"github.com/earthly/earthly/ast/commandflag"
 	"github.com/earthly/earthly/buildcontext"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
@@ -42,20 +46,17 @@ import (
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
-	"github.com/alessio/shellescape"
-	"github.com/containerd/containerd/platforms"
-	"github.com/docker/distribution/reference"
 	"github.com/moby/buildkit/client/llb"
 	dockerimage "github.com/moby/buildkit/exporter/containerimage/image"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
+	"github.com/moby/buildkit/frontend/dockerui"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session/localhost"
 	solverpb "github.com/moby/buildkit/solver/pb"
 	"github.com/moby/buildkit/util/apicaps"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type cmdType int
@@ -88,6 +89,8 @@ const (
 	projectCmd                           // "PROJECT"
 	pipelineCmd                          // "PIPELINE"
 	triggerCmd                           // "TRIGGER"
+	setCmd                               // "SET"
+	letCmd                               // "LET"
 )
 
 // Converter turns earthly commands to buildkit LLB representation.
@@ -133,10 +136,10 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		GlobalImports:    opt.GlobalImports,
 		Features:         opt.Features,
 	}
-	ovVarsKeysSorted := opt.OverridingVars.SortedAny()
+	ovVarsKeysSorted := opt.OverridingVars.Sorted()
 	ovVars := make([]string, 0, len(ovVarsKeysSorted))
 	for _, k := range ovVarsKeysSorted {
-		v, _ := opt.OverridingVars.GetAny(k)
+		v, _ := opt.OverridingVars.Get(k)
 		ovVars = append(ovVars, fmt.Sprintf("%s=%s", k, v))
 	}
 	logbusTarget, err := opt.Logbus.Run().NewTarget(
@@ -210,7 +213,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	}
 	state, img, envVars, err := c.internalFromClassical(
 		ctx, imageName, platform,
-		llb.WithCustomNamef("%sFROM %s", c.vertexPrefix(ctx, local, false, internal), imageName))
+		llb.WithCustomNamef("%sFROM %s", c.vertexPrefix(ctx, local, false, internal, nil), imageName))
 	if err != nil {
 		return err
 	}
@@ -322,7 +325,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 			c.ftrs.UseCopyLink,
 			llb.WithCustomNamef(
 				"%sFROM DOCKERFILE (copy build context from) %s%s",
-				c.vertexPrefix(ctx, false, false, true),
+				c.vertexPrefix(ctx, false, false, true, nil),
 				joinWrap(buildArgs, "(", " ", ") "), contextArtifact.String()))
 		if err != nil {
 			return errors.Wrapf(err, "copyOp FROM DOCKERFILE")
@@ -359,6 +362,10 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		}
 		BuildContextFactory = data.BuildContextFactory
 	}
+	bc, err := dockerui.NewClient(c.opt.GwClient)
+	if err != nil {
+		return errors.Wrap(err, "dockerui.NewClient")
+	}
 	var pncvf variables.ProcessNonConstantVariableFunc
 	if !c.opt.Features.ShellOutAnywhere {
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
@@ -368,16 +375,17 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		return err
 	}
 	bcRawState, done := BuildContextFactory.Construct().RawState()
+	bc.SetBuildContext(&bcRawState, c.mts.FinalTarget().String())
 	state, dfImg, _, err := dockerfile2llb.Dockerfile2LLB(ctx, dfData, dockerfile2llb.ConvertOpt{
-		BuildContext:     &bcRawState,
-		ContextLocalName: c.mts.FinalTarget().String(),
-		MetaResolver:     c.opt.MetaResolver,
-		ImageResolveMode: c.opt.ImageResolveMode,
-		Target:           dfTarget,
-		TargetPlatform:   &plat,
-		LLBCaps:          c.opt.LLBCaps,
-		BuildArgs:        overriding.AllValueMap(),
-		Excludes:         nil, // TODO: Need to process this correctly.
+		MetaResolver: c.opt.MetaResolver,
+		LLBCaps:      c.opt.LLBCaps,
+		Config: dockerui.Config{
+			BuildArgs:        overriding.Map(),
+			Target:           dfTarget,
+			ImageResolveMode: c.opt.ImageResolveMode,
+		},
+		TargetPlatform: &plat,
+		Client:         bc,
 	})
 	done()
 	if err != nil {
@@ -463,7 +471,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 		pllb.AddMount("/"+localhost.SendFileMagicStr, relevantDepState.ArtifactsState, llb.Readonly),
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s %s",
-			c.vertexPrefix(ctx, false, false, false),
+			c.vertexPrefix(ctx, false, false, false, nil),
 			strIf(isDir, "--dir "),
 			joinWrap(buildArgs, "(", " ", ") "),
 			artifact.String(),
@@ -507,7 +515,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s%s%s %s",
-			c.vertexPrefix(ctx, false, false, false),
+			c.vertexPrefix(ctx, false, false, false, nil),
 			strIf(isDir, "--dir "),
 			strIf(ifExists, "--if-exists "),
 			strIf(symlinkNoFollow, "--symlink-no-follow "),
@@ -548,7 +556,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s %s",
-			c.vertexPrefix(ctx, false, false, false),
+			c.vertexPrefix(ctx, false, false, false, nil),
 			strIf(isDir, "--dir "),
 			strIf(ifExists, "--if-exists "),
 			strings.Join(srcs, " "),
@@ -627,7 +635,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 				pllb.Mkdir("/run", 0755, llb.WithParents(true)),
 				llb.WithCustomNamef(
 					"%smkdir %s",
-					c.vertexPrefix(ctx, false, false, true), "/run"),
+					c.vertexPrefix(ctx, false, false, true, nil), "/run"),
 			), nil
 		}
 	}
@@ -720,7 +728,7 @@ func (c *Converter) runCommand(ctx context.Context, outputFileName string, isExp
 				pllb.Mkdir(srcBuildArgDir, 0777, llb.WithParents(true)), // Mkdir is performed as root even when USER is set; we must use 0777
 				llb.WithCustomNamef(
 					"%smkdir %s",
-					c.vertexPrefix(ctx, false, false, true), srcBuildArgDir),
+					c.vertexPrefix(ctx, false, false, true, nil), srcBuildArgDir),
 			), nil
 		}
 	}
@@ -806,7 +814,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
 			"%sSAVE ARTIFACT %s%s%s %s",
-			c.vertexPrefix(ctx, false, false, false),
+			c.vertexPrefix(ctx, false, false, false, nil),
 			strIf(ifExists, "--if-exists "),
 			strIf(symlinkNoFollow, "--symlink-no-follow "),
 			saveFrom,
@@ -824,7 +832,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 				c.ftrs.UseCopyLink,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
-					c.vertexPrefix(ctx, false, false, false),
+					c.vertexPrefix(ctx, false, false, false, nil),
 					strIf(ifExists, "--if-exists "),
 					strIf(symlinkNoFollow, "--symlink-no-follow "),
 					saveFrom,
@@ -840,7 +848,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo st
 				c.ftrs.UseCopyLink,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
-					c.vertexPrefix(ctx, false, false, false),
+					c.vertexPrefix(ctx, false, false, false, nil),
 					strIf(ifExists, "--if-exists "),
 					strIf(symlinkNoFollow, "--symlink-no-follow "),
 					saveFrom,
@@ -946,7 +954,7 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 		llb.IgnoreCache,
 		llb.WithCustomNamef(
 			"%sCopyFileMagicStr %s %s",
-			c.vertexPrefix(ctx, true, false, true), saveFrom, saveTo),
+			c.vertexPrefix(ctx, true, false, true, nil), saveFrom, saveTo),
 	}
 	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
 
@@ -1014,7 +1022,7 @@ func (c *Converter) PopWaitBlock(ctx context.Context) error {
 }
 
 // SaveImage applies the earthly SAVE IMAGE command.
-func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImages bool, insecurePush bool, cacheHint bool, cacheFrom []string, noManifestList bool) error {
+func (c *Converter) SaveImage(ctx context.Context, imageNames []string, hasPushFlag bool, insecurePush bool, cacheHint bool, cacheFrom []string, noManifestList bool) error {
 	err := c.checkAllowed(saveImageCmd)
 	if err != nil {
 		return err
@@ -1044,7 +1052,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 					State:               pcState,
 					Image:               c.mts.Final.MainImage.Clone(), // We can get away with this because no Image details can vary in a --push. This should be fixed before then.
 					DockerTag:           imageName,
-					Push:                pushImages,
+					Push:                hasPushFlag,
 					InsecurePush:        insecurePush,
 					CacheHint:           cacheHint,
 					HasPushDependencies: true,
@@ -1057,7 +1065,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 				State:               c.persistCache(c.mts.Final.MainState),
 				Image:               c.mts.Final.MainImage.Clone(),
 				DockerTag:           imageName,
-				Push:                pushImages,
+				Push:                hasPushFlag,
 				InsecurePush:        insecurePush,
 				CacheHint:           cacheHint,
 				HasPushDependencies: false,
@@ -1070,12 +1078,12 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 			}
 
 			if c.ftrs.WaitBlock {
-				shouldPush := pushImages && si.DockerTag != "" && c.opt.DoPushes
+				shouldPush := hasPushFlag && si.DockerTag != ""
 				shouldExportLocally := si.DockerTag != "" && c.opt.DoSaves
 				waitItem := newSaveImage(si, c, shouldPush, shouldExportLocally)
 				c.waitBlock().AddItem(waitItem)
 				c.mts.Final.WaitItems = append(c.mts.Final.WaitItems, waitItem)
-				if pushImages {
+				if hasPushFlag {
 					// only add summary for `SAVE IMAGE --push` commands
 					c.opt.ExportCoordinator.AddPushedImageSummary(c.target.StringCanonical(), si.DockerTag, c.mts.Final.ID, c.opt.DoPushes)
 				}
@@ -1090,7 +1098,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, pushImag
 			c.mts.Final.SaveImages = append(c.mts.Final.SaveImages, si)
 		}
 
-		if pushImages && imageName != "" && c.opt.UseInlineCache {
+		if hasPushFlag && imageName != "" && c.opt.UseInlineCache {
 			// Use this image tag as cache import too.
 			c.opt.CacheImports.Add(imageName)
 		}
@@ -1139,12 +1147,12 @@ func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platf
 				// TODO: This is a duplication from the forceExecution taking place
 				//       from FinalizeStates. However, this is necessary for apf
 				//       synchronization (needs to be run after target has executed).
-				err = c.forceExecution(ctx, mts.Final.MainState, mts.Final.PlatformResolver)
+				err := c.forceExecution(ctx, mts.Final.MainState, mts.Final.PlatformResolver)
 				if err != nil {
 					return errors.Wrapf(err, "async force execution for %s", fullTargetName)
 				}
 			}
-			err = apf(ctx, mts)
+			err := apf(ctx, mts)
 			if err != nil {
 				return err
 			}
@@ -1176,7 +1184,7 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 			mkdirOpts = append(mkdirOpts, llb.WithUser(c.mts.Final.MainImage.Config.User))
 		}
 		opts := []llb.ConstraintsOpt{
-			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(ctx, false, false, false), workdirPath),
+			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(ctx, false, false, false, nil), workdirPath),
 		}
 		c.mts.Final.MainState = c.mts.Final.MainState.File(
 			pllb.Mkdir(workdirAbs, 0755, mkdirOpts...), opts...)
@@ -1263,7 +1271,7 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) err
 }
 
 // Arg applies the ARG command.
-func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, opts argOpts) error {
+func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue string, opts commandflag.ArgOpts) error {
 	err := c.checkAllowed(argCmd)
 	if err != nil {
 		return err
@@ -1275,7 +1283,15 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
 
-	effective, effectiveDefault, err := c.varCollection.DeclareArg(argKey, defaultArgValue, opts.Global, pncvf)
+	declOpts := []variables.DeclareOpt{
+		variables.AsArg(),
+		variables.WithValue(defaultArgValue),
+		variables.WithPNCVFunc(pncvf),
+	}
+	if opts.Global {
+		declOpts = append(declOpts, variables.AsGlobal())
+	}
+	effective, effectiveDefault, err := c.varCollection.DeclareVar(argKey, declOpts...)
 	if err != nil {
 		return err
 	}
@@ -1291,6 +1307,52 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 			DefaultValue:  effectiveDefault,
 			ConstantValue: effective,
 		})
+	}
+	return nil
+}
+
+// Let applies the LET command.
+func (c *Converter) Let(ctx context.Context, key string, value string) error {
+	err := c.checkAllowed(letCmd)
+	if err != nil {
+		return err
+	}
+	c.nonSaveCommand()
+
+	if reserved.IsBuiltIn(key) {
+		return fmt.Errorf("LET cannot override built-in variable %q", key)
+	}
+
+	effective, effectiveDefault, err := c.varCollection.DeclareVar(key, variables.WithValue(value))
+	if err != nil {
+		return err
+	}
+	if c.varCollection.IsStackAtBase() {
+		c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
+			Name:          key,
+			DefaultValue:  effectiveDefault,
+			ConstantValue: effective,
+		})
+	}
+	return nil
+}
+
+// UpdateArg updates an existing arg to a new value. It errors if the arg could
+// not be found.
+func (c *Converter) UpdateArg(ctx context.Context, argKey string, argValue string, isBase bool) error {
+	if err := c.checkAllowed(setCmd); err != nil {
+		return err
+	}
+	c.nonSaveCommand()
+
+	var pncvf variables.ProcessNonConstantVariableFunc
+	if !c.opt.Features.ShellOutAnywhere {
+		pncvf = c.processNonConstantBuildArgFunc(ctx)
+	}
+
+	err := c.varCollection.UpdateVar(argKey, argValue, pncvf, isBase)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -1348,7 +1410,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 		gitState, []string{"."}, c.mts.Final.MainState, dest, false, false, keepTs,
 		c.mts.Final.MainImage.Config.User, nil, false, false, c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
-			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(ctx, false, false, false),
+			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(ctx, false, false, false, nil),
 			branch, gitURLScrubbed, dest))
 	if err != nil {
 		return errors.Wrapf(err, "copyOp git clone")
@@ -1519,7 +1581,11 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 
 // EnterScopeDo introduces a new variable scope. Globals and imports are fetched from baseTarget.
 func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged bool, scopeName string, buildArgs []string) error {
-	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.platr.Current(), allowPrivileged, buildArgs, true, enterScopeDoCmd)
+	topArgs := buildArgs
+	if c.ftrs.ArgScopeSet {
+		topArgs = c.varCollection.TopOverriding().BuildArgs()
+	}
+	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.platr.Current(), allowPrivileged, topArgs, true, enterScopeDoCmd)
 	if err != nil {
 		return err
 	}
@@ -1704,7 +1770,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		for _, bai := range mts.Final.TargetInput().BuildArgs {
 			// Check if the build arg has been overridden. If it has, it can no longer be an input
 			// directly, so skip it.
-			_, found := opt.OverridingVars.GetAny(bai.Name)
+			_, found := opt.OverridingVars.Get(bai.Name)
 			if found {
 				continue
 			}
@@ -1713,13 +1779,13 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		if cmdT == fromCmd {
 			// Propagate globals.
 			globals := mts.Final.VarCollection.Globals()
-			for _, k := range globals.SortedActive() {
-				_, alreadyActive := c.varCollection.GetActive(k)
+			for _, k := range globals.Sorted(variables.WithActive()) {
+				_, alreadyActive := c.varCollection.Get(k, variables.WithActive())
 				if alreadyActive {
 					// Globals don't override any variables in current scope.
 					continue
 				}
-				v, _ := globals.GetActive(k)
+				v, _ := globals.Get(k, variables.WithActive())
 				// Look for the default arg value in the built target's TargetInput.
 				defaultArgValue := ""
 				for _, childBai := range mts.Final.TargetInput().BuildArgs {
@@ -1835,10 +1901,15 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		strIf(opts.Interactive, "--interactive "),
 		strIf(opts.InteractiveKeep, "--interactive-keep "),
 		strings.Join(opts.Args, " "))
-	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", c.vertexPrefix(ctx, opts.Locally, isInteractive, false), commandStr))
+	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", c.vertexPrefix(ctx, opts.Locally, isInteractive, false, opts.Secrets), commandStr))
 
 	var extraEnvVars []string
 
+	// Build args.
+	for _, buildArgName := range c.varCollection.SortedVariables(variables.WithActive()) {
+		ba, _ := c.varCollection.Get(buildArgName, variables.WithActive())
+		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba)))
+	}
 	// Secrets.
 	for _, secretKeyValue := range opts.Secrets {
 		secretName, envVar, err := c.parseSecretFlag(secretKeyValue)
@@ -1857,11 +1928,6 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 			// TODO: The use of cat here might not be portable.
 			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", envVar, secretPath))
 		}
-	}
-	// Build args.
-	for _, buildArgName := range c.varCollection.SortedActiveVariables() {
-		ba, _ := c.varCollection.GetActive(buildArgName)
-		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba)))
 	}
 	if !opts.Locally {
 		// Debugger.
@@ -1896,6 +1962,11 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 			}
 			dst := path.Join(localPathAbs, interactiveSaveFile.Dst)
 			c.opt.LocalArtifactWhiteList.Add(dst)
+			// The receiveFile handler will only be given the relative, so needs to whitelisted as well.
+			// This is needed when e.g. the user specifies a destination of "out/", which is then rewritten
+			// to "out/file".  If the user specified a full file path, e.g. "out/file", then this is redundant
+			// since the waitBlock will add that same value.  This makes it explicit.
+			c.opt.LocalArtifactWhiteList.Add(interactiveSaveFile.Dst)
 
 			saveFiles = append(saveFiles, debuggercommon.SaveFilesSettings{
 				Src:      interactiveSaveFile.Src,
@@ -2211,8 +2282,8 @@ func (c *Converter) checkOldPlatformIncompatibility(platform platutil.Platform) 
 func (c *Converter) applyFromImage(state pllb.State, img *image.Image) (pllb.State, *image.Image, *variables.Scope) {
 	// Reset variables.
 	ev := variables.ParseEnvVars(img.Config.Env)
-	for _, name := range ev.SortedActive() {
-		v, _ := ev.GetActive(name)
+	for _, name := range ev.Sorted(variables.WithActive()) {
+		v, _ := ev.Get(name, variables.WithActive())
 		state = state.AddEnv(name, v)
 	}
 	// Init config maps if not already initialized.
@@ -2259,10 +2330,10 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 	}
 }
 
-func (c *Converter) vertexPrefix(ctx context.Context, local bool, interactive bool, internal bool) string {
+func (c *Converter) vertexPrefix(ctx context.Context, local bool, interactive bool, internal bool, secrets []string) string {
 	activeOverriding := make(map[string]string)
 	for _, arg := range c.varCollection.SortedOverridingVariables() {
-		v, ok := c.varCollection.GetActive(arg)
+		v, ok := c.varCollection.Get(arg, variables.WithActive())
 		if ok {
 			activeOverriding[arg] = v
 		}
@@ -2289,6 +2360,7 @@ func (c *Converter) vertexPrefix(ctx context.Context, local bool, interactive bo
 		Local:               local,
 		Interactive:         interactive,
 		OverridingArgs:      activeOverriding,
+		Secrets:             secrets,
 		Internal:            internal,
 		Runner:              c.opt.Runner,
 	}
@@ -2373,11 +2445,19 @@ func (c *Converter) checkAllowed(command cmdType) error {
 
 	if !c.mts.Final.RanFromLike {
 		switch command {
-		case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, importCmd, projectCmd, pipelineCmd:
+		case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, letCmd, setCmd, importCmd, projectCmd, pipelineCmd:
 			return nil
 		default:
 			return errors.New("the first command has to be FROM, FROM DOCKERFILE, LOCALLY, ARG, BUILD or IMPORT")
 		}
+	}
+
+	switch command {
+	case setCmd, letCmd:
+		if !c.ftrs.ArgScopeSet {
+			return errors.New("--arg-scope-and-set must be enabled in order to use LET and SET")
+		}
+	default:
 	}
 
 	return nil
@@ -2385,7 +2465,7 @@ func (c *Converter) checkAllowed(command cmdType) error {
 
 func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
 	activeBuildArgs := make(map[string]bool)
-	for _, k := range c.varCollection.SortedActiveVariables() {
+	for _, k := range c.varCollection.SortedVariables(variables.WithActive()) {
 		activeBuildArgs[k] = true
 	}
 	return c.mts.Final.TargetInput().WithFilterBuildArgs(activeBuildArgs)

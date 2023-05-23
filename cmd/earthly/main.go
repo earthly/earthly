@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -34,13 +33,16 @@ import (
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
+	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/logbus"
 	logbussetup "github.com/earthly/earthly/logbus/setup"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
+	"github.com/earthly/earthly/util/errutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/reflectutil"
 )
@@ -87,8 +89,12 @@ type cliFlags struct {
 	output                          bool
 	noOutput                        bool
 	noCache                         bool
+	skipBuildkit                    bool
+	localSkipDB                     string
 	pruneAll                        bool
 	pruneReset                      bool
+	pruneTargetSize                 byteSizeValue
+	pruneKeepDuration               time.Duration
 	buildkitdSettings               buildkitd.Settings
 	allowPrivileged                 bool
 	enableProfiler                  bool
@@ -97,6 +103,7 @@ type cliFlags struct {
 	containerName                   string
 	installationName                string
 	cacheFrom                       cli.StringSlice
+	gitLFSPullInclude               string
 	remoteCache                     string
 	maxRemoteCache                  bool
 	saveInlineCache                 bool
@@ -104,6 +111,7 @@ type cliFlags struct {
 	configPath                      string
 	gitUsernameOverride             string
 	gitPasswordOverride             string
+	gitBranchOverride               string
 	interactiveDebugging            bool
 	sshAuthSock                     string
 	verbose                         bool
@@ -135,10 +143,6 @@ type cliFlags struct {
 	configDryRun                    bool
 	strict                          bool
 	conversionParallelism           int
-	certPath                        string
-	keyPath                         string
-	caPath                          string
-	tlsEnabled                      bool
 	disableAnalytics                bool
 	featureFlagOverrides            string
 	localRegistryHost               string
@@ -147,6 +151,7 @@ type cliFlags struct {
 	secretFile                      string
 	lsShowLong                      bool
 	lsShowArgs                      bool
+	docShowLong                     bool
 	containerFrontend               containerutil.ContainerFrontend
 	satelliteName                   string
 	noSatellite                     bool
@@ -158,6 +163,7 @@ type cliFlags struct {
 	satelliteMaintenaceWeekendsOnly bool
 	satelliteDropCache              bool
 	satelliteVersion                string
+	satelliteIncludeHidden          bool
 	userPermission                  string
 	noBuildkitUpdate                bool
 	globalWaitEnd                   bool // for feature-flipping builder.go code removal
@@ -183,6 +189,8 @@ type cliFlags struct {
 	gcpServiceAccountKeyPath        string
 	gcpServiceAccountKey            string
 	gcpServiceAccountKeyStdin       bool
+	serverConnTimeout               time.Duration
+	certsHostName                   string
 }
 
 type analyticsMetadata struct {
@@ -191,6 +199,7 @@ type analyticsMetadata struct {
 	satelliteCurrentVersion string
 	buildkitPlatform        string
 	userPlatform            string
+	target                  domain.Target
 }
 
 var (
@@ -331,6 +340,7 @@ func main() {
 					GitSHA:           GitSha,
 					CommandName:      app.commandName,
 					ExitCode:         exitCode,
+					Target:           app.analyticsMetadata.target,
 					IsSatellite:      app.analyticsMetadata.isSatellite,
 					SatelliteVersion: app.analyticsMetadata.satelliteCurrentVersion,
 					IsRemoteBuildkit: app.analyticsMetadata.isRemoteBuildkit,
@@ -414,6 +424,45 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 	return app
 }
 
+func (app *earthlyApp) parseFrontend(cliCtx *cli.Context, cfg *config.Config) error {
+	console := app.console.WithPrefix("frontend")
+	feCfg := &containerutil.FrontendConfig{
+		BuildkitHostCLIValue:       app.buildkitHost,
+		BuildkitHostFileValue:      app.cfg.Global.BuildkitHost,
+		LocalRegistryHostFileValue: app.cfg.Global.LocalRegistryHost,
+		InstallationName:           app.installationName,
+		DefaultPort:                8372 + config.PortOffset(app.installationName),
+		Console:                    console,
+	}
+	fe, err := containerutil.FrontendForSetting(cliCtx.Context, app.cfg.Global.ContainerFrontend, feCfg)
+	if err != nil {
+		origErr := err
+		stub, err := containerutil.NewStubFrontend(cliCtx.Context, feCfg)
+		if err != nil {
+			return errors.Wrap(err, "failed stub frontend initialization")
+		}
+		app.containerFrontend = stub
+
+		if !app.verbose {
+			console.Printf("No frontend initialized. Use --verbose to see details\n")
+		}
+		console.VerbosePrintf("%s frontend initialization failed due to %s", app.cfg.Global.ContainerFrontend, origErr.Error())
+		return nil
+	}
+
+	console.VerbosePrintf("%s frontend initialized.\n", fe.Config().Setting)
+	app.containerFrontend = fe
+
+	// These URLs were calculated relative to the configured frontend. In the
+	// case of an automatically detected frontend, they are calculated according
+	// to the first selected one in order of precedence.
+	buildkitURLs := app.containerFrontend.Config().FrontendURLs
+	app.buildkitHost = buildkitURLs.BuildkitHost.String()
+	app.localRegistryHost = buildkitURLs.LocalRegistryHost.String()
+
+	return nil
+}
+
 func (app *earthlyApp) before(cliCtx *cli.Context) error {
 	if app.enableProfiler {
 		go profhandler()
@@ -470,17 +519,18 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 		}
 	}
 
-	var err error
-	app.cfg, err = config.ParseConfigFile(yamlData, app.installationName)
+	cfg, err := config.ParseYAML(yamlData, app.installationName)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse %s", app.configPath)
 	}
-
-	if app.cfg.Git == nil {
-		app.cfg.Git = map[string]config.GitConfig{}
-	}
+	app.cfg = &cfg
 
 	err = app.processDeprecatedCommandOptions(cliCtx, app.cfg)
+	if err != nil {
+		return err
+	}
+
+	err = app.parseFrontend(cliCtx, app.cfg)
 	if err != nil {
 		return err
 	}
@@ -617,6 +667,25 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 		}
 	}()
 	app.logbus.Run().SetStart(time.Now())
+	// Initialize log streaming early if we're passed the organization and
+	// project names as environmental variables. This will allow nearly all
+	// initialization errors to be surfaced to the log streaming service. Access
+	// to this organization and project will be verified when the stream begins.
+	if app.orgName != "" && app.projectName != "" && !app.cfg.Global.DisableLogSharing && app.logstreamUpload {
+		cloudClient, err := app.newCloudClient(cloud.WithLogstreamGRPCAddressOverride(app.logstreamAddressOverride))
+		if err != nil {
+			app.console.Warnf("Failed to initialize cloud client: %v", err)
+			return 1
+		}
+		if cloudClient.IsLoggedIn(ctx) {
+			app.console.VerbosePrintf("Logbus: setting organization %q and project %q", app.orgName, app.projectName)
+			analytics.AddEarthfileProject(app.orgName, app.projectName)
+			app.logbusSetup.SetOrgAndProject(app.orgName, app.projectName)
+			app.logbusSetup.StartLogStreamer(ctx, cloudClient)
+			logstreamURL := fmt.Sprintf("%s/builds/%s", app.getCIHost(), app.logbusSetup.InitialManifest.GetBuildId())
+			app.console.ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
+		}
+	}
 	defer func() {
 		// Just in case this is forgotten somewhere else.
 		app.logbus.Run().SetFatalError(
@@ -660,9 +729,14 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_NEEDS_PRIVILEGED, err.Error())
 			app.console.Warnf("Error: earthly --allow-privileged (earthly -P) flag is required\n")
 			return 9
-		case strings.Contains(err.Error(), "failed to fetch remote"):
+		case strings.Contains(err.Error(), errutil.EarthlyGitStdErrMagicString):
 			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_GIT, err.Error())
-			app.console.Warnf("Error: %v\n", err)
+			gitStdErr, shorterErr, ok := errutil.ExtractEarthlyGitStdErr(err.Error())
+			if ok {
+				app.console.Warnf("Error: %v\n\n%s\n", shorterErr, gitStdErr)
+			} else {
+				app.console.Warnf("Error: %v\n", err.Error())
+			}
 			app.console.Printf(
 				"Check your git auth settings.\n" +
 					"Did you ssh-add today? Need to configure ~/.earthly/config.yml?\n" +
@@ -686,9 +760,9 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			return 1
 		case !app.verbose && rpcRegex.MatchString(err.Error()):
 			baseErr := errors.Cause(err)
-			baseErrMsg := rpcRegex.ReplaceAll([]byte(baseErr.Error()), []byte(""))
+			baseErrMsg := rpcRegex.ReplaceAllString(baseErr.Error(), "")
 			app.console.Warnf("Error: %s\n", string(baseErrMsg))
-			if bytes.Contains(baseErrMsg, []byte("transport is closing")) {
+			if strings.Contains(baseErrMsg, "transport is closing") {
 				app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, baseErr.Error())
 				app.console.Warnf(
 					"It seems that buildkitd is shutting down or it has crashed. " +

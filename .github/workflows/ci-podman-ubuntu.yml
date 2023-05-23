@@ -15,7 +15,7 @@ jobs:
       BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
-      SUDO: "sudo"
+      SUDO: "sudo -E"
     secrets: inherit
 
   podman-examples-1:
@@ -27,7 +27,7 @@ jobs:
       BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
-      SUDO: "sudo"
+      SUDO: "sudo -E"
       EXAMPLE_NAME: "+examples1"
     secrets: inherit
 
@@ -40,7 +40,7 @@ jobs:
       BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
-      SUDO: "sudo"
+      SUDO: "sudo -E"
       EXAMPLE_NAME: "+examples2"
     secrets: inherit
 
@@ -53,8 +53,8 @@ jobs:
 #      BUILD_EARTHLY_TARGET: "+for-linux"
 #      RUNS_ON: "ubuntu-latest"
 #      BINARY: "podman"
-#      BINARY_COMPOSE: "\"sudo podman-compose\""
-#      SUDO: "sudo"
+#      BINARY_COMPOSE: "\"sudo -E podman-compose\""
+#      SUDO: "sudo -E"
 #    secrets: inherit
 #
 # TODO: Fix and bring back the below tests
@@ -66,7 +66,7 @@ jobs:
 #      BUILD_EARTHLY_TARGET: "+for-linux"
 #      RUNS_ON: "ubuntu-latest"
 #      BINARY: "podman"
-#      SUDO: "sudo"
+#      SUDO: "sudo -E"
 #    secrets: inherit
 #
 #  podman-secret-integrations:
@@ -78,7 +78,7 @@ jobs:
 #      BUILD_EARTHLY_TARGET: "+for-linux"
 #      RUNS_ON: "ubuntu-latest"
 #      BINARY: "podman"
-#      SUDO: "sudo"
+#      SUDO: "sudo -E"
 #    secrets: inherit
 #
 #  podman-bootstrap-integrations:
@@ -90,7 +90,7 @@ jobs:
 #      BUILD_EARTHLY_TARGET: "+for-linux"
 #      RUNS_ON: "ubuntu-latest"
 #      BINARY: "podman"
-#      SUDO: "sudo"
+#      SUDO: "sudo -E"
 #    secrets: inherit
 #
 #  podman-repo-auth-tests:
@@ -102,7 +102,7 @@ jobs:
 #      BUILD_EARTHLY_TARGET: "+for-linux"
 #      RUNS_ON: "ubuntu-latest"
 #      BINARY: "podman"
-#      SUDO: "sudo"
+#      SUDO: "sudo -E"
 #    secrets: inherit
 #
 #  podman-export-tests:
@@ -114,7 +114,7 @@ jobs:
 #      BUILD_EARTHLY_TARGET: "+for-linux"
 #      RUNS_ON: "ubuntu-latest"
 #      BINARY: "podman"
-#      SUDO: "sudo"
+#      SUDO: "sudo -E"
 #    secrets: inherit
 #
 #  podman-misc-tests:
@@ -126,5 +126,5 @@ jobs:
 #      BUILD_EARTHLY_TARGET: "+for-linux"
 #      RUNS_ON: "ubuntu-latest"
 #      BINARY: "podman"
-#      SUDO: "sudo"
+#      SUDO: "sudo -E"
 #    secrets: inherit

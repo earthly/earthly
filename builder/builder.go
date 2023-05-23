@@ -71,6 +71,7 @@ type Opt struct {
 	OverridingVars                        *variables.Scope
 	BuildContextProvider                  *provider.BuildContextProvider
 	GitLookup                             *buildcontext.GitLookup
+	GitBranchOverride                     string
 	UseFakeDep                            bool
 	Strict                                bool
 	DisableNoOutputUpdates                bool
@@ -83,6 +84,8 @@ type Opt struct {
 	InteractiveDebugging                  bool
 	InteractiveDebuggingDebugLevelLogging bool
 	GitImage                              string
+	GitLFSInclude                         string
+	GitLogLevel                           llb.GitLogLevel
 }
 
 // BuildOpt is a collection of build options.
@@ -101,7 +104,7 @@ type BuildOpt struct {
 	GlobalWaitBlockFtr         bool
 	LocalArtifactWhiteList     *gatewaycrafter.LocalArtifactWhiteList
 	Logbus                     *logbus.Bus
-	MainTargetDetailsFuture    chan earthfile2llb.TargetDetails
+	MainTargetDetailsFunc      func(earthfile2llb.TargetDetails) error
 	Runner                     string
 	CloudStoredAuthProvider    cloudauth.ProjectBasedAuthProvider
 }
@@ -135,7 +138,7 @@ func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 		opt:      opt,
 		resolver: nil, // initialized below
 	}
-	b.resolver = buildcontext.NewResolverCustomGit(opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides, opt.GitImage)
+	b.resolver = buildcontext.NewResolver(opt.CleanCollection, opt.GitLookup, opt.Console, opt.FeatureFlagOverrides, opt.GitBranchOverride, opt.GitLFSInclude, opt.GitLogLevel, opt.GitImage)
 	return b, nil
 }
 
@@ -214,7 +217,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				InteractiveDebuggerEnabled:           b.opt.InteractiveDebugging,
 				InteractiveDebuggerDebugLevelLogging: b.opt.InteractiveDebuggingDebugLevelLogging,
 				Logbus:                               opt.Logbus,
-				MainTargetDetailsFuture:              opt.MainTargetDetailsFuture,
+				MainTargetDetailsFunc:                opt.MainTargetDetailsFunc,
 				Runner:                               opt.Runner,
 				CloudStoredAuthProvider:              opt.CloudStoredAuthProvider,
 			}

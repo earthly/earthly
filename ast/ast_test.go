@@ -5,10 +5,10 @@ import (
 	"io"
 	"testing"
 
-	"git.sr.ht/~nelsam/hel/v4/pkg/pers"
+	"git.sr.ht/~nelsam/hel/pkg/pers"
 	"github.com/earthly/earthly/ast"
-	"github.com/poy/onpar/v2"
-	"github.com/poy/onpar/v2/expect"
+	"github.com/poy/onpar"
+	"github.com/poy/onpar/expect"
 )
 
 func TestParse(topT *testing.T) {
@@ -25,6 +25,54 @@ func TestParse(topT *testing.T) {
 			reader: newMockNamedReader(t, timeout),
 		}
 	})
+	defer o.Run()
+
+	o.Spec("it parses SET commands", func(tt testCtx) {
+		mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.7
+
+foo:
+    LET foo = bar
+    SET foo = baz
+`))
+		f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+		tt.expect(err).To(not(haveOccurred()))
+
+		tt.expect(f.Targets).To(haveLen(1))
+		foo := f.Targets[0]
+		tt.expect(foo.Recipe).To(haveLen(2))
+		set := foo.Recipe[1]
+		tt.expect(set.Command).To(not(beNil()))
+		tt.expect(set.Command.Name).To(equal("SET"))
+		tt.expect(set.Command.Args).To(equal([]string{"foo", "=", "baz"}))
+	})
+
+	o.Spec("it parses LET commands", func(tt testCtx) {
+		mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.7
+
+LET foo = bar
+
+foo:
+    LET bacon = eggs
+`))
+		f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+		tt.expect(err).To(not(haveOccurred()))
+
+		tt.expect(f.BaseRecipe).To(haveLen(1))
+		global := f.BaseRecipe[0]
+		tt.expect(global.Command).To(not(beNil()))
+		tt.expect(global.Command.Name).To(equal("LET"))
+		tt.expect(global.Command.Args).To(equal([]string{"foo", "=", "bar"}))
+
+		tt.expect(f.Targets).To(haveLen(1))
+		foo := f.Targets[0]
+		tt.expect(foo.Recipe).To(haveLen(1))
+		let := foo.Recipe[0]
+		tt.expect(let.Command).To(not(beNil()))
+		tt.expect(let.Command.Name).To(equal("LET"))
+		tt.expect(let.Command.Args).To(equal([]string{"bacon", "=", "eggs"}))
+	})
 
 	o.Spec("it safely ignores comments outside of documentation", func(tt testCtx) {
 		mockEarthfile(tt.t, tt.reader, []byte(`
@@ -33,6 +81,11 @@ func TestParse(topT *testing.T) {
 # VERSION does not get documentation.
 VERSION 0.6 # Trailing comments do not cause parsing errors at the top level
 WORKDIR /tmp
+
+# a comment before an IF or a FOR does not cause parser errors
+IF foo
+    RUN echo foo
+END
 
 bar:
 
@@ -230,6 +283,41 @@ foo:
 			tt.expect(tgt.Docs).To(equal("foo echoes 'foo'\n"))
 		})
 
+		o.Spec("it respects leading whitespace in documentation", func(tt testCtx) {
+			mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.7
+
+# foo outputs formatted JSON
+#
+# Sample output:
+#
+#     $ earthly +foo --json='{"a":"b","c":"d"}'
+#     {
+#         "a": "b",
+#         "c": "d"
+#     }
+foo:
+    ARG json
+    RUN echo $json | jq .
+`))
+			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+			tt.expect(err).To(not(haveOccurred()))
+
+			tt.expect(f.Targets).To(haveLen(1))
+			tgt := f.Targets[0]
+			tt.expect(tgt.Name).To(equal("foo"))
+			tt.expect(tgt.Docs).To(equal(`foo outputs formatted JSON
+
+Sample output:
+
+    $ earthly +foo --json='{"a":"b","c":"d"}'
+    {
+        "a": "b",
+        "c": "d"
+    }
+`))
+		})
+
 		o.Spec("it parses documentation on later targets", func(tt testCtx) {
 			mockEarthfile(tt.t, tt.reader, []byte(`
 VERSION 0.6
@@ -345,6 +433,88 @@ bar:
 			tgt := f.Targets[1]
 			tt.expect(tgt.Name).To(equal("bar"))
 			tt.expect(tgt.Docs).To(equal(""))
+		})
+
+		o.Spec("it parses documentation on ARGs", func(tt testCtx) {
+			mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.6
+
+foo:
+    # foo is the argument that will be echoed
+    ARG foo = bar
+    RUN echo $foo
+`))
+			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+			tt.expect(err).To(not(haveOccurred()))
+
+			tt.expect(f.Targets).To(haveLen(1))
+			tgt := f.Targets[0]
+			tt.expect(tgt.Recipe).To(haveLen(2))
+			arg := tgt.Recipe[0]
+			tt.expect(arg.Command).To(not(beNil()))
+			tt.expect(arg.Command.Name).To(equal("ARG"))
+			tt.expect(arg.Command.Docs).To(equal("foo is the argument that will be echoed\n"))
+		})
+
+		o.Spec("it parses multiline documentation on global ARGs", func(tt testCtx) {
+			mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.7
+FROM alpine:3.15
+
+# globalArg is a documented global arg
+# with multiple lines.
+ARG --global globalArg
+`))
+			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+			tt.expect(err).To(not(haveOccurred()))
+
+			tt.expect(f.BaseRecipe).To(haveLen(2))
+			arg := f.BaseRecipe[1]
+			tt.expect(arg.Command).To(not(beNil()))
+			tt.expect(arg.Command.Name).To(equal("ARG"))
+			tt.expect(arg.Command.Docs).To(equal("globalArg is a documented global arg\nwith multiple lines.\n"))
+		})
+
+		o.Spec("it parses documentation on SAVE ARTIFACT", func(tt testCtx) {
+			mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.6
+
+foo:
+    RUN echo foo > bar.txt
+    # bar.txt will contain the output of this target
+    SAVE ARTIFACT bar.txt
+`))
+			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+			tt.expect(err).To(not(haveOccurred()))
+
+			tt.expect(f.Targets).To(haveLen(1))
+			tgt := f.Targets[0]
+			tt.expect(tgt.Recipe).To(haveLen(2))
+			arg := tgt.Recipe[1]
+			tt.expect(arg.Command).To(not(beNil()))
+			tt.expect(arg.Command.Name).To(equal("SAVE ARTIFACT"))
+			tt.expect(arg.Command.Docs).To(equal("bar.txt will contain the output of this target\n"))
+		})
+
+		o.Spec("it parses documentation on SAVE IMAGE", func(tt testCtx) {
+			mockEarthfile(tt.t, tt.reader, []byte(`
+VERSION 0.6
+
+foo:
+    RUN echo foo > bar.txt
+    # foo is an image that contains a bar.txt file
+    SAVE IMAGE foo
+`))
+			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
+			tt.expect(err).To(not(haveOccurred()))
+
+			tt.expect(f.Targets).To(haveLen(1))
+			tgt := f.Targets[0]
+			tt.expect(tgt.Recipe).To(haveLen(2))
+			arg := tgt.Recipe[1]
+			tt.expect(arg.Command).To(not(beNil()))
+			tt.expect(arg.Command.Name).To(equal("SAVE IMAGE"))
+			tt.expect(arg.Command.Docs).To(equal("foo is an image that contains a bar.txt file\n"))
 		})
 	})
 }

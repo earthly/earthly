@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"regexp"
 	"strings"
+	"sync"
+	"unicode"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr/v4"
 	"github.com/earthly/earthly/ast/parser"
@@ -89,8 +91,24 @@ func (l *listener) popBlock() spec.Block {
 func (l *listener) docs(c antlr.ParserRuleContext) string {
 	comments := l.tokStream.GetHiddenTokensToLeft(c.GetStart().GetTokenIndex(), parser.EarthLexerCOMMENTS_CHANNEL)
 	var docs string
+	var leadingTrim string
+	var once sync.Once
 	for _, c := range comments {
-		line := strings.TrimSpace(strings.TrimPrefix(c.GetText(), "#"))
+		line := strings.TrimSpace(c.GetText())
+		line = strings.TrimPrefix(line, "#")
+		once.Do(func() {
+			runes := []rune(line)
+			var trimRunes []rune
+			for _, r := range runes {
+				if unicode.IsSpace(r) {
+					trimRunes = append(trimRunes, r)
+					continue
+				}
+				break
+			}
+			leadingTrim = string(trimRunes)
+		})
+		line = strings.TrimPrefix(line, leadingTrim)
 		docs += line + "\n"
 	}
 	return docs
@@ -182,7 +200,9 @@ func (l *listener) ExitStmt(c *parser.StmtContext) {
 // Command --------------------------------------------------------------------
 
 func (l *listener) EnterCommandStmt(c *parser.CommandStmtContext) {
-	l.command = new(spec.Command)
+	l.command = &spec.Command{
+		Docs: l.docs(c),
+	}
 	if l.enableSourceMap {
 		l.command.SourceLocation = &spec.SourceLocation{
 			File:        l.filePath,
@@ -267,6 +287,14 @@ func (l *listener) EnterEnvStmt(c *parser.EnvStmtContext) {
 
 func (l *listener) EnterArgStmt(c *parser.ArgStmtContext) {
 	l.command.Name = "ARG"
+}
+
+func (l *listener) EnterSetStmt(c *parser.SetStmtContext) {
+	l.command.Name = "SET"
+}
+
+func (l *listener) EnterLetStmt(c *parser.LetStmtContext) {
+	l.command.Name = "LET"
 }
 
 func (l *listener) EnterLabelStmt(c *parser.LabelStmtContext) {

@@ -225,8 +225,8 @@ func (sts *SingleTarget) AddBuildArgInput(bai dedup.BuildArgInput) {
 func (sts *SingleTarget) AddOverridingVarsAsBuildArgInputs(overridingVars *variables.Scope) {
 	sts.tiMu.Lock()
 	defer sts.tiMu.Unlock()
-	for _, key := range overridingVars.SortedAny() {
-		ovVar, _ := overridingVars.GetAny(key)
+	for _, key := range overridingVars.Sorted() {
+		ovVar, _ := overridingVars.Get(key)
 		sts.targetInput = sts.targetInput.WithBuildArgInput(
 			dedup.BuildArgInput{ConstantValue: ovVar, Name: key})
 	}

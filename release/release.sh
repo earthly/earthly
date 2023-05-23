@@ -62,6 +62,7 @@ fi
 
 # Set default values
 export GITHUB_USER=${GITHUB_USER:-earthly}
+export DOCKERHUB_HOST=${DOCKERHUB_HOST:-docker.io}
 export DOCKERHUB_USER=${DOCKERHUB_USER:-earthly}
 export DOCKERHUB_IMG=${DOCKERHUB_IMG:-earthly}
 export DOCKERHUB_BUILDKIT_IMG=${DOCKERHUB_BUILDKIT_IMG:-buildkitd}
@@ -86,6 +87,10 @@ fi
 PRODUCTION_RELEASE="false"
 if [ "$GITHUB_USER" = "earthly" ] && [ "$EARTHLY_REPO" = "earthly" ]; then
     PRODUCTION_RELEASE="true"
+    if [ "$DOCKERHUB_HOST" != "docker.io" ]; then
+        echo "expected DOCKERHUB_HOST=docker.io but got $DOCKERHUB_HOST"
+        exit 1
+    fi
     if [ "$DOCKERHUB_USER" != "earthly" ]; then
         echo "expected DOCKERHUB_USER=earthly but got $DOCKERHUB_USER"
         exit 1
@@ -95,7 +100,7 @@ if [ "$GITHUB_USER" = "earthly" ] && [ "$EARTHLY_REPO" = "earthly" ]; then
         exit 1
     fi
     if [ "$DOCKERHUB_BUILDKIT_IMG" != "buildkitd" ]; then
-        echo "expected DOCKERHUB_BUILDKIT_IMG=earthly but got $DOCKERHUB_BUILDKIT_IMG"
+        echo "expected DOCKERHUB_BUILDKIT_IMG=buildkitd but got $DOCKERHUB_BUILDKIT_IMG"
         exit 1
     fi
     if [ "$S3_BUCKET" != "production-pkg" ]; then

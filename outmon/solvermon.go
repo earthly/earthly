@@ -328,7 +328,7 @@ func (sm *SolverMonitor) printHeader(vm *vertexMonitor) {
 	if !seen {
 		sm.saltSeen[vm.meta.Salt()] = true
 	}
-	vm.printHeader()
+	vm.printHeader(sm.verbose)
 	sm.lastOutputWasProgress = false
 	sm.lastOutputWasNoOutputUpdate = false
 }
@@ -397,7 +397,7 @@ func (sm *SolverMonitor) reprintFailure(errVertex *vertexMonitor, phaseText stri
 	sm.console.PrintFailure(phaseText)
 	sm.console.Warnf("Repeating the output of the command that caused the failure\n")
 	errVertex.console = errVertex.console.WithFailed(true)
-	errVertex.printHeader()
+	errVertex.printHeader(sm.verbose)
 	if errVertex.tailOutput != nil {
 		isTruncated := (errVertex.tailOutput.TotalWritten() > errVertex.tailOutput.Size())
 		if errVertex.tailOutput.TotalWritten() == 0 {

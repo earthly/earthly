@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/earthly/cloud-api/analytics"
+	"github.com/earthly/cloud-api/askv"
 	"github.com/earthly/cloud-api/compute"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/cloud-api/pipelines"
@@ -53,9 +54,11 @@ type Client struct {
 	compute                  compute.ComputeClient
 	logstream                logstream.LogStreamClient
 	analytics                analytics.AnalyticsClient
+	askv                     askv.AskvClient
 	requestID                string
 	installationName         string
 	logstreamAddressOverride string
+	serverConnTimeout        time.Duration
 }
 
 type ClientOpt func(*Client)
@@ -67,16 +70,17 @@ func WithLogstreamGRPCAddressOverride(address string) ClientOpt {
 }
 
 // NewClient provides a new Earthly Cloud client
-func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, authJWTOverride, installationName, requestID string, warnFunc func(string, ...interface{}), opts ...ClientOpt) (*Client, error) {
+func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, authJWTOverride, installationName, requestID string, warnFunc func(string, ...interface{}), serverConnTimeout time.Duration, opts ...ClientOpt) (*Client, error) {
 	c := &Client{
 		httpAddr: httpAddr,
 		sshAgent: &lazySSHAgent{
 			sockPath: agentSockPath,
 		},
-		warnFunc:         warnFunc,
-		jum:              &protojson.UnmarshalOptions{DiscardUnknown: true},
-		installationName: installationName,
-		requestID:        requestID,
+		warnFunc:          warnFunc,
+		jum:               &protojson.UnmarshalOptions{DiscardUnknown: true},
+		installationName:  installationName,
+		requestID:         requestID,
+		serverConnTimeout: serverConnTimeout,
 	}
 	if authJWTOverride != "" {
 		c.authToken = authJWTOverride
@@ -117,6 +121,7 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	c.pipelines = pipelines.NewPipelinesClient(conn)
 	c.compute = compute.NewComputeClient(conn)
 	c.analytics = analytics.NewAnalyticsClient(conn)
+	c.askv = askv.NewAskvClient(conn)
 	c.logstream, err = logstreamClient(ctx, conn, c.logstreamAddressOverride, dialOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "cloud: could not create logstream client")

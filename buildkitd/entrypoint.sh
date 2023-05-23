@@ -161,6 +161,13 @@ export BUILDKIT_ROOT_DIR="$EARTHLY_TMP_DIR"/buildkit
 mkdir -p "$BUILDKIT_ROOT_DIR"
 CACHE_SETTINGS=
 
+# Length of time (in seconds) to keep cache. Zero is the same as unset to buildkit.
+CACHE_DURATION_SETTINGS=
+if [ "$CACHE_KEEP_DURATION" -gt 0 ]; then
+  CACHE_DURATION_SETTINGS="$(envsubst </etc/buildkitd.cacheduration.template)"
+fi
+export CACHE_DURATION_SETTINGS
+
 # For clarity; this will be become CACHE_SIZE_MB after everything is calculated.  It is intentionally left unset
 # (and not "0") to simplify the logic.
 EFFECTIVE_CACHE_SIZE_MB=
@@ -223,6 +230,17 @@ envsubst </etc/buildkitd.toml.template >/etc/buildkitd.toml
 # Set up OOM
 OOM_SCORE_ADJ="${BUILDKIT_OOM_SCORE_ADJ:-0}"
 export OOM_SCORE_ADJ
+if [ -n "$OOM_EXCLUDED_PIDS" ]; then
+  echo "The following PIDs will be ignored by the OOM reaper: $OOM_EXCLUDED_PIDS"
+fi
+
+ignored_by_oom() {
+  if echo ",$OOM_EXCLUDED_PIDS," | grep -q ",$1,"; then
+    echo "true"
+  else
+    echo "false"
+  fi
+}
 
 envsubst "\${OOM_SCORE_ADJ} \${BUILDKIT_DEBUG}" </bin/oom-adjust.sh.template >/bin/oom-adjust.sh
 chmod +x /bin/oom-adjust.sh
@@ -277,9 +295,9 @@ do
         # Sometimes, child processes can be reparented to the init (this script). One
         # common instance is when something is OOM killed, for instance. This enumerates
         # all those PIDs, and kills them to prevent accidential "ghost" loads.
-        if [ "$PID" != "$execpid" ]; then
+        if [ "$PID" != "$execpid" ] && [ "$(ignored_by_oom "$PID")" = "false" ]; then
             if [ "$OOM_SCORE_ADJ" -ne "0" ]; then
-                ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) killed" >> /var/log/oom_adj
+                ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) killed with OOM_SCORE_ADJ=$OOM_SCORE_ADJ" >> /var/log/oom_adj
                 kill -9 "$PID"
             else 
                 ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) was not killed because OOM_SCORE_ADJ was default or not set" >> /var/log/oom_adj

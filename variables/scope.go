@@ -1,6 +1,7 @@
 package variables
 
 import (
+	"fmt"
 	"sort"
 )
 
@@ -32,34 +33,32 @@ func (s *Scope) Clone() *Scope {
 	return ret
 }
 
-// GetAny returns a variable by name, even if it is not active.
-func (s *Scope) GetAny(name string) (string, bool) {
-	variable, found := s.variables[name]
-	return variable, found
-}
-
-// GetActive returns an active variable by name.
-func (s *Scope) GetActive(name string) (string, bool) {
-	variable, found := s.variables[name]
-	active := false
-	if found {
-		active = s.activeVariables[name]
+// Get gets a variable by name.
+func (s *Scope) Get(name string, opts ...ScopeOpt) (string, bool) {
+	opt := applyOpts(opts...)
+	v, ok := s.variables[name]
+	if !ok {
+		return "", false
 	}
-	if !active {
-		variable = ""
+	if opt.active && !s.activeVariables[name] {
+		return "", false
 	}
-	return variable, active
+	return v, true
 }
 
-// AddInactive adds an inactive variable in the collection.
-func (s *Scope) AddInactive(name string, variable string) {
-	s.variables[name] = variable
-}
-
-// AddActive adds and activates a variable in the collection.
-func (s *Scope) AddActive(name string, variable string) {
-	s.activeVariables[name] = true
-	s.variables[name] = variable
+// Add sets a variable to a value within this scope. It returns true if the
+// value was set.
+func (s *Scope) Add(name, value string, opts ...ScopeOpt) bool {
+	opt := applyOpts(opts...)
+	_, existed := s.variables[name]
+	if opt.noOverride && existed {
+		return false
+	}
+	s.variables[name] = value
+	if opt.active {
+		s.activeVariables[name] = true
+	}
+	return true
 }
 
 // Remove removes a variable from the scope.
@@ -68,82 +67,104 @@ func (s *Scope) Remove(name string) {
 	delete(s.activeVariables, name)
 }
 
-// ActiveValueMap returns a map of the values of the active variables.
-func (s *Scope) ActiveValueMap() map[string]string {
-	ret := make(map[string]string)
-	for name := range s.activeVariables {
-		ret[name] = s.variables[name]
+// Map returns a name->value variable map of variables in this scope.
+func (s *Scope) Map(opts ...ScopeOpt) map[string]string {
+	opt := applyOpts(opts...)
+	m := make(map[string]string)
+	for k, v := range s.variables {
+		if opt.active && !s.activeVariables[k] {
+			continue
+		}
+		m[k] = v
 	}
-	return ret
+	return m
 }
 
-// AllValueMap returns a map of the values of all the variables.
-func (s *Scope) AllValueMap() map[string]string {
-	ret := make(map[string]string)
-	for name, value := range s.variables {
-		ret[name] = value
+// Keys returns a sorted list of variable names in this Scope.
+func (s *Scope) Sorted(opts ...ScopeOpt) []string {
+	opt := applyOpts(opts...)
+	var sorted []string
+	for k := range s.variables {
+		if opt.active && !s.activeVariables[k] {
+			continue
+		}
+		sorted = append(sorted, k)
 	}
-	return ret
+	sort.Strings(sorted)
+	return sorted
 }
 
-// SortedActive returns the active variable names in a sorted slice.
-func (s *Scope) SortedActive() []string {
-	varNames := make([]string, 0, len(s.activeVariables))
-	for varName := range s.activeVariables {
-		varNames = append(varNames, varName)
+// BuildArgs returns s as a slice of build args, as they would have been passed
+// in originally at the CLI or in a BUILD command.
+func (s *Scope) BuildArgs(opts ...ScopeOpt) []string {
+	vars := s.Sorted(opts...)
+	var args []string
+	for _, v := range vars {
+		val, _ := s.Get(v)
+		args = append(args, fmt.Sprintf("%v=%v", v, val))
 	}
-	sort.Strings(varNames)
-	return varNames
+	return args
 }
 
-// SortedAny returns the variable names in a sorted slice.
-func (s *Scope) SortedAny() []string {
-	varNames := make([]string, 0, len(s.variables))
-	for varName := range s.variables {
-		varNames = append(varNames, varName)
-	}
-	sort.Strings(varNames)
-	return varNames
-}
-
-// CombineScopes combines all the variables across all scopes, with
-// left precedence.
+// CombineScopes combines all the variables across all scopes, with the
+// following precedence:
+//
+// 1. Active variables
+// 2. Inactive variables
+// 3. All other things equal, left-most scopes have precedence
 func CombineScopes(scopes ...*Scope) *Scope {
-	allActive := make(map[string]bool)
-	for _, scope := range scopes {
-		for name := range scope.activeVariables {
-			allActive[name] = true
-		}
-	}
-	allInactive := make(map[string]bool)
-	for _, scope := range scopes {
-		for name := range scope.variables {
-			if !allActive[name] {
-				allInactive[name] = true
-			}
-		}
-	}
-
 	s := NewScope()
-AllActiveLoop:
-	for name := range allActive {
-		for _, scope := range scopes {
-			variable, active := scope.GetActive(name)
-			if active {
-				s.AddActive(name, variable)
-				continue AllActiveLoop
-			}
-		}
+	precedence := [][]ScopeOpt{
+		{WithActive()},
+		nil,
 	}
-AllInactiveLoop:
-	for name := range allInactive {
+	for _, opts := range precedence {
+		addOpts := append(opts, NoOverride())
 		for _, scope := range scopes {
-			variable, found := scope.GetAny(name)
-			if found {
-				s.AddInactive(name, variable)
-				continue AllInactiveLoop
+			for k, v := range scope.Map(opts...) {
+				s.Add(k, v, addOpts...)
 			}
 		}
 	}
 	return s
+}
+
+type scopeOpts struct {
+	active     bool
+	noOverride bool
+}
+
+func applyOpts(opts ...ScopeOpt) scopeOpts {
+	var opt scopeOpts
+	for _, o := range opts {
+		opt = o(opt)
+	}
+	return opt
+}
+
+// ScopeOpt is an option function for setting flags when adding to or getting
+// from a Scope.
+type ScopeOpt func(scopeOpts) scopeOpts
+
+// WithActive is a ScopeOpt for active variables. When passed to Add, it sets
+// the variable to active; when passed to Get or Map, it causes them to only
+// return active variables.
+func WithActive() ScopeOpt {
+	return func(o scopeOpts) scopeOpts {
+		o.active = true
+		return o
+	}
+}
+
+// NoOverride only applies to Add. When passed to Add, NoOverride will prevent
+// Add from overriding an existing value.
+//
+// This will also prevent Add from applying other opts to the existing variable,
+// so if the caller wishes to set options on the existing value, they should
+// update the value on a false return from Add.
+func NoOverride() ScopeOpt {
+	return func(o scopeOpts) scopeOpts {
+		o.noOverride = true
+		return o
+	}
 }

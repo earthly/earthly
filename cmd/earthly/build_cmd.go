@@ -6,12 +6,14 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"time"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
 	"github.com/earthly/earthly/analytics"
+	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
@@ -22,6 +24,7 @@ import (
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/inputgraph"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/cliutil"
@@ -35,6 +38,7 @@ import (
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
+	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/session"
@@ -95,7 +99,7 @@ func (app *earthlyApp) warnIfArgContainsBuildArg(flagArgs []string) {
 func (app *earthlyApp) combineVariables(dotEnvMap map[string]string, flagArgs []string) (*variables.Scope, error) {
 	dotEnvVars := variables.NewScope()
 	for k, v := range dotEnvMap {
-		dotEnvVars.AddInactive(k, v)
+		dotEnvVars.Add(k, v)
 	}
 	buildArgs := append([]string{}, app.buildArgs.Value()...)
 	buildArgs = append(buildArgs, flagArgs...)
@@ -104,6 +108,16 @@ func (app *earthlyApp) combineVariables(dotEnvMap map[string]string, flagArgs []
 		return nil, errors.Wrap(err, "parse build args")
 	}
 	return variables.CombineScopes(overridingVars, dotEnvVars), nil
+}
+
+func (app *earthlyApp) gitLogLevel() llb.GitLogLevel {
+	if app.debug {
+		return llb.GitLogLevelTrace
+	}
+	if app.verbose {
+		return llb.GitLogLevelDebug
+	}
+	return llb.GitLogLevelDefault
 }
 
 func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []string) error {
@@ -160,13 +174,14 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			return errors.Wrapf(err, "parse target name %s", targetName)
 		}
 	}
+	app.analyticsMetadata.target = target
 
 	var (
 		gitCommitAuthor string
 		gitConfigEmail  string
 	)
 	if !target.IsRemote() {
-		if meta, err := gitutil.Metadata(cliCtx.Context, target.GetLocalPath()); err == nil {
+		if meta, err := gitutil.Metadata(cliCtx.Context, target.GetLocalPath(), app.gitBranchOverride); err == nil {
 			// Git commit detection here is best effort
 			gitCommitAuthor = meta.Author
 		}
@@ -192,7 +207,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 				doLogstreamUpload = true
 				logstreamURL = fmt.Sprintf("%s/builds/%s", app.getCIHost(), app.logbusSetup.InitialManifest.GetBuildId())
 				defer func() {
-					app.console.Printf("View logs at %s\n", logstreamURL)
+					app.console.ColorPrintf(color.New(color.FgHiYellow), "View logs at %s\n", logstreamURL)
 				}()
 			} else {
 				// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
@@ -212,7 +227,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 						app.console.Warnf(err.Error())
 						return
 					}
-					app.console.Printf("Shareable link: %s\n", id)
+					app.console.ColorPrintf(color.New(color.FgHiYellow), "Shareable link: %s\n", id)
 				}()
 			}
 		} else {
@@ -225,14 +240,38 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
 	app.warnIfArgContainsBuildArg(flagArgs)
 
+	var skipDB BuildkitSkipper
+	var targetHash []byte
+	if app.skipBuildkit {
+		var orgName string
+		var projectName string
+		orgName, projectName, targetHash, err = inputgraph.HashTarget(cliCtx.Context, target, app.console)
+		if err != nil {
+			app.console.Warnf("unable to calculate hash for %s: %s", target.String(), err.Error())
+		} else {
+			skipDB, err = NewBuildkitSkipper(app.localSkipDB, orgName, projectName, target.GetName(), cloudClient)
+			if err != nil {
+				return err
+			}
+			exists, err := skipDB.Exists(cliCtx.Context, targetHash)
+			if err != nil {
+				app.console.Warnf("unable to check if target %s (hash %x) has already been run: %s", target.String(), targetHash, err.Error())
+			}
+			if exists {
+				app.console.Printf("target %s (hash %x) has already been run; exiting", target.String(), targetHash)
+				return nil
+			}
+		}
+	}
+
 	err = app.initFrontend(cliCtx)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "could not init frontend")
 	}
 
 	err = app.configureSatellite(cliCtx, cloudClient, gitCommitAuthor, gitConfigEmail)
 	if err != nil {
-		return errors.Wrapf(err, "could not construct new buildkit client")
+		return errors.Wrapf(err, "could not configure satellite")
 	}
 
 	var runnerName string
@@ -332,6 +371,12 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	secretsMap, err := processSecrets(app.secrets.Value(), app.secretFiles.Value(), secretsFileMap)
 	if err != nil {
 		return err
+	}
+	for secretKey := range secretsMap {
+		if !ast.IsValidEnvVarName(secretKey) {
+			// TODO If the year is 2024 or later, please move this check into processSecrets, and turn it into an error; see https://github.com/earthly/earthly/issues/2883
+			app.console.Warnf("Deprecation: secret key %q does not follow the recommended naming convention (a letter followed by alphanumeric characters or underscores); this will become an error in a future version of earthly.", secretKey)
+		}
 	}
 
 	localhostProvider, err := localhostprovider.NewLocalhostProvider()
@@ -455,10 +500,10 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			cacheExport = app.remoteCache
 		}
 	}
-	var parallelism semutil.Semaphore
-	if app.cfg.Global.ConversionParallelism != 0 {
-		parallelism = semutil.NewWeighted(int64(app.cfg.Global.ConversionParallelism))
+	if app.cfg.Global.ConversionParallelism <= 0 {
+		return fmt.Errorf("configuration error: \"conversion_parallelism\" must be larger than zero")
 	}
+	parallelism := semutil.NewWeighted(int64(app.cfg.Global.ConversionParallelism))
 	localRegistryAddr := ""
 	if isLocal && app.localRegistryHost != "" {
 		lrURL, err := url.Parse(app.localRegistryHost)
@@ -490,6 +535,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		OverridingVars:                        overridingVars,
 		BuildContextProvider:                  buildContextProvider,
 		GitLookup:                             gitLookup,
+		GitBranchOverride:                     app.gitBranchOverride,
 		UseFakeDep:                            !app.noFakeDep,
 		Strict:                                app.strict,
 		DisableNoOutputUpdates:                app.interactiveDebugging,
@@ -502,6 +548,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		InteractiveDebugging:                  app.interactiveDebugging,
 		InteractiveDebuggingDebugLevelLogging: app.debug,
 		GitImage:                              app.cfg.Global.GitImage,
+		GitLFSInclude:                         app.gitLFSPullInclude,
+		GitLogLevel:                           app.gitLogLevel(),
 	}
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
 	if err != nil {
@@ -525,7 +573,6 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		BuiltinArgs:                builtinArgs,
 		LocalArtifactWhiteList:     localArtifactWhiteList,
 		Logbus:                     app.logbus,
-		MainTargetDetailsFuture:    make(chan earthfile2llb.TargetDetails, 1),
 		Runner:                     runnerName,
 
 		// feature-flip the removal of builder.go code
@@ -543,41 +590,45 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		buildOpts.OnlyArtifact = &artifact
 		buildOpts.OnlyArtifactDestPath = destPath
 	}
-	// Kick off logstream upload only when we've passed the necessary information to logbusSetup.
-	// This information is passed back right at the beginning of the build within earthfile2llb.
-	go func() {
-		beforeSelect := time.Now()
-		select {
-		case <-cliCtx.Context.Done():
-			now := time.Now()
-			app.console.VerbosePrintf(
-				"========== CONTEXT DONE BEFORE LOGSTREAMER STARTED AT %s (%s later) ==========",
-				now.Format(time.RFC3339Nano),
-				now.Sub(beforeSelect),
-			)
-			return
-		case details := <-buildOpts.MainTargetDetailsFuture:
-			now := time.Now()
-			app.console.VerbosePrintf(
-				"========== SETTING ORG AND PROJECT %s/%s AT %s (%s later) ==========",
-				details.EarthlyOrgName,
-				details.EarthlyProjectName,
-				now.Format(time.RFC3339Nano),
-				now.Sub(beforeSelect),
-			)
-			analytics.AddEarthfileProject(details.EarthlyOrgName, details.EarthlyProjectName)
-			if app.logstream {
-				app.logbusSetup.SetOrgAndProject(details.EarthlyOrgName, details.EarthlyProjectName)
-				if doLogstreamUpload {
-					app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient)
-					app.console.Printf("Streaming logs to %s\n", logstreamURL)
-				}
+
+	// Kick off logstream upload only when we've passed the necessary
+	// information to logbusSetup. This function will be called right at the
+	// beginning of the build within earthfile2llb.
+	buildOpts.MainTargetDetailsFunc = func(d earthfile2llb.TargetDetails) error {
+		if app.logbusSetup.LogStreamerStarted() {
+			// If the org & project have been provided by envs, let's verify
+			// that they're correct once we've parsed them from the Earthfile.
+			if app.orgName != d.EarthlyOrgName || app.projectName != d.EarthlyProjectName {
+				return fmt.Errorf("organization or project do not match PROJECT statement")
+			}
+			app.console.VerbosePrintf("Organization and project already set via environmental")
+			return nil
+		}
+		app.console.VerbosePrintf("Logbus: setting organization %q and project %q at %s", d.EarthlyOrgName, d.EarthlyProjectName, time.Now().Format(time.RFC3339Nano))
+		analytics.AddEarthfileProject(d.EarthlyOrgName, d.EarthlyProjectName)
+		if app.logstream {
+			app.logbusSetup.SetOrgAndProject(d.EarthlyOrgName, d.EarthlyProjectName)
+			if doLogstreamUpload {
+				app.logbusSetup.StartLogStreamer(cliCtx.Context, cloudClient)
 			}
 		}
-	}()
+		return nil
+	}
+
+	if app.logstream && doLogstreamUpload && !app.logbusSetup.LogStreamerStarted() {
+		app.console.ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
+	}
+
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
 	if err != nil {
 		return errors.Wrap(err, "build target")
+	}
+
+	if app.skipBuildkit && targetHash != nil {
+		err := skipDB.Add(cliCtx.Context, targetHash)
+		if err != nil {
+			app.console.Warnf("failed to record %s (hash %x) as completed: %s", target.String(), target, err)
+		}
 	}
 
 	return nil
@@ -630,6 +681,10 @@ func receiveFileVersion2(ctx context.Context, conn io.ReadWriteCloser, localArti
 
 	if !localArtifactWhiteList.Exists(string(dst)) {
 		return fmt.Errorf("file %s does not appear in the white list", dst)
+	}
+	err = os.MkdirAll(path.Dir(string(dst)), 0755)
+	if err != nil {
+		return err
 	}
 
 	f, err := os.Create(string(dst))

@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/earthly/earthly/ast"
-	"github.com/poy/onpar/v2"
-	"github.com/poy/onpar/v2/expect"
+	"github.com/poy/onpar"
+	"github.com/poy/onpar/expect"
 )
 
 type namedReader struct {
@@ -33,6 +33,7 @@ func TestParserErrors(topT *testing.T) {
 			expect: expect.New(t),
 		}
 	})
+	defer o.Run()
 
 	for _, tt := range []struct {
 		name         string
@@ -49,9 +50,10 @@ test:
     IF $foo END
 `,
 			expectedHint: `
-Hints:
+  Hints:
   - I couldn't find a pattern that completes the current statement - check your quote pairs, paren pairs, and newlines
-  - I parsed 'END' as a word, but it looks like it should be a keyword - is it on the wrong line?`,
+  - I parsed 'END' as a word, but it looks like it should be a keyword - is it on the wrong line?
+`,
 		},
 		{
 			name: "key-value with missing EQUALS",
@@ -63,8 +65,8 @@ test:
     LABEL a
 `,
 			expectedHint: `
-Hints:
-  - I got lost looking for '=' - did you define a key/value pair without a value?`,
+  Hint: I got lost looking for '=' - did you define a key/value pair without a value?
+`,
 		},
 	} {
 		tt := tt

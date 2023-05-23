@@ -29,22 +29,23 @@ var (
 
 // GitMetadata is a collection of git information about a certain directory.
 type GitMetadata struct {
-	BaseDir            string
-	RelDir             string
-	RemoteURL          string
-	GitURL             string
-	Hash               string
-	ShortHash          string
-	Branch             []string
-	Tags               []string
-	CommitterTimestamp string
-	AuthorTimestamp    string
-	Author             string
-	CoAuthors          []string
+	BaseDir              string
+	RelDir               string
+	RemoteURL            string
+	GitURL               string
+	Hash                 string
+	ShortHash            string
+	BranchOverrideTagArg bool
+	Branch               []string
+	Tags                 []string
+	CommitterTimestamp   string
+	AuthorTimestamp      string
+	Author               string
+	CoAuthors            []string
 }
 
 // Metadata performs git metadata detection on the provided directory.
-func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
+func Metadata(ctx context.Context, dir, gitBranchOverride string) (*GitMetadata, error) {
 	err := detectGitBinary(ctx)
 	if err != nil {
 		return nil, err
@@ -80,7 +81,7 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 		retErr = err
 		// Keep going.
 	}
-	branch, err := detectGitBranch(ctx, dir)
+	branch, err := detectGitBranch(ctx, dir, gitBranchOverride)
 	if err != nil {
 		retErr = err
 		// Keep going.
@@ -120,36 +121,38 @@ func Metadata(ctx context.Context, dir string) (*GitMetadata, error) {
 	}
 
 	return &GitMetadata{
-		BaseDir:            filepath.ToSlash(baseDir),
-		RelDir:             filepath.ToSlash(relDir),
-		RemoteURL:          remoteURL,
-		GitURL:             gitURL,
-		Hash:               hash,
-		ShortHash:          shortHash,
-		Branch:             branch,
-		Tags:               tags,
-		CommitterTimestamp: committerTimestamp,
-		AuthorTimestamp:    authorTimestamp,
-		Author:             author,
-		CoAuthors:          coAuthors,
+		BaseDir:              filepath.ToSlash(baseDir),
+		RelDir:               filepath.ToSlash(relDir),
+		RemoteURL:            remoteURL,
+		GitURL:               gitURL,
+		Hash:                 hash,
+		ShortHash:            shortHash,
+		BranchOverrideTagArg: gitBranchOverride != "",
+		Branch:               branch,
+		Tags:                 tags,
+		CommitterTimestamp:   committerTimestamp,
+		AuthorTimestamp:      authorTimestamp,
+		Author:               author,
+		CoAuthors:            coAuthors,
 	}, retErr
 }
 
 // Clone returns a copy of the GitMetadata object.
 func (gm *GitMetadata) Clone() *GitMetadata {
 	return &GitMetadata{
-		BaseDir:            gm.BaseDir,
-		RelDir:             gm.RelDir,
-		RemoteURL:          gm.RemoteURL,
-		GitURL:             gm.GitURL,
-		Hash:               gm.Hash,
-		ShortHash:          gm.ShortHash,
-		Branch:             gm.Branch,
-		Tags:               gm.Tags,
-		CommitterTimestamp: gm.CommitterTimestamp,
-		AuthorTimestamp:    gm.AuthorTimestamp,
-		Author:             gm.Author,
-		CoAuthors:          gm.CoAuthors,
+		BaseDir:              gm.BaseDir,
+		RelDir:               gm.RelDir,
+		RemoteURL:            gm.RemoteURL,
+		GitURL:               gm.GitURL,
+		Hash:                 gm.Hash,
+		ShortHash:            gm.ShortHash,
+		BranchOverrideTagArg: gm.BranchOverrideTagArg,
+		Branch:               gm.Branch,
+		Tags:                 gm.Tags,
+		CommitterTimestamp:   gm.CommitterTimestamp,
+		AuthorTimestamp:      gm.AuthorTimestamp,
+		Author:               gm.Author,
+		CoAuthors:            gm.CoAuthors,
 	}
 }
 
@@ -244,7 +247,10 @@ func detectGitShortHash(ctx context.Context, dir string) (string, error) {
 	return strings.SplitN(outStr, "\n", 2)[0], nil
 }
 
-func detectGitBranch(ctx context.Context, dir string) ([]string, error) {
+func detectGitBranch(ctx context.Context, dir, gitBranchOverride string) ([]string, error) {
+	if gitBranchOverride != "" {
+		return []string{gitBranchOverride}, nil
+	}
 	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--abbrev-ref", "HEAD")
 	cmd.Dir = dir
 	out, err := cmd.Output()

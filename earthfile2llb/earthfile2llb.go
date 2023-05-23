@@ -2,9 +2,7 @@ package earthfile2llb
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
@@ -157,8 +155,8 @@ type ConvertOpt struct {
 	// LLBCaps indicates that builder's capabilities
 	LLBCaps *apicaps.CapSet
 
-	// MainTargetDetailsFuture is a channel that is used to signal the main target details, once known.
-	MainTargetDetailsFuture chan TargetDetails
+	// MainTargetDetailsFunc is a custom function used to handle the target details, once known.
+	MainTargetDetailsFunc func(TargetDetails) error
 
 	// Logbus is the bus used for logging and metadata reporting.
 	Logbus *logbus.Bus
@@ -238,13 +236,15 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if err != nil {
 		return nil, err
 	}
-	if opt.MainTargetDetailsFuture != nil {
-		// TODO (vladaionescu): These should perhaps be passed back via logbus instead.
-		opt.MainTargetDetailsFuture <- TargetDetails{
+	if opt.MainTargetDetailsFunc != nil {
+		err := opt.MainTargetDetailsFunc(TargetDetails{
 			EarthlyOrgName:     bc.EarthlyOrgName,
 			EarthlyProjectName: bc.EarthlyProjectName,
+		})
+		if err != nil {
+			return nil, errors.Wrapf(err, "target details handler error: %v", err)
 		}
-		opt.MainTargetDetailsFuture = nil
+		opt.MainTargetDetailsFunc = nil
 	}
 	if found {
 		// The found target may have initially been created by a FROM or a COPY;
@@ -300,53 +300,4 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		}
 	}
 	return mts, nil
-}
-
-// GetTargets returns a list of targets from an Earthfile.
-// Note that the passed in domain.Target's target name is ignored (only the reference to the Earthfile is used)
-func GetTargets(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, target domain.Target) ([]string, error) {
-	platr := platutil.NewResolver(platutil.GetUserPlatform())
-	bc, err := resolver.Resolve(ctx, gwClient, platr, target)
-	if err != nil {
-		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
-	}
-	targets := make([]string, 0, len(bc.Earthfile.Targets))
-	for _, target := range bc.Earthfile.Targets {
-		targets = append(targets, target.Name)
-	}
-	return targets, nil
-}
-
-// GetTargetArgs returns a list of build arguments for a specified target
-func GetTargetArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, target domain.Target) ([]string, error) {
-	platr := platutil.NewResolver(platutil.GetUserPlatform())
-	bc, err := resolver.Resolve(ctx, gwClient, platr, target)
-	if err != nil {
-		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
-	}
-	var t *spec.Target
-	for _, tt := range bc.Earthfile.Targets {
-		if tt.Name == target.Target {
-			t = &tt
-			break
-		}
-	}
-	if t == nil {
-		return nil, fmt.Errorf("failed to find %s", target.String())
-	}
-	var args []string
-	for _, stmt := range t.Recipe {
-		if stmt.Command != nil && stmt.Command.Name == "ARG" {
-			isBase := t.Name == "base"
-			// since Arg opts are ignored (and feature flags are not available) we set explicitGlobalArgFlag as false
-			explicitGlobal := false
-			_, argName, _, err := parseArgArgs(ctx, *stmt.Command, isBase, explicitGlobal)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to parse ARG arguments %v", stmt.Command.Args)
-			}
-			args = append(args, argName)
-		}
-	}
-	return args, nil
-
 }

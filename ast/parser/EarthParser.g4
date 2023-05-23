@@ -39,6 +39,8 @@ commandStmt:
 	| volumeStmt
 	| envStmt
 	| argStmt
+	| setStmt
+	| letStmt
 	| labelStmt
 	| gitCloneStmt
 	| addStmt
@@ -143,6 +145,8 @@ volumeStmt: VOLUME stmtWordsMaybeJSON?;
 
 envStmt: ENV envArgKey EQUALS? (WS? envArgValue)?;
 argStmt: ARG optionalFlag envArgKey (EQUALS (WS? envArgValue)?)?;
+setStmt: SET envArgKey EQUALS WS? envArgValue;
+letStmt: LET optionalFlag envArgKey EQUALS WS? envArgValue;
 optionalFlag: stmtWords?;
 envArgKey: Atom;
 envArgValue: Atom (WS? Atom)*;

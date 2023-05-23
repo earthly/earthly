@@ -141,7 +141,7 @@ func CompareTargetInputs(target domain.Target, platr *platutil.Resolver, allowPr
 		return false, nil
 	}
 	for _, bai := range other.BuildArgs {
-		variable, found := overridingVars.GetAny(bai.Name)
+		variable, found := overridingVars.Get(bai.Name)
 		if found {
 			baiVariable := dedup.BuildArgInput{
 				Name:          bai.Name,

@@ -14,6 +14,7 @@ ${TLS_ENABLED}
   networkMode = "${NETWORK_MODE}"
   cniBinaryPath = "/usr/libexec/cni"
   cniConfigPath = "/etc/cni/cni-conf.json"
+  ${CACHE_DURATION_SETTINGS}
   ${CACHE_SETTINGS}
 
 ${EARTHLY_ADDITIONAL_BUILDKIT_CONFIG}

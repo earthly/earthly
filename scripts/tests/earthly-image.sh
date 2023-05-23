@@ -4,8 +4,22 @@ set -euo pipefail # don't use -x as it will leak the mirror credentials
 FRONTEND=${FRONTEND:-docker}
 EARTHLY_IMAGE=${EARTHLY_IMAGE:-earthly/earthly:dev-main}
 
+if [ -z "${DOCKERHUB_MIRROR_USERNAME:-}" ] && [ -z "${DOCKERHUB_MIRROR_PASSWORD:-}" ]; then
+  echo "using dockerhub credentials from earthly secrets"
+  DOCKERHUB_MIRROR_USERNAME="$(earthly secrets --org earthly-technologies --project core get dockerhub-mirror/user)"
+  export DOCKERHUB_MIRROR_USERNAME
+  DOCKERHUB_MIRROR_PASSWORD="$(earthly secrets --org earthly-technologies --project core get dockerhub-mirror/pass)"
+  export DOCKERHUB_MIRROR_PASSWORD
+fi
 test -n "$DOCKERHUB_MIRROR_USERNAME" || (echo "error: DOCKERHUB_MIRROR_USERNAME is not set" && exit 1)
 test -n "$DOCKERHUB_MIRROR_PASSWORD" || (echo "error: DOCKERHUB_MIRROR_PASSWORD is not set" && exit 1)
+
+if [ -z "${EARTHLY_TOKEN:-}" ]; then
+  echo "using EARTHLY_TOKEN from earthly secrets"
+  EARTHLY_TOKEN="$(earthly secrets --org earthly-technologies --project core get earthly-token-for-satellite-tests)"
+  export EARTHLY_TOKEN
+fi
+test -n "$EARTHLY_TOKEN" || (echo "error: EARTHLY_TOKEN is not set" && exit 1)
 
 ENCODED_AUTH="$(echo -n "$DOCKERHUB_MIRROR_USERNAME:$DOCKERHUB_MIRROR_PASSWORD" | base64 -w 0)"
 
@@ -21,7 +35,7 @@ cat > "$dockerconfig" <<EOF
 }
 EOF
 
-# Note that it is not possible to use GLOBAL_CONFIG, due to the fact
+# Note that it is not possible to use GLOBAL_CONFIG for this, due to the fact
 # earthly-entrypoint.sh starts buildkit instead of the earthly binary,
 # as a result the buildkit_additional_config value in ~/.earthly/config.yml is ignored.
 export EARTHLY_ADDITIONAL_BUILDKIT_CONFIG='[registry."docker.io"]

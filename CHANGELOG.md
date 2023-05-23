@@ -4,6 +4,62 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.6 - 2023-05-23
+
+### Added
+- Better error messages when git opperations fail.
+- Added a `runc-ps` script under the earthly-buildkitd container to make it easier to see what processes are running.
+
+### Fixed
+- The builtin 'docker compose' (rather than `docker-compose` script) is now used when using the `WITH DOCKER` command under alpine 3.18 or greater.
+- Fixed context timeout value overflow when connecting to a remote buildkit instance.
+
+## v0.7.5 - 2023-05-10
+
+### Changed
+- Remote BuildKit will use TLS by default.
+- Deprecation warning: Secret IDs naming scheme should follow the ARG naming scheme; i.e. a letter followed by alphanumeric characters or underscores. [#2883](https://github.com/earthly/earthly/issues/2883)
+- Secrets take precedence over ARGs of the same name. [#2931](https://github.com/earthly/earthly/issues/2931)
+
+### Added
+- Experimental support for performing a `git lfs pull --include=<path>` when referencing a remote target on the cli, when used with the new `--git-lfs-pull-include` flag. [#2992](https://github.com/earthly/earthly/pull/2922)
+
+### Fixed
+- `SAVE IMAGE <img>` was incorrectly pushed when earthly was run with the `--push` cli flag (this restores the requirement that images that are pushed must be defined with `SAVE IMAGE --push <img>`). [#2923](https://github.com/earthly/earthly/issues/2923)
+- Incorrect global ARG values when chaining multiple DO commands together. [#2920](https://github.com/earthly/earthly/issues/2920)
+- Build args autocompletion under artifact mode.
+
+## v0.7.4 - 2023-04-12
+
+### Changed
+- Updated the github ssh-rsa public key in the pre-populated buildkitd known_hosts entries.
+
+## v0.7.3 - 2023-04-12
+
+### Added
+- A host of changes to variables under the `--arg-scope-and-set` feature flag:
+  - Redeclaring an `ARG` in the same scope as a previous declaration is now an error.
+  - `ARG`s inside of targets will no longer have their default value overridden by global `ARG`s.
+  - A new command, `LET`, is available for declaring non-argument variables.
+    - `LET` takes precedence over `ARG`, just like `ARG` takes precedence over `ARG --global`.
+  - A new command, `SET`, is available for changing the value of variables declared with `LET`.
+- Introduced `--size` and `--age` flags to the prune command, to allow better control.
+
+### Changed
+
+- Updated buildkit with changes up to 3187d2d056de7e3f976ef62cd548499dc3472a7e.
+- The `VERSION --git-branch` feature flag has been removed (`EARTHLY_GIT_BRANCH` was always available in the previous version).
+- Improved earthly API connection timeout logic.
+- `earthly doc` now includes `ARG`s in both summary and detail output, and `ARTIFACT`s and `IMAGE`s in its detail output.
+
+### Fixed
+
+- Fixed `Could not detect digest for image` warnings for when using `WITH DOCKER --load` which referenced an earthly target that
+  included a `FROM` referencing an image following the `docker.io/<user>/<img>` naming scheme (rather than the `docker.io/library/<user>/<img>` scheme).
+- Fixed `COPY --if-exists` to work with earthly targets.  [#2541](https://github.com/earthly/earthly/issues/2541)
+- Intentional-indentation of comments is no longer removed by the doc command. [#2747](https://github.com/earthly/earthly/issues/2747)
+- `SAVE ARTIFACT ... AS LOCAL ...` could not write to non-current directories upon failure of a TRY/FINALLY block. [#2800](https://github.com/earthly/earthly/issues/2800)
+
 ## v0.7.2 - 2023-03-14
 
 ### Added

@@ -30,7 +30,8 @@ type BusSetup struct {
 	LogStreamer     *logstreamer.Orchestrator
 	InitialManifest *logstream.RunManifest
 
-	verbose bool
+	logStreamerStarted bool
+	verbose            bool
 }
 
 // New creates a new BusSetup.
@@ -74,11 +75,20 @@ func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
 	bs.InitialManifest.ProjectName = projectName
 }
 
+// LogStreamerStarted returns true if the log streamer has been started.
+func (bs *BusSetup) LogStreamerStarted() bool {
+	if bs == nil {
+		return false
+	}
+	return bs.logStreamerStarted
+}
+
 // StartLogStreamer starts a LogStreamer for the given build. The
 // LogStreamer streams logs to the cloud.
 func (bs *BusSetup) StartLogStreamer(ctx context.Context, c *cloud.Client) {
 	bs.LogStreamer = logstreamer.NewOrchestrator(bs.Bus, c, bs.InitialManifest, logstreamer.WithVerbose(bs.verbose))
 	bs.LogStreamer.Start(ctx)
+	bs.logStreamerStarted = true
 }
 
 // DumpManifestToFile dumps the manifest to the given file.

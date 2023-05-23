@@ -13,56 +13,27 @@ import (
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
-	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 )
 
 func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
-	console := app.console.WithPrefix("frontend")
-	feConfig := &containerutil.FrontendConfig{
-		BuildkitHostCLIValue:       app.buildkitHost,
-		BuildkitHostFileValue:      app.cfg.Global.BuildkitHost,
-		LocalRegistryHostFileValue: app.cfg.Global.LocalRegistryHost,
-		InstallationName:           app.installationName,
-		DefaultPort:                8372 + config.PortOffset(app.installationName),
-		Console:                    console,
-	}
-	fe, err := containerutil.FrontendForSetting(cliCtx.Context, app.cfg.Global.ContainerFrontend, feConfig)
-	if err != nil {
-		origErr := err
-		fe, err = containerutil.NewStubFrontend(cliCtx.Context, feConfig)
-		if err != nil {
-			return errors.Wrap(err, "failed stub frontend initialization")
-		}
-
-		if !app.verbose {
-			console.Printf("No frontend initialized. Use --verbose to see details\n")
-		}
-		console.VerbosePrintf("%s frontend initialization failed due to %s", app.cfg.Global.ContainerFrontend, origErr.Error())
-	} else {
-		console.VerbosePrintf("%s frontend initialized.\n", fe.Config().Setting)
-	}
-	app.containerFrontend = fe
-
 	// command line option overrides the config which overrides the default value
 	if !cliCtx.IsSet("buildkit-image") && app.cfg.Global.BuildkitImage != "" {
 		app.buildkitdImage = app.cfg.Global.BuildkitImage
 	}
-
-	// These URLs were calculated relative to the configured frontend. In the case of an automatically detected frontend,
-	// they are calculated according to the first selected one in order of precedence.
-	buildkitURLs := fe.Config().FrontendURLs
-	app.buildkitHost = buildkitURLs.BuildkitHost.String()
-	app.localRegistryHost = buildkitURLs.LocalRegistryHost.String()
 
 	bkURL, err := url.Parse(app.buildkitHost) // Not validated because we already did that when we calculated it.
 	if err != nil {
 		return errors.Wrap(err, "failed to parse generated buildkit URL")
 	}
 
-	if bkURL.Scheme == "tcp" {
-		app.handleTLSCertificateSettings(cliCtx)
+	if bkURL.Scheme == "tcp" && app.cfg.Global.TLSEnabled {
+		app.buildkitdSettings.ClientTLSCert = app.cfg.Global.ClientTLSCert
+		app.buildkitdSettings.ClientTLSKey = app.cfg.Global.ClientTLSKey
+		app.buildkitdSettings.TLSCA = app.cfg.Global.TLSCACert
+		app.buildkitdSettings.ServerTLSCert = app.cfg.Global.ServerTLSCert
+		app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
 	}
 
 	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
@@ -72,10 +43,11 @@ func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
 	app.buildkitdSettings.BuildkitAddress = app.buildkitHost
 	app.buildkitdSettings.LocalRegistryAddress = app.localRegistryHost
 	app.buildkitdSettings.UseTCP = bkURL.Scheme == "tcp"
-	app.buildkitdSettings.UseTLS = app.tlsEnabled || app.cfg.Global.TLSEnabled
+	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
 	app.buildkitdSettings.MaxParallelism = app.cfg.Global.BuildkitMaxParallelism
 	app.buildkitdSettings.CacheSizeMb = app.cfg.Global.BuildkitCacheSizeMb
 	app.buildkitdSettings.CacheSizePct = app.cfg.Global.BuildkitCacheSizePct
+	app.buildkitdSettings.CacheKeepDuration = app.cfg.Global.BuildkitCacheKeepDurationS
 	app.buildkitdSettings.EnableProfiler = app.enableProfiler
 	app.buildkitdSettings.NoUpdate = app.noBuildkitUpdate
 
@@ -110,31 +82,6 @@ func (app *earthlyApp) getBuildkitClient(cliCtx *cli.Context, cloudClient *cloud
 	return buildkitd.NewClient(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.installationName, app.containerFrontend, Version, app.buildkitdSettings)
 }
 
-func (app *earthlyApp) handleTLSCertificateSettings(context *cli.Context) {
-	if !(app.cfg.Global.TLSEnabled || app.tlsEnabled) {
-		return
-	}
-
-	if !context.IsSet("tlscert") && app.cfg.Global.ClientTLSCert != "" {
-		app.certPath = app.cfg.Global.ClientTLSCert
-	}
-
-	if !context.IsSet("tlskey") && app.cfg.Global.ClientTLSKey != "" {
-		app.keyPath = app.cfg.Global.ClientTLSKey
-	}
-
-	if !context.IsSet("tlsca") && app.cfg.Global.TLSCA != "" {
-		app.caPath = app.cfg.Global.TLSCA
-	}
-
-	app.buildkitdSettings.ClientTLSCert = app.certPath
-	app.buildkitdSettings.ClientTLSKey = app.keyPath
-	app.buildkitdSettings.TLSCA = app.caPath
-
-	app.buildkitdSettings.ServerTLSCert = app.cfg.Global.ServerTLSCert
-	app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
-}
-
 func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient *cloud.Client, gitAuthor, gitConfigEmail string) error {
 	if cliCtx.IsSet("buildkit-host") && cliCtx.IsSet("satellite") {
 		return errors.New("cannot specify both buildkit-host and satellite")
@@ -155,11 +102,27 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient *clou
 	if app.orgName == "" {
 		app.orgName = app.cfg.Satellite.Org
 	}
+
+	app.buildkitdSettings.UseTCP = true
+	if app.cfg.Global.TLSEnabled {
+		// satellite connection with tls enabled does not use configuration certificates
+		app.buildkitdSettings.ClientTLSCert = ""
+		app.buildkitdSettings.ClientTLSKey = ""
+		app.buildkitdSettings.TLSCA = ""
+		app.buildkitdSettings.ServerTLSCert = ""
+		app.buildkitdSettings.ServerTLSKey = ""
+	}
+
 	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
-	app.buildkitdSettings.SatelliteName = app.satelliteName
+	satelliteName, err := app.getSatelliteName(cliCtx.Context, orgID, app.satelliteName, cloudClient)
+	if err != nil {
+		return err
+	}
+	app.buildkitdSettings.SatelliteName = satelliteName
+	app.buildkitdSettings.SatelliteDisplayName = app.satelliteName
 	app.buildkitdSettings.SatelliteOrgID = orgID
 	if app.satelliteAddress != "" {
 		app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
@@ -182,7 +145,7 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient *clou
 
 	// Reserve the satellite for the upcoming build.
 	// This operation can take a moment if the satellite is asleep.
-	err = app.reserveSatellite(cliCtx.Context, cloudClient, app.satelliteName, orgID, gitAuthor, gitConfigEmail)
+	err = app.reserveSatellite(cliCtx.Context, cloudClient, satelliteName, app.satelliteName, orgID, gitAuthor, gitConfigEmail)
 	if err != nil {
 		return err
 	}
@@ -202,11 +165,11 @@ func (app *earthlyApp) isUsingSatellite(cliCtx *cli.Context) bool {
 	return app.cfg.Satellite.Name != "" || app.satelliteName != ""
 }
 
-func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient *cloud.Client, name, orgID, gitAuthor, gitConfigEmail string) error {
+func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient *cloud.Client, name, displayName, orgID, gitAuthor, gitConfigEmail string) error {
 	console := app.console.WithPrefix("satellite")
 	_, isCI := analytics.DetectCI()
 	out := cloudClient.ReserveSatellite(ctx, name, orgID, gitAuthor, gitConfigEmail, isCI)
-	err := showSatelliteLoading(console, name, out)
+	err := showSatelliteLoading(console, displayName, out)
 	if err != nil {
 		return errors.Wrap(err, "failed reserving satellite for build")
 	}

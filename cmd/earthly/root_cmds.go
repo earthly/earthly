@@ -16,7 +16,6 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/config"
@@ -25,7 +24,6 @@ import (
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
-	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/termutil"
 )
 
@@ -60,6 +58,14 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 					Name:        "with-autocomplete",
 					Usage:       "Add earthly autocompletions",
 					Destination: &app.bootstrapWithAutocomplete,
+				},
+				&cli.StringFlag{
+					Name:        "certs-hostname",
+					Usage:       "hostname to generate certificates for",
+					EnvVars:     []string{"EARTHLY_CERTS_HOSTNAME"},
+					Hidden:      true,
+					Value:       "localhost",
+					Destination: &app.certsHostName,
 				},
 			},
 		},
@@ -120,6 +126,14 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 			Usage:     "Document targets from an Earthfile *beta*",
 			UsageText: "earthly [options] doc [<project-ref>[+<target-ref>]]",
 			Action:    app.actionDocumentTarget,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:        "long",
+					Aliases:     []string{"l"},
+					Usage:       "Show full details for all target inputs and outputs",
+					Destination: &app.docShowLong,
+				},
+			},
 		},
 		{
 			Name:      "ls",
@@ -172,6 +186,16 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 					EnvVars:     []string{"EARTHLY_PRUNE_RESET"},
 					Usage:       "Reset cache entirely by wiping cache dir",
 					Destination: &app.pruneReset,
+				},
+				&cli.GenericFlag{
+					Name:  "size",
+					Usage: "Prune cache to specified size, starting from oldest",
+					Value: &app.pruneTargetSize,
+				},
+				&cli.DurationFlag{
+					Name:        "age",
+					Usage:       "Prune cache older than the specified duration",
+					Destination: &app.pruneKeepDuration,
 				},
 			},
 		},
@@ -403,18 +427,12 @@ func (app *earthlyApp) bootstrap(cliCtx *cli.Context) error {
 	if !app.bootstrapNoBuildkit && !app.isUsingSatellite(cliCtx) {
 		bkURL, err := url.Parse(app.buildkitHost)
 		if err != nil {
-			return errors.Wrapf(err, "invalid buildkit_host: %s", app.cfg.Global.BuildkitHost)
+			return errors.Wrapf(err, "invalid buildkit_host: %s", app.buildkitHost)
 		}
 		if bkURL.Scheme == "tcp" && app.cfg.Global.TLSEnabled {
-			root, err := cliutil.GetOrCreateEarthlyDir(app.installationName)
+			err := buildkitd.GenCerts(*app.cfg, app.certsHostName)
 			if err != nil {
-				return err
-			}
-
-			certsDir := filepath.Join(root, "certs")
-			err = buildkitd.GenerateCertificates(certsDir)
-			if err != nil {
-				return errors.Wrap(err, "setup TLS")
+				return errors.Wrap(err, "failed to generate TLS certs")
 			}
 		}
 
@@ -593,87 +611,6 @@ func ifNilBoolDefault(ptr *bool, defaultValue bool) bool {
 	return *ptr
 }
 
-func (app *earthlyApp) actionDocumentTarget(cliCtx *cli.Context) error {
-	app.commandName = "docTarget"
-
-	if cliCtx.NArg() > 1 {
-		return errors.New("invalid number of arguments provided")
-	}
-
-	var tgtPath string
-	if cliCtx.NArg() > 0 {
-		tgtPath = cliCtx.Args().Get(0)
-		switch tgtPath[0] {
-		case '.', '/', '+':
-		default:
-			return errors.New("remote-paths are not currently supported - documentation targets must start with one of ['.', '/', '+']")
-		}
-	}
-
-	singleTgt := true
-	if !strings.ContainsRune(tgtPath, '+') {
-		tgtPath += "+base"
-		singleTgt = false
-	}
-
-	target, err := domain.ParseTarget(tgtPath)
-	if err != nil {
-		return errors.Errorf("unable to parse target [%v]", tgtPath)
-	}
-
-	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
-	resolver := buildcontext.NewResolver(nil, gitLookup, app.console, "")
-	platr := platutil.NewResolver(platutil.GetUserPlatform())
-	var gwClient gwclient.Client
-	bc, err := resolver.Resolve(cliCtx.Context, gwClient, platr, target)
-	if err != nil {
-		return errors.Wrap(err, "failed to resolve target")
-	}
-
-	const docsIndent = "  "
-
-	if singleTgt {
-		tgt, err := findTarget(bc.Earthfile, target.Target)
-		if err != nil {
-			return errors.Wrap(err, "failed to look up target")
-		}
-		return app.documentSingleTarget("", docsIndent, tgt)
-		// TODO: print arg docs - probably a flag to documentSingleTarget.
-	}
-
-	tgts := bc.Earthfile.Targets
-	fmt.Println("TARGETS:")
-	const (
-		nameIndent = docsIndent
-		bodyIndent = docsIndent + docsIndent
-	)
-	for _, tgt := range tgts {
-		_ = app.documentSingleTarget(nameIndent, bodyIndent, tgt)
-	}
-
-	return nil
-}
-
-func (app *earthlyApp) documentSingleTarget(nameIndent, docIndent string, tgt spec.Target) error {
-	if tgt.Docs == "" {
-		return errors.Errorf("no doc comment found [hint: add a comment starting with the word '%s' on the line immediately above this target]", tgt.Name)
-	}
-
-	firstWordEnd := strings.IndexRune(tgt.Docs, ' ')
-	if firstWordEnd == -1 {
-		return errors.Errorf("failed to parse first word of documentation comments")
-	}
-	firstWord := tgt.Docs[:firstWordEnd]
-	if firstWord != tgt.Name {
-		return errors.Errorf("no doc comment found [hint: a comment was found but the first word was not '%s']", tgt.Name)
-	}
-
-	fmt.Println(indent(nameIndent, "+"+tgt.Name))
-	indented := indent(docIndent, tgt.Docs)
-	fmt.Println(strings.Trim(indented, "\n"))
-	return nil
-}
-
 func (app *earthlyApp) actionListTargets(cliCtx *cli.Context) error {
 	app.commandName = "listTargets"
 
@@ -698,7 +635,7 @@ func (app *earthlyApp) actionListTargets(cliCtx *cli.Context) error {
 	}
 
 	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
-	resolver := buildcontext.NewResolver(nil, gitLookup, app.console, "")
+	resolver := buildcontext.NewResolver(nil, gitLookup, app.console, "", app.gitBranchOverride, app.gitLFSPullInclude, 0, "")
 	var gwClient gwclient.Client // TODO this is a nil pointer which causes a panic if we try to expand a remotely referenced earthfile
 	// it's expensive to create this gwclient, so we need to implement a lazy eval which returns it when required.
 
@@ -775,9 +712,15 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	}
 	defer bkClient.Close()
 	var opts []client.PruneOption
+
 	if app.pruneAll {
 		opts = append(opts, client.PruneAll)
 	}
+
+	if app.pruneKeepDuration > 0 || app.pruneTargetSize > 0 {
+		opts = append(opts, client.WithKeepOpt(app.pruneKeepDuration, int64(app.pruneTargetSize)))
+	}
+
 	ch := make(chan client.UsageInfo, 1)
 	eg, ctx := errgroup.WithContext(cliCtx.Context)
 	eg.Go(func() error {
@@ -810,24 +753,4 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	}
 	app.console.Printf("Freed %s\n", humanize.Bytes(total))
 	return nil
-}
-
-func findTarget(ef spec.Earthfile, name string) (spec.Target, error) {
-	for _, tgt := range ef.Targets {
-		if tgt.Name == name {
-			return tgt, nil
-		}
-	}
-	return spec.Target{}, errors.Errorf("could not find target named [%v]", name)
-}
-
-func indent(indent, s string) string {
-	lines := strings.Split(s, "\n")
-	for i, l := range lines {
-		if l == "" {
-			continue
-		}
-		lines[i] = indent + l
-	}
-	return strings.Join(lines, "\n")
 }
