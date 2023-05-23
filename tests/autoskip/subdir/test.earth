@@ -1,0 +1,12 @@
+VERSION 0.7
+
+filetarget:
+  FROM ..+deps
+  COPY a-test-file .
+  RUN md5sum a-test-file > hash
+  SAVE ARTIFACT hash
+
+test:
+  FROM ..+deps
+  COPY +filetarget/hash .
+  RUN --no-cache cat hash

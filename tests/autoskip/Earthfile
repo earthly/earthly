@@ -1,0 +1,73 @@
+VERSION 0.7
+
+ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+ARG --global DOCKERHUB_MIRROR
+ARG --global DOCKERHUB_MIRROR_INSECURE=false
+ARG --global DOCKERHUB_MIRROR_HTTP=false
+ARG --global DOCKERHUB_AUTH=true
+FROM ../..+earthly-integration-test-base \
+    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+    --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+
+IMPORT .. AS tests
+
+WORKDIR /test
+
+test-all:
+    BUILD +test-auto-skip
+    BUILD +test-auto-skip-with-subdir
+    BUILD +test-auto-skip-requires-pipeline
+
+test-auto-skip:
+    RUN echo hello > my-file
+    DO +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+mypipeline --output_contains="I was run"
+    RUN if ! grep "SSB3YXMgcnVuCg" earthly.output >/dev/null; then echo "base64 encoded RUN echo command is missing from output" && exit 1; fi
+
+    DO +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+mypipeline --output_does_not_contain="I was run"
+    RUN if grep "SSB3YXMgcnVuCg" earthly.output >/dev/null; then echo "base64 encoded RUN echo command should not have been displayed" && exit 1; fi
+
+    # change the input file, and validate it runs
+    RUN echo world > my-file
+    DO +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+mypipeline --output_contains="I was run"
+    RUN if ! grep "SSB3YXMgcnVuCg" earthly.output >/dev/null; then echo "base64 encoded RUN echo command is missing from output" && exit 1; fi
+
+test-auto-skip-with-subdir:
+    COPY subdir.earth Earthfile
+    RUN mkdir subdir
+    COPY subdir/test.earth subdir/Earthfile
+    RUN echo abc > subdir/a-test-file
+    DO +RUN_EARTHLY_ARGS --target=+allpipe --output_contains="0bee89b07a248e27c83fc3d5951213c1"
+    DO +RUN_EARTHLY_ARGS --target=+allpipe --output_does_not_contain="0bee89b07a248e27c83fc3d5951213c1" --output_contains="target .* has already been run; exiting"
+
+    RUN echo 123 > subdir/a-test-file
+    DO +RUN_EARTHLY_ARGS --target=+allpipe --output_contains="ba1f2511fc30423bdbb183fe33f3dd0f"
+    DO +RUN_EARTHLY_ARGS --target=+allpipe --output_does_not_contain="ba1f2511fc30423bdbb183fe33f3dd0f" --output_contains="target .* has already been run; exiting"
+
+test-auto-skip-requires-pipeline:
+    RUN echo hello > my-file
+    DO +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+mytarget --output_contains="I was run"
+    RUN if ! grep "target is not a pipeline" earthly.output >/dev/null; then echo "no warning was displayed saying target must be a pipeline" && exit 1; fi
+
+RUN_EARTHLY_ARGS:
+    COMMAND
+    ARG earthfile
+    ARG target
+    ARG should_fail=false
+    ARG output_contains
+    ARG output_does_not_contain
+    DO tests+RUN_EARTHLY \
+        --earthfile=$earthfile \
+        --target=$target \
+        --should_fail=$should_fail \
+        --output_contains=$output_contains \
+        --output_does_not_contain=$output_does_not_contain \
+        --extra_args="--auto-skip --auto-skip-db-path=test.db" \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
