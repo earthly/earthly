@@ -20,6 +20,19 @@ detect_docker_compose() {
     return "$has_dc"
 }
 
+detect_docker_compose_cmd() {
+    if command -v docker-compose >/dev/null; then
+        echo "docker-compose"
+        return 0
+    fi
+    if docker help | grep -w compose >/dev/null; then
+        echo "docker compose"
+        return 0
+    fi
+    echo >&2 "failed to detect docker compose / docker-compose command"
+    return 1
+}
+
 detect_jq() {
     set +e
     command -v jq
@@ -36,10 +49,31 @@ print_debug() {
     set -u
 }
 
+detect_alpine_3_18_or_newer() {
+    VERSION="$(grep VERSION_ID= /etc/os-release | awk -F= '{print $2}')"
+    if [ -z "$VERSION" ]; then
+        echo >&2 "Error: unable to detect alpine version"
+        exit 1
+    fi
+    MAJOR="$(echo "$VERSION" | awk -F. '{print $1}')"
+    MINOR="$(echo "$VERSION" | awk -F. '{print $2}')"
+    if [ "$MAJOR" -lt 3 ]; then
+        return 1
+    fi
+    if [ "$MINOR" -lt 18 ]; then
+        return 1
+    fi
+    return 0
+}
+
 install_docker_compose() {
     case "$distro" in
         alpine)
-            apk add --update --no-cache docker-compose
+            if detect_alpine_3_18_or_newer; then
+                apk add --update --no-cache docker-cli-compose
+            else
+                apk add --update --no-cache docker-compose
+            fi
             ;;
         *)
             echo "Detected architecture is $(uname -m)"
@@ -166,11 +200,17 @@ fi
 set +u
 if [ "$EARTHLY_START_COMPOSE" = "true" ] || [ "$EARTHLY_START_COMPOSE" = "" ]; then
     set -u
-    if ! detect_docker_compose; then
+    set +e;
+    docker_compose="$(detect_docker_compose_cmd)"
+    set -e
+    if [ -z "$docker_compose" ]; then
         echo "Docker Compose is missing. Attempting to install automatically."
         install_docker_compose
+
+        docker_compose="$(detect_docker_compose_cmd)"
         echo "Docker Compose was missing. It has been installed automatically by Earthly."
-        docker-compose --version
+
+        $docker_compose --version
         echo "For better use of cache, try using the official earthly/dind image for WITH DOCKER."
     else
         print_debug "docker-compose already installed"

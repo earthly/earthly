@@ -7,8 +7,8 @@ EARTHLY_IMAGE=${EARTHLY_IMAGE:-earthly/earthly:dev-main}
 if [ -z "${DOCKERHUB_MIRROR_USERNAME:-}" ] && [ -z "${DOCKERHUB_MIRROR_PASSWORD:-}" ]; then
   echo "using dockerhub credentials from earthly secrets"
   DOCKERHUB_MIRROR_USERNAME="$(earthly secrets --org earthly-technologies --project core get dockerhub-mirror/user)"
-  DOCKERHUB_MIRROR_PASSWORD="$(earthly secrets --org earthly-technologies --project core get dockerhub-mirror/pass)"
   export DOCKERHUB_MIRROR_USERNAME
+  DOCKERHUB_MIRROR_PASSWORD="$(earthly secrets --org earthly-technologies --project core get dockerhub-mirror/pass)"
   export DOCKERHUB_MIRROR_PASSWORD
 fi
 test -n "$DOCKERHUB_MIRROR_USERNAME" || (echo "error: DOCKERHUB_MIRROR_USERNAME is not set" && exit 1)
