@@ -542,6 +542,25 @@ FROM +docker-image --NAME=john
 
 For more information on how to use build args see the [build arguments and secrets guide](../guides/build-args.md). A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
 
+{% hint style='info' %}
+##### Shadowing Variables
+
+By default, `ARG` scoping isn't intuitive. When an `ARG` statement is parsed, earthly will look up _any_ previous declaration of the `ARG` and use the previous value, ignoring any new default. So for example:
+
+```
+VERSION 0.7
+ARG --global foo = bar
+
+baz:
+    ARG foo = bacon
+    RUN echo $foo
+```
+
+would print `bar`.
+
+The experimental `--arg-scope-and-set` feature flag changes this behavior. With `VERSION --arg-scope-and-set 0.7` local `ARG`s may shadow global `ARG`s, and redeclaring an `ARG` in the same scope will cause an error. This means that the above example would instead print `bacon`.
+{% endhint %}
+
 #### Options
 
 ##### `--required`
@@ -1223,6 +1242,57 @@ WAIT
 END
 RUN ./test data # even if this fails, data will have been output
 ```
+
+## LET (experimental)
+
+{% hint style='info' %}
+##### Note
+The `LET` command is currently incomplete and has experimental status. To use this feature, it must be enabled via `VERSION --arg-scope-and-set 0.7`.
+{% endhint %}
+
+#### Synopsis
+
+* `LET <name>=<value>`
+
+#### Description
+
+The command `LET` declares a variable with the name `<name>` and with a value `<value>`. This command works similarly to `ARG` except that it cannot be overridden from the CLI.
+
+`LET` variables are allowed to shadow `ARG` variables, which allows you to promote an `ARG` to a local variable so that it may be used with `SET`.
+
+##### Example
+
+```
+VERSION --arg-scope-and-set 0.7
+
+# mode defines the build mode. Valid values are 'dev' and 'prod'.
+ARG --global mode = dev
+
+foo:
+    LET buildArgs = --mode development
+    IF [ "$mode" = "prod" ]
+        SET buildArgs = --mode production --optimize
+    END
+```
+
+## SET (experimental)
+
+{% hint style='info' %}
+##### Note
+The `SET` command is currently incomplete and has experimental status. To use this feature, it must be enabled via `VERSION --arg-scope-and-set 0.7`.
+{% endhint %}
+
+#### Synopsis
+
+* `SET <name>=<value>`
+
+#### Description
+
+The command `SET` may be used to change the value of a previously declared variable, so long as the variable was declared with `LET`.
+
+`ARG` variables may *not* be changed by `SET`, since `ARG` is intended to accept overrides from the CLI. If you want to change the value of an `ARG` variable, redeclare it with `LET someVar = "$someVar"` first.
+
+See [the `LET` docs for more info](#let).
 
 ## TRY (experimental)
 
