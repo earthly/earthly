@@ -52,8 +52,6 @@ github.com/agext/levenshtein v1.2.3 h1:YB2fHEn0UJagG8T1rrWknE3ZQzWM06O8AMAatNn7l
 github.com/agext/levenshtein v1.2.3/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki2W0IB5558=
 github.com/alessio/shellescape v1.4.1 h1:V7yhSDDn8LP4lc4jS8pFkt0zCnzVJlG5JXy9BVKJUX0=
 github.com/alessio/shellescape v1.4.1/go.mod h1:PZAiSCk0LJaZkiCSkPv8qIobYglO3FPpyFjDCtHLS30=
-github.com/alexcb/cloud-api v0.0.0-20230501183215-3278b4dd196a h1:Mj0wjX5HUcQfvdx+8Uor4GakidwCU5o+C1MFoY7VIlA=
-github.com/alexcb/cloud-api v0.0.0-20230501183215-3278b4dd196a/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
 github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5 h1:im0niQRZXdxO8F1rw4zwb5rJmOJ9XnNtlnMFyfLenYE=
 github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5/go.mod h1:Fw0T6WPc1dYxT4mKEZRfG5kJhaTDP9pj1c2EWnYs/m4=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
@@ -162,6 +160,8 @@ github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkp
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/earthly/buildkit v0.0.0-20230422145224-4e601edf402b h1:ixzP40Ihz7i4RJeQEJWy225BKMLGdZ04P97liVOVH4s=
 github.com/earthly/buildkit v0.0.0-20230422145224-4e601edf402b/go.mod h1:RCqn8ESzIWtwwWfWNrSV5uuOJ+/rPrNBnxrlNUcC95w=
+github.com/earthly/cloud-api v1.0.1-0.20230509135033-ab3df26f706b h1:mBt64zr6Be12ERlA98uS6mvd/jcik/FFoVKWBs2hfJ0=
+github.com/earthly/cloud-api v1.0.1-0.20230509135033-ab3df26f706b/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
 github.com/earthly/fsutil v0.0.0-20230322211606-d14130b24a8e h1:xaXCt5r88E8DGaja88qq1Lk3Uv9r1vb/9Adw/+K5YjM=
 github.com/earthly/fsutil v0.0.0-20230322211606-d14130b24a8e/go.mod h1:AvLEd1LEIl64G2Jpgwo7aVV5lGH0ePcKl0ygGIHNYl8=
 github.com/elastic/go-sysinfo v1.9.0 h1:usICqY/Nw4Mpn9f4LdtpFrKxXroJDe81GaxxUlCckIo=
