@@ -35,6 +35,7 @@ type gitResolver struct {
 	cleanCollection   *cleanup.Collection
 	gitBranchOverride string
 	lfsInclude        string
+	logLevel          llb.GitLogLevel
 	gitImage          string
 	projectCache      *synccache.SyncCache // "gitURL#gitRef" -> *resolvedGitProject
 	buildFileCache    *synccache.SyncCache // project ref -> local path
@@ -190,6 +191,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		gitOpts := []llb.GitOption{
 			llb.WithCustomNamef("%sGIT CLONE %s", vm.ToVertexPrefix(), stringutil.ScrubCredentials(gitURL)),
 			llb.KeepGitDir(),
+			llb.LogLevel(gr.logLevel),
 		}
 		if len(keyScans) > 0 {
 			gitOpts = append(gitOpts, llb.KnownSSHHosts(strings.Join(keyScans, "\n")))

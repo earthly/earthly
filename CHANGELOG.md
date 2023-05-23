@@ -4,6 +4,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+- better error messages when git opperations fail.
+
 ## v0.7.5 - 2023-05-10
 
 ### Changed

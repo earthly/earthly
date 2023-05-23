@@ -109,6 +109,16 @@ func (app *earthlyApp) combineVariables(dotEnvMap map[string]string, flagArgs []
 	return variables.CombineScopes(overridingVars, dotEnvVars), nil
 }
 
+func (app *earthlyApp) gitLogLevel() llb.GitLogLevel {
+	if app.debug {
+		return llb.GitLogLevelTrace
+	}
+	if app.verbose {
+		return llb.GitLogLevelDebug
+	}
+	return llb.GitLogLevelDefault
+}
+
 func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []string) error {
 	var target domain.Target
 	var artifact domain.Artifact
@@ -514,6 +524,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		InteractiveDebuggingDebugLevelLogging: app.debug,
 		GitImage:                              app.cfg.Global.GitImage,
 		GitLFSInclude:                         app.gitLFSPullInclude,
+		GitLogLevel:                           app.gitLogLevel(),
 	}
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
 	if err != nil {
