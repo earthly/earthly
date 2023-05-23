@@ -443,6 +443,13 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			Destination: &app.globalWaitEnd,
 			Hidden:      true, // used to force code-coverage of future builder.go refactor (once we remove support for 0.6)
 		},
+		&cli.StringFlag{
+			Name:        "git-lfs-pull-include",
+			EnvVars:     []string{"EARTHLY_GIT_LFS_PULL_INCLUDE"},
+			Usage:       "When referencing a remote target, perform a git lfs pull include prior to running the target. Note that this flag is (hopefully) temporary, see https://github.com/earthly/earthly/issues/2921 for details.",
+			Destination: &app.gitLFSPullInclude,
+			Hidden:      true, // Experimental
+		},
 	}
 }
 

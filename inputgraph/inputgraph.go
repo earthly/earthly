@@ -275,7 +275,7 @@ func (l *loader) findProject(ctx context.Context) (org, project string, err erro
 	if l.target.IsRemote() {
 		return "", "", ErrRemoteNotSupported
 	}
-	resolver := buildcontext.NewResolver(nil, nil, l.conslog, "", "")
+	resolver := buildcontext.NewResolver(nil, nil, l.conslog, "", "", "", 0, "")
 	bc, err := resolver.Resolve(ctx, nil, nil, l.target)
 	if err != nil {
 		return "", "", err
@@ -306,7 +306,7 @@ func (l *loader) load(ctx context.Context) error {
 	if l.target.IsRemote() {
 		return ErrRemoteNotSupported
 	}
-	resolver := buildcontext.NewResolver(nil, nil, l.conslog, "", "")
+	resolver := buildcontext.NewResolver(nil, nil, l.conslog, "", "", "", 0, "")
 	bc, err := resolver.Resolve(ctx, nil, nil, l.target)
 	if err != nil {
 		return err

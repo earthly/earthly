@@ -89,6 +89,9 @@ type NewCollectionOpt struct {
 func NewCollection(opts NewCollectionOpt) *Collection {
 	target := opts.Target
 	console := opts.Console
+	if opts.OverridingVars == nil {
+		opts.OverridingVars = NewScope()
+	}
 	return &Collection{
 		builtin:          BuiltinArgs(target, opts.PlatformResolver, opts.GitMeta, opts.BuiltinArgs, opts.Features, opts.Push, opts.CI),
 		envs:             NewScope(),
@@ -152,6 +155,16 @@ func (c *Collection) SetGlobals(globals *Scope) {
 	c.effectiveCache = nil
 }
 
+// TopOverriding returns a copy of the top-level overriding args, for use in
+// commands that may need to re-parse the base target but have drastically
+// different variable scopes.
+func (c *Collection) TopOverriding() *Scope {
+	if len(c.stack) == 0 {
+		return NewScope()
+	}
+	return c.stack[0].overriding.Clone()
+}
+
 // Overriding returns a copy of the overriding args.
 func (c *Collection) Overriding() *Scope {
 	return c.overriding().Clone()
@@ -213,6 +226,9 @@ func (c *Collection) Expand(word string, shellOut shell.EvalShellOutFn) (string,
 
 func (c *Collection) overridingOrDefault(name string, defaultValue string, pncvf ProcessNonConstantVariableFunc) (string, error) {
 	if v, ok := c.overriding().Get(name); ok {
+		return v, nil
+	}
+	if v, ok := c.builtin.Get(name); ok {
 		return v, nil
 	}
 	return parseArgValue(name, defaultValue, pncvf)

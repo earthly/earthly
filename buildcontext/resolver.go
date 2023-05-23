@@ -15,7 +15,7 @@ import (
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/synccache"
-
+	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
 )
@@ -58,16 +58,13 @@ type Resolver struct {
 }
 
 // NewResolver returns a new NewResolver.
-func NewResolver(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides, gitBranchOverride string) *Resolver {
-	return NewResolverCustomGit(cleanCollection, gitLookup, console, featureFlagOverrides, gitBranchOverride, "")
-}
-
-// NewResolverCustomGit returns a new Resolver instance with a custom gitImage.
-func NewResolverCustomGit(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides, gitBranchOverride, gitImage string) *Resolver {
+func NewResolver(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides, gitBranchOverride, gitLFSInclude string, gitLogLevel llb.GitLogLevel, gitImage string) *Resolver {
 	return &Resolver{
 		gr: &gitResolver{
 			gitBranchOverride: gitBranchOverride,
 			gitImage:          gitImage,
+			lfsInclude:        gitLFSInclude,
+			logLevel:          gitLogLevel,
 			cleanCollection:   cleanCollection,
 			projectCache:      synccache.New(),
 			buildFileCache:    synccache.New(),

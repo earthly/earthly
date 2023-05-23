@@ -21,8 +21,9 @@ while true; do
     # TODO implement a secrets ls --long, which would show a "date created/modified" column
     # then if the lock is older than 1 minute, we would consider it abandoned, delete it, and create
     # a new lock. For now, we will simply sleep for 60 seconds (which should be enough time for the test to pass)
-    echo "lock exists; sleeping for 60 seconds"
-    sleep 60
+    duration=$[ ( $RANDOM % 30 ) + 180 ]
+    echo "lock exists; sleeping for $duration seconds"
+    sleep "$duration"
 done
 
 id="$(uuidgen)"

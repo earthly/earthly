@@ -6,9 +6,11 @@ import (
 )
 
 var (
-	beTrue  = matchers.BeTrue
-	beFalse = matchers.BeFalse
-	equal   = matchers.Equal
+	beTrue       = matchers.BeTrue
+	beFalse      = matchers.BeFalse
+	equal        = matchers.Equal
+	not          = matchers.Not
+	haveOccurred = matchers.HaveOccurred
 )
 
 var (

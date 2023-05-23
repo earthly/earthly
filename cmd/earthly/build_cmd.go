@@ -13,6 +13,7 @@ import (
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
 	"github.com/earthly/earthly/analytics"
+	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
@@ -109,6 +110,16 @@ func (app *earthlyApp) combineVariables(dotEnvMap map[string]string, flagArgs []
 	return variables.CombineScopes(overridingVars, dotEnvVars), nil
 }
 
+func (app *earthlyApp) gitLogLevel() llb.GitLogLevel {
+	if app.debug {
+		return llb.GitLogLevelTrace
+	}
+	if app.verbose {
+		return llb.GitLogLevelDebug
+	}
+	return llb.GitLogLevelDefault
+}
+
 func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []string) error {
 	var target domain.Target
 	var artifact domain.Artifact
@@ -163,6 +174,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			return errors.Wrapf(err, "parse target name %s", targetName)
 		}
 	}
+	app.analyticsMetadata.target = target
 
 	var (
 		gitCommitAuthor string
@@ -360,6 +372,12 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if err != nil {
 		return err
 	}
+	for secretKey := range secretsMap {
+		if !ast.IsValidEnvVarName(secretKey) {
+			// TODO If the year is 2024 or later, please move this check into processSecrets, and turn it into an error; see https://github.com/earthly/earthly/issues/2883
+			app.console.Warnf("Deprecation: secret key %q does not follow the recommended naming convention (a letter followed by alphanumeric characters or underscores); this will become an error in a future version of earthly.", secretKey)
+		}
+	}
 
 	localhostProvider, err := localhostprovider.NewLocalhostProvider()
 	if err != nil {
@@ -482,10 +500,10 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			cacheExport = app.remoteCache
 		}
 	}
-	var parallelism semutil.Semaphore
-	if app.cfg.Global.ConversionParallelism != 0 {
-		parallelism = semutil.NewWeighted(int64(app.cfg.Global.ConversionParallelism))
+	if app.cfg.Global.ConversionParallelism <= 0 {
+		return fmt.Errorf("configuration error: \"conversion_parallelism\" must be larger than zero")
 	}
+	parallelism := semutil.NewWeighted(int64(app.cfg.Global.ConversionParallelism))
 	localRegistryAddr := ""
 	if isLocal && app.localRegistryHost != "" {
 		lrURL, err := url.Parse(app.localRegistryHost)
@@ -530,6 +548,8 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		InteractiveDebugging:                  app.interactiveDebugging,
 		InteractiveDebuggingDebugLevelLogging: app.debug,
 		GitImage:                              app.cfg.Global.GitImage,
+		GitLFSInclude:                         app.gitLFSPullInclude,
+		GitLogLevel:                           app.gitLogLevel(),
 	}
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
 	if err != nil {

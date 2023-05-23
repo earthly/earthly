@@ -19,7 +19,7 @@ func parseFeatures(buildFilePath string, featureFlagOverrides string, projectRef
 		return nil, err
 	}
 
-	ftrs, hasVersion, err := features.GetFeatures(version)
+	ftrs, hasVersion, err := features.Get(version)
 	if err != nil {
 		return nil, err
 	}

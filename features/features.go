@@ -158,8 +158,8 @@ func instrumentVersion(_ string, opt *goflags.Option, s *string) (*string, error
 	return s, nil // don't modify the flag, just pass it back.
 }
 
-// GetFeatures returns a features struct for a particular version
-func GetFeatures(version *spec.Version) (*Features, bool, error) {
+// Get returns a features struct for a particular version
+func Get(version *spec.Version) (*Features, bool, error) {
 	var ftrs Features
 	hasVersion := (version != nil)
 	if !hasVersion {

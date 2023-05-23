@@ -146,6 +146,7 @@ ga-no-qemu:
     BUILD +excludes-test
     BUILD +secrets-test
     BUILD +secrets-optional-prefix-test
+    BUILD +secrets-args-precedence-test
     BUILD +project-secrets-test
     BUILD +build-arg-test
     BUILD +build-arg-explicit-global-test
@@ -210,6 +211,7 @@ ga-no-qemu:
     BUILD +platform-output
     BUILD +command
     BUILD +command-explicit-global
+    BUILD +command-nested-global
     BUILD +duplicate
     BUILD +reserved
     BUILD +quotes-test
@@ -349,15 +351,24 @@ git-clone-test:
 
 builtin-args-test:
     DO +RUN_EARTHLY --earthfile=builtin-args.earth --target=+builtin-args-test
+    RUN sed -i "1s/VERSION \(.*\)/VERSION --arg-scope-and-set \1/" Earthfile
+    DO +RUN_EARTHLY --target=+builtin-args-test
 
 builtin-args-invalid-default-test:
     DO +RUN_EARTHLY --earthfile=builtin-args-invalid-default.earth --should_fail=true --target=+test --output_contains="arg default value supplied for built-in ARG"
+    RUN sed -i "1s/VERSION \(.*\)/VERSION --arg-scope-and-set \1/" Earthfile
+    DO +RUN_EARTHLY --should_fail=true --target=+test --output_contains="arg default value supplied for built-in ARG"
 
 builtin-args-invalid-pass-test:
     DO +RUN_EARTHLY --earthfile=builtin-args-invalid-pass.earth --should_fail=true --target=+test --output_contains="value cannot be specified for built-in build arg EARTHLY_VERSION"
+    RUN sed -i "1s/VERSION \(.*\)/VERSION --arg-scope-and-set \1/" Earthfile
+    DO +RUN_EARTHLY --should_fail=true --target=+test --output_contains="value cannot be specified for built-in build arg EARTHLY_VERSION"
 
 builtin-args-cli-tests:
     DO +RUN_EARTHLY --earthfile=builtin-args.earth --should_fail=true --extra_args="--build-arg EARTHLY_VERSION=123" --target=+builtin-args-test \
+        --output_contains="cannot be passed on the command line"
+    RUN sed -i "1s/VERSION \(.*\)/VERSION --arg-scope-and-set \1/" Earthfile
+    DO +RUN_EARTHLY --should_fail=true --extra_args="--build-arg EARTHLY_VERSION=123" --target=+builtin-args-test \
         --output_contains="cannot be passed on the command line"
 
 smoke-test:
@@ -411,6 +422,9 @@ project-secrets-test:
         --extra_args="--secret SECRET1=foo --secret SECRET2=bar" \
         --should_fail=false \
         --output_contains="my secrets are foo and bar"
+
+secrets-args-precedence-test:
+    DO +RUN_EARTHLY --earthfile=secrets-args-precedence.earth --target=+test --extra_args="--secret foo=eggs"
 
 build-arg-test:
     DO +RUN_EARTHLY --earthfile=build-arg.earth
@@ -1083,6 +1097,9 @@ command:
 
 command-explicit-global:
     DO +RUN_EARTHLY --earthfile=command-explicit-global.earth
+
+command-nested-global:
+    DO +RUN_EARTHLY --earthfile=command-nested-global.earth --target="+test-overriding --foo=expected"
 
 duplicate:
     DO +RUN_EARTHLY --earthfile=duplicate-target-names.earth --should_fail=true --target=+duplicate

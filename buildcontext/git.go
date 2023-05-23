@@ -34,6 +34,8 @@ const (
 type gitResolver struct {
 	cleanCollection   *cleanup.Collection
 	gitBranchOverride string
+	lfsInclude        string
+	logLevel          llb.GitLogLevel
 	gitImage          string
 	projectCache      *synccache.SyncCache // "gitURL#gitRef" -> *resolvedGitProject
 	buildFileCache    *synccache.SyncCache // project ref -> local path
@@ -176,7 +178,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "failed to get url for cloning")
 	}
-	analytics.Count("gitResolver.resolveEarthProject", analytics.RepoHashFromCloneURL(gitURL))
+	analytics.Count("gitResolver.resolveEarthProject", "")
 
 	// Check the cache first.
 	cacheKey := fmt.Sprintf("%s#%s", gitURL, gitRef)
@@ -189,9 +191,15 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		gitOpts := []llb.GitOption{
 			llb.WithCustomNamef("%sGIT CLONE %s", vm.ToVertexPrefix(), stringutil.ScrubCredentials(gitURL)),
 			llb.KeepGitDir(),
+			llb.LogLevel(gr.logLevel),
 		}
 		if len(keyScans) > 0 {
 			gitOpts = append(gitOpts, llb.KnownSSHHosts(strings.Join(keyScans, "\n")))
+		}
+		if gr.lfsInclude != "" {
+			// TODO this should eventually be infered by the contents of a COPY command, which means the call to resolveGitProject will need to be lazy-evaluated
+			// However this makes it really difficult for an Earthfile which first has an ARG EARTHLY_GIT_HASH, then a RUN, then a COPY
+			gitOpts = append(gitOpts, llb.LFSInclude(gr.lfsInclude))
 		}
 
 		gitState := llb.Git(gitURL, gitRef, gitOpts...)
@@ -325,6 +333,9 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		}
 		if len(keyScans) > 0 {
 			gitOpts = append(gitOpts, llb.KnownSSHHosts(strings.Join(keyScans, "\n")))
+		}
+		if gr.lfsInclude != "" {
+			gitOpts = append(gitOpts, llb.LFSInclude(gr.lfsInclude))
 		}
 
 		rgp := &resolvedGitProject{
