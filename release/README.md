@@ -34,7 +34,7 @@
   ```bash
   env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG="$RELEASE_TAG" USER="$USER" PRERELEASE="$PRERELEASE" ./release.sh
   ```
-* Merge branch `main` into `docs-0.7`, then merge branch `docs-0.7` into `main`.
+* Merge branch `main` into `docs-0.7`
 * Update the version for the installation command in the following places:
 <!-- vale HouseStyle.Spelling = NO -->
   * [circle-integration.md](../docs/ci-integration/guides/circle-integration.md)
@@ -61,6 +61,8 @@
 <!-- vale HouseStyle.Spelling = NO -->
   * [all-in-one.md](../docs/docker-images/all-in-one.md)
   * [buildkit-standalone.md](../docs/docker-images/buildkit-standalone.md)
+* Commit updated version changes to `docs-0.7`.
+* Merge `docs-0.7` into `main`.
 <!-- vale HouseStyle.Spelling = YES -->
 * After GitBook has processed the `main` branch, run a broken link checker over https://docs.earthly.dev. This one is fast and easy: https://www.deadlinkchecker.com/.
 * Verify the [Homebrew release job](https://github.com/earthly/homebrew-earthly) has successfully run and has merged the new `release-v...` branch into `main`.
