@@ -450,6 +450,13 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			Destination: &app.gitLFSPullInclude,
 			Hidden:      true, // Experimental
 		},
+		&cli.BoolFlag{
+			Name:        "earthly-ci-runner",
+			EnvVars:     []string{"EARTHLY_CI_RUNNER"},
+			Usage:       "Internal flag to indicate the build is running within Earthly CI",
+			Destination: &app.earthlyCIRunner,
+			Hidden:      true,
+		},
 	}
 }
 

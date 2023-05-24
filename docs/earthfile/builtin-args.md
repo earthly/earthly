@@ -27,6 +27,7 @@ The following builtin args are available
 | --- | --- | --- |
 | `EARTHLY_BUILD_SHA` | The git hash of the commit which built the currently running version of Earthly. | `1a9eda7a83af0e2ec122720e93ff6dbe9231fc0c` |
 | `EARTHLY_CI` | Whether the build is being executed in --ci mode. | `true`, `false` |
+| `EARTHLY_CI_RUNNER` | Whether the build is being executed within Earthly CI. | `true`, `false` |
 | `EARTHLY_GIT_AUTHOR` | The git author detected within the build context directory. If no git directory is detected, then the value is an empty string. | `John Doe <john@example.com>` |
 | `EARTHLY_GIT_CO_AUTHORS` | The git co-authors detected within the build context directory, separated by space. If no git directory is detected, then the value is an empty string. | `Jane Doe <jane@example.com Jack Smith <jack@example.com>` |
 | `EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP` | The author timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is an empty string. | `1626881847` |

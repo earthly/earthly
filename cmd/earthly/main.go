@@ -191,6 +191,7 @@ type cliFlags struct {
 	gcpServiceAccountKeyStdin       bool
 	serverConnTimeout               time.Duration
 	certsHostName                   string
+	earthlyCIRunner                 bool
 }
 
 type analyticsMetadata struct {
@@ -347,6 +348,7 @@ func main() {
 					Realtime:         time.Since(startTime),
 					OrgName:          org,
 					ProjectName:      project,
+					EarthlyCIRunner:  app.earthlyCIRunner,
 				},
 				app.installationName,
 			)

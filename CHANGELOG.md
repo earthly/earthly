@@ -4,6 +4,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+- The new ARG `EARTHLY_CI_RUNNER` indicates whether the current build is executed in Earthly CI. Enable with `VERSION --earthly-ci-runner-arg 0.7`.
+
 ## v0.7.6 - 2023-05-23
 
 ### Added
