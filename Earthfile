@@ -1,4 +1,4 @@
-VERSION --shell-out-anywhere --use-copy-link 0.6
+VERSION --no-network 0.7
 
 FROM golang:1.20-alpine3.17
 
@@ -254,6 +254,10 @@ unit-test:
 chaos-test:
     FROM +code
     RUN go test -tags chaos ./...
+
+offline-test:
+    FROM +code
+    RUN --network=none go test -tags offline ./...
 
 # submodule-decouple-check checks that go submodules within earthly do not
 # depend on the core earthly project.
@@ -599,6 +603,7 @@ lint-docs:
 test-no-qemu:
     BUILD +unit-test
     BUILD +chaos-test
+    BUILD +offline-test
     BUILD +earthly-script-no-stdout
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false
