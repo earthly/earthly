@@ -13,6 +13,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/moby/buildkit/client"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
@@ -499,6 +500,35 @@ func symlinkEarthlyToEarth() error {
 	return nil
 }
 
+func handleDockerFiles(buildContextPath string) error {
+	earthfilePath := filepath.Join(buildContextPath, "Earthfile")
+	earthfilePathExists, err := fileutil.FileExists(earthfilePath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to check if %s exists", earthfilePath)
+	}
+	if earthfilePathExists {
+		return errors.Errorf("earthfile already exists; please delete it if you wish to continue")
+	}
+
+	dockerIgnorePath := filepath.Join(buildContextPath, ".dockerignore")
+	dockerIgnorePathExists, err := fileutil.FileExists(dockerIgnorePath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to check if %s exists", dockerIgnorePath)
+	}
+
+	if !dockerIgnorePathExists {
+		return nil
+	}
+
+	earthlyIgnoreFilePath := filepath.Join(buildContextPath, ".earthlyignore")
+	err = copy.Copy(dockerIgnorePath, earthlyIgnoreFilePath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to copy %s to %s", dockerIgnorePath, earthlyIgnoreFilePath)
+	}
+	defer os.Remove(earthlyIgnoreFilePath)
+	return nil
+}
+
 func (app *earthlyApp) actionDocker(cliCtx *cli.Context) error {
 	app.commandName = "docker"
 
@@ -517,15 +547,10 @@ func (app *earthlyApp) actionDocker(cliCtx *cli.Context) error {
 
 	buildContextPath := nonFlagArgs[0]
 
-	earthfilePath := filepath.Join(buildContextPath, "Earthfile")
-	earthfilePathExists, err := fileutil.FileExists(earthfilePath)
+	err = handleDockerFiles(buildContextPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to check if %s exists", earthfilePath)
+		return err
 	}
-	if earthfilePathExists {
-		return errors.Errorf("earthfile already exists; please delete it if you wish to continue")
-	}
-	//defer os.Remove(earthfilePath)
 
 	argMap, err := godotenv.Read(app.argFile)
 	if err != nil && (cliCtx.IsSet(argFileFlag) || !errors.Is(err, os.ErrNotExist)) {
@@ -536,7 +561,8 @@ func (app *earthlyApp) actionDocker(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "combining build args")
 	}
-	err = docker2earthly.DockerWithEarthly(buildContextPath, app.dockerfilePath, earthfilePath, app.earthfileFinalImage, buildArgs.Sorted(), app.platformsStr.Value(), app.dockerTarget)
+
+	err = docker2earthly.DockerWithEarthly(buildContextPath, app.dockerfilePath, app.earthfileFinalImage, buildArgs.Sorted(), app.platformsStr.Value(), app.dockerTarget)
 	if err != nil {
 		return err
 	}

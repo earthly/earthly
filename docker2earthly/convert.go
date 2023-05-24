@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/earthly/earthly/util/fileutil"
@@ -140,11 +141,9 @@ func Docker2Earthly(dockerfilePath, earthfilePath, imageTag string) error {
 	return nil
 }
 
-func DockerWithEarthly(buildContextPath string, dockerfilePath, earthfilePath, imageTag string, buildArgs []string, platforms []string, target string) error {
-	if exists, _ := fileutil.FileExists(earthfilePath); exists {
-		return errors.Errorf("earthfile already exists; please delete it if you wish to continue")
-	}
-
+func DockerWithEarthly(buildContextPath string, dockerfilePath, imageTag string, buildArgs []string, platforms []string, target string) error {
+	earthfilePath := filepath.Join(buildContextPath, "Earthfile")
+	defer os.Remove(earthfilePath)
 	out, err := os.Create(earthfilePath)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create Earthfile under %q", earthfilePath)
@@ -152,7 +151,7 @@ func DockerWithEarthly(buildContextPath string, dockerfilePath, earthfilePath, i
 	defer out.Close()
 
 	fmt.Fprintf(out, "VERSION %s\n", earthlyCurrentVersion)
-	fmt.Fprintf(out, "# This Earthfile was generated using docker command\n")
+	fmt.Fprintf(out, "# This Earthfile was generated using docker-build command\n")
 	fmt.Fprintf(out, "docker:\n")
 
 	for _, ba := range buildArgs {
