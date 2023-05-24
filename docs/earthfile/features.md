@@ -58,6 +58,7 @@ to require version `0.X` (or later), and could be rewritten as `VERSION 0.X`.
 | `--earthly-git-author-args` | 0.7 | Enable the `EARTHLY_GIT_AUTHOR` and `EARTHLY_GIT_CO_AUTHORS` args |
 | `--wait-block` | 0.7 | Enable the `WAIT` / `END` block commands |
 | `--try` | Experimental | Enable the `TRY` / `FINALLY` / `END` block commands |
+| `--arg-scope-and-set` | Experimental | Enable the `LET` / `SET` commands and nested `ARG` scoping |
 
 
 Note that the features flags are disabled by default in Earthly versions lower than the version listed in the "status" column above.
