@@ -20,6 +20,7 @@ test-root-commands:
 bootstrap 
 config 
 doc 
+docker-build 
 ls 
 org 
 project 
@@ -37,6 +38,7 @@ build
 config 
 debug 
 doc 
+docker-build 
 docker2earthly 
 ls 
 org 

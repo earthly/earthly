@@ -38,37 +38,6 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 			Action:      app.actionBuild,
 			Flags:       app.buildFlags(),
 			Hidden:      true, // Meant to be used mainly for help output.
-			Subcommands: []*cli.Command{
-				{
-					Name:        "docker",
-					Usage:       "Build a Dockerfile without an Earthfile *experimental*",
-					Description: "Builds a dockerfile",
-					Action:      app.actionDocker,
-					Flags: []cli.Flag{
-						&cli.StringFlag{
-							Name:        "file",
-							Aliases:     []string{"f"},
-							EnvVars:     []string{"EARTHLY_DOCKER_FILE"},
-							Usage:       "Path to dockerfile input",
-							Value:       "Dockerfile",
-							Destination: &app.dockerfilePath,
-						},
-						&cli.StringFlag{
-							Name:        "tag",
-							Aliases:     []string{"t"},
-							EnvVars:     []string{"EARTHLY_DOCKER_TAG"},
-							Usage:       "Name and tag for the built image; formatted as 'name:tag'",
-							Destination: &app.earthfileFinalImage,
-						},
-						&cli.StringFlag{
-							Name:        "target",
-							EnvVars:     []string{"EARTHLY_DOCKER_TARGET"},
-							Usage:       "The docker target to build in the specified dockerfile",
-							Destination: &app.dockerTarget,
-						},
-					},
-				},
-			},
 		},
 		{
 			Name:        "bootstrap",
@@ -101,6 +70,35 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 					Destination: &app.certsHostName,
 				},
 			},
+		},
+		{
+			Name:        "docker-build",
+			Usage:       "Build a Dockerfile without an Earthfile",
+			Description: "Builds a Dockerfile",
+			Action:      app.actionDocker,
+			Flags: append(app.buildFlags(),
+				&cli.StringFlag{
+					Name:        "dockerfile",
+					Aliases:     []string{"f"},
+					EnvVars:     []string{"EARTHLY_DOCKER_FILE"},
+					Usage:       "Path to dockerfile input",
+					Value:       "Dockerfile",
+					Destination: &app.dockerfilePath,
+				},
+				&cli.StringFlag{
+					Name:        "tag",
+					Aliases:     []string{"t"},
+					EnvVars:     []string{"EARTHLY_DOCKER_TAG"},
+					Usage:       "Name and tag for the built image; formatted as 'name:tag'",
+					Destination: &app.earthfileFinalImage,
+				},
+				&cli.StringFlag{
+					Name:        "target",
+					EnvVars:     []string{"EARTHLY_DOCKER_TARGET"},
+					Usage:       "The docker target to build in the specified dockerfile",
+					Destination: &app.dockerTarget,
+				},
+			),
 		},
 		{
 			Name:        "docker2earthly",
