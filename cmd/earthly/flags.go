@@ -310,6 +310,20 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			Destination: &app.noCache,
 		},
 		&cli.BoolFlag{
+			Name:        "auto-skip",
+			EnvVars:     []string{"EARTHLY_AUTO_SKIP"},
+			Usage:       "Skip buildkit if target has already been built",
+			Destination: &app.skipBuildkit,
+			Hidden:      true,
+		},
+		&cli.StringFlag{
+			Name:        "auto-skip-db-path",
+			EnvVars:     []string{"EARTHLY_AUTO_SKIP_DB_PATH"},
+			Usage:       "use a local database instead of the cloud db",
+			Destination: &app.localSkipDB,
+			Hidden:      true,
+		},
+		&cli.BoolFlag{
 			Name:        "allow-privileged",
 			Aliases:     []string{"P"},
 			EnvVars:     []string{"EARTHLY_ALLOW_PRIVILEGED"},
@@ -435,6 +449,13 @@ func (app *earthlyApp) buildFlags() []cli.Flag {
 			Usage:       "When referencing a remote target, perform a git lfs pull include prior to running the target. Note that this flag is (hopefully) temporary, see https://github.com/earthly/earthly/issues/2921 for details.",
 			Destination: &app.gitLFSPullInclude,
 			Hidden:      true, // Experimental
+		},
+		&cli.BoolFlag{
+			Name:        "earthly-ci-runner",
+			EnvVars:     []string{"EARTHLY_CI_RUNNER"},
+			Usage:       "Internal flag to indicate the build is running within Earthly CI",
+			Destination: &app.earthlyCIRunner,
+			Hidden:      true,
 		},
 	}
 }

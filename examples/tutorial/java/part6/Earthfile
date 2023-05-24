@@ -22,7 +22,7 @@ docker:
     ENTRYPOINT ["/java-example/bin/java-example"]
     SAVE IMAGE java-example:$tag
 
-with-docker-example:
+integration-tests:
     FROM earthly/dind:alpine
 	COPY ./docker-compose.yml .
 	RUN apk update

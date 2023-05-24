@@ -2,6 +2,7 @@ package variables
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/containerd/containerd/platforms"
@@ -23,7 +24,7 @@ type DefaultArgs struct {
 }
 
 // BuiltinArgs returns a scope containing the builtin args.
-func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs, ftrs *features.Features, push bool, ci bool) *Scope {
+func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gitutil.GitMetadata, defaultArgs DefaultArgs, ftrs *features.Features, push bool, ci bool, earthlyCIRunner bool) *Scope {
 	ret := NewScope()
 	ret.Add(arg.EarthlyTarget, target.StringCanonical())
 	ret.Add(arg.EarthlyTargetProject, target.ProjectCanonical())
@@ -88,6 +89,10 @@ func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gituti
 	} else {
 		// Ensure SOURCE_DATE_EPOCH is always available
 		ret.Add(arg.EarthlySourceDateEpoch, "0")
+	}
+
+	if ftrs.EarthlyCIRunnerArg {
+		ret.Add(arg.EarthlyCIRunner, strconv.FormatBool(earthlyCIRunner))
 	}
 	return ret
 }

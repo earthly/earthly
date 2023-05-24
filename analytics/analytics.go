@@ -26,7 +26,10 @@ import (
 
 // DetectCI determines if Earthly is being run from a CI environment. It returns
 // the name of the CI tool and true if we detect one.
-func DetectCI() (string, bool) {
+func DetectCI(isEarthlyCIRunner bool) (string, bool) {
+	if isEarthlyCIRunner {
+		return "earthly-ci", true
+	}
 	for k, v := range map[string]string{
 		"GITHUB_WORKFLOW": "github-actions",
 		"CIRCLECI":        "circle-ci",
@@ -228,12 +231,13 @@ type Meta struct {
 	Realtime         time.Duration
 	OrgName          string
 	ProjectName      string
+	EarthlyCIRunner  bool
 }
 
 // CollectAnalytics sends analytics to api.earthly.dev
 func CollectAnalytics(ctx context.Context, cloudClient *cloud.Client, displayErrors bool, meta Meta, installationName string) {
 	var err error
-	ciName, ci := DetectCI()
+	ciName, ci := DetectCI(meta.EarthlyCIRunner)
 	localRepo := getLocalRepo()
 	repoHash := hashString(getRepo(localRepo, meta.Target))
 	targetHash := hashString(getTarget(localRepo, meta.Target))

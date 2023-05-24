@@ -1,18 +1,6 @@
 # Earthly Satellites
 
-This feature is part of the Earthly Satellites & Earthly CI paid plans.
-
-{% hint style='danger' %}
-##### Important
-
-This feature is currently in **Beta** stage
-
-* The feature may break or change significantly in future versions of Earthly.
-* Give us feedback on
-  * [Slack](https://earthly.dev/slack)
-  * [GitHub issues](https://github.com/earthly/cloud-issues/issues)
-  * [Emailing support](mailto:support+satellite@earthly.dev)
-{% endhint %}
+This feature is part of the [Earthly Satellites & Earthly CI paid plans](https://earthly.dev/pricing).
 
 Earthly Satellites are [remote runner](../remote-runners.md) instances managed by the Earthly team. They allow you to perform builds in the cloud, while retaining cache between runs.
 
@@ -67,11 +55,11 @@ Follow the steps in the [Earthly Cloud overview](./overview.md#getting-started) 
 
 ### 2. Purchase a Satellites Plan
 
-Satellites are now a paid feature and require a valid subscription to begin using. The subscription includes a 14-day free trial which can be canceled before any payment is made. Visit the [pricing page](https://earthly.dev/pricing) for more billing details.
+Satellites are a paid feature which require a subscription to begin using. The subscription includes a 14-day free trial which can be canceled before any payment is made. Visit the [pricing page](https://earthly.dev/pricing) for more billing details.
+
+You can start your free trial by using the checkout form below. Be sure to provide the name of your Earthly org from Step 1.
 
 [**Click here to start your subscription**](https://buy.stripe.com/8wM9Es4BT4Vvb4YbIJ)
-
-Once you've submitted your details on the checkout page, you will receive an email with further instructions. Please reply or [send us an email](mailto:support+satellite@earthly.dev) with your org name from step 1 in order for us to activate the Satellites feature on your account.
 
 ### 3. Ensure that you have the latest version of Earthly
 
@@ -83,7 +71,7 @@ Because this feature is under heavy development right now, it is very important 
 
 ```bash
 brew update
-brew upgrade earthly/earthly/earthly
+brew upgrade earthly
 ```
 
 ### 4. Launch a new satellite
@@ -156,12 +144,8 @@ For more information on managing satellites, see the [Managing Satellites page](
 
 ## Satellite specs
 
-Satellites are currently only available in one size, and it has the following specs:
-
-* 4 CPUs
-* 16 GB of RAM
-* 90 GB of cache storage
-* 5 Gib internet bandwidth
+The satellite size and architecutre can be specified at luanch time using the `--size` and `--platform` flags.
+For the full list of supported options, please see the [Pricing Page](https://earthly.dev/pricing).
 
 ## Using Satellites in CI
 
@@ -185,21 +169,26 @@ to create your login token.
 
 Copy and paste the value into an environment variable called `EARTHLY_TOKEN` in your CI environment.
 
-Then as part of your CI script, just run
+Then as part of your CI script, simply select your satellite using one of these supported methods
 
-```bash
-earthly sat select <satellite-name>
-```
+* Selection command: `earthly sat select <satellite-name>`
+* Setellite flag: `earthly --sat my-satellite +build`
+* Environment variable: `SATELLITE_NAME=my-satellite`
 
 before running your Earthly targets.
 
+{% hint style='danger' %}
+##### Registry Login
+
+It's best to avoid using an image registry like Dockerhub without authentication, since the IP address from the satellite easily become rate-limited.
+A simple `docker login` command before running your build should be used to pass registry credentials to your satellite.
+See our [Docker authentication](../guides/auth.md) guide for more details.
+
+{% endhint %}
+
 ## Known limitations
 
-* Satellites currently require a manual re-launch in order to get updated to the latest version available.
-  ```bash
-  earthly sat rm <satellite-name>
-  earthly sat launch <satellite-name>
-  ```
 * The output phase (the phase in which a satellite outputs build results back to the local machine) is slower than it could be. To work around this issue, you can make use of the `--no-output` flag (assuming that local outputs are not needed). You can even use `--no-output` in conjunction with `--push`. We are working on ways in which local outputs can be synchronized more intelligently such that only a diff is transferred over the network.
+* Pull-through cache is currently not supported
 
 If you run into any issues please let us know either via [Slack](https://earthly.dev/slack), [GitHub issues](https://github.com/earthly/cloud-issues/issues) or by [emailing support](mailto:support+satellite@earthly.dev).

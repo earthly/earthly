@@ -24,6 +24,7 @@ import (
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/inputgraph"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/cliutil"
@@ -107,6 +108,16 @@ func (app *earthlyApp) combineVariables(dotEnvMap map[string]string, flagArgs []
 		return nil, errors.Wrap(err, "parse build args")
 	}
 	return variables.CombineScopes(overridingVars, dotEnvVars), nil
+}
+
+func (app *earthlyApp) gitLogLevel() llb.GitLogLevel {
+	if app.debug {
+		return llb.GitLogLevelTrace
+	}
+	if app.verbose {
+		return llb.GitLogLevelDebug
+	}
+	return llb.GitLogLevelDefault
 }
 
 func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []string) error {
@@ -228,6 +239,30 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 
 	app.console.PrintPhaseHeader(builder.PhaseInit, false, "")
 	app.warnIfArgContainsBuildArg(flagArgs)
+
+	var skipDB BuildkitSkipper
+	var targetHash []byte
+	if app.skipBuildkit {
+		var orgName string
+		var projectName string
+		orgName, projectName, targetHash, err = inputgraph.HashTarget(cliCtx.Context, target, app.console)
+		if err != nil {
+			app.console.Warnf("unable to calculate hash for %s: %s", target.String(), err.Error())
+		} else {
+			skipDB, err = NewBuildkitSkipper(app.localSkipDB, orgName, projectName, target.GetName(), cloudClient)
+			if err != nil {
+				return err
+			}
+			exists, err := skipDB.Exists(cliCtx.Context, targetHash)
+			if err != nil {
+				app.console.Warnf("unable to check if target %s (hash %x) has already been run: %s", target.String(), targetHash, err.Error())
+			}
+			if exists {
+				app.console.Printf("target %s (hash %x) has already been run; exiting", target.String(), targetHash)
+				return nil
+			}
+		}
+	}
 
 	err = app.initFrontend(cliCtx)
 	if err != nil {
@@ -514,6 +549,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		InteractiveDebuggingDebugLevelLogging: app.debug,
 		GitImage:                              app.cfg.Global.GitImage,
 		GitLFSInclude:                         app.gitLFSPullInclude,
+		GitLogLevel:                           app.gitLogLevel(),
 	}
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
 	if err != nil {
@@ -530,6 +566,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		PrintPhases:                true,
 		Push:                       app.push,
 		CI:                         app.ci,
+		EarthlyCIRunner:            app.earthlyCIRunner,
 		NoOutput:                   app.noOutput,
 		OnlyFinalTargetImages:      app.imageMode,
 		PlatformResolver:           platr,
@@ -582,9 +619,17 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	if app.logstream && doLogstreamUpload && !app.logbusSetup.LogStreamerStarted() {
 		app.console.ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
 	}
+
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
 	if err != nil {
 		return errors.Wrap(err, "build target")
+	}
+
+	if app.skipBuildkit && targetHash != nil {
+		err := skipDB.Add(cliCtx.Context, targetHash)
+		if err != nil {
+			app.console.Warnf("failed to record %s (hash %x) as completed: %s", target.String(), target, err)
+		}
 	}
 
 	return nil

@@ -59,6 +59,7 @@ code:
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
     COPY --dir ast/antlrhandler ast/spec ast/hint ast/command ast/commandflag ast/*.go ast/
+    COPY --dir inputgraph/*.go inputgraph/
 
 # update-buildkit updates earthly's buildkit dependency.
 update-buildkit:

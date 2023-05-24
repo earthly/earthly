@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -43,6 +42,7 @@ import (
 	logbussetup "github.com/earthly/earthly/logbus/setup"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
+	"github.com/earthly/earthly/util/errutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/reflectutil"
 )
@@ -89,6 +89,8 @@ type cliFlags struct {
 	output                          bool
 	noOutput                        bool
 	noCache                         bool
+	skipBuildkit                    bool
+	localSkipDB                     string
 	pruneAll                        bool
 	pruneReset                      bool
 	pruneTargetSize                 byteSizeValue
@@ -189,6 +191,7 @@ type cliFlags struct {
 	gcpServiceAccountKeyStdin       bool
 	serverConnTimeout               time.Duration
 	certsHostName                   string
+	earthlyCIRunner                 bool
 	dockerTarget                    string
 }
 
@@ -346,6 +349,7 @@ func main() {
 					Realtime:         time.Since(startTime),
 					OrgName:          org,
 					ProjectName:      project,
+					EarthlyCIRunner:  app.earthlyCIRunner,
 				},
 				app.installationName,
 			)
@@ -728,9 +732,14 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_NEEDS_PRIVILEGED, err.Error())
 			app.console.Warnf("Error: earthly --allow-privileged (earthly -P) flag is required\n")
 			return 9
-		case strings.Contains(err.Error(), "failed to fetch remote"):
+		case strings.Contains(err.Error(), errutil.EarthlyGitStdErrMagicString):
 			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_GIT, err.Error())
-			app.console.Warnf("Error: %v\n", err)
+			gitStdErr, shorterErr, ok := errutil.ExtractEarthlyGitStdErr(err.Error())
+			if ok {
+				app.console.Warnf("Error: %v\n\n%s\n", shorterErr, gitStdErr)
+			} else {
+				app.console.Warnf("Error: %v\n", err.Error())
+			}
 			app.console.Printf(
 				"Check your git auth settings.\n" +
 					"Did you ssh-add today? Need to configure ~/.earthly/config.yml?\n" +
@@ -754,9 +763,9 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			return 1
 		case !app.verbose && rpcRegex.MatchString(err.Error()):
 			baseErr := errors.Cause(err)
-			baseErrMsg := rpcRegex.ReplaceAll([]byte(baseErr.Error()), []byte(""))
+			baseErrMsg := rpcRegex.ReplaceAllString(baseErr.Error(), "")
 			app.console.Warnf("Error: %s\n", string(baseErrMsg))
-			if bytes.Contains(baseErrMsg, []byte("transport is closing")) {
+			if strings.Contains(baseErrMsg, "transport is closing") {
 				app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, baseErr.Error())
 				app.console.Warnf(
 					"It seems that buildkitd is shutting down or it has crashed. " +

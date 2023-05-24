@@ -10,6 +10,9 @@
     * [Part 4: Args](basics/part-4-args.md)
     * [Part 5: Importing](basics/part-5-importing.md)
     * [Part 6: Using Docker In Earthly](basics/part-6-using-docker-with-earthly.md)
+    * [Part 7: Using remote runners](basics/part-7-using-remote-runners.md)
+    * [Part 8a: Using Earthly in your current CI](basics/part-8a-using-earthly-in-your-current-ci.md)
+    * [Part 8b: Using Earthly CI](basics/part-8b-using-earthly-ci.md)
     * [Final words](basics/final-words.md)
 * [✅ Best practices](best-practices/best-practices.md)
 
@@ -66,6 +69,7 @@
     * [Google Cloud Build](ci-integration/guides/google-cloud-build.md)
     * [GitLab CI/CD](ci-integration/guides/gitlab-integration.md)
     * [Woodpecker CI](ci-integration/guides/woodpecker-integration.md)
+    * [Bitbucket Pipelines](ci-integration/guides/bitbucket-pipelines-integration.md)
 
 ## ☁️ Earthly Cloud
 

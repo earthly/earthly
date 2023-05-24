@@ -45,6 +45,13 @@ ga-no-qemu:
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
         --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+    BUILD ./autoskip+test-all \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
     BUILD ./scrub-https-credentials+all \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
@@ -343,9 +350,16 @@ git-clone-test:
     DO +RUN_EARTHLY --earthfile=git-clone.earth --target=+test
 
 builtin-args-test:
+    ENV EARTHLY_CI_RUNNER=true
     DO +RUN_EARTHLY --earthfile=builtin-args.earth --target=+builtin-args-test
     RUN sed -i "1s/VERSION \(.*\)/VERSION --arg-scope-and-set \1/" Earthfile
     DO +RUN_EARTHLY --target=+builtin-args-test
+    RUN sed -i "1s/VERSION \(.*\)/VERSION --earthly-ci-runner-arg \1/" Earthfile
+    DO +RUN_EARTHLY --target=+earthly-ci-runner-builtin-arg-test --extra_args="--build-arg EXPECTED_VALUE=true"
+    ENV EARTHLY_CI_RUNNER=""
+    DO +RUN_EARTHLY --target=+earthly-ci-runner-builtin-arg-test --extra_args="--build-arg EXPECTED_VALUE=false"
+    ENV EARTHLY_CI_RUNNER="false"
+    DO +RUN_EARTHLY --target=+earthly-ci-runner-builtin-arg-test --extra_args="--build-arg EXPECTED_VALUE=false"
 
 builtin-args-invalid-default-test:
     DO +RUN_EARTHLY --earthfile=builtin-args-invalid-default.earth --should_fail=true --target=+test --output_contains="arg default value supplied for built-in ARG"

@@ -27,6 +27,7 @@ The following builtin args are available
 | --- | --- | --- |
 | `EARTHLY_BUILD_SHA` | The git hash of the commit which built the currently running version of Earthly. | `1a9eda7a83af0e2ec122720e93ff6dbe9231fc0c` |
 | `EARTHLY_CI` | Whether the build is being executed in --ci mode. | `true`, `false` |
+| `EARTHLY_CI_RUNNER` | Whether the build is being executed within Earthly CI. | `true`, `false` |
 | `EARTHLY_GIT_AUTHOR` | The git author detected within the build context directory. If no git directory is detected, then the value is an empty string. | `John Doe <john@example.com>` |
 | `EARTHLY_GIT_CO_AUTHORS` | The git co-authors detected within the build context directory, separated by space. If no git directory is detected, then the value is an empty string. | `Jane Doe <jane@example.com Jack Smith <jack@example.com>` |
 | `EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP` | The author timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is an empty string. | `1626881847` |
@@ -37,6 +38,7 @@ The following builtin args are available
 | `EARTHLY_GIT_PROJECT_NAME` | The git project name from within the git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. | `bar/buz` |
 | `EARTHLY_GIT_SHORT_HASH` | The first 8 characters of the git hash detected within the build context directory. If no git directory is detected, then the value is an empty string. Take care when using this arg, as the frequently changing git hash may be cause for not using the cache. | `41cb5666` |
 | `EARTHLY_LOCALLY` | Whether the target is being executed `LOCALLY`. | `true`, `false` |
+| `EARTHLY_PUSH` | Whether `earthly` was called with the `--push` flag, or not. | `true`, `false` |
 | `EARTHLY_SOURCE_DATE_EPOCH` | The timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is `0` (the unix epoch) | `1626881847`, `0` |
 | `EARTHLY_TARGET_NAME` | The name part of the canonical reference of the current target. | For the target `github.com/bar/buz/src:john/work+foo`, the name would be `foo` |
 | `EARTHLY_TARGET_PROJECT_NO_TAG` | The project part of the canonical reference of the current target, but without the tag. | For the target `github.com/bar/buz/src:john/work+foo`, this would be `github.com/bar/buz/src` |

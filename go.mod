@@ -41,6 +41,7 @@ require (
 	github.com/stretchr/testify v1.8.2
 	github.com/tonistiigi/fsutil v0.0.0-20230105215944-fb433841cbfa
 	github.com/urfave/cli/v2 v2.3.0
+	go.etcd.io/bbolt v1.3.7
 	golang.org/x/crypto v0.6.0
 	golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2
 	golang.org/x/oauth2 v0.5.0
@@ -135,6 +136,6 @@ replace (
 	github.com/jdxcode/netrc => github.com/mikejholly/netrc v0.0.0-20221121193719-a154cb29ec2a
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.0-20230508230245-c74acbadc939
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.0-20230511230036-0da024053105
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20230322211606-d14130b24a8e
 )
