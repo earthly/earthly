@@ -115,11 +115,11 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient *clou
 
 	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed getting org")
 	}
 	satelliteName, err := app.getSatelliteName(cliCtx.Context, orgID, app.satelliteName, cloudClient)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed getting satellite name")
 	}
 	app.buildkitdSettings.SatelliteName = satelliteName
 	app.buildkitdSettings.SatelliteDisplayName = app.satelliteName
