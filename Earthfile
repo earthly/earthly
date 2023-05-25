@@ -1,4 +1,5 @@
-VERSION --no-network 0.7
+# TODO: we must change the DOCKERHUB_USER_SECRET args to be project-based before we can change to 0.7
+VERSION --shell-out-anywhere --use-copy-link --no-network 0.6
 
 FROM golang:1.20-alpine3.17
 
