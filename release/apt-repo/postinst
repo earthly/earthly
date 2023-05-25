@@ -15,15 +15,15 @@ then
     earthly bootstrap --source zsh > "$ZSH_COMPLETION_DIR/_earthly"
 fi
 
-# skip bootstrapping if docker isn't installed or running
-if ! command -v docker &> /dev/null
-then
-    echo "docker was not found; skipping earthly bootstrap"
+frontend="${frontend:-$(which docker || which podman || true)}"
+if [ -z "$frontend" ]; then
+    echo "neither docker nor podman was found; skipping earthly bootstrap"
     exit
 fi
-if ! docker info 2>/dev/null >/dev/null
+
+if ! "$frontend" info 2>/dev/null >/dev/null
 then
-    echo "unable to query docker daemon; skipping earthly bootstrap"
+    echo "unable to query docker/podman daemon; skipping earthly bootstrap"
     exit
 fi
 
