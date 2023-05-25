@@ -1,5 +1,3 @@
-//go:build offline
-
 package cloud_test
 
 import (

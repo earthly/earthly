@@ -257,7 +257,7 @@ chaos-test:
 
 offline-test:
     FROM +code
-    RUN --network=none go test -tags offline ./...
+    RUN --network=none go test -run TestOffline ./...
 
 # submodule-decouple-check checks that go submodules within earthly do not
 # depend on the core earthly project.
