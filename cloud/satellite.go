@@ -140,7 +140,7 @@ func (c *Client) DeleteSatellite(ctx context.Context, name, orgName string) erro
 
 type LaunchSatelliteOpt struct {
 	Name                    string
-	OrgID                   string
+	OrgName                 string
 	Size                    string
 	Platform                string
 	PinnedVersion           string
@@ -150,8 +150,12 @@ type LaunchSatelliteOpt struct {
 }
 
 func (c *Client) LaunchSatellite(ctx context.Context, opt LaunchSatelliteOpt) error {
+	orgID, err := c.GetOrgID(ctx, opt.OrgName)
+	if err != nil {
+		return errors.Wrap(err, "failed launching satellite")
+	}
 	req := &pb.LaunchSatelliteRequest{
-		OrgId:                   opt.OrgID,
+		OrgId:                   orgID,
 		Name:                    opt.Name,
 		Platform:                opt.Platform,
 		Size:                    opt.Size,
@@ -160,7 +164,7 @@ func (c *Client) LaunchSatellite(ctx context.Context, opt LaunchSatelliteOpt) er
 		MaintenanceWindowStart:  opt.MaintenanceWindowStart,
 		MaintenanceWeekendsOnly: opt.MaintenanceWeekendsOnly,
 	}
-	_, err := c.compute.LaunchSatellite(c.withAuth(ctx), req)
+	_, err = c.compute.LaunchSatellite(c.withAuth(ctx), req)
 	if err != nil {
 		return errors.Wrap(err, "failed launching satellite")
 	}

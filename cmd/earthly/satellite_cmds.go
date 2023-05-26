@@ -453,7 +453,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		return err
 	}
 
-	_, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -484,7 +484,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 
 	err = cloudClient.LaunchSatellite(cliCtx.Context, cloud.LaunchSatelliteOpt{
 		Name:                    app.satelliteName,
-		OrgID:                   orgID,
+		OrgName:                 orgName,
 		Platform:                platform,
 		Size:                    size,
 		PinnedVersion:           version,
@@ -656,7 +656,7 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	app.buildkitdSettings.SatelliteToken = token
 	app.buildkitdSettings.SatelliteName = satelliteToInspectName
 	app.buildkitdSettings.SatelliteDisplayName = satelliteToInspect
-	app.buildkitdSettings.SatelliteOrgID = orgID
+	app.buildkitdSettings.SatelliteOrgID = orgID // must be the ID and not name, due to satellite-proxy requirements
 	if app.satelliteAddress != "" {
 		app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
 	} else {
