@@ -477,7 +477,7 @@ func symlinkEarthlyToEarth() error {
 
 	earthPathExists, err := fileutil.FileExists(earthPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to check if %s exists", earthPath)
+		return errors.Wrapf(err, "failed to check if %q exists", earthPath)
 	}
 	if !earthPathExists && termutil.IsTTY() {
 		return nil // legacy earth binary doesn't exist, don't create it (unless we're under a non-tty system e.g. CI)
@@ -523,9 +523,8 @@ func handleDockerFiles(buildContextPath string) error {
 	earthlyIgnoreFilePath := filepath.Join(buildContextPath, ".earthlyignore")
 	err = copy.Copy(dockerIgnorePath, earthlyIgnoreFilePath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to copy %s to %s", dockerIgnorePath, earthlyIgnoreFilePath)
+		return errors.Wrapf(err, "failed to copy %q to %q", dockerIgnorePath, earthlyIgnoreFilePath)
 	}
-	defer os.Remove(earthlyIgnoreFilePath)
 	return nil
 }
 
@@ -540,7 +539,8 @@ func (app *earthlyApp) actionDocker(cliCtx *cli.Context) error {
 		_ = cli.ShowAppHelp(cliCtx)
 		return errors.Errorf(
 			"no build context path provided. Try %s docker <path>", cliCtx.App.Name)
-	} else if len(nonFlagArgs) != 1 {
+	}
+	if len(nonFlagArgs) != 1 {
 		_ = cli.ShowAppHelp(cliCtx)
 		return errors.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 	}
@@ -554,7 +554,7 @@ func (app *earthlyApp) actionDocker(cliCtx *cli.Context) error {
 
 	argMap, err := godotenv.Read(app.argFile)
 	if err != nil && (cliCtx.IsSet(argFileFlag) || !errors.Is(err, os.ErrNotExist)) {
-		return errors.Wrapf(err, "read %s", app.argFile)
+		return errors.Wrapf(err, "read %q", app.argFile)
 	}
 
 	buildArgs, err := app.combineVariables(argMap, flagArgs)
@@ -562,11 +562,15 @@ func (app *earthlyApp) actionDocker(cliCtx *cli.Context) error {
 		return errors.Wrapf(err, "combining build args")
 	}
 
+	defer func() {
+		os.Remove(filepath.Join(buildContextPath, "Earthfile"))
+		os.Remove(filepath.Join(buildContextPath, ".earthlyignore"))
+	}()
+
 	err = docker2earthly.DockerWithEarthly(buildContextPath, app.dockerfilePath, app.earthfileFinalImage, buildArgs.Sorted(), app.platformsStr.Value(), app.dockerTarget)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "docker-build: failed to wrap Dockerfile with an Earthfile")
 	}
-
 	app.imageMode = false
 	app.artifactMode = false
 	nonFlagArgs = []string{buildContextPath + "+docker"}

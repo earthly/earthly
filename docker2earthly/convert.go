@@ -143,7 +143,6 @@ func Docker2Earthly(dockerfilePath, earthfilePath, imageTag string) error {
 
 func DockerWithEarthly(buildContextPath string, dockerfilePath, imageTag string, buildArgs []string, platforms []string, target string) error {
 	earthfilePath := filepath.Join(buildContextPath, "Earthfile")
-	defer os.Remove(earthfilePath)
 	out, err := os.Create(earthfilePath)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create Earthfile under %q", earthfilePath)
