@@ -113,7 +113,7 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient *clou
 		app.buildkitdSettings.ServerTLSKey = ""
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	_, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "failed getting org")
 	}

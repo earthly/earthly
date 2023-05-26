@@ -67,6 +67,14 @@ type SatelliteInstance struct {
 	Hidden                  bool
 }
 
+func (c *Client) ListSatellitesByOrgName(ctx context.Context, orgName string, includeHidden bool) ([]SatelliteInstance, error) {
+	orgID, err := c.GetOrgID(ctx, orgName)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed listing satellites")
+	}
+	return c.ListSatellites(ctx, orgID, includeHidden)
+}
+
 func (c *Client) ListSatellites(ctx context.Context, orgID string, includeHidden bool) ([]SatelliteInstance, error) {
 	resp, err := c.compute.ListSatellites(c.withAuth(ctx), &pb.ListSatellitesRequest{
 		OrgId:         orgID,

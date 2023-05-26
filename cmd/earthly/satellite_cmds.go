@@ -290,7 +290,7 @@ func printRow(t *tabwriter.Writer, c []color.Attribute, items []string) {
 	fmt.Fprint(t, line)
 }
 
-func (app *earthlyApp) printSatellitesTable(satellites []satelliteWithPipelineInfo, orgID string) {
+func (app *earthlyApp) printSatellitesTable(satellites []satelliteWithPipelineInfo, isOrgSelected bool) {
 	slices.SortStableFunc(satellites, func(a, b satelliteWithPipelineInfo) bool {
 		// satellites with associated pipelines group together at the top of the list,
 		// otherwise sort alphabetically
@@ -319,7 +319,7 @@ func (app *earthlyApp) printSatellitesTable(satellites []satelliteWithPipelineIn
 
 	for _, s := range satellites {
 		var selected = ""
-		if s.satelliteName() == app.cfg.Satellite.Name && s.satellite.Org == orgID {
+		if s.satelliteName() == app.cfg.Satellite.Name && isOrgSelected {
 			selected = "*"
 		}
 
@@ -352,10 +352,10 @@ type satelliteJSON struct {
 	Pipeline string `json:"pipeline"`
 }
 
-func (app *earthlyApp) printSatellitesJSON(satellites []satelliteWithPipelineInfo, orgID string) {
+func (app *earthlyApp) printSatellitesJSON(satellites []satelliteWithPipelineInfo, isOrgSelected bool) {
 	jsonSats := make([]satelliteJSON, len(satellites))
 	for i, s := range satellites {
-		selected := s.satellite.Name == app.cfg.Satellite.Name && s.satellite.Org == orgID
+		selected := s.satellite.Name == app.cfg.Satellite.Name && isOrgSelected
 		jsonSats[i] = satelliteJSON{
 			Name:     s.satellite.Name,
 			Size:     s.satellite.Size,
@@ -377,37 +377,15 @@ func (app *earthlyApp) printSatellitesJSON(satellites []satelliteWithPipelineInf
 	fmt.Println(string(b))
 }
 
-func (app *earthlyApp) getSatelliteOrgID(ctx context.Context, cloudClient *cloud.Client) (string, error) {
-	// We are cheating here and forcing a re-auth before running any satellite commands.
-	// This is because there is an issue on the backend where the token might be outdated
-	// if a user was invited to an org recently after already logging-in.
-	// TODO Eventually we should be able to remove this cheat.
-	err := cloudClient.Authenticate(ctx)
-	if err != nil {
-		return "", errors.Wrap(err, "unable to authenticate")
-	}
-	var orgID string
-	if app.orgName == "" {
-		orgs, err := cloudClient.ListOrgs(ctx)
-		if err != nil {
-			return "", errors.Wrap(err, "failed finding org")
-		}
-		if len(orgs) == 0 {
-			return "", errors.New("not a member of any organizations - satellites only work within an org")
-		}
-		if len(orgs) > 1 {
-			return "", errors.New("more than one organizations available - please specify the name of the organization using `--org`")
-		}
-		app.orgName = orgs[0].Name
-		orgID = orgs[0].ID
-	} else {
-		var err error
+func (app *earthlyApp) getSatelliteOrgID(ctx context.Context, cloudClient *cloud.Client) (orgName, orgID string, err error) {
+	if app.orgName != "" {
 		orgID, err = cloudClient.GetOrgID(ctx, app.orgName)
 		if err != nil {
-			return "", errors.Wrap(err, "invalid org provided")
+			return "", "", errors.Wrap(err, "invalid org provided")
 		}
+		return app.orgName, orgID, nil
 	}
-	return orgID, nil
+	return cloudClient.GuessOrgMembership(ctx)
 }
 
 func (app *earthlyApp) getAllPipelinesForAllProjects(ctx context.Context, cloudClient *cloud.Client) ([]cloud.Pipeline, error) {
@@ -475,7 +453,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	_, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -544,7 +522,7 @@ func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -562,11 +540,13 @@ func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 		}
 	}
 
+	isOrgSelected := app.cfg.Satellite.Org == orgName
+
 	satellitesWithPipelineInfo := app.toSatellitePipelineInfo(satellites, pipelines)
 	if app.satellitePrintJSON {
-		app.printSatellitesJSON(satellitesWithPipelineInfo, orgID)
+		app.printSatellitesJSON(satellitesWithPipelineInfo, isOrgSelected)
 	} else {
-		app.printSatellitesTable(satellitesWithPipelineInfo, orgID)
+		app.printSatellitesTable(satellitesWithPipelineInfo, isOrgSelected)
 	}
 	return nil
 }
@@ -588,7 +568,7 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	_, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -650,7 +630,7 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	_, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -764,7 +744,7 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	_, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -810,7 +790,7 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 		return errors.Wrapf(err, "could not select satellite %s", app.satelliteName)
 	}
 
-	app.printSatellitesTable(app.toSatellitePipelineInfo(satellites, pipelines), orgID)
+	app.printSatellitesTable(app.toSatellitePipelineInfo(satellites, pipelines), true)
 	return nil
 }
 
@@ -848,7 +828,7 @@ func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	_, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -893,7 +873,7 @@ func (app *earthlyApp) actionSatelliteSleep(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	_, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -934,7 +914,7 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	_, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
