@@ -76,7 +76,7 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 			Name:        "docker-build",
 			Usage:       "Build a Dockerfile without an Earthfile",
 			Description: "Builds a Dockerfile",
-			Action:      app.actionDocker,
+			Action:      app.actionDockerBuild,
 			Flags: append(app.buildFlags(),
 				&cli.StringFlag{
 					Name:        "dockerfile",
@@ -528,7 +528,7 @@ func handleDockerFiles(buildContextPath string) error {
 	return nil
 }
 
-func (app *earthlyApp) actionDocker(cliCtx *cli.Context) error {
+func (app *earthlyApp) actionDockerBuild(cliCtx *cli.Context) error {
 	app.commandName = "docker"
 
 	flagArgs, nonFlagArgs, err := variables.ParseFlagArgsWithNonFlags(cliCtx.Args().Slice())
