@@ -500,36 +500,8 @@ func symlinkEarthlyToEarth() error {
 	return nil
 }
 
-func handleDockerFiles(buildContextPath string) error {
-	earthfilePath := filepath.Join(buildContextPath, "Earthfile")
-	earthfilePathExists, err := fileutil.FileExists(earthfilePath)
-	if err != nil {
-		return errors.Wrapf(err, "failed to check if %s exists", earthfilePath)
-	}
-	if earthfilePathExists {
-		return errors.Errorf("earthfile already exists; please delete it if you wish to continue")
-	}
-
-	dockerIgnorePath := filepath.Join(buildContextPath, ".dockerignore")
-	dockerIgnorePathExists, err := fileutil.FileExists(dockerIgnorePath)
-	if err != nil {
-		return errors.Wrapf(err, "failed to check if %q exists", dockerIgnorePath)
-	}
-
-	if !dockerIgnorePathExists {
-		return nil
-	}
-
-	earthlyIgnoreFilePath := filepath.Join(buildContextPath, ".earthlyignore")
-	err = copy.Copy(dockerIgnorePath, earthlyIgnoreFilePath)
-	if err != nil {
-		return errors.Wrapf(err, "failed to copy %q to %q", dockerIgnorePath, earthlyIgnoreFilePath)
-	}
-	return nil
-}
-
 func (app *earthlyApp) actionDockerBuild(cliCtx *cli.Context) error {
-	app.commandName = "docker"
+	app.commandName = "docker-build"
 
 	flagArgs, nonFlagArgs, err := variables.ParseFlagArgsWithNonFlags(cliCtx.Args().Slice())
 	if err != nil {
@@ -812,5 +784,33 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "err group")
 	}
 	app.console.Printf("Freed %s\n", humanize.Bytes(total))
+	return nil
+}
+
+func handleDockerFiles(buildContextPath string) error {
+	earthfilePath := filepath.Join(buildContextPath, "Earthfile")
+	earthfilePathExists, err := fileutil.FileExists(earthfilePath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to check if %s exists", earthfilePath)
+	}
+	if earthfilePathExists {
+		return errors.Errorf("earthfile already exists; please delete it if you wish to continue")
+	}
+
+	dockerIgnorePath := filepath.Join(buildContextPath, ".dockerignore")
+	dockerIgnorePathExists, err := fileutil.FileExists(dockerIgnorePath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to check if %q exists", dockerIgnorePath)
+	}
+
+	if !dockerIgnorePathExists {
+		return nil
+	}
+
+	earthlyIgnoreFilePath := filepath.Join(buildContextPath, ".earthlyignore")
+	err = copy.Copy(dockerIgnorePath, earthlyIgnoreFilePath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to copy %q to %q", dockerIgnorePath, earthlyIgnoreFilePath)
+	}
 	return nil
 }
