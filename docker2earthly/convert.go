@@ -161,15 +161,19 @@ func DockerWithEarthly(buildContextPath string, dockerfilePath, imageTag string,
 	for _, ba := range buildArgs {
 		fmt.Fprintf(out, "\t\t --build-arg %s=$%s \\\n", ba, ba)
 	}
-	for _, p := range platforms {
-		fmt.Fprintf(out, "\t\t --platform %s \\\n", p)
-	}
 	if target != "" {
 		fmt.Fprintf(out, "\t\t --target %s \\\n", target)
 	}
 	fmt.Fprintf(out, "\t\t -f %s \\\n", dockerfilePath)
 	fmt.Fprintf(out, "\t\t %s\n", buildContextPath)
 	fmt.Fprintf(out, "\tSAVE IMAGE --push %s\n", imageTag)
+
+	fmt.Fprintf(out, "build:\n")
+	fmt.Fprintf(out, "\tBUILD")
+	for _, p := range platforms {
+		fmt.Fprintf(out, " --platform %s", p)
+	}
+	fmt.Fprintf(out, " +docker\n")
 
 	return nil
 }

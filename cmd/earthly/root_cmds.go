@@ -543,10 +543,15 @@ func (app *earthlyApp) actionDockerBuild(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "docker-build: failed to wrap Dockerfile with an Earthfile")
 	}
+	// The following should not be set in the context of executing the build from the generated Earthfile:
 	app.imageMode = false
 	app.artifactMode = false
-	nonFlagArgs = []string{buildContextPath + "+docker"}
+	app.platformsStr = cli.StringSlice{}
+	app.dockerTarget = ""
+	app.dockerfilePath = ""
+	app.earthfileFinalImage = ""
 
+	nonFlagArgs = []string{buildContextPath + "+build"}
 	return app.actionBuildImp(cliCtx, flagArgs, nonFlagArgs)
 }
 
