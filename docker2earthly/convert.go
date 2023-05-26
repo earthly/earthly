@@ -168,8 +168,7 @@ func DockerWithEarthly(buildContextPath string, dockerfilePath, imageTag string,
 		fmt.Fprintf(out, "\t\t --target %s \\\n", target)
 	}
 	fmt.Fprintf(out, "\t\t -f %s \\\n", dockerfilePath)
-	fmt.Fprintf(out, "\t\t %s", buildContextPath)
-	fmt.Fprintln(out)
+	fmt.Fprintf(out, "\t\t %s\n", buildContextPath)
 	fmt.Fprintf(out, "\tSAVE IMAGE --push %s\n", imageTag)
 
 	return nil
