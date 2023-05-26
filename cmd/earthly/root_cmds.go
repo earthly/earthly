@@ -513,7 +513,7 @@ func handleDockerFiles(buildContextPath string) error {
 	dockerIgnorePath := filepath.Join(buildContextPath, ".dockerignore")
 	dockerIgnorePathExists, err := fileutil.FileExists(dockerIgnorePath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to check if %s exists", dockerIgnorePath)
+		return errors.Wrapf(err, "failed to check if %q exists", dockerIgnorePath)
 	}
 
 	if !dockerIgnorePathExists {
