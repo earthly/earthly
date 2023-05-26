@@ -377,7 +377,7 @@ func (app *earthlyApp) printSatellitesJSON(satellites []satelliteWithPipelineInf
 	fmt.Println(string(b))
 }
 
-func (app *earthlyApp) getSatelliteOrgID(ctx context.Context, cloudClient *cloud.Client) (orgName, orgID string, err error) {
+func (app *earthlyApp) getSatelliteOrg(ctx context.Context, cloudClient *cloud.Client) (orgName, orgID string, err error) {
 	if app.orgName != "" {
 		orgID, err = cloudClient.GetOrgID(ctx, app.orgName)
 		if err != nil {
@@ -453,7 +453,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgName, _, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -522,7 +522,7 @@ func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgName, _, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -568,7 +568,7 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgName, _, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -630,7 +630,7 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgName, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, orgID, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -744,7 +744,7 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgName, _, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -828,7 +828,7 @@ func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgName, _, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -873,7 +873,7 @@ func (app *earthlyApp) actionSatelliteSleep(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgName, _, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -914,7 +914,7 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgName, _, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
