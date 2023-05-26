@@ -407,8 +407,8 @@ func (app *earthlyApp) getAllPipelinesForAllProjects(ctx context.Context, cloudC
 	return allPipelines, nil
 }
 
-func (app *earthlyApp) getSatelliteName(ctx context.Context, orgID, satelliteName string, cloudClient *cloud.Client) (string, error) {
-	satellites, err := cloudClient.ListSatellites(ctx, orgID, true)
+func (app *earthlyApp) getSatelliteName(ctx context.Context, orgName, satelliteName string, cloudClient *cloud.Client) (string, error) {
+	satellites, err := cloudClient.ListSatellites(ctx, orgName, true)
 	if err != nil {
 		return "", err
 	}
@@ -522,12 +522,12 @@ func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgName, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgID, app.satelliteIncludeHidden)
+	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgName, app.satelliteIncludeHidden)
 	if err != nil {
 		return err
 	}
@@ -568,12 +568,12 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 		return err
 	}
 
-	_, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgID, true)
+	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgName, true)
 	if err != nil {
 		return err
 	}
@@ -592,7 +592,7 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 	}
 
 	app.console.Printf("Destroying Satellite %q. This could take a moment...\n", app.satelliteName)
-	err = cloudClient.DeleteSatellite(cliCtx.Context, app.satelliteName, orgID)
+	err = cloudClient.DeleteSatellite(cliCtx.Context, app.satelliteName, orgName)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			app.console.Printf("Operation interrupted. Satellite should finish destroying in background (if server received request).\n")
@@ -630,17 +630,17 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		return err
 	}
 
-	_, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satelliteToInspectName, err := app.getSatelliteName(cliCtx.Context, orgID, satelliteToInspect, cloudClient)
+	satelliteToInspectName, err := app.getSatelliteName(cliCtx.Context, orgName, satelliteToInspect, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satellite, err := cloudClient.GetSatellite(cliCtx.Context, satelliteToInspectName, orgID)
+	satellite, err := cloudClient.GetSatellite(cliCtx.Context, satelliteToInspectName, orgName)
 	if err != nil {
 		return err
 	}
@@ -744,7 +744,7 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 		return err
 	}
 
-	_, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -753,7 +753,7 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 	// after the command was run. Its done this way to save some API calls.
 	found := false
 	satelliteName := ""
-	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgID, true)
+	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgName, true)
 	if err != nil {
 		return err
 	}
@@ -828,17 +828,17 @@ func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
 		return err
 	}
 
-	_, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satName, err := app.getSatelliteName(cliCtx.Context, orgID, app.satelliteName, cloudClient)
+	satName, err := app.getSatelliteName(cliCtx.Context, orgName, app.satelliteName, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	sat, err := cloudClient.GetSatellite(cliCtx.Context, satName, orgID)
+	sat, err := cloudClient.GetSatellite(cliCtx.Context, satName, orgName)
 	if err != nil {
 		return err
 	}
@@ -847,7 +847,7 @@ func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
 		app.console.Printf("%s is already awake.", app.satelliteName)
 	}
 
-	out := cloudClient.WakeSatellite(cliCtx.Context, satName, orgID)
+	out := cloudClient.WakeSatellite(cliCtx.Context, satName, orgName)
 	err = showSatelliteLoading(app.console, app.satelliteName, out)
 	if err != nil {
 		return errors.Wrap(err, "failed waiting for satellite wake")
@@ -873,17 +873,17 @@ func (app *earthlyApp) actionSatelliteSleep(cliCtx *cli.Context) error {
 		return err
 	}
 
-	_, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satName, err := app.getSatelliteName(cliCtx.Context, orgID, app.satelliteName, cloudClient)
+	satName, err := app.getSatelliteName(cliCtx.Context, orgName, app.satelliteName, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	out := cloudClient.SleepSatellite(cliCtx.Context, satName, orgID)
+	out := cloudClient.SleepSatellite(cliCtx.Context, satName, orgName)
 	err = showSatelliteStopping(app.console, app.satelliteName, out)
 	if err != nil {
 		return errors.Wrap(err, "failed waiting for satellite wake")
@@ -914,12 +914,12 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 		return err
 	}
 
-	_, orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satName, err := app.getSatelliteName(cliCtx.Context, orgID, app.satelliteName, cloudClient)
+	satName, err := app.getSatelliteName(cliCtx.Context, orgName, app.satelliteName, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -939,7 +939,7 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 
 	err = cloudClient.UpdateSatellite(cliCtx.Context, cloud.UpdateSatelliteOpt{
 		Name:                    satName,
-		OrgID:                   orgID,
+		OrgName:                 orgName,
 		PinnedVersion:           version,
 		MaintenanceWindowStart:  window,
 		MaintenanceWeekendsOnly: app.satelliteMaintenaceWeekendsOnly,

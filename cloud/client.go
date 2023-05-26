@@ -59,6 +59,7 @@ type Client struct {
 	installationName         string
 	logstreamAddressOverride string
 	serverConnTimeout        time.Duration
+	orgIDCache               map[string]string // orgName -> orgID
 }
 
 type ClientOpt func(*Client)
@@ -81,6 +82,7 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 		installationName:  installationName,
 		requestID:         requestID,
 		serverConnTimeout: serverConnTimeout,
+		orgIDCache:        map[string]string{},
 	}
 	if authJWTOverride != "" {
 		c.authToken = authJWTOverride

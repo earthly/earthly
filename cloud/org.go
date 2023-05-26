@@ -60,6 +60,7 @@ func (c *Client) ListOrgs(ctx context.Context) ([]*OrgDetail, error) {
 			Name:  org.Name,
 			Admin: org.Admin,
 		})
+		c.orgIDCache[org.Name] = org.Id
 	}
 
 	return res, nil
@@ -177,6 +178,9 @@ func (c *Client) CreateOrg(ctx context.Context, org string) error {
 
 // GetOrgID retrieves the org ID for a named org.
 func (c *Client) GetOrgID(ctx context.Context, orgName string) (string, error) {
+	if orgID, ok := c.orgIDCache[orgName]; ok {
+		return orgID, nil
+	}
 	orgs, err := c.ListOrgs(ctx)
 	if err != nil {
 		return "", err
