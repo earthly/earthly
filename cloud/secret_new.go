@@ -44,7 +44,7 @@ func (c *Client) ListSecrets(ctx context.Context, path string) ([]*Secret, error
 	}
 
 	if status != http.StatusOK {
-		return nil, errors.Wrap(httperror.New(status, string(body)), "failed to list secrets")
+		return nil, fmt.Errorf("failed to list secrets: %w", httperror.New(status, string(body)))
 	}
 
 	var secrets []*Secret
