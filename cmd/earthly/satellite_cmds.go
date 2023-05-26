@@ -388,15 +388,15 @@ func (app *earthlyApp) getSatelliteOrg(ctx context.Context, cloudClient *cloud.C
 	return cloudClient.GuessOrgMembership(ctx)
 }
 
-func (app *earthlyApp) getAllPipelinesForAllProjects(ctx context.Context, cloudClient *cloud.Client) ([]cloud.Pipeline, error) {
-	projects, err := cloudClient.ListProjects(ctx, app.orgName)
+func (app *earthlyApp) getAllPipelinesForAllProjects(ctx context.Context, orgName string, cloudClient *cloud.Client) ([]cloud.Pipeline, error) {
+	projects, err := cloudClient.ListProjects(ctx, orgName)
 	if err != nil {
 		return nil, err
 	}
 
 	allPipelines := make([]cloud.Pipeline, 0)
 	for _, pr := range projects {
-		pipelines, err := cloudClient.ListPipelines(ctx, pr.Name, app.orgName, "")
+		pipelines, err := cloudClient.ListPipelines(ctx, pr.Name, orgName, "")
 		if err != nil {
 			return nil, err
 		}
@@ -418,7 +418,7 @@ func (app *earthlyApp) getSatelliteName(ctx context.Context, orgName, satelliteN
 		}
 	}
 
-	pipelines, err := app.getAllPipelinesForAllProjects(ctx, cloudClient)
+	pipelines, err := app.getAllPipelinesForAllProjects(ctx, orgName, cloudClient)
 	if err != nil {
 		return "", err
 	}
@@ -501,7 +501,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	}
 	app.console.Printf("...Done\n")
 
-	err = app.useSatellite(cliCtx, app.satelliteName, app.orgName)
+	err = app.useSatellite(cliCtx, app.satelliteName, orgName)
 	if err != nil {
 		return errors.Wrap(err, "could not configure satellite for use")
 	}
@@ -534,7 +534,7 @@ func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 
 	pipelines := make([]cloud.Pipeline, 0)
 	if app.satelliteIncludeHidden {
-		pipelines, err = app.getAllPipelinesForAllProjects(cliCtx.Context, cloudClient)
+		pipelines, err = app.getAllPipelinesForAllProjects(cliCtx.Context, orgName, cloudClient)
 		if err != nil {
 			return err
 		}
@@ -712,7 +712,7 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 			// Only instruct the user to run this if the satellite is asleep.
 			// Otherwise, satellite may be updating, still starting, etc.
 			app.console.Printf("")
-			app.console.Printf("    earthly satellite --org %s wake %s", app.orgName, satelliteToInspect)
+			app.console.Printf("    earthly satellite --org %s wake %s", orgName, satelliteToInspect)
 			app.console.Printf("")
 		}
 	}
@@ -766,7 +766,7 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 
 	pipelines := make([]cloud.Pipeline, 0)
 	if !found {
-		pipelines, err = app.getAllPipelinesForAllProjects(cliCtx.Context, cloudClient)
+		pipelines, err = app.getAllPipelinesForAllProjects(cliCtx.Context, orgName, cloudClient)
 		if err != nil {
 			return err
 		}
@@ -785,7 +785,7 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 		return fmt.Errorf("no satellite named %q found", app.satelliteName)
 	}
 
-	err = app.useSatellite(cliCtx, satelliteName, app.orgName)
+	err = app.useSatellite(cliCtx, satelliteName, orgName)
 	if err != nil {
 		return errors.Wrapf(err, "could not select satellite %s", app.satelliteName)
 	}
