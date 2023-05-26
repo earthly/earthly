@@ -29,10 +29,10 @@ func Code(err error) int {
 	if err == nil {
 		return http.StatusOK
 	}
-	if se, ok := err.(interface {
+	if httErr, ok := err.(interface {
 		Code() int
 	}); ok {
-		return se.Code()
+		return httErr.Code()
 	}
 	return http.StatusInternalServerError
 }
