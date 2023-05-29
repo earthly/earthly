@@ -413,15 +413,15 @@ earthly-all:
     SAVE ARTIFACT ./*
 
 earthly-docker:
+    ARG EARTHLY_TARGET_TAG_DOCKER
+    ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     ARG BUILDKIT_PROJECT
-    FROM ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
+    FROM ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT" --TAG="$TAG"
     RUN apk add --update --no-cache docker-cli libcap-ng-utils git
     ENV EARTHLY_IMAGE=true
     COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
     ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
     WORKDIR /workspace
-    ARG EARTHLY_TARGET_TAG_DOCKER
-    ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     COPY (+earthly/earthly --VERSION=$TAG --DEFAULT_INSTALLATION_NAME="earthly") /usr/bin/earthly
     ARG DOCKERHUB_USER="earthly"
     ARG DOCKERHUB_IMG="earthly"
