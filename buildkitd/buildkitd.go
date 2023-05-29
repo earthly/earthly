@@ -921,11 +921,6 @@ func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, work
 		default:
 		}
 	}
-	if workerInfo.GCAnalytics.AllTimeMaxDuration > 5*time.Minute {
-		bkCons.Warnf(
-			"Warning: Some GC runs are very slow, max duration %v",
-			workerInfo.GCAnalytics.AllTimeMaxDuration.Round(time.Second))
-	}
 }
 
 // getCacheSize returns the size of the earthly cache in bytes.
