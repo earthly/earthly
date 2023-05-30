@@ -384,7 +384,7 @@ func (app *earthlyApp) getSatelliteOrgID(ctx context.Context, cloudClient *cloud
 	// TODO Eventually we should be able to remove this cheat.
 	err := cloudClient.Authenticate(ctx)
 	if err != nil {
-		return "", errors.New("unable to authenticate")
+		return "", errors.Wrap(err, "unable to authenticate")
 	}
 	var orgID string
 	if app.orgName == "" {
