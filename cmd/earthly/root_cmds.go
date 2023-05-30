@@ -91,6 +91,7 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 					Aliases:     []string{"t"},
 					EnvVars:     []string{"EARTHLY_DOCKER_TAG"},
 					Usage:       "Name and tag for the built image; formatted as 'name:tag'",
+					Required:    true,
 					Destination: &app.earthfileFinalImage,
 				},
 				&cli.StringFlag{
