@@ -7,8 +7,8 @@ earthly=${earthly:=earthly}
 earthly=$(realpath "$earthly")
 frontend="${frontend:-$(which docker)}"
 tag=test-image:v1.2.3
-testdir=/tmp/earthtest
-mkdir -p /tmp/earthtest
+testdir=/tmp/earthly-docker-build-test
+mkdir -p $testdir
 
 function reset() {
     chmod 777 -R $testdir >/dev/null 2>&1 || true
@@ -24,7 +24,7 @@ trap cleanup EXIT
 
 function run_test_cmd() {
   cmd=$1
-  if  eval NO_COLOR=0 $cmd > output 2>&1; then
+  if  eval NO_COLOR=0 "$cmd" > output 2>&1; then
       echo "earthly docker-build should have failed"
       exit 1
   fi
@@ -52,7 +52,7 @@ echo "=== test 4 - command fails when it cannot check if Earthfile already exist
 reset
 chmod 000 $testdir
 run_test_cmd "\"$earthly\" docker-build -t $tag $testdir"
-diff output <(echo "Error: failed to check if \"/tmp/earthtest/Earthfile\" exists: unable to stat /tmp/earthtest/Earthfile: stat /tmp/earthtest/Earthfile: permission denied")
+diff output <(echo "Error: failed to check if \"$testdir/Earthfile\" exists: unable to stat $testdir/Earthfile: stat $testdir/Earthfile: permission denied")
 
 echo "=== test 5 - command fails when the Earthfile already exists:"
 reset
@@ -67,14 +67,14 @@ touch $testdir/.dockerignore
 chmod 000 $testdir/.dockerignore
 
 run_test_cmd "\"$earthly\" docker-build -t $tag $testdir"
-diff output <(echo "Error: failed to copy \"/tmp/earthtest/.dockerignore\" to \"/tmp/earthtest/.earthlyignore\": open /tmp/earthtest/.dockerignore: permission denied")
+diff output <(echo "Error: failed to copy \"$testdir/.dockerignore\" to \"$testdir/.earthlyignore\": open $testdir/.dockerignore: permission denied")
 
 echo "=== test 7 - command fails when it cannot create the Earthfile:"
 reset
 chmod -w $testdir
 
 run_test_cmd "\"$earthly\" docker-build -t $tag $testdir"
-diff output <(echo "Error: docker-build: failed to create Earthfile \"/tmp/earthtest/Earthfile\": open /tmp/earthtest/Earthfile: permission denied")
+diff output <(echo "Error: docker-build: failed to create Earthfile \"$testdir/Earthfile\": open $testdir/Earthfile: permission denied")
 
 # happy paths:
 reset
