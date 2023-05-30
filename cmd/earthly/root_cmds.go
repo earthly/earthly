@@ -534,15 +534,28 @@ func (app *earthlyApp) actionDockerBuild(cliCtx *cli.Context) error {
 		return errors.Wrapf(err, "combining build args")
 	}
 
-	defer func() {
-		os.Remove(filepath.Join(buildContextPath, "Earthfile"))
-		os.Remove(filepath.Join(buildContextPath, ".earthlyignore"))
-	}()
-
-	err = docker2earthly.DockerWithEarthly(buildContextPath, app.dockerfilePath, app.earthfileFinalImage, buildArgs.Sorted(), app.platformsStr.Value(), app.dockerTarget)
+	content, err := docker2earthly.GenerateEarthfileContent(buildContextPath, app.dockerfilePath, app.earthfileFinalImage, buildArgs.Sorted(), app.platformsStr.Value(), app.dockerTarget)
 	if err != nil {
 		return errors.Wrap(err, "docker-build: failed to wrap Dockerfile with an Earthfile")
 	}
+
+	earthfilePath := filepath.Join(buildContextPath, "Earthfile")
+	defer func() {
+		os.Remove(earthfilePath)
+		os.Remove(filepath.Join(buildContextPath, ".earthlyignore"))
+	}()
+
+	out, err := os.Create(earthfilePath)
+	if err != nil {
+		return errors.Wrapf(err, "docker-build: failed to create Earthfile under %q", earthfilePath)
+	}
+	defer out.Close()
+
+	_, err = out.WriteString(content)
+	if err != nil {
+		return errors.Wrapf(err, "docker-build: failed to write to %q", earthfilePath)
+	}
+
 	// The following should not be set in the context of executing the build from the generated Earthfile:
 	app.imageMode = false
 	app.artifactMode = false

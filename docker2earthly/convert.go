@@ -2,10 +2,10 @@ package docker2earthly
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -175,19 +175,14 @@ type earthfileTemplateArgs struct {
 	Platforms    []string
 }
 
-func DockerWithEarthly(buildContextPath string, dockerfilePath, imageTag string, buildArgs []string, platforms []string, target string) error {
-	earthfilePath := filepath.Join(buildContextPath, "Earthfile")
-	out, err := os.Create(earthfilePath)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create Earthfile under %q", earthfilePath)
-	}
-	defer out.Close()
-
+// GenerateEarthfileContent returns an Earthfile content string which contains a target to build a docker image using FROM DOCKERFILE
+func GenerateEarthfileContent(buildContextPath string, dockerfilePath, imageTag string, buildArgs []string, platforms []string, target string) (string, error) {
 	t, err := template.New("earthfile").Parse(earthfileTemplate)
 	if err != nil {
-		errors.Wrapf(err, "failed to parse Earthfile template")
+		return "", errors.Wrapf(err, "failed to parse Earthfile template")
 	}
-	err = t.Execute(out, &earthfileTemplateArgs{
+	buf := &bytes.Buffer{}
+	err = t.Execute(buf, &earthfileTemplateArgs{
 		Version:      earthlyCurrentVersion,
 		CommandName:  "docker-build",
 		BuildArgs:    buildArgs,
@@ -198,8 +193,8 @@ func DockerWithEarthly(buildContextPath string, dockerfilePath, imageTag string,
 		Platforms:    platforms,
 	})
 	if err != nil {
-		errors.Wrapf(err, "failed to create Earthfile from template")
+		return "", errors.Wrapf(err, "failed to create Earthfile content from template")
 	}
 
-	return nil
+	return buf.String(), nil
 }
