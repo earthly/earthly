@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/earthly/earthly/util/fileutil"
 
@@ -141,6 +142,39 @@ func Docker2Earthly(dockerfilePath, earthfilePath, imageTag string) error {
 	return nil
 }
 
+var earthfileTemplate = `
+VERSION {{.Version}}
+# This Earthfile was generated using {{.CommandName}} command
+docker:
+	{{- range .BuildArgs}}
+	ARG {{. -}}
+	{{- end}}
+	FROM DOCKERFILE \
+	{{- range .BuildArgs}}
+	--build-arg {{.}}=${{.}} \
+	{{- end}}
+   	{{- if .Target}}
+	--target {{.Target}} \
+	{{- end}}
+	-f {{.Dockerfile}} \
+	{{.BuildContext}}
+	SAVE IMAGE --push {{.ImageTag}}
+
+build:
+	BUILD{{- range .Platforms}} --platform {{ . -}}{{- end}} +docker
+`
+
+type earthfileTemplateArgs struct {
+	Version      string
+	CommandName  string
+	BuildArgs    []string
+	Target       string
+	Dockerfile   string
+	BuildContext string
+	ImageTag     string
+	Platforms    []string
+}
+
 func DockerWithEarthly(buildContextPath string, dockerfilePath, imageTag string, buildArgs []string, platforms []string, target string) error {
 	earthfilePath := filepath.Join(buildContextPath, "Earthfile")
 	out, err := os.Create(earthfilePath)
@@ -149,31 +183,23 @@ func DockerWithEarthly(buildContextPath string, dockerfilePath, imageTag string,
 	}
 	defer out.Close()
 
-	fmt.Fprintf(out, "VERSION %s\n", earthlyCurrentVersion)
-	fmt.Fprintf(out, "# This Earthfile was generated using docker-build command\n")
-	fmt.Fprintf(out, "docker:\n")
-
-	for _, ba := range buildArgs {
-		fmt.Fprintf(out, "\tARG %s\n", ba)
+	t, err := template.New("earthfile").Parse(earthfileTemplate)
+	if err != nil {
+		errors.Wrapf(err, "failed to parse Earthfile template")
 	}
-
-	fmt.Fprintf(out, "\tFROM DOCKERFILE \\\n")
-	for _, ba := range buildArgs {
-		fmt.Fprintf(out, "\t\t --build-arg %s=$%s \\\n", ba, ba)
+	err = t.Execute(out, &earthfileTemplateArgs{
+		Version:      earthlyCurrentVersion,
+		CommandName:  "docker-build",
+		BuildArgs:    buildArgs,
+		Target:       target,
+		Dockerfile:   dockerfilePath,
+		BuildContext: buildContextPath,
+		ImageTag:     imageTag,
+		Platforms:    platforms,
+	})
+	if err != nil {
+		errors.Wrapf(err, "failed to create Earthfile from template")
 	}
-	if target != "" {
-		fmt.Fprintf(out, "\t\t --target %s \\\n", target)
-	}
-	fmt.Fprintf(out, "\t\t -f %s \\\n", dockerfilePath)
-	fmt.Fprintf(out, "\t\t %s\n", buildContextPath)
-	fmt.Fprintf(out, "\tSAVE IMAGE --push %s\n", imageTag)
-
-	fmt.Fprintf(out, "build:\n")
-	fmt.Fprintf(out, "\tBUILD")
-	for _, p := range platforms {
-		fmt.Fprintf(out, " --platform %s", p)
-	}
-	fmt.Fprintf(out, " +docker\n")
 
 	return nil
 }
