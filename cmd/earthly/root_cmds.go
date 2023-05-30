@@ -510,7 +510,7 @@ func (app *earthlyApp) actionDockerBuild(cliCtx *cli.Context) error {
 	if len(nonFlagArgs) == 0 {
 		_ = cli.ShowAppHelp(cliCtx)
 		return errors.Errorf(
-			"no build context path provided. Try %s docker <path>", cliCtx.App.Name)
+			"no build context path provided. Try %s docker-build <path>", cliCtx.App.Name)
 	}
 	if len(nonFlagArgs) != 1 {
 		_ = cli.ShowAppHelp(cliCtx)
@@ -547,7 +547,7 @@ func (app *earthlyApp) actionDockerBuild(cliCtx *cli.Context) error {
 
 	out, err := os.Create(earthfilePath)
 	if err != nil {
-		return errors.Wrapf(err, "docker-build: failed to create Earthfile under %q", earthfilePath)
+		return errors.Wrapf(err, "docker-build: failed to create Earthfile %q", earthfilePath)
 	}
 	defer out.Close()
 
@@ -809,7 +809,7 @@ func handleDockerFiles(buildContextPath string) error {
 	earthfilePath := filepath.Join(buildContextPath, "Earthfile")
 	earthfilePathExists, err := fileutil.FileExists(earthfilePath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to check if %s exists", earthfilePath)
+		return errors.Wrapf(err, "failed to check if %q exists", earthfilePath)
 	}
 	if earthfilePathExists {
 		return errors.Errorf("earthfile already exists; please delete it if you wish to continue")
