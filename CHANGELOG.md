@@ -7,6 +7,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Added
 - The new ARG `EARTHLY_CI_RUNNER` indicates whether the current build is executed in Earthly CI. Enable with `VERSION --earthly-ci-runner-arg 0.7`.
 
+### Changed
+- Updated buildkit up to 60d134bf7 and fsutil up to 9e7a6df48576; this includes a buildkit fix for 401 Unauthorized errors. [#2973](https://github.com/earthly/earthly/issues/2973)
+
 ## v0.7.6 - 2023-05-23
 
 ### Added
