@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -182,6 +183,14 @@ func GenerateEarthfileContent(buildContextPath string, dockerfilePath, imageTag 
 		return "", errors.Wrapf(err, "failed to parse Earthfile template")
 	}
 	buf := &bytes.Buffer{}
+	
+	if !filepath.IsAbs(dockerfilePath) {
+		dockerfilePath, err = filepath.Abs(filepath.Join(buildContextPath, dockerfilePath))
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to get get absolute path for dockerfile")
+		}
+	}
+
 	err = t.Execute(buf, &earthfileTemplateArgs{
 		Version:      earthlyCurrentVersion,
 		CommandName:  "docker-build",

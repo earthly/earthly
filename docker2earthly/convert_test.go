@@ -1,8 +1,10 @@
 package docker2earthly
 
-import "testing"
+import (
+	"testing"
+)
 
-func TestGenerateEarthfile(t *testing.T) {
+func TestGenerateEarthfileContent(t *testing.T) {
 	type args struct {
 		buildContextPath string
 		dockerfilePath   string
@@ -21,7 +23,7 @@ func TestGenerateEarthfile(t *testing.T) {
 			name: "all fields are populated",
 			args: args{
 				buildContextPath: "/my/build/context",
-				dockerfilePath:   "./dir/MyDockerfile",
+				dockerfilePath:   "./dir/../MyDockerfile",
 				imageTag:         "test-image:v1.2.3",
 				buildArgs:        []string{"arg1", "arg2"},
 				platforms:        []string{"linux/amd64", "linux/arm64"},
@@ -37,7 +39,36 @@ docker:
 	--build-arg arg1=$arg1 \
 	--build-arg arg2=$arg2 \
 	--target target1 \
-	-f ./dir/MyDockerfile \
+	-f /my/build/context/MyDockerfile \
+	/my/build/context
+	SAVE IMAGE --push test-image:v1.2.3
+
+build:
+	BUILD --platform linux/amd64 --platform linux/arm64 +docker
+`,
+			wantErr: false,
+		},
+		{
+			name: "Dockerfile has absolute path",
+			args: args{
+				buildContextPath: "/my/build/context",
+				dockerfilePath:   "/my/build/context/dir/MyDockerfile",
+				imageTag:         "test-image:v1.2.3",
+				buildArgs:        []string{"arg1", "arg2"},
+				platforms:        []string{"linux/amd64", "linux/arm64"},
+				target:           "target1",
+			},
+			want: `
+VERSION 0.7
+# This Earthfile was generated using docker-build command
+docker:
+	ARG arg1
+	ARG arg2
+	FROM DOCKERFILE \
+	--build-arg arg1=$arg1 \
+	--build-arg arg2=$arg2 \
+	--target target1 \
+	-f /my/build/context/dir/MyDockerfile \
 	/my/build/context
 	SAVE IMAGE --push test-image:v1.2.3
 
@@ -49,7 +80,7 @@ build:
 		{
 			name: "no args",
 			args: args{
-				buildContextPath: ".",
+				buildContextPath: "/build-context",
 				dockerfilePath:   "./dir/MyDockerfile",
 				imageTag:         "test-image:v1.2.3",
 				platforms:        []string{"linux/amd64"},
@@ -61,8 +92,8 @@ VERSION 0.7
 docker:
 	FROM DOCKERFILE \
 	--target target1 \
-	-f ./dir/MyDockerfile \
-	.
+	-f /build-context/dir/MyDockerfile \
+	/build-context
 	SAVE IMAGE --push test-image:v1.2.3
 
 build:

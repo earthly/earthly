@@ -48,35 +48,17 @@ run_test_cmd "\"$earthly\" docker-build -t $tag ctx1 ctx2"
 tail -n1 output > output2
 diff output2 <(echo "Error: invalid arguments ctx1 ctx2")
 
-echo "=== test 4 - command fails when it cannot check if Earthfile already exists:"
-reset
-chmod 000 $testdir
-run_test_cmd "\"$earthly\" docker-build -t $tag $testdir"
-diff output <(echo "Error: failed to check if \"$testdir/Earthfile\" exists: unable to stat $testdir/Earthfile: stat $testdir/Earthfile: permission denied")
-
-echo "=== test 5 - command fails when the Earthfile already exists:"
-reset
-touch $testdir/Earthfile
-
-run_test_cmd "\"$earthly\" docker-build -t $tag $testdir"
-diff output <(echo "Error: earthfile already exists; please delete it if you wish to continue")
-
-echo "=== test 6 - command fails when .dockerignore is inaccessible:"
+echo "=== test 4 - command fails when .dockerignore is inaccessible:"
 reset
 touch $testdir/.dockerignore
 chmod 000 $testdir/.dockerignore
 
 run_test_cmd "\"$earthly\" docker-build -t $tag $testdir"
-diff output <(echo "Error: failed to copy \"$testdir/.dockerignore\" to \"$testdir/.earthlyignore\": open $testdir/.dockerignore: permission denied")
+cut -d ":" -f 3 output > output2
 
-echo "=== test 7 - command fails when it cannot create the Earthfile:"
-reset
-chmod -w $testdir
+diff output2 <(echo " failed to handle .dockerignore file")
 
-run_test_cmd "\"$earthly\" docker-build -t $tag $testdir"
-diff output <(echo "Error: docker-build: failed to create Earthfile \"$testdir/Earthfile\": open $testdir/Earthfile: permission denied")
-
-# happy paths:
+## happy paths:
 reset
 # create Dockerfile for the happy paths
 cat << EOF > $testdir/Dockerfile
@@ -95,14 +77,14 @@ EOF
 
 touch $testdir/good.txt $testdir/bad.txt
 
-echo "=== test 8 - it creates an image:"
+echo "=== test 5 - it creates an image:"
 reset
 
 "$earthly" docker-build -t "$tag" $testdir
 
 "$frontend" inspect "$tag" > /dev/null
 
-echo "=== test 9 - it uses the correct target:"
+echo "=== test 6 - it uses the correct target:"
 
 # use target1:
 reset
@@ -122,7 +104,7 @@ reset
 
 diff output <(echo "target2")
 
-echo "=== test 10 - it uses the correct arg value:"
+echo "=== test 7 - it uses the correct arg value:"
 
 # use override-value:
 reset
@@ -142,7 +124,7 @@ reset
 
 diff output <(echo "default-value")
 
-echo "=== test 11 - it builds the image using the correct platforms:"
+echo "=== test 8 - it builds the image using the correct platforms:"
 
 reset
 
@@ -158,7 +140,7 @@ diff output <(echo "arm64")
 
 diff output <(echo "amd64")
 
-echo "=== test 12 - it ignores files according to .dockerignore:"
+echo "=== test 9 - it ignores files according to .dockerignore:"
 
 reset
 
@@ -175,4 +157,9 @@ grep bad.txt output > output2 || true
 
 diff output2 <(echo -n "")
 
+# verify file is removed
+if [ -f $testdir/.earthlyignore ]; then
+    >&2 echo "$testdir/.earthlyignore was not removed"
+    exit 1
+fi
 echo "=== All tests have passed ==="

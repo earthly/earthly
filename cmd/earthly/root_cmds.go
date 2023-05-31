@@ -518,11 +518,23 @@ func (app *earthlyApp) actionDockerBuild(cliCtx *cli.Context) error {
 		return errors.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 	}
 
-	buildContextPath := nonFlagArgs[0]
-
-	err = handleDockerFiles(buildContextPath)
+	buildContextPath, err := filepath.Abs(nonFlagArgs[0])
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to get absolute path for build context")
+	}
+
+	tempDir, err := os.MkdirTemp("", "docker-build")
+	if err != nil {
+		return errors.Wrap(err, "docker-build: failed to create temporary dir for Earthfile")
+	}
+	defer os.RemoveAll(tempDir)
+
+	earthlyIgnoreFilePath, err := handleDockerIgnoreFile(buildContextPath)
+	if err != nil {
+		return errors.Wrap(err, "docker-build: failed to handle .dockerignore file")
+	}
+	if earthlyIgnoreFilePath != "" {
+		defer os.RemoveAll(earthlyIgnoreFilePath)
 	}
 
 	argMap, err := godotenv.Read(app.argFile)
@@ -540,11 +552,7 @@ func (app *earthlyApp) actionDockerBuild(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "docker-build: failed to wrap Dockerfile with an Earthfile")
 	}
 
-	earthfilePath := filepath.Join(buildContextPath, "Earthfile")
-	defer func() {
-		os.Remove(earthfilePath)
-		os.Remove(filepath.Join(buildContextPath, ".earthlyignore"))
-	}()
+	earthfilePath := filepath.Join(tempDir, "Earthfile")
 
 	out, err := os.Create(earthfilePath)
 	if err != nil {
@@ -565,7 +573,7 @@ func (app *earthlyApp) actionDockerBuild(cliCtx *cli.Context) error {
 	app.dockerfilePath = ""
 	app.earthfileFinalImage = ""
 
-	nonFlagArgs = []string{buildContextPath + "+build"}
+	nonFlagArgs = []string{tempDir + "+build"}
 	return app.actionBuildImp(cliCtx, flagArgs, nonFlagArgs)
 }
 
@@ -806,30 +814,22 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	return nil
 }
 
-func handleDockerFiles(buildContextPath string) error {
-	earthfilePath := filepath.Join(buildContextPath, "Earthfile")
-	earthfilePathExists, err := fileutil.FileExists(earthfilePath)
-	if err != nil {
-		return errors.Wrapf(err, "failed to check if %q exists", earthfilePath)
-	}
-	if earthfilePathExists {
-		return errors.Errorf("earthfile already exists; please delete it if you wish to continue")
-	}
-
+func handleDockerIgnoreFile(buildContextPath string) (string, error) {
 	dockerIgnorePath := filepath.Join(buildContextPath, ".dockerignore")
 	dockerIgnorePathExists, err := fileutil.FileExists(dockerIgnorePath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to check if %q exists", dockerIgnorePath)
+		return "", errors.Wrapf(err, "failed to check if %q exists", dockerIgnorePath)
 	}
 
 	if !dockerIgnorePathExists {
-		return nil
+		return "", nil
 	}
 
+	// FROM DOCKERFILE requires .earthlyignore to be present at the build context directory
 	earthlyIgnoreFilePath := filepath.Join(buildContextPath, ".earthlyignore")
 	err = copy.Copy(dockerIgnorePath, earthlyIgnoreFilePath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to copy %q to %q", dockerIgnorePath, earthlyIgnoreFilePath)
+		return "", errors.Wrapf(err, "failed to copy %q to %q", dockerIgnorePath, earthlyIgnoreFilePath)
 	}
-	return nil
+	return earthlyIgnoreFilePath, nil
 }
