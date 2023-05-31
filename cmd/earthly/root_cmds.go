@@ -86,13 +86,12 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 					Value:       "Dockerfile",
 					Destination: &app.dockerfilePath,
 				},
-				&cli.StringFlag{
+				&cli.StringSliceFlag{
 					Name:        "tag",
 					Aliases:     []string{"t"},
 					EnvVars:     []string{"EARTHLY_DOCKER_TAG"},
 					Usage:       "Name and tag for the built image; formatted as 'name:tag'",
-					Required:    true,
-					Destination: &app.earthfileFinalImage,
+					Destination: &app.dockerTags,
 				},
 				&cli.StringFlag{
 					Name:        "target",
@@ -547,7 +546,7 @@ func (app *earthlyApp) actionDockerBuild(cliCtx *cli.Context) error {
 		return errors.Wrapf(err, "combining build args")
 	}
 
-	content, err := docker2earthly.GenerateEarthfileContent(buildContextPath, app.dockerfilePath, app.earthfileFinalImage, buildArgs.Sorted(), app.platformsStr.Value(), app.dockerTarget)
+	content, err := docker2earthly.GenerateEarthfileContent(buildContextPath, app.dockerfilePath, app.dockerTags.Value(), buildArgs.Sorted(), app.platformsStr.Value(), app.dockerTarget)
 	if err != nil {
 		return errors.Wrap(err, "docker-build: failed to wrap Dockerfile with an Earthfile")
 	}
@@ -571,7 +570,7 @@ func (app *earthlyApp) actionDockerBuild(cliCtx *cli.Context) error {
 	app.platformsStr = cli.StringSlice{}
 	app.dockerTarget = ""
 	app.dockerfilePath = ""
-	app.earthfileFinalImage = ""
+	app.dockerTags = cli.StringSlice{}
 
 	nonFlagArgs = []string{tempDir + "+build"}
 	return app.actionBuildImp(cliCtx, flagArgs, nonFlagArgs)

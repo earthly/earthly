@@ -7,13 +7,15 @@ earthly=${earthly:=earthly}
 earthly=$(realpath "$earthly")
 frontend="${frontend:-$(which docker)}"
 tag=test-image:v1.2.3
+tag2="${tag}.4"
+
 testdir=/tmp/earthly-docker-build-test
 mkdir -p $testdir
 
 function reset() {
     chmod 777 -R $testdir >/dev/null 2>&1 || true
     rm -rf output output2 $testdir/Earthfile $testdir/.dockerignore $testdir/.earthlyignore
-    $frontend rmi -f $tag >/dev/null 2>&1
+    $frontend rmi -f $tag $tag2 ${tag}_linux_amd64 ${tag}_linux_arm64 >/dev/null 2>&1
 }
 
 function cleanup() {
@@ -30,30 +32,24 @@ function run_test_cmd() {
   fi
 }
 
-echo "=== test 1 - command fails when tag is not specified:"
+echo "=== test 1 - command fails when build context is not specified:"
 reset
 run_test_cmd "\"$earthly\" docker-build"
 tail -n1 output > output2
-diff output2 <(echo "Error: Required flag \"tag\" not set")
-
-echo "=== test 2 - command fails when build context is not specified:"
-reset
-run_test_cmd "\"$earthly\" docker-build -t $tag"
-tail -n1 output > output2
 diff output2 <(echo "Error: no build context path provided. Try earthly docker-build <path>")
 
-echo "=== test 3 - command fails when more than one build context (non arg flag) is specified:"
+echo "=== test 2 - command fails when more than one build context (non arg flag) is specified:"
 reset
-run_test_cmd "\"$earthly\" docker-build -t $tag ctx1 ctx2"
+run_test_cmd "\"$earthly\" docker-build ctx1 ctx2"
 tail -n1 output > output2
 diff output2 <(echo "Error: invalid arguments ctx1 ctx2")
 
-echo "=== test 4 - command fails when .dockerignore is inaccessible:"
+echo "=== test 3 - command fails when .dockerignore is inaccessible:"
 reset
 touch $testdir/.dockerignore
 chmod 000 $testdir/.dockerignore
 
-run_test_cmd "\"$earthly\" docker-build -t $tag $testdir"
+run_test_cmd "\"$earthly\" docker-build $testdir"
 cut -d ":" -f 3 output > output2
 
 diff output2 <(echo " failed to handle .dockerignore file")
@@ -77,14 +73,27 @@ EOF
 
 touch $testdir/good.txt $testdir/bad.txt
 
-echo "=== test 5 - it creates an image:"
+echo "=== test 4 - it creates an image:"
 reset
 
 "$earthly" docker-build -t "$tag" $testdir
 
 "$frontend" inspect "$tag" > /dev/null
 
-echo "=== test 6 - it uses the correct target:"
+echo "=== test 5 - it creates an image with multiple tags:"
+reset
+
+"$earthly" docker-build -t "$tag" -t "$tag2" $testdir
+
+"$frontend" inspect "$tag" > /dev/null
+"$frontend" inspect "$tag2" > /dev/null
+
+echo "=== test 6 - it creates an image without tags"
+reset
+
+"$earthly" docker-build $testdir
+
+echo "=== test 7 - it uses the correct target:"
 
 # use target1:
 reset
@@ -104,7 +113,7 @@ reset
 
 diff output <(echo "target2")
 
-echo "=== test 7 - it uses the correct arg value:"
+echo "=== test 8 - it uses the correct arg value:"
 
 # use override-value:
 reset
@@ -124,7 +133,7 @@ reset
 
 diff output <(echo "default-value")
 
-echo "=== test 8 - it builds the image using the correct platforms:"
+echo "=== test 9 - it builds the image using the correct platforms:"
 
 reset
 
@@ -140,7 +149,7 @@ diff output <(echo "arm64")
 
 diff output <(echo "amd64")
 
-echo "=== test 9 - it ignores files according to .dockerignore:"
+echo "=== test 10 - it ignores files according to .dockerignore:"
 
 reset
 

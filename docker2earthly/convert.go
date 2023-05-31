@@ -159,7 +159,10 @@ docker:
 	{{- end}}
 	-f {{.Dockerfile}} \
 	{{.BuildContext}}
-	SAVE IMAGE --push {{.ImageTag}}
+	{{- if .ImageTags}}
+	SAVE IMAGE --push
+	{{- range .ImageTags}} {{. -}}{{- end}}
+	{{- end}}
 
 build:
 	BUILD{{- range .Platforms}} --platform {{ . -}}{{- end}} +docker
@@ -172,12 +175,12 @@ type earthfileTemplateArgs struct {
 	Target       string
 	Dockerfile   string
 	BuildContext string
-	ImageTag     string
+	ImageTags    []string
 	Platforms    []string
 }
 
 // GenerateEarthfileContent returns an Earthfile content string which contains a target to build a docker image using FROM DOCKERFILE
-func GenerateEarthfileContent(buildContextPath string, dockerfilePath, imageTag string, buildArgs []string, platforms []string, target string) (string, error) {
+func GenerateEarthfileContent(buildContextPath string, dockerfilePath string, imageTags []string, buildArgs []string, platforms []string, target string) (string, error) {
 	t, err := template.New("earthfile").Parse(earthfileTemplate)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to parse Earthfile template")
@@ -198,7 +201,7 @@ func GenerateEarthfileContent(buildContextPath string, dockerfilePath, imageTag 
 		Target:       target,
 		Dockerfile:   dockerfilePath,
 		BuildContext: buildContextPath,
-		ImageTag:     imageTag,
+		ImageTags:    imageTags,
 		Platforms:    platforms,
 	})
 	if err != nil {
