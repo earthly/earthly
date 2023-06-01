@@ -1,4 +1,5 @@
-VERSION --shell-out-anywhere --use-copy-link 0.6
+# TODO: we must change the DOCKERHUB_USER_SECRET args to be project-based before we can change to 0.7
+VERSION --shell-out-anywhere --use-copy-link --no-network 0.6
 
 FROM golang:1.20-alpine3.17
 
@@ -255,6 +256,10 @@ chaos-test:
     FROM +code
     RUN go test -tags chaos ./...
 
+offline-test:
+    FROM +code
+    RUN --network=none go test -run TestOffline ./...
+
 # submodule-decouple-check checks that go submodules within earthly do not
 # depend on the core earthly project.
 submodule-decouple-check:
@@ -408,15 +413,15 @@ earthly-all:
     SAVE ARTIFACT ./*
 
 earthly-docker:
+    ARG EARTHLY_TARGET_TAG_DOCKER
+    ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     ARG BUILDKIT_PROJECT
-    FROM ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
+    FROM ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT" --TAG="$TAG"
     RUN apk add --update --no-cache docker-cli libcap-ng-utils git
     ENV EARTHLY_IMAGE=true
     COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
     ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
     WORKDIR /workspace
-    ARG EARTHLY_TARGET_TAG_DOCKER
-    ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     COPY (+earthly/earthly --VERSION=$TAG --DEFAULT_INSTALLATION_NAME="earthly") /usr/bin/earthly
     ARG DOCKERHUB_USER="earthly"
     ARG DOCKERHUB_IMG="earthly"
@@ -599,6 +604,7 @@ lint-docs:
 test-no-qemu:
     BUILD +unit-test
     BUILD +chaos-test
+    BUILD +offline-test
     BUILD +earthly-script-no-stdout
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false

@@ -35,13 +35,22 @@ then
     earthly bootstrap --source zsh > "$ZSH_COMPLETION_DIR/_earthly"
 fi
 
-# skip bootstrapping if docker isn't installed or running
-if ! command -v docker &> /dev/null
-then
-    echo "docker was not found; skipping earthly bootstrap"
+frontend="${frontend:-$(which docker || which podman || true)}"
+if [ -z "$frontend" ]; then
+    echo "neither docker nor podman was found; skipping earthly bootstrap"
     exit
 fi
-if ! docker info 2>/dev/null >/dev/null
+
+# skip bootstrapping if docker isn't installed or running
+if ! "$frontend" info 2>/dev/null >/dev/null
+then
+    echo "unable to query docker/podman daemon; skipping earthly bootstrap"
+    exit
+fi
+
+echo "bootstrapping earthly"
+earthly bootstrap
+echo "bootstrapping earthly done"
 
 %postun
 set -e
@@ -53,23 +62,23 @@ if [ "$1" -eq 0 ]; then
   rm -f /usr/share/bash-completion/completions/earthly
   rm -f /usr/local/share/zsh/site-functions/_earthly
 
-  if ! command -v docker &> /dev/null
-  then
-      echo "docker was not found; $UNABLE_TO_REMOVE"
+  frontend="${frontend:-$(which docker || which podman || true)}"
+  if [ -z "$frontend" ]; then
+      echo "neither docker nor podman was found; $UNABLE_TO_REMOVE"
       exit
   fi
 
-  if ! docker info 2>/dev/null >/dev/null
+  if ! "$frontend" info 2>/dev/null >/dev/null
   then
-      echo "unable to query docker daemon; $UNABLE_TO_REMOVE"
+      echo "unable to query docker/podman daemon; $UNABLE_TO_REMOVE"
       exit
   fi
 
-  echo "removing earthly-buildkitd docker container"
-  docker rm --force earthly-buildkitd
+  echo "removing earthly-buildkitd docker/podman container"
+  "$frontend" rm --force earthly-buildkitd
 
-  echo "removing earthly-cache docker volume"
-  docker volume rm --force earthly-cache
+  echo "removing earthly-cache docker/podman volume"
+  "$frontend" volume rm --force earthly-cache
 fi
 
 %changelog

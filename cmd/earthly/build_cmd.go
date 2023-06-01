@@ -566,6 +566,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		PrintPhases:                true,
 		Push:                       app.push,
 		CI:                         app.ci,
+		EarthlyCIRunner:            app.earthlyCIRunner,
 		NoOutput:                   app.noOutput,
 		OnlyFinalTargetImages:      app.imageMode,
 		PlatformResolver:           platr,

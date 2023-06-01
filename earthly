@@ -29,6 +29,11 @@ script_dir="$( cd "$( dirname "$scriptpath" )" &> /dev/null && pwd )"
 last_check_state_path=/tmp/last-earthly-prerelease-check
 last_flag_hash_path=/tmp/last-earthly-flag-hash
 
+if ! which md5sum 2>/dev/null >&2; then
+  echo >&2 "the md5sum command is required; please install it."
+  exit 1
+fi
+
 detect_frontend() {
   if which docker 2>/dev/null >&2 && docker info 2>/dev/null >&2; then
     echo "docker"

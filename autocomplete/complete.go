@@ -2,6 +2,7 @@ package autocomplete
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/user"
 	"path"
@@ -17,6 +18,10 @@ import (
 
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/urfave/cli/v2"
+)
+
+var (
+	errCompPointOutOfBounds = fmt.Errorf("COMP_POINT out of bounds")
 )
 
 func isLocalPath(path string) bool {
@@ -335,13 +340,57 @@ const (
 	endOfSuggestionsState               // 8
 )
 
+type FlagValuePotentialFn func(ctx context.Context, prefix string) []string
+
 // GetPotentials returns a list of potential arguments for shell auto completion
 // NOTE: you can cause earthly to run this command with:
 //
 //	COMP_LINE="earthly -" COMP_POINT=$(echo -n $COMP_LINE | wc -c) go run cmd/earthly/main.go
-func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, compLine string, compPoint int, app *cli.App) ([]string, error) {
+func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, compLine string, compPoint int, app *cli.App, cloudClient cloudListClient) ([]string, error) {
+	if compPoint > len(compLine) {
+		return nil, errCompPointOutOfBounds
+	}
 	compLine = compLine[:compPoint]
 	subCommands := app.Commands
+
+	flagValues := map[string]string{}
+	flagValuePotentialFuncs := map[string]FlagValuePotentialFn{
+		"--org": func(ctx context.Context, prefix string) []string {
+			if cloudClient == nil {
+				return []string{}
+			}
+
+			orgs, err := cloudClient.ListOrgs(ctx)
+			if err != nil {
+				return []string{}
+			}
+			potentials := []string{}
+			for _, org := range orgs {
+				potentials = append(potentials, org.Name)
+			}
+			return potentials
+		},
+		"--project": func(ctx context.Context, prefix string) []string {
+			if cloudClient == nil {
+				return []string{}
+			}
+
+			org, ok := flagValues["--org"]
+			if !ok {
+				return []string{}
+			}
+
+			projects, err := cloudClient.ListProjects(ctx, org)
+			if err != nil {
+				return []string{}
+			}
+			potentials := []string{}
+			for _, project := range projects {
+				potentials = append(potentials, project.Name)
+			}
+			return potentials
+		},
+	}
 
 	// getWord returns the next word and a boolean if it is valid
 	// TODO this function does not handle escaped space, e.g.
@@ -369,6 +418,7 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 	state := rootState
 	var target string
 	var artifactMode bool
+	var flag string
 
 	var cmd *cli.Command
 	getFlags := func() []cli.Flag {
@@ -385,12 +435,14 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 		}
 
 		if state == flagValueState {
+			flagValues[flag] = prevWord
 			prevWord = ""
 			state = flagState
 		}
 
 		if state == flagState && isFlagValidAndRequiresValue(getFlags(), prevWord) {
 			state = flagValueState
+			flag = prevWord
 		} else if state == rootState || state == commandState || state == flagState {
 			if strings.HasPrefix(w, "-") {
 				if w == "-a" || w == "--artifact" {
@@ -443,6 +495,11 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 			potentials = append(potentials, "version", "help")
 		}
 		potentials = padStrings(potentials, "--", " ")
+
+	case flagValueState:
+		if fn, ok := flagValuePotentialFuncs[flag]; ok {
+			potentials = append(potentials, fn(ctx, prevWord)...)
+		}
 
 	case rootState, commandState:
 		if cmd != nil {

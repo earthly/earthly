@@ -115,11 +115,11 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient *clou
 
 	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed getting org")
 	}
 	satelliteName, err := app.getSatelliteName(cliCtx.Context, orgID, app.satelliteName, cloudClient)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed getting satellite name")
 	}
 	app.buildkitdSettings.SatelliteName = satelliteName
 	app.buildkitdSettings.SatelliteDisplayName = app.satelliteName
@@ -167,7 +167,7 @@ func (app *earthlyApp) isUsingSatellite(cliCtx *cli.Context) bool {
 
 func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient *cloud.Client, name, displayName, orgID, gitAuthor, gitConfigEmail string) error {
 	console := app.console.WithPrefix("satellite")
-	_, isCI := analytics.DetectCI()
+	_, isCI := analytics.DetectCI(app.earthlyCIRunner)
 	out := cloudClient.ReserveSatellite(ctx, name, orgID, gitAuthor, gitConfigEmail, isCI)
 	err := showSatelliteLoading(console, displayName, out)
 	if err != nil {
