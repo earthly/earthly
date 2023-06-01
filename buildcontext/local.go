@@ -91,7 +91,14 @@ func (lr *localResolver) resolveLocal(ctx context.Context, gwClient gwclient.Cli
 	if gwClient != nil {
 		if _, isTarget := ref.(domain.Target); isTarget {
 			noImplicitIgnore := bf.ftrs != nil && bf.ftrs.NoImplicitIgnore
-			excludes, err := readExcludes(ref.GetLocalPath(), noImplicitIgnore)
+
+			excludeFromDockerIgnore := isDockerfile
+			ftrs := features.FromContext(ctx)
+			if ftrs != nil {
+				excludeFromDockerIgnore = excludeFromDockerIgnore && ftrs.UseDockerIgnore
+			}
+
+			excludes, err := readExcludes(ref.GetLocalPath(), noImplicitIgnore, excludeFromDockerIgnore)
 			if err != nil {
 				return nil, err
 			}

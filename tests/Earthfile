@@ -1139,6 +1139,38 @@ from-dockerfile-arg:
     RUN test "$(cat ./arg-value-foo)" = "foo"
     RUN test "$(cat ./arg-value-bar)" = "bar"
 
+from-dockerfile-dockerignore:
+    # no ignore files
+    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target=+create-files
+    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target=+image
+    RUN test "$(cat output)" = "a.txt
+b.txt
+c.txt"
+    RUN rm -rf .*ignore output
+
+    # with only .dockerignore present
+    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target="+create-files --with_docker_ignore=\"true\""
+    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target=+image
+    RUN cat output
+    RUN test "$(cat output)" = "b.txt
+c.txt"
+    RUN rm -rf .*ignore output
+
+    # with .earthlyignore present
+    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target="+create-files --with_docker_ignore=\"true\" --with_earthly_ignore=\"true\""
+    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target=+image
+    RUN cat output
+    RUN test "$(cat output)" = "a.txt
+c.txt"
+    RUN rm -rf .*ignore output
+    # with .earthignore present
+    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target="+create-files --with_docker_ignore=\"true\" --with_earth_ignore=\"true\""
+    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target=+image
+    RUN cat output
+    RUN test "$(cat output)" = "a.txt
+b.txt"
+    RUN rm -rf .*ignore output
+
 cache-mount-arg:
     DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b-nomount --MYARG=123"
     DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b-nomount --MYARG=1234" --post_command="2>output-nomount.txt"

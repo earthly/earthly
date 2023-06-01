@@ -255,7 +255,12 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 
 // FromDockerfile applies the earthly FROM DOCKERFILE command.
 func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform platutil.Platform, buildArgs []string) error {
-	err := c.checkAllowed(fromDockerfileCmd)
+	var err error
+	ctx, err = c.ftrs.WithContext(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to add feature flags to context")
+	}
+	err = c.checkAllowed(fromDockerfileCmd)
 	if err != nil {
 		return err
 	}

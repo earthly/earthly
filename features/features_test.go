@@ -1,6 +1,7 @@
 package features_test
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -118,6 +119,7 @@ func TestAvailableFlags(t *testing.T) {
 		{"no-network", "NoNetwork"},
 		{"arg-scope-and-set", "ArgScopeSet"},
 		{"earthly-ci-runner-arg", "EarthlyCIRunnerArg"},
+		{"use-docker-ignore", "UseDockerIgnore"},
 	} {
 		tt := tt
 		t.Run(tt.flag, func(t *testing.T) {
@@ -133,4 +135,30 @@ func TestAvailableFlags(t *testing.T) {
 			True(t, val, "expected field %v to be set to true by flag %v", tt.field, tt.flag)
 		})
 	}
+}
+
+func TestContext(t *testing.T) {
+
+	fts := &features.Features{}
+
+	t.Run("features can be set and retrieved from context", func(t *testing.T) {
+		ctx := context.Background()
+		newCtx, err := fts.WithContext(ctx)
+		Equal(t, fts, features.FromContext(newCtx))
+		NoError(t, err)
+	})
+
+	t.Run("context cannot be set more than once", func(t *testing.T) {
+		ctx := context.Background()
+		ctx2, err := fts.WithContext(ctx)
+		NoError(t, err)
+		ctx3, err := fts.WithContext(ctx2)
+		Error(t, err)
+		Equal(t, ctx2, ctx3)
+	})
+
+	t.Run("returns nil when not set in context", func(t *testing.T) {
+		ctx := context.Background()
+		Nil(t, features.FromContext(ctx))
+	})
 }
