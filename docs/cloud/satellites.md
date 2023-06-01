@@ -4,48 +4,35 @@ This feature is part of the [Earthly Satellites & Earthly CI paid plans](https:/
 
 Earthly Satellites are [remote runner](../remote-runners.md) instances managed by the Earthly team. They allow you to perform builds in the cloud, while retaining cache between runs.
 
-When using Earthly Satellites, even though the build executes remotely, the following pieces of functionality are still available:
-
-* Build logs are streamed to your local machine in real-time, just as if you were running the build locally
-* Outputs (images and artifacts) resulting from the build, if any, are transferred back to your local machine
-* Commands under `LOCALLY` execute on your local machine
-* Secrets available locally, including Docker/Podman credentials are passed to the satellite whenever needed by the build
-* Any images to be pushed are pushed directly from the satellite, using any Docker/Podman credentials available on the local system.
-
-![Satellite workflow](./img/satellite-workflow.png)
-
-Earthly Satellite instances come with their own cache volume. This means that performing builds repeatedly on the same satellite will result in faster builds. This can be especially useful when using Satellites from a sandboxed CI environment, where cache from previous builds would not otherwise be available. Below is a comparison with Earthly's [Shared remote cache features](../remote-caching.md).
-
-| Cache characteristic | Satellite | Shared Cache |
-| --- | --- | --- |
-| Storage location | Satellite | A container registry of your choice |
-| Proximity to compute | ✅ Same machine | ❌ Performing upload/download is required |
-| Just works, no configuration necessary | ✅ Yes | ❌ Requires experimentation with the various settings |
-| Concurrent access | ✅ Yes | 🟡 Concurrent read access only |
-| Retains entire cache of the build | ✅ Yes | ❌ Usually no, due to prohibitive upload time |
-| Retains cache for multiple historical builds | ✅ Yes | ❌ No, only one build retained |
-| Cache mounts (`RUN --mount type=cache` and `CACHE`) included | ✅ Yes | ❌ No |
-
 ## Benefits
 
 Typical use cases for Earthly Satellites include:
 
-* Speeding up CI builds in sandboxed CI environments such as GitHub Actions, GitLab, CircleCI, and others. Most CI build times are improved by a factor of 2-20X via Satellites.
-* Executing builds on AMD64/Intel architecture natively when working from an Apple Silicon machine (Apple M1/M2).
-* Sharing compute and cache with coworkers or with the CI.
-* Benefiting from high-bandwidth internet access from the satellite, thus allowing for fast downloads of dependencies and fast pushes for deployments. This is particularly useful if operating from a location with slow internet.
-* Using Earthly in environments where privileged access or docker-in-docker are not supported.
+* **Speeding up CI builds** in sandboxed CI environments such as GitHub Actions, GitLab, CircleCI, and others. Most CI build times are improved by 2-20X with Satellites.
+* **Sharing compute and cache with coworkers** or with the CI.
+* **Executing cross-platform builds natively**. For example, executing builds on x86 architecture natively when you are working from an Apple Silicon machine (Apple M1/M2) and vice versa, arm64 builds from an x86 machine.
+* **Benefiting from high-bandwidth internet access** from the satellite, allowing for fast downloads of dependencies and pushes for deployments. This is particularly useful if you are in a location with slow internet.
+* **Using Earthly in restricted environments**, where privileged access or docker-in-docker are not supported.
 
-## Security
+## How Earthly Satellites work
 
-As builds often handle sensitive pieces of data, Satellites are designed with security in mind. Here are some of Earthly's security considerations:
+### On your laptop
 
-* Satellite instances run in isolated VMs, with restricted local networking, and are only accessible by users you invite onto the platform.
-* Network communication and data at rest is secured using industry state of the art practices.
-* The cache is not shared between satellites.
-* Secrets used as part of the build are only kept in-memory temporarily, unless they are part of the [Earthly Cloud Secrets storage](./cloud-secrets.md), in which case they are encrypted at rest.
-* In addition, Earthly is pursuing SOC 2 compliance. SOC 2 Type I ETA Fall 2022, SOC 2 Type II ETA Summer 2023.
-* To read more about Earthly's security practices please see the [Security page](https://earthly.dev/security).
+* You kick off the build from the command line, and Earthly uses a remote satellite for execution.
+* The source files used are the ones you have locally in the current directory.
+* The build logs from the satellite are streamed back to your terminal in real time, so you can see the progress of the build.
+* The outputs of the build - images and artifacts - are downloaded back to your local machine upon success.
+* Everything looks and feels as if it is executing on your computer in your terminal.
+* In reality, the execution takes place in the cloud with high parallelism and a lot of caching.
+
+### In your CI of choice
+
+* The CI starts a build and invokes Earthly.
+* Earthly starts the build on a remote satellite, executing each step in isolated containers.
+* The same cache is used between runs on the same satellite, so parts that haven’t changed do not repeat.
+* Logs are streamed back to the CI in real time.
+* Any images, artifacts, or deployments that need to be pushed as part of the build are pushed directly from the satellite.
+* Build pass/fail is returned as an exit code, so your CI can report the status accordingly.
 
 ## Getting started
 
@@ -53,17 +40,15 @@ As builds often handle sensitive pieces of data, Satellites are designed with se
 
 Follow the steps in the [Earthly Cloud overview](./overview.md#getting-started) to register an account and create an org.
 
-### 2. Purchase a Satellites Plan
+### 2. Start a free trial
 
-Satellites are a paid feature which require a subscription to begin using. The subscription includes a 14-day free trial which can be canceled before any payment is made. Visit the [pricing page](https://earthly.dev/pricing) for more billing details.
+Satellites are a paid feature which require a subscription to begin using. The subscription includes a 14-day free trial which can be canceled before any payment is made. Visit the [pricing page](https://earthly.dev/pricing) for more details.
 
 You can start your free trial by using the checkout form below. Be sure to provide the name of your Earthly org from Step 1.
 
-[**Click here to start your subscription**](https://buy.stripe.com/8wM9Es4BT4Vvb4YbIJ)
+[**Click here to start your free trial**](https://buy.stripe.com/8wM9Es4BT4Vvb4YbIJ)
 
 ### 3. Ensure that you have the latest version of Earthly
-
-Because this feature is under heavy development right now, it is very important that you use the latest version of Earthly available.
 
 **On Linux**, simply repeat the [installation steps](https://earthly.dev/get-earthly) to upgrade.
 
@@ -144,7 +129,7 @@ For more information on managing satellites, see the [Managing Satellites page](
 
 ## Satellite specs
 
-The satellite size and architecutre can be specified at luanch time using the `--size` and `--platform` flags.
+The satellite size and architecture can be specified at launch time using the `--size` and `--platform` flags.
 For the full list of supported options, please see the [Pricing Page](https://earthly.dev/pricing).
 
 ## Using Satellites in CI
