@@ -8,11 +8,11 @@ Earthly Satellites are [remote runner](../remote-runners.md) instances managed b
 
 Typical use cases for Earthly Satellites include:
 
-* **Speeding up CI builds** in sandboxed CI environments such as GitHub Actions, GitLab, CircleCI, and others. Most CI build times are improved by a factor of 2-20X via Satellites.
-* **Executing cross-platform builds natively**. For example, running AMD64/Intel builds natively when working from an Apple Silicon machine (Apple M1/M2).
+* **Speeding up CI builds** in sandboxed CI environments such as GitHub Actions, GitLab, CircleCI, and others. Most CI build times are improved by 2-20X with Satellites.
 * **Sharing compute and cache with coworkers** or with the CI.
-* **Benefiting from high-bandwidth internet access** from the satellite, thus allowing for fast downloads of dependencies and fast pushes for deployments. This is particularly useful if operating from a location with slow internet.
-* **Using Earthly in restricted environments environments**, where privileged access or docker-in-docker are not supported.
+* **Executing cross-platform builds natively**. For example, executing builds on x86 architecture natively when you are working from an Apple Silicon machine (Apple M1/M2) and vice versa, arm64 builds from an x86 machine.
+* **Benefiting from high-bandwidth internet access** from the satellite, allowing for fast downloads of dependencies and pushes for deployments. This is particularly useful if you are in a location with slow internet.
+* **Using Earthly in restricted environments**, where privileged access or docker-in-docker are not supported.
 
 ## How Earthly Satellites work
 
@@ -46,7 +46,7 @@ Satellites are a paid feature which require a subscription to begin using. The s
 
 You can start your free trial by using the checkout form below. Be sure to provide the name of your Earthly org from Step 1.
 
-[**Click here to start your subscription**](https://buy.stripe.com/8wM9Es4BT4Vvb4YbIJ)
+[**Click here to start your free trial**](https://buy.stripe.com/8wM9Es4BT4Vvb4YbIJ)
 
 ### 3. Ensure that you have the latest version of Earthly
 
@@ -129,7 +129,7 @@ For more information on managing satellites, see the [Managing Satellites page](
 
 ## Satellite specs
 
-The satellite size and architecture can be specified at luanch time using the `--size` and `--platform` flags.
+The satellite size and architecture can be specified at launch time using the `--size` and `--platform` flags.
 For the full list of supported options, please see the [Pricing Page](https://earthly.dev/pricing).
 
 ## Using Satellites in CI
