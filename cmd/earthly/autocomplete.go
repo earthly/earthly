@@ -18,6 +18,7 @@ import (
 
 	"github.com/earthly/earthly/autocomplete"
 	"github.com/earthly/earthly/buildcontext"
+	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
@@ -75,7 +76,7 @@ func (app *earthlyApp) autoCompleteImp(ctx context.Context) (err error) {
 	var gwClient gwclient.Client // TODO this is a nil pointer which causes a panic if we try to expand a remotely referenced earthfile
 	// it's expensive to create this gwclient, so we need to implement a lazy eval which returns it when required.
 
-	potentials, err := autocomplete.GetPotentials(ctx, resolver, gwClient, compLine, int(compPointInt), app.cliApp)
+	potentials, err := autocomplete.GetPotentials(ctx, resolver, gwClient, compLine, int(compPointInt), app.cliApp, autocomplete.NewCachedCloudClient(app.installationName, app.getCloudClientForAutoCompleter(ctx)))
 	if err != nil {
 		return err
 	}
@@ -83,7 +84,18 @@ func (app *earthlyApp) autoCompleteImp(ctx context.Context) (err error) {
 		fmt.Printf("%s\n", p)
 	}
 
-	return err
+	return nil
+}
+
+func (app *earthlyApp) getCloudClientForAutoCompleter(ctx context.Context) *cloud.Client {
+	// TODO these need to be set outside of urfave/cli; since the auto-competer happens without envoking it
+	// maybe we can half-parse them? or just set the defaults?
+	app.cloudHTTPAddr = "https://api.earthly.dev"
+	app.cloudGRPCAddr = "ci.earthly.dev:443"
+	app.sshAuthSock = os.Getenv("SSH_AUTH_SOCK")
+
+	cloudClient, _ := app.newCloudClient() // best effort
+	return cloudClient
 }
 
 func (app *earthlyApp) insertBashCompleteEntry() error {
