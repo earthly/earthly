@@ -72,4 +72,4 @@ redirects:
     examples/per-language-earthfile-examples/python: examples/examples.md
     guides/configuring-registries: guides/auth.md
     guides/shared-cache: remote-caching.md
-    
+    earthly-cloud/satellites: cloud/satellites.md

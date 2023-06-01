@@ -230,3 +230,15 @@ Note however that there is small performance penalty for regularly checking the 
 ## Alternatives
 
 An alternative to using remote caching is to use [Earthly Remote Runners](./remote-runners.md) (a commercial version of remote runners is [Earthly Satellites](cloud/satelllites.md)). Remote runners execute the build remotely, and this allows the cache to be located in close proximity to the execution, which is very efficient. Satellites are also significantly easier to set up, as the caching just works and there is no need for additional experimentation.
+
+Below is a comparison between Earthly Satellites and remote caching.
+
+| Cache characteristic | Satellite | Remote Cache |
+| --- | --- | --- |
+| Storage location | Satellite | A container registry of your choice |
+| Proximity to compute | ✅ Same machine | ❌ Performing upload/download is required |
+| Just works, no configuration necessary | ✅ Yes | ❌ Requires experimentation with the various settings |
+| Concurrent access | ✅ Yes | 🟡 Concurrent read access only |
+| Retains entire cache of the build | ✅ Yes | ❌ Usually no, due to prohibitive upload time |
+| Retains cache for multiple historical builds | ✅ Yes | ❌ No, only one build retained |
+| Cache mounts (`RUN --mount type=cache` and `CACHE`) included | ✅ Yes | ❌ No |
