@@ -57,6 +57,8 @@ to require version `0.X` (or later), and could be rewritten as `VERSION 0.X`.
 | `--use-pipelines` | 0.7 | Enable the `PIPELINE` and `TRIGGER` commands |
 | `--earthly-git-author-args` | 0.7 | Enable the `EARTHLY_GIT_AUTHOR` and `EARTHLY_GIT_CO_AUTHORS` args |
 | `--wait-block` | 0.7 | Enable the `WAIT` / `END` block commands |
+| `--earthly-ci-runner-arg` | 0.7 | Enable the `EARTHLY_CI_RUNNER` builtin ARG |
+| `--use-docker-ignore` | 0.7 | Enable the use of `.dockerignore` files in `FROM DOCKERFILE` targets |
 | `--try` | Experimental | Enable the `TRY` / `FINALLY` / `END` block commands |
 | `--arg-scope-and-set` | Experimental | Enable the `LET` / `SET` commands and nested `ARG` scoping |
 

@@ -4,6 +4,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+- `FROM DOCKERFILE` will use `.dockerignore` file when using a build context from the host system and both `.earthlyignore` and `.earthignore` do not exist. Enable with `VERSION --use-docker-ignore 0.7`.
+
 ## v0.7.7 - 2023-06-01
 
 ### Added

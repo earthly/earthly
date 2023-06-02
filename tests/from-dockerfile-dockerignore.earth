@@ -1,4 +1,4 @@
-VERSION --use-docker-ignore 0.7
+VERSION 0.7
 
 image:
     FROM DOCKERFILE .

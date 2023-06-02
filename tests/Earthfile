@@ -1140,32 +1140,43 @@ from-dockerfile-arg:
     RUN test "$(cat ./arg-value-bar)" = "bar"
 
 from-dockerfile-dockerignore:
-    # no ignore files
-    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target=+create-files
+    # feature flag off
+    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target="+create-files --with_docker_ignore=\"true\""
     DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target=+image
     RUN test "$(cat output)" = "a.txt
 b.txt
 c.txt"
     RUN rm -rf .*ignore output
 
+    # enable feature flag
+    RUN sed -i "1s/VERSION \(.*\)/VERSION --use-docker-ignore \1/" Earthfile
+
+    # no ignore files
+    DO +RUN_EARTHLY --target=+create-files
+    DO +RUN_EARTHLY --target=+image
+    RUN test "$(cat output)" = "a.txt
+b.txt
+c.txt"
+    RUN rm -rf .*ignore output
+
     # with only .dockerignore present
-    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target="+create-files --with_docker_ignore=\"true\""
-    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target=+image
+    DO +RUN_EARTHLY --target="+create-files --with_docker_ignore=\"true\""
+    DO +RUN_EARTHLY --target=+image
     RUN cat output
     RUN test "$(cat output)" = "b.txt
 c.txt"
     RUN rm -rf .*ignore output
 
     # with .earthlyignore present
-    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target="+create-files --with_docker_ignore=\"true\" --with_earthly_ignore=\"true\""
-    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target=+image
+    DO +RUN_EARTHLY --target="+create-files --with_docker_ignore=\"true\" --with_earthly_ignore=\"true\""
+    DO +RUN_EARTHLY --target=+image
     RUN cat output
     RUN test "$(cat output)" = "a.txt
 c.txt"
     RUN rm -rf .*ignore output
     # with .earthignore present
-    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target="+create-files --with_docker_ignore=\"true\" --with_earth_ignore=\"true\""
-    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target=+image
+    DO +RUN_EARTHLY --target="+create-files --with_docker_ignore=\"true\" --with_earth_ignore=\"true\""
+    DO +RUN_EARTHLY --target=+image
     RUN cat output
     RUN test "$(cat output)" = "a.txt
 b.txt"
