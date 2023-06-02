@@ -1162,7 +1162,6 @@ c.txt"
     # with only .dockerignore present
     DO +RUN_EARTHLY --target="+create-files --with_docker_ignore=\"true\""
     DO +RUN_EARTHLY --target=+image
-    RUN cat output
     RUN test "$(cat output)" = "b.txt
 c.txt"
     RUN rm -rf .*ignore output
@@ -1170,7 +1169,6 @@ c.txt"
     # with .earthlyignore present
     DO +RUN_EARTHLY --target="+create-files --with_docker_ignore=\"true\" --with_earthly_ignore=\"true\""
     DO +RUN_EARTHLY --target=+image
-    RUN cat output
     RUN test "$(cat output)" = "a.txt
 c.txt"
     RUN rm -rf .*ignore output
@@ -1178,7 +1176,6 @@ c.txt"
     # with .earthignore present
     DO +RUN_EARTHLY --target="+create-files --with_docker_ignore=\"true\" --with_earth_ignore=\"true\""
     DO +RUN_EARTHLY --target=+image
-    RUN cat output
     RUN test "$(cat output)" = "a.txt
 b.txt"
     RUN rm -rf .*ignore output
