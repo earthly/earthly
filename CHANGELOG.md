@@ -4,8 +4,17 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.7 - 2023-06-01
+
 ### Added
 - The new ARG `EARTHLY_CI_RUNNER` indicates whether the current build is executed in Earthly CI. Enable with `VERSION --earthly-ci-runner-arg 0.7`.
+
+### Changed
+- Updated buildkit up to 60d134bf7 and fsutil up to 9e7a6df48576; this includes a buildkit fix for 401 Unauthorized errors. [#2973](https://github.com/earthly/earthly/issues/2973)
+- Enabled `GIT_LFS_SKIP_SMUDGE=1` when pulling git repos (to avoid pulling in large files initially).
+
+### Fixed
+- The earthly docker image incorrectly showed `dev-main` under the embedded buildkit version.
 
 ## v0.7.6 - 2023-05-23
 
