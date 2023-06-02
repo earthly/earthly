@@ -266,8 +266,8 @@ func processNegativeFlags(ftrs *Features) {
 	}
 }
 
-// WithContext adds the current *Features into the given context and returns a new context
-// Trying to add the *Features to the context more than once would result in an error
+// WithContext adds the current *Features into the given context and returns a new context.
+// Trying to add the *Features to the context more than once will result in an error.
 func (f *Features) WithContext(ctx context.Context) (context.Context, error) {
 	if _, ok := ctx.Value(ctxKey{}).(*Features); ok {
 		return ctx, errors.New("features is already set")
@@ -275,8 +275,8 @@ func (f *Features) WithContext(ctx context.Context) (context.Context, error) {
 	return context.WithValue(ctx, ctxKey{}, f), nil
 }
 
-// FromContext returns the Features associated with the ctx. If no features
-// is associated, nil is returned
+// FromContext returns the *Features associated with the ctx.
+// If no features is found, nil is returned.
 func FromContext(ctx context.Context) *Features {
 	if f, ok := ctx.Value(ctxKey{}).(*Features); ok {
 		return f

@@ -12,9 +12,7 @@ create-files:
     ARG with_earth_ignore="false"
     ARG with_docker_ignore="false"
     WORKDIR /output
-    RUN echo "a" > a.txt
-    RUN echo "b" > b.txt
-    RUN echo "c" > c.txt
+    RUN touch a.txt b.txt c.txt
     RUN echo "
 FROM alpine:3.15
 WORKDIR /app

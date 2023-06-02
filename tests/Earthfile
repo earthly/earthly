@@ -1174,6 +1174,7 @@ c.txt"
     RUN test "$(cat output)" = "a.txt
 c.txt"
     RUN rm -rf .*ignore output
+
     # with .earthignore present
     DO +RUN_EARTHLY --target="+create-files --with_docker_ignore=\"true\" --with_earth_ignore=\"true\""
     DO +RUN_EARTHLY --target=+image

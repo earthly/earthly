@@ -1,7 +1,6 @@
 package buildcontext
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -47,7 +46,6 @@ func readExcludes(dir string, noImplicitIgnore bool, excludeFromDockerIgnore boo
 	dockerExists := false
 	if excludeFromDockerIgnore {
 		dockerExists, err = fileutil.FileExists(dockerIgnoreFilePath)
-		fmt.Printf("docker exists = %v for %s\n", dockerExists, dockerIgnoreFilePath)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to check if %s exists", dockerIgnoreFilePath)
 		}
