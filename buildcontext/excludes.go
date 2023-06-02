@@ -24,7 +24,7 @@ var ImplicitExcludes = []string{
 	earthlyIgnoreFile,
 }
 
-func readExcludes(dir string, noImplicitIgnore bool, excludeFromDockerIgnore bool) ([]string, error) {
+func readExcludes(dir string, noImplicitIgnore bool, useDockerIgnore bool) ([]string, error) {
 	var ignoreFile = earthIgnoreFile
 
 	//earthIgnoreFile
@@ -44,7 +44,7 @@ func readExcludes(dir string, noImplicitIgnore bool, excludeFromDockerIgnore boo
 	//dockerIgnoreFile
 	var dockerIgnoreFilePath = filepath.Join(dir, dockerIgnoreFile)
 	dockerExists := false
-	if excludeFromDockerIgnore {
+	if useDockerIgnore {
 		dockerExists, err = fileutil.FileExists(dockerIgnoreFilePath)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to check if %s exists", dockerIgnoreFilePath)

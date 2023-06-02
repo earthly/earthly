@@ -92,13 +92,13 @@ func (lr *localResolver) resolveLocal(ctx context.Context, gwClient gwclient.Cli
 		if _, isTarget := ref.(domain.Target); isTarget {
 			noImplicitIgnore := bf.ftrs != nil && bf.ftrs.NoImplicitIgnore
 
-			excludeFromDockerIgnore := isDockerfile
+			useDockerIgnore := isDockerfile
 			ftrs := features.FromContext(ctx)
 			if ftrs != nil {
-				excludeFromDockerIgnore = excludeFromDockerIgnore && ftrs.UseDockerIgnore
+				useDockerIgnore = useDockerIgnore && ftrs.UseDockerIgnore
 			}
 
-			excludes, err := readExcludes(ref.GetLocalPath(), noImplicitIgnore, excludeFromDockerIgnore)
+			excludes, err := readExcludes(ref.GetLocalPath(), noImplicitIgnore, useDockerIgnore)
 			if err != nil {
 				return nil, err
 			}
