@@ -88,7 +88,7 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 				&cli.StringSliceFlag{
 					Name:        "tag",
 					Aliases:     []string{"t"},
-					EnvVars:     []string{"EARTHLY_DOCKER_TAG"},
+					EnvVars:     []string{"EARTHLY_DOCKER_TAGS"},
 					Usage:       "Name and tag for the built image; formatted as 'name:tag'",
 					Destination: &app.dockerTags,
 				},

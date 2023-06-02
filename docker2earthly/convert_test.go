@@ -30,7 +30,7 @@ func TestGenerateEarthfileContent(t *testing.T) {
 				target:           "target1",
 			},
 			want: `
-VERSION 0.7
+VERSION --use-docker-ignore 0.7
 # This Earthfile was generated using docker-build command
 docker:
 	ARG arg1
@@ -59,7 +59,7 @@ build:
 				target:           "target1",
 			},
 			want: `
-VERSION 0.7
+VERSION --use-docker-ignore 0.7
 # This Earthfile was generated using docker-build command
 docker:
 	ARG arg1
@@ -87,7 +87,7 @@ build:
 				target:           "target1",
 			},
 			want: `
-VERSION 0.7
+VERSION --use-docker-ignore 0.7
 # This Earthfile was generated using docker-build command
 docker:
 	FROM DOCKERFILE \
@@ -111,7 +111,7 @@ build:
 				platforms:        []string{"linux/amd64"},
 			},
 			want: `
-VERSION 0.7
+VERSION --use-docker-ignore 0.7
 # This Earthfile was generated using docker-build command
 docker:
 	ARG arg1
@@ -136,7 +136,7 @@ build:
 				target:           "target1",
 			},
 			want: `
-VERSION 0.7
+VERSION --use-docker-ignore 0.7
 # This Earthfile was generated using docker-build command
 docker:
 	ARG arg1
@@ -162,7 +162,7 @@ build:
 				target:           "target1",
 			},
 			want: `
-VERSION 0.7
+VERSION --use-docker-ignore 0.7
 # This Earthfile was generated using docker-build command
 docker:
 	ARG arg1
@@ -186,7 +186,7 @@ build:
 				dockerfilePath:   "./dir/MyDockerfile",
 			},
 			want: `
-VERSION 0.7
+VERSION --use-docker-ignore 0.7
 # This Earthfile was generated using docker-build command
 docker:
 	FROM DOCKERFILE \

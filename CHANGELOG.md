@@ -4,6 +4,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+- Add a new command `docker-build` to build a docker image using a Dockerfile without using an Earthfile, locally or on a satellite.
+
 ## v0.7.7 - 2023-06-01
 
 ### Added

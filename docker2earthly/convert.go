@@ -144,7 +144,7 @@ func Docker2Earthly(dockerfilePath, earthfilePath, imageTag string) error {
 }
 
 var earthfileTemplate = `
-VERSION {{.Version}}
+VERSION --use-docker-ignore {{.Version}}
 # This Earthfile was generated using {{.CommandName}} command
 docker:
 	{{- range .BuildArgs}}
