@@ -7,6 +7,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Added
 - Add a new command `docker-build` to build a docker image using a Dockerfile without using an Earthfile, locally or on a satellite.
 
+### Changed
+- `FROM DOCKERFILE` will use a `.dockerignore` file when using a build context from the host system and both `.earthlyignore` and `.earthignore` do not exist. Enable with `VERSION --use-docker-ignore 0.7`.
+
 ## v0.7.7 - 2023-06-01
 
 ### Added
