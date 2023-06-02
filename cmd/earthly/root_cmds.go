@@ -13,7 +13,6 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/moby/buildkit/client"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
-	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
@@ -528,14 +527,6 @@ func (app *earthlyApp) actionDockerBuild(cliCtx *cli.Context) error {
 	}
 	defer os.RemoveAll(tempDir)
 
-	earthlyIgnoreFilePath, err := handleDockerIgnoreFile(buildContextPath)
-	if err != nil {
-		return errors.Wrap(err, "docker-build: failed to handle .dockerignore file")
-	}
-	if earthlyIgnoreFilePath != "" {
-		defer os.RemoveAll(earthlyIgnoreFilePath)
-	}
-
 	argMap, err := godotenv.Read(app.argFile)
 	if err != nil && (cliCtx.IsSet(argFileFlag) || !errors.Is(err, os.ErrNotExist)) {
 		return errors.Wrapf(err, "read %q", app.argFile)
@@ -811,24 +802,4 @@ func (app *earthlyApp) actionPrune(cliCtx *cli.Context) error {
 	}
 	app.console.Printf("Freed %s\n", humanize.Bytes(total))
 	return nil
-}
-
-func handleDockerIgnoreFile(buildContextPath string) (string, error) {
-	dockerIgnorePath := filepath.Join(buildContextPath, ".dockerignore")
-	dockerIgnorePathExists, err := fileutil.FileExists(dockerIgnorePath)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to check if %q exists", dockerIgnorePath)
-	}
-
-	if !dockerIgnorePathExists {
-		return "", nil
-	}
-
-	// FROM DOCKERFILE requires .earthlyignore to be present at the build context directory
-	earthlyIgnoreFilePath := filepath.Join(buildContextPath, ".earthlyignore")
-	err = copy.Copy(dockerIgnorePath, earthlyIgnoreFilePath)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to copy %q to %q", dockerIgnorePath, earthlyIgnoreFilePath)
-	}
-	return earthlyIgnoreFilePath, nil
 }
