@@ -976,6 +976,14 @@ If you are logged into the CLI the url will contain a token used to link your OA
 The command `earthly docker-build` builds a docker image from a Dockerfile instead of an Earthfile.
 The <context-path> is the path where the Dockerfile build context exists. By default, it is assumed that a file named Dockerfile exists in that directory.
 
+Just like a regular build, `docker-build` can be used with a satellite. For example:
+```shell
+earthly docker-build --sat my-satellite --tag my-image:latest . 
+```
+For more information see the [Using Satellites guide](../cloud/satellites/using.md).
+
+Additionally, all other build options are supported when using `docker-build`. For more information see [build-options](#build-options).
+
 #### Options
 
 ##### `--dockerfile <dockerfile-path>`
@@ -992,17 +1000,12 @@ Specifies the target to build in a multi-target Dockerfile.
 
 ##### `--platform <platform>`
 
-Also available as an env var setting: `EARTHLY_PLATFORMS=<platform>`.
-
 Sets the platform to build for.
 
-###### Note
-Unlike a normal build command, it is possible to specify multiple platforms through this flag.
+{% hint style='info' %}
+##### Note
+Unlike a regular build command, it is possible to specify multiple platforms through this option.
+{% endhint %}
 
-##### Satellites:
 
-Just like a regular build, `docker-build` can also be run on a satellite. For more information see the [Using Satellites guide](../cloud/satellites/using.md).
 
-##### Other Build Options:
-
-`docker-build` support all other build options. For more information see [build-options](#build-options).
