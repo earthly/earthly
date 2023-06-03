@@ -179,14 +179,14 @@ type earthfileTemplateArgs struct {
 	Platforms    []string
 }
 
-// GenerateEarthfileContent returns an Earthfile content string which contains a target to build a docker image using FROM DOCKERFILE
-func GenerateEarthfileContent(buildContextPath string, dockerfilePath string, imageTags []string, buildArgs []string, platforms []string, target string) (string, error) {
+// GenerateEarthfile returns an Earthfile content string which contains a target to build a docker image using FROM DOCKERFILE
+func GenerateEarthfile(buildContextPath string, dockerfilePath string, imageTags []string, buildArgs []string, platforms []string, target string) (string, error) {
 	t, err := template.New("earthfile").Parse(earthfileTemplate)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to parse Earthfile template")
 	}
 	buf := &bytes.Buffer{}
-	
+
 	if !filepath.IsAbs(dockerfilePath) {
 		dockerfilePath, err = filepath.Abs(filepath.Join(buildContextPath, dockerfilePath))
 		if err != nil {

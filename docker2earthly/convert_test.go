@@ -1,7 +1,10 @@
-package docker2earthly
+package docker2earthly_test
 
 import (
+	"errors"
 	"testing"
+
+	"github.com/earthly/earthly/docker2earthly"
 )
 
 func TestGenerateEarthfileContent(t *testing.T) {
@@ -17,7 +20,7 @@ func TestGenerateEarthfileContent(t *testing.T) {
 		name    string
 		args    args
 		want    string
-		wantErr bool
+		wantErr error
 	}{
 		{
 			name: "all fields are populated",
@@ -46,7 +49,6 @@ docker:
 build:
 	BUILD --platform linux/amd64 --platform linux/arm64 +docker
 `,
-			wantErr: false,
 		},
 		{
 			name: "Dockerfile has absolute path",
@@ -75,7 +77,6 @@ docker:
 build:
 	BUILD --platform linux/amd64 --platform linux/arm64 +docker
 `,
-			wantErr: false,
 		},
 		{
 			name: "no args",
@@ -99,7 +100,6 @@ docker:
 build:
 	BUILD --platform linux/amd64 +docker
 `,
-			wantErr: false,
 		},
 		{
 			name: "no target",
@@ -124,7 +124,6 @@ docker:
 build:
 	BUILD --platform linux/amd64 +docker
 `,
-			wantErr: false,
 		},
 		{
 			name: "no platform",
@@ -150,7 +149,6 @@ docker:
 build:
 	BUILD +docker
 `,
-			wantErr: false,
 		},
 		{
 			name: "no tags",
@@ -177,7 +175,6 @@ docker:
 build:
 	BUILD --platform linux/amd64 --platform linux/arm64 +docker
 `,
-			wantErr: false,
 		},
 		{
 			name: "no optional values",
@@ -196,18 +193,19 @@ docker:
 build:
 	BUILD +docker
 `,
-			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GenerateEarthfileContent(tt.args.buildContextPath, tt.args.dockerfilePath, tt.args.imageTags, tt.args.buildArgs, tt.args.platforms, tt.args.target)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GenerateEarthfileContent() error = %v, wantErr %v", err, tt.wantErr)
+			t.Parallel()
+			got, err := docker2earthly.GenerateEarthfile(tt.args.buildContextPath, tt.args.dockerfilePath, tt.args.imageTags, tt.args.buildArgs, tt.args.platforms, tt.args.target)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("GenerateEarthfile() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("GenerateEarthfileContent() got = %v, want %v", got, tt.want)
+				t.Errorf("GenerateEarthfile() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

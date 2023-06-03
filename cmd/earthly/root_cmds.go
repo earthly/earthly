@@ -537,7 +537,7 @@ func (app *earthlyApp) actionDockerBuild(cliCtx *cli.Context) error {
 		return errors.Wrapf(err, "combining build args")
 	}
 
-	content, err := docker2earthly.GenerateEarthfileContent(buildContextPath, app.dockerfilePath, app.dockerTags.Value(), buildArgs.Sorted(), app.platformsStr.Value(), app.dockerTarget)
+	content, err := docker2earthly.GenerateEarthfile(buildContextPath, app.dockerfilePath, app.dockerTags.Value(), buildArgs.Sorted(), app.platformsStr.Value(), app.dockerTarget)
 	if err != nil {
 		return errors.Wrap(err, "docker-build: failed to wrap Dockerfile with an Earthfile")
 	}
