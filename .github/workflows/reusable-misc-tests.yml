@@ -177,7 +177,7 @@ jobs:
       - name: Execute tests requiring .git directory
         run: go test ./analytics --tags=hasgitdirectory
       - name: Execute earthly ${{inputs.BINARY}} command
-        run: (cd tests/docker && ${{inputs.SUDO}} ../../${{inputs.BUILT_EARTHLY_PATH}} docker-build --tag examples-test-docker:latest && diff <(docker run --rm examples-test-docker:latest) <(echo "hello dockerfile") )
+        run: (cd tests/docker && ${{inputs.SUDO}} ../../${{inputs.BUILT_EARTHLY_PATH}} docker-build --tag examples-test-docker:latest . && diff <(docker run --rm examples-test-docker:latest) <(echo "hello dockerfile") )
       - name: Execute private image test (Earthly Only)
         run: |-
           ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci \
