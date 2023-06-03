@@ -7,7 +7,7 @@ import (
 	"github.com/earthly/earthly/docker2earthly"
 )
 
-func TestGenerateEarthfileContent(t *testing.T) {
+func TestGenerateEarthfile(t *testing.T) {
 	type args struct {
 		buildContextPath string
 		dockerfilePath   string
