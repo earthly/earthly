@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/dustin/go-humanize"
+	"github.com/joho/godotenv"
 	"github.com/moby/buildkit/client"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
@@ -25,6 +26,7 @@ import (
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/termutil"
+	"github.com/earthly/earthly/variables"
 )
 
 func (app *earthlyApp) rootCmds() []*cli.Command {
@@ -70,24 +72,33 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 			},
 		},
 		{
-			Name:        "docker",
-			Usage:       "Build a Dockerfile without converting to an Earthfile *experimental*",
-			Description: "Builds a dockerfile",
-			Hidden:      true, // Experimental.
-			Action:      app.actionDocker,
-			Flags: []cli.Flag{
+			Name:        "docker-build",
+			Usage:       "Build a Dockerfile without an Earthfile",
+			Description: "Builds a Dockerfile",
+			Action:      app.actionDockerBuild,
+			Flags: append(app.buildFlags(),
 				&cli.StringFlag{
 					Name:        "dockerfile",
-					Usage:       "Path to dockerfile input, or - for stdin",
+					Aliases:     []string{"f"},
+					EnvVars:     []string{"EARTHLY_DOCKER_FILE"},
+					Usage:       "Path to dockerfile input",
 					Value:       "Dockerfile",
 					Destination: &app.dockerfilePath,
 				},
-				&cli.StringFlag{
+				&cli.StringSliceFlag{
 					Name:        "tag",
+					Aliases:     []string{"t"},
+					EnvVars:     []string{"EARTHLY_DOCKER_TAGS"},
 					Usage:       "Name and tag for the built image; formatted as 'name:tag'",
-					Destination: &app.earthfileFinalImage,
+					Destination: &app.dockerTags,
 				},
-			},
+				&cli.StringFlag{
+					Name:        "target",
+					EnvVars:     []string{"EARTHLY_DOCKER_TARGET"},
+					Usage:       "The docker target to build in the specified dockerfile",
+					Destination: &app.dockerTarget,
+				},
+			),
 		},
 		{
 			Name:        "docker2earthly",
@@ -465,7 +476,7 @@ func symlinkEarthlyToEarth() error {
 
 	earthPathExists, err := fileutil.FileExists(earthPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to check if %s exists", earthPath)
+		return errors.Wrapf(err, "failed to check if %q exists", earthPath)
 	}
 	if !earthPathExists && termutil.IsTTY() {
 		return nil // legacy earth binary doesn't exist, don't create it (unless we're under a non-tty system e.g. CI)
@@ -488,33 +499,71 @@ func symlinkEarthlyToEarth() error {
 	return nil
 }
 
-func (app *earthlyApp) actionDocker(cliCtx *cli.Context) error {
-	app.commandName = "docker"
+func (app *earthlyApp) actionDockerBuild(cliCtx *cli.Context) error {
+	app.commandName = "docker-build"
 
-	dir := filepath.Dir(app.dockerfilePath)
-	earthfilePath := filepath.Join(dir, "Earthfile")
-	earthfilePathExists, err := fileutil.FileExists(earthfilePath)
+	flagArgs, nonFlagArgs, err := variables.ParseFlagArgsWithNonFlags(cliCtx.Args().Slice())
 	if err != nil {
-		return errors.Wrapf(err, "failed to check if %s exists", earthfilePath)
+		return errors.Wrapf(err, "parse args %s", strings.Join(cliCtx.Args().Slice(), " "))
 	}
-	if earthfilePathExists {
-		return errors.Errorf("earthfile already exists; please delete it if you wish to continue")
+	if len(nonFlagArgs) == 0 {
+		_ = cli.ShowAppHelp(cliCtx)
+		return errors.Errorf(
+			"no build context path provided. Try %s docker-build <path>", cliCtx.App.Name)
 	}
-	defer os.Remove(earthfilePath)
+	if len(nonFlagArgs) != 1 {
+		_ = cli.ShowAppHelp(cliCtx)
+		return errors.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
+	}
 
-	err = docker2earthly.Docker2Earthly(app.dockerfilePath, earthfilePath, app.earthfileFinalImage)
+	buildContextPath, err := filepath.Abs(nonFlagArgs[0])
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to get absolute path for build context")
 	}
 
-	fmt.Fprintf(os.Stderr, "Warning: earthly does not support all dockerfile commands and is highly experimental as a result, use with caution.\n")
+	tempDir, err := os.MkdirTemp("", "docker-build")
+	if err != nil {
+		return errors.Wrap(err, "docker-build: failed to create temporary dir for Earthfile")
+	}
+	defer os.RemoveAll(tempDir)
 
+	argMap, err := godotenv.Read(app.argFile)
+	if err != nil && (cliCtx.IsSet(argFileFlag) || !errors.Is(err, os.ErrNotExist)) {
+		return errors.Wrapf(err, "read %q", app.argFile)
+	}
+
+	buildArgs, err := app.combineVariables(argMap, flagArgs)
+	if err != nil {
+		return errors.Wrapf(err, "combining build args")
+	}
+
+	content, err := docker2earthly.GenerateEarthfile(buildContextPath, app.dockerfilePath, app.dockerTags.Value(), buildArgs.Sorted(), app.platformsStr.Value(), app.dockerTarget)
+	if err != nil {
+		return errors.Wrap(err, "docker-build: failed to wrap Dockerfile with an Earthfile")
+	}
+
+	earthfilePath := filepath.Join(tempDir, "Earthfile")
+
+	out, err := os.Create(earthfilePath)
+	if err != nil {
+		return errors.Wrapf(err, "docker-build: failed to create Earthfile %q", earthfilePath)
+	}
+	defer out.Close()
+
+	_, err = out.WriteString(content)
+	if err != nil {
+		return errors.Wrapf(err, "docker-build: failed to write to %q", earthfilePath)
+	}
+
+	// The following should not be set in the context of executing the build from the generated Earthfile:
 	app.imageMode = false
 	app.artifactMode = false
-	app.interactiveDebugging = true
-	flagArgs := []string{}
-	nonFlagArgs := []string{"+build"}
+	app.platformsStr = cli.StringSlice{}
+	app.dockerTarget = ""
+	app.dockerfilePath = ""
+	app.dockerTags = cli.StringSlice{}
 
+	nonFlagArgs = []string{tempDir + "+build"}
 	return app.actionBuildImp(cliCtx, flagArgs, nonFlagArgs)
 }
 

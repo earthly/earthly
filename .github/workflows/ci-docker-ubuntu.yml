@@ -101,6 +101,15 @@ jobs:
       SUDO: ""
     secrets: inherit
 
+  docker-docker-build-integrations:
+    uses: ./.github/workflows/docker-build-integrations.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      BUILD_EARTHLY_TARGET: "+for-linux"
+      RUNS_ON: "ubuntu-latest"
+      SUDO: ""
+    secrets: inherit
+
   docker-misc-test:
     uses: ./.github/workflows/reusable-misc-tests.yml
     with:

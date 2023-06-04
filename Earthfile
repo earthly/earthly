@@ -99,6 +99,7 @@ lint-scripts-misc:
         ./release/envcredhelper.sh ./release/ami/cleanup.sh ./release/ami/configure.sh ./release/ami/install.sh \
         ./.buildkite/*.sh \
         ./scripts/tests/*.sh \
+        ./scripts/tests/docker-build/*.sh \
         ./scripts/*.sh \
         ./shell_scripts/
     RUN shellcheck shell_scripts/*
