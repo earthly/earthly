@@ -973,8 +973,8 @@ If you are logged into the CLI the url will contain a token used to link your OA
 
 #### Description
 
-The command `earthly docker-build` builds a docker image from a Dockerfile instead of an Earthfile.
-The <context-path> is the path where the Dockerfile build context exists. By default, it is assumed that a file named Dockerfile exists in that directory.
+The command `earthly docker-build` builds a docker image from a Dockerfile instead of an Earthfile.  
+The `<context-path>` is the path where the Dockerfile build context exists. By default, it is assumed that a file named Dockerfile exists in that directory.
 
 Just like a regular build, `docker-build` can be used with a satellite. For example:
 ```shell
