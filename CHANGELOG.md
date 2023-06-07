@@ -10,6 +10,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Changed
 - `FROM DOCKERFILE` will use a `.dockerignore` file when using a build context from the host system and both `.earthlyignore` and `.earthignore` do not exist. Enable with `VERSION --use-docker-ignore 0.7`.
 
+### Fixed
+- Fixed upstream race condition bug in buildkit, which resulted in `failed to solve: unknown blob sha256:<...> in history` errors. [#3000](https://github.com/earthly/earthly/issues/3000)
+
 ## v0.7.7 - 2023-06-01
 
 ### Added
