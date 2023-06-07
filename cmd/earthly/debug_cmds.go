@@ -56,6 +56,12 @@ func (app *earthlyApp) debugCmds() []*cli.Command {
 			UsageText: "earthly [options] debug buildkit-shutdown-if-idle",
 			Action:    app.actionDebugBuildkitShutdownIfIdle,
 		},
+		{
+			Name:      "buildkit-session-history",
+			Usage:     "Print the buildkit session history",
+			UsageText: "earthly [options] debug buildkit-session-history",
+			Action:    app.actionDebugBuildkitSessionHistory,
+		},
 	}
 }
 
@@ -78,6 +84,29 @@ func (app *earthlyApp) actionDebugAst(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "marshal ast")
 	}
 	fmt.Print(string(efDt))
+	return nil
+}
+
+func (app *earthlyApp) actionDebugBuildkitSessionHistory(cliCtx *cli.Context) error {
+	app.commandName = "debugBuildkitSessions"
+
+	cloudClient, err := app.newCloudClient()
+	if err != nil {
+		return err
+	}
+	bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
+	if err != nil {
+		return errors.Wrap(err, "build new buildkitd client")
+	}
+	defer bkClient.Close()
+
+	history, err := bkClient.SessionHistory(cliCtx.Context)
+	if err != nil {
+		return errors.Wrap(err, "get buildkit session history")
+	}
+
+	byt, _ := json.MarshalIndent(history, "", "  ")
+	fmt.Println(string(byt))
 	return nil
 }
 

@@ -2,6 +2,8 @@
 set -e
 echo "starting earthly-buildkit with EARTHLY_GIT_HASH=$EARTHLY_GIT_HASH BUILDKIT_BASE_IMAGE=$BUILDKIT_BASE_IMAGE"
 
+export BUILDKIT_SESSION_HISTORY_DURATION="24h"
+
 if [ "$BUILDKIT_DEBUG" = "true" ]; then
     set -x
 fi
