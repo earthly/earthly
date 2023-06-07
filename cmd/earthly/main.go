@@ -425,6 +425,8 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 	app.cliApp.Commands = app.rootCmds()
 
 	app.cliApp.Before = app.before
+
+	app.cliApp.Suggest = true
 	return app
 }
 
