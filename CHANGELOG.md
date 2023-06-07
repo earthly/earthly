@@ -4,6 +4,17 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.8 - 2023-06-07
+
+### Added
+- Add a new command `docker-build` to build a docker image using a Dockerfile without using an Earthfile, locally or on a satellite.
+
+### Changed
+- `FROM DOCKERFILE` will use a `.dockerignore` file when using a build context from the host system and both `.earthlyignore` and `.earthignore` do not exist. Enable with `VERSION --use-docker-ignore 0.7`.
+
+### Fixed
+- Fixed upstream race condition bug in buildkit, which resulted in `failed to solve: unknown blob sha256:<...> in history` errors. [#3000](https://github.com/earthly/earthly/issues/3000)
+
 ## v0.7.7 - 2023-06-01
 
 ### Added

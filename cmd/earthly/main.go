@@ -192,6 +192,8 @@ type cliFlags struct {
 	serverConnTimeout               time.Duration
 	certsHostName                   string
 	earthlyCIRunner                 bool
+	dockerTags                      cli.StringSlice
+	dockerTarget                    string
 }
 
 type analyticsMetadata struct {

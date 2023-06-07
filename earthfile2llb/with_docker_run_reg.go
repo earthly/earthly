@@ -152,10 +152,11 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 	})
 
 	// Wait for all images to build (channel will be closed when finished).
-	results := make([]*states.ImageResult, 0, len(imagesToBuild))
-	for result := range res.ResultChan {
-		results = append(results, result)
+	results, err := readImgResults(ctx, res.ResultChan)
+	if err != nil {
+		return errors.Wrap(err, "error while preparing WITH DOCKER images")
 	}
+
 	// Sort the results for LLB consistency.
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].FinalImageNameWithDigest < results[j].FinalImageNameWithDigest
@@ -319,4 +320,19 @@ func (w *withDockerRunRegistry) load(ctx context.Context, opt DockerLoadOpt) (ch
 	}
 
 	return imageDefChan, nil
+}
+
+func readImgResults(ctx context.Context, ch chan *states.ImageResult) ([]*states.ImageResult, error) {
+	var results []*states.ImageResult
+	for {
+		select {
+		case result, ok := <-ch:
+			if !ok {
+				return results, nil
+			}
+			results = append(results, result)
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
 }

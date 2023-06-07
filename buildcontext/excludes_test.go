@@ -12,6 +12,8 @@ func Test_readExcludes(t *testing.T) {
 		name                  string
 		earthIgnoreContents   string
 		earthlyIgnoreContents string
+		dockerIgnoreContents  string
+		useDockerIgnore       bool
 		noImplicitIgnore      bool
 		expectedExcludes      []string
 		expectedErr           error
@@ -27,6 +29,12 @@ func Test_readExcludes(t *testing.T) {
 			expectedExcludes:    []string{"foobar", ".tmp-earthly-out/", "build.earth", "Earthfile", ".earthignore", ".earthlyignore"},
 		},
 		{
+			name:                 "only .dockerignore",
+			dockerIgnoreContents: `foobar/`,
+			useDockerIgnore:      true,
+			expectedExcludes:     []string{"foobar", ".tmp-earthly-out/", "build.earth", "Earthfile", ".earthignore", ".earthlyignore"},
+		},
+		{
 			name:                  "only .earthlyignore with no implicit ignore",
 			earthlyIgnoreContents: `foobar/`,
 			noImplicitIgnore:      true,
@@ -37,6 +45,13 @@ func Test_readExcludes(t *testing.T) {
 			earthIgnoreContents: `foobar/`,
 			noImplicitIgnore:    true,
 			expectedExcludes:    []string{"foobar"},
+		},
+		{
+			name:                 "only .dockerignore with no implicit ignore",
+			dockerIgnoreContents: `foobar/`,
+			noImplicitIgnore:     true,
+			useDockerIgnore:      true,
+			expectedExcludes:     []string{"foobar"},
 		},
 		{
 			name:             "no ignore file, default to implicit rules",
@@ -84,7 +99,19 @@ func Test_readExcludes(t *testing.T) {
 				}
 			}
 
-			excludes, err := readExcludes(dir, testcase.noImplicitIgnore)
+			if testcase.dockerIgnoreContents != "" {
+				dockerIgnoreFile, err := os.Create(filepath.Join(dir, dockerIgnoreFile))
+				if err != nil {
+					t.Fatalf("failed to create .dockerignore file")
+				}
+
+				_, err = dockerIgnoreFile.WriteString(testcase.dockerIgnoreContents)
+				if err != nil {
+					t.Fatalf("failed to write .dockerignore file")
+				}
+			}
+
+			excludes, err := readExcludes(dir, testcase.noImplicitIgnore, testcase.useDockerIgnore)
 			if err != testcase.expectedErr {
 				t.Logf("actual err: %v", err)
 				t.Logf("expected err: %v", testcase.expectedErr)
