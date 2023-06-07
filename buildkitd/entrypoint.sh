@@ -2,8 +2,6 @@
 set -e
 echo "starting earthly-buildkit with EARTHLY_GIT_HASH=$EARTHLY_GIT_HASH BUILDKIT_BASE_IMAGE=$BUILDKIT_BASE_IMAGE"
 
-export BUILDKIT_SESSION_HISTORY_DURATION="24h"
-
 if [ "$BUILDKIT_DEBUG" = "true" ]; then
     set -x
 fi
@@ -228,6 +226,12 @@ fi
 export TLS_ENABLED
 
 envsubst </etc/buildkitd.toml.template >/etc/buildkitd.toml
+
+# Set up session history, if requested
+if [ -z "$BUILDKIT_SESSION_HISTORY_DURATION" ]; then
+  BUILDKIT_SESSION_HISTORY_DURATION="1h"
+fi
+export BUILDKIT_SESSION_HISTORY_DURATION
 
 # Set up OOM
 OOM_SCORE_ADJ="${BUILDKIT_OOM_SCORE_ADJ:-0}"
