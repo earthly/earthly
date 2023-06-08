@@ -64,7 +64,7 @@ The `FROM` command does not mark any saved images or artifacts of the referenced
 ##### Note
 
 The `FROM ... AS ...` form available in the classical Dockerfile syntax is not supported in Earthfiles. Instead, define a new Earthly target. For example, the following Dockerfile
- 
+
 ```Dockerfile
 # Dockerfile
 
@@ -209,7 +209,7 @@ earthly --allow-privileged +some-target
 
 ##### `--secret <env-var>=<secret-id> | <secret-id>`
 
-Makes available a secret, in the form of an env var (its name is defined by `<env-var>`), to the command being executed. 
+Makes available a secret, in the form of an env var (its name is defined by `<env-var>`), to the command being executed.
 If you only specify `<secret-id>`, the name of the env var will be `<secret-id>` and its value the value of `<secret-id>`.
 
 Here is an example that showcases both syntaxes:
@@ -414,6 +414,20 @@ Note that you must include the flag in the corresponding `SAVE ARTIFACT --keep-o
 ##### `--if-exists`
 
 Only copy source if it exists; if it does not exist, earthly will simply ignore the COPY command and won't treat any missing sources as failures.
+
+##### `--symlink-no-follow`
+
+Allows copying a symbolic link from another target; it has no effect when copying files from the host.
+The option must be used in both the `COPY` and `SAVE ARTIFACT` commands; for example:
+
+```Dockerfile
+producer:
+    RUN ln -s nonexistentfile symlink
+    SAVE ARTIFACT --symlink-no-follow symlink
+
+consumer:
+    COPY --symlink-no-follow +producer/symlink
+```
 
 ##### `--from`
 
@@ -642,6 +656,20 @@ Instructs Earthly to keep file ownership information.
 ##### `--if-exists`
 
 Only save artifacts if they exists; if not, earthly will simply ignore the SAVE ARTIFACT command and won't treat any missing sources as failures.
+
+##### `--symlink-no-follow`
+
+Save the symbolic link rather than the contents of the symbolically linked file. Note that the same flag must also be used in the corresponding `COPY` command. For example:
+
+```Dockerfile
+producer:
+    RUN ln -s nonexistentfile symlink
+    SAVE ARTIFACT --symlink-no-follow symlink
+
+consumer:
+    COPY --symlink-no-follow +producer/symlink
+```
+
 
 ##### `--force`
 
@@ -1372,7 +1400,7 @@ This feature should be used with caution as locally run commands have no guarant
 
 Only `RUN` commands are supported under a `LOCALLY` defined target; furthermore only `RUN`'s `--push` flag is supported.
 
-`RUN` commands have access to the environment variables which are exposed to the `earthly` command; however, the commands 
+`RUN` commands have access to the environment variables which are exposed to the `earthly` command; however, the commands
 are executed within a working directory which is set to the location of the referenced Earthfile and not where the `earthly` command is run from.
 
 For example, the following Earthfile will display the current user, hostname, and directory where the Earthfile is stored:
