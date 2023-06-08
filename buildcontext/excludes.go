@@ -11,6 +11,7 @@ import (
 
 const earthIgnoreFile = ".earthignore"
 const earthlyIgnoreFile = ".earthlyignore"
+const dockerIgnoreFile = ".dockerignore"
 
 var errDuplicateIgnoreFile = errors.New("both .earthignore and .earthlyignore exist - please remove one")
 
@@ -23,7 +24,7 @@ var ImplicitExcludes = []string{
 	earthlyIgnoreFile,
 }
 
-func readExcludes(dir string, noImplicitIgnore bool) ([]string, error) {
+func readExcludes(dir string, noImplicitIgnore bool, useDockerIgnore bool) ([]string, error) {
 	var ignoreFile = earthIgnoreFile
 
 	//earthIgnoreFile
@@ -40,6 +41,16 @@ func readExcludes(dir string, noImplicitIgnore bool) ([]string, error) {
 		return nil, errors.Wrapf(err, "failed to check if %s exists", earthlyIgnoreFilePath)
 	}
 
+	//dockerIgnoreFile
+	var dockerIgnoreFilePath = filepath.Join(dir, dockerIgnoreFile)
+	dockerExists := false
+	if useDockerIgnore {
+		dockerExists, err = fileutil.FileExists(dockerIgnoreFilePath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to check if %s exists", dockerIgnoreFilePath)
+		}
+	}
+
 	defaultExcludes := ImplicitExcludes
 	if noImplicitIgnore {
 		defaultExcludes = []string{}
@@ -49,9 +60,13 @@ func readExcludes(dir string, noImplicitIgnore bool) ([]string, error) {
 	if earthExists && earthlyExists {
 		// if both exist then throw an error
 		return defaultExcludes, errDuplicateIgnoreFile
-	} else if earthExists == earthlyExists {
-		// return just ImplicitExcludes if neither of them exist
-		return defaultExcludes, nil
+	}
+	if earthExists == earthlyExists {
+		if !dockerExists {
+			// return just ImplicitExcludes if neither of them exist
+			return defaultExcludes, nil
+		}
+		ignoreFile = dockerIgnoreFile
 	} else if earthlyExists {
 		ignoreFile = earthlyIgnoreFile
 	}

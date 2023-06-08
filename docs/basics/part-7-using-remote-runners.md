@@ -6,11 +6,11 @@ Earthly is able to use remote runners for performing builds on remote machines. 
 
 Remote runners are especially useful in a few specific circumstances:
 
-* You want to reuse cache between CI runs to dramatically speed up builds (more on this in part 8).
-* You want to share compute and cache with colleagues and/or with the CI.
-* You have a build that requires a lot of resources, and you want to run it on a machine with more resources than your local machine.
-* You have a build that requires to run on a specific CPU architecture natively.
-* You have a slow internet connection.
+* You want to **reuse cache between CI runs** to dramatically speed up builds (more on this in part 8).
+* You want to **share compute and cache with coworkers** and/or with the CI.
+* You have **a build that requires a lot of resources**, and you want to run it on a machine with more resources than your local machine.
+* You have **a build that requires running on a specific CPU architecture** natively.
+* You have **a slow internet connection**.
 
 There are two types of remote runners:
 
@@ -19,29 +19,11 @@ There are two types of remote runners:
 
 ### Using a Remote Buildkit
 
-A common way to use remote runners is to deploy your own instance of Buildkit and have Earthly connect to it. The [remote Buildkit page](../ci-integration/remote-buildkit.md) has more information on how to set this up.
+To run your own remote Buildkit, you can follow the instructions on the [remote Buildkit page](../ci-integration/remote-buildkit.md).
 
-Once the remote Buildkit is up and running, you may use it from Earthly by setting the configuration option `buildkit_host` to the address of the remote Buildkit. For example, if the remote Buildkit is running on `earthly-remote-buildkit.example.com`, you may set the configuration option
+### Using Earthly Satellites
 
-```bash
-earthly config set global.buildkit_host earthly-remote-buildkit.example.com
-```
-
-And then run Earthly builds as usual.
-
-```bash
-earthly +my-target
-```
-
-Another option is to use the `--buildkit-host` flag on the command line, instead of setting the configuration option.
-
-```bash
-earthly --buildkit-host earthly-remote-buildkit.example.com +my-target
-```
-
-### Using an Earthly Satellite
-
-Another way to use remote runners is to use Earthly Satellites. Earthly Satellites are remote runners managed by the Earthly team. They are a paid feature as part of the [Earthly Satellites or Earthly CI plans](https://earthly.dev/pricing).
+Earthly Satellites are remote runners managed by the Earthly team. They are a paid feature as part of the [Earthly Satellites or Earthly CI plans](https://earthly.dev/pricing), but there is a 14-day free trial.
 
 To get started, first you need to create an Earthly Cloud account.
 

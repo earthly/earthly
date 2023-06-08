@@ -26,7 +26,7 @@ jobs:
     steps:
     - uses: earthly/actions/setup-earthly@v1
       with:
-        version: v0.7.0
+        version: v0.7.8
     - uses: actions/checkout@v2
     - name: Put back the git branch into git (Earthly uses it for tagging)
       run: |
@@ -80,7 +80,7 @@ jobs:
     - name: Docker Login
       run: docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
     - name: Download latest earthly
-      run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.7.6/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
+      run: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.7.8/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
     - name: Earthly version
       run: earthly --version
     - name: Run build

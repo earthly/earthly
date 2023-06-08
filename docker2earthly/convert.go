@@ -2,10 +2,13 @@ package docker2earthly
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/earthly/earthly/util/fileutil"
 
@@ -138,4 +141,72 @@ func Docker2Earthly(dockerfilePath, earthfilePath, imageTag string) error {
 
 	fmt.Fprintf(out, "\nbuild:\n    BUILD +subbuild%d\n", i)
 	return nil
+}
+
+var earthfileTemplate = `
+VERSION --use-docker-ignore {{.Version}}
+# This Earthfile was generated using {{.CommandName}} command
+docker:
+	{{- range .BuildArgs}}
+	ARG {{. -}}
+	{{- end}}
+	FROM DOCKERFILE \
+	{{- range .BuildArgs}}
+	--build-arg {{.}}=${{.}} \
+	{{- end}}
+   	{{- if .Target}}
+	--target {{.Target}} \
+	{{- end}}
+	-f {{.Dockerfile}} \
+	{{.BuildContext}}
+	{{- if .ImageTags}}
+	SAVE IMAGE --push
+	{{- range .ImageTags}} {{. -}}{{- end}}
+	{{- end}}
+
+build:
+	BUILD{{- range .Platforms}} --platform {{ . -}}{{- end}} +docker
+`
+
+type earthfileTemplateArgs struct {
+	Version      string
+	CommandName  string
+	BuildArgs    []string
+	Target       string
+	Dockerfile   string
+	BuildContext string
+	ImageTags    []string
+	Platforms    []string
+}
+
+// GenerateEarthfile returns an Earthfile content string which contains a target to build a docker image using FROM DOCKERFILE
+func GenerateEarthfile(buildContextPath string, dockerfilePath string, imageTags []string, buildArgs []string, platforms []string, target string) (string, error) {
+	t, err := template.New("earthfile").Parse(earthfileTemplate)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to parse Earthfile template")
+	}
+	buf := &bytes.Buffer{}
+
+	if !filepath.IsAbs(dockerfilePath) {
+		dockerfilePath, err = filepath.Abs(filepath.Join(buildContextPath, dockerfilePath))
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to get get absolute path for dockerfile")
+		}
+	}
+
+	err = t.Execute(buf, &earthfileTemplateArgs{
+		Version:      earthlyCurrentVersion,
+		CommandName:  "docker-build",
+		BuildArgs:    buildArgs,
+		Target:       target,
+		Dockerfile:   dockerfilePath,
+		BuildContext: buildContextPath,
+		ImageTags:    imageTags,
+		Platforms:    platforms,
+	})
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to create Earthfile content from template")
+	}
+
+	return buf.String(), nil
 }
