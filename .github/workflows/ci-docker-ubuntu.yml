@@ -8,21 +8,30 @@ on:
     branches: [ main ]
 
 jobs:
+  build-earthly:
+    uses: ./.github/workflows/build-earthly.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
   docker-tests:
+    needs: build-earthly
     uses: ./.github/workflows/reusable-test.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
     secrets: inherit
 
   docker-examples-1:
+    needs: build-earthly
     uses: ./.github/workflows/reusable-example.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
@@ -30,10 +39,10 @@ jobs:
     secrets: inherit
 
   docker-examples-2:
+    needs: build-earthly
     uses: ./.github/workflows/reusable-example.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
@@ -41,10 +50,10 @@ jobs:
     secrets: inherit
 
   docker-test-local:
+    needs: build-earthly
     uses: ./.github/workflows/reusable-test-local.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       BINARY_COMPOSE: "\"docker compose\""
@@ -52,95 +61,96 @@ jobs:
     secrets: inherit
 
   docker-push-integrations:
+    needs: build-earthly
     uses: ./.github/workflows/reusable-push-integrations.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
     secrets: inherit
 
   docker-secret-integrations:
+    needs: build-earthly
     uses: ./.github/workflows/reusable-secrets-integrations.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
     secrets: inherit
 
   docker-bootstrap-integrations:
+    needs: build-earthly
     uses: ./.github/workflows/reusable-bootstrap-integrations.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
     secrets: inherit
 
   docker-repo-auth-tests:
+    needs: build-earthly
     uses: ./.github/workflows/reusable-repo-auth-tests.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
     secrets: inherit
 
   docker-export-test:
+    needs: build-earthly
     uses: ./.github/workflows/reusable-export-test.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
     secrets: inherit
 
   docker-docker-build-integrations:
+    needs: build-earthly
     uses: ./.github/workflows/docker-build-integrations.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       SUDO: ""
     secrets: inherit
 
   docker-misc-test:
+    needs: build-earthly
     uses: ./.github/workflows/reusable-misc-tests.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
     secrets: inherit
 
   docker-wait-block-override:
+    needs: build-earthly
     uses: ./.github/workflows/reusable-wait-block-override.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
     secrets: inherit
 
   docker-git-metadata-test:
+    needs: build-earthly
     uses: ./.github/workflows/reusable-git-metadata-test.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
     secrets: inherit
 
   race-tests:
+    needs: build-earthly
     name: +test (-race)
     runs-on: ubuntu-latest
     env:
@@ -150,7 +160,6 @@ jobs:
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: earthly/actions-setup@main
       - name: Set up QEMU
         id: qemu
         uses: docker/setup-qemu-action@v1
@@ -166,13 +175,18 @@ jobs:
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Retrieve earthly from build-earthly job
+        run: |-
+          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-ubuntu-latest-docker ./earthly upgrade
+          mkdir -p $(dirname "./build/earthly")
+          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-ubuntu-latest-docker ./build/earthly
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
-          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          ./build/earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly/buildkitd image using released earthly
-        run: earthly --use-inline-cache ./buildkitd+buildkitd --TAG=race-test
+        run: ./build/earthly --use-inline-cache ./buildkitd+buildkitd --TAG=race-test
       - name: Execute tests (Earthly Only)
         run: |-
           GORACE="halt_on_error=1" go run -race ./cmd/earthly/*.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
@@ -193,6 +207,7 @@ jobs:
         if: ${{ failure() }}
 
   tutorial:
+    needs: build-earthly
     name: Tutorial
     runs-on: ubuntu-latest
     env:
@@ -202,42 +217,47 @@ jobs:
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Retrieve earthly from build-earthly job
+        run: |-
+          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-ubuntu-latest-docker ./earthly upgrade
+          mkdir -p $(dirname "./build/earthly")
+          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-ubuntu-latest-docker ./build/earthly
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
-          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          ./build/earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Build latest earthly using released earthly
-        run: earthly --use-inline-cache +for-linux
+        run: ./build/earthly --use-inline-cache +for-linux
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Build tutorial part 1
-        run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part1 --earthly=$(realpath ./build/linux/amd64/earthly)
+        run: ./build/earthly -P ./examples/tutorial+test-part1 --earthly=$(realpath ./build/earthly)
       - name: Build tutorial part 2
-        run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part2 --earthly=$(realpath ./build/linux/amd64/earthly)
+        run: ./build/earthly -P ./examples/tutorial+test-part2 --earthly=$(realpath ./build/earthly)
       - name: Build tutorial part 3
-        run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part3 --earthly=$(realpath ./build/linux/amd64/earthly)
+        run: ./build/earthly -P ./examples/tutorial+test-part3 --earthly=$(realpath ./build/earthly)
       - name: Build tutorial part 4
-        run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part4 --earthly=$(realpath ./build/linux/amd64/earthly)
+        run: ./build/earthly -P ./examples/tutorial+test-part4 --earthly=$(realpath ./build/earthly)
       - name: Build tutorial part 5
-        run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part5 --earthly=$(realpath ./build/linux/amd64/earthly)
+        run: ./build/earthly -P ./examples/tutorial+test-part5 --earthly=$(realpath ./build/earthly)
       - name: Build tutorial part 6
-        run: ./build/linux/amd64/earthly -P ./examples/tutorial+test-part6 --earthly=$(realpath ./build/linux/amd64/earthly)
+        run: ./build/earthly -P ./examples/tutorial+test-part6 --earthly=$(realpath ./build/earthly)
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
 
   buildkitd-amd64:
+    needs: build-earthly
     name: +all-buildkitd-amd64
     runs-on: ubuntu-latest
     env:
@@ -247,7 +267,6 @@ jobs:
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -269,13 +288,16 @@ jobs:
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Retrieve earthly from build-earthly job
+        run: |-
+          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-ubuntu-latest-docker ./earthly upgrade
+          mkdir -p $(dirname "./build/earthly")
+          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-ubuntu-latest-docker ./build/earthly
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
-          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          ./build/earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Build latest earthly using released earthly
-        run: earthly --use-inline-cache +for-linux
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
@@ -283,12 +305,13 @@ jobs:
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Build linux/amd64 +buildkitd
         run: |-
-          ./build/linux/amd64/earthly --ci  --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
+          ./build/earthly --ci  --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
 
   buildkitd-arm64:
+    needs: build-earthly
     name: +all-buildkitd-arm64
     runs-on: ubuntu-latest
     env:
@@ -298,7 +321,6 @@ jobs:
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -320,13 +342,16 @@ jobs:
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Retrieve earthly from build-earthly job
+        run: |-
+          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-ubuntu-latest-docker ./earthly upgrade
+          mkdir -p $(dirname "./build/earthly")
+          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-ubuntu-latest-docker ./build/earthly
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
-          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          ./build/earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Build latest earthly using released earthly
-        run: earthly --use-inline-cache +for-linux
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
@@ -334,12 +359,13 @@ jobs:
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Build linux/arm64 +buildkitd
         run: |-
-          ./build/linux/amd64/earthly --ci  --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
+          ./build/earthly --ci  --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
 
   all-dind:
+    needs: build-earthly
     name: +all-dind
     runs-on: ubuntu-latest
     env:
@@ -349,7 +375,6 @@ jobs:
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -371,25 +396,29 @@ jobs:
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Retrieve earthly from build-earthly job
+        run: |-
+          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-ubuntu-latest-docker ./earthly upgrade
+          mkdir -p $(dirname "./build/earthly")
+          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-ubuntu-latest-docker ./build/earthly
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
-          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          ./build/earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Build latest earthly using released earthly
-        run: earthly --use-inline-cache +for-linux
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Build +all-dind
-        run: ./build/linux/amd64/earthly --ci +all-dind
+        run: ./build/earthly --ci +all-dind
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
 
   earthly:
+    needs: build-earthly
     name: +earthly-all +earthly-docker
     runs-on: ubuntu-latest
     env:
@@ -399,7 +428,6 @@ jobs:
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -421,27 +449,31 @@ jobs:
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Retrieve earthly from build-earthly job
+        run: |-
+          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-ubuntu-latest-docker ./earthly upgrade
+          mkdir -p $(dirname "./build/earthly")
+          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-ubuntu-latest-docker ./build/earthly
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
-          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          ./build/earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Build latest earthly using released earthly
-        run: earthly --use-inline-cache +for-linux
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Build +earthly-all
-        run: ./build/linux/amd64/earthly --ci +earthly-all
+        run: ./build/earthly --ci +earthly-all
       - name: Build +earthly-docker
-        run: ./build/linux/amd64/earthly --ci +earthly-docker
+        run: ./build/earthly --ci +earthly-docker
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
 
   prerelease:
+    needs: build-earthly
     name: +prerelease
     runs-on: ubuntu-latest
     env:
@@ -451,7 +483,6 @@ jobs:
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -473,20 +504,23 @@ jobs:
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Retrieve earthly from build-earthly job
+        run: |-
+          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-ubuntu-latest-docker ./earthly upgrade
+          mkdir -p $(dirname "./build/earthly")
+          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-ubuntu-latest-docker ./build/earthly
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
-          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          ./build/earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Build latest earthly using released earthly
-        run: earthly --use-inline-cache +for-linux
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Build +prerelease
-        run: ./build/linux/amd64/earthly --ci +prerelease
+        run: ./build/earthly --ci +prerelease
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
@@ -495,6 +529,7 @@ jobs:
     name: --push +prerelease
     if: github.event_name == 'push'
     needs:
+      - build-earthly
       - buildkitd-amd64
       - buildkitd-arm64
       - prerelease
@@ -507,7 +542,6 @@ jobs:
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -529,22 +563,25 @@ jobs:
       - name: Docker mirror login (Earthly Only)
         run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Retrieve earthly from build-earthly job
+        run: |-
+          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-ubuntu-latest-docker ./earthly upgrade
+          mkdir -p $(dirname "./build/earthly")
+          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-ubuntu-latest-docker ./build/earthly
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
-          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          ./build/earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Docker Login (main build)
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
-      - name: Build latest earthly using released earthly
-        run: earthly --use-inline-cache +for-linux
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Build and push +prerelease
-        run: ./build/linux/amd64/earthly --ci --push +prerelease
+        run: ./build/earthly --ci --push +prerelease
       - name: Update DockerHub description for earthly/earthly
         uses: peter-evans/dockerhub-description@616d1b63e806b630b975af3b4fe3304307b20f40
         with:
