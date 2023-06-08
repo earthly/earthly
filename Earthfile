@@ -506,6 +506,19 @@ prerelease-script:
     # This script is useful in other repos too.
     SAVE ARTIFACT ./earthly
 
+ci-release:
+    # TODO: this was multiplatform, but that skyrocketed our build times. #2979
+    # may help.
+    FROM alpine:3.15
+    ARG BUILDKIT_PROJECT
+    ARG EARTHLY_GIT_HASH
+    ARG --required TAG_SUFFIX
+    BUILD \
+        --platform=linux/amd64 \
+        ./buildkitd+buildkitd --TAG=${EARTHLY_GIT_HASH}-${TAG_SUFFIX} --BUILDKIT_PROJECT="$BUILDKIT_PROJECT" --DOCKERHUB_BUILDKIT_IMG="buildkitd-staging"
+    COPY (+earthly/earthly --DEFAULT_BUILDKITD_IMAGE="docker.io/earthly/buildkitd-staging:${EARTHLY_GIT_HASH}-${TAG_SUFFIX}" --VERSION=${EARTHLY_GIT_HASH}-${TAG_SUFFIX} --DEFAULT_INSTALLATION_NAME=earthly) ./earthly-linux-amd64
+    SAVE IMAGE --push earthly/earthlybinaries:${EARTHLY_GIT_HASH}-${TAG_SUFFIX}
+
 dind:
     BUILD +dind-alpine
     BUILD +dind-ubuntu

@@ -6,9 +6,6 @@ on:
       BUILT_EARTHLY_PATH:
         required: true
         type: string
-      BUILD_EARTHLY_TARGET:
-        required: true
-        type: string
       BINARY:
         required: true
         type: string
@@ -37,7 +34,6 @@ jobs:
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -45,27 +41,28 @@ jobs:
         run: sudo apt-get install -y sshpass net-tools
       - name: remove docker
         run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
-        if: inputs.binary == 'podman'
+        if: inputs.BINARY == 'podman'
       - name: Install Podman (with apt-get)
         run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman && ${{inputs.SUDO}} rm -f /etc/containers/registries.conf
-        if: inputs.binary == 'podman'
+        if: inputs.BINARY == 'podman'
       - name: Podman debug info
         run: podman version && podman info && podman info --debug
-        if: inputs.binary == 'podman'
+        if: inputs.BINARY == 'podman'
       - name: Bootstrap Earthly
         run: earthly bootstrap
-        if: inputs.binary == 'podman'
+        if: inputs.BINARY == 'podman'
       - name: Docker mirror login via ${{inputs.BINARY}} (Earthly Only)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Retrieve earthly from build-earthly job
+        run: |-
+          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-${{inputs.RUNS_ON}}-docker ./earthly upgrade
+          mkdir -p $(dirname "${{inputs.BUILT_EARTHLY_PATH}}")
+          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-${{inputs.RUNS_ON}}-docker ${{inputs.BUILT_EARTHLY_PATH}}
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
-          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.buildkit_additional_config "'[registry.\"docker.io\"]
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
-      - name: Link Earthly dir to Earthly dev dir
-        run: mkdir -p ~/.earthly && ln -s ~/.earthly ~/.earthly-dev
-      - name: Build latest earthly using released earthly
-        run: ${{inputs.SUDO}} $(which earthly) -P --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
             set -euo pipefail
