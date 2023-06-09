@@ -60,6 +60,7 @@ func (c *Client) ListOrgs(ctx context.Context) ([]*OrgDetail, error) {
 			Name:  org.Name,
 			Admin: org.Admin,
 		})
+		c.orgIDCache.Store(org.Name, org.Id)
 	}
 
 	return res, nil
@@ -177,6 +178,9 @@ func (c *Client) CreateOrg(ctx context.Context, org string) error {
 
 // GetOrgID retrieves the org ID for a named org.
 func (c *Client) GetOrgID(ctx context.Context, orgName string) (string, error) {
+	if orgID, ok := c.orgIDCache.Load(orgName); ok {
+		return orgID.(string), nil
+	}
 	orgs, err := c.ListOrgs(ctx)
 	if err != nil {
 		return "", err
@@ -187,6 +191,29 @@ func (c *Client) GetOrgID(ctx context.Context, orgName string) (string, error) {
 		}
 	}
 	return "", errors.Errorf("org not found: %s", orgName)
+}
+
+// GuessOrgMembership returns an org name and ID if the user belongs to a single org
+func (c *Client) GuessOrgMembership(ctx context.Context) (orgName, orgID string, err error) {
+	// We are cheating here and forcing a re-auth before running any satellite commands.
+	// This is because there is an issue on the backend where the token might be outdated
+	// if a user was invited to an org recently after already logging-in.
+	// TODO Eventually we should be able to remove this cheat.
+	err = c.Authenticate(ctx)
+	if err != nil {
+		return "", "", errors.Wrap(err, "unable to authenticate")
+	}
+	orgs, err := c.ListOrgs(ctx)
+	if err != nil {
+		return "", "", err
+	}
+	if len(orgs) == 0 {
+		return "", "", errors.New("not a member of any organizations - cloud features require you are a member of an organization")
+	}
+	if len(orgs) > 1 {
+		return "", "", errors.New("more than one organizations available - please specify the name of the organization using `--org`")
+	}
+	return orgs[0].Name, orgs[0].ID, nil
 }
 
 func getOrgFromPath(path string) (string, bool) {

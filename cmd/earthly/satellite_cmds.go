@@ -289,7 +289,7 @@ func printRow(t *tabwriter.Writer, c []color.Attribute, items []string) {
 	fmt.Fprint(t, line)
 }
 
-func (app *earthlyApp) printSatellitesTable(satellites []satelliteWithPipelineInfo, orgID string) {
+func (app *earthlyApp) printSatellitesTable(satellites []satelliteWithPipelineInfo, isOrgSelected bool) {
 	slices.SortStableFunc(satellites, func(a, b satelliteWithPipelineInfo) bool {
 		// satellites with associated pipelines group together at the top of the list,
 		// otherwise sort alphabetically
@@ -318,7 +318,7 @@ func (app *earthlyApp) printSatellitesTable(satellites []satelliteWithPipelineIn
 
 	for _, s := range satellites {
 		var selected = ""
-		if s.satelliteName() == app.cfg.Satellite.Name && s.satellite.Org == orgID {
+		if s.satelliteName() == app.cfg.Satellite.Name && isOrgSelected {
 			selected = "*"
 		}
 
@@ -351,10 +351,10 @@ type satelliteJSON struct {
 	Pipeline string `json:"pipeline"`
 }
 
-func (app *earthlyApp) printSatellitesJSON(satellites []satelliteWithPipelineInfo, orgID string) {
+func (app *earthlyApp) printSatellitesJSON(satellites []satelliteWithPipelineInfo, isOrgSelected bool) {
 	jsonSats := make([]satelliteJSON, len(satellites))
 	for i, s := range satellites {
-		selected := s.satellite.Name == app.cfg.Satellite.Name && s.satellite.Org == orgID
+		selected := s.satellite.Name == app.cfg.Satellite.Name && isOrgSelected
 		jsonSats[i] = satelliteJSON{
 			Name:     s.satellite.Name,
 			Size:     s.satellite.Size,
@@ -376,48 +376,26 @@ func (app *earthlyApp) printSatellitesJSON(satellites []satelliteWithPipelineInf
 	fmt.Println(string(b))
 }
 
-func (app *earthlyApp) getSatelliteOrgID(ctx context.Context, cloudClient *cloud.Client) (string, error) {
-	// We are cheating here and forcing a re-auth before running any satellite commands.
-	// This is because there is an issue on the backend where the token might be outdated
-	// if a user was invited to an org recently after already logging-in.
-	// TODO Eventually we should be able to remove this cheat.
-	err := cloudClient.Authenticate(ctx)
-	if err != nil {
-		return "", errors.Wrap(err, "unable to authenticate")
-	}
-	var orgID string
-	if app.orgName == "" {
-		orgs, err := cloudClient.ListOrgs(ctx)
-		if err != nil {
-			return "", errors.Wrap(err, "failed finding org")
-		}
-		if len(orgs) == 0 {
-			return "", errors.New("not a member of any organizations - satellites only work within an org")
-		}
-		if len(orgs) > 1 {
-			return "", errors.New("more than one organizations available - please specify the name of the organization using `--org`")
-		}
-		app.orgName = orgs[0].Name
-		orgID = orgs[0].ID
-	} else {
-		var err error
+func (app *earthlyApp) getSatelliteOrg(ctx context.Context, cloudClient *cloud.Client) (orgName, orgID string, err error) {
+	if app.orgName != "" {
 		orgID, err = cloudClient.GetOrgID(ctx, app.orgName)
 		if err != nil {
-			return "", errors.Wrap(err, "invalid org provided")
+			return "", "", errors.Wrap(err, "invalid org provided")
 		}
+		return app.orgName, orgID, nil
 	}
-	return orgID, nil
+	return cloudClient.GuessOrgMembership(ctx)
 }
 
-func (app *earthlyApp) getAllPipelinesForAllProjects(ctx context.Context, cloudClient *cloud.Client) ([]cloud.Pipeline, error) {
-	projects, err := cloudClient.ListProjects(ctx, app.orgName)
+func (app *earthlyApp) getAllPipelinesForAllProjects(ctx context.Context, orgName string, cloudClient *cloud.Client) ([]cloud.Pipeline, error) {
+	projects, err := cloudClient.ListProjects(ctx, orgName)
 	if err != nil {
 		return nil, err
 	}
 
 	allPipelines := make([]cloud.Pipeline, 0)
 	for _, pr := range projects {
-		pipelines, err := cloudClient.ListPipelines(ctx, pr.Name, app.orgName, "")
+		pipelines, err := cloudClient.ListPipelines(ctx, pr.Name, orgName, "")
 		if err != nil {
 			return nil, err
 		}
@@ -428,8 +406,8 @@ func (app *earthlyApp) getAllPipelinesForAllProjects(ctx context.Context, cloudC
 	return allPipelines, nil
 }
 
-func (app *earthlyApp) getSatelliteName(ctx context.Context, orgID, satelliteName string, cloudClient *cloud.Client) (string, error) {
-	satellites, err := cloudClient.ListSatellites(ctx, orgID, true)
+func (app *earthlyApp) getSatelliteName(ctx context.Context, orgName, satelliteName string, cloudClient *cloud.Client) (string, error) {
+	satellites, err := cloudClient.ListSatellites(ctx, orgName, true)
 	if err != nil {
 		return "", err
 	}
@@ -439,7 +417,7 @@ func (app *earthlyApp) getSatelliteName(ctx context.Context, orgID, satelliteNam
 		}
 	}
 
-	pipelines, err := app.getAllPipelinesForAllProjects(ctx, cloudClient)
+	pipelines, err := app.getAllPipelinesForAllProjects(ctx, orgName, cloudClient)
 	if err != nil {
 		return "", err
 	}
@@ -474,7 +452,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -505,7 +483,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 
 	err = cloudClient.LaunchSatellite(cliCtx.Context, cloud.LaunchSatelliteOpt{
 		Name:                    app.satelliteName,
-		OrgID:                   orgID,
+		OrgName:                 orgName,
 		Platform:                platform,
 		Size:                    size,
 		PinnedVersion:           version,
@@ -522,7 +500,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 	}
 	app.console.Printf("...Done\n")
 
-	err = app.useSatellite(cliCtx, app.satelliteName, app.orgName)
+	err = app.useSatellite(cliCtx, app.satelliteName, orgName)
 	if err != nil {
 		return errors.Wrap(err, "could not configure satellite for use")
 	}
@@ -543,29 +521,31 @@ func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgID, app.satelliteIncludeHidden)
+	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgName, app.satelliteIncludeHidden)
 	if err != nil {
 		return err
 	}
 
 	pipelines := make([]cloud.Pipeline, 0)
 	if app.satelliteIncludeHidden {
-		pipelines, err = app.getAllPipelinesForAllProjects(cliCtx.Context, cloudClient)
+		pipelines, err = app.getAllPipelinesForAllProjects(cliCtx.Context, orgName, cloudClient)
 		if err != nil {
 			return err
 		}
 	}
 
+	isOrgSelected := app.cfg.Satellite.Org == orgName
+
 	satellitesWithPipelineInfo := app.toSatellitePipelineInfo(satellites, pipelines)
 	if app.satellitePrintJSON {
-		app.printSatellitesJSON(satellitesWithPipelineInfo, orgID)
+		app.printSatellitesJSON(satellitesWithPipelineInfo, isOrgSelected)
 	} else {
-		app.printSatellitesTable(satellitesWithPipelineInfo, orgID)
+		app.printSatellitesTable(satellitesWithPipelineInfo, isOrgSelected)
 	}
 	return nil
 }
@@ -587,12 +567,12 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgID, true)
+	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgName, true)
 	if err != nil {
 		return err
 	}
@@ -611,7 +591,7 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 	}
 
 	app.console.Printf("Destroying Satellite %q. This could take a moment...\n", app.satelliteName)
-	err = cloudClient.DeleteSatellite(cliCtx.Context, app.satelliteName, orgID)
+	err = cloudClient.DeleteSatellite(cliCtx.Context, app.satelliteName, orgName)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			app.console.Printf("Operation interrupted. Satellite should finish destroying in background (if server received request).\n")
@@ -649,17 +629,17 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, orgID, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satelliteToInspectName, err := app.getSatelliteName(cliCtx.Context, orgID, satelliteToInspect, cloudClient)
+	satelliteToInspectName, err := app.getSatelliteName(cliCtx.Context, orgName, satelliteToInspect, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satellite, err := cloudClient.GetSatellite(cliCtx.Context, satelliteToInspectName, orgID)
+	satellite, err := cloudClient.GetSatellite(cliCtx.Context, satelliteToInspectName, orgName)
 	if err != nil {
 		return err
 	}
@@ -675,7 +655,7 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	app.buildkitdSettings.SatelliteToken = token
 	app.buildkitdSettings.SatelliteName = satelliteToInspectName
 	app.buildkitdSettings.SatelliteDisplayName = satelliteToInspect
-	app.buildkitdSettings.SatelliteOrgID = orgID
+	app.buildkitdSettings.SatelliteOrgID = orgID // must be the ID and not name, due to satellite-proxy requirements
 	if app.satelliteAddress != "" {
 		app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
 	} else {
@@ -731,7 +711,7 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 			// Only instruct the user to run this if the satellite is asleep.
 			// Otherwise, satellite may be updating, still starting, etc.
 			app.console.Printf("")
-			app.console.Printf("    earthly satellite --org %s wake %s", app.orgName, satelliteToInspect)
+			app.console.Printf("    earthly satellite --org %s wake %s", orgName, satelliteToInspect)
 			app.console.Printf("")
 		}
 	}
@@ -763,7 +743,7 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -772,7 +752,7 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 	// after the command was run. Its done this way to save some API calls.
 	found := false
 	satelliteName := ""
-	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgID, true)
+	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgName, true)
 	if err != nil {
 		return err
 	}
@@ -785,7 +765,7 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 
 	pipelines := make([]cloud.Pipeline, 0)
 	if !found {
-		pipelines, err = app.getAllPipelinesForAllProjects(cliCtx.Context, cloudClient)
+		pipelines, err = app.getAllPipelinesForAllProjects(cliCtx.Context, orgName, cloudClient)
 		if err != nil {
 			return err
 		}
@@ -804,12 +784,12 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 		return fmt.Errorf("no satellite named %q found", app.satelliteName)
 	}
 
-	err = app.useSatellite(cliCtx, satelliteName, app.orgName)
+	err = app.useSatellite(cliCtx, satelliteName, orgName)
 	if err != nil {
 		return errors.Wrapf(err, "could not select satellite %s", app.satelliteName)
 	}
 
-	app.printSatellitesTable(app.toSatellitePipelineInfo(satellites, pipelines), orgID)
+	app.printSatellitesTable(app.toSatellitePipelineInfo(satellites, pipelines), true)
 	return nil
 }
 
@@ -847,17 +827,17 @@ func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satName, err := app.getSatelliteName(cliCtx.Context, orgID, app.satelliteName, cloudClient)
+	satName, err := app.getSatelliteName(cliCtx.Context, orgName, app.satelliteName, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	sat, err := cloudClient.GetSatellite(cliCtx.Context, satName, orgID)
+	sat, err := cloudClient.GetSatellite(cliCtx.Context, satName, orgName)
 	if err != nil {
 		return err
 	}
@@ -866,7 +846,7 @@ func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
 		app.console.Printf("%s is already awake.", app.satelliteName)
 	}
 
-	out := cloudClient.WakeSatellite(cliCtx.Context, satName, orgID)
+	out := cloudClient.WakeSatellite(cliCtx.Context, satName, orgName)
 	err = showSatelliteLoading(app.console, app.satelliteName, out)
 	if err != nil {
 		return errors.Wrap(err, "failed waiting for satellite wake")
@@ -892,17 +872,17 @@ func (app *earthlyApp) actionSatelliteSleep(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satName, err := app.getSatelliteName(cliCtx.Context, orgID, app.satelliteName, cloudClient)
+	satName, err := app.getSatelliteName(cliCtx.Context, orgName, app.satelliteName, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	out := cloudClient.SleepSatellite(cliCtx.Context, satName, orgID)
+	out := cloudClient.SleepSatellite(cliCtx.Context, satName, orgName)
 	err = showSatelliteStopping(app.console, app.satelliteName, out)
 	if err != nil {
 		return errors.Wrap(err, "failed waiting for satellite wake")
@@ -933,12 +913,12 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgID, err := app.getSatelliteOrgID(cliCtx.Context, cloudClient)
+	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satName, err := app.getSatelliteName(cliCtx.Context, orgID, app.satelliteName, cloudClient)
+	satName, err := app.getSatelliteName(cliCtx.Context, orgName, app.satelliteName, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -958,7 +938,7 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 
 	err = cloudClient.UpdateSatellite(cliCtx.Context, cloud.UpdateSatelliteOpt{
 		Name:                    satName,
-		OrgID:                   orgID,
+		OrgName:                 orgName,
 		PinnedVersion:           version,
 		MaintenanceWindowStart:  window,
 		MaintenanceWeekendsOnly: app.satelliteMaintenaceWeekendsOnly,
