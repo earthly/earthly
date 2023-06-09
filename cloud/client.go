@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"crypto/tls"
+	"sync"
 	"time"
 
 	"github.com/earthly/cloud-api/analytics"
@@ -59,7 +60,7 @@ type Client struct {
 	installationName         string
 	logstreamAddressOverride string
 	serverConnTimeout        time.Duration
-	orgIDCache               map[string]string // orgName -> orgID
+	orgIDCache               sync.Map // orgName -> orgID
 }
 
 type ClientOpt func(*Client)
@@ -82,7 +83,6 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 		installationName:  installationName,
 		requestID:         requestID,
 		serverConnTimeout: serverConnTimeout,
-		orgIDCache:        map[string]string{},
 	}
 	if authJWTOverride != "" {
 		c.authToken = authJWTOverride
