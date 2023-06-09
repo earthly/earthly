@@ -227,6 +227,12 @@ export TLS_ENABLED
 
 envsubst </etc/buildkitd.toml.template >/etc/buildkitd.toml
 
+# Set up session history, if requested
+if [ -z "$BUILDKIT_SESSION_HISTORY_DURATION" ]; then
+  BUILDKIT_SESSION_HISTORY_DURATION="1h"
+fi
+export BUILDKIT_SESSION_HISTORY_DURATION
+
 # Set up OOM
 OOM_SCORE_ADJ="${BUILDKIT_OOM_SCORE_ADJ:-0}"
 export OOM_SCORE_ADJ
