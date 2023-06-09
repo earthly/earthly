@@ -62,6 +62,12 @@ func (app *earthlyApp) debugCmds() []*cli.Command {
 			UsageText: "earthly [options] debug buildkit-session-history",
 			Action:    app.actionDebugBuildkitSessionHistory,
 		},
+		{
+			Name:      "buildkit-session-cancel",
+			Usage:     "Cancel a buildkit session by ID",
+			UsageText: "earthly [options] debug buildkit-session-cancel <session-id>",
+			Action:    app.actionDebugBuildkitSessionCancel,
+		},
 	}
 }
 
@@ -107,6 +113,27 @@ func (app *earthlyApp) actionDebugBuildkitSessionHistory(cliCtx *cli.Context) er
 
 	byt, _ := json.MarshalIndent(history, "", "  ")
 	fmt.Println(string(byt))
+	return nil
+}
+
+func (app *earthlyApp) actionDebugBuildkitSessionCancel(cliCtx *cli.Context) error {
+	app.commandName = "debugBuildkitSessionCancel"
+
+	cloudClient, err := app.newCloudClient()
+	if err != nil {
+		return err
+	}
+	bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
+	if err != nil {
+		return errors.Wrap(err, "build new buildkitd client")
+	}
+	defer bkClient.Close()
+
+	err = bkClient.CancelSession(cliCtx.Context, cliCtx.Args().First(), "canceled manually via earthly debug command")
+	if err != nil {
+		return errors.Wrap(err, "could not cancel buildkit session")
+	}
+
 	return nil
 }
 
