@@ -7,29 +7,17 @@ assignees: ''
 
 ---
 
-**Description**
-<!-- A quick description of the bug -->
+**What went wrong?**
+<!-- Can you describe what happened? -->
 
-**Reproduction Steps**
-<!-- An ordered list of steps to take to reproduce the problem.
+<!-- Can you reproduce it? If so, please list the steps to reproduce the issue. -->
 
-Example:
-1. Set up earthly to use podman
-2. Run `earthly boostrap`
-3. Run any earthly target
--->
+<!-- Do you have an Earthfile that you can share which showcases the problem? If so, please include it here. -->
 
-**Expected behavior**
-<!-- What you expected to happen.
+**What should have happened?**
+<!-- Can you describe the expected outcome? -->
 
-Continuing the example from earlier: earthly runs my target in podman.
--->
-
-**Actual behavior**
-<!-- What actually happened.
-
-Continuing the example from earlier: earthly fails to connect to buildkitd due to TLS certificate errors.
--->
+<!-- Have you found any workarounds? Can you share them for any other users who might be experiencing the issue? -->
 
 **Other Helpful Information**
 <!-- Please include any additional information you might have. This may include:
