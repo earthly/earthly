@@ -353,6 +353,17 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 	compLine = compLine[:compPoint]
 	subCommands := app.Commands
 
+	// TODO all the urfave/cli commands need to be moved out of the main package
+	// so they could be directly referenced rather than storing a list of strings of seen commands
+	commandValues := []string{}
+	getPrevCommand := func() string {
+		n := len(commandValues) - 2
+		if n >= 0 {
+			return commandValues[n]
+		}
+		return ""
+	}
+
 	flagValues := map[string]string{}
 	flagValuePotentialFuncs := map[string]FlagValuePotentialFn{
 		"--org": func(ctx context.Context, prefix string) []string {
@@ -387,6 +398,26 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 			potentials := []string{}
 			for _, project := range projects {
 				potentials = append(potentials, project.Name)
+			}
+			return potentials
+		},
+		"--satellite": func(ctx context.Context, prefix string) []string {
+			if cloudClient == nil {
+				return []string{}
+			}
+
+			org, ok := flagValues["--org"]
+			if !ok {
+				return []string{}
+			}
+
+			satellites, err := cloudClient.ListSatellites(ctx, org, false)
+			if err != nil {
+				return []string{}
+			}
+			potentials := []string{}
+			for _, sat := range satellites {
+				potentials = append(potentials, sat.Name)
 			}
 			return potentials
 		},
@@ -460,6 +491,9 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 					if foundCmd != nil {
 						subCommands = foundCmd.Subcommands
 						cmd = foundCmd
+
+						// TODO once urfave/cli commands are moved out of main, this should be removed (and instead the cmd pointer could simply be compared to determine which command we are referencing)
+						commandValues = append(commandValues, cmd.Name)
 					}
 					state = commandState
 				}
@@ -505,6 +539,11 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 		if cmd != nil {
 			potentials = getVisibleCommands(cmd.Subcommands)
 			potentials = padStrings(potentials, "", " ")
+
+			// TODO this should be tied to the instance of the command (and not just command Name value); but that means moving lots out of the main package
+			if getPrevCommand() == "satellite" && (cmd.Name == "inspect" || cmd.Name == "rm" || cmd.Name == "select" || cmd.Name == "sleep" || cmd.Name == "update" || cmd.Name == "wake") {
+				potentials = append(potentials, flagValuePotentialFuncs["--satellite"](ctx, "")...)
+			}
 		} else {
 			potentials = getVisibleCommands(app.Commands)
 			potentials = padStrings(potentials, "", " ")
