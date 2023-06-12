@@ -38,8 +38,9 @@ func getAppWithEarthlyFlags() *cli.App {
 }
 
 type mockCloudListClient struct {
-	listOrgsCallCount     int
-	listProjectsCallCount int
+	listOrgsCallCount       int
+	listProjectsCallCount   int
+	listSatellitesCallCount int
 }
 
 func (mclc *mockCloudListClient) ListOrgs(ctx context.Context) ([]*cloud.OrgDetail, error) {
@@ -77,6 +78,28 @@ func (mclc *mockCloudListClient) ListProjects(ctx context.Context, orgName strin
 		}, nil
 	}
 	return []*cloud.Project{}, nil
+}
+
+func (mclc *mockCloudListClient) ListSatellites(ctx context.Context, orgName string, includeHidden bool) ([]cloud.SatelliteInstance, error) {
+	mclc.listSatellitesCallCount += 1
+	if orgName == "abba" {
+		return []cloud.SatelliteInstance{
+			{
+				Name: "sat-one",
+			},
+			{
+				Name: "sat-two",
+			},
+		}, nil
+	}
+	if orgName == "abc" {
+		return []cloud.SatelliteInstance{
+			{
+				Name: "xyz",
+			},
+		}, nil
+	}
+	return []cloud.SatelliteInstance{}, nil
 }
 
 func getPotentialsWithMockListClient(t *testing.T, cmd string) []string {
