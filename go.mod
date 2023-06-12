@@ -40,7 +40,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.3
 	github.com/tonistiigi/fsutil v0.0.0-20230407161946-9e7a6df48576
-	github.com/urfave/cli/v2 v2.3.0
+	github.com/urfave/cli/v2 v2.25.5
 	go.etcd.io/bbolt v1.3.7
 	golang.org/x/crypto v0.6.0
 	golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2
@@ -111,6 +111,7 @@ require (
 	github.com/shibumi/go-pathspec v1.3.0 // indirect
 	github.com/tonistiigi/units v0.0.0-20180711220420-6950e57a87ea // indirect
 	github.com/tonistiigi/vt100 v0.0.0-20210615222946-8066bb97264f // indirect
+	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.40.0 // indirect
 	go.opentelemetry.io/otel v1.14.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.14.0 // indirect
