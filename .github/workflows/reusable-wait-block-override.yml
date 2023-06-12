@@ -84,19 +84,14 @@ jobs:
               --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute +test using wait-block override (Earthly Only)
-        uses: nick-fields/retry@v2
-        with:
-          timeout_minutes: 20
-          max_attempts: 2
-          command: |-
-            ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P --global-wait-end \
-                --build-arg DOCKERHUB_AUTH=true \
-                --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-                --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-                --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-             +test --GLOBAL_WAIT_END=true
+        run: |-
+          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P --global-wait-end \
+              --build-arg DOCKERHUB_AUTH=true \
+              --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+              --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+              --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
+           +test --GLOBAL_WAIT_END=true
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
         if: ${{ failure() }}
