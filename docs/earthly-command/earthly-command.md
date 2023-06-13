@@ -547,6 +547,19 @@ It is then possible to `export EARTHLY_TOKEN=...`, which will force earthly to u
 
 Removes a token from the current Earthly account.
 
+#### earthly account reset
+
+###### Synopsis
+
+* ```
+  earthly account reset --email <email> [--token <token>]
+  ```
+
+###### Description
+
+Reset the password associated with the provided email. The command should first be run without a token, which will cause a token to be
+emailed to you. Once the command is re-run with the provided token, it will prompt you for a new password.
+
 
 ## earthly org
 
