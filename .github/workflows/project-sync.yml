@@ -1,8 +1,11 @@
 name: Project State Sync
 
 on:
-  schedule:
-  - cron: 0 0-23 * * *
+  # TESTING DO NOT MERGE
+  pull_request:
+    branches: [ main ]
+#  schedule:
+#  - cron: 0 0-23 * * *
 
 jobs:
   issue-state-sync:
