@@ -1,0 +1,19 @@
+name: Project State Sync
+
+on:
+  schedule:
+  - cron: 0 0-23 * * *
+
+jobs:
+  issue-state-sync:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Sync issue states from board state
+      uses: dasmerlon/project-issue-state-sync@v2
+      with:
+        github_token: ${{secrets.GITHUB_TOKEN}}
+        owner: earthly
+        project_number: 3
+        closed_statuses: Done
+        open_statuses: No Status,Icebox,Todo,In Progress
