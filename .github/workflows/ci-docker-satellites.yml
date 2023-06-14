@@ -18,16 +18,61 @@ jobs:
       SUDO: ""
     secrets: inherit
 
-  docker-satellites-tests:
+  docker-lint:
     needs: build-earthly
     uses: ./.github/workflows/reusable-test.yml
     with:
+      TEST_TARGET: "+lint-all"
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
       USE_SATELLITE: true
-      SATELLITE_NAME: "core-test"
+      SATELLITE_NAME: "core-examples"
+      EARTHLY_ORG: "earthly-technologies"
+    secrets: inherit
+
+  docker-tests-no-qemu:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      USE_SATELLITE: true
+      SATELLITE_NAME: "core-examples"
+      EARTHLY_ORG: "earthly-technologies"
+    secrets: inherit
+
+  docker-tests-require-account-access:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "./tests+tests-that-require-earthly-technologies-account-access"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      USE_SATELLITE: true
+      SATELLITE_NAME: "core-examples"
+      EARTHLY_ORG: "earthly-technologies"
+    secrets: inherit
+
+  docker-tests-qemu:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-qemu"
+      USE_QEMU: true
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      USE_SATELLITE: true
+      SATELLITE_NAME: "core-examples"
       EARTHLY_ORG: "earthly-technologies"
     secrets: inherit
 

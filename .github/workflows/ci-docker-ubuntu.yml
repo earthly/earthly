@@ -17,10 +17,46 @@ jobs:
       SUDO: ""
     secrets: inherit
 
-  docker-tests:
+  docker-lint:
     needs: build-earthly
     uses: ./.github/workflows/reusable-test.yml
     with:
+      TEST_TARGET: "+lint-all"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
+  docker-tests-no-qemu:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
+  docker-tests-require-account-access:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "./tests+tests-that-require-earthly-technologies-account-access"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
+  docker-tests-qemu:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-qemu"
+      USE_QEMU: true
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
@@ -194,13 +230,13 @@ jobs:
             --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
             --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
             --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-          +test
+            +test
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute tests (Fork Only)
         run: |-
           GORACE="halt_on_error=1" go run -race ./cmd/earthly/*.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
             --build-arg DOCKERHUB_AUTH=false \
-          +test
+            +test
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
