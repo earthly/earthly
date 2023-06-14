@@ -161,7 +161,7 @@ func (app *earthlyApp) accountCmds() []*cli.Command {
 		},
 		{
 			Name:  "reset",
-			Usage: "Reset Earthly account password *beta*",
+			Usage: "Reset Earthly account password",
 			UsageText: "earthly [options] account reset --email <email>\n" +
 				"   earthly [options] account reset --email <email> --token <token>\n",
 			Action: app.actionAccountReset,
