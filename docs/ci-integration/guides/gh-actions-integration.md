@@ -1,7 +1,7 @@
 
 # GitHub Actions integration
 
-Here is an example of a GitHub Actions build that uses the [https://github.com/earthly/actions/setup-earthly](earthly/actions/setup-earthly action).
+Here is an example of a GitHub Actions build that uses the [earthly/actions/setup-earthly action](https://github.com/earthly/actions/setup-earthly).
 
 This example assumes an [Earthfile](../earthfile/earthfile.md) exists with a `+build` target:
 
