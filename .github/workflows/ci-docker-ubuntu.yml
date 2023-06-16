@@ -112,7 +112,7 @@ jobs:
 
   docker-docker-build-integrations:
     needs: build-earthly
-    uses: ./.github/workflows/docker-build-integrations.yml
+    uses: ./.github/workflows/reusable-docker-build-integrations.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
