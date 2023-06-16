@@ -73,8 +73,8 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 		},
 		{
 			Name:        "docker-build",
-			Usage:       "Build a Dockerfile without an Earthfile",
-			Description: "Builds a Dockerfile",
+			Usage:       "Build a Dockerfile without an Earthfile *beta*",
+			Description: "Builds a Dockerfile *beta*",
 			Action:      app.actionDockerBuild,
 			Flags: append(app.buildFlags(),
 				&cli.StringFlag{

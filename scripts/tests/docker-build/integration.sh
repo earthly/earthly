@@ -70,7 +70,14 @@ reset
 
 "$frontend" inspect "$tag" > /dev/null
 
-echo "=== test 4 - it creates an image with multiple tags:"
+echo "=== test 4 - it creates an image using a satellite:"
+reset
+
+"$earthly" docker-build --sat core-test -t "$tag" $testdir
+
+"$frontend" inspect "$tag" > /dev/null
+
+echo "=== test 5 - it creates an image with multiple tags:"
 reset
 
 "$earthly" docker-build -t "$tag" -t "$tag2" $testdir
@@ -78,12 +85,12 @@ reset
 "$frontend" inspect "$tag" > /dev/null
 "$frontend" inspect "$tag2" > /dev/null
 
-echo "=== test 5 - it creates an image without tags"
+echo "=== test 6 - it creates an image without tags"
 reset
 
 "$earthly" docker-build $testdir
 
-echo "=== test 6 - it uses the correct target:"
+echo "=== test 7 - it uses the correct target:"
 
 # use target1:
 reset
@@ -103,7 +110,7 @@ reset
 
 diff output <(echo "target2")
 
-echo "=== test 7 - it uses the correct arg value:"
+echo "=== test 8 - it uses the correct arg value:"
 
 # use override-value:
 reset
@@ -123,7 +130,7 @@ reset
 
 diff output <(echo "default-value")
 
-echo "=== test 8 - it builds the image using the correct platforms:"
+echo "=== test 9 - it builds the image using the correct platforms:"
 
 reset
 
@@ -139,7 +146,7 @@ diff output <(echo "arm64")
 
 diff output <(echo "amd64")
 
-echo "=== test 9 - it ignores files according to .dockerignore:"
+echo "=== test 10 - it ignores files according to .dockerignore:"
 
 reset
 
@@ -161,4 +168,5 @@ if [ -f $testdir/.earthlyignore ]; then
     >&2 echo "$testdir/.earthlyignore was not removed"
     exit 1
 fi
+
 echo "=== All tests have passed ==="
