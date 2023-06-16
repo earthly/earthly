@@ -791,3 +791,7 @@ npm-update-all:
         RUN cd $nodepath && npm update
         SAVE ARTIFACT --if-exists $nodepath/package-lock.json AS LOCAL $nodepath/package-lock.json
     END
+
+sleep:
+  FROM busybox
+  RUN --no-cache sleep 300000
