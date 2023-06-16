@@ -180,7 +180,7 @@ type earthfileTemplateArgs struct {
 }
 
 // GenerateEarthfile returns an Earthfile content string which contains a target to build a docker image using FROM DOCKERFILE
-func GenerateEarthfile(buildContextPath string, dockerfilePath string, imageTags []string, buildArgs []string, platforms []string, target string) (string, error) {
+func GenerateEarthfile(buildContextPath string, dockerfilePath string, imageTags []string, buildArgs []string, platformsStr string, target string) (string, error) {
 	t, err := template.New("earthfile").Parse(earthfileTemplate)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to parse Earthfile template")
@@ -194,6 +194,7 @@ func GenerateEarthfile(buildContextPath string, dockerfilePath string, imageTags
 		}
 	}
 
+	platforms := splitPlatforms(platformsStr)
 	err = t.Execute(buf, &earthfileTemplateArgs{
 		Version:      earthlyCurrentVersion,
 		CommandName:  "docker-build",
@@ -209,4 +210,11 @@ func GenerateEarthfile(buildContextPath string, dockerfilePath string, imageTags
 	}
 
 	return buf.String(), nil
+}
+
+func splitPlatforms(platformsStr string) []string {
+	platformsStr = strings.TrimLeft(strings.TrimRight(platformsStr, "]"), "[")
+	return strings.FieldsFunc(platformsStr, func(r rune) bool {
+		return r == ' ' || r == ','
+	})
 }
