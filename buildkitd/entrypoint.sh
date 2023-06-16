@@ -227,11 +227,18 @@ export TLS_ENABLED
 
 envsubst </etc/buildkitd.toml.template >/etc/buildkitd.toml
 
-# Set up session history, if requested
+# Session history is 1h by default unless otherwise specified
 if [ -z "$BUILDKIT_SESSION_HISTORY_DURATION" ]; then
   BUILDKIT_SESSION_HISTORY_DURATION="1h"
 fi
 export BUILDKIT_SESSION_HISTORY_DURATION
+
+# Session timeout will automatically cancel builds that run for too long
+# Configured to 1 day by default unless otherwise specified
+if [ -z "$BUILDKIT_SESSION_TIMEOUT" ]; then
+  BUILDKIT_SESSION_TIMEOUT="24h"
+fi
+export BUILDKIT_SESSION_TIMEOUT
 
 # Set up OOM
 OOM_SCORE_ADJ="${BUILDKIT_OOM_SCORE_ADJ:-0}"
