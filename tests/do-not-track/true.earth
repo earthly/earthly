@@ -1,0 +1,5 @@
+VERSION 0.7
+
+true:
+  FROM alpine:3.17
+  RUN true

@@ -142,6 +142,59 @@ func (c *Client) DeleteAuthCache(ctx context.Context) error {
 	return nil
 }
 
+func (c *Client) DisableAutoLogin(ctx context.Context) error {
+	path, err := c.getDisableAutoLoginPath(true)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get disable auto login path")
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create %s", path)
+	}
+	err = f.Close()
+	if err != nil {
+		return errors.Wrapf(err, "failed to close %s", path)
+	}
+	return nil
+}
+
+func (c *Client) IsAutoLoginPermitted(ctx context.Context) (bool, error) {
+	path, err := c.getDisableAutoLoginPath(true)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to get disable auto login path")
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return true, nil // auto login is allowed when the file does not exist
+		}
+		return false, err
+	}
+	if info.IsDir() {
+		return false, fmt.Errorf("expected %s to be a file (not a directory)", path)
+	}
+	return false, nil
+}
+
+func (c *Client) EnableAutoLogin(ctx context.Context) error {
+	canAutoLogin, err := c.IsAutoLoginPermitted(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "failed to determine if auto login is permitted")
+	}
+	if canAutoLogin {
+		return nil // already allowed
+	}
+	path, err := c.getDisableAutoLoginPath(true)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get disable auto login path")
+	}
+	err = os.Remove(path)
+	if err != nil {
+		return errors.Wrapf(err, "failed to remove %s", path)
+	}
+	return nil
+}
+
 func (c *Client) SetTokenCredentials(ctx context.Context, token string) (string, error) {
 	c.email = ""
 	c.password = ""
@@ -275,6 +328,10 @@ func (c *Client) getTokenPath(create bool) (string, error) {
 	return c.getAuthPath("auth.jwt", create)
 }
 
+func (c *Client) getDisableAutoLoginPath(create bool) (string, error) {
+	return c.getAuthPath("do-not-login-automatically", create)
+}
+
 func (c *Client) getAuthPath(filename string, createEarthlyDir bool) (string, error) {
 	confDirPath := c.authDir
 	if confDirPath == "" {
@@ -393,7 +450,11 @@ func (c *Client) loginWithToken(ctx context.Context) error {
 }
 
 func (c *Client) loginWithSSH(ctx context.Context) error {
-	if c.disableSSHKeyGuessing {
+	allowAutoLogin, err := c.IsAutoLoginPermitted(ctx)
+	if err != nil {
+		return err
+	}
+	if c.disableSSHKeyGuessing || !allowAutoLogin {
 		return ErrNoAuthorizedPublicKeys
 	}
 	challenge, err := c.getChallenge(ctx)

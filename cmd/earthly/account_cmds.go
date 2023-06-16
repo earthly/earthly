@@ -523,6 +523,18 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 	token := app.token
 	pass := app.password
 
+	cloudClient, err := app.newCloudClient()
+	if err != nil {
+		return err
+	}
+
+	// if a user explicitly calls Login, we will allow future auto-logins
+	// which is required for refreshing tokens
+	err = cloudClient.EnableAutoLogin(cliCtx.Context)
+	if err != nil {
+		return errors.Wrap(err, "failed to enable auto login")
+	}
+
 	if cliCtx.NArg() == 1 {
 		emailOrToken := cliCtx.Args().First()
 		if token == "" && email == "" {
@@ -541,10 +553,6 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 
 	if token != "" && (email != "" || pass != "") {
 		return errors.New("--token cannot be used in conjuction with --email or --password")
-	}
-	cloudClient, err := app.newCloudClient()
-	if err != nil {
-		return err
 	}
 
 	// special case where global auth token overrides login logic
@@ -690,6 +698,10 @@ func (app *earthlyApp) actionAccountLogout(cliCtx *cli.Context) error {
 	err = cloudClient.DeleteAuthCache(cliCtx.Context)
 	if err != nil {
 		return errors.Wrap(err, "failed to logout")
+	}
+	err = cloudClient.DisableAutoLogin(cliCtx.Context)
+	if err != nil {
+		return errors.Wrap(err, "failed to disable auto login")
 	}
 	return nil
 }
