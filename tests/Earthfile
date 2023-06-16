@@ -14,9 +14,6 @@ FROM ..+earthly-integration-test-base \
     --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
     --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
 
-RUN apk add --update --no-cache \
-    perl findutils
-
 WORKDIR /test
 
 all:
