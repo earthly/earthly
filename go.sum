@@ -52,6 +52,10 @@ github.com/agext/levenshtein v1.2.3 h1:YB2fHEn0UJagG8T1rrWknE3ZQzWM06O8AMAatNn7l
 github.com/agext/levenshtein v1.2.3/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki2W0IB5558=
 github.com/alessio/shellescape v1.4.1 h1:V7yhSDDn8LP4lc4jS8pFkt0zCnzVJlG5JXy9BVKJUX0=
 github.com/alessio/shellescape v1.4.1/go.mod h1:PZAiSCk0LJaZkiCSkPv8qIobYglO3FPpyFjDCtHLS30=
+github.com/alexcb/buildkit v0.0.0-20230614192955-8f54c5608a92 h1:haejknRV3pzsIUY20mWyJVt9YyVqDYvArJCKQVp2ZIc=
+github.com/alexcb/buildkit v0.0.0-20230614192955-8f54c5608a92/go.mod h1:O3Wy78M7g6gs8FvwGcdNd1q+QSJaCw2Pc9k/EWZ6hL0=
+github.com/alexcb/fsutil v0.0.0-20230530182746-82567e6e2a92 h1:UVILC8nfJh/FrWX6/oNgWA8bWsj6Tyj+YG64ajhPNxA=
+github.com/alexcb/fsutil v0.0.0-20230530182746-82567e6e2a92/go.mod h1:q1CxMSzcAbjUkVGHoZeQUcCaALnaE4XdWk+zJcgMYFw=
 github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5 h1:im0niQRZXdxO8F1rw4zwb5rJmOJ9XnNtlnMFyfLenYE=
 github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5/go.mod h1:Fw0T6WPc1dYxT4mKEZRfG5kJhaTDP9pj1c2EWnYs/m4=
 github.com/anchore/go-struct-converter v0.0.0-20221118182256-c68fdcfa2092 h1:aM1rlcoLz8y5B2r4tTLMiVTrMtpfY0O8EScKJxaSaEc=
@@ -167,12 +171,8 @@ github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
-github.com/earthly/buildkit v0.0.0-20230616140114-3e28920475eb h1:oi3McGm4YnlKSiToVFGZR0EsoYWvZj6T4eo045jgka0=
-github.com/earthly/buildkit v0.0.0-20230616140114-3e28920475eb/go.mod h1:O3Wy78M7g6gs8FvwGcdNd1q+QSJaCw2Pc9k/EWZ6hL0=
 github.com/earthly/cloud-api v1.0.1-0.20230509135033-ab3df26f706b h1:mBt64zr6Be12ERlA98uS6mvd/jcik/FFoVKWBs2hfJ0=
 github.com/earthly/cloud-api v1.0.1-0.20230509135033-ab3df26f706b/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
-github.com/earthly/fsutil v0.0.0-20230530182746-82567e6e2a92 h1:dy3w3B4OiDyQS+iHi/beUgMDJ1+fAAgbtr7OZ0d9ks0=
-github.com/earthly/fsutil v0.0.0-20230530182746-82567e6e2a92/go.mod h1:q1CxMSzcAbjUkVGHoZeQUcCaALnaE4XdWk+zJcgMYFw=
 github.com/elastic/go-sysinfo v1.9.0 h1:usICqY/Nw4Mpn9f4LdtpFrKxXroJDe81GaxxUlCckIo=
 github.com/elastic/go-sysinfo v1.9.0/go.mod h1:eBD1wEGVaRnRLGecc9iG1z8eOv5HnEdz9+nWd8UAxcE=
 github.com/elastic/go-windows v1.0.0 h1:qLURgZFkkrYyTTkvYpsZIgf83AUsdIHfvlJaqaZ7aSY=
