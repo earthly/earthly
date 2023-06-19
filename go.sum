@@ -52,8 +52,8 @@ github.com/agext/levenshtein v1.2.3 h1:YB2fHEn0UJagG8T1rrWknE3ZQzWM06O8AMAatNn7l
 github.com/agext/levenshtein v1.2.3/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki2W0IB5558=
 github.com/alessio/shellescape v1.4.1 h1:V7yhSDDn8LP4lc4jS8pFkt0zCnzVJlG5JXy9BVKJUX0=
 github.com/alessio/shellescape v1.4.1/go.mod h1:PZAiSCk0LJaZkiCSkPv8qIobYglO3FPpyFjDCtHLS30=
-github.com/alexcb/buildkit v0.0.0-20230619225741-cf2ccc5d69f7 h1:CuGuO/0RzwdX31x4v+bGxCSfBSTGrOKK+dIE1YH1SK0=
-github.com/alexcb/buildkit v0.0.0-20230619225741-cf2ccc5d69f7/go.mod h1:O3Wy78M7g6gs8FvwGcdNd1q+QSJaCw2Pc9k/EWZ6hL0=
+github.com/alexcb/buildkit v0.0.0-20230619232032-98db8f1d89d4 h1:rK6ZeG2L4+i+CMT0jBhfWa/GVNHaDSWGQJidx8uN/pE=
+github.com/alexcb/buildkit v0.0.0-20230619232032-98db8f1d89d4/go.mod h1:O3Wy78M7g6gs8FvwGcdNd1q+QSJaCw2Pc9k/EWZ6hL0=
 github.com/alexcb/fsutil v0.0.0-20230530182746-82567e6e2a92 h1:UVILC8nfJh/FrWX6/oNgWA8bWsj6Tyj+YG64ajhPNxA=
 github.com/alexcb/fsutil v0.0.0-20230530182746-82567e6e2a92/go.mod h1:q1CxMSzcAbjUkVGHoZeQUcCaALnaE4XdWk+zJcgMYFw=
 github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5 h1:im0niQRZXdxO8F1rw4zwb5rJmOJ9XnNtlnMFyfLenYE=
