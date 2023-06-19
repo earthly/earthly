@@ -3,7 +3,7 @@
 
 Here is an example of a GitHub Actions build that uses the [earthly/actions/setup-earthly action](https://github.com/earthly/actions/setup-earthly).
 
-This example assumes an [Earthfile](../earthfile/earthfile.md) exists with a `+build` target:
+This example assumes an [Earthfile](../../earthfile/earthfile.md) exists with a `+build` target:
 
 ```yml
 # .github/workflows/ci.yml
