@@ -7,6 +7,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+- The command `docker-build` now also supports passing multiple platforms using a comma (e.g `--platform linux/amd64,linux/arm64`)
+
 ## v0.7.8 - 2023-06-07
 
 ### Added
