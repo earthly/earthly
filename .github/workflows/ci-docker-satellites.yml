@@ -73,3 +73,16 @@ jobs:
       SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
     secrets: inherit
+
+  docker-build-with-satellites:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-docker-build-integrations.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      SUDO: ""
+      USE_SATELLITE: true
+      SATELLITE_NAME: "core-test"
+      EARTHLY_ORG: "earthly-technologies"
+    secrets: inherit
+

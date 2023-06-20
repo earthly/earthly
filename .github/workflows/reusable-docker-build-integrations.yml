@@ -12,6 +12,16 @@ on:
       RUNS_ON:
         required: true
         type: string
+      USE_SATELLITE:
+        required: false
+        type: boolean
+        default: false
+      SATELLITE_NAME:
+        required: false
+        type: string
+      EARTHLY_ORG:
+        required: false
+        type: string
 
 jobs:
   docker-build-integration:
@@ -19,6 +29,8 @@ jobs:
     runs-on: ${{inputs.RUNS_ON}}
     env:
       FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_ORG: "${{inputs.EARTHLY_ORG}}"
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
       DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
@@ -44,6 +56,9 @@ jobs:
             set -euo pipefail
             EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
             echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
+      - name: Configure Satellites (Earthly Only)
+        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} sat ls && ${{inputs.BUILT_EARTHLY_PATH}} satellite select ${{inputs.SATELLITE_NAME}}
+        if: (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && inputs.USE_SATELLITE
       - name: run docker-build-integration
         run: ${{inputs.SUDO}} env earthly=${{inputs.BUILT_EARTHLY_PATH}} scripts/tests/docker-build/integration.sh
       - name: Buildkit logs (runs on failure)

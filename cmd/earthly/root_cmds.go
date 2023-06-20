@@ -25,6 +25,7 @@ import (
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
+	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
 )
@@ -73,8 +74,8 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 		},
 		{
 			Name:        "docker-build",
-			Usage:       "Build a Dockerfile without an Earthfile",
-			Description: "Builds a Dockerfile",
+			Usage:       "Build a Dockerfile without an Earthfile *beta*",
+			Description: "Builds a Dockerfile *beta*",
 			Action:      app.actionDockerBuild,
 			Flags: append(app.buildFlags(),
 				&cli.StringFlag{
@@ -537,7 +538,8 @@ func (app *earthlyApp) actionDockerBuild(cliCtx *cli.Context) error {
 		return errors.Wrapf(err, "combining build args")
 	}
 
-	content, err := docker2earthly.GenerateEarthfile(buildContextPath, app.dockerfilePath, app.dockerTags.Value(), buildArgs.Sorted(), app.platformsStr.Value(), app.dockerTarget)
+	platforms := flagutil.SplitFlagString(app.platformsStr)
+	content, err := docker2earthly.GenerateEarthfile(buildContextPath, app.dockerfilePath, app.dockerTags.Value(), buildArgs.Sorted(), platforms, app.dockerTarget)
 	if err != nil {
 		return errors.Wrap(err, "docker-build: failed to wrap Dockerfile with an Earthfile")
 	}
