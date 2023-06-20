@@ -2,7 +2,7 @@
 
 set -eu
 
-distro=$(sed -n -e 's/^ID="\?\([^\"]*\)"\?/\1/p' /etc/os-release)
+distro=$(. /etc/os-release && echo "$ID")
 
 detect_dockerd() {
     set +e
@@ -50,7 +50,7 @@ print_debug() {
 }
 
 detect_alpine_3_18_or_newer() {
-    VERSION="$(grep VERSION_ID= /etc/os-release | awk -F= '{print $2}')"
+    VERSION="$(. /etc/os-release && echo "$VERSION_ID")"
     if [ -z "$VERSION" ]; then
         echo >&2 "Error: unable to detect alpine version"
         exit 1
@@ -128,6 +128,24 @@ apt_get_update() {
     fi
 }
 
+install_docker_apt_repo_old() {
+    curl -fsSL "https://download.docker.com/linux/$distro/gpg" | apt-key add -
+    add-apt-repository \
+        "deb [arch=$(dpkg --print-architecture)] https://download.docker.com/linux/$distro \
+        $(lsb_release -cs) \
+        stable"
+}
+
+install_docker_apt_repo_new() {
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL "https://download.docker.com/linux/$distro/gpg" | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    chmod a+r /etc/apt/keyrings/docker.gpg
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$distro \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      tee /etc/apt/sources.list.d/docker.list > /dev/null
+}
+
 install_dockerd_debian_like() {
     export DEBIAN_FRONTEND=noninteractive
     apt-get remove -y docker docker-engine docker.io containerd runc || true
@@ -138,17 +156,36 @@ install_dockerd_debian_like() {
         curl \
         gnupg-agent \
         software-properties-common
-    curl -fsSL "https://download.docker.com/linux/$distro/gpg" | apt-key add -
-    add-apt-repository \
-        "deb [arch=$(dpkg --print-architecture)] https://download.docker.com/linux/$distro \
-        $(lsb_release -cs) \
-        stable"
+
+    VERSION="$(. /etc/os-release && echo "$VERSION_ID")"
+    case "$distro" in
+        ubuntu)
+            MAJOR="$(echo "$VERSION" | awk -F. '{print $1}')"
+            if [ "$MAJOR" -ge "22" ]; then
+                install_docker_apt_repo_new
+            else
+                install_docker_apt_repo_old
+            fi
+            ;;
+
+        debian)
+            if [ "$VERSION" -ge "12" ]; then
+                install_docker_apt_repo_new
+            else
+                install_docker_apt_repo_old
+            fi
+            ;;
+
+        *)
+            install_docker_apt_repo_old
+            ;;
+    esac
     apt-get update # dont use apt_get_update since we must update the newly added apt repo
     apt-get install -y docker-ce docker-ce-cli containerd.io
 }
 
 install_dockerd_amazon() {
-    version=$(sed -n -e 's/^VERSION="\?\([^\"]*\)"\?/\1/p' /etc/os-release)
+    version=$(. /etc/os-release && echo "$VERSION")
     case "$version" in
         2)
             yes | amazon-linux-extras install docker
