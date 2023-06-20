@@ -66,6 +66,18 @@ detect_alpine_3_18_or_newer() {
     return 0
 }
 
+detect_debian_12_or_newer() {
+    VERSION="$(grep VERSION_ID= /etc/os-release | awk -F= '{print $2}'| tr -d '"')"
+    if [ -z "$VERSION" ]; then
+        echo >&2 "Error: unable to detect debian version"
+        exit 1
+    fi
+    if [ "$VERSION" -lt 12 ]; then
+        return 1
+    fi
+    return 0
+}
+
 install_docker_compose() {
     case "$distro" in
         alpine)
@@ -108,7 +120,11 @@ install_dockerd() {
             ;;
 
         debian)
-            install_dockerd_debian_like
+            if detect_debian_12_or_newer; then
+                install_dockerd_debian_12_or_newer_like
+            else
+                install_dockerd_debian_like
+            fi
             ;;
 
         *)
@@ -145,6 +161,30 @@ install_dockerd_debian_like() {
         stable"
     apt-get update # dont use apt_get_update since we must update the newly added apt repo
     apt-get install -y docker-ce docker-ce-cli containerd.io
+}
+
+install_dockerd_debian_12_or_newer_like() {
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get remove -y docker docker-engine docker.io containerd runc docker-buildx-plugin docker-compose-plugin || true
+    apt_get_update
+    apt-get install -y \
+        apt-transport-https \
+        ca-certificates \
+        curl \
+        gnupg-agent \
+        software-properties-common
+
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL "https://download.docker.com/linux/$distro/gpg" | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    chmod a+r /etc/apt/keyrings/docker.gpg
+
+    echo \
+      "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$distro \
+      "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+      tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    apt-get update # dont use apt_get_update since we must update the newly added apt repo
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 }
 
 install_dockerd_amazon() {
