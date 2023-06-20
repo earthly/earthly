@@ -72,6 +72,8 @@ def parse_changelog(changelog_data):
     dash_found = False
     body = []
     ignore = False
+    prev_header_num = None
+    prev_header_title = None
     for line_num, line in enumerate(changelog_data.splitlines()):
         num_headers, title = parse_line(line, line_num)
 
@@ -81,6 +83,8 @@ def parse_changelog(changelog_data):
             if not title.endswith(' Changelog'):
                 raise MissingTitleError("expected title ending with Changelog", line_num)
             is_title_body = True
+            prev_header_num = num_headers
+            prev_header_title = title
             continue
 
         if num_headers == 0:
@@ -133,10 +137,17 @@ def parse_changelog(changelog_data):
             is_intro = False
             allowed_titles = ('Added', 'Changed', 'Removed', 'Fixed')
             if title not in allowed_titles:
-                raise UnexpectedHeaderError(f'expected header of {allowed_titles}; but got {title}', line_num)
+                raise UnexpectedHeaderError(f'expected header of {allowed_titles}; but got "{title}"', line_num)
+            if prev_header_num not in (2, 3):
+                raise UnexpectedHeaderError(f'expected header "{title}" to be under a "vX.Y.Z" or "Unreleased" section, but instead it was located after "{prev_header_title}"', line_num)
+
             body.append(line)
         else:
             raise UnexpectedHeaderError(f'unsupported header {line}')
+
+        if num_headers > 0:
+            prev_header_num = num_headers
+            prev_header_title = title
 
     if version:
         save_version(version, release_date, body)
