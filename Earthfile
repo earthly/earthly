@@ -102,7 +102,9 @@ lint-scripts-misc:
         ./scripts/tests/docker-build/*.sh \
         ./scripts/*.sh \
         ./shell_scripts/
-    RUN shellcheck shell_scripts/*
+    # some scripts need to source /etc/os-release for operating system release information,
+    # so -x is needed to let shellcheck read that file.
+    RUN shellcheck -x shell_scripts/*
 
 lint-scripts-auth-test:
     FROM +lint-scripts-base
