@@ -13,7 +13,7 @@ func TestGenerateEarthfile(t *testing.T) {
 		dockerfilePath   string
 		imageTags        []string
 		buildArgs        []string
-		platforms        string
+		platforms        []string
 		target           string
 	}
 	tests := []struct {
@@ -29,7 +29,7 @@ func TestGenerateEarthfile(t *testing.T) {
 				dockerfilePath:   "./dir/../MyDockerfile",
 				imageTags:        []string{"test-image:v1.2.3", "test-image:v1.2.3.4"},
 				buildArgs:        []string{"arg1", "arg2"},
-				platforms:        "linux/amd64,linux/arm64",
+				platforms:        []string{"linux/amd64", "linux/arm64"},
 				target:           "target1",
 			},
 			want: `
@@ -57,7 +57,7 @@ build:
 				dockerfilePath:   "/my/build/context/dir/MyDockerfile",
 				imageTags:        []string{"test-image:v1.2.3"},
 				buildArgs:        []string{"arg1", "arg2"},
-				platforms:        "linux/amd64 linux/arm64",
+				platforms:        []string{"linux/amd64", "linux/arm64"},
 				target:           "target1",
 			},
 			want: `
@@ -84,7 +84,7 @@ build:
 				buildContextPath: "/build-context",
 				dockerfilePath:   "./dir/MyDockerfile",
 				imageTags:        []string{"test-image:v1.2.3"},
-				platforms:        "linux/amd64",
+				platforms:        []string{"linux/amd64"},
 				target:           "target1",
 			},
 			want: `
@@ -108,7 +108,7 @@ build:
 				dockerfilePath:   "./dir/MyDockerfile",
 				imageTags:        []string{"test-image:v1.2.3"},
 				buildArgs:        []string{"arg1"},
-				platforms:        "linux/amd64",
+				platforms:        []string{"linux/amd64"},
 			},
 			want: `
 VERSION --use-docker-ignore 0.7
@@ -156,7 +156,7 @@ build:
 				buildContextPath: "/my/build/context",
 				dockerfilePath:   "./dir/../MyDockerfile",
 				buildArgs:        []string{"arg1", "arg2"},
-				platforms:        "linux/amd64 linux/arm64",
+				platforms:        []string{"linux/amd64", "linux/arm64"},
 				target:           "target1",
 			},
 			want: `
