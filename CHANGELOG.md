@@ -2,13 +2,13 @@
 
 All notable changes to [Earthly](https://github.com/earthly/earthly) will be documented in this file.
 
-### Fixed
-- Fixed a bug in satellite update command which was incorrectly changing satellites to medium size.
-
 ## Unreleased
 
 ### Changed
 - The command `docker-build` now also supports passing multiple platforms using a comma (e.g `--platform linux/amd64,linux/arm64`)
+
+### Fixed
+- Fixed a bug in satellite update command which was incorrectly changing satellites to medium size.
 
 ## v0.7.8 - 2023-06-07
 
