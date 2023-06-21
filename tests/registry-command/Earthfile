@@ -61,7 +61,23 @@ test-gcp:
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly
 
+test-multi:
+    COPY lock.sh unlock.sh \
+        test-multi.sh \
+        .
+
+    ENV EARTHLY_EXEC_CMD=/test/test-multi.sh
+    RUN --secret EARTHLY_TOKEN=fake-user-write-token \
+        --secret GCP_KEY=gcp/ci-cd-key \
+        --secret AWS_ACCESS_KEY_ID=aws/ci-cd-access-key \
+        --secret AWS_SECRET_ACCESS_KEY=aws/ci-cd-access-secret \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly
+
 test:
     BUILD +test-dockerhub
     BUILD +test-ecr
     BUILD +test-gcp
+    BUILD +test-multi
