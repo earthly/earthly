@@ -32,17 +32,59 @@ jobs:
       EARTHLY_ORG: "earthly-technologies"
     secrets: inherit
 
-  docker-tests-no-qemu:
+  docker-tests-quick:
     needs: build-earthly
     uses: ./.github/workflows/reusable-test.yml
     with:
-      TEST_TARGET: "+test-no-qemu"
+      TEST_TARGET: "+test-quick"
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
       USE_SATELLITE: true
-      SATELLITE_NAME: "core-examples"
+      SATELLITE_NAME: "core-test"
+      EARTHLY_ORG: "earthly-technologies"
+    secrets: inherit
+
+  docker-tests-no-qemu-quick:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-quick"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      USE_SATELLITE: true
+      SATELLITE_NAME: "core-test"
+      EARTHLY_ORG: "earthly-technologies"
+    secrets: inherit
+
+  docker-tests-no-qemu-normal:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-normal"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      USE_SATELLITE: true
+      SATELLITE_NAME: "core-test"
+      EARTHLY_ORG: "earthly-technologies"
+    secrets: inherit
+
+  docker-tests-no-qemu-slow:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-slow"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      USE_SATELLITE: true
+      SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
     secrets: inherit
 

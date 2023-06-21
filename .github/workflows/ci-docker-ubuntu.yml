@@ -28,11 +28,44 @@ jobs:
       SUDO: ""
     secrets: inherit
 
-  docker-tests-no-qemu:
+  docker-tests-quick:
     needs: build-earthly
     uses: ./.github/workflows/reusable-test.yml
     with:
-      TEST_TARGET: "+test-no-qemu"
+      TEST_TARGET: "+test-quick"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
+  docker-tests-no-qemu-quick:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-quick"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
+  docker-tests-no-qemu-normal:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-normal"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
+  docker-tests-no-qemu-slow:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-slow"
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
@@ -236,7 +269,7 @@ jobs:
         run: |-
           GORACE="halt_on_error=1" go run -race ./cmd/earthly/*.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
             --build-arg DOCKERHUB_AUTH=false \
-            +test
+            +test-quick
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd

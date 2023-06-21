@@ -616,8 +616,13 @@ lint-docs:
     BUILD +lint-newline-ending
     BUILD +lint-changelog
 
-# TODO: Document qemu vs non-qemu
 test-no-qemu:
+    BUILD +test-quick
+    BUILD +test-no-qemu-quick
+    BUILD +test-no-qemu-normal
+    BUILD +test-no-qemu-slow
+
+test-quick:
     BUILD +unit-test
     BUILD +chaos-test
     BUILD +offline-test
@@ -628,6 +633,7 @@ test-no-qemu:
     ARG DOCKERHUB_AUTH=true
     ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
     ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+
     BUILD ./ast/tests+all \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
@@ -635,8 +641,29 @@ test-no-qemu:
         --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
         --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
-    ARG GLOBAL_WAIT_END="false"
-    BUILD ./tests+ga-no-qemu \
+
+test-no-qemu-quick:
+    BUILD ./tests+ga-no-qemu-quick \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+test-no-qemu-normal:
+    BUILD ./tests+ga-no-qemu-normal \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+test-no-qemu-slow:
+    BUILD ./tests+ga-no-qemu-slow \
         --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
         --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
         --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
