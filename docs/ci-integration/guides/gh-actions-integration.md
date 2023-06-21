@@ -1,7 +1,7 @@
 
 # GitHub Actions integration
 
-Here is an example of a GitHub Actions build that uses the [earthly/actions/setup-earthly action](https://github.com/earthly/actions/setup-earthly).
+Here is an example of a GitHub Actions build that uses the [earthly/actions-setup](https://github.com/earthly/actions-setup).
 
 This example assumes an [Earthfile](../../earthfile/earthfile.md) exists with a `+build` target:
 
@@ -24,7 +24,7 @@ jobs:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       FORCE_COLOR: 1
     steps:
-    - uses: earthly/actions/setup-earthly@v1
+    - uses: earthly/actions-setup@v1
       with:
         version: v0.7.8
     - uses: actions/checkout@v2
@@ -45,7 +45,7 @@ jobs:
       run: earthly --push +build
 ```
 
-Alternatively, you can skip using the `earthly/actions/setup-earthly` job and include
+Alternatively, you can skip using the `earthly/actions-setup` job and include
 a step to download earthly instead:
 
 ```yml
