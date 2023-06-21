@@ -499,10 +499,10 @@ dependencies {
 <details open>
 <summary>Python</summary>
 
-To copy the files for [this example ( Part 7 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/python/part7) run
+To copy the files for [this example ( Part 6 )](https://github.com/earthly/earthly/tree/main/examples/tutorial/python/part6) run
 
 ```bash
-earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part7/part7 ./part7
+earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part6/part6 ./part6
 ```
 `./tests/test_db_connection.py`
 
