@@ -194,6 +194,9 @@ func (c *Client) doCallImp(ctx context.Context, r request, method, url, reqID st
 		req.Header = r.headers.Clone()
 	}
 	if r.hasAuth {
+		if c.authToken == "" {
+			return 0, nil, ErrUnauthorized
+		}
 		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
 	}
 	req.Header.Add(requestID, reqID)

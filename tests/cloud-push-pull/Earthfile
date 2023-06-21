@@ -14,9 +14,6 @@ FROM ../..+earthly-integration-test-base \
     --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
 WORKDIR /test
 
-RUN apk update && \
-    apk add curl python3 bash
-
 all:
     BUILD +google-artifact-registry
     BUILD +google-container-repository
