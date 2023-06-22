@@ -981,7 +981,7 @@ If you are logged into the CLI the url will contain a token used to link your OA
 
 *
   ```
-  earthly [options] docker-build [--dockerfile <dockerfile-path>] [--tag=<image-tag>] [--target=<target-name>] [--platform <platform>] <build-context-dir> [--arg1=arg-value] 
+  earthly [options] docker-build [--dockerfile <dockerfile-path>] [--tag=<image-tag>] [--target=<target-name>] [--platform <platform1[,platform2,...]>] <build-context-dir> [--arg1=arg-value] 
   ```
 
 #### Description
@@ -1011,7 +1011,7 @@ Set the image name and tag to use. This option can be repeated to provide the bu
 
 Specifies the target to build in a multi-target Dockerfile.
 
-##### `--platform <platform>`
+##### `--platform <platform1[,platform2,...]>`
 
 Sets the platform to build for.
 

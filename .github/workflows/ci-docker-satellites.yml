@@ -9,12 +9,20 @@ on:
     paths-ignore: [ docs/** ]
 
 jobs:
+  build-earthly:
+    uses: ./.github/workflows/build-earthly.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
   docker-satellites-tests:
+    needs: build-earthly
     uses: ./.github/workflows/reusable-test.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
-      BUILD_EARTHLY_ARGS: " " # empty
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
@@ -24,11 +32,10 @@ jobs:
     secrets: inherit
 
   docker-satellites-examples-1:
+    needs: build-earthly
     uses: ./.github/workflows/reusable-example.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
-      BUILD_EARTHLY_ARGS: " " # empty
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
@@ -39,11 +46,10 @@ jobs:
     secrets: inherit
 
   docker-satellites-examples-2:
+    needs: build-earthly
     uses: ./.github/workflows/reusable-example.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
-      BUILD_EARTHLY_ARGS: " " # empty
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
@@ -54,11 +60,10 @@ jobs:
     secrets: inherit
 
   docker-satellites-test-local:
+    needs: build-earthly
     uses: ./.github/workflows/reusable-test-local.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      BUILD_EARTHLY_TARGET: "+for-linux"
-      BUILD_EARTHLY_ARGS: " " # empty
       RUN_EARTHLY_TEST_ARGS: "--no-output"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
@@ -68,3 +73,16 @@ jobs:
       SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
     secrets: inherit
+
+  docker-build-with-satellites:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-docker-build-integrations.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      SUDO: ""
+      USE_SATELLITE: true
+      SATELLITE_NAME: "core-test"
+      EARTHLY_ORG: "earthly-technologies"
+    secrets: inherit
+

@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"crypto/tls"
+	"sync"
 	"time"
 
 	"github.com/earthly/cloud-api/analytics"
@@ -59,6 +60,7 @@ type Client struct {
 	installationName         string
 	logstreamAddressOverride string
 	serverConnTimeout        time.Duration
+	orgIDCache               sync.Map // orgName -> orgID
 }
 
 type ClientOpt func(*Client)
@@ -82,6 +84,7 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 		requestID:         requestID,
 		serverConnTimeout: serverConnTimeout,
 	}
+
 	if authJWTOverride != "" {
 		c.authToken = authJWTOverride
 		c.authTokenExpiry = time.Now().Add(24 * 365 * time.Hour) // Never expire when using JWT.

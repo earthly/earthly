@@ -6,9 +6,6 @@ on:
       BUILT_EARTHLY_PATH:
         required: true
         type: string
-      BUILD_EARTHLY_TARGET:
-        required: true
-        type: string
       BINARY:
         required: true
         type: string
@@ -33,7 +30,6 @@ jobs:
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: earthly/actions-setup@main
       - name: Set up Docker QEMU
         id: qemu
         uses: docker/setup-qemu-action@v1
@@ -46,37 +42,33 @@ jobs:
           go-version: 1.20
       - name: remove Docker
         run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
-        if: inputs.binary == 'podman'
+        if: inputs.BINARY == 'podman'
       - name: Install Podman (with apt-get)
         run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman && ${{inputs.SUDO}} rm -f /etc/containers/registries.conf
-        if: inputs.binary == 'podman'
+        if: inputs.BINARY == 'podman'
       - name: Podman debug info
         run: podman version && podman info && podman info --debug
-        if: inputs.binary == 'podman'
+        if: inputs.BINARY == 'podman'
+      - name: Retrieve earthly from build-earthly job
+        run: |-
+          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-${{inputs.RUNS_ON}}-docker ./earthly upgrade
+          mkdir -p $(dirname "${{inputs.BUILT_EARTHLY_PATH}}")
+          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-${{inputs.RUNS_ON}}-docker ${{inputs.BUILT_EARTHLY_PATH}}
       - name: Bootstrap Earthly
-        run: earthly bootstrap
-        if: inputs.binary == 'podman'
+        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} bootstrap
+        if: inputs.BINARY == 'podman'
       - name: Docker mirror login (Earthly Only)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Configure Earthly to use mirror (Earthly Only)
         run: |-
-          earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.buildkit_additional_config "'[registry.\"docker.io\"]
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Login to docker hub -- for satellite based tests that are not configured to use our mirror (Earthly Only)
         run: |-
           docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Link Earthly dir to Earthly dev dir
-        run: mkdir -p ~/.earthly && ln -s ~/.earthly ~/.earthly-dev
-      - name: Build latest earthly using released earthly
-        run: ${{inputs.SUDO}} $(which earthly) -P --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
-      - name: Re-bootstrap Earthly using latest earthly build
-        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} bootstrap
-        if: inputs.binary == 'podman'
-      - name: rebuild earthly using latest earthly build
-        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --use-inline-cache ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
             set -euo pipefail
@@ -85,28 +77,20 @@ jobs:
       - name: Build the earthly docker image
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} +earthly-docker --TAG=image-test
       - name: "Run the earthly image tests (Earthly only)"
-        run: FRONTEND=${{inputs.BINARY}} EARTHLY_IMAGE=earthly/earthly:image-test DOCKERHUB_MIRROR_USERNAME="${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" DOCKERHUB_MIRROR_PASSWORD="${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}" ./scripts/tests/earthly-image.sh
+        run: FRONTEND=${{inputs.BINARY}} EARTHLY_IMAGE=earthly/earthly:image-test DOCKERHUB_MIRROR_USERNAME="${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" DOCKERHUB_MIRROR_PASSWORD="${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}" DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" DOCKERHUB_PASSWORD="${{ secrets.DOCKERHUB_PASSWORD }}" ./scripts/tests/earthly-image.sh
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Run parallel buildkit start test. It ensures that earthly starting up buildkit does not race with itself.
-        uses: nick-fields/retry@v2
-        with:
-          timeout_minutes: 10
-          max_attempts: 2
-          command: |-
-            ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd && \
-            for i in 1 2 3 4; do
-                ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
-                pids[${i}]=$!
-            done && \
-            for pid in ${pids[*]}; do
-                wait $pid
-            done
+        run: |-
+          ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd && \
+          for i in 1 2 3 4; do
+              ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
+              pids[${i}]=$!
+          done && \
+          for pid in ${pids[*]}; do
+              wait $pid
+          done
       - name: Execute interactive debugger test
-        uses: nick-fields/retry@v2
-        with:
-          timeout_minutes: 10
-          max_attempts: 2
-          command: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ${{inputs.BUILT_EARTHLY_PATH}} --timeout 180
+        run: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ${{inputs.BUILT_EARTHLY_PATH}} --timeout 180
       - name: "cloud-stored docker credential test (Earthly only)"
         run: FRONTEND=${{inputs.BINARY}} earthly=${{inputs.BUILT_EARTHLY_PATH}} ./scripts/tests/cloud-docker-credentials-integration.sh
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -115,23 +99,15 @@ jobs:
       - name: Execute docker2earth test
         run: "./tests/docker2earth/test.sh"
       - name: Execute remote-cache test (Earthly Only)
-        uses: nick-fields/retry@v2
-        with:
-          timeout_minutes: 10
-          max_attempts: 2
-          command: |-
-            frontend=${{inputs.BINARY}} ./tests/remote-cache/test.sh \
-              --build-arg DOCKERHUB_AUTH=true \
-              --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-              --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-              --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
+        run: |-
+          frontend=${{inputs.BINARY}} ./tests/remote-cache/test.sh \
+            --build-arg DOCKERHUB_AUTH=true \
+            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute remote-cache test (Fork Only)
-        uses: nick-fields/retry@v2
-        with:
-          timeout_minutes: 10
-          max_attempts: 2
-          command: frontend=${{inputs.BINARY}} ./tests/remote-cache/test.sh --build-arg DOCKERHUB_AUTH=false
+        run: frontend=${{inputs.BINARY}} ./tests/remote-cache/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute registry-certs test (Earthly Only)
         run: |-
@@ -145,26 +121,18 @@ jobs:
         run: frontend=${{inputs.BINARY}} ./tests/registry-certs/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute try-catch test (Earthly Only)
-        uses: nick-fields/retry@v2
-        with:
-          timeout_minutes: 10
-          max_attempts: 2
-          command: |-
-            ./tests/try-catch/test.sh \
-                --build-arg DOCKERHUB_AUTH=true \
-                --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-                --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-                --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
+        run: |-
+          ./tests/try-catch/test.sh \
+              --build-arg DOCKERHUB_AUTH=true \
+              --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
+              --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
+              --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute try-catch test (Fork Only)
-        uses: nick-fields/retry@v2
-        with:
-          timeout_minutes: 10
-          max_attempts: 2
-          command: ./tests/try-catch/test.sh --build-arg DOCKERHUB_AUTH=false
+        run: ./tests/try-catch/test.sh --build-arg DOCKERHUB_AUTH=false
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute local buildkit with mTLS test
-        run: ./tests/remote-buildkit/remote-buildkit-test.sh
+        run: default_install_name=earthly ./tests/remote-buildkit/remote-buildkit-test.sh
       - name: Run linux-amd64 specific tests (Earthly Only)
         run: |-
           ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P \

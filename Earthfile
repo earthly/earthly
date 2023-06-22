@@ -102,7 +102,9 @@ lint-scripts-misc:
         ./scripts/tests/docker-build/*.sh \
         ./scripts/*.sh \
         ./shell_scripts/
-    RUN shellcheck shell_scripts/*
+    # some scripts need to source /etc/os-release for operating system release information,
+    # so -x is needed to let shellcheck read that file.
+    RUN shellcheck -x shell_scripts/*
 
 lint-scripts-auth-test:
     FROM +lint-scripts-base
@@ -430,7 +432,7 @@ earthly-docker:
 
 earthly-integration-test-base:
     FROM +earthly-docker
-    RUN apk add pcre-tools
+    RUN apk update && apk add pcre-tools curl python3 bash perl findutils
     ENV NO_DOCKER=1
     ENV NETWORK_MODE=host # Note that this breaks access to embedded registry in WITH DOCKER.
     ENV EARTHLY_VERSION_FLAG_OVERRIDES=no-use-registry-for-with-docker # Use tar-based due to above.
@@ -505,6 +507,19 @@ prerelease-script:
     COPY ./earthly ./
     # This script is useful in other repos too.
     SAVE ARTIFACT ./earthly
+
+ci-release:
+    # TODO: this was multiplatform, but that skyrocketed our build times. #2979
+    # may help.
+    FROM alpine:3.15
+    ARG BUILDKIT_PROJECT
+    ARG EARTHLY_GIT_HASH
+    ARG --required TAG_SUFFIX
+    BUILD \
+        --platform=linux/amd64 \
+        ./buildkitd+buildkitd --TAG=${EARTHLY_GIT_HASH}-${TAG_SUFFIX} --BUILDKIT_PROJECT="$BUILDKIT_PROJECT" --DOCKERHUB_BUILDKIT_IMG="buildkitd-staging"
+    COPY (+earthly/earthly --DEFAULT_BUILDKITD_IMAGE="docker.io/earthly/buildkitd-staging:${EARTHLY_GIT_HASH}-${TAG_SUFFIX}" --VERSION=${EARTHLY_GIT_HASH}-${TAG_SUFFIX} --DEFAULT_INSTALLATION_NAME=earthly) ./earthly-linux-amd64
+    SAVE IMAGE --push earthly/earthlybinaries:${EARTHLY_GIT_HASH}-${TAG_SUFFIX}
 
 dind:
     BUILD +dind-alpine

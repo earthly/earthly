@@ -67,7 +67,11 @@ type SatelliteInstance struct {
 	Hidden                  bool
 }
 
-func (c *Client) ListSatellites(ctx context.Context, orgID string, includeHidden bool) ([]SatelliteInstance, error) {
+func (c *Client) ListSatellites(ctx context.Context, orgName string, includeHidden bool) ([]SatelliteInstance, error) {
+	orgID, err := c.GetOrgID(ctx, orgName)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed listing satellites")
+	}
 	resp, err := c.compute.ListSatellites(c.withAuth(ctx), &pb.ListSatellitesRequest{
 		OrgId:         orgID,
 		IncludeHidden: includeHidden,
@@ -90,7 +94,11 @@ func (c *Client) ListSatellites(ctx context.Context, orgID string, includeHidden
 	return instances, nil
 }
 
-func (c *Client) GetSatellite(ctx context.Context, name, orgID string) (*SatelliteInstance, error) {
+func (c *Client) GetSatellite(ctx context.Context, name, orgName string) (*SatelliteInstance, error) {
+	orgID, err := c.GetOrgID(ctx, orgName)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed getting satellites")
+	}
 	resp, err := c.compute.GetSatellite(c.withAuth(ctx), &pb.GetSatelliteRequest{
 		OrgId: orgID,
 		Name:  name,
@@ -115,8 +123,12 @@ func (c *Client) GetSatellite(ctx context.Context, name, orgID string) (*Satelli
 	}, nil
 }
 
-func (c *Client) DeleteSatellite(ctx context.Context, name, orgID string) error {
-	_, err := c.compute.DeleteSatellite(c.withAuth(ctx), &pb.DeleteSatelliteRequest{
+func (c *Client) DeleteSatellite(ctx context.Context, name, orgName string) error {
+	orgID, err := c.GetOrgID(ctx, orgName)
+	if err != nil {
+		return errors.Wrap(err, "failed deleting satellite")
+	}
+	_, err = c.compute.DeleteSatellite(c.withAuth(ctx), &pb.DeleteSatelliteRequest{
 		OrgId: orgID,
 		Name:  name,
 	})
@@ -128,7 +140,7 @@ func (c *Client) DeleteSatellite(ctx context.Context, name, orgID string) error 
 
 type LaunchSatelliteOpt struct {
 	Name                    string
-	OrgID                   string
+	OrgName                 string
 	Size                    string
 	Platform                string
 	PinnedVersion           string
@@ -138,8 +150,12 @@ type LaunchSatelliteOpt struct {
 }
 
 func (c *Client) LaunchSatellite(ctx context.Context, opt LaunchSatelliteOpt) error {
+	orgID, err := c.GetOrgID(ctx, opt.OrgName)
+	if err != nil {
+		return errors.Wrap(err, "failed launching satellite")
+	}
 	req := &pb.LaunchSatelliteRequest{
-		OrgId:                   opt.OrgID,
+		OrgId:                   orgID,
 		Name:                    opt.Name,
 		Platform:                opt.Platform,
 		Size:                    opt.Size,
@@ -148,7 +164,7 @@ func (c *Client) LaunchSatellite(ctx context.Context, opt LaunchSatelliteOpt) er
 		MaintenanceWindowStart:  opt.MaintenanceWindowStart,
 		MaintenanceWeekendsOnly: opt.MaintenanceWeekendsOnly,
 	}
-	_, err := c.compute.LaunchSatellite(c.withAuth(ctx), req)
+	_, err = c.compute.LaunchSatellite(c.withAuth(ctx), req)
 	if err != nil {
 		return errors.Wrap(err, "failed launching satellite")
 	}
@@ -160,9 +176,14 @@ type SatelliteStatusUpdate struct {
 	Err   error
 }
 
-func (c *Client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, gitConfigEmail string, isCI bool) (out chan SatelliteStatusUpdate) {
+func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor, gitConfigEmail string, isCI bool) (out chan SatelliteStatusUpdate) {
 	out = make(chan SatelliteStatusUpdate)
 	go func() {
+		orgID, err := c.GetOrgID(ctx, orgName)
+		if err != nil {
+			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed reserving satellite")}
+			return
+		}
 		// Some notes on the 10-minute timeout here:
 		// Usually satellites reserve in 1-15 seconds, however, in some edge cases it will take longer.
 		// It can take a minute if the satellite is actively falling asleep (it needs to finish, then wake back up).
@@ -202,9 +223,14 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgID, gitAuthor, g
 	return out
 }
 
-func (c *Client) WakeSatellite(ctx context.Context, name, orgID string) (out chan SatelliteStatusUpdate) {
+func (c *Client) WakeSatellite(ctx context.Context, name, orgName string) (out chan SatelliteStatusUpdate) {
 	out = make(chan SatelliteStatusUpdate)
 	go func() {
+		orgID, err := c.GetOrgID(ctx, orgName)
+		if err != nil {
+			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed waking satellite")}
+			return
+		}
 		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 		defer close(out)
@@ -236,9 +262,14 @@ func (c *Client) WakeSatellite(ctx context.Context, name, orgID string) (out cha
 	return out
 }
 
-func (c *Client) SleepSatellite(ctx context.Context, name, orgID string) (out chan SatelliteStatusUpdate) {
+func (c *Client) SleepSatellite(ctx context.Context, name, orgName string) (out chan SatelliteStatusUpdate) {
 	out = make(chan SatelliteStatusUpdate)
 	go func() {
+		orgID, err := c.GetOrgID(ctx, orgName)
+		if err != nil {
+			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite sleep stream")}
+			return
+		}
 		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 		defer close(out)
@@ -273,7 +304,7 @@ func (c *Client) SleepSatellite(ctx context.Context, name, orgID string) (out ch
 
 type UpdateSatelliteOpt struct {
 	Name                    string
-	OrgID                   string
+	OrgName                 string
 	PinnedVersion           string
 	Size                    string
 	MaintenanceWindowStart  string
@@ -283,8 +314,13 @@ type UpdateSatelliteOpt struct {
 }
 
 func (c *Client) UpdateSatellite(ctx context.Context, opt UpdateSatelliteOpt) error {
+	orgID, err := c.GetOrgID(ctx, opt.OrgName)
+	if err != nil {
+		return errors.Wrap(err, "failed listing satellites")
+	}
+
 	req := &pb.UpdateSatelliteRequest{
-		OrgId:                   opt.OrgID,
+		OrgId:                   orgID,
 		Name:                    opt.Name,
 		Version:                 opt.PinnedVersion,
 		DropCache:               opt.DropCache,
@@ -293,7 +329,7 @@ func (c *Client) UpdateSatellite(ctx context.Context, opt UpdateSatelliteOpt) er
 		MaintenanceWeekendsOnly: opt.MaintenanceWeekendsOnly,
 		Size:                    opt.Size,
 	}
-	_, err := c.compute.UpdateSatellite(c.withAuth(ctx), req)
+	_, err = c.compute.UpdateSatellite(c.withAuth(ctx), req)
 	if err != nil {
 		return errors.Wrap(err, "failed getting satellite")
 	}

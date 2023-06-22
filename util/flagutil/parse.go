@@ -3,10 +3,12 @@ package flagutil
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/pkg/errors"
 
-	flags "github.com/jessevdk/go-flags"
+	"github.com/jessevdk/go-flags"
+	"github.com/urfave/cli/v2"
 )
 
 // ArgumentModFunc accepts a flagName which corresponds to the long flag name, and a pointer
@@ -59,4 +61,14 @@ func ParseArgsWithValueModifierAndOptions(command string, data interface{}, args
 		return nil, modFuncErr
 	}
 	return res, nil
+}
+
+// SplitFlagString would return an array of values from the StringSlice, whether it's passed using multiple occuranced of the flag
+// or with the values passed with a command.
+// For example: --platform linux/amd64 --platform linux/arm64 and --platform "linux/amd64,linux/arm64"
+func SplitFlagString(value cli.StringSlice) []string {
+	valueStr := strings.TrimLeft(strings.TrimRight(value.String(), "]"), "[")
+	return strings.FieldsFunc(valueStr, func(r rune) bool {
+		return r == ' ' || r == ','
+	})
 }

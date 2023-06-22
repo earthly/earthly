@@ -6,13 +6,6 @@ on:
       BUILT_EARTHLY_PATH:
         required: true
         type: string
-      BUILD_EARTHLY_TARGET:
-        required: true
-        type: string
-      BUILD_EARTHLY_ARGS:
-        required: false
-        type: string
-        default: "--use-inline-cache"
       RUN_EARTHLY_TEST_ARGS:
         required: false
         type: string
@@ -55,55 +48,43 @@ jobs:
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: earthly/actions-setup@main
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: remove docker
         run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
-        if: inputs.binary == 'podman'
+        if: inputs.BINARY == 'podman'
       - name: Install Podman (with apt-get)
         run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman && ${{inputs.SUDO}} rm -f /etc/containers/registries.conf
-        if: inputs.binary == 'podman'
+        if: inputs.BINARY == 'podman'
       - name: Install Podman Compose
         run: sudo pip3 install podman-compose
-        if: inputs.binary == 'podman'
+        if: inputs.BINARY == 'podman'
       - name: Podman debug info
         run: podman version && podman info && podman info --debug
-        if: inputs.binary == 'podman'
+        if: inputs.BINARY == 'podman'
+      - name: Retrieve earthly from build-earthly job
+        run: |-
+          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-${{inputs.RUNS_ON}}-docker ./earthly upgrade
+          mkdir -p $(dirname "${{inputs.BUILT_EARTHLY_PATH}}")
+          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-${{inputs.RUNS_ON}}-docker ${{inputs.BUILT_EARTHLY_PATH}}
       - name: Bootstrap Earthly
-        run: earthly bootstrap
-        if: inputs.binary == 'podman'
+        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} bootstrap
+        if: inputs.BINARY == 'podman'
       - name: Configure Satellites (Earthly Only)
-        run: earthly sat ls && earthly satellite select ${{inputs.SATELLITE_NAME}}
+        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} sat ls && ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} satellite select ${{inputs.SATELLITE_NAME}}
         if: (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && inputs.USE_SATELLITE
-      - name: Link Earthly dir to Earthly dev dir
-        run: mkdir -p ~/.earthly && ln -s ~/.earthly ~/.earthly-dev
-      - name: Build latest earthly using released earthly
-        run: ${{inputs.SUDO}} $(which earthly) ${{inputs.BUILD_EARTHLY_ARGS}} ${{inputs.BUILD_EARTHLY_TARGET}}
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
             set -euo pipefail
             EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
             echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Execute test-local
-        uses: nick-fields/retry@v2
-        with:
-          timeout_minutes: 3
-          max_attempts: 2
-          command: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.RUN_EARTHLY_TEST_ARGS}} ./tests/local+test-local --FRONTEND=${{inputs.BINARY}}"
+        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.RUN_EARTHLY_TEST_ARGS}} ./tests/local+test-local --FRONTEND=${{inputs.BINARY}}"
       - name: Execute test-local --push
-        uses: nick-fields/retry@v2
-        with:
-          timeout_minutes: 3
-          max_attempts: 2
-          command: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.RUN_EARTHLY_TEST_ARGS}} --push ./tests/local+test-local --FRONTEND=${{inputs.BINARY}}"
+        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.RUN_EARTHLY_TEST_ARGS}} --push ./tests/local+test-local --FRONTEND=${{inputs.BINARY}}"
       - name: Run general local tests (TODO this is re-testing the +test-local target)
-        uses: nick-fields/retry@v2
-        with:
-          timeout_minutes: 3
-          max_attempts: 2
-          command: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.RUN_EARTHLY_TEST_ARGS}} ./tests/local+all --FRONTEND=${{inputs.BINARY}} --FRONTEND_COMPOSE=${{inputs.BINARY_COMPOSE}}"
+        run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.RUN_EARTHLY_TEST_ARGS}} ./tests/local+all --FRONTEND=${{inputs.BINARY}} --FRONTEND_COMPOSE=${{inputs.BINARY_COMPOSE}}"
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd 2>&1
         if: ${{ failure() }}

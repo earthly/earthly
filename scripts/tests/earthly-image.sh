@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail # don't use -x as it will leak the mirror credentials
 
+# to run this locally; in the root of the repo:
+#   ./earthly +earthly-docker && EARTHLY_IMAGE="earthly/earthly:dev-$(git rev-parse --abbrev-ref HEAD | sed 's/\//_/g')" scripts/tests/earthly-image.sh
+
 FRONTEND=${FRONTEND:-docker}
 EARTHLY_IMAGE=${EARTHLY_IMAGE:-earthly/earthly:dev-main}
 
@@ -102,7 +105,24 @@ if [ "$FRONTEND" = "docker" ]; then
 fi
 
 echo "Test satellite (not privileged, no buildkit)."
-"$FRONTEND" run --rm -e EARTHLY_TOKEN="${EARTHLY_TOKEN}" -e NO_BUILDKIT=1 "${EARTHLY_IMAGE}" --org earthly-technologies --sat core-test --no-cache github.com/earthly/hello-world+hello 2>&1 | tee output.txt
+
+satconfig="$(mktemp /tmp/earthly-image-test-satellite-config.XXXXXX)"
+chmod 600 "$satconfig"
+if [ -n "${DOCKERHUB_USERNAME:-}" ] && [ -n "${DOCKERHUB_PASSWORD:-}" ]; then
+    ENCODED_SAT_AUTH="$(echo -n "$DOCKERHUB_USERNAME:$DOCKERHUB_PASSWORD" | base64 -w 0)"
+
+    cat > "$satconfig" <<EOF
+{
+	"auths": {
+		"docker.io": {
+			"auth": "$ENCODED_SAT_AUTH"
+		}
+	}
+}
+EOF
+fi
+
+"$FRONTEND" run --rm -e EARTHLY_TOKEN="${EARTHLY_TOKEN}" -v "$satconfig:/root/.docker/config.json" -e NO_BUILDKIT=1 "${EARTHLY_IMAGE}" --org earthly-technologies --sat core-test --no-cache github.com/earthly/hello-world+hello 2>&1 | tee output.txt
 grep "Hello World" output.txt
 grep "Earthly installation is working correctly" output.txt
 

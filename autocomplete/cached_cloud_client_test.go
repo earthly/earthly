@@ -66,4 +66,22 @@ func TestCachedCloudClient(topT *testing.T) {
 		}
 	})
 
+	o.Spec("caches satellites", func(tc testCtx) {
+		for i := 0; i < 3; i++ {
+			projects, err := tc.ccc.ListSatellites(context.Background(), "abba", false)
+			tc.expect(err).To(not(haveOccurred()))
+			tc.expect(len(projects)).To(equal(2))
+			tc.expect(projects[0].Name).To(equal("sat-one"))
+			tc.expect(projects[1].Name).To(equal("sat-two"))
+			tc.expect(tc.mclc.listSatellitesCallCount).To(equal(1))
+		}
+		for i := 0; i < 3; i++ {
+			projects, err := tc.ccc.ListSatellites(context.Background(), "abc", false)
+			tc.expect(err).To(not(haveOccurred()))
+			tc.expect(len(projects)).To(equal(1))
+			tc.expect(projects[0].Name).To(equal("xyz"))
+			tc.expect(tc.mclc.listSatellitesCallCount).To(equal(2))
+		}
+	})
+
 }

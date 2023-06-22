@@ -123,7 +123,7 @@ reset
 
 diff output <(echo "default-value")
 
-echo "=== test 8 - it builds the image using the correct platforms:"
+echo "=== test 8 - it builds the image using the correct platforms (multiple flags):"
 
 reset
 
@@ -139,7 +139,23 @@ diff output <(echo "arm64")
 
 diff output <(echo "amd64")
 
-echo "=== test 9 - it ignores files according to .dockerignore:"
+echo "=== test 9 - it builds the image using the correct platforms (one flag, docker command style):"
+
+reset
+
+"$earthly" docker-build -t "$tag" --platform linux/amd64,linux/arm64 $testdir
+
+# arm64:
+"$frontend" inspect --format='{{.Architecture}}' "${tag}_linux_arm64" > output
+
+diff output <(echo "arm64")
+
+# amd64:
+"$frontend" inspect --format='{{.Architecture}}' "${tag}_linux_amd64" > output
+
+diff output <(echo "amd64")
+
+echo "=== test 10 - it ignores files according to .dockerignore:"
 
 reset
 
@@ -161,4 +177,5 @@ if [ -f $testdir/.earthlyignore ]; then
     >&2 echo "$testdir/.earthlyignore was not removed"
     exit 1
 fi
+
 echo "=== All tests have passed ==="
