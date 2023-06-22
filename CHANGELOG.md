@@ -6,6 +6,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Changed
 - The command `docker-build` now also supports passing multiple platforms using a comma (e.g `--platform linux/amd64,linux/arm64`)
+- Increased temporary lease duration of buildkit's history queue to prevent unknown history in blob errors under high cpu load. [#3000](https://github.com/earthly/earthly/issues/3000)
 
 ### Fixed
 - Fixed a bug in satellite update command which was incorrectly changing satellites to medium size.
