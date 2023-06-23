@@ -3,7 +3,7 @@ package inputgraph
 import (
 	"context"
 	"fmt"
-	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/earthly/earthly/ast/command"
@@ -17,6 +17,7 @@ import (
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/variables"
 	"github.com/pkg/errors"
+	fs "github.com/tonistiigi/fsutil/copy"
 )
 
 var (
@@ -91,13 +92,28 @@ func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
 	return l.loadTargetFromString(ctx, targetName)
 }
 
+func (l *loader) addCopyClassicalFilesToHash(ctx context.Context, root, src string) error {
+	files, err := fs.ResolveWildcards(root, src, true)
+	if err != nil {
+		return errors.Wrap(err, "failed to resolve wildcards")
+	}
+	sort.Strings(files)
+	for _, path := range files {
+		err := l.hasher.HashFile(ctx, path)
+		if err != nil {
+			return errors.Wrapf(ErrUnableToDetermineHash, "failed to hash file %s: %s", path, err)
+		}
+	}
+	return nil
+}
+
 func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 	opts := commandflag.CopyOpts{}
 	args, err := parseArgs(command.Copy, &opts, getArgsCopy(cmd))
 	if err != nil {
 		return err
 	}
-	if argsContainsStr(args, "$") || argsContainsStr(args, "*") || len(args) < 2 || opts.From != "" { // TODO handle globbing (e.g. *), ignored for now
+	if argsContainsStr(args, "$") || len(args) < 2 || opts.From != "" {
 		return errors.Wrap(ErrUnableToDetermineHash, "unable to handle COPY with arg or wildcard")
 	}
 	srcs := args[:len(args)-1]
@@ -105,10 +121,9 @@ func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 		artifactSrc, parseErr := domain.ParseArtifact(src)
 		if parseErr != nil {
 			// COPY classical
-			path := filepath.Join(l.target.GetLocalPath(), src)
-			err := l.hasher.HashFile(ctx, path)
+			err := l.addCopyClassicalFilesToHash(ctx, l.target.GetLocalPath(), src)
 			if err != nil {
-				return errors.Wrapf(ErrUnableToDetermineHash, "failed to hash file %s: %s", path, err)
+				return errors.Wrapf(ErrUnableToDetermineHash, "failed to hash COPY %s: %s", src, err)
 			}
 			continue
 		}

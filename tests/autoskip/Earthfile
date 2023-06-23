@@ -20,6 +20,7 @@ WORKDIR /test
 
 test-all:
     BUILD +test-auto-skip
+    BUILD test-auto-skip-copy-glob
     BUILD +test-auto-skip-with-subdir
     BUILD +test-auto-skip-requires-pipeline
 
@@ -34,6 +35,21 @@ test-auto-skip:
     # change the input file, and validate it runs
     RUN echo world > my-file
     DO +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+mypipeline --output_contains="I was run"
+    RUN if ! grep "SSB3YXMgcnVuCg" earthly.output >/dev/null; then echo "base64 encoded RUN echo command is missing from output" && exit 1; fi
+
+test-auto-skip-copy-glob:
+    RUN echo this-shouldn-be-used > someone-elses-file
+    RUN echo hello > my-file
+    DO +RUN_EARTHLY_ARGS --earthfile=glob.earth --target=+mypipeline --output_contains="I was run"
+    RUN if ! grep "SSB3YXMgcnVuCg" earthly.output >/dev/null; then echo "base64 encoded RUN echo command is missing from output" && exit 1; fi
+
+    RUN echo this-still-shouldn-be-used > someone-elses-file
+    DO +RUN_EARTHLY_ARGS --earthfile=glob.earth --target=+mypipeline --output_does_not_contain="I was run"
+    RUN if grep "SSB3YXMgcnVuCg" earthly.output >/dev/null; then echo "base64 encoded RUN echo command should not have been displayed" && exit 1; fi
+
+    # change the input file, and validate it runs
+    RUN echo world > my-file
+    DO +RUN_EARTHLY_ARGS --earthfile=glob.earth --target=+mypipeline --output_contains="I was run"
     RUN if ! grep "SSB3YXMgcnVuCg" earthly.output >/dev/null; then echo "base64 encoded RUN echo command is missing from output" && exit 1; fi
 
 test-auto-skip-with-subdir:
