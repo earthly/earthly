@@ -31,7 +31,7 @@ def test_interactive(earthly_path, timeout):
             try:
                 c.expect('this is my Secr3t M3ss4ge', timeout=timeout)
             except Exception as e:
-                raise RuntimeError('failed to find Afghanistan in output (indicating we were unable to obtain decoded text from the rot13 echo server that was started via docker compose)')
+                raise RuntimeError('failed to find "this is my Secr3t M3ss4ge" in output (indicating we were unable to obtain decoded text from the rot13 echo server that was started via docker compose)')
 
             # decode the data.txt file to ensure the debugger is still running
             c.sendline("cat /data.txt | base64 -d")
