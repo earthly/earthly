@@ -15,7 +15,7 @@ import (
 
 var ErrAuthProviderNoResponse = fmt.Errorf("AuthServerNoResponse")
 
-func NewAuthProvider(authServers []auth.AuthServer) session.Attachable {
+func New(authServers []auth.AuthServer) session.Attachable {
 	return &authProvider{
 		authServers:     authServers,
 		foundAuthServer: map[string]auth.AuthServer{},

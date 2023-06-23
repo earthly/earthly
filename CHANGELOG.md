@@ -4,6 +4,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Fixed
+- Updated the podman auth provider to better understand podman `auth.json` locations. [#3038](https://github.com/earthly/earthly/issues/3038)
+
 ## v0.7.9 - 2023-06-22
 
 ### Changed

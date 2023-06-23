@@ -423,14 +423,14 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 
 	switch app.containerFrontend.Config().Setting {
 	case containerutil.FrontendPodman, containerutil.FrontendPodmanShell:
-		authServers = append(authServers, dockerauthprovider.NewPodmanAuthProvider(os.Stderr).(auth.AuthServer))
+		authServers = append(authServers, authprovider.NewPodman(os.Stderr).(auth.AuthServer))
 
 	default:
 		// includes containerutil.FrontendDocker, containerutil.FrontendDockerShell:
 		authServers = append(authServers, dockerauthprovider.NewDockerAuthProvider(cfg).(auth.AuthServer))
 	}
 
-	attachables = append(attachables, authprovider.NewAuthProvider(authServers))
+	attachables = append(attachables, authprovider.New(authServers))
 
 	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
 	err = app.updateGitLookupConfig(gitLookup)
