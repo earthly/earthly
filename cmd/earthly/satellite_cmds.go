@@ -43,7 +43,6 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 					Name:        "size",
 					Usage:       "The size of the satellite. See https://earthly.dev/pricing for details on each size. Supported values: xsmall, small, medium, large, xlarge.",
 					Required:    false,
-					Value:       cloud.SatelliteSizeMedium,
 					Destination: &app.satelliteSize,
 				},
 				&cli.StringSliceFlag{
