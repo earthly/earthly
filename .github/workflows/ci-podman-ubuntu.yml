@@ -8,30 +8,17 @@ on:
     branches: [ main ]
 
 jobs:
-  build-earthly-docker:
+  build-earthly:
     uses: ./.github/workflows/build-earthly.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
-      # TODO: figure out why --push is failing with podman auth. For now we push the original binary
-      # with docker for use in future tests.
-      BINARY: "docker"
-      SUDO: ""
-    secrets: inherit
-
-  build-earthly-podman:
-    uses: ./.github/workflows/build-earthly.yml
-    with:
-      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      RUNS_ON: "ubuntu-latest"
-      # TODO: this does not push the binary we build because pushing with podman is failing. We need
-      # to figure out why and fix it so we can use the binary from this job for future tests.
       BINARY: "podman"
       SUDO: "sudo -E"
     secrets: inherit
 
   podman-tests:
-    needs: build-earthly-docker
+    needs: build-earthly
     uses: ./.github/workflows/reusable-test.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -43,7 +30,7 @@ jobs:
   podman-examples-1:
     # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
     needs:
-    - build-earthly-docker
+    - build-earthly
     - podman-tests
     uses: ./.github/workflows/reusable-example.yml
     with:
@@ -57,7 +44,7 @@ jobs:
   podman-examples-2:
     # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
     needs:
-    - build-earthly-docker
+    - build-earthly
     - podman-examples-1
     uses: ./.github/workflows/reusable-example.yml
     with:
@@ -71,7 +58,7 @@ jobs:
 #  podman-test-local:
 #    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
 #    needs:
-#    - build-earthly-docker
+#    - build-earthly
 #    - podman-examples-2
 #    uses: ./.github/workflows/reusable-test-local.yml
 #    with:
@@ -85,7 +72,7 @@ jobs:
 # TODO: Fix and bring back the below tests
 #  podman-push-integrations:
 #    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
-#    needs: build-earthly-docker
+#    needs: build-earthly
 #    uses: ./.github/workflows/reusable-push-integrations.yml
 #    with:
 #      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -97,7 +84,7 @@ jobs:
 #  podman-secret-integrations:
 #    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
 #    needs:
-#    - build-earthly-docker
+#    - build-earthly
 #    - podman-push-integrations
 #    uses: ./.github/workflows/reusable-secrets-integrations.yml
 #    with:
@@ -110,7 +97,7 @@ jobs:
 #  podman-bootstrap-integrations:
 #    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
 #    needs:
-#    - build-earthly-docker
+#    - build-earthly
 #    - podman-secret-integrations
 #    uses: ./.github/workflows/reusable-bootstrap-integrations.yml
 #    with:
@@ -123,7 +110,7 @@ jobs:
 #  podman-repo-auth-tests:
 #    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
 #    needs:
-#    - build-earthly-docker
+#    - build-earthly
 #    - podman-bootstrap-integrations
 #    uses: ./.github/workflows/reusable-repo-auth-tests.yml
 #    with:
@@ -136,7 +123,7 @@ jobs:
 #  podman-export-tests:
 #    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
 #    needs:
-#    - build-earthly-docker
+#    - build-earthly
 #    - podman-repo-auth-tests
 #    uses: ./.github/workflows/reusable-export-test.yml
 #    with:
@@ -149,7 +136,7 @@ jobs:
 #  podman-misc-tests:
 #    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
 #    needs:
-#    - build-earthly-docker
+#    - build-earthly
 #    - podman-export-tests
 #    uses: ./.github/workflows/reusable-misc-tests.yml
 #    with:

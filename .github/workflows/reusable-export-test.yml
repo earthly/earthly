@@ -56,9 +56,9 @@ jobs:
         if: inputs.BINARY == 'podman'
       - name: Retrieve earthly from build-earthly job
         run: |-
-          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-${{inputs.RUNS_ON}}-docker ./earthly upgrade
+          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-${{inputs.RUNS_ON}}-${{inputs.BINARY}} ./earthly upgrade
           mkdir -p $(dirname "${{inputs.BUILT_EARTHLY_PATH}}")
-          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-${{inputs.RUNS_ON}}-docker ${{inputs.BUILT_EARTHLY_PATH}}
+          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-${{inputs.RUNS_ON}}-${{inputs.BINARY}} ${{inputs.BUILT_EARTHLY_PATH}}
       - name: Bootstrap Earthly
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} bootstrap
         if: inputs.BINARY == 'podman'
