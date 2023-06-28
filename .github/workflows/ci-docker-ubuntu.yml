@@ -218,62 +218,41 @@ jobs:
       SUDO: ""
     secrets: inherit
 
-  race-tests:
+  race-tests-quick:
     needs: build-earthly
-    name: +test (-race)
-    runs-on: ubuntu-latest
-    env:
-      FORCE_COLOR: 1
-      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
-      EARTHLY_INSTALL_ID: "earthly-githubactions"
-      # Used in our github action as the token - TODO: look to change it into an input
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: Set up QEMU
-        id: qemu
-        uses: docker/setup-qemu-action@v1
-        with:
-          image: tonistiigi/binfmt:latest
-          platforms: all
-      - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-go@v1
-        with:
-          go-version: 1.20
-      - name: Docker mirror login (Earthly Only)
-        run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Retrieve earthly from build-earthly job
-        run: |-
-          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-ubuntu-latest-docker ./earthly upgrade
-          mkdir -p $(dirname "./build/earthly")
-          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-ubuntu-latest-docker ./build/earthly
-      - name: Configure Earthly to use mirror (Earthly Only)
-        run: |-
-          ./build/earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
-          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Build latest earthly/buildkitd image using released earthly
-        run: ./build/earthly --use-inline-cache ./buildkitd+buildkitd --TAG=race-test
-      - name: Execute tests (Earthly Only)
-        run: |-
-          GORACE="halt_on_error=1" go run -race ./cmd/earthly/*.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
-            --build-arg DOCKERHUB_AUTH=true \
-            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-            +test
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Execute tests (Fork Only)
-        run: |-
-          GORACE="halt_on_error=1" go run -race ./cmd/earthly/*.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
-            --build-arg DOCKERHUB_AUTH=false \
-            +test-quick
-        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
-      - name: Buildkit logs (runs on failure)
-        run: docker logs earthly-buildkitd
-        if: ${{ failure() }}
+    uses: ./.github/workflows/reusable-race-test.yml
+    with:
+      TEST_TARGET: "+test-quick"
+      RUNS_ON: "ubuntu-latest"
+      USE_QEMU: false
+    secrets: inherit
+
+  race-tests-no-qemu-quick:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-race-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-quick"
+      RUNS_ON: "ubuntu-latest"
+      USE_QEMU: false
+    secrets: inherit
+
+  race-tests-no-qemu-normal:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-race-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-normal"
+      RUNS_ON: "ubuntu-latest"
+      USE_QEMU: false
+    secrets: inherit
+
+  race-tests-no-qemu-slow:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-race-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-slow"
+      RUNS_ON: "ubuntu-latest"
+      USE_QEMU: false
+    secrets: inherit
 
   tutorial:
     needs: build-earthly
