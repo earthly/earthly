@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -15,37 +14,59 @@ import (
 
 var ErrAuthProviderNoResponse = fmt.Errorf("AuthServerNoResponse")
 
-func New(authServers []auth.AuthServer) session.Attachable {
-	return &authProvider{
+// ProjectAdder is an optional interface that auth servers may implement. If
+// they do, the MultiAuthProvider will call their AddProject method when its
+// AddProject method is called.
+type ProjectAdder interface {
+	AddProject(org, project string)
+}
+
+// Child is the interface that child auth providers need to implement for
+// MultiAuthProvider.
+type Child interface {
+	Credentials(context.Context, *auth.CredentialsRequest) (*auth.CredentialsResponse, error)
+	FetchToken(context.Context, *auth.FetchTokenRequest) (*auth.FetchTokenResponse, error)
+	GetTokenAuthority(context.Context, *auth.GetTokenAuthorityRequest) (*auth.GetTokenAuthorityResponse, error)
+	VerifyTokenAuthority(context.Context, *auth.VerifyTokenAuthorityRequest) (*auth.VerifyTokenAuthorityResponse, error)
+}
+
+// New returns a new MultiAuthProvider, wrapping up multiple child auth providers.
+func New(authServers []Child) *MultiAuthProvider {
+	return &MultiAuthProvider{
 		authServers:     authServers,
-		foundAuthServer: map[string]auth.AuthServer{},
-		skipAuthServer:  map[string][]auth.AuthServer{},
+		foundAuthServer: map[string]Child{},
+		skipAuthServer:  map[string][]Child{},
 	}
 }
 
-type authProvider struct {
-	authServers []auth.AuthServer
+// MultiAuthProvider is an auth provider that delegates authentication to
+// multiple child auth providers.
+type MultiAuthProvider struct {
+	authServers []Child
 
 	mu sync.Mutex
 
-	// once an authServer has responded succcessfully, only that auth server will be used
-	// for all subsequent calls -- this is to prevent accidentally mixing credentials and using them inconsistently
-	foundAuthServer map[string]auth.AuthServer
+	// once an authServer has responded succcessfully, only that auth server
+	// will be used for all subsequent calls -- this is to prevent accidentally
+	// mixing credentials and using them inconsistently
+	foundAuthServer map[string]Child
 
-	// if an authServer returns a ErrAuthProviderNoResponse, dont call it again for this host
-	skipAuthServer map[string][]auth.AuthServer
+	// if an authServer returns an ErrAuthProviderNoResponse, dont call it again
+	// for this host unless AddProject is called.
+	skipAuthServer map[string][]Child
 }
 
-func (ap *authProvider) Register(server *grpc.Server) {
+// Register registers ap against server.
+func (ap *MultiAuthProvider) Register(server *grpc.Server) {
 	auth.RegisterAuthServer(server, ap)
 }
 
-func (ap *authProvider) getAuthServers(host string) []auth.AuthServer {
+func (ap *MultiAuthProvider) getAuthServers(host string) []Child {
 	as, ok := ap.foundAuthServer[host]
 	if ok {
-		return []auth.AuthServer{as}
+		return []Child{as}
 	}
-	res := []auth.AuthServer{}
+	res := []Child{}
 	for _, as := range ap.authServers {
 		if !ap.shouldSkip(host, as) {
 			res = append(res, as)
@@ -53,14 +74,15 @@ func (ap *authProvider) getAuthServers(host string) []auth.AuthServer {
 	}
 	return res
 }
-func (ap *authProvider) setSkipAuthServer(host string, as auth.AuthServer) {
+
+func (ap *MultiAuthProvider) setSkipAuthServer(host string, as Child) {
 	if ap.shouldSkip(host, as) {
 		return // already exists in skip list
 	}
 	ap.skipAuthServer[host] = append(ap.skipAuthServer[host], as)
 }
 
-func (ap *authProvider) shouldSkip(host string, as auth.AuthServer) bool {
+func (ap *MultiAuthProvider) shouldSkip(host string, as Child) bool {
 	for _, x := range ap.skipAuthServer[host] {
 		if x == as {
 			return true
@@ -69,7 +91,25 @@ func (ap *authProvider) shouldSkip(host string, as auth.AuthServer) bool {
 	return false
 }
 
-func (ap *authProvider) FetchToken(ctx context.Context, req *auth.FetchTokenRequest) (rr *auth.FetchTokenResponse, err error) {
+// AddProject searches for any children implementing ProjectAdder and calls
+// them, then invalidates its cached auth server responses.
+func (ap *MultiAuthProvider) AddProject(org, proj string) {
+	ap.mu.Lock()
+	defer ap.mu.Unlock()
+	ap.foundAuthServer = make(map[string]Child)
+	ap.skipAuthServer = make(map[string][]Child)
+	for _, s := range ap.authServers {
+		adder, ok := s.(ProjectAdder)
+		if !ok {
+			continue
+		}
+		adder.AddProject(org, proj)
+	}
+}
+
+// FetchToken calls child FetchToken methods until one of ap's children
+// succeeds.
+func (ap *MultiAuthProvider) FetchToken(ctx context.Context, req *auth.FetchTokenRequest) (rr *auth.FetchTokenResponse, err error) {
 	ap.mu.Lock()
 	defer ap.mu.Unlock()
 	for _, as := range ap.getAuthServers(req.Host) {
@@ -87,7 +127,9 @@ func (ap *authProvider) FetchToken(ctx context.Context, req *auth.FetchTokenRequ
 	return nil, status.Errorf(codes.Unavailable, "no configured auth servers in the list of client-side configs responded")
 }
 
-func (ap *authProvider) Credentials(ctx context.Context, req *auth.CredentialsRequest) (*auth.CredentialsResponse, error) {
+// Credentials calls child Credentials methods until one of ap's children
+// succeeds.
+func (ap *MultiAuthProvider) Credentials(ctx context.Context, req *auth.CredentialsRequest) (*auth.CredentialsResponse, error) {
 	ap.mu.Lock()
 	defer ap.mu.Unlock()
 	for _, as := range ap.getAuthServers(req.Host) {
@@ -105,7 +147,9 @@ func (ap *authProvider) Credentials(ctx context.Context, req *auth.CredentialsRe
 	return nil, status.Errorf(codes.Unavailable, "no configured auth servers in the list of client-side configs responded")
 }
 
-func (ap *authProvider) GetTokenAuthority(ctx context.Context, req *auth.GetTokenAuthorityRequest) (*auth.GetTokenAuthorityResponse, error) {
+// GetTokenAuthority calls child GetTokenAuthority methods until one of ap's
+// children succeeds.
+func (ap *MultiAuthProvider) GetTokenAuthority(ctx context.Context, req *auth.GetTokenAuthorityRequest) (*auth.GetTokenAuthorityResponse, error) {
 	ap.mu.Lock()
 	defer ap.mu.Unlock()
 	for _, as := range ap.getAuthServers(req.Host) {
@@ -123,7 +167,9 @@ func (ap *authProvider) GetTokenAuthority(ctx context.Context, req *auth.GetToke
 	return nil, status.Errorf(codes.Unavailable, "no configured auth servers in the list of client-side configs responded")
 }
 
-func (ap *authProvider) VerifyTokenAuthority(ctx context.Context, req *auth.VerifyTokenAuthorityRequest) (*auth.VerifyTokenAuthorityResponse, error) {
+// VerifyTokenAuthority calls child VerifyTokenAuthority methods until one of
+// ap's children succeeds.
+func (ap *MultiAuthProvider) VerifyTokenAuthority(ctx context.Context, req *auth.VerifyTokenAuthorityRequest) (*auth.VerifyTokenAuthorityResponse, error) {
 	ap.mu.Lock()
 	defer ap.mu.Unlock()
 	for _, as := range ap.getAuthServers(req.Host) {

@@ -13,7 +13,6 @@ import (
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
-	"github.com/earthly/earthly/util/llbutil/authprovider/cloudauth"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
@@ -24,6 +23,10 @@ import (
 	"github.com/moby/buildkit/util/apicaps"
 	"github.com/pkg/errors"
 )
+
+type ProjectAdder interface {
+	AddProject(org, proj string)
+}
 
 // ConvertOpt holds conversion parameters.
 type ConvertOpt struct {
@@ -170,7 +173,7 @@ type ConvertOpt struct {
 	// * "sat:<org-name>/<sat-name>" - remote builds via satellite
 	Runner string
 
-	CloudStoredAuthProvider cloudauth.ProjectBasedAuthProvider
+	ProjectAdder ProjectAdder
 }
 
 // TargetDetails contains details about the target being built.

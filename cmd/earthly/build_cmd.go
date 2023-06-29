@@ -415,22 +415,23 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	cfg := config.LoadDefaultConfigFile(os.Stderr)
 	cloudStoredAuthProvider := cloudauth.NewProvider(cfg, cloudClient, app.console)
 
-	authServers := []auth.AuthServer{}
+	var authChildren []authprovider.Child
 	if _, _, _, err := cloudClient.WhoAmI(cliCtx.Context); err == nil {
 		// only add cloud-based auth provider when logged in
-		authServers = append(authServers, cloudStoredAuthProvider.(auth.AuthServer))
+		authChildren = append(authChildren, cloudStoredAuthProvider.(auth.AuthServer))
 	}
 
 	switch app.containerFrontend.Config().Setting {
 	case containerutil.FrontendPodman, containerutil.FrontendPodmanShell:
-		authServers = append(authServers, authprovider.NewPodman(os.Stderr).(auth.AuthServer))
+		authChildren = append(authChildren, authprovider.NewPodman(os.Stderr).(auth.AuthServer))
 
 	default:
 		// includes containerutil.FrontendDocker, containerutil.FrontendDockerShell:
-		authServers = append(authServers, dockerauthprovider.NewDockerAuthProvider(cfg).(auth.AuthServer))
+		authChildren = append(authChildren, dockerauthprovider.NewDockerAuthProvider(cfg).(auth.AuthServer))
 	}
 
-	attachables = append(attachables, authprovider.New(authServers))
+	authProvider := authprovider.New(authChildren)
+	attachables = append(attachables, authProvider)
 
 	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
 	err = app.updateGitLookupConfig(gitLookup)
@@ -585,7 +586,7 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		// to differentiate between a user forgetting to run earthly -P, versus a remotely referencing an earthfile that requires privileged.
 		AllowPrivileged: true,
 
-		CloudStoredAuthProvider: cloudStoredAuthProvider.(cloudauth.ProjectBasedAuthProvider),
+		ProjectAdder: authProvider,
 	}
 	if app.artifactMode {
 		buildOpts.OnlyArtifact = &artifact

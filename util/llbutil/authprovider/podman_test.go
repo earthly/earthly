@@ -19,9 +19,6 @@ import (
 )
 
 const (
-	timeout     = time.Second
-	mockTimeout = 5 * time.Second
-
 	authFmt = `
 {
   "auths": {

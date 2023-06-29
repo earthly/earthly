@@ -8,13 +8,134 @@
 package authprovider_test
 
 import (
-	context "context"
+	"context"
 	"io"
 	"time"
 
 	"git.sr.ht/~nelsam/hel/vegr"
 	"github.com/moby/buildkit/session/auth"
 )
+
+type mockProjectAdder struct {
+	t                vegr.T
+	timeout          time.Duration
+	AddProjectCalled chan bool
+	AddProjectInput  struct {
+		Org, Project chan string
+	}
+}
+
+func newMockProjectAdder(t vegr.T, timeout time.Duration) *mockProjectAdder {
+	m := &mockProjectAdder{t: t, timeout: timeout}
+	m.AddProjectCalled = make(chan bool, 100)
+	m.AddProjectInput.Org = make(chan string, 100)
+	m.AddProjectInput.Project = make(chan string, 100)
+	return m
+}
+func (m *mockProjectAdder) AddProject(org, project string) {
+	m.t.Helper()
+	m.AddProjectCalled <- true
+	m.AddProjectInput.Org <- org
+	m.AddProjectInput.Project <- project
+}
+
+type mockChild struct {
+	t                 vegr.T
+	timeout           time.Duration
+	CredentialsCalled chan bool
+	CredentialsInput  struct {
+		Arg0 chan context.Context
+		Arg1 chan *auth.CredentialsRequest
+	}
+	CredentialsOutput struct {
+		Ret0 chan *auth.CredentialsResponse
+		Ret1 chan error
+	}
+	FetchTokenCalled chan bool
+	FetchTokenInput  struct {
+		Arg0 chan context.Context
+		Arg1 chan *auth.FetchTokenRequest
+	}
+	FetchTokenOutput struct {
+		Ret0 chan *auth.FetchTokenResponse
+		Ret1 chan error
+	}
+	GetTokenAuthorityCalled chan bool
+	GetTokenAuthorityInput  struct {
+		Arg0 chan context.Context
+		Arg1 chan *auth.GetTokenAuthorityRequest
+	}
+	GetTokenAuthorityOutput struct {
+		Ret0 chan *auth.GetTokenAuthorityResponse
+		Ret1 chan error
+	}
+	VerifyTokenAuthorityCalled chan bool
+	VerifyTokenAuthorityInput  struct {
+		Arg0 chan context.Context
+		Arg1 chan *auth.VerifyTokenAuthorityRequest
+	}
+	VerifyTokenAuthorityOutput struct {
+		Ret0 chan *auth.VerifyTokenAuthorityResponse
+		Ret1 chan error
+	}
+}
+
+func newMockChild(t vegr.T, timeout time.Duration) *mockChild {
+	m := &mockChild{t: t, timeout: timeout}
+	m.CredentialsCalled = make(chan bool, 100)
+	m.CredentialsInput.Arg0 = make(chan context.Context, 100)
+	m.CredentialsInput.Arg1 = make(chan *auth.CredentialsRequest, 100)
+	m.CredentialsOutput.Ret0 = make(chan *auth.CredentialsResponse, 100)
+	m.CredentialsOutput.Ret1 = make(chan error, 100)
+	m.FetchTokenCalled = make(chan bool, 100)
+	m.FetchTokenInput.Arg0 = make(chan context.Context, 100)
+	m.FetchTokenInput.Arg1 = make(chan *auth.FetchTokenRequest, 100)
+	m.FetchTokenOutput.Ret0 = make(chan *auth.FetchTokenResponse, 100)
+	m.FetchTokenOutput.Ret1 = make(chan error, 100)
+	m.GetTokenAuthorityCalled = make(chan bool, 100)
+	m.GetTokenAuthorityInput.Arg0 = make(chan context.Context, 100)
+	m.GetTokenAuthorityInput.Arg1 = make(chan *auth.GetTokenAuthorityRequest, 100)
+	m.GetTokenAuthorityOutput.Ret0 = make(chan *auth.GetTokenAuthorityResponse, 100)
+	m.GetTokenAuthorityOutput.Ret1 = make(chan error, 100)
+	m.VerifyTokenAuthorityCalled = make(chan bool, 100)
+	m.VerifyTokenAuthorityInput.Arg0 = make(chan context.Context, 100)
+	m.VerifyTokenAuthorityInput.Arg1 = make(chan *auth.VerifyTokenAuthorityRequest, 100)
+	m.VerifyTokenAuthorityOutput.Ret0 = make(chan *auth.VerifyTokenAuthorityResponse, 100)
+	m.VerifyTokenAuthorityOutput.Ret1 = make(chan error, 100)
+	return m
+}
+func (m *mockChild) Credentials(arg0 context.Context, arg1 *auth.CredentialsRequest) (ret0 *auth.CredentialsResponse, ret1 error) {
+	m.t.Helper()
+	m.CredentialsCalled <- true
+	m.CredentialsInput.Arg0 <- arg0
+	m.CredentialsInput.Arg1 <- arg1
+	vegr.PopulateReturns(m.t, "Credentials", m.timeout, m.CredentialsOutput, &ret0, &ret1)
+	return ret0, ret1
+}
+func (m *mockChild) FetchToken(arg0 context.Context, arg1 *auth.FetchTokenRequest) (ret0 *auth.FetchTokenResponse, ret1 error) {
+	m.t.Helper()
+	m.FetchTokenCalled <- true
+	m.FetchTokenInput.Arg0 <- arg0
+	m.FetchTokenInput.Arg1 <- arg1
+	vegr.PopulateReturns(m.t, "FetchToken", m.timeout, m.FetchTokenOutput, &ret0, &ret1)
+	return ret0, ret1
+}
+func (m *mockChild) GetTokenAuthority(arg0 context.Context, arg1 *auth.GetTokenAuthorityRequest) (ret0 *auth.GetTokenAuthorityResponse, ret1 error) {
+	m.t.Helper()
+	m.GetTokenAuthorityCalled <- true
+	m.GetTokenAuthorityInput.Arg0 <- arg0
+	m.GetTokenAuthorityInput.Arg1 <- arg1
+	vegr.PopulateReturns(m.t, "GetTokenAuthority", m.timeout, m.GetTokenAuthorityOutput, &ret0, &ret1)
+	return ret0, ret1
+}
+func (m *mockChild) VerifyTokenAuthority(arg0 context.Context, arg1 *auth.VerifyTokenAuthorityRequest) (ret0 *auth.VerifyTokenAuthorityResponse, ret1 error) {
+	m.t.Helper()
+	m.VerifyTokenAuthorityCalled <- true
+	m.VerifyTokenAuthorityInput.Arg0 <- arg0
+	m.VerifyTokenAuthorityInput.Arg1 <- arg1
+	vegr.PopulateReturns(m.t, "VerifyTokenAuthority", m.timeout, m.VerifyTokenAuthorityOutput, &ret0, &ret1)
+	return ret0, ret1
+}
 
 type mockOS struct {
 	t          vegr.T
@@ -60,104 +181,6 @@ func (m *mockOS) Getenv(arg0 string) (ret0 string) {
 	m.GetenvInput.Arg0 <- arg0
 	vegr.PopulateReturns(m.t, "Getenv", m.timeout, m.GetenvOutput, &ret0)
 	return ret0
-}
-
-type mockAuthServer struct {
-	t                 vegr.T
-	timeout           time.Duration
-	CredentialsCalled chan bool
-	CredentialsInput  struct {
-		Arg0 chan context.Context
-		Arg1 chan *auth.CredentialsRequest
-	}
-	CredentialsOutput struct {
-		Ret0 chan *auth.CredentialsResponse
-		Ret1 chan error
-	}
-	FetchTokenCalled chan bool
-	FetchTokenInput  struct {
-		Arg0 chan context.Context
-		Arg1 chan *auth.FetchTokenRequest
-	}
-	FetchTokenOutput struct {
-		Ret0 chan *auth.FetchTokenResponse
-		Ret1 chan error
-	}
-	GetTokenAuthorityCalled chan bool
-	GetTokenAuthorityInput  struct {
-		Arg0 chan context.Context
-		Arg1 chan *auth.GetTokenAuthorityRequest
-	}
-	GetTokenAuthorityOutput struct {
-		Ret0 chan *auth.GetTokenAuthorityResponse
-		Ret1 chan error
-	}
-	VerifyTokenAuthorityCalled chan bool
-	VerifyTokenAuthorityInput  struct {
-		Arg0 chan context.Context
-		Arg1 chan *auth.VerifyTokenAuthorityRequest
-	}
-	VerifyTokenAuthorityOutput struct {
-		Ret0 chan *auth.VerifyTokenAuthorityResponse
-		Ret1 chan error
-	}
-}
-
-func newMockAuthServer(t vegr.T, timeout time.Duration) *mockAuthServer {
-	m := &mockAuthServer{t: t, timeout: timeout}
-	m.CredentialsCalled = make(chan bool, 100)
-	m.CredentialsInput.Arg0 = make(chan context.Context, 100)
-	m.CredentialsInput.Arg1 = make(chan *auth.CredentialsRequest, 100)
-	m.CredentialsOutput.Ret0 = make(chan *auth.CredentialsResponse, 100)
-	m.CredentialsOutput.Ret1 = make(chan error, 100)
-	m.FetchTokenCalled = make(chan bool, 100)
-	m.FetchTokenInput.Arg0 = make(chan context.Context, 100)
-	m.FetchTokenInput.Arg1 = make(chan *auth.FetchTokenRequest, 100)
-	m.FetchTokenOutput.Ret0 = make(chan *auth.FetchTokenResponse, 100)
-	m.FetchTokenOutput.Ret1 = make(chan error, 100)
-	m.GetTokenAuthorityCalled = make(chan bool, 100)
-	m.GetTokenAuthorityInput.Arg0 = make(chan context.Context, 100)
-	m.GetTokenAuthorityInput.Arg1 = make(chan *auth.GetTokenAuthorityRequest, 100)
-	m.GetTokenAuthorityOutput.Ret0 = make(chan *auth.GetTokenAuthorityResponse, 100)
-	m.GetTokenAuthorityOutput.Ret1 = make(chan error, 100)
-	m.VerifyTokenAuthorityCalled = make(chan bool, 100)
-	m.VerifyTokenAuthorityInput.Arg0 = make(chan context.Context, 100)
-	m.VerifyTokenAuthorityInput.Arg1 = make(chan *auth.VerifyTokenAuthorityRequest, 100)
-	m.VerifyTokenAuthorityOutput.Ret0 = make(chan *auth.VerifyTokenAuthorityResponse, 100)
-	m.VerifyTokenAuthorityOutput.Ret1 = make(chan error, 100)
-	return m
-}
-func (m *mockAuthServer) Credentials(arg0 context.Context, arg1 *auth.CredentialsRequest) (ret0 *auth.CredentialsResponse, ret1 error) {
-	m.t.Helper()
-	m.CredentialsCalled <- true
-	m.CredentialsInput.Arg0 <- arg0
-	m.CredentialsInput.Arg1 <- arg1
-	vegr.PopulateReturns(m.t, "Credentials", m.timeout, m.CredentialsOutput, &ret0, &ret1)
-	return ret0, ret1
-}
-func (m *mockAuthServer) FetchToken(arg0 context.Context, arg1 *auth.FetchTokenRequest) (ret0 *auth.FetchTokenResponse, ret1 error) {
-	m.t.Helper()
-	m.FetchTokenCalled <- true
-	m.FetchTokenInput.Arg0 <- arg0
-	m.FetchTokenInput.Arg1 <- arg1
-	vegr.PopulateReturns(m.t, "FetchToken", m.timeout, m.FetchTokenOutput, &ret0, &ret1)
-	return ret0, ret1
-}
-func (m *mockAuthServer) GetTokenAuthority(arg0 context.Context, arg1 *auth.GetTokenAuthorityRequest) (ret0 *auth.GetTokenAuthorityResponse, ret1 error) {
-	m.t.Helper()
-	m.GetTokenAuthorityCalled <- true
-	m.GetTokenAuthorityInput.Arg0 <- arg0
-	m.GetTokenAuthorityInput.Arg1 <- arg1
-	vegr.PopulateReturns(m.t, "GetTokenAuthority", m.timeout, m.GetTokenAuthorityOutput, &ret0, &ret1)
-	return ret0, ret1
-}
-func (m *mockAuthServer) VerifyTokenAuthority(arg0 context.Context, arg1 *auth.VerifyTokenAuthorityRequest) (ret0 *auth.VerifyTokenAuthorityResponse, ret1 error) {
-	m.t.Helper()
-	m.VerifyTokenAuthorityCalled <- true
-	m.VerifyTokenAuthorityInput.Arg0 <- arg0
-	m.VerifyTokenAuthorityInput.Arg1 <- arg1
-	vegr.PopulateReturns(m.t, "VerifyTokenAuthority", m.timeout, m.VerifyTokenAuthorityOutput, &ret0, &ret1)
-	return ret0, ret1
 }
 
 type mockContext struct {
