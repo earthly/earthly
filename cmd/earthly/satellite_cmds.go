@@ -456,10 +456,10 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		return err
 	}
 
-	if !cloud.ValidSatellitePlatform(platform) {
+	if platform != "" && !cloud.ValidSatellitePlatform(platform) {
 		return errors.Errorf("not a valid platform: %q", platform)
 	}
-	if !cloud.ValidSatelliteSize(size) {
+	if size != "" && !cloud.ValidSatelliteSize(size) {
 		return errors.Errorf("not a valid size: %q", size)
 	}
 
