@@ -990,6 +990,7 @@ func showSatelliteLoading(console conslogging.ConsoleLogger, satName string, out
 		loggedUpdating   bool
 		loggedOffline    bool
 		loggedDestroying bool
+		loggedCreating   bool
 		shouldLogLoading bool
 	)
 	for o := range out {
@@ -1025,13 +1026,17 @@ func showSatelliteLoading(console conslogging.ConsoleLogger, satName string, out
 			if !loggedDestroying {
 				console.Printf("%s is going offline. It may take a few minutes to be ready...", satName)
 				loggedDestroying = true
-				shouldLogLoading = false
 			}
 		case cloud.SatelliteStatusOffline:
 			if !loggedOffline {
 				console.Printf("%s is coming online. Please wait...", satName)
 				loggedOffline = true
 				shouldLogLoading = false
+			}
+		case cloud.SatelliteStatusCreating:
+			if !loggedCreating {
+				console.Printf("%s is creating. Please wait...", satName)
+				loggedCreating = true
 			}
 		case cloud.SatelliteStatusOperational:
 			if loggedSleep || loggedStop || loggedStart || loggedUpdating {
