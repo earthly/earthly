@@ -383,7 +383,13 @@ func (app *earthlyApp) getSatelliteOrg(ctx context.Context, cloudClient *cloud.C
 		}
 		return app.orgName, orgID, nil
 	}
-	return cloudClient.GuessOrgMembership(ctx)
+	orgName, orgID, err = cloudClient.GuessOrgMembership(ctx)
+	if err != nil {
+		return "", "", errors.Wrap(err, "could not guess default org")
+	}
+	app.console.Warnf("Auto-selecting the default org will no longer be supported in the future.\n" +
+		"Please specify an org using the --org flag or EARTHLY_ORG environment variable.")
+	return orgName, orgID, nil
 }
 
 func (app *earthlyApp) getAllPipelinesForAllProjects(ctx context.Context, orgName string, cloudClient *cloud.Client) ([]cloud.Pipeline, error) {
@@ -456,10 +462,10 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		return err
 	}
 
-	if !cloud.ValidSatellitePlatform(platform) {
+	if platform != "" && !cloud.ValidSatellitePlatform(platform) {
 		return errors.Errorf("not a valid platform: %q", platform)
 	}
-	if !cloud.ValidSatelliteSize(size) {
+	if size != "" && !cloud.ValidSatelliteSize(size) {
 		return errors.Errorf("not a valid size: %q", size)
 	}
 
