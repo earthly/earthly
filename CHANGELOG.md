@@ -4,8 +4,12 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+- Removed the default size in satellite launch (the default size is now determined by the backend when not provided) [#3057](https://github.com/earthly/earthly/issues/3057)
+
 ### Fixed
 - Updated the podman auth provider to better understand podman `auth.json` locations. [#3038](https://github.com/earthly/earthly/issues/3038)
+- Fixed our aggregated authprovider ignoring the cloud authprovider when a project is set after the first creds lookup [#3058](https://github.com/earthly/earthly/issues/3058)
 
 ## v0.7.9 - 2023-06-22
 
