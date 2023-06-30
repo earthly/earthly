@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/dustin/go-humanize"
 	"math/rand"
 	"os"
 	"strings"
@@ -309,11 +310,11 @@ func (app *earthlyApp) printSatellitesTable(satellites []satelliteWithPipelineIn
 	}
 
 	t := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
-	headerRow := []string{" ", "NAME", "PLATFORM", "SIZE", "VERSION", "STATE"} // The leading space is for the selection marker, leave it alone
+	headerRow := []string{" ", "NAME", "PLATFORM", "SIZE", "VERSION", "STATE", "LAST USED", "CACHE"} // The leading space is for the selection marker, leave it alone
 	if includeTypeColumn {
 		headerRow = slices.Insert(headerRow, 2, "TYPE")
 	}
-	printRow(t, []color.Attribute{color.Reset, color.FgWhite}, headerRow)
+	printRow(t, []color.Attribute{color.Reset}, headerRow)
 
 	for _, s := range satellites {
 		var selected = ""
@@ -321,10 +322,10 @@ func (app *earthlyApp) printSatellitesTable(satellites []satelliteWithPipelineIn
 			selected = "*"
 		}
 
-		row := []string{selected, s.satelliteName(), s.satellite.Platform, s.satellite.Size, s.satellite.Version, strings.ToLower(s.satellite.State)}
-		c := []color.Attribute{color.Reset, color.FgWhite}
+		row := []string{selected, s.satelliteName(), s.satellite.Platform, s.satellite.Size, s.satellite.Version, strings.ToLower(s.satellite.State), humanize.Time(s.satellite.LastUsed), durationWithDaysPart(s.satellite.CacheRetention)}
+		c := []color.Attribute{color.Reset}
 		if s.pipeline != nil {
-			c = []color.Attribute{color.Faint, color.FgWhite}
+			c = []color.Attribute{color.Faint}
 		}
 		if includeTypeColumn {
 			row = slices.Insert(row, 2, s.satType())
@@ -338,16 +339,33 @@ func (app *earthlyApp) printSatellitesTable(satellites []satelliteWithPipelineIn
 	}
 }
 
+func durationWithDaysPart(d time.Duration) string {
+	sd := d.Round(time.Second)
+	remainder := sd % humanize.Day
+	days := int((sd - remainder) / humanize.Day)
+
+	durStr := fmt.Sprintf("%vd%s", days, remainder.String())
+
+	// trim zero suffixes since they are distracting
+	durStr = strings.TrimSuffix(durStr, "0s")
+	durStr = strings.TrimSuffix(durStr, "0m")
+	durStr = strings.TrimSuffix(durStr, "0h")
+
+	return durStr
+}
+
 type satelliteJSON struct {
-	Name     string `json:"name"`
-	State    string `json:"state"`
-	Platform string `json:"platform"`
-	Size     string `json:"size"`
-	Version  string `json:"version"`
-	Selected bool   `json:"selected"`
-	Type     string `json:"type"`
-	Project  string `json:"project"`
-	Pipeline string `json:"pipeline"`
+	Name           string `json:"name"`
+	State          string `json:"state"`
+	Platform       string `json:"platform"`
+	Size           string `json:"size"`
+	Version        string `json:"version"`
+	Selected       bool   `json:"selected"`
+	Type           string `json:"type"`
+	Project        string `json:"project"`
+	Pipeline       string `json:"pipeline"`
+	LastUsed       string `json:"last_used"`
+	CacheRetention string `json:"cache_retention"`
 }
 
 func (app *earthlyApp) printSatellitesJSON(satellites []satelliteWithPipelineInfo, isOrgSelected bool) {
@@ -355,13 +373,15 @@ func (app *earthlyApp) printSatellitesJSON(satellites []satelliteWithPipelineInf
 	for i, s := range satellites {
 		selected := s.satellite.Name == app.cfg.Satellite.Name && isOrgSelected
 		jsonSats[i] = satelliteJSON{
-			Name:     s.satellite.Name,
-			Size:     s.satellite.Size,
-			State:    s.satellite.State,
-			Platform: s.satellite.Platform,
-			Version:  s.satellite.Version,
-			Selected: selected,
-			Type:     s.satType(),
+			Name:           s.satellite.Name,
+			Size:           s.satellite.Size,
+			State:          s.satellite.State,
+			Platform:       s.satellite.Platform,
+			Version:        s.satellite.Version,
+			Selected:       selected,
+			Type:           s.satType(),
+			LastUsed:       s.satellite.LastUsed.String(),
+			CacheRetention: s.satellite.CacheRetention.String(),
 		}
 		if s.pipeline != nil {
 			jsonSats[i].Project = s.pipeline.Project
@@ -675,6 +695,8 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	app.console.Printf("State: %s", satellite.State)
 	app.console.Printf("Platform: %s", satellite.Platform)
 	app.console.Printf("Size: %s", satellite.Size)
+	app.console.Printf("Last Used: %s", satellite.LastUsed.In(time.Local))
+	app.console.Printf("Cache Duration: %s", durationWithDaysPart(satellite.CacheRetention))
 	pinned := ""
 	if satellite.VersionPinned {
 		pinned = " (pinned)"
@@ -712,8 +734,8 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		}
 	} else {
 		app.console.Printf("More info available when Satellite is awake.")
-		if satellite.State == cloud.SatelliteStatusSleep {
-			// Only instruct the user to run this if the satellite is asleep.
+		if satellite.State == cloud.SatelliteStatusSleep || satellite.State == cloud.SatelliteStatusOffline {
+			// Only instruct the user to run this if the satellite is asleep or offline.
 			// Otherwise, satellite may be updating, still starting, etc.
 			app.console.Printf("")
 			app.console.Printf("    earthly satellite --org %s wake %s", orgName, satelliteToInspect)
@@ -966,6 +988,8 @@ func showSatelliteLoading(console conslogging.ConsoleLogger, satName string, out
 		loggedStop       bool
 		loggedStart      bool
 		loggedUpdating   bool
+		loggedOffline    bool
+		loggedDestroying bool
 		shouldLogLoading bool
 	)
 	for o := range out {
@@ -996,6 +1020,18 @@ func showSatelliteLoading(console conslogging.ConsoleLogger, satName string, out
 			if !loggedUpdating {
 				console.Printf("%s is updating. It may take a few minutes to be ready...", satName)
 				loggedUpdating = true
+			}
+		case cloud.SatelliteStatusDestroying:
+			if !loggedDestroying {
+				console.Printf("%s is going offline. It may take a few minutes to be ready...", satName)
+				loggedDestroying = true
+				shouldLogLoading = false
+			}
+		case cloud.SatelliteStatusOffline:
+			if !loggedOffline {
+				console.Printf("%s is coming online. Please wait...", satName)
+				loggedOffline = true
+				shouldLogLoading = false
 			}
 		case cloud.SatelliteStatusOperational:
 			if loggedSleep || loggedStop || loggedStart || loggedUpdating {
@@ -1050,6 +1086,10 @@ func getSatelliteLoadingMessages() []string {
 		"checking battery levels",
 		"calibrating transponders",
 		"modifying downlink frequency",
+		"reticulating splines",
+		"perturbing matrices",
+		"synthesizing gravity",
+		"iterating cellular automata",
 	}
 	msgs := baseMessages
 	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
