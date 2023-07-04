@@ -84,6 +84,7 @@ type GlobalConfig struct {
 	DisableLogSharing          bool     `yaml:"disable_log_sharing"            help:"Disable cloud log sharing when logged in with an Earthly account, see https://ci.earthly.dev for details."`
 	SecretProvider             string   `yaml:"secret_provider"                help:"Command to execute to retrieve secret."`
 	GitImage                   string   `yaml:"git_image"                      help:"Image used to resolve git repositories"`
+	Org                        string   `yaml:"org"                            help:"The currently selected argument. Overridden by the EARTHLY_ORG environment variable, or the CLI --org options, in that order."`
 
 	// Obsolete.
 	CachePath      string `yaml:"cache_path"         help:" *Deprecated* The path to keep Earthly's cache."`
@@ -99,7 +100,7 @@ type GitConfig struct {
 	Auth                  string `yaml:"auth"                         help:"What authentication method do you use? Valid options are: http, https, ssh."` // http, https, ssh
 	User                  string `yaml:"user"                         help:"The username to use when auth is set to git or https."`
 	Port                  int    `yaml:"port"                         help:"The port to connect to when using git; has no effect for http(s)."`
-	Prefix                string `yaml:"prefix"                  help:"This path is prefixed to the git clone url, e.g. ssh://user@host:port/prefix/project/repo.git"`
+	Prefix                string `yaml:"prefix"                       help:"This path is prefixed to the git clone url, e.g. ssh://user@host:port/prefix/project/repo.git"`
 	Password              string `yaml:"password"                     help:"The https password to use when auth is set to https. This setting is ignored when auth is ssh."`
 	ServerKey             string `yaml:"serverkey"                    help:"SSH fingerprints, like you would add in your known hosts file, or get from ssh-keyscan."`
 	StrictHostKeyChecking *bool  `yaml:"strict_host_key_checking"     help:"Allow ssh access to hosts with unknown server keys (e.g. no entries in known_hosts), defaults to true."`
@@ -108,7 +109,7 @@ type GitConfig struct {
 // Satellite contains satellite config values
 type Satellite struct {
 	Name string `yaml:"name" help:"The name of the satellite to use"`
-	Org  string `yaml:"org"  help:"The org name to whom the satellite belongs"`
+	Org  string `yaml:"org"  help:"*Deprecated* The org name to whom the satellite belongs"`
 }
 
 // Config contains user's configuration values from ~/earthly/config.yml

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/earthly/earthly/config"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -114,6 +115,12 @@ func (app *earthlyApp) orgCmds() []*cli.Command {
 					Action:      app.actionOrgMemberRemove,
 				},
 			},
+		},
+		{
+			Name:      "select",
+			Usage:     "Select a default organization *beta*",
+			UsageText: "earthly [options] org select <org-name>",
+			Action:    app.actionOrgSelect,
 		},
 	}
 }
@@ -445,6 +452,56 @@ func (app *earthlyApp) actionOrgMemberRemove(cliCtx *cli.Context) error {
 	}
 
 	app.console.Printf("Member %q removed successfully", userEmail)
+
+	return nil
+}
+
+func (app *earthlyApp) actionOrgSelect(cliCtx *cli.Context) error {
+	app.commandName = "orgSelect"
+	if cliCtx.NArg() != 1 {
+		return errors.New("invalid number of arguments provided")
+	}
+	org := cliCtx.Args().Get(0)
+	cloudClient, err := app.newCloudClient()
+	if err != nil {
+		return err
+	}
+
+	allOrgs, err := cloudClient.ListOrgs(cliCtx.Context)
+	if err != nil {
+		return errors.Wrap(err, "failed to list orgs")
+	}
+
+	orgFound := false
+	for _, o := range allOrgs {
+		if o.Name == org {
+			orgFound = true
+			break
+		}
+	}
+
+	if !orgFound {
+		return fmt.Errorf("could not find org to select: %v", org)
+	}
+
+	inConfig, err := config.ReadConfigFile(app.configPath)
+	if err != nil {
+		if cliCtx.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrap(err, "read config")
+		}
+	}
+
+	newConfig, err := config.Upsert(inConfig, "global.org", org)
+	if err != nil {
+		return errors.Wrap(err, "could not update default org")
+	}
+	app.cfg.Global.Org = org
+
+	err = config.WriteConfigFile(app.configPath, newConfig)
+	if err != nil {
+		return errors.Wrap(err, "could not save config")
+	}
+	app.console.Printf("Updated selected org in %s", app.configPath)
 
 	return nil
 }

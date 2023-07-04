@@ -128,9 +128,10 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 			},
 		},
 		{
-			Name:        "org",
-			Aliases:     []string{"orgs"},
-			Usage:       "Earthly organization administration *beta*",
+			Name:    "org",
+			Aliases: []string{"orgs"},
+			Usage:   "Earthly organization administration *beta*",
+			//Before:      subcommandBefore(app.setupOrgName),
 			Subcommands: app.orgCmds(),
 		},
 		{
@@ -265,6 +266,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 				"	If you'd like to try it out, please contact us at support@earthly.dev or by visiting https://earthly.dev/slack.",
 			UsageText:   "earthly satellite (launch|ls|inspect|select|unselect|rm)",
 			Description: "Create and manage Earthly Satellites *beta*",
+			//Before:      subcommandBefore(app.setupOrgName),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "org",
@@ -282,6 +284,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 			Description: "Manage Earthly projects *beta*",
 			Usage:       "Manage Earthly projects *beta*",
 			UsageText:   "earthly project (ls|rm|create|member)",
+			//Before:      subcommandBefore(app.setupOrgName),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "org",
@@ -306,6 +309,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 			Aliases:     []string{"secrets"},
 			Description: "Manage cloud secrets *beta*",
 			Usage:       "Manage cloud secrets *beta*",
+			//Before:      subcommandBefore(app.setupOrgName),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "org",
@@ -329,6 +333,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 			Aliases:     []string{"registries"},
 			Description: "Manage registry access *beta*",
 			Usage:       "Manage registry access *beta*",
+			//Before:      subcommandBefore(app.setupOrgName),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "org",

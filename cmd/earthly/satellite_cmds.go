@@ -220,11 +220,6 @@ func (app *earthlyApp) useSatellite(cliCtx *cli.Context, satelliteName, orgName 
 	// Update in-place so we can use it later, assuming the config change was successful.
 	app.cfg.Satellite.Name = satelliteName
 
-	newConfig, err = config.Upsert(newConfig, "satellite.org", orgName)
-	if err != nil {
-		return errors.Wrap(err, "could not update satellite name")
-	}
-	app.cfg.Satellite.Org = orgName
 	err = config.WriteConfigFile(app.configPath, newConfig)
 	if err != nil {
 		return errors.Wrap(err, "could not save config")
