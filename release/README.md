@@ -9,6 +9,17 @@
   ```bash
   ./earthly secrets get /user/earthly-technologies/aws/credentials
   ```
+
+  If you don't, you will need to upload a credentials file (that has access to uploan an AMI to earthly's aws account);
+  it would look similar to:
+  ```bash
+  [default]
+  aws_access_key_id=abc
+  aws_secret_access_key=123/456
+  ```
+
+  and can be set with `earthly secrets set --stdin <path> /user/earthly-technologies/aws/credentials`.
+
 * Choose the next [release tag](https://github.com/earthly/earthly/releases).
   ```bash
   export RELEASE_TAG="v..."
