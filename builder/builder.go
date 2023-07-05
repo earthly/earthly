@@ -24,7 +24,6 @@ import (
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/gwclientlogger"
 	"github.com/earthly/earthly/util/llbutil"
-	"github.com/earthly/earthly/util/llbutil/authprovider/cloudauth"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
@@ -88,6 +87,10 @@ type Opt struct {
 	GitLogLevel                           llb.GitLogLevel
 }
 
+type ProjectAdder interface {
+	AddProject(org, project string)
+}
+
 // BuildOpt is a collection of build options.
 type BuildOpt struct {
 	PlatformResolver           *platutil.Resolver
@@ -106,7 +109,7 @@ type BuildOpt struct {
 	Logbus                     *logbus.Bus
 	MainTargetDetailsFunc      func(earthfile2llb.TargetDetails) error
 	Runner                     string
-	CloudStoredAuthProvider    cloudauth.ProjectBasedAuthProvider
+	ProjectAdder               ProjectAdder
 	EarthlyCIRunner            bool
 }
 
@@ -221,7 +224,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				Logbus:                               opt.Logbus,
 				MainTargetDetailsFunc:                opt.MainTargetDetailsFunc,
 				Runner:                               opt.Runner,
-				CloudStoredAuthProvider:              opt.CloudStoredAuthProvider,
+				ProjectAdder:                         opt.ProjectAdder,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {

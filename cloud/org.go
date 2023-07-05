@@ -14,9 +14,10 @@ import (
 
 // OrgDetail contains an organization and details
 type OrgDetail struct {
-	ID    string
-	Name  string
-	Admin bool
+	ID       string
+	Name     string
+	Admin    bool
+	Personal bool
 }
 
 // OrgPermissions contains permission details within an org
@@ -35,7 +36,7 @@ type OrgMember struct {
 
 // ListOrgs lists all orgs a user has permission to view.
 func (c *Client) ListOrgs(ctx context.Context) ([]*OrgDetail, error) {
-	status, body, err := c.doCall(ctx, "GET", "/api/v0/admin/organizations", withAuth())
+	status, body, err := c.doCall(ctx, "GET", "/api/v0/admin/organizations?includePersonalOrg=true", withAuth())
 	if err != nil {
 		return nil, err
 	}
@@ -56,9 +57,10 @@ func (c *Client) ListOrgs(ctx context.Context) ([]*OrgDetail, error) {
 	res := []*OrgDetail{}
 	for _, org := range listOrgsResponse.Details {
 		res = append(res, &OrgDetail{
-			ID:    org.Id,
-			Name:  org.Name,
-			Admin: org.Admin,
+			ID:       org.Id,
+			Name:     org.Name,
+			Admin:    org.Admin,
+			Personal: org.Type == secretsapi.OrgType_PERSONAL,
 		})
 		c.orgIDCache.Store(org.Name, org.Id)
 	}
@@ -194,6 +196,8 @@ func (c *Client) GetOrgID(ctx context.Context, orgName string) (string, error) {
 }
 
 // GuessOrgMembership returns an org name and ID if the user belongs to a single org
+// Deprecated: we should stop "guessing" org membership and have the user always specify they want to use.
+// A future `org select` command would make specifying the org easier.
 func (c *Client) GuessOrgMembership(ctx context.Context) (orgName, orgID string, err error) {
 	// We are cheating here and forcing a re-auth before running any satellite commands.
 	// This is because there is an issue on the backend where the token might be outdated
@@ -207,13 +211,15 @@ func (c *Client) GuessOrgMembership(ctx context.Context) (orgName, orgID string,
 	if err != nil {
 		return "", "", err
 	}
-	if len(orgs) == 0 {
-		return "", "", errors.New("not a member of any organizations - cloud features require you are a member of an organization")
+
+	if len(orgs) == 2 {
+		for _, o := range orgs {
+			if !o.Personal {
+				return o.Name, o.ID, nil
+			}
+		}
 	}
-	if len(orgs) > 1 {
-		return "", "", errors.New("more than one organizations available - please specify the name of the organization using `--org`")
-	}
-	return orgs[0].Name, orgs[0].ID, nil
+	return "", "", errors.New("please specify the name of the organization using `--org`")
 }
 
 func getOrgFromPath(path string) (string, bool) {
