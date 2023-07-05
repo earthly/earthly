@@ -4,8 +4,13 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+- `global.org` configuration value to set a default org for all `earthly` commands that require it.
+- `earthly org select` and `earthly org unselect` commands, as shortcuts to set a default organization in the `earthly` config file.
+
 ### Changed
 - Removed the default size in satellite launch (the default size is now determined by the backend when not provided) [#3057](https://github.com/earthly/earthly/issues/3057)
+- Deprecated the satellite org configuration value. It uses the new global configuration value.
 
 ### Fixed
 - Updated the podman auth provider to better understand podman `auth.json` locations. [#3038](https://github.com/earthly/earthly/issues/3038)
