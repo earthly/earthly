@@ -118,9 +118,15 @@ func (app *earthlyApp) orgCmds() []*cli.Command {
 		},
 		{
 			Name:      "select",
-			Usage:     "Select a default organization *beta*",
+			Usage:     "Select the default organization *beta*",
 			UsageText: "earthly [options] org select <org-name>",
 			Action:    app.actionOrgSelect,
+		},
+		{
+			Name:      "unselect",
+			Usage:     "Unselects the default organization *beta*",
+			UsageText: "earthly [options] org select <org-name>",
+			Action:    app.actionOrgUnselect,
 		},
 	}
 }
@@ -467,21 +473,9 @@ func (app *earthlyApp) actionOrgSelect(cliCtx *cli.Context) error {
 		return err
 	}
 
-	allOrgs, err := cloudClient.ListOrgs(cliCtx.Context)
+	_, err = cloudClient.GetOrgID(cliCtx.Context, org)
 	if err != nil {
-		return errors.Wrap(err, "failed to list orgs")
-	}
-
-	orgFound := false
-	for _, o := range allOrgs {
-		if o.Name == org {
-			orgFound = true
-			break
-		}
-	}
-
-	if !orgFound {
-		return fmt.Errorf("could not find org to select: %v", org)
+		return errors.Wrap(err, "failed to get org")
 	}
 
 	inConfig, err := config.ReadConfigFile(app.configPath)
@@ -502,6 +496,33 @@ func (app *earthlyApp) actionOrgSelect(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "could not save config")
 	}
 	app.console.Printf("Updated selected org in %s", app.configPath)
+
+	return nil
+}
+
+func (app *earthlyApp) actionOrgUnselect(cliCtx *cli.Context) error {
+	app.commandName = "orgSelect"
+	if cliCtx.NArg() != 0 {
+		return errors.New("invalid number of arguments provided")
+	}
+
+	inConfig, err := config.ReadConfigFile(app.configPath)
+	if err != nil {
+		if cliCtx.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrap(err, "read config")
+		}
+	}
+
+	newConfig, err := config.Delete(inConfig, "global.org")
+	if err != nil {
+		return errors.Wrap(err, "could not unselect default org")
+	}
+
+	err = config.WriteConfigFile(app.configPath, newConfig)
+	if err != nil {
+		return errors.Wrap(err, "could not save config")
+	}
+	app.console.Printf("Unselected org in %s", app.configPath)
 
 	return nil
 }
