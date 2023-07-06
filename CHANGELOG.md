@@ -4,6 +4,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.11 - 2023-07-06
+
 ### Added
 - `global.org` configuration value to set a default org for all `earthly` commands that require it.
 - `earthly org select` and `earthly org unselect` commands, as shortcuts to set a default organization in the `earthly` config file.
