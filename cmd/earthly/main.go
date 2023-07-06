@@ -557,6 +557,9 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 		}
 	}
 
+	if !cliCtx.IsSet("org") {
+		app.orgName = app.cfg.Global.Org
+	}
 	return nil
 }
 
@@ -613,6 +616,11 @@ func (app *earthlyApp) processDeprecatedCommandOptions(cliCtx *cli.Context, cfg 
 			}
 			cfg.Git[k] = v
 		}
+	}
+
+	if cfg.Satellite.Org != "" {
+		app.console.Warnf("Warning: the setting global.satellite.org is deprecated. Please use 'earthly config global.org <my-id>' instead")
+		cfg.Global.Org = cfg.Satellite.Org
 	}
 
 	return nil
