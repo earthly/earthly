@@ -24,6 +24,75 @@ and then restart your shell.
 
 For instructions on how to install `earthly` for CI use, see the [CI integration guide](ci-integration/overview.md).
 
+### Checksum Verification
+
+You may optionally verify the checksum of the downloaded binaries, by performing the following steps:
+
+1. Download our public key:
+
+    ```bash
+    wget https://pkg.earthly.dev/earthly.pgp
+    ```
+
+2. Verify the public key was correctly downloaded:
+
+    ```bash
+    md5sum earthly.pgp
+    ```
+
+    which should produce:
+
+    ```
+    8f455671610b15ee21be31e9f16b7bb6  earthly.pgp
+    ```
+
+3. Import our key:
+
+    ```bash
+    gpg --import earthly.pgp
+    ```
+
+4. Trust our key:
+
+    ```bash
+    echo -e "5\ny\n" |  gpg --command-fd 0 --expert --edit-key 5816B2213DD1CEB61FC952BAB1185ECA33F8EB64 trust
+    ```
+
+5. Download the released `checksum.asc` file:
+
+    You can manually download it from the [the releases page](https://github.com/earthly/earthly/releases).
+
+    The latest version can be fetched from the command line with:
+
+    ```bash
+    wget https://github.com/earthly/earthly/releases/latest/download/checksum.asc
+    ```
+
+6. Verify the `checksum.asc` file was released correctly:
+
+    ```bash
+    gpg --verify checksum.asc && gpg --verify --output checksum checksum.asc
+    ```
+
+{% hint style='danger' %}
+#### gpg is dangerous
+
+Don't be tempted to remove the initial `gpg --verify checksum.asc` command; gpg will still output the `checksum` file even
+if the signature verification fails.
+{% endhint %}
+
+7. Verify the earthly binary checksum matches
+
+    ```bash
+    sha256sum --check checksum --ignore-missing
+    ```
+
+    This should display an entry similar to:
+
+    ```
+    earthly-linux-amd64: OK
+    ```
+
 ### Installing from Earthly repositories (**beta**)
 
 {% hint style='danger' %}

@@ -626,6 +626,34 @@ By default users are granted read-only access unless the `--write` flag is given
 
 Revokes a previously invited user from an organization.
 
+#### earthly org select
+
+###### Synopsis
+
+* ```
+  earthly org select <org-name>
+  ```
+
+###### Description
+
+Selects an existing Earthly org to be the default. Analogous to the `EARTHLY_ORG` environment variable, or the `--org` flag available on some commands. When multiple organizations are specified, the precedence order is the following:
+
+1. `--org` argument
+2. `EARTHLY_ORG` environment variable
+3. The configuration setting controlled by this command
+
+#### earthly org unselect
+
+###### Synopsis
+
+* ```
+  earthly org unselect
+  ```
+
+###### Description
+
+Removes the configuration option specifying a default organization.
+
 ## earthly secrets
 
 Contains sub-commands for creating and managing Earthly secrets.
