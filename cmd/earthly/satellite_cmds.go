@@ -383,7 +383,8 @@ func (app *earthlyApp) getSatelliteOrg(ctx context.Context, cloudClient *cloud.C
 		return "", "", errors.Wrap(err, "could not guess default org")
 	}
 	app.console.Warnf("Auto-selecting the default org will no longer be supported in the future.\n" +
-		"Please specify an org using the --org flag or EARTHLY_ORG environment variable.")
+		"You can select a default org using the command 'earthly org select',\n" +
+		"or otherwise specify an org using the --org flag or EARTHLY_ORG environment variable.")
 	return orgName, orgID, nil
 }
 
