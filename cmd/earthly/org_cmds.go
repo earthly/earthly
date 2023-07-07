@@ -491,6 +491,14 @@ func (app *earthlyApp) actionOrgSelect(cliCtx *cli.Context) error {
 	}
 	app.cfg.Global.Org = org
 
+	if app.cfg.Satellite.Org != "" {
+		newConfig, err = config.Upsert(newConfig, "satellite.org", "")
+		if err != nil {
+			return errors.Wrap(err, "could not remove deprecated setting")
+		}
+		app.cfg.Satellite.Org = ""
+	}
+
 	err = config.WriteConfigFile(app.configPath, newConfig)
 	if err != nil {
 		return errors.Wrap(err, "could not save config")
