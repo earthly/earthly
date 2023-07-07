@@ -65,6 +65,8 @@ type SatelliteInstance struct {
 	MaintenanceWeekendsOnly bool
 	RevisionID              int32
 	Hidden                  bool
+	LastUsed                time.Time
+	CacheRetention          time.Duration
 }
 
 func (c *Client) ListSatellites(ctx context.Context, orgName string, includeHidden bool) ([]SatelliteInstance, error) {
@@ -82,13 +84,15 @@ func (c *Client) ListSatellites(ctx context.Context, orgName string, includeHidd
 	instances := make([]SatelliteInstance, len(resp.Instances))
 	for i, s := range resp.Instances {
 		instances[i] = SatelliteInstance{
-			Name:     s.Name,
-			Org:      orgID,
-			Platform: s.Platform,
-			Size:     s.Size,
-			State:    satelliteStatus(s.Status),
-			Version:  s.Version,
-			Hidden:   s.Hidden,
+			Name:           s.Name,
+			Org:            orgID,
+			Platform:       s.Platform,
+			Size:           s.Size,
+			State:          satelliteStatus(s.Status),
+			Version:        s.Version,
+			Hidden:         s.Hidden,
+			LastUsed:       s.LastUsed.AsTime(),
+			CacheRetention: s.CacheRetention.AsDuration(),
 		}
 	}
 	return instances, nil
@@ -120,6 +124,8 @@ func (c *Client) GetSatellite(ctx context.Context, name, orgName string) (*Satel
 		MaintenanceWeekendsOnly: resp.MaintenanceWeekendsOnly,
 		RevisionID:              resp.RevisionId,
 		Hidden:                  resp.Hidden,
+		LastUsed:                resp.LastUsed.AsTime(),
+		CacheRetention:          resp.CacheRetention.AsDuration(),
 	}, nil
 }
 
