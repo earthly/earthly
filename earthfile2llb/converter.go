@@ -327,7 +327,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		}
 		copyState, err := llbutil.CopyOp(ctx,
 			mts.Final.ArtifactsState, []string{contextArtifact.Artifact},
-			c.platr.Scratch(), "/", true, true, false, "", nil, false, false,
+			c.platr.Scratch(), "/", true, true, false, "", nil, false, true,
 			c.ftrs.UseCopyLink,
 			llb.WithCustomNamef(
 				"%sFROM DOCKERFILE (copy build context from) %s%s",
