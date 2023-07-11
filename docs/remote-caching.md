@@ -4,7 +4,7 @@ Earthly has the ability to share cache between different isolated CI runs and ev
 
 Remote caching is made possible by storing intermediate steps of a build in a cloud-based Docker registry. This cache can then be downloaded on another machine in order to skip common parts.
 
-Note that there is yet another way to share cache between builds, via [remote runners](./remote-runners.md) (a commercial version of remote runners is [Earthly Satellites](cloud/satellites.md)). Using the cache of a remote runner is easier to manage, because there is no upload or download step (the cache is always there, available instantly) and no additional experimentation is required (everything is automatically cached without the need to experiment). This page only covers remote shared caching through the use of a registry.
+Note that there is yet another way to share cache between builds, via [Earthly Satellites](cloud/satellites.md) (Earthly Cloud includes a generous free tier for Satellites). Using the cache of Earthly Satellites is easier to manage, because there is no upload or download step (the cache is always there, available instantly) and no additional experimentation is required (everything is automatically cached without the need to experiment). This page only covers remote shared caching through the use of a registry.
 
 ## Types of remote cache
 
@@ -229,7 +229,7 @@ Note however that there is small performance penalty for regularly checking the 
 
 ## Alternatives
 
-An alternative to using remote caching is to use [remote runners](./remote-runners.md) (a commercial version of remote runners is [Earthly Satellites](cloud/satelllites.md)). Remote runners execute the build remotely, and this allows the cache to be located in close proximity to the execution, which is very efficient. Satellites are also significantly easier to set up, as the caching just works and there is no need for additional experimentation.
+An alternative to using remote caching is to use [remote runners](./remote-runners.md). Remote runners execute the build remotely, and this allows the cache to be located in close proximity to the execution, which is very efficient. Satellites are also significantly easier to set up, as the caching just works and there is no need for additional experimentation.
 
 Below is a comparison between Earthly Satellites and remote caching.
 
