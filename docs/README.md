@@ -36,7 +36,7 @@ Earthly is better logged in as Earthly Cloud includes a generous free tier, incl
 
 The best way to install Earthly is by [visiting Earthly Cloud and signing up for free](https://cloud.earthly.dev/login).
 
-If you prefer not to create an online account, you can also install and use Earthly locally without an account. See the  [installation instructions](https://earthly.dev/get-earthly).
+If you prefer not to create an online account, you can also install and use Earthly locally without an account. See the [installation instructions](https://earthly.dev/get-earthly).
 
 For a full list of installation options see the [alternative installation page](./alt-installation/alt-installation.md).
 
