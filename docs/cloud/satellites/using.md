@@ -1,37 +1,12 @@
 # Managing Satellites
 
-This feature is part of the [Earthly Satellites & Earthly CI paid plans](https://earthly.dev/pricing).
-
 This page describes how to use [Earthly Satellites](../satellites.md).
 
 ## Prerequisites
 
 In order to use Earthly Satellites, you must have an Earthly account and you must be a member of an Earthly organization. For more information, see the [Earthly Cloud overview](../overview.md) and the [Satellites page](../satellites.md).
 
-If you are new to Earthly or to Earthly Cloud, you must:
-
-* [Download and Install Earthly](https://earthly.dev/get-earthly). As Earthly Satellites is under active development, it is strongly recommended that you ensure that you have the very latest version of Earthly installed.
-  
-  **On Linux**, simply repeat the [installation steps](https://earthly.dev/get-earthly) to upgrade to the latest version of Earthly, if you installed Earthly some time ago.
-  
-  **On Mac**, you can perform:
-
-  ```bash
-  brew update
-  brew upgrade earthly
-  ```
-* Create an account by visiting the [Earthly CI website](https://ci.earthly.dev/) to log in with GitHub or by using `earthly account register --email <email>` in your terminal.
-* Either [create an Earthly organization](../overview.md), or ask your Earthly admin to add you to an existing organization. In order to be added to an existing Earthly organization you need to first create an Earthly account as described above. To verify that you are part of an organization you can run:
-  
-  ```bash
-  earthly org ls
-  ```
-
-  You should see an output similar to:
-
-  ```
-  <org-name>  member
-  ```
+If you are new to Earthly or to Earthly Cloud, get started by signing up for free at [Earthly Cloud](https://cloud.earthly.dev/login).
 
 ## Background
 
@@ -43,16 +18,16 @@ For more information about how Earthly Satellites work, see the [Satellites page
 
 ## Using satellites
 
-When you are added to an Earthly organization, you get access to its satellites. To view the satellites currently available in the organization, you can run:
+When you are added to an Earthly organization, you get access to its satellites. You can use the following command to select the organization:
+
+```bash
+earthly org select <org-name>
+```
+
+To view the satellites currently available in the organization, you can run:
 
 ```bash
 earthly sat ls
-```
-
-If you are part of multiple organizations, you may need to specify the organization name too:
-
-```bash
-earthly sat --org <org-name> ls
 ```
 
 ### Selecting a satellite
