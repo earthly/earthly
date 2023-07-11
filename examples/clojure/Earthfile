@@ -9,11 +9,10 @@ build:
 
 docker:
     FROM openjdk:22-slim-bullseye
-    RUN cat /etc/os-release
     RUN apt update && apt install zip -y 
     COPY +build/earthly-example-standalone.jar earthly-example-standalone.jar
     EXPOSE 8080
     ENTRYPOINT java -Dserver.port=8080 -jar earthly-example-standalone.jar
-    COPY extractVersion extractVersion
+    COPY extractJarVersion extractJarVersion
     ARG tag = "$(./extractJarVersion earthly-example-standalone.jar)"
     SAVE IMAGE clojure-example:${tag}
