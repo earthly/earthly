@@ -229,7 +229,7 @@ Note however that there is small performance penalty for regularly checking the 
 
 ## Alternatives
 
-An alternative to using remote caching is to use [remote runners](./remote-runners.md). Remote runners execute the build remotely, and this allows the cache to be located in close proximity to the execution, which is very efficient. Satellites are also significantly easier to set up, as the caching just works and there is no need for additional experimentation.
+An alternative to using remote caching is to use [remote runners](./remote-runners.md). Remote runners execute the build remotely, and this allows the cache to be located in close proximity to the execution, which is very efficient. They are also significantly easier to set up, as the caching just works and there is no need for additional experimentation. [Earthly Satellites](./cloud/satellites.md) is one such implementation of remote runners. You can get started with Earthly Satellites for free by [creating an Earthly Cloud account](https://cloud.earthly.dev/login).
 
 Below is a comparison between Earthly Satellites and remote caching.
 

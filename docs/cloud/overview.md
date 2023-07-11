@@ -5,6 +5,7 @@ Earthly Cloud is a collection of features that enrich the Earthly experience via
 * [Earthly Satellites](./satellites.md): Cloud-based Buildkit instances managed by the Earthly team.
 * [Earthly Cloud Secrets](./cloud-secrets.md): A secret management system that allows you to store secrets in a cloud-based service and use them across builds.
 * [Earthly CI](./earthly-ci.md): A cloud-based CI/CD system that allows you to continuously build your code in the cloud.
+* **Log sharing**: The ability to share build logs with coworkers.
 
 ## Getting started
 
