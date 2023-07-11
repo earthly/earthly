@@ -30,7 +30,14 @@ Earthly's key features/benefits are:
 
 Earthly Cloud is a cloud-based build automation platform that allows you to run your Earthly builds in the cloud, and is compatible with any CI. Earthly Cloud gives teams repeatable pipelines that run exactly the same in CI as on your laptop; has an automatic and instantly available build cache that makes builds faster; and is super simple to use.
 
-Earthly is better logged in as Earthly Cloud includes a generous free tier, including additional capabilities, like sharing cache with your team, remote build runners, shared logs, and shared secrets. To get started, visit the [Earthly Cloud sign up](https://cloud.earthly.dev/login) page.
+Earthly is better when you're logged in to Earthly Cloud, and Earthly Cloud has a generous free tier that includes additional capabilities like:
+  * Sharing cache with your team
+  * Remote build runners
+  * Shared logs
+  * Shared secrets
+  * Even a full-fledged continuous integration system
+
+To get started, visit the [Earthly Cloud sign up](https://cloud.earthly.dev/login) page.
 
 ## Installation
 
