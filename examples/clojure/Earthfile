@@ -2,16 +2,18 @@ VERSION 0.7
 FROM clojure:temurin-8-lein
 WORKDIR /var/app
 
-ARG --global CLOJURE_STANDALONE_ARTIFACT="target/uberjar/earthly-example-0.1.0-SNAPSHOT-standalone.jar"
-
 build:
     COPY earthly-example/ .
     RUN lein uberjar
-    SAVE ARTIFACT ${CLOJURE_STANDALONE_ARTIFACT} ${CLOJURE_STANDALONE_ARTIFACT}
+    SAVE ARTIFACT target/uberjar/earthly-example-*-standalone.jar earthly-example-standalone.jar
 
 docker:
-    FROM openjdk:22-jdk
-    COPY +build/${CLOJURE_STANDALONE_ARTIFACT} ${CLOJURE_STANDALONE_ARTIFACT}
+    FROM openjdk:22-slim-bullseye
+    RUN cat /etc/os-release
+    RUN apt update && apt install zip -y 
+    COPY +build/earthly-example-standalone.jar earthly-example-standalone.jar
     EXPOSE 8080
-    ENTRYPOINT java -Dserver.port=8080 -jar ${CLOJURE_STANDALONE_ARTIFACT}
-    SAVE IMAGE clojure-example:latest
+    ENTRYPOINT java -Dserver.port=8080 -jar earthly-example-standalone.jar
+    COPY extractVersion extractVersion
+    ARG tag = "$(./extractJarVersion earthly-example-standalone.jar)"
+    SAVE IMAGE clojure-example:${tag}
