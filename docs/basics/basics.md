@@ -6,7 +6,7 @@ This tutorial will walk you through a basic example of using Earthly.
 
 ## Earthly is better logged in
 
-A better version of this tutorial is available in Earthly Cloud. Get started for free with Earthly Cloud by visiting the [sign up](https://cloud.earthly.dev/login) page.
+A better, interactive version of this tutorial is available in Earthly Cloud. Get started with Earthly Cloud for free by visiting the [sign up](https://cloud.earthly.dev/login) page.
 
 ## Table of Contents
 

@@ -15,7 +15,7 @@ To use Earthly in a CI, you typically encode the following steps in your CI's bu
 3. Log in to image registries, such as DockerHub
 4. Run Earthly
 
-As part of this, you may need to set up credentials for Earthly itself, if you are using Earthly Satellites, or Earthly Cloud Secrets. For this, you can use the following command:
+As part of this, you may need to set up credentials for Earthly Cloud, if you are using Earthly Satellites or Earthly Secrets. For this, you can use the following command:
 
 ```bash
 earthly account create-token my-ci-token

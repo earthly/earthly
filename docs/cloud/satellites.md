@@ -36,7 +36,7 @@ Typical use cases for Earthly Satellites include:
 
 ### 1. Sign up for Earthly Cloud (free)
 
-Visit [Earthly Cloud](https://cloud.earthly.dev/login) to create a free account and get started with Earthly Satellites.
+Earthly Satellites is part of Earthly Cloud. You can use it for free as part of our free tier. Get started with Earthly Cloud by visiting the [sign up](https://cloud.earthly.dev/login) page, and get 6,000 build minutes/month for free.
 
 ### 2. Launch a new satellite
 
@@ -95,7 +95,7 @@ For more information on using satellites, see the [Using satellites page](./sate
 
 ### 4. Invite your team
 
-A final optional step is to invite your team to use the satellite. This can be done by running:
+A final step is to invite your team to use the satellite. This can be done by running:
 
 ```bash
 earthly org invite <email>

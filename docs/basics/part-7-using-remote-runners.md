@@ -14,7 +14,7 @@ Remote runners are especially useful in a few specific circumstances:
 
 There are two types of remote runners:
 
-* Earthly Satellites (free up to 6,000 minutes - managed by Earthly)
+* Earthly Satellites (managed by Earthly; free up to 6,000 minutes/month; get started now by visiting the [sign up](https://cloud.earthly.dev/login) page)
 * Remote Buildkit (free, self-hosted)
 
 ### Using Earthly Satellites

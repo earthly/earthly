@@ -12,7 +12,7 @@ This page covers the use of cloud-hosted secrets. It builds upon the understandi
 
 In order to be able to use cloud secrets, you need to first register an Earthly Cloud account. Visit [Earthly Cloud](https://cloud.earthly.dev) to sign up for free.
 
-Then, you need create an Earthly project. To do that, you may use the command web interface, or the command.
+Then, you need create an Earthly project. To do that, you may use the web interface or the command...
 
 ```bash
 earthly project create <project-name>

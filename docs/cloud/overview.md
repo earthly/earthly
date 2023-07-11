@@ -54,7 +54,7 @@ You can join an Earthly org by following the steps outlined in the invitation em
 
 ### Creating a project
 
-To use certain features, such as Earthly CI, or Earthly Cloud Secrets, you will aditionally need to create an Earthly Project. You can create a project by visiting [Earthly Cloud](https://cloud.earthly.dev/), or by using the CLI as described below.
+To use certain features, such as Earthly CI or Earthly Cloud Secrets, you will additionally need to create an Earthly Project. You can create a project by visiting [Earthly Cloud](https://cloud.earthly.dev/), or by using the CLI as described below.
 
 ```bash
 earthly project create <project-name>

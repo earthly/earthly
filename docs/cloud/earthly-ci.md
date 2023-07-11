@@ -27,7 +27,7 @@ Earthly CI uses Earthfiles as the build configuration language.
 
 ### 1. Sign up for Earthly Cloud (free)
 
-Visit [Earthly Cloud](https://cloud.earthly.dev/login) to create a free account and get started with Earthly CI.
+Earthly CI is part of Earthly Cloud. You can use it for free as part of our free tier. Get started with Earthly Cloud by visiting the [sign up](https://cloud.earthly.dev/login) page, and get 6,000 build minutes/month for free.
 
 ### 2. Create your first Earthly pipeline
 
@@ -80,7 +80,7 @@ earthly registry --org <org-name> --project <project-name> setup --cred-helper g
 
 ### 4. Invite your team
 
-A final optional step is to invite your team to use Earthly CI. This can be done by running:
+A final step is to invite your team to use Earthly Cloud. This can be done by running:
 
 ```bash
 earthly --org <org-name> org invite <email>
