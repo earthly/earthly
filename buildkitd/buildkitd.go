@@ -77,7 +77,6 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 	if err != nil {
 		return nil, errors.Wrap(err, "add required client opts")
 	}
-
 	isLocal := containerutil.IsLocal(settings.BuildkitAddress)
 	if !isLocal {
 		remoteConsole := console

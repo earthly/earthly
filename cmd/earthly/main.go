@@ -448,7 +448,7 @@ func (app *earthlyApp) parseFrontend(cliCtx *cli.Context, cfg *config.Config) er
 		app.containerFrontend = stub
 
 		if !app.verbose {
-			console.Printf("No frontend initialized. Use --verbose to see details\n")
+			console.Printf("No frontend initialized. Docker or Podman not detected or had errors. Use --verbose to see details\n")
 		}
 		console.VerbosePrintf("%s frontend initialization failed due to %s", app.cfg.Global.ContainerFrontend, origErr.Error())
 		return nil

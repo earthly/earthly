@@ -405,7 +405,6 @@ func (app *earthlyApp) getSatelliteOrg(ctx context.Context, cloudClient *cloud.C
 		return app.orgName, orgID, nil
 	}
 	if orgName = app.cfg.Global.Org; orgName != "" {
-		g
 		orgID, err = cloudClient.GetOrgID(ctx, orgName)
 		if err != nil {
 			return "", "", errors.Wrapf(err, "failed resolving ID for org '%s'", orgName)

@@ -38,18 +38,6 @@ import (
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
-	"github.com/fatih/color"
-	"github.com/joho/godotenv"
-	"github.com/moby/buildkit/client/llb"
-	"github.com/moby/buildkit/session"
-	"github.com/moby/buildkit/session/auth"
-	dockerauthprovider "github.com/moby/buildkit/session/auth/authprovider"
-	"github.com/moby/buildkit/session/localhost/localhostprovider"
-	"github.com/moby/buildkit/session/socketforward/socketprovider"
-	"github.com/moby/buildkit/session/sshforward/sshprovider"
-	"github.com/moby/buildkit/util/entitlements"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
 )
 
 func (app *earthlyApp) actionBuild(cliCtx *cli.Context) error {
@@ -272,6 +260,12 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 	err = app.configureSatellite(cliCtx, cloudClient, gitCommitAuthor, gitConfigEmail)
 	if err != nil {
 		return errors.Wrapf(err, "could not configure satellite")
+	}
+
+	// After configuring frontend and satellites, buildkit address should not be empty.
+	// It should be set to a local container, remote address, or satellite address at this point.
+	if app.buildkitdSettings.BuildkitAddress == "" {
+		return errors.New("could not determine buildkit address - is Docker or Podman running?")
 	}
 
 	var runnerName string
