@@ -831,7 +831,6 @@ examples2:
         # This crashes randomly on arm.
         BUILD ./examples/scala+docker
     END
-    BUILD ./examples/clojure+docker
     BUILD ./examples/cobol+docker
     BUILD ./examples/rust+docker
     BUILD ./examples/multiplatform+all
