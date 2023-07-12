@@ -772,6 +772,20 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 				app.console.Warnf("Error: File not found: %v\n", err.Error())
 			}
 			return 1
+		case strings.Contains(err.Error(), "429 Too Many Requests"):
+			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_RATE_LIMITED, err.Error())
+			var registryName string
+			var registryHost string
+			if strings.Contains(err.Error(), "docker.com/increase-rate-limit") {
+				registryName = "DockerHub"
+			} else {
+				registryName = "The remote registry"
+				registryHost = " <server>" // keep the leading space
+			}
+			app.console.Warnf("Error: %s responded with a rate limit error. This is usually because you are not logged in.\n"+
+				"You can login using the command:\n"+
+				"  docker login%s", registryName, registryHost)
+			return 1
 		case strings.Contains(failedOutput, "Invalid ELF image for this architecture"):
 			app.console.Warnf("Error: %v\n", err)
 			app.console.Printf(
