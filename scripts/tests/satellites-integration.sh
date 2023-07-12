@@ -27,4 +27,4 @@ EARTHLY_ORG=earthly-technologies "$earthly" sat inspect core-test
 
 # test org select
 "$earthly" org select earthly-technologies
-"$earthly" sat select core-test
+"$earthly" sat inspect core-test
