@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -eu
+set -euo pipefail
 
 earthly=${earthly:=earthly}
 earthly=$(realpath "$earthly")
