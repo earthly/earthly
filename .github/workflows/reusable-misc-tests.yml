@@ -89,6 +89,19 @@ jobs:
           for pid in ${pids[*]}; do
               wait $pid
           done
+      - name: "Run the earthly satellites tests (Earthly only)"
+        run: ./scripts/tests/satellites-integration.sh
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Run parallel buildkit start test. It ensures that earthly starting up buildkit does not race with itself.
+        run: |-
+          ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd && \
+          for i in 1 2 3 4; do
+              ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
+              pids[${i}]=$!
+          done && \
+          for pid in ${pids[*]}; do
+              wait $pid
+          done
       - name: Execute interactive debugger test
         run: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ${{inputs.BUILT_EARTHLY_PATH}} --timeout 180
       - name: "cloud-stored docker credential test (Earthly only)"

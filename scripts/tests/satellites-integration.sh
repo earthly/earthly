@@ -1,11 +1,13 @@
-#!/bin/bash
-set -euo pipefail # don't use -x as it will leak the mirror credentials
+#!/usr/bin/env bash
+set -eu
 
-# to run this locally; in the root of the repo:
-#   ./earthly +earthly-docker && EARTHLY_IMAGE="earthly/earthly:dev-$(git rev-parse --abbrev-ref HEAD | sed 's/\//_/g')" scripts/tests/satellites-integration.sh
+earthly=${earthly:=earthly}
+earthly=$(realpath "$earthly")
+echo "running tests with $earthly"
 
-FRONTEND=${FRONTEND:-docker}
-EARTHLY_IMAGE=${EARTHLY_IMAGE:-earthly/earthly:dev-main}
+# prevent the self-update of earthly from running (this ensures no bogus data is printed to stdout,
+# which would mess with the secrets data being fetched)
+date +%s > /tmp/last-earthly-prerelease-check
 
 if [ -z "${EARTHLY_TOKEN:-}" ]; then
   echo "using EARTHLY_TOKEN from earthly secrets"
@@ -14,6 +16,15 @@ if [ -z "${EARTHLY_TOKEN:-}" ]; then
 fi
 test -n "$EARTHLY_TOKEN" || (echo "error: EARTHLY_TOKEN is not set" && exit 1)
 
-"$FRONTEND" run --rm --privileged -e EARTHLY_TOKEN="${EARTHLY_TOKEN}" --entrypoint="" "${EARTHLY_IMAGE}" /bin/sh -c "earthly org select earthly-technologies"
+# ensure earthly login works (and print out who gets logged in)
+"$earthly" account login
 
-"$FRONTEND" run --rm --privileged -e EARTHLY_TOKEN="${EARTHLY_TOKEN}" --entrypoint="" "${EARTHLY_IMAGE}" /bin/sh -c "earthly sat select core-test"
+# test --org
+"$earthly" sat --org earthly-technologies inspect core-test
+
+# test EARTHLY_ORG env
+EARTHLY_ORG=earthly-technologies "$earthly" sat inspect core-test
+
+# test org select
+"$earthly" org select earthly-technologies
+"$earthly" sat select core-test
