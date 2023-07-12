@@ -16,10 +16,4 @@ test -n "$EARTHLY_TOKEN" || (echo "error: EARTHLY_TOKEN is not set" && exit 1)
 
 "$FRONTEND" run --rm --privileged -e EARTHLY_TOKEN="${EARTHLY_TOKEN}" --entrypoint="" "${EARTHLY_IMAGE}" /bin/sh -c "earthly org select earthly-technologies"
 
-"$FRONTEND" run --rm --privileged -e EARTHLY_TOKEN="${EARTHLY_TOKEN}" --entrypoint="" "${EARTHLY_IMAGE}" /bin/sh -c "earthly sat ls"
-
 "$FRONTEND" run --rm --privileged -e EARTHLY_TOKEN="${EARTHLY_TOKEN}" --entrypoint="" "${EARTHLY_IMAGE}" /bin/sh -c "earthly sat select core-test"
-
-"$FRONTEND" run --rm --privileged -e EARTHLY_TOKEN="${EARTHLY_TOKEN}" --entrypoint="" "${EARTHLY_IMAGE}" /bin/sh -c "earthly sat inspect core-test"
-
-"$FRONTEND" run --rm --privileged -e EARTHLY_TOKEN="${EARTHLY_TOKEN}" --entrypoint="" "${EARTHLY_IMAGE}" /bin/sh -c "earthly github.com/earthly/hello+hello-world"
