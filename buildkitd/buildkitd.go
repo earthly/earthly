@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/containerd/containerd/platforms"
@@ -172,13 +173,21 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image, c
 // that can be used to connect to it.
 func maybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, containerName, installationName string, fe containerutil.ContainerFrontend, settings Settings, opts ...client.ClientOpt) (cinfo *client.Info, winfo *client.WorkerInfo, finalErr error) {
 	if settings.StartUpLockPath != "" {
+		var tryLockDone atomic.Bool
+		go func() {
+			time.Sleep(3 * time.Second)
+			if !tryLockDone.Load() {
+				console.Warnf("waiting on other instance of earthly to start buildkitd (as indicated by %q existing)", settings.StartUpLockPath)
+			}
+		}()
 		startLock := flock.New(settings.StartUpLockPath)
 		timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 		_, err := startLock.TryLockContext(timeoutCtx, 200*time.Millisecond)
+		tryLockDone.Store(true)
 		if err != nil {
 			if errors.Is(err, context.DeadlineExceeded) {
-				return nil, nil, errors.Errorf("timeout waiting for other process to start buildkitd")
+				return nil, nil, errors.Errorf("timeout waiting for other instance of earthly to start buildkitd")
 			}
 			return nil, nil, errors.Wrapf(err, "try flock context %s", settings.StartUpLockPath)
 		}
