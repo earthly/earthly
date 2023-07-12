@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/dustin/go-humanize"
 	"math/rand"
 	"os"
 	"strings"
 	"text/tabwriter"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
@@ -404,6 +404,14 @@ func (app *earthlyApp) getSatelliteOrg(ctx context.Context, cloudClient *cloud.C
 		}
 		return app.orgName, orgID, nil
 	}
+	if orgName = app.cfg.Global.Org; orgName != "" {
+		g
+		orgID, err = cloudClient.GetOrgID(ctx, orgName)
+		if err != nil {
+			return "", "", errors.Wrapf(err, "failed resolving ID for org '%s'", orgName)
+		}
+		return orgName, orgID, nil
+	}
 	orgName, orgID, err = cloudClient.GuessOrgMembership(ctx)
 	if err != nil {
 		return "", "", errors.Wrap(err, "could not guess default org")
@@ -506,7 +514,7 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 
 	app.console.Printf("Launching Satellite %q with auto-updates set to run at %s (%s)\n",
 		app.satelliteName, localWindow, zone)
-	app.console.Printf("Please wait...\n")
+	app.console.Printf("This may take a few minutes...\n")
 
 	err = cloudClient.LaunchSatellite(cliCtx.Context, cloud.LaunchSatelliteOpt{
 		Name:                    app.satelliteName,
@@ -617,7 +625,7 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 		return fmt.Errorf("could not find %q for deletion", app.satelliteName)
 	}
 
-	app.console.Printf("Destroying Satellite %q. This could take a moment...\n", app.satelliteName)
+	app.console.Printf("Destroying Satellite %q. This may take a few minutes...\n", app.satelliteName)
 	err = cloudClient.DeleteSatellite(cliCtx.Context, app.satelliteName, orgName)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
