@@ -10,5 +10,5 @@ curl --connect-timeout 1 \
     "http://${WEBHOST}:${WEBPORT}" | tee "$output"
 echo "curl command worked"
 echo "checking $output contains the magic string"
-grep "hello world" "$output"
+grep "Hello World" "$output"
 echo "grep command worked"
