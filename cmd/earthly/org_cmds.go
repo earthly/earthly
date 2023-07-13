@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/earthly/earthly/config"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -11,6 +10,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/earthly/earthly/cloud"
+	"github.com/earthly/earthly/config"
 )
 
 func (app *earthlyApp) orgCmds() []*cli.Command {
@@ -120,12 +120,14 @@ func (app *earthlyApp) orgCmds() []*cli.Command {
 			Name:      "select",
 			Usage:     "Select the default organization *beta*",
 			UsageText: "earthly [options] org select <org-name>",
+			Aliases:   []string{"s"},
 			Action:    app.actionOrgSelect,
 		},
 		{
 			Name:      "unselect",
 			Usage:     "Unselects the default organization *beta*",
 			UsageText: "earthly [options] org select <org-name>",
+			Aliases:   []string{"uns"},
 			Action:    app.actionOrgUnselect,
 		},
 	}
