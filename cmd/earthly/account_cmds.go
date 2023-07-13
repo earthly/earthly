@@ -449,10 +449,15 @@ func (app *earthlyApp) actionAccountListTokens(cliCtx *cli.Context) error {
 		} else {
 			fmt.Fprintf(w, "\tr")
 		}
-		fmt.Fprintf(w, "\t%s UTC", token.Expiry.UTC().Format("2006-01-02T15:04"))
-		if expired {
-			fmt.Fprintf(w, " *expired*")
+		if token.Indefinite {
+			fmt.Fprintf(w, "\tNever")
+		} else {
+			fmt.Fprintf(w, "\t%s UTC", token.Expiry.UTC().Format("2006-01-02T15:04"))
+			if expired {
+				fmt.Fprintf(w, " *expired*")
+			}
 		}
+
 		fmt.Fprintf(w, "\n")
 	}
 	w.Flush()
@@ -464,12 +469,8 @@ func (app *earthlyApp) actionAccountCreateToken(cliCtx *cli.Context) error {
 		return errors.New("invalid number of arguments provided")
 	}
 
-	var expiry time.Time
-	if app.expiry == "" {
-		expiry = time.Now().Add(time.Hour * 24 * 365)
-	} else if app.expiry == "never" {
-		expiry = time.Now().Add(time.Hour * 24 * 365 * 100) // TODO save this some other way
-	} else {
+	var expiry *time.Time
+	if app.expiry != "" && app.expiry != "never" {
 		layouts := []string{
 			"2006-01-02",
 			time.RFC3339,
@@ -477,7 +478,7 @@ func (app *earthlyApp) actionAccountCreateToken(cliCtx *cli.Context) error {
 
 		var err error
 		for _, layout := range layouts {
-			expiry, err = time.Parse(layout, app.expiry)
+			*expiry, err = time.Parse(layout, app.expiry)
 			if err == nil {
 				break
 			}
@@ -492,12 +493,20 @@ func (app *earthlyApp) actionAccountCreateToken(cliCtx *cli.Context) error {
 		return err
 	}
 	name := cliCtx.Args().First()
-	token, err := cloudClient.CreateToken(cliCtx.Context, name, app.writePermission, &expiry)
+	token, err := cloudClient.CreateToken(cliCtx.Context, name, app.writePermission, expiry)
 	if err != nil {
 		return errors.Wrap(err, "failed to create token")
 	}
-	expiryStr := humanize.Time(expiry)
-	fmt.Printf("created token %q which will expire in %s; save this token somewhere, it can't be viewed again (only reset)\n", token, expiryStr)
+
+	expiryStr := ""
+	if expiry != nil {
+		expiryStr = fmt.Sprintf("will expire in %s", humanize.Time(*expiry))
+	} else {
+		expiryStr = fmt.Sprintf("will never expire")
+	}
+
+	fmt.Printf("created token %q which %s; save this token somewhere, it can't be viewed again (only reset)\n", token, expiryStr)
+
 	return nil
 }
 func (app *earthlyApp) actionAccountRemoveToken(cliCtx *cli.Context) error {
