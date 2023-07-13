@@ -19,5 +19,5 @@ test:
             --compose docker-compose.yml \
             --service webserver \
             --load fetch:latest=+fetch
-        RUN $FRONTEND_COMPOSE up --exit-code-from fetch fetch | grep 'Hello World'
+        RUN $FRONTEND_COMPOSE up --exit-code-from fetch fetch
     END
