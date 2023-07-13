@@ -90,6 +90,30 @@ test-save-local-artifact-with-workdir:
     COPY +save-local-artifact-with-workdir/data .
     RUN cat data | grep '^ddd$'
 
+#################################################################################################################
+# tests for testing overwriting existing local files
+
+some-artifact:
+    RUN printf '4321' > four-bytes.txt
+    SAVE ARTIFACT four-bytes.txt
+
+test-local-overwrites:
+    LOCALLY
+    RUN rm -fr              /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda && \
+        mkdir -p            /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda && \
+        printf "12345678" > /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda/eight.txt && \
+        printf "1234"     > /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda/four.txt && \
+        printf "12"       > /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda/two.txt
+    # In previous releases this would result in "43215678"
+    COPY +some-artifact/four-bytes.txt /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda/eight.txt
+    # These always worked fine
+    COPY +some-artifact/four-bytes.txt /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda/four.txt
+    COPY +some-artifact/four-bytes.txt /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda/two.txt
+    RUN set -e; \
+        for i in eight four two; do \
+            cat /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda/${i}.txt | grep '^4321$'; \
+        done
+
 
 #################################################################################################################
 # tests for testing containerized artifacts can be referenced by local targets
