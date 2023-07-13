@@ -27,6 +27,7 @@ require (
 	github.com/jdxcode/netrc v0.0.0-20210204082910-926c7f70242a
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/joho/godotenv v1.5.1
+	github.com/kylelemons/godebug v1.1.0
 	github.com/mattn/go-colorable v0.1.13
 	github.com/mattn/go-isatty v0.0.17
 	github.com/mitchellh/hashstructure/v2 v2.0.2

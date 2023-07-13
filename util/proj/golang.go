@@ -2,6 +2,7 @@ package proj
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"io/fs"
 	"path/filepath"
@@ -16,17 +17,13 @@ const (
 	goSum = "go.sum"
 
 	goBase = `
-go-base:
-    LET go_version = 1.20
-    LET distro = alpine3.18
+LET go_version = 1.20
+LET distro = alpine3.18
 
-    FROM golang:${go_version}-${distro}
-    WORKDIR /go-workdir`
+FROM golang:${go_version}-${distro}
+WORKDIR /go-workdir`
 
-	goDeps = `
-go-deps:
-    FROM +go-base
-
+	goDepsBlock = `
     # Copying only go.mod and go.sum means that the cache for this
     # target will only be busted when go.mod/go.sum change. This
     # means that we can cache the results of 'go mod download'.
@@ -34,6 +31,14 @@ go-deps:
     # Projects with no external dependencies do not have a go.sum.
     COPY --if-exists go.sum .
     RUN go mod download`
+
+	goDepsFromTgt = `
+go-deps:
+    FROM +%s
+` + goDepsBlock
+
+	goDepsFromBase = `
+go-deps:` + goDepsBlock
 
 	goTestBase = `
 go-test-base:
@@ -79,6 +84,15 @@ go-proj-base:
     # This copies the whole project. If you want better caching, try
     # limiting this to _just_ files required by your go project.
     COPY . .`
+
+	goTidy = `
+# go-mod-tidy runs 'go mod tidy', saving go.mod and go.sum locally.
+go-mod-tidy:
+    FROM +go-proj-base
+
+    RUN go mod tidy
+    SAVE ARTIFACT go.mod AS LOCAL go.mod
+    SAVE ARTIFACT --if-exists go.sum AS LOCAL go.sum`
 
 	goBuild = `
 # go-build runs 'go build ./...', saving artifacts locally.
@@ -144,16 +158,26 @@ func (g *Golang) Root(context.Context) string {
 	return g.root
 }
 
+// BaseBlock returns the block of commands that need to be in the base target
+// for go targets.
+func (g *Golang) BaseBlock(context.Context) (Formatter, error) {
+	return strFormatter(goBase), nil
+}
+
 // Targets returns the targets that should be used for this Golang project.
-func (g *Golang) Targets(_ context.Context) ([]Formatter, error) {
+func (g *Golang) Targets(_ context.Context, baseName string) ([]Formatter, error) {
+	goDeps := goDepsFromBase
+	if baseName != "" {
+		goDeps = fmt.Sprintf(goDepsFromTgt, baseName)
+	}
 	return []Formatter{
-		strFormatter(goBase),
 		strFormatter(goDeps),
 		strFormatter(goTestBase),
 		strFormatter(goTestRace),
-		strFormatter(goTest),
 		strFormatter(goTestIntegration),
+		strFormatter(goTest),
 		strFormatter(goProjBase),
+		strFormatter(goTidy),
 		strFormatter(goBuild),
 	}, nil
 }
@@ -163,8 +187,15 @@ type strFormatter string
 func (f strFormatter) Format(_ context.Context, w io.Writer, indent string, level int) error {
 	s := strings.TrimSpace(string(f))
 	if level > 0 {
-		fullIndent := "\n" + strings.Repeat(indent, level)
-		s = strings.Replace(s, "\n", fullIndent, -1)
+		fullIndent := strings.Repeat(indent, level)
+		lines := strings.Split(s, "\n")
+		for i, l := range lines {
+			if len(l) == 0 {
+				continue
+			}
+			lines[i] = fullIndent + l
+		}
+		s = strings.Join(lines, "\n")
 	}
 	s += "\n"
 	b := []byte(s)

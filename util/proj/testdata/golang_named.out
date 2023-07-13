@@ -37,11 +37,6 @@ go-test-race:
 
     RUN go test -race "$package"
 
-# go-test runs all go test targets
-go-test:
-    BUILD +go-test-race
-    BUILD +go-test-integration
-
 # go-test-integration runs 'go test -tags integration'.
 go-test-integration:
     FROM +go-test-base
@@ -51,12 +46,25 @@ go-test-integration:
 
     RUN go test -tags integration "$package"
 
+# go-test runs all go test targets
+go-test:
+    BUILD +go-test-race
+    BUILD +go-test-integration
+
 go-proj-base:
     FROM +go-deps
 
     # This copies the whole project. If you want better caching, try
     # limiting this to _just_ files required by your go project.
     COPY . .
+
+# go-mod-tidy runs 'go mod tidy', saving go.mod and go.sum locally.
+go-mod-tidy:
+    FROM +go-proj-base
+
+    RUN go mod tidy
+    SAVE ARTIFACT go.mod AS LOCAL go.mod
+    SAVE ARTIFACT --if-exists go.sum AS LOCAL go.sum
 
 # go-build runs 'go build ./...', saving artifacts locally.
 go-build:
@@ -65,7 +73,7 @@ go-build:
     ENV GOBIN = "/tmp/build"
     RUN go install ./...
 
-    # output-dir sets the directory that build artifacts will be saved to.
+    # outputDir sets the directory that build artifacts will be saved to.
     ARG outputDir = "./build"
 
     FOR bin IN $(ls -1 "/tmp/build")

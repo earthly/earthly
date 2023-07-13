@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -52,23 +54,49 @@ func (app *earthlyApp) actionInit(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not write version string in %q", efPath)
 	}
-	for _, p := range projs {
-		if p.Root(ctx) != absWd {
-			return errors.Errorf("project type %T wants to generate an Earthfile in an unsupported directory: %q", p, p.Root(ctx))
-		}
-		tgts, err := p.Targets(ctx)
+	if len(projs) > 1 {
+		// This is easy enough to support when we have more than one project
+		// type, but for now there's no point.
+		return errors.Errorf("%d projects detected, but multiple project types are not supported by init yet", len(projs))
+	}
+
+	p := projs[0]
+	if p.Root(ctx) != absWd {
+		// In the distant future, this may be used to generate multiple
+		// Earthfiles over multiple directories and call them from a main
+		// Earthfile target with BUILD.
+		return errors.Errorf("project type %T wants to generate an Earthfile in an unsupported directory: %q", p, p.Root(ctx))
+	}
+
+	return initSingleProject(ctx, f, p)
+}
+
+func initSingleProject(ctx context.Context, w io.Writer, p proj.Project) error {
+	base, err := p.BaseBlock(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "could not generate base target for project type %T", p)
+	}
+	err = base.Format(ctx, w, efIndent, 0)
+	if err != nil {
+		return errors.Wrapf(err, "could not format base target for project type %T", p)
+	}
+	_, err = w.Write([]byte("\n"))
+	if err != nil {
+		return errors.Wrapf(err, "could not write newline separator between targets")
+	}
+
+	tgts, err := p.Targets(ctx, "")
+	if err != nil {
+		return errors.Wrapf(err, "could not generate targets for project type %T", p)
+	}
+	for _, tgt := range tgts {
+		err := tgt.Format(ctx, w, efIndent, 0)
 		if err != nil {
-			return errors.Wrapf(err, "could not generate targets for project type %T", p)
+			return errors.Wrapf(err, "could not format target for project type %T", p)
 		}
-		for _, tgt := range tgts {
-			err := tgt.Format(ctx, f, efIndent, 0)
-			if err != nil {
-				return errors.Wrapf(err, "could not format target for project type %T", p)
-			}
-			_, err = f.WriteString("\n")
-			if err != nil {
-				return errors.Wrapf(err, "could not write newline separator between targets")
-			}
+		_, err = w.Write([]byte("\n"))
+		if err != nil {
+			return errors.Wrapf(err, "could not write newline separator between targets")
 		}
 	}
 	return nil

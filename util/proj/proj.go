@@ -78,16 +78,35 @@ type Formatter interface {
 	Format(ctx context.Context, w io.Writer, indent string, level int) error
 }
 
+// ProjectType represents a type of project (typically a language).
+type ProjectType interface {
+	// ForDir returns a Project for the named directory. It should return
+	// ErrSkip if there is no project matching this ProjectType at the requested
+	// dir.
+	ForDir(ctx context.Context, dir string) (Project, error)
+}
+
 // Project is a type that can generate Earthfile code for a given project.
 type Project interface {
-	ForDir(ctx context.Context, dir string) (Project, error)
+	// Root returns the root directory for this Project.
 	Root(context.Context) string
-	Targets(context.Context) ([]Formatter, error)
+
+	// BaseBlock returns the block of commands that will be used as a base
+	// target for this Project. If the generated Earthfile is for one Project,
+	// then these commands will be part of the base target; otherwise they will
+	// be added to a named target for this project.
+	BaseBlock(context.Context) (Formatter, error)
+
+	// Targets returns a list of targets for this Project. The baseTargetName
+	// will be the name of the target that the BaseBlock commands were added to.
+	// If the baseTargetName is empty, then the commands were added to the
+	// actual base target, and no FROM command should be necessary to use it.
+	Targets(ctx context.Context, baseTargetName string) ([]Formatter, error)
 }
 
 // All returns all available project types for the given dir.
 func All(ctx context.Context, dir string) ([]Project, error) {
-	known := []Project{
+	known := []ProjectType{
 		NewGolang(StdFS(), StdExecer()),
 	}
 	var active []Project
