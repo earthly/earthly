@@ -25,6 +25,10 @@ test -n "$EARTHLY_TOKEN" || (echo "error: EARTHLY_TOKEN is not set" && exit 1)
 # test EARTHLY_ORG env
 EARTHLY_ORG=earthly-technologies "$earthly" sat inspect core-test
 
-# test org select
+# test inspect can use the org name from the config file
 "$earthly" org select earthly-technologies
+"$earthly" sat inspect core-test
+
+# test the sat select works correctly uses the config's org
 "$earthly" sat select core-test
+"$earthly" satellite ls | grep '^\* \+core-test'
