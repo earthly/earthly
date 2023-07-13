@@ -99,7 +99,7 @@ grep "Earthly installation is working correctly" output.txt
 
 if [ "$FRONTEND" = "docker" ]; then
     echo "Test use /var/run/docker.sock, but not privileged."
-    "$FRONTEND" run --rm -e EARTHLY_ADDITIONAL_BUILDKIT_CONFIG -v "$dockerconfig:/root/.docker/config.json" -e NO_BUILDKIT=1 -e EARTHLY_NO_BUILDKIT_UPDATE=1 -v /var/run/docker.sock:/var/run/docker.sock "${EARTHLY_IMAGE}" --no-cache github.com/earthly/hello-world+hello 2>&1 | tee output.txt
+    "$FRONTEND" run --rm -e EARTHLY_ADDITIONAL_BUILDKIT_CONFIG -v "$dockerconfig:/root/.docker/config.json" -e NO_BUILDKIT=1 -e EARTHLY_NO_BUILDKIT_UPDATE=1 -v /var/run/docker.sock:/var/run/docker.sock "${EARTHLY_IMAGE}" --no-cache github.com/earthly/hello-world:4d466d524f768a379374c785fdef30470e87721d+hello 2>&1 | tee output.txt
     grep "Hello World" output.txt
     grep "Earthly installation is working correctly" output.txt
 fi
@@ -122,7 +122,7 @@ if [ -n "${DOCKERHUB_USERNAME:-}" ] && [ -n "${DOCKERHUB_PASSWORD:-}" ]; then
 EOF
 fi
 
-"$FRONTEND" run --rm -e EARTHLY_TOKEN="${EARTHLY_TOKEN}" -v "$satconfig:/root/.docker/config.json" -e NO_BUILDKIT=1 "${EARTHLY_IMAGE}" --org earthly-technologies --sat core-test --no-cache github.com/earthly/hello-world+hello 2>&1 | tee output.txt
+"$FRONTEND" run --rm -e EARTHLY_TOKEN="${EARTHLY_TOKEN}" -v "$satconfig:/root/.docker/config.json" -e NO_BUILDKIT=1 "${EARTHLY_IMAGE}" --org earthly-technologies --sat core-test --no-cache github.com/earthly/hello-world:4d466d524f768a379374c785fdef30470e87721d+hello 2>&1 | tee output.txt
 grep "Hello World" output.txt
 grep "Earthly installation is working correctly" output.txt
 
