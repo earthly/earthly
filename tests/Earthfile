@@ -147,6 +147,7 @@ ga-no-qemu-quick:
     BUILD +doc-recipe-block
     BUILD +no-network
     BUILD +test-works-without-earthly-server
+    BUILD +test-init-golang
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -1486,6 +1487,13 @@ test-works-without-earthly-server:
     DO +RUN_EARTHLY --verbose=false --pre_command=/tmp/precommand --post_command=" && date +%s > end-time" --earthfile=true.earth --target=+true
     RUN if grep "failed sending analytics" earthly.output; then echo "analytics should have failed silently, but didnt" && exit 1; fi
     RUN export duration=$(echo "$(cat end-time) - $(cat start-time)" | bc) && test "$duration" -lt 120 || (echo "it took $duration seconds to run +true, which is too long" && exit 1)
+
+test-init-golang:
+    COPY go-project go-project
+    WORKDIR ./go-project
+    DO +RUN_EARTHLY --extra_args "init"
+    DO +RUN_EARTHLY --target "+go-build"
+    DO +RUN_EARTHLY --target "+go-test"
 
 RUN_EARTHLY:
     COMMAND
