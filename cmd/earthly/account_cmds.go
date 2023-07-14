@@ -498,11 +498,9 @@ func (app *earthlyApp) actionAccountCreateToken(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create token")
 	}
 
-	expiryStr := ""
+	expiryStr := "will never expire"
 	if expiry != nil {
 		expiryStr = fmt.Sprintf("will expire in %s", humanize.Time(*expiry))
-	} else {
-		expiryStr = fmt.Sprintf("will never expire")
 	}
 
 	fmt.Printf("created token %q which %s; save this token somewhere, it can't be viewed again (only reset)\n", token, expiryStr)
