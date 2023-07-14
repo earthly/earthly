@@ -231,6 +231,7 @@ all:
     BUILD +test-save-unnamed-local-artifact
     BUILD +test-save-unnamed-local-artifact-dir
     BUILD +test-save-unnamed-local-artifact-dir2
+    BUILD +test-local-overwrites
     BUILD +test-with-docker --FRONTEND=$FRONTEND
     BUILD +test-with-two-dockers --FRONTEND=$FRONTEND
     BUILD ./with-docker-compose-local+all --FRONTEND=$FRONTEND --FRONTEND_COMPOSE=$FRONTEND_COMPOSE
