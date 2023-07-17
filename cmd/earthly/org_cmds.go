@@ -10,6 +10,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/earthly/earthly/cloud"
+	"github.com/earthly/earthly/config"
 )
 
 func (app *earthlyApp) orgCmds() []*cli.Command {
@@ -114,6 +115,20 @@ func (app *earthlyApp) orgCmds() []*cli.Command {
 					Action:      app.actionOrgMemberRemove,
 				},
 			},
+		},
+		{
+			Name:      "select",
+			Usage:     "Select the default organization *beta*",
+			UsageText: "earthly [options] org select <org-name>",
+			Aliases:   []string{"s"},
+			Action:    app.actionOrgSelect,
+		},
+		{
+			Name:      "unselect",
+			Usage:     "Unselects the default organization *beta*",
+			UsageText: "earthly [options] org select <org-name>",
+			Aliases:   []string{"uns"},
+			Action:    app.actionOrgUnselect,
 		},
 	}
 }
@@ -445,6 +460,79 @@ func (app *earthlyApp) actionOrgMemberRemove(cliCtx *cli.Context) error {
 	}
 
 	app.console.Printf("Member %q removed successfully", userEmail)
+
+	return nil
+}
+
+func (app *earthlyApp) actionOrgSelect(cliCtx *cli.Context) error {
+	app.commandName = "orgSelect"
+	if cliCtx.NArg() != 1 {
+		return errors.New("invalid number of arguments provided")
+	}
+	org := cliCtx.Args().Get(0)
+	cloudClient, err := app.newCloudClient()
+	if err != nil {
+		return err
+	}
+
+	_, err = cloudClient.GetOrgID(cliCtx.Context, org)
+	if err != nil {
+		return errors.Wrap(err, "failed to get org")
+	}
+
+	inConfig, err := config.ReadConfigFile(app.configPath)
+	if err != nil {
+		if cliCtx.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrap(err, "read config")
+		}
+	}
+
+	newConfig, err := config.Upsert(inConfig, "global.org", org)
+	if err != nil {
+		return errors.Wrap(err, "could not update default org")
+	}
+	app.cfg.Global.Org = org
+
+	if app.cfg.Satellite.Org != "" {
+		newConfig, err = config.Upsert(newConfig, "satellite.org", "")
+		if err != nil {
+			return errors.Wrap(err, "could not remove deprecated setting")
+		}
+		app.cfg.Satellite.Org = ""
+	}
+
+	err = config.WriteConfigFile(app.configPath, newConfig)
+	if err != nil {
+		return errors.Wrap(err, "could not save config")
+	}
+	app.console.Printf("Updated selected org in %s", app.configPath)
+
+	return nil
+}
+
+func (app *earthlyApp) actionOrgUnselect(cliCtx *cli.Context) error {
+	app.commandName = "orgSelect"
+	if cliCtx.NArg() != 0 {
+		return errors.New("invalid number of arguments provided")
+	}
+
+	inConfig, err := config.ReadConfigFile(app.configPath)
+	if err != nil {
+		if cliCtx.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrap(err, "read config")
+		}
+	}
+
+	newConfig, err := config.Delete(inConfig, "global.org")
+	if err != nil {
+		return errors.Wrap(err, "could not unselect default org")
+	}
+
+	err = config.WriteConfigFile(app.configPath, newConfig)
+	if err != nil {
+		return errors.Wrap(err, "could not save config")
+	}
+	app.console.Printf("Unselected org in %s", app.configPath)
 
 	return nil
 }

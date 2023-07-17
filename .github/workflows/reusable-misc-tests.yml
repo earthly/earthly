@@ -89,6 +89,9 @@ jobs:
           for pid in ${pids[*]}; do
               wait $pid
           done
+      - name: "Run the earthly satellites tests (Earthly only)"
+        run: env earthly=${{inputs.BUILT_EARTHLY_PATH}} ./scripts/tests/satellites-integration.sh
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute interactive debugger test
         run: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ${{inputs.BUILT_EARTHLY_PATH}} --timeout 180
       - name: "cloud-stored docker credential test (Earthly only)"

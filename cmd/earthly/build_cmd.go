@@ -274,6 +274,12 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		return errors.Wrapf(err, "could not configure satellite")
 	}
 
+	// After configuring frontend and satellites, buildkit address should not be empty.
+	// It should be set to a local container, remote address, or satellite address at this point.
+	if app.buildkitdSettings.BuildkitAddress == "" {
+		return errors.New("could not determine buildkit address - is Docker or Podman running?")
+	}
+
 	var runnerName string
 	isLocal := containerutil.IsLocal(app.buildkitdSettings.BuildkitAddress)
 	if isLocal {

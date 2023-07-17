@@ -163,7 +163,7 @@ type cliFlags struct {
 	satelliteMaintenaceWeekendsOnly bool
 	satelliteDropCache              bool
 	satelliteVersion                string
-	satelliteIncludeHidden          bool
+	satelliteListAll                bool
 	userPermission                  string
 	noBuildkitUpdate                bool
 	globalWaitEnd                   bool // for feature-flipping builder.go code removal
@@ -448,7 +448,7 @@ func (app *earthlyApp) parseFrontend(cliCtx *cli.Context, cfg *config.Config) er
 		app.containerFrontend = stub
 
 		if !app.verbose {
-			console.Printf("No frontend initialized. Use --verbose to see details\n")
+			console.Printf("Unable to detect Docker or Podman. Use --verbose to see details (or errors)\n")
 		}
 		console.VerbosePrintf("%s frontend initialization failed due to %s", app.cfg.Global.ContainerFrontend, origErr.Error())
 		return nil
@@ -557,6 +557,9 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 		}
 	}
 
+	if !cliCtx.IsSet("org") {
+		app.orgName = app.cfg.Global.Org
+	}
 	return nil
 }
 
@@ -612,6 +615,19 @@ func (app *earthlyApp) processDeprecatedCommandOptions(cliCtx *cli.Context, cfg 
 				v.Password = app.gitPasswordOverride
 			}
 			cfg.Git[k] = v
+		}
+	}
+
+	if cfg.Satellite.Org != "" {
+		if cfg.Global.Org != "" {
+			app.console.Warnf("Two default organizations were specified.\n" +
+				"You can remove the deprecated value by running 'earthly config satellite.org \"\"'\n" +
+				"Earthly will use the global value.")
+		} else {
+			app.console.Warnf("Auto-selecting the default org will no longer be supported in the future.\n" +
+				"You can select a default org using the command 'earthly org select',\n" +
+				"or otherwise specify an org using the --org flag or EARTHLY_ORG environment variable.")
+			cfg.Global.Org = cfg.Satellite.Org
 		}
 	}
 
@@ -755,6 +771,20 @@ func (app *earthlyApp) run(ctx context.Context, args []string) int {
 			} else {
 				app.console.Warnf("Error: File not found: %v\n", err.Error())
 			}
+			return 1
+		case strings.Contains(err.Error(), "429 Too Many Requests"):
+			app.logbus.Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_RATE_LIMITED, err.Error())
+			var registryName string
+			var registryHost string
+			if strings.Contains(err.Error(), "docker.com/increase-rate-limit") {
+				registryName = "DockerHub"
+			} else {
+				registryName = "The remote registry"
+				registryHost = " <server>" // keep the leading space
+			}
+			app.console.Warnf("Error: %s responded with a rate limit error. This is usually because you are not logged in.\n"+
+				"You can login using the command:\n"+
+				"  docker login%s", registryName, registryHost)
 			return 1
 		case strings.Contains(failedOutput, "Invalid ELF image for this architecture"):
 			app.console.Warnf("Error: %v\n", err)

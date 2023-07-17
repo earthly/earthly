@@ -4,6 +4,41 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.12 - 2023-07-17
+
+### Added
+- warning if acquiring file-lock takes longer than 3 seconds.
+
+### Changed
+- improved error message when a 429 too many requests rate limit error occurs.
+- `earthly sat ls -a` shows last accessed time
+- improved output for listing auth tokens
+
+### Fixed
+- make use of org from earthly config when using satellite commands.
+
+## v0.7.12-rc1 - 2023-07-13
+
+### Added
+- warning if acquiring file-lock takes longer than 3 seconds.
+
+### Changed
+- improved error message when a 429 too many requests rate limit error occurs.
+- `earthly sat ls -a` shows last accessed time
+
+### Fixed
+- make use of org from earthly config when using satellite commands.
+
+## v0.7.11 - 2023-07-06
+
+### Added
+- `global.org` configuration value to set a default org for all `earthly` commands that require it.
+- `earthly org select` and `earthly org unselect` commands, as shortcuts to set a default organization in the `earthly` config file.
+
+### Changed
+- Removed the default size in satellite launch (the default size is now determined by the backend when not provided) [#3057](https://github.com/earthly/earthly/issues/3057)
+- Deprecated the satellite org configuration value. It uses the new global configuration value.
+
 ## v0.7.10 - 2023-07-05
 
 ### Changed
