@@ -1,34 +1,12 @@
 *The code of this example is available in the [earthly/earthly-example-ci repository on GitHub](https://github.com/earthly/earthly-example-ci).*
 
-An alternative to using a traditional CI system (see [part 8a](./part-8a-using-earthly-in-your-current-ci.md)) is to use Earthly CI. With Earthly CI, you don't need any other build specification other than the Earthfile. Earthly CI uses the same technology underneath as Earthly Satellites, which means that it is dramatically faster than traditional CI systems through the use of its instantly-available cache.
+An alternative to using a traditional CI system (see [part 8a](./part-8a-using-earthly-in-your-current-ci.md)) is to use Earthly CI. Earthly CI is a full-fledged continuous integration system that uses Earthly Satellites under the hood, which means that it is dramatically faster than traditional CI systems through the use of Satellites' instantly-available cache. With Earthly CI, you don't need any build specification other than a simple Earthfile.
 
-Earthly CI is a [paid feature](https://earthly.dev/pricing), although there is a 14-day free trial available. This section will walk you through the steps to get started with Earthly CI.
+Earthly CI is part of Earthly Cloud. You can use it for free as part of our free tier. Get started with Earthly Cloud by visiting the [sign up](https://cloud.earthly.dev/login) page, and get 6,000 build minutes/month for free.
 
 ## Getting Started with Earthly CI
 
-To get started with Earthly CI, you need to first create an Earthly Cloud account, if you haven't already. You can do so by running the following command:
-
-```bash
-earthly account register --email <your-email>
-```
-
-Follow instructions in the email received to complete the registration. You will additionally need to create an organization.
-
-```bash
-earthly org create my-org
-```
-
-You must subscribe to a paid plan to use Earthly CI. The subscription has a 14-day trial -- your credit card is not charged if you cancel before then.
-
-[**Click here to start your subscription**](https://buy.stripe.com/dR6g2Qect2Nn5KE3cf)
-
-Then, you can access the Earthly Web UI by running...
-
-```bash
-earthly web
-```
-
-This will associate your Earthly account with your GitHub login and then take you to the Earthly Web UI.
+To get started with Earthly CI, you need to first [sign up for free to Earthly Cloud](https://cloud.earthly.dev/login).
 
 ## Defining an Earthly CI Pipeline
 
