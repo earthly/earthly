@@ -26,9 +26,24 @@ Earthly's key features/benefits are:
   * **♻️ Reuse, Don't Repeat**  
     Never have to write the same code in multiple builds again. With Earthly, you can reuse targets, artifacts, and images across multiple Earthfiles, even ones in other repositories, in a single line. Earthly is cache-aware, based on the individual hashes of each file, and has shared caching capabilities. So you can create a vast and efficient build hierarchy that only executes the minimum required steps.
 
+## Earthly Cloud
+
+Earthly Cloud is a cloud-based build automation platform that allows you to run your Earthly builds in the cloud, and is compatible with any CI. Earthly Cloud gives teams repeatable pipelines that run exactly the same in CI as on your laptop; has an automatic and instantly available build cache that makes builds faster; and is super simple to use.
+
+Earthly is better when you're logged in to Earthly Cloud, and Earthly Cloud has a generous free tier that includes additional capabilities like:
+  * Sharing cache with your team
+  * Remote build runners
+  * Shared logs
+  * Shared secrets
+  * Even a full-fledged continuous integration system
+
+To get started, visit the [Earthly Cloud sign up](https://cloud.earthly.dev/login) page.
+
 ## Installation
 
-See [installation instructions](https://earthly.dev/get-earthly).
+The best way to install Earthly is by [visiting Earthly Cloud and signing up for free](https://cloud.earthly.dev/login).
+
+If you prefer not to create an online account, you can also install and use Earthly locally without an account. See the [installation instructions](https://earthly.dev/get-earthly).
 
 For a full list of installation options see the [alternative installation page](./alt-installation/alt-installation.md).
 
@@ -41,10 +56,11 @@ A high-level overview is available on [the Earthly GitHub page](https://github.c
 ## Quick Links
 
 * [Earthly GitHub page](https://github.com/earthly/earthly)
-* [Installation instructions](https://earthly.dev/get-earthly)
+* [Earthly Cloud Login](https://cloud.earthly.dev/login)
 * [Earthly basics](./basics/basics.md)
 * [Earthfile reference](./earthfile/earthfile.md)
 * [Earthly command reference](./earthly-command/earthly-command.md)
 * [Configuration reference](./earthly-config/earthly-config.md)
 * [Earthfile examples](./examples/examples.md)
 * [Best practices](./best-practices/best-practices.md)
+* [Earthly Cloud documentation](./cloud/overview.md)

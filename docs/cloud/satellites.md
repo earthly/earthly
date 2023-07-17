@@ -1,7 +1,5 @@
 # Earthly Satellites
 
-This feature is part of the [Earthly Satellites & Earthly CI paid plans](https://earthly.dev/pricing).
-
 Earthly Satellites are [remote runner](../remote-runners.md) instances managed by the Earthly team. They allow you to perform builds in the cloud, while retaining cache between runs.
 
 ## Benefits
@@ -36,30 +34,11 @@ Typical use cases for Earthly Satellites include:
 
 ## Getting started
 
-### 1. Register an account and create an org
+### 1. Sign up for Earthly Cloud (free)
 
-Follow the steps in the [Earthly Cloud overview](./overview.md#getting-started) to register an account and create an org.
+Earthly Satellites is part of Earthly Cloud. You can use it for free as part of our free tier. Get started with Earthly Cloud by visiting the [sign up](https://cloud.earthly.dev/login) page, and get 6,000 build minutes/month for free.
 
-### 2. Start a free trial
-
-Satellites are a paid feature which require a subscription to begin using. The subscription includes a 14-day free trial which can be canceled before any payment is made. Visit the [pricing page](https://earthly.dev/pricing) for more details.
-
-You can start your free trial by using the checkout form below. Be sure to provide the name of your Earthly org from Step 1.
-
-[**Click here to start your free trial**](https://buy.stripe.com/8wM9Es4BT4Vvb4YbIJ)
-
-### 3. Ensure that you have the latest version of Earthly
-
-**On Linux**, simply repeat the [installation steps](https://earthly.dev/get-earthly) to upgrade.
-
-**On Mac**, you can perform:
-
-```bash
-brew update
-brew upgrade earthly
-```
-
-### 4. Launch a new satellite
+### 2. Launch a new satellite
 
 To launch a new satellite, run:
 
@@ -69,15 +48,16 @@ earthly sat launch <satellite-name>
 
 The Satellite name can be any arbitrary string.
 
-If you are part of multiple Earthly organizations, you may have to specify the org name under which you would like to launch the satellite:
+If you are part of multiple Earthly organizations, you may want to first select the org under which you would like to launch the satellite:
 
 ```bash
-earthly sat --org <org-name> launch <satellite-name>
+earthly org select <org-name>
+earthly sat launch <satellite-name>
 ```
 
 Once the satellite is created it will be automatically selected for use as part of your builds. The selection takes place by Earthly adding some information in your Earthly config file (usually located under `~/.earthly/config.yml`).
 
-### 5. Run a build
+### 3. Run a build
 
 To execute a build using the newly created satellite, simply run Earthly like you always have. For example:
 
@@ -113,12 +93,12 @@ earthly --no-sat +my-target
 
 For more information on using satellites, see the [Using satellites page](./satellites/using.md).
 
-### 6. Invite your team
+### 4. Invite your team
 
-A final optional step is to invite your team to use the satellite. This can be done by running:
+A final step is to invite your team to use the satellite. This can be done by running:
 
 ```bash
-earthly --org <org-name> org invite <email>
+earthly org invite <email>
 ```
 
 Once a user has been invited, you can forward them a link to the page [Using Satellites](./satellites/using.md) for them to get started.

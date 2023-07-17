@@ -1,7 +1,5 @@
 # Managing Satellites
 
-This feature is part of the [Earthly Satellites & Earthly CI paid plans](https://earthly.dev/pricing).
-
 This page describes how to manage [Earthly Satellites](../satellites.md).
 
 ## Launching and removing satellites
@@ -17,7 +15,7 @@ The Satellite name can be any arbitrary string.
 If you are part of multiple Earthly organizations, you may have to specify the org name under which you would like to launch the satellite:
 
 ```bash
-earthly sat --org <org-name> launch <satellite-name>
+earthly sat launch <satellite-name>
 ```
 
 Once the satellite is created it will be automatically selected for use as part of your builds. The selection takes place by Earthly adding some information in your Earthly config file (usually located under `~/.earthly/config.yml`).
@@ -230,7 +228,7 @@ Note that the [`inspect`](#checking-status-of-a-satellite) command will show you
 Currently, all users who are part of an organization are allowed to use any satellite in the organization. To invite another user to join your org, run:
 
 ```bash
-earthly --org <org-name> org invite <email>
+earthly org invite <email>
 ```
 
 Once a user has been invited, you can forward them a link to the page [Using Satellites](./using.md) for them to get started.

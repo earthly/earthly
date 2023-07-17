@@ -38,19 +38,19 @@ Having a certain level of access for a given org automatically grants the same l
 To grant access to an Earthly org, you must invite the user to the org. This can be done by running:
 
 ```bash
-earthly org --org <org-name> invite --permission <access-level> <email>
+earthly org invite --permission <access-level> <email>
 ```
 
 If the user is already part of the org, you can change their access level by running:
 
 ```bash
-earthly org --org <org-name> member update --permission <permission> <email>
+earthly org member update --permission <permission> <email>
 ```
 
 If you want to revoke access to an Earthly org, you can do so by running:
 
 ```bash
-earthly org --org <org-name> member rm <email>
+earthly org member rm <email>
 ```
 
 ## Earthly project access levels
@@ -67,7 +67,7 @@ Within an Earthly project, users may be granted one of the following access leve
 To grant access to an Earthly project, you must invite the user to the project. This can be done by running:
 
 ```bash
-earthly project --org <org-name> --project <project-name> member add --permission <access-level> <email>
+earthly project --project <project-name> member add --permission <access-level> <email>
 ```
 
 {% hint style='info' %}
@@ -78,11 +78,11 @@ You can only invite a user to a project if they are already part of the organiza
 If the user is already part of the project, you can change their access level by running:
 
 ```bash
-earthly project --org <org-name> --project <project-name> member update --permission <permission> <email>
+earthly project --project <project-name> member update --permission <permission> <email>
 ```
 
 If you want to revoke access to an Earthly project, you can do so by running:
 
 ```bash
-earthly project --org <org-name> --project <project-name> member rm <email>
+earthly project --project <project-name> member rm <email>
 ```
