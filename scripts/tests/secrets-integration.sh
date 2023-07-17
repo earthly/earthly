@@ -2,15 +2,29 @@
 set -eu # don't use -x as it will leak the private key
 
 earthly=${earthly:=earthly}
-earthly=$(realpath "$earthly")
+if [ "$earthly" != "earthly" ]; then
+  earthly=$(realpath "$earthly")
+fi
 echo "running tests with $earthly"
+"$earthly" --version
+
+PATH="$(realpath "$(dirname "$0")/../acbtest"):$PATH"
 
 # prevent the self-update of earthly from running (this ensures no bogus data is printed to stdout,
 # which would mess with the secrets data being fetched)
 date +%s > /tmp/last-earthly-prerelease-check
 
+if [ -z "${EARTHLY_TOKEN:-}" ]; then
+  echo "using EARTHLY_TOKEN from earthly secrets"
+  EARTHLY_TOKEN="$(earthly secrets --org earthly-technologies --project core get earthly-token-for-satellite-tests)"
+  export EARTHLY_TOKEN
+fi
+test -n "$EARTHLY_TOKEN" || (echo "error: EARTHLY_TOKEN is not set" && exit 1)
+
+EARTHLY_INSTALLATION_NAME="integration"
+export EARTHLY_INSTALLATION_NAME
+
 # ensure earthly login works (and print out who gets logged in)
-test -n "$EARTHLY_TOKEN"
 "$earthly" account login
 
 # test logout has no effect when EARTHLY_TOKEN is set
@@ -31,19 +45,20 @@ echo starting new instance of ssh-agent, and loading credentials
 eval "$(ssh-agent)"
 
 # grab first 6chars of md5sum of key to help sanity check that the same key is consistently used
+set +x # make sure we don't print the key here
 md5sum=$(echo -n "$ID_RSA" | md5sum | awk '{ print $1 }' | head -c6)
 
 echo "Adding key (with md5sum $md5sum...) into ssh-agent"
 echo "$ID_RSA" | ssh-add -
 
 echo testing that key was correctly loaded into ssh-agent
-ssh-add -l | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /manitou/;'
+ssh-add -l | acbgrep manitou
 
 echo testing that the ssh-agent only contains a single key
 test "$(ssh-add -l | wc -l)" = "1"
 
 echo "testing earthly account login works (and is using the earthly-manitou account)"
-"$earthly" account login 2>&1 | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /other-service\+earthly-manitou\@earthly.dev/;'
+"$earthly" account login 2>&1 | acbgrep 'other-service+earthly-manitou@earthly.dev'
 
 mkdir -p /tmp/earthtest
 cat << EOF > /tmp/earthtest/Earthfile
@@ -61,7 +76,7 @@ EOF
 # set and test get returns the correct value
 "$earthly" secrets --org manitou-org --project earthly-core-integration-test set my_test_file "secret-value"
 
-"$earthly" secrets --org manitou-org --project earthly-core-integration-test get my_test_file | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /secret-value/;'
+"$earthly" secrets --org manitou-org --project earthly-core-integration-test get my_test_file | acbgrep 'secret-value'
 
 echo "=== test 1 ==="
 # test RUN --mount can reference a secret from the command line
