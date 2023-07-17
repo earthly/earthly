@@ -97,7 +97,7 @@ func (c *Client) doCall(ctx context.Context, method, url string, opts ...request
 
 	alreadyReAuthed := false
 	if r.hasAuth && time.Now().UTC().After(c.authTokenExpiry) {
-		if err := c.Authenticate(ctx); err != nil {
+		if _, err := c.Authenticate(ctx); err != nil {
 			if errors.Is(err, ErrUnauthorized) {
 				return 0, nil, ErrUnauthorized
 			}
@@ -125,7 +125,7 @@ func (c *Client) doCall(ctx context.Context, method, url string, opts ...request
 			if !r.hasAuth || alreadyReAuthed {
 				return status, body, ErrUnauthorized
 			}
-			err := c.Authenticate(ctx)
+			_, err := c.Authenticate(ctx)
 			if err != nil {
 				return status, body, errors.Wrap(err, "auth credentials not valid")
 			}

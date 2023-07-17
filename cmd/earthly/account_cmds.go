@@ -535,6 +535,16 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 		return err
 	}
 
+	loggedInEmail, authType, _, err := cloudClient.WhoAmI(cliCtx.Context)
+	if err == nil {
+		// already logged in, don't re-attempt a login
+		app.console.Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
+		return nil
+	}
+	if errors.Cause(err) != cloud.ErrUnauthorized {
+		return errors.Wrap(err, "failed to login")
+	}
+
 	// if a user explicitly calls Login, we will allow future auto-logins
 	// which is required for refreshing tokens
 	err = cloudClient.EnableAutoLogin(cliCtx.Context)
@@ -593,11 +603,11 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 	} else if email != "" {
 		if err = cloudClient.FindSSHCredentials(cliCtx.Context, email); err == nil {
 			// if err is not nil, we will try again below via cloudClient.WhoAmI()
-			err = cloudClient.Authenticate(cliCtx.Context)
+			authType, err = cloudClient.Authenticate(cliCtx.Context)
 			if err != nil {
 				return errors.Wrap(err, "authentication with cloud server failed")
 			}
-			app.console.Printf("Logged in as %q using ssh auth\n", email)
+			app.console.Printf("Logged in as %q using %s auth\n", email, authType)
 			app.printLogSharingMessage()
 			return nil
 		}
@@ -659,19 +669,18 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		app.console.Printf("Logged in as %q using token auth\n", email) // TODO display if using read-only token
-		app.printLogSharingMessage()
 	} else {
 		err = app.loginAndSavePasswordCredentials(cliCtx.Context, cloudClient, email, string(pass))
 		if err != nil {
 			return err
 		}
-		app.printLogSharingMessage()
 	}
-	err = cloudClient.Authenticate(cliCtx.Context)
+	authType, err = cloudClient.Authenticate(cliCtx.Context)
 	if err != nil {
 		return errors.Wrap(err, "authentication with cloud server failed")
 	}
+	app.console.Printf("Logged in as %q using %s auth\n", email, authType)
+	app.printLogSharingMessage()
 	return nil
 }
 
