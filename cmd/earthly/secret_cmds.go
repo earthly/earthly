@@ -138,10 +138,15 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 		return nil
 	}
 
+	orgName, projectName, err := app.getOrgAndProject()
+	if err != nil {
+		return err
+	}
+
 	for _, secret := range secrets {
 		display := secret.Path
 		if !strings.HasPrefix(display, "/user/") {
-			prefix := fmt.Sprintf("/%s/%s/", app.orgName, app.projectName)
+			prefix := fmt.Sprintf("/%s/%s/", orgName, projectName)
 			display = strings.TrimPrefix(display, prefix)
 		}
 		fmt.Println(display)
@@ -276,17 +281,31 @@ func (app *earthlyApp) fullSecretPath(path string) (string, error) {
 		return path, nil
 	}
 
-	if app.orgName == "" {
-		return "", fmt.Errorf("the --org flag is required")
-	}
-	if app.projectName == "" {
-		return "", fmt.Errorf("the --project flag is required")
+	orgName, projectName, err := app.getOrgAndProject()
+	if err != nil {
+		return "", err
 	}
 
 	// TODO: These values will eventually come from the new PROJECT command (if
 	// one is present). For now, we can use the flag/env values as a temporary
 	// measure.
-	return fmt.Sprintf("/%s/%s%s", app.orgName, app.projectName, path), nil
+	return fmt.Sprintf("/%s/%s%s", orgName, projectName, path), nil
+}
+
+func (app *earthlyApp) getOrgAndProject() (org, project string, err error) {
+	if app.orgName != "" {
+		org = app.orgName
+	} else if app.cfg.Global.Org != "" {
+		org = app.cfg.Global.Org
+	}
+	if org == "" {
+		return org, project, fmt.Errorf("the --org flag is required")
+	}
+	project = app.projectName
+	if project == "" {
+		return org, project, fmt.Errorf("the --project flag is required")
+	}
+	return org, project, nil
 }
 
 func (app *earthlyApp) actionSecretPermsList(cliCtx *cli.Context) error {
