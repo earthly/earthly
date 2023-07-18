@@ -90,12 +90,14 @@ func TestGolang_Targets_Base(t *testing.T) {
 		t.Fatalf("failed to load golang targets: %v", err)
 	}
 	tgts = append([]proj.Formatter{base}, tgts...)
-	for _, tgt := range tgts {
+	for i, tgt := range tgts {
+		if i > 0 {
+			buf.WriteString("\n")
+		}
 		err := tgt.Format(context.TODO(), buf, "    ", 0)
 		if err != nil {
 			t.Fatalf("failed to format code: %v", err)
 		}
-		buf.WriteString("\n")
 	}
 	if *update {
 		saveGoldenFile(t, goOut_base, buf.Bytes())
@@ -122,12 +124,14 @@ func TestGolang_Targets_Named(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to load golang targets: %v", err)
 	}
-	for _, tgt := range tgts {
+	for i, tgt := range tgts {
+		if i > 0 {
+			buf.WriteString("\n")
+		}
 		err := tgt.Format(context.TODO(), buf, "    ", 0)
 		if err != nil {
 			t.Fatalf("failed to format code: %v", err)
 		}
-		buf.WriteString("\n")
 	}
 	if *update {
 		saveGoldenFile(t, goOut_named, buf.Bytes())

@@ -96,4 +96,3 @@ go-build:
     FOR bin IN $(ls -1 "/tmp/build")
         SAVE ARTIFACT "/tmp/build/${bin}" AS LOCAL "${outputDir}/${bin}"
     END
-
