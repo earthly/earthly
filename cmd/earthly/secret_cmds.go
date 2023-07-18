@@ -295,7 +295,7 @@ func (app *earthlyApp) fullSecretPath(ctx context.Context, cloudClient *cloud.Cl
 		if path == "/" {
 			return "/user", nil
 		} else {
-			return fmt.Sprintf("/user/%s", path), nil
+			return fmt.Sprintf("/user%s", path), nil
 		}
 	}
 
