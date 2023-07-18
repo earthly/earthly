@@ -103,7 +103,7 @@ This example was run using the `mcr.microsoft.com/devcontainers/universal:2` ima
 
 ## Setup with Podman (Manually customizing your Devcontainer)
 
-Currenly there are known issues with running Earthly with Podman on an environment that uses cgroup v2. You can check what version of cgroup your podman installation is using by running:
+Currently there are known issues with running Earthly with Podman on an environment that uses cgroup v2 on Codespaces. You can check what version of cgroup your podman installation is using by running:
 
 ```podman info | grep cgroup```
 
