@@ -478,8 +478,10 @@ func (app *earthlyApp) actionAccountCreateToken(cliCtx *cli.Context) error {
 
 		var err error
 		for _, layout := range layouts {
-			*expiry, err = time.Parse(layout, app.expiry)
+			var parsedTime time.Time
+			parsedTime, err = time.Parse(layout, app.expiry)
 			if err == nil {
+				expiry = &parsedTime
 				break
 			}
 		}
@@ -500,7 +502,7 @@ func (app *earthlyApp) actionAccountCreateToken(cliCtx *cli.Context) error {
 
 	expiryStr := "will never expire"
 	if expiry != nil {
-		expiryStr = fmt.Sprintf("will expire in %s", humanize.Time(*expiry))
+		expiryStr = fmt.Sprintf("will expire %s", humanize.Time(*expiry))
 	}
 
 	fmt.Printf("created token %q which %s; save this token somewhere, it can't be viewed again (only reset)\n", token, expiryStr)
