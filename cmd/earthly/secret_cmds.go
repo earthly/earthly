@@ -125,23 +125,6 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 		return err
 	}
 
-	orgName, projectName, err := app.getOrgAndProject(cliCtx.Context, cloudClient)
-	if err != nil {
-		return err
-	}
-
-	// TODO this is a bit ugly
-	convertedUserPath := false
-	if orgName != "" && projectName == "" && !strings.HasPrefix(path, "/user") {
-		convertedUserPath = true
-		if cliCtx.NArg() == 0 {
-			path = "/user"
-		} else {
-			path = fmt.Sprintf("/user/%s", path)
-		}
-
-	}
-
 	path, err = app.fullSecretPath(cliCtx.Context, cloudClient, path)
 	if err != nil {
 		return err
@@ -157,9 +140,14 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 		return nil
 	}
 
+	orgName, projectName, isPersonal, err := app.getOrgAndProject(cliCtx.Context, cloudClient)
+	if err != nil {
+		return err
+	}
+
 	for _, secret := range secrets {
 		display := secret.Path
-		if convertedUserPath {
+		if isPersonal && projectName == "" {
 			display = strings.TrimPrefix(display, "/user/")
 		} else {
 			prefix := fmt.Sprintf("/%s/%s/", orgName, projectName)
@@ -297,29 +285,38 @@ func (app *earthlyApp) fullSecretPath(ctx context.Context, cloudClient *cloud.Cl
 		return path, nil
 	}
 
-	orgName, projectName, err := app.getOrgAndProject(ctx, cloudClient)
+	orgName, projectName, isPersonal, err := app.getOrgAndProject(ctx, cloudClient)
 	if err != nil {
 		return "", err
 	}
 
+	// TODO this is a bit ugly, consider having getOrgAndProject return isPersonal bool
+	if isPersonal && projectName == "" && !strings.HasPrefix(path, "/user") {
+		if path == "/" {
+			return "/user", nil
+		} else {
+			return fmt.Sprintf("/user/%s", path), nil
+		}
+	}
+
 	// TODO: These values will eventually come from the new PROJECT command (if
-	// one is present). For now, we can use the flag/env values as a temporary
-	// measure.
+	//   one is present). For now, we can use the flag/env values as a temporary
+	//   measure.
 	return fmt.Sprintf("/%s/%s%s", orgName, projectName, path), nil
 }
 
-func (app *earthlyApp) getOrgAndProject(ctx context.Context, client *cloud.Client) (org, project string, err error) {
+func (app *earthlyApp) getOrgAndProject(ctx context.Context, client *cloud.Client) (org, project string, isPersonal bool, err error) {
 	if app.orgName != "" {
 		org = app.orgName
 	} else if app.cfg.Global.Org != "" {
 		org = app.cfg.Global.Org
 	}
 	if org == "" {
-		return org, project, errors.Errorf("the --org flag is required")
+		return org, project, isPersonal, errors.Errorf("the --org flag is required")
 	}
 	allOrgs, err := client.ListOrgs(ctx)
 	if err != nil {
-		return org, project, errors.Wrap(err, "failed listing orgs from cloud")
+		return org, project, isPersonal, errors.Wrap(err, "failed listing orgs from cloud")
 	}
 	var cloudOrg *cloud.OrgDetail
 	for _, o := range allOrgs {
@@ -329,13 +326,14 @@ func (app *earthlyApp) getOrgAndProject(ctx context.Context, client *cloud.Clien
 		}
 	}
 	if cloudOrg == nil {
-		return org, project, errors.Errorf("not a member of org %q", org)
+		return org, project, isPersonal, errors.Errorf("not a member of org %q", org)
 	}
+	isPersonal = cloudOrg.Personal
 	project = app.projectName
 	if project == "" && !cloudOrg.Personal {
-		return org, project, errors.Errorf("the --project flag is required")
+		return org, project, isPersonal, errors.Errorf("the --project flag is required")
 	}
-	return org, project, nil
+	return org, project, isPersonal, nil
 }
 
 func (app *earthlyApp) actionSecretPermsList(cliCtx *cli.Context) error {

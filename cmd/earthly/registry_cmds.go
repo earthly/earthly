@@ -149,7 +149,7 @@ func (app *earthlyApp) getRegistriesPath(ctx context.Context, cloudClient *cloud
 	if user {
 		return "/user/std/registry/", nil
 	}
-	orgName, projectName, err := app.getOrgAndProject(ctx, cloudClient)
+	orgName, projectName, _, err := app.getOrgAndProject(ctx, cloudClient)
 	if err != nil {
 		return "", err
 	}
