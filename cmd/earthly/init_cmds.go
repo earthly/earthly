@@ -89,14 +89,16 @@ func initSingleProject(ctx context.Context, w io.Writer, p proj.Project) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not generate targets for project type %T", p)
 	}
-	for _, tgt := range tgts {
+	for i, tgt := range tgts {
+		if i > 0 {
+			_, err = w.Write([]byte("\n"))
+			if err != nil {
+				return errors.Wrapf(err, "could not write newline separator between targets")
+			}
+		}
 		err := tgt.Format(ctx, w, efIndent, 0)
 		if err != nil {
 			return errors.Wrapf(err, "could not format target for project type %T", p)
-		}
-		_, err = w.Write([]byte("\n"))
-		if err != nil {
-			return errors.Wrapf(err, "could not write newline separator between targets")
 		}
 	}
 	return nil

@@ -1492,12 +1492,16 @@ test-works-without-earthly-server:
 test-init-unsupported:
     COPY yaml-project yaml-project
     WORKDIR ./yaml-project
-    DO +RUN_EARTHLY --extra_args "init" --should_fail=true --output_contains "no supported project type found"
+    DO +RUN_EARTHLY --extra_args "init" --should_fail=true --output_contains "no supported projects found"
 
 test-init-golang:
     COPY go-project go-project
     WORKDIR ./go-project
     DO +RUN_EARTHLY --extra_args "init"
+    RUN if [ "$(tail -c 2 Earthfile)" == "$(printf '\n\n')" ]; then \
+        echo "Earthfile (from 'earthly init') has trailing newlines"; \
+        exit 1; \
+    fi
     DO +RUN_EARTHLY --target "+go-build"
     DO +RUN_EARTHLY --target "+go-test"
 
