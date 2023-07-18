@@ -44,12 +44,12 @@ How To:
 
         // You can also add on the Earthly syntax highlighting extension!
         "customizations": {
-		    "vscode": {
-			    "extensions": [
-				    "earthly.earthfile-syntax-highlighting"
-			    ]
-		    }
-	    },
+            "vscode": {
+                "extensions": [
+                    "earthly.earthfile-syntax-highlighting"
+                ]
+            }
+        },
         ...
     }
     ```
