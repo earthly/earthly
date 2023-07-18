@@ -7,6 +7,14 @@ FROM golang:${go_version}-${distro}
 WORKDIR /go-workdir
 
 go-deps:
+    # These cache dirs will be used in later test and build targets
+    # to persist cached go packages.
+    #
+    # NOTE: cache only gets persisted on successful builds. A test
+    # failure will prevent the go cache from being persisted.
+    ENV GOCACHE = "/.go-cache"
+    ENV GOMODCACHE = "/.go-mod-cache"
+
     # Copying only go.mod and go.sum means that the cache for this
     # target will only be busted when go.mod/go.sum change. This
     # means that we can cache the results of 'go mod download'.
@@ -29,6 +37,9 @@ go-test-base:
 go-test-race:
     FROM +go-test-base
 
+    CACHE --sharing shared "$GOCACHE"
+    CACHE --sharing shared "$GOMODCACHE"
+
     # package sets the package that tests will run against.
     ARG package = ./...
 
@@ -37,6 +48,9 @@ go-test-race:
 # go-test-integration runs 'go test -tags integration'.
 go-test-integration:
     FROM +go-test-base
+
+    CACHE --sharing shared "$GOCACHE"
+    CACHE --sharing shared "$GOMODCACHE"
 
     # package sets the package that tests will run against.
     ARG package = ./...
@@ -66,6 +80,9 @@ go-mod-tidy:
 # go-build runs 'go build ./...', saving artifacts locally.
 go-build:
     FROM +go-proj-base
+
+    CACHE --sharing shared "$GOCACHE"
+    CACHE --sharing shared "$GOMODCACHE"
 
     ENV GOBIN = "/tmp/build"
     RUN go install ./...

@@ -13,8 +13,10 @@ import (
 )
 
 const (
-	goMod = "go.mod"
-	goSum = "go.sum"
+	goMod      = "go.mod"
+	goSum      = "go.sum"
+	goCache    = "/.go-cache"
+	goModCache = "/.go-mod-cache"
 
 	goBase = `
 LET go_version = 1.20
@@ -24,6 +26,14 @@ FROM golang:${go_version}-${distro}
 WORKDIR /go-workdir`
 
 	goDepsBlock = `
+    # These cache dirs will be used in later test and build targets
+    # to persist cached go packages.
+    #
+    # NOTE: cache only gets persisted on successful builds. A test
+    # failure will prevent the go cache from being persisted.
+    ENV GOCACHE = "` + goCache + `"
+    ENV GOMODCACHE = "` + goModCache + `"
+
     # Copying only go.mod and go.sum means that the cache for this
     # target will only be busted when go.mod/go.sum change. This
     # means that we can cache the results of 'go mod download'.
@@ -56,6 +66,9 @@ go-test-base:
 go-test-race:
     FROM +go-test-base
 
+    CACHE --sharing shared "$GOCACHE"
+    CACHE --sharing shared "$GOMODCACHE"
+
     # package sets the package that tests will run against.
     ARG package = ./...
 
@@ -65,6 +78,9 @@ go-test-race:
 # go-test-integration runs 'go test -tags integration'.
 go-test-integration:
     FROM +go-test-base
+
+    CACHE --sharing shared "$GOCACHE"
+    CACHE --sharing shared "$GOMODCACHE"
 
     # package sets the package that tests will run against.
     ARG package = ./...
@@ -99,6 +115,9 @@ go-mod-tidy:
 go-build:
     FROM +go-proj-base
 
+    CACHE --sharing shared "$GOCACHE"
+    CACHE --sharing shared "$GOMODCACHE"
+
     ENV GOBIN = "/tmp/build"
     RUN go install ./...
 
@@ -128,9 +147,12 @@ func NewGolang(fs FS, execer Execer) *Golang {
 // ForDir returns a Project for the given directory. It returns ErrSkip if the
 // directory does not contain a go project.
 func (g *Golang) ForDir(ctx context.Context, dir string) (Project, error) {
-	_, err := g.fs.Stat(filepath.Join(dir, goMod))
+	_, err := fs.Stat(g.fs, filepath.Join(dir, goMod))
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, errors.Wrap(ErrSkip, "no go.mod found")
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "error reading go.mod")
 	}
 	out, _, err := g.execer.Command("go", "list", "-f", "{{.Dir}}").Run(ctx)
 	if errors.Is(err, fs.ErrNotExist) {

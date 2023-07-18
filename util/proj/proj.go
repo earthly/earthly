@@ -22,10 +22,20 @@ type FS interface {
 	Stat(name string) (fs.FileInfo, error)
 }
 
+type stdFS struct{}
+
+func (stdFS) Open(path string) (fs.File, error) {
+	return os.Open(path)
+}
+
+func (stdFS) Stat(path string) (fs.FileInfo, error) {
+	return os.Stat(path)
+}
+
 // StdFS returns a standard library FS for use in most use cases of this
 // package.
 func StdFS() FS {
-	return os.DirFS(".").(FS)
+	return stdFS{}
 }
 
 // Cmd represents the type that proj types will use to execute commands.

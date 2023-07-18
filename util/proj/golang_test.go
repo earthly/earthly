@@ -9,6 +9,7 @@ import (
 
 	"git.sr.ht/~nelsam/hel/pkg/pers"
 	"github.com/earthly/earthly/util/proj"
+	"github.com/pkg/errors"
 	"github.com/poy/onpar"
 	"github.com/poy/onpar/expect"
 )
@@ -57,6 +58,14 @@ func TestGolang(t *testing.T) {
 			_, err := t.golang.ForDir(t.ctx, ".")
 			t.expect(t.fs).To(haveMethodExecuted("Stat", withArgs("go.mod")))
 			t.expect(err).To(beErr(proj.ErrSkip))
+		})
+
+		o.Spec("it errors if reading go.mod fails", func(t testCtx) {
+			pers.Return(t.fs.StatOutput, nil, errors.New("boom"))
+			_, err := t.golang.ForDir(t.ctx, ".")
+			t.expect(t.fs).To(haveMethodExecuted("Stat", withArgs("go.mod")))
+			t.expect(err).To(haveOccurred())
+			t.expect(err).To(not(beErr(proj.ErrSkip)))
 		})
 
 		o.Spec("it errors if 'go' is not available", func(t testCtx) {
