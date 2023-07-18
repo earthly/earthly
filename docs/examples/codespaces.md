@@ -41,6 +41,15 @@ How To:
         },
         ...
         // YOUR OTHER CONFIG HERE
+
+        // You can also add on the Earthly syntax highlighting extension!
+        "customizations": {
+		    "vscode": {
+			    "extensions": [
+				    "earthly.earthfile-syntax-highlighting"
+			    ]
+		    }
+	    },
         ...
     }
     ```
@@ -69,10 +78,25 @@ This example was run using the `mcr.microsoft.com/devcontainers/universal:2` ima
 
 1. Update your devcontainer configuration in .devcontainer/devcontainer.json in the root of your project 
     ````
+    // YOUR OTHER CONFIG HERE
+    ...
+    ...
     "features": {
         "ghcr.io/shepherdjerred/devcontainers-features/earthly:1": {
             "bootstrap": true
         }
+    },
+
+    // You can also add on the Earthly syntax highlighting extension!
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "earthly.earthfile-syntax-highlighting"
+            ]
+        }
+    },
+    ...
+    ...
     ````
 1. Run `Rebuild Container` on your codespace to have it install the feature
 1. Your Earthly commands will now run on docker!
