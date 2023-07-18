@@ -103,11 +103,17 @@ This example was run using the `mcr.microsoft.com/devcontainers/universal:2` ima
 
 ## Setup with Podman (Manually customizing your Devcontainer)
 
-Currently there are known issues with running Earthly with Podman on an environment that uses cgroup v2 on Codespaces. You can check what version of cgroup your podman installation is using by running:
+Currently there are known issues with running Earthly with Podman on an environment that uses cgroup v2 on Codespaces (which runs as a Docker container). You can check what version of cgroup your podman installation is using by running:
 
 ```podman info | grep cgroup```
 
 These issues are still being investigated at this time and there is no fix available yet. You can confirm that you are being affected by these issues by checking the logs from the earthly-buildkit container if you see `sh: write error: Invalid argument` before the container exits.  
 
 Related to: https://github.com/containers/podman/issues/12559
+
+For more information on Podman with Devcontainers:
+    
+- https://code.visualstudio.com/remote/advancedcontainers/docker-options#_podman 
+    
+    This refers to setting up Podman as a remote container instead of as part of the devcontainer. This is for using devcontainers on your local machine rather than within Codespaces.
 
