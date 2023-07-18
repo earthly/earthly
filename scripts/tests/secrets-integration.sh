@@ -75,8 +75,19 @@ EOF
 
 # set and test get returns the correct value
 "$earthly" secrets --org manitou-org --project earthly-core-integration-test set my_test_file "secret-value"
-
 "$earthly" secrets --org manitou-org --project earthly-core-integration-test get my_test_file | acbgrep 'secret-value'
+
+# test set and get with org selected in config file
+"$earthly" org select manitou-org
+"$earthly" secrets --project earthly-core-integration-test get my_test_file | acbgrep 'secret-value'
+"$earthly" secrets --project earthly-core-integration-test set my_other_file "super-secret-value"
+"$earthly" secrets --project earthly-core-integration-test get my_other_file | acbgrep 'super-secret-value'
+
+# test set and get in personal org
+"$earthly" org select user:other-service+earthly@earthly.dev
+"$earthly" secrets set super/secret hello
+"$earthly" secrets get super/secret | acbgrep 'hello'
+"$earthly" secrets get /user/super/secret | acbgrep 'hello'
 
 echo "=== test 1 ==="
 # test RUN --mount can reference a secret from the command line
