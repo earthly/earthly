@@ -107,5 +107,7 @@ Currenly there are known issues with running Earthly with Podman on an environme
 
 ```podman info | grep cgroup```
 
-These issues are still being investigated at this time and there is no fix available yet. You can confirm that you are being affected by these issues by checking the logs from the earthly-buildkit container if you see `sh: write error: Invalid argument` before the container exits. 
+These issues are still being investigated at this time and there is no fix available yet. You can confirm that you are being affected by these issues by checking the logs from the earthly-buildkit container if you see `sh: write error: Invalid argument` before the container exits.  
+
+Related to: https://github.com/containers/podman/issues/12559
 
