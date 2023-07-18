@@ -13,6 +13,12 @@ Examples of integrating Earthly into various CI systems can be found on the foll
 
 For more general information on CI systems not listed above, see the [CI integration guide](../ci-integration/overview.md).
 
+## Examples by Dev environments
+
+Examples of how Earthly can be integrated into different dev environments
+
+* [codespaces](https://github.com/earthly/codespaces-example) - shows how Earthly can be used in Codespaces and Devcontainers
+
 ## Example Earthfiles
 
 In this section, you will find some examples of Earthfiles to familiarize yourself with Earthly.
@@ -37,6 +43,7 @@ Please note that these examples, although similar, are distinct from the ones us
 
 <!-- vale HouseStyle.Spelling = NO -->
 * [c](https://github.com/earthly/earthly/tree/main/examples/c)
+* [clojure](https://github.com/earthly/earthly/tree/main/examples/clojure)
 * [cobol](https://github.com/earthly/earthly/tree/main/examples/cobol)
 * [cpp](https://github.com/earthly/earthly/tree/main/examples/cpp)
 * [dotnet](https://github.com/earthly/earthly/tree/main/examples/dotnet)
