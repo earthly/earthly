@@ -21,6 +21,7 @@ If you are new to Earthly, you may find the [Basics tutorial](https://docs.earth
 Please note that these examples, although similar, are distinct from the ones used in the [tutorial](./tutorial).
 
 <!-- vale HouseStyle.Spelling = NO -->
+* [clojure](./clojure)
 * [cobol](./cobol)
 * [c](./c)
 * [cpp](./cpp)

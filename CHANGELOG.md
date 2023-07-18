@@ -4,6 +4,19 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.12 - 2023-07-17
+
+### Added
+- warning if acquiring file-lock takes longer than 3 seconds.
+
+### Changed
+- improved error message when a 429 too many requests rate limit error occurs.
+- `earthly sat ls -a` shows last accessed time
+- improved output for listing auth tokens
+
+### Fixed
+- make use of org from earthly config when using satellite commands.
+
 ## v0.7.12-rc1 - 2023-07-13
 
 ### Added

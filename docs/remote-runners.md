@@ -24,7 +24,7 @@ When using remote runners, even though the build executes remotely, the followin
 
 ## Get started
 
-To get started with remote runners managed by Earthly, check out [Earthly Satellites](cloud/satellites.md).
+To get started with free remote runners managed by Earthly, check out [Earthly Satellites](cloud/satellites.md).
 
 To get started with self-managed remote runners, see
 * The [remote buildkit page](ci-integration/remote-buildkit.md)

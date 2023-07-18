@@ -13,6 +13,8 @@ Learning Earthly does not stop here. Discover more of what Earthly can do by exp
 * [Examples using Earthly](../examples/examples.md)
 * [Best practices](../best-practices/best-practices.md)
 
+* [Earthly Cloud](https://cloud.earthly.dev/)
+
 ##### More examples:
 
 * [Examples directory on GitHub](https://github.com/earthly/earthly/tree/main/examples)

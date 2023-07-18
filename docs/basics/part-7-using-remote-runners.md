@@ -1,4 +1,4 @@
-Earthly has the ability to run builds both locally and remotely. If you followed the standard [installation instructions](https://earthly.dev/get-earthly), then you most likely have only run local builds so far. In this section, we will explore how to use remote runners to perform builds on remote machines.
+Earthly has the ability to run builds both locally and remotely. In this section, we will explore how to use remote runners to perform builds on remote machines.
 
 ## Remote Runners
 
@@ -14,36 +14,19 @@ Remote runners are especially useful in a few specific circumstances:
 
 There are two types of remote runners:
 
-* Remote Buildkit (self-hosted)
-* Earthly Satellites (managed by Earthly)
-
-### Using a Remote Buildkit
-
-To run your own remote Buildkit, you can follow the instructions on the [remote Buildkit page](../ci-integration/remote-buildkit.md).
+* Earthly Satellites (managed by Earthly; free up to 6,000 minutes/month; get started now by visiting the [sign up](https://cloud.earthly.dev/login) page)
+* Remote Buildkit (free, self-hosted)
 
 ### Using Earthly Satellites
 
-Earthly Satellites are remote runners managed by the Earthly team. They are a paid feature as part of the [Earthly Satellites or Earthly CI plans](https://earthly.dev/pricing), but there is a 14-day free trial.
+Earthly Satellites are remote runners managed by the Earthly team.
 
-To get started, first you need to create an Earthly Cloud account.
+To get started, first you need to [sign up for Earthly Cloud](https://cloud.earthly.dev/login) for free.
 
-```bash
-earthly account register --email <your-email>
-```
-
-Follow instructions in the email received to complete the registration. You will additionally need to create an organization.
+Then, you can select the org that you are part of, and create a satellite.
 
 ```bash
-earthly org create my-org
-```
-
-You must subscribe to a paid plan to use Earthly Satellites. The subscription has a 14-day trial -- your credit card is not charged if you cancel before then.
-
-[**Click here to start your subscription**](https://buy.stripe.com/8wM9Es4BT4Vvb4YbIJ)
-
-Then, you can create a satellite.
-
-```bash
+earthly org select <my-org>
 earthly sat launch my-satellite
 ```
 
@@ -72,6 +55,10 @@ earthly --sat my-satellite +my-target
 ```
 
 For more information, check out the [Earthly Satellites](../cloud/satellites.md) page.
+
+### Using a Remote Buildkit
+
+To run your own remote Buildkit, you can follow the instructions on the [remote Buildkit page](../ci-integration/remote-buildkit.md).
 
 ### Secrets and remote builds
 

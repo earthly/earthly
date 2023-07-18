@@ -15,9 +15,11 @@ test:
     LOCALLY
     ARG FRONTEND=docker
     ARG FRONTEND_COMPOSE="docker compose"
+    ARG acbgrep=../../../scripts/acbtest/acbgrep
+    RUN test -f "$acbgrep"
     WITH DOCKER \
             --compose docker-compose.yml \
             --service webserver \
             --load fetch:latest=+fetch
-        RUN $FRONTEND_COMPOSE up --exit-code-from fetch fetch | grep 'Hello World'
+        RUN $FRONTEND_COMPOSE up --exit-code-from fetch fetch | "$acbgrep" 'Hello World'
     END

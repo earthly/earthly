@@ -2,15 +2,16 @@
 
 Earthly Cloud is a collection of features that enrich the Earthly experience via cloud-based services. These include:
 
-* [Earthly Cloud Secrets](./cloud-secrets.md): A secret management system that allows you to store secrets in a cloud-based service and use them across builds.
 * [Earthly Satellites](./satellites.md): Cloud-based Buildkit instances managed by the Earthly team.
+* [Earthly Cloud Secrets](./cloud-secrets.md): A secret management system that allows you to store secrets in a cloud-based service and use them across builds.
 * [Earthly CI](./earthly-ci.md): A cloud-based CI/CD system that allows you to continuously build your code in the cloud.
+* **Log sharing**: The ability to share build logs with coworkers.
 
 ## Getting started
 
 ### Creating an account
 
-To get started with Earthly Cloud, you'll need to register an Earthly account. You can do so by visiting [Earthly CI](https://ci.earthly.dev), or by using the CLI as described below.
+To get started with Earthly Cloud, you'll need to register an Earthly account. You can do so by visiting [Earthly Cloud Sign up page](https://cloud.earthly.dev/login), or by using the CLI as described below.
 
 ```bash
 earthly account register --email <email>
@@ -38,20 +39,26 @@ To create an Earthly org you can run:
 earthly org create <org-name>
 ```
 
+To select the org you would like to use, run:
+
+```bash
+earthly org select <org-name>
+```
+
 To invite another user to join your org, run:
 
 ```bash
-earthly --org <org-name> org invite <email>
+earthly org invite <email>
 ```
 
 You can join an Earthly org by following the steps outlined in the invitation email sent to you by an Earthly admin.
 
 ### Creating a project
 
-To use certain features, such as Earthly CI, or Earthly Cloud Secrets, you will aditionally need to create an Earthly Project. You can create a project by running:
+To use certain features, such as Earthly CI or Earthly Cloud Secrets, you will additionally need to create an Earthly Project. You can create a project by visiting [Earthly Cloud](https://cloud.earthly.dev/), or by using the CLI as described below.
 
 ```bash
-earthly project --org <org-name> create <project-name>
+earthly project create <project-name>
 ```
 
 ## Logging in from a CI
