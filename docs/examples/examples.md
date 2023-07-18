@@ -13,7 +13,7 @@ Examples of integrating Earthly into various CI systems can be found on the foll
 
 For more general information on CI systems not listed above, see the [CI integration guide](../ci-integration/overview.md).
 
-## Examples by Dev environments
+## Examples by dev environments
 
 Examples of how Earthly can be integrated into different dev environments
 
