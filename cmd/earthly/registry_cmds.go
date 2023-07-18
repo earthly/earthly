@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,9 +11,10 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/earthly/earthly/cloud"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+
+	"github.com/earthly/earthly/cloud"
 )
 
 const (
@@ -139,7 +141,7 @@ func (app *earthlyApp) isUserRegistryLocation() (bool, error) {
 	return false, nil
 }
 
-func (app *earthlyApp) getRegistriesPath() (string, error) {
+func (app *earthlyApp) getRegistriesPath(ctx context.Context, cloudClient *cloud.Client) (string, error) {
 	user, err := app.isUserRegistryLocation()
 	if err != nil {
 		return "", err
@@ -147,15 +149,18 @@ func (app *earthlyApp) getRegistriesPath() (string, error) {
 	if user {
 		return "/user/std/registry/", nil
 	}
-	return fmt.Sprintf("/%s/%s/std/registry/", app.orgName, app.projectName), nil
+	orgName, projectName, err := app.getOrgAndProject(ctx, cloudClient)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("/%s/%s/std/registry/", orgName, projectName), nil
 }
 
 func (app *earthlyApp) actionRegistrySetup(cliCtx *cli.Context) error {
 	app.commandName = "registrySetup"
 
-	regPath, err := app.getRegistriesPath()
-	if err != nil {
-		return err
+	if cliCtx.NArg() > 1 {
+		return fmt.Errorf("only a single host can be given")
 	}
 
 	cloudClient, err := app.newCloudClient()
@@ -163,8 +168,9 @@ func (app *earthlyApp) actionRegistrySetup(cliCtx *cli.Context) error {
 		return err
 	}
 
-	if cliCtx.NArg() > 1 {
-		return fmt.Errorf("only a single host can be given")
+	regPath, err := app.getRegistriesPath(cliCtx.Context, cloudClient)
+	if err != nil {
+		return err
 	}
 
 	host := cliCtx.Args().Get(0)
@@ -352,12 +358,12 @@ func (app *earthlyApp) secretsToRegistryCredentials(pathPrefix string, secrets [
 func (app *earthlyApp) actionRegistryList(cliCtx *cli.Context) error {
 	app.commandName = "registryList"
 
-	path, err := app.getRegistriesPath()
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
 		return err
 	}
 
-	cloudClient, err := app.newCloudClient()
+	path, err := app.getRegistriesPath(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -388,12 +394,13 @@ func (app *earthlyApp) actionRegistryList(cliCtx *cli.Context) error {
 
 func (app *earthlyApp) actionRegistryRemove(cliCtx *cli.Context) error {
 	app.commandName = "registryRemove"
-	path, err := app.getRegistriesPath()
+
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
 		return err
 	}
 
-	cloudClient, err := app.newCloudClient()
+	path, err := app.getRegistriesPath(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}

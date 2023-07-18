@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -8,9 +9,10 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/earthly/earthly/cloud"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+
+	"github.com/earthly/earthly/cloud"
 )
 
 func (app *earthlyApp) secretCmds() []*cli.Command {
@@ -118,12 +120,29 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 		path = cliCtx.Args().Get(0)
 	}
 
-	path, err := app.fullSecretPath(path)
+	cloudClient, err := app.newCloudClient()
 	if err != nil {
 		return err
 	}
 
-	cloudClient, err := app.newCloudClient()
+	orgName, projectName, err := app.getOrgAndProject(cliCtx.Context, cloudClient)
+	if err != nil {
+		return err
+	}
+
+	// TODO this is a bit ugly
+	convertedUserPath := false
+	if orgName != "" && projectName == "" && !strings.HasPrefix(path, "/user") {
+		convertedUserPath = true
+		if cliCtx.NArg() == 0 {
+			path = "/user"
+		} else {
+			path = fmt.Sprintf("/user/%s", path)
+		}
+
+	}
+
+	path, err = app.fullSecretPath(cliCtx.Context, cloudClient, path)
 	if err != nil {
 		return err
 	}
@@ -138,14 +157,11 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 		return nil
 	}
 
-	orgName, projectName, err := app.getOrgAndProject()
-	if err != nil {
-		return err
-	}
-
 	for _, secret := range secrets {
 		display := secret.Path
-		if !strings.HasPrefix(display, "/user/") {
+		if convertedUserPath {
+			display = strings.TrimPrefix(display, "/user/")
+		} else {
 			prefix := fmt.Sprintf("/%s/%s/", orgName, projectName)
 			display = strings.TrimPrefix(display, prefix)
 		}
@@ -169,7 +185,7 @@ func (app *earthlyApp) actionSecretsGetV2(cliCtx *cli.Context) error {
 		return err
 	}
 
-	path, err = app.fullSecretPath(path)
+	path, err = app.fullSecretPath(cliCtx.Context, cloudClient, path)
 	if err != nil {
 		return err
 	}
@@ -204,7 +220,7 @@ func (app *earthlyApp) actionSecretsRemoveV2(cliCtx *cli.Context) error {
 		return err
 	}
 
-	path, err = app.fullSecretPath(path)
+	path, err = app.fullSecretPath(cliCtx.Context, cloudClient, path)
 	if err != nil {
 		return err
 	}
@@ -259,7 +275,7 @@ func (app *earthlyApp) actionSecretsSetV2(cliCtx *cli.Context) error {
 		return err
 	}
 
-	path, err = app.fullSecretPath(path)
+	path, err = app.fullSecretPath(cliCtx.Context, cloudClient, path)
 	if err != nil {
 		return err
 	}
@@ -272,7 +288,7 @@ func (app *earthlyApp) actionSecretsSetV2(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) fullSecretPath(path string) (string, error) {
+func (app *earthlyApp) fullSecretPath(ctx context.Context, cloudClient *cloud.Client, path string) (string, error) {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
@@ -281,7 +297,7 @@ func (app *earthlyApp) fullSecretPath(path string) (string, error) {
 		return path, nil
 	}
 
-	orgName, projectName, err := app.getOrgAndProject()
+	orgName, projectName, err := app.getOrgAndProject(ctx, cloudClient)
 	if err != nil {
 		return "", err
 	}
@@ -292,18 +308,32 @@ func (app *earthlyApp) fullSecretPath(path string) (string, error) {
 	return fmt.Sprintf("/%s/%s%s", orgName, projectName, path), nil
 }
 
-func (app *earthlyApp) getOrgAndProject() (org, project string, err error) {
+func (app *earthlyApp) getOrgAndProject(ctx context.Context, client *cloud.Client) (org, project string, err error) {
 	if app.orgName != "" {
 		org = app.orgName
 	} else if app.cfg.Global.Org != "" {
 		org = app.cfg.Global.Org
 	}
 	if org == "" {
-		return org, project, fmt.Errorf("the --org flag is required")
+		return org, project, errors.Errorf("the --org flag is required")
+	}
+	allOrgs, err := client.ListOrgs(ctx)
+	if err != nil {
+		return org, project, errors.Wrap(err, "failed listing orgs from cloud")
+	}
+	var cloudOrg *cloud.OrgDetail
+	for _, o := range allOrgs {
+		if o.Name == org {
+			cloudOrg = o
+			break
+		}
+	}
+	if cloudOrg == nil {
+		return org, project, errors.Errorf("not a member of org %q", org)
 	}
 	project = app.projectName
-	if project == "" {
-		return org, project, fmt.Errorf("the --project flag is required")
+	if project == "" && !cloudOrg.Personal {
+		return org, project, errors.Errorf("the --project flag is required")
 	}
 	return org, project, nil
 }
@@ -315,8 +345,13 @@ func (app *earthlyApp) actionSecretPermsList(cliCtx *cli.Context) error {
 		return errors.New("secret path is required")
 	}
 
+	cloudClient, err := app.newCloudClient()
+	if err != nil {
+		return err
+	}
+
 	path := cliCtx.Args().Get(0)
-	path, err := app.fullSecretPath(path)
+	path, err = app.fullSecretPath(cliCtx.Context, cloudClient, path)
 	if err != nil {
 		return err
 	}
@@ -324,12 +359,6 @@ func (app *earthlyApp) actionSecretPermsList(cliCtx *cli.Context) error {
 	if strings.Contains(path, "/user") {
 		return errors.New("user secrets don't support permissions")
 	}
-
-	cloudClient, err := app.newCloudClient()
-	if err != nil {
-		return err
-	}
-
 	perms, err := cloudClient.ListSecretPermissions(cliCtx.Context, path)
 	if err != nil {
 		return errors.Wrap(err, "failed to list permissions")
@@ -357,8 +386,13 @@ func (app *earthlyApp) actionSecretPermsRemove(cliCtx *cli.Context) error {
 		return errors.New("secret path and user email are required")
 	}
 
+	cloudClient, err := app.newCloudClient()
+	if err != nil {
+		return err
+	}
+
 	path := cliCtx.Args().Get(0)
-	path, err := app.fullSecretPath(path)
+	path, err = app.fullSecretPath(cliCtx.Context, cloudClient, path)
 	if err != nil {
 		return err
 	}
@@ -370,11 +404,6 @@ func (app *earthlyApp) actionSecretPermsRemove(cliCtx *cli.Context) error {
 	userEmail := cliCtx.Args().Get(1)
 	if userEmail == "" {
 		return errors.New("user email is required")
-	}
-
-	cloudClient, err := app.newCloudClient()
-	if err != nil {
-		return err
 	}
 
 	err = cloudClient.RemoveSecretPermission(cliCtx.Context, path, userEmail)
@@ -394,8 +423,13 @@ func (app *earthlyApp) actionSecretPermsSet(cliCtx *cli.Context) error {
 		return errors.New("secret path, user email, and permission are required")
 	}
 
+	cloudClient, err := app.newCloudClient()
+	if err != nil {
+		return err
+	}
+
 	path := cliCtx.Args().Get(0)
-	path, err := app.fullSecretPath(path)
+	path, err = app.fullSecretPath(cliCtx.Context, cloudClient, path)
 	if err != nil {
 		return err
 	}
@@ -412,11 +446,6 @@ func (app *earthlyApp) actionSecretPermsSet(cliCtx *cli.Context) error {
 	perm := cliCtx.Args().Get(2)
 	if perm == "" {
 		return errors.New("permission is required")
-	}
-
-	cloudClient, err := app.newCloudClient()
-	if err != nil {
-		return err
 	}
 
 	err = cloudClient.SetSecretPermission(cliCtx.Context, path, userEmail, perm)
