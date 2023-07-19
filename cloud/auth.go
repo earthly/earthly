@@ -24,19 +24,7 @@ import (
 // Upon successful authenticate, the JWT provided by the server is stored in
 // ~/.earthly/auth.jwt, and can be refreshed any time via another call to Authenticate().
 func (c *Client) Authenticate(ctx context.Context) (AuthMethod, error) {
-	var err error
-	var authMethod AuthMethod
-	switch {
-	case c.email != "" && c.password != "":
-		authMethod = "password"
-		err = c.loginWithPassword(ctx)
-	case c.authCredToken != "":
-		authMethod = "token"
-		err = c.loginWithToken(ctx)
-	default:
-		authMethod = "ssh"
-		err = c.loginWithSSH(ctx)
-	}
+	authMethod, err := c.doLogin(ctx)
 	if err != nil {
 		if errors.Is(err, ErrNoAuthorizedPublicKeys) || errors.Is(err, ErrNoSSHAgent) {
 			return "", ErrUnauthorized
@@ -49,6 +37,16 @@ func (c *Client) Authenticate(ctx context.Context) (AuthMethod, error) {
 	}
 	c.lastAuthMethod = authMethod
 	return authMethod, nil
+}
+
+func (c *Client) doLogin(ctx context.Context) (AuthMethod, error) {
+	if c.email != "" && c.password != "" {
+		return AuthMethodPassword, c.loginWithPassword(ctx)
+	}
+	if c.authCredToken != "" {
+		return AuthMethodToken, c.loginWithToken(ctx)
+	}
+	return AuthMethodSSH, c.loginWithSSH(ctx)
 }
 
 func (c *Client) IsLoggedIn(ctx context.Context) bool {

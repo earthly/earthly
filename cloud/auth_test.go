@@ -36,8 +36,8 @@ func TestClient_Authenticate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected authentication error: %+v", err)
 	}
-	if authMethod != PasswordAuthMethod {
-		t.Errorf("expected [%s] got [%s]", PasswordAuthMethod, authMethod)
+	if authMethod != AuthMethodPassword {
+		t.Errorf("expected [%s] got [%s]", AuthMethodPassword, authMethod)
 	}
 
 	if cc.authToken != testToken {

@@ -19,10 +19,10 @@ import (
 type AuthMethod string
 
 const (
-	SSHAuthMethod       AuthMethod = "ssh"
-	PasswordAuthMethod  AuthMethod = "password"
-	TokenAuthMethod     AuthMethod = "token"
-	CachedJWTAuthMethod AuthMethod = "cached jwt"
+	AuthMethodSSH       AuthMethod = "ssh"
+	AuthMethodPassword  AuthMethod = "password"
+	AuthMethodToken     AuthMethod = "token"
+	AuthMethodCachedJWT AuthMethod = "cached jwt"
 )
 
 // TokenDetail contains token information
@@ -163,7 +163,7 @@ func (c *Client) WhoAmI(ctx context.Context) (string, AuthMethod, bool, error) {
 	}
 	authMethod := c.lastAuthMethod
 	if authMethod == "" {
-		authMethod = CachedJWTAuthMethod
+		authMethod = AuthMethodCachedJWT
 	}
 	return email, authMethod, writeAccess, nil
 }
