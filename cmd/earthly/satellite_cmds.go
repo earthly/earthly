@@ -579,6 +579,7 @@ func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 	if app.satellitePrintJSON {
 		app.printSatellitesJSON(satellitesWithPipelineInfo, isOrgSelected)
 	} else {
+		fmt.Println(isOrgSelected)
 		app.printSatellitesTable(satellitesWithPipelineInfo, isOrgSelected)
 	}
 	return nil
