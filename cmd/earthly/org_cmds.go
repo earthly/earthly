@@ -163,13 +163,21 @@ func (app *earthlyApp) actionOrgList(cliCtx *cli.Context) error {
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	for _, org := range orgs {
-		fmt.Fprintf(w, "%s", org.Name)
-		if org.Admin {
-			fmt.Fprintf(w, "\tadmin")
-		} else {
-			fmt.Fprintf(w, "\tmember")
+		selected := " "
+		if org.Name == app.cfg.Global.Org {
+			selected = "*"
 		}
-		fmt.Fprintf(w, "\n")
+		fmt.Fprintf(w, "%s\t%s", selected, org.Name)
+		var orgPermission string
+		if org.Admin {
+			orgPermission = "\tadmin"
+		} else {
+			orgPermission = "\tmember"
+		}
+		if org.Personal {
+			orgPermission += " (personal)"
+		}
+		fmt.Fprintf(w, "%s\n", orgPermission)
 	}
 	w.Flush()
 
