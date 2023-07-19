@@ -4,6 +4,12 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+- `earthly account list-tokens` would now show the last time a token was accessed
+
+### Fixed
+- Fixed a bug, where the command to create tokens with a set expiration failed.
+
 ## v0.7.12 - 2023-07-17
 
 ### Added
