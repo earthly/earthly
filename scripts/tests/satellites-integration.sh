@@ -43,8 +43,7 @@ EARTHLY_ORG=earthly-technologies "$earthly" sat inspect core-test
 # test the sat select works correctly uses the config's org
 "$earthly" sat select core-test
 
-#TODO fix this.... satellite ls does NOT use the org from the config file
 "$earthly" satellite ls
-#"$earthly" satellite ls | acbgrep '^\* \+core-test'
+"$earthly" satellite ls | acbgrep '^\* \+core-test'
 
 echo "=== All tests have passed ==="

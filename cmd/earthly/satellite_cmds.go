@@ -573,13 +573,14 @@ func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 		}
 	}
 
-	isOrgSelected := app.cfg.Satellite.Org == orgName
+	// app.cfg.Satellite.Org is deprecated, but we can still check it here for compatability
+	// with config files that may still have it set
+	isOrgSelected := app.cfg.Satellite.Org == orgName || app.cfg.Global.Org == orgName
 
 	satellitesWithPipelineInfo := app.toSatellitePipelineInfo(satellites, pipelines)
 	if app.satellitePrintJSON {
 		app.printSatellitesJSON(satellitesWithPipelineInfo, isOrgSelected)
 	} else {
-		fmt.Println(isOrgSelected)
 		app.printSatellitesTable(satellitesWithPipelineInfo, isOrgSelected)
 	}
 	return nil
