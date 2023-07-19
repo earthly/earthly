@@ -440,7 +440,7 @@ func (app *earthlyApp) actionAccountListTokens(cliCtx *cli.Context) error {
 	now := time.Now()
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintf(w, "Token Name\tRead/Write\tExpiry\tLast Accessed At\n")
+	fmt.Fprintf(w, "Token Name\tRead/Write\tExpiry\tLast Used\n")
 	for _, token := range tokens {
 		expired := now.After(token.Expiry)
 		fmt.Fprintf(w, "%s", token.Name)
