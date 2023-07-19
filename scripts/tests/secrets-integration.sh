@@ -73,8 +73,6 @@ test-server-secret:
     RUN --mount=type=secret,target=/tmp/test_file,id=my_test_file test "\$(cat /tmp/test_file)" = "secret-value"
 EOF
 
-"$earthly" org ls # debugging
-
 # set and test get returns the correct value
 "$earthly" secrets --org manitou-org --project earthly-core-integration-test set my_test_file "secret-value"
 "$earthly" secrets --org manitou-org --project earthly-core-integration-test get my_test_file | acbgrep 'secret-value'
@@ -87,7 +85,7 @@ EOF
 "$earthly" secrets --project earthly-core-integration-test ls | acbgrep 'my_test_file'
 
 # test secrets with personal org
-"$earthly" org select user:other-service+earthly@earthly.dev
+"$earthly" org select user:other-service+earthly-manitou@earthly.dev
 "$earthly" secrets set super/secret hello
 "$earthly" secrets get super/secret | acbgrep 'hello'
 "$earthly" secrets get /user/super/secret | acbgrep 'hello'
