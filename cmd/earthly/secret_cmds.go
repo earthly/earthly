@@ -290,7 +290,6 @@ func (app *earthlyApp) fullSecretPath(ctx context.Context, cloudClient *cloud.Cl
 		return "", err
 	}
 
-	// TODO this is a bit ugly, consider having getOrgAndProject return isPersonal bool
 	if isPersonal && projectName == "" && !strings.HasPrefix(path, "/user") {
 		if path == "/" {
 			return "/user", nil
@@ -312,7 +311,7 @@ func (app *earthlyApp) getOrgAndProject(ctx context.Context, client *cloud.Clien
 		org = app.cfg.Global.Org
 	}
 	if org == "" {
-		return org, project, isPersonal, errors.Errorf("the --org flag is required")
+		return org, project, isPersonal, errors.Errorf("provid an org using the --org flag or `org select` command")
 	}
 	allOrgs, err := client.ListOrgs(ctx)
 	if err != nil {
