@@ -27,6 +27,7 @@ def test_with_exit_code(earthly_path, timeout, exit_code_to_send):
             except Exception as e:
                 raise RuntimeError(f'failed to find {question_text} in output')
 
+            print(f'sending "{exit_code_to_send}" as response to "What exit code do you want" prompt')
             c.sendline(str(exit_code_to_send))
 
             if exit_code_to_send:
@@ -39,7 +40,7 @@ def test_with_exit_code(earthly_path, timeout, exit_code_to_send):
             status = c.wait()
             print(f'earthly exited with code={status}')
             if exit_code_to_send and not status:
-                raise RuntimeError('earthly should have failed, but didnt')
+                raise RuntimeError(f'earthly should have failed (due to requested exit {exit_code_to_send}), but didnt')
             if not exit_code_to_send and status:
                 raise RuntimeError('earthly should not have failed')
 
