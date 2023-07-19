@@ -457,11 +457,11 @@ func (app *earthlyApp) actionAccountListTokens(cliCtx *cli.Context) error {
 				fmt.Fprintf(w, " *expired*")
 			}
 		}
-		lastAccessedAtStr := "\t"
-		if !token.LastAccessedAt.UTC().IsZero() {
-			lastAccessedAtStr = fmt.Sprintf("\t%s UTC", token.LastAccessedAt.UTC().Format("2006-01-02T15:04"))
+		if token.LastAccessedAt.UTC().IsZero() {
+			fmt.Fprint(w, "\tNever")
+		} else {
+			fmt.Fprintf(w, "\t%s UTC", token.LastAccessedAt.UTC().Format("2006-01-02T15:04"))
 		}
-		fmt.Fprint(w, lastAccessedAtStr)
 		fmt.Fprintf(w, "\n")
 	}
 	w.Flush()
