@@ -45,13 +45,7 @@ EARTHLY_ORG=earthly-technologies "$earthly" sat inspect core-test
 
 "$earthly" satellite ls
 
-echo "*  core-test" | grep '^\* \+core-test'
-"$earthly" satellite ls > file1.txt
-cat file1.txt
-echo "first grep worked"
-"$earthly" satellite ls | grep '^\* \+core-test'
-echo "second grep worked"
-"$earthly" satellite ls | acbgrep '^\* \+core-test'
-
+"$earthly" satellite ls > lsout
+cat lsout | acbgrep '^\* \+core-test'
 
 echo "=== All tests have passed ==="
