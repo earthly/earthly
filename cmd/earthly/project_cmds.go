@@ -348,10 +348,8 @@ func (app *earthlyApp) actionProjectMemberUpdate(cliCtx *cli.Context) error {
 // projectOrgName returns the specified org or retrieves the default org from the API.
 func (app *earthlyApp) projectOrgName(ctx context.Context, cloudClient *cloud.Client) (string, error) {
 
-	if app.orgName != "" {
-		return app.orgName, nil
-	} else if app.cfg.Global.Org != "" {
-		return app.cfg.Global.Org, nil
+	if configuredOrg := app.org(); configuredOrg != "" {
+		return configuredOrg, nil
 	}
 
 	userOrgs, err := cloudClient.ListOrgs(ctx)
@@ -366,4 +364,11 @@ func (app *earthlyApp) projectOrgName(ctx context.Context, cloudClient *cloud.Cl
 	}
 
 	return userOrgs[0].Name, nil
+}
+
+func (app *earthlyApp) org() string {
+	if app.orgName != "" {
+		return app.orgName
+	}
+	return app.cfg.Global.Org
 }

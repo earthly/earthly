@@ -146,17 +146,17 @@ func (app *earthlyApp) actionSecretsListV2(cliCtx *cli.Context) error {
 	}
 
 	for _, secret := range secrets {
-		display := secret.Path
-		if isPersonal && projectName == "" {
-			display = strings.TrimPrefix(display, "/user/")
-		} else {
-			prefix := fmt.Sprintf("/%s/%s/", orgName, projectName)
-			display = strings.TrimPrefix(display, prefix)
-		}
-		fmt.Println(display)
+		fmt.Println(secretDisplay(isPersonal, orgName, projectName, secret))
 	}
 
 	return nil
+}
+
+func secretDisplay(personal bool, org, proj string, secret *cloud.Secret) string {
+	if personal && proj == "" {
+		return strings.TrimPrefix(secret.Path, "/user/")
+	}
+	return strings.TrimPrefix(secret.Path, fmt.Sprintf("/%s/%s/", org, proj))
 }
 
 func (app *earthlyApp) actionSecretsGetV2(cliCtx *cli.Context) error {
@@ -293,9 +293,8 @@ func (app *earthlyApp) fullSecretPath(ctx context.Context, cloudClient *cloud.Cl
 	if isPersonal && projectName == "" && !strings.HasPrefix(path, "/user") {
 		if path == "/" {
 			return "/user", nil
-		} else {
-			return fmt.Sprintf("/user%s", path), nil
 		}
+		return fmt.Sprintf("/user%s", path), nil
 	}
 
 	// TODO: These values will eventually come from the new PROJECT command (if
@@ -305,13 +304,9 @@ func (app *earthlyApp) fullSecretPath(ctx context.Context, cloudClient *cloud.Cl
 }
 
 func (app *earthlyApp) getOrgAndProject(ctx context.Context, client *cloud.Client) (org, project string, isPersonal bool, err error) {
-	if app.orgName != "" {
-		org = app.orgName
-	} else if app.cfg.Global.Org != "" {
-		org = app.cfg.Global.Org
-	}
+	org = app.org()
 	if org == "" {
-		return org, project, isPersonal, errors.Errorf("provid an org using the --org flag or `org select` command")
+		return org, project, isPersonal, errors.Errorf("provide an org using the --org flag or `org select` command")
 	}
 	allOrgs, err := client.ListOrgs(ctx)
 	if err != nil {
