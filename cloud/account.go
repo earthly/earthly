@@ -18,10 +18,11 @@ import (
 
 // TokenDetail contains token information
 type TokenDetail struct {
-	Name       string
-	Write      bool
-	Expiry     time.Time
-	Indefinite bool
+	Name           string
+	Write          bool
+	Expiry         time.Time
+	Indefinite     bool
+	LastAccessedAt time.Time
 }
 
 func (c *Client) ListPublicKeys(ctx context.Context) ([]string, error) {
@@ -121,11 +122,16 @@ func (c *Client) ListTokens(ctx context.Context) ([]*TokenDetail, error) {
 
 	tokenDetails := []*TokenDetail{}
 	for _, token := range listTokensResponse.Tokens {
+		var lastAccessedAt time.Time
+		if token.LastAccessedAt != nil {
+			lastAccessedAt = token.LastAccessedAt.AsTime()
+		}
 		tokenDetails = append(tokenDetails, &TokenDetail{
-			Name:       token.Name,
-			Write:      token.Write,
-			Expiry:     token.Expiry.AsTime(),
-			Indefinite: token.Indefinite,
+			Name:           token.Name,
+			Write:          token.Write,
+			Expiry:         token.Expiry.AsTime(),
+			Indefinite:     token.Indefinite,
+			LastAccessedAt: lastAccessedAt,
 		})
 	}
 	return tokenDetails, nil

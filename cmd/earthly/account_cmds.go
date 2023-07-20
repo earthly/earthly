@@ -440,7 +440,7 @@ func (app *earthlyApp) actionAccountListTokens(cliCtx *cli.Context) error {
 	now := time.Now()
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintf(w, "Token Name\tRead/Write\tExpiry\n")
+	fmt.Fprintf(w, "Token Name\tRead/Write\tExpiry\tLast Used\n")
 	for _, token := range tokens {
 		expired := now.After(token.Expiry)
 		fmt.Fprintf(w, "%s", token.Name)
@@ -457,7 +457,11 @@ func (app *earthlyApp) actionAccountListTokens(cliCtx *cli.Context) error {
 				fmt.Fprintf(w, " *expired*")
 			}
 		}
-
+		if token.LastAccessedAt.UTC().IsZero() {
+			fmt.Fprint(w, "\tNever")
+		} else {
+			fmt.Fprintf(w, "\t%s UTC", token.LastAccessedAt.UTC().Format("2006-01-02T15:04"))
+		}
 		fmt.Fprintf(w, "\n")
 	}
 	w.Flush()
@@ -478,8 +482,10 @@ func (app *earthlyApp) actionAccountCreateToken(cliCtx *cli.Context) error {
 
 		var err error
 		for _, layout := range layouts {
-			*expiry, err = time.Parse(layout, app.expiry)
+			var parsedTime time.Time
+			parsedTime, err = time.Parse(layout, app.expiry)
 			if err == nil {
+				expiry = &parsedTime
 				break
 			}
 		}
@@ -500,7 +506,7 @@ func (app *earthlyApp) actionAccountCreateToken(cliCtx *cli.Context) error {
 
 	expiryStr := "will never expire"
 	if expiry != nil {
-		expiryStr = fmt.Sprintf("will expire in %s", humanize.Time(*expiry))
+		expiryStr = fmt.Sprintf("will expire %s", humanize.Time(*expiry))
 	}
 
 	fmt.Printf("created token %q which %s; save this token somewhere, it can't be viewed again (only reset)\n", token, expiryStr)
