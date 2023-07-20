@@ -10,6 +10,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Fixed
 - Fixed a bug, where the command to create tokens with a set expiration failed.
 
+### Changed
+- Setting env vars like  `FORCE_COLOR`, or `EARTHLY_FULL_TARGET` to `0`, `false`, `FALSE`, or `` (an empty-string) will no longer force the color, use any other value like `1`, `true`, or `yesplease`.
+
 ## v0.7.12 - 2023-07-17
 
 ### Added
