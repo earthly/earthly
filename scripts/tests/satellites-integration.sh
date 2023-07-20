@@ -44,8 +44,7 @@ EARTHLY_ORG=earthly-technologies "$earthly" sat inspect core-test
 "$earthly" sat select core-test
 
 "$earthly" satellite ls
-
-"$earthly" satellite ls > lsout
-cat lsout | acbgrep '^\* \+core-test'
+"$earthly" satellite ls | acbgrep 'core-test'
+"$earthly" satellite ls | acbgrep 'core-test' | acbgrep '[*]'
 
 echo "=== All tests have passed ==="
