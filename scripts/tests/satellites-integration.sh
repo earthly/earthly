@@ -47,8 +47,6 @@ EARTHLY_ORG=earthly-technologies "$earthly" sat inspect core-test
 "$earthly" satellite ls
 
 # Check core-test is selected
-# Note: previously we tried to use regex to match this in a single grep,
-# but the regex  was not working from the github actions runner
-"$earthly" satellite ls | acbgrep 'core-test' | acbgrep '[*]'
+NO_COLOR=1 "$earthly" satellite ls | acbgrep '^\* \+core-test'
 
 echo "=== All tests have passed ==="
