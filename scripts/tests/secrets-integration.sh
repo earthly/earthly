@@ -21,8 +21,9 @@ if [ -z "${EARTHLY_TOKEN:-}" ]; then
 fi
 test -n "$EARTHLY_TOKEN" || (echo "error: EARTHLY_TOKEN is not set" && exit 1)
 
-EARTHLY_INSTALLATION_NAME="integration"
+EARTHLY_INSTALLATION_NAME="earthly.integration"
 export EARTHLY_INSTALLATION_NAME
+rm -rf "$HOME/.earthly.integration/"
 
 # ensure earthly login works (and print out who gets logged in)
 "$earthly" account login
@@ -40,6 +41,7 @@ ID_RSA=$("$earthly" secrets --org earthly-technologies --project core get -n sec
 
 # now that we grabbed the manitou credentials, unset our token, to ensure that we're only testing using manitou's credentials
 unset EARTHLY_TOKEN
+"$earthly" account logout
 
 echo starting new instance of ssh-agent, and loading credentials
 eval "$(ssh-agent)"
@@ -58,7 +60,7 @@ echo testing that the ssh-agent only contains a single key
 test "$(ssh-add -l | wc -l)" = "1"
 
 echo "testing earthly account login works (and is using the earthly-manitou account)"
-"$earthly" account login 2>&1 | acbgrep 'other-service+earthly-manitou@earthly.dev'
+"$earthly" account login 2>&1 | acbgrep 'Logged in as "other-service+earthly-manitou@earthly.dev" using ssh auth'
 
 mkdir -p /tmp/earthtest
 cat << EOF > /tmp/earthtest/Earthfile

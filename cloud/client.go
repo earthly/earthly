@@ -61,6 +61,7 @@ type Client struct {
 	logstreamAddressOverride string
 	serverConnTimeout        time.Duration
 	orgIDCache               sync.Map // orgName -> orgID
+	lastAuthMethod           AuthMethod
 }
 
 type ClientOpt func(*Client)
