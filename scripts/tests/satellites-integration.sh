@@ -43,8 +43,12 @@ EARTHLY_ORG=earthly-technologies "$earthly" sat inspect core-test
 # test the sat select works correctly uses the config's org
 "$earthly" sat select core-test
 
+# Print ls for debugging
 "$earthly" satellite ls
-"$earthly" satellite ls | acbgrep 'core-test'
+
+# Check core-test is selected
+# Note: previously we tried to use regex to match this in a single grep,
+# but the regex  was not working from the github actions runner
 "$earthly" satellite ls | acbgrep 'core-test' | acbgrep '[*]'
 
 echo "=== All tests have passed ==="
