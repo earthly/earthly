@@ -92,7 +92,7 @@ EOF
 "$earthly" secrets get super/secret | acbgrep 'hello'
 "$earthly" secrets get /user/super/secret | acbgrep 'hello'
 "$earthly" secrets ls | acbgrep '^super/secret$'
-"$earthly" secrets ls /user | acbgrep '^/user/super/secret$'
+"$earthly" secrets ls /user | acbgrep '^super/secret$'
 
 echo "=== test 1 ==="
 # test RUN --mount can reference a secret from the command line
