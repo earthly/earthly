@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"math/rand"
 	"net/url"
 	"os"
 	"path"
@@ -233,14 +232,10 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			}
 		} else {
 			defer func() { // Defer this to keep log upload code together
-				if rand.Intn(5) == 0 { // 20% of the time
-					app.console.Printf(
-						"🛰️ Reuse cache between CI runs with Earthly Satellites!\n" +
-							"  2-20X faster than without caching. 6,000 minutes per month free tier. ARM and x86 Satellites available.\n" +
-							"  Get started for free https://cloud.earthly.dev")
-				} else {
-					app.console.Printf("Share your logs with an Earthly account (experimental)! Register for one at https://ci.earthly.dev.")
-				}
+				app.console.Printf(
+					"🛰️ Reuse cache between CI runs with Earthly Satellites!\n" +
+						"  2-20X faster than without caching. 6,000 minutes per month free tier. ARM and x86 Satellites available.\n" +
+						"  Get started for free https://cloud.earthly.dev")
 			}()
 		}
 	}
