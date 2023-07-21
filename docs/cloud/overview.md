@@ -7,6 +7,10 @@ Earthly Cloud is a collection of features that enrich the Earthly experience via
 * [Earthly CI](./earthly-ci.md): A cloud-based CI/CD system that allows you to continuously build your code in the cloud.
 * **Log sharing**: The ability to share build logs with coworkers.
 
+## Sign up for Earthly Cloud for free!
+
+*Get 6,000 build minutes/month to use across Satellites and CI as part of Earthly Cloud's no time limit free tier.* ***[Sign up today](https://cloud.earthly.dev/login).***
+
 ## Getting started
 
 ### Creating an account
