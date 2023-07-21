@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/url"
 	"os"
 	"path"
@@ -232,7 +233,19 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			}
 		} else {
 			defer func() { // Defer this to keep log upload code together
-				app.console.Printf("Share your logs with an Earthly account (experimental)! Register for one at https://ci.earthly.dev.")
+				if rand.Intn(20) == 0 {
+					app.console.Printf(
+						"╭―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――╮\n" +
+							"│                Earthly is better logged in                │\n" +
+							"│                                                           │\n" +
+							"│ 6,000 free build minutes per month on Earthly Satellites  │\n" +
+							"│              - fast remote runners that work with any CI. │\n" +
+							"│                                                           │\n" +
+							"│ Free at https://cloud.earthly.dev (Log in with GitHub)    │\n" +
+							"╰―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――╯")
+				} else {
+					app.console.Printf("Share your logs with an Earthly account (experimental)! Register for one at https://ci.earthly.dev.")
+				}
 			}()
 		}
 	}
