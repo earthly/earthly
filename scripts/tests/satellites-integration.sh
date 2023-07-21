@@ -24,8 +24,9 @@ test -n "$EARTHLY_TOKEN" || (echo "error: EARTHLY_TOKEN is not set" && exit 1)
 
 set -x # don't move this to the top; or we'll leak the token
 
-EARTHLY_INSTALLATION_NAME="integration"
+EARTHLY_INSTALLATION_NAME="earthly-integration"
 export EARTHLY_INSTALLATION_NAME
+rm -rf "$HOME/.earthly.integration/"
 
 # ensure earthly login works (and print out who gets logged in)
 "$earthly" account login
@@ -43,8 +44,10 @@ EARTHLY_ORG=earthly-technologies "$earthly" sat inspect core-test
 # test the sat select works correctly uses the config's org
 "$earthly" sat select core-test
 
-#TODO fix this.... satellite ls does NOT use the org from the config file
+# Print ls for debugging
 "$earthly" satellite ls
-#"$earthly" satellite ls | acbgrep '^\* \+core-test'
+
+# Check core-test is selected
+NO_COLOR=1 "$earthly" satellite ls | acbgrep '^\* \+core-test'
 
 echo "=== All tests have passed ==="

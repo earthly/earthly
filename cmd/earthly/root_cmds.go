@@ -364,6 +364,12 @@ Set up a whole custom git repository for a server called example.com, using a si
 			},
 			Action: app.webUI,
 		},
+		{
+			Name:        "init",
+			Description: "Initialize a project *experimental*",
+			Usage:       "Initialize an Earthfile for the current project *experimental*",
+			Action:      app.actionInit,
+		},
 	}
 }
 

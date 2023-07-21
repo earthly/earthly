@@ -440,7 +440,7 @@ func (app *earthlyApp) actionAccountListTokens(cliCtx *cli.Context) error {
 	now := time.Now()
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintf(w, "Token Name\tRead/Write\tExpiry\n")
+	fmt.Fprintf(w, "Token Name\tRead/Write\tExpiry\tLast Used\n")
 	for _, token := range tokens {
 		expired := now.After(token.Expiry)
 		fmt.Fprintf(w, "%s", token.Name)
@@ -457,7 +457,11 @@ func (app *earthlyApp) actionAccountListTokens(cliCtx *cli.Context) error {
 				fmt.Fprintf(w, " *expired*")
 			}
 		}
-
+		if token.LastAccessedAt.UTC().IsZero() {
+			fmt.Fprint(w, "\tNever")
+		} else {
+			fmt.Fprintf(w, "\t%s UTC", token.LastAccessedAt.UTC().Format("2006-01-02T15:04"))
+		}
 		fmt.Fprintf(w, "\n")
 	}
 	w.Flush()
@@ -478,8 +482,10 @@ func (app *earthlyApp) actionAccountCreateToken(cliCtx *cli.Context) error {
 
 		var err error
 		for _, layout := range layouts {
-			*expiry, err = time.Parse(layout, app.expiry)
+			var parsedTime time.Time
+			parsedTime, err = time.Parse(layout, app.expiry)
 			if err == nil {
+				expiry = &parsedTime
 				break
 			}
 		}
@@ -500,7 +506,7 @@ func (app *earthlyApp) actionAccountCreateToken(cliCtx *cli.Context) error {
 
 	expiryStr := "will never expire"
 	if expiry != nil {
-		expiryStr = fmt.Sprintf("will expire in %s", humanize.Time(*expiry))
+		expiryStr = fmt.Sprintf("will expire %s", humanize.Time(*expiry))
 	}
 
 	fmt.Printf("created token %q which %s; save this token somewhere, it can't be viewed again (only reset)\n", token, expiryStr)
@@ -533,6 +539,16 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 	cloudClient, err := app.newCloudClient()
 	if err != nil {
 		return err
+	}
+
+	loggedInEmail, authType, _, err := cloudClient.WhoAmI(cliCtx.Context)
+	if err == nil {
+		// already logged in, don't re-attempt a login
+		app.console.Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
+		return nil
+	}
+	if errors.Cause(err) != cloud.ErrUnauthorized {
+		return errors.Wrap(err, "failed to login")
 	}
 
 	// if a user explicitly calls Login, we will allow future auto-logins
@@ -593,11 +609,11 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 	} else if email != "" {
 		if err = cloudClient.FindSSHCredentials(cliCtx.Context, email); err == nil {
 			// if err is not nil, we will try again below via cloudClient.WhoAmI()
-			err = cloudClient.Authenticate(cliCtx.Context)
+			authType, err = cloudClient.Authenticate(cliCtx.Context)
 			if err != nil {
 				return errors.Wrap(err, "authentication with cloud server failed")
 			}
-			app.console.Printf("Logged in as %q using ssh auth\n", email)
+			app.console.Printf("Logged in as %q using %s auth\n", email, authType)
 			app.printLogSharingMessage()
 			return nil
 		}
@@ -659,19 +675,18 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		app.console.Printf("Logged in as %q using token auth\n", email) // TODO display if using read-only token
-		app.printLogSharingMessage()
 	} else {
 		err = app.loginAndSavePasswordCredentials(cliCtx.Context, cloudClient, email, string(pass))
 		if err != nil {
 			return err
 		}
-		app.printLogSharingMessage()
 	}
-	err = cloudClient.Authenticate(cliCtx.Context)
+	authType, err = cloudClient.Authenticate(cliCtx.Context)
 	if err != nil {
 		return errors.Wrap(err, "authentication with cloud server failed")
 	}
+	app.console.Printf("Logged in as %q using %s auth\n", email, authType)
+	app.printLogSharingMessage()
 	return nil
 }
 

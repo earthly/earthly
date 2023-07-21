@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+# Outputs the clojure project version from a passed in .jar file
+version=$(unzip -p $1 META-INF/MANIFEST.MF | grep Leiningen-Project-Version: | sed 's/^.*: //' | tr -d '\r')
+test -n "$version" || (echo >&2 "failed to extract version" && exit 1)
+
+echo $version

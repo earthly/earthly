@@ -433,6 +433,7 @@ earthly-docker:
 earthly-integration-test-base:
     FROM +earthly-docker
     RUN apk update && apk add pcre-tools curl python3 bash perl findutils
+    COPY scripts/acbtest/acbtest scripts/acbtest/acbgrep /bin/
     ENV NO_DOCKER=1
     ENV NETWORK_MODE=host # Note that this breaks access to embedded registry in WITH DOCKER.
     ENV EARTHLY_VERSION_FLAG_OVERRIDES=no-use-registry-for-with-docker # Use tar-based due to above.
@@ -831,6 +832,7 @@ examples2:
         # This crashes randomly on arm.
         BUILD ./examples/scala+docker
     END
+    BUILD ./examples/clojure+docker
     BUILD ./examples/cobol+docker
     BUILD ./examples/rust+docker
     BUILD ./examples/multiplatform+all

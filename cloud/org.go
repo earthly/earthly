@@ -203,7 +203,7 @@ func (c *Client) GuessOrgMembership(ctx context.Context) (orgName, orgID string,
 	// This is because there is an issue on the backend where the token might be outdated
 	// if a user was invited to an org recently after already logging-in.
 	// TODO Eventually we should be able to remove this cheat.
-	err = c.Authenticate(ctx)
+	_, err = c.Authenticate(ctx)
 	if err != nil {
 		return "", "", errors.Wrap(err, "unable to authenticate")
 	}
