@@ -401,7 +401,7 @@ func (app *earthlyApp) getSatelliteOrg(ctx context.Context, cloudClient *cloud.C
 	// This is because there is an issue on the backend where the token might be outdated
 	// if a user was invited to an org recently after already logging-in.
 	// TODO Eventually we should be able to remove this cheat.
-	err = cloudClient.Authenticate(ctx)
+	_, err = cloudClient.Authenticate(ctx)
 	if err != nil {
 		return "", "", errors.Wrap(err, "unable to authenticate")
 	}
