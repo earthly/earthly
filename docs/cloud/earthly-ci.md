@@ -16,6 +16,10 @@ Earthly CI is a hosted CI service that allows you to run your Earthly builds in 
 
 Earthly CI uses Earthfiles as the build configuration language.
 
+## Get started with Earthly CI for free!
+
+Earthly CI is included with [Earthly Cloud](https://docs.earthly.dev/earthly-cloud/overview). Earthly Cloud is a SaaS build automation platform with consistent builds, ridiculous speed, and a next-gen developer experience that works seamlessly with any CI. It includes the functionality of both Earthly CI and [Earthly Satellites](https://docs.earthly.dev/earthly-cloud/satellites). *Get 6,000 build minutes/month as part of Earthly Cloud's no time limit free tier.* ***[Sign up today](https://cloud.earthly.dev/login).***
+
 ## Benefits
 
 * **Ridiculously fast** - Earthly CI uses the same build cache and build parallelization technology as Earthly Satellites, so builds are 2-20X faster compared to a traditional CI.
