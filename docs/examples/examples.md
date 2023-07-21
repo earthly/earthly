@@ -13,11 +13,11 @@ Examples of integrating Earthly into various CI systems can be found on the foll
 
 For more general information on CI systems not listed above, see the [CI integration guide](../ci-integration/overview.md).
 
-## Examples by Dev environments
+## Examples by dev environments
 
 Examples of how Earthly can be integrated into different dev environments
 
-* [codespaces](https://github.com/earthly/codespaces-example) - shows how Earthly can be used in Codespaces and Devcontainers
+* [GitHub Codespaces](https://github.com/earthly/codespaces-example) - shows how Earthly can be used in GitHub Codespaces and Devcontainers
 
 ## Example Earthfiles
 
