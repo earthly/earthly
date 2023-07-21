@@ -42,6 +42,7 @@ import (
 	logbussetup "github.com/earthly/earthly/logbus/setup"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
+	"github.com/earthly/earthly/util/envutil"
 	"github.com/earthly/earthly/util/errutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/reflectutil"
@@ -287,13 +288,11 @@ func main() {
 	}
 
 	colorMode := conslogging.AutoColor
-	_, forceColor := os.LookupEnv("FORCE_COLOR")
-	if forceColor {
+	if envutil.IsTrue("FORCE_COLOR") {
 		colorMode = conslogging.ForceColor
 		color.NoColor = false
 	}
-	_, noColor := os.LookupEnv("NO_COLOR")
-	if noColor {
+	if envutil.IsTrue("NO_COLOR") {
 		colorMode = conslogging.NoColor
 		color.NoColor = true
 	}
@@ -307,8 +306,7 @@ func main() {
 		}
 	}
 
-	_, fullTarget := os.LookupEnv("EARTHLY_FULL_TARGET")
-	if fullTarget {
+	if envutil.IsTrue("EARTHLY_FULL_TARGET") {
 		padding = conslogging.NoPadding
 	}
 
@@ -497,8 +495,8 @@ func (app *earthlyApp) before(cliCtx *cli.Context) error {
 			app.buildID = uuid.NewString()
 		}
 		disableOngoingUpdates := !app.logstream || app.interactiveDebugging
-		_, forceColor := os.LookupEnv("FORCE_COLOR")
-		_, noColor := os.LookupEnv("NO_COLOR")
+		forceColor := envutil.IsTrue("FORCE_COLOR")
+		noColor := envutil.IsTrue("NO_COLOR")
 		var err error
 		app.logbusSetup, err = logbussetup.New(
 			cliCtx.Context, app.logbus, app.debug, app.verbose, forceColor, noColor,

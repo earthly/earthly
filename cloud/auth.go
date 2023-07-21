@@ -23,23 +23,30 @@ import (
 // Credentials may be either email/password, ssh-based, or a custom token.
 // Upon successful authenticate, the JWT provided by the server is stored in
 // ~/.earthly/auth.jwt, and can be refreshed any time via another call to Authenticate().
-func (c *Client) Authenticate(ctx context.Context) error {
-	var err error
-	switch {
-	case c.email != "" && c.password != "":
-		err = c.loginWithPassword(ctx)
-	case c.authCredToken != "":
-		err = c.loginWithToken(ctx)
-	default:
-		err = c.loginWithSSH(ctx)
-	}
+func (c *Client) Authenticate(ctx context.Context) (AuthMethod, error) {
+	authMethod, err := c.doLogin(ctx)
 	if err != nil {
 		if errors.Is(err, ErrNoAuthorizedPublicKeys) || errors.Is(err, ErrNoSSHAgent) {
-			return ErrUnauthorized
+			return "", ErrUnauthorized
 		}
-		return err
+		return "", err
 	}
-	return c.saveToken()
+	err = c.saveToken()
+	if err != nil {
+		return "", err
+	}
+	c.lastAuthMethod = authMethod
+	return authMethod, nil
+}
+
+func (c *Client) doLogin(ctx context.Context) (AuthMethod, error) {
+	if c.email != "" && c.password != "" {
+		return AuthMethodPassword, c.loginWithPassword(ctx)
+	}
+	if c.authCredToken != "" {
+		return AuthMethodToken, c.loginWithToken(ctx)
+	}
+	return AuthMethodSSH, c.loginWithSSH(ctx)
 }
 
 func (c *Client) IsLoggedIn(ctx context.Context) bool {
@@ -81,7 +88,7 @@ func (c *Client) FindSSHCredentials(ctx context.Context, emailToFind string) err
 }
 
 func (c *Client) GetAuthToken(ctx context.Context) (string, error) {
-	err := c.Authenticate(ctx) // Ensure the current token is valid
+	_, err := c.Authenticate(ctx) // Ensure the current token is valid
 	if err != nil {
 		return "", errors.Wrap(err, "could not authenticate")
 	}

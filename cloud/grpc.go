@@ -119,7 +119,7 @@ func (c *Client) StreamInterceptor() grpc.StreamClientInterceptor {
 
 func (c *Client) reAuthIfExpired(ctx context.Context) (context.Context, error) {
 	if time.Now().UTC().After(c.authTokenExpiry) {
-		err := c.Authenticate(ctx)
+		_, err := c.Authenticate(ctx)
 		if err != nil {
 			return ctx, errors.Wrap(err, "failed refreshing expired token")
 		}
@@ -129,7 +129,7 @@ func (c *Client) reAuthIfExpired(ctx context.Context) (context.Context, error) {
 }
 
 func (c *Client) reAuthCtx(ctx context.Context) (context.Context, error) {
-	err := c.Authenticate(ctx)
+	_, err := c.Authenticate(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed re-authenticating")
 	}

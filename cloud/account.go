@@ -16,6 +16,15 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+type AuthMethod string
+
+const (
+	AuthMethodSSH       AuthMethod = "ssh"
+	AuthMethodPassword  AuthMethod = "password"
+	AuthMethodToken     AuthMethod = "token"
+	AuthMethodCachedJWT AuthMethod = "cached jwt"
+)
+
 // TokenDetail contains token information
 type TokenDetail struct {
 	Name           string
@@ -153,20 +162,16 @@ func (c *Client) RemoveToken(ctx context.Context, name string) error {
 	return nil
 }
 
-func (c *Client) WhoAmI(ctx context.Context) (string, string, bool, error) {
+func (c *Client) WhoAmI(ctx context.Context) (string, AuthMethod, bool, error) {
 	email, writeAccess, err := c.ping(ctx)
 	if err != nil {
 		return "", "", false, err
 	}
-
-	authType := "ssh"
-	if c.password != "" {
-		authType = "password"
-	} else if c.authCredToken != "" {
-		authType = "token"
+	authMethod := c.lastAuthMethod
+	if authMethod == "" {
+		authMethod = AuthMethodCachedJWT
 	}
-
-	return email, authType, writeAccess, nil
+	return email, authMethod, writeAccess, nil
 }
 
 func (c *Client) GetPublicKeys(ctx context.Context) ([]*agent.Key, error) {
