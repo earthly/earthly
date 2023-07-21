@@ -233,9 +233,9 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 		} else {
 			defer func() { // Defer this to keep log upload code together
 				app.console.Printf(
-					"🛰️ Reuse cache between CI runs with Earthly Satellites!\n" +
-						"  2-20X faster than without caching. 6,000 minutes per month free tier. ARM and x86 Satellites available.\n" +
-						"  Get started for free https://cloud.earthly.dev")
+					"🛰️ Reuse cache between CI runs with Earthly Satellites! " +
+						"2-20X faster than without cache. Generous free tier " +
+						"https://cloud.earthly.dev\n")
 			}()
 		}
 	}
