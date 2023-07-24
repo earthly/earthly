@@ -199,14 +199,6 @@ func (c *Client) GetOrgID(ctx context.Context, orgName string) (string, error) {
 // Deprecated: we should stop "guessing" org membership and have the user always specify they want to use.
 // A future `org select` command would make specifying the org easier.
 func (c *Client) GuessOrgMembership(ctx context.Context) (orgName, orgID string, err error) {
-	// We are cheating here and forcing a re-auth before running any satellite commands.
-	// This is because there is an issue on the backend where the token might be outdated
-	// if a user was invited to an org recently after already logging-in.
-	// TODO Eventually we should be able to remove this cheat.
-	_, err = c.Authenticate(ctx)
-	if err != nil {
-		return "", "", errors.Wrap(err, "unable to authenticate")
-	}
 	orgs, err := c.ListOrgs(ctx)
 	if err != nil {
 		return "", "", err

@@ -1,0 +1,18 @@
+State: Operational
+Platform: linux/amd64
+Size: large
+Last Used: 2023-07-12 18:33:57.897728 -0400 EDT
+Cache Duration: 21d
+Version: v0.7.11
+Revision: 176
+Feature Flags: [runner revisions]
+Maintenance Window: [02:00 - 04:00]
+Currently selected: Yes
+
+Connecting to core-test...
+Version github.com/earthly/buildkit v0.7.11 e0f2b80558fa91b090bf9f489e033e995ca1106a
+Warning: Buildkit version (v0.7.11) is not compatible with Earthly version (v0.0.0)
+Platforms: linux/amd64 (native) linux/amd64/v2 linux/amd64/v3 linux/amd64/v4 linux/arm64 linux/riscv64 linux/ppc64 linux/ppc64le linux/s390x linux/386 linux/mips64le linux/mips64 linux/arm/v7 linux/arm/v6
+Utilization: 12 other builds, 101/24 op load
+Warning: Currently under heavy load. Performance will be affected
+GC stats: 16 GB cache, avg GC duration 0s, all-time GC duration 1ms, last GC duration 0s, last cleared 0 B
