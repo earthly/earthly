@@ -21,8 +21,9 @@ fi
 test -n "$EARTHLY_TOKEN" || (echo "error: EARTHLY_TOKEN is not set" && exit 1)
 set -x
 
-EARTHLY_INSTALLATION_NAME="integration"
+EARTHLY_INSTALLATION_NAME="earthly-integration"
 export EARTHLY_INSTALLATION_NAME
+rm -rf "$HOME/.earthly.integration/"
 
 # ensure earthly login works (and print out who gets logged in)
 "$earthly" account login

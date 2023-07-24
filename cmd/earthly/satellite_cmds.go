@@ -397,6 +397,14 @@ func (app *earthlyApp) printSatellitesJSON(satellites []satelliteWithPipelineInf
 }
 
 func (app *earthlyApp) getSatelliteOrg(ctx context.Context, cloudClient *cloud.Client) (orgName, orgID string, err error) {
+	// We are cheating here and forcing a re-auth before running any satellite commands.
+	// This is because there is an issue on the backend where the token might be outdated
+	// if a user was invited to an org recently after already logging-in.
+	// TODO Eventually we should be able to remove this cheat.
+	_, err = cloudClient.Authenticate(ctx)
+	if err != nil {
+		return "", "", errors.Wrap(err, "unable to authenticate")
+	}
 	if app.orgName != "" {
 		orgID, err = cloudClient.GetOrgID(ctx, app.orgName)
 		if err != nil {
@@ -573,7 +581,9 @@ func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
 		}
 	}
 
-	isOrgSelected := app.cfg.Satellite.Org == orgName
+	// app.cfg.Satellite.Org is deprecated, but we can still check it here for compatability
+	// with config files that may still have it set
+	isOrgSelected := app.cfg.Satellite.Org == orgName || app.cfg.Global.Org == orgName
 
 	satellitesWithPipelineInfo := app.toSatellitePipelineInfo(satellites, pipelines)
 	if app.satellitePrintJSON {

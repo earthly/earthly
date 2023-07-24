@@ -21,8 +21,9 @@ if [ -z "${EARTHLY_TOKEN:-}" ]; then
 fi
 test -n "$EARTHLY_TOKEN" || (echo "error: EARTHLY_TOKEN is not set" && exit 1)
 
-EARTHLY_INSTALLATION_NAME="integration"
+EARTHLY_INSTALLATION_NAME="earthly.integration"
 export EARTHLY_INSTALLATION_NAME
+rm -rf "$HOME/.earthly.integration/"
 
 # ensure earthly login works (and print out who gets logged in)
 "$earthly" account login
@@ -40,6 +41,7 @@ ID_RSA=$("$earthly" secrets --org earthly-technologies --project core get -n sec
 
 # now that we grabbed the manitou credentials, unset our token, to ensure that we're only testing using manitou's credentials
 unset EARTHLY_TOKEN
+"$earthly" account logout
 
 echo starting new instance of ssh-agent, and loading credentials
 eval "$(ssh-agent)"
@@ -58,7 +60,7 @@ echo testing that the ssh-agent only contains a single key
 test "$(ssh-add -l | wc -l)" = "1"
 
 echo "testing earthly account login works (and is using the earthly-manitou account)"
-"$earthly" account login 2>&1 | acbgrep 'other-service+earthly-manitou@earthly.dev'
+"$earthly" account login 2>&1 | acbgrep 'Logged in as "other-service+earthly-manitou@earthly.dev" using ssh auth'
 
 mkdir -p /tmp/earthtest
 cat << EOF > /tmp/earthtest/Earthfile
@@ -75,8 +77,22 @@ EOF
 
 # set and test get returns the correct value
 "$earthly" secrets --org manitou-org --project earthly-core-integration-test set my_test_file "secret-value"
-
 "$earthly" secrets --org manitou-org --project earthly-core-integration-test get my_test_file | acbgrep 'secret-value'
+
+# test secrets with org selected in config file
+"$earthly" org select manitou-org
+"$earthly" secrets --project earthly-core-integration-test get my_test_file | acbgrep 'secret-value'
+"$earthly" secrets --project earthly-core-integration-test set my_other_file "super-secret-value"
+"$earthly" secrets --project earthly-core-integration-test get my_other_file | acbgrep 'super-secret-value'
+"$earthly" secrets --project earthly-core-integration-test ls | acbgrep '^my_test_file$'
+
+# test secrets with personal org
+"$earthly" org select user:other-service+earthly-manitou@earthly.dev
+"$earthly" secrets set super/secret hello
+"$earthly" secrets get super/secret | acbgrep 'hello'
+"$earthly" secrets get /user/super/secret | acbgrep 'hello'
+"$earthly" secrets ls | acbgrep '^super/secret$'
+"$earthly" secrets ls /user | acbgrep '^super/secret$'
 
 echo "=== test 1 ==="
 # test RUN --mount can reference a secret from the command line
