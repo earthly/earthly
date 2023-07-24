@@ -845,6 +845,7 @@ examples2:
     BUILD ./examples/bazel+image
     BUILD ./examples/aws-sso+base
     BUILD ./examples/mkdocs+build
+    BUILD ./examples/zig+docker
 
 license:
     COPY LICENSE ./
