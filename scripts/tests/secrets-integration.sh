@@ -79,8 +79,12 @@ EOF
 "$earthly" secrets --org manitou-org --project earthly-core-integration-test set my_test_file "secret-value"
 "$earthly" secrets --org manitou-org --project earthly-core-integration-test get my_test_file | acbgrep 'secret-value'
 
-# test secrets with org selected in config file
+# test selecting org
 "$earthly" org select manitou-org
+"$earthly" org ls | acbgrep '^\* \+manitou-org'
+
+
+# test secrets with org selected in config file
 "$earthly" secrets --project earthly-core-integration-test get my_test_file | acbgrep 'secret-value'
 "$earthly" secrets --project earthly-core-integration-test set my_other_file "super-secret-value"
 "$earthly" secrets --project earthly-core-integration-test get my_other_file | acbgrep 'super-secret-value'
