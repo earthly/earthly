@@ -6,7 +6,7 @@ LET distro = alpine3.18
 FROM golang:${go_version}-${distro}
 WORKDIR /go-workdir
 
-go-deps:
+deps:
     # These cache dirs will be used in later test and build targets
     # to persist cached go packages.
     #
@@ -23,8 +23,8 @@ go-deps:
     COPY --if-exists go.sum .
     RUN go mod download
 
-go-test-base:
-    FROM +go-deps
+test-base:
+    FROM +deps
 
     # gcc and g++ are required for -race.
     RUN apk add --update gcc g++
@@ -33,9 +33,9 @@ go-test-base:
     # limiting this to _just_ files required by your go tests.
     COPY . .
 
-# go-test-race runs 'go test -race'.
-go-test-race:
-    FROM +go-test-base
+# test-race runs 'go test -race'.
+test-race:
+    FROM +test-base
 
     CACHE --sharing shared "$GOCACHE"
     CACHE --sharing shared "$GOMODCACHE"
@@ -45,9 +45,9 @@ go-test-race:
 
     RUN go test -race "$package"
 
-# go-test-integration runs 'go test -tags integration'.
-go-test-integration:
-    FROM +go-test-base
+# test-integration runs 'go test -tags integration'.
+test-integration:
+    FROM +test-base
 
     CACHE --sharing shared "$GOCACHE"
     CACHE --sharing shared "$GOMODCACHE"
@@ -57,29 +57,29 @@ go-test-integration:
 
     RUN go test -tags integration "$package"
 
-# go-test runs all go test targets
-go-test:
-    BUILD +go-test-race
-    BUILD +go-test-integration
+# test runs all go test targets
+test:
+    BUILD +test-race
+    BUILD +test-integration
 
-go-proj-base:
-    FROM +go-deps
+proj-base:
+    FROM +deps
 
     # This copies the whole project. If you want better caching, try
     # limiting this to _just_ files required by your go project.
     COPY . .
 
-# go-mod-tidy runs 'go mod tidy', saving go.mod and go.sum locally.
-go-mod-tidy:
-    FROM +go-proj-base
+# mod-tidy runs 'go mod tidy', saving go.mod and go.sum locally.
+mod-tidy:
+    FROM +proj-base
 
     RUN go mod tidy
     SAVE ARTIFACT go.mod AS LOCAL go.mod
     SAVE ARTIFACT --if-exists go.sum AS LOCAL go.sum
 
-# go-build runs 'go build ./...', saving artifacts locally.
-go-build:
-    FROM +go-proj-base
+# build runs 'go build ./...', saving artifacts locally.
+build:
+    FROM +proj-base
 
     CACHE --sharing shared "$GOCACHE"
     CACHE --sharing shared "$GOMODCACHE"

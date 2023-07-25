@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	equal        = matchers.Equal
 	haveOccurred = matchers.HaveOccurred
 	not          = matchers.Not
 

@@ -52,6 +52,10 @@ func TestGolang(t *testing.T) {
 		t.cancel()
 	})
 
+	o.Spec("Type", func(t testCtx) {
+		t.expect(t.golang.Type(t.ctx)).To(equal("go"))
+	})
+
 	o.Group("ForDir", func() {
 		o.Spec("it skips projects without a go.mod", func(t testCtx) {
 			pers.Return(t.fs.StatOutput, nil, fs.ErrNotExist)
