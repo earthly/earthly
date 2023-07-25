@@ -206,6 +206,7 @@ func (c *Client) doCallImp(ctx context.Context, r request, method, url, reqID st
 			DialContext: (&net.Dialer{
 				Timeout: c.serverConnTimeout,
 			}).DialContext,
+			Proxy: http.ProxyFromEnvironment,
 		},
 	}
 
