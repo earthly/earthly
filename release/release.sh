@@ -8,7 +8,6 @@ set -ex
 # - downloading the binaries from github and existing binaries from s3 buckets
 # - signing those apt and yum packages containing those binaries
 # - and pushing signed up to s3 buckets (which back our apt and yum repos)
-# - building an AMI for the latest version
 
 # Args
 #   Required
@@ -123,12 +122,6 @@ else
     ("$earthly" secrets --org earthly-technologies --project core ls >/dev/null) || (echo "ERROR: current user does not have access to the earthly-technologies core project"; exit 1);
 fi
 
-release_ami="false"
-if [ $PRODUCTION_RELEASE = "true" ]; then
-    ("$earthly" secrets get /user/earthly-technologies/aws/credentials >/dev/null) || (echo "ERROR: user-secrets /user/earthly-technologies/aws/credentials does not exist"; exit 1);
-    release_ami="true"
-fi
-
 existing_release=$(curl -s https://api.github.com/repos/earthly/earthly/releases/tags/$RELEASE_TAG | jq -r .tag_name)
 if [ "$existing_release" != "null" ]; then
     test "$OVERWRITE_RELEASE" = "1" || (echo "a release for $RELEASE_TAG already exists, to proceed with overwriting this release set OVERWRITE_RELEASE=1" && exit 1);
@@ -159,10 +152,4 @@ if [ "$PRODUCTION_RELEASE" = "true" ]; then
     "$earthly" --push --build-arg RELEASE_TAG --build-arg S3_BUCKET ./yum-repo+build-and-release
 else
     echo "staging apt and yum repos are currently disabled" // TODO s3 related release needs to be updated to work with MFA
-fi
-
-if [ "$release_ami" = "true" ]; then
-  "$earthly" --push --build-arg RELEASE_TAG ./ami+build-ami
-else
-  echo "WARNING: there is no staging environment for AMIs"
 fi
