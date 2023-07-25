@@ -1,5 +1,4 @@
 #!/bin/sh
-
 set -e
 
 EARTHLY_DEBUG=${EARTHLY_DEBUG:-false}
@@ -35,15 +34,26 @@ if [ -z "$NO_BUILDKIT" ]; then
     fi
 
     if [ -f "/sys/fs/cgroup/cgroup.controllers" ]; then
-        ! "$EARTHLY_DEBUG" || echo 1>&2 "detected cgroups v2; earthly-entrypoint.sh pid=$$"
+        echo >&2 "detected cgroups v2; earthly-entrypoint.sh running under pid=$$ with controllers \"$(cat /sys/fs/cgroup/cgroup.controllers)\""
+        for ctrl in cpu pids; do
+          if ! grep -w "$ctrl" /sys/fs/cgroup/cgroup.controllers >/dev/null; then
+            echo >&2 "expected cgroup $ctrl controller to be enabled"
+            exit 1
+          fi
+        done
 
         # move the process under a new cgroup to prevent buildkitd/entrypoint.sh
         # from getting a "h: write error: Resource busy" error while enabling controllers
         # via echo +pids > /sys/fs/cgroup/cgroup.subtree_control
-        ( \
-          mkdir -p /sys/fs/cgroup/earthly-entrypoint && \
-          echo "$$" > /sys/fs/cgroup/earthly-entrypoint/cgroup.procs \
-        ) || true
+        mkdir -p /sys/fs/cgroup/earthly-entrypoint
+        echo "$$" > /sys/fs/cgroup/earthly-entrypoint/cgroup.procs
+
+        if [ "$(wc -l < /sys/fs/cgroup/cgroup.procs)" != "0" ]; then
+            echo "warning: processes exist in the root cgroup; this may cause errors during cgroup initialization. The processes are:"
+            # shellcheck disable=SC2013
+            for pid in $(cat /sys/fs/cgroup/cgroup.procs); do echo "$pid: $(cat "/proc/$pid/comm")"; done
+        fi
+
     fi
 
     # generate certificates

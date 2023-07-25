@@ -42,14 +42,22 @@ if [ -z "$EARTHLY_CACHE_VERSION" ]; then
 fi
 
 if [ -f "/sys/fs/cgroup/cgroup.controllers" ]; then
-    echo "detected cgroups v2; buildkit/entrypoint.sh running under pid=$$"
+    echo "detected cgroups v2; buildkit/entrypoint.sh running under pid=$$ with controllers \"$(cat /sys/fs/cgroup/cgroup.controllers)\""
+    for ctrl in cpu pids; do
+      if ! grep -w "$ctrl" /sys/fs/cgroup/cgroup.controllers >/dev/null; then
+        echo >&2 "expected cgroup $ctrl controller to be enabled"
+        exit 1
+      fi
+    done
 
     mkdir -p /sys/fs/cgroup/earthly
     mkdir -p /sys/fs/cgroup/buildkit
     echo "$$" > /sys/fs/cgroup/earthly/cgroup.procs
 
     if [ "$(wc -l < /sys/fs/cgroup/cgroup.procs)" != "0" ]; then
-        echo "warning: processes exist in the root cgroup; this may cause errors during cgroup initialization"
+        echo "warning: processes exist in the root cgroup; this may cause errors during cgroup initialization. The processes are:"
+        # shellcheck disable=SC2013
+        for pid in $(cat /sys/fs/cgroup/cgroup.procs); do echo "$pid: $(cat "/proc/$pid/comm")"; done
     fi
 
     echo "+pids" > /sys/fs/cgroup/cgroup.subtree_control
@@ -163,7 +171,7 @@ CACHE_SETTINGS=
 
 # Length of time (in seconds) to keep cache. Zero is the same as unset to buildkit.
 CACHE_DURATION_SETTINGS=
-if [ "$CACHE_KEEP_DURATION" -gt 0 ]; then
+if [ -n "$CACHE_KEEP_DURATION" ] && [ "$CACHE_KEEP_DURATION" -gt 0 ]; then
   CACHE_DURATION_SETTINGS="$(envsubst </etc/buildkitd.cacheduration.template)"
 fi
 export CACHE_DURATION_SETTINGS
