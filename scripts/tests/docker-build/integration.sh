@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 set -eu
 
-echo "running tests with $earthly"
-
 earthly=${earthly:=earthly}
-earthly=$(realpath "$earthly")
+if [ "$earthly" != "earthly" ]; then
+  earthly=$(realpath "$earthly")
+fi
+echo "running tests with $earthly"
+"$earthly" --version
 frontend="${frontend:-$(which docker)}"
 tag=test-image:v1.2.3
 tag2="${tag}.4"
+
+PATH="$(realpath "$(dirname "$0")/../../acbtest"):$PATH"
 
 testdir=/tmp/earthly-docker-build-test
 mkdir -p $testdir
@@ -90,7 +94,7 @@ reset
 
 "$earthly" docker-build -t "$tag" --target target1 $testdir
 
-"$frontend" run --rm "$tag" |grep target1 > output 2>&1
+"$frontend" run --rm "$tag" | acbgrep target1 > output 2>&1
 
 diff output <(echo "target1")
 
@@ -99,7 +103,7 @@ reset
 
 "$earthly" docker-build -t "$tag" --target target2 $testdir
 
-"$frontend" run --rm "$tag" |grep target2 > output 2>&1
+"$frontend" run --rm "$tag" | acbgrep target2 > output 2>&1
 
 diff output <(echo "target2")
 
@@ -110,7 +114,7 @@ reset
 
 "$earthly" docker-build -t "$tag" $testdir --arg_to_override=override-value
 
-"$frontend" run --rm "$tag" |grep override-value > output 2>&1
+"$frontend" run --rm "$tag" | acbgrep override-value > output 2>&1
 
 diff output <(echo "override-value")
 
@@ -119,7 +123,7 @@ reset
 
 "$earthly" docker-build -t "$tag" $testdir
 
-"$frontend" run --rm "$tag" |grep default-value > output 2>&1
+"$frontend" run --rm "$tag" | acbgrep default-value > output 2>&1
 
 diff output <(echo "default-value")
 
@@ -168,9 +172,10 @@ EOF
 
 "$frontend" run --rm "$tag" > output
 
-grep bad.txt output > output2 || true
-
-diff output2 <(echo -n "")
+if grep bad.txt output > /dev/null; then
+    >&2 echo "failure: bad.txt was found in output"
+    exit 1
+fi
 
 # verify file is removed
 if [ -f $testdir/.earthlyignore ]; then

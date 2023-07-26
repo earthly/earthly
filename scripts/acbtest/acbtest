@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+test "$@"
+status=$?
+if [ "$status" -ne 0 ]; then
+  echo -n 2>&1 "test "
+  for var in "$@"; do
+    echo -n 2>&1 "${var@Q} "
+  done
+  echo 2>&1 "failed"
+fi
+exit $status

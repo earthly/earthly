@@ -2,15 +2,30 @@
 set -eu
 
 earthly=${earthly:=earthly}
-earthly=$(realpath "$earthly")
+if [ "$earthly" != "earthly" ]; then
+  earthly=$(realpath "$earthly")
+fi
 echo "running tests with $earthly"
+"$earthly" --version
 
 # prevent the self-update of earthly from running (this ensures no bogus data is printed to stdout,
 # which would mess with the secrets data being fetched)
 date +%s > /tmp/last-earthly-prerelease-check
 
+set +x # dont remove or the token will be leaked
+if [ -z "${EARTHLY_TOKEN:-}" ]; then
+  echo "using EARTHLY_TOKEN from earthly secrets"
+  EARTHLY_TOKEN="$(earthly secrets --org earthly-technologies --project core get earthly-token-for-satellite-tests)"
+  export EARTHLY_TOKEN
+fi
+test -n "$EARTHLY_TOKEN" || (echo "error: EARTHLY_TOKEN is not set" && exit 1)
+set -x
+
+EARTHLY_INSTALLATION_NAME="earthly-integration"
+export EARTHLY_INSTALLATION_NAME
+rm -rf "$HOME/.earthly.integration/"
+
 # ensure earthly login works (and print out who gets logged in)
-test -n "$EARTHLY_TOKEN"
 "$earthly" account login
 
 # A username / password has been stored in the cloud to a docker hub user (that is not part of earthly) via:
@@ -51,3 +66,5 @@ fi
 
 # then test that earthly can access the verygoodimage (by using the cloud-hosted registry credentials)
 "$earthly" --no-cache +test1
+
+echo "=== All tests have passed ==="

@@ -21,6 +21,7 @@ bootstrap
 config 
 doc 
 docker-build 
+init 
 ls 
 org 
 project 
@@ -40,6 +41,7 @@ debug
 doc 
 docker-build 
 docker2earthly 
+init 
 ls 
 org 
 project 

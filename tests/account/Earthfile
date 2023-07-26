@@ -1,0 +1,31 @@
+VERSION 0.7
+PROJECT earthly-technologies/core
+
+ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+ARG --global DOCKERHUB_MIRROR
+ARG --global DOCKERHUB_MIRROR_INSECURE=false
+ARG --global DOCKERHUB_MIRROR_HTTP=false
+ARG --global DOCKERHUB_AUTH=true
+FROM ../..+earthly-integration-test-base \
+    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+    --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+
+IMPORT .. AS tests
+
+WORKDIR /test
+
+test:
+    BUILD +test-login
+
+test-login:
+    COPY test-login.sh .
+    RUN \
+        --secret USER1_TOKEN=test-user1/token \
+        --secret USER2_TOKEN=test-user2/token \
+        --secret USER2_SSH_KEY=test-user2/ssh-key \
+        ./test-login.sh

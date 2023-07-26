@@ -37,20 +37,34 @@ if __name__ == '__main__':
     earthly_path = os.path.realpath(get_earthly_binary(args.earthly))
     print(f'Running interactive tests against "{earthly_path}"')
 
+    tests = (
+        ('test-simple', import_test_func(os.path.join(script_dir, 'simple', 'test-simple.py'))),
+        ('test-interactive-run', import_test_func(os.path.join(script_dir, 'interactive-run', 'test-interactive-run.py'))),
+        ('test-docker-compose', import_test_func(os.path.join(script_dir, 'docker-compose', 'test-docker-compose.py'))),
+        )
+
+    num_passed = 0
+    num_tests = len(tests)
     exit_code = 0
-    for test_name, test in (
-            ('test-simple', import_test_func(os.path.join(script_dir, 'simple', 'test-simple.py'))),
-            ('test-interactive-run', import_test_func(os.path.join(script_dir, 'interactive-run', 'test-interactive-run.py'))),
-            ('test-docker-compose', import_test_func(os.path.join(script_dir, 'docker-compose', 'test-docker-compose.py'))),
-            ):
+    summary_msgs = []
+    for test_name, test in tests:
         print(f'Running {test_name}')
         test_exit_code = test(earthly_path, args.timeout)
         if test_exit_code == 2:
-            print(f'{test_name} timed out')
+            msg = f'{test_name} timed out'
+            print(msg)
+            summary_msgs.append(msg)
             exit_code = test_exit_code
         elif test_exit_code:
-            print(f'{test_name} failed with exit code={test_exit_code}')
+            msg = f'{test_name} failed with exit code={test_exit_code}'
+            print(msg)
+            summary_msgs.append(msg)
             exit_code = test_exit_code
         else:
             print(f'{test_name} passed')
+            num_passed += 1
+    print('== Summary ==')
+    print(f'{num_passed}/{num_tests} interactive-debugger tests passed')
+    for msg in summary_msgs:
+        print(msg)
     sys.exit(exit_code)
