@@ -4,15 +4,21 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.13 - 2023-07-26
+
 ### Added
 - `earthly account list-tokens` now shows the last time a token was used
+- Experimental command `earthly init` to initialize an Earthfile in a project (currently supporting only golang projects)
 
 ### Fixed
 - Fixed a bug, where the command to create tokens with a set expiration failed.
 - Long pauses at the end of builds, which were characterized by apparent freezes or delays with the message `Waiting on Buildkit...`. 
+- `earthly account create-token` no longer panics when parsing expiration date
+- `earthly account login` could change the active user when the JWT expired and an SSH key existed for a different user; now earthly will either refresh the JWT or error
 
 ### Changed
 - Setting env vars like  `FORCE_COLOR`, or `EARTHLY_FULL_TARGET` to `0`, `false`, `FALSE`, or `` (an empty-string) will no longer force the color, use any other value like `1`, `true`, or `yesplease`.
+- `earthly org list` now shows the currently selected org
 
 ## v0.7.12 - 2023-07-17
 
