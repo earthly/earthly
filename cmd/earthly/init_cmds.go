@@ -72,24 +72,12 @@ func (app *earthlyApp) actionInit(cliCtx *cli.Context) error {
 }
 
 func initSingleProject(ctx context.Context, w io.Writer, p proj.Project) error {
-	base, err := p.BaseBlock(ctx)
-	if err != nil {
-		return errors.Wrapf(err, "could not generate base target for project type %T", p)
-	}
-	err = base.Format(ctx, w, efIndent, 0)
-	if err != nil {
-		return errors.Wrapf(err, "could not format base target for project type %T", p)
-	}
-	_, err = w.Write([]byte("\n"))
-	if err != nil {
-		return errors.Wrapf(err, "could not write newline separator between targets")
-	}
-
-	tgts, err := p.Targets(ctx, "")
+	tgts, err := p.Targets(ctx)
 	if err != nil {
 		return errors.Wrapf(err, "could not generate targets for project type %T", p)
 	}
 	for i, tgt := range tgts {
+		tgt.SetPrefix(ctx, "")
 		if i > 0 {
 			_, err = w.Write([]byte("\n"))
 			if err != nil {

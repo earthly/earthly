@@ -1508,8 +1508,8 @@ test-init-golang:
         echo "Earthfile (from 'earthly init') has trailing newlines"; \
         exit 1; \
     fi
-    DO +RUN_EARTHLY --target "+go-build"
-    DO +RUN_EARTHLY --target "+go-test"
+    DO +RUN_EARTHLY --target "+build"
+    DO +RUN_EARTHLY --target "+test"
 
 RUN_EARTHLY:
     COMMAND

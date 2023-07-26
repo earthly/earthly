@@ -82,9 +82,13 @@ func StdExecer() Execer {
 // ErrSkip is an error that means that the project should skip this generator.
 var ErrSkip = errors.New("proj: this project is not a supported type")
 
-// Formatter is a type that can return formatted code with a given indent string
+// Target is a type that can write a formatted target with a given indent string
 // and indentation level
-type Formatter interface {
+type Target interface {
+	// SetPrefix sets a prefix to prepend to this target's name.
+	SetPrefix(context.Context, string)
+
+	// Format writes out the target with the given indentation string and level.
 	Format(ctx context.Context, w io.Writer, indent string, level int) error
 }
 
@@ -101,17 +105,13 @@ type Project interface {
 	// Root returns the root directory for this Project.
 	Root(context.Context) string
 
-	// BaseBlock returns the block of commands that will be used as a base
-	// target for this Project. If the generated Earthfile is for one Project,
-	// then these commands will be part of the base target; otherwise they will
-	// be added to a named target for this project.
-	BaseBlock(context.Context) (Formatter, error)
+	// Type returns a unique name for this project type. It will be used for
+	// conflict avoidance (i.e. making sure we don't have two go modules loaded)
+	// and as a prefix for targets in multi-project-type Earthfiles.
+	Type(context.Context) string
 
-	// Targets returns a list of targets for this Project. The baseTargetName
-	// will be the name of the target that the BaseBlock commands were added to.
-	// If the baseTargetName is empty, then the commands were added to the
-	// actual base target, and no FROM command should be necessary to use it.
-	Targets(ctx context.Context, baseTargetName string) ([]Formatter, error)
+	// Targets returns a list of targets for this Project.
+	Targets(ctx context.Context) ([]Target, error)
 }
 
 // All returns all available project types for the given dir.

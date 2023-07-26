@@ -81,20 +81,20 @@ func matchGolden(t *testing.T, actualBytes []byte, path string) {
 func TestGolang_Targets_Base(t *testing.T) {
 	buf := bytes.NewBufferString(version)
 	g := proj.NewGolang(proj.StdFS(), proj.StdExecer())
-	base, err := g.BaseBlock(context.TODO())
-	if err != nil {
-		t.Fatalf("failed to load golang base target: %v", err)
-	}
-	tgts, err := g.Targets(context.TODO(), "")
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	tgts, err := g.Targets(ctx)
 	if err != nil {
 		t.Fatalf("failed to load golang targets: %v", err)
 	}
-	tgts = append([]proj.Formatter{base}, tgts...)
 	for i, tgt := range tgts {
+		tgt.SetPrefix(ctx, "")
 		if i > 0 {
 			buf.WriteString("\n")
 		}
-		err := tgt.Format(context.TODO(), buf, "    ", 0)
+		err := tgt.Format(ctx, buf, "    ", 0)
 		if err != nil {
 			t.Fatalf("failed to format code: %v", err)
 		}
@@ -108,27 +108,22 @@ func TestGolang_Targets_Base(t *testing.T) {
 func TestGolang_Targets_Named(t *testing.T) {
 	buf := bytes.NewBufferString(version)
 	g := proj.NewGolang(proj.StdFS(), proj.StdExecer())
-	base, err := g.BaseBlock(context.TODO())
-	if err != nil {
-		t.Fatalf("failed to load golang base target: %v", err)
-	}
-	baseName := "go-base"
-	buf.WriteString(baseName + ":\n")
-	err = base.Format(context.TODO(), buf, "    ", 1)
-	if err != nil {
-		t.Fatalf("failed to write base target block: %v", err)
-	}
-	buf.WriteString("\n")
 
-	tgts, err := g.Targets(context.TODO(), baseName)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	pfx := g.Type(ctx)
+
+	tgts, err := g.Targets(ctx)
 	if err != nil {
 		t.Fatalf("failed to load golang targets: %v", err)
 	}
 	for i, tgt := range tgts {
+		tgt.SetPrefix(ctx, pfx)
 		if i > 0 {
 			buf.WriteString("\n")
 		}
-		err := tgt.Format(context.TODO(), buf, "    ", 0)
+		err := tgt.Format(ctx, buf, "    ", 0)
 		if err != nil {
 			t.Fatalf("failed to format code: %v", err)
 		}

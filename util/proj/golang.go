@@ -2,7 +2,7 @@ package proj
 
 import (
 	"context"
-	"fmt"
+	"text/template"
 	"io"
 	"io/fs"
 	"path/filepath"
@@ -19,13 +19,20 @@ const (
 	goModCache = "/.go-mod-cache"
 
 	goBase = `
-LET go_version = 1.20
-LET distro = alpine3.18
+{{- $indent := and .Prefix .Indent}}{{/* if .Prefix is empty string, empty string; otherwise .Indent */}}
+{{- if .Prefix }}{{.Prefix}}base:
+{{ end -}}
+{{$indent}}LET go_version = 1.20
+{{$indent}}LET distro = alpine3.18
 
-FROM golang:${go_version}-${distro}
-WORKDIR /go-workdir`
+{{$indent}}FROM golang:${go_version}-${distro}
+{{$indent}}WORKDIR /go-workdir`
 
-	goDepsBlock = `
+	goDeps = `
+{{.Prefix}}deps:
+    {{- if .Prefix }}
+    FROM +{{.Prefix}}base{{"\n"}}
+    {{- end }}
     # These cache dirs will be used in later test and build targets
     # to persist cached go packages.
     #
@@ -42,17 +49,9 @@ WORKDIR /go-workdir`
     COPY --if-exists go.sum .
     RUN go mod download`
 
-	goDepsFromTgt = `
-go-deps:
-    FROM +%s
-` + goDepsBlock
-
-	goDepsFromBase = `
-go-deps:` + goDepsBlock
-
 	goTestBase = `
-go-test-base:
-    FROM +go-deps
+{{.Prefix}}test-base:
+    FROM +{{.Prefix}}deps
 
     # gcc and g++ are required for -race.
     RUN apk add --update gcc g++
@@ -62,9 +61,9 @@ go-test-base:
     COPY . .`
 
 	goTestRace = `
-# go-test-race runs 'go test -race'.
-go-test-race:
-    FROM +go-test-base
+# {{.Prefix}}test-race runs 'go test -race'.
+{{.Prefix}}test-race:
+    FROM +{{.Prefix}}test-base
 
     CACHE --sharing shared "$GOCACHE"
     CACHE --sharing shared "$GOMODCACHE"
@@ -75,9 +74,9 @@ go-test-race:
     RUN go test -race "$package"`
 
 	goTestIntegration = `
-# go-test-integration runs 'go test -tags integration'.
-go-test-integration:
-    FROM +go-test-base
+# {{.Prefix}}test-integration runs 'go test -tags integration'.
+{{.Prefix}}test-integration:
+    FROM +{{.Prefix}}test-base
 
     CACHE --sharing shared "$GOCACHE"
     CACHE --sharing shared "$GOMODCACHE"
@@ -88,32 +87,32 @@ go-test-integration:
     RUN go test -tags integration "$package"`
 
 	goTest = `
-# go-test runs all go test targets
-go-test:
-    BUILD +go-test-race
-    BUILD +go-test-integration`
+# {{.Prefix}}test runs all go test targets
+{{.Prefix}}test:
+    BUILD +{{.Prefix}}test-race
+    BUILD +{{.Prefix}}test-integration`
 
 	goProjBase = `
-go-proj-base:
-    FROM +go-deps
+{{.Prefix}}proj-base:
+    FROM +{{.Prefix}}deps
 
     # This copies the whole project. If you want better caching, try
     # limiting this to _just_ files required by your go project.
     COPY . .`
 
 	goTidy = `
-# go-mod-tidy runs 'go mod tidy', saving go.mod and go.sum locally.
-go-mod-tidy:
-    FROM +go-proj-base
+# {{.Prefix}}mod-tidy runs 'go mod tidy', saving go.mod and go.sum locally.
+{{.Prefix}}mod-tidy:
+    FROM +{{.Prefix}}proj-base
 
     RUN go mod tidy
     SAVE ARTIFACT go.mod AS LOCAL go.mod
     SAVE ARTIFACT --if-exists go.sum AS LOCAL go.sum`
 
 	goBuild = `
-# go-build runs 'go build ./...', saving artifacts locally.
-go-build:
-    FROM +go-proj-base
+# {{.Prefix}}build runs 'go build ./...', saving artifacts locally.
+{{.Prefix}}build:
+    FROM +{{.Prefix}}proj-base
 
     CACHE --sharing shared "$GOCACHE"
     CACHE --sharing shared "$GOMODCACHE"
@@ -142,6 +141,11 @@ func NewGolang(fs FS, execer Execer) *Golang {
 		fs:     fs,
 		execer: execer,
 	}
+}
+
+// Type returns 'go'
+func (g *Golang) Type(context.Context) string {
+	return "go"
 }
 
 // ForDir returns a Project for the given directory. It returns ErrSkip if the
@@ -180,53 +184,50 @@ func (g *Golang) Root(context.Context) string {
 	return g.root
 }
 
-// BaseBlock returns the block of commands that need to be in the base target
-// for go targets.
-func (g *Golang) BaseBlock(context.Context) (Formatter, error) {
-	return strFormatter(goBase), nil
-}
-
 // Targets returns the targets that should be used for this Golang project.
-func (g *Golang) Targets(_ context.Context, baseName string) ([]Formatter, error) {
-	goDeps := goDepsFromBase
-	if baseName != "" {
-		goDeps = fmt.Sprintf(goDepsFromTgt, baseName)
-	}
-	return []Formatter{
-		strFormatter(goDeps),
-		strFormatter(goTestBase),
-		strFormatter(goTestRace),
-		strFormatter(goTestIntegration),
-		strFormatter(goTest),
-		strFormatter(goProjBase),
-		strFormatter(goTidy),
-		strFormatter(goBuild),
+func (g *Golang) Targets(_ context.Context) ([]Target, error) {
+	return []Target{
+		&targetFormatter{template: goBase},
+		&targetFormatter{template: goDeps},
+		&targetFormatter{template: goTestBase},
+		&targetFormatter{template: goTestRace},
+		&targetFormatter{template: goTestIntegration},
+		&targetFormatter{template: goTest},
+		&targetFormatter{template: goProjBase},
+		&targetFormatter{template: goTidy},
+		&targetFormatter{template: goBuild},
 	}, nil
 }
 
-type strFormatter string
+type targetFormatter struct {
+	prefix   string
+	template string
+}
 
-func (f strFormatter) Format(_ context.Context, w io.Writer, indent string, level int) error {
-	s := strings.TrimSpace(string(f))
-	if level > 0 {
-		fullIndent := strings.Repeat(indent, level)
-		lines := strings.Split(s, "\n")
-		for i, l := range lines {
-			if len(l) == 0 {
-				continue
-			}
-			lines[i] = fullIndent + l
-		}
-		s = strings.Join(lines, "\n")
+func (f *targetFormatter) SetPrefix(_ context.Context, pfx string) {
+	if pfx == "" {
+		f.prefix = ""
+		return
 	}
-	s += "\n"
-	b := []byte(s)
-	for len(b) > 0 {
-		n, err := w.Write(b)
-		if err != nil {
-			return errors.Wrap(err, "errored writing code to writer")
-		}
-		b = b[n:]
+	if !strings.HasSuffix(pfx, "-") {
+		pfx += "-"
+	}
+	f.prefix = pfx
+}
+
+func (f *targetFormatter) Format(_ context.Context, w io.Writer, indent string, level int) error {
+	t := strings.TrimSpace(f.template) + "\n"
+	tmpl, err := template.New("").Parse(t)
+	if err != nil {
+		return errors.Wrap(err, "golang: failed to parse target template")
+	}
+	type tmplCtx struct {
+		Prefix string
+		Indent string
+	}
+	err = tmpl.Execute(w, tmplCtx{Prefix: f.prefix, Indent: indent})
+	if err != nil {
+		return errors.Wrap(err, "golang: failed to execute target template")
 	}
 	return nil
 }
