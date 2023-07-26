@@ -9,6 +9,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Fixed
 - Fixed a bug, where the command to create tokens with a set expiration failed.
+- Long pauses at the end of builds, which were characterized by apparent freezes or delays with the message `Waiting on Buildkit...`. 
 
 ### Changed
 - Setting env vars like  `FORCE_COLOR`, or `EARTHLY_FULL_TARGET` to `0`, `false`, `FALSE`, or `` (an empty-string) will no longer force the color, use any other value like `1`, `true`, or `yesplease`.
