@@ -438,6 +438,8 @@ earthly-integration-test-base:
     ENV EARTHLY_VERSION_FLAG_OVERRIDES=no-use-registry-for-with-docker # Use tar-based due to above.
     WORKDIR /test
 
+    ARG BUILDKIT_RESTART_TIMEOUT_S=10
+
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE
@@ -448,7 +450,7 @@ earthly-integration-test-base:
 
     IF [ -z "$DOCKERHUB_MIRROR" ]
         # No mirror, easy CI and local use by all
-        ENV GLOBAL_CONFIG="{disable_analytics: true}"
+        ENV GLOBAL_CONFIG="{disable_analytics: true, buildkit_restart_timeout_s: $BUILDKIT_RESTART_TIMEOUT_S}"
         IF [ "$DOCKERHUB_AUTH" = "true" ]
             RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
                 --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
@@ -479,6 +481,7 @@ $MIRROR_CONFIG"
         # NOTE: newlines+indentation is important here, see https://github.com/earthly/earthly/issues/1764 for potential pitfalls
         # yaml will convert newlines to spaces when using regular quoted-strings, therefore we will use the literal-style (denoted by `|`)
         ENV GLOBAL_CONFIG="disable_analytics: true
+buildkit_restart_timeout_s: $BUILDKIT_RESTART_TIMEOUT_S
 buildkit_additional_config: |
 $(echo "$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG" | sed "s/^/  /g")
 "
