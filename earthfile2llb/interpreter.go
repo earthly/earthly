@@ -738,6 +738,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			Interactive:          opts.Interactive,
 			InteractiveKeep:      opts.InteractiveKeep,
 			InteractiveSaveFiles: i.interactiveSaveFiles,
+			CGroupParent:         opts.CGroupParent,
 		}
 		err = i.converter.Run(ctx, opts)
 		if err != nil {

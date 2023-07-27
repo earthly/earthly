@@ -591,6 +591,7 @@ type ConvertRunOpts struct {
 	Interactive          bool
 	InteractiveKeep      bool
 	InteractiveSaveFiles []debuggercommon.SaveFilesSettings
+	CGroupParent         string
 
 	// Internal.
 	shellWrap    shellWrapFun
@@ -1893,6 +1894,10 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 
 	if opts.NoNetwork {
 		runOpts = append(runOpts, llb.Network(llb.NetModeNone))
+	}
+
+	if opts.CGroupParent != "" {
+		runOpts = append(runOpts, llb.WithCgroupParent(opts.CGroupParent))
 	}
 
 	runOpts = append(runOpts, mountRunOpts...)
