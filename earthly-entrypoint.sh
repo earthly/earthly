@@ -1,5 +1,4 @@
 #!/bin/sh
-
 set -e
 
 EARTHLY_DEBUG=${EARTHLY_DEBUG:-false}
@@ -35,15 +34,8 @@ if [ -z "$NO_BUILDKIT" ]; then
     fi
 
     if [ -f "/sys/fs/cgroup/cgroup.controllers" ]; then
-        ! "$EARTHLY_DEBUG" || echo 1>&2 "detected cgroups v2; earthly-entrypoint.sh pid=$$"
-
-        # move the process under a new cgroup to prevent buildkitd/entrypoint.sh
-        # from getting a "h: write error: Resource busy" error while enabling controllers
-        # via echo +pids > /sys/fs/cgroup/cgroup.subtree_control
-        ( \
-          mkdir -p /sys/fs/cgroup/earthly-entrypoint && \
-          echo "$$" > /sys/fs/cgroup/earthly-entrypoint/cgroup.procs \
-        ) || true
+        echo >&2 "detected cgroups v2; earthly-entrypoint.sh running under pid=$$ with controllers \"$(cat /sys/fs/cgroup/cgroup.controllers)\" in group $(cat /proc/self/cgroup)"
+        test "$(cat /sys/fs/cgroup/cgroup.type)" = "domain" || (echo >&2 "WARNING: invalid root cgroup type: $(cat /sys/fs/cgroup/cgroup.type)")
     fi
 
     # generate certificates
