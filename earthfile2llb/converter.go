@@ -2235,15 +2235,15 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 		img.Architecture = llbPlatform.Architecture
 		return pllb.Scratch().Platform(llbPlatform), img, nil, nil
 	}
-	ref, err := reference.ParseNormalizedNamed(imageName)
+	sourceRef, err := reference.ParseNormalizedNamed(imageName)
 	if err != nil {
 		return pllb.State{}, nil, nil, errors.Wrapf(err, "parse normalized named %s", imageName)
 	}
-	baseImageName := reference.TagNameOnly(ref).String()
+	baseImageName := reference.TagNameOnly(sourceRef).String()
 	logName := fmt.Sprintf(
 		"%sLoad metadata %s %s",
 		c.imageVertexPrefix(imageName, platform), imageName, platforms.Format(llbPlatform))
-	dgst, dt, err := c.opt.MetaResolver.ResolveImageConfig(
+	ref, dgst, dt, err := c.opt.MetaResolver.ResolveImageConfig(
 		ctx, baseImageName,
 		llb.ResolveImageConfigOpt{
 			Platform:    &llbPlatform,
@@ -2253,19 +2253,23 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	if err != nil {
 		return pllb.State{}, nil, nil, errors.Wrapf(err, "resolve image config for %s", imageName)
 	}
+	sourceRef, err = reference.ParseNormalizedNamed(ref)
+	if err != nil {
+		return pllb.State{}, nil, nil, errors.Wrapf(err, "parse normalized named %s", ref)
+	}
 	var img image.Image
 	err = json.Unmarshal(dt, &img)
 	if err != nil {
 		return pllb.State{}, nil, nil, errors.Wrapf(err, "unmarshal image config for %s", imageName)
 	}
 	if dgst != "" {
-		ref, err = reference.WithDigest(ref, dgst)
+		sourceRef, err = reference.WithDigest(sourceRef, dgst)
 		if err != nil {
 			return pllb.State{}, nil, nil, errors.Wrapf(err, "reference add digest %v for %s", dgst, imageName)
 		}
 	}
 	allOpts := append(opts, llb.Platform(c.platr.ToLLBPlatform(platform)), c.opt.ImageResolveMode)
-	state := pllb.Image(ref.String(), allOpts...)
+	state := pllb.Image(sourceRef.String(), allOpts...)
 	state, img2, envVars := c.applyFromImage(state, &img)
 	return state, img2, envVars, nil
 }
