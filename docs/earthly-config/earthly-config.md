@@ -137,16 +137,40 @@ Set this configuration to a lower value if your machine is resource constrained 
 
 ### buildkit_additional_args
 
-This option allows you to pass additional options to Docker when starting up the Earthly BuildKit daemon. For example, this can be used to bypass user namespacing like so:
+This option allows you to pass additional options to Docker when starting up the Earthly BuildKit daemon. 
+Note that changes to these values will trigger earthly to restart buildkit on the next run.
+
+#### Bypass User Namespacing
+
+The `--userns` flag can be set as follows:
 
 ```yaml
 global:
   buildkit_additional_args: ["--userns", "host"]
 ```
 
+#### Session Timeout
+
+By default, Buildkit will automatically cancel sessions (i.e. individual builds) after 24 hours.
+This value can be overriden using the following option:
+
+```yaml
+global:
+  buildkit_additional_args: ["-e", "BUILDKIT_SESSION_TIMEOUT=72h"]
+```
+
+Note that setting a value of zero `0` here will disable the feature entirely.
+This can be useful in cases where long-lived interactive sessions are used.
+
 ### buildkit_additional_config
 
-This option allows you to pass additional options to BuildKit. For example, this can be used to specify additional CA certificates:
+This option allows you to pass additional options to BuildKit.
+Note that changes to these values will trigger earthly to restart buildkit on the next run.
+
+
+#### Additional CA Certificates
+
+Additional CA certificates can be passed in to buildkit. This also requires a corresponding change in `buildkit_additional_args`.
 
 ```yaml
 global:
