@@ -151,7 +151,7 @@ global:
 
 #### Session Timeout
 
-By default, Buildkit will automatically cancel sessions (i.e. a single build) after 24 hours.
+By default, Buildkit will automatically cancel sessions (i.e. individual builds) after 24 hours.
 This value can be overriden using the following option:
 
 ```yaml
