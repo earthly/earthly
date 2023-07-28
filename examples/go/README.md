@@ -25,7 +25,7 @@ In our case, we will use a `Earthfile` to build it. We will create a target call
 
 ```Dockerfile
 # Earthfile
-
+VERSION 0.7
 FROM golang:1.15-alpine3.13
 
 WORKDIR /go-example
