@@ -232,7 +232,10 @@ func (app *earthlyApp) actionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs
 			}
 		} else {
 			defer func() { // Defer this to keep log upload code together
-				app.console.Printf("Share your logs with an Earthly account (experimental)! Register for one at https://ci.earthly.dev.")
+				app.console.Printf(
+					"🛰️ Reuse cache between CI runs with Earthly Satellites! " +
+						"2-20X faster than without cache. Generous free tier " +
+						"https://cloud.earthly.dev\n")
 			}()
 		}
 	}

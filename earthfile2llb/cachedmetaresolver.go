@@ -17,6 +17,7 @@ type cachedMetaResolverKey struct {
 }
 
 type cachedMetaResolverEntry struct {
+	ref    string
 	dgst   digest.Digest
 	config []byte
 }
@@ -37,7 +38,7 @@ func NewCachedMetaResolver(metaResolver llb.ImageMetaResolver) *CachedMetaResolv
 }
 
 // ResolveImageConfig implements llb.ImageMetaResolver.ResolveImageConfig.
-func (cmr *CachedMetaResolver) ResolveImageConfig(ctx context.Context, ref string, opt llb.ResolveImageConfigOpt) (digest.Digest, []byte, error) {
+func (cmr *CachedMetaResolver) ResolveImageConfig(ctx context.Context, ref string, opt llb.ResolveImageConfigOpt) (string, digest.Digest, []byte, error) {
 	platformStr := ""
 	if opt.Platform != nil {
 		platformStr = platforms.Format(*opt.Platform)
@@ -47,18 +48,19 @@ func (cmr *CachedMetaResolver) ResolveImageConfig(ctx context.Context, ref strin
 		platform: platformStr,
 	}
 	value, err := cmr.cache.Do(ctx, key, func(ctx context.Context, _ interface{}) (interface{}, error) {
-		dgst, config, err := cmr.metaResolver.ResolveImageConfig(ctx, ref, opt)
+		ref, dgst, config, err := cmr.metaResolver.ResolveImageConfig(ctx, ref, opt)
 		if err != nil {
 			return nil, err
 		}
 		return cachedMetaResolverEntry{
+			ref:    ref,
 			dgst:   dgst,
 			config: config,
 		}, nil
 	})
 	if err != nil {
-		return "", nil, err
+		return "", "", nil, err
 	}
 	entry := value.(cachedMetaResolverEntry)
-	return entry.dgst, entry.config, nil
+	return entry.ref, entry.dgst, entry.config, nil
 }

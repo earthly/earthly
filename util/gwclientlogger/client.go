@@ -39,7 +39,7 @@ func (vc *verboseClient) Export(ctx context.Context, req gwclient.ExportRequest)
 }
 
 // ResolveImageConfig wraps gwclient.ResolveImageConfig
-func (vc *verboseClient) ResolveImageConfig(ctx context.Context, ref string, opt llb.ResolveImageConfigOpt) (digest.Digest, []byte, error) {
+func (vc *verboseClient) ResolveImageConfig(ctx context.Context, ref string, opt llb.ResolveImageConfigOpt) (string, digest.Digest, []byte, error) {
 	s, _ := json.MarshalIndent(opt, "", "\t")
 	fmt.Printf("ResolveImageConfig %s %s\n", ref, s)
 	return vc.c.ResolveImageConfig(ctx, ref, opt)

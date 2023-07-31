@@ -4,6 +4,12 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.14 - 2023-07-31
+
+### Changed
+- Update buildkit (contains upstream changes up to 687091bb6c8aaa0185cdc570c4db3db533f329d0).
+- Use `HTTPS_PROXY` env when connecting to earhly cloud API.
+
 ## v0.7.13 - 2023-07-26
 
 ### Added

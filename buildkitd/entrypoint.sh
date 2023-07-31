@@ -42,25 +42,8 @@ if [ -z "$EARTHLY_CACHE_VERSION" ]; then
 fi
 
 if [ -f "/sys/fs/cgroup/cgroup.controllers" ]; then
-    echo "detected cgroups v2; buildkit/entrypoint.sh running under pid=$$"
-
-    mkdir -p /sys/fs/cgroup/earthly
-    mkdir -p /sys/fs/cgroup/buildkit
-    echo "$$" > /sys/fs/cgroup/earthly/cgroup.procs
-
-    if [ "$(wc -l < /sys/fs/cgroup/cgroup.procs)" != "0" ]; then
-        echo "warning: processes exist in the root cgroup; this may cause errors during cgroup initialization"
-    fi
-
-    echo "+pids" > /sys/fs/cgroup/cgroup.subtree_control
-    echo "+cpu" > /sys/fs/cgroup/cgroup.subtree_control
-
-    echo "+pids" > /sys/fs/cgroup/buildkit/cgroup.subtree_control
-    echo "+cpu" > /sys/fs/cgroup/buildkit/cgroup.subtree_control
-
-    test "$(cat /sys/fs/cgroup/cgroup.type)" = "domain" || (echo "invalid root cgroup type: $(cat /sys/fs/cgroup/cgroup.type)" && exit 1)
-    test "$(cat /sys/fs/cgroup/earthly/cgroup.type)" = "domain" || (echo "invalid earthly cgroup type: $(cat /sys/fs/cgroup/earthly/cgroup.type)" && exit 1)
-    test "$(cat /sys/fs/cgroup/buildkit/cgroup.type)" = "domain" || (echo "invalid buildkit cgroup type: $(cat /sys/fs/cgroup/buildkit/cgroup.type)" && exit 1)
+    echo "detected cgroups v2; buildkit/entrypoint.sh running under pid=$$ with controllers \"$(cat /sys/fs/cgroup/cgroup.controllers)\" in group $(cat /proc/self/cgroup)"
+    test "$(cat /sys/fs/cgroup/cgroup.type)" = "domain" || (echo >&2 "WARNING: invalid root cgroup type: $(cat /sys/fs/cgroup/cgroup.type)")
 fi
 
 earthly_cache_version_path="${EARTHLY_TMP_DIR}/internal.earthly.version"
@@ -163,7 +146,7 @@ CACHE_SETTINGS=
 
 # Length of time (in seconds) to keep cache. Zero is the same as unset to buildkit.
 CACHE_DURATION_SETTINGS=
-if [ "$CACHE_KEEP_DURATION" -gt 0 ]; then
+if [ -n "$CACHE_KEEP_DURATION" ] && [ "$CACHE_KEEP_DURATION" -gt 0 ]; then
   CACHE_DURATION_SETTINGS="$(envsubst </etc/buildkitd.cacheduration.template)"
 fi
 export CACHE_DURATION_SETTINGS
