@@ -59,6 +59,7 @@ files to allow for faster builds on a local machine. Here's a sample `Earthfile`
 
 ```Dockerfile
 # Earthfile
+VERSION 0.7
 FROM ubuntu:20.10
 
 # configure apt to be noninteractive
