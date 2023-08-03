@@ -457,7 +457,7 @@ earthly-docker:
 # Otherwise, it will attempt to login to the docker hub mirror using the provided username and password
 earthly-integration-test-base:
     FROM +earthly-docker
-    RUN apk update && apk add pcre-tools curl python3 bash perl findutils
+    RUN apk update && apk add pcre-tools curl python3 bash perl findutils expect
     COPY scripts/acbtest/acbtest scripts/acbtest/acbgrep /bin/
     ENV NO_DOCKER=1
     ENV NETWORK_MODE=host # Note that this breaks access to embedded registry in WITH DOCKER.
