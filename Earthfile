@@ -120,7 +120,7 @@ lint-scripts:
 earthly-script-no-stdout:
     # This validates the ./earthly script doesn't print anything to stdout (it should print to stderr)
     # This is to ensure commands such as: MYSECRET="$(./earthly secrets get -n /user/my-secret)" work
-    FROM earthly/dind:alpine
+    FROM earthly/dind:alpine-3.18
     RUN apk add --no-cache --update bash
     COPY earthly .earthly_version_flag_overrides .
 
@@ -537,7 +537,7 @@ dind:
     ARG DOCKERHUB_USER=earthly
     ARG LATEST
     IF [ "$LATEST" = "true" ]
-      # latest means the version is ommitted (for historical reasons we initially just called it earthly/dind:alpine or earthly/dind:ubuntu)
+      # latest means the version is ommitted (for historical reasons we initially just called it earthly/dind:alpine-3.18 or earthly/dind:ubuntu)
       SAVE IMAGE --push --cache-from=earthly/dind:$OS_IMAGE-main $DOCKERHUB_USER/dind:$OS_IMAGE
     END
     SAVE IMAGE --push --cache-from=earthly/dind:$OS_IMAGE-main $DOCKERHUB_USER/dind:$TAG
