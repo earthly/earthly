@@ -4,6 +4,11 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.15 - 2023-08-04
+
+### Fixed
+- Fixed a bug in `WITH DOCKER` which prevented the use of newer versions of docker. [#3164](https://github.com/earthly/earthly/issues/3164)
+
 ## v0.7.14 - 2023-07-31
 
 ### Changed
