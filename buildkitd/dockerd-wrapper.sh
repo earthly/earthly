@@ -31,6 +31,7 @@ docker_compose_cmd() {
     done
     export COMPOSE_HTTP_TIMEOUT=600
     docker_compose="$(detect_docker_compose_cmd)"
+    export COMPOSE_PROJECT_NAME="default" # newer versions of docker fail if this is not set; older versions used "default" when it was not set
     # shellcheck disable=SC2086
     $docker_compose $compose_file_flags "$@"
 }
