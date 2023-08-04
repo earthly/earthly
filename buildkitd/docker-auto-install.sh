@@ -6,7 +6,7 @@ distro=$(. /etc/os-release && echo "$ID")
 
 detect_dockerd() {
     set +e
-    command -v dockerd
+    command -v dockerd >/dev/null
     has_d="$?"
     set -e
     return "$has_d"
@@ -14,7 +14,7 @@ detect_dockerd() {
 
 detect_docker_compose() {
     set +e
-    command -v docker-compose
+    command -v docker-compose >/dev/null
     has_dc="$?"
     set -e
     return "$has_dc"
@@ -35,7 +35,7 @@ detect_docker_compose_cmd() {
 
 detect_jq() {
     set +e
-    command -v jq
+    command -v jq >/dev/null
     has_jq="$?"
     set -e
     return "$has_jq"

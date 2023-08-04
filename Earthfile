@@ -1,5 +1,5 @@
 # TODO: we must change the DOCKERHUB_USER_SECRET args to be project-based before we can change to 0.7
-VERSION --shell-out-anywhere --use-copy-link --no-network 0.6
+VERSION --shell-out-anywhere --use-copy-link --no-network --arg-scope-and-set 0.6
 
 FROM golang:1.20-alpine3.17
 
@@ -120,7 +120,7 @@ lint-scripts:
 earthly-script-no-stdout:
     # This validates the ./earthly script doesn't print anything to stdout (it should print to stderr)
     # This is to ensure commands such as: MYSECRET="$(./earthly secrets get -n /user/my-secret)" work
-    FROM earthly/dind:alpine
+    FROM earthly/dind:alpine-3.18
     RUN apk add --no-cache --update bash
     COPY earthly .earthly_version_flag_overrides .
 
@@ -522,26 +522,25 @@ ci-release:
     SAVE IMAGE --push earthly/earthlybinaries:${EARTHLY_GIT_HASH}-${TAG_SUFFIX}
 
 dind:
-    BUILD +dind-alpine
-    BUILD +dind-ubuntu
-
-dind-alpine:
-    FROM docker:20.10.14-dind
+    ARG OS_IMAGE # e.g. alpine, ubuntu
+    ARG OS_VERSION # e.g. 3.18.0, 23.04
+    FROM $OS_IMAGE:$OS_VERSION
     COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
     RUN docker-auto-install.sh
-    ARG EARTHLY_TARGET_TAG_DOCKER
-    ARG DIND_ALPINE_TAG=alpine-$EARTHLY_TARGET_TAG_DOCKER
+    ARG INCLUDE_TARGET_TAG_DOCKER=true
+    IF [ "$INCLUDE_TARGET_TAG_DOCKER" = "true" ]
+      ARG EARTHLY_TARGET_TAG_DOCKER
+      LET TAG=$OS_IMAGE-$OS_VERSION-$EARTHLY_TARGET_TAG_DOCKER
+    ELSE
+      LET TAG=$OS_IMAGE-$OS_VERSION
+    END
     ARG DOCKERHUB_USER=earthly
-    SAVE IMAGE --push --cache-from=earthly/dind:main $DOCKERHUB_USER/dind:$DIND_ALPINE_TAG
-
-dind-ubuntu:
-    FROM ubuntu:20.04
-    COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
-    RUN docker-auto-install.sh
-    ARG EARTHLY_TARGET_TAG_DOCKER
-    ARG DIND_UBUNTU_TAG=ubuntu-$EARTHLY_TARGET_TAG_DOCKER
-    ARG DOCKERHUB_USER=earthly
-    SAVE IMAGE --push --cache-from=earthly/dind:ubuntu-main $DOCKERHUB_USER/dind:$DIND_UBUNTU_TAG
+    ARG LATEST
+    IF [ "$LATEST" = "true" ]
+      # latest means the version is ommitted (for historical reasons we initially just called it earthly/dind:alpine-3.18 or earthly/dind:ubuntu)
+      SAVE IMAGE --push --cache-from=earthly/dind:$OS_IMAGE-main $DOCKERHUB_USER/dind:$OS_IMAGE
+    END
+    SAVE IMAGE --push --cache-from=earthly/dind:$OS_IMAGE-main $DOCKERHUB_USER/dind:$TAG
 
 # for-own builds earthly-buildkitd and the earthly CLI for the current system
 # and saves the final CLI binary locally.
@@ -592,11 +591,22 @@ all-buildkitd:
         --platform=linux/arm64 \
         ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
+dind-alpine:
+    BUILD +dind --OS_IMAGE=alpine --OS_VERSION=3.18 --LATEST=true
+
+dind-ubuntu:
+    BUILD +dind --OS_IMAGE=ubuntu --OS_VERSION=20.04
+    BUILD +dind --OS_IMAGE=ubuntu --OS_VERSION=23.04 --LATEST=true
+
 all-dind:
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
-        +dind
+        +dind-alpine
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm64 \
+        +dind-ubuntu
 
 all:
     BUILD +all-buildkitd

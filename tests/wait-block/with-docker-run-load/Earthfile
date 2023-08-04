@@ -26,7 +26,7 @@ a-test-image:
     SAVE IMAGE $REGISTRY/myuser/myimg:$tag
 
 test:
-    FROM earthly/dind:alpine
+    FROM earthly/dind:alpine-3.18
     ARG --required REGISTRY
     ARG --required tag
     WAIT

@@ -8,6 +8,7 @@ test:
 
 test-with-docker:
     FROM earthly/dind:alpine
+    RUN apk --update add openssh-client
     WITH DOCKER
         RUN --ssh test -n "$SSH_AUTH_SOCK" && ssh-add -l | grep 'rsa-key-from-earthly-tests'
     END

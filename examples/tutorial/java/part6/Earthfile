@@ -23,7 +23,7 @@ docker:
     SAVE IMAGE java-example:$tag
 
 integration-tests:
-    FROM earthly/dind:alpine
+    FROM earthly/dind:alpine-3.18
 	COPY ./docker-compose.yml .
 	RUN apk update
 	RUN apk add postgresql-client

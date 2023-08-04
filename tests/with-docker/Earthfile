@@ -1,5 +1,5 @@
 VERSION 0.7
-FROM earthly/dind:alpine
+FROM earthly/dind:alpine-3.18
 
 all:
     BUILD +empty-test
@@ -135,7 +135,7 @@ multi-from-two:
     FROM alpine:latest
 
 one-target-many-names:
-    FROM earthly/dind:alpine
+    FROM earthly/dind:alpine-3.18
     WITH DOCKER \
             --load a:latest=+multi-from-one \  # Test that there can be multiple names assigned to an image from a single target
             --load b:latest=+multi-from-one \
@@ -149,7 +149,7 @@ one-target-many-names:
     END
 
 if-after:
-    FROM earthly/dind:alpine
+    FROM earthly/dind:alpine-3.18
     WITH DOCKER --load a:latest=+multi-from-one
         RUN docker run a:latest
     END

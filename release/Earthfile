@@ -21,14 +21,7 @@ release:
 release-dind:
     ARG DOCKERHUB_USER="earthly"
     BUILD ../+all-dind \
-        --DIND_ALPINE_TAG=alpine \
-        --DIND_UBUNTU_TAG=ubuntu \
-        --DOCKERHUB_USER="$DOCKERHUB_USER"
-    BUILD \
-        --platform=linux/amd64 \
-        --platform=linux/arm64 \
-        ../+dind-alpine \
-        --DIND_ALPINE_TAG=latest \
+        --INCLUDE_TARGET_TAG_DOCKER=false \
         --DOCKERHUB_USER="$DOCKERHUB_USER"
 
 release-dockerhub:

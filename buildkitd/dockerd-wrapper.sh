@@ -1,6 +1,11 @@
 #!/bin/sh
-
 set -eu
+
+EARTHLY_DOCKER_WRAPPER_DEBUG=${EARTHLY_DOCKER_WRAPPER_DEBUG:-''}
+if [ "$EARTHLY_DOCKER_WRAPPER_DEBUG" = "1" ]; then
+    echo "enabling docker wrapper debug mode"
+    set -x
+fi
 
 # This host is used to pull images from the embedded BuildKit Docker registry.
 buildkit_docker_registry='172.30.0.1:8371'
@@ -26,6 +31,7 @@ docker_compose_cmd() {
     done
     export COMPOSE_HTTP_TIMEOUT=600
     docker_compose="$(detect_docker_compose_cmd)"
+    export COMPOSE_PROJECT_NAME="default" # newer versions of docker fail if this is not set; older versions used "default" when it was not set
     # shellcheck disable=SC2086
     $docker_compose $compose_file_flags "$@"
 }
@@ -135,6 +141,7 @@ EOF
     # Start with wiping the dir to make sure a previous interrupted build did not leave its state around.
     wipe_data_root "$data_root"
     mkdir -p "$data_root"
+    rm -f /var/run/docker.pid
     dockerd >/var/log/docker.log 2>&1 &
     dockerd_pid="$!"
     i=1
@@ -247,6 +254,14 @@ load_registry_images() {
         echo "...done"
     fi
 }
+
+EARTHLY_DOCKER_WRAPPER_DEBUG_CMD=${EARTHLY_DOCKER_WRAPPER_DEBUG_CMD:-''}
+if [ -n "$EARTHLY_DOCKER_WRAPPER_DEBUG_CMD" ]; then
+    echo "Running debug command: $EARTHLY_DOCKER_WRAPPER_DEBUG_CMD"
+    eval "$EARTHLY_DOCKER_WRAPPER_DEBUG_CMD"
+    echo "debug command exited with $?; forcing exit 1 to prevent saving RUN snapshot"
+    exit 1
+fi
 
 case "$1" in
     get-compose-config)
