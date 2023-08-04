@@ -2,6 +2,7 @@ version: "3"
 
 services:
   rot13:
+    container_name: rot13
     image: earthly/rot13:latest
     ports:
       - 127.0.0.1:5432:5432

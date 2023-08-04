@@ -27,7 +27,7 @@ def test_interactive(earthly_path, timeout):
             time.sleep(5)
 
             # test we can obtain decoded text from the rot13 echo server that is created via docker-compose
-            c.sendline('docker exec test_rot13_1 sh -c \'(echo guvf vf zl Frpe3g Z3ff4tr; sleep 1) | ncat localhost 5432\'')
+            c.sendline('docker exec rot13 sh -c \'(echo guvf vf zl Frpe3g Z3ff4tr; sleep 1) | ncat localhost 5432\'')
             try:
                 c.expect('this is my Secr3t M3ss4ge', timeout=timeout)
             except Exception as e:
