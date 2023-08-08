@@ -31,11 +31,11 @@ func (app *earthlyApp) newCloudClient(opts ...cloud.ClientOpt) (*cloud.Client, e
 func (app *earthlyApp) getCIHost() string {
 	switch {
 	case strings.Contains(app.cloudGRPCAddr, "staging"):
-		return "https://ci-beta.staging.earthly.dev"
+		return "https://cloud.staging.earthly.dev"
 	case strings.Contains(app.cloudGRPCAddr, "earthly.local"):
 		return "http://earthly.local:3000"
 	}
-	return "https://ci-beta.earthly.dev"
+	return "https://cloud.earthly.dev"
 }
 
 func wrap(s ...string) string {
