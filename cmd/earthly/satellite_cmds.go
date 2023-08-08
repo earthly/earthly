@@ -161,6 +161,12 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 			Action: app.actionSatelliteUpdate,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
+					Name:        "platform",
+					Usage:       "Change the platform of the satellite. Supported values: linux/amd64, linux/arm64.",
+					Required:    false,
+					Destination: &app.satellitePlatform,
+				},
+				&cli.StringFlag{
 					Name:        "size",
 					Usage:       "Change the size of the satellite. See https://earthly.dev/pricing for details on each size. Supported values: xsmall, small, medium, large, xlarge.",
 					Required:    false,
@@ -953,6 +959,7 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 	dropCache := app.satelliteDropCache
 	version := app.satelliteVersion
 	size := app.satelliteSize
+	platform := app.satellitePlatform
 
 	cloudClient, err := app.newCloudClient()
 	if err != nil {
@@ -982,6 +989,10 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 		return errors.Errorf("not a valid size: %q", size)
 	}
 
+	if platform != "" && !cloud.ValidSatellitePlatform(platform) {
+		return errors.Errorf("not a valid platform: %q", platform)
+	}
+
 	err = cloudClient.UpdateSatellite(cliCtx.Context, cloud.UpdateSatelliteOpt{
 		Name:                    satName,
 		OrgName:                 orgName,
@@ -991,6 +1002,7 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 		DropCache:               dropCache,
 		FeatureFlags:            ffs,
 		Size:                    size,
+		Platform:                platform,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed starting satellite update")
