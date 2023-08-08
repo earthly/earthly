@@ -631,7 +631,7 @@ jobs:
       - name: Build and push +prerelease
         run: ./build/earthly --ci --push +prerelease
       - name: Update DockerHub description for earthly/earthly
-        uses: peter-evans/dockerhub-description@616d1b63e806b630b975af3b4fe3304307b20f40
+        uses: peter-evans/dockerhub-description@6515ba32ab40bc2d4fa334365b771770366628ff
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
@@ -639,7 +639,7 @@ jobs:
           readme-filepath: ./docs/docker-images/all-in-one.md
           short-description: ${{ github.event.repository.description }}
       - name: Update DockerHub description for earthly/buildkitd
-        uses: peter-evans/dockerhub-description@616d1b63e806b630b975af3b4fe3304307b20f40
+        uses: peter-evans/dockerhub-description@6515ba32ab40bc2d4fa334365b771770366628ff
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
