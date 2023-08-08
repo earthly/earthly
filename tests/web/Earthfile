@@ -20,13 +20,13 @@ IMPORT .. AS tests
 WORKDIR /test
 
 test:
-    RUN earthly web 2>&1 | grep -qE "https://cloud.earthly.dev/login"
+    RUN earthly web 2>&1 | grep -qE "https://ci(-beta)?.earthly.dev/login"
     RUN earthly web --provider github 2>output-file \
         && output=$(cat output-file) \
         && rm output-file \
         && if [[ "$output" != *"provider=github"* ]]; then echo "failed to find provider=github in output" && exit 1; fi
 
-    RUN --secret EARTHLY_TOKEN=fake-user-write-token earthly web 2>&1 | grep -qE "https://cloud.earthly.dev/login\?token=.+"
+    RUN --secret EARTHLY_TOKEN=fake-user-write-token earthly web 2>&1 | grep -qE "https://ci(-beta)?.earthly.dev/login\?token=.+"
     RUN --secret EARTHLY_TOKEN=fake-user-write-token earthly web --provider github 2>output-file \
         && output=$(cat output-file) \
         && rm output-file \
