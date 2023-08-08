@@ -552,25 +552,32 @@ ci-release:
 
 # dind builds both the alpine and ubuntu dind containers for earthly
 dind:
-    ARG OS_IMAGE # e.g. alpine, ubuntu
-    ARG OS_VERSION # e.g. 3.18.0, 23.04
+    ARG --required OS_IMAGE # e.g. alpine, ubuntu
+    ARG --required OS_VERSION # e.g. 3.18.0, 23.04
+    ARG --required DOCKER_VERSION # e.g. 20.10.14
     FROM $OS_IMAGE:$OS_VERSION
     COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
     RUN docker-auto-install.sh
+    LET DOCKER_VERSION_TAG=$DOCKER_VERSION
+    IF [ "$OS_IMAGE" = "ubuntu" ]
+        # the docker ce repo contains packages such as "5:24.0.4-1~ubuntu.20.04~focal", we will remove the the epoch and debian-revision values,
+        # in order to display the upstream-version, e.g. "24.0.5-1".
+        SET DOCKER_VERSION_TAG="$(echo $DOCKER_VERSION | sed 's/^[0-9]*:\([^~]*\).*$/\1/')"
+        RUN if echo $DOCKER_VERSION_TAG | grep "[^0-9.-]"; then echo "DOCKER_VERSION_TAG looks bad; got $DOCKER_VERSION_TAG" && exit 1; fi
+    END
+    LET TAG=$OS_IMAGE-$OS_VERSION-docker-$DOCKER_VERSION_TAG
     ARG INCLUDE_TARGET_TAG_DOCKER=true
     IF [ "$INCLUDE_TARGET_TAG_DOCKER" = "true" ]
       ARG EARTHLY_TARGET_TAG_DOCKER
-      LET TAG=$OS_IMAGE-$OS_VERSION-$EARTHLY_TARGET_TAG_DOCKER
-    ELSE
-      LET TAG=$OS_IMAGE-$OS_VERSION
+      SET TAG=$TAG-$EARTHLY_TARGET_TAG_DOCKER
     END
     ARG DOCKERHUB_USER=earthly
-    ARG LATEST
     IF [ "$LATEST" = "true" ]
       # latest means the version is ommitted (for historical reasons we initially just called it earthly/dind:alpine-3.18 or earthly/dind:ubuntu)
       SAVE IMAGE --push --cache-from=earthly/dind:$OS_IMAGE-main $DOCKERHUB_USER/dind:$OS_IMAGE
     END
-    SAVE IMAGE --push --cache-from=earthly/dind:$OS_IMAGE-main $DOCKERHUB_USER/dind:$TAG
+    ARG DATETIME="$(date --utc +%Y%m%d%H%M%S)" # note this must be overriden when building a multi-platform image (otherwise the values wont match)
+    SAVE IMAGE --push --cache-from=earthly/dind:$OS_IMAGE-main $DOCKERHUB_USER/dind:$TAG "$DOCKERHUB_USER/dind:$TAG-$DATETIME"
 
 
 # for-own builds earthly-buildkitd and the earthly CLI for the current system
@@ -633,22 +640,24 @@ all-buildkitd:
         ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
 dind-alpine:
-    BUILD +dind --OS_IMAGE=alpine --OS_VERSION=3.18 --LATEST=true
+    BUILD +dind --OS_IMAGE=alpine --OS_VERSION=3.18 --DOCKER_VERSION=23.0.6-r4
 
 dind-ubuntu:
-    BUILD +dind --OS_IMAGE=ubuntu --OS_VERSION=20.04
-    BUILD +dind --OS_IMAGE=ubuntu --OS_VERSION=23.04 --LATEST=true
+    BUILD +dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal
+    BUILD +dind --OS_IMAGE=ubuntu --OS_VERSION=23.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.23.04~lunar
 
 # all-dind builds alpine and ubuntu dind containers for both linux amd64 and linux arm64
 all-dind:
+    RUN --no-cache date --utc +%Y%m%d%H%M%S > datetime
+    ARG DATETIME="$(cat datetime)"
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
-        +dind-alpine
+        +dind-alpine --DATETIME=$DATETIME
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
-        +dind-ubuntu
+        +dind-ubuntu --DATETIME=$DATETIME
 
 # all builds all of the following:
 # - Buildkitd for both linux amd64 and linux arm64
