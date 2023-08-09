@@ -1,4 +1,4 @@
-name: Misc Tests
+name: Misc Tests 2
 
 on:
   workflow_call:
@@ -18,7 +18,7 @@ on:
 
 
 jobs:
-  misc-tests:
+  misc-tests-2:
     runs-on: ${{inputs.RUNS_ON}}
     env:
       FORCE_COLOR: 1
@@ -74,61 +74,6 @@ jobs:
             set -euo pipefail
             EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
             echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-      - name: Run parallel buildkit start test. It ensures that earthly starting up buildkit does not race with itself.
-        run: |-
-          ${{inputs.SUDO}} ${{inputs.BINARY}} stop earthly-buildkitd || true && \
-          for i in 1 2 3 4; do
-              ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello & \
-              pids[${i}]=$!
-          done && \
-          for pid in ${pids[*]}; do
-              wait $pid
-          done
-      - name: "Run the earthly satellites tests (Earthly only)"
-        run: env earthly=${{inputs.BUILT_EARTHLY_PATH}} ./scripts/tests/satellites-integration.sh
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Execute interactive debugger test
-        run: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ${{inputs.BUILT_EARTHLY_PATH}} --timeout 180
-      - name: "cloud-stored docker credential test (Earthly only)"
-        run: FRONTEND=${{inputs.BINARY}} earthly=${{inputs.BUILT_EARTHLY_PATH}} ./scripts/tests/cloud-docker-credentials-integration.sh
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Execute version test
-        run: "${{inputs.BUILT_EARTHLY_PATH}} --version"
-      - name: Execute docker2earth test
-        run: "./tests/docker2earth/test.sh"
-      - name: Execute remote-cache test (Earthly Only)
-        run: |-
-          frontend=${{inputs.BINARY}} ./tests/remote-cache/test.sh \
-            --build-arg DOCKERHUB_AUTH=true \
-            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Execute remote-cache test (Fork Only)
-        run: frontend=${{inputs.BINARY}} ./tests/remote-cache/test.sh --build-arg DOCKERHUB_AUTH=false
-        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
-      - name: Execute registry-certs test (Earthly Only)
-        run: |-
-          frontend=${{inputs.BINARY}} ./tests/registry-certs/test.sh \
-              --build-arg DOCKERHUB_AUTH=true \
-              --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-              --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-              --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Execute registry-certs test (Fork Only)
-        run: frontend=${{inputs.BINARY}} ./tests/registry-certs/test.sh --build-arg DOCKERHUB_AUTH=false
-        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
-      - name: Execute try-catch test (Earthly Only)
-        run: |-
-          ./tests/try-catch/test.sh \
-              --build-arg DOCKERHUB_AUTH=true \
-              --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-              --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-              --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Execute try-catch test (Fork Only)
-        run: ./tests/try-catch/test.sh --build-arg DOCKERHUB_AUTH=false
-        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute local buildkit with mTLS test
         run: default_install_name=earthly ./tests/remote-buildkit/remote-buildkit-test.sh
       - name: Run linux-amd64 specific tests (Earthly Only)

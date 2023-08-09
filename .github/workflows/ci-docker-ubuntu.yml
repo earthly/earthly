@@ -198,9 +198,19 @@ jobs:
       SUDO: ""
     secrets: inherit
 
-  docker-misc-test:
+  docker-misc-test-1:
     needs: build-earthly
-    uses: ./.github/workflows/reusable-misc-tests.yml
+    uses: ./.github/workflows/reusable-misc-tests-1.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
+  docker-misc-test-2:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-misc-tests-2.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
