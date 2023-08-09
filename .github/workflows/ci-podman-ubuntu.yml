@@ -195,6 +195,18 @@ jobs:
 #      SUDO: "sudo -E"
 #    secrets: inherit
 #
+#  podman-earthly-image-tests:
+#    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
+#    needs:
+#    - build-earthly
+#    uses: ./.github/workflows/reusable-earthly-image-tests.yml
+#    with:
+#      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+#      RUNS_ON: "ubuntu-latest"
+#      BINARY: "podman"
+#      SUDO: "sudo -E"
+#    secrets: inherit
+#
 #  podman-misc-tests:
 #    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
 #    needs:

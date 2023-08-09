@@ -188,6 +188,16 @@ jobs:
       SUDO: ""
     secrets: inherit
 
+  docker-earthly-image-test:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-earthly-image-tests.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
   docker-misc-test:
     needs: build-earthly
     uses: ./.github/workflows/reusable-misc-tests.yml
