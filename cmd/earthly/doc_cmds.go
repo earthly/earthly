@@ -7,6 +7,7 @@ import (
 	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
+
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/features"
@@ -16,8 +17,40 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func (app *earthlyApp) actionDocumentTarget(cliCtx *cli.Context) error {
-	app.commandName = "docTarget"
+type Doc struct {
+	cli CLI
+
+	docShowLong bool
+}
+
+func NewDoc(cli CLI) *Doc {
+	return &Doc{
+		cli: cli,
+	}
+}
+
+func (a *Doc) Cmds() []*cli.Command {
+	return []*cli.Command{
+		{
+			Name:        "doc",
+			Usage:       "Document targets from an Earthfile",
+			UsageText:   "earthly [options] doc [<project-ref>[+<target-ref>]]",
+			Description: "Document targets from an Earthfile by reading in line comments.",
+			Action:      a.action,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:        "long",
+					Aliases:     []string{"l"},
+					Usage:       "Show full details for all target inputs and outputs",
+					Destination: &a.docShowLong,
+				},
+			},
+		},
+	}
+}
+
+func (a *Doc) action(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("docTarget")
 
 	if cliCtx.NArg() > 1 {
 		return errors.New("invalid number of arguments provided")
@@ -44,8 +77,8 @@ func (app *earthlyApp) actionDocumentTarget(cliCtx *cli.Context) error {
 		return errors.Errorf("unable to parse target %q", tgtPath)
 	}
 
-	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
-	resolver := buildcontext.NewResolver(nil, gitLookup, app.console, "", app.gitBranchOverride, "", 0, "")
+	gitLookup := buildcontext.NewGitLookup(a.cli.Console(), a.cli.Flags().SSHAuthSock)
+	resolver := buildcontext.NewResolver(nil, gitLookup, a.cli.Console(), "", a.cli.Flags().GitBranchOverride, "", 0, "")
 	platr := platutil.NewResolver(platutil.GetUserPlatform())
 	var gwClient gwclient.Client
 	bc, err := resolver.Resolve(cliCtx.Context, gwClient, platr, target)
@@ -60,14 +93,14 @@ func (app *earthlyApp) actionDocumentTarget(cliCtx *cli.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to look up target")
 		}
-		return app.documentSingleTarget(cliCtx, "", docsIndent, bc.Features, bc.Earthfile.BaseRecipe, tgt, true)
+		return a.documentSingleTarget(cliCtx, "", docsIndent, bc.Features, bc.Earthfile.BaseRecipe, tgt, true)
 	}
 
 	tgts := bc.Earthfile.Targets
 	fmt.Println("TARGETS:")
 	const tgtIndent = docsIndent
 	for _, tgt := range tgts {
-		_ = app.documentSingleTarget(cliCtx, tgtIndent, docsIndent, bc.Features, bc.Earthfile.BaseRecipe, tgt, app.docShowLong)
+		_ = a.documentSingleTarget(cliCtx, tgtIndent, docsIndent, bc.Features, bc.Earthfile.BaseRecipe, tgt, a.docShowLong)
 	}
 
 	return nil
@@ -224,7 +257,7 @@ func parseDocSections(cliCtx *cli.Context, ft *features.Features, baseRcp, cmds 
 	return &io, nil
 }
 
-func (app *earthlyApp) documentSingleTarget(cliCtx *cli.Context, currIndent, scopeIndent string, ft *features.Features, baseRcp spec.Block, tgt spec.Target, includeBlockDocs bool) error {
+func (a *Doc) documentSingleTarget(cliCtx *cli.Context, currIndent, scopeIndent string, ft *features.Features, baseRcp spec.Block, tgt spec.Target, includeBlockDocs bool) error {
 	if tgt.Docs == "" {
 		return hint.Wrapf(errors.New("no doc comment found"), "add a comment starting with the word '%s' on the line immediately above this target", tgt.Name)
 	}

@@ -19,6 +19,8 @@ import (
 	"golang.org/x/term"
 
 	"github.com/earthly/earthly/cloud"
+	"github.com/earthly/earthly/cmd/earthly/common"
+	"github.com/earthly/earthly/cmd/earthly/helper"
 )
 
 var (
@@ -26,197 +28,222 @@ var (
 	errLogoutHasNoEffectWhenAuthTokenSet = errors.New("account logout has no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set")
 )
 
-func (app *earthlyApp) accountCmds() []*cli.Command {
+type Account struct {
+	cli CLI
+
+	email                  string
+	token                  string
+	password               string
+	termsConditionsPrivacy bool
+	registrationPublicKey  string
+	writePermission        bool
+	expiry                 string
+}
+
+func NewAccount(cli CLI) *Account {
+	return &Account{
+		cli: cli,
+	}
+}
+
+func (a *Account) Cmds() []*cli.Command {
 	return []*cli.Command{
 		{
-			Name:        "register",
-			Usage:       "Register for an Earthly account",
-			Description: "Register for an Earthly account.",
-			UsageText: "You may register using GitHub OAuth, by visiting https://ci.earthly.dev\n" +
-				"   Once authenticated, a login token will be displayed which can be used to login:\n" +
-				"\n" +
-				"       earthly [options] account login --token <token>\n" +
-				"\n" +
-				"   Alternatively, you can register using an email:\n" +
-				"       first, request a token with:\n" +
-				"\n" +
-				"           earthly [options] account register --email <email>\n" +
-				"\n" +
-				"       then check your email to retrieve the token, then continue by running:\n" +
-				"\n" +
-				"           earthly [options] account register --token <token>\n",
-			Action: app.actionAccountRegister,
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:        "email",
-					Usage:       "Email address to use for register for your Earthly account",
-					Destination: &app.email,
+			Name:        "account",
+			Usage:       "Create or manage an Earthly account",
+			Description: "Create or manage an Earthly account.",
+			Subcommands: []*cli.Command{
+				{
+					Name:        "register",
+					Usage:       "Register for an Earthly account",
+					Description: "Register for an Earthly account.",
+					UsageText: "You may register using GitHub OAuth, by visiting https://ci.earthly.dev\n" +
+						"   Once authenticated, a login token will be displayed which can be used to login:\n" +
+						"\n" +
+						"       earthly [options] account login --token <token>\n" +
+						"\n" +
+						"   Alternatively, you can register using an email:\n" +
+						"       first, request a token with:\n" +
+						"\n" +
+						"           earthly [options] account register --email <email>\n" +
+						"\n" +
+						"       then check your email to retrieve the token, then continue by running:\n" +
+						"\n" +
+						"           earthly [options] account register --token <token>\n",
+					Action: a.actionRegister,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "email",
+							Usage:       "Email address to use for register for your Earthly account",
+							Destination: &a.email,
+						},
+						&cli.StringFlag{
+							Name:        "token",
+							Usage:       "Email verification token, retreived from the email you used to register your account",
+							Destination: &a.token,
+						},
+						&cli.StringFlag{
+							Name:        "password",
+							EnvVars:     []string{"EARTHLY_PASSWORD"},
+							Usage:       "Specify password on the command line instead of interactively being asked",
+							Destination: &a.password,
+						},
+						&cli.StringFlag{
+							Name:        "public-key",
+							EnvVars:     []string{"EARTHLY_PUBLIC_KEY"},
+							Usage:       "Path to public key to register",
+							Destination: &a.registrationPublicKey,
+						},
+						&cli.BoolFlag{
+							Name:        "accept-terms-of-service-privacy",
+							EnvVars:     []string{"EARTHLY_ACCEPT_TERMS_OF_SERVICE_PRIVACY"},
+							Usage:       "Accept the Terms & Conditions, and Privacy Policy",
+							Destination: &a.termsConditionsPrivacy,
+						},
+					},
 				},
-				&cli.StringFlag{
-					Name:        "token",
-					Usage:       "Email verification token, retreived from the email you used to register your account",
-					Destination: &app.token,
+				{
+					Name:        "login",
+					Usage:       "Login to an Earthly account",
+					Description: "Login to an Earthly account.",
+					UsageText: "earthly [options] account login\n" +
+						"   earthly [options] account login --email <email>\n" +
+						"   earthly [options] account login --email <email> --password <password>\n" +
+						"   earthly [options] account login --token <token>\n",
+					Action: a.actionLogin,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "email",
+							Usage:       "Pass in email address connected with your Earthly account",
+							Destination: &a.email,
+						},
+						&cli.StringFlag{
+							Name:        "token",
+							Usage:       "Authentication token",
+							Destination: &a.token,
+						},
+						&cli.StringFlag{
+							Name:        "password",
+							EnvVars:     []string{"EARTHLY_PASSWORD"},
+							Usage:       "Specify password on the command line instead of interactively being asked",
+							Destination: &a.password,
+						},
+					},
 				},
-				&cli.StringFlag{
-					Name:        "password",
-					EnvVars:     []string{"EARTHLY_PASSWORD"},
-					Usage:       "Specify password on the command line instead of interactively being asked",
-					Destination: &app.password,
+				{
+					Name:        "logout",
+					Usage:       "Logout of an Earthly account",
+					Description: "Logout of an Earthly account; this has no effect for ssh-based authentication.",
+					Action:      a.actionLogout,
 				},
-				&cli.StringFlag{
-					Name:        "public-key",
-					EnvVars:     []string{"EARTHLY_PUBLIC_KEY"},
-					Usage:       "Path to public key to register",
-					Destination: &app.registrationPublicKey,
+				{
+					Name:        "list-keys",
+					Usage:       "List associated public keys used for authentication",
+					UsageText:   "earthly [options] account list-keys",
+					Description: "Lists all public keys that are authorized to login to the current Earthly account.",
+					Action:      a.actionListKeys,
 				},
-				&cli.BoolFlag{
-					Name:        "accept-terms-of-service-privacy",
-					EnvVars:     []string{"EARTHLY_ACCEPT_TERMS_OF_SERVICE_PRIVACY"},
-					Usage:       "Accept the Terms & Conditions, and Privacy Policy",
-					Destination: &app.termsConditionsPrivacy,
+				{
+					Name:        "add-key",
+					Usage:       "Authorize a new public key to login with with the current Earthly account",
+					UsageText:   "earthly [options] add-key [<key>]",
+					Description: "Authorize a new public key to login to the current Earthly account. If 'key' is omitted, an interactive prompt is displayed to select a public key to add.",
+					Action:      a.actionAddKey,
 				},
-			},
-		},
-		{
-			Name:        "login",
-			Usage:       "Login to an Earthly account",
-			Description: "Login to an Earthly account.",
-			UsageText: "earthly [options] account login\n" +
-				"   earthly [options] account login --email <email>\n" +
-				"   earthly [options] account login --email <email> --password <password>\n" +
-				"   earthly [options] account login --token <token>\n",
-			Action: app.actionAccountLogin,
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:        "email",
-					Usage:       "Pass in email address connected with your Earthly account",
-					Destination: &app.email,
+				{
+					Name:        "remove-key",
+					Usage:       "Removes an authorized public key from the current Earthly account",
+					UsageText:   "earthly [options] remove-key <key>",
+					Description: "Removes an authorized public key from accessing the current Earthly account.",
+					Action:      a.actionRemoveKey,
 				},
-				&cli.StringFlag{
-					Name:        "token",
-					Usage:       "Authentication token",
-					Destination: &app.token,
+				{
+					Name:        "list-tokens",
+					Usage:       "List associated tokens used for authentication with the current Earthly account",
+					UsageText:   "earthly [options] account list-tokens",
+					Description: "List account tokens associated with the current Earthly account. A token is useful for environments where the ssh-agent is not accessible (e.g. a CI system).",
+					Action:      a.actionListTokens,
 				},
-				&cli.StringFlag{
-					Name:        "password",
-					EnvVars:     []string{"EARTHLY_PASSWORD"},
-					Usage:       "Specify password on the command line instead of interactively being asked",
-					Destination: &app.password,
+				{
+					Name:      "create-token",
+					Usage:     "Create a new authentication token for your account",
+					UsageText: "earthly [options] account create-token [options] <token name>",
+					Description: `Creates a new authentication token. A read-only token is created by default, If the '--write' flag is specified the token will have read+write access.
+				The token will expire in 1 year from creation date unless a different date is supplied via the '--expiry' option.`,
+					Action: a.actionCreateToken,
+					Flags: []cli.Flag{
+						&cli.BoolFlag{
+							Name:        "write",
+							Usage:       "Grant write permissions in addition to read",
+							Destination: &a.writePermission,
+						},
+						&cli.StringFlag{
+							Name:        "expiry",
+							Usage:       "Set token expiry date in the form YYYY-MM-DD or never (default 1year)",
+							Destination: &a.expiry,
+						},
+					},
 				},
-			},
-		},
-		{
-			Name:        "logout",
-			Usage:       "Logout of an Earthly account",
-			Description: "Logout of an Earthly account; this has no effect for ssh-based authentication.",
-			Action:      app.actionAccountLogout,
-		},
-		{
-			Name:        "list-keys",
-			Usage:       "List associated public keys used for authentication",
-			UsageText:   "earthly [options] account list-keys",
-			Description: "Lists all public keys that are authorized to login to the current Earthly account.",
-			Action:      app.actionAccountListKeys,
-		},
-		{
-			Name:        "add-key",
-			Usage:       "Authorize a new public key to login with with the current Earthly account",
-			UsageText:   "earthly [options] add-key [<key>]",
-			Description: "Authorize a new public key to login to the current Earthly account. If 'key' is omitted, an interactive prompt is displayed to select a public key to add.",
-			Action:      app.actionAccountAddKey,
-		},
-		{
-			Name:        "remove-key",
-			Usage:       "Removes an authorized public key from the current Earthly account",
-			UsageText:   "earthly [options] remove-key <key>",
-			Description: "Removes an authorized public key from accessing the current Earthly account.",
-			Action:      app.actionAccountRemoveKey,
-		},
-		{
-			Name:        "list-tokens",
-			Usage:       "List associated tokens used for authentication with the current Earthly account",
-			UsageText:   "earthly [options] account list-tokens",
-			Description: "List account tokens associated with the current Earthly account. A token is useful for environments where the ssh-agent is not accessible (e.g. a CI system).",
-			Action:      app.actionAccountListTokens,
-		},
-		{
-			Name:      "create-token",
-			Usage:     "Create a new authentication token for your account",
-			UsageText: "earthly [options] account create-token [options] <token name>",
-			Description: `Creates a new authentication token. A read-only token is created by default, If the '--write' flag is specified the token will have read+write access.
-		The token will expire in 1 year from creation date unless a different date is supplied via the '--expiry' option.`,
-			Action: app.actionAccountCreateToken,
-			Flags: []cli.Flag{
-				&cli.BoolFlag{
-					Name:        "write",
-					Usage:       "Grant write permissions in addition to read",
-					Destination: &app.writePermission,
+				{
+					Name:        "remove-token",
+					Usage:       "Remove an authentication token from your account",
+					UsageText:   "earthly [options] account remove-token <token>",
+					Description: "Removes a token from the current Earthly account.",
+					Action:      a.actionRemoveToken,
 				},
-				&cli.StringFlag{
-					Name:        "expiry",
-					Usage:       "Set token expiry date in the form YYYY-MM-DD or never (default 1year)",
-					Destination: &app.expiry,
-				},
-			},
-		},
-		{
-			Name:        "remove-token",
-			Usage:       "Remove an authentication token from your account",
-			UsageText:   "earthly [options] account remove-token <token>",
-			Description: "Removes a token from the current Earthly account.",
-			Action:      app.actionAccountRemoveToken,
-		},
-		{
-			Name:  "reset",
-			Usage: "Reset Earthly account password",
-			UsageText: `earthly [options] account reset --email <email>
-	earthly [options] account reset --email <email> --token <token>`,
-			Description: `Reset the password associated with the provided email.
-	The command should first be run without a token, which will cause a token to be emailed to you.
-	Once the command is re-run with the provided token, it will prompt you for a new password.`,
-			Action: app.actionAccountReset,
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:        "email",
-					Usage:       "Email address for which to reset the password",
-					Destination: &app.email,
-				},
-				&cli.StringFlag{
-					Name:        "token",
-					Usage:       "Authentication token with with to rerun the command with your email to reset your password",
-					Destination: &app.token,
+				{
+					Name:  "reset",
+					Usage: "Reset Earthly account password",
+					UsageText: `earthly [options] account reset --email <email>
+			earthly [options] account reset --email <email> --token <token>`,
+					Description: `Reset the password associated with the provided email.
+			The command should first be run without a token, which will cause a token to be emailed to you.
+			Once the command is re-run with the provided token, it will prompt you for a new password.`,
+					Action: a.actionReset,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "email",
+							Usage:       "Email address for which to reset the password",
+							Destination: &a.email,
+						},
+						&cli.StringFlag{
+							Name:        "token",
+							Usage:       "Authentication token with with to rerun the command with your email to reset your password",
+							Destination: &a.token,
+						},
+					},
 				},
 			},
 		},
 	}
 }
 
-func (app *earthlyApp) actionAccountRegister(cliCtx *cli.Context) error {
-	app.commandName = "accountRegister"
-	if app.email == "" {
+func (a *Account) actionRegister(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("accountRegister")
+	if a.email == "" {
 		return errors.New("no email given")
 	}
 
-	if !strings.Contains(app.email, "@") {
+	if !strings.Contains(a.email, "@") {
 		return errors.New("email is invalid")
 	}
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	if app.token == "" {
-		err := cloudClient.RegisterEmail(cliCtx.Context, app.email)
+	if a.token == "" {
+		err := cloudClient.RegisterEmail(cliCtx.Context, a.email)
 		if err != nil {
 			return errors.Wrap(err, "failed to register email")
 		}
-		fmt.Printf("An email has been sent to %q containing a registration token\n", app.email)
+		fmt.Printf("An email has been sent to %q containing a registration token\n", a.email)
 		return nil
 	}
 
 	var publicKeys []*agent.Key
-	if app.sshAuthSock != "" {
+	if a.cli.Flags().SSHAuthSock != "" {
 		var err error
 		publicKeys, err = cloudClient.GetPublicKeys(cliCtx.Context)
 		if err != nil {
@@ -225,11 +252,11 @@ func (app *earthlyApp) actionAccountRegister(cliCtx *cli.Context) error {
 	}
 
 	// Our signal handling under main() doesn't cause reading from stdin to cancel
-	// as there's no way to pass app.ctx to stdin read calls.
+	// as there's no way to pass a.ctx to stdin read calls.
 	signal.Reset(syscall.SIGINT, syscall.SIGTERM)
 
-	pword := app.password
-	if app.password == "" {
+	pword := a.password
+	if a.password == "" {
 		pword, err = promptPassword()
 		if err != nil {
 			return err
@@ -237,8 +264,8 @@ func (app *earthlyApp) actionAccountRegister(cliCtx *cli.Context) error {
 	}
 
 	var interactiveAccept bool
-	if !app.termsConditionsPrivacy {
-		rawAccept, err := promptInput(cliCtx.Context, "I acknowledge Earthly Technologies’ Privacy Policy (https://earthly.dev/privacy-policy) and agree to Earthly Technologies Terms of Service (https://earthly.dev/tos) [y/N]: ")
+	if !a.termsConditionsPrivacy {
+		rawAccept, err := common.PromptInput(cliCtx.Context, "I acknowledge Earthly Technologies’ Privacy Policy (https://earthly.dev/privacy-policy) and agree to Earthly Technologies Terms of Service (https://earthly.dev/tos) [y/N]: ")
 		if err != nil {
 			return err
 		}
@@ -248,12 +275,12 @@ func (app *earthlyApp) actionAccountRegister(cliCtx *cli.Context) error {
 		accept := strings.ToLower(rawAccept)[0]
 		interactiveAccept = (accept == 'y')
 	}
-	termsConditionsPrivacy := app.termsConditionsPrivacy || interactiveAccept
+	termsConditionsPrivacy := a.termsConditionsPrivacy || interactiveAccept
 
 	var publicKey string
-	if app.registrationPublicKey == "" {
+	if a.registrationPublicKey == "" {
 		if len(publicKeys) > 0 {
-			rawIsRegisterSSHKey, err := promptInput(cliCtx.Context, "Would you like to enable password-less login using public key authentication (https://earthly.dev/public-key-auth)? [Y/n]: ")
+			rawIsRegisterSSHKey, err := common.PromptInput(cliCtx.Context, "Would you like to enable password-less login using public key authentication (https://earthly.dev/public-key-auth)? [Y/n]: ")
 			if err != nil {
 				return err
 			}
@@ -267,7 +294,7 @@ func (app *earthlyApp) actionAccountRegister(cliCtx *cli.Context) error {
 				for i, key := range publicKeys {
 					fmt.Printf("%d) %s\n", i+1, key.String())
 				}
-				keyNum, err := promptInput(cliCtx.Context, "enter key number (1=default): ")
+				keyNum, err := common.PromptInput(cliCtx.Context, "enter key number (1=default): ")
 				if err != nil {
 					return err
 				}
@@ -287,14 +314,14 @@ func (app *earthlyApp) actionAccountRegister(cliCtx *cli.Context) error {
 			}
 		}
 	} else {
-		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(app.registrationPublicKey))
+		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(a.registrationPublicKey))
 		if err == nil {
 			// supplied public key is valid
-			publicKey = app.registrationPublicKey
+			publicKey = a.registrationPublicKey
 		} else {
 			// otherwise see if it matches the name (Comment) of a key known by the ssh agent
 			for _, key := range publicKeys {
-				if key.Comment == app.registrationPublicKey {
+				if key.Comment == a.registrationPublicKey {
 					publicKey = key.String()
 					break
 				}
@@ -305,7 +332,7 @@ func (app *earthlyApp) actionAccountRegister(cliCtx *cli.Context) error {
 		}
 	}
 
-	err = cloudClient.CreateAccount(cliCtx.Context, app.email, app.token, pword, publicKey, termsConditionsPrivacy)
+	err = cloudClient.CreateAccount(cliCtx.Context, a.email, a.token, pword, publicKey, termsConditionsPrivacy)
 	if err != nil {
 		return errors.Wrap(err, "failed to create account")
 	}
@@ -333,9 +360,9 @@ func promptPassword() (string, error) {
 	return string(enteredPassword), nil
 }
 
-func (app *earthlyApp) actionAccountListKeys(cliCtx *cli.Context) error {
-	app.commandName = "accountListKeys"
-	cloudClient, err := app.newCloudClient()
+func (a *Account) actionListKeys(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("accountListKeys")
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
@@ -349,9 +376,9 @@ func (app *earthlyApp) actionAccountListKeys(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionAccountAddKey(cliCtx *cli.Context) error {
-	app.commandName = "accountAddKey"
-	cloudClient, err := app.newCloudClient()
+func (a *Account) actionAddKey(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("accountAddKey")
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
@@ -374,14 +401,14 @@ func (app *earthlyApp) actionAccountAddKey(cliCtx *cli.Context) error {
 	}
 
 	// Our signal handling under main() doesn't cause reading from stdin to cancel
-	// as there's no way to pass app.ctx to stdin read calls.
+	// as there's no way to pass a.ctx to stdin read calls.
 	signal.Reset(syscall.SIGINT, syscall.SIGTERM)
 
 	fmt.Printf("Which of the following public keys do you want to register (your private key is never sent or even read by earthly)?\n")
 	for i, key := range publicKeys {
 		fmt.Printf("%d) %s\n", i+1, key.String())
 	}
-	keyNum, err := promptInput(cliCtx.Context, "enter key number (1=default): ")
+	keyNum, err := common.PromptInput(cliCtx.Context, "enter key number (1=default): ")
 	if err != nil {
 		return err
 	}
@@ -410,7 +437,7 @@ func (app *earthlyApp) actionAccountAddKey(cliCtx *cli.Context) error {
 	if authType == "password" {
 		err = cloudClient.SetSSHCredentials(cliCtx.Context, email, publicKey)
 		if err != nil {
-			app.console.Warnf("failed to authenticate using newly added public key: %s", err.Error())
+			a.cli.Console().Warnf("failed to authenticate using newly added public key: %s", err.Error())
 			return nil
 		}
 		fmt.Printf("Switching from password-based login to ssh-based login\n")
@@ -419,9 +446,9 @@ func (app *earthlyApp) actionAccountAddKey(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionAccountRemoveKey(cliCtx *cli.Context) error {
-	app.commandName = "accountRemoveKey"
-	cloudClient, err := app.newCloudClient()
+func (a *Account) actionRemoveKey(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("accountRemoveKey")
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
@@ -433,9 +460,9 @@ func (app *earthlyApp) actionAccountRemoveKey(cliCtx *cli.Context) error {
 	}
 	return nil
 }
-func (app *earthlyApp) actionAccountListTokens(cliCtx *cli.Context) error {
-	app.commandName = "accountListTokens"
-	cloudClient, err := app.newCloudClient()
+func (a *Account) actionListTokens(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("accountListTokens")
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
@@ -477,14 +504,14 @@ func (app *earthlyApp) actionAccountListTokens(cliCtx *cli.Context) error {
 	w.Flush()
 	return nil
 }
-func (app *earthlyApp) actionAccountCreateToken(cliCtx *cli.Context) error {
-	app.commandName = "accountCreateToken"
+func (a *Account) actionCreateToken(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("accountCreateToken")
 	if cliCtx.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
 
 	var expiry *time.Time
-	if app.expiry != "" && app.expiry != "never" {
+	if a.expiry != "" && a.expiry != "never" {
 		layouts := []string{
 			"2006-01-02",
 			time.RFC3339,
@@ -493,23 +520,23 @@ func (app *earthlyApp) actionAccountCreateToken(cliCtx *cli.Context) error {
 		var err error
 		for _, layout := range layouts {
 			var parsedTime time.Time
-			parsedTime, err = time.Parse(layout, app.expiry)
+			parsedTime, err = time.Parse(layout, a.expiry)
 			if err == nil {
 				expiry = &parsedTime
 				break
 			}
 		}
 		if err != nil {
-			return errors.Errorf("failed to parse expiry %q", app.expiry)
+			return errors.Errorf("failed to parse expiry %q", a.expiry)
 		}
 	}
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 	name := cliCtx.Args().First()
-	token, err := cloudClient.CreateToken(cliCtx.Context, name, app.writePermission, expiry)
+	token, err := cloudClient.CreateToken(cliCtx.Context, name, a.writePermission, expiry)
 	if err != nil {
 		return errors.Wrap(err, "failed to create token")
 	}
@@ -523,13 +550,13 @@ func (app *earthlyApp) actionAccountCreateToken(cliCtx *cli.Context) error {
 
 	return nil
 }
-func (app *earthlyApp) actionAccountRemoveToken(cliCtx *cli.Context) error {
-	app.commandName = "accountRemoveToken"
+func (a *Account) actionRemoveToken(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("accountRemoveToken")
 	if cliCtx.NArg() != 1 {
 		return errors.New("invalid number of arguments provided")
 	}
 	name := cliCtx.Args().First()
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
@@ -540,13 +567,13 @@ func (app *earthlyApp) actionAccountRemoveToken(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
-	app.commandName = "accountLogin"
-	email := app.email
-	token := app.token
-	pass := app.password
+func (a *Account) actionLogin(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("accountLogin")
+	email := a.email
+	token := a.token
+	pass := a.password
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
@@ -554,7 +581,7 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 	loggedInEmail, authType, _, err := cloudClient.WhoAmI(cliCtx.Context)
 	if err == nil {
 		// already logged in, don't re-attempt a login
-		app.console.Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
+		a.cli.Console().Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
 		return nil
 	}
 	if errors.Cause(err) != cloud.ErrUnauthorized {
@@ -589,7 +616,7 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 	}
 
 	// special case where global auth token overrides login logic
-	if app.authToken != "" {
+	if a.cli.Flags().AuthToken != "" {
 		if email != "" || token != "" || pass != "" {
 			return errLoginFlagsHaveNoEffect
 		}
@@ -600,8 +627,8 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 		if !writeAccess {
 			authType = "read-only-" + authType
 		}
-		app.console.Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
-		app.printLogSharingMessage()
+		a.cli.Console().Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
+		a.printLogSharingMessage()
 		return nil
 	}
 
@@ -623,8 +650,8 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 			if err != nil {
 				return errors.Wrap(err, "authentication with cloud server failed")
 			}
-			app.console.Printf("Logged in as %q using %s auth\n", email, authType)
-			app.printLogSharingMessage()
+			a.cli.Console().Printf("Logged in as %q using %s auth\n", email, authType)
+			a.printLogSharingMessage()
 			return nil
 		}
 	}
@@ -640,19 +667,19 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 		if !writeAccess {
 			authType = "read-only-" + authType
 		}
-		app.console.Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
-		app.printLogSharingMessage()
+		a.cli.Console().Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
+		a.printLogSharingMessage()
 		return nil
 	default:
 		return err
 	}
 
 	if email == "" && token == "" {
-		if app.sshAuthSock == "" {
-			app.console.Warnf("No ssh auth socket detected; falling back to password-based login\n")
+		if a.cli.Flags().SSHAuthSock == "" {
+			a.cli.Console().Warnf("No ssh auth socket detected; falling back to password-based login\n")
 		}
 
-		emailOrToken, err := promptInput(cliCtx.Context, "enter your email or auth token: ")
+		emailOrToken, err := common.PromptInput(cliCtx.Context, "enter your email or auth token: ")
 		if err != nil {
 			return err
 		}
@@ -665,7 +692,7 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 
 	if email != "" && pass == "" {
 		// Our signal handling under main() doesn't cause reading from stdin to cancel
-		// as there's no way to pass app.ctx to stdin read calls.
+		// as there's no way to pass a.ctx to stdin read calls.
 		signal.Reset(syscall.SIGINT, syscall.SIGTERM)
 
 		fmt.Printf("enter your password: ")
@@ -686,7 +713,7 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 			return err
 		}
 	} else {
-		err = app.loginAndSavePasswordCredentials(cliCtx.Context, cloudClient, email, string(pass))
+		err = a.loginAndSavePasswordCredentials(cliCtx.Context, cloudClient, email, string(pass))
 		if err != nil {
 			return err
 		}
@@ -695,35 +722,35 @@ func (app *earthlyApp) actionAccountLogin(cliCtx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "authentication with cloud server failed")
 	}
-	app.console.Printf("Logged in as %q using %s auth\n", email, authType)
-	app.printLogSharingMessage()
+	a.cli.Console().Printf("Logged in as %q using %s auth\n", email, authType)
+	a.printLogSharingMessage()
 	return nil
 }
 
-func (app *earthlyApp) printLogSharingMessage() {
-	app.console.Printf("Log sharing is enabled by default. If you would like to disable it, run:\n" +
+func (a *Account) printLogSharingMessage() {
+	a.cli.Console().Printf("Log sharing is enabled by default. If you would like to disable it, run:\n" +
 		"\n" +
 		"\tearthly config global.disable_log_sharing true")
 }
 
-func (app *earthlyApp) loginAndSavePasswordCredentials(ctx context.Context, cloudClient *cloud.Client, email, password string) error {
+func (a *Account) loginAndSavePasswordCredentials(ctx context.Context, cloudClient *cloud.Client, email, password string) error {
 	err := cloudClient.SetPasswordCredentials(ctx, email, password)
 	if err != nil {
 		return err
 	}
-	app.console.Printf("Logged in as %q using password auth\n", email)
-	app.console.Printf("Warning unencrypted password has been stored under ~/.earthly/auth.credentials; consider using ssh-based auth to prevent this.\n")
+	a.cli.Console().Printf("Logged in as %q using password auth\n", email)
+	a.cli.Console().Printf("Warning unencrypted password has been stored under ~/.earthly/auth.credentials; consider using ssh-based auth to prevent this.\n")
 	return nil
 }
 
-func (app *earthlyApp) actionAccountLogout(cliCtx *cli.Context) error {
-	app.commandName = "accountLogout"
+func (a *Account) actionLogout(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("accountLogout")
 
-	if app.authToken != "" {
+	if a.cli.Flags().AuthToken != "" {
 		return errLogoutHasNoEffectWhenAuthTokenSet
 	}
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
@@ -738,29 +765,29 @@ func (app *earthlyApp) actionAccountLogout(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionAccountReset(cliCtx *cli.Context) error {
-	app.commandName = "accountReset"
+func (a *Account) actionReset(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("accountReset")
 
-	if app.email == "" {
+	if a.email == "" {
 		return errors.New("no email given")
 	}
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	if app.token == "" {
-		err = cloudClient.AccountResetRequestToken(cliCtx.Context, app.email)
+	if a.token == "" {
+		err = cloudClient.AccountResetRequestToken(cliCtx.Context, a.email)
 		if err != nil {
 			return errors.Wrap(err, "failed to request account reset token")
 		}
-		app.console.Printf("An account reset token has been emailed to %q\n", app.email)
+		a.cli.Console().Printf("An account reset token has been emailed to %q\n", a.email)
 		return nil
 	}
 
 	// Our signal handling under main() doesn't cause reading from stdin to cancel
-	// as there's no way to pass app.ctx to stdin read calls.
+	// as there's no way to pass a.ctx to stdin read calls.
 	signal.Reset(syscall.SIGINT, syscall.SIGTERM)
 
 	pword, err := promptPassword()
@@ -768,15 +795,15 @@ func (app *earthlyApp) actionAccountReset(cliCtx *cli.Context) error {
 		return err
 	}
 
-	err = cloudClient.AccountReset(cliCtx.Context, app.email, app.token, pword)
+	err = cloudClient.AccountReset(cliCtx.Context, a.email, a.token, pword)
 	if err != nil {
 		return errors.Wrap(err, "failed to reset account")
 	}
-	app.console.Printf("Account password has been reset\n")
-	err = app.loginAndSavePasswordCredentials(cliCtx.Context, cloudClient, app.email, pword)
+	a.cli.Console().Printf("Account password has been reset\n")
+	err = a.loginAndSavePasswordCredentials(cliCtx.Context, cloudClient, a.email, pword)
 	if err != nil {
 		return err
 	}
-	app.printLogSharingMessage()
+	a.printLogSharingMessage()
 	return nil
 }

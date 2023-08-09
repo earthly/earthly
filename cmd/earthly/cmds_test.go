@@ -27,8 +27,18 @@ func TestRootCmdsHelp(t *testing.T) {
 	defer o.Run()
 
 	ctx := context.TODO()
-	app := newEarthlyApp(ctx, conslogging.ConsoleLogger{})
-	rootCLI := app.cliApp.Commands
+	cli := base.NewCLI(conslogging.ConsoleLogger{},
+		base.WithVersion(""),
+		base.WithGitSHA(""),
+		base.WithBuiltBy(""),
+		base.WithDefaultBuildkitdImage(""),
+		base.WithDefaultInstallationName(""),
+	)
+	buildApp := subcmd.NewBuild(cli)
+	rootApp := subcmd.NewRoot(cli, buildApp)
+	app := cli.NewEarthlyApp(cli, rootApp, buildApp, ctx)
+
+	rootCLI := app.BaseCLI.App().Commands
 
 	usageChecks := onpar.TableSpec(o, func(tt testCtx, cmd *cli.Command) {
 		tt.expect(cmd.Usage).To(matchers.Not(matchers.EndWith(".")))

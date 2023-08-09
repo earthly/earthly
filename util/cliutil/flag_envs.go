@@ -35,16 +35,15 @@ func getValidEnvNamesFromCommands(cmds []*cli.Command) []string {
 func getEnvs(fl cli.Flag) []string {
 	fv := reflect.ValueOf(fl)
 	for fv.Kind() == reflect.Ptr {
-		fv = reflect.Indirect(fv)
+		if fv.IsNil() {
+			return nil
+		}
+		fv = fv.Elem()
 	}
 	field := fv.FieldByName("EnvVars")
 	if !field.IsValid() {
 		return nil
 	}
 
-	envs := []string{}
-	for i := 0; i < field.Len(); i++ {
-		envs = append(envs, field.Index(i).String())
-	}
-	return envs
+	return field.Interface().([]string)
 }

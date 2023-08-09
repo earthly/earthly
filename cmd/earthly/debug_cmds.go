@@ -15,64 +15,87 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/earthly/earthly/ast"
+	"github.com/earthly/earthly/cmd/earthly/helper"
 )
 
-func (app *earthlyApp) debugCmds() []*cli.Command {
+type Debug struct {
+	cli CLI
+
+	enableSourceMap bool
+}
+
+func NewDebug(cli CLI) *Debug {
+	return &Debug{
+		cli: cli,
+	}
+}
+
+func (a *Debug) Cmds() []*cli.Command {
 	return []*cli.Command{
 		{
-			Name:        "ast",
-			Usage:       "Output the AST",
-			UsageText:   "earthly [options] debug ast",
-			Description: "Output the AST.",
-			Action:      app.actionDebugAst,
-			Flags: []cli.Flag{
-				&cli.BoolFlag{
-					Name:        "source-map",
-					Usage:       "Enable outputting inline sourcemap",
-					Destination: &app.enableSourceMap,
+			Name:        "debug",
+			Usage:       "Print debug information about an Earthfile",
+			Description: "Print debug information about an Earthfile.",
+			ArgsUsage:   "[<path>]",
+			Hidden:      true, // Dev purposes only.
+			Subcommands: []*cli.Command{
+				{
+					Name:        "ast",
+					Usage:       "Output the AST",
+					UsageText:   "earthly [options] debug ast",
+					Description: "Output the AST.",
+					Action:      a.actionAst,
+					Flags: []cli.Flag{
+						&cli.BoolFlag{
+							Name:        "source-map",
+							Usage:       "Enable outputting inline sourcemap",
+							Destination: &a.enableSourceMap,
+						},
+					},
+				},
+				{
+					Name:        "buildkit-info",
+					Usage:       "Print the buildkit info",
+					UsageText:   "earthly [options] debug buildkit-info",
+					Description: "Print the builtkit info.",
+					Action:      a.actionBuildkitInfo,
+				},
+				{
+					Name:        "buildkit-disk-usage",
+					Usage:       "Print the buildkit disk usage",
+					UsageText:   "earthly [options] debug buildkit-disk-usage",
+					Description: "Print the buildkit disk usage.",
+					Action:      a.actionBuildkitDiskUsage,
+				},
+				{
+					Name:        "buildkit-workers",
+					Usage:       "Print the buildkit workers",
+					UsageText:   "earthly [options] debug buildkit-workers",
+					Description: "Print the buildkit workers.",
+					Action:      a.actionBuildkitWorkers,
+				},
+				{
+					Name:        "buildkit-shutdown-if-idle",
+					Usage:       "Shutdown the buildkit if it is idle",
+					UsageText:   "earthly [options] debug buildkit-shutdown-if-idle",
+					Description: "Shutdown the buildkit if it is idle.",
+					Action:      a.actionBuildkitShutdownIfIdle,
+				},
+				{
+					Name:        "buildkit-session-history",
+					Usage:       "Print the buildkit session history",
+					UsageText:   "earthly [options] debug buildkit-session-history",
+					Description: "Print the buildkit session history.",
+					Action:      a.actionBuildkitSessionHistory,
 				},
 			},
-		},
-		{
-			Name:        "buildkit-info",
-			Usage:       "Print the buildkit info",
-			UsageText:   "earthly [options] debug buildkit-info",
-			Description: "Print the builtkit info.",
-			Action:      app.actionDebugBuildkitInfo,
-		},
-		{
-			Name:        "buildkit-disk-usage",
-			Usage:       "Print the buildkit disk usage",
-			UsageText:   "earthly [options] debug buildkit-disk-usage",
-			Description: "Print the buildkit disk usage.",
-			Action:      app.actionDebugBuildkitDiskUsage,
-		},
-		{
-			Name:        "buildkit-workers",
-			Usage:       "Print the buildkit workers",
-			UsageText:   "earthly [options] debug buildkit-workers",
-			Description: "Print the buildkit workers.",
-			Action:      app.actionDebugBuildkitWorkers,
-		},
-		{
-			Name:        "buildkit-shutdown-if-idle",
-			Usage:       "Shutdown the buildkit if it is idle",
-			UsageText:   "earthly [options] debug buildkit-shutdown-if-idle",
-			Description: "Shutdown the buildkit if it is idle.",
-			Action:      app.actionDebugBuildkitShutdownIfIdle,
-		},
-		{
-			Name:        "buildkit-session-history",
-			Usage:       "Print the buildkit session history",
-			UsageText:   "earthly [options] debug buildkit-session-history",
-			Description: "Print the buildkit session history.",
-			Action:      app.actionDebugBuildkitSessionHistory,
 		},
 	}
 }
 
-func (app *earthlyApp) actionDebugAst(cliCtx *cli.Context) error {
-	app.commandName = "debugAst"
+func (a *Debug) actionAst(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("debugAst")
+
 	if cliCtx.NArg() > 1 {
 		return errors.New("invalid number of arguments provided")
 	}
@@ -81,7 +104,7 @@ func (app *earthlyApp) actionDebugAst(cliCtx *cli.Context) error {
 		path = cliCtx.Args().First()
 	}
 
-	ef, err := ast.Parse(cliCtx.Context, path, app.enableSourceMap)
+	ef, err := ast.Parse(cliCtx.Context, path, a.enableSourceMap)
 	if err != nil {
 		return err
 	}
@@ -93,14 +116,14 @@ func (app *earthlyApp) actionDebugAst(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionDebugBuildkitSessionHistory(cliCtx *cli.Context) error {
-	app.commandName = "debugBuildkitSessions"
+func (a *Debug) actionBuildkitSessionHistory(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("debugBuildkitSessions")
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
-	bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
+	bkClient, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
@@ -116,14 +139,14 @@ func (app *earthlyApp) actionDebugBuildkitSessionHistory(cliCtx *cli.Context) er
 	return nil
 }
 
-func (app *earthlyApp) actionDebugBuildkitInfo(cliCtx *cli.Context) error {
-	app.commandName = "debugBuildkitInfo"
+func (a *Debug) actionBuildkitInfo(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("debugBuildkitInfo")
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
-	bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
+	bkClient, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
@@ -141,14 +164,14 @@ func (app *earthlyApp) actionDebugBuildkitInfo(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionDebugBuildkitDiskUsage(cliCtx *cli.Context) error {
-	app.commandName = "debugBuildkitDiskUsage"
+func (a *Debug) actionBuildkitDiskUsage(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("debugBuildkitDiskUsage")
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
-	bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
+	bkClient, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
@@ -192,14 +215,14 @@ func (app *earthlyApp) actionDebugBuildkitDiskUsage(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionDebugBuildkitWorkers(cliCtx *cli.Context) error {
-	app.commandName = "debugBuildkitWorkers"
+func (a *Debug) actionBuildkitWorkers(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("debugBuildkitWorkers")
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
-	bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
+	bkClient, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
@@ -265,14 +288,14 @@ func (app *earthlyApp) actionDebugBuildkitWorkers(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionDebugBuildkitShutdownIfIdle(cliCtx *cli.Context) error {
-	app.commandName = "debugBuildkitShutdownIfIdle"
+func (a *Debug) actionBuildkitShutdownIfIdle(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("debugBuildkitShutdownIfIdle")
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
-	bkClient, err := app.getBuildkitClient(cliCtx, cloudClient)
+	bkClient, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
