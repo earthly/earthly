@@ -28,21 +28,23 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 		{
 			Name:        "launch",
 			Usage:       "Launch a new Earthly Satellite",
-			Description: "Launch a new Earthly Satellite",
+			Description: "Launch a new Earthly Satellite.",
 			UsageText: "earthly satellite launch <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] launch <satellite-name>",
 			Action: app.actionSatelliteLaunch,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
-					Name:        "platform",
-					Usage:       "The platform to use when launching a new satellite. Supported values: linux/amd64, linux/arm64.",
+					Name: "platform",
+					Usage: `The platform to use when launching a new satellite
+			Supported values: linux/amd64, linux/arm64`,
 					Required:    false,
 					Value:       cloud.SatellitePlatformAMD64,
 					Destination: &app.satellitePlatform,
 				},
 				&cli.StringFlag{
-					Name:        "size",
-					Usage:       "The size of the satellite. See https://earthly.dev/pricing for details on each size. Supported values: xsmall, small, medium, large, xlarge.",
+					Name: "size",
+					Usage: `The size of the satellite. See https://earthly.dev/pricing for details on each size 
+			Supported values: xsmall, small, medium, large, xlarge`,
 					Required:    false,
 					Destination: &app.satelliteSize,
 				},
@@ -57,17 +59,17 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 				&cli.StringFlag{
 					Name:    "maintenance-window",
 					Aliases: []string{"mw"},
-					Usage: "Sets a maintenance window for satellite auto-updates.\n" +
-						"If there is a a new satellite version available, the satellite will update within 2 hrs of the time specified.\n" +
-						"Format must be in HH:MM (24 hr) and will be automatically converted from your current local time to UTC.\n" +
-						"Default value is 02:00 in your local time.",
+					Usage: `Sets a maintenance window for satellite auto-updates
+			If there is a a new satellite version available, the satellite will update within 2 hrs of the time specified.
+			Format must be in HH:MM (24 hr) and will be automatically converted from your current local time to UTC.
+			Default value is 02:00 in your local time.`,
 					Required:    false,
 					Destination: &app.satelliteMaintenanceWindow,
 				},
 				&cli.BoolFlag{
 					Name:        "maintenance-weekends-only",
 					Aliases:     []string{"wo"},
-					Usage:       "When set, satellite auto-updates will only occur on Saturday or Sunday during the specified maintenance window.",
+					Usage:       "When set, satellite auto-updates will only occur on Saturday or Sunday during the specified maintenance window",
 					Required:    false,
 					Destination: &app.satelliteMaintenaceWeekendsOnly,
 				},
@@ -83,22 +85,22 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 		{
 			Name:        "rm",
 			Usage:       "Destroy an Earthly Satellite",
-			Description: "Destroy an Earthly Satellite",
+			Description: "Destroy an Earthly Satellite.",
 			UsageText: "earthly satellite rm <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] rm <satellite-name>",
 			Action: app.actionSatelliteRemove,
 		},
 		{
 			Name:        "ls",
-			Description: "List your Earthly Satellites",
 			Usage:       "List your Earthly Satellites",
+			Description: "List your Earthly Satellites.",
 			UsageText: "earthly satellite ls\n" +
 				"	earthly satellite [--org <organization-name>] ls",
 			Action: app.actionSatelliteList,
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:        "json",
-					Usage:       "Prints the output in JSON format.",
+					Usage:       "Prints the output in JSON format",
 					Required:    false,
 					Destination: &app.satellitePrintJSON,
 				},
@@ -113,8 +115,8 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 		},
 		{
 			Name:        "inspect",
-			Description: "Show additional details about a Satellite instance",
-			Usage:       "Show additional details about a Satellite instance",
+			Usage:       "Show additional details about an Earthly Satellite instance",
+			Description: "Show additional details about an Earthly Satellite instance.",
 			UsageText: "earthly satellite inspect <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] inspect <satellite-name>",
 			Action: app.actionSatelliteInspect,
@@ -122,8 +124,8 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 		{
 			Name:        "select",
 			Aliases:     []string{"s"},
-			Usage:       "Choose which satellite to use to build your app",
-			Description: "Choose which satellite to use to build your app",
+			Usage:       "Choose which Earthly Satellite to use to build your app",
+			Description: "Choose which Earthly Satellite to use to build your app.",
 			UsageText: "earthly satellite select <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] select <satellite-name>",
 			Action: app.actionSatelliteSelect,
@@ -131,44 +133,39 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 		{
 			Name:        "unselect",
 			Aliases:     []string{"uns"},
-			Usage:       "Remove any currently selected Satellite instance from your Earthly configuration",
-			Description: "Remove any currently selected Satellite instance from your Earthly configuration",
+			Usage:       "Remove any currently selected Earthly Satellite instance from your Earthly configuration",
+			Description: "Remove any currently selected Earthly Satellite instance from your Earthly configuration.",
 			UsageText:   "earthly satellite unselect",
 			Action:      app.actionSatelliteUnselect,
 		},
 		{
 			Name:        "wake",
-			Usage:       "Manually force a Satellite to wake up from a sleep state",
-			Description: "Manually force a Satellite to wake up from a sleep state",
+			Usage:       "Manually force an Earthly Satellite to wake up from a sleep state",
+			Description: "Manually force an Earthly Satellite to wake up from a sleep state.",
 			UsageText: "earthly satellite wake <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] wake <satellite-name>",
 			Action: app.actionSatelliteWake,
 		},
 		{
 			Name:        "sleep",
-			Usage:       "Manually force a Satellite to sleep from an operational state",
-			Description: "Manually force a Satellite to sleep from an operational state",
+			Usage:       "Manually force an Earthly Satellite to sleep from an operational state",
+			Description: "Manually force an Earthly Satellite to sleep from an operational state.",
 			UsageText: "earthly satellite sleep <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] sleep <satellite-name>",
 			Action: app.actionSatelliteSleep,
 		},
 		{
 			Name:        "update",
-			Usage:       "Manually update a satellite to the latest version (may cause downtime)",
-			Description: "Manually update a satellite to the latest version (may cause downtime)",
+			Usage:       "Manually update an Earthly Satellite to the latest version (may cause downtime)",
+			Description: "Manually update an Earthly Satellite to the latest version (may cause downtime).",
 			UsageText: "earthly satellite update <satellite-name>\n" +
 				"	earthly satellite [--org <organization-name>] update <satellite-name>",
 			Action: app.actionSatelliteUpdate,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
-					Name:        "platform",
-					Usage:       "Change the platform of the satellite. Supported values: linux/amd64, linux/arm64.",
-					Required:    false,
-					Destination: &app.satellitePlatform,
-				},
-				&cli.StringFlag{
-					Name:        "size",
-					Usage:       "Change the size of the satellite. See https://earthly.dev/pricing for details on each size. Supported values: xsmall, small, medium, large, xlarge.",
+					Name: "size",
+					Usage: `Change the size of the satellite. See https://earthly.dev/pricing for details on each size. 
+			Supported values: xsmall, small, medium, large, xlarge`,
 					Required:    false,
 					Destination: &app.satelliteSize,
 				},
@@ -182,7 +179,7 @@ func (app *earthlyApp) satelliteCmds() []*cli.Command {
 				&cli.BoolFlag{
 					Name:        "maintenance-weekends-only",
 					Aliases:     []string{"wo"},
-					Usage:       "When set, satellite auto-updates will only occur on Saturday or Sunday during the specified maintenance window.",
+					Usage:       "When set, satellite auto-updates will only occur on Saturday or Sunday during the specified maintenance window",
 					Required:    false,
 					Destination: &app.satelliteMaintenaceWeekendsOnly,
 				},

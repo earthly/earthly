@@ -30,8 +30,8 @@ func (app *earthlyApp) accountCmds() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:        "register",
-			Usage:       "Register for an Earthly account *beta*",
-			Description: "Register for an Earthly account *beta*",
+			Usage:       "Register for an Earthly account",
+			Description: "Register for an Earthly account.",
 			UsageText: "You may register using GitHub OAuth, by visiting https://ci.earthly.dev\n" +
 				"   Once authenticated, a login token will be displayed which can be used to login:\n" +
 				"\n" +
@@ -49,12 +49,12 @@ func (app *earthlyApp) accountCmds() []*cli.Command {
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "email",
-					Usage:       "Email address",
+					Usage:       "Email address to use for register for your Earthly account",
 					Destination: &app.email,
 				},
 				&cli.StringFlag{
 					Name:        "token",
-					Usage:       "Email verification token",
+					Usage:       "Email verification token, retreived from the email you used to register your account",
 					Destination: &app.token,
 				},
 				&cli.StringFlag{
@@ -79,8 +79,8 @@ func (app *earthlyApp) accountCmds() []*cli.Command {
 		},
 		{
 			Name:        "login",
-			Usage:       "Login to an Earthly account *beta*",
-			Description: "Login to an Earthly account *beta*",
+			Usage:       "Login to an Earthly account",
+			Description: "Login to an Earthly account.",
 			UsageText: "earthly [options] account login\n" +
 				"   earthly [options] account login --email <email>\n" +
 				"   earthly [options] account login --email <email> --password <password>\n" +
@@ -89,7 +89,7 @@ func (app *earthlyApp) accountCmds() []*cli.Command {
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "email",
-					Usage:       "Email address",
+					Usage:       "Pass in email address connected with your Earthly account",
 					Destination: &app.email,
 				},
 				&cli.StringFlag{
@@ -107,39 +107,45 @@ func (app *earthlyApp) accountCmds() []*cli.Command {
 		},
 		{
 			Name:        "logout",
-			Usage:       "Logout of an Earthly account *beta*",
-			Description: "Logout of an Earthly account; this has no effect for ssh-based authentication *beta*",
+			Usage:       "Logout of an Earthly account",
+			Description: "Logout of an Earthly account; this has no effect for ssh-based authentication.",
 			Action:      app.actionAccountLogout,
 		},
 		{
-			Name:      "list-keys",
-			Usage:     "List associated public keys used for authentication *beta*",
-			UsageText: "earthly [options] account list-keys",
-			Action:    app.actionAccountListKeys,
+			Name:        "list-keys",
+			Usage:       "List associated public keys used for authentication",
+			UsageText:   "earthly [options] account list-keys",
+			Description: "Lists all public keys that are authorized to login to the current Earthly account.",
+			Action:      app.actionAccountListKeys,
 		},
 		{
-			Name:      "add-key",
-			Usage:     "Associate a new public key with your account *beta*",
-			UsageText: "earthly [options] add-key [<key>]",
-			Action:    app.actionAccountAddKey,
+			Name:        "add-key",
+			Usage:       "Authorize a new public key to login with with the current Earthly account",
+			UsageText:   "earthly [options] add-key [<key>]",
+			Description: "Authorize a new public key to login to the current Earthly account. If 'key' is omitted, an interactive prompt is displayed to select a public key to add.",
+			Action:      app.actionAccountAddKey,
 		},
 		{
-			Name:      "remove-key",
-			Usage:     "Removes an existing public key from your account *beta*",
-			UsageText: "earthly [options] remove-key <key>",
-			Action:    app.actionAccountRemoveKey,
+			Name:        "remove-key",
+			Usage:       "Removes an authorized public key from the current Earthly account",
+			UsageText:   "earthly [options] remove-key <key>",
+			Description: "Removes an authorized public key from accessing the current Earthly account.",
+			Action:      app.actionAccountRemoveKey,
 		},
 		{
-			Name:      "list-tokens",
-			Usage:     "List associated tokens used for authentication *beta*",
-			UsageText: "earthly [options] account list-tokens",
-			Action:    app.actionAccountListTokens,
+			Name:        "list-tokens",
+			Usage:       "List associated tokens used for authentication with the current Earthly account",
+			UsageText:   "earthly [options] account list-tokens",
+			Description: "List account tokens associated with the current Earthly account. A token is useful for environments where the ssh-agent is not accessible (e.g. a CI system).",
+			Action:      app.actionAccountListTokens,
 		},
 		{
 			Name:      "create-token",
-			Usage:     "Create a new authentication token for your account *beta*",
+			Usage:     "Create a new authentication token for your account",
 			UsageText: "earthly [options] account create-token [options] <token name>",
-			Action:    app.actionAccountCreateToken,
+			Description: `Creates a new authentication token. A read-only token is created by default, If the '--write' flag is specified the token will have read+write access.
+		The token will expire in 1 year from creation date unless a different date is supplied via the '--expiry' option.`,
+			Action: app.actionAccountCreateToken,
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:        "write",
@@ -154,26 +160,30 @@ func (app *earthlyApp) accountCmds() []*cli.Command {
 			},
 		},
 		{
-			Name:      "remove-token",
-			Usage:     "Remove an authentication token from your account *beta*",
-			UsageText: "earthly [options] account remove-token <token>",
-			Action:    app.actionAccountRemoveToken,
+			Name:        "remove-token",
+			Usage:       "Remove an authentication token from your account",
+			UsageText:   "earthly [options] account remove-token <token>",
+			Description: "Removes a token from the current Earthly account.",
+			Action:      app.actionAccountRemoveToken,
 		},
 		{
 			Name:  "reset",
 			Usage: "Reset Earthly account password",
-			UsageText: "earthly [options] account reset --email <email>\n" +
-				"   earthly [options] account reset --email <email> --token <token>\n",
+			UsageText: `earthly [options] account reset --email <email>
+	earthly [options] account reset --email <email> --token <token>`,
+			Description: `Reset the password associated with the provided email.
+	The command should first be run without a token, which will cause a token to be emailed to you.
+	Once the command is re-run with the provided token, it will prompt you for a new password.`,
 			Action: app.actionAccountReset,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "email",
-					Usage:       "Email address",
+					Usage:       "Email address for which to reset the password",
 					Destination: &app.email,
 				},
 				&cli.StringFlag{
 					Name:        "token",
-					Usage:       "Authentication token",
+					Usage:       "Authentication token with with to rerun the command with your email to reset your password",
 					Destination: &app.token,
 				},
 			},

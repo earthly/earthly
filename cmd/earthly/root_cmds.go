@@ -35,15 +35,16 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 		{
 			Name:        "build",
 			Usage:       "Build an Earthly target",
-			Description: "Build an Earthly target",
+			Description: "Build an Earthly target.",
 			Action:      app.actionBuild,
 			Flags:       app.buildFlags(),
 			Hidden:      true, // Meant to be used mainly for help output.
 		},
 		{
 			Name:        "bootstrap",
-			Usage:       "Bootstraps earthly installation including shell autocompletion and buildkit image download",
-			Description: "Bootstraps earthly installation including shell autocompletion and buildkit image download",
+			Usage:       "Bootstraps earthly installation including buildkit image download and optionally shell autocompletion",
+			UsageText:   "earthly [options] bootstrap [--no-buildkit, --with-autocomplete, --certs-hostname]",
+			Description: "Bootstraps earthly installation including buildkit image download and optionally shell autocompletion.",
 			Action:      app.actionBootstrap,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
@@ -54,19 +55,18 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 				},
 				&cli.BoolFlag{
 					Name:        "no-buildkit",
-					Usage:       "Do not bootstrap buildkit",
+					Usage:       "Skips setting up the BuildKit container",
 					Destination: &app.bootstrapNoBuildkit,
 				},
 				&cli.BoolFlag{
 					Name:        "with-autocomplete",
-					Usage:       "Add earthly autocompletions",
+					Usage:       "Install shell autocompletions during bootstrap",
 					Destination: &app.bootstrapWithAutocomplete,
 				},
 				&cli.StringFlag{
 					Name:        "certs-hostname",
-					Usage:       "hostname to generate certificates for",
+					Usage:       "Hostname to generate certificates for",
 					EnvVars:     []string{"EARTHLY_CERTS_HOSTNAME"},
-					Hidden:      true,
 					Value:       "localhost",
 					Destination: &app.certsHostName,
 				},
@@ -74,8 +74,9 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 		},
 		{
 			Name:        "docker-build",
-			Usage:       "Build a Dockerfile without an Earthfile *beta*",
-			Description: "Builds a Dockerfile *beta*",
+			Usage:       "*beta* Build a Dockerfile without an Earthfile",
+			UsageText:   "earthly [options] docker-build [--dockerfile <dockerfile-path>] [--tag=<image-tag>] [--target=<target-name>] [--platform <platform1[,platform2,...]>] <build-context-dir> [--arg1=arg-value]",
+			Description: "*beta* Builds a Dockerfile without an Earthfile.",
 			Action:      app.actionDockerBuild,
 			Flags: append(app.buildFlags(),
 				&cli.StringFlag{
@@ -104,7 +105,7 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 		{
 			Name:        "docker2earthly",
 			Usage:       "Convert a Dockerfile into Earthfile",
-			Description: "Converts an existing dockerfile into an Earthfile",
+			Description: "Converts an existing dockerfile into an Earthfile.",
 			Hidden:      true, // Experimental.
 			Action:      app.actionDocker2Earthly,
 			Flags: []cli.Flag{
@@ -130,14 +131,16 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 		{
 			Name:        "org",
 			Aliases:     []string{"orgs"},
-			Usage:       "Earthly organization administration *beta*",
+			Usage:       "Create or manage your Earthly orgs",
+			Description: "Create or manage your Earthly orgs.",
 			Subcommands: app.orgCmds(),
 		},
 		{
-			Name:      "doc",
-			Usage:     "Document targets from an Earthfile *beta*",
-			UsageText: "earthly [options] doc [<project-ref>[+<target-ref>]]",
-			Action:    app.actionDocumentTarget,
+			Name:        "doc",
+			Usage:       "Document targets from an Earthfile",
+			UsageText:   "earthly [options] doc [<project-ref>[+<target-ref>]]",
+			Description: "Document targets from an Earthfile by reading in line comments.",
+			Action:      app.actionDocumentTarget,
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:        "long",
@@ -148,10 +151,11 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 			},
 		},
 		{
-			Name:      "ls",
-			Usage:     "List targets from an Earthfile *beta*",
-			UsageText: "earthly [options] ls [<project-ref>]",
-			Action:    app.actionListTargets,
+			Name:        "ls",
+			Usage:       "List targets from an Earthfile",
+			UsageText:   "earthly [options] ls [<project-ref>]",
+			Description: "List targets from an Earthfile.",
+			Action:      app.actionListTargets,
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:        "args",
@@ -169,35 +173,49 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 		},
 		{
 			Name:        "account",
-			Usage:       "Create or manage an Earthly account *beta*",
+			Usage:       "Create or manage an Earthly account",
+			Description: "Create or manage an Earthly account.",
 			Subcommands: app.accountCmds(),
 		},
 		{
 			Name:        "debug",
 			Usage:       "Print debug information about an Earthfile",
-			Description: "Print debug information about an Earthfile",
+			Description: "Print debug information about an Earthfile.",
 			ArgsUsage:   "[<path>]",
 			Hidden:      true, // Dev purposes only.
 			Subcommands: app.debugCmds(),
 		},
 		{
-			Name:        "prune",
-			Usage:       "Prune Earthly build cache",
-			Description: "Prune Earthly build cache",
-			Action:      app.actionPrune,
+			Name:  "prune",
+			Usage: "Prune Earthly build cache",
+			Description: `Prune Earthly build cache in one of two forms.
+
+Standard Form:
+	Issues a prune command on the BuildKit daemon.
+Reset Form:
+	Restarts the BuildKit daemon and instructs it to complete delete the cache
+	directory on startup.`,
+			Action: app.actionPrune,
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:        "all",
 					Aliases:     []string{"a"},
 					EnvVars:     []string{"EARTHLY_PRUNE_ALL"},
-					Usage:       "Prune all cache",
+					Usage:       "Prune all cache via BuildKit daemon",
 					Destination: &app.pruneAll,
 				},
 				&cli.BoolFlag{
-					Name:        "reset",
-					EnvVars:     []string{"EARTHLY_PRUNE_RESET"},
-					Usage:       "Reset cache entirely by wiping cache dir",
+					Name:    "reset",
+					EnvVars: []string{"EARTHLY_PRUNE_RESET"},
+					Usage: `Reset cache entirely by restarting BuildKit daemon and wiping cache dir.
+			This option is not available when using satellites.`,
 					Destination: &app.pruneReset,
+				},
+				&cli.DurationFlag{
+					Name: "age",
+					Usage: `Prune cache older than the specified duration passed in as a string; 
+					duration is specified with an integer value followed by a m, h, or d suffix which represents minutes, hours, or days respectively, e.g. 24h, or 1d`,
+					Destination: &app.pruneKeepDuration,
 				},
 				&cli.GenericFlag{
 					Name:  "size",
@@ -215,61 +233,64 @@ func (app *earthlyApp) rootCmds() []*cli.Command {
 			Name:   "config",
 			Usage:  "Edits your Earthly configuration file",
 			Action: app.actionConfig,
-			UsageText: `This command takes a path, and a value and sets it in your configuration file.
+			UsageText: `Examples of common settings:
+			
+			Set your cache size:
+			
+				config global.cache_size_mb 1234
+			
+			Set additional buildkit args, using a YAML array:
+			
+				config global.buildkit_additional_args '["userns", "--host"]'
+			
+			Set a key containing a period:
+			
+				config 'git."example.com".password' hunter2
+			
+			Set up a whole custom git repository for a server called example.com, using a single-line YAML literal:
+				* which stores git repos under /var/git/repos/name-of-repo.git
+				* allows access over ssh
+				* using port 2222
+				* sets the username to git
+				* is recognized to earthly as example.com/name-of-repo
+			
+				config git "{example: {pattern: 'example.com/([^/]+)', substitute: 'ssh://git@example.com:2222/var/git/repos/\$1.git', auth: ssh}}`,
+			Description: `This command takes both a path and a value. It then sets them in your configuration file.
 
-	 As the configuration file is YAML, the key must be a valid key within the file. You can specify sub-keys by using "." to separate levels.
-	 If the sub-key you wish to use has a "." in it, you can quote that subsection, like this: git."github.com".
-
-	 Values must be valid YAML, and also be deserializable into the key you wish to assign them to.
-	 This means you can set higher level objects using a compact style, or single values with simple values.
-
-	 Only one key/value can be set per invocation.
-
-	 To get help with a specific key, do "config [key] --help". Or, visit https://docs.earthly.dev/earthly-config for more details.`,
-			Description: `Set your cache size:
-
-	config global.cache_size_mb 1234
-
-Set additional buildkit args, using a YAML array:
-
-	config global.buildkit_additional_args '["userns", "--host"]'
-
-Set a key containing a period:
-
-	config 'git."example.com".password' hunter2
-
-Set up a whole custom git repository for a server called example.com, using a single-line YAML literal:
-	* which stores git repos under /var/git/repos/name-of-repo.git
-	* allows access over ssh
-	* using port 2222
-	* sets the username to git
-	* is recognized to earthly as example.com/name-of-repo
-
-	config git "{example: {pattern: 'example.com/([^/]+)', substitute: 'ssh://git@example.com:2222/var/git/repos/\$1.git', auth: ssh}}"
-			`,
+			As the configuration file is YAML, the key must be a valid key within the file. You can specify sub-keys by using "." to separate levels.
+			If the sub-key you wish to use has a "." in it, you can quote that subsection, like this: git."github.com".
+		
+			Values must be valid YAML, and also be deserializable into the key you wish to assign them to.
+			This means you can set higher level objects using a compact style, or single values with simple values.
+		
+			Only one key/value can be set per invocation.
+		
+			To get help with a specific key, do "config [key] --help". Or, visit https://docs.earthly.dev/earthly-config for more details.`,
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:        "dry-run",
-					Usage:       "Print the changed config file to the console instead of writing it out",
+					Usage:       "Print the changed config file to the console instead of writing it to file",
 					Destination: &app.configDryRun,
 				},
 			},
 		},
 		{
-			Name:    "satellite",
-			Aliases: []string{"satellites", "sat"},
-			Usage: "Launch and use a Satellite runner as remote backend for Earthly builds. *experimental*\n" +
-				"	Satellites can be used to optimize and share cache between multiple builds and users,\n" +
-				"	as well as run builds in native architectures independent of where the Earthly client is invoked.\n" +
-				"	Note: This feature is currently experimental.\n" +
-				"	If you'd like to try it out, please contact us at support@earthly.dev or by visiting https://earthly.dev/slack.",
-			UsageText:   "earthly satellite (launch|ls|inspect|select|unselect|rm)",
-			Description: "Create and manage Earthly Satellites *beta*",
+			Name:      "satellite",
+			Aliases:   []string{"satellites", "sat"},
+			Usage:     "Create and manage Earthly Satellites",
+			UsageText: "earthly satellite (launch|ls|inspect|select|unselect|rm)",
+			Description: `Launch and use a Satellite runner as remote backend for Earthly builds.
+
+- Read more about satellites here: https://docs.earthly.dev/earthly-cloud/satellites 
+- Sign up for satellites here: https://cloud.earthly.dev/login
+
+Satellites can be used to share cache between multiple builds and users,
+as well as run builds in native architectures independent of where the Earthly client is invoked.`,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "org",
 					EnvVars:     []string{"EARTHLY_ORG"},
-					Usage:       "The name of the organization the satellite belongs to. Required when user is a member of multiple.",
+					Usage:       "The name of the organization the satellite belongs to",
 					Required:    false,
 					Destination: &app.orgName,
 				},
@@ -277,16 +298,18 @@ Set up a whole custom git repository for a server called example.com, using a si
 			Subcommands: app.satelliteCmds(),
 		},
 		{
-			Name:        "project",
-			Aliases:     []string{"projects"},
-			Description: "Manage Earthly projects *beta*",
-			Usage:       "Manage Earthly projects *beta*",
-			UsageText:   "earthly project (ls|rm|create|member)",
+			Name:    "project",
+			Aliases: []string{"projects"},
+			Description: `Manage Earthly projects which are shared resources of Earthly orgs. 
+
+Within Earthly projects users can be invited and granted different access levels including: read, read+secrets, write, and admin.`,
+			Usage:     "Manage Earthly projects",
+			UsageText: "earthly project (ls|rm|create|member)",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "org",
 					EnvVars:     []string{"EARTHLY_ORG"},
-					Usage:       "The name of the organization to which the project belongs. Required when user is a member of multiple.",
+					Usage:       "The name of the Earthly organization to which the Earthly project belongs",
 					Required:    false,
 					Destination: &app.orgName,
 				},
@@ -294,7 +317,7 @@ Set up a whole custom git repository for a server called example.com, using a si
 					Name:        "project",
 					Aliases:     []string{"p"},
 					EnvVars:     []string{"EARTHLY_PROJECT"},
-					Usage:       "The project to act on.",
+					Usage:       "The Earthly project to act on",
 					Required:    false,
 					Destination: &app.projectName,
 				},
@@ -304,20 +327,21 @@ Set up a whole custom git repository for a server called example.com, using a si
 		{
 			Name:        "secret",
 			Aliases:     []string{"secrets"},
-			Description: "Manage cloud secrets *beta*",
-			Usage:       "Manage cloud secrets *beta*",
+			Description: "*beta* Manage cloud secrets.",
+			Usage:       "*beta* Manage cloud secrets",
+			UsageText:   "earthly [options] secrets [--org <organization-name>, --project <project>] (set|get|ls|rm|migrate|permission)",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "org",
 					EnvVars:     []string{"EARTHLY_ORG"},
-					Usage:       "The organization to which the project belongs.",
+					Usage:       "The organization to which the project belongs",
 					Required:    false,
 					Destination: &app.orgName,
 				},
 				&cli.StringFlag{
 					Name:        "project",
 					EnvVars:     []string{"EARTHLY_PROJECT"},
-					Usage:       "The organization project in which to store secrets.",
+					Usage:       "The organization project in which to store secrets",
 					Required:    false,
 					Destination: &app.projectName,
 				},
@@ -327,20 +351,21 @@ Set up a whole custom git repository for a server called example.com, using a si
 		{
 			Name:        "registry",
 			Aliases:     []string{"registries"},
-			Description: "Manage registry access *beta*",
-			Usage:       "Manage registry access *beta*",
+			Description: "*beta* Manage registry access.",
+			Usage:       "*beta* Manage registry access",
+			UsageText:   "earthly [options] registry [--org <organization-name>, --project <project>] (setup|list|remove) [<flags>]",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "org",
 					EnvVars:     []string{"EARTHLY_ORG"},
-					Usage:       "The organization to which the project belongs.",
+					Usage:       "The organization to which the project belongs",
 					Required:    false,
 					Destination: &app.orgName,
 				},
 				&cli.StringFlag{
 					Name:        "project",
 					EnvVars:     []string{"EARTHLY_PROJECT"},
-					Usage:       "The organization project in which to store registry credentials.",
+					Usage:       "The organization project in which to store registry credentials",
 					Required:    false,
 					Destination: &app.projectName,
 				},
@@ -348,11 +373,13 @@ Set up a whole custom git repository for a server called example.com, using a si
 			Subcommands: app.registryCmds(),
 		},
 		{
-			Name:        "web",
-			Description: "Access the web UI *beta*",
-			Usage:       "Access the web UI via your default browser and print the url *beta*",
-			UsageText:   "earthly web (--provider=github)",
-			Hidden:      true,
+			Name:      "web",
+			Usage:     "*beta* Access the web UI via your default browser and print the url",
+			UsageText: "earthly web (--provider=github)",
+			Description: `*beta* Prints a url for entering the CI application and attempts to open your default browser with that url.
+
+	If the provider argument is given the CI application will automatically begin an OAuth flow with the given provider.
+	If you are logged into the CLI the url will contain a token used to link your OAuth credentials to your Earthly user.`,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "provider",
@@ -366,8 +393,8 @@ Set up a whole custom git repository for a server called example.com, using a si
 		},
 		{
 			Name:        "init",
-			Description: "Initialize a project *experimental*",
-			Usage:       "Initialize an Earthfile for the current project *experimental*",
+			Description: "*experimental* Initialize a project.",
+			Usage:       "*experimental* Initialize an Earthfile for the current project",
 			Action:      app.actionInit,
 		},
 	}
