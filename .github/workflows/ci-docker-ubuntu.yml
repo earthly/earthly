@@ -630,22 +630,6 @@ jobs:
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Build and push +prerelease
         run: ./build/earthly --ci --push +prerelease
-      - name: Update DockerHub description for earthly/earthly
-        uses: peter-evans/dockerhub-description@6515ba32ab40bc2d4fa334365b771770366628ff
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: earthly/earthly
-          readme-filepath: ./docs/docker-images/all-in-one.md
-          short-description: ${{ github.event.repository.description }}
-      - name: Update DockerHub description for earthly/buildkitd
-        uses: peter-evans/dockerhub-description@6515ba32ab40bc2d4fa334365b771770366628ff
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: earthly/buildkitd
-          readme-filepath: ./docs/docker-images/buildkit-standalone.md
-          short-description: Standalone Earthly buildkitd image
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}
