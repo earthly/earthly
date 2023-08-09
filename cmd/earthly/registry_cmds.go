@@ -31,8 +31,8 @@ func (app *earthlyApp) registryCmds() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:        "setup",
-			Usage:       "setup, and store, registry credentials in the earthly-cloud *beta*",
-			Description: "setup, and store, registry credentials in the earthly-cloud *beta*",
+			Usage:       "*beta* Setup, and store, registry credentials in the earthly-cloud",
+			Description: "*beta* Setup, and store, registry credentials in the earthly-cloud.",
 			UsageText: "earthly registry setup [--org <org> --project <project>] [--cred-helper <none|ecr-login|gcloud>] ...\n\n" +
 				"username/password based registry (--cred-helper=none):\n" +
 				"	earthly registry setup --username <username> --password <password> [<host>]\n" +
@@ -49,63 +49,64 @@ func (app *earthlyApp) registryCmds() []*cli.Command {
 				&cli.StringFlag{
 					Name:        "cred-helper",
 					EnvVars:     []string{"EARTHLY_REGISTRY_CRED_HELPER"},
-					Usage:       "Use a credential helper when logging into the registry (ecr-login, gcloud).",
+					Usage:       "Use a credential helper when logging into the registry (ecr-login, gcloud)",
 					Required:    false,
 					Destination: &app.registryCredHelper,
 				},
 				&cli.StringFlag{
 					Name:        "username",
 					EnvVars:     []string{"EARTHLY_REGISTRY_USERNAME"},
-					Usage:       "The username to use when logging into the registry.",
+					Usage:       "The username to use when logging into the registry",
 					Required:    false,
 					Destination: &app.registryUsername,
 				},
 				&cli.StringFlag{
-					Name:        "password",
-					EnvVars:     []string{"EARTHLY_REGISTRY_PASSWORD"},
-					Usage:       "The password to use when logging into the registry (use --password-stdin to prevent leaking your password via your shell history).",
+					Name:    "password",
+					EnvVars: []string{"EARTHLY_REGISTRY_PASSWORD"},
+					Usage: `The password to use when logging into the registry 
+			(use --password-stdin to prevent leaking your password via your shell history)`,
 					Required:    false,
 					Destination: &app.registryPassword,
 				},
 				&cli.BoolFlag{
 					Name:        "password-stdin",
 					EnvVars:     []string{"EARTHLY_REGISTRY_PASSWORD_STDIN"},
-					Usage:       "Read the password from stdin (recommended).",
+					Usage:       "Read the password from stdin (recommended)",
 					Required:    false,
 					Destination: &app.registryPasswordStdin,
 				},
 				&cli.StringFlag{
 					Name:        "aws-access-key-id",
 					EnvVars:     []string{"AWS_ACCESS_KEY_ID"},
-					Usage:       "AWS access key ID to use for elastic-container-registry.",
+					Usage:       "AWS access key ID to use for elastic-container-registry",
 					Required:    false,
 					Destination: &app.awsAccessKeyID,
 				},
 				&cli.StringFlag{
 					Name:        "aws-secret-access-key",
 					EnvVars:     []string{"AWS_SECRET_ACCESS_KEY"},
-					Usage:       "AWS secret access key to use for elastic-container-registry.",
+					Usage:       "AWS secret access key to use for elastic-container-registry",
 					Required:    false,
 					Destination: &app.awsSecretAccessKey,
 				},
 				&cli.StringFlag{
 					Name:        gcpServiceAccountKeyFlag,
 					EnvVars:     []string{"GCP_SERVICE_ACCOUNT_KEY"},
-					Usage:       "GCP service account key to use for artifact or container registry.",
+					Usage:       "GCP service account key to use for artifact or container registry",
 					Required:    false,
 					Destination: &app.gcpServiceAccountKey,
 				},
 				&cli.StringFlag{
 					Name:        gcpServiceAccountKeyPathFlag,
 					EnvVars:     []string{"GCP_SERVICE_ACCOUNT_KEY_PATH", "GOOGLE_APPLICATION_CREDENTIALS"},
-					Usage:       "path to GCP service account key to use for artifact or container registry.",
+					Usage:       "path to GCP service account key to use for artifact or container registry",
 					Required:    false,
 					Destination: &app.gcpServiceAccountKeyPath,
 				},
 				&cli.BoolFlag{
 					Name:        gcpServiceAccountKeyStdinFlag,
 					EnvVars:     []string{"GCP_SERVICE_ACCOUNT_KEY_STDIN"},
-					Usage:       "GCP service account key to use for artifact or container registry, read from stdin.",
+					Usage:       "GCP service account key to use for artifact or container registry, read from stdin",
 					Required:    false,
 					Destination: &app.gcpServiceAccountKeyStdin,
 				},
@@ -113,17 +114,19 @@ func (app *earthlyApp) registryCmds() []*cli.Command {
 		},
 		{
 			Name:  "list",
-			Usage: "List configured registries *beta*",
+			Usage: "*beta* List configured registries",
 			UsageText: "earthly registry list\n" +
 				"	earthly registry --org <org> --project <project> list\n",
-			Action: app.actionRegistryList,
+			Description: "*beta* List configured registries.",
+			Action:      app.actionRegistryList,
 		},
 		{
 			Name:  "remove",
-			Usage: "Remove stored registry credentials *beta*",
+			Usage: "*beta* Remove stored registry credentials",
 			UsageText: "earthly registry remove [<host>]\n" +
 				"	earthly registry [--org <org> --project <project>] remove <host>\n",
-			Action: app.actionRegistryRemove,
+			Description: "*beta* Remove stored registry credentials.",
+			Action:      app.actionRegistryRemove,
 		},
 	}
 }

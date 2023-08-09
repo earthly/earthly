@@ -19,13 +19,14 @@ func (app *earthlyApp) secretCmds() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:  "set",
-			Usage: "Stores a secret in the secrets store *beta*",
+			Usage: "*beta* Stores a secret in the secrets store",
 			UsageText: "earthly [options] secret set <path> <value>\n" +
-				"   earthly [options] secret set --file <local-path> <path>\n" +
-				"   earthly [options] secret set --stdin <path>\n" +
+				"   earthly [options] secrets set --file <local-path> <path>\n" +
+				"   earthly [options] secrets set --stdin <path>\n" +
 				"\n" +
 				"Security Recommendation: use --file or --stdin to avoid accidentally storing secrets in your shell's history",
-			Action: app.actionSecretsSetV2,
+			Description: "*beta* Stores a secret in the secrets store.",
+			Action:      app.actionSecretsSetV2,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "file",
@@ -42,10 +43,11 @@ func (app *earthlyApp) secretCmds() []*cli.Command {
 			},
 		},
 		{
-			Name:      "get",
-			Action:    app.actionSecretsGetV2,
-			Usage:     "Retrieve a secret from the secrets store *beta*",
-			UsageText: "earthly [options] secret get [options] <path>",
+			Name:        "get",
+			Action:      app.actionSecretsGetV2,
+			Usage:       "*beta* Retrieve a secret from the secrets store",
+			UsageText:   "earthly [options] secrets get [options] <path>",
+			Description: "*beta* Retriece a secret from the secrets store.",
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Aliases:     []string{"n"},
@@ -55,22 +57,25 @@ func (app *earthlyApp) secretCmds() []*cli.Command {
 			},
 		},
 		{
-			Name:      "ls",
-			Usage:     "List secrets in the secrets store *beta*",
-			UsageText: "earthly [options] secret ls [<path>]",
-			Action:    app.actionSecretsListV2,
+			Name:        "ls",
+			Usage:       "*beta* List secrets in the secrets store",
+			UsageText:   "earthly [options] secrets ls [<path>]",
+			Description: "*beta* List secrets in the secrets store.",
+			Action:      app.actionSecretsListV2,
 		},
 		{
-			Name:      "rm",
-			Usage:     "Removes a secret from the secrets store *beta*",
-			UsageText: "earthly [options] secret rm <path>",
-			Action:    app.actionSecretsRemoveV2,
+			Name:        "rm",
+			Usage:       "*beta* Removes a secret from the secrets store",
+			UsageText:   "earthly [options] secrets rm <path>",
+			Description: "*beta* Removes a secret from the secrets store.",
+			Action:      app.actionSecretsRemoveV2,
 		},
 		{
-			Name:      "migrate",
-			Usage:     "Migrate existing secrets into the new project-based structure *beta*",
-			UsageText: "earthly [options] secret --org <organization> --project <project> migrate <source-organization>",
-			Action:    app.actionSecretsMigrate,
+			Name:        "migrate",
+			Usage:       "*beta* Migrate existing secrets into the new project-based structure",
+			UsageText:   "earthly [options] secrets --org <organization> --project <project> migrate <source-organization>",
+			Description: "*beta* Migrate existing secrets into the new project-based structure.",
+			Action:      app.actionSecretsMigrate,
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:        "dry-run",
@@ -81,28 +86,32 @@ func (app *earthlyApp) secretCmds() []*cli.Command {
 			},
 		},
 		{
-			Name:      "permission",
-			Aliases:   []string{"permissions"},
-			Usage:     "Manage user-level secret permissions. *beta*",
-			UsageText: "earthly [options] secret permission (ls|set|rm)",
+			Name:        "permission",
+			Aliases:     []string{"permissions"},
+			Usage:       "*beta* Manage user-level secret permissions",
+			UsageText:   "earthly [options] secrets permission (ls|set|rm)",
+			Description: "*beta* Manage user-level secret permissions.",
 			Subcommands: []*cli.Command{
 				{
-					Name:      "ls",
-					Usage:     "List any user secret permissions.",
-					UsageText: "earthly [options] secret permission ls <path>",
-					Action:    app.actionSecretPermsList,
+					Name:        "ls",
+					Usage:       "List any user secret permissions",
+					UsageText:   "earthly [options] secret permission ls <path>",
+					Description: "List any user secret permissions.",
+					Action:      app.actionSecretPermsList,
 				},
 				{
-					Name:      "rm",
-					Usage:     "Remove a user secret permission.",
-					UsageText: "earthly [options] secret permission rm <path> <user-email>",
-					Action:    app.actionSecretPermsRemove,
+					Name:        "rm",
+					Usage:       "Remove a user secret permission",
+					UsageText:   "earthly [options] secret permission rm <path> <user-email>",
+					Description: "Remove a user secret permission.",
+					Action:      app.actionSecretPermsRemove,
 				},
 				{
-					Name:      "set",
-					Usage:     "Create or update a user secret permission.",
-					UsageText: "earthly [options] secret permission set <path> <user-email> <permission>",
-					Action:    app.actionSecretPermsSet,
+					Name:        "set",
+					Usage:       "Create or update a user secret permission",
+					UsageText:   "earthly [options] secret permission set <path> <user-email> <permission>",
+					Description: "Create or update a user secret permission.",
+					Action:      app.actionSecretPermsSet,
 				},
 			},
 		},
