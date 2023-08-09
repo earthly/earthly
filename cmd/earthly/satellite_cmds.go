@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -18,199 +17,253 @@ import (
 
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
+	"github.com/earthly/earthly/cmd/earthly/base"
+	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/containerutil"
 )
 
-func (app *earthlyApp) satelliteCmds() []*cli.Command {
+type Satellite struct {
+	cli CLI
+
+	platform               string
+	size                   string
+	featureFlags           cli.StringSlice
+	maintenanceWindow      string
+	maintenaceWeekendsOnly bool
+	version                string
+	printJSON              bool
+	listAll                bool
+	dropCache              bool
+}
+
+func NewSatellite(cli CLI) *Satellite {
+	return &Satellite{
+		cli: cli,
+	}
+}
+
+func (a *Satellite) Cmds() []*cli.Command {
 	return []*cli.Command{
 		{
-			Name:        "launch",
-			Usage:       "Launch a new Earthly Satellite",
-			Description: "Launch a new Earthly Satellite.",
-			UsageText: "earthly satellite launch <satellite-name>\n" +
-				"	earthly satellite [--org <organization-name>] launch <satellite-name>",
-			Action: app.actionSatelliteLaunch,
+			Name:      "satellite",
+			Aliases:   []string{"satellites", "sat"},
+			Usage:     "Create and manage Earthly Satellites",
+			UsageText: "earthly satellite (launch|ls|inspect|select|unselect|rm)",
+			Description: `Launch and use a Satellite runner as remote backend for Earthly builds.
+
+- Read more about satellites here: https://docs.earthly.dev/earthly-cloud/satellites
+- Sign up for satellites here: https://cloud.earthly.dev/login
+
+Satellites can be used to share cache between multiple builds and users,
+as well as run builds in native architectures independent of where the Earthly client is invoked.`,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
-					Name: "platform",
-					Usage: `The platform to use when launching a new satellite
-			Supported values: linux/amd64, linux/arm64`,
+					Name:        "org",
+					EnvVars:     []string{"EARTHLY_ORG"},
+					Usage:       "The name of the organization the satellite belongs to",
 					Required:    false,
-					Value:       cloud.SatellitePlatformAMD64,
-					Destination: &app.satellitePlatform,
-				},
-				&cli.StringFlag{
-					Name: "size",
-					Usage: `The size of the satellite. See https://earthly.dev/pricing for details on each size 
-			Supported values: xsmall, small, medium, large, xlarge`,
-					Required:    false,
-					Destination: &app.satelliteSize,
-				},
-				&cli.StringSliceFlag{
-					Name:        "feature-flag",
-					EnvVars:     []string{"EARTHLY_SATELLITE_FEATURE_FLAGS"},
-					Usage:       "One or more of experimental features to enable on a new satellite",
-					Required:    false,
-					Hidden:      true,
-					Destination: &app.satelliteFeatureFlags,
-				},
-				&cli.StringFlag{
-					Name:    "maintenance-window",
-					Aliases: []string{"mw"},
-					Usage: `Sets a maintenance window for satellite auto-updates
-			If there is a a new satellite version available, the satellite will update within 2 hrs of the time specified.
-			Format must be in HH:MM (24 hr) and will be automatically converted from your current local time to UTC.
-			Default value is 02:00 in your local time.`,
-					Required:    false,
-					Destination: &app.satelliteMaintenanceWindow,
-				},
-				&cli.BoolFlag{
-					Name:        "maintenance-weekends-only",
-					Aliases:     []string{"wo"},
-					Usage:       "When set, satellite auto-updates will only occur on Saturday or Sunday during the specified maintenance window",
-					Required:    false,
-					Destination: &app.satelliteMaintenaceWeekendsOnly,
-				},
-				&cli.StringFlag{
-					Name:        "version",
-					Usage:       "Launch and pin a satellite at a specific version (disables auto-updates)",
-					Required:    false,
-					Hidden:      true,
-					Destination: &app.satelliteVersion,
+					Destination: &a.cli.Flags().OrgName,
 				},
 			},
-		},
-		{
-			Name:        "rm",
-			Usage:       "Destroy an Earthly Satellite",
-			Description: "Destroy an Earthly Satellite.",
-			UsageText: "earthly satellite rm <satellite-name>\n" +
-				"	earthly satellite [--org <organization-name>] rm <satellite-name>",
-			Action: app.actionSatelliteRemove,
-		},
-		{
-			Name:        "ls",
-			Usage:       "List your Earthly Satellites",
-			Description: "List your Earthly Satellites.",
-			UsageText: "earthly satellite ls\n" +
-				"	earthly satellite [--org <organization-name>] ls",
-			Action: app.actionSatelliteList,
-			Flags: []cli.Flag{
-				&cli.BoolFlag{
-					Name:        "json",
-					Usage:       "Prints the output in JSON format",
-					Required:    false,
-					Destination: &app.satellitePrintJSON,
+			Subcommands: []*cli.Command{
+				{
+					Name:        "launch",
+					Usage:       "Launch a new Earthly Satellite",
+					Description: "Launch a new Earthly Satellite.",
+					UsageText: "earthly satellite launch <satellite-name>\n" +
+						"	earthly satellite [--org <organization-name>] launch <satellite-name>",
+					Action: a.actionLaunch,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name: "platform",
+							Usage: `The platform to use when launching a new satellite
+					Supported values: linux/amd64, linux/arm64`,
+							Required:    false,
+							Value:       cloud.SatellitePlatformAMD64,
+							Destination: &a.platform,
+						},
+						&cli.StringFlag{
+							Name: "size",
+							Usage: `The size of the satellite. See https://earthly.dev/pricing for details on each size
+					Supported values: xsmall, small, medium, large, xlarge`,
+							Required:    false,
+							Destination: &a.size,
+						},
+						&cli.StringSliceFlag{
+							Name:        "feature-flag",
+							EnvVars:     []string{"EARTHLY_SATELLITE_FEATURE_FLAGS"},
+							Usage:       "One or more of experimental features to enable on a new satellite",
+							Required:    false,
+							Hidden:      true,
+							Destination: &a.featureFlags,
+						},
+						&cli.StringFlag{
+							Name:    "maintenance-window",
+							Aliases: []string{"mw"},
+							Usage: `Sets a maintenance window for satellite auto-updates
+					If there is a a new satellite version available, the satellite will update within 2 hrs of the time specified.
+					Format must be in HH:MM (24 hr) and will be automatically converted from your current local time to UTC.
+					Default value is 02:00 in your local time.`,
+							Required:    false,
+							Destination: &a.maintenanceWindow,
+						},
+						&cli.BoolFlag{
+							Name:        "maintenance-weekends-only",
+							Aliases:     []string{"wo"},
+							Usage:       "When set, satellite auto-updates will only occur on Saturday or Sunday during the specified maintenance window",
+							Required:    false,
+							Destination: &a.maintenaceWeekendsOnly,
+						},
+						&cli.StringFlag{
+							Name:        "version",
+							Usage:       "Launch and pin a satellite at a specific version (disables auto-updates)",
+							Required:    false,
+							Hidden:      true,
+							Destination: &a.version,
+						},
+					},
 				},
-				&cli.BoolFlag{
-					Name:        "all",
-					Aliases:     []string{"a"},
-					Usage:       "Include hidden satellites in output. These are usually ones generated by Earthly CI.",
-					Required:    false,
-					Destination: &app.satelliteListAll,
+				{
+					Name:        "rm",
+					Usage:       "Destroy an Earthly Satellite",
+					Description: "Destroy an Earthly Satellite.",
+					UsageText: "earthly satellite rm <satellite-name>\n" +
+						"	earthly satellite [--org <organization-name>] rm <satellite-name>",
+					Action: a.actionRemove,
 				},
-			},
-		},
-		{
-			Name:        "inspect",
-			Usage:       "Show additional details about an Earthly Satellite instance",
-			Description: "Show additional details about an Earthly Satellite instance.",
-			UsageText: "earthly satellite inspect <satellite-name>\n" +
-				"	earthly satellite [--org <organization-name>] inspect <satellite-name>",
-			Action: app.actionSatelliteInspect,
-		},
-		{
-			Name:        "select",
-			Aliases:     []string{"s"},
-			Usage:       "Choose which Earthly Satellite to use to build your app",
-			Description: "Choose which Earthly Satellite to use to build your app.",
-			UsageText: "earthly satellite select <satellite-name>\n" +
-				"	earthly satellite [--org <organization-name>] select <satellite-name>",
-			Action: app.actionSatelliteSelect,
-		},
-		{
-			Name:        "unselect",
-			Aliases:     []string{"uns"},
-			Usage:       "Remove any currently selected Earthly Satellite instance from your Earthly configuration",
-			Description: "Remove any currently selected Earthly Satellite instance from your Earthly configuration.",
-			UsageText:   "earthly satellite unselect",
-			Action:      app.actionSatelliteUnselect,
-		},
-		{
-			Name:        "wake",
-			Usage:       "Manually force an Earthly Satellite to wake up from a sleep state",
-			Description: "Manually force an Earthly Satellite to wake up from a sleep state.",
-			UsageText: "earthly satellite wake <satellite-name>\n" +
-				"	earthly satellite [--org <organization-name>] wake <satellite-name>",
-			Action: app.actionSatelliteWake,
-		},
-		{
-			Name:        "sleep",
-			Usage:       "Manually force an Earthly Satellite to sleep from an operational state",
-			Description: "Manually force an Earthly Satellite to sleep from an operational state.",
-			UsageText: "earthly satellite sleep <satellite-name>\n" +
-				"	earthly satellite [--org <organization-name>] sleep <satellite-name>",
-			Action: app.actionSatelliteSleep,
-		},
-		{
-			Name:        "update",
-			Usage:       "Manually update an Earthly Satellite to the latest version (may cause downtime)",
-			Description: "Manually update an Earthly Satellite to the latest version (may cause downtime).",
-			UsageText: "earthly satellite update <satellite-name>\n" +
-				"	earthly satellite [--org <organization-name>] update <satellite-name>",
-			Action: app.actionSatelliteUpdate,
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name: "size",
-					Usage: `Change the size of the satellite. See https://earthly.dev/pricing for details on each size. 
-			Supported values: xsmall, small, medium, large, xlarge`,
-					Required:    false,
-					Destination: &app.satelliteSize,
+				{
+					Name:        "ls",
+					Usage:       "List your Earthly Satellites",
+					Description: "List your Earthly Satellites.",
+					UsageText: "earthly satellite ls\n" +
+						"	earthly satellite [--org <organization-name>] ls",
+					Action: a.actionSatelliteList,
+					Flags: []cli.Flag{
+						&cli.BoolFlag{
+							Name:        "json",
+							Usage:       "Prints the output in JSON format",
+							Required:    false,
+							Destination: &a.printJSON,
+						},
+						&cli.BoolFlag{
+							Name:        "all",
+							Aliases:     []string{"a"},
+							Usage:       "Include hidden satellites in output. These are usually ones generated by Earthly CI.",
+							Required:    false,
+							Destination: &a.listAll,
+						},
+					},
 				},
-				&cli.StringFlag{
-					Name:        "maintenance-window",
-					Aliases:     []string{"mw"},
-					Usage:       "Set a new custom maintenance window for future satellite auto-updates",
-					Required:    false,
-					Destination: &app.satelliteMaintenanceWindow,
+				{
+					Name:        "inspect",
+					Usage:       "Show additional details about an Earthly Satellite instance",
+					Description: "Show additional details about an Earthly Satellite instance.",
+					UsageText: "earthly satellite inspect <satellite-name>\n" +
+						"	earthly satellite [--org <organization-name>] inspect <satellite-name>",
+					Action: a.actionInspect,
 				},
-				&cli.BoolFlag{
-					Name:        "maintenance-weekends-only",
-					Aliases:     []string{"wo"},
-					Usage:       "When set, satellite auto-updates will only occur on Saturday or Sunday during the specified maintenance window",
-					Required:    false,
-					Destination: &app.satelliteMaintenaceWeekendsOnly,
+				{
+					Name:        "select",
+					Aliases:     []string{"s"},
+					Usage:       "Choose which Earthly Satellite to use to build your app",
+					Description: "Choose which Earthly Satellite to use to build your a.",
+					UsageText: "earthly satellite select <satellite-name>\n" +
+						"	earthly satellite [--org <organization-name>] select <satellite-name>",
+					Action: a.actionSelect,
 				},
-				&cli.BoolFlag{
-					Name:        "drop-cache",
-					Usage:       "Drop existing cache as part of the update operation",
-					Required:    false,
-					Destination: &app.satelliteDropCache,
+				{
+					Name:        "unselect",
+					Aliases:     []string{"uns"},
+					Usage:       "Remove any currently selected Earthly Satellite instance from your Earthly configuration",
+					Description: "Remove any currently selected Earthly Satellite instance from your Earthly configuration.",
+					UsageText:   "earthly satellite unselect",
+					Action:      a.actionUnselect,
 				},
-				&cli.StringSliceFlag{
-					Name:        "feature-flag",
-					EnvVars:     []string{"EARTHLY_SATELLITE_FEATURE_FLAGS"},
-					Usage:       "One or more of experimental features to enable on the updated satellite",
-					Required:    false,
-					Hidden:      true,
-					Destination: &app.satelliteFeatureFlags,
+				{
+					Name:        "wake",
+					Usage:       "Manually force an Earthly Satellite to wake up from a sleep state",
+					Description: "Manually force an Earthly Satellite to wake up from a sleep state.",
+					UsageText: "earthly satellite wake <satellite-name>\n" +
+						"	earthly satellite [--org <organization-name>] wake <satellite-name>",
+					Action: a.actionWake,
 				},
-				&cli.StringFlag{
-					Name:        "version",
-					Usage:       "Launch a specific satellite version (disables auto-updates)",
-					Required:    false,
-					Hidden:      true,
-					Destination: &app.satelliteVersion,
+				{
+					Name:        "sleep",
+					Usage:       "Manually force an Earthly Satellite to sleep from an operational state",
+					Description: "Manually force an Earthly Satellite to sleep from an operational state.",
+					UsageText: "earthly satellite sleep <satellite-name>\n" +
+						"	earthly satellite [--org <organization-name>] sleep <satellite-name>",
+					Action: a.actionSleep,
+				},
+				{
+					Name:        "update",
+					Usage:       "Manually update an Earthly Satellite to the latest version (may cause downtime)",
+					Description: "Manually update an Earthly Satellite to the latest version (may cause downtime).",
+					UsageText: "earthly satellite update <satellite-name>\n" +
+						"	earthly satellite [--org <organization-name>] update <satellite-name>",
+					Action: a.actionUpdate,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name: "platform",
+							Usage: `The platform to use when launching a new satellite
+					Supported values: linux/amd64, linux/arm64`,
+							Required:    false,
+							Value:       cloud.SatellitePlatformAMD64,
+							Destination: &a.platform,
+						},
+						&cli.StringFlag{
+							Name: "size",
+							Usage: `Change the size of the satellite. See https://earthly.dev/pricing for details on each size.
+					Supported values: xsmall, small, medium, large, xlarge`,
+							Required:    false,
+							Destination: &a.size,
+						},
+						&cli.StringFlag{
+							Name:        "maintenance-window",
+							Aliases:     []string{"mw"},
+							Usage:       "Set a new custom maintenance window for future satellite auto-updates",
+							Required:    false,
+							Destination: &a.maintenanceWindow,
+						},
+						&cli.BoolFlag{
+							Name:        "maintenance-weekends-only",
+							Aliases:     []string{"wo"},
+							Usage:       "When set, satellite auto-updates will only occur on Saturday or Sunday during the specified maintenance window",
+							Required:    false,
+							Destination: &a.maintenaceWeekendsOnly,
+						},
+						&cli.BoolFlag{
+							Name:        "drop-cache",
+							Usage:       "Drop existing cache as part of the update operation",
+							Required:    false,
+							Destination: &a.dropCache,
+						},
+						&cli.StringSliceFlag{
+							Name:        "feature-flag",
+							EnvVars:     []string{"EARTHLY_SATELLITE_FEATURE_FLAGS"},
+							Usage:       "One or more of experimental features to enable on the updated satellite",
+							Required:    false,
+							Hidden:      true,
+							Destination: &a.featureFlags,
+						},
+						&cli.StringFlag{
+							Name:        "version",
+							Usage:       "Launch a specific satellite version (disables auto-updates)",
+							Required:    false,
+							Hidden:      true,
+							Destination: &a.version,
+						},
+					},
 				},
 			},
 		},
 	}
 }
 
-func (app *earthlyApp) useSatellite(cliCtx *cli.Context, satelliteName, orgName string) error {
-	inConfig, err := config.ReadConfigFile(app.configPath)
+func (a *Satellite) useSatellite(cliCtx *cli.Context, satelliteName, orgName string) error {
+	inConfig, err := config.ReadConfigFile(a.cli.Flags().ConfigPath)
 	if err != nil {
 		if cliCtx.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
 			return errors.Wrap(err, "read config")
@@ -222,13 +275,13 @@ func (app *earthlyApp) useSatellite(cliCtx *cli.Context, satelliteName, orgName 
 		return errors.Wrap(err, "could not update satellite name")
 	}
 	// Update in-place so we can use it later, assuming the config change was successful.
-	app.cfg.Satellite.Name = satelliteName
+	a.cli.Cfg().Satellite.Name = satelliteName
 
-	err = config.WriteConfigFile(app.configPath, newConfig)
+	err = config.WriteConfigFile(a.cli.Flags().ConfigPath, newConfig)
 	if err != nil {
 		return errors.Wrap(err, "could not save config")
 	}
-	app.console.Printf("Updated selected satellite in %s", app.configPath)
+	a.cli.Console().Printf("Updated selected satellite in %s", a.cli.Flags().ConfigPath)
 
 	return nil
 }
@@ -248,17 +301,13 @@ func (swp satelliteWithPipelineInfo) satType() string {
 
 func (swp satelliteWithPipelineInfo) satelliteName() string {
 	if swp.pipeline != nil {
-		return pipelineSatelliteName(swp.pipeline)
+		return base.PipelineSatelliteName(swp.pipeline)
 	}
 
 	return swp.satellite.Name
 }
 
-func pipelineSatelliteName(p *cloud.Pipeline) string {
-	return fmt.Sprintf("%s/%s", p.Project, p.Name)
-}
-
-func (app *earthlyApp) toSatellitePipelineInfo(satellites []cloud.SatelliteInstance, pipelines []cloud.Pipeline) []satelliteWithPipelineInfo {
+func (a *Satellite) toSatellitePipelineInfo(satellites []cloud.SatelliteInstance, pipelines []cloud.Pipeline) []satelliteWithPipelineInfo {
 	res := make([]satelliteWithPipelineInfo, 0)
 	for _, s := range satellites {
 		swp := satelliteWithPipelineInfo{
@@ -287,7 +336,7 @@ func printRow(t *tabwriter.Writer, c []color.Attribute, items []string) {
 	fmt.Fprint(t, line)
 }
 
-func (app *earthlyApp) printSatellitesTable(satellites []satelliteWithPipelineInfo, isOrgSelected bool) {
+func (a *Satellite) printSatellitesTable(satellites []satelliteWithPipelineInfo, isOrgSelected bool) {
 	slices.SortStableFunc(satellites, func(a, b satelliteWithPipelineInfo) bool {
 		// satellites with associated pipelines group together at the top of the list,
 		// otherwise sort alphabetically
@@ -312,14 +361,14 @@ func (app *earthlyApp) printSatellitesTable(satellites []satelliteWithPipelineIn
 	if includeTypeColumn {
 		headerRow = slices.Insert(headerRow, 2, "TYPE")
 	}
-	if app.satelliteListAll {
+	if a.listAll {
 		headerRow = append(headerRow, "LAST USED", "CACHE")
 	}
 	printRow(t, []color.Attribute{color.Reset}, headerRow)
 
 	for _, s := range satellites {
 		var selected = ""
-		if s.satelliteName() == app.cfg.Satellite.Name && isOrgSelected {
+		if s.satelliteName() == a.cli.Cfg().Satellite.Name && isOrgSelected {
 			selected = "*"
 		}
 
@@ -331,7 +380,7 @@ func (app *earthlyApp) printSatellitesTable(satellites []satelliteWithPipelineIn
 		if includeTypeColumn {
 			row = slices.Insert(row, 2, s.satType())
 		}
-		if app.satelliteListAll {
+		if a.listAll {
 			row = append(row, humanize.Time(s.satellite.LastUsed), durationWithDaysPart(s.satellite.CacheRetention))
 		}
 
@@ -372,10 +421,10 @@ type satelliteJSON struct {
 	CacheRetention string `json:"cache_retention"`
 }
 
-func (app *earthlyApp) printSatellitesJSON(satellites []satelliteWithPipelineInfo, isOrgSelected bool) {
+func (a *Satellite) printSatellitesJSON(satellites []satelliteWithPipelineInfo, isOrgSelected bool) {
 	jsonSats := make([]satelliteJSON, len(satellites))
 	for i, s := range satellites {
-		selected := s.satellite.Name == app.cfg.Satellite.Name && isOrgSelected
+		selected := s.satellite.Name == a.cli.Cfg().Satellite.Name && isOrgSelected
 		jsonSats[i] = satelliteJSON{
 			Name:           s.satellite.Name,
 			Size:           s.satellite.Size,
@@ -399,84 +448,8 @@ func (app *earthlyApp) printSatellitesJSON(satellites []satelliteWithPipelineInf
 	fmt.Println(string(b))
 }
 
-func (app *earthlyApp) getSatelliteOrg(ctx context.Context, cloudClient *cloud.Client) (orgName, orgID string, err error) {
-	// We are cheating here and forcing a re-auth before running any satellite commands.
-	// This is because there is an issue on the backend where the token might be outdated
-	// if a user was invited to an org recently after already logging-in.
-	// TODO Eventually we should be able to remove this cheat.
-	_, err = cloudClient.Authenticate(ctx)
-	if err != nil {
-		return "", "", errors.Wrap(err, "unable to authenticate")
-	}
-	if app.orgName != "" {
-		orgID, err = cloudClient.GetOrgID(ctx, app.orgName)
-		if err != nil {
-			return "", "", errors.Wrap(err, "invalid org provided")
-		}
-		return app.orgName, orgID, nil
-	}
-	if app.cfg.Global.Org != "" {
-		orgID, err = cloudClient.GetOrgID(ctx, app.cfg.Global.Org)
-		if err != nil {
-			return "", "", errors.Wrapf(err, "failed resolving ID for org '%s'", app.cfg.Global.Org)
-		}
-		return app.cfg.Global.Org, orgID, nil
-	}
-	orgName, orgID, err = cloudClient.GuessOrgMembership(ctx)
-	if err != nil {
-		return "", "", errors.Wrap(err, "could not guess default org")
-	}
-	app.console.Warnf("Auto-selecting the default org will no longer be supported in the future.\n" +
-		"You can select a default org using the command 'earthly org select',\n" +
-		"or otherwise specify an org using the --org flag or EARTHLY_ORG environment variable.")
-	return orgName, orgID, nil
-}
-
-func (app *earthlyApp) getAllPipelinesForAllProjects(ctx context.Context, orgName string, cloudClient *cloud.Client) ([]cloud.Pipeline, error) {
-	projects, err := cloudClient.ListProjects(ctx, orgName)
-	if err != nil {
-		return nil, err
-	}
-
-	allPipelines := make([]cloud.Pipeline, 0)
-	for _, pr := range projects {
-		pipelines, err := cloudClient.ListPipelines(ctx, pr.Name, orgName, "")
-		if err != nil {
-			return nil, err
-		}
-
-		allPipelines = append(allPipelines, pipelines...)
-	}
-
-	return allPipelines, nil
-}
-
-func (app *earthlyApp) getSatelliteName(ctx context.Context, orgName, satelliteName string, cloudClient *cloud.Client) (string, error) {
-	satellites, err := cloudClient.ListSatellites(ctx, orgName, true)
-	if err != nil {
-		return "", err
-	}
-	for _, s := range satellites {
-		if satelliteName == s.Name {
-			return s.Name, nil
-		}
-	}
-
-	pipelines, err := app.getAllPipelinesForAllProjects(ctx, orgName, cloudClient)
-	if err != nil {
-		return "", err
-	}
-	for _, p := range pipelines {
-		if satelliteName == pipelineSatelliteName(&p) {
-			return p.SatelliteName, nil
-		}
-	}
-
-	return "", fmt.Errorf("satellite %q not found", satelliteName)
-}
-
-func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
-	app.commandName = "satelliteLaunch"
+func (a *Satellite) actionLaunch(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("satelliteLaunch")
 
 	if cliCtx.NArg() == 0 {
 		return errors.New("satellite name is required")
@@ -485,19 +458,19 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		return errors.New("only a single satellite name is supported")
 	}
 
-	app.satelliteName = cliCtx.Args().Get(0)
-	ffs := app.satelliteFeatureFlags.Value()
-	size := app.satelliteSize
-	platform := app.satellitePlatform
-	window := app.satelliteMaintenanceWindow
-	version := app.satelliteVersion
+	a.cli.Flags().SatelliteName = cliCtx.Args().Get(0)
+	ffs := a.featureFlags.Value()
+	size := a.size
+	platform := a.platform
+	window := a.maintenanceWindow
+	version := a.version
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
+	orgName, _, err := a.cli.GetSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -522,83 +495,83 @@ func (app *earthlyApp) actionSatelliteLaunch(cliCtx *cli.Context) error {
 		}
 	}
 
-	app.console.Printf("Launching Satellite %q with auto-updates set to run at %s (%s)\n",
-		app.satelliteName, localWindow, zone)
-	app.console.Printf("This may take a few minutes...\n")
+	a.cli.Console().Printf("Launching Satellite %q with auto-updates set to run at %s (%s)\n",
+		a.cli.Flags().SatelliteName, localWindow, zone)
+	a.cli.Console().Printf("This may take a few minutes...\n")
 
 	err = cloudClient.LaunchSatellite(cliCtx.Context, cloud.LaunchSatelliteOpt{
-		Name:                    app.satelliteName,
+		Name:                    a.cli.Flags().SatelliteName,
 		OrgName:                 orgName,
 		Platform:                platform,
 		Size:                    size,
 		PinnedVersion:           version,
 		MaintenanceWindowStart:  window,
 		FeatureFlags:            ffs,
-		MaintenanceWeekendsOnly: app.satelliteMaintenaceWeekendsOnly,
+		MaintenanceWeekendsOnly: a.maintenaceWeekendsOnly,
 	})
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
-			app.console.Printf("Operation interrupted. Satellite should finish launching in background (if server received request).\n")
+			a.cli.Console().Printf("Operation interrupted. Satellite should finish launching in background (if server received request).\n")
 			return nil
 		}
-		return errors.Wrapf(err, "failed to create satellite %s", app.satelliteName)
+		return errors.Wrapf(err, "failed to create satellite %s", a.cli.Flags().SatelliteName)
 	}
-	app.console.Printf("...Done\n")
+	a.cli.Console().Printf("...Done\n")
 
-	err = app.useSatellite(cliCtx, app.satelliteName, orgName)
+	err = a.useSatellite(cliCtx, a.cli.Flags().SatelliteName, orgName)
 	if err != nil {
 		return errors.Wrap(err, "could not configure satellite for use")
 	}
-	app.console.Printf("The satellite %s has been automatically selected for use. To go back to using local builds you can use\n\n\tearthly satellite unselect\n\n", app.satelliteName)
+	a.cli.Console().Printf("The satellite %s has been automatically selected for use. To go back to using local builds you can use\n\n\tearthly satellite unselect\n\n", a.cli.Flags().SatelliteName)
 
 	return nil
 }
 
-func (app *earthlyApp) actionSatelliteList(cliCtx *cli.Context) error {
-	app.commandName = "satelliteList"
+func (a *Satellite) actionSatelliteList(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("satelliteList")
 
 	if cliCtx.NArg() != 0 {
 		return errors.New("command does not accept any arguments")
 	}
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
+	orgName, _, err := a.cli.GetSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgName, app.satelliteListAll)
+	satellites, err := cloudClient.ListSatellites(cliCtx.Context, orgName, a.listAll)
 	if err != nil {
 		return err
 	}
 
 	pipelines := make([]cloud.Pipeline, 0)
-	if app.satelliteListAll {
-		pipelines, err = app.getAllPipelinesForAllProjects(cliCtx.Context, orgName, cloudClient)
+	if a.listAll {
+		pipelines, err = base.GetAllPipelinesForAllProjects(cliCtx.Context, orgName, cloudClient)
 		if err != nil {
 			return err
 		}
 	}
 
-	// app.cfg.Satellite.Org is deprecated, but we can still check it here for compatability
+	// a.cli.Cfg().Satellite.Org is deprecated, but we can still check it here for compatability
 	// with config files that may still have it set
-	isOrgSelected := app.cfg.Satellite.Org == orgName || app.cfg.Global.Org == orgName
+	isOrgSelected := a.cli.Cfg().Satellite.Org == orgName || a.cli.Cfg().Global.Org == orgName
 
-	satellitesWithPipelineInfo := app.toSatellitePipelineInfo(satellites, pipelines)
-	if app.satellitePrintJSON {
-		app.printSatellitesJSON(satellitesWithPipelineInfo, isOrgSelected)
+	satellitesWithPipelineInfo := a.toSatellitePipelineInfo(satellites, pipelines)
+	if a.printJSON {
+		a.printSatellitesJSON(satellitesWithPipelineInfo, isOrgSelected)
 	} else {
-		app.printSatellitesTable(satellitesWithPipelineInfo, isOrgSelected)
+		a.printSatellitesTable(satellitesWithPipelineInfo, isOrgSelected)
 	}
 	return nil
 }
 
-func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
-	app.commandName = "satelliteRemove"
+func (a *Satellite) actionRemove(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("satelliteRemove")
 
 	if cliCtx.NArg() == 0 {
 		return errors.New("satellite name is required")
@@ -607,14 +580,14 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 		return errors.New("only a single satellite name is supported")
 	}
 
-	app.satelliteName = cliCtx.Args().Get(0)
+	a.cli.Flags().SatelliteName = cliCtx.Args().Get(0)
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
+	orgName, _, err := a.cli.GetSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -626,7 +599,7 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 
 	found := false
 	for _, s := range satellites {
-		if app.satelliteName == s.Name {
+		if a.cli.Flags().SatelliteName == s.Name {
 			found = true
 			if s.Hidden {
 				return errors.New("cannot delete hidden satellites")
@@ -634,32 +607,32 @@ func (app *earthlyApp) actionSatelliteRemove(cliCtx *cli.Context) error {
 		}
 	}
 	if !found {
-		return fmt.Errorf("could not find %q for deletion", app.satelliteName)
+		return fmt.Errorf("could not find %q for deletion", a.cli.Flags().SatelliteName)
 	}
 
-	app.console.Printf("Destroying Satellite %q. This may take a few minutes...\n", app.satelliteName)
-	err = cloudClient.DeleteSatellite(cliCtx.Context, app.satelliteName, orgName)
+	a.cli.Console().Printf("Destroying Satellite %q. This may take a few minutes...\n", a.cli.Flags().SatelliteName)
+	err = cloudClient.DeleteSatellite(cliCtx.Context, a.cli.Flags().SatelliteName, orgName)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
-			app.console.Printf("Operation interrupted. Satellite should finish destroying in background (if server received request).\n")
+			a.cli.Console().Printf("Operation interrupted. Satellite should finish destroying in background (if server received request).\n")
 			return nil
 		}
-		return errors.Wrapf(err, "failed to delete satellite %s", app.satelliteName)
+		return errors.Wrapf(err, "failed to delete satellite %s", a.cli.Flags().SatelliteName)
 	}
-	app.console.Printf("...Done\n")
+	a.cli.Console().Printf("...Done\n")
 
-	if app.satelliteName == app.cfg.Satellite.Name {
-		err = app.useSatellite(cliCtx, "", "")
+	if a.cli.Flags().SatelliteName == a.cli.Cfg().Satellite.Name {
+		err = a.useSatellite(cliCtx, "", "")
 		if err != nil {
 			return errors.Wrapf(err, "failed unselecting satellite")
 		}
-		app.console.Printf("Satellite has also been unselected\n")
+		a.cli.Console().Printf("Satellite has also been unselected\n")
 	}
 	return nil
 }
 
-func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
-	app.commandName = "satelliteInspect"
+func (a *Satellite) actionInspect(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("satelliteInspect")
 
 	if cliCtx.NArg() == 0 {
 		return errors.New("satellite name is required")
@@ -669,19 +642,19 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 	}
 
 	satelliteToInspect := cliCtx.Args().Get(0)
-	selectedSatellite := app.cfg.Satellite.Name
+	selectedSatellite := a.cli.Cfg().Satellite.Name
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	orgName, orgID, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
+	orgName, orgID, err := a.cli.GetSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satelliteToInspectName, err := app.getSatelliteName(cliCtx.Context, orgName, satelliteToInspect, cloudClient)
+	satelliteToInspectName, err := base.GetSatelliteName(cliCtx.Context, orgName, satelliteToInspect, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -696,17 +669,17 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to get auth token")
 	}
 
-	app.buildkitdSettings.UseTCP = true
-	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
-	app.buildkitdSettings.Timeout = 30 * time.Second
-	app.buildkitdSettings.SatelliteToken = token
-	app.buildkitdSettings.SatelliteName = satelliteToInspectName
-	app.buildkitdSettings.SatelliteDisplayName = satelliteToInspect
-	app.buildkitdSettings.SatelliteOrgID = orgID // must be the ID and not name, due to satellite-proxy requirements
-	if app.satelliteAddress != "" {
-		app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
+	a.cli.Flags().BuildkitdSettings.UseTCP = true
+	a.cli.Flags().BuildkitdSettings.UseTLS = a.cli.Cfg().Global.TLSEnabled
+	a.cli.Flags().BuildkitdSettings.Timeout = 30 * time.Second
+	a.cli.Flags().BuildkitdSettings.SatelliteToken = token
+	a.cli.Flags().BuildkitdSettings.SatelliteName = satelliteToInspectName
+	a.cli.Flags().BuildkitdSettings.SatelliteDisplayName = satelliteToInspect
+	a.cli.Flags().BuildkitdSettings.SatelliteOrgID = orgID // must be the ID and not name, due to satellite-proxy requirements
+	if a.cli.Flags().SatelliteAddress != "" {
+		a.cli.Flags().BuildkitdSettings.BuildkitAddress = a.cli.Flags().SatelliteAddress
 	} else {
-		app.buildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
+		a.cli.Flags().BuildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
 	}
 
 	selected := "No"
@@ -714,21 +687,21 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		selected = "Yes"
 	}
 
-	app.console.Printf("State: %s", satellite.State)
-	app.console.Printf("Platform: %s", satellite.Platform)
-	app.console.Printf("Size: %s", satellite.Size)
-	app.console.Printf("Last Used: %s", satellite.LastUsed.In(time.Local))
-	app.console.Printf("Cache Duration: %s", durationWithDaysPart(satellite.CacheRetention))
+	a.cli.Console().Printf("State: %s", satellite.State)
+	a.cli.Console().Printf("Platform: %s", satellite.Platform)
+	a.cli.Console().Printf("Size: %s", satellite.Size)
+	a.cli.Console().Printf("Last Used: %s", satellite.LastUsed.In(time.Local))
+	a.cli.Console().Printf("Cache Duration: %s", durationWithDaysPart(satellite.CacheRetention))
 	pinned := ""
 	if satellite.VersionPinned {
 		pinned = " (pinned)"
 	}
-	app.console.Printf("Version: %s%s", satellite.Version, pinned)
+	a.cli.Console().Printf("Version: %s%s", satellite.Version, pinned)
 	if satellite.RevisionID > 0 {
-		app.console.Printf("Revision: %d", satellite.RevisionID)
+		a.cli.Console().Printf("Revision: %d", satellite.RevisionID)
 	}
 	if len(satellite.FeatureFlags) > 0 {
-		app.console.Printf("Feature Flags: %+v", satellite.FeatureFlags)
+		a.cli.Console().Printf("Feature Flags: %+v", satellite.FeatureFlags)
 	}
 	if satellite.MaintenanceWindowStart != "" {
 		zone := time.FixedZone(time.Now().Zone()) // Important not to use this instead of time.Local
@@ -744,37 +717,37 @@ func (app *earthlyApp) actionSatelliteInspect(cliCtx *cli.Context) error {
 		if satellite.MaintenanceWeekendsOnly {
 			weekends = " (weekends only)"
 		}
-		app.console.Printf("Maintenance Window: [%s - %s]%s", mwStart, mwEnd, weekends)
+		a.cli.Console().Printf("Maintenance Window: [%s - %s]%s", mwStart, mwEnd, weekends)
 	}
-	app.console.Printf("Currently selected: %s", selected)
-	app.console.Printf("")
+	a.cli.Console().Printf("Currently selected: %s", selected)
+	a.cli.Console().Printf("")
 
 	if satellite.State == cloud.SatelliteStatusOperational {
-		err = buildkitd.PrintSatelliteInfo(cliCtx.Context, app.console, Version, app.buildkitdSettings, app.installationName)
+		err = buildkitd.PrintSatelliteInfo(cliCtx.Context, a.cli.Console(), a.cli.App().Version, a.cli.Flags().BuildkitdSettings, a.cli.Flags().InstallationName)
 		if err != nil {
 			return errors.Wrap(err, "failed checking buildkit info")
 		}
 	} else {
-		app.console.Printf("More info available when Satellite is awake.")
+		a.cli.Console().Printf("More info available when Satellite is awake.")
 		if satellite.State == cloud.SatelliteStatusSleep || satellite.State == cloud.SatelliteStatusOffline {
 			// Only instruct the user to run this if the satellite is asleep or offline.
 			// Otherwise, satellite may be updating, still starting, etc.
-			app.console.Printf("")
-			app.console.Printf("    earthly satellite --org %s wake %s", orgName, satelliteToInspect)
-			app.console.Printf("")
+			a.cli.Console().Printf("")
+			a.cli.Console().Printf("    earthly satellite --org %s wake %s", orgName, satelliteToInspect)
+			a.cli.Console().Printf("")
 		}
 	}
 	return nil
 }
 
-func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
-	app.commandName = "satelliteSelect"
+func (a *Satellite) actionSelect(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("satelliteSelect")
 
 	if cliCtx.NArg() == 0 {
-		if app.cfg.Satellite.Name == "" {
-			app.console.Printf("No satellite selected\n\n")
+		if a.cli.Cfg().Satellite.Name == "" {
+			a.cli.Console().Printf("No satellite selected\n\n")
 		} else {
-			app.console.Printf("Selected satellite: %s\n\n", app.cfg.Satellite.Name)
+			a.cli.Console().Printf("Selected satellite: %s\n\n", a.cli.Cfg().Satellite.Name)
 		}
 		_ = cli.ShowCommandHelp(cliCtx, cliCtx.Command.Name)
 		return errors.New("satellite name is required")
@@ -785,19 +758,19 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 		return errors.New(fmt.Sprintf("can only provide 1 satellite name, %d provided", cliCtx.NArg()))
 	}
 
-	app.satelliteName = cliCtx.Args().Get(0)
+	a.cli.Flags().SatelliteName = cliCtx.Args().Get(0)
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
+	orgName, _, err := a.cli.GetSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	// This could be replaced with an app.getSatelliteName() call, if we did not care about printing a list
+	// This could be replaced with an base.GetSatelliteName() call, if we did not care about printing a list
 	// after the command was run. Its done this way to save some API calls.
 	found := false
 	satelliteName := ""
@@ -806,7 +779,7 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 		return err
 	}
 	for _, s := range satellites {
-		if app.satelliteName == s.Name {
+		if a.cli.Flags().SatelliteName == s.Name {
 			found = true
 			satelliteName = s.Name
 		}
@@ -814,44 +787,44 @@ func (app *earthlyApp) actionSatelliteSelect(cliCtx *cli.Context) error {
 
 	pipelines := make([]cloud.Pipeline, 0)
 	if !found {
-		pipelines, err = app.getAllPipelinesForAllProjects(cliCtx.Context, orgName, cloudClient)
+		pipelines, err = base.GetAllPipelinesForAllProjects(cliCtx.Context, orgName, cloudClient)
 		if err != nil {
 			return err
 		}
 		for _, p := range pipelines {
-			pipelineName := pipelineSatelliteName(&p)
-			if app.satelliteName == pipelineName {
+			pipelineName := base.PipelineSatelliteName(&p)
+			if a.cli.Flags().SatelliteName == pipelineName {
 				found = true
 				// We use the pipeline name, so you know what it belongs to, instead of a UUID.
-				// Reverse lookup at use time is handled via app.getSatelliteName().
+				// Reverse lookup at use time is handled via base.GetSatelliteName().
 				satelliteName = pipelineName
 			}
 		}
 	}
 
 	if !found {
-		return fmt.Errorf("no satellite named %q found", app.satelliteName)
+		return fmt.Errorf("no satellite named %q found", a.cli.Flags().SatelliteName)
 	}
 
-	err = app.useSatellite(cliCtx, satelliteName, orgName)
+	err = a.useSatellite(cliCtx, satelliteName, orgName)
 	if err != nil {
-		return errors.Wrapf(err, "could not select satellite %s", app.satelliteName)
+		return errors.Wrapf(err, "could not select satellite %s", a.cli.Flags().SatelliteName)
 	}
 
-	app.printSatellitesTable(app.toSatellitePipelineInfo(satellites, pipelines), true)
+	a.printSatellitesTable(a.toSatellitePipelineInfo(satellites, pipelines), true)
 	return nil
 }
 
-func (app *earthlyApp) actionSatelliteUnselect(cliCtx *cli.Context) error {
-	app.commandName = "satelliteUnselect"
+func (a *Satellite) actionUnselect(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("satelliteUnselect")
 
 	if cliCtx.NArg() != 0 {
 		return errors.New("command does not accept any arguments")
 	}
 
-	app.satelliteName = cliCtx.Args().Get(0)
+	a.cli.Flags().SatelliteName = cliCtx.Args().Get(0)
 
-	err := app.useSatellite(cliCtx, "", "")
+	err := a.useSatellite(cliCtx, "", "")
 	if err != nil {
 		return errors.Wrap(err, "could not unselect satellite")
 	}
@@ -859,8 +832,8 @@ func (app *earthlyApp) actionSatelliteUnselect(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
-	app.commandName = "satelliteWake"
+func (a *Satellite) actionWake(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("satelliteWake")
 
 	if cliCtx.NArg() == 0 {
 		return errors.New("satellite name is required")
@@ -869,19 +842,19 @@ func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
 		return errors.New("only a single satellite name is supported")
 	}
 
-	app.satelliteName = cliCtx.Args().Get(0)
+	a.cli.Flags().SatelliteName = cliCtx.Args().Get(0)
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
+	orgName, _, err := a.cli.GetSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satName, err := app.getSatelliteName(cliCtx.Context, orgName, app.satelliteName, cloudClient)
+	satName, err := base.GetSatelliteName(cliCtx.Context, orgName, a.cli.Flags().SatelliteName, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -892,11 +865,11 @@ func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
 	}
 
 	if sat.State == cloud.SatelliteStatusOperational {
-		app.console.Printf("%s is already awake.", app.satelliteName)
+		a.cli.Console().Printf("%s is already awake.", a.cli.Flags().SatelliteName)
 	}
 
 	out := cloudClient.WakeSatellite(cliCtx.Context, satName, orgName)
-	err = showSatelliteLoading(app.console, app.satelliteName, out)
+	err = base.ShowSatelliteLoading(a.cli.Console(), a.cli.Flags().SatelliteName, out)
 	if err != nil {
 		return errors.Wrap(err, "failed waiting for satellite wake")
 	}
@@ -904,8 +877,8 @@ func (app *earthlyApp) actionSatelliteWake(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionSatelliteSleep(cliCtx *cli.Context) error {
-	app.commandName = "satelliteSleep"
+func (a *Satellite) actionSleep(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("satelliteSleep")
 
 	if cliCtx.NArg() == 0 {
 		return errors.New("satellite name is required")
@@ -914,25 +887,25 @@ func (app *earthlyApp) actionSatelliteSleep(cliCtx *cli.Context) error {
 		return errors.New("only a single satellite name is supported")
 	}
 
-	app.satelliteName = cliCtx.Args().Get(0)
+	a.cli.Flags().SatelliteName = cliCtx.Args().Get(0)
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
+	orgName, _, err := a.cli.GetSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satName, err := app.getSatelliteName(cliCtx.Context, orgName, app.satelliteName, cloudClient)
+	satName, err := base.GetSatelliteName(cliCtx.Context, orgName, a.cli.Flags().SatelliteName, cloudClient)
 	if err != nil {
 		return err
 	}
 
 	out := cloudClient.SleepSatellite(cliCtx.Context, satName, orgName)
-	err = showSatelliteStopping(app.console, app.satelliteName, out)
+	err = showSatelliteStopping(a.cli.Console(), a.cli.Flags().SatelliteName, out)
 	if err != nil {
 		return errors.Wrap(err, "failed waiting for satellite wake")
 	}
@@ -940,8 +913,8 @@ func (app *earthlyApp) actionSatelliteSleep(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
-	app.commandName = "satelliteUpdate"
+func (a *Satellite) actionUpdate(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("satelliteUpdate")
 
 	if cliCtx.NArg() == 0 {
 		return errors.New("satellite name is required")
@@ -950,25 +923,25 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 		return errors.New("only a single satellite name is supported")
 	}
 
-	app.satelliteName = cliCtx.Args().Get(0)
-	window := app.satelliteMaintenanceWindow
-	ffs := app.satelliteFeatureFlags.Value()
-	dropCache := app.satelliteDropCache
-	version := app.satelliteVersion
-	size := app.satelliteSize
-	platform := app.satellitePlatform
+	a.cli.Flags().SatelliteName = cliCtx.Args().Get(0)
+	window := a.maintenanceWindow
+	ffs := a.featureFlags.Value()
+	dropCache := a.dropCache
+	version := a.version
+	size := a.size
+	platform := a.platform
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	orgName, _, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
+	orgName, _, err := a.cli.GetSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	satName, err := app.getSatelliteName(cliCtx.Context, orgName, app.satelliteName, cloudClient)
+	satName, err := base.GetSatelliteName(cliCtx.Context, orgName, a.cli.Flags().SatelliteName, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -979,7 +952,7 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 			return err
 		}
 		z, _ := time.Now().Zone()
-		app.console.Printf("Auto-update maintenance window set to %s (%s)\n", app.satelliteMaintenanceWindow, z)
+		a.cli.Console().Printf("Auto-update maintenance window set to %s (%s)\n", a.maintenanceWindow, z)
 	}
 
 	if size != "" && !cloud.ValidSatelliteSize(size) {
@@ -995,7 +968,7 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 		OrgName:                 orgName,
 		PinnedVersion:           version,
 		MaintenanceWindowStart:  window,
-		MaintenanceWeekendsOnly: app.satelliteMaintenaceWeekendsOnly,
+		MaintenanceWeekendsOnly: a.maintenaceWeekendsOnly,
 		DropCache:               dropCache,
 		FeatureFlags:            ffs,
 		Size:                    size,
@@ -1005,129 +978,8 @@ func (app *earthlyApp) actionSatelliteUpdate(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed starting satellite update")
 	}
 
-	app.console.Printf("Update now running on satellite %q...\n", app.satelliteName)
+	a.cli.Console().Printf("Update now running on satellite %q...\n", a.cli.Flags().SatelliteName)
 	return nil
-}
-
-func showSatelliteLoading(console conslogging.ConsoleLogger, satName string, out chan cloud.SatelliteStatusUpdate) error {
-	loadingMsgs := getSatelliteLoadingMessages()
-	var (
-		loggedSleep      bool
-		loggedStop       bool
-		loggedStart      bool
-		loggedUpdating   bool
-		loggedOffline    bool
-		loggedDestroying bool
-		loggedCreating   bool
-		shouldLogLoading bool
-	)
-	for o := range out {
-		if o.Err != nil {
-			return errors.Wrap(o.Err, "failed processing satellite status")
-		}
-		shouldLogLoading = true
-		switch o.State {
-		case cloud.SatelliteStatusSleep:
-			if !loggedSleep {
-				console.Printf("%s is waking up. Please wait...", satName)
-				loggedSleep = true
-				shouldLogLoading = false
-			}
-		case cloud.SatelliteStatusStopping:
-			if !loggedStop {
-				console.Printf("%s is currently falling asleep. Waiting to send wake up signal...", satName)
-				loggedStop = true
-				shouldLogLoading = false
-			}
-		case cloud.SatelliteStatusStarting:
-			if !loggedStart && !loggedSleep {
-				console.Printf("%s is starting. Please wait...", satName)
-				loggedStart = true
-				shouldLogLoading = false
-			}
-		case cloud.SatelliteStatusUpdating:
-			if !loggedUpdating {
-				console.Printf("%s is updating. It may take a few minutes to be ready...", satName)
-				loggedUpdating = true
-			}
-		case cloud.SatelliteStatusDestroying:
-			if !loggedDestroying {
-				console.Printf("%s is going offline. It may take a few minutes to be ready...", satName)
-				loggedDestroying = true
-			}
-		case cloud.SatelliteStatusOffline:
-			if !loggedOffline {
-				console.Printf("%s is coming online. Please wait...", satName)
-				loggedOffline = true
-				shouldLogLoading = false
-			}
-		case cloud.SatelliteStatusCreating:
-			if !loggedCreating {
-				console.Printf("%s is creating. Please wait...", satName)
-				loggedCreating = true
-			}
-		case cloud.SatelliteStatusOperational:
-			if loggedSleep || loggedStop || loggedStart || loggedUpdating {
-				// Satellite was in a different state previously but is now online
-				console.Printf("...System online.")
-			}
-			shouldLogLoading = false
-		default:
-			// In case there's a new state later which we didn't expect here,
-			// we'll still try to inform the user as best we can.
-			// Note the state might just be "Unknown" if it maps to an gRPC enum we don't know about.
-			console.Printf("%s state is: %s", satName, o)
-			shouldLogLoading = false
-		}
-		if shouldLogLoading {
-			var msg string
-			msg, loadingMsgs = nextSatelliteLoadingMessage(loadingMsgs)
-			console.Printf("...%s...", msg)
-		}
-	}
-	return nil
-}
-
-func nextSatelliteLoadingMessage(msgs []string) (nextMsg string, remainingMsgs []string) {
-	if len(msgs) == 0 {
-		msgs = getSatelliteLoadingMessages()
-	}
-	return msgs[0], msgs[1:]
-}
-
-func getSatelliteLoadingMessages() []string {
-	baseMessages := []string{
-		"tracking orbit",
-		"adjusting course",
-		"deploying solar array",
-		"aligning solar panels",
-		"calibrating guidance system",
-		"establishing transponder uplink",
-		"testing signal quality",
-		"fueling thrusters",
-		"amplifying transmission signal",
-		"checking thermal controls",
-		"stabilizing trajectory",
-		"contacting mission control",
-		"testing antennas",
-		"reporting fuel levels",
-		"scanning surroundings",
-		"avoiding debris",
-		"taking solar reading",
-		"reporting thermal conditions",
-		"testing system integrity",
-		"checking battery levels",
-		"calibrating transponders",
-		"modifying downlink frequency",
-		"reticulating splines",
-		"perturbing matrices",
-		"synthesizing gravity",
-		"iterating cellular automata",
-	}
-	msgs := baseMessages
-	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
-	rand.Shuffle(len(msgs), func(i, j int) { msgs[i], msgs[j] = msgs[j], msgs[i] })
-	return msgs
 }
 
 func showSatelliteStopping(console conslogging.ConsoleLogger, satName string, out chan cloud.SatelliteStatusUpdate) error {

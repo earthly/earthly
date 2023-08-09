@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/earthly/earthly/ast/hint"
+
 	"github.com/earthly/earthly/util/proj"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
@@ -15,7 +16,28 @@ import (
 
 const efIndent = "    "
 
-func (app *earthlyApp) actionInit(cliCtx *cli.Context) error {
+type Init struct {
+	cli CLI
+}
+
+func NewInit(cli CLI) *Init {
+	return &Init{
+		cli: cli,
+	}
+}
+
+func (a *Init) Cmds() []*cli.Command {
+	return []*cli.Command{
+		{
+			Name:        "init",
+			Description: "*experimental* Initialize a project.",
+			Usage:       "*experimental* Initialize an Earthfile for the current project",
+			Action:      a.action,
+		},
+	}
+}
+
+func (a *Init) action(cliCtx *cli.Context) error {
 	ctx := cliCtx.Context
 
 	wd, err := os.Getwd()

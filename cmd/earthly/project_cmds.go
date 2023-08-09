@@ -1,100 +1,139 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
 	"text/tabwriter"
 
+	"github.com/earthly/earthly/cmd/earthly/common"
+	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
-
-	"github.com/earthly/earthly/cloud"
 )
 
 const dateFormat = "2006-01-02"
 
-func (app *earthlyApp) projectCmds() []*cli.Command {
+type Project struct {
+	cli CLI
+
+	forceRemoveProject bool
+}
+
+func NewProject(cli CLI) *Project {
+	return &Project{
+		cli: cli,
+	}
+}
+
+func (a *Project) Cmds() []*cli.Command {
 	return []*cli.Command{
 		{
-			Name:        "ls",
-			Usage:       "List all projects that belong to the specified organization",
-			Description: "List all projects that belong to the specified organization.",
-			UsageText:   "earthly project [--org <organization-name>] ls",
-			Action:      app.actionProjectList,
-		},
-		{
-			Name:        "rm",
-			Usage:       "Remove an existing project and all of its associated pipelines and secrets",
-			Description: "Remove an existing project and all of its associated pipelines and secrets.",
-			UsageText:   "earthly project [--org <organization-name>] rm <project-name>",
-			Action:      app.actionProjectRemove,
+			Name:    "project",
+			Aliases: []string{"projects"},
+			Description: `Manage Earthly projects which are shared resources of Earthly orgs.
+
+Within Earthly projects users can be invited and granted different access levels including: read, read+secrets, write, and admin.`,
+			Usage:     "Manage Earthly projects",
+			UsageText: "earthly project (ls|rm|create|member)",
 			Flags: []cli.Flag{
-				&cli.BoolFlag{
-					Name:        "force",
-					Aliases:     []string{"f"},
-					Usage:       "Force removal without asking permission",
-					Destination: &app.forceRemoveProject,
+				&cli.StringFlag{
+					Name:        "org",
+					EnvVars:     []string{"EARTHLY_ORG"},
+					Usage:       "The name of the Earthly organization to which the Earthly project belongs",
+					Required:    false,
+					Destination: &a.cli.Flags().OrgName,
+				},
+				&cli.StringFlag{
+					Name:        "project",
+					Aliases:     []string{"p"},
+					EnvVars:     []string{"EARTHLY_PROJECT"},
+					Usage:       "The Earthly project to act on",
+					Required:    false,
+					Destination: &a.cli.Flags().ProjectName,
 				},
 			},
-		},
-		{
-			Name:        "create",
-			Usage:       "Create a new project in the specified organization",
-			Description: "Create a new project in the specified organization.",
-			UsageText:   "earthly project [--org <organization-name>] create <project-name>",
-			Action:      app.actionProjectCreate,
-		},
-		{
-			Name:        "member",
-			Aliases:     []string{"members"},
-			Usage:       "Manage project members",
-			Description: "Manage project members.",
-			UsageText:   "earthly project member (ls|rm|add|update)",
 			Subcommands: []*cli.Command{
 				{
-					Name:        "add",
-					Usage:       "Add a new member to the specified project",
-					Description: "Add a new member to the specified project.",
-					UsageText:   "earthly project [--org <organization-name>] --project <project-name> member add <user-email> <permission>",
-					Action:      app.actionProjectMemberAdd,
+					Name:        "ls",
+					Usage:       "List all projects that belong to the specified organization",
+					Description: "List all projects that belong to the specified organization.",
+					UsageText:   "earthly project [--org <organization-name>] ls",
+					Action:      a.actionList,
 				},
 				{
 					Name:        "rm",
-					Usage:       "Remove a member from the specified project",
-					Description: "Remove a member from the specified project.",
-					UsageText:   "earthly project [--org <organization-name>] --project <project-name member rm <user-email>",
-					Action:      app.actionProjectMemberRemove,
+					Usage:       "Remove an existing project and all of its associated pipelines and secrets",
+					Description: "Remove an existing project and all of its associated pipelines and secrets.",
+					UsageText:   "earthly project [--org <organization-name>] rm <project-name>",
+					Action:      a.actionRemove,
+					Flags: []cli.Flag{
+						&cli.BoolFlag{
+							Name:        "force",
+							Aliases:     []string{"f"},
+							Usage:       "Force removal without asking permission",
+							Destination: &a.forceRemoveProject,
+						},
+					},
 				},
 				{
-					Name:        "ls",
-					Usage:       "List all members in the specified project",
-					Description: "List all members in the specified project.",
-					UsageText:   "earthly project [--org <organization-name>] --project <project-name> member ls",
-					Action:      app.actionProjectMemberList,
+					Name:        "create",
+					Usage:       "Create a new project in the specified organization",
+					Description: "Create a new project in the specified organization.",
+					UsageText:   "earthly project [--org <organization-name>] create <project-name>",
+					Action:      a.actionCreate,
 				},
 				{
-					Name:        "update",
-					Usage:       "Update the project member's permission",
-					Description: "Update the project member's permission.",
-					UsageText:   "earthly project [--org <organization-name>] --project <project-name> member update <user-email> <permission>",
-					Action:      app.actionProjectMemberUpdate,
+					Name:        "member",
+					Aliases:     []string{"members"},
+					Usage:       "Manage project members",
+					Description: "Manage project members.",
+					UsageText:   "earthly project member (ls|rm|add|update)",
+					Subcommands: []*cli.Command{
+						{
+							Name:        "add",
+							Usage:       "Add a new member to the specified project",
+							Description: "Add a new member to the specified project.",
+							UsageText:   "earthly project [--org <organization-name>] --project <project-name> member add <user-email> <permission>",
+							Action:      a.actionMemberAdd,
+						},
+						{
+							Name:        "rm",
+							Usage:       "Remove a member from the specified project",
+							Description: "Remove a member from the specified project.",
+							UsageText:   "earthly project [--org <organization-name>] --project <project-name member rm <user-email>",
+							Action:      a.actionMemberRemove,
+						},
+						{
+							Name:        "ls",
+							Usage:       "List all members in the specified project",
+							Description: "List all members in the specified project.",
+							UsageText:   "earthly project [--org <organization-name>] --project <project-name> member ls",
+							Action:      a.actionMemberList,
+						},
+						{
+							Name:        "update",
+							Usage:       "Update the project member's permission",
+							Description: "Update the project member's permission.",
+							UsageText:   "earthly project [--org <organization-name>] --project <project-name> member update <user-email> <permission>",
+							Action:      a.actionMemberUpdate,
+						},
+					},
 				},
 			},
 		},
 	}
 }
 
-func (app *earthlyApp) actionProjectList(cliCtx *cli.Context) error {
-	app.commandName = "projectList"
+func (a *Project) actionList(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("projectList")
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
+	orgName, err := projectOrgName(a.cli, cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -111,19 +150,19 @@ func (app *earthlyApp) actionProjectList(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionProjectRemove(cliCtx *cli.Context) error {
-	app.commandName = "projectRemove"
+func (a *Project) actionRemove(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("projectRemove")
 
 	if cliCtx.NArg() != 1 {
 		return errors.New("project name is required")
 	}
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
+	orgName, err := projectOrgName(a.cli, cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -133,8 +172,8 @@ func (app *earthlyApp) actionProjectRemove(cliCtx *cli.Context) error {
 		return errors.New("project name is required")
 	}
 
-	if !app.forceRemoveProject {
-		answer, err := promptInput(cliCtx.Context,
+	if !a.forceRemoveProject {
+		answer, err := common.PromptInput(cliCtx.Context,
 			"WARNING: you are about to permanently delete this project and all of its associated pipelines, build history and secrets.\n"+
 				"Would you like to continue?\n"+
 				"Type 'y' or 'yes': ")
@@ -143,7 +182,7 @@ func (app *earthlyApp) actionProjectRemove(cliCtx *cli.Context) error {
 		}
 		answer = strings.TrimSpace(strings.ToLower(answer))
 		if answer != "y" && answer != "yes" {
-			app.console.Printf("Operation aborted.")
+			a.cli.Console().Printf("Operation aborted.")
 			return nil
 		}
 	}
@@ -153,13 +192,13 @@ func (app *earthlyApp) actionProjectRemove(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to remove project")
 	}
 
-	app.console.Printf("Project %s removed from %s", projectName, orgName)
+	a.cli.Console().Printf("Project %s removed from %s", projectName, orgName)
 
 	return nil
 }
 
-func (app *earthlyApp) actionProjectCreate(cliCtx *cli.Context) error {
-	app.commandName = "projectCreate"
+func (a *Project) actionCreate(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("projectCreate")
 
 	if cliCtx.NArg() != 1 {
 		return errors.New("project name is required")
@@ -170,12 +209,12 @@ func (app *earthlyApp) actionProjectCreate(cliCtx *cli.Context) error {
 		return errors.New("project name is required")
 	}
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
+	orgName, err := projectOrgName(a.cli, cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
@@ -185,35 +224,35 @@ func (app *earthlyApp) actionProjectCreate(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed to create project")
 	}
 
-	app.console.Printf("Project %s created in %s", projectName, orgName)
+	a.cli.Console().Printf("Project %s created in %s", projectName, orgName)
 
 	return nil
 }
 
-func (app *earthlyApp) actionProjectMemberList(cliCtx *cli.Context) error {
-	app.commandName = "projectMemberList"
+func (a *Project) actionMemberList(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("projectMemberList")
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	if app.projectName == "" {
+	if a.cli.Flags().ProjectName == "" {
 		return errors.New("project name is required")
 	}
 
-	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
+	orgName, err := projectOrgName(a.cli, cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	members, err := cloudClient.ListProjectMembers(cliCtx.Context, orgName, app.projectName)
+	members, err := cloudClient.ListProjectMembers(cliCtx.Context, orgName, a.cli.Flags().ProjectName)
 	if err != nil {
 		return errors.Wrap(err, "failed to list project members")
 	}
 
 	if len(members) == 0 {
-		app.console.Printf("No permissions found for this secret")
+		a.cli.Console().Printf("No permissions found for this secret")
 		return nil
 	}
 
@@ -227,24 +266,24 @@ func (app *earthlyApp) actionProjectMemberList(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (app *earthlyApp) actionProjectMemberRemove(cliCtx *cli.Context) error {
-	app.commandName = "projectMemberRemove"
+func (a *Project) actionMemberRemove(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("projectMemberRemove")
 
 	if cliCtx.NArg() != 1 {
 		return errors.New("user email are required")
 	}
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
+	orgName, err := projectOrgName(a.cli, cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	if app.projectName == "" {
+	if a.cli.Flags().ProjectName == "" {
 		return errors.New("project name is required")
 	}
 
@@ -253,34 +292,34 @@ func (app *earthlyApp) actionProjectMemberRemove(cliCtx *cli.Context) error {
 		return errors.New("user email is required")
 	}
 
-	err = cloudClient.RemoveProjectMember(cliCtx.Context, orgName, app.projectName, userEmail)
+	err = cloudClient.RemoveProjectMember(cliCtx.Context, orgName, a.cli.Flags().ProjectName, userEmail)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove project member")
 	}
 
-	app.console.Printf("%s was removed from %s", userEmail, orgName)
+	a.cli.Console().Printf("%s was removed from %s", userEmail, orgName)
 
 	return nil
 }
 
-func (app *earthlyApp) actionProjectMemberAdd(cliCtx *cli.Context) error {
-	app.commandName = "projectMemberAdd"
+func (a *Project) actionMemberAdd(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("projectMemberAdd")
 
 	if cliCtx.NArg() != 2 {
 		return errors.New("user email and permission arguments are required")
 	}
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
+	orgName, err := projectOrgName(a.cli, cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	if app.projectName == "" {
+	if a.cli.Flags().ProjectName == "" {
 		return errors.New("project name is required")
 	}
 
@@ -294,34 +333,34 @@ func (app *earthlyApp) actionProjectMemberAdd(cliCtx *cli.Context) error {
 		return errors.New("permission is required")
 	}
 
-	err = cloudClient.AddProjectMember(cliCtx.Context, orgName, app.projectName, userEmail, permission)
+	err = cloudClient.AddProjectMember(cliCtx.Context, orgName, a.cli.Flags().ProjectName, userEmail, permission)
 	if err != nil {
 		return errors.Wrap(err, "failed to add project member")
 	}
 
-	app.console.Printf("%s has been added to %s with %s permission", userEmail, orgName, permission)
+	a.cli.Console().Printf("%s has been added to %s with %s permission", userEmail, orgName, permission)
 
 	return nil
 }
 
-func (app *earthlyApp) actionProjectMemberUpdate(cliCtx *cli.Context) error {
-	app.commandName = "projectMemberUpdate"
+func (a *Project) actionMemberUpdate(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("projectMemberUpdate")
 
 	if cliCtx.NArg() != 2 {
 		return errors.New("user email and permission arguments are required")
 	}
 
-	cloudClient, err := app.newCloudClient()
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
 
-	orgName, err := app.projectOrgName(cliCtx.Context, cloudClient)
+	orgName, err := projectOrgName(a.cli, cliCtx.Context, cloudClient)
 	if err != nil {
 		return err
 	}
 
-	if app.projectName == "" {
+	if a.cli.Flags().ProjectName == "" {
 		return errors.New("project name is required")
 	}
 
@@ -335,40 +374,12 @@ func (app *earthlyApp) actionProjectMemberUpdate(cliCtx *cli.Context) error {
 		return errors.New("permission is required")
 	}
 
-	err = cloudClient.UpdateProjectMember(cliCtx.Context, orgName, app.projectName, userEmail, permission)
+	err = cloudClient.UpdateProjectMember(cliCtx.Context, orgName, a.cli.Flags().ProjectName, userEmail, permission)
 	if err != nil {
 		return errors.Wrap(err, "failed to update project member")
 	}
 
-	app.console.Printf("%s now has %s permission in %s", userEmail, permission, orgName)
+	a.cli.Console().Printf("%s now has %s permission in %s", userEmail, permission, orgName)
 
 	return nil
-}
-
-// projectOrgName returns the specified org or retrieves the default org from the API.
-func (app *earthlyApp) projectOrgName(ctx context.Context, cloudClient *cloud.Client) (string, error) {
-
-	if configuredOrg := app.org(); configuredOrg != "" {
-		return configuredOrg, nil
-	}
-
-	userOrgs, err := cloudClient.ListOrgs(ctx)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to list organizations")
-	}
-
-	if len(userOrgs) == 0 {
-		return "", errors.New("no organizations found, please specify with --org")
-	} else if len(userOrgs) > 1 {
-		return "", errors.New("multiple organizations found, please specify with --org")
-	}
-
-	return userOrgs[0].Name, nil
-}
-
-func (app *earthlyApp) org() string {
-	if app.orgName != "" {
-		return app.orgName
-	}
-	return app.cfg.Global.Org
 }

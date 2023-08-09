@@ -2,150 +2,94 @@ package main
 
 import (
 	"context"
-	"net/url"
-	"path/filepath"
-	"time"
-
-	"github.com/moby/buildkit/client"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
+	"fmt"
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
-	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
+	"github.com/moby/buildkit/client"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
 )
 
-func (app *earthlyApp) initFrontend(cliCtx *cli.Context) error {
-	// command line option overrides the config which overrides the default value
-	if !cliCtx.IsSet("buildkit-image") && app.cfg.Global.BuildkitImage != "" {
-		app.buildkitdImage = app.cfg.Global.BuildkitImage
-	}
-
-	bkURL, err := url.Parse(app.buildkitHost) // Not validated because we already did that when we calculated it.
-	if err != nil {
-		return errors.Wrap(err, "failed to parse generated buildkit URL")
-	}
-
-	if bkURL.Scheme == "tcp" && app.cfg.Global.TLSEnabled {
-		app.buildkitdSettings.ClientTLSCert = app.cfg.Global.ClientTLSCert
-		app.buildkitdSettings.ClientTLSKey = app.cfg.Global.ClientTLSKey
-		app.buildkitdSettings.TLSCA = app.cfg.Global.TLSCACert
-		app.buildkitdSettings.ServerTLSCert = app.cfg.Global.ServerTLSCert
-		app.buildkitdSettings.ServerTLSKey = app.cfg.Global.ServerTLSKey
-	}
-
-	app.buildkitdSettings.AdditionalArgs = app.cfg.Global.BuildkitAdditionalArgs
-	app.buildkitdSettings.AdditionalConfig = app.cfg.Global.BuildkitAdditionalConfig
-	app.buildkitdSettings.Timeout = time.Duration(app.cfg.Global.BuildkitRestartTimeoutS) * time.Second
-	app.buildkitdSettings.Debug = app.debug
-	app.buildkitdSettings.BuildkitAddress = app.buildkitHost
-	app.buildkitdSettings.LocalRegistryAddress = app.localRegistryHost
-	app.buildkitdSettings.UseTCP = bkURL.Scheme == "tcp"
-	app.buildkitdSettings.UseTLS = app.cfg.Global.TLSEnabled
-	app.buildkitdSettings.MaxParallelism = app.cfg.Global.BuildkitMaxParallelism
-	app.buildkitdSettings.CacheSizeMb = app.cfg.Global.BuildkitCacheSizeMb
-	app.buildkitdSettings.CacheSizePct = app.cfg.Global.BuildkitCacheSizePct
-	app.buildkitdSettings.CacheKeepDuration = app.cfg.Global.BuildkitCacheKeepDurationS
-	app.buildkitdSettings.EnableProfiler = app.enableProfiler
-	app.buildkitdSettings.NoUpdate = app.noBuildkitUpdate
-
-	// ensure the MTU is something allowable in IPv4, cap enforced by type. Zero is autodetect.
-	if app.cfg.Global.CniMtu != 0 && app.cfg.Global.CniMtu < 68 {
-		return errors.New("invalid overridden MTU size")
-	}
-	app.buildkitdSettings.CniMtu = app.cfg.Global.CniMtu
-
-	if app.cfg.Global.IPTables != "" && app.cfg.Global.IPTables != "iptables-legacy" && app.cfg.Global.IPTables != "iptables-nft" {
-		return errors.New(`invalid overridden iptables name. Valid values are "iptables-legacy" or "iptables-nft"`)
-	}
-	app.buildkitdSettings.IPTables = app.cfg.Global.IPTables
-	earthlyDir, err := cliutil.GetOrCreateEarthlyDir(app.installationName)
-	if err != nil {
-		return errors.Wrap(err, "failed to get earthly dir")
-	}
-	app.buildkitdSettings.StartUpLockPath = filepath.Join(earthlyDir, "buildkitd-startup.lock")
-	return nil
-}
-
-func (app *earthlyApp) getBuildkitClient(cliCtx *cli.Context, cloudClient *cloud.Client) (*client.Client, error) {
-	err := app.initFrontend(cliCtx)
+func (cli *CLI) GetBuildkitClient(cliCtx *cli.Context, cloudClient *cloud.Client) (*client.Client, error) {
+	err := cli.InitFrontend(cliCtx)
 	if err != nil {
 		return nil, err
 	}
-	err = app.configureSatellite(cliCtx, cloudClient, "", "") // no gitAuthor/gitConfigEmail is passed for non-build commands (e.g. debug_cmds.go or root_cmds.go code)
+	err = cli.ConfigureSatellite(cliCtx, cloudClient, "", "") // no gitAuthor/gitConfigEmail is passed for non-build commands (e.g. debug_cmds.go or root_cmds.go code)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not construct new buildkit client")
 	}
 
-	return buildkitd.NewClient(cliCtx.Context, app.console, app.buildkitdImage, app.containerName, app.installationName, app.containerFrontend, Version, app.buildkitdSettings)
+	return buildkitd.NewClient(cliCtx.Context, cli.Console(), cli.Flags().BuildkitdImage, cli.Flags().ContainerName, cli.Flags().InstallationName, cli.Flags().ContainerFrontend, cli.Version(), cli.Flags().BuildkitdSettings)
 }
 
-func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient *cloud.Client, gitAuthor, gitConfigEmail string) error {
+func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Client, gitAuthor, gitConfigEmail string) error {
 	if cliCtx.IsSet("buildkit-host") && cliCtx.IsSet("satellite") {
 		return errors.New("cannot specify both buildkit-host and satellite")
 	}
-	if cliCtx.IsSet("satellite") && app.noSatellite {
+	if cliCtx.IsSet("satellite") && cli.Flags().NoSatellite {
 		return errors.New("cannot specify both no-satellite and satellite")
 	}
-	if !app.isUsingSatellite(cliCtx) || cloudClient == nil {
+	if !cli.IsUsingSatellite(cliCtx) || cloudClient == nil {
 		// If the app is not using a cloud client, or the command doesn't interact with the cloud (prune, bootstrap)
 		// then pretend its all good and use your regular configuration.
 		return nil
 	}
 
 	// Set up extra settings needed for buildkit RPC metadata
-	if app.satelliteName == "" {
-		app.satelliteName = app.cfg.Satellite.Name
+	if cli.Flags().SatelliteName == "" {
+		cli.Flags().SatelliteName = cli.Cfg().Satellite.Name
 	}
-	if app.orgName == "" {
-		app.orgName = app.cfg.Satellite.Org
+	if cli.Flags().OrgName == "" {
+		cli.Flags().OrgName = cli.Cfg().Satellite.Org
 	}
 
-	app.buildkitdSettings.UseTCP = true
-	if app.cfg.Global.TLSEnabled {
+	cli.Flags().BuildkitdSettings.UseTCP = true
+	if cli.Cfg().Global.TLSEnabled {
 		// satellite connection with tls enabled does not use configuration certificates
-		app.buildkitdSettings.ClientTLSCert = ""
-		app.buildkitdSettings.ClientTLSKey = ""
-		app.buildkitdSettings.TLSCA = ""
-		app.buildkitdSettings.ServerTLSCert = ""
-		app.buildkitdSettings.ServerTLSKey = ""
+		cli.Flags().BuildkitdSettings.ClientTLSCert = ""
+		cli.Flags().BuildkitdSettings.ClientTLSKey = ""
+		cli.Flags().BuildkitdSettings.TLSCA = ""
+		cli.Flags().BuildkitdSettings.ServerTLSCert = ""
+		cli.Flags().BuildkitdSettings.ServerTLSKey = ""
 	}
 
-	orgName, orgID, err := app.getSatelliteOrg(cliCtx.Context, cloudClient)
+	orgName, orgID, err := cli.GetSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "failed getting org")
 	}
-	satelliteName, err := app.getSatelliteName(cliCtx.Context, orgName, app.satelliteName, cloudClient)
+	satelliteName, err := GetSatelliteName(cliCtx.Context, orgName, cli.Flags().SatelliteName, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "failed getting satellite name")
 	}
-	app.buildkitdSettings.SatelliteName = satelliteName
-	app.buildkitdSettings.SatelliteDisplayName = app.satelliteName
-	app.buildkitdSettings.SatelliteOrgID = orgID
-	if app.satelliteAddress != "" {
-		app.buildkitdSettings.BuildkitAddress = app.satelliteAddress
+	cli.Flags().BuildkitdSettings.SatelliteName = satelliteName
+	cli.Flags().BuildkitdSettings.SatelliteDisplayName = cli.Flags().SatelliteName
+	cli.Flags().BuildkitdSettings.SatelliteOrgID = orgID
+	if cli.Flags().SatelliteAddress != "" {
+		cli.Flags().BuildkitdSettings.BuildkitAddress = cli.Flags().SatelliteAddress
 	} else {
-		app.buildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
+		cli.Flags().BuildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
 	}
-	app.analyticsMetadata.isSatellite = true
-	app.analyticsMetadata.satelliteCurrentVersion = "" // TODO
+	cli.SetAnaMetaIsSat(true)
+	cli.SetAnaMetaSatCurrentVersion("") // TODO
 
-	if app.featureFlagOverrides != "" {
-		app.featureFlagOverrides += ","
+	if cli.Flags().FeatureFlagOverrides != "" {
+		cli.Flags().FeatureFlagOverrides += ","
 	}
-	app.featureFlagOverrides += "new-platform"
+	cli.Flags().FeatureFlagOverrides += "new-platform"
 
 	token, err := cloudClient.GetAuthToken(cliCtx.Context)
 	if err != nil {
 		return errors.Wrap(err, "failed to get auth token")
 	}
-	app.buildkitdSettings.SatelliteToken = token
+	cli.Flags().BuildkitdSettings.SatelliteToken = token
 
 	// Reserve the satellite for the upcoming build.
 	// This operation can take a moment if the satellite is asleep.
-	err = app.reserveSatellite(cliCtx.Context, cloudClient, satelliteName, app.satelliteName, orgName, gitAuthor, gitConfigEmail)
+	err = cli.reserveSatellite(cliCtx.Context, cloudClient, satelliteName, cli.Flags().SatelliteName, orgName, gitAuthor, gitConfigEmail)
 	if err != nil {
 		return err
 	}
@@ -154,24 +98,104 @@ func (app *earthlyApp) configureSatellite(cliCtx *cli.Context, cloudClient *clou
 	return nil
 }
 
-func (app *earthlyApp) isUsingSatellite(cliCtx *cli.Context) bool {
-	if app.noSatellite {
+func (c *CLI) IsUsingSatellite(cliCtx *cli.Context) bool {
+	if c.Flags().NoSatellite {
 		return false
 	}
 	if cliCtx.IsSet("buildkit-host") {
 		// buildkit-host takes precedence
 		return false
 	}
-	return app.cfg.Satellite.Name != "" || app.satelliteName != ""
+	return c.Cfg().Satellite.Name != "" || c.Flags().SatelliteName != ""
 }
 
-func (app *earthlyApp) reserveSatellite(ctx context.Context, cloudClient *cloud.Client, name, displayName, orgName, gitAuthor, gitConfigEmail string) error {
-	console := app.console.WithPrefix("satellite")
-	_, isCI := analytics.DetectCI(app.earthlyCIRunner)
+func (c *CLI) GetSatelliteOrg(ctx context.Context, cloudClient *cloud.Client) (orgName, orgID string, err error) {
+	// We are cheating here and forcing a re-auth before running any satellite commands.
+	// This is because there is an issue on the backend where the token might be outdated
+	// if a user was invited to an org recently after already logging-in.
+	// TODO Eventually we should be able to remove this cheat.
+	_, err = cloudClient.Authenticate(ctx)
+	if err != nil {
+		return "", "", errors.Wrap(err, "unable to authenticate")
+	}
+	if c.Flags().OrgName != "" {
+		orgID, err = cloudClient.GetOrgID(ctx, c.Flags().OrgName)
+		if err != nil {
+			return "", "", errors.Wrap(err, "invalid org provided")
+		}
+		return c.Flags().OrgName, orgID, nil
+	}
+	if c.Cfg().Global.Org != "" {
+		orgID, err = cloudClient.GetOrgID(ctx, c.Cfg().Global.Org)
+		if err != nil {
+			return "", "", errors.Wrapf(err, "failed resolving ID for org '%s'", c.Cfg().Global.Org)
+		}
+		return c.Cfg().Global.Org, orgID, nil
+	}
+	orgName, orgID, err = cloudClient.GuessOrgMembership(ctx)
+	if err != nil {
+		return "", "", errors.Wrap(err, "could not guess default org")
+	}
+	c.Console().Warnf("Auto-selecting the default org will no longer be supported in the future.\n" +
+		"You can select a default org using the command 'earthly org select',\n" +
+		"or otherwise specify an org using the --org flag or EARTHLY_ORG environment variable.")
+	return orgName, orgID, nil
+}
+
+func GetSatelliteName(ctx context.Context, orgName, satelliteName string, cloudClient *cloud.Client) (string, error) {
+	satellites, err := cloudClient.ListSatellites(ctx, orgName, true)
+	if err != nil {
+		return "", err
+	}
+	for _, s := range satellites {
+		if satelliteName == s.Name {
+			return s.Name, nil
+		}
+	}
+
+	pipelines, err := GetAllPipelinesForAllProjects(ctx, orgName, cloudClient)
+	if err != nil {
+		return "", err
+	}
+	for _, p := range pipelines {
+		if satelliteName == PipelineSatelliteName(&p) {
+			return p.SatelliteName, nil
+		}
+	}
+
+	return "", fmt.Errorf("satellite %q not found", satelliteName)
+}
+
+func (cli *CLI) reserveSatellite(ctx context.Context, cloudClient *cloud.Client, name, displayName, orgName, gitAuthor, gitConfigEmail string) error {
+	console := cli.Console().WithPrefix("satellite")
+	_, isCI := analytics.DetectCI(cli.Flags().EarthlyCIRunner)
 	out := cloudClient.ReserveSatellite(ctx, name, orgName, gitAuthor, gitConfigEmail, isCI)
-	err := showSatelliteLoading(console, displayName, out)
+	err := ShowSatelliteLoading(console, displayName, out)
 	if err != nil {
 		return errors.Wrap(err, "failed reserving satellite for build")
 	}
 	return nil
+}
+
+func GetAllPipelinesForAllProjects(ctx context.Context, orgName string, cloudClient *cloud.Client) ([]cloud.Pipeline, error) {
+	projects, err := cloudClient.ListProjects(ctx, orgName)
+	if err != nil {
+		return nil, err
+	}
+
+	allPipelines := make([]cloud.Pipeline, 0)
+	for _, pr := range projects {
+		pipelines, err := cloudClient.ListPipelines(ctx, pr.Name, orgName, "")
+		if err != nil {
+			return nil, err
+		}
+
+		allPipelines = append(allPipelines, pipelines...)
+	}
+
+	return allPipelines, nil
+}
+
+func PipelineSatelliteName(p *cloud.Pipeline) string {
+	return fmt.Sprintf("%s/%s", p.Project, p.Name)
 }
