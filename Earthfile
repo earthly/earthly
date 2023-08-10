@@ -941,7 +941,6 @@ npm-update-all:
     COPY . /code
     WORKDIR /code
     FOR nodepath IN \
-            contrib/earthfile-syntax-highlighting \
             examples/cache-command/npm \
             examples/js \
             examples/react \
