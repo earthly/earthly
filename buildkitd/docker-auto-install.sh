@@ -3,6 +3,7 @@
 set -eu
 
 distro=$(. /etc/os-release && echo "$ID")
+DOCKER_VERSION="${DOCKER_VERSION:-}"
 
 detect_dockerd() {
     set +e
@@ -96,7 +97,11 @@ install_docker_compose() {
 install_dockerd() {
     case "$distro" in
         alpine)
-            apk add --update --no-cache docker
+            if [ -n "$DOCKER_VERSION" ]; then
+              apk add --update --no-cache docker="$DOCKER_VERSION"
+            else
+              apk add --update --no-cache docker
+            fi
             ;;
 
         amzn)
@@ -181,7 +186,12 @@ install_dockerd_debian_like() {
             ;;
     esac
     apt-get update # dont use apt_get_update since we must update the newly added apt repo
-    apt-get install -y docker-ce docker-ce-cli containerd.io
+    if [ -n "$DOCKER_VERSION" ]; then
+        apt-get install -y docker-ce="$DOCKER_VERSION"
+    else
+        apt-get install -y docker-ce
+    fi
+    apt-get install -y docker-ce-cli containerd.io
 }
 
 install_dockerd_amazon() {
