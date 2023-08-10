@@ -552,9 +552,12 @@ ci-release:
 
 # dind builds both the alpine and ubuntu dind containers for earthly
 dind:
-    ARG --required OS_IMAGE # e.g. alpine, ubuntu
-    ARG --required OS_VERSION # e.g. 3.18.0, 23.04
-    ARG --required DOCKER_VERSION # e.g. 20.10.14
+    # OS_IMAGE is the base image to use, e.g. alpine, ubuntu
+    ARG --required OS_IMAGE
+    # OS_VERSION is the version of the base OS to use, e.g. 3.18.0, 23.04
+    ARG --required OS_VERSION
+    # DOCKER_VERSION is the version of docker to use, e.g. 20.10.14
+    ARG --required DOCKER_VERSION
     FROM $OS_IMAGE:$OS_VERSION
     COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
     RUN docker-auto-install.sh
