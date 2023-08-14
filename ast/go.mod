@@ -1,6 +1,6 @@
 module github.com/earthly/earthly/ast
 
-go 1.20
+go 1.21
 
 require (
 	git.sr.ht/~nelsam/hel v0.4.4

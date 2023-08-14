@@ -1,6 +1,6 @@
 module github.com/earthly/earthly/examples/go-monorepo/services/one
 
-go 1.17
+go 1.21
 
 require (
 	github.com/earthly/earthly/examples/go-monorepo/libs/hello v0.0.0

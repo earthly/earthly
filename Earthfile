@@ -1,7 +1,9 @@
 # TODO: we must change the DOCKERHUB_USER_SECRET args to be project-based before we can change to 0.7
 VERSION --shell-out-anywhere --use-copy-link --no-network --arg-scope-and-set 0.6
 
-FROM golang:1.20-alpine3.17
+# TODO update to 3.18; however currently "podman login" (used under not-a-unit-test.sh) will error with
+# "Error: default OCI runtime "crun" not found: invalid argument".
+FROM golang:1.21-alpine3.17
 
 RUN apk add --update --no-cache \
     bash \
@@ -25,7 +27,7 @@ WORKDIR /earthly
 # go.mod and go.sum will be updated locally.
 deps:
     FROM +base
-    RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.52.2
+    RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.1
     COPY go.mod go.sum ./
     COPY ./ast/go.mod ./ast/go.sum ./ast
     COPY ./util/deltautil/go.mod ./util/deltautil/go.sum ./util/deltautil
@@ -33,7 +35,7 @@ deps:
     SAVE ARTIFACT go.mod AS LOCAL go.mod
     SAVE ARTIFACT go.sum AS LOCAL go.sum
 
-# code downloads and caches all dependencies for earthly and then copies the go code 
+# code downloads and caches all dependencies for earthly and then copies the go code
 # directories into the image.
 # If BUILDKIT_PROJECT or CLOUD_API environment variables are set it will also update the go mods
 # for the local versions
