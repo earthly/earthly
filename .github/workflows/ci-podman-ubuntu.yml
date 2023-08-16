@@ -107,6 +107,7 @@ jobs:
       BINARY: "podman"
       SUDO: "sudo -E"
       EXAMPLE_NAME: "+examples1"
+      DOCKERHUB_REGISTRY: "docker.io"
     secrets: inherit
 
   podman-examples-2:
@@ -120,6 +121,7 @@ jobs:
       BINARY: "podman"
       SUDO: "sudo -E"
       EXAMPLE_NAME: "+examples2"
+      DOCKERHUB_REGISTRY: "docker.io"
     secrets: inherit
 
 #  podman-test-local:

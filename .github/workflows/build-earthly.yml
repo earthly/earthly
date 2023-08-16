@@ -43,30 +43,57 @@ jobs:
           fi
           git checkout -b "$branch" || true
       - name: remove Docker
-        run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
         if: inputs.BINARY != 'docker'
+        run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
       - name: Install Podman (with apt-get)
-        run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman && ${{inputs.SUDO}} rm -f /etc/containers/registries.conf
-        if: inputs.binary == 'podman'
-      - name: Podman debug info
-        run: podman version && podman info && podman info --debug
         if: inputs.BINARY == 'podman'
-      - name: Docker mirror login (Earthly Only)
-        run: ${{inputs.SUDO}} ${{inputs.BINARY}} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+        run: |-
+          ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman && ${{inputs.SUDO}} rm -f /etc/containers/registries.conf
+
+          if [ ${{inputs.USE_QEMU}} ]; then
+              ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y qemu-user-static
+          fi
+
+          podman version && podman info && podman info --debug
+
+      - name: DockerHub login (Earthly Only)
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        run: |-
+          dockerReg=""
+          if [ "${{inputs.BINARY}}" != "docker" ]; then
+              # if we specify 'docker.io' with docker, odd things happen; but with other tools
+              # this is required.
+              dockerReg="docker.io"
+          fi
+          ${{inputs.SUDO}} ${{inputs.BINARY}} login ${dockerReg} --username "${{secrets.DOCKERHUB_USERNAME}}" --password "${{secrets.DOCKERHUB_TOKEN}}"
+
       - name: Earthly bootstrap
         run: ${{inputs.SUDO}} $(which earthly) bootstrap
-      - name: Configure Earthly to use mirror (Earthly Only)
-        run: |-
-          ${{inputs.SUDO}} $(which earthly) config global.buildkit_additional_config "'[registry.\"docker.io\"]
-          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+      - name: Configure earthly accounts (Earthly Only)
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Docker Login
-        run: ${{inputs.SUDO}} ${{inputs.BINARY}} login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
-        if: inputs.BINARY == 'docker'
-      - name: Podman Login
-        run: ${{inputs.SUDO}} ${{inputs.BINARY}} login docker.io --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
-        if: inputs.BINARY == 'podman'
+        run: |-
+          cat <<EOF > .arg
+          DOCKERHUB_AUTH=true
+          DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user
+          DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass
+          DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
+          EOF
+
+          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+
+          ${{inputs.SUDO}} ${{inputs.BINARY}} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+
+          if [ ${{inputs.USE_SATELLITE}} ]; then
+              ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} sat ls && ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} satellite select ${{inputs.SATELLITE_NAME}}
+          fi
+      - name: Configure build args (Fork)
+        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+        run: |-
+          cat <<EOF > .arg
+          DOCKERHUB_AUTH=false
+          EOF
+
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) --use-inline-cache +for-linux
       - name: Earthly bootstrap using latest earthly build

@@ -51,21 +51,51 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker QEMU
+        if: inputs.USE_QEMU
         id: qemu
         uses: docker/setup-qemu-action@v1
         with:
           image: tonistiigi/binfmt:latest
           platforms: all
-        if: inputs.USE_QEMU
       - name: remove Docker
-        run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
         if: inputs.BINARY != 'docker'
+        run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
       - name: Install Podman (with apt-get)
-        run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman && ${{inputs.SUDO}} rm -f /etc/containers/registries.conf
         if: inputs.BINARY == 'podman'
-      - name: Podman debug info
-        run: podman version && podman info && podman info --debug
-        if: inputs.BINARY == 'podman'
+        run: |-
+          ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman && ${{inputs.SUDO}} rm -f /etc/containers/registries.conf
+
+          if [ ${{inputs.USE_QEMU}} ]; then
+              ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y qemu-user-static
+          fi
+
+          podman version && podman info && podman info --debug
+
+      - name: Configure earthly accounts (Earthly Only)
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        run: |-
+          dockerReg=""
+          if [ "${{inputs.BINARY}}" != "docker" ]; then
+              # if we specify 'docker.io' with docker, odd things happen; but with other tools
+              # this is required.
+              dockerReg="docker.io"
+          fi
+          ${{inputs.SUDO}} ${{inputs.BINARY}} login ${dockerReg} --username "${{secrets.DOCKERHUB_USERNAME}}" --password "${{secrets.DOCKERHUB_TOKEN}}"
+
+          ${{inputs.SUDO}} ${{inputs.BINARY}} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+
+          cat <<EOF > .arg
+          DOCKERHUB_AUTH=true
+          DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user
+          DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass
+          DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev
+          EOF
+      - name: Configure build args (Fork)
+        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+        run: |-
+          cat <<EOF > .arg
+          DOCKERHUB_AUTH=false
+          EOF
       - name: Retrieve earthly from build-earthly job
         run: |-
           BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-${{inputs.RUNS_ON}}-${{inputs.BINARY}} ./earthly upgrade
@@ -73,43 +103,28 @@ jobs:
           mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-${{inputs.RUNS_ON}}-${{inputs.BINARY}} ${{inputs.BUILT_EARTHLY_PATH}}
       - name: Bootstrap Earthly
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} bootstrap
-      - name: Configure Satellites (Earthly Only)
-        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} sat ls && ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} satellite select ${{inputs.SATELLITE_NAME}}
-        if: (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && inputs.USE_SATELLITE
-      - name: Docker mirror login via ${{inputs.BINARY}} (Earthly Only)
-        run: ${{inputs.SUDO}} ${{inputs.BINARY}} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Configure Earthly to use mirror (Earthly Only)
-        run: |-
-          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.buildkit_additional_config "'[registry.\"docker.io\"]
-          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-      - name: Install QEMU for Podman multi-arch building
-        # qemu-user-static needed for cross-compilation (--platform) targets
-        run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y qemu-user-static
-        if: inputs.BINARY == 'podman' && inputs.USE_QEMU
-      - name: Execute ${{ inputs.TEST_TARGET }} (Earthly Only)
-        run: |-
-          ${{inputs.SUDO}} ${{ inputs.BUILT_EARTHLY_PATH }} --ci -P \
-            --build-arg DOCKERHUB_AUTH=true \
-            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-            ${{inputs.TEST_TARGET}}
+
+      - name: Configure earthly to use mirror and/or satellite (Earthly Only)
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Execute ${{ inputs.TEST_TARGET }} (Fork)
         run: |-
-          ${{inputs.SUDO}} ${{ inputs.BUILT_EARTHLY_PATH }} --ci -P \
-            --build-arg DOCKERHUB_AUTH=false \
-            ${{inputs.TEST_TARGET}}
-        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
+          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+
+          if [ ${{inputs.USE_SATELLITE}} ]; then
+              ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} sat ls && ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} satellite select ${{inputs.SATELLITE_NAME}}
+          fi
+
+      - name: Execute ${{ inputs.TEST_TARGET }}
+        run: |-
+          ${{inputs.SUDO}} ${{ inputs.BUILT_EARTHLY_PATH }} --ci -P ${{inputs.TEST_TARGET}}
       - name: Execute fail test
         run: "! ${{inputs.SUDO}} ${{ inputs.BUILT_EARTHLY_PATH }} --ci ./tests/fail+test-fail"
+
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
         if: ${{ failure() }} && ! inputs.USE_SATELLITE
