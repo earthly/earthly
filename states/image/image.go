@@ -64,20 +64,14 @@ func (img *Image) Clone() *Image {
 	copy(clone.Config.Env, img.Config.Env)
 	copy(clone.Config.Entrypoint, img.Config.Entrypoint)
 	copy(clone.Config.Cmd, img.Config.Cmd)
-	if img.Config.ExposedPorts != nil {
-		for k, v := range img.Config.ExposedPorts {
-			clone.Config.ExposedPorts[k] = v
-		}
+	for k, v := range img.Config.ExposedPorts {
+		clone.Config.ExposedPorts[k] = v
 	}
-	if img.Config.Volumes != nil {
-		for k, v := range img.Config.Volumes {
-			clone.Config.Volumes[k] = v
-		}
+	for k, v := range img.Config.Volumes {
+		clone.Config.Volumes[k] = v
 	}
-	if img.Config.Labels != nil {
-		for k, v := range img.Config.Labels {
-			clone.Config.Labels[k] = v
-		}
+	for k, v := range img.Config.Labels {
+		clone.Config.Labels[k] = v
 	}
 	return clone
 }
