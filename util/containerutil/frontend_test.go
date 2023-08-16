@@ -17,7 +17,6 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestFrontendNew(t *testing.T) {
@@ -34,8 +33,8 @@ func TestFrontendNew(t *testing.T) {
 			onlyIfBinaryIsInstalled(ctx, t, tC.binary)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
-			assert.NoError(t, err)
-			assert.NotNil(t, fe)
+			NoError(t, err)
+			NotNil(t, fe)
 		})
 	}
 }
@@ -55,10 +54,10 @@ func TestFrontendScheme(t *testing.T) {
 			onlyIfBinaryIsInstalled(ctx, t, tC.binary)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			scheme := fe.Scheme()
-			assert.Equal(t, tC.scheme, scheme)
+			Equal(t, tC.scheme, scheme)
 		})
 	}
 }
@@ -77,10 +76,10 @@ func TestFrontendIsAvailable(t *testing.T) {
 			onlyIfBinaryIsInstalled(ctx, t, tC.binary)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			available := fe.IsAvailable(ctx)
-			assert.True(t, available)
+			True(t, available)
 		})
 	}
 }
@@ -99,11 +98,11 @@ func TestFrontendInformation(t *testing.T) {
 			onlyIfBinaryIsInstalled(ctx, t, tC.binary)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			info, err := fe.Information(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, info)
+			NoError(t, err)
+			NotNil(t, info)
 		})
 	}
 }
@@ -124,26 +123,26 @@ func TestFrontendContainerInfo(t *testing.T) {
 			testContainers := []string{"test-1", "test-2"}
 			cleanup, err := spawnTestContainers(ctx, tC.binary, testContainers...)
 			t.Cleanup(cleanup)
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			getInfos := append(testContainers, "missing")
 			info, err := fe.ContainerInfo(ctx, getInfos...)
-			assert.NoError(t, err)
-			assert.NotNil(t, info)
+			NoError(t, err)
+			NotNil(t, info)
 
-			assert.Len(t, info, 3)
+			Len(t, info, 3)
 
-			assert.Equal(t, getInfos[0], info[getInfos[0]].Name)
-			assert.Equal(t, "docker.io/library/nginx:1.21", info[getInfos[0]].Image)
+			Equal(t, getInfos[0], info[getInfos[0]].Name)
+			Equal(t, "docker.io/library/nginx:1.21", info[getInfos[0]].Image)
 
-			assert.Equal(t, getInfos[1], info[getInfos[1]].Name)
-			assert.Equal(t, "docker.io/library/nginx:1.21", info[getInfos[1]].Image)
+			Equal(t, getInfos[1], info[getInfos[1]].Name)
+			Equal(t, "docker.io/library/nginx:1.21", info[getInfos[1]].Image)
 
-			assert.Equal(t, getInfos[2], info[getInfos[2]].Name)
-			assert.Equal(t, containerutil.StatusMissing, info[getInfos[2]].Status)
+			Equal(t, getInfos[2], info[getInfos[2]].Name)
+			Equal(t, containerutil.StatusMissing, info[getInfos[2]].Status)
 		})
 	}
 }
@@ -164,22 +163,22 @@ func TestFrontendContainerRemove(t *testing.T) {
 			testContainers := []string{"remove-1", "remove-2"}
 			cleanup, err := spawnTestContainers(ctx, tC.binary, testContainers...)
 			t.Cleanup(cleanup)
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			info, err := fe.ContainerInfo(ctx, testContainers...)
-			assert.NoError(t, err)
-			assert.Len(t, info, 2)
+			NoError(t, err)
+			Len(t, info, 2)
 
 			err = fe.ContainerRemove(ctx, true, testContainers...)
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			info, err = fe.ContainerInfo(ctx, testContainers...)
-			assert.NoError(t, err)
-			assert.Equal(t, containerutil.StatusMissing, info[testContainers[0]].Status)
-			assert.Equal(t, containerutil.StatusMissing, info[testContainers[1]].Status)
+			NoError(t, err)
+			Equal(t, containerutil.StatusMissing, info[testContainers[0]].Status)
+			Equal(t, containerutil.StatusMissing, info[testContainers[1]].Status)
 		})
 	}
 }
@@ -200,21 +199,21 @@ func TestFrontendContainerStop(t *testing.T) {
 			testContainers := []string{"stop-1", "stop-2"}
 			cleanup, err := spawnTestContainers(ctx, tC.binary, testContainers...)
 			t.Cleanup(cleanup)
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			info, err := fe.ContainerInfo(ctx, testContainers...)
-			assert.NoError(t, err)
-			assert.Len(t, info, 2)
+			NoError(t, err)
+			Len(t, info, 2)
 
 			err = fe.ContainerStop(ctx, 0, testContainers...)
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			_, err = fe.ContainerInfo(ctx, testContainers...)
-			assert.NoError(t, err)
-			assert.Len(t, info, 2)
+			NoError(t, err)
+			Len(t, info, 2)
 		})
 	}
 }
@@ -235,20 +234,20 @@ func TestFrontendContainerLogs(t *testing.T) {
 			testContainers := []string{"logs-1", "logs-2"}
 			cleanup, err := spawnTestContainers(ctx, tC.binary, testContainers...)
 			t.Cleanup(cleanup)
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			logs, err := fe.ContainerLogs(ctx, testContainers...)
-			assert.NoError(t, err)
-			assert.Len(t, logs, 2)
+			NoError(t, err)
+			Len(t, logs, 2)
 
-			assert.Equal(t, "output stream\n", logs[testContainers[0]].Stdout)
-			assert.Equal(t, "error stream\n", logs[testContainers[0]].Stderr)
+			Equal(t, "output stream\n", logs[testContainers[0]].Stdout)
+			Equal(t, "error stream\n", logs[testContainers[0]].Stderr)
 
-			assert.Equal(t, "output stream\n", logs[testContainers[1]].Stdout)
-			assert.Equal(t, "error stream\n", logs[testContainers[1]].Stderr)
+			Equal(t, "output stream\n", logs[testContainers[1]].Stdout)
+			Equal(t, "error stream\n", logs[testContainers[1]].Stderr)
 		})
 	}
 }
@@ -267,7 +266,7 @@ func TestFrontendContainerRun(t *testing.T) {
 			onlyIfBinaryIsInstalled(ctx, t, tC.binary)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			testContainers := []string{"create-1", "create-2"}
 			runs := []containerutil.ContainerRun{}
@@ -312,17 +311,17 @@ func TestFrontendContainerRun(t *testing.T) {
 			}()
 
 			info, err := fe.ContainerInfo(ctx, testContainers...)
-			assert.NoError(t, err)
-			assert.Equal(t, containerutil.StatusMissing, info[testContainers[0]].Status)
-			assert.Equal(t, containerutil.StatusMissing, info[testContainers[1]].Status)
+			NoError(t, err)
+			Equal(t, containerutil.StatusMissing, info[testContainers[0]].Status)
+			Equal(t, containerutil.StatusMissing, info[testContainers[1]].Status)
 
 			err = fe.ContainerRun(ctx, runs...)
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			info, err = fe.ContainerInfo(ctx, testContainers...)
-			assert.NoError(t, err)
-			assert.Equal(t, containerutil.StatusRunning, info[testContainers[0]].Status)
-			assert.Equal(t, containerutil.StatusRunning, info[testContainers[1]].Status)
+			NoError(t, err)
+			Equal(t, containerutil.StatusRunning, info[testContainers[0]].Status)
+			Equal(t, containerutil.StatusRunning, info[testContainers[1]].Status)
 		})
 	}
 }
@@ -345,10 +344,10 @@ func TestFrontendImagePull(t *testing.T) {
 				LocalRegistryHostFileValue: "tcp://some-host:5309", // podman pull needs some potentially valid address to check against, otherwise panic
 				Console:                    testLogger(),
 			})
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			err = fe.ImagePull(ctx, tC.refList...)
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			defer func() {
 				for _, ref := range tC.refList {
@@ -375,19 +374,19 @@ func TestFrontendImageInfo(t *testing.T) {
 			onlyIfBinaryIsInstalled(ctx, t, tC.binary)
 
 			cleanup, err := spawnTestImages(ctx, tC.binary, tC.refList...)
-			assert.NoError(t, err)
+			NoError(t, err)
 			t.Cleanup(cleanup)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			info, err := fe.ImageInfo(ctx, tC.refList...)
-			assert.NoError(t, err)
+			NoError(t, err)
 
-			assert.Len(t, info, 2)
+			Len(t, info, 2)
 
-			assert.Contains(t, info[tC.refList[0]].Tags, tC.refList[0])
-			assert.Contains(t, info[tC.refList[1]].Tags, tC.refList[1])
+			Contains(t, info[tC.refList[0]].Tags, tC.refList[0])
+			Contains(t, info[tC.refList[1]].Tags, tC.refList[1])
 		})
 	}
 }
@@ -407,23 +406,23 @@ func TestFrontendImageRemove(t *testing.T) {
 
 			refList := []string{"remove:1", "remove:2"}
 			cleanup, err := spawnTestImages(ctx, tC.binary, refList...)
-			assert.NoError(t, err)
+			NoError(t, err)
 			t.Cleanup(cleanup)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			info, err := fe.ImageInfo(ctx, refList...)
-			assert.NoError(t, err)
-			assert.Len(t, info, 2)
+			NoError(t, err)
+			Len(t, info, 2)
 
 			err = fe.ImageRemove(ctx, true, refList...)
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			info, err = fe.ImageInfo(ctx, refList...)
-			assert.NoError(t, err)
-			assert.Empty(t, info[refList[0]].ID)
-			assert.Empty(t, info[refList[1]].ID)
+			NoError(t, err)
+			Empty(t, info[refList[0]].ID)
+			Empty(t, info[refList[1]].ID)
 		})
 	}
 }
@@ -444,14 +443,14 @@ func TestFrontendImageTag(t *testing.T) {
 
 			ref := "tag:me"
 			cleanup, err := spawnTestImages(ctx, tC.binary, ref)
-			assert.NoError(t, err)
+			NoError(t, err)
 			t.Cleanup(cleanup)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			info, err := fe.ImageInfo(ctx, ref)
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			imageID := info[ref].ID
 			tags := []containerutil.ImageTag{}
@@ -463,13 +462,13 @@ func TestFrontendImageTag(t *testing.T) {
 			}
 
 			err = fe.ImageTag(ctx, tags...)
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			info, err = fe.ImageInfo(ctx, tC.tagList...)
-			assert.NoError(t, err)
+			NoError(t, err)
 
-			assert.Contains(t, info[tC.tagList[0]].Tags, tC.tagList[0])
-			assert.Contains(t, info[tC.tagList[1]].Tags, tC.tagList[1])
+			Contains(t, info[tC.tagList[0]].Tags, tC.tagList[0])
+			Contains(t, info[tC.tagList[1]].Tags, tC.tagList[1])
 		})
 	}
 }
@@ -489,21 +488,21 @@ func TestFrontendImageLoad(t *testing.T) {
 			onlyIfBinaryIsInstalled(ctx, t, tC.binary)
 
 			cleanup, err := spawnTestImages(ctx, tC.binary, tC.ref)
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			imgBuffer := &bytes.Buffer{}
 			cmd := exec.CommandContext(ctx, tC.binary, "image", "save", tC.ref)
 			cmd.Stdout = bufio.NewWriter(imgBuffer)
 			err = cmd.Run()
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			cleanup()
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			err = fe.ImageLoad(ctx, bufio.NewReader(imgBuffer))
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			defer func() {
 				cmd := exec.CommandContext(ctx, tC.binary, "image", "rm", "-f", tC.ref)
@@ -511,8 +510,8 @@ func TestFrontendImageLoad(t *testing.T) {
 			}()
 
 			info, err := fe.ImageInfo(ctx, tC.ref)
-			assert.NoError(t, err)
-			assert.Contains(t, info[tC.ref].Tags, tC.ref)
+			NoError(t, err)
+			Contains(t, info[tC.ref].Tags, tC.ref)
 		})
 	}
 }
@@ -532,14 +531,14 @@ func TestFrontendImageLoadHybrid(t *testing.T) {
 			onlyIfBinaryIsInstalled(ctx, t, tC.binary)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			data, err := os.ReadFile("./testdata/hybrid.tar")
-			assert.NoError(t, err)
+			NoError(t, err)
 			reader := bytes.NewReader(data)
 
 			err = fe.ImageLoad(ctx, reader)
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			defer func() {
 				cmd := exec.CommandContext(ctx, tC.binary, "image", "rm", "-f", tC.ref)
@@ -547,8 +546,8 @@ func TestFrontendImageLoadHybrid(t *testing.T) {
 			}()
 
 			info, err := fe.ImageInfo(ctx, tC.ref)
-			assert.NoError(t, err)
-			assert.Contains(t, info[tC.ref].Tags, tC.ref)
+			NoError(t, err)
+			Contains(t, info[tC.ref].Tags, tC.ref)
 		})
 	}
 }
@@ -568,15 +567,15 @@ func TestFrontendVolumeInfo(t *testing.T) {
 
 			volList := []string{"test1", "test2"}
 			cleanup, err := spawnTestVolumes(ctx, tC.binary, volList...)
-			assert.NoError(t, err)
+			NoError(t, err)
 			t.Cleanup(cleanup)
 
 			fe, err := tC.newFunc(ctx, &containerutil.FrontendConfig{Console: testLogger()})
-			assert.NoError(t, err)
+			NoError(t, err)
 
 			info, err := fe.VolumeInfo(ctx, volList...)
-			assert.NoError(t, err)
-			assert.Len(t, info, 2)
+			NoError(t, err)
+			Len(t, info, 2)
 		})
 	}
 }
