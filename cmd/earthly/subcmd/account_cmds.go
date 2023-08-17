@@ -341,8 +341,10 @@ func (a *Account) actionRegister(cliCtx *cli.Context) error {
 	return nil
 }
 
-func promptPassword() (string, error) {
-	fmt.Printf("password: ")
+// promptHiddenText prompts the user to enter a value without echoing it to stdout
+// the hiddenTextPrompt is displayed to the user followed by a colon, as an interactive prompt.
+func promptHiddenText(hiddenTextPrompt string) (string, error) {
+	fmt.Printf("%s: ", hiddenTextPrompt)
 	password, err := term.ReadPassword(int(syscall.Stdin))
 	if err != nil {
 		return "", err
@@ -350,16 +352,16 @@ func promptPassword() (string, error) {
 	fmt.Println("")
 	return string(password), nil
 }
+func promptPassword() (string, error) {
+	return promptHiddenText("password")
+}
 
 func promptNewPassword() (string, error) {
-	fmt.Printf("New password: ")
-	enteredPassword, err := term.ReadPassword(int(syscall.Stdin))
+	enteredPassword, err := promptHiddenText("New password")
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("")
-	fmt.Printf("Confirm password: ")
-	enteredPassword2, err := term.ReadPassword(int(syscall.Stdin))
+	enteredPassword2, err := promptHiddenText("Confirm password")
 	if err != nil {
 		return "", err
 	}

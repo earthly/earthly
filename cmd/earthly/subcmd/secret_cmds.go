@@ -14,6 +14,7 @@ import (
 
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/cmd/earthly/helper"
+	"github.com/earthly/earthly/util/termutil"
 )
 
 type Secret struct {
@@ -58,11 +59,13 @@ func (a *Secret) Cmds() []*cli.Command {
 				{
 					Name:  "set",
 					Usage: "*beta* Stores a secret in the secrets store",
-					UsageText: "earthly [options] secret set <path> <value>\n" +
+					UsageText: "earthly [options] secret set <path>\n" +
+						"   earthly [options] secrets set <path> <value>\n" +
 						"   earthly [options] secrets set --file <local-path> <path>\n" +
 						"   earthly [options] secrets set --stdin <path>\n" +
 						"\n" +
-						"Security Recommendation: use --file or --stdin to avoid accidentally storing secrets in your shell's history.",
+						"Security Recommendation: avoid specifying the secret <value> on the command line (to prevent storing secrets in your shell's history);\n" +
+						"instead simply omit it, which will cause earthly to interactively prompt for the secret value, or use the --file or --stdin options.",
 					Description: "*beta* Stores a secret in the secrets store.",
 					Action:      a.actionSetV2,
 					Flags: []cli.Flag{
@@ -277,12 +280,24 @@ func (a *Secret) actionSetV2(cliCtx *cli.Context) error {
 	var path string
 	var value string
 	if a.cli.Flags().SecretFile == "" && !a.secretStdin {
-		if cliCtx.NArg() != 2 {
+		switch cliCtx.NArg() {
+		case 1:
+			path = cliCtx.Args().Get(0)
+			var err error
+			value, err = promptHiddenText("secret value")
+			if err != nil {
+				return err
+			}
+		case 2:
+			path = cliCtx.Args().Get(0)
+			value = cliCtx.Args().Get(1)
+		default:
 			return errors.New("invalid number of arguments provided")
 		}
-		path = cliCtx.Args().Get(0)
-		value = cliCtx.Args().Get(1)
 	} else if a.secretStdin {
+		if termutil.IsTTY() {
+			a.cli.Console().Printf("Reading secret from stdin; waiting for eof (ctrl-d); if you are running this interactively consider running \"earthy secret set <path>\" (without a value) instead.\n")
+		}
 		if a.cli.Flags().SecretFile != "" {
 			return errors.New("only one of --file or --stdin can be used at a time")
 		}
