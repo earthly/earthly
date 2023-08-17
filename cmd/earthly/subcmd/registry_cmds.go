@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path"
 	"sort"
 	"strings"
+	"syscall"
 	"text/tabwriter"
 
 	"github.com/pkg/errors"
@@ -100,7 +102,7 @@ func (a *Registry) Cmds() []*cli.Command {
 						&cli.StringFlag{
 							Name:        "username",
 							EnvVars:     []string{"EARTHLY_REGISTRY_USERNAME"},
-							Usage:       "The username to use when logging into the registry",
+							Usage:       "The username to use when logging into the registry; if omitted, earthly will prompt for a username via stdin.",
 							Required:    false,
 							Destination: &a.Username,
 						},
@@ -115,7 +117,7 @@ func (a *Registry) Cmds() []*cli.Command {
 						&cli.BoolFlag{
 							Name:        "password-stdin",
 							EnvVars:     []string{"EARTHLY_REGISTRY_PASSWORD_STDIN"},
-							Usage:       "Read the password from stdin (recommended)",
+							Usage:       "(Deprecated) Read the password from stdin (and wait for an EOF)",
 							Required:    false,
 							Destination: &a.PasswordStdin,
 						},
@@ -305,17 +307,35 @@ func (a *Registry) actionSetupGCloud(cliCtx *cli.Context, regPath string, cloudC
 
 func (a *Registry) actionSetupUsernamePassword(cliCtx *cli.Context, regPath string, cloudClient *cloud.Client, host string) error {
 	var err error
-	var password []byte
-	if a.PasswordStdin {
-		if a.Password != "" {
-			return fmt.Errorf("only one of  --password or --password-stdin")
+	username := a.Username
+	if username == "" {
+		fmt.Printf("username: ")
+		fmt.Scanln(&username)
+		if username == "" {
+			return fmt.Errorf("username can not be empty")
 		}
-		password, err = io.ReadAll(os.Stdin)
+	}
+
+	password := a.Password
+	if a.PasswordStdin {
+		a.cli.Console().Warnf("Deprecated: the --password-stdin flag will be removed in the future, to read from stdin simply omit both of the --password-stdin and --password flags\n")
+		passwordBytes, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			return errors.Wrap(err, "failed to read from stdin")
 		}
-	} else {
-		password = []byte(a.Password)
+		password = string(passwordBytes)
+	}
+	if password == "" {
+		// prompt via stdin instead
+
+		// Our signal handling under main() doesn't cause reading from stdin to cancel
+		// as there's no way to pass app.ctx to stdin read calls.
+		signal.Reset(syscall.SIGINT, syscall.SIGTERM)
+
+		password, err = promptPassword()
+		if err != nil {
+			return err
+		}
 	}
 	if len(password) == 0 {
 		return fmt.Errorf("password can not be empty")
@@ -328,11 +348,11 @@ func (a *Registry) actionSetupUsernamePassword(cliCtx *cli.Context, regPath stri
 		}
 	}
 
-	err = cloudClient.SetSecret(cliCtx.Context, path.Join(regPath, host, "username"), []byte(a.Username))
+	err = cloudClient.SetSecret(cliCtx.Context, path.Join(regPath, host, "username"), []byte(username))
 	if err != nil {
 		return err
 	}
-	err = cloudClient.SetSecret(cliCtx.Context, path.Join(regPath, host, "password"), password)
+	err = cloudClient.SetSecret(cliCtx.Context, path.Join(regPath, host, "password"), []byte(password))
 	if err != nil {
 		return err
 	}

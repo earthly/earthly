@@ -256,8 +256,8 @@ func (a *Account) actionRegister(cliCtx *cli.Context) error {
 	signal.Reset(syscall.SIGINT, syscall.SIGTERM)
 
 	pword := a.password
-	if a.password == "" {
-		pword, err = promptPassword()
+	if pword == "" {
+		pword, err = promptNewPassword()
 		if err != nil {
 			return err
 		}
@@ -342,6 +342,16 @@ func (a *Account) actionRegister(cliCtx *cli.Context) error {
 }
 
 func promptPassword() (string, error) {
+	fmt.Printf("password: ")
+	password, err := term.ReadPassword(int(syscall.Stdin))
+	if err != nil {
+		return "", err
+	}
+	fmt.Println("")
+	return string(password), nil
+}
+
+func promptNewPassword() (string, error) {
 	fmt.Printf("New password: ")
 	enteredPassword, err := term.ReadPassword(int(syscall.Stdin))
 	if err != nil {
@@ -790,7 +800,7 @@ func (a *Account) actionReset(cliCtx *cli.Context) error {
 	// as there's no way to pass a.ctx to stdin read calls.
 	signal.Reset(syscall.SIGINT, syscall.SIGTERM)
 
-	pword, err := promptPassword()
+	pword, err := promptNewPassword()
 	if err != nil {
 		return err
 	}
