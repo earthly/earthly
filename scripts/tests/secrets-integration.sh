@@ -79,10 +79,33 @@ EOF
 "$earthly" secrets --org manitou-org --project earthly-core-integration-test set my_test_file "secret-value"
 "$earthly" secrets --org manitou-org --project earthly-core-integration-test get my_test_file | acbgrep 'secret-value'
 
+# test earthly will prompt if value is missing
+/usr/bin/expect -c '
+spawn '"$earthly"' secrets --org manitou-org --project earthly-core-integration-test set my_test_file
+expect "secret value: "
+send "its my secret value\n"
+expect eof
+'
+"$earthly" secrets --org manitou-org --project earthly-core-integration-test get my_test_file | acbgrep 'its my secret value'
+
+# test set --stdin works
+echo -e "hello\nworld" | "$earthly" secrets --org manitou-org --project earthly-core-integration-test set --stdin my_test_file
+# note "echo -e "hello\nworld" | md5sum" -> 0f723ae7f9bf07744445e93ac5595156
+"$earthly" secrets --org manitou-org --project earthly-core-integration-test get -n my_test_file
+"$earthly" secrets --org manitou-org --project earthly-core-integration-test get -n my_test_file | md5sum | acbgrep '0f723ae7f9bf07744445e93ac5595156'
+
+# test set --file works
+"$earthly" secrets --org manitou-org --project earthly-core-integration-test set --file <(echo -e "foo\nbar") my_test_file
+# note "echo -e "foo\nbar" | md5sum" -> f47c75614087a8dd938ba4acff252494
+"$earthly" secrets --org manitou-org --project earthly-core-integration-test get -n my_test_file | md5sum | acbgrep 'f47c75614087a8dd938ba4acff252494'
+
+
+# restore the "secret-value", which the org selection test requires
+"$earthly" secrets --org manitou-org --project earthly-core-integration-test set my_test_file "secret-value"
+
 # test selecting org
 "$earthly" org select manitou-org
 "$earthly" org ls | acbgrep '^\* \+manitou-org'
-
 
 # test secrets with org selected in config file
 "$earthly" secrets --project earthly-core-integration-test get my_test_file | acbgrep 'secret-value'
