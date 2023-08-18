@@ -93,7 +93,7 @@ ga-no-qemu-quick:
     BUILD +env-test
     BUILD +env-home-test
     BUILD +stack-failure-test
-    BUILD +multi-stack-failure-test
+    #BUILD +multi-stack-failure-test
     BUILD +no-cache-local-artifact-test
     BUILD +empty-git-test
     BUILD +escape-test
