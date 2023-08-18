@@ -14,11 +14,15 @@ func ScrubCredentials(s string) string {
 
 // ScrubCredentialsAll scrubs all credentials from a longer piece of text.
 func ScrubCredentialsAll(s string) string {
+	// Short circuit when no basic auth credentials present.
+	if !strings.Contains(s, "@") {
+		return s
+	}
 	parts := strings.Split(s, " ")
 	ret := []string{}
 	for _, part := range parts {
 		if strings.Contains(part, "@") {
-			ret = append(ret, (ScrubCredentials(part)))
+			ret = append(ret, ScrubCredentials(part))
 		} else {
 			ret = append(ret, part)
 		}
