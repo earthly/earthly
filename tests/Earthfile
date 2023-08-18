@@ -93,7 +93,7 @@ ga-no-qemu-quick:
     BUILD +env-test
     BUILD +env-home-test
     BUILD +stack-failure-test
-    #BUILD +multi-stack-failure-test
+    BUILD +multi-stack-failure-test
     BUILD +no-cache-local-artifact-test
     BUILD +empty-git-test
     BUILD +escape-test
@@ -725,7 +725,8 @@ stack-failure-test:
 
 multi-stack-failure-test:
     RUN echo "FOO=foo" >.arg
-    RUN echo "THIS_IS_SECRET=dont-display-this" >>.arg
+    RUN echo "THIS_IS_SECRET=dont-display-this" >>.secret
+    RUN echo "THIS_IS_ALSO_A_SECRET=dont-display-this-either" >>.env # test for user accidentally putting a secret in .env (carried over from a v0.6.0 .env file)
 
     DO +RUN_EARTHLY --earthfile=multi-stack-failure.earth --extra_args="--no-output --build-arg BAR=bar" --output_contains="unknown flag .cause-interpreter-failure." --should_fail="true" --target=+fail
     RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
