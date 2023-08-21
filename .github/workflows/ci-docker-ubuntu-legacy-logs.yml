@@ -1,0 +1,203 @@
+name: Docker CI Ubuntu (Legacy Logs)
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore: [ docs/** ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  docker-tests-quick:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-quick"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      LOGBUS: "--logstream false"
+    secrets: inherit
+
+  docker-tests-no-qemu-quick:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-quick"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      LOGBUS: "--logstream false"
+    secrets: inherit
+
+  docker-tests-no-qemu-normal:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-normal"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      LOGBUS: "--logstream false"
+    secrets: inherit
+
+  docker-tests-no-qemu-slow:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-slow"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      LOGBUS: "--logstream false"
+    secrets: inherit
+
+  docker-tests-require-account-access:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "./tests+tests-that-require-earthly-technologies-account-access"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      LOGBUS: "--logstream false"
+    secrets: inherit
+
+  docker-tests-qemu:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-qemu"
+      USE_QEMU: true
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      LOGBUS: "--logstream false"
+    secrets: inherit
+
+  docker-examples-1:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-example.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      EXAMPLE_NAME: "+examples1"
+      LOGBUS: "--logstream false"
+    secrets: inherit
+
+  docker-examples-2:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-example.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      EXAMPLE_NAME: "+examples2"
+      LOGBUS: "--logstream false"
+    secrets: inherit
+
+  docker-test-local:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test-local.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      BINARY_COMPOSE: "\"docker compose\""
+      SUDO: ""
+      LOGBUS: "--logstream false"
+    secrets: inherit
+
+  docker-push-integrations:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-push-integrations.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      LOGBUS: "--logstream false"
+    secrets: inherit
+
+  docker-earthly-image-test:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-earthly-image-tests.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      LOGBUS: "--logstream false"
+    secrets: inherit
+
+  docker-misc-test-2:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-misc-tests-2.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      LOGBUS: "--logstream false"
+    secrets: inherit
+
+  docker-git-metadata-test:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-git-metadata-test.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      LOGBUS: "--logstream false"
+    secrets: inherit
+
+  race-tests-quick:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-race-test.yml
+    with:
+      TEST_TARGET: "+test-quick"
+      RUNS_ON: "ubuntu-latest"
+      USE_QEMU: false
+      LOGBUS: "--logstream false"
+    secrets: inherit
+
+  race-tests-no-qemu-quick:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-race-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-quick"
+      RUNS_ON: "ubuntu-latest"
+      USE_QEMU: false
+      LOGBUS: "--logstream false"
+    secrets: inherit
+
+  race-tests-no-qemu-normal:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-race-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-normal"
+      RUNS_ON: "ubuntu-latest"
+      USE_QEMU: false
+      LOGBUS: "--logstream false"
+    secrets: inherit
+
+  race-tests-no-qemu-slow:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-race-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-slow"
+      RUNS_ON: "ubuntu-latest"
+      USE_QEMU: false
+      LOGBUS: "--logstream false"
+    secrets: inherit

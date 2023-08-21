@@ -15,7 +15,10 @@ on:
       RUNS_ON:
         required: true
         type: string
-
+      LOGBUS:
+        required: true
+        type: string
+        default: ""
 
 jobs:
   misc-tests-2:
@@ -78,7 +81,7 @@ jobs:
         run: default_install_name=earthly ./tests/remote-buildkit/remote-buildkit-test.sh
       - name: Run linux-amd64 specific tests (Earthly Only)
         run: |-
-          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P \
+          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.LOGBUS}} --ci -P \
               --build-arg DOCKERHUB_AUTH=true \
               --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
               --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
@@ -91,7 +94,7 @@ jobs:
         run: (cd tests/docker && ${{inputs.SUDO}} ../../${{inputs.BUILT_EARTHLY_PATH}} docker-build --tag examples-test-docker:latest . && diff <(docker run --rm examples-test-docker:latest) <(echo "hello dockerfile") )
       - name: Execute private image test (Earthly Only)
         run: |-
-          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci \
+          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.LOGBUS}} --ci \
             --build-arg DOCKERHUB_AUTH=true \
             --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
             --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
@@ -102,7 +105,7 @@ jobs:
         run: frontend=${{inputs.BINARY}} ./tests/save-images/test.sh
       - name: Experimental tests (Earthly Only)
         run: |-
-          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P \
+          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.LOGBUS}} --ci -P \
               --build-arg DOCKERHUB_AUTH=true \
               --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
               --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
@@ -111,7 +114,7 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Experimental tests (Fork Only)
         run: |-
-          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P \
+          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.LOGBUS}} --ci -P \
               --build-arg DOCKERHUB_AUTH=false \
           ./tests+experimental
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
@@ -119,7 +122,7 @@ jobs:
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd 2>&1 | grep 'running server on'
       - name: Test for uncommitted generated code
         run: |-
-          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P \
+          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.LOGBUS}} --ci -P \
               --build-arg DOCKERHUB_AUTH=true \
               --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
               --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \

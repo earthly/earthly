@@ -12,6 +12,10 @@ on:
       USE_QEMU:
         required: false
         type: boolean
+      LOGBUS:
+        required: false
+        type: string
+        default: ""
 
 jobs:
   test-race:
@@ -53,7 +57,7 @@ jobs:
         run: ./build/earthly --use-inline-cache ./buildkitd+buildkitd --TAG=race-test
       - name: Execute tests (Earthly Only)
         run: |-
-          GORACE="halt_on_error=1" go run -race ./cmd/earthly/*.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
+          GORACE="halt_on_error=1" go run -race ./cmd/earthly/*.go --buildkit-image earthly/buildkitd:race-test ${{inputs.LOGBUS}} -P --no-output \
             --build-arg DOCKERHUB_AUTH=true \
             --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
             --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
@@ -62,7 +66,7 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute tests (Fork Only)
         run: |-
-          GORACE="halt_on_error=1" go run -race ./cmd/earthly/*.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
+          GORACE="halt_on_error=1" go run -race ./cmd/earthly/*.go --buildkit-image earthly/buildkitd:race-test ${{inputs.LOGBUS}} -P --no-output \
             --build-arg DOCKERHUB_AUTH=false \
             ${{inputs.TEST_TARGET}}
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository

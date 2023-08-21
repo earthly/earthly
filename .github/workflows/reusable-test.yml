@@ -31,7 +31,10 @@ on:
       EARTHLY_ORG:
         required: false
         type: string
-
+      LOGBUS:
+        required: false
+        type: string
+        default: ""
 
 jobs:
   test:
@@ -104,7 +107,7 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute ${{ inputs.TEST_TARGET }} (Fork)
         run: |-
-          ${{inputs.SUDO}} ${{ inputs.BUILT_EARTHLY_PATH }} --ci -P \
+          ${{inputs.SUDO}} ${{ inputs.BUILT_EARTHLY_PATH }} ${{ inputs.LOGBUS }} --ci -P \
             --build-arg DOCKERHUB_AUTH=false \
             ${{inputs.TEST_TARGET}}
         if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
