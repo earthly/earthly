@@ -266,6 +266,9 @@ ga-no-qemu-slow:
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
         --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
 
+ga-no-qemu-kind:
+    BUILD ./with-docker-kind+all
+
 ga-no-qemu:
     BUILD +ga-no-qemu-quick
     BUILD +ga-no-qemu-normal

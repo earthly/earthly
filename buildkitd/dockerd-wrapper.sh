@@ -48,6 +48,29 @@ execute() {
     fi
     mkdir -p "$EARTHLY_DOCKERD_DATA_ROOT"
 
+    if [ -f "/sys/fs/cgroup/cgroup.controllers" ]; then
+        if [ "$EARTHLY_DOCKER_WRAPPER_DEBUG" = "1" ]; then
+            echo >&2 "detected cgroups v2"
+        fi
+
+        # move script to separate cgroup, to prevent the root cgroup from becoming threaded (which will prevent systemd images (e.g. kind) from running)
+        mkdir /sys/fs/cgroup/dockerd-wrapper
+        echo $$ > /sys/fs/cgroup/dockerd-wrapper/cgroup.procs
+
+       # earthly wraps dockerd-wrapper.sh with a call via /bin/sh -c '....'
+       # so we also need to move the parent pid into this new group, which is weird
+       # TODO: we should unwrap this so $$ is all we need to move
+        echo 1 > /sys/fs/cgroup/dockerd-wrapper/cgroup.procs
+
+        if [ "$(wc -l < /sys/fs/cgroup/cgroup.procs)" != "0" ]; then
+            echo >&2 "warning: processes exist in the root cgroup; this may cause errors during cgroup initialization"
+        fi
+
+        if [ "$(cat /sys/fs/cgroup/cgroup.type)" != "domain" ]; then
+            echo >&2 "WARNING: expected cgroup type of \"domain\", but got \"$(cat  /sys/fs/cgroup/cgroup.type)\" instead"
+        fi
+    fi
+
     # Sometimes, when dockerd starts containerd, it doesn't come up in time. This timeout is not configurable from
     # dockerd, therefore we retry... since most instances of this timeout seem to be related to networking or scheduling
     # when many WITH DOCKER commands are also running. Logs are printed for each failure.

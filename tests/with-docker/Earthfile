@@ -13,6 +13,7 @@ all:
     BUILD +load-parallel-test
     BUILD +one-target-many-names
     BUILD +if-after
+    BUILD +cgroup-v2-test-all
 
 empty-test:
     WITH DOCKER
@@ -156,4 +157,17 @@ if-after:
 
     IF [ "true" = "true" ]
         RUN true
+    END
+
+cgroup-v2-test-all:
+    BUILD +cgroup-v2-test \
+        --DIND_IMG=earthly/dind:alpine-3.18-docker-23.0.6-r4 \
+        --DIND_IMG=earthly/dind:ubuntu-23.04-docker-24.0.5-1
+
+cgroup-v2-test:
+    ARG --required DIND_IMG
+    FROM $DIND_IMG
+    COPY test-cgroup-v2.sh test-cgroup-v2-inside-container.sh .
+    WITH DOCKER --pull ubuntu:23.04
+        RUN ./test-cgroup-v2.sh
     END

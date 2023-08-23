@@ -800,6 +800,23 @@ test-no-qemu-slow:
         --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
+# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-slow
+test-no-qemu-kind:
+    ARG DOCKERHUB_MIRROR
+    ARG DOCKERHUB_MIRROR_INSECURE=false
+    ARG DOCKERHUB_MIRROR_HTTP=false
+    ARG DOCKERHUB_AUTH=true
+    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+    BUILD ./tests+ga-no-qemu-kind \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
 # test-no-qemu-quick runs the tests from ./tests+ga-qemu
 test-qemu:
     ARG DOCKERHUB_MIRROR
