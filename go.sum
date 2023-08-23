@@ -179,8 +179,8 @@ github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
-github.com/earthly/buildkit v0.0.0-20230810234114-6d9a29f49bc4 h1:amHaXMDsefjeB3tHCu3fwsqwHDiUplJSo/CFlmkzkgI=
-github.com/earthly/buildkit v0.0.0-20230810234114-6d9a29f49bc4/go.mod h1:P7bVT9bNSjRkPvWZwVvrCmXzP6bfqw2T9GB7iKMP34s=
+github.com/earthly/buildkit v0.0.0-20230823210904-c7693ebc3b03 h1:RNkmVr13NVBe3Qo+rfH05rg+JUMaIFoITe9hkXNdczU=
+github.com/earthly/buildkit v0.0.0-20230823210904-c7693ebc3b03/go.mod h1:P7bVT9bNSjRkPvWZwVvrCmXzP6bfqw2T9GB7iKMP34s=
 github.com/earthly/cloud-api v1.0.1-0.20230802160321-f21bebf6053d h1:NPIWdT1f/wzFfuN9rCfj4dcmQD1SPAva5/I5wBfBE2c=
 github.com/earthly/cloud-api v1.0.1-0.20230802160321-f21bebf6053d/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
 github.com/earthly/fsutil v0.0.0-20230530182746-82567e6e2a92 h1:dy3w3B4OiDyQS+iHi/beUgMDJ1+fAAgbtr7OZ0d9ks0=
@@ -583,8 +583,6 @@ golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.0.0-20220825204002-c680a09ffe64/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220906165534-d0df966e6959/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.1.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.10.0 h1:SqMFp9UcQJZa+pmYuAKjd9xq1f0j5rLcDIk0mj4qAsA=
-golang.org/x/sys v0.10.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.11.0 h1:eG7RXZHdqOJ1i+0lgLgCpSXAp6M3LYlAo6osgSi0xOM=
 golang.org/x/sys v0.11.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
