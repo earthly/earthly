@@ -344,7 +344,7 @@ func (w *withDockerRunTar) solveImage(ctx context.Context, mts *states.MultiTarg
 			string(solveID),
 			llb.SessionID(sessionID),
 			llb.Platform(w.c.platr.LLBNative()),
-			llb.WithCustomNamef("%sdocker tar context %s %s", w.c.vertexPrefix(ctx, false, false, true, nil), opName, sessionID),
+			llb.WithCustomNamef("%sdocker tar context %s %s", w.c.vertexPrefix(ctx, w.c.newCmdID(), false, false, true, nil), opName, sessionID),
 		)
 		// Add directly to build context so that if a later statement forces execution, the images are available.
 		w.c.opt.BuildContextProvider.AddDir(string(solveID), outDir)
