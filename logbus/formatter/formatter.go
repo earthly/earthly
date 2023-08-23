@@ -311,11 +311,6 @@ func (f *Formatter) printHeader(targetID string, commandID string, tm *logstream
 	if verboseOnly && !f.verbose {
 		return
 	}
-	if cm.GetCategory() == "context" && !f.verbose {
-		// These tend to be pretty noisy. Don't print their header unless
-		// verbose is enabled.
-		return
-	}
 	if failure {
 		c = c.WithFailed(true)
 	}
@@ -441,6 +436,11 @@ func (f *Formatter) targetConsole(targetID string, commandID string) (consloggin
 	case strings.HasPrefix(commandID, "_generic:"):
 		targetName = strings.TrimPrefix(commandID, "_generic:")
 		writerTargetID = commandID
+		switch targetName {
+		case "context":
+			verboseOnly = true
+		default:
+		}
 	case commandID != "":
 		cm, ok := f.manifest.GetCommands()[commandID]
 		if ok {
@@ -454,6 +454,8 @@ func (f *Formatter) targetConsole(targetID string, commandID string) (consloggin
 			verboseOnly = true
 			targetName = strings.TrimPrefix(targetName, "internal ")
 		case targetName == "internal":
+			verboseOnly = true
+		case targetName == "context":
 			verboseOnly = true
 		case targetName == "":
 			verboseOnly = true
