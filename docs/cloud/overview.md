@@ -8,7 +8,7 @@ Earthly Cloud is a collection of features that enrich the Earthly experience via
 
 ## Sign up for Earthly Cloud for free!
 
-*Get 6,000 build minutes/month to use across Satellites and CI as part of Earthly Cloud's no time limit free tier.* ***[Sign up today](https://cloud.earthly.dev/login).***
+*Get 6,000 build minutes/month on Satellites as part of Earthly Cloud's no time limit free tier.* ***[Sign up today](https://cloud.earthly.dev/login).***
 
 ## Getting started
 
