@@ -1674,7 +1674,7 @@ Sets the number of retries before a container is considered `unhealthy`. Default
 
 The `HOST` command creates a hostname entry (under `/etc/hosts`) that causes `<hostname>` to resolve to the specified `<ip>` address.
 
-## PIPELINE (beta)
+## PIPELINE (**deprecated**)
 
 {% hint style='info' %}
 ##### Note
@@ -1726,7 +1726,7 @@ my-build:
 
 Indicates that the targets referenced by this pipeline will be called in push-mode. `SAVE IMAGE --push` commands will trigger pushes to the remote registry, and `RUN --push` commands will execute.
 
-## TRIGGER (beta)
+## TRIGGER (**deprecated**)
 
 {% hint style='info' %}
 ##### Note

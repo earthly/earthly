@@ -12,7 +12,6 @@
     * [Part 6: Using Docker In Earthly](basics/part-6-using-docker-with-earthly.md)
     * [Part 7: Using remote runners](basics/part-7-using-remote-runners.md)
     * [Part 8a: Using Earthly in your current CI](basics/part-8a-using-earthly-in-your-current-ci.md)
-    * [Part 8b: Using Earthly CI](basics/part-8b-using-earthly-ci.md)
     * [Final words](basics/final-words.md)
 * [✅ Best practices](best-practices/best-practices.md)
 
@@ -79,4 +78,3 @@
 * [Earthly Satellites](cloud/satellites.md)
     * [Managing Satellites](cloud/satellites/managing.md)
     * [Using Satellites](cloud/satellites/using.md)
-* [Earthly CI](cloud/earthly-ci.md)

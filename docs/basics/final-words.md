@@ -37,6 +37,5 @@ If you have any questions, feedback or suggestions for Earthly or this tutorial 
 * [Part 5: Importing](./part-5-importing.md)
 * [Part 6: Using Docker In Earthly](./part-6-using-docker-with-earthly.md)
 * [Part 7: Using remote runners](./part-7-using-remote-runners.md)
-* [Part 8a: Using Earthly in your current CI](./part-8a-using-earthly-in-your-current-ci.md)
-* [Part 8b: Using Earthly CI](./part-8b-using-earthly-ci.md)
+* [Part 8: Using Earthly in CI](./part-8a-using-earthly-in-your-current-ci.md)
 * **Final words** <-- You are here.
