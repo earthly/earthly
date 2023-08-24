@@ -4,12 +4,11 @@ Earthly Cloud is a collection of features that enrich the Earthly experience via
 
 * [Earthly Satellites](./satellites.md): Cloud-based Buildkit instances managed by the Earthly team.
 * [Earthly Cloud Secrets](./cloud-secrets.md): A secret management system that allows you to store secrets in a cloud-based service and use them across builds.
-* [Earthly CI](./earthly-ci.md): A cloud-based CI/CD system that allows you to continuously build your code in the cloud.
 * **Log sharing**: The ability to share build logs with coworkers.
 
 ## Sign up for Earthly Cloud for free!
 
-*Get 6,000 build minutes/month to use across Satellites and CI as part of Earthly Cloud's no time limit free tier.* ***[Sign up today](https://cloud.earthly.dev/login).***
+*Get 6,000 build minutes/month on Satellites as part of Earthly Cloud's no time limit free tier.* ***[Sign up today](https://cloud.earthly.dev/login).***
 
 ## Getting started
 
@@ -59,7 +58,7 @@ You can join an Earthly org by following the steps outlined in the invitation em
 
 ### Creating a project
 
-To use certain features, such as Earthly CI or Earthly Cloud Secrets, you will additionally need to create an Earthly Project. You can create a project by visiting [Earthly Cloud](https://cloud.earthly.dev/), or by using the CLI as described below.
+To use certain features, Earthly Cloud Secrets, you will additionally need to create an Earthly Project. You can create a project by using the CLI as described below.
 
 ```bash
 earthly project create <project-name>
@@ -67,7 +66,7 @@ earthly project create <project-name>
 
 ## Logging in from a CI
 
-To be able to use certain Earthly features, such as Cloud Secrets, or Satellites from a CI other than Earthly CI, you will need to log into Earthly. The easiest way to do that is to create an Earthly authentication token by running
+To be able to use certain Earthly features, such as Cloud Secrets, or Satellites from your CI, you will need to log into Earthly. The easiest way to do that is to create an Earthly authentication token by running
 
 ```bash
 earthly account create-token [--write] <token-name>

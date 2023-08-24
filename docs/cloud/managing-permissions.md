@@ -1,6 +1,6 @@
 # Managing permissions
 
-This page covers managing permissions for Earthly Cloud products, such as Earthly Cloud Secrets, Earthly Satellites and Earthly CI.
+This page covers managing permissions for Earthly Cloud products, such as Earthly Cloud Secrets, and Earthly Satellites.
 
 ## Overview
 
@@ -59,7 +59,7 @@ Within an Earthly project, users may be granted one of the following access leve
 
 * `read`: Can view the project, including the build history and build logs.
 * `read+secrets`: Same as read, but can also view and use secrets.
-* `write`: Everything in `read+secrets`, plus the ability to create and modify secrets, as well as the ability to modify the project's setup, like adding and removing repositories to track.
+* `write`: Everything in `read+secrets`, plus the ability to create and modify secrets.
 * `admin`: Everything in `write`, plus the ability to manage the project's users.
 
 ### Managing access to an Earthly project

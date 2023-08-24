@@ -83,6 +83,27 @@ Or, to reference a user secret:
 RUN --secret MY_KEY=/user/my_private_key echo $MY_KEY
 ```
 
+## Using Cloud Secrets to log into registries
+
+Cloud secrets can also be used to log into container registries such as DockerHub, AWS ECR, or GCP Artifact Registry. Here is the command to use:
+
+```bash
+earthly registry --org <org-name> --project <project-name> \
+setup --username <registry-user-name> --password-stdin \
+<host>
+```
+
+This command stores the username and password within the cloud secrets store. Earthly picks these up automatically when pulling or pushing images. If the registry is DockerHub, then you can leave out the registry host argument.
+
+You may additionally log into other registries, such as AWS ECR, or GCP Artifact Registry, by using the following:
+
+```bash
+# For AWS ECR
+earthly registry --org <org-name> --project <project-name> setup --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>
+# For GCP Artifact Registry
+earthly registry --org <org-name> --project <project-name> setup --cred-helper gcloud --gcp-service-account-key <key> <host>
+```
+
 ## Security Details
 
 The Earthly command uses HTTPS to communicate with the cloud secrets server. The server encrypts all secrets using OpenPGP's implementation of AES256 before storing it in a database. We use industry-standard security practices for managing our encryption keys in the cloud. For more information see our [Security page](https://earthly.dev/security).

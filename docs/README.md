@@ -35,7 +35,6 @@ Earthly is better when you're logged in to Earthly Cloud, and Earthly Cloud has 
   * Remote build runners
   * Shared logs
   * Shared secrets
-  * Even a full-fledged continuous integration system
 
 To get started, visit the [Earthly Cloud sign up](https://cloud.earthly.dev/login) page.
 

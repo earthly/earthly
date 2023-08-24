@@ -4,7 +4,7 @@ Earthly Satellites are [remote runner](../remote-runners.md) instances managed b
 
 ## Get started with Earthly Satellites for free!
 
-Earthly Satellites is included with [Earthly Cloud](https://docs.earthly.dev/earthly-cloud/overview). Earthly Cloud is a SaaS build automation platform with consistent builds, ridiculous speed, and a next-gen developer experience that works seamlessly with any CI. It includes the functionality of both Earthly Satellites and [Earthly CI](https://docs.earthly.dev/earthly-cloud/earthly-ci). *Get 6,000 build minutes/month as part of Earthly Cloud's no time limit free tier.* ***[Sign up today](https://cloud.earthly.dev/login).***
+Earthly Satellites is included with [Earthly Cloud](https://docs.earthly.dev/earthly-cloud/overview). Earthly Cloud is a SaaS build automation platform with consistent builds, ridiculous speed, and a next-gen developer experience that works seamlessly with any CI. *Get 6,000 build minutes/month as part of Earthly Cloud's no time limit free tier.* ***[Sign up today](https://cloud.earthly.dev/login).***
 
 ## Benefits
 
