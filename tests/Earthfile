@@ -149,6 +149,7 @@ ga-no-qemu-quick:
     BUILD +test-works-without-earthly-server
     BUILD +test-init-unsupported
     BUILD +test-init-golang
+    BUILD +pass-args-test
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -618,6 +619,11 @@ subdirprivileged:
 reject-privileged-import-test:
     DO +RUN_EARTHLY --earthfile=reject-privileged-import.earth --should_fail=true --extra_args="--allow-privileged" --target=+test-reject-copy
     DO +RUN_EARTHLY --earthfile=reject-privileged-import.earth --should_fail=true --extra_args="--allow-privileged" --target=+test-reject-cmd
+
+pass-args-test:
+    COPY pass-args-sub-dir.earth subdir/Earthfile
+    COPY pass-args-root.earth Earthfile
+    DO +RUN_EARTHLY --target=./subdir+test-all --extra_args="--build-arg foo=bar"
 
 required-arg-test:
     # test that build arg is required

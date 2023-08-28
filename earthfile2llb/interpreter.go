@@ -97,7 +97,7 @@ func (i *Interpreter) isPipelineTarget(ctx context.Context, t spec.Target) bool 
 func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
 	ctx = ContextWithSourceLocation(ctx, t.SourceLocation)
 	// Apply implicit FROM +base
-	err := i.converter.From(ctx, "+base", platutil.DefaultPlatform, i.allowPrivileged, nil)
+	err := i.converter.From(ctx, "+base", platutil.DefaultPlatform, i.allowPrivileged, false, nil)
 	if err != nil {
 		return i.wrapError(err, t.SourceLocation, "apply FROM")
 	}
@@ -617,8 +617,12 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 		return err
 	}
 
+	if !i.converter.ftrs.PassArgs && opts.PassArgs {
+		return i.errorf(cmd.SourceLocation, "the FROM --pass-args flag must be enabled with the VERSION --pass-args feature flag.")
+	}
+
 	i.local = false // FIXME https://github.com/earthly/earthly/issues/2044
-	err = i.converter.From(ctx, imageName, platform, allowPrivileged, expandedBuildArgs)
+	err = i.converter.From(ctx, imageName, platform, allowPrivileged, opts.PassArgs, expandedBuildArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply FROM %s", imageName)
 	}
@@ -985,13 +989,17 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			}
 			srcBuildArgs := append(parsedFlagArgs, expandedBuildArgs...)
 
+			if !i.converter.ftrs.PassArgs && opts.PassArgs {
+				return i.errorf(cmd.SourceLocation, "the COPY --pass-args flag must be enabled with the VERSION --pass-args feature flag.")
+			}
+
 			if i.local {
-				err = i.converter.CopyArtifactLocal(ctx, src, dest, platform, allowPrivileged, srcBuildArgs, opts.IsDirCopy)
+				err = i.converter.CopyArtifactLocal(ctx, src, dest, platform, allowPrivileged, opts.PassArgs, srcBuildArgs, opts.IsDirCopy)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "copy artifact locally")
 				}
 			} else {
-				err = i.converter.CopyArtifact(ctx, src, dest, platform, allowPrivileged, srcBuildArgs, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, expandedChown, fileModeParsed, opts.IfExists, opts.SymlinkNoFollow)
+				err = i.converter.CopyArtifact(ctx, src, dest, platform, allowPrivileged, opts.PassArgs, srcBuildArgs, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, expandedChown, fileModeParsed, opts.IfExists, opts.SymlinkNoFollow)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "copy artifact")
 				}
@@ -1191,16 +1199,20 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 		return err
 	}
 
+	if !i.converter.ftrs.PassArgs && opts.PassArgs {
+		return i.errorf(cmd.SourceLocation, "the BUILD --pass-args flag must be enabled with the VERSION --pass-args feature flag.")
+	}
+
 	for _, bas := range crossProductBuildArgs {
 		for _, platform := range platformsSlice {
 			if async {
-				err := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, bas, buildCmd, nil, nil)
+				err := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, bas, buildCmd, nil, nil)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
 				}
 				continue
 			}
-			err := i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, bas)
+			err := i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, bas)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
 			}
@@ -1712,12 +1724,17 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 			return err
 		}
 
+		if !i.converter.ftrs.PassArgs && opts.PassArgs {
+			return i.errorf(cmd.SourceLocation, "the WITH DOCKER --pass-args flag must be enabled with the VERSION --pass-args feature flag.")
+		}
+
 		i.withDocker.Loads = append(i.withDocker.Loads, DockerLoadOpt{
 			Target:          loadTarget,
 			ImageName:       loadImg,
 			Platform:        platform,
 			BuildArgs:       loadBuildArgs,
 			AllowPrivileged: allowPrivileged,
+			PassArgs:        opts.PassArgs,
 		})
 	}
 	return nil
@@ -1787,9 +1804,13 @@ func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 		allowPrivileged = allowPrivileged && resolvedAllowPrivileged
 	}
 
+	if !i.converter.ftrs.PassArgs && opts.PassArgs {
+		return i.errorf(cmd.SourceLocation, "the DO --pass-args flag must be enabled with the VERSION --pass-args feature flag.")
+	}
+
 	for _, uc := range bc.Earthfile.UserCommands {
 		if uc.Name == command.Command {
-			return i.handleDoUserCommand(ctx, command, relCommand, uc, cmd, parsedFlagArgs, allowPrivileged)
+			return i.handleDoUserCommand(ctx, command, relCommand, uc, cmd, parsedFlagArgs, allowPrivileged, opts.PassArgs)
 		}
 	}
 	return i.errorf(cmd.SourceLocation, "user command %s not found", ucName)
@@ -1972,7 +1993,7 @@ func (i *Interpreter) handleHost(ctx context.Context, cmd spec.Command) error {
 
 // ----------------------------------------------------------------------------
 
-func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Command, relCommand domain.Command, uc spec.UserCommand, do spec.Command, buildArgs []string, allowPrivileged bool) error {
+func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Command, relCommand domain.Command, uc spec.UserCommand, do spec.Command, buildArgs []string, allowPrivileged, passArgs bool) error {
 	if allowPrivileged && !i.allowPrivileged {
 		return i.errorf(uc.SourceLocation, "invalid privileged in COMMAND") // this shouldn't happen, but check just in case
 	}
@@ -1985,7 +2006,7 @@ func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Co
 	scopeName := fmt.Sprintf(
 		"%s (%s line %d:%d)",
 		command.StringCanonical(), do.SourceLocation.File, do.SourceLocation.StartLine, do.SourceLocation.StartColumn)
-	err := i.converter.EnterScopeDo(ctx, command, baseTarget(relCommand), allowPrivileged, scopeName, buildArgs)
+	err := i.converter.EnterScopeDo(ctx, command, baseTarget(relCommand), allowPrivileged, passArgs, scopeName, buildArgs)
 	if err != nil {
 		return i.wrapError(err, uc.SourceLocation, "enter scope")
 	}

@@ -131,12 +131,12 @@ func (wdrl *withDockerRunLocalTar) load(ctx context.Context, opt DockerLoadOpt) 
 		return nil
 	}
 	if wdrl.enableParallel {
-		err = wdrl.c.BuildAsync(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.BuildArgs, loadCmd, afterFun, wdrl.sem)
+		err = wdrl.c.BuildAsync(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.PassArgs, opt.BuildArgs, loadCmd, afterFun, wdrl.sem)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		mts, err := wdrl.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.BuildArgs, false, loadCmd)
+		mts, err := wdrl.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.PassArgs, opt.BuildArgs, false, loadCmd)
 		if err != nil {
 			return nil, err
 		}
