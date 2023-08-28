@@ -72,6 +72,17 @@ jobs:
       SUDO: ""
     secrets: inherit
 
+  docker-tests-no-qemu-kind:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-kind"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
   docker-tests-require-account-access:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     needs: build-earthly
