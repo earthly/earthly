@@ -27,6 +27,13 @@ def get_earthly_binary(earthly):
                 return fullpath
     raise RuntimeError(f'failed to find earthly binary: {earthly}')
 
+def print_box(msg):
+    n = len(msg)
+    print('')
+    print('='*(n+4))
+    print(f'= {msg} =')
+    print('='*(n+4))
+    print('')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -48,7 +55,7 @@ if __name__ == '__main__':
     exit_code = 0
     summary_msgs = []
     for test_name, test in tests:
-        print(f'Running {test_name}')
+        print_box(f'Running {test_name}')
         test_exit_code = test(earthly_path, args.timeout)
         if test_exit_code == 2:
             msg = f'{test_name} timed out'
@@ -63,7 +70,7 @@ if __name__ == '__main__':
         else:
             print(f'{test_name} passed')
             num_passed += 1
-    print('== Summary ==')
+    print_box('Summary')
     print(f'{num_passed}/{num_tests} interactive-debugger tests passed')
     for msg in summary_msgs:
         print(msg)
