@@ -37,6 +37,7 @@ type RunOpts struct {
 
 type FromOpts struct {
 	AllowPrivileged bool     `long:"allow-privileged" description:"Allow commands under remote targets to enable privileged mode"`
+	PassArgs        bool     `long:"pass-args" description:"Pass arguments to external targets"`
 	BuildArgs       []string `long:"build-arg" description:"A build arg override passed on to a referenced Earthly target"`
 	Platform        string   `long:"platform" description:"The platform to use"`
 }
@@ -58,6 +59,7 @@ type CopyOpts struct {
 	IfExists        bool     `long:"if-exists" description:"Do not fail if the artifact does not exist"`
 	SymlinkNoFollow bool     `long:"symlink-no-follow" description:"Do not follow symlinks"`
 	AllowPrivileged bool     `long:"allow-privileged" description:"Allow targets to assume privileged mode"`
+	PassArgs        bool     `long:"pass-args" description:"Pass arguments to external targets"`
 	Platform        string   `long:"platform" description:"The platform to use"`
 	BuildArgs       []string `long:"build-arg" description:"A build arg override passed on to a referenced Earthly target"`
 }
@@ -82,6 +84,7 @@ type BuildOpts struct {
 	Platforms       []string `long:"platform" description:"The platform to use"`
 	BuildArgs       []string `long:"build-arg" description:"A build arg override passed on to a referenced Earthly target"`
 	AllowPrivileged bool     `long:"allow-privileged" description:"Allow targets to assume privileged mode"`
+	PassArgs        bool     `long:"pass-args" description:"Pass arguments to external targets"`
 }
 
 type GitCloneOpts struct {
@@ -104,14 +107,17 @@ type WithDockerOpts struct {
 	BuildArgs       []string `long:"build-arg" description:"A build arg override passed on to a referenced Earthly target"`
 	Pulls           []string `long:"pull" description:"An image which is pulled and made available in the docker cache"`
 	AllowPrivileged bool     `long:"allow-privileged" description:"Allow targets referenced by load to assume privileged mode"`
+	PassArgs        bool     `long:"pass-args" description:"Pass arguments to external targets"`
 }
 
 type DoOpts struct {
 	AllowPrivileged bool `long:"allow-privileged" description:"Allow targets to assume privileged mode"`
+	PassArgs        bool `long:"pass-args" description:"Pass arguments to external targets"`
 }
 
 type ImportOpts struct {
 	AllowPrivileged bool `long:"allow-privileged" description:"Allow targets to assume privileged mode"`
+	PassArgs        bool `long:"pass-args" description:"Pass arguments to external targets"`
 }
 
 type ArgOpts struct {

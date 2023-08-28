@@ -29,6 +29,7 @@ type DockerLoadOpt struct {
 	Platform        platutil.Platform
 	BuildArgs       []string
 	AllowPrivileged bool
+	PassArgs        bool
 }
 
 // DockerPullOpt holds parameters for the WITH DOCKER --pull parameter.

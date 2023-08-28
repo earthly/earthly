@@ -1,0 +1,20 @@
+VERSION --pass-args 0.7
+
+parent-target-wants-bar:
+    FROM alpine:3.18
+    ARG foo
+    RUN test "$foo" = "bar"
+    RUN echo "foo=$foo" > data
+    SAVE ARTIFACT data
+
+parent-target-wants-empty:
+    FROM alpine:3.18
+    ARG foo
+    RUN test -z "$foo"
+    RUN echo "foo=$foo" > data
+    SAVE ARTIFACT data
+
+PARENTCMD:
+    COMMAND
+    ARG foo
+    RUN echo "foo=$foo" > data

@@ -1,0 +1,44 @@
+VERSION --pass-args 0.7
+
+test-all:
+  BUILD +test-empty-via-from
+  BUILD +test-pass-args-via-from
+  BUILD +test-empty-via-copy
+  BUILD +test-pass-args-via-copy
+  BUILD +test-empty-via-build
+  BUILD +test-pass-args-via-build
+  BUILD +test-empty-command
+  BUILD +test-pass-args-command
+
+test-empty-via-from:
+  FROM ..+parent-target-wants-empty
+
+test-pass-args-via-from:
+  FROM --pass-args ..+parent-target-wants-bar
+
+test-empty-via-copy:
+  FROM alpine:3.18
+  COPY ..+parent-target-wants-empty/data .
+
+test-pass-args-via-copy:
+  FROM alpine:3.18
+  COPY --pass-args ..+parent-target-wants-bar/data .
+
+test-empty-via-build:
+  BUILD ..+parent-target-wants-empty
+
+test-pass-args-via-build:
+  FROM alpine:3.18
+  BUILD --pass-args ..+parent-target-wants-bar
+
+test-empty-command:
+  FROM alpine:3.18
+  DO ..+PARENTCMD
+  RUN cat data
+  RUN grep '^foo=$' data
+
+test-pass-args-command:
+  FROM alpine:3.18
+  DO --pass-args ..+PARENTCMD
+  RUN cat data
+  RUN grep '^foo=bar$' data

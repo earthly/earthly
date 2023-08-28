@@ -59,6 +59,7 @@ type Features struct {
 	ArgScopeSet                bool `long:"arg-scope-and-set" description:"enable SET to reassign ARGs and prevent ARGs from being redeclared in the same scope"`
 	EarthlyCIRunnerArg         bool `long:"earthly-ci-runner-arg" description:"includes EARTHLY_CI_RUNNER ARG"`
 	UseDockerIgnore            bool `long:"use-docker-ignore" description:"fallback to .dockerignore incase .earthlyignore or .earthignore do not exist in a local \"FROM DOCKERFILE\" target"`
+	PassArgs                   bool `long:"pass-args" description:"Allow the use of the --pass-arg flag in FROM, BUILD, COPY, WITH DOCKER, and DO commands"`
 
 	Major int
 	Minor int

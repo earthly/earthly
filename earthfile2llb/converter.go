@@ -176,7 +176,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 }
 
 // From applies the earthly FROM command.
-func (c *Converter) From(ctx context.Context, imageName string, platform platutil.Platform, allowPrivileged bool, buildArgs []string) error {
+func (c *Converter) From(ctx context.Context, imageName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string) error {
 	err := c.checkAllowed(fromCmd)
 	if err != nil {
 		return err
@@ -194,7 +194,7 @@ func (c *Converter) From(ctx context.Context, imageName string, platform platuti
 	platform = c.setPlatform(platform)
 	if strings.Contains(imageName, "+") {
 		// Target-based FROM.
-		return c.fromTarget(ctx, imageName, platform, allowPrivileged, buildArgs)
+		return c.fromTarget(ctx, imageName, platform, allowPrivileged, passArgs, buildArgs)
 	}
 
 	// Docker image based FROM.
@@ -226,12 +226,12 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	return nil
 }
 
-func (c *Converter) fromTarget(ctx context.Context, targetName string, platform platutil.Platform, allowPrivileged bool, buildArgs []string) error {
+func (c *Converter) fromTarget(ctx context.Context, targetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string) error {
 	depTarget, err := domain.ParseTarget(targetName)
 	if err != nil {
 		return errors.Wrapf(err, "parse target name %s", targetName)
 	}
-	mts, err := c.buildTarget(ctx, depTarget.String(), platform, allowPrivileged, buildArgs, false, fromCmd)
+	mts, err := c.buildTarget(ctx, depTarget.String(), platform, allowPrivileged, passArgs, buildArgs, false, fromCmd)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
@@ -277,7 +277,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		dfArtifact, parseErr := domain.ParseArtifact(dfPath)
 		if parseErr == nil {
 			// The Dockerfile is from a target's artifact.
-			mts, err := c.buildTarget(ctx, dfArtifact.Target.String(), platform, false, buildArgs, false, fromDockerfileCmd)
+			mts, err := c.buildTarget(ctx, dfArtifact.Target.String(), platform, false, false, buildArgs, false, fromDockerfileCmd)
 			if err != nil {
 				return err
 			}
@@ -313,7 +313,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		// The build context is from a target's artifact.
 		// TODO: The build args are used for both the artifact and the Dockerfile. This could be
 		//       confusing to the user.
-		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), platform, false, buildArgs, false, fromDockerfileCmd)
+		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), platform, false, false, buildArgs, false, fromDockerfileCmd)
 		if err != nil {
 			return err
 		}
@@ -446,7 +446,7 @@ func (c *Converter) Locally(ctx context.Context) error {
 }
 
 // CopyArtifactLocal applies the earthly COPY artifact command which are invoked under a LOCALLY target.
-func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, dest string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, isDir bool) error {
+func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, dest string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, isDir bool) error {
 	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
@@ -456,7 +456,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, allowPrivileged, buildArgs, false, copyCmd)
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, allowPrivileged, passArgs, buildArgs, false, copyCmd)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
 	}
@@ -493,7 +493,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 }
 
 // CopyArtifact applies the earthly COPY artifact command.
-func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, chmod *fs.FileMode, ifExists, symlinkNoFollow bool) error {
+func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, chmod *fs.FileMode, ifExists, symlinkNoFollow bool) error {
 	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
@@ -506,7 +506,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, allowPrivileged, buildArgs, false, copyCmd)
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, allowPrivileged, passArgs, buildArgs, false, copyCmd)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
 	}
@@ -1118,21 +1118,21 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, hasPushF
 }
 
 // Build applies the earthly BUILD command.
-func (c *Converter) Build(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged bool, buildArgs []string) error {
+func (c *Converter) Build(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string) error {
 	err := c.checkAllowed(buildCmd)
 	if err != nil {
 		return err
 	}
 	c.nonSaveCommand()
-	_, err = c.buildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, true, buildCmd)
+	_, err = c.buildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, true, buildCmd)
 	return err
 }
 
 type afterParallelFunc func(context.Context, *states.MultiTarget) error
 
 // BuildAsync applies the earthly BUILD command asynchronously.
-func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, cmdT cmdType, apf afterParallelFunc, sem semutil.Semaphore) error {
-	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, true, cmdT)
+func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, cmdT cmdType, apf afterParallelFunc, sem semutil.Semaphore) error {
+	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, true, cmdT)
 	if err != nil {
 		return err
 	}
@@ -1587,12 +1587,13 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 }
 
 // EnterScopeDo introduces a new variable scope. Globals and imports are fetched from baseTarget.
-func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged bool, scopeName string, buildArgs []string) error {
+func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged, passArgs bool, scopeName string, buildArgs []string) error {
 	topArgs := buildArgs
 	if c.ftrs.ArgScopeSet {
 		topArgs = c.varCollection.TopOverriding().BuildArgs()
 	}
-	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.platr.Current(), allowPrivileged, topArgs, true, enterScopeDoCmd)
+
+	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.platr.Current(), allowPrivileged, passArgs, topArgs, true, enterScopeDoCmd)
 	if err != nil {
 		return err
 	}
@@ -1604,6 +1605,9 @@ func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, ba
 	overriding, err := variables.ParseArgs(buildArgs, pncvf, c.varCollection)
 	if err != nil {
 		return err
+	}
+	if passArgs {
+		overriding = variables.CombineScopes(overriding, c.varCollection.Overriding())
 	}
 	c.varCollection.EnterFrame(
 		scopeName, command, overriding, baseMts.Final.VarCollection.Globals(),
@@ -1698,7 +1702,7 @@ func (c *Converter) ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word
 	})
 }
 
-func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, cmdT cmdType) (domain.Target, ConvertOpt, bool, error) {
+func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, isDangling bool, cmdT cmdType) (domain.Target, ConvertOpt, bool, error) {
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return domain.Target{}, ConvertOpt{}, false, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
@@ -1725,8 +1729,8 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	if err != nil {
 		return domain.Target{}, ConvertOpt{}, false, errors.Wrap(err, "parse build args")
 	}
-	// Don't allow transitive overriding variables to cross project boundaries.
-	propagateBuildArgs := !relTarget.IsExternal()
+	// Don't allow transitive overriding variables to cross project boundaries (unless --pass-all is used).
+	propagateBuildArgs := passArgs || !relTarget.IsExternal()
 	if propagateBuildArgs {
 		overriding = variables.CombineScopes(overriding, c.varCollection.Overriding())
 	}
@@ -1761,8 +1765,8 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	return target, opt, propagateBuildArgs, nil
 }
 
-func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged bool, buildArgs []string, isDangling bool, cmdT cmdType) (*states.MultiTarget, error) {
-	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, buildArgs, isDangling, cmdT)
+func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, isDangling bool, cmdT cmdType) (*states.MultiTarget, error) {
+	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, isDangling, cmdT)
 	if err != nil {
 		return nil, err
 	}
