@@ -168,6 +168,7 @@ cgroup-v2-test:
     ARG --required DIND_IMG
     FROM $DIND_IMG
     COPY test-cgroup-v2.sh test-cgroup-v2-inside-container.sh .
-    WITH DOCKER --pull ubuntu:23.04
+    ARG ubuntu_img_tag=23.04
+    WITH DOCKER --pull ubuntu:$ubuntu_img_tag
         RUN ./test-cgroup-v2.sh
     END

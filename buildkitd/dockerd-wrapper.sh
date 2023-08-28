@@ -66,8 +66,9 @@ execute() {
             echo >&2 "warning: processes exist in the root cgroup; this may cause errors during cgroup initialization"
         fi
 
-        if [ "$(cat /sys/fs/cgroup/cgroup.type)" != "domain" ]; then
-            echo >&2 "WARNING: expected cgroup type of \"domain\", but got \"$(cat  /sys/fs/cgroup/cgroup.type)\" instead"
+        root_cgroup_type="$(cat /sys/fs/cgroup/cgroup.type)"
+        if [ "$root_cgroup_type" != "domain" ]; then
+            echo >&2 "WARNING: expected cgroup type of \"domain\", but got \"$root_cgroup_type\" instead"
         fi
     fi
 

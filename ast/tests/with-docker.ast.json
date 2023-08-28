@@ -961,6 +961,16 @@
           }
         },
         {
+          "command": {
+            "args": [
+              "ubuntu_img_tag",
+              "=",
+              "23.04"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
           "with": {
             "body": [
               {
@@ -975,7 +985,7 @@
             "command": {
               "args": [
                 "--pull",
-                "ubuntu:23.04"
+                "ubuntu:$ubuntu_img_tag"
               ],
               "name": "DOCKER"
             }
