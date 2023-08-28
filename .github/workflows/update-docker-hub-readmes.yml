@@ -1,9 +1,9 @@
-name: Docker CI Ubuntu
+name: Update Docker Hub READMEs
 
 on:
   push:
     branches: [ main ]
-    paths: [ docs/** ]
+    paths: [ docs/docker-images/*.md ]
 
 jobs:
   update-docker-hub-readmes:
