@@ -100,6 +100,14 @@
             ],
             "name": "BUILD"
           }
+        },
+        {
+          "command": {
+            "args": [
+              "+cgroup-v2-test-all"
+            ],
+            "name": "BUILD"
+          }
         }
       ]
     },
@@ -903,6 +911,84 @@
                 }
               }
             ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "cgroup-v2-test-all",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+cgroup-v2-test",
+              "--DIND_IMG=earthly/dind:alpine-3.18-docker-23.0.6-r4",
+              "--DIND_IMG=earthly/dind:ubuntu-23.04-docker-24.0.5-1"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "cgroup-v2-test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--required",
+              "DIND_IMG"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "$DIND_IMG"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test-cgroup-v2.sh",
+              "test-cgroup-v2-inside-container.sh",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "ubuntu_img_tag",
+              "=",
+              "23.04"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "./test-cgroup-v2.sh"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--pull",
+                "ubuntu:$ubuntu_img_tag"
+              ],
+              "name": "DOCKER"
+            }
           }
         }
       ]

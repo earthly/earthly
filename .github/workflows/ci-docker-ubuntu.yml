@@ -72,6 +72,17 @@ jobs:
       SUDO: ""
     secrets: inherit
 
+  docker-tests-no-qemu-kind:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-kind"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
   docker-tests-require-account-access:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     needs: build-earthly
@@ -188,9 +199,29 @@ jobs:
       SUDO: ""
     secrets: inherit
 
-  docker-misc-test:
+  docker-earthly-image-test:
     needs: build-earthly
-    uses: ./.github/workflows/reusable-misc-tests.yml
+    uses: ./.github/workflows/reusable-earthly-image-tests.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
+  docker-misc-test-1:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-misc-tests-1.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+    secrets: inherit
+
+  docker-misc-test-2:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-misc-tests-2.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
@@ -630,22 +661,6 @@ jobs:
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Build and push +prerelease
         run: ./build/earthly --ci --push +prerelease
-      - name: Update DockerHub description for earthly/earthly
-        uses: peter-evans/dockerhub-description@616d1b63e806b630b975af3b4fe3304307b20f40
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: earthly/earthly
-          readme-filepath: ./docs/docker-images/all-in-one.md
-          short-description: ${{ github.event.repository.description }}
-      - name: Update DockerHub description for earthly/buildkitd
-        uses: peter-evans/dockerhub-description@616d1b63e806b630b975af3b4fe3304307b20f40
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: earthly/buildkitd
-          readme-filepath: ./docs/docker-images/buildkit-standalone.md
-          short-description: Standalone Earthly buildkitd image
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd
         if: ${{ failure() }}

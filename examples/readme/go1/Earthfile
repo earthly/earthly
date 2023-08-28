@@ -1,5 +1,5 @@
 VERSION 0.7
-FROM golang:1.19-alpine3.15
+FROM golang:1.21-alpine3.18
 RUN apk --update --no-cache add git curl
 WORKDIR /go-example
 
@@ -13,7 +13,7 @@ build:
   SAVE ARTIFACT build/go-example AS LOCAL build/go-example
 
 lint:
-  RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.0
+  RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.1
   COPY main.go .
   RUN golangci-lint run main.go
 

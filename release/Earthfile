@@ -235,10 +235,6 @@ release-homebrew:
             curl -s -X POST -H 'Content-type: application/json' --data '{"text":"Successfully pushed release branch: https://github.com/earthly/homebrew-earthly/tree/'$RELEASE_BRANCH' (this branch will be automatically deleted via GHA once GHA deploy task finishes)"}' "$SLACK_WEBHOOK_URL"; \
         fi
 
-release-vscode-syntax-highlighting:
-    ARG VSCODE_RELEASE_TAG
-    BUILD ../contrib/earthfile-syntax-highlighting+release --VSCODE_RELEASE_TAG="$VSCODE_RELEASE_TAG"
-
 release-repo:
     ARG --required RELEASE_TAG
     BUILD ./apt-repo+build-and-release --RELEASE_TAG="$RELEASE_TAG"

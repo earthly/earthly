@@ -1,5 +1,5 @@
 VERSION 0.7
-FROM earthly/dind:alpine
+FROM earthly/dind:alpine-3.18
 
 push:
     RUN date | md5sum | head -c 32 > motd

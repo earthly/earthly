@@ -1,4 +1,4 @@
-package logbus
+package setup
 
 import (
 	"context"

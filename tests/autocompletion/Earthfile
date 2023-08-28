@@ -28,7 +28,8 @@ project
 prune 
 registry 
 satellite 
-secret " > expected
+secret 
+web " > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly "
 
 test-hidden-root-commands:

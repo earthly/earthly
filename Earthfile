@@ -1,7 +1,9 @@
 # TODO: we must change the DOCKERHUB_USER_SECRET args to be project-based before we can change to 0.7
 VERSION --shell-out-anywhere --use-copy-link --no-network --arg-scope-and-set 0.6
 
-FROM golang:1.20-alpine3.17
+# TODO update to 3.18; however currently "podman login" (used under not-a-unit-test.sh) will error with
+# "Error: default OCI runtime "crun" not found: invalid argument".
+FROM golang:1.21-alpine3.17
 
 RUN apk add --update --no-cache \
     bash \
@@ -25,7 +27,7 @@ WORKDIR /earthly
 # go.mod and go.sum will be updated locally.
 deps:
     FROM +base
-    RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.52.2
+    RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.1
     COPY go.mod go.sum ./
     COPY ./ast/go.mod ./ast/go.sum ./ast
     COPY ./util/deltautil/go.mod ./util/deltautil/go.sum ./util/deltautil
@@ -33,6 +35,10 @@ deps:
     SAVE ARTIFACT go.mod AS LOCAL go.mod
     SAVE ARTIFACT go.sum AS LOCAL go.sum
 
+# code downloads and caches all dependencies for earthly and then copies the go code
+# directories into the image.
+# If BUILDKIT_PROJECT or CLOUD_API environment variables are set it will also update the go mods
+# for the local versions
 code:
     FROM +deps
     # Use BUILDKIT_PROJECT to point go.mod to a buildkit dir being actively developed. Examples:
@@ -113,10 +119,13 @@ lint-scripts-auth-test:
     # flag to source setup.sh during analysis.
     RUN shellcheck -x test-*.sh
 
+# lint-scripts runs the shellcheck package to detect potential errors in shell scripts
 lint-scripts:
     BUILD +lint-scripts-auth-test
     BUILD +lint-scripts-misc
 
+# earthly-script-no-stdout validates the ./earthly script doesn't print anything to stdout (stderr only)
+# This is to ensure commands such as: MYSECRET="$(./earthly secrets get -n /user/my-secret)" work
 earthly-script-no-stdout:
     # This validates the ./earthly script doesn't print anything to stdout (it should print to stderr)
     # This is to ensure commands such as: MYSECRET="$(./earthly secrets get -n /user/my-secret)" work
@@ -138,8 +147,6 @@ lint:
     COPY ./.golangci.yaml ./
     RUN golangci-lint run
 
-# lint-newline-ending checks that line endings are unix style and that files end
-# with a single newline.
 lint-newline-ending:
     FROM alpine:3.15
     WORKDIR /everything
@@ -185,12 +192,13 @@ vale:
     WORKDIR /etc/vale
     COPY .vale/ .
 
+# markdown-spellcheck runs vale against md files
 markdown-spellcheck:
     FROM --platform=linux/amd64 +vale
     WORKDIR /everything
     COPY . .
     # TODO figure out a way to ignore this pattern in vale (doesn't seem to be working under spelling's filter option)
-    RUN find . -type f -iname '*.md' |  xargs -n 1 sed -i 's/{[^}]*}//g'
+    RUN find . -type f -iname '*.md' | xargs -n 1 sed -i 's/{[^}]*}//g'
     # TODO remove the greps once the corresponding markdown files have spelling fixed (or techterms added to .vale/styles/HouseStyle/tech-terms/...
     RUN find . -type f -iname '*.md' | xargs vale --config /etc/vale/vale.ini --output line --minAlertLevel error
 
@@ -258,6 +266,7 @@ chaos-test:
     FROM +code
     RUN go test -tags chaos ./...
 
+# offline-test runs offline tests with network set to none
 offline-test:
     FROM +code
     RUN --network=none go test -run TestOffline ./...
@@ -278,6 +287,7 @@ submodule-decouple-check:
         done; \
     done
 
+# changelog saves the CHANGELOG.md as an artifact
 changelog:
     FROM scratch
     COPY CHANGELOG.md .
@@ -289,6 +299,7 @@ lint-changelog:
     COPY CHANGELOG.md .
     RUN changelogparser --changelog CHANGELOG.md
 
+# debugger builds the earthly debugger and saves the artifact in build/earth_debugger
 debugger:
     FROM +code
     ENV CGO_ENABLED=0
@@ -341,6 +352,7 @@ earthly:
         echo "$(cat ./build/ldflags)"
     # Important! If you change the go build options, you may need to also change them
     # in https://github.com/earthly/homebrew-earthly/blob/main/Formula/earthly.rb
+    # as well as https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb 
     RUN --mount=type=cache,target=$GOCACHE \
         GOARM=${VARIANT#v} go build \
             -tags "$(cat ./build/tags)" \
@@ -353,6 +365,7 @@ earthly:
     SAVE ARTIFACT build/$EXECUTABLE_NAME AS LOCAL "build/$GOOS/$GOARCH$VARIANT/$EXECUTABLE_NAME"
     SAVE IMAGE --cache-from=earthly/earthly:main
 
+# earthly-linux-amd64 builds the earthly artifact  for linux amd64
 earthly-linux-amd64:
     ARG GO_GCFLAGS
     COPY (+earthly/* \
@@ -362,6 +375,7 @@ earthly-linux-amd64:
         ) ./
     SAVE ARTIFACT ./*
 
+# earthly-linux-arm64 builds the earthly artifact  for linux arm64
 earthly-linux-arm64:
     ARG GO_GCFLAGS
     COPY (+earthly/* \
@@ -372,6 +386,7 @@ earthly-linux-arm64:
         ) ./
     SAVE ARTIFACT ./*
 
+# earthly-darwin-amd64 builds the earthly artifact  for darwin amd64
 earthly-darwin-amd64:
     ARG GO_GCFLAGS=""
     COPY (+earthly/* \
@@ -383,6 +398,7 @@ earthly-darwin-amd64:
         ) ./
     SAVE ARTIFACT ./*
 
+# earthly-darwin-arm64 builds the earthly artifact for darwin arm64
 earthly-darwin-arm64:
     ARG GO_GCFLAGS
     COPY (+earthly/* \
@@ -394,6 +410,7 @@ earthly-darwin-arm64:
         ) ./
     SAVE ARTIFACT ./*
 
+# earthly-windows-arm64 builds the earthly artifact  for windows arm64
 earthly-windows-amd64:
     ARG GO_GCFLAGS
     COPY (+earthly/* \
@@ -406,6 +423,11 @@ earthly-windows-amd64:
         ) ./
     SAVE ARTIFACT ./*
 
+# earthly-all builds earthly for all supported environments
+# This includes:
+# linux amd64 and linux arm64
+# Darwin amd64 and arm64
+# Windows amd64
 earthly-all:
     COPY +earthly-linux-amd64/earthly ./earthly-linux-amd64
     COPY +earthly-linux-arm64/earthly ./earthly-linux-arm64
@@ -414,6 +436,7 @@ earthly-all:
     COPY +earthly-windows-amd64/earthly.exe ./earthly-windows-amd64.exe
     SAVE ARTIFACT ./*
 
+# earthly-docker builds earthly as a docker image and pushes
 earthly-docker:
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
@@ -429,9 +452,12 @@ earthly-docker:
     ARG DOCKERHUB_IMG="earthly"
     SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG
 
+# earthly-integration-test-base builds earthly docker and then
+# if no dockerhub mirror is not set it will attempt to login to dockerhub using the provided docker hub username and token.
+# Otherwise, it will attempt to login to the docker hub mirror using the provided username and password
 earthly-integration-test-base:
     FROM +earthly-docker
-    RUN apk update && apk add pcre-tools curl python3 bash perl findutils
+    RUN apk update && apk add pcre-tools curl python3 bash perl findutils expect
     COPY scripts/acbtest/acbtest scripts/acbtest/acbgrep /bin/
     ENV NO_DOCKER=1
     ENV NETWORK_MODE=host # Note that this breaks access to embedded registry in WITH DOCKER.
@@ -492,6 +518,8 @@ $(echo "$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG" | sed "s/^/  /g")
         END
     END
 
+# prerelease builds and pushes the prerelease version of earthly.
+# Tagged as prerelease
 prerelease:
     FROM alpine:3.15
     ARG BUILDKIT_PROJECT
@@ -502,12 +530,15 @@ prerelease:
     COPY (+earthly-all/* --VERSION=prerelease --DEFAULT_INSTALLATION_NAME=earthly) ./
     SAVE IMAGE --push earthly/earthlybinaries:prerelease
 
+# prerelease-script copies the earthly folder and saves it as an artifact
 prerelease-script:
     FROM alpine:3.15
     COPY ./earthly ./
     # This script is useful in other repos too.
     SAVE ARTIFACT ./earthly
 
+# ci-release builds earthly for linux/amd64 in a container and pushes wtth the tag
+# EARTHLY_GIT_HASH-TAG_SUFFIX Where TAG_SUFFIX must be provided
 ci-release:
     # TODO: this was multiplatform, but that skyrocketed our build times. #2979
     # may help.
@@ -521,38 +552,52 @@ ci-release:
     COPY (+earthly/earthly --DEFAULT_BUILDKITD_IMAGE="docker.io/earthly/buildkitd-staging:${EARTHLY_GIT_HASH}-${TAG_SUFFIX}" --VERSION=${EARTHLY_GIT_HASH}-${TAG_SUFFIX} --DEFAULT_INSTALLATION_NAME=earthly) ./earthly-linux-amd64
     SAVE IMAGE --push earthly/earthlybinaries:${EARTHLY_GIT_HASH}-${TAG_SUFFIX}
 
+# dind builds both the alpine and ubuntu dind containers for earthly
 dind:
-    ARG OS_IMAGE # e.g. alpine, ubuntu
-    ARG OS_VERSION # e.g. 3.18.0, 23.04
+    # OS_IMAGE is the base image to use, e.g. alpine, ubuntu
+    ARG --required OS_IMAGE
+    # OS_VERSION is the version of the base OS to use, e.g. 3.18.0, 23.04
+    ARG --required OS_VERSION
+    # DOCKER_VERSION is the version of docker to use, e.g. 20.10.14
+    ARG --required DOCKER_VERSION
     FROM $OS_IMAGE:$OS_VERSION
     COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
     RUN docker-auto-install.sh
+    LET DOCKER_VERSION_TAG=$DOCKER_VERSION
+    IF [ "$OS_IMAGE" = "ubuntu" ]
+        # the docker ce repo contains packages such as "5:24.0.4-1~ubuntu.20.04~focal", we will remove the the epoch and debian-revision values,
+        # in order to display the upstream-version, e.g. "24.0.5-1".
+        SET DOCKER_VERSION_TAG="$(echo $DOCKER_VERSION | sed 's/^[0-9]*:\([^~]*\).*$/\1/')"
+        RUN if echo $DOCKER_VERSION_TAG | grep "[^0-9.-]"; then echo "DOCKER_VERSION_TAG looks bad; got $DOCKER_VERSION_TAG" && exit 1; fi
+    END
+    LET TAG=$OS_IMAGE-$OS_VERSION-docker-$DOCKER_VERSION_TAG
     ARG INCLUDE_TARGET_TAG_DOCKER=true
     IF [ "$INCLUDE_TARGET_TAG_DOCKER" = "true" ]
       ARG EARTHLY_TARGET_TAG_DOCKER
-      LET TAG=$OS_IMAGE-$OS_VERSION-$EARTHLY_TARGET_TAG_DOCKER
-    ELSE
-      LET TAG=$OS_IMAGE-$OS_VERSION
+      SET TAG=$TAG-$EARTHLY_TARGET_TAG_DOCKER
     END
     ARG DOCKERHUB_USER=earthly
-    ARG LATEST
     IF [ "$LATEST" = "true" ]
       # latest means the version is ommitted (for historical reasons we initially just called it earthly/dind:alpine-3.18 or earthly/dind:ubuntu)
       SAVE IMAGE --push --cache-from=earthly/dind:$OS_IMAGE-main $DOCKERHUB_USER/dind:$OS_IMAGE
     END
-    SAVE IMAGE --push --cache-from=earthly/dind:$OS_IMAGE-main $DOCKERHUB_USER/dind:$TAG
+    ARG DATETIME="$(date --utc +%Y%m%d%H%M%S)" # note this must be overriden when building a multi-platform image (otherwise the values wont match)
+    SAVE IMAGE --push --cache-from=earthly/dind:$OS_IMAGE-main $DOCKERHUB_USER/dind:$TAG "$DOCKERHUB_USER/dind:$TAG-$DATETIME"
+
 
 # for-own builds earthly-buildkitd and the earthly CLI for the current system
-# and saves the final CLI binary locally.
+# and saves the final CLI binary locally at ./build/own/earthly
 for-own:
     ARG BUILDKIT_PROJECT
     # GO_GCFLAGS may be used to set the -gcflags parameter to 'go build'. See
-    # the documentaation on +earthly for extra detail about this option.
+    # the documentation on +earthly for extra detail about this option.
     ARG GO_GCFLAGS
     BUILD ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     COPY (+earthly/earthly --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/own/earthly
 
+# for-linux builds earthly-buildkitd and the earthly CLI for the a linux amd64 system
+# and saves the final CLI binary locally in the ./build/linux folder.
 for-linux:
     ARG BUILDKIT_PROJECT
     ARG GO_GCFLAGS
@@ -561,6 +606,9 @@ for-linux:
     COPY (+earthly-linux-amd64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/linux/amd64/earthly
 
+# for-darwin builds earthly-buildkitd and the earthly CLI for the a darwin amd64 system
+# and saves the final CLI binary locally in the ./build/darwin folder.
+# For arm64 use +for-darwin-m1
 for-darwin:
     ARG BUILDKIT_PROJECT
     ARG GO_GCFLAGS
@@ -569,6 +617,8 @@ for-darwin:
     COPY (+earthly-darwin-amd64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/amd64/earthly
 
+# for-darwin-m1 builds earthly-buildkitd and the earthly CLI for the a darwin m1 system
+# and saves the final CLI binary locally.
 for-darwin-m1:
     ARG BUILDKIT_PROJECT
     ARG GO_GCFLAGS
@@ -577,6 +627,8 @@ for-darwin-m1:
     COPY (+earthly-darwin-arm64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/arm64/earthly
 
+# for-windows builds earthly-buildkitd and the earthly CLI for the a windows system
+# and saves the final CLI binary locally in the ./build/windows folder.
 for-windows:
     ARG GO_GCFLAGS
     # BUILD --platform=linux/amd64 ./buildkitd+buildkitd
@@ -584,6 +636,7 @@ for-windows:
     COPY (+earthly-windows-amd64/earthly.exe -GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly.exe AS LOCAL ./build/windows/amd64/earthly.exe
 
+# all-buildkitd builds buildkitd for both linux amd64 and linux arm64
 all-buildkitd:
     ARG BUILDKIT_PROJECT
     BUILD \
@@ -592,22 +645,31 @@ all-buildkitd:
         ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
 dind-alpine:
-    BUILD +dind --OS_IMAGE=alpine --OS_VERSION=3.18 --LATEST=true
+    BUILD +dind --OS_IMAGE=alpine --OS_VERSION=3.18 --DOCKER_VERSION=23.0.6-r4
 
 dind-ubuntu:
-    BUILD +dind --OS_IMAGE=ubuntu --OS_VERSION=20.04
-    BUILD +dind --OS_IMAGE=ubuntu --OS_VERSION=23.04 --LATEST=true
+    BUILD +dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal
+    BUILD +dind --OS_IMAGE=ubuntu --OS_VERSION=23.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.23.04~lunar
 
+# all-dind builds alpine and ubuntu dind containers for both linux amd64 and linux arm64
 all-dind:
+    RUN --no-cache date --utc +%Y%m%d%H%M%S > datetime
+    ARG DATETIME="$(cat datetime)"
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
-        +dind-alpine
+        +dind-alpine --DATETIME=$DATETIME
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
-        +dind-ubuntu
+        +dind-ubuntu --DATETIME=$DATETIME
 
+# all builds all of the following:
+# - Buildkitd for both linux amd64 and linux arm64
+# - Earthly for all supported environments linux amd64 and linux arm64, Darwin amd64 and arm64, and Windos amd64
+# - Earthly as a container image
+# - Prerelease version of earthly as a container image
+# - Dind alpine and ubuntu for both linux amd64 and linux arm64 as container images
 all:
     BUILD +all-buildkitd
     BUILD +earthly-all
@@ -622,10 +684,14 @@ lint-all:
     BUILD +lint-docs
     BUILD +submodule-decouple-check
 
+# lint-docs runs lint against changelog and checks that line endings are unix style and files end
+# with a single newline.
 lint-docs:
     BUILD +lint-newline-ending
     BUILD +lint-changelog
 
+# test-no-qemu runs tests without qemu virtualization by passing in dockerhub authentication and 
+# using secure docker hub mirror configurations
 test-no-qemu:
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false
@@ -662,6 +728,7 @@ test-no-qemu:
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
         --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
 
+# test-quick runs the unit, chaos, offline, and go tests and ensures the earthly script does not write to stdout
 test-quick:
     BUILD +unit-test
     BUILD +chaos-test
@@ -682,6 +749,7 @@ test-quick:
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
         --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
 
+# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-quick
 test-no-qemu-quick:
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false
@@ -698,6 +766,7 @@ test-no-qemu-quick:
         --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
+# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-normal
 test-no-qemu-normal:
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false
@@ -714,6 +783,7 @@ test-no-qemu-normal:
         --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
+# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-slow
 test-no-qemu-slow:
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false
@@ -730,6 +800,24 @@ test-no-qemu-slow:
         --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
+# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-slow
+test-no-qemu-kind:
+    ARG DOCKERHUB_MIRROR
+    ARG DOCKERHUB_MIRROR_INSECURE=false
+    ARG DOCKERHUB_MIRROR_HTTP=false
+    ARG DOCKERHUB_AUTH=true
+    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
+    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+    BUILD ./tests+ga-no-qemu-kind \
+        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
+        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
+        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
+        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-quick runs the tests from ./tests+ga-qemu
 test-qemu:
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false
@@ -747,6 +835,7 @@ test-qemu:
         --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
+# test runs both no-qemu tests and qemu tests
 test:
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false
@@ -769,6 +858,7 @@ test:
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
         --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
 
+# test runs examples, no-qemu, qemu, and experimental tests
 test-all:
     BUILD +examples
     ARG DOCKERHUB_MIRROR
@@ -799,10 +889,12 @@ test-all:
         --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
         --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
 
+# examples runs both sets of examples
 examples:
     BUILD +examples1
     BUILD +examples2
 
+# examples1 runs set 1 of examples
 examples1:
     ARG TARGETARCH
     BUILD ./examples/c+docker
@@ -829,6 +921,7 @@ examples1:
     BUILD ./examples/secrets+base
     BUILD ./examples/cloud-secrets+base
 
+# examples2 runs set 2 of examples
 examples2:
     BUILD ./examples/readme/go1+all
     BUILD ./examples/readme/go2+build
@@ -856,6 +949,7 @@ examples2:
     BUILD ./examples/mkdocs+build
     BUILD ./examples/zig+docker
 
+# license copies the license file and saves it as an artifact
 license:
     COPY LICENSE ./
     SAVE ARTIFACT LICENSE
@@ -866,7 +960,6 @@ npm-update-all:
     COPY . /code
     WORKDIR /code
     FOR nodepath IN \
-            contrib/earthfile-syntax-highlighting \
             examples/cache-command/npm \
             examples/js \
             examples/react \

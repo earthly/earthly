@@ -1,6 +1,6 @@
 module github.com/earthly/earthly/examples/go-monorepo/services/two
 
-go 1.17
+go 1.21
 
 require (
 	github.com/earthly/earthly/examples/go-monorepo/libs/hello v0.0.0
@@ -17,6 +17,6 @@ require (
 	github.com/valyala/fasttemplate v1.2.1 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/net v0.7.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
 )

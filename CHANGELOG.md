@@ -4,6 +4,19 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.16 - 2023-08-28
+
+### Fixed
+- Fixed a cgroup v2 related bug that affected systemd-based images (such as kind) from being run via `WITH DOCKER`. [#3159](https://github.com/earthly/earthly/issues/3159)
+
+### Changed
+- Removed redundant output when parts of builds are re-used; the `--verbose` flag will still display the output.
+- Calling `earthly secret set <path>` (when run interactively) will now prompt for a single-line secret if no other flags are given.
+- fixed bug in `earthly registry setup` which was waiting for an end of file (eof) rather than newline, when prompting for a password.
+
+### Added
+- Added additional error message output when buildkit scheduller errors occur (in order to help debug the ongoing [2957](https://github.com/earthly/earthly/issues/2957) issue).
+
 ## v0.7.15 - 2023-08-04
 
 ### Fixed
