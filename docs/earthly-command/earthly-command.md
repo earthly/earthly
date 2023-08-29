@@ -254,7 +254,11 @@ In *target mode*, this option is an alias for
 --no-output --strict
 ```
 
-In *artifact* and *image modes* , this option has no effect.
+In *artifact* and *image modes* , this option is an alias for
+
+```
+--strict
+```
 
 ##### `--platform <platform>`
 
