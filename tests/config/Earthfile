@@ -1,18 +1,6 @@
-VERSION 0.7
+VERSION --pass-args 0.7
 
-ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-ARG --global DOCKERHUB_MIRROR
-ARG --global DOCKERHUB_MIRROR_INSECURE=false
-ARG --global DOCKERHUB_MIRROR_HTTP=false
-ARG --global DOCKERHUB_AUTH=true
-FROM ../..+earthly-integration-test-base \
-    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-    --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+FROM --pass-args ../..+earthly-integration-test-base
 
 IMPORT .. AS tests
 
@@ -56,23 +44,23 @@ test:
 
     # test earthly runs when no default config is present
     RUN ! test -f /root/.earthly/config.yml
-    DO +RUN_EARTHLY_ARGS --earthfile="hello.earth" --target="+hello" --output_contains="greetings"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile="hello.earth" --target="+hello" --output_contains="greetings"
 
     # test earthly can write to default config location
     RUN earthly config global.disable_analytics true
     RUN test "$(cat /root/.earthly/config.yml)" = "$(cat expected-1.yml)"
 
     # test earthly fails when explicitly set to use a different config that doesn't exist
-    DO +RUN_EARTHLY_ARGS --extra_args="--config=this-does-not-exist.yml" --earthfile="hello.earth" --target="+hello" --should_fail="true" --output_contains="failed to read from this-does-not-exist.yml"
+    DO --pass-args +RUN_EARTHLY_ARGS --extra_args="--config=this-does-not-exist.yml" --earthfile="hello.earth" --target="+hello" --should_fail="true" --output_contains="failed to read from this-does-not-exist.yml"
 
     # test earthly runs with new cache percentage setting
     RUN earthly config global.cache_size_pct 50
-    DO +RUN_EARTHLY_ARGS --earthfile="hello.earth" --target="+hello" --output_contains="greetings"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile="hello.earth" --target="+hello" --output_contains="greetings"
 
     # test that it still runs alongside a size settings
     RUN earthly config global.cache_size_mb 100
     RUN test "$(cat /root/.earthly/config.yml)" = "$(cat expected-6.yml)"
-    DO +RUN_EARTHLY_ARGS --earthfile="hello.earth" --target="+hello" --output_contains="greetings"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile="hello.earth" --target="+hello" --output_contains="greetings"
 
     RUN touch /tmp/config.yml
     RUN chmod 400 /tmp/config.yml
@@ -129,16 +117,10 @@ RUN_EARTHLY_ARGS:
     ARG exec_cmd
     ARG should_fail=false
     ARG output_contains
-    DO tests+RUN_EARTHLY \
+    DO --pass-args tests+RUN_EARTHLY \
         --earthfile=$earthfile \
         --target=$target \
         --should_fail=$should_fail \
         --exec_cmd=$exec_cmd \
         --output_contains=$output_contains \
-        --extra_args=$extra_args \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+        --extra_args=$extra_args

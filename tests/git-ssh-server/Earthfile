@@ -1,20 +1,7 @@
-VERSION 0.7
-
-ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-ARG --global DOCKERHUB_MIRROR
-ARG --global DOCKERHUB_MIRROR_INSECURE=false
-ARG --global DOCKERHUB_MIRROR_HTTP=false
-ARG --global DOCKERHUB_AUTH=true
+VERSION --pass-args 0.7
 
 test-rsa-only:
-    FROM ./setup+server \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    FROM --pass-args ./setup+server \
         --SSHD_RSA=true \
         --SSHD_ED25519=false \
         --USER_RSA=true \
@@ -38,16 +25,10 @@ ssh git@git.example.com | grep \"Hi git! You've successfully authenticated, but 
 earthly --config \$earthly_config --verbose -D +test
 earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
-    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
 
 test-ed25519-only:
-    FROM ./setup+server \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    FROM --pass-args ./setup+server \
         --SSHD_RSA=false \
         --SSHD_ED25519=true \
         --USER_RSA=false \
@@ -71,16 +52,10 @@ ssh git@git.example.com | grep \"Hi git! You've successfully authenticated, but 
 earthly --config \$earthly_config --verbose -D +test
 earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
-    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
 
 test-server-both-user-rsa-only:
-    FROM ./setup+server \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    FROM --pass-args ./setup+server \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -104,16 +79,10 @@ ssh git@git.example.com | grep \"Hi git! You've successfully authenticated, but 
 earthly --config \$earthly_config --verbose -D +test
 earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
-    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
 
 test-server-both-with-missing-keyscan:
-    FROM ./setup+server \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    FROM --pass-args ./setup+server \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -145,16 +114,10 @@ if earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:
 fi
 cat output.txt | grep 'no known_hosts entries found for git.example.com; falling back to https'
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
-    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
 
 test-server-both-with-only-rsa-keyscan:
-    FROM ./setup+server \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    FROM --pass-args ./setup+server \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -179,16 +142,10 @@ cat ~/.ssh/known_hosts
 earthly --config \$earthly_config --verbose -D +test
 earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
-    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
 
 test-server-both-with-only-ed25519-keyscan:
-    FROM ./setup+server \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    FROM --pass-args ./setup+server \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -213,16 +170,10 @@ cat ~/.ssh/known_hosts
 earthly --config \$earthly_config --verbose -D +test
 earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
-    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
 
 test-configured-ssh-no-keyscan:
-    FROM ./setup+server \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    FROM --pass-args ./setup+server \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -262,16 +213,10 @@ earthly --config \$earthly_config config 'git.\"git.example.com\"' '{\"auth\": \
 earthly --config \$earthly_config --verbose -D +test
 earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
-    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
 
 test-server-with-unhashed-keyscan:
-    FROM ./setup+server \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    FROM --pass-args ./setup+server \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -298,16 +243,10 @@ cat /tmp/known_hosts.old | awk '{printf \"git.example.com %s %s\\n\", \$2, \$3}'
 earthly --config \$earthly_config --verbose -D +test
 earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo:main+hello
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
-    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-private-ssh.earth --exec_cmd=/tmp/test-earthly-script
 
 test-with-custom-matcher:
-    FROM ./setup+server \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    FROM --pass-args ./setup+server \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -351,16 +290,10 @@ cat output.txt | grep $(echo MTIzM2MwODQtNGNmNS00Nzk3LWE0YzUtZWI2NTM1NGVlN2Vl | 
 earthly --config \$earthly_config --verbose -D funnyserver/repo:main+hello 2>&1 | tee output.txt
 cat output.txt | grep $(echo MTIzM2MwODQtNGNmNS00Nzk3LWE0YzUtZWI2NTM1NGVlN2Vl | base64 -d)
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
-    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=from-funnyserver.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=from-funnyserver.earth --exec_cmd=/tmp/test-earthly-script
 
 test-git-clone-command-with-custom-matcher:
-    FROM ./setup+server \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    FROM --pass-args ./setup+server \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -386,16 +319,10 @@ ssh-add -l
 test \"\$(cat status)\" = \"0\"
 grep 57043e67e8ad8367799dd70c5f78ff42 output.txt
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
-    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-funnyserver.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-funnyserver.earth --exec_cmd=/tmp/test-earthly-script
 
 test-custom-matcher-non-standard-port-and-no-host-checking:
-    FROM ./setup+server \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    FROM --pass-args ./setup+server \
         --SSHD_RSA=true \
         --SSHD_ED25519=true \
         --USER_RSA=true \
@@ -432,7 +359,7 @@ grep 57043e67e8ad8367799dd70c5f78ff42 output2.txt
 # finally make sure we can reference it remotely via the cli
 earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo+hello
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
-    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-self-hosted.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-self-hosted.earth --exec_cmd=/tmp/test-earthly-script
 
 
 all:
@@ -453,13 +380,7 @@ RUN_EARTHLY_ARGS:
     ARG earthfile
     ARG pre_command
     ARG exec_cmd
-    DO ..+RUN_EARTHLY \
+    DO --pass-args ..+RUN_EARTHLY \
         --earthfile=$earthfile \
         --pre_command=$pre_command \
-        --exec_cmd=$exec_cmd \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+        --exec_cmd=$exec_cmd

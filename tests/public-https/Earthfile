@@ -1,30 +1,12 @@
-VERSION 0.7
-ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-ARG --global DOCKERHUB_MIRROR
-ARG --global DOCKERHUB_MIRROR_INSECURE=false
-ARG --global DOCKERHUB_MIRROR_HTTP=false
-ARG --global DOCKERHUB_AUTH=true
-FROM ..+base \
-    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-    --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+VERSION --pass-args 0.7
+FROM --pass-args ..+base
 
 all:
     BUILD +git-clone-public-https-empty-netrc
 
 
 git-clone-public-https-base:
-    FROM ../git-webserver+server-with-user-directory \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    FROM --pass-args ../git-webserver+server-with-user-directory \
         --ENABLE_BASIC_AUTH=false
     RUN echo "#!/bin/sh
 set -ex
@@ -49,20 +31,14 @@ git-clone-public-https-empty-netrc:
 earthly --config \$earthly_config --verbose -D +test
 earthly --config \$earthly_config --verbose -D selfsigned.example.com/testuser/repo:main+hello
 " >> /tmp/test-earthly-script
-    DO +RUN_EARTHLY_ARGS --pre_command=start-nginx-with-git --earthfile=git-clone-public-https.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-nginx-with-git --earthfile=git-clone-public-https.earth --exec_cmd=/tmp/test-earthly-script
 
 RUN_EARTHLY_ARGS:
     COMMAND
     ARG earthfile
     ARG pre_command
     ARG exec_cmd
-    DO ..+RUN_EARTHLY \
+    DO --pass-args ..+RUN_EARTHLY \
         --earthfile=$earthfile \
         --pre_command=$pre_command \
-        --exec_cmd=$exec_cmd \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+        --exec_cmd=$exec_cmd

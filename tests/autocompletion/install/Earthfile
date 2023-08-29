@@ -1,17 +1,5 @@
-VERSION 0.7
-ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-ARG --global DOCKERHUB_MIRROR
-ARG --global DOCKERHUB_MIRROR_INSECURE=false
-ARG --global DOCKERHUB_MIRROR_HTTP=false
-ARG --global DOCKERHUB_AUTH=true
-FROM ../../+base \
-    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-    --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+VERSION --pass-args 0.7
+FROM --pass-args ../../+base
 
 RUN adduser -h /home/bambi -D bambi
 RUN echo "#!/bin/sh
@@ -23,7 +11,7 @@ test-bash-non-root-fallback-dir:
     ARG path="/home/bambi/.local/share/bash-completion/completions"
     RUN mkdir -p "$path"
     USER bambi
-    DO +RUN_EARTHLY
+    DO --pass-args +RUN_EARTHLY
     RUN grep '^complete' "$path/earthly" && \
         grep -i 'successfully enabled bash-completion' out.txt
 
@@ -34,7 +22,7 @@ test-bash-non-root-no-overwrite:
         echo "can't touch this" > "$path/earthly" && \
         md5sum "$path/earthly" > /tmp/sum
     USER bambi
-    DO +RUN_EARTHLY
+    DO --pass-args +RUN_EARTHLY
     RUN md5sum /tmp/sum && \
         grep -i 'bash-completion already present' out.txt
 
@@ -45,7 +33,7 @@ test-bash-non-root-custom-dir:
     ARG path="$BASH_COMPLETION_USER_DIR/bash-completion/completions"
     RUN mkdir -p "$path"
     USER bambi
-    DO +RUN_EARTHLY
+    DO --pass-args +RUN_EARTHLY
     RUN grep '^complete' "$path/earthly" && grep -i 'successfully enabled bash-completion' out.txt
 
 test-bash-non-root-xdg-dir:
@@ -53,7 +41,7 @@ test-bash-non-root-xdg-dir:
     ARG path="$XDG_DATA_HOME/bash-completion/completions"
     RUN mkdir -p "$path"
     USER bambi
-    DO +RUN_EARTHLY
+    DO --pass-args +RUN_EARTHLY
     RUN grep '^complete' "$path/earthly" && grep -i 'successfully enabled bash-completion' out.txt
 
 test-bash-root-no-home-entries:
@@ -65,7 +53,7 @@ test-bash-root-no-home-entries:
         mkdir -p /root/.local/share/bash-completion/completions
     # for clarity
     USER root
-    DO +RUN_EARTHLY
+    DO --pass-args +RUN_EARTHLY
     RUN test -z "$(find /root -name earthly -type f)"
 
 test-all:
@@ -77,12 +65,6 @@ test-all:
 RUN_EARTHLY:
     COMMAND
     ARG exec_cmd=/tmp/bootstrap-script
-    DO ../../+RUN_EARTHLY \
+    DO --pass-args ../../+RUN_EARTHLY \
         --should_fail=false \
-        --exec_cmd=$exec_cmd \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+        --exec_cmd=$exec_cmd

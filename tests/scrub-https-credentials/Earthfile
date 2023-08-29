@@ -1,17 +1,5 @@
-VERSION 0.7
-ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-ARG --global DOCKERHUB_MIRROR
-ARG --global DOCKERHUB_MIRROR_INSECURE=false
-ARG --global DOCKERHUB_MIRROR_HTTP=false
-ARG --global DOCKERHUB_AUTH=true
-FROM ..+base \
-    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-    --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+VERSION --pass-args 0.7
+FROM --pass-args ..+base
 
 all:
     BUILD +scrub-git-clone-credentials
@@ -20,13 +8,7 @@ all:
 
 
 scrub-git-clone-credentials:
-    FROM ../git-webserver+server \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+    FROM --pass-args ../git-webserver+server
     RUN --no-cache echo "#!/bin/sh
 set -ex
 
@@ -38,7 +20,7 @@ earthly --config \$earthly_config config git \"{selfsigned.example.com: {auth: h
 earthly --config \$earthly_config --verbose --debug +gitclone >output.txt 2>&1
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
 
-    DO +RUN_EARTHLY_ARGS --pre_command=start-nginx-with-git --earthfile=scrub-credentials.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-nginx-with-git --earthfile=scrub-credentials.earth --exec_cmd=/tmp/test-earthly-script
 
     RUN cat output.txt | grep -vw echo | grep 'gitclone done'
     RUN cat output.txt && \
@@ -50,13 +32,7 @@ earthly --config \$earthly_config --verbose --debug +gitclone >output.txt 2>&1
     RUN grep 'https://testuser:\*\*\*@selfsigned.example.com' output.txt >/dev/null
 
 scrub-remote-credentials:
-    FROM ../git-webserver+server \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+    FROM --pass-args ../git-webserver+server
     RUN --no-cache echo "#!/bin/sh
 set -ex
 
@@ -69,7 +45,7 @@ cat \$earthly_config
 earthly --config \$earthly_config --verbose --debug selfsigned.example.com/repo:main+hello >output.txt 2>&1
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
 
-    DO +RUN_EARTHLY_ARGS --pre_command=start-nginx-with-git --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-nginx-with-git --exec_cmd=/tmp/test-earthly-script
 
     # make sure the password doesn't appear anywhere
     RUN cat output.txt && \
@@ -100,7 +76,7 @@ if [ \$exit_code -eq 0 ]; then
 fi
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
 
-    DO +RUN_EARTHLY_ARGS --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --exec_cmd=/tmp/test-earthly-script
 
     RUN grep 'failed to fetch remote' output.txt
     # test the failure message correctly scrubs the credentials
@@ -119,13 +95,7 @@ RUN_EARTHLY_ARGS:
     ARG earthfile
     ARG pre_command
     ARG exec_cmd
-    DO ..+RUN_EARTHLY \
+    DO --pass-args ..+RUN_EARTHLY \
         --earthfile=$earthfile \
         --pre_command=$pre_command \
-        --exec_cmd=$exec_cmd \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+        --exec_cmd=$exec_cmd

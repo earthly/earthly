@@ -1,18 +1,6 @@
-VERSION 0.7
+VERSION --pass-args 0.7
 
-ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-ARG --global DOCKERHUB_MIRROR
-ARG --global DOCKERHUB_MIRROR_INSECURE=false
-ARG --global DOCKERHUB_MIRROR_HTTP=false
-ARG --global DOCKERHUB_AUTH=true
-FROM ../..+earthly-integration-test-base \
-    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-    --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+FROM --pass-args ../..+earthly-integration-test-base
 
 WORKDIR /test
 ARG --global REGISTRY
@@ -32,7 +20,7 @@ all:
 test1:
     RUN echo "content" >./input
     # Running with tmpfs mount = no local cache.
-    DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
+    DO --pass-args +DO_REMOTE_CACHE_EARTHLY --target=+test1
 
     # Not cached - before copy.
     #RUN cat ./output && cat /var/log/buildkitd.log && exit 1
@@ -43,7 +31,7 @@ test1:
     RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && test "$nl" -eq 2
 
     # No change & re-run - should only have 1 line output and not re-echo.
-    DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
+    DO --pass-args +DO_REMOTE_CACHE_EARTHLY --target=+test1
 
     RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && cat /var/log/buildkitd.log && test "$nl" -eq 1
 
@@ -51,7 +39,7 @@ test1:
     RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && test "$nl" -eq 1
 
     RUN echo "other content" >./input
-    DO +DO_REMOTE_CACHE_EARTHLY --target=+test1
+    DO --pass-args +DO_REMOTE_CACHE_EARTHLY --target=+test1
 
     # Cached.
     RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && test "$nl" -eq 1
@@ -63,8 +51,8 @@ test2:
     RUN echo "a"
     COPY --dir test2 test2
     # Running with tmpfs mount = no local cache.
-    DO +DO_REMOTE_CACHE_EARTHLY --target=+test2
-    DO +DO_REMOTE_CACHE_EARTHLY --target=+test2
+    DO --pass-args +DO_REMOTE_CACHE_EARTHLY --target=+test2
+    DO --pass-args +DO_REMOTE_CACHE_EARTHLY --target=+test2
     # TODO FIXME the remote-cache caching isn't always working; we will ignore these checks until the flakiness is fixed.
     RUN (cat ./output | grep '\*cached\* --> RUN npm install') || echo "WARNING: RUN command not cached"
     RUN (cat ./output | grep '\*cached\* --> COPY test2/dist dist') || echo "WARNING: COPY classical command not cached"

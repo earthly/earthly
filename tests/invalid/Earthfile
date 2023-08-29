@@ -1,27 +1,15 @@
-VERSION 0.7
-ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-ARG --global DOCKERHUB_MIRROR
-ARG --global DOCKERHUB_MIRROR_INSECURE=false
-ARG --global DOCKERHUB_MIRROR_HTTP=false
-ARG --global DOCKERHUB_AUTH=true
-FROM ../..+earthly-integration-test-base \
-    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-    --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+VERSION --pass-args 0.7
+FROM --pass-args ../..+earthly-integration-test-base
 
 IMPORT .. AS tests
 
 WORKDIR /test
 
 test-trailing-backslash:
-    DO +RUN_EARTHLY_ARGS --earthfile=trailing-backslash.earth --should_fail=true --target=+base
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=trailing-backslash.earth --should_fail=true --target=+base
 
 test-leading-whitespace:
-    DO +RUN_EARTHLY_ARGS --earthfile=leading-whitespace.earth --should_fail=true --target=+base --output_contains="syntax error"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=leading-whitespace.earth --should_fail=true --target=+base --output_contains="syntax error"
 
 test-all:
     BUILD +test-trailing-backslash
@@ -33,14 +21,8 @@ RUN_EARTHLY_ARGS:
     ARG target
     ARG should_fail=false
     ARG output_contains
-    DO tests+RUN_EARTHLY \
+    DO --pass-args tests+RUN_EARTHLY \
         --earthfile=$earthfile \
         --target=$target \
         --should_fail=$should_fail \
-        --output_contains=$output_contains \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+        --output_contains=$output_contains

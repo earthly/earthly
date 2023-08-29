@@ -1,10 +1,4 @@
-VERSION 0.7
-ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-ARG --global DOCKERHUB_MIRROR
-ARG --global DOCKERHUB_MIRROR_INSECURE=false
-ARG --global DOCKERHUB_MIRROR_HTTP=false
-ARG --global DOCKERHUB_AUTH=true
+VERSION --pass-args 0.7
 
 ARG --global REGISTRY
 ARG --global REGISTRY_IP
@@ -31,13 +25,7 @@ certs:
     SAVE ARTIFACT certs AS LOCAL certs
 
 test-base:
-    FROM ../..+earthly-integration-test-base \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+    FROM --pass-args ../..+earthly-integration-test-base
     WORKDIR /test
     COPY ./certs/domain.crt /etc/config/test.ca
     COPY test.earth ./Earthfile
@@ -49,13 +37,13 @@ all:
 test-push-pull:
     FROM +test-base
     # Running with tmpfs mount = no local cache.
-    DO +DO_REMOTE_CACHE_EARTHLY --target=+test-push
-    DO +DO_REMOTE_CACHE_EARTHLY --target=+test-pull
+    DO --pass-args +DO_REMOTE_CACHE_EARTHLY --target=+test-push
+    DO --pass-args +DO_REMOTE_CACHE_EARTHLY --target=+test-pull
 
 test-connect:
     FROM +test-base
     COPY ./certs/domain.crt ./test.ca
-    DO +DO_REMOTE_CACHE_EARTHLY --target=+test-connect
+    DO --pass-args +DO_REMOTE_CACHE_EARTHLY --target=+test-connect
 
 # Work around the lack of variable overriding, since the base image already includes EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
 DO_REMOTE_CACHE_EARTHLY:

@@ -1,20 +1,7 @@
-VERSION 0.7
-
-ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-ARG --global DOCKERHUB_MIRROR
-ARG --global DOCKERHUB_MIRROR_INSECURE=false
-ARG --global DOCKERHUB_MIRROR_HTTP=false
-ARG --global DOCKERHUB_AUTH=true
+VERSION --pass-args 0.7
 
 test:
-    FROM ../git-ssh-server/setup+server \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    FROM --pass-args ../git-ssh-server/setup+server \
         --SSHD_RSA=true \
         --SSHD_ED25519=false \
         --USER_RSA=true \
@@ -97,20 +84,14 @@ EARTHLY_GIT_BRANCH_OVERRIDE=branch-override earthly --config \$earthly_config --
   --build-arg expected_branch=branch-override \
   git.example.com/testuser/repo:main+test-git-metadata
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
-    DO +RUN_EARTHLY_ARGS --pre_command=start-sshd --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --exec_cmd=/tmp/test-earthly-script
 
 RUN_EARTHLY_ARGS:
     COMMAND
     ARG earthfile
     ARG pre_command
     ARG exec_cmd
-    DO ..+RUN_EARTHLY \
+    DO --pass-args ..+RUN_EARTHLY \
         --earthfile=$earthfile \
         --pre_command=$pre_command \
-        --exec_cmd=$exec_cmd \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+        --exec_cmd=$exec_cmd
