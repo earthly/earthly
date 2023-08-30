@@ -550,6 +550,7 @@ for-own:
     # the documentaation on +earthly for extra detail about this option.
     ARG GO_GCFLAGS
     BUILD ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
+    BUILD ./ast/parser+parser
     COPY (+earthly/earthly --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/own/earthly
 

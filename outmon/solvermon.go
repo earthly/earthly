@@ -317,6 +317,7 @@ func (sm *SolverMonitor) printProgress(vm *vertexMonitor, id string, progress in
 		if !vm.headerPrinted {
 			sm.printHeader(vm)
 		}
+		id = sm.modifyId(id)
 		vm.printProgress(id, progress, sm.verbose, sm.lastOutputWasProgress)
 		sm.lastOutputWasProgress = (progress != 100)
 		sm.lastOutputWasNoOutputUpdate = false
@@ -412,4 +413,15 @@ func (sm *SolverMonitor) reprintFailure(errVertex *vertexMonitor, phaseText stri
 		errVertex.console.Printf("[no output]\n")
 	}
 	errVertex.printError()
+}
+
+
+func (sm *SolverMonitor) modifyId(id string) string {
+	modifiedId := id
+	for old, new := range map[string]string{
+		"transferring docker.io/library":  "transferring locally to docker.io/library",
+	} {
+		modifiedId = strings.ReplaceAll(modifiedId, old, new)
+	}
+	return modifiedId
 }
