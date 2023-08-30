@@ -1,5 +1,5 @@
 # TODO: we must change the DOCKERHUB_USER_SECRET args to be project-based before we can change to 0.7
-VERSION --shell-out-anywhere --use-copy-link --no-network --arg-scope-and-set 0.6
+VERSION --pass-args --shell-out-anywhere --use-copy-link --no-network --arg-scope-and-set 0.6
 
 # TODO update to 3.18; however currently "podman login" (used under not-a-unit-test.sh) will error with
 # "Error: default OCI runtime "crun" not found: invalid argument".
@@ -693,40 +693,10 @@ lint-docs:
 # test-no-qemu runs tests without qemu virtualization by passing in dockerhub authentication and 
 # using secure docker hub mirror configurations
 test-no-qemu:
-    ARG DOCKERHUB_MIRROR
-    ARG DOCKERHUB_MIRROR_INSECURE=false
-    ARG DOCKERHUB_MIRROR_HTTP=false
-    ARG DOCKERHUB_AUTH=true
-    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-    BUILD +test-quick \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
-    BUILD +test-no-qemu-quick \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
-    BUILD +test-no-qemu-normal \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
-    BUILD +test-no-qemu-slow \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+    BUILD --pass-args +test-quick
+    BUILD --pass-args +test-no-qemu-quick
+    BUILD --pass-args +test-no-qemu-normal
+    BUILD --pass-args +test-no-qemu-slow
 
 # test-quick runs the unit, chaos, offline, and go tests and ensures the earthly script does not write to stdout
 test-quick:
@@ -734,160 +704,45 @@ test-quick:
     BUILD +chaos-test
     BUILD +offline-test
     BUILD +earthly-script-no-stdout
-    ARG DOCKERHUB_MIRROR
-    ARG DOCKERHUB_MIRROR_INSECURE=false
-    ARG DOCKERHUB_MIRROR_HTTP=false
-    ARG DOCKERHUB_AUTH=true
-    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-
-    BUILD ./ast/tests+all \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+    BUILD --pass-args ./ast/tests+all
 
 # test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-quick
 test-no-qemu-quick:
-    ARG DOCKERHUB_MIRROR
-    ARG DOCKERHUB_MIRROR_INSECURE=false
-    ARG DOCKERHUB_MIRROR_HTTP=false
-    ARG DOCKERHUB_AUTH=true
-    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-    BUILD ./tests+ga-no-qemu-quick \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    BUILD --pass-args ./tests+ga-no-qemu-quick \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
 # test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-normal
 test-no-qemu-normal:
-    ARG DOCKERHUB_MIRROR
-    ARG DOCKERHUB_MIRROR_INSECURE=false
-    ARG DOCKERHUB_MIRROR_HTTP=false
-    ARG DOCKERHUB_AUTH=true
-    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-    BUILD ./tests+ga-no-qemu-normal \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    BUILD --pass-args ./tests+ga-no-qemu-normal \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
 # test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-slow
 test-no-qemu-slow:
-    ARG DOCKERHUB_MIRROR
-    ARG DOCKERHUB_MIRROR_INSECURE=false
-    ARG DOCKERHUB_MIRROR_HTTP=false
-    ARG DOCKERHUB_AUTH=true
-    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-    BUILD ./tests+ga-no-qemu-slow \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    BUILD --pass-args ./tests+ga-no-qemu-slow \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
 # test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-slow
 test-no-qemu-kind:
-    ARG DOCKERHUB_MIRROR
-    ARG DOCKERHUB_MIRROR_INSECURE=false
-    ARG DOCKERHUB_MIRROR_HTTP=false
-    ARG DOCKERHUB_AUTH=true
-    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-    BUILD ./tests+ga-no-qemu-kind \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    BUILD --pass-args ./tests+ga-no-qemu-kind \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
 # test-no-qemu-quick runs the tests from ./tests+ga-qemu
 test-qemu:
-    ARG DOCKERHUB_MIRROR
-    ARG DOCKERHUB_MIRROR_INSECURE=false
-    ARG DOCKERHUB_MIRROR_HTTP=false
-    ARG DOCKERHUB_AUTH=true
-    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
     ARG GLOBAL_WAIT_END="false"
-    BUILD ./tests+ga-qemu \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    BUILD --pass-args ./tests+ga-qemu \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
 # test runs both no-qemu tests and qemu tests
 test:
-    ARG DOCKERHUB_MIRROR
-    ARG DOCKERHUB_MIRROR_INSECURE=false
-    ARG DOCKERHUB_MIRROR_HTTP=false
-    ARG DOCKERHUB_AUTH=true
-    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-    BUILD +test-no-qemu \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
-    BUILD +test-qemu \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+    BUILD --pass-args +test-no-qemu
+    BUILD --pass-args +test-qemu
 
 # test runs examples, no-qemu, qemu, and experimental tests
 test-all:
     BUILD +examples
-    ARG DOCKERHUB_MIRROR
-    ARG DOCKERHUB_MIRROR_INSECURE=false
-    ARG DOCKERHUB_MIRROR_HTTP=false
-    ARG DOCKERHUB_AUTH=true
-    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-    BUILD +test-no-qemu \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
-    BUILD +test-qemu \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
-    BUILD ./tests+experimental  \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+    BUILD --pass-args +test-no-qemu
+    BUILD --pass-args +test-qemu
+    BUILD --pass-args ./tests+experimental
 
 # examples runs both sets of examples
 examples:
