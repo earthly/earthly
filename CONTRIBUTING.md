@@ -146,6 +146,8 @@ To update earthly's reference to buildkit, you may run `earthly +update-buildkit
 
 Updates to fsutil must first be vendored into buildkit, then updated under `go.mod`; additional docs and scripts exist in the buildkit repo.
 
+Note that the buildkit tests in the earthly fork of buildkit may not all pass -- this is a tech-debt trade-off -- we do not enforce the buildkit tests to pass, but instead rely on the earthly integration tests to pass before merging in changes to our fork.
+
 ## Running buildkit under debug mode
 
 Buildkit's scheduler has a debug mode, which can be enabled with the following `~/.earthly/config.yml`[^dir] config:
