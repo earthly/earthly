@@ -1730,8 +1730,8 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 		return domain.Target{}, ConvertOpt{}, false, errors.Wrap(err, "parse build args")
 	}
 	// Don't allow transitive overriding variables to cross project boundaries (unless --pass-all is used).
-	propagateBuildArgs := passArgs || !relTarget.IsExternal()
-	if propagateBuildArgs {
+	propagateBuildArgs := !relTarget.IsExternal()
+	if passArgs || propagateBuildArgs {
 		overriding = variables.CombineScopes(overriding, c.varCollection.Overriding())
 	}
 

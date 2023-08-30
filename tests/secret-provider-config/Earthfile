@@ -1,19 +1,6 @@
-VERSION 0.7
+VERSION --pass-args 0.7
 
-ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-ARG --global DOCKERHUB_MIRROR
-ARG --global DOCKERHUB_MIRROR_INSECURE=false
-ARG --global DOCKERHUB_MIRROR_HTTP=false
-ARG --global DOCKERHUB_AUTH=true
-
-FROM ..+base \
-    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-    --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+FROM --pass-args ..+base
 
 COPY test-secret-provider /weird/path/.
 
@@ -27,12 +14,12 @@ earthly --config \$earthly_config --verbose -D +test
 
 test:
     FROM +base-secret-provider
-    DO +RUN_EARTHLY_ARGS --earthfile=test.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=test.earth --exec_cmd=/tmp/test-earthly-script
     RUN test "$(cat output/value)" = "my secret is williwaw; don't tell anyone."
 
 test-binary:
     FROM +base-secret-provider
-    DO +RUN_EARTHLY_ARGS --earthfile=test-binary.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=test-binary.earth --exec_cmd=/tmp/test-earthly-script
 
 base-secret-provider-with-flag:
     RUN echo "#!/bin/sh
@@ -44,7 +31,7 @@ earthly --config \$earthly_config --verbose -D +test
 
 test-with-flag:
     FROM +base-secret-provider-with-flag
-    DO +RUN_EARTHLY_ARGS --earthfile=test.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=test.earth --exec_cmd=/tmp/test-earthly-script
     RUN test "$(cat output/value)" = "my secret is WILLIWAW; don't tell anyone."
 
 base-secret-provider-with-env:
@@ -57,12 +44,12 @@ earthly --config \$earthly_config --verbose -D +test
 
 test-with-env:
     FROM +base-secret-provider-with-env
-    DO +RUN_EARTHLY_ARGS --earthfile=test.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=test.earth --exec_cmd=/tmp/test-earthly-script
     RUN test "$(cat output/value)" = "my secret is jvyyvjnj; don't tell anyone."
 
 test-with-project-secrets:
     FROM +base-secret-provider-with-flag
-    DO +RUN_EARTHLY_ARGS --earthfile=test-with-project-secrets.earth --exec_cmd=/tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=test-with-project-secrets.earth --exec_cmd=/tmp/test-earthly-script
     RUN test "$(cat output/value)" = "my secret is org/project; don't tell anyone."
 
 test-all:
@@ -77,13 +64,7 @@ RUN_EARTHLY_ARGS:
     ARG earthfile
     ARG pre_command
     ARG exec_cmd
-    DO ..+RUN_EARTHLY \
+    DO --pass-args ..+RUN_EARTHLY \
         --earthfile=$earthfile \
         --pre_command=$pre_command \
-        --exec_cmd=$exec_cmd \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-        --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-        --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+        --exec_cmd=$exec_cmd

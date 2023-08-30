@@ -1,18 +1,6 @@
-VERSION 0.7
+VERSION --pass-args 0.7
 
-ARG --global DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-ARG --global DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-ARG --global DOCKERHUB_MIRROR
-ARG --global DOCKERHUB_MIRROR_INSECURE=false
-ARG --global DOCKERHUB_MIRROR_HTTP=false
-ARG --global DOCKERHUB_AUTH=true
-FROM ../..+earthly-integration-test-base \
-    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-    --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-    --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-    --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP
+FROM --pass-args ../..+earthly-integration-test-base
 
 IMPORT .. AS tests
 
@@ -26,27 +14,27 @@ test-all:
     BUILD +test-new-shellout-errors-are-detected
 
 test-old:
-    DO +RUN_EARTHLY_ARGS --earthfile=old.earth --target=+test
-    DO +RUN_EARTHLY_ARGS --earthfile=old-no-middle-shell-out.earth --target=+test
-    DO +RUN_EARTHLY_ARGS --earthfile=old-ignore-shellout-errors.earth --target=+test
-    DO +RUN_EARTHLY_ARGS --earthfile=old-fail1.earth --target=+test --should_fail=true --output_contains="/valid-\$.echo file..: not found"
-    DO +RUN_EARTHLY_ARGS --earthfile=old-fail2.earth --target=+test --should_fail=true --output_contains="invalid env key definition \$key"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=old.earth --target=+test
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=old-no-middle-shell-out.earth --target=+test
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=old-ignore-shellout-errors.earth --target=+test
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=old-fail1.earth --target=+test --should_fail=true --output_contains="/valid-\$.echo file..: not found"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=old-fail2.earth --target=+test --should_fail=true --output_contains="invalid env key definition \$key"
 
 test-old2:
-    DO +RUN_EARTHLY_ARGS --earthfile=old2.earth --target=+test
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=old2.earth --target=+test
 
 test-old-works-with-new:
     COPY old.earth Earthfile
     RUN sed -i "1s/VERSION .*/VERSION 0.7/" Earthfile
-    DO +RUN_EARTHLY_ARGS --target=+test
+    DO --pass-args +RUN_EARTHLY_ARGS --target=+test
 
 test-new-shellout-errors-are-detected:
     COPY old-ignore-shellout-errors.earth Earthfile
     RUN sed -i "1s/VERSION .*/VERSION 0.7/" Earthfile
-    DO +RUN_EARTHLY_ARGS --target=+test --should_fail=true
+    DO --pass-args +RUN_EARTHLY_ARGS --target=+test --should_fail=true
 
 test-new:
-    DO +RUN_EARTHLY_ARGS --earthfile=new.earth --target=+test
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=new.earth --target=+test
 
 RUN_EARTHLY_ARGS:
     COMMAND
@@ -54,12 +42,8 @@ RUN_EARTHLY_ARGS:
     ARG target
     ARG should_fail=false
     ARG output_contains
-    DO tests+RUN_EARTHLY \
+    DO --pass-args tests+RUN_EARTHLY \
         --earthfile=$earthfile \
         --target=$target \
         --should_fail=$should_fail \
-        --output_contains=$output_contains \
-        --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-        --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-        --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-        --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR
+        --output_contains=$output_contains
