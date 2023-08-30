@@ -51,34 +51,21 @@ jobs:
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: remove docker
-        run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
-        if: inputs.BINARY == 'podman'
-      - name: Install Podman (with apt-get)
-        run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman && ${{inputs.SUDO}} rm -f /etc/containers/registries.conf
-        if: inputs.BINARY == 'podman'
-      - name: Install Podman Compose
-        run: sudo pip3 install podman-compose
-        if: inputs.BINARY == 'podman'
-      - name: Podman debug info
-        run: podman version && podman info && podman info --debug
-        if: inputs.BINARY == 'podman'
-      - name: Retrieve earthly from build-earthly job
-        run: |-
-          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-${{inputs.RUNS_ON}}-${{inputs.BINARY}} ./earthly upgrade
-          mkdir -p $(dirname "${{inputs.BUILT_EARTHLY_PATH}}")
-          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-${{inputs.RUNS_ON}}-${{inputs.BINARY}} ${{inputs.BUILT_EARTHLY_PATH}}
-      - name: Bootstrap Earthly
-        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} bootstrap
-        if: inputs.BINARY == 'podman'
-      - name: Configure Satellites (Earthly Only)
-        run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} sat ls && ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} satellite select ${{inputs.SATELLITE_NAME}}
-        if: (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && inputs.USE_SATELLITE
+      - uses: ./.github/actions/stage2-setup
+        with:
+          DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
+          DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+          DOCKERHUB_USERNAME: "${{ secrets.DOCKERHUB_USERNAME }}"
+          DOCKERHUB_PASSWORD: "${{ secrets.DOCKERHUB_TOKEN }}"
+          EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+          BUILT_EARTHLY_PATH: "${{ inputs.BUILT_EARTHLY_PATH }}"
+          BINARY: "${{ inputs.BINARY }}"
+          SUDO: "${{ inputs.SUDO }}"
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
-            set -euo pipefail
-            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
-            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
+          set -euo pipefail
+          EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+          echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Execute test-local
         run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.RUN_EARTHLY_TEST_ARGS}} ./tests/local+test-local --FRONTEND=${{inputs.BINARY}}"
       - name: Execute test-local --push

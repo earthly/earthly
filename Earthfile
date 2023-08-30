@@ -1,5 +1,4 @@
-# TODO: we must change the DOCKERHUB_USER_SECRET args to be project-based before we can change to 0.7
-VERSION --pass-args --shell-out-anywhere --use-copy-link --no-network --arg-scope-and-set 0.6
+VERSION --pass-args --no-network --arg-scope-and-set 0.7
 
 # TODO update to 3.18; however currently "podman login" (used under not-a-unit-test.sh) will error with
 # "Error: default OCI runtime "crun" not found: invalid argument".
@@ -228,9 +227,7 @@ unit-test:
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false
     ARG DOCKERHUB_MIRROR_HTTP=false
-    ARG DOCKERHUB_AUTH=true
-    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+    ARG DOCKERHUB_MIRROR_AUTH=true
     IF [ -n "$DOCKERHUB_MIRROR" ]
         RUN mkdir -p /etc/docker
         RUN echo "{\"registry-mirrors\": [\"http://$DOCKERHUB_MIRROR\"]" > /etc/docker/daemon.json
@@ -239,10 +236,10 @@ unit-test:
         END
         RUN echo "}" >> /etc/docker/daemon.json
     END
-    IF [ "$DOCKERHUB_AUTH" = "true" ]
+    IF [ "$DOCKERHUB_MIRROR_AUTH" = "true" ]
         WITH DOCKER
-            RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
-                --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
+            RUN --secret DOCKERHUB_MIRROR_USER \
+                --secret DOCKERHUB_MIRROR_PASS \
                 ./not-a-unit-test.sh
         END
     ELSE
@@ -468,54 +465,13 @@ earthly-integration-test-base:
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE
     ARG DOCKERHUB_MIRROR_HTTP
-    ARG DOCKERHUB_AUTH=true
-    ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-    ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
+    ARG DOCKERHUB_MIRROR_AUTH=false
 
-    IF [ -z "$DOCKERHUB_MIRROR" ]
-        # No mirror, easy CI and local use by all
-        ENV GLOBAL_CONFIG="{disable_analytics: true}"
-        IF [ "$DOCKERHUB_AUTH" = "true" ]
-            RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
-                --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
-                (test -n "$USERNAME" || (echo "ERROR: USERNAME not set"; exit 1)) && \
-                (test -n "$TOKEN" || (echo "ERROR: TOKEN not set"; exit 1)) && \
-                docker login --username="$USERNAME" --password="$TOKEN"
-        END
+    COPY setup-registry.sh .
+    IF [ "$DOCKERHUB_MIRROR_AUTH" = "true" ]
+        RUN --secret DOCKERHUB_MIRROR_USER --secret DOCKERHUB_MIRROR_PASS ./setup-registry.sh
     ELSE
-        # Use a mirror, supports mirroring Docker Hub only.
-        ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="[registry.\"docker.io\"]
-  mirrors = [\"$DOCKERHUB_MIRROR\"]"
-        ENV MIRROR_CONFIG="[registry.\"$DOCKERHUB_MIRROR\"]"
-        IF [ "$DOCKERHUB_MIRROR_INSECURE" = "true" ]
-            ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
-  insecure = true"
-            ENV MIRROR_CONFIG="$MIRROR_CONFIG
-  insecure = true"
-        END
-        IF [ "$DOCKERHUB_MIRROR_HTTP" = "true" ]
-            ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
-  http = true"
-            ENV MIRROR_CONFIG="$MIRROR_CONFIG
-  http = true"
-        END
-        ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
-$MIRROR_CONFIG"
-
-        # NOTE: newlines+indentation is important here, see https://github.com/earthly/earthly/issues/1764 for potential pitfalls
-        # yaml will convert newlines to spaces when using regular quoted-strings, therefore we will use the literal-style (denoted by `|`)
-        ENV GLOBAL_CONFIG="disable_analytics: true
-buildkit_additional_config: |
-$(echo "$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG" | sed "s/^/  /g")
-"
-        IF [ "$DOCKERHUB_AUTH" = "true" ]
-            RUN --secret USERNAME=$DOCKERHUB_USER_SECRET \
-                --secret TOKEN=$DOCKERHUB_TOKEN_SECRET \
-                (test -n "$DOCKERHUB_MIRROR" || (echo "ERROR: DOCKERHUB_MIRROR not set"; exit 1)) && \
-                (test -n "$USERNAME" || (echo "ERROR: USERNAME not set"; exit 1)) && \
-                (test -n "$TOKEN" || (echo "ERROR: TOKEN not set"; exit 1)) && \
-                docker login "$DOCKERHUB_MIRROR" --username="$USERNAME" --password="$TOKEN"
-        END
+        RUN ./setup-registry.sh
     END
 
 # prerelease builds and pushes the prerelease version of earthly.

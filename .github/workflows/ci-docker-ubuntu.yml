@@ -253,36 +253,48 @@ jobs:
     needs: build-earthly
     uses: ./.github/workflows/reusable-race-test.yml
     with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       TEST_TARGET: "+test-quick"
       RUNS_ON: "ubuntu-latest"
       USE_QEMU: false
+      BINARY: "docker"
+      SUDO: ""
     secrets: inherit
 
   race-tests-no-qemu-quick:
     needs: build-earthly
     uses: ./.github/workflows/reusable-race-test.yml
     with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       TEST_TARGET: "+test-no-qemu-quick"
       RUNS_ON: "ubuntu-latest"
       USE_QEMU: false
+      BINARY: "docker"
+      SUDO: ""
     secrets: inherit
 
   race-tests-no-qemu-normal:
     needs: build-earthly
     uses: ./.github/workflows/reusable-race-test.yml
     with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       TEST_TARGET: "+test-no-qemu-normal"
       RUNS_ON: "ubuntu-latest"
       USE_QEMU: false
+      BINARY: "docker"
+      SUDO: ""
     secrets: inherit
 
   race-tests-no-qemu-slow:
     needs: build-earthly
     uses: ./.github/workflows/reusable-race-test.yml
     with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       TEST_TARGET: "+test-no-qemu-slow"
       RUNS_ON: "ubuntu-latest"
       USE_QEMU: false
+      BINARY: "docker"
+      SUDO: ""
     secrets: inherit
 
   tutorial:
