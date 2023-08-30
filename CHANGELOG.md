@@ -4,6 +4,11 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.17 - 2023-08-30
+
+### Added
+- Added a `--pass-arg` flag that can be used with `BUILD`, `FROM`, `COPY`, `WITH DOCKER --load`, or `DO`, which will pass all build arguments to external Earthfiles. [#1891](https://github.com/earthly/earthly/issues/1891)
+
 ## v0.7.16 - 2023-08-28
 
 ### Fixed
