@@ -15,7 +15,7 @@ variables:
   FORCE_COLOR: 1
   EARTHLY_EXEC_CMD: "/bin/sh"
 
-image: earthly/earthly:v0.7.16
+image: earthly/earthly:v0.7.17
 
 before_script:
     - earthly bootstrap
