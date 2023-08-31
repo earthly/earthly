@@ -407,6 +407,7 @@ func (f *Formatter) printBuildFailure() {
 	c, _ := f.targetConsole(failure.GetTargetId(), failure.GetCommandId())
 	c = c.WithFailed(true)
 	if failure.GetCommandId() != "" {
+		c.PrintFailure("")
 		c.Printf("Repeating the failure error...\n")
 		f.printHeader(failure.GetTargetId(), failure.GetCommandId(), tm, cm, true)
 		if len(failure.GetOutput()) > 0 {
