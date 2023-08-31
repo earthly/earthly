@@ -129,7 +129,7 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 			if vm.isFatalError {
 				// Run this at the end so that we capture any additional log lines.
 				defer bp.SetFatalError(
-					*vertex.Completed, vm.meta.TargetID, vm.vertex.Digest.String(),
+					*vertex.Completed, vm.meta.TargetID, cmdID,
 					vm.fatalErrorType, vm.errorStr)
 			}
 		}
