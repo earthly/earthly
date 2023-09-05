@@ -81,7 +81,7 @@ update-buildkit:
     SAVE ARTIFACT go.sum AS LOCAL go.sum
 
 lint-scripts-base:
-    FROM alpine:3.15
+    FROM alpine:3.18
 
     ARG TARGETARCH
 
@@ -147,7 +147,7 @@ lint:
     RUN golangci-lint run
 
 lint-newline-ending:
-    FROM alpine:3.15
+    FROM alpine:3.18
     WORKDIR /everything
     COPY . .
     # test that line endings are unix-style
@@ -477,7 +477,7 @@ earthly-integration-test-base:
 # prerelease builds and pushes the prerelease version of earthly.
 # Tagged as prerelease
 prerelease:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG BUILDKIT_PROJECT
     BUILD \
         --platform=linux/amd64 \
@@ -488,7 +488,7 @@ prerelease:
 
 # prerelease-script copies the earthly folder and saves it as an artifact
 prerelease-script:
-    FROM alpine:3.15
+    FROM alpine:3.18
     COPY ./earthly ./
     # This script is useful in other repos too.
     SAVE ARTIFACT ./earthly
@@ -498,7 +498,7 @@ prerelease-script:
 ci-release:
     # TODO: this was multiplatform, but that skyrocketed our build times. #2979
     # may help.
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG BUILDKIT_PROJECT
     ARG EARTHLY_GIT_HASH
     ARG --required TAG_SUFFIX

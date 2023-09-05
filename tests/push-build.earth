@@ -1,14 +1,14 @@
 VERSION 0.7
 test:
-    FROM alpine:3.15
+    FROM alpine:3.18
     BUILD +run1
     RUN --push echo "0"
 
 run1:
-    FROM alpine:3.15
+    FROM alpine:3.18
     BUILD +run2
     RUN --push echo "1"
 
 run2:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN --push echo "2"

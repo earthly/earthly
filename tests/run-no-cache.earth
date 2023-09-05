@@ -1,6 +1,6 @@
 VERSION 0.7
 test:
-    FROM alpine:3.15
+    FROM alpine:3.18
     
     RUN date | md5sum | head -c 32 > motd1
     SAVE ARTIFACT motd1 AS LOCAL motd1
@@ -11,6 +11,6 @@ test:
     SAVE ARTIFACT motd2 AS LOCAL motd2
 
 test-from:
-    FROM alpine:3.15
+    FROM alpine:3.18
     COPY +test/motd1 .
     COPY +test/motd2 .

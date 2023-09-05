@@ -3,7 +3,7 @@ VERSION 0.7
 ARG REGISTRY
 
 test-push:
-    FROM alpine:3.15
+    FROM alpine:3.18
     WORKDIR /test
     RUN echo "content" >./content
     SAVE IMAGE --push $REGISTRY/test1:latest
@@ -13,7 +13,7 @@ test-pull:
     RUN test -f /test/content
 
 test-connect:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN apk add openssl
     WORKDIR /test
     COPY ./test.ca ./

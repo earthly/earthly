@@ -14,6 +14,6 @@ two:
   RUN echo "two"
 
 common:
-  FROM alpine:3.15
+  FROM alpine:3.18
   RUN echo "hello" >/hello.txt
   SAVE ARTIFACT /hello.txt AS LOCAL hello.txt

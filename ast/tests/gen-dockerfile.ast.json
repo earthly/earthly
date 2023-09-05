@@ -3,7 +3,7 @@
     {
       "command": {
         "args": [
-          "alpine:3.15"
+          "alpine:3.18"
         ],
         "name": "FROM"
       }
@@ -57,7 +57,7 @@
           "command": {
             "args": [
               "echo",
-              "\"FROM alpine:3.15\"",
+              "\"FROM alpine:3.18\"",
               ">",
               "Dockerfile"
             ],
@@ -145,7 +145,7 @@
           "command": {
             "args": [
               "echo",
-              "\"FROM alpine:3.15\"",
+              "\"FROM alpine:3.18\"",
               ">",
               "other.Dockerfile"
             ],

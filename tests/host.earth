@@ -1,6 +1,6 @@
 VERSION 0.7
 
-FROM alpine:3.15
+FROM alpine:3.18
 
 add-single-host:
     HOST example.com 1.2.3.4

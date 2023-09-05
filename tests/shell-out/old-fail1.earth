@@ -1,11 +1,11 @@
 VERSION 0.6 # do not change to 0.7; this test is for old functionality
 
 hasfile:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN touch valid-file
     SAVE ARTIFACT "valid-$(echo file)" # this should fail
 
 test:
-    FROM alpine:3.15
+    FROM alpine:3.18
     COPY "+hasfile/$(echo dmFsaWQtZmlsZQ== | base64 -d)" . # this too should fail
     RUN test -f valid-file

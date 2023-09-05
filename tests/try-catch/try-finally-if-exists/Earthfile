@@ -1,7 +1,7 @@
 VERSION --try 0.7
 
 test:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG fail="false"
     RUN echo foo > otherdata
     TRY

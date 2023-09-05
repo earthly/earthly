@@ -1,6 +1,6 @@
 VERSION 0.7
 
-FROM alpine:3.15
+FROM alpine:3.18
 WORKDIR /test
 
 all:
@@ -9,7 +9,7 @@ all:
 
 gen-dockerfile:
     RUN echo "some build context" > bc.txt
-    RUN echo "FROM alpine:3.15" > Dockerfile
+    RUN echo "FROM alpine:3.18" > Dockerfile
     RUN echo "COPY bc.txt ./" >> Dockerfile
     RUN echo "RUN cat bc.txt" >> Dockerfile
     RUN echo 'ENTRYPOINT ["echo", "hello world"]' >> Dockerfile
@@ -21,7 +21,7 @@ test:
     SAVE IMAGE test-gen-dockerfile:latest
 
 gen-dockerfile-f:
-    RUN echo "FROM alpine:3.15" > other.Dockerfile
+    RUN echo "FROM alpine:3.18" > other.Dockerfile
     RUN echo "COPY bc.txt ./" >> other.Dockerfile
     RUN echo "RUN cat bc.txt" >> other.Dockerfile
     RUN echo 'ENTRYPOINT ["echo", "hello world"]' >> other.Dockerfile

@@ -3,14 +3,14 @@ VERSION 0.7
 # with an assignment operator; i.e. "--flag=value" and not "--flag value".
 # otherwise it's unclear if the value is the flag value or command to run.
 run-false:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN --no-cache false
 
 run-false-with-args:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN --no-cache false echo test
 
 # test that non-bool values cause a failure
 run-maybe:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN --no-cache=maybe echo "call me?"

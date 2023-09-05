@@ -2,7 +2,7 @@ VERSION 0.7
 # This test requires that the base be empty (i.e. no FROM)
 
 subtest:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG myvar
     RUN echo "$myvar" | grep "^BusyBox v1\\.34\\..*multi-call binary\\.$"
 
