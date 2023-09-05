@@ -32,7 +32,6 @@ on:
         required: false
         type: string
 
-
 jobs:
   test:
     name: +testing-gha-${{inputs.RUNS_ON}}-${{inputs.BINARY}}
