@@ -44,8 +44,8 @@ test-no-feature-flag-overrides:
 
 test-version-only-import:
     RUN mkdir subdir
-    RUN echo "VERSION 0.5" > subdir/Earthfile
-   DO --pass-args +RUN_EARTHLY_ARGS --earthfile=version-only-import.earth --target=+test
+    RUN echo "VERSION 0.7" > subdir/Earthfile
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=version-only-import.earth --target=+test
 
 test-version-only:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=version-only.earth --target=+base

@@ -1,4 +1,4 @@
-VERSION --referenced-save-only 0.5
+VERSION 0.7
 
 savea:
     FROM github.com/earthly/test-remote/output/versioned:main+savelocal

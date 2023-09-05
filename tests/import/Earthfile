@@ -1,4 +1,4 @@
-VERSION --for-in 0.5
+VERSION 0.7
 
 build:
     BUILD ./lib1+build

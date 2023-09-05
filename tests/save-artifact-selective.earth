@@ -1,4 +1,4 @@
-VERSION --referenced-save-only 0.5
+VERSION 0.7
 
 savea:
     FROM alpine:3.18

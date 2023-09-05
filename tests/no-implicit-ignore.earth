@@ -1,4 +1,4 @@
-VERSION --no-implicit-ignore 0.5
+VERSION 0.7
 FROM alpine:3.18
 WORKDIR /test
 
