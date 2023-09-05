@@ -15,7 +15,7 @@ import (
 
 const (
 	// DefaultBufferSize is the default size of the buffer in a deltasIter.
-	DefaultBufferSize = 1024000
+	DefaultBufferSize = 102400
 )
 
 type deltasIter struct {
