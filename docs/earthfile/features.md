@@ -61,6 +61,7 @@ to require version `0.X` (or later), and could be rewritten as `VERSION 0.X`.
 | `--use-docker-ignore` | 0.7 | Enable the use of `.dockerignore` files in `FROM DOCKERFILE` targets |
 | `--try` | Experimental | Enable the `TRY` / `FINALLY` / `END` block commands |
 | `--arg-scope-and-set` | Experimental | Enable the `LET` / `SET` commands and nested `ARG` scoping |
+| `--pass-args` | Experimental | Enable the optional `--pass-args` flag for the `BUILD`, `FROM`, `COPY`, `WITH DOCKER --load` commands |
 
 
 Note that the features flags are disabled by default in Earthly versions lower than the version listed in the "status" column above.
