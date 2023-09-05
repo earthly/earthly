@@ -55,6 +55,8 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 		cli.Flags().BuildkitdSettings.TLSCA = ""
 		cli.Flags().BuildkitdSettings.ServerTLSCert = ""
 		cli.Flags().BuildkitdSettings.ServerTLSKey = ""
+	} else {
+		cli.Console().Warnf("TLS has been disabled; this should never be done when connecting to Earthly's production API\n")
 	}
 
 	orgName, orgID, err := cli.GetSatelliteOrg(cliCtx.Context, cloudClient)
