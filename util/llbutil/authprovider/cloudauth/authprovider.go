@@ -25,6 +25,7 @@ import (
 	"github.com/docker/cli/cli/config/types"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/conslogging"
+	httperror "github.com/earthly/earthly/error/http"
 	"github.com/earthly/earthly/util/llbutil/authprovider"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth"
@@ -103,7 +104,7 @@ func secondsToDuration(s int) time.Duration {
 func (ap *authProvider) FetchToken(ctx context.Context, req *auth.FetchTokenRequest) (rr *auth.FetchTokenResponse, err error) {
 	ac, err := ap.getAuthConfig(ctx, req.Host)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to fetch token")
 	}
 
 	// check for statically configured bearer token
@@ -181,7 +182,7 @@ func (ap *authProvider) FetchToken(ctx context.Context, req *auth.FetchTokenRequ
 func (ap *authProvider) credentials(ctx context.Context, host string) (*auth.CredentialsResponse, error) {
 	ac, err := ap.getAuthConfig(ctx, host)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get credentials")
 	}
 	res := &auth.CredentialsResponse{}
 	if ac.ac.IdentityToken != "" {
@@ -200,7 +201,7 @@ func (ap *authProvider) Credentials(ctx context.Context, req *auth.CredentialsRe
 func (ap *authProvider) GetTokenAuthority(ctx context.Context, req *auth.GetTokenAuthorityRequest) (*auth.GetTokenAuthorityResponse, error) {
 	key, err := ap.getAuthorityKey(ctx, req.Host, req.Salt)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get token authority")
 	}
 
 	return &auth.GetTokenAuthorityResponse{PublicKey: key[32:]}, nil
@@ -209,7 +210,7 @@ func (ap *authProvider) GetTokenAuthority(ctx context.Context, req *auth.GetToke
 func (ap *authProvider) VerifyTokenAuthority(ctx context.Context, req *auth.VerifyTokenAuthorityRequest) (*auth.VerifyTokenAuthorityResponse, error) {
 	key, err := ap.getAuthorityKey(ctx, req.Host, req.Salt)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to verify token authority")
 	}
 
 	priv := new([64]byte)
@@ -221,7 +222,7 @@ func (ap *authProvider) VerifyTokenAuthority(ctx context.Context, req *auth.Veri
 func (ap *authProvider) projectExists(ctx context.Context, org, project string) (bool, error) {
 	_, err := ap.cloudClient.ListSecrets(ctx, fmt.Sprintf("/%s/%s/std/registry", org, project))
 	if err != nil {
-		if strings.Contains(err.Error(), "resource not found") { // TODO better support for this error is needed by the client/server
+		if httperror.Code(err) == http.StatusNotFound {
 			return false, nil
 		}
 		return false, err
@@ -363,7 +364,7 @@ func (ap *authProvider) getAuthorityKey(ctx context.Context, host string, salt [
 
 	creds, err := ap.credentials(ctx, host)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get authority key")
 	}
 	seed, err := ap.seeds.getSeed(host)
 	if err != nil {

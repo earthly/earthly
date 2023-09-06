@@ -8,6 +8,8 @@ import (
 	"time"
 
 	secretsapi "github.com/earthly/cloud-api/secrets"
+	httperror "github.com/earthly/earthly/error/http"
+
 	"github.com/pkg/errors"
 )
 
@@ -42,7 +44,7 @@ func (c *Client) ListSecrets(ctx context.Context, path string) ([]*Secret, error
 	}
 
 	if status != http.StatusOK {
-		return nil, errors.Errorf("failed to list secrets: %s", body)
+		return nil, fmt.Errorf("failed to list secrets: %w", httperror.New(status, string(body)))
 	}
 
 	var secrets []*Secret
@@ -103,6 +105,9 @@ func (c *Client) GetUserOrProjectSecret(ctx context.Context, path string) (*Secr
 func (c *Client) getSecretV2(ctx context.Context, path string) (*Secret, error) {
 	res, err := c.ListSecrets(ctx, path)
 	if err != nil {
+		if httperror.Code(err) == http.StatusNotFound {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
 	for _, sec := range res {
