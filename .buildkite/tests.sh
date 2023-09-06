@@ -78,9 +78,6 @@ done
 
  mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
 
-echo "Execute tests"
-
-
 # setup secrets
 set +x # dont echo secrets
 echo "DOCKERHUB_MIRROR_USER=$($earthly secret --org earthly-technologies --project core get -n dockerhub-mirror/user)" > .secret
@@ -90,6 +87,7 @@ echo "DOCKERHUB_MIRROR_AUTH=true" > .arg
 echo "DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev" >> .arg
 set -x
 
+echo "Execute tests"
 "$earthly" --ci -P +test
 
 echo "Execute fail test"
