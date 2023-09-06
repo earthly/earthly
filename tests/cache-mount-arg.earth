@@ -1,6 +1,6 @@
 VERSION 0.7
 a-nomount:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN echo Doing something 1
 
 b-nomount:
@@ -9,7 +9,7 @@ b-nomount:
     RUN echo Doing something 2
 
 a:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN --mount=type=cache,target=/cache echo Doing something 1
 
 b:
@@ -18,7 +18,7 @@ b:
     RUN echo Doing something 2
 
 a-with-arg:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG MYARG
     RUN --mount=type=cache,target=/cache echo Doing something 1
 

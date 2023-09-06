@@ -1,17 +1,17 @@
-VERSION --referenced-save-only 0.5
+VERSION 0.7
 
 savea:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN echo apple > a
     SAVE ARTIFACT a AS LOCAL a
 
 saveb:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN echo banana > b
     SAVE ARTIFACT b AS LOCAL b
 
 savec:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN echo cherry > c
     SAVE ARTIFACT c AS LOCAL c
 
@@ -42,11 +42,11 @@ test4:
     BUILD +test4sub
 
 test5sub:
-    FROM alpine:3.15
+    FROM alpine:3.18
     DO +SAVE_CMD --name test5sub
 
 test5:
-    FROM alpine:3.15
+    FROM alpine:3.18
     COPY +test5sub/data .
     DO +SAVE_CMD --name test5
 

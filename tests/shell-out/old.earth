@@ -1,21 +1,21 @@
 VERSION 0.6 # do not change to 0.7; this test is for old functionality
 
 test1:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG key1="apple"
     ARG key2=$key1
     RUN env | grep '^key1=apple$'
     RUN env | grep '^key2=apple$'
 
 test2:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG key1="apple"
     ARG key2 = $key1
     RUN env | grep '^key1=apple$'
     RUN env | grep '^key2=apple$'
 
 test3:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG key1="apple"
     ARG key2 = $( echo "yummy ${key1}s" )
     RUN env
@@ -23,7 +23,7 @@ test3:
     RUN env | grep '^key2=yummy apples$'
 
 test4:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG key1="apple"
     ARG key2 = "$( echo "tasty ${key1}s" )"
     RUN env
@@ -31,74 +31,74 @@ test4:
     RUN env | grep '^key2=tasty apples$'
 
 test5:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG key1="apple"
     ARG key2 = $ ( key1 )
     RUN env | grep '^key1=apple$'
     RUN env | grep '^key2=\$ ( key1 )'
 
 b64decoder:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG --required mydata
     ARG --required pattern
     RUN echo "mydata is $mydata;"
     RUN echo "$mydata" | base64 -d | grep "$pattern"
 
 test6:
-    FROM alpine:3.15
+    FROM alpine:3.18
     BUILD +b64decoder --mydata="Q2hhbXBpb24=" --pattern="Champion"
 
 test7:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG variety=Q2hhbXBpb24=
     BUILD +b64decoder --mydata="$variety" --pattern="Champion"
 
 test8:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG variety=Q2hhbXBpb24=
     ARG key="mydata"
     BUILD +b64decoder --$key="$variety" --pattern="Champion"
 
 test9:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN echo TGUgQm9yZ2VvdA== > variety
     BUILD +b64decoder --mydata=$(cat variety) --pattern="Le Borgeot"
 
 test10:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN echo TGUgQm9yZ2VvdA== > variety
     BUILD +b64decoder --mydata="$(cat variety)" --pattern="Le Borgeot"
 
 test11:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN echo TGUgQm9yZ2VvdA== > variety
     ARG variety=$(cat variety)
     BUILD +b64decoder --mydata=$variety --pattern="Le Borgeot"
 
 test12:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN echo TGUgQm9yZ2VvdA== > variety
     ARG variety="$(cat variety)"
     BUILD +b64decoder --mydata=$variety --pattern="Le Borgeot"
 
 test13:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG keyval="--mydata=Q2hhbXBpb24="
     BUILD +b64decoder "$keyval" --pattern="Champion"
 
 test14:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG keyval="-mydata=Q2hhbXBpb24="
     BUILD +b64decoder "-$keyval" --pattern="Champion"
 
 test15:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG keyval="-mydata=Q2hh"
     ARG moredata="bXBpb24="
     BUILD +b64decoder -"$keyval$moredata" --pattern="Champion"
 
 test16:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG kv=$(echo LS1teWRhdGE9UTJoaGJYQnBiMjQ9 | base64 -d)
     BUILD +b64decoder "$kv" --"pattern=Champion"
 

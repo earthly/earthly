@@ -1,5 +1,5 @@
 VERSION 0.5 # make sure a comment here works
 
-FROM alpine:3.15
+FROM alpine:3.18
 test:
     RUN echo "pass"

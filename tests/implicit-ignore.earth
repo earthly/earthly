@@ -1,5 +1,5 @@
 VERSION 0.5 # This test is only valid for 0.5; --no-implicit-ignore was enabled in 0.6
-FROM alpine:3.15
+FROM alpine:3.18
 WORKDIR /test
 
 all:

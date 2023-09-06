@@ -1,4 +1,4 @@
-VERSION --referenced-save-only 0.5
+VERSION 0.7
 
 savea:
     FROM github.com/earthly/test-remote/output/versioned:main+savelocal
@@ -6,13 +6,13 @@ savea:
     SAVE ARTIFACT a AS LOCAL a
 
 saveb:
-    FROM alpine:3.15
+    FROM alpine:3.18
     COPY github.com/earthly/test-remote/output/versioned:main+savelocal/data .
     RUN echo bannan > b
     SAVE ARTIFACT b AS LOCAL b
 
 savec:
-    FROM alpine:3.15
+    FROM alpine:3.18
     BUILD github.com/earthly/test-remote/output/versioned:main+savelocal
     RUN echo cherry > c
     SAVE ARTIFACT c AS LOCAL c

@@ -1,6 +1,6 @@
-VERSION --for-in 0.5
+VERSION 0.7
 
-FROM alpine:3.15
+FROM alpine:3.18
 
 build-lib:
     RUN echo building lib2

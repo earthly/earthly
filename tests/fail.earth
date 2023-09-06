@@ -1,5 +1,5 @@
 VERSION 0.7
-FROM alpine:3.15
+FROM alpine:3.18
 
 # !IMPORTANT! Please note that the line numbers are important.
 # The test that uses this file is sensitive to line number changes!

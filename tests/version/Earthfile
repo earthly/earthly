@@ -44,12 +44,13 @@ test-no-feature-flag-overrides:
 
 test-version-only-import:
     RUN mkdir subdir
-    RUN echo "VERSION 0.5" > subdir/Earthfile
-   DO --pass-args +RUN_EARTHLY_ARGS --earthfile=version-only-import.earth --target=+test
+    RUN echo "VERSION 0.7" > subdir/Earthfile
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=version-only-import.earth --target=+test
 
-test-version-only:
+# test-version-only-without-newline tests that earthly will still work with non-POSIX text files
+test-version-only-without-newline:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=version-only.earth --target=+base
-    RUN test "$(cat Earthfile | wc -l)" = "0"
+    RUN test "$(cat Earthfile | wc -l)" = "0" # check Earthfile doesn't contain a newline
 
 test-comment-and-whitespace-before-version:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=comment-and-whitespace-before-version.earth --target=+test
@@ -75,7 +76,7 @@ test-all:
     BUILD +test-multi-line-with-args
     BUILD +test-multi-line-with-args2
     BUILD +test-multi-line-with-newline
-    BUILD +test-version-only
+    BUILD +test-version-only-without-newline
     BUILD +test-comment-and-whitespace-before-version
     BUILD +test-whitespace-then-version
     BUILD +test-version-only-import

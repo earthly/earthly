@@ -1,6 +1,6 @@
 VERSION 0.7
 
-FROM alpine:3.15 #The image to use
+FROM alpine:3.18 #The image to use
 WORKDIR /test #the work dir
 
 test: #the target

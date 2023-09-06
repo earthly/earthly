@@ -1,6 +1,6 @@
 VERSION 0.7
 PROJECT earthly-technologies/core
-FROM alpine:3.15
+FROM alpine:3.18
 
 deps:
     FROM ubuntu:20.04

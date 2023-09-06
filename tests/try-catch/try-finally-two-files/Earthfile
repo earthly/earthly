@@ -1,7 +1,7 @@
 VERSION --try 0.7
 
 test:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG fail="false"
     TRY
         RUN echo garbanzo > bean && echo chick > pea && test "$fail" = "false"

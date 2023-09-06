@@ -1,7 +1,7 @@
 VERSION 0.7
 
 produce-file:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN echo -n 162948536bc2 > data
     SAVE ARTIFACT data AS LOCAL data
 

@@ -5,9 +5,9 @@
 set -uxe
 set -o pipefail
 
-cd "$(dirname "$0")"
+testdir="$(realpath $(dirname "$0"))"
 
-earthly=${earthly-"../../build/linux/amd64/earthly"}
+earthly=${earthly-"$testdir/../../build/linux/amd64/earthly"}
 # docker / podman
 frontend="${frontend:-$(which docker || which podman)}"
 test -n "$frontend" || (>&2 echo "Error: frontend is empty" && exit 1)
@@ -15,7 +15,7 @@ test -n "$frontend" || (>&2 echo "Error: frontend is empty" && exit 1)
 # Cleanup previous run.
 "$frontend" stop registry || true
 "$frontend" rm registry || true
-rm -rf ./certs || true
+rm -rf "$testdir/certs" || true
 
 # Start registry to get its IP address.
 "$frontend" run --rm -d --name registry registry:2
@@ -27,12 +27,12 @@ export REGISTRY="$REGISTRY_IP"
 "$earthly" \
     --build-arg REGISTRY \
     --build-arg REGISTRY_IP \
-     +certs
+     "$testdir/+certs"
 
 # Run registry. This will use the same IP address as allocated above.
 "$frontend" run --rm -d \
     --ip "$REGISTRY_IP" \
-    -v "$(pwd)"/certs:/certs \
+    -v "$testdir"/certs:/certs \
     -e REGISTRY_HTTP_ADDR=0.0.0.0:443 \
     -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
     -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
@@ -46,7 +46,7 @@ set +e
     --build-arg REGISTRY \
     --build-arg REGISTRY_IP \
     "$@" \
-    +all
+    "$testdir/+all"
 exit_code="$?"
 set -e
 
