@@ -2,7 +2,6 @@ VERSION 0.7
 
 FROM alpine:3.18
 ARG NATIVEARCH
-RUN test "$NATIVEARCH" = "amd64"
 IF [ "$NATIVEARCH" = "arm64" ]
     FROM arm64v8/openjdk:19-slim
 ELSE
