@@ -72,9 +72,11 @@ get_latest_binary() {
         fi
     fi
 
+    dst="$bindir/earthly-${bintag}"
     "$frontend_bin" pull --platform="$bk_platform" "${buildkitd_img}:${bintag}" >&2
-    "$frontend_bin" cp earthly_binary:"$earth_bin_path" "$bindir/earthly-${bintag}" >&2
+    "$frontend_bin" cp earthly_binary:"$earth_bin_path" "$dst" >&2
     "$frontend_bin" rm earthly_binary >&2
+    echo "extracted $earth_bin_path to $dst" >&2
 }
 
 do_reset() {

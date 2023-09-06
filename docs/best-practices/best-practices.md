@@ -127,7 +127,7 @@ Repo 2:
 ```Dockerfile
 # Bad
 VERSION 0.7
-FROM alpine:3.15
+FROM alpine:3.18
 WORKDIR /work
 print-file:
     GIT CLONE git@github.com:my-co/repo-1.git
@@ -148,7 +148,7 @@ repo 1
 ```Dockerfile
 # Repo 1 Earthfile
 VERSION 0.7
-FROM alpine:3.15
+FROM alpine:3.18
 WORKDIR /work
 file:
     COPY ./my-file.txt ./
@@ -161,7 +161,7 @@ Repo 2:
 # Repo 2 Earthfile
 VERSION 0.7
 IMPORT github.com/my-co/repo-1
-FROM alpine:3.15
+FROM alpine:3.18
 WORKDIR /work
 print-file:
     COPY repo-1+file/my-file.txt ./
@@ -315,7 +315,7 @@ However, the code duplication is not ideal and will result in the two recipes to
 It is possible to use an `ARG` to decide on whether to execute the target on the host or not:
 
 ```Dockerfile
-FROM alpine:3.15
+FROM alpine:3.18
 ARG run_locally=false
 IF [ "$run_locally" = "true" ]
     LOCALLY
@@ -338,7 +338,7 @@ Now, to run locally, you can execute `earthly +my-target --run_locally=true`, ot
 In some cases, it is useful to switch up which base image to use depending on the result of an `IF` expression. For example, let's assume that the company provided Go image only supports the `linux/amd64` platform, and therefore, you'd like to use the official golang image when ARM (`linux/arm64`) is detected. Here's how this can be achieved:
 
 ```Dockerfile
-FROM alpine:3.15
+FROM alpine:3.18
 ARG TARGETPLATFORM
 IF [ "$TARGETPLATFORM" = "linux/arm64" ]
     FROM golang:1.16
@@ -607,7 +607,7 @@ all:
     BUILD +dep
     BUILD +run-locally
 dep:
-    FROM alpine:3.15
+    FROM alpine:3.18
     WORKDIR /work
     RUN echo "Hello World" > ./my-artifact.txt
     SAVE ARTIFACT ./my-artifact.txt AS LOCAL ./build/my-artifact.txt
@@ -625,7 +625,7 @@ Here is how to fix this:
 all:
     BUILD +run-locally
 dep:
-    FROM alpine:3.15
+    FROM alpine:3.18
     WORKDIR /work
     RUN echo "Hello World" > ./my-artifact.txt
     SAVE ARTIFACT ./my-artifact.txt
@@ -784,7 +784,7 @@ build:
     RUN go build ... -o ./build/app
     SAVE ARTIFACT ./build/app
 image:
-    FROM alpine:3.15 # start afresh
+    FROM alpine:3.18 # start afresh
     RUN apk add ... # production dependencies only
     COPY +build/app /usr/bin/app
     ENTRYPOINT ["/usr/bin/app"]
@@ -867,7 +867,7 @@ In the above example, the file `some-file.txt` is copied from the sibling direct
 ```Dockerfile
 # ./dir1/Earthfile
 VERSION 0.7
-FROM alpine:3.15
+FROM alpine:3.18
 WORKDIR /work
 file:
     COPY some-file.txt ./
@@ -950,7 +950,7 @@ If a target acts as a wrapper for another target and that other target produces 
 ```Dockerfile
 # No pass-through artifacts
 VERSION 0.7
-FROM alpine:3.15
+FROM alpine:3.18
 build:
     ARG some_arg=...
     ARG another_arg=...
@@ -964,7 +964,7 @@ build-for-windows:
 ```Dockerfile
 # With pass-through artifacts
 VERSION 0.7
-FROM alpine:3.15
+FROM alpine:3.18
 build:
     ARG some_arg=...
     ARG another_arg=...
@@ -983,7 +983,7 @@ Similarly, if a target emits an image, then that image can be also emitted by a 
 ```Dockerfile
 # No pass-through image
 VERSION 0.7
-FROM alpine:3.15
+FROM alpine:3.18
 build:
     ARG some_arg=...
     ARG another_arg=...
@@ -996,7 +996,7 @@ build-wrapper:
 ```Dockerfile
 # With pass-through image
 VERSION 0.7
-FROM alpine:3.15
+FROM alpine:3.18
 build:
     ARG some_arg=...
     ARG another_arg=...

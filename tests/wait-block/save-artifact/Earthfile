@@ -1,7 +1,7 @@
 VERSION 0.7
 
 produce-file:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN sleep 3 # to allow wait/end bugs to more easily propagate
     RUN echo -n foo > data
     SAVE ARTIFACT data AS LOCAL data
@@ -11,13 +11,13 @@ check-file-locally:
     RUN md5sum data | grep acbd18db4cc2f85cedef654fccc4a4d8
 
 change-file:
-    FROM alpine:3.15
+    FROM alpine:3.18
     COPY data .
     RUN echo -n bar >> data
     SAVE ARTIFACT data AS LOCAL data
 
 second-copy-should-fail:
-    FROM alpine:3.15
+    FROM alpine:3.18
     COPY data . # this is should fail, as we don't allow copying in a file (with the same path) after it's already been output
     RUN test -f data && echo dGhpcyBtYWdpYyBzdHJpbmcgc2hvdWxkIG5ldmVyIGFwcGVhcgo= | base64 -d # we should never reach this point
 

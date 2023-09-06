@@ -12,7 +12,7 @@ This guide assumes you have already installed the [Azure CLI tool](https://docs.
 No special considerations are needed in the Earthfile itself. You can use `SAVE IMAGE` just like any other repository.
 
 ```
-FROM alpine:3.15
+FROM alpine:3.18
 
 build:
     RUN echo "Hello from Earthly!" > motd
@@ -63,9 +63,9 @@ Once you are logged in, and have the optional credential helper installed, then 
 ```
 ❯ ../earthly/earthly --push --no-cache +build
            buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
-         alpine:3.15 | --> Load metadata linux/amd64
-               +base | --> FROM alpine:3.15
-               +base | [██████████] resolve docker.io/library/alpine:3.15@sha256:0bd0e9e03a022c3b0226667621da84fc9bf562a9056130424b5bfbd8bcb0397f ... 100%
+         alpine:3.18 | --> Load metadata linux/amd64
+               +base | --> FROM alpine:3.18
+               +base | [██████████] resolve docker.io/library/alpine:3.18@sha256:0bd0e9e03a022c3b0226667621da84fc9bf562a9056130424b5bfbd8bcb0397f ... 100%
               +build | --> RUN echo "Hello from Earthly!" > motd
               output | --> exporting outputs
               output | [██████████] exporting layers ... 100%

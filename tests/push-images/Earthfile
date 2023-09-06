@@ -1,6 +1,6 @@
 VERSION 0.7
 test:
-    FROM alpine:3.15
+    FROM alpine:3.18
     WORKDIR test
 
     SAVE IMAGE earthly/sap:empty # should exist
@@ -15,7 +15,7 @@ test:
     SAVE IMAGE --push earthly/sap:after-push # should not exist
 
 only-push:
-    FROM alpine:3.15
+    FROM alpine:3.18
     WORKDIR test
 
     RUN echo "1" > 1

@@ -1,5 +1,5 @@
-VERSION --use-copy-include-patterns 0.5
-FROM alpine:3.15
+VERSION 0.7
+FROM alpine:3.18
 
 copy:
     COPY a.txt .

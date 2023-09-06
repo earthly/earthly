@@ -1,21 +1,21 @@
 VERSION 0.7
 
 earthly-multiplatform-wait-test-amd64:
-    FROM --platform=linux/amd64 alpine:3.15
+    FROM --platform=linux/amd64 alpine:3.18
     RUN echo x86_64 > /contrived-platform-data
     ARG --required REGISTRY
     ARG --required tag
     SAVE IMAGE $REGISTRY/myuser/earthly-multiplatform-wait-test:$tag
 
 earthly-multiplatform-wait-test-arm64:
-    FROM --platform=linux/arm64 alpine:3.15
+    FROM --platform=linux/arm64 alpine:3.18
     RUN echo aarch64 > /contrived-platform-data
     ARG --required REGISTRY
     ARG --required tag
     SAVE IMAGE $REGISTRY/myuser/earthly-multiplatform-wait-test:$tag
 
 deps:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN apk add curl jq
 
 check-tag-does-not-exist-in-registry:

@@ -105,6 +105,7 @@ jobs:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
+      USE_QEMU: true
       SUDO: "sudo -E"
       EXAMPLE_NAME: "+examples1"
     secrets: inherit
@@ -118,6 +119,7 @@ jobs:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
+      USE_QEMU: true
       SUDO: "sudo -E"
       EXAMPLE_NAME: "+examples2"
     secrets: inherit

@@ -81,7 +81,7 @@ This would cause the build to execute on the `linux/arm64` architecture.
 The easiest way to include platform information as part of a build is through the use of `FROM --platform`. For example:
 
 ```Dockerfile
-FROM --platform=linux/arm/v7 alpine:3.15
+FROM --platform=linux/arm/v7 alpine:3.18
 ```
 
 If multiple targets create an image with the same name, but for different platforms, the images will be merged into a multi-platform image during export. For example:
@@ -92,12 +92,12 @@ build-all-platforms:
     BUILD +build-arm-v7
 
 build-amd64:
-    FROM --platform=linux/amd64 alpine:3.15
+    FROM --platform=linux/amd64 alpine:3.18
     ...
     SAVE IMAGE --push org/myimage:latest
 
 build-arm-v7:
-    FROM --platform=linux/arm/v7 alpine:3.15
+    FROM --platform=linux/arm/v7 alpine:3.18
     ...
     SAVE IMAGE --push org/myimage:latest
 ```
@@ -111,7 +111,7 @@ build-all-platforms:
     BUILD --platform=linux/amd64 --platform=linux/arm/v7 +build
 
 build:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ...
     SAVE IMAGE --push org/myimage:latest
 ```
@@ -164,13 +164,13 @@ build:
     SAVE ARTIFACT ./main
 
 build-amd64:
-    FROM --platform=linux/amd64 alpine:3.15
+    FROM --platform=linux/amd64 alpine:3.18
     COPY +build/main ./example/main
     ENTRYPOINT ["/example/main"]
     SAVE IMAGE --push org/myimage:latest
 
 build-arm-v7:
-    FROM --platform=linux/arm/v7 alpine:3.15
+    FROM --platform=linux/arm/v7 alpine:3.18
     COPY \
         --platform=linux/amd64 \
         (+build/main --GOARCH=arm --GOARM=v7) ./example/main
@@ -209,7 +209,7 @@ build-image:
     ARG TARGETPLATFORM
     ARG TARGETARCH
     ARG TARGETVARIANT
-    FROM --platform=$TARGETPLATFORM alpine:3.15
+    FROM --platform=$TARGETPLATFORM alpine:3.18
     COPY \
         --platform=linux/amd64 \
         (+build/main --GOARCH=$TARGETARCH --VARIANT=$TARGETVARIANT) ./example/main

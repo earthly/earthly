@@ -1,10 +1,8 @@
 VERSION 0.7
-
-
 ARG --global REGISTRY
 
 test1:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN echo "execute-test1-run-before-copy"
     COPY ./input ./
     RUN echo "execute-test1-run-after-copy"
@@ -36,6 +34,6 @@ test2:
 
 # Smoke test for --cache-hint.
 test3:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN echo "content" >./file.txt
     SAVE IMAGE --cache-hint

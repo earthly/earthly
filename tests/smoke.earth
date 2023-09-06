@@ -1,7 +1,7 @@
 VERSION 0.7
 # This is a smoke test for parsing. We don't actually check that the config was
 # set correctly.
-FROM alpine:3.15
+FROM alpine:3.18
 test:
     LABEL a=b c=d "e    eee = ee"=fff
     LABEL x=y

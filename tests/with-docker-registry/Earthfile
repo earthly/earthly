@@ -18,7 +18,7 @@ empty-test:
     END
 
 a-test-image:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG name=abc
     ARG var=def
     RUN mkdir /$name
@@ -28,7 +28,7 @@ a-test-image:
     SAVE IMAGE test-${name}-img:xyz
 
 another-test-image:
-    FROM alpine:3.15
+    FROM alpine:3.18
     WORKDIR /work
     ARG INDEX=0
     RUN echo "hello another test img $INDEX" >file.txt
@@ -36,7 +36,7 @@ another-test-image:
     SAVE IMAGE another-test-img:i${INDEX}
 
 a-test-image-with-shell-out:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN echo c2hlbGxvdXQ= > data # decodes into "shellout"
     RUN echo myver > version
     ENTRYPOINT echo "you found me"

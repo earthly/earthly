@@ -1,7 +1,7 @@
 VERSION 0.7
 
 withtestuser:
-  FROM alpine:3.15
+  FROM alpine:3.18
   RUN adduser -D testuser
   WORKDIR /test
 
@@ -21,7 +21,7 @@ test-known-user:
   RUN test "$(stat -c '%G' testperms)" = "testuser"
 
 test-unknown-user:
-  FROM alpine:3.15
+  FROM alpine:3.18
   WORKDIR /test
   COPY --keep-own +producer/testperms .
   RUN test "$(stat -c '%u' testperms)" = "1000"

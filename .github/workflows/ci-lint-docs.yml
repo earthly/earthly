@@ -23,12 +23,5 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: earthly/actions-setup@main
-      - name: Execute lint (Earthly Only)
-        run: |-
-          earthly --ci -P \
-            --build-arg DOCKERHUB_AUTH=true \
-            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-          +lint-docs
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Execute lint
+        run: earthly --ci -P +lint-docs

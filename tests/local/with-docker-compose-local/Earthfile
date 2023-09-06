@@ -6,7 +6,7 @@ all:
     BUILD +test
 
 fetch:
-    FROM alpine:3.10
+    FROM alpine:3.18
     RUN apk add curl
     COPY fetch.sh /bin/fetch
     CMD ["/bin/fetch"]

@@ -26,7 +26,7 @@ This UDC can be invoked from a target via `DO`
 
 ```Earthfile
 build:
-    FROM alpine:3.15
+    FROM alpine:3.18
     WORKDIR /udc-example
     RUN echo "hello" >./foo
     DO +MY_COPY --src=./foo --dest=./bar

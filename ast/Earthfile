@@ -1,4 +1,4 @@
-VERSION --shell-out-anywhere --use-copy-link 0.6
+VERSION 0.7
 
 FROM github.com/earthly/earthly+base
 

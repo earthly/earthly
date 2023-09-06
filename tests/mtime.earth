@@ -1,6 +1,6 @@
 VERSION 0.7
 all:
-    FROM alpine:3.15
+    FROM alpine:3.18
     COPY file .
 
     # Currently we have Modify time set to a static date (when earthly was initially released)

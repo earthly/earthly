@@ -19,18 +19,18 @@ hasfile:
     SAVE ARTIFACT "valid-$(echo file)"
 
 test-copyfile:
-    FROM alpine:3.15
+    FROM alpine:3.18
     COPY "+hasfile/$(echo dmFsaWQtZmlsZQ== | base64 -d)" .
     RUN test -f valid-file
 
 test1:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN echo "world" > data
     ARG key="hello$(cat /data)"
     RUN env | grep -w key | grep 'helloworld$'
 
 test2:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN echo alpha > a
     RUN echo "bravo" > b
     RUN echo 'charlie' > c
@@ -39,7 +39,7 @@ test2:
     RUN test "$VAR1" == "a is alpha and b is bravo and c is charlie and d is delta."
 
 test3:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN echo world > data
     ARG VAR1="hello$(cat ./data)"
     RUN test "$VAR1" == "helloworld"
@@ -47,7 +47,7 @@ test3:
 test4:
     FROM scratch
     ARG VAR1="literal\$(string)"
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN test "$VAR1" == "literal\$(string)"
     RUN echo -n $VAR1 | base64
     RUN echo -n $VAR1 | base64 | grep bGl0ZXJhbCQoc3RyaW5nKQ==
@@ -55,31 +55,31 @@ test4:
 test5:
     FROM scratch
     ARG VAR1='literal$(whoami)string'
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN test "$VAR1" == 'literal$(whoami)string'
     RUN echo -n $VAR1 | base64 | grep bGl0ZXJhbCQod2hvYW1pKXN0cmluZw==
 
 test6:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG mystr="hello $(echo -n one && echo -n two >/dev/null && echo -n three)."
     RUN test "$mystr" = "hello onethree."
 
 test7:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG foo = "$(echo '()')"
     RUN env | grep foo | tee output && base64 output | grep Zm9vPSgpCg==
 
 test8:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG foo = "$(echo "()")"
     RUN env | grep foo | tee output && base64 output | grep Zm9vPSgpCg==
 
 test9:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG foo = "$(echo \\(\\))"
     RUN env | grep foo | tee output && base64 output | grep Zm9vPSgpCg==
 
 test10:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG foo = $(echo \\(\\))
     RUN env | grep foo | tee output && base64 output | grep Zm9vPSgpCg==

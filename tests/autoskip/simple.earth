@@ -2,7 +2,7 @@ VERSION 0.7
 PROJECT testorg/testproj
 
 deps:
-  FROM alpine:3.17
+  FROM alpine:3.18
   COPY my-file .
 
 mytarget:

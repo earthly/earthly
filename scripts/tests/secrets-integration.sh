@@ -66,7 +66,7 @@ mkdir -p /tmp/earthtest
 cat << EOF > /tmp/earthtest/Earthfile
 VERSION 0.7
 PROJECT manitou-org/earthly-core-integration-test
-FROM alpine:3.15
+FROM alpine:3.18
 test-local-secret:
     WORKDIR /test
     RUN --mount=type=secret,target=/tmp/test_file,id=my_secret test "\$(cat /tmp/test_file)" = "my-local-value"

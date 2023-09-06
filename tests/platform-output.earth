@@ -1,12 +1,12 @@
 VERSION 0.7
 
-FROM alpine:3.15
+FROM alpine:3.18
 
 all:
     BUILD --platform=linux/arm/v7 --platform=linux/arm64 +target
 
 other:
-    FROM alpine:3.15
+    FROM alpine:3.18
 
 target:
     FROM +other

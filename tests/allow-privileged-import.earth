@@ -1,5 +1,5 @@
 VERSION 0.7
-FROM alpine:3.15
+FROM alpine:3.18
 RUN apk add libcap # for capsh
 
 IMPORT --allow-privileged github.com/earthly/test-remote/privileged:main
