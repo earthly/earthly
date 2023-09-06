@@ -6,6 +6,9 @@ on:
       BUILT_EARTHLY_PATH:
         required: true
         type: string
+      BINARY:
+        type: string
+        required: false
       SUDO:
         type: string
         required: false

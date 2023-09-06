@@ -38,6 +38,18 @@ EOF
     fi
   fi
   if [ "$DOCKERHUB_MIRROR_AUTH" = "true" ]; then
+    if [ -z "$DOCKERHUB_MIRROR" ]; then
+      echo >&2 "error: expected value for DOCKERHUB_MIRROR, but got none"
+      exit 1
+    fi
+    if [ -z "$DOCKERHUB_MIRROR_USER" ]; then
+      echo >&2 "error: expected value for DOCKERHUB_MIRROR_USER, but got none"
+      exit 1
+    fi
+    if [ -z "$DOCKERHUB_MIRROR_PASS" ]; then
+      echo >&2 "error: expected value for DOCKERHUB_MIRROR_PASS, but got none"
+      exit 1
+    fi
     docker login "$DOCKERHUB_MIRROR" --username="$DOCKERHUB_MIRROR_USER" --password="$DOCKERHUB_MIRROR_PASS"
   fi
 else

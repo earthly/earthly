@@ -57,18 +57,21 @@ runs:
       # qemu-user-static needed for cross-compilation (--platform) targets
       run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y qemu-user-static
       shell: bash
-    - if: ${{ inputs.BINARY == 'docker' }}
-      run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ inputs.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ inputs.DOCKERHUB_MIRROR_PASSWORD }}"
+    - run: ${{inputs.SUDO}} ${{inputs.BINARY}} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ inputs.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ inputs.DOCKERHUB_MIRROR_PASSWORD }}"
       shell: bash
     - if: ${{ inputs.BINARY == 'docker' }}
-      run: docker login --username "${{ inputs.DOCKERHUB_USERNAME }}" --password "${{ inputs.DOCKERHUB_PASSWORD }}"
+      run: ${{inputs.SUDO}} ${{inputs.BINARY}} login  --username "${{ inputs.DOCKERHUB_USERNAME }}" --password "${{ inputs.DOCKERHUB_PASSWORD }}"
+      shell: bash
+    - if: ${{ inputs.BINARY != 'docker' }}
+      run: ${{inputs.SUDO}} ${{inputs.BINARY}} login docker.io --username "${{ inputs.DOCKERHUB_USERNAME }}" --password "${{ inputs.DOCKERHUB_PASSWORD }}"
       shell: bash
     - run: |-
         echo "Extracting earthly binary from stage1 of build"
-        BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-ubuntu-latest-docker ./earthly upgrade
+        BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-ubuntu-latest-${{inputs.BINARY}} ${{inputs.SUDO}} ./earthly upgrade
+        ${{inputs.SUDO}} chown -R $USER ~/.earthly # restore non-sudo user ownership
         test -n "${{inputs.BUILT_EARTHLY_PATH}}" || (echo "BUILT_EARTHLY_PATH is empty" && exit 1)
         mkdir -p $(dirname "${{inputs.BUILT_EARTHLY_PATH}}")
-        mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-ubuntu-latest-docker "${{inputs.BUILT_EARTHLY_PATH}}"
+        ${{inputs.SUDO}} mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-ubuntu-latest-${{inputs.BINARY}} "${{inputs.BUILT_EARTHLY_PATH}}"
         echo "extracted ${{inputs.BUILT_EARTHLY_PATH}}"
       shell: bash
     - run: |-
