@@ -167,6 +167,7 @@ jobs:
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
       SUDO: ""
       USE_SATELLITE: true
       SATELLITE_NAME: "core-test"

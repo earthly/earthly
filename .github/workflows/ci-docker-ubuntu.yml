@@ -196,6 +196,7 @@ jobs:
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
       SUDO: ""
     secrets: inherit
 
