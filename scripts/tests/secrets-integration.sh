@@ -34,10 +34,7 @@ if NO_COLOR=0 "$earthly" account logout > output 2>&1; then
     exit 1
 fi
 
-if ! grep -q "Error: account logout has no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set" output; then
-    echo "Expected error message not found"
-    exit 1
-fi
+acbgrep "Error: account logout has no effect when --auth-token (or the EARTHLY_TOKEN environment variable) is set" output
 
 # fetch shared secret key (this step assumes your personal user has access to the /earthly-technologies/ secrets org
 echo "fetching manitou-id_rsa"
