@@ -13,52 +13,64 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-const (
-	// DefaultBufferSize is the default size of the buffer in a deltasIter.
-	// Note: This size has been raised from 10240 as a temporary fix for a
-	// deadlock issue that comes about when logs are not written to the server
-	// in a timely manner. This will be addressed with a more permanent fix
-	// soon.
-	DefaultBufferSize = 204800
-)
+const maxDeltasPerIter = 200
 
 type deltasIter struct {
 	mu                   sync.Mutex
-	ch                   chan []*logstream.Delta
-	closed               bool
 	manifestsWritten     atomic.Int32
 	formattedLogsWritten atomic.Int32
 	verbose              bool
+	closed               bool
+	ready                atomic.Int32
+	initialDelta         *logstream.Delta
+	allDeltas            []*logstream.Delta
 }
 
-func newDeltasIter(bufferSize int, initialManifest *logstream.RunManifest, verbose bool) *deltasIter {
+func newDeltasIter(initialManifest *logstream.RunManifest, verbose bool) *deltasIter {
 	d := &deltasIter{
 		mu:      sync.Mutex{},
-		ch:      make(chan []*logstream.Delta, bufferSize),
 		verbose: verbose,
 	}
-	d.ch <- []*logstream.Delta{{
+
+	d.initialDelta = &logstream.Delta{
 		DeltaTypeOneof: &logstream.Delta_DeltaManifest{
 			DeltaManifest: &logstream.DeltaManifest{
 				DeltaManifestOneof: &logstream.DeltaManifest_ResetAll{ResetAll: initialManifest},
 			},
 		},
-	}}
+	}
+
 	return d
 }
 
-func (d *deltasIter) deltas() (chan []*logstream.Delta, bool) {
+func (d *deltasIter) deltas() []*logstream.Delta {
+
+	if d.initialDelta != nil {
+		defer func() {
+			d.initialDelta = nil
+		}()
+		return []*logstream.Delta{d.initialDelta}
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if d.closed {
-		return d.ch, false
+
+	var deltas []*logstream.Delta
+
+	// Take up to 100 log entries for sending.
+	if len(d.allDeltas) > maxDeltasPerIter {
+		deltas = d.allDeltas[0:maxDeltasPerIter]
+		d.allDeltas = d.allDeltas[maxDeltasPerIter:len(d.allDeltas)]
+	} else {
+		deltas = d.allDeltas
+		d.allDeltas = []*logstream.Delta{}
 	}
-	return d.ch, true
+
+	return deltas
 }
 
 func (d *deltasIter) Write(delta *logstream.Delta) {
-	ch, ok := d.deltas()
-	if !ok {
+	if d.closed {
 		//  (vladaionescu): If these messages show up, we need to rethink
 		//					the closing sequence.
 		if d.verbose {
@@ -75,29 +87,30 @@ func (d *deltasIter) Write(delta *logstream.Delta) {
 	} else if delta.GetDeltaManifest() != nil {
 		d.manifestsWritten.Add(1)
 	}
-	ch <- []*logstream.Delta{delta}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.allDeltas = append(d.allDeltas, delta)
 }
 
 func (d *deltasIter) close() (int32, int32) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	close(d.ch)
 	d.closed = true
 	return d.manifestsWritten.Load(), d.formattedLogsWritten.Load()
 }
 
 func (d *deltasIter) Next(ctx context.Context) ([]*logstream.Delta, error) {
-	deltas, _ := d.deltas()
-	if deltas == nil {
-		return nil, errors.Wrap(io.EOF, "logstreamer: buffer not yet allocated")
+	deltas := d.deltas()
+	if d.closed && len(deltas) == 0 {
+		return nil, errors.Wrap(io.EOF, "logstreamer: closed with no remaining deltas")
+	}
+	if len(deltas) == 0 {
+		return nil, io.ErrNoProgress
 	}
 	select {
 	case <-ctx.Done():
 		return nil, errors.Wrap(ctx.Err(), "logstreamer: context closed while waiting on next delta")
-	case delta, ok := <-deltas:
-		if !ok {
-			return nil, errors.Wrap(io.EOF, "logstreamer: channel closed")
-		}
-		return delta, nil
+	default:
+		return deltas, nil
 	}
 }

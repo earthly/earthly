@@ -3,7 +3,6 @@ package logstreamer_test
 import (
 	"context"
 	"io"
-	"runtime"
 	"testing"
 	"time"
 
@@ -69,7 +68,7 @@ func TestLogstreamer(topT *testing.T) {
 		))
 		_, _ = deltas.Next(tt.ctx) // ignore the initial manifest
 
-		go tt.streamer.Close()
+		tt.streamer.Close()
 
 		_, err := deltas.Next(tt.ctx)
 		tt.expect(err).To(beErr(io.EOF))
@@ -100,15 +99,13 @@ func TestLogstreamer(topT *testing.T) {
 		for i := 0; i < toSend; i++ {
 			tt.streamer.WriteToDeltaIter(&logstream.Delta{})
 		}
-		go tt.streamer.Close()
 
-		runtime.Gosched() // ensure that closeLastLogstreamer() has a chance to close the deltas
+		tt.streamer.Close()
 
-		for i := 0; i < toSend; i++ {
-			_, err := deltas.Next(tt.ctx)
-			tt.expect(err).To(not(haveOccurred()))
-		}
 		_, err := deltas.Next(tt.ctx)
+		tt.expect(err).To(not(haveOccurred()))
+
+		_, err = deltas.Next(tt.ctx)
 		tt.expect(err).To(beErr(io.EOF))
 
 		pers.Return(tt.mockClient.StreamLogsOutput, nil)

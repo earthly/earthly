@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"sync/atomic"
+	"time"
 
 	"github.com/earthly/cloud-api/logstream"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
@@ -44,7 +45,8 @@ func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) 
 	eg.Go(func() error {
 		for {
 			dl, err := deltas.Next(ctx)
-			if errors.Is(err, io.EOF) {
+			switch {
+			case errors.Is(err, io.EOF):
 				msg := &logstream.StreamLogRequest{
 					BuildId: buildID,
 					Eof:     true,
@@ -55,8 +57,10 @@ func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) 
 				}
 				finished.Store(true)
 				return nil
-			}
-			if err != nil {
+			case errors.Is(err, io.ErrNoProgress):
+				time.Sleep(time.Millisecond * 250)
+				continue
+			case err != nil:
 				return errors.Wrap(err, "cloud: error getting next delta")
 			}
 

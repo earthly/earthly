@@ -6,8 +6,15 @@ import (
 	"sync/atomic"
 
 	"github.com/earthly/cloud-api/logstream"
+	"github.com/earthly/earthly/logbus"
 	"github.com/hashicorp/go-multierror"
 )
+
+// LogBus is a type that LogStreamer subscribes to.
+type LogBus interface {
+	AddSubscriber(logbus.Subscriber)
+	RemoveSubscriber(logbus.Subscriber)
+}
 
 type Orchestrator struct {
 	buildID         string
@@ -22,17 +29,16 @@ type Orchestrator struct {
 	doneCH chan struct{}
 	subCH  chan struct{}
 
-	errors      []error
-	startOnce   sync.Once
-	closed      atomic.Bool
-	retries     int
-	streamer    *LogStreamer
-	deltas      *deltasIter
-	verbose     bool
-	deltaBuffer int
+	errors    []error
+	startOnce sync.Once
+	closed    atomic.Bool
+	retries   int
+	streamer  *LogStreamer
+	deltas    *deltasIter
+	verbose   bool
 }
 
-type LOpt func(*Orchestrator) *Orchestrator
+type OrchestratorOpt func(*Orchestrator) *Orchestrator
 
 // WithVerbose sets the verbose option on the Orchestrator
 func WithVerbose(verbose bool) func(orchestrator *Orchestrator) *Orchestrator {
@@ -42,21 +48,13 @@ func WithVerbose(verbose bool) func(orchestrator *Orchestrator) *Orchestrator {
 	}
 }
 
-func WithDeltaBuffer(buffer int) func(orchestrator *Orchestrator) *Orchestrator {
-	return func(orchestrator *Orchestrator) *Orchestrator {
-		orchestrator.deltaBuffer = buffer
-		return orchestrator
-	}
-}
-
-func NewOrchestrator(bus LogBus, c CloudClient, initialManifest *logstream.RunManifest, opts ...LOpt) *Orchestrator {
+func NewOrchestrator(bus LogBus, c CloudClient, initialManifest *logstream.RunManifest, opts ...OrchestratorOpt) *Orchestrator {
 	ls := &Orchestrator{
 		buildID:         initialManifest.GetBuildId(),
 		bus:             bus,
 		c:               c,
 		initialManifest: initialManifest,
 		retries:         10,
-		deltaBuffer:     DefaultBufferSize,
 		doneCH:          make(chan struct{}),
 		subCH:           make(chan struct{}),
 	}
@@ -133,8 +131,8 @@ func (l *Orchestrator) subscribe() {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	_, _, _ = l.closePreviousStreamer()
-	l.deltas = newDeltasIter(l.deltaBuffer, l.initialManifest, l.verbose)
-	l.streamer = New(l.c, l.buildID, l.deltas)
+	l.deltas = newDeltasIter(l.initialManifest, l.verbose)
+	l.streamer = NewLogStreamer(l.c, l.buildID, l.deltas)
 	l.subCH = make(chan struct{})
 	go func(subCH chan struct{}) {
 		defer close(subCH)

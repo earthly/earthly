@@ -7,7 +7,6 @@ import (
 	"sync/atomic"
 
 	"github.com/earthly/earthly/cloud"
-	"github.com/earthly/earthly/logbus"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -17,12 +16,6 @@ import (
 // cloud and stream logs.
 type CloudClient interface {
 	StreamLogs(ctx context.Context, buildID string, deltas cloud.Deltas) error
-}
-
-// LogBus is a type that LogStreamer subscribes to.
-type LogBus interface {
-	AddSubscriber(logbus.Subscriber)
-	RemoveSubscriber(logbus.Subscriber)
 }
 
 // LogStreamer is a log streamer. It uses the cloud client to Write
@@ -35,8 +28,8 @@ type LogStreamer struct {
 	deltas    cloud.Deltas
 }
 
-// New creates a new LogStreamer.
-func New(c CloudClient, buildID string, deltas *deltasIter) *LogStreamer {
+// NewLogStreamer creates a new LogStreamer.
+func NewLogStreamer(c CloudClient, buildID string, deltas *deltasIter) *LogStreamer {
 	ls := &LogStreamer{
 		c:       c,
 		buildID: buildID,
