@@ -3,6 +3,15 @@ set -e # dont use -x, as it will leak credentials
 
 # This is not a unit test, as it requires access to docker hub, as well as docker/podman
 
+if [ "$USE_EARTHLY_MIRROR" = "true" ]; then
+  if [ -n "$DOCKERHUB_MIRROR" ]; then
+    echo >&2 "error: DOCKERHUB_MIRROR should be empty when using the USE_EARTHLY_MIRROR option"
+    exit 1
+  fi
+  DOCKERHUB_MIRROR="registry-1.docker.io.mirror.corp.earthly.dev"
+  DOCKERHUB_MIRROR_AUTH="true"
+fi
+
 # first setup podman
 cat > /etc/containers/containers.conf <<EOF
 [containers]

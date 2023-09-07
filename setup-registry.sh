@@ -8,6 +8,15 @@ if [ -f "$configpath" ]; then
   exit 1
 fi
 
+if [ "$USE_EARTHLY_MIRROR" = "true" ]; then
+  if [ -n "$DOCKERHUB_MIRROR" ]; then
+    echo >&2 "error: DOCKERHUB_MIRROR should be empty when using the USE_EARTHLY_MIRROR option"
+    exit 1
+  fi
+  DOCKERHUB_MIRROR="registry-1.docker.io.mirror.corp.earthly.dev"
+  DOCKERHUB_MIRROR_AUTH="true"
+fi
+
 mkdir -p "$(dirname "$configpath")"
 cat>"$configpath"<<EOF
 global:
@@ -52,6 +61,16 @@ EOF
     fi
     docker login "$DOCKERHUB_MIRROR" --username="$DOCKERHUB_MIRROR_USER" --password="$DOCKERHUB_MIRROR_PASS"
   fi
+elif [ "$DOCKERHUB_AUTH" = "true" ]; then
+  if [ -z "$DOCKERHUB_USER" ]; then
+    echo >&2 "ERROR: DOCKERHUB_USER was not set (which is required when DOCKERHUB_AUTH=true)"
+    exit 1
+  fi
+  if [ -z "$DOCKERHUB_PASS" ]; then
+    echo >&2 "ERROR: DOCKERHUB_PASS was not set (which is required when DOCKERHUB_AUTH=true)"
+    exit 1
+  fi
+  docker login --username="$DOCKERHUB_USER" --password="$DOCKERHUB_PASS"
 else
   echo >&2 "WARNING: no dockerhub mirror has been setup; you may get rate limited"
 fi
