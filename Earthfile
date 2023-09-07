@@ -1,4 +1,5 @@
 VERSION --pass-args --no-network --arg-scope-and-set 0.7
+PROJECT earthly-technologies/core
 
 # TODO update to 3.18; however currently "podman login" (used under not-a-unit-test.sh) will error with
 # "Error: default OCI runtime "crun" not found: invalid argument".
@@ -227,7 +228,9 @@ unit-test:
     ARG DOCKERHUB_MIRROR
     ARG DOCKERHUB_MIRROR_INSECURE=false
     ARG DOCKERHUB_MIRROR_HTTP=false
-    ARG DOCKERHUB_MIRROR_AUTH=true
+    ARG DOCKERHUB_MIRROR_AUTH=false
+    ARG DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS=false
+
     IF [ -n "$DOCKERHUB_MIRROR" ]
         RUN mkdir -p /etc/docker
         RUN echo "{\"registry-mirrors\": [\"http://$DOCKERHUB_MIRROR\"]" > /etc/docker/daemon.json
@@ -236,16 +239,21 @@ unit-test:
         END
         RUN echo "}" >> /etc/docker/daemon.json
     END
-    IF [ "$DOCKERHUB_MIRROR_AUTH" = "true" ]
+    IF [ "$DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS" = "true" ]
+        RUN if [ "$DOCKERHUB_MIRROR_AUTH" = "true" ]; then echo "ERROR: DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS and DOCKERHUB_MIRROR_AUTH are mutually exclusive" && exit 1; fi
+        WITH DOCKER
+            RUN --secret DOCKERHUB_MIRROR_USER=dockerhub-mirror/user \
+                --secret DOCKERHUB_MIRROR_PASS=dockerhub-mirror/pass \
+                USE_EARTHLY_MIRROR=true ./not-a-unit-test.sh
+        END
+    ELSE IF [ "$DOCKERHUB_MIRROR_AUTH" = "true" ]
         WITH DOCKER
             RUN --secret DOCKERHUB_MIRROR_USER \
                 --secret DOCKERHUB_MIRROR_PASS \
                 ./not-a-unit-test.sh
         END
     ELSE
-        WITH DOCKER
-            RUN testname=$testname pkgname=$pkgname ./not-a-unit-test.sh
-        END
+        RUN ./not-a-unit-test.sh
     END
 
     # The following are separate go modules and need to be tested separately.
@@ -463,13 +471,22 @@ earthly-integration-test-base:
 
     # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
     ARG DOCKERHUB_MIRROR
-    ARG DOCKERHUB_MIRROR_INSECURE
-    ARG DOCKERHUB_MIRROR_HTTP
+    ARG DOCKERHUB_MIRROR_INSECURE=false
+    ARG DOCKERHUB_MIRROR_HTTP=false
     ARG DOCKERHUB_MIRROR_AUTH=false
+    ARG DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS=false
+
+    # DOCKERHUB_AUTH will login to docker hub (and pull from docker hub rather than a mirror)
+    ARG DOCKERHUB_AUTH=false
 
     COPY setup-registry.sh .
-    IF [ "$DOCKERHUB_MIRROR_AUTH" = "true" ]
+    IF [ "$DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS" = "true" ]
+        RUN if [ "$DOCKERHUB_MIRROR_AUTH" = "true" ]; then echo "ERROR: DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS and DOCKERHUB_MIRROR_AUTH are mutually exclusive" && exit 1; fi
+        RUN --secret DOCKERHUB_MIRROR_USER=dockerhub-mirror/user --secret DOCKERHUB_MIRROR_PASS=dockerhub-mirror/pass USE_EARTHLY_MIRROR=true ./setup-registry.sh
+    ELSE IF [ "$DOCKERHUB_MIRROR_AUTH" = "true" ]
         RUN --secret DOCKERHUB_MIRROR_USER --secret DOCKERHUB_MIRROR_PASS ./setup-registry.sh
+    ELSE IF [ "$DOCKERHUB_AUTH" = "true" ]
+        RUN --secret DOCKERHUB_USER --secret DOCKERHUB_PASS ./setup-registry.sh
     ELSE
         RUN ./setup-registry.sh
     END
