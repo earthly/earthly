@@ -20,8 +20,7 @@ type deltasIter struct {
 	manifestsWritten     atomic.Int32
 	formattedLogsWritten atomic.Int32
 	verbose              bool
-	closed               bool
-	ready                atomic.Int32
+	closed               atomic.Bool
 	initialDelta         *logstream.Delta
 	allDeltas            []*logstream.Delta
 }
@@ -70,7 +69,7 @@ func (d *deltasIter) deltas() []*logstream.Delta {
 }
 
 func (d *deltasIter) Write(delta *logstream.Delta) {
-	if d.closed {
+	if d.closed.Load() {
 		//  (vladaionescu): If these messages show up, we need to rethink
 		//					the closing sequence.
 		if d.verbose {
@@ -95,13 +94,13 @@ func (d *deltasIter) Write(delta *logstream.Delta) {
 }
 
 func (d *deltasIter) close() (int32, int32) {
-	d.closed = true
+	d.closed.Store(true)
 	return d.manifestsWritten.Load(), d.formattedLogsWritten.Load()
 }
 
 func (d *deltasIter) Next(ctx context.Context) ([]*logstream.Delta, error) {
 	deltas := d.deltas()
-	if d.closed && len(deltas) == 0 {
+	if d.closed.Load() && len(deltas) == 0 {
 		return nil, errors.Wrap(io.EOF, "logstreamer: closed with no remaining deltas")
 	}
 	if len(deltas) == 0 {
