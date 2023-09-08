@@ -30,6 +30,7 @@ func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) 
 		for {
 			resp, err := streamClient.Recv()
 			if err != nil {
+				fmt.Fprintf(os.Stderr, "[%s] CLIENT FAILED %+v", time.Now(), err)
 				return errors.Wrap(err, "failed to read log stream response")
 			}
 			if resp.GetEofAck() {

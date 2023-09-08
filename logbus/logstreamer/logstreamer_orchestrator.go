@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/logbus"
@@ -75,7 +76,7 @@ func (l *Orchestrator) Start(ctx context.Context) {
 			defer l.markDone()
 			for i := 0; i < l.retries; i++ {
 				l.subscribe()
-				fmt.Fprintf(os.Stderr, "ATTEMPTING STREAM RETRY %d\n", i)
+				fmt.Fprintf(os.Stderr, "[%s] ATTEMPTING STREAM RETRY %d\n", time.Now(), i)
 				shouldRetry, err := l.streamer.Stream(ctx)
 				l.addError(err)
 				if !shouldRetry || l.closed.Load() {
