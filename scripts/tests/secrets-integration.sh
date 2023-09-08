@@ -129,4 +129,14 @@ echo "=== test 2 ==="
 # test RUN --mount can reference a secret from the server that is only specified in the Earthfile
 "$earthly" --no-cache /tmp/earthtest+test-server-secret
 
+echo "=== test 3 ==="
+# Test earthly will display a message containing the name of the secret that was not found
+set +e
+"$earthly" --no-cache /tmp/earthtest+test-local-secret > output 2>&1
+exit_code="$?"
+set -e
+cat output
+test "$exit_code" != "0"
+acbgrep 'unable to lookup secret my_secret: not found' output
+
 echo "=== All tests have passed ==="
