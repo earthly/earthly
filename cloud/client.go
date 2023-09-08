@@ -111,7 +111,7 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	dialOpts := []grpc.DialOption{
 		grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...), c.StreamInterceptor()),
 		grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...), c.UnaryInterceptor(WithSkipAuth("/api.public.analytics.Analytics/SendAnalytics"))),
-		grpc.WithKeepaliveParams(keepalive.ClientParameters{}), // Default to keepalive after 10s of inactivity
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: 5 * time.Second, Timeout: 5 * time.Second}),
 	}
 	var transportCredential credentials.TransportCredentials
 	if useInsecure {
