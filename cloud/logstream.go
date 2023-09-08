@@ -12,6 +12,7 @@ import (
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
 )
 
 // Deltas is a type for iterating over logstream deltas.
@@ -20,7 +21,7 @@ type Deltas interface {
 }
 
 func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) error {
-	streamClient, err := c.logstream.StreamLogs(c.withAuth(ctx), grpc_retry.Disable())
+	streamClient, err := c.logstream.StreamLogs(c.withAuth(ctx), grpc_retry.Disable(), grpc.WaitForReady(true))
 	if err != nil {
 		return errors.Wrap(err, "failed to create log stream client")
 	}
