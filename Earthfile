@@ -462,7 +462,7 @@ earthly-docker:
 # Otherwise, it will attempt to login to the docker hub mirror using the provided username and password
 earthly-integration-test-base:
     FROM +earthly-docker
-    RUN apk update && apk add pcre-tools curl python3 bash perl findutils expect
+    RUN apk update && apk add pcre-tools curl python3 bash perl findutils expect yq
     COPY scripts/acbtest/acbtest scripts/acbtest/acbgrep /bin/
     ENV NO_DOCKER=1
     ENV NETWORK_MODE=host # Note that this breaks access to embedded registry in WITH DOCKER.
@@ -490,6 +490,10 @@ earthly-integration-test-base:
     ELSE
         RUN ./setup-registry.sh
     END
+
+    # pull out buildkit_additional_config from the earthly config, for the special case of earthly-in-earthly testing
+    # which runs earthly-entrypoint.sh, which calls buildkitd/entrypoint, which requires EARTHLY_VERSION_FLAG_OVERRIDES to be set
+    ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$(cat /etc/.earthly/config.yml  | yq .global.buildkit_additional_config)"
 
 # prerelease builds and pushes the prerelease version of earthly.
 # Tagged as prerelease

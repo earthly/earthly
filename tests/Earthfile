@@ -179,9 +179,10 @@ ga-no-qemu:
     BUILD +ga-no-qemu-slow
 
 tests-that-require-earthly-technologies-account-access:
-    BUILD --pass-args ./web+test
-    BUILD --pass-args ./registry-command+test
+    BUILD --pass-args +test-earthly-mirror-was-setup
     BUILD --pass-args ./account+test
+    BUILD --pass-args ./registry-command+test
+    BUILD --pass-args ./web+test
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
@@ -946,6 +947,10 @@ push-build:
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+test \| 0\n/;'
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+run1 \| 1\n/;'
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+run2 \| 2\n/;'
+
+test-earthly-mirror-was-setup:
+    DO +RUN_EARTHLY --verbose=false --earthfile=true.earth --target=+true --post_command="> /tmp/output 2>&1"
+    RUN acbgrep registry-1.docker.io.mirror.corp.earthly.dev /etc/buildkitd.toml
 
 build-arg-repeat:
     DO +RUN_EARTHLY --earthfile=build-arg-repeat.earth --target=+build-all-1
