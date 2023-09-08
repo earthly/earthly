@@ -155,7 +155,9 @@ func (bs *BusSetup) Close() error {
 		if bs.verbose {
 			fmt.Fprintf(os.Stderr, "========== WROTE %d MANIFESTS AND %d LOGS TO ITER==========\n", manifestsWritten, logsWritten)
 		}
+		fmt.Fprint(os.Stderr, "WAITING FOR DONE\n")
 		<-bs.LogStreamer.Done()
+		fmt.Fprint(os.Stderr, "DONE!\n")
 	}
 	return retErr
 }

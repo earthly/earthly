@@ -2,6 +2,8 @@ package logstreamer
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"sync"
 	"sync/atomic"
 
@@ -73,6 +75,7 @@ func (l *Orchestrator) Start(ctx context.Context) {
 			defer l.markDone()
 			for i := 0; i < l.retries; i++ {
 				l.subscribe()
+				fmt.Fprintf(os.Stderr, "ATTEMPTING STREAM RETRY %d\n", i)
 				shouldRetry, err := l.streamer.Stream(ctx)
 				l.addError(err)
 				if !shouldRetry || l.closed.Load() {

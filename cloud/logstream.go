@@ -2,7 +2,9 @@ package cloud
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"os"
 	"sync/atomic"
 	"time"
 
@@ -31,6 +33,7 @@ func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) 
 				return errors.Wrap(err, "failed to read log stream response")
 			}
 			if resp.GetEofAck() {
+				fmt.Fprint(os.Stderr, "GOT EOF ACK\n")
 				if !finished.Load() {
 					return errors.New("unexpected EOF ack")
 				}
@@ -47,6 +50,7 @@ func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) 
 			dl, err := deltas.Next(ctx)
 			switch {
 			case errors.Is(err, io.EOF):
+				fmt.Fprint(os.Stderr, "SENDING FINAL EOF\n")
 				msg := &logstream.StreamLogRequest{
 					BuildId: buildID,
 					Eof:     true,
@@ -63,6 +67,8 @@ func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) 
 			case err != nil:
 				return errors.Wrap(err, "cloud: error getting next delta")
 			}
+
+			fmt.Fprintf(os.Stderr, "SENDING %d LOGS TO SERVER\n", len(dl))
 
 			msg := &logstream.StreamLogRequest{
 				BuildId: buildID,
