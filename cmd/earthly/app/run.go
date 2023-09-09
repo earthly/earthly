@@ -169,7 +169,6 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 	err := app.BaseCLI.App().RunContext(ctx, args)
 	if err != nil {
 		ie, isInterpreterError := earthfile2llb.GetInterpreterError(err)
-
 		var failedOutput string
 		var buildErr *builder.BuildError
 		if errors.As(err, &buildErr) {
@@ -304,7 +303,11 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			app.BaseCLI.Console().Warnf("Error: %s\n", ie.Error())
 			return 1
 		default:
-			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
+			if app.BaseCLI.CommandName() == "build" {
+				app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
+			} else {
+				app.BaseCLI.Logbus().Run().SkipFatalError()
+			}
 			app.BaseCLI.Console().Warnf("Error: %v\n", err)
 			return 1
 		}

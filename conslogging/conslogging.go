@@ -301,24 +301,8 @@ func (cl ConsoleLogger) PrintBar(c *color.Color, msg, phase string) {
 
 // Warnf prints a warning message in red to errWriter.
 func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
-	if cl.logLevel < Warn {
-		return
-	}
-	w := new(bytes.Buffer)
-	cl.mu.Lock()
-	defer func() {
-		_, _ = w.WriteTo(cl.errW)
-		cl.mu.Unlock()
-	}()
-
 	c := cl.color(warnColor)
-	text := fmt.Sprintf(format, args...)
-	text = strings.TrimSuffix(text, "\n")
-
-	for _, line := range strings.Split(text, "\n") {
-		cl.printPrefix(w)
-		c.Fprintf(w, "%s\n", line)
-	}
+	cl.colorPrintf(Warn, c, format, args...)
 }
 
 // Printf prints formatted text to the console.
@@ -330,8 +314,8 @@ func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	cl.ColorPrintf(c, format, args...)
 }
 
-func (cl ConsoleLogger) ColorPrintf(c *color.Color, format string, args ...interface{}) {
-	if cl.logLevel < Info {
+func (cl ConsoleLogger) colorPrintf(level LogLevel, c *color.Color, format string, args ...interface{}) {
+	if cl.logLevel < level {
 		return
 	}
 	w := new(bytes.Buffer)
@@ -350,6 +334,10 @@ func (cl ConsoleLogger) ColorPrintf(c *color.Color, format string, args ...inter
 		// Don't use a background color for \n.
 		noColor.Fprintf(w, "\n")
 	}
+}
+
+func (cl ConsoleLogger) ColorPrintf(c *color.Color, format string, args ...interface{}) {
+	cl.colorPrintf(Info, c, format, args...)
 }
 
 // PrintBytes prints bytes directly to the console.
