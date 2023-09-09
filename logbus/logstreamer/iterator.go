@@ -69,6 +69,9 @@ func (d *deltasIter) deltas() []*logstream.Delta {
 }
 
 func (d *deltasIter) Write(delta *logstream.Delta) {
+	if true {
+		return
+	}
 	if d.closed.Load() {
 		//  (vladaionescu): If these messages show up, we need to rethink
 		//					the closing sequence.
