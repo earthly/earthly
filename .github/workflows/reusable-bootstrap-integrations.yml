@@ -58,4 +58,4 @@ jobs:
         run: frontend=${{inputs.BINARY}} default_install_name=earthly ./tests/bootstrap/test-bootstrap.sh
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
-        if: ${{ failure() }}
+        if: ${{ failure() && ! inputs.USE_SATELLITE }}
