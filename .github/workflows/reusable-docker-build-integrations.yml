@@ -62,4 +62,4 @@ jobs:
         run: ${{inputs.SUDO}} env earthly=${{inputs.BUILT_EARTHLY_PATH}} scripts/tests/docker-build/integration.sh
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} docker logs earthly-buildkitd
-        if: ${{ failure() }}
+        if: ${{ failure() && ! inputs.USE_SATELLITE }}

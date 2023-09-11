@@ -80,4 +80,4 @@ jobs:
           ${{inputs.SUDO}} ${{inputs.BINARY}} run --rm earthly/examples:multiplatform_linux_arm64 | grep aarch64
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
-        if: ${{ failure() }}
+        if: ${{ failure() && ! inputs.USE_SATELLITE }}
