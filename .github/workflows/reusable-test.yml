@@ -61,6 +61,8 @@ jobs:
           BINARY: "${{ inputs.BINARY }}"
           USE_QEMU: "${{ inputs.USE_QEMU }}"
           SUDO: "${{ inputs.SUDO }}"
+          USE_SATELLITE: "${{ inputs.USE_SATELLITE }}"
+          SATELLITE_NAME: "${{ inputs.SATELLITE_NAME }}"
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
