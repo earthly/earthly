@@ -28,7 +28,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       USE_SATELLITE: true
-      SATELLITE_NAME: "core-examples"
+      SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
     secrets: inherit
 
@@ -99,7 +99,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       USE_SATELLITE: true
-      SATELLITE_NAME: "core-examples"
+      SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
     secrets: inherit
 
@@ -114,7 +114,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       USE_SATELLITE: true
-      SATELLITE_NAME: "core-examples"
+      SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
     secrets: inherit
 

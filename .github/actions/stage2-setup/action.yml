@@ -93,7 +93,13 @@ runs:
       run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} bootstrap
       shell: bash
     - if: ${{ inputs.USE_SATELLITE == 'true' }}
-      run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} sat ls && ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} satellite select ${{inputs.SATELLITE_NAME}}
+      run: |-
+        SATELLITE_NAME=${{inputs.SATELLITE_NAME}}
+        if [ "$SATELLITE_NAME" = "core-test" ]; then
+          SATELLITE_NAME="$SATELLITE_NAME-$(expr $RANDOM % 4)"
+          echo "Using core-test satellite: $SATELLITE_NAME"
+        fi
+        ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} sat ls && ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} satellite select $SATELLITE_NAME
       shell: bash
     - run: echo "stage2-setup action complete"
       shell: bash
