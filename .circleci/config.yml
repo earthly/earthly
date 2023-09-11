@@ -2,7 +2,7 @@ version: 2.1
 jobs:
   build:
     machine:
-      image: ubuntu-2004:2023.02.1
+      image: ubuntu-2204:2023.07.2
     steps:
       - checkout
       - run:
@@ -16,14 +16,7 @@ jobs:
           command: "sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'"
       - run:
           name: Build latest earthly
-          # earthly v0.6.5 has a bug that causes a panic when SUDO_USER is set to a user that the current user does not have read permission to. To Work-around this,
-          # we need to set SUDO_USER to "".
-          #
-          # This is due to circle CI running under the user "circleci" with SUDO_USER="root"; however the circleci user does not have access to /root/.earthly/config.yml
-          # therefore, we must unset the SUDO_USER; otherwise we will get this error: "open /root/.earthly/config.yml: permission denied"
-          #
-          # Once this bugfix is released, this can be undone.
-          command: SUDO_USER="" earthly --use-inline-cache +for-linux
+          command: earthly --use-inline-cache +for-linux
       - run:
           name: Bootstrap
           command: sudo ./build/linux/amd64/earthly bootstrap
@@ -31,11 +24,7 @@ jobs:
           name: Run tests
           command: |-
               ./build/linux/amd64/earthly --ci -P \
-                --build-arg DOCKERHUB_AUTH=true \
-                --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-                --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-                --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-              +test
+              +test --DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS=true
       - run:
           name: Execute fail test
           command: "! ./build/linux/amd64/earthly --ci +test-fail"
