@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -306,23 +307,25 @@ func (gl *GitLookup) getHostKeyAlgorithms(hostname string) ([]string, []string, 
 	if err != nil {
 		gl.console.Warnf("failed to load ~/.ssh/known_hosts: %s", err)
 	}
-	for _, keyScans := range [][]string{
-		knownHostsKeyScans,
-		defaultKeyScans,
-	} {
-		for _, keyScan := range keyScans {
-			keyAlg, keyData, err := parseKeyScanIfHostMatches(keyScan, hostname)
-			switch err {
-			case nil:
-			case errKeyScanNoMatch:
-				continue
-			default:
-				gl.console.Warnf("failed to parse key scan %q: %s", keyScan, err)
-				continue
-			}
-			foundAlgs[keyAlg] = true
-			keys = append(keys, fmt.Sprintf("%s %s %s", knownhosts.Normalize(hostname), keyAlg, keyData))
+	gl.console.VerbosePrintf("loaded %d key(s) from known_hosts and %d default key(s)", len(knownHostsKeyScans), len(defaultKeyScans))
+
+	keyIdx := 0
+	allKeyScans := slices.Compact(append(knownHostsKeyScans, defaultKeyScans...))
+	foundKeys := make(map[string]bool)
+	for _, keyScan := range allKeyScans {
+		keyAlg, keyData, err := parseKeyScanIfHostMatches(keyScan, hostname)
+		if err != nil {
+			gl.console.Warnf("failed to parse key scan %q: %s; skipping", keyScan, err)
+			continue
 		}
+		foundAlgs[keyAlg] = true
+		key := fmt.Sprintf("%s %s %s", knownhosts.Normalize(hostname), keyAlg, keyData)
+		if !foundKeys[key] {
+			keyIdx++
+			gl.console.VerbosePrintf("found (normalized) key (%d) %s", keyIdx, key)
+			foundKeys[key] = true
+		}
+		keys = append(keys, key)
 	}
 
 	algs := []string{}
