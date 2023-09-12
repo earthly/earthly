@@ -1,0 +1,23 @@
+VERSION 0.7
+
+# Note: this is tests both locally and remotely
+# the population of git metadata occurs in two **different** functions respectively:
+#   - gitutil/detectgit.go: Metadata            (locally-reference)
+#   - buildcontext/git.go: resolveGitProject    (remotely-referenced)
+
+test:
+    FROM alpine
+    ARG EARTHLY_GIT_SHORT_HASH
+    ARG EARTHLY_GIT_HASH
+    ARG EARTHLY_GIT_AUTHOR
+    ARG EARTHLY_GIT_CO_AUTHORS
+    ARG EARTHLY_GIT_COMMIT_TIMESTAMP
+    ARG EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP
+    ARG EARTHLY_GIT_BRANCH
+    RUN echo "$EARTHLY_GIT_SHORT_HASH"
+    RUN echo "$EARTHLY_GIT_HASH"
+    RUN echo "$EARTHLY_GIT_AUTHOR"
+    RUN echo "$EARTHLY_GIT_CO_AUTHORS"
+    RUN echo "$EARTHLY_GIT_COMMIT_TIMESTAMP"
+    RUN echo "$EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP"
+    RUN echo "$EARTHLY_GIT_BRANCH"
