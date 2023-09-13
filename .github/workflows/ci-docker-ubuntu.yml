@@ -50,6 +50,18 @@ jobs:
       SUDO: ""
     secrets: inherit
 
+  docker-tests-no-qemu-quick-no-logbus:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-quick"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      EXTRA_ARGS: "--logstream=false"
+    secrets: inherit
+
   docker-tests-no-qemu-normal:
     needs: build-earthly
     uses: ./.github/workflows/reusable-test.yml
@@ -59,6 +71,18 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
+    secrets: inherit
+
+  docker-tests-no-qemu-normal-no-logbus:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-normal"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      EXTRA_ARGS: "--logstream=false"
     secrets: inherit
 
   docker-tests-no-qemu-slow:

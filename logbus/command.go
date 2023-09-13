@@ -2,6 +2,7 @@ package logbus
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/armon/circbuf"
@@ -20,8 +21,8 @@ type Command struct {
 	tailOutput *circbuf.Buffer
 
 	mu           sync.Mutex
-	started      bool
-	lastProgress int32
+	started      atomic.Bool
+	lastProgress atomic.Int32
 }
 
 func newCommand(b *Bus, commandID string, targetID string) *Command {
@@ -40,8 +41,8 @@ func newCommand(b *Bus, commandID string, targetID string) *Command {
 // Write prints a byte slice with a timestamp.
 func (c *Command) Write(dt []byte, ts time.Time, stream int32) (int, error) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	_, err := c.tailOutput.Write(dt)
+	c.mu.Unlock()
 	if err != nil {
 		return 0, errors.Wrap(err, "write to tail output")
 	}
@@ -64,12 +65,10 @@ func (c *Command) TailOutput() []byte {
 
 // SetStart sets the start time of the command.
 func (c *Command) SetStart(start time.Time) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.started {
+	if c.started.Load() {
 		return
 	}
-	c.started = true
+	c.started.Store(true)
 	c.commandDelta(&logstream.DeltaCommandManifest{
 		StartedAtUnixNanos: c.b.TsUnixNanos(start),
 		Status:             logstream.RunStatus_RUN_STATUS_IN_PROGRESS,
@@ -78,9 +77,7 @@ func (c *Command) SetStart(start time.Time) {
 
 // SetProgress sets the progress of the command.
 func (c *Command) SetProgress(progress int32) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.lastProgress == progress {
+	if c.lastProgress.Load() == progress {
 		return
 	}
 	c.commandDelta(&logstream.DeltaCommandManifest{
@@ -88,13 +85,11 @@ func (c *Command) SetProgress(progress int32) {
 		HasProgress:    true,
 		Progress:       progress,
 	})
-	c.lastProgress = progress
+	c.lastProgress.Store(progress)
 }
 
 // SetCached sets the cached status of the command.
 func (c *Command) SetCached(cached bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.commandDelta(&logstream.DeltaCommandManifest{
 		HasCached: true,
 		IsCached:  cached,
@@ -103,8 +98,6 @@ func (c *Command) SetCached(cached bool) {
 
 // SetEnd sets the end time of the command.
 func (c *Command) SetEnd(end time.Time, status logstream.RunStatus, errorStr string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.commandDelta(&logstream.DeltaCommandManifest{
 		Status:           status,
 		ErrorMessage:     errorStr,
