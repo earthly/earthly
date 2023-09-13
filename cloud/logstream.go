@@ -61,8 +61,9 @@ func (c *Client) StreamLogs(ctx context.Context, buildID string, iter DeltaItera
 				return nil
 			case errors.Is(err, ErrNoDeltas):
 				// Not yet finished, but no logs written since last
-				// Next. Back-off for a sec.
-				time.Sleep(time.Second)
+				// Next. Back-off for a bit.
+				time.Sleep(250 * time.Millisecond)
+				// Pass through and send a request with no deltas (heartbeat).
 			case err != nil:
 				return errors.Wrap(err, "cloud: error getting next delta")
 			}
