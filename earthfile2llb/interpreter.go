@@ -15,10 +15,10 @@ import (
 	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
-	"github.com/earthly/earthly/cmd/earthly/version"
 	"github.com/earthly/earthly/conslogging"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/internal/version"
 	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
@@ -1129,15 +1129,14 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 		return nil
 	}
 
-	labels := make(map[string]string)
-	labels["dev.earthly.version"] = version.Version
-	labels["dev.earthly.git-sha"] = version.GitSha
-	labels["dev.earthly.built-by"] = version.BuiltBy
-	labels["dev.earthly.default-installation-name"] = version.DefaultInstallationName
-	labels["dev.earthly.default-buildkitd-image"] = version.DefaultBuildkitdImage
+	labels := map[string]string{
+		"dev.earthly.version":  version.Version,
+		"dev.earthly.git-sha":  version.GitSha,
+		"dev.earthly.built-by": version.BuiltBy,
+	}
 	err = i.converter.Label(ctx, labels)
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "save image (label)")
+		return i.wrapError(err, cmd.SourceLocation, "failed to create dev.earthly.* labels during SAVE IMAGE")
 	}
 
 	err = i.converter.SaveImage(ctx, imageNames, opts.Push, opts.Insecure, opts.CacheHint, opts.CacheFrom, opts.NoManifestList)

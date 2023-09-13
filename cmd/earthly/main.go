@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/earthly/earthly/cmd/earthly/version"
+	"github.com/earthly/earthly/internal/version"
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
@@ -50,8 +50,6 @@ func setExportableVars() {
 	version.Version = Version
 	version.GitSha = GitSha
 	version.BuiltBy = BuiltBy
-	version.DefaultBuildkitdImage = DefaultBuildkitdImage
-	version.DefaultInstallationName = DefaultInstallationName
 }
 
 func main() {
