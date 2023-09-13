@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -160,7 +161,10 @@ func logstreamClient(ctx context.Context, defaultConn grpc.ClientConnInterface, 
 	if overrideAddr == "" {
 		return logstream.NewLogStreamClient(defaultConn), nil
 	}
+
 	dialOpts = append(dialOpts, grpc.WithDefaultServiceConfig(serviceConfig))
+	dialOpts = append(dialOpts, grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: 10 * time.Second}))
+
 	conn, err := grpc.DialContext(ctx, overrideAddr, dialOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "cloud: failed dialing logstream grpc")
