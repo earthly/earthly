@@ -16,7 +16,7 @@ import (
 // CloudClient is the type of client that a LogStreamer needs to connect to
 // cloud and stream logs.
 type CloudClient interface {
-	StreamLogs(ctx context.Context, buildID string, deltas cloud.Deltas) error
+	StreamLogs(ctx context.Context, buildID string, deltas cloud.DeltaIterator) error
 }
 
 // LogBus is a type that LogStreamer subscribes to.
@@ -32,7 +32,7 @@ type LogStreamer struct {
 	buildID string
 
 	cancelled atomic.Bool
-	deltas    cloud.Deltas
+	deltas    cloud.DeltaIterator
 }
 
 // New creates a new LogStreamer.

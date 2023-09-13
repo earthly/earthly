@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"sync/atomic"
+	"time"
 
 	"github.com/earthly/cloud-api/logstream"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
@@ -11,12 +12,14 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// Deltas is a type for iterating over logstream deltas.
-type Deltas interface {
+var ErrNoDeltas = errors.New("no deltas")
+
+// DeltaIterator is a type for iterating over logstream deltas.
+type DeltaIterator interface {
 	Next(ctx context.Context) ([]*logstream.Delta, error)
 }
 
-func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) error {
+func (c *Client) StreamLogs(ctx context.Context, buildID string, iter DeltaIterator) error {
 	streamClient, err := c.logstream.StreamLogs(c.withAuth(ctx), grpc_retry.Disable())
 	if err != nil {
 		return errors.Wrap(err, "failed to create log stream client")
@@ -43,8 +46,9 @@ func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) 
 	})
 	eg.Go(func() error {
 		for {
-			dl, err := deltas.Next(ctx)
-			if errors.Is(err, io.EOF) {
+			dl, err := iter.Next(ctx)
+			switch {
+			case errors.Is(err, io.EOF):
 				msg := &logstream.StreamLogRequest{
 					BuildId: buildID,
 					Eof:     true,
@@ -55,11 +59,13 @@ func (c *Client) StreamLogs(ctx context.Context, buildID string, deltas Deltas) 
 				}
 				finished.Store(true)
 				return nil
-			}
-			if err != nil {
+			case errors.Is(err, ErrNoDeltas):
+				// Not yet finished, but no logs written since last
+				// Next. Back-off for a sec.
+				time.Sleep(time.Second)
+			case err != nil:
 				return errors.Wrap(err, "cloud: error getting next delta")
 			}
-
 			msg := &logstream.StreamLogRequest{
 				BuildId: buildID,
 				Deltas:  dl,

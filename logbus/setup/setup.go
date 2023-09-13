@@ -2,7 +2,6 @@ package setup
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 
@@ -10,7 +9,7 @@ import (
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/logbus/formatter"
-	"github.com/earthly/earthly/logbus/logstreamer"
+	"github.com/earthly/earthly/logbus/ship"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/logbus/writersub"
 	"github.com/earthly/earthly/util/deltautil"
@@ -27,7 +26,7 @@ type BusSetup struct {
 	Formatter       *formatter.Formatter
 	SolverMonitor   *solvermon.SolverMonitor
 	BusDebugWriter  *writersub.RawWriterSub
-	LogStreamer     *logstreamer.Orchestrator
+	LogStreamer     *ship.LogShipper
 	InitialManifest *logstream.RunManifest
 
 	logStreamerStarted bool
@@ -86,7 +85,7 @@ func (bs *BusSetup) LogStreamerStarted() bool {
 // StartLogStreamer starts a LogStreamer for the given build. The
 // LogStreamer streams logs to the cloud.
 func (bs *BusSetup) StartLogStreamer(ctx context.Context, c *cloud.Client) {
-	bs.LogStreamer = logstreamer.NewOrchestrator(bs.Bus, c, bs.InitialManifest, logstreamer.WithVerbose(bs.verbose))
+	bs.LogStreamer = ship.NewLogShipper(bs.Bus, c, bs.InitialManifest)
 	bs.LogStreamer.Start(ctx)
 	bs.logStreamerStarted = true
 }
@@ -122,40 +121,32 @@ func (bs *BusSetup) DumpManifestToFile(path string) error {
 	return nil
 }
 
-// Close closes the BusSetup.
+// Close the bus setup & gather all errors.
 func (bs *BusSetup) Close() error {
-	var retErr error
-	errs := bs.ConsoleWriter.Errors()
-	var cwErr error
-	for _, err := range errs {
-		cwErr = multierror.Append(cwErr, err)
+	var ret error
+
+	if errs := bs.ConsoleWriter.Errors(); len(errs) > 0 {
+		multi := &multierror.Error{Errors: errs}
+		ret = multierror.Append(ret, errors.Wrap(multi, "console writer"))
 	}
-	if cwErr != nil {
-		retErr = multierror.Append(retErr, errors.Wrap(cwErr, "console writer"))
+
+	if err := bs.Formatter.Close(); err != nil {
+		ret = multierror.Append(ret, errors.Wrap(err, "formatter"))
 	}
-	fErr := bs.Formatter.Close()
-	if fErr != nil {
-		retErr = multierror.Append(retErr, errors.Wrap(fErr, "formatter"))
-	}
+
 	if bs.BusDebugWriter != nil {
-		errs := bs.BusDebugWriter.Errors()
-		var bdwErr error
-		for _, err := range errs {
-			bdwErr = multierror.Append(bdwErr, err)
-		}
-		if bdwErr != nil {
-			retErr = multierror.Append(retErr, errors.Wrap(bdwErr, "bus debug writer"))
+		if errs := bs.BusDebugWriter.Errors(); len(errs) > 0 {
+			multi := &multierror.Error{Errors: errs}
+			ret = multierror.Append(ret, errors.Wrap(multi, "bus debug writer"))
 		}
 	}
+
 	if bs.LogStreamer != nil {
-		manifestsWritten, logsWritten, err := bs.LogStreamer.Close()
-		if err != nil {
-			retErr = multierror.Append(retErr, errors.Wrap(err, "log streamer"))
+		bs.LogStreamer.Close()
+		if err := bs.LogStreamer.Err(); err != nil {
+			ret = multierror.Append(ret, errors.Wrap(err, "log streamer"))
 		}
-		if bs.verbose {
-			fmt.Fprintf(os.Stderr, "========== WROTE %d MANIFESTS AND %d LOGS TO ITER==========\n", manifestsWritten, logsWritten)
-		}
-		<-bs.LogStreamer.Done()
 	}
-	return retErr
+
+	return ret
 }

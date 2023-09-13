@@ -27,7 +27,7 @@ const (
 	SecretFileFlag    = "secret-file-path"
 
 	DefaultLogstream       = true
-	DefaultLogstreamUpload = false
+	DefaultLogstreamUpload = true
 )
 
 // Put flags on Flags instead as there are other things in the CLI that are being called + set
