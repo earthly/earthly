@@ -141,10 +141,26 @@ func (c *Client) getRequestID() string {
 	return uuid.NewString()
 }
 
+var serviceConfig = `{
+	"methodConfig": [{
+		"name": [{"service": "` + logstream.LogStream_ServiceDesc.ServiceName + `"}],
+		"timeout": "30.0s",
+		"waitForReady": true,
+		"retryPolicy": {
+			"MaxAttempts": 10,
+			"InitialBackoff": ".5s",
+			"MaxBackoff": "10s",
+			"BackoffMultiplier": 1.5,
+			"RetryableStatusCodes": [ "UNAVAILABLE", "UNKNOWN" ]
+		}
+	}]
+}`
+
 func logstreamClient(ctx context.Context, defaultConn grpc.ClientConnInterface, overrideAddr string, dialOpts ...grpc.DialOption) (logstream.LogStreamClient, error) {
 	if overrideAddr == "" {
 		return logstream.NewLogStreamClient(defaultConn), nil
 	}
+	dialOpts = append(dialOpts, grpc.WithDefaultServiceConfig(serviceConfig))
 	conn, err := grpc.DialContext(ctx, overrideAddr, dialOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "cloud: failed dialing logstream grpc")
