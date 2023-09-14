@@ -2,4 +2,4 @@ VERSION 0.7
 FROM alpine:3.18
 
 test1:
-    LABEL dev.earthly.foo.bar
+    LABEL dev.earthly.foo=bar
