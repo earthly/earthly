@@ -257,7 +257,6 @@ test9:
 EOF
 
 "$earthly" prune --reset
-"$earthly" +test9
 
 if "$earthly" +test9; then
    echo "Test ok"
