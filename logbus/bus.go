@@ -136,11 +136,9 @@ func (b *Bus) WriteDeltaManifest(dm *logstream.DeltaManifest) {
 			DeltaManifest: dm,
 		},
 	}
-
 	b.rawMu.Lock()
+	defer b.rawMu.Unlock()
 	b.rawHistory = append(b.rawHistory, delta)
-	b.rawMu.Unlock()
-
 	for _, sub := range b.rawSubs {
 		sub.Write(delta)
 	}
@@ -153,11 +151,9 @@ func (b *Bus) WriteRawLog(dl *logstream.DeltaLog) {
 			DeltaLog: dl,
 		},
 	}
-
 	b.rawMu.Lock()
+	defer b.rawMu.Unlock()
 	b.rawHistory = append(b.rawHistory, delta)
-	b.rawMu.Unlock()
-
 	for _, sub := range b.rawSubs {
 		sub.Write(delta)
 	}
@@ -170,11 +166,9 @@ func (b *Bus) WriteFormattedLog(dfl *logstream.DeltaFormattedLog) {
 			DeltaFormattedLog: dfl,
 		},
 	}
-
 	b.formattedMu.Lock()
+	defer b.formattedMu.Unlock()
 	b.formattedHistory = append(b.formattedHistory, delta)
-	b.formattedMu.Unlock()
-
 	for _, sub := range b.formattedSubs {
 		sub.Write(delta)
 	}

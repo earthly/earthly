@@ -20,6 +20,7 @@ const maxDeltasPerIter = 200
 
 type bus interface {
 	AddSubscriber(sub logbus.Subscriber, replay bool)
+	RemoveSubscriber(sub logbus.Subscriber)
 }
 
 type streamer interface {
@@ -32,7 +33,7 @@ type LogShipper struct {
 	bus       bus
 	cl        streamer
 	done      chan struct{}
-	first     atomic.Bool
+	first     bool
 	errs      []error
 	retryWait time.Duration
 }
@@ -43,7 +44,8 @@ func NewLogShipper(bus bus, cl *cloud.Client, man *pb.RunManifest) *LogShipper {
 		cl:        cl,
 		man:       man,
 		done:      make(chan struct{}),
-		retryWait: time.Millisecond * 300,
+		retryWait: time.Millisecond * 200,
+		first:     true,
 	}
 }
 
@@ -63,6 +65,8 @@ func (l *LogShipper) Start(ctx context.Context) {
 					if !retryable(err) {
 						return
 					}
+				} else {
+					return
 				}
 			case <-ctx.Done():
 				l.errs = append(l.errs, ctx.Err())
@@ -73,14 +77,15 @@ func (l *LogShipper) Start(ctx context.Context) {
 }
 
 func (l *LogShipper) attempt(ctx context.Context) error {
-	defer l.first.Store(false)
 	l.iter = &deltaIter{ctx: ctx}
-	if l.first.Load() {
+	if l.first {
+		l.first = false
 		l.iter.init(l.man)
 	} else {
 		l.iter.resume(l.man)
 	}
 	l.bus.AddSubscriber(l.iter, false)
+	defer l.bus.RemoveSubscriber(l.iter)
 	return l.cl.StreamLogs(ctx, l.man.GetBuildId(), l.iter)
 }
 
