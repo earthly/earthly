@@ -208,6 +208,62 @@ b:
     FROM busybox:latest
 EOF
 
+# Test 8: Earthly LABELS
+echo ==== Running test 8 ====
+rm -rf /tmp/earthly-export-test-8
+"$frontend" rmi earthly-export-test-8a:test || true
+"$frontend" rmi earthly-export-test-8b:test || true
+
+mkdir /tmp/earthly-export-test-8
+cd /tmp/earthly-export-test-8
+cat >> Earthfile <<EOF
+VERSION 0.7
+
+test8:
+    FROM busybox:latest
+    RUN echo "hello my world" > /data
+    SAVE IMAGE earthly-export-test-8a:test
+    LABEL foo=bar
+    SAVE IMAGE earthly-export-test-8b:test
+EOF
+
+"$earthly" prune --reset
+"$earthly" +test8
+
+label_count=$("$frontend" inspect earthly-export-test-8a:test | jq .[].Config.Labels | grep dev.earthly.| wc -l)
+if [ $label_count -ne "3" ]; then
+    echo "Expected 3 dev.earthly labels on first image"
+    exit 1
+fi
+
+label_count=$("$frontend" inspect earthly-export-test-8b:test | jq .[].Config.Labels | grep dev.earthly.| wc -l)
+if [ $label_count -ne "3" ]; then
+    echo "Expected 3 dev.earthly labels on second image"
+    exit 1
+fi
+
+# Test 9: Test reserved LABEL usage
+echo ==== Running test 9 ====
+rm -rf /tmp/earthly-export-test-9
+mkdir /tmp/earthly-export-test-9
+cd /tmp/earthly-export-test-9
+cat >> Earthfile <<EOF
+VERSION 0.7
+
+test9:
+    FROM busybox:latest
+    RUN echo "hello my world" > /data
+    LABEL dev.earthly.foo=bar
+EOF
+
+"$earthly" prune --reset
+"$earthly" +test9
+
+if [ "$?" -eq "0" ]; then
+    echo "Expected earthly failing"
+    exit 1
+fi
+
 # This simply tests that this does not hang (#1945).
 timeout -k 11m 10m "$earthly" --ci --push --remote-cache earthly/test-cache:export-test-7 +test7
 
