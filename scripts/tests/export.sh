@@ -230,13 +230,13 @@ EOF
 "$earthly" prune --reset
 "$earthly" +test8
 
-label_count=$("$frontend" inspect earthly-export-test-8a:test | jq .[].Config.Labels | grep dev.earthly.| wc -l)
+label_count=$("$frontend" inspect earthly-export-test-8a:test | jq .[].Config.Labels | grep -c dev.earthly.)
 if [ "$label_count" -ne "3" ]; then
     echo "Expected 3 dev.earthly labels on first image"
     exit 1
 fi
 
-label_count=$("$frontend" inspect earthly-export-test-8b:test | jq .[].Config.Labels | grep dev.earthly.| wc -l)
+label_count=$("$frontend" inspect earthly-export-test-8b:test | jq .[].Config.Labels | grep -c dev.earthly.)
 if [ "$label_count" -ne "3" ]; then
     echo "Expected 3 dev.earthly labels on second image"
     exit 1
@@ -259,7 +259,9 @@ EOF
 "$earthly" prune --reset
 "$earthly" +test9
 
-if [ "$?" -eq "0" ]; then
+if "$earthly" +test9; then
+   echo "Test ok"
+  else
     echo "Expected earthly failing"
     exit 1
 fi
