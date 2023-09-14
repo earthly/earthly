@@ -119,6 +119,7 @@ ga-no-qemu-quick:
     BUILD +test-init-unsupported
     BUILD +test-init-golang
     BUILD +pass-args-test
+    BUILD +test-reserved-label
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
