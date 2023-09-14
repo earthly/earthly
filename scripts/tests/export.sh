@@ -231,13 +231,13 @@ EOF
 "$earthly" +test8
 
 label_count=$("$frontend" inspect earthly-export-test-8a:test | jq .[].Config.Labels | grep dev.earthly.| wc -l)
-if [ $label_count -ne "3" ]; then
+if [ "$label_count" -ne "3" ]; then
     echo "Expected 3 dev.earthly labels on first image"
     exit 1
 fi
 
 label_count=$("$frontend" inspect earthly-export-test-8b:test | jq .[].Config.Labels | grep dev.earthly.| wc -l)
-if [ $label_count -ne "3" ]; then
+if [ "$label_count" -ne "3" ]; then
     echo "Expected 3 dev.earthly labels on second image"
     exit 1
 fi
