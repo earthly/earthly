@@ -63,9 +63,9 @@ func (b *Bus) TsUnixNanos(t2 time.Time) uint64 {
 
 // AddSubscriber adds a subscriber to the bus. A subscriber receives both the
 // raw and formatted deltas.
-func (b *Bus) AddSubscriber(sub Subscriber) {
-	b.AddRawSubscriber(sub)
-	b.AddFormattedSubscriber(sub)
+func (b *Bus) AddSubscriber(sub Subscriber, replay bool) {
+	b.AddRawSubscriber(sub, replay)
+	b.AddFormattedSubscriber(sub, replay)
 }
 
 // RemoveSubscriber removes a subscriber from the bus.
@@ -76,11 +76,13 @@ func (b *Bus) RemoveSubscriber(sub Subscriber) {
 
 // AddRawSubscriber adds a raw subscriber to the bus. A raw subscriber only
 // receives the raw deltas: DeltaManifest and DeltaLog.
-func (b *Bus) AddRawSubscriber(sub Subscriber) {
+func (b *Bus) AddRawSubscriber(sub Subscriber, replay bool) {
 	b.rawMu.Lock()
 	defer b.rawMu.Unlock()
-	for _, delta := range b.rawHistory {
-		sub.Write(delta)
+	if replay {
+		for _, delta := range b.rawHistory {
+			sub.Write(delta)
+		}
 	}
 	b.rawSubs = append(b.rawSubs, sub)
 }
@@ -99,12 +101,14 @@ func (b *Bus) RemoveRawSubscriber(sub Subscriber) {
 
 // AddFormattedSubscriber adds a formatted subscriber to the bus. A formatted
 // subscriber receives only the formatted deltas: DeltaFormattedLog.
-func (b *Bus) AddFormattedSubscriber(sub Subscriber) {
+func (b *Bus) AddFormattedSubscriber(sub Subscriber, replay bool) {
 	b.formattedMu.Lock()
 	defer b.formattedMu.Unlock()
 	b.formattedSubs = append(b.formattedSubs, sub)
-	for _, delta := range b.formattedHistory {
-		sub.Write(delta)
+	if replay {
+		for _, delta := range b.formattedHistory {
+			sub.Write(delta)
+		}
 	}
 }
 

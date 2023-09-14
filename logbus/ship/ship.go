@@ -2,20 +2,24 @@ package ship
 
 import (
 	"context"
+	"errors"
 	"io"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	pb "github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/logbus"
 	"github.com/hashicorp/go-multierror"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const maxDeltasPerIter = 200
 
 type bus interface {
-	AddSubscriber(sub logbus.Subscriber)
+	AddSubscriber(sub logbus.Subscriber, replay bool)
 }
 
 type streamer interface {
@@ -23,37 +27,61 @@ type streamer interface {
 }
 
 type LogShipper struct {
-	buildID      string
-	initManifest *pb.RunManifest
-	iter         *deltaIter
-	bus          bus
-	cl           streamer
-	done         chan struct{}
-	errs         []error
+	man       *pb.RunManifest
+	iter      *deltaIter
+	bus       bus
+	cl        streamer
+	done      chan struct{}
+	first     atomic.Bool
+	errs      []error
+	retryWait time.Duration
 }
 
-func NewLogShipper(bus bus, cl *cloud.Client, initManifest *pb.RunManifest) *LogShipper {
+func NewLogShipper(bus bus, cl *cloud.Client, man *pb.RunManifest) *LogShipper {
 	return &LogShipper{
-		bus:          bus,
-		cl:           cl,
-		initManifest: initManifest,
-		done:         make(chan struct{}),
+		bus:       bus,
+		cl:        cl,
+		man:       man,
+		done:      make(chan struct{}),
+		retryWait: time.Millisecond * 300,
 	}
 }
 
 func (l *LogShipper) Start(ctx context.Context) {
-	go l.attempt(ctx)
+	go func() {
+		tick := time.NewTicker(l.retryWait)
+		defer func() {
+			tick.Stop()
+			close(l.done)
+		}()
+		for {
+			select {
+			case <-tick.C:
+				err := l.attempt(ctx)
+				if err != nil {
+					l.errs = append(l.errs, err)
+					if !retryable(err) {
+						return
+					}
+				}
+			case <-ctx.Done():
+				l.errs = append(l.errs, ctx.Err())
+				return
+			}
+		}
+	}()
 }
 
-func (l *LogShipper) attempt(ctx context.Context) {
+func (l *LogShipper) attempt(ctx context.Context) error {
+	defer l.first.Store(false)
 	l.iter = &deltaIter{ctx: ctx}
-	l.iter.init(l.initManifest)
-	l.bus.AddSubscriber(l.iter)
-	err := l.cl.StreamLogs(ctx, l.buildID, l.iter)
-	if err != nil {
-		l.errs = append(l.errs, err)
+	if l.first.Load() {
+		l.iter.init(l.man)
+	} else {
+		l.iter.resume(l.man)
 	}
-	close(l.done)
+	l.bus.AddSubscriber(l.iter, false)
+	return l.cl.StreamLogs(ctx, l.man.GetBuildId(), l.iter)
 }
 
 func (l *LogShipper) Err() error {
@@ -69,24 +97,45 @@ func (l *LogShipper) Close() {
 }
 
 type deltaIter struct {
-	ctx          context.Context
-	buf          []*pb.Delta
-	mu           sync.RWMutex
-	started      atomic.Bool
-	closed       atomic.Bool
-	initManifest *pb.Delta
+	ctx     context.Context
+	buf     []*pb.Delta
+	mu      sync.RWMutex
+	started atomic.Bool
+	closed  atomic.Bool
+	attempt int
 }
 
-func (d *deltaIter) init(initManifest *pb.RunManifest) {
-	d.initManifest = &pb.Delta{
+func (d *deltaIter) init(man *pb.RunManifest) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.buf = append(d.buf, &pb.Delta{
 		DeltaTypeOneof: &pb.Delta_DeltaManifest{
 			DeltaManifest: &pb.DeltaManifest{
 				DeltaManifestOneof: &pb.DeltaManifest_ResetAll{
-					ResetAll: initManifest,
+					ResetAll: man,
 				},
 			},
 		},
-	}
+	})
+}
+
+func (d *deltaIter) resume(man *pb.RunManifest) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.buf = append(d.buf, &pb.Delta{
+		DeltaTypeOneof: &pb.Delta_DeltaManifest{
+			DeltaManifest: &pb.DeltaManifest{
+				DeltaManifestOneof: &pb.DeltaManifest_Resume{
+					Resume: &pb.DeltaManifest_ResumeBuild{
+						BuildId:     man.GetBuildId(),
+						Token:       man.GetResumeToken(),
+						OrgName:     man.GetOrgName(),
+						ProjectName: man.GetProjectName(),
+					},
+				},
+			},
+		},
+	})
 }
 
 func (d *deltaIter) close() {
@@ -96,10 +145,14 @@ func (d *deltaIter) close() {
 func (d *deltaIter) Next(ctx context.Context) ([]*pb.Delta, error) {
 
 	// The first returned value must be a single item slice with the
-	// initial/reset manifest.
+	// initial reset or resume delta.
 	if !d.started.Load() {
 		d.started.Store(true)
-		return []*pb.Delta{d.initManifest}, nil
+		d.mu.Lock()
+		send := d.buf[0:1]
+		d.buf = []*pb.Delta{}
+		d.mu.Unlock()
+		return send, nil
 	}
 
 	d.mu.RLock()
@@ -137,4 +190,21 @@ func (d *deltaIter) Write(del *pb.Delta) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.buf = append(d.buf, del)
+}
+
+func retryable(err error) bool {
+	for {
+		if err == nil {
+			return false
+		}
+		if st, ok := status.FromError(err); ok {
+			switch st.Code() {
+			case codes.Unavailable, codes.Unknown:
+				return true
+			default:
+				return false
+			}
+		}
+		err = errors.Unwrap(err)
+	}
 }

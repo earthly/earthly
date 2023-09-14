@@ -48,8 +48,8 @@ func New(ctx context.Context, bus *logbus.Bus, debug, verbose, forceColor, noCol
 		verbose: verbose,
 	}
 	bs.Formatter = formatter.New(ctx, bs.Bus, debug, verbose, forceColor, noColor, disableOngoingUpdates)
-	bs.Bus.AddRawSubscriber(bs.Formatter)
-	bs.Bus.AddFormattedSubscriber(bs.ConsoleWriter)
+	bs.Bus.AddRawSubscriber(bs.Formatter, true)
+	bs.Bus.AddFormattedSubscriber(bs.ConsoleWriter, true)
 	bs.SolverMonitor = solvermon.New(bs.Bus)
 	if busDebugFile != "" {
 		f, err := os.OpenFile(busDebugFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
@@ -58,7 +58,7 @@ func New(ctx context.Context, bus *logbus.Bus, debug, verbose, forceColor, noCol
 		}
 		useJson := strings.HasSuffix(busDebugFile, ".json")
 		bs.BusDebugWriter = writersub.NewRaw(f, useJson)
-		bs.Bus.AddSubscriber(bs.BusDebugWriter)
+		bs.Bus.AddSubscriber(bs.BusDebugWriter, true)
 	}
 	return bs, nil
 }
