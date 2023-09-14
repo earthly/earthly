@@ -107,7 +107,6 @@ type deltaIter struct {
 	mu      sync.RWMutex
 	started atomic.Bool
 	closed  atomic.Bool
-	attempt int
 }
 
 func (d *deltaIter) init(man *pb.RunManifest) {
