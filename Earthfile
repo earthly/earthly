@@ -493,7 +493,9 @@ earthly-integration-test-base:
 
     # pull out buildkit_additional_config from the earthly config, for the special case of earthly-in-earthly testing
     # which runs earthly-entrypoint.sh, which calls buildkitd/entrypoint, which requires EARTHLY_VERSION_FLAG_OVERRIDES to be set
-    ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$(cat /etc/.earthly/config.yml  | yq .global.buildkit_additional_config)"
+    # NOTE: yq will print out `null` if the key does not exist, this will cause a literal null to be inserted into /etc/buildkit.toml, which will
+    # cause buildkit to crash -- this is why we first assign it to a tmp variable, followed by an if.
+    ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$(export tmp=$(cat /etc/.earthly/config.yml | yq .global.buildkit_additional_config); if [ "$tmp" != "null" ]; then echo "$tmp"; fi)"
 
 # prerelease builds and pushes the prerelease version of earthly.
 # Tagged as prerelease
