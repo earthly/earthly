@@ -19,6 +19,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
+	"golang.org/x/exp/maps"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/fileutil"
@@ -300,7 +301,6 @@ var supportedHostKeyAlgos = []string{
 
 func (gl *GitLookup) getHostKeyAlgorithms(hostname string) ([]string, []string, error) {
 	foundAlgs := map[string]bool{}
-	keys := []string{}
 
 	knownHostsKeyScans, err := loadKnownHosts()
 	if err != nil {
@@ -315,8 +315,13 @@ func (gl *GitLookup) getHostKeyAlgorithms(hostname string) ([]string, []string, 
 	} {
 		for _, keyScan := range keyScans {
 			keyAlg, keyData, err := parseKeyScanIfHostMatches(keyScan, hostname)
-			if err != nil {
-				gl.console.Warnf("failed to parse key scan %q: %s; skipping", keyScan, err)
+			switch err {
+			case nil:
+			case errKeyScanNoMatch:
+				gl.console.VerbosePrintf("ignoring key scan %q: due to host mismatch", keyScan)
+				continue
+			default:
+				gl.console.Warnf("failed to parse key scan %q: %s", keyScan, err)
 				continue
 			}
 			foundAlgs[keyAlg] = true
@@ -325,9 +330,10 @@ func (gl *GitLookup) getHostKeyAlgorithms(hostname string) ([]string, []string, 
 				gl.console.VerbosePrintf("found (normalized) key %s", key)
 				foundKeys[key] = true
 			}
-			keys = append(keys, key)
 		}
 	}
+
+	keys := maps.Keys(foundKeys)
 
 	algs := []string{}
 	for _, alg := range supportedHostKeyAlgos {
