@@ -242,29 +242,6 @@ if [ "$label_count" -ne "3" ]; then
     exit 1
 fi
 
-# Test 9: Test reserved LABEL usage
-echo ==== Running test 9 ====
-rm -rf /tmp/earthly-export-test-9
-mkdir /tmp/earthly-export-test-9
-cd /tmp/earthly-export-test-9
-cat >> Earthfile <<EOF
-VERSION 0.7
-
-test9:
-    FROM busybox:latest
-    RUN echo "hello my world" > /data
-    LABEL dev.earthly.foo=bar
-EOF
-
-"$earthly" prune --reset
-
-if "$earthly" +test9; then
-   echo "Test ok"
-  else
-    echo "Expected earthly failing"
-    exit 1
-fi
-
 # This simply tests that this does not hang (#1945).
 timeout -k 11m 10m "$earthly" --ci --push --remote-cache earthly/test-cache:export-test-7 +test7
 

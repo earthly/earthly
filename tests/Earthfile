@@ -1413,6 +1413,13 @@ test-init-golang:
     DO +RUN_EARTHLY --target "+build"
     DO +RUN_EARTHLY --target "+test"
 
+test-reserved-label:
+   DO +RUN_EARTHLY \
+       --earthfile=reserved-label.earth \
+       --target=+test1 \
+       --should_fail=true \
+       --output_contains="forbidden"
+
 RUN_EARTHLY:
     COMMAND
     ARG earthfile=
