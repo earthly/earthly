@@ -208,6 +208,9 @@ b:
     FROM busybox:latest
 EOF
 
+# This simply tests that this does not hang (#1945).
+timeout -k 11m 10m "$earthly" --ci --push --remote-cache earthly/test-cache:export-test-7 +test7
+
 # Test 8: Earthly LABELS
 echo ==== Running test 8 ====
 rm -rf /tmp/earthly-export-test-8
@@ -241,8 +244,5 @@ if [ "$label_count" -ne "3" ]; then
     echo "Expected 3 dev.earthly labels on second image"
     exit 1
 fi
-
-# This simply tests that this does not hang (#1945).
-timeout -k 11m 10m "$earthly" --ci --push --remote-cache earthly/test-cache:export-test-7 +test7
 
 echo "=== All tests have passed ==="
