@@ -114,14 +114,14 @@ func (gl *GitLookup) DisableSSH() {
 
 func knownHostsToKeyScans(knownHosts string) []string {
 	knownHosts = strings.ReplaceAll(knownHosts, "\r\n", "\n")
-	var keyScans []string
+	foundKeyScans := make(map[string]bool)
 	for _, s := range strings.Split(knownHosts, "\n") {
 		s = strings.TrimSpace(s)
-		if s != "" && !strings.HasPrefix(s, "#") {
-			keyScans = append(keyScans, s)
+		if s != "" && !strings.HasPrefix(s, "#") && !foundKeyScans[s] {
+			foundKeyScans[s] = true
 		}
 	}
-	return keyScans
+	return maps.Keys(foundKeyScans)
 }
 
 // AddMatcher adds a new matcher for looking up git repos
