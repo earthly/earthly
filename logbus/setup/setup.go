@@ -48,8 +48,8 @@ func New(ctx context.Context, bus *logbus.Bus, debug, verbose, forceColor, noCol
 		verbose: verbose,
 	}
 	bs.Formatter = formatter.New(ctx, bs.Bus, debug, verbose, forceColor, noColor, disableOngoingUpdates)
-	bs.Bus.AddRawSubscriber(bs.Formatter, true)
-	bs.Bus.AddFormattedSubscriber(bs.ConsoleWriter, true)
+	bs.Bus.AddRawSubscriber(bs.Formatter)
+	bs.Bus.AddFormattedSubscriber(bs.ConsoleWriter)
 	bs.SolverMonitor = solvermon.New(bs.Bus)
 	if busDebugFile != "" {
 		f, err := os.OpenFile(busDebugFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
@@ -58,7 +58,7 @@ func New(ctx context.Context, bus *logbus.Bus, debug, verbose, forceColor, noCol
 		}
 		useJson := strings.HasSuffix(busDebugFile, ".json")
 		bs.BusDebugWriter = writersub.NewRaw(f, useJson)
-		bs.Bus.AddSubscriber(bs.BusDebugWriter, true)
+		bs.Bus.AddSubscriber(bs.BusDebugWriter)
 	}
 	return bs, nil
 }
@@ -85,12 +85,10 @@ func (bs *BusSetup) LogStreamerStarted() bool {
 // StartLogStreamer starts a LogStreamer for the given build. The
 // LogStreamer streams logs to the cloud.
 func (bs *BusSetup) StartLogStreamer(ctx context.Context, c *cloud.Client) {
-	shipper := ship.NewLogShipper(bs.Bus, c, bs.InitialManifest)
-	bs.LogStreamer = shipper
-	bs.Bus.AddSubscriber(shipper, false)
-	shipper.Start(ctx)
+	bs.LogStreamer = ship.NewLogShipper(c, bs.InitialManifest)
+	bs.Bus.AddSubscriber(bs.LogStreamer)
+	bs.LogStreamer.Start(ctx)
 	bs.logStreamerStarted = true
-	prs
 }
 
 // DumpManifestToFile dumps the manifest to the given file.
