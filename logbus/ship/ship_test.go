@@ -13,7 +13,7 @@ type testClient struct {
 	count int
 }
 
-func (t *testClient) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta) error {
+func (t *testClient) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta, verbose bool) error {
 	for {
 		select {
 		case _, ok := <-ch:

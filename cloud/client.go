@@ -160,7 +160,6 @@ func (c *Client) getRequestID() string {
 var serviceConfig = `{
 	"methodConfig": [{
 		"name": [{"service": "` + logstream.LogStream_ServiceDesc.ServiceName + `"}],
-		"timeout": "30.0s",
 		"waitForReady": true,
 		"retryPolicy": {
 			"MaxAttempts": 10,
@@ -174,6 +173,8 @@ var serviceConfig = `{
 
 func newLogstreamClient(ctx context.Context, addr string, transportCreds credentials.TransportCredentials) (logstream.LogStreamClient, error) {
 
+	// Use custom dial options for log streaming as it uses long-lived,
+	// sometimes idle, connections.
 	dialOpts := []grpc.DialOption{
 		grpc.WithDefaultServiceConfig(serviceConfig),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: 10 * time.Second}),
