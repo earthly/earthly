@@ -1538,7 +1538,7 @@ func (i *Interpreter) handleLabel(ctx context.Context, cmd spec.Command) error {
 				return i.wrapError(err, cmd.SourceLocation, "failed to expand LABEL key %s", arg)
 			}
 			if strings.HasPrefix(key, "dev.earthly.") {
-				return i.wrapError(err, cmd.SourceLocation, "LABEL keys starting with \"dev.earthly.\" are forbidden")
+				return i.wrapError(err, cmd.SourceLocation, "LABEL keys starting with \"dev.earthly.\" are reserved")
 			}
 			nextEqual = true
 			nextKey = false

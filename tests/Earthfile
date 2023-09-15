@@ -1419,7 +1419,7 @@ test-reserved-label:
        --earthfile=reserved-label.earth \
        --target=+test1 \
        --should_fail=true \
-       --output_contains="forbidden"
+       --output_contains="LABEL keys starting with .dev.earthly.. are reserved"
 
 RUN_EARTHLY:
     COMMAND
