@@ -38,6 +38,10 @@ const (
 	requestID            = "request-id"
 )
 
+type logstreamClient interface {
+	StreamLogs(ctx context.Context, opts ...grpc.CallOption) (logstream.LogStream_StreamLogsClient, error)
+}
+
 type Client struct {
 	httpAddr                 string
 	sshKeyBlob               []byte // sshKey to use
@@ -54,7 +58,7 @@ type Client struct {
 	jum                      *protojson.UnmarshalOptions
 	pipelines                pipelines.PipelinesClient
 	compute                  compute.ComputeClient
-	logstream                logstream.LogStreamClient
+	logstream                logstreamClient
 	analytics                analytics.AnalyticsClient
 	askv                     askv.AskvClient
 	requestID                string
@@ -138,7 +142,7 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 		logstreamAddr = c.logstreamAddressOverride
 	}
 
-	c.logstream, err = logstreamClient(ctx, logstreamAddr, transportCreds)
+	c.logstream, err = newLogstreamClient(ctx, logstreamAddr, transportCreds)
 	if err != nil {
 		return nil, errors.Wrap(err, "cloud: could not create logstream client")
 	}
@@ -168,7 +172,7 @@ var serviceConfig = `{
 	}]
 }`
 
-func logstreamClient(ctx context.Context, addr string, transportCreds credentials.TransportCredentials) (logstream.LogStreamClient, error) {
+func newLogstreamClient(ctx context.Context, addr string, transportCreds credentials.TransportCredentials) (logstream.LogStreamClient, error) {
 
 	dialOpts := []grpc.DialOption{
 		grpc.WithDefaultServiceConfig(serviceConfig),

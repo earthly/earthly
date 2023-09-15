@@ -8,24 +8,26 @@ import (
 )
 
 type streamer interface {
-	StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta) error
+	StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta, verbose bool) error
 }
 
 type LogShipper struct {
-	cl     streamer
-	ch     chan *pb.Delta
-	man    *pb.RunManifest
-	err    error
-	cancel context.CancelFunc
-	done   chan struct{}
+	cl      streamer
+	ch      chan *pb.Delta
+	man     *pb.RunManifest
+	err     error
+	cancel  context.CancelFunc
+	done    chan struct{}
+	verbose bool
 }
 
-func NewLogShipper(cl streamer, man *pb.RunManifest) *LogShipper {
+func NewLogShipper(cl streamer, man *pb.RunManifest, verbose bool) *LogShipper {
 	return &LogShipper{
-		cl:   cl,
-		man:  man,
-		ch:   make(chan *pb.Delta),
-		done: make(chan struct{}),
+		cl:      cl,
+		man:     man,
+		ch:      make(chan *pb.Delta),
+		done:    make(chan struct{}),
+		verbose: verbose,
 	}
 }
 
@@ -38,7 +40,7 @@ func (l *LogShipper) Start(ctx context.Context) {
 		ctx, l.cancel = context.WithCancel(ctx)
 		defer l.cancel()
 		out := bufferedDeltaChan(ctx, l.ch)
-		l.err = l.cl.StreamLogs(ctx, l.man, out)
+		l.err = l.cl.StreamLogs(ctx, l.man, out, l.verbose)
 		l.done <- struct{}{}
 	}()
 }

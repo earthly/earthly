@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (c *Client) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta) error {
+func (c *Client) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta, verbose bool) error {
 	if man.GetResumeToken() == "" {
 		man.ResumeToken = stringutil.RandomAlphanumeric(40)
 	}
@@ -26,15 +26,22 @@ func (c *Client) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan 
 		first := firstDelta(man, retry)
 		err := c.streamLogsAttempt(ctx, man.GetBuildId(), first, ch)
 		if err != nil {
-			errs = append(errs, err)
-			if !retryable(err) {
-				break
+			if retryable(err) {
+				retry = true
+				if verbose {
+					errs = append(errs, err)
+				}
+				continue
+			} else {
+				errs = append(errs, err)
 			}
-			retry = true
 		}
-		return nil
+		break
 	}
-	return &multierror.Error{Errors: errs}
+	if len(errs) > 0 {
+		return &multierror.Error{Errors: errs}
+	}
+	return nil
 }
 
 func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first *pb.Delta, ch <-chan *pb.Delta) error {
@@ -89,6 +96,7 @@ func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first *p
 				return ctx.Err()
 			case delta, ok := <-ch:
 				if !ok {
+					finished.Store(true)
 					msg := &pb.StreamLogRequest{
 						BuildId: buildID,
 						Eof:     true,
@@ -97,7 +105,6 @@ func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first *p
 					if err != nil {
 						return errors.Wrap(err, "failed to send EOF to log stream")
 					}
-					finished.Store(true)
 					return nil
 				}
 				err := sendSingle(delta)

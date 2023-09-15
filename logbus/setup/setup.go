@@ -85,7 +85,7 @@ func (bs *BusSetup) LogStreamerStarted() bool {
 // StartLogStreamer starts a LogStreamer for the given build. The
 // LogStreamer streams logs to the cloud.
 func (bs *BusSetup) StartLogStreamer(ctx context.Context, c *cloud.Client) {
-	bs.LogStreamer = ship.NewLogShipper(c, bs.InitialManifest)
+	bs.LogStreamer = ship.NewLogShipper(c, bs.InitialManifest, bs.verbose)
 	bs.LogStreamer.Start(ctx)
 	bs.Bus.AddSubscriber(bs.LogStreamer)
 	bs.logStreamerStarted = true
