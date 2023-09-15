@@ -90,7 +90,7 @@ func (bs *BusSetup) StartLogStreamer(ctx context.Context, c *cloud.Client) {
 	bs.Bus.AddSubscriber(shipper, false)
 	shipper.Start(ctx)
 	bs.logStreamerStarted = true
-
+	prs
 }
 
 // DumpManifestToFile dumps the manifest to the given file.
