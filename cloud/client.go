@@ -103,31 +103,42 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	}
 
 	ctx := context.Background()
+
 	retryOpts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(10),
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)),
 		grpc_retry.WithCodes(codes.Internal, codes.Unavailable),
 	}
+
 	dialOpts := []grpc.DialOption{
 		grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...), c.StreamInterceptor()),
 		grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...), c.UnaryInterceptor(WithSkipAuth("/api.public.analytics.Analytics/SendAnalytics"))),
 	}
-	var transportCredential credentials.TransportCredentials
+
+	var transportCreds credentials.TransportCredentials
 	if useInsecure {
-		transportCredential = insecure.NewCredentials()
+		transportCreds = insecure.NewCredentials()
 	} else {
-		transportCredential = credentials.NewTLS(&tls.Config{})
+		transportCreds = credentials.NewTLS(&tls.Config{})
 	}
-	dialOpts = append(dialOpts, grpc.WithTransportCredentials(transportCredential))
+
+	dialOpts = append(dialOpts, grpc.WithTransportCredentials(transportCreds))
 	conn, err := grpc.DialContext(ctx, grpcAddr, dialOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed dialing pipelines grpc")
 	}
+
 	c.pipelines = pipelines.NewPipelinesClient(conn)
 	c.compute = compute.NewComputeClient(conn)
 	c.analytics = analytics.NewAnalyticsClient(conn)
 	c.askv = askv.NewAskvClient(conn)
-	c.logstream, err = logstreamClient(ctx, conn, c.logstreamAddressOverride, dialOpts...)
+
+	logstreamAddr := grpcAddr
+	if c.logstreamAddressOverride != "" {
+		logstreamAddr = c.logstreamAddressOverride
+	}
+
+	c.logstream, err = logstreamClient(ctx, logstreamAddr, transportCreds)
 	if err != nil {
 		return nil, errors.Wrap(err, "cloud: could not create logstream client")
 	}
@@ -157,17 +168,18 @@ var serviceConfig = `{
 	}]
 }`
 
-func logstreamClient(ctx context.Context, defaultConn grpc.ClientConnInterface, overrideAddr string, dialOpts ...grpc.DialOption) (logstream.LogStreamClient, error) {
-	if overrideAddr == "" {
-		return logstream.NewLogStreamClient(defaultConn), nil
+func logstreamClient(ctx context.Context, addr string, transportCreds credentials.TransportCredentials) (logstream.LogStreamClient, error) {
+
+	dialOpts := []grpc.DialOption{
+		grpc.WithDefaultServiceConfig(serviceConfig),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: 10 * time.Second}),
+		grpc.WithTransportCredentials(transportCreds),
 	}
 
-	dialOpts = append(dialOpts, grpc.WithDefaultServiceConfig(serviceConfig))
-	dialOpts = append(dialOpts, grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: 10 * time.Second}))
-
-	conn, err := grpc.DialContext(ctx, overrideAddr, dialOpts...)
+	conn, err := grpc.DialContext(ctx, addr, dialOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "cloud: failed dialing logstream grpc")
 	}
+
 	return logstream.NewLogStreamClient(conn), nil
 }

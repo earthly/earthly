@@ -78,6 +78,7 @@ func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first *p
 	}
 
 	eg.Go(func() error {
+		// Send the reset or resume delta first.
 		err := sendSingle(first)
 		if err != nil {
 			return err
