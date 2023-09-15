@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/earthly/earthly/internal/version"
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
@@ -45,7 +46,14 @@ var (
 	DefaultInstallationName string
 )
 
+func setExportableVars() {
+	version.Version = Version
+	version.GitSha = GitSha
+	version.BuiltBy = BuiltBy
+}
+
 func main() {
+	setExportableVars()
 	startTime := time.Now()
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
