@@ -2,7 +2,6 @@ package cloud
 
 import (
 	"context"
-	"fmt"
 	"sync/atomic"
 
 	pb "github.com/earthly/cloud-api/logstream"
