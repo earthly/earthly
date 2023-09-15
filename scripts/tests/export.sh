@@ -241,7 +241,7 @@ fi
 
 label_count=$("$frontend" inspect earthly-export-test-8b:test | jq .[].Config.Labels | grep -c dev.earthly.)
 if [ "$label_count" -ne "3" ]; then
-    echo "Expected 3 dev.earthly labels on second image"
+    echo "Expected 3 dev.earthly labels on second image; got $label_count"
     exit 1
 fi
 
