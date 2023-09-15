@@ -2,179 +2,108 @@ package ship
 
 import (
 	"context"
-	"errors"
-	"io"
-	"sync/atomic"
 	"time"
 
 	pb "github.com/earthly/cloud-api/logstream"
-	"github.com/earthly/earthly/util/stringutil"
-	"github.com/hashicorp/go-multierror"
-	"golang.org/x/sync/errgroup"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
-var errNoDeltas = errors.New("no deltas")
-
 type streamer interface {
-	StreamLogs(ctx context.Context, buildID string, deltaChan <-chan *pb.Delta) error
+	StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta) error
 }
 
 type LogShipper struct {
 	cl     streamer
-	man    *pb.RunManifest
-	buf    []*pb.Delta
-	n      int
 	ch     chan *pb.Delta
+	man    *pb.RunManifest
+	err    error
+	cancel context.CancelFunc
 	done   chan struct{}
-	closed atomic.Bool
-	retry  bool
-	first  bool
-	errs   []error
 }
 
 func NewLogShipper(cl streamer, man *pb.RunManifest) *LogShipper {
-	if man.GetResumeToken() == "" {
-		man.ResumeToken = stringutil.RandomAlphanumeric(40)
-	}
 	return &LogShipper{
-		cl:    cl,
-		man:   man,
-		first: true,
-		ch:    make(chan *pb.Delta),
-		done:  make(chan struct{}),
+		cl:   cl,
+		man:  man,
+		ch:   make(chan *pb.Delta),
+		done: make(chan struct{}),
 	}
 }
 
 func (l *LogShipper) Write(delta *pb.Delta) {
-	l.buf = append(l.buf, delta)
+	l.ch <- delta
 }
 
 func (l *LogShipper) Start(ctx context.Context) {
 	go func() {
-		defer func() {
-			l.done <- struct{}{}
-		}()
-		var retry bool
-		for {
-			select {
-			default:
-				err := l.attempt(ctx, retry)
-				if err != nil {
-					l.errs = append(l.errs, err)
-					if !retryable(err) {
-						return
-					}
-				} else {
-					return
-				}
-				retry = true
-			case <-ctx.Done():
-				l.errs = append(l.errs, ctx.Err())
-				return
-			}
-		}
+		ctx, l.cancel = context.WithCancel(ctx)
+		defer l.cancel()
+		out := bufferedDeltaChan(ctx, l.ch)
+		l.err = l.cl.StreamLogs(ctx, l.man, out)
+		l.done <- struct{}{}
 	}()
 }
 
 func (l *LogShipper) Close() {
-	l.closed.Store(true)
-	<-l.done
-}
-
-func (l *LogShipper) attempt(ctx context.Context, retry bool) error {
-
-	wg, ctx := errgroup.WithContext(ctx)
-
-	wg.Go(func() error {
-		l.ch <- l.firstDelta(retry)
-		for {
-			select {
-			default:
-				delta, err := l.next()
-				if errors.Is(err, io.EOF) {
-					close(l.ch)
-					return nil
-				} else if errors.Is(err, errNoDeltas) {
-					time.Sleep(time.Millisecond * 50)
-				}
-				l.ch <- delta
-			case <-ctx.Done():
-				return ctx.Err()
-			}
-		}
-	})
-
-	wg.Go(func() error {
-		return l.cl.StreamLogs(ctx, l.man.GetBuildId(), l.ch)
-	})
-
-	return wg.Wait()
-}
-
-func (l *LogShipper) next() (*pb.Delta, error) {
-	curLen := len(l.buf)
-	if l.closed.Load() && l.n == curLen-1 {
-		return nil, io.EOF
-	}
-	if l.n > curLen-1 {
-		return nil, errNoDeltas
-	}
-	delta := l.buf[l.n]
-	l.n++
-	return delta, nil
-}
-
-func (l *LogShipper) firstDelta(retry bool) *pb.Delta {
-	var manifest *pb.DeltaManifest
-
-	if retry {
-		manifest = &pb.DeltaManifest{
-			DeltaManifestOneof: &pb.DeltaManifest_Resume{
-				Resume: &pb.DeltaManifest_ResumeBuild{
-					BuildId:     l.man.GetBuildId(),
-					Token:       l.man.GetResumeToken(),
-					OrgName:     l.man.GetOrgName(),
-					ProjectName: l.man.GetProjectName(),
-				},
-			},
-		}
-	} else {
-		manifest = &pb.DeltaManifest{
-			DeltaManifestOneof: &pb.DeltaManifest_ResetAll{
-				ResetAll: l.man,
-			},
-		}
-	}
-
-	return &pb.Delta{
-		DeltaTypeOneof: &pb.Delta_DeltaManifest{
-			DeltaManifest: manifest,
-		},
+	close(l.ch)
+	// Graceful clean-up then hard-close after 30s.
+	t := time.NewTimer(30 * time.Second)
+	select {
+	case <-t.C:
+		l.cancel()
+	case <-l.done:
+		return
 	}
 }
 
 func (l *LogShipper) Err() error {
-	if len(l.errs) > 0 {
-		return &multierror.Error{Errors: l.errs}
-	}
-	return nil
+	return l.err
 }
 
-func retryable(err error) bool {
-	for {
-		if err == nil {
-			return false
-		}
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.Unavailable, codes.Unknown:
-				return true
-			default:
-				return false
+// bufferedDeltaChan emulates a dynamically-resizing buffered channel by
+// maintaining a buffer between two blocking channels. The code is also meant to
+// respect context cancellations.
+func bufferedDeltaChan(ctx context.Context, in <-chan *pb.Delta) <-chan *pb.Delta {
+	out := make(chan *pb.Delta)
+	var buf []*pb.Delta
+	go func() {
+		defer close(out)
+		for {
+			// If the buffer is empty, wait for the first item and append it to
+			// the buffer. If the input channel is closed here we can safely
+			// return as the buffer has been drained.
+			if len(buf) == 0 {
+				delta, ok := <-in
+				if !ok {
+					return
+				}
+				buf = append(buf, delta)
+				continue
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case delta, ok := <-in:
+				if !ok {
+					// If input is closed, attempt to drain the buffer while
+					// respecting any cancellations.
+					for _, delta := range buf {
+						select {
+						case <-ctx.Done():
+							return
+						case out <- delta:
+						}
+					}
+					return
+				}
+				buf = append(buf, delta)
+			case out <- buf[0]:
+				if len(buf) == 1 {
+					buf = nil // This should help with GC.
+				} else {
+					buf = buf[1:]
+				}
 			}
 		}
-		err = errors.Unwrap(err)
-	}
+	}()
+	return out
 }
