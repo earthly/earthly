@@ -85,9 +85,12 @@ func (bs *BusSetup) LogStreamerStarted() bool {
 // StartLogStreamer starts a LogStreamer for the given build. The
 // LogStreamer streams logs to the cloud.
 func (bs *BusSetup) StartLogStreamer(ctx context.Context, c *cloud.Client) {
-	bs.LogStreamer = ship.NewLogShipper(bs.Bus, c, bs.InitialManifest)
-	bs.LogStreamer.Start(ctx)
+	shipper := ship.NewLogShipper(bs.Bus, c, bs.InitialManifest)
+	bs.LogStreamer = shipper
+	bs.Bus.AddSubscriber(shipper, false)
+	shipper.Start(ctx)
 	bs.logStreamerStarted = true
+
 }
 
 // DumpManifestToFile dumps the manifest to the given file.

@@ -3,6 +3,7 @@ package ship
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 	"sync/atomic"
@@ -11,12 +12,13 @@ import (
 	pb "github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/logbus"
+	"github.com/earthly/earthly/util/stringutil"
 	"github.com/hashicorp/go-multierror"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-const maxDeltasPerIter = 200
+const defaultChunkSize = 100
 
 type bus interface {
 	AddSubscriber(sub logbus.Subscriber, replay bool)
@@ -36,9 +38,13 @@ type LogShipper struct {
 	first     bool
 	errs      []error
 	retryWait time.Duration
+	chunkSize int
 }
 
 func NewLogShipper(bus bus, cl *cloud.Client, man *pb.RunManifest) *LogShipper {
+	if man.GetResumeToken() == "" {
+		man.ResumeToken = stringutil.RandomAlphanumeric(40)
+	}
 	return &LogShipper{
 		bus:       bus,
 		cl:        cl,
@@ -46,6 +52,7 @@ func NewLogShipper(bus bus, cl *cloud.Client, man *pb.RunManifest) *LogShipper {
 		done:      make(chan struct{}),
 		retryWait: time.Millisecond * 200,
 		first:     true,
+		chunkSize: defaultChunkSize,
 	}
 }
 
@@ -60,6 +67,7 @@ func (l *LogShipper) Start(ctx context.Context) {
 			select {
 			case <-tick.C:
 				err := l.attempt(ctx)
+				fmt.Println("error", err)
 				if err != nil {
 					l.errs = append(l.errs, err)
 					if !retryable(err) {
@@ -77,7 +85,7 @@ func (l *LogShipper) Start(ctx context.Context) {
 }
 
 func (l *LogShipper) attempt(ctx context.Context) error {
-	l.iter = &deltaIter{ctx: ctx}
+	l.iter = &deltaIter{ctx: ctx, chunkSize: l.chunkSize}
 	if l.first {
 		l.first = false
 		l.iter.init(l.man)
@@ -102,11 +110,12 @@ func (l *LogShipper) Close() {
 }
 
 type deltaIter struct {
-	ctx     context.Context
-	buf     []*pb.Delta
-	mu      sync.RWMutex
-	started atomic.Bool
-	closed  atomic.Bool
+	ctx       context.Context
+	buf       []*pb.Delta
+	mu        sync.RWMutex
+	started   atomic.Bool
+	closed    atomic.Bool
+	chunkSize int
 }
 
 func (d *deltaIter) init(man *pb.RunManifest) {
@@ -175,9 +184,9 @@ func (d *deltaIter) Next(ctx context.Context) ([]*pb.Delta, error) {
 		buf []*pb.Delta
 	)
 
-	if l > maxDeltasPerIter {
-		ret = d.buf[0:maxDeltasPerIter]
-		buf = d.buf[maxDeltasPerIter:l]
+	if l > d.chunkSize {
+		ret = d.buf[0:d.chunkSize]
+		buf = d.buf[d.chunkSize:l]
 	} else {
 		ret = d.buf
 		buf = []*pb.Delta{}
