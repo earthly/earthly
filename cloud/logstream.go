@@ -21,10 +21,15 @@ func (c *Client) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan 
 	var (
 		errs  []error
 		retry bool
+		last  *pb.Delta
 	)
 	for {
-		first := firstDelta(man, retry)
-		err := c.streamLogsAttempt(ctx, man.GetBuildId(), first, ch)
+		first := []*pb.Delta{firstDelta(man, retry)}
+		if last != nil {
+			first = append(first, last)
+		}
+		var err error
+		last, err = c.streamLogsAttempt(ctx, man.GetBuildId(), first, ch)
 		if err != nil {
 			if retryable(err) {
 				retry = true
@@ -44,13 +49,13 @@ func (c *Client) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan 
 	return nil
 }
 
-func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first *pb.Delta, ch <-chan *pb.Delta) error {
+func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first []*pb.Delta, ch <-chan *pb.Delta) (*pb.Delta, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	stream, err := c.logstream.StreamLogs(c.withAuth(ctx))
 	if err != nil {
-		return errors.Wrap(err, "failed to create log stream client")
+		return nil, errors.Wrap(err, "failed to create log stream client")
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -87,40 +92,56 @@ func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first *p
 		return nil
 	}
 
-	eg.Go(func() error {
-		// Send the reset or resume delta first.
-		err := sendSingle(first)
-		if err != nil {
-			return err
+	// If an error occurs, we can't assume that the last delta was correctly
+	// sent. Let's return it for subsequent attempts. Note that writing log
+	// entries is idempotent on the server side.
+	var last *pb.Delta
+
+	eg.Go(func() (err error) {
+		defer func() {
+			// Ensure that the receive side correctly exits when an error occurs.
+			if err != nil {
+				cancel()
+			}
+		}()
+		// Send the reset or resume delta first. Also sends any dropped deltas
+		// from a previous attempt.
+		for _, d := range first {
+			err = sendSingle(d)
+			if err != nil {
+				return
+			}
 		}
 		for {
 			select {
 			case <-ctx.Done():
-				return ctx.Err()
+				err = ctx.Err()
+				return
 			case delta, ok := <-ch:
+				last = delta // Thread-safe: only accessed by 1 thread.
 				if !ok {
 					finished.Store(true)
 					msg := &pb.StreamLogRequest{
 						BuildId: buildID,
 						Eof:     true,
 					}
-					err := stream.Send(msg)
+					err = stream.Send(msg)
 					if err != nil {
-						cancel() // Force receive worker to exit.
-						return errors.Wrap(err, "failed to send EOF to log stream")
+						err = errors.Wrap(err, "failed to send EOF to log stream")
+						return
 					}
 					return nil
 				}
-				err := sendSingle(delta)
+				last = delta
+				err = sendSingle(delta)
 				if err != nil {
-					cancel() // Force receive worker to exit.
-					return err
+					return
 				}
 			}
 		}
 	})
 
-	return eg.Wait()
+	return last, eg.Wait()
 }
 
 func retryable(err error) bool {

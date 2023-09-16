@@ -3,7 +3,6 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"sync"
 	"testing"
 
@@ -35,16 +34,19 @@ func (s *streamNops) SendMsg(m interface{}) error  { return nil }
 func (s *streamNops) RecvMsg(m interface{}) error  { return nil }
 
 type flakyStream struct {
-	mu    sync.Mutex
-	fail  chan struct{}
-	err   error
-	calls map[string]int
-	sent  []*pb.Delta
-	recv  chan *pb.StreamLogResponse
+	mu        sync.Mutex
+	fail      chan struct{}
+	err       error
+	calls     map[string]int
+	sent      []*pb.Delta
+	attempted []*pb.Delta
+	recv      chan *pb.StreamLogResponse
 	streamNops
 }
 
 func (f *flakyStream) Send(r *pb.StreamLogRequest) error {
+	f.attempted = append(f.attempted, r.GetDeltas()...)
+
 	select {
 	case <-f.fail:
 		return f.err
@@ -105,7 +107,7 @@ func TestStreamLogs(t *testing.T) {
 
 	go func() {
 		for i := 0; i < 10; i++ {
-			ch <- logDelta()
+			ch <- logDelta("log")
 		}
 		close(ch)
 	}()
@@ -123,8 +125,7 @@ func TestStreamLogs(t *testing.T) {
 
 func TestStreamLogsResume(t *testing.T) {
 	stream := newFlakyStream()
-
-	r := rand.New(rand.NewSource(1337)) // Deterministic.
+	streams := []*flakyStream{stream}
 
 	testClient := &testClient{
 		stream: func() pb.LogStream_StreamLogsClient {
@@ -145,11 +146,12 @@ func TestStreamLogsResume(t *testing.T) {
 
 	go func() {
 		for i := 0; i < 15; i++ {
-			ch <- logDelta()
-			if r.Intn(5) == 0 {
+			ch <- logDelta(fmt.Sprintf("log %d", i))
+			if i == 5 { // Simulate a failure.
 				stream.err = status.Error(codes.Unavailable, "unavailable")
 				close(stream.fail)
 				stream = newFlakyStream()
+				streams = append(streams, stream)
 			}
 		}
 		close(ch)
@@ -166,15 +168,38 @@ func TestStreamLogsResume(t *testing.T) {
 	require.True(t, stream.calls["Send"] > 1)
 	require.Equal(t, 1, stream.calls["Recv"], "expected 1 Recv")
 	require.NotNil(t, stream.sent[0].GetDeltaManifest().GetResume())
+
+	// Both the first & second stream should include "log 6" in the attempted set.
+	var got int
+	for _, stream := range streams {
+		for _, delta := range stream.attempted {
+			if string(delta.GetDeltaFormattedLog().GetData()) == "log 6" {
+				got++
+			}
+		}
+	}
+	require.Equal(t, 2, got)
+
+	// Only the second stream should have "log 6" in the sent set as the first
+	// stream failed to send that delta.
+	got = 0
+	for _, stream := range streams {
+		for _, delta := range stream.sent {
+			if string(delta.GetDeltaFormattedLog().GetData()) == "log 6" {
+				got++
+			}
+		}
+	}
+	require.Equal(t, 1, got)
 }
 
-func logDelta() *pb.Delta {
+func logDelta(message string) *pb.Delta {
 	return &pb.Delta{
 		DeltaTypeOneof: &pb.Delta_DeltaFormattedLog{
 			DeltaFormattedLog: &pb.DeltaFormattedLog{
 				TargetId:           "target-1",
 				TimestampUnixNanos: 0,
-				Data:               []byte("message"),
+				Data:               []byte(message),
 			},
 		},
 	}
