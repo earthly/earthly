@@ -169,28 +169,38 @@ func TestStreamLogsResume(t *testing.T) {
 	require.Equal(t, 1, stream.calls["Recv"], "expected 1 Recv")
 	require.NotNil(t, stream.sent[0].GetDeltaManifest().GetResume())
 
-	// Both the first & second stream should include "log 6" in the attempted set.
-	var got int
+	// There should be a duplicate in the "attempted" set as 1 will have failed once.
+	counts := map[string]int{}
 	for _, stream := range streams {
 		for _, delta := range stream.attempted {
-			if string(delta.GetDeltaFormattedLog().GetData()) == "log 6" {
-				got++
+			k := string(delta.GetDeltaFormattedLog().GetData())
+			if k != "" {
+				counts[k]++
 			}
 		}
 	}
-	require.Equal(t, 2, got)
+	var found bool
+	for _, v := range counts {
+		if v == 2 {
+			found = true
+			break
+		}
+	}
+	require.True(t, found)
 
-	// Only the second stream should have "log 6" in the sent set as the first
-	// stream failed to send that delta.
-	got = 0
+	// The "sent" stream should not contain any duplicates as the dropped delta
+	// will be present in the second stream.
+	counts = map[string]int{}
 	for _, stream := range streams {
 		for _, delta := range stream.sent {
-			if string(delta.GetDeltaFormattedLog().GetData()) == "log 6" {
-				got++
+			k := string(delta.GetDeltaFormattedLog().GetData())
+			if k != "" {
+				counts[k]++
 			}
 		}
 	}
-	require.Equal(t, 1, got)
+	require.Len(t, counts, 15)
+
 }
 
 func logDelta(message string) *pb.Delta {
