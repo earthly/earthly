@@ -2,11 +2,11 @@ package cloud
 
 import (
 	"context"
+	"io"
 	"sync/atomic"
 
 	pb "github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/util/stringutil"
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -15,6 +15,7 @@ import (
 )
 
 func (c *Client) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta, verbose bool) error {
+	verbose = true // Debug
 	if man.GetResumeToken() == "" {
 		man.ResumeToken = stringutil.RandomAlphanumeric(40)
 	}
@@ -45,7 +46,7 @@ func (c *Client) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan 
 }
 
 func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first *pb.Delta, ch <-chan *pb.Delta) error {
-	stream, err := c.logstream.StreamLogs(c.withAuth(ctx), grpc_retry.Disable())
+	stream, err := c.logstream.StreamLogs(c.withAuth(ctx))
 	if err != nil {
 		return errors.Wrap(err, "failed to create log stream client")
 	}
@@ -119,6 +120,9 @@ func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first *p
 }
 
 func retryable(err error) bool {
+	if errors.Is(err, io.EOF) {
+		return true
+	}
 	for {
 		if err == nil {
 			return false
