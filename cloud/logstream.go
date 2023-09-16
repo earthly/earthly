@@ -14,8 +14,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (c *Client) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta, verbose bool) error {
-	verbose = true // Debug
+func (c *Client) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta, _ bool) error {
+	verbose := true // Debug
 	if man.GetResumeToken() == "" {
 		man.ResumeToken = stringutil.RandomAlphanumeric(40)
 	}
