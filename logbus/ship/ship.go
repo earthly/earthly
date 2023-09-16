@@ -48,7 +48,7 @@ func (l *LogShipper) Start(ctx context.Context) {
 func (l *LogShipper) Close() {
 	close(l.ch)
 	// Graceful attempt to drain any in-flight logs then force-quit after delay.
-	t := time.NewTimer(30 * time.Second)
+	t := time.NewTimer(10 * time.Second)
 	defer t.Stop()
 	select {
 	case <-t.C:

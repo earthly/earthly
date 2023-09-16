@@ -14,8 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (c *Client) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta, _ bool) error {
-	verbose := true // Debug
+func (c *Client) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta, verbose bool) error {
 	if man.GetResumeToken() == "" {
 		man.ResumeToken = stringutil.RandomAlphanumeric(40)
 	}
@@ -46,6 +45,9 @@ func (c *Client) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan 
 }
 
 func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first *pb.Delta, ch <-chan *pb.Delta) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	stream, err := c.logstream.StreamLogs(c.withAuth(ctx))
 	if err != nil {
 		return errors.Wrap(err, "failed to create log stream client")
@@ -104,12 +106,14 @@ func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first *p
 					}
 					err := stream.Send(msg)
 					if err != nil {
+						cancel() // Force receive worker to exit.
 						return errors.Wrap(err, "failed to send EOF to log stream")
 					}
 					return nil
 				}
 				err := sendSingle(delta)
 				if err != nil {
+					cancel() // Force receive worker to exit.
 					return err
 				}
 			}
