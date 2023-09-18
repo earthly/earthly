@@ -62,9 +62,10 @@ func (l *LogShipper) Err() error {
 	return l.err
 }
 
-// bufferedDeltaChan emulates a dynamically-resizing buffered channel by
-// maintaining a buffer between two blocking channels. The code is also meant to
-// respect context cancellations.
+// bufferedDeltaChan emulates a dynamically resized buffered channel by
+// maintaining a slice buffer between two blocking channels. The buffer grows
+// and shrinks based on the rate of input and consumption. The code is also
+// meant to respect context cancellations.
 func bufferedDeltaChan(ctx context.Context, in <-chan *pb.Delta) <-chan *pb.Delta {
 	out := make(chan *pb.Delta)
 	var buf []*pb.Delta
@@ -73,14 +74,19 @@ func bufferedDeltaChan(ctx context.Context, in <-chan *pb.Delta) <-chan *pb.Delt
 		for {
 			// If the buffer is empty, wait for the first item and append it to
 			// the buffer. If the input channel is closed here we can safely
-			// return as the buffer has been drained.
+			// return as the buffer has been drained (0 items). We also need to
+			// respect context cancellations.
 			if len(buf) == 0 {
-				delta, ok := <-in
-				if !ok {
+				select {
+				case <-ctx.Done():
 					return
+				case delta, ok := <-in:
+					if !ok {
+						return
+					}
+					buf = append(buf, delta)
+					continue
 				}
-				buf = append(buf, delta)
-				continue
 			}
 			select {
 			case <-ctx.Done():
