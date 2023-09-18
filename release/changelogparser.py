@@ -54,7 +54,7 @@ def parse_line(line, line_num):
 
     return num_headers, line
 
-version_line_re = re.compile(r'^(v[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?) - ([0-9]{4}-[0-9]{2}-[0-9]{2})$')
+version_line_re = re.compile(r'^(v[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?) - ([0-9]{4}-[0-9]{2}-[0-9]{2})( \(aborted release/not recommended\))?$')
 
 def parse_changelog(changelog_data):
     versions = OrderedDict()
