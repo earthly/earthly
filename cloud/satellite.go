@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"time"
 
@@ -198,7 +199,10 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 		ctxTimeout, cancel := context.WithTimeout(ctx, 10*time.Minute)
 		defer cancel()
 		defer close(out)
-		for i := 1; i <= 5; i++ {
+		// Note: we were having issues with the stream closing unexpectedly,
+		// so we have wrapped this in a retry loop. This may be a temporary solution.
+		const numRetries = 5
+		for i := 1; i <= numRetries; i++ {
 			stream, err := c.compute.ReserveSatellite(c.withRetryCount(c.withAuth(ctxTimeout), i), &pb.ReserveSatelliteRequest{
 				OrgId:          orgID,
 				Name:           name,
@@ -216,6 +220,7 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 				if err == io.EOF {
 					if !isFinalStatus(lastStatus) {
 						// Go got EOF, but the status doesn't seem appropriate => retry
+						_, _ = fmt.Fprintf(os.Stderr, "reserve call terminated unexpectedly - retrying in %d seconds [attempt %d/%d]", i, i, numRetries)
 						time.Sleep(time.Duration(i) * time.Second)
 						break
 					}
@@ -243,9 +248,7 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 
 func isFinalStatus(status string) bool {
 	switch status {
-	case SatelliteStatusOperational:
-		return true
-	case SatelliteStatusFailed:
+	case SatelliteStatusOperational, SatelliteStatusFailed:
 		return true
 	default:
 		return false
@@ -263,40 +266,30 @@ func (c *Client) WakeSatellite(ctx context.Context, name, orgName string) (out c
 		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 		defer close(out)
-		for i := 1; i <= 5; i++ {
-			stream, err := c.compute.WakeSatellite(c.withRetryCount(c.withAuth(ctxTimeout), i), &pb.WakeSatelliteRequest{
-				OrgId: orgID,
-				Name:  name,
-			})
-			if err != nil {
-				out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite wake stream")}
+		stream, err := c.compute.WakeSatellite(c.withAuth(ctxTimeout), &pb.WakeSatelliteRequest{
+			OrgId: orgID,
+			Name:  name,
+		})
+		if err != nil {
+			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite wake stream")}
+			return
+		}
+		for {
+			update, err := stream.Recv()
+			if err == io.EOF {
 				return
 			}
-			var lastStatus string
-			for {
-				update, err := stream.Recv()
-				if err == io.EOF {
-					if !isFinalStatus(lastStatus) {
-						// Go got EOF, but the status doesn't seem appropriate => retry
-						time.Sleep(time.Duration(i) * time.Second)
-						break
-					}
-					return
-				}
-				if err != nil {
-					out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed receiving satellite wake update")}
-					return
-				}
-				lastStatus = satelliteStatus(update.Status)
-				if lastStatus == SatelliteStatusFailed {
-					out <- SatelliteStatusUpdate{Err: errors.New("satellite is in a failed state")}
-					return
-				}
-				out <- SatelliteStatusUpdate{State: satelliteStatus(update.Status)}
+			if err != nil {
+				out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed receiving satellite wake update")}
+				return
 			}
+			status := satelliteStatus(update.Status)
+			if status == SatelliteStatusFailed {
+				out <- SatelliteStatusUpdate{Err: errors.New("satellite is in a failed state")}
+				return
+			}
+			out <- SatelliteStatusUpdate{State: status}
 		}
-		// max retries consumed
-		out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed to receive a valid final satellite status")}
 	}()
 	return out
 }
@@ -312,41 +305,31 @@ func (c *Client) SleepSatellite(ctx context.Context, name, orgName string) (out 
 		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 		defer close(out)
-		for i := 1; i <= 5; i++ {
-			stream, err := c.compute.SleepSatellite(c.withRetryCount(c.withAuth(ctxTimeout), i), &pb.SleepSatelliteRequest{
-				OrgId:          orgID,
-				Name:           name,
-				UpdateInterval: durationpb.New(10 * time.Second),
-			})
-			if err != nil {
-				out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite sleep stream")}
+		stream, err := c.compute.SleepSatellite(c.withAuth(ctxTimeout), &pb.SleepSatelliteRequest{
+			OrgId:          orgID,
+			Name:           name,
+			UpdateInterval: durationpb.New(10 * time.Second),
+		})
+		if err != nil {
+			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite sleep stream")}
+			return
+		}
+		for {
+			update, err := stream.Recv()
+			if err == io.EOF {
 				return
 			}
-			var lastStatus string
-			for {
-				update, err := stream.Recv()
-				if err == io.EOF {
-					if !isFinalStatus(lastStatus) {
-						// Go got EOF, but the status doesn't seem appropriate => retry
-						time.Sleep(time.Duration(i) * time.Second)
-						break
-					}
-					return
-				}
-				if err != nil {
-					out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed receiving satellite sleep update")}
-					return
-				}
-				status := satelliteStatus(update.Status)
-				if status == SatelliteStatusFailed {
-					out <- SatelliteStatusUpdate{Err: errors.New("satellite is in a failed state")}
-					return
-				}
-				out <- SatelliteStatusUpdate{State: satelliteStatus(update.Status)}
+			if err != nil {
+				out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed receiving satellite sleep update")}
+				return
 			}
+			status := satelliteStatus(update.Status)
+			if status == SatelliteStatusFailed {
+				out <- SatelliteStatusUpdate{Err: errors.New("satellite is in a failed state")}
+				return
+			}
+			out <- SatelliteStatusUpdate{State: status}
 		}
-		// max retries consumed
-		out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed to receive a valid final satellite status")}
 	}()
 	return out
 }
