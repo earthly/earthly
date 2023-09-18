@@ -243,9 +243,7 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 
 func isFinalStatus(status string) bool {
 	switch status {
-	case SatelliteStatusOperational:
-		return true
-	case SatelliteStatusFailed:
+	case SatelliteStatusOperational, SatelliteStatusFailed:
 		return true
 	default:
 		return false
