@@ -2,6 +2,7 @@ package ship
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	pb "github.com/earthly/cloud-api/logstream"
@@ -19,6 +20,7 @@ type LogShipper struct {
 	cancel  context.CancelFunc
 	done    chan struct{}
 	verbose bool
+	mu      sync.Mutex
 }
 
 func NewLogShipper(cl streamer, man *pb.RunManifest, verbose bool) *LogShipper {
@@ -40,7 +42,12 @@ func (l *LogShipper) Start(ctx context.Context) {
 		ctx, l.cancel = context.WithCancel(ctx)
 		defer l.cancel()
 		out := bufferedDeltaChan(ctx, l.ch)
-		l.err = l.cl.StreamLogs(ctx, l.man, out, l.verbose)
+		err := l.cl.StreamLogs(ctx, l.man, out, l.verbose)
+		if err != nil {
+			l.mu.Lock()
+			l.err = err
+			l.mu.Unlock()
+		}
 		l.done <- struct{}{}
 	}()
 }
@@ -59,6 +66,8 @@ func (l *LogShipper) Close() {
 }
 
 func (l *LogShipper) Err() error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	return l.err
 }
 
