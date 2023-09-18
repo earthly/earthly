@@ -3,14 +3,18 @@ package base
 import (
 	"context"
 	"fmt"
+	"time"
+
+	"github.com/moby/buildkit/client"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/util/containerutil"
-	"github.com/moby/buildkit/client"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
 )
 
 func (cli *CLI) GetBuildkitClient(cliCtx *cli.Context, cloudClient *cloud.Client) (*client.Client, error) {
@@ -91,9 +95,27 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 
 	// Reserve the satellite for the upcoming build.
 	// This operation can take a moment if the satellite is asleep.
-	err = cli.reserveSatellite(cliCtx.Context, cloudClient, satelliteName, cli.Flags().SatelliteName, orgName, gitAuthor, gitConfigEmail)
-	if err != nil {
-		return err
+	const maxRetries = 5
+	attempts := 1
+	for true {
+		err = cli.reserveSatellite(cliCtx.Context, cloudClient, satelliteName, cli.Flags().SatelliteName, orgName, gitAuthor, gitConfigEmail)
+		if err != nil {
+			stat, ok := status.FromError(err)
+			if ok &&
+				stat.Code() != codes.Unknown &&
+				stat.Code() != codes.Internal &&
+				stat.Code() != codes.Unavailable {
+				return err
+			}
+			if attempts == maxRetries {
+				return err
+			}
+			cli.console.Warnf("failed reserving satellite - retrying in 2s... [attempt %d]", attempts)
+			time.Sleep(2 * time.Second)
+			attempts++
+			continue
+		}
+		break
 	}
 
 	// TODO (dchw) what other settings might we want to override here?
