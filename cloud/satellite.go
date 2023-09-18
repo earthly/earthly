@@ -240,8 +240,6 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 		}
 		// max retries consumed
 		out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed to receive a valid final satellite status")}
-		return
-
 	}()
 	return out
 }
