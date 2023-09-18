@@ -4,6 +4,19 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.18 - 2023-09-18
+
+### Added
+- Added "dev.earthly.*" LABELS to saved images, for example `dev.earthly.version` will be set to `v0.7.18` (or whatever version of earthly is used) [#3247](https://github.com/earthly/earthly/issues/3247).
+- Added option to verbose print known_hosts to make it easier to debug git related commands [#3234](https://github.com/earthly/earthly/issues/3234).
+
+### Fixed
+- When a project based secret is not found, the name of the secret will now be displayed along with the "not found" error.
+
+### Changed
+- Refactor console output code (e.g. removed redundant output, prepared code for a future streaming log uploads... coming soon).
+- Display warning when TLS is disabled.
+
 ## v0.7.17 - 2023-08-30
 
 ### Added
