@@ -119,6 +119,7 @@ ga-no-qemu-quick:
     BUILD +test-init-unsupported
     BUILD +test-init-golang
     BUILD +pass-args-test
+    BUILD +test-reserved-label
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -1413,6 +1414,13 @@ test-init-golang:
     fi
     DO +RUN_EARTHLY --target "+build"
     DO +RUN_EARTHLY --target "+test"
+
+test-reserved-label:
+   DO +RUN_EARTHLY \
+       --earthfile=reserved-label.earth \
+       --target=+test1 \
+       --should_fail=true \
+       --output_contains="LABEL keys starting with .dev.earthly.. are reserved"
 
 RUN_EARTHLY:
     COMMAND

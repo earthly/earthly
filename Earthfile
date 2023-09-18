@@ -61,8 +61,8 @@ code:
         RUN go mod download
     END
     COPY ./ast/parser+parser/*.go ./ast/parser/
-    COPY --dir analytics autocomplete buildcontext builder logbus cleanup cmd config conslogging debugger \
-        dockertar docker2earthly domain features outmon slog cloud states util variables ./
+    COPY --dir analytics autocomplete buildcontext builder logbus cleanup cloud cmd config conslogging debugger \
+        dockertar docker2earthly domain features internal outmon slog states util variables ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
     COPY --dir ast/antlrhandler ast/spec ast/hint ast/command ast/commandflag ast/*.go ast/
@@ -493,7 +493,9 @@ earthly-integration-test-base:
 
     # pull out buildkit_additional_config from the earthly config, for the special case of earthly-in-earthly testing
     # which runs earthly-entrypoint.sh, which calls buildkitd/entrypoint, which requires EARTHLY_VERSION_FLAG_OVERRIDES to be set
-    ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$(cat /etc/.earthly/config.yml  | yq .global.buildkit_additional_config)"
+    # NOTE: yq will print out `null` if the key does not exist, this will cause a literal null to be inserted into /etc/buildkit.toml, which will
+    # cause buildkit to crash -- this is why we first assign it to a tmp variable, followed by an if.
+    ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$(export tmp=$(cat /etc/.earthly/config.yml | yq .global.buildkit_additional_config); if [ "$tmp" != "null" ]; then echo "$tmp"; fi)"
 
 # prerelease builds and pushes the prerelease version of earthly.
 # Tagged as prerelease
