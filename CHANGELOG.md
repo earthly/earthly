@@ -5,6 +5,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ## Unreleased
 
 ## v0.7.18 - 2023-09-18 (aborted release/not recommended)
+<!--changelog-parser-ignore-start-->
+Note: This release was aborted due to a regression in the log sharing functionality
+<!--changelog-parser-ignore-end-->
 
 ### Added
 - Added "dev.earthly.*" LABELS to saved images, for example `dev.earthly.version` will be set to `v0.7.18` (or whatever version of earthly is used) [#3247](https://github.com/earthly/earthly/issues/3247).
