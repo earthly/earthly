@@ -144,6 +144,7 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 		logstreamAddr = c.logstreamAddressOverride
 	}
 
+	c.logstreamBackoff = 250 * time.Millisecond
 	c.logstream, err = newLogstreamClient(ctx, logstreamAddr, transportCreds)
 	if err != nil {
 		return nil, errors.Wrap(err, "cloud: could not create logstream client")
