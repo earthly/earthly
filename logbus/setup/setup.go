@@ -148,7 +148,7 @@ func (bs *BusSetup) Close() error {
 			multi := &multierror.Error{}
 			for _, err := range errs {
 				streamErr := &cloud.StreamError{}
-				if bs.verbose || (errors.As(err, &streamErr) && !streamErr.Recoverable) {
+				if ok := errors.As(err, &streamErr); bs.verbose || !ok || (ok && !streamErr.Recoverable) {
 					multi = multierror.Append(multi, err)
 				}
 			}
