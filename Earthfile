@@ -373,7 +373,7 @@ earthly:
 # earthly-linux-amd64 builds the earthly artifact  for linux amd64
 earthly-linux-amd64:
     ARG GO_GCFLAGS
-    COPY (+earthly/* \
+    COPY --platform=linux/amd64 (+earthly/* \
         --GOARCH=amd64 \
         --VARIANT= \
         --GO_GCFLAGS="${GO_GCFLAGS}" \
@@ -394,7 +394,7 @@ earthly-linux-arm64:
 # earthly-darwin-amd64 builds the earthly artifact  for darwin amd64
 earthly-darwin-amd64:
     ARG GO_GCFLAGS=""
-    COPY (+earthly/* \
+    COPY --platform=linux/amd64 (+earthly/* \
         --GOOS=darwin \
         --GOARCH=amd64 \
         --VARIANT= \
@@ -418,7 +418,7 @@ earthly-darwin-arm64:
 # earthly-windows-arm64 builds the earthly artifact  for windows arm64
 earthly-windows-amd64:
     ARG GO_GCFLAGS
-    COPY (+earthly/* \
+    COPY --platform=linux/amd64 (+earthly/* \
         --GOOS=windows \
         --GOARCH=amd64 \
         --VARIANT= \
