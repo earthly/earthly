@@ -224,10 +224,9 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 					return
 				}
 				if err != nil {
-					_, _ = fmt.Fprintf(os.Stderr, "received error: %v\n", err)
 					if isRetryable(err) {
 						retriedError = err
-						_, _ = fmt.Fprintf(os.Stderr, "retrying in %d seconds [attempt %d/%d]", i, i, numRetries)
+						_, _ = fmt.Fprintf(os.Stderr, "retrying in %d seconds [attempt %d/%d]\n", i, i, numRetries)
 						time.Sleep(time.Duration(i) * 2 * time.Second)
 						break
 					}
