@@ -76,5 +76,5 @@ jobs:
       - name: Execute try-catch test
         run: ./tests/try-catch/test.sh
       - name: Buildkit logs (runs on failure)
-        run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
+        run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd || true
         if: ${{ failure() }}
