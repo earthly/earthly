@@ -59,7 +59,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      EXTRA_ARGS: "--logstream=false"
+      EXTRA_ARGS: "--logstream=false --logstream-upload=false"
     secrets: inherit
 
   docker-tests-no-qemu-normal:
@@ -82,7 +82,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      EXTRA_ARGS: "--logstream=false"
+      EXTRA_ARGS: "--logstream=false --logstream-upload=false"
     secrets: inherit
 
   docker-tests-no-qemu-slow:
