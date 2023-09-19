@@ -10,6 +10,8 @@ import (
 
 	pb "github.com/earthly/cloud-api/compute"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -202,6 +204,7 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 		// Note: we were having issues with the stream closing unexpectedly,
 		// so we have wrapped this in a retry loop. This may be a temporary solution.
 		const numRetries = 5
+		var retriedError error
 		for i := 1; i <= numRetries; i++ {
 			stream, err := c.compute.ReserveSatellite(c.withRetryCount(c.withAuth(ctxTimeout), i), &pb.ReserveSatelliteRequest{
 				OrgId:          orgID,
@@ -218,15 +221,16 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 			for {
 				update, err := stream.Recv()
 				if err == io.EOF {
-					if !isFinalStatus(lastStatus) {
-						// Go got EOF, but the status doesn't seem appropriate => retry
-						_, _ = fmt.Fprintf(os.Stderr, "reserve call terminated unexpectedly - retrying in %d seconds [attempt %d/%d]", i, i, numRetries)
-						time.Sleep(time.Duration(i) * time.Second)
-						break
-					}
 					return
 				}
 				if err != nil {
+					_, _ = fmt.Fprintf(os.Stderr, "received error: %v\n", err)
+					if isRetryable(err) {
+						retriedError = err
+						_, _ = fmt.Fprintf(os.Stderr, "retrying in %d seconds [attempt %d/%d]", i, i, numRetries)
+						time.Sleep(time.Duration(i) * 2 * time.Second)
+						break
+					}
 					out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed receiving satellite reserve update")}
 					return
 				}
@@ -239,14 +243,24 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 			}
 		}
 		// max retries consumed
-		out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed to receive a valid final satellite status")}
+		out <- SatelliteStatusUpdate{Err: errors.Wrap(retriedError, "failed to retrieve satellite status")}
 	}()
 	return out
 }
 
-func isFinalStatus(status string) bool {
-	switch status {
-	case SatelliteStatusOperational, SatelliteStatusFailed:
+func isRetryable(err error) bool {
+	switch status.Code(err) {
+	case codes.DeadlineExceeded:
+		return true
+	case codes.Internal:
+		return true
+	case codes.Unavailable:
+		return true
+	case codes.ResourceExhausted:
+		return true
+	case codes.FailedPrecondition:
+		return true
+	case codes.DataLoss:
 		return true
 	default:
 		return false
