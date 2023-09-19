@@ -36,6 +36,7 @@ const (
 	tokenExpiryLayout    = "2006-01-02 15:04:05.999999999 -0700 MST"
 	satelliteMgmtTimeout = "5M" // 5 minute timeout when launching or deleting a Satellite
 	requestID            = "request-id"
+	retryCount           = "retry-count"
 )
 
 type logstreamClient interface {
