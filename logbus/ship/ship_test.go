@@ -13,7 +13,7 @@ type testClient struct {
 	count int
 }
 
-func (t *testClient) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta, verbose bool) error {
+func (t *testClient) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta) []error {
 	for {
 		select {
 		case _, ok := <-ch:
@@ -22,7 +22,7 @@ func (t *testClient) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-c
 			}
 			t.count++
 		case <-ctx.Done():
-			return ctx.Err()
+			return []error{ctx.Err()}
 		}
 	}
 }
@@ -53,7 +53,7 @@ func TestLogShipper(t *testing.T) {
 	s.Close()
 
 	require.Equal(t, cl.count, n)
-	require.NoError(t, s.Err())
+	require.Empty(t, s.Errs())
 }
 
 func Test_bufferedDeltaChan(t *testing.T) {

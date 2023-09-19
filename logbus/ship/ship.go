@@ -9,14 +9,14 @@ import (
 )
 
 type streamer interface {
-	StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta, verbose bool) error
+	StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta) []error
 }
 
 type LogShipper struct {
 	cl      streamer
 	ch      chan *pb.Delta
 	man     *pb.RunManifest
-	err     error
+	errs    []error
 	cancel  context.CancelFunc
 	done    chan struct{}
 	verbose bool
@@ -42,10 +42,10 @@ func (l *LogShipper) Start(ctx context.Context) {
 		ctx, l.cancel = context.WithCancel(ctx)
 		defer l.cancel()
 		out := bufferedDeltaChan(ctx, l.ch)
-		err := l.cl.StreamLogs(ctx, l.man, out, l.verbose)
-		if err != nil {
+		errs := l.cl.StreamLogs(ctx, l.man, out)
+		if len(errs) > 0 {
 			l.mu.Lock()
-			l.err = err
+			l.errs = errs
 			l.mu.Unlock()
 		}
 		l.done <- struct{}{}
@@ -65,10 +65,10 @@ func (l *LogShipper) Close() {
 	}
 }
 
-func (l *LogShipper) Err() error {
+func (l *LogShipper) Errs() []error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	return l.err
+	return l.errs
 }
 
 // bufferedDeltaChan emulates a dynamically resized buffered channel by

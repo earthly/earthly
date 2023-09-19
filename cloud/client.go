@@ -59,6 +59,7 @@ type Client struct {
 	pipelines                pipelines.PipelinesClient
 	compute                  compute.ComputeClient
 	logstream                logstreamClient
+	logstreamBackoff         time.Duration
 	analytics                analytics.AnalyticsClient
 	askv                     askv.AskvClient
 	requestID                string

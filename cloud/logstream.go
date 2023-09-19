@@ -3,59 +3,89 @@ package cloud
 import (
 	"context"
 	"io"
+	"math"
 	"sync/atomic"
+	"time"
 
 	pb "github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/util/stringutil"
-	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func (c *Client) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta, verbose bool) error {
+type StreamError struct {
+	Recoverable bool
+	Err         error
+}
+
+func (s *StreamError) Error() string {
+	return s.Err.Error()
+}
+
+func (c *Client) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta) []error {
 	if man.GetResumeToken() == "" {
 		man.ResumeToken = stringutil.RandomAlphanumeric(40)
 	}
 	var (
-		errs  []error
-		retry bool
-		last  *pb.Delta
+		errs   []error
+		retry  bool
+		counts []int
+		last   *pb.Delta
 	)
 	for {
 		first := []*pb.Delta{firstDelta(man, retry)}
 		if last != nil {
 			first = append(first, last)
 		}
-		var err error
-		last, err = c.streamLogsAttempt(ctx, man.GetBuildId(), first, ch)
+		var (
+			err       error
+			sendCount int
+		)
+		sendCount, last, err = c.streamLogsAttempt(ctx, man.GetBuildId(), first, ch)
 		if err != nil {
-			if retryable(err) {
+			recoverable := recoverableError(err)
+			errs = append(errs, &StreamError{Err: err, Recoverable: recoverable})
+			if recoverable {
 				retry = true
-				if verbose {
-					errs = append(errs, err)
-				}
+				counts = append(counts, sendCount)
+				time.Sleep(calcBackoff(c.logstreamBackoff, counts))
 				continue
-			} else {
-				errs = append(errs, err)
 			}
 		}
 		break
 	}
-	if len(errs) > 0 {
-		return &multierror.Error{Errors: errs}
-	}
-	return nil
+	return errs
 }
 
-func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first []*pb.Delta, ch <-chan *pb.Delta) (*pb.Delta, error) {
+// calcBackoff calculates the time to wait before attempting another stream. The
+// backoff is calculated by inspecting the passed attempts for outright failures
+// versus partial streams.
+func calcBackoff(base time.Duration, counts []int) time.Duration {
+	fails := 0
+	for i := 0; i < len(counts); i++ {
+		// If a previous stream failed before sending 50 messages, we'll
+		// increment the backoff multiplier. Otherwise reset it.
+		if counts[i] < 50 {
+			fails++
+		} else {
+			fails = 0
+		}
+	}
+	// min(backoff + backoff^(1 + (fails / 5)), 40s)
+	b := float64(base.Milliseconds())
+	t := b * math.Pow(2, float64(fails))
+	return time.Millisecond * time.Duration(math.Min(float64(40_000), t))
+}
+
+func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first []*pb.Delta, ch <-chan *pb.Delta) (int, *pb.Delta, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	stream, err := c.logstream.StreamLogs(c.withAuth(ctx))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create log stream client")
+		return 0, nil, errors.Wrap(err, "failed to create log stream client")
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -96,6 +126,7 @@ func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first []
 	// sent. Let's return it for subsequent attempts. Note that writing log
 	// entries is idempotent on the server side.
 	var last *pb.Delta
+	var count int
 
 	eg.Go(func() (err error) {
 		defer func() {
@@ -137,14 +168,16 @@ func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first []
 				if err != nil {
 					return
 				}
+				// We track & return the total count of successfully sent messages.
+				count++
 			}
 		}
 	})
 
-	return last, eg.Wait()
+	return count, last, eg.Wait()
 }
 
-func retryable(err error) bool {
+func recoverableError(err error) bool {
 	if errors.Is(err, io.EOF) {
 		return true
 	}

@@ -144,8 +144,15 @@ func (bs *BusSetup) Close() error {
 
 	if bs.LogStreamer != nil {
 		bs.LogStreamer.Close()
-		if err := bs.LogStreamer.Err(); err != nil {
-			ret = multierror.Append(ret, errors.Wrap(err, "log streamer"))
+		if errs := bs.LogStreamer.Errs(); len(errs) > 0 {
+			multi := &multierror.Error{}
+			for _, err := range errs {
+				streamErr := &cloud.StreamError{}
+				if bs.verbose || (errors.As(err, &streamErr) && !streamErr.Recoverable) {
+					multi = multierror.Append(multi, err)
+				}
+			}
+			ret = multierror.Append(ret, errors.Wrap(multi, "log streamer"))
 		}
 	}
 

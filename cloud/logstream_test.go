@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	pb "github.com/earthly/cloud-api/logstream"
 	"github.com/google/uuid"
@@ -103,7 +104,7 @@ func TestStreamLogs(t *testing.T) {
 	}
 
 	ch := make(chan *pb.Delta)
-	errCh := make(chan error)
+	errsCh := make(chan []error)
 
 	go func() {
 		for i := 0; i < 10; i++ {
@@ -113,11 +114,11 @@ func TestStreamLogs(t *testing.T) {
 	}()
 
 	go func() {
-		errCh <- cl.StreamLogs(ctx, man, ch, false)
+		errsCh <- cl.StreamLogs(ctx, man, ch)
 	}()
 
-	err := <-errCh
-	require.NoError(t, err)
+	errs := <-errsCh
+	require.Empty(t, errs)
 	require.Equal(t, 12, stream.calls["Send"], "expected 10 Sends plus first manifest & EOF (12)")
 	require.Equal(t, 1, stream.calls["Recv"], "expected 1 Recv")
 	require.Len(t, stream.sent, 11, "expected 10 deltas sent and 1 manifest (11)")
@@ -142,7 +143,7 @@ func TestStreamLogsResume(t *testing.T) {
 	}
 
 	ch := make(chan *pb.Delta)
-	errCh := make(chan error)
+	errsCh := make(chan []error)
 
 	go func() {
 		for i := 0; i < 15; i++ {
@@ -158,11 +159,11 @@ func TestStreamLogsResume(t *testing.T) {
 	}()
 
 	go func() {
-		errCh <- cl.StreamLogs(ctx, man, ch, false)
+		errsCh <- cl.StreamLogs(ctx, man, ch)
 	}()
 
-	err := <-errCh
-	require.NoError(t, err)
+	errs := <-errsCh
+	require.Len(t, errs, 1)
 
 	// This is the second stream.
 	require.True(t, stream.calls["Send"] > 1)
@@ -215,7 +216,7 @@ func logDelta(message string) *pb.Delta {
 	}
 }
 
-func Test_retryable(t *testing.T) {
+func Test_recoverableError(t *testing.T) {
 	cases := []struct {
 		note string
 		err  error
@@ -255,10 +256,26 @@ func Test_retryable(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.note, func(t *testing.T) {
-			got := retryable(c.err)
+			got := recoverableError(c.err)
 			if got != c.want {
 				t.Errorf("wanted %+v, got %+v", c.want, got)
 			}
 		})
 	}
+}
+
+func Test_calcBackoff(t *testing.T) {
+	base := 250 * time.Millisecond
+
+	b := calcBackoff(base, []int{0, 0, 0, 0})
+	require.Equal(t, int64(4000), b.Milliseconds())
+
+	b = calcBackoff(base, []int{})
+	require.Equal(t, int64(250), b.Milliseconds())
+
+	b = calcBackoff(base, []int{0, 51, 0, 0, 0})
+	require.Equal(t, int64(2000), b.Milliseconds())
+
+	b = calcBackoff(base, []int{0, 0, 0, 0, 0})
+	require.Equal(t, int64(8000), b.Milliseconds())
 }
