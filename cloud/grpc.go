@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
@@ -18,6 +19,10 @@ func (c *Client) withAuth(ctx context.Context) context.Context {
 
 func (c *Client) withReqID(ctx context.Context) context.Context {
 	return metadata.AppendToOutgoingContext(ctx, requestID, c.getRequestID())
+}
+
+func (c *Client) withRetryCount(ctx context.Context, count int) context.Context {
+	return metadata.AppendToOutgoingContext(ctx, retryCount, strconv.Itoa(count))
 }
 
 func getReqID(ctx context.Context) string {
