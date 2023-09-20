@@ -9,20 +9,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/earthly/cloud-api/logstream"
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/earthly/earthly/cloud"
-	"github.com/earthly/earthly/cmd/earthly/common"
-	"github.com/earthly/earthly/cmd/earthly/helper"
-
-	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
+	"github.com/earthly/earthly/cloud"
+	"github.com/earthly/earthly/cmd/earthly/common"
+	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/util/containerutil"
@@ -164,7 +163,6 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER,
 			"No SetFatalError called appropriately. This should never happen.")
 	}()
-	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
 
 	err := app.BaseCLI.App().RunContext(ctx, args)
 	if err != nil {
@@ -248,9 +246,9 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 				"Are you using --platform to target a different architecture? You may have to manually install QEMU.\n" +
 					"For more information see https://docs.earthly.dev/guides/multi-platform\n")
 			return 1
-		case !app.BaseCLI.Flags().Verbose && rpcRegex.MatchString(err.Error()):
+		case !app.BaseCLI.Flags().Verbose && cloud.RPCErrRegex.MatchString(err.Error()):
 			baseErr := errors.Cause(err)
-			baseErrMsg := rpcRegex.ReplaceAllString(baseErr.Error(), "")
+			baseErrMsg := cloud.RPCErrRegex.ReplaceAllString(baseErr.Error(), "")
 			app.BaseCLI.Console().Warnf("Error: %s\n", string(baseErrMsg))
 			if strings.Contains(baseErrMsg, "transport is closing") {
 				app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, baseErr.Error())
