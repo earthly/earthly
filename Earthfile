@@ -373,7 +373,7 @@ earthly:
 # earthly-linux-amd64 builds the earthly artifact  for linux amd64
 earthly-linux-amd64:
     ARG GO_GCFLAGS
-    COPY (+earthly/* \
+    COPY --platform=linux/amd64 (+earthly/* \
         --GOARCH=amd64 \
         --VARIANT= \
         --GO_GCFLAGS="${GO_GCFLAGS}" \
@@ -394,7 +394,7 @@ earthly-linux-arm64:
 # earthly-darwin-amd64 builds the earthly artifact  for darwin amd64
 earthly-darwin-amd64:
     ARG GO_GCFLAGS=""
-    COPY (+earthly/* \
+    COPY --platform=linux/amd64 (+earthly/* \
         --GOOS=darwin \
         --GOARCH=amd64 \
         --VARIANT= \
@@ -418,7 +418,7 @@ earthly-darwin-arm64:
 # earthly-windows-arm64 builds the earthly artifact  for windows arm64
 earthly-windows-amd64:
     ARG GO_GCFLAGS
-    COPY (+earthly/* \
+    COPY --platform=linux/amd64 (+earthly/* \
         --GOOS=windows \
         --GOARCH=amd64 \
         --VARIANT= \
@@ -584,6 +584,16 @@ for-linux:
     BUILD ./ast/parser+parser
     COPY (+earthly-linux-amd64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/linux/amd64/earthly
+
+# for-linux-arm64 builds earthly-buildkitd and the earthly CLI for the a linux arm64 system
+# and saves the final CLI binary locally in the ./build/linux folder.
+for-linux-arm64:
+    ARG BUILDKIT_PROJECT
+    ARG GO_GCFLAGS
+    BUILD --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
+    BUILD ./ast/parser+parser
+    COPY (+earthly-linux-arm64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
+    SAVE ARTIFACT ./earthly AS LOCAL ./build/linux/arm64/earthly
 
 # for-darwin builds earthly-buildkitd and the earthly CLI for the a darwin amd64 system
 # and saves the final CLI binary locally in the ./build/darwin folder.
