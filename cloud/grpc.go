@@ -74,22 +74,22 @@ func (c *Client) UnaryInterceptor(opts ...InterceptorOpt) grpc.UnaryClientInterc
 		}
 		ctx, err := c.reAuthIfExpired(ctx)
 		if err != nil {
-			return appendRequestId(ctx, err)
+			return appendRequestID(ctx, err)
 		}
 		err = invoker(ctx, method, req, reply, cc, opts...)
 		if err != nil {
 			s, ok := status.FromError(err)
 			if !ok {
-				return appendRequestId(ctx, err)
+				return appendRequestID(ctx, err)
 			}
 			if s.Code() == codes.Unauthenticated {
 				ctx, err = c.reAuthCtx(ctx)
 				if err != nil {
-					return appendRequestId(ctx, err)
+					return appendRequestID(ctx, err)
 				}
 				return invoker(ctx, method, req, reply, cc, opts...)
 			}
-			return appendRequestIdStatus(ctx, s)
+			return appendRequestIDStatus(ctx, s)
 		}
 		return nil
 	}
@@ -103,24 +103,24 @@ func (c *Client) StreamInterceptor() grpc.StreamClientInterceptor {
 		ctx = c.withReqID(ctx)
 		ctx, err := c.reAuthIfExpired(ctx)
 		if err != nil {
-			return nil, appendRequestId(ctx, err)
+			return nil, appendRequestID(ctx, err)
 		}
 		newStreamer, err := streamer(ctx, desc, cc, method, opts...)
 		if err != nil {
 			s, ok := status.FromError(err)
 			if !ok {
-				return nil, appendRequestId(ctx, err)
+				return nil, appendRequestID(ctx, err)
 			}
 			if s.Code() == codes.Unauthenticated {
 				ctx, err = c.reAuthCtx(ctx)
 				if err != nil {
-					return nil, appendRequestId(ctx, err)
+					return nil, appendRequestID(ctx, err)
 				}
 				return streamer(ctx, desc, cc, method, opts...)
 			}
-			return nil, appendRequestIdStatus(ctx, s)
+			return nil, appendRequestIDStatus(ctx, s)
 		}
-		return newWrappedStream(ctx, newStreamer), nil
+		return newRequestIDWrappedStream(ctx, newStreamer), nil
 	}
 }
 
@@ -161,20 +161,21 @@ func (w *requestIDWrappedStream) SendMsg(m any) error {
 	return nil
 }
 
-func newWrappedStream(ctx context.Context, s grpc.ClientStream) grpc.ClientStream {
+func newRequestIDWrappedStream(ctx context.Context, s grpc.ClientStream) grpc.ClientStream {
 	return &requestIDWrappedStream{s, ctx}
 }
 
 // cleanStatusError returns the underlying error message from a gRPC status error
 func cleanStatusError(errStr string) string {
+	g
 	return RPCErrRegex.ReplaceAllString(errStr, "")
 }
 
-func appendRequestId(ctx context.Context, err error) error {
+func appendRequestID(ctx context.Context, err error) error {
 	return fmt.Errorf("%s {reqID: %s}", err.Error(), getReqID(ctx))
 }
 
-func appendRequestIdStatus(ctx context.Context, s *status.Status) error {
+func appendRequestIDStatus(ctx context.Context, s *status.Status) error {
 	return status.Errorf(s.Code(), fmt.Sprintf("%s {reqID: %s}",
 		cleanStatusError(s.Err().Error()), getReqID(ctx)))
 }
