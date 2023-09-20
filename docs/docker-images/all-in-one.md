@@ -2,9 +2,9 @@ This image contains `earthly`, `buildkit`, and some extra configuration to enabl
 
 ## Tags
 
-* `v0.7.17`, `latest`
+* `v0.7.19`, `latest`
+* `v0.7.17`
 * `v0.7.16`
-* `v0.7.15`
 
 ## Quickstart
 
@@ -31,7 +31,7 @@ Here's a quick breakdown:
 This example shows how the Earthly image can start a Buildkit daemon within the same container. A Docker socket is not needed in this case, however the container will need to be run with the `--privileged` flag.
 
 ```bash
-docker run --privileged -t -v $(pwd):/workspace -v earthly-tmp:/tmp/earthly:rw earthly/earthly:v0.7.17 +for-linux
+docker run --privileged -t -v $(pwd):/workspace -v earthly-tmp:/tmp/earthly:rw earthly/earthly:v0.7.19 +for-linux
 ```
 
 Here's a quick breakdown:
@@ -62,11 +62,11 @@ Here's what this does:
 This example shows how to use the Earthly container to run non-build commands. This is useful for running commands like `earthly account`, or `earthly secret`.
 
 ```bash
-docker run -t -e NO_BUILDKIT=1 -e EARTHLY_TOKEN=<my-token> earthly/earthly:v0.7.17 account list-tokens
+docker run -t -e NO_BUILDKIT=1 -e EARTHLY_TOKEN=<my-token> earthly/earthly:v0.7.19 account list-tokens
 ```
 
 ```bash
-docker run -t -e NO_BUILDKIT=1 -e EARTHLY_TOKEN=<my-token> earthly/earthly:v0.7.17 secret get foo
+docker run -t -e NO_BUILDKIT=1 -e EARTHLY_TOKEN=<my-token> earthly/earthly:v0.7.19 secret get foo
 ```
 
 ## Using This Image
