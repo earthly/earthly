@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"io"
 	"regexp"
 	"time"
 
@@ -128,6 +129,9 @@ type wrappedStream struct {
 
 func (w *wrappedStream) RecvMsg(m any) error {
 	if err := w.ClientStream.RecvMsg(m); err != nil {
+		if err == io.EOF {
+			return err
+		}
 		s, ok := status.FromError(err)
 		if !ok {
 			return fmt.Errorf("%s {reqID: %s}", err.Error(), getReqID(w.ctx))
@@ -140,6 +144,9 @@ func (w *wrappedStream) RecvMsg(m any) error {
 
 func (w *wrappedStream) SendMsg(m any) error {
 	if err := w.ClientStream.SendMsg(m); err != nil {
+		if err == io.EOF {
+			return err
+		}
 		s, ok := status.FromError(err)
 		if !ok {
 			return fmt.Errorf("%s {reqID: %s}", err.Error(), getReqID(w.ctx))
