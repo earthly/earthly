@@ -109,7 +109,7 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	}
 	dialOpts := []grpc.DialOption{
 		grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...), c.StreamInterceptor()),
-		grpc.WithChainUnaryInterceptor(c.UnaryInterceptor(WithSkipAuth("/api.public.analytics.Analytics/SendAnalytics")), grpc_retry.UnaryClientInterceptor(retryOpts...)),
+		grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...), c.UnaryInterceptor(WithSkipAuth("/api.public.analytics.Analytics/SendAnalytics"))),
 	}
 	var transportCredential credentials.TransportCredentials
 	if useInsecure {
