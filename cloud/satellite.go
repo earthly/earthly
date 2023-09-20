@@ -193,7 +193,6 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed reserving satellite")}
 			return
 		}
-		// Some notes on the 20-minute timeout here:
 		// Usually satellites reserve in 1-15 seconds, however, in some edge cases it will take longer.
 		// It can take a minute if the satellite is actively falling asleep (it needs to finish, then wake back up).
 		// In extreme cases, if a satellite update is running, the satellite can take around 6 minutes to finish.
