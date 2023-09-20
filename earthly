@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+export EARTHLY_GLOBAL_WAIT_END=true
+
 bindir="$HOME/.earthly"
 if [ ! -d "$bindir" ]; then
   mkdir -p "$bindir"

@@ -66,5 +66,5 @@ jobs:
         run: env earthly=${{inputs.BUILT_EARTHLY_PATH}} frontend=${{inputs.BINARY}} scripts/tests/auth/test-self-hosted.sh
 # auto-generated-entries end
       - name: Buildkit logs (runs on failure)
-        run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
+        run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd || true
         if: ${{ failure() }}

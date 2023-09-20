@@ -260,7 +260,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 				}
 				return 7
 			} else {
-				app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, baseErr.Error())
+				app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
 				return 1
 			}
 		case errors.Is(err, buildkitd.ErrBuildkitCrashed):
