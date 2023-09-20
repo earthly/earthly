@@ -7,14 +7,14 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ## v0.7.19 - 2023-09-20
 
 ### Added
-- Added "dev.earthly.*" LABELS to saved images, for example `dev.earthly.version` will be set to `v0.7.18` (or whatever version of earthly is used) [#3247](https://github.com/earthly/earthly/issues/3247).
+- Added "dev.earthly.*" LABELS to saved images, for example `dev.earthly.version` will be set to `v0.7.19` (or whatever version of earthly is used) [#3247](https://github.com/earthly/earthly/issues/3247).
 - Added option to verbose print known_hosts to make it easier to debug git related commands [#3234](https://github.com/earthly/earthly/issues/3234).
 
 ### Fixed
 - When a project based secret is not found, the name of the secret will now be displayed along with the "not found" error.
 
 ### Changed
-- Log sharing will now stream logs as your build is running (rather than uploading logs when build execution completes)
+- Log sharing will now stream logs as your build is running (rather than uploading logs when build execution completes).
 - Satellite reserve calls will now retry on error [#3255](https://github.com/earthly/earthly/issues/3255).
 - Display warning when TLS is disabled.
 
