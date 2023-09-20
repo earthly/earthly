@@ -66,5 +66,5 @@ jobs:
           ${{inputs.SUDO}} ${{ inputs.BUILT_EARTHLY_PATH }} --ci -P \
           ./tests/git-metadata+test
       - name: Buildkit logs (runs on failure)
-        run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
+        run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd || true
         if: ${{ failure() && ! inputs.USE_SATELLITE }}
