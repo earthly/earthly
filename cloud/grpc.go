@@ -167,7 +167,6 @@ func newRequestIDWrappedStream(ctx context.Context, s grpc.ClientStream) grpc.Cl
 
 // cleanStatusError returns the underlying error message from a gRPC status error
 func cleanStatusError(errStr string) string {
-	g
 	return RPCErrRegex.ReplaceAllString(errStr, "")
 }
 
