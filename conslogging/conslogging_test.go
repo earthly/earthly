@@ -21,7 +21,7 @@ func Test_prettyPrefix(t *testing.T) {
 			expected:      "github.com/earthly/earthly:80524f0d82a353b3444e83f056207e15f4d5447c+hello-world",
 		},
 		{
-			name:          "shortens git SHA if prefix is present",
+			name:          "shortens git SHA",
 			prefixPadding: DefaultPadding,
 			prefix:        "github.com/earthly/earthly:80524f0d82a353b3444e83f056207e15f4d5447c+hello-world",
 			expected:      "g/e/earthly:80524f0+hello-world",
@@ -54,7 +54,7 @@ func Test_prettyPrefix(t *testing.T) {
 			name:          "simple target with path",
 			prefixPadding: DefaultPadding,
 			prefix:        "github.com/earthly/earthly+run",
-			expected:      "github.com/earthly/earthly+run",
+			expected:      "g/earthly/earthly+run",
 		},
 		{
 			name:          "does not add padding if prefix longer than prefixPadding",
@@ -68,6 +68,36 @@ func Test_prettyPrefix(t *testing.T) {
 			prefix:        "+run",
 			expected:      "+run",
 		},
+		{
+			name:          "shortens git URL in brackets",
+			prefixPadding: DefaultPadding,
+			prefix:        "github.com/earthly/earthly+hello-world(github.com/some-repo/some-project)",
+			expected:      "g/e/earthly+hello-world(g/s/some-project)",
+		},
+		{
+			name:          "normalizes and shortens urls",
+			prefixPadding: DefaultPadding,
+			prefix:        "github.com/./earthly/other-repo/../earthly+hello-world",
+			expected:      "g/e/earthly+hello-world",
+		},
+		{
+			name:          "shortens only part of the path when it's short enough",
+			prefixPadding: DefaultPadding,
+			prefix:        "github.com/earthly/more+t1",
+			expected:      "   g/earthly/more+t1",
+		},
+		{
+			name:          "shortens git URL in brackets",
+			prefixPadding: DefaultPadding,
+			prefix:        "github.com/earthly/earthly+hello-world(github.com/some-repo/some-project)",
+			expected:      "g/e/earthly+hello-world(g/s/some-project)",
+		},
+		{
+			name:          "shortens git URL in brackets while keeping url protocol",
+			prefixPadding: DefaultPadding,
+			prefix:        "github.com/earthly/earthly+hello-world(https://github.com/some-repo/some-project)",
+			expected:      "g/e/earthly+hello-world(https://g/s/some-project)",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -77,5 +107,4 @@ func Test_prettyPrefix(t *testing.T) {
 			assert.Equal(t, tc.expected, prettyPrefix(tc.prefixPadding, tc.prefix))
 		})
 	}
-
 }

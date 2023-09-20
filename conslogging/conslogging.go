@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"regexp"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -460,54 +459,8 @@ func (cl ConsoleLogger) color(c *color.Color) *color.Color {
 	return noColor
 }
 
-var (
-	// githubRegExp Matches :2dd88e53f2e59e96ec1f9215f24a3981e5565edf+ in a prefix.
-	// 	Prefix containing hash may resemble: g/e/hello-world:2dd88e53f2e59e96ec1f9215f24a3981e5565edf+base
-	//	Prefix must be exactly 40 characters
-	githubRegExp = regexp.MustCompile(`:[a-f0-9]{40}\+`)
-)
-
 func prettyPrefix(prefixPadding int, prefix string) string {
-	if prefixPadding <= NoPadding {
-		return prefix
-	}
-
-	sha := githubRegExp.FindString(prefix)
-	if sha != "" {
-		prefix = strings.Replace(prefix, sha, sha[:8]+"+", 1)
-	}
-
-	var brackets string
-	bracketParts := strings.SplitN(prefix, "(", 2)
-	if len(bracketParts) > 1 {
-		brackets = fmt.Sprintf("(%s", bracketParts[1])
-	}
-	prettyPrefix := bracketParts[0]
-	var gitPart string // either a branch, sha, or neither if there is none
-	if len(prefix) > prefixPadding {
-		parts := strings.Split(prefix, ":")
-		if len(parts) > 1 {
-			gitPart = ":" + parts[1]
-			parts = strings.Split(parts[0], "/")
-		}
-		target := parts[len(parts)-1]
-
-		truncated := ""
-		for _, part := range parts[:len(parts)-1] {
-			letter := part
-			if len(part) > 0 && part != ".." {
-				letter = string(part[0])
-			}
-
-			truncated += letter + "/"
-		}
-
-		prettyPrefix = truncated + target
-	}
-
-	formatString := fmt.Sprintf("%%%vv", prefixPadding)
-	ret := fmt.Sprintf(formatString, fmt.Sprintf("%s%s%s", prettyPrefix, gitPart, brackets))
-	return ret
+	return beautifier.Beautify(prefix, prefixPadding)
 }
 
 // WithLogLevel changes the log level
