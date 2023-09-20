@@ -98,6 +98,12 @@ func Test_prettyPrefix(t *testing.T) {
 			prefix:        "github.com/earthly/earthly+hello-world(https://github.com/some-repo/some-project)",
 			expected:      "g/e/earthly+hello-world(https://g/s/some-project)",
 		},
+		{
+			name:          "local relative path keeps its \".\" after normalization",
+			prefixPadding: DefaultPadding,
+			prefix:        "./path/./to//redundant/../target+hello-world",
+			expected:      "./p/t/target+hello-world",
+		},
 	}
 
 	for _, tc := range testCases {
