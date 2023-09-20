@@ -23,16 +23,16 @@ var (
 	urlPrefix = regexp.MustCompile("^.+?//")
 	// targetURL is used to capture any target path - relative (./my-dir+my-target), absolute (/abs/my-dir+my-target) or remote (github.com/my-org-my-repo+my-target)
 	// the url my include an optional branch name or commit sha, e.g. github.com/my-org/my-repo:my-branch+my-target
-	targetURL  = regexp.MustCompile(`^.+?(:|\+)`)
-	beautifier = NewPrefixBeautifier(truncateSha, truncateGITURL, truncateTargetURL)
+	targetURL = regexp.MustCompile(`^.+?(:|\+)`)
+	formatter = NewPrefixFormatter(truncateSha, truncateGITURL, truncateTargetURL)
 )
 
-type prefixBeautifier struct {
-	beatifyingOpts []beatifyingOpt
-	cache          sync.Map
+type prefixFormatter struct {
+	formatOpts []formatOpt
+	cache      sync.Map
 }
 
-type beatifyingOpt func(str string, padding int, curLen int) string
+type formatOpt func(str string, padding int, curLen int) string
 
 func truncateSha(str string, _, _ int) string {
 	return githubRegExp.ReplaceAllStringFunc(str, func(s string) string {
@@ -99,17 +99,17 @@ func normalize(s string) string {
 	return s
 }
 
-func NewPrefixBeautifier(beatifyingOpt ...beatifyingOpt) *prefixBeautifier {
-	return &prefixBeautifier{
-		beatifyingOpts: beatifyingOpt,
+func NewPrefixFormatter(formatOpt ...formatOpt) *prefixFormatter {
+	return &prefixFormatter{
+		formatOpts: formatOpt,
 	}
 }
 
-func (pb *prefixBeautifier) getKey(prefix string, padding int) string {
+func (pb *prefixFormatter) getKey(prefix string, padding int) string {
 	return fmt.Sprintf("%s-%d", prefix, padding)
 }
 
-func (pb *prefixBeautifier) Beautify(prefix string, padding int) string {
+func (pb *prefixFormatter) Format(prefix string, padding int) string {
 	if padding <= NoPadding {
 		return prefix
 	}
@@ -118,8 +118,8 @@ func (pb *prefixBeautifier) Beautify(prefix string, padding int) string {
 		return cachedPrefix.(string)
 	}
 	curLen := len(prefix)
-	for _, beatifyingOpt := range pb.beatifyingOpts {
-		prefix = beatifyingOpt(prefix, padding, curLen)
+	for _, formatOpt := range pb.formatOpts {
+		prefix = formatOpt(prefix, padding, curLen)
 		curLen = len(prefix)
 	}
 	modifiedPrefix := padStr(prefix, padding)

@@ -16,22 +16,22 @@ func getCacheSize(m *sync.Map) int {
 	return size
 }
 
-func Test_prefixBeautifier_Beautify(t *testing.T) {
+func Test_prefixFormatter_Format(t *testing.T) {
 	t.Run("uses cache correctly", func(t *testing.T) {
 		random := uuid.NewString()
 		otherRandom := uuid.NewString()
-		origSize := getCacheSize(&beautifier.cache)
+		origSize := getCacheSize(&formatter.cache)
 
-		beautifier.Beautify(random, DefaultPadding)
-		size := getCacheSize(&beautifier.cache)
+		formatter.Format(random, DefaultPadding)
+		size := getCacheSize(&formatter.cache)
 		assert.Equal(t, origSize+1, size, "cache size should have incremented by 1")
-		beautifier.Beautify(random, DefaultPadding)
+		formatter.Format(random, DefaultPadding)
 		assert.Equal(t, origSize+1, size, "cache size should have stayed the same")
-		beautifier.Beautify(random, 3)
-		size = getCacheSize(&beautifier.cache)
+		formatter.Format(random, 3)
+		size = getCacheSize(&formatter.cache)
 		assert.Equal(t, origSize+2, size, "cache size should have incremented since padding is different")
-		beautifier.Beautify(otherRandom, DefaultPadding)
-		size = getCacheSize(&beautifier.cache)
+		formatter.Format(otherRandom, DefaultPadding)
+		size = getCacheSize(&formatter.cache)
 		assert.Equal(t, origSize+3, size, "cache size should have incremented since prefix is different")
 	})
 }

@@ -460,7 +460,7 @@ func (cl ConsoleLogger) color(c *color.Color) *color.Color {
 }
 
 func prettyPrefix(prefixPadding int, prefix string) string {
-	return beautifier.Beautify(prefix, prefixPadding)
+	return formatter.Format(prefix, prefixPadding)
 }
 
 // WithLogLevel changes the log level
