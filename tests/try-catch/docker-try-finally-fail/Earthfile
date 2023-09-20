@@ -1,7 +1,7 @@
 VERSION 0.7
 test:
     ARG FRONTEND=docker
-    FROM alpine:3.15
+    FROM alpine:3.18
     TRY
         WITH DOCKER
             RUN $FRONTEND ps > docker-ps && false

@@ -3,6 +3,15 @@ set -e # dont use -x, as it will leak credentials
 
 # This is not a unit test, as it requires access to docker hub, as well as docker/podman
 
+if [ "$USE_EARTHLY_MIRROR" = "true" ]; then
+  if [ -n "$DOCKERHUB_MIRROR" ]; then
+    echo >&2 "error: DOCKERHUB_MIRROR should be empty when using the USE_EARTHLY_MIRROR option"
+    exit 1
+  fi
+  DOCKERHUB_MIRROR="registry-1.docker.io.mirror.corp.earthly.dev"
+  DOCKERHUB_MIRROR_AUTH="true"
+fi
+
 # first setup podman
 cat > /etc/containers/containers.conf <<EOF
 [containers]
@@ -47,17 +56,17 @@ location=\"$DOCKERHUB_MIRROR\"
 fi
 
 # then do a docker login (if applicable)
-if [ "$DOCKERHUB_AUTH" = "true" ]
+if [ "$DOCKERHUB_MIRROR_AUTH" = "true" ]
 then
-  (test -n "$USERNAME" || (echo "ERROR: USERNAME not set"; exit 1))
-  (test -n "$TOKEN" || (echo "ERROR: TOKEN not set"; exit 1))
+  (test -n "$DOCKERHUB_MIRROR_USER" || (echo "ERROR: DOCKERHUB_MIRROR_USER not set"; exit 1))
+  (test -n "$DOCKERHUB_MIRROR_PASS" || (echo "ERROR: DOCKERHUB_MIRROR_PASS not set"; exit 1))
   if [ -n "$DOCKERHUB_MIRROR" ]
   then
-    docker login "$DOCKERHUB_MIRROR" --username="$USERNAME" --password="$TOKEN"
-    podman login "$DOCKERHUB_MIRROR" --username="$USERNAME" --password="$TOKEN"
+    docker login "$DOCKERHUB_MIRROR" --username="$DOCKERHUB_MIRROR_USER" --password="$DOCKERHUB_MIRROR_PASS"
+    podman login "$DOCKERHUB_MIRROR" --username="$DOCKERHUB_MIRROR_USER" --password="$DOCKERHUB_MIRROR_PASS"
   else
-    docker login --username="$USERNAME" --password="$TOKEN"
-    podman login --username="$USERNAME" --password="$TOKEN"
+    docker login --username="$DOCKERHUB_MIRROR_USER" --password="$DOCKERHUB_MIRROR_PASS"
+    podman login --username="$DOCKERHUB_MIRROR_USER" --password="$DOCKERHUB_MIRROR_PASS"
   fi
 fi
 

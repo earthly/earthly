@@ -10,7 +10,7 @@ all:
     BUILD +test-command-import
 
 test-command:
-    FROM alpine:3.15
+    FROM alpine:3.18
     DO earthly-command-example+TOUCH --file=foo
     RUN test -f ./foo
 

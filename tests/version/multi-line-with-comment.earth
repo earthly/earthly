@@ -1,6 +1,6 @@
 VERSION \ #with a comment that doesn't have a space after the hash.
     0.5
 
-FROM alpine:3.15
+FROM alpine:3.18
 test:
     RUN echo "pass"

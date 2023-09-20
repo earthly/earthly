@@ -1,5 +1,5 @@
 VERSION 0.7
-FROM alpine:3.15
+FROM alpine:3.18
 
 RUN mkdir -p /data/sub
 RUN echo d9e31cbc-d4a5-43d3-a112-ff3eec8c964d > /data/base

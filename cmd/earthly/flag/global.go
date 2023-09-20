@@ -25,6 +25,9 @@ const (
 
 	DefaultSecretFile = ".secret"
 	SecretFileFlag    = "secret-file-path"
+
+	DefaultLogstream       = true
+	DefaultLogstreamUpload = true
 )
 
 // Put flags on Flags instead as there are other things in the CLI that are being called + set
@@ -270,6 +273,7 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			Usage:       "Enable log streaming only locally",
 			Destination: &global.Logstream,
 			Hidden:      true, // Internal.
+			Value:       DefaultLogstream,
 		},
 		&cli.BoolFlag{
 			Name:        "logstream-upload",
@@ -277,6 +281,7 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			Usage:       "Enable log stream uploading",
 			Destination: &global.LogstreamUpload,
 			Hidden:      true, // Internal.
+			Value:       DefaultLogstreamUpload,
 		},
 		&cli.StringFlag{
 			Name:        "logstream-debug-file",

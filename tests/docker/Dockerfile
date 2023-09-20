@@ -1,4 +1,4 @@
-FROM alpine:3.15
+FROM alpine:3.18
 
 COPY a.txt .
 RUN cat a.txt

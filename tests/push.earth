@@ -1,4 +1,4 @@
 VERSION 0.7
-FROM alpine:3.15
+FROM alpine:3.18
 push-test:
     RUN --push echo hello world

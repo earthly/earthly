@@ -1,6 +1,6 @@
-VERSION --new-platform 0.6
+VERSION 0.7
 
-FROM alpine:3.15
+FROM alpine:3.18
 ARG NATIVEARCH
 IF [ "$NATIVEARCH" = "arm64" ]
     FROM arm64v8/openjdk:19-slim
@@ -15,7 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install antlr.
 WORKDIR /usr/local/lib
-ARG ANTLR_VERSION=4.12.0
+ARG --global ANTLR_VERSION=4.12.0
+RUN echo curl -O https://www.antlr.org/download/antlr-${ANTLR_VERSION}-complete.jar
 RUN curl -O https://www.antlr.org/download/antlr-${ANTLR_VERSION}-complete.jar
 WORKDIR /earthly
 

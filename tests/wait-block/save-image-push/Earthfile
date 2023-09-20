@@ -1,7 +1,7 @@
 VERSION 0.7
 
 myimg:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN echo NWMyMTQ2YjctZGFlNS00YzQ5LWE1MTktNDM2Zjc4YzNkNzAwCg== > /special-data
     RUN sleep 5 # increase the likelihood of +check-tag-exists to run in the event the WAIT/END code fails to block
     ARG --required REGISTRY
@@ -9,7 +9,7 @@ myimg:
     SAVE IMAGE --push $REGISTRY/myuser/myimg:$tag
 
 deps:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN apk add curl jq
 
 check-tag-exists:

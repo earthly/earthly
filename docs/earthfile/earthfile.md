@@ -68,7 +68,7 @@ The `FROM ... AS ...` form available in the classical Dockerfile syntax is not s
 ```Dockerfile
 # Dockerfile
 
-FROM alpine:3.15 AS build
+FROM alpine:3.18 AS build
 # ... instructions for build
 
 FROM build as another
@@ -84,7 +84,7 @@ can become
 # Earthfile
 
 build:
-    FROM alpine:3.15
+    FROM alpine:3.18
     # ... instructions for build
     SAVE ARTIFACT ./a-file
 
@@ -329,7 +329,7 @@ Opens an interactive prompt during the target build. An interactive prompt must:
 Start an interactive python REPL:
 ```Dockerfile
 python:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN apk add python
     RUN --interactive python
 ```
@@ -337,7 +337,7 @@ python:
 Start `bash` to tweak an image by hand. Changes made will be included:
 ```Dockerfile
 build:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN apk add bash
     RUN --interactive-keep bash
 ```
@@ -496,7 +496,7 @@ COPY --dir test .
 One can also copy from other Earthfile targets:
 
 ```
-FROM alpine:3.15
+FROM alpine:3.18
 dummy-target:
     RUN echo aGVsbG8= > encoded-data
     SAVE ARTIFACT encoded-data
@@ -508,7 +508,7 @@ example:
 Parentheses are required when passing build-args:
 
 ```
-FROM alpine:3.15
+FROM alpine:3.18
 RUN apk add coreutils # required for base32 binary
 dummy-target:
     ARG encoder="base64"
@@ -1114,7 +1114,7 @@ For example, the following is NOT a valid Earthfile.
 # NOT A VALID EARTHFILE.
 ARG base=alpine
 IF [ "$base" = "alpine" ]
-    FROM alpine:3.15
+    FROM alpine:3.18
 ELSE
     FROM ubuntu:20.04
 END
@@ -1128,7 +1128,7 @@ Here is how this might be fixed.
 ARG base=alpine
 FROM busybox
 IF [ "$base" = "alpine" ]
-    FROM alpine:3.15
+    FROM alpine:3.18
 ELSE
     FROM ubuntu:20.04
 END
@@ -1712,7 +1712,7 @@ The following example shows a simple pipeline called `my-pipeline`, which is tri
 VERSION 0.7
 PROJECT my-org/my-project
 
-FROM alpine:3.15
+FROM alpine:3.18
 
 my-pipeline:
   PIPELINE

@@ -19,6 +19,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// statusChanSize is used to ensure we consume all BK status messages without
+// causing back-pressure that forces BK to cancel.
+const statusChanSize = 500
+
 type onImageFunc func(context.Context, *errgroup.Group, string, string, string) (io.WriteCloser, error)
 type onArtifactFunc func(context.Context, string, domain.Artifact, string, string) (string, error)
 type onFinalArtifactFunc func(context.Context) (string, error)
@@ -37,7 +41,7 @@ type solver struct {
 }
 
 func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback pullping.PullCallback, phaseText string, console conslogging.ConsoleLogger) error {
-	ch := make(chan *client.SolveStatus)
+	ch := make(chan *client.SolveStatus, statusChanSize)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	eg, ctx := errgroup.WithContext(ctx)

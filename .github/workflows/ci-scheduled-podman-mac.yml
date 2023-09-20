@@ -71,21 +71,9 @@ jobs:
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       # Note - we only run the non-qemu tests here because we have not figured out cross-compilation on Mac using Podman yet
-      - name: Execute tests-no-qemu (Earthly Only)
-        run: |-
-          ${{env.BUILT_EARTHLY_PATH}} --ci -P \
-            --build-arg DOCKERHUB_AUTH=true \
-            --build-arg DOCKERHUB_USER_SECRET=+secrets/earthly-technologies/dockerhub-mirror/user \
-            --build-arg DOCKERHUB_TOKEN_SECRET=+secrets/earthly-technologies/dockerhub-mirror/pass \
-            --build-arg DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev \
-          +test-no-qemu
+      - name: Execute tests-no-qemu
+        run: ${{env.BUILT_EARTHLY_PATH}} --ci -P +test-no-qemu
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Execute tests-no-qemu (Fork)
-        run: |-
-          ${{env.BUILT_EARTHLY_PATH}} --ci -P \
-            --build-arg DOCKERHUB_AUTH=false \
-          +test-no-qemu
-        if: github.event_name != 'push' && github.event.pull_request.head.repo.full_name != github.repository
       - name: Execute fail test
         run: "! ${{ env.BUILT_EARTHLY_PATH }} --ci ./tests/fail+test-fail"
       - name: Buildkit logs (runs on failure)

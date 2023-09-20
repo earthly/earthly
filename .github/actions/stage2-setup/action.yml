@@ -1,0 +1,106 @@
+name: stage2 setup
+description: copies earthly binary from stage1 of build, configure dockerhub mirror, and bootstrap
+author: Earthly technologies
+inputs:
+  BUILT_EARTHLY_PATH:
+    required: true
+    type: string
+  BINARY:
+    required: true
+    type: string
+  SUDO:
+    type: string
+    required: false
+  USE_QEMU:
+    required: false
+    type: boolean
+  USE_SATELLITE:
+    required: false
+    type: boolean
+    default: false
+  SATELLITE_NAME:
+    required: false
+    type: string
+  EARTHLY_ORG:
+    required: false
+    type: string
+  DOCKERHUB_MIRROR_USERNAME:
+    required: true
+  DOCKERHUB_MIRROR_PASSWORD:
+    required: true
+  DOCKERHUB_USERNAME:
+    required: true
+  DOCKERHUB_PASSWORD:
+    required: true
+  EARTHLY_TOKEN:
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - if: inputs.BINARY == 'docker'
+      uses: docker/setup-qemu-action@v1
+      with:
+        image: tonistiigi/binfmt:latest
+        platforms: all
+    - uses: actions/setup-go@v1
+      with:
+        go-version: 1.20
+    - if: ${{ inputs.BINARY == 'podman' }}
+      run: |-
+        echo "Setting up podman"
+        ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
+        ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman && ${{inputs.SUDO}} rm -f /etc/containers/registries.conf
+        podman version && podman info && podman info --debug
+      shell: bash
+    - if: ${{ inputs.BINARY == 'podman' && inputs.USE_QEMU }}
+      # qemu-user-static needed for cross-compilation (--platform) targets
+      run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y qemu-user-static
+      shell: bash
+    - run: ${{inputs.SUDO}} ${{inputs.BINARY}} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ inputs.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ inputs.DOCKERHUB_MIRROR_PASSWORD }}"
+      shell: bash
+    - if: ${{ inputs.BINARY == 'docker' }}
+      run: ${{inputs.SUDO}} ${{inputs.BINARY}} login  --username "${{ inputs.DOCKERHUB_USERNAME }}" --password "${{ inputs.DOCKERHUB_PASSWORD }}"
+      shell: bash
+    - if: ${{ inputs.BINARY != 'docker' }}
+      run: ${{inputs.SUDO}} ${{inputs.BINARY}} login docker.io --username "${{ inputs.DOCKERHUB_USERNAME }}" --password "${{ inputs.DOCKERHUB_PASSWORD }}"
+      shell: bash
+    - run: |-
+        echo "Extracting earthly binary from stage1 of build"
+        BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-ubuntu-latest-${{inputs.BINARY}} ${{inputs.SUDO}} ./earthly upgrade
+        ${{inputs.SUDO}} chown -R $USER ~/.earthly # restore non-sudo user ownership
+        test -n "${{inputs.BUILT_EARTHLY_PATH}}" || (echo "BUILT_EARTHLY_PATH is empty" && exit 1)
+        mkdir -p $(dirname "${{inputs.BUILT_EARTHLY_PATH}}")
+        ${{inputs.SUDO}} mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-ubuntu-latest-${{inputs.BINARY}} "${{inputs.BUILT_EARTHLY_PATH}}"
+        echo "extracted ${{inputs.BUILT_EARTHLY_PATH}}"
+      shell: bash
+    - run: |-
+        echo "Setting up mirror credentials in .arg and .secret"
+        export earthly=${{inputs.BUILT_EARTHLY_PATH}}
+        # setup secrets
+        echo "DOCKERHUB_MIRROR_USER=$($earthly secret --org earthly-technologies --project core get -n dockerhub-mirror/user || kill $$)" > .secret
+        echo "DOCKERHUB_MIRROR_PASS=$($earthly secret --org earthly-technologies --project core get -n dockerhub-mirror/pass || kill $$)" >> .secret
+        # setup args
+        echo "DOCKERHUB_MIRROR_AUTH=true" > .arg
+        echo "DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev" >> .arg
+      shell: bash
+    - run: |-
+        echo "Configuring earthly to use mirror"
+        ${{inputs.BUILT_EARTHLY_PATH}} config global.buildkit_additional_config "'[registry.\"docker.io\"]
+        mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+      shell: bash
+    - if: ${{ inputs.BINARY == 'podman' }}
+      run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} bootstrap
+      shell: bash
+    - if: ${{ inputs.USE_SATELLITE == 'true' }}
+      run: |-
+        SATELLITE_NAME=${{inputs.SATELLITE_NAME}}
+        if [ "$SATELLITE_NAME" = "core-test" ]; then
+          SATELLITE_NAME="$SATELLITE_NAME-$(( $RANDOM % 4 ))"
+          echo "Using core-test satellite: $SATELLITE_NAME"
+        fi
+        ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} sat ls
+        ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} satellite select $SATELLITE_NAME
+      shell: bash
+    - run: echo "stage2-setup action complete"
+      shell: bash

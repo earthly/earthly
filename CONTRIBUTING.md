@@ -89,8 +89,8 @@ To run most tests you can issue
 ```bash
 ./build/*/*/earthly -P \
   --secret DOCKERHUB_USER=<my-docker-username> \
-  --secret DOCKERHUB_TOKEN=<my-docker-token> \
-  +test
+  --secret DOCKERHUB_PASS=<my-docker-password-or-token> \
+  +test --DOCKERHUB_AUTH=true
 ```
 
 To also build the examples, you can run
@@ -98,21 +98,28 @@ To also build the examples, you can run
 ```bash
 ./build/*/*/earthly -P  \
   --secret DOCKERHUB_USER=<my-docker-username> \
-  --secret DOCKERHUB_TOKEN=<my-docker-token> \
-  +test-all
+  --secret DOCKERHUB_PASS=<my-docker-password-or-token> \
+  +test-all --DOCKERHUB_AUTH=true
 ```
 
-The token should be the same token you use to login with Docker Hub. Other repositories are not supported. It is also possible to run tests without credentials. But running all of them, or running too frequently may incur rate limits. You could run a single test, without credentials like this:
+It is also possible to run tests without credentials. But running all of them, or running too frequently may incur rate limits. You could run a single test, without credentials like this:
 
 ```bash
-./build/*/*/earthly -P ./tests+env-test --DOCKERHUB_AUTH=false
+./build/*/*/earthly -P ./tests+env-test
 ```
 
-If you don't want to specify these directly on the CLI, or don't want to type these each time, it's possible [to use an .env file instead](https://docs.earthly.dev/docs/earthly-command#environment-variables-and-.env-file). Here is a template to get you started:
+If you don't want to specify these directly on the CLI, or don't want to type these each time, it's possible to store them in [.arg and .secret files](https://docs.earthly.dev/docs/earthly-command#build-args) instead.
+Here is a template to get you started:
 
 ```shell
+# .arg file
+DOCKERHUB_AUTH=true
+```
+
+```shell
+# .secret file
 DOCKERHUB_USER=<my-docker-username>
-DOCKERHUB_TOKEN=<my-docker-token>
+DOCKERHUB_PASS=<my-docker-password-or-token>
 ```
 
 ### Running tests with an insecure pull through cache
@@ -124,14 +131,51 @@ Since Earthly uses itself for running the tests (Earthly-in-Earthly), simply con
 embedded version of Earthly to use the cache via build-args:
 
 ```bash
-./build/*/*/earthly -P ./tests+all --DOCKERHUB_AUTH=false --DOCKERHUB_MIRROR=<ip-address-or-hostname>:<port> --DOCKERHUB_MIRROR_INSECURE=true
+./build/*/*/earthly -P ./tests+all --DOCKERHUB_MIRROR=<ip-address-or-hostname>:<port> --DOCKERHUB_MIRROR_INSECURE=true
 ```
 
 or if you are using a plain http cache, use:
 
 ```bash
-./build/*/*/earthly -P ./tests+all --DOCKERHUB_AUTH=false --DOCKERHUB_MIRROR=<ip-address-or-hostname>:<port> --DOCKERHUB_MIRROR_HTTP=true
+./build/*/*/earthly -P ./tests+all --DOCKERHUB_MIRROR=<ip-address-or-hostname>:<port> --DOCKERHUB_MIRROR_HTTP=true
 ```
+
+### Running tests with a mirror that requires authentication
+
+To use a mirror that requires authentication, you can run:
+
+```bash
+./build/*/*/earthly -P \
+  --secret DOCKERHUB_MIRROR_USER=<my-mirror-username> \
+  --secret DOCKERHUB_MIRROR_PASS=<my-mirror-password> \
+  ./tests+all --DOCKERHUB_MIRROR=<ip-address-or-hostname>:<port> --DOCKERHUB_MIRROR_AUTH=true
+```
+
+You can alternatively store these settings in the `.arg` and `.secret` files:
+
+```shell
+# .arg file
+DOCKERHUB_MIRROR=<ip-address-or-hostname>:<port>
+DOCKERHUB_MIRROR_AUTH=true
+```
+
+```shell
+# .secret file
+DOCKERHUB_MIRROR_USER=<my-mirror-username>
+DOCKERHUB_MIRROR_PASS=<my-mirror-password>
+```
+
+### Running tests using earthly's internal mirror (only for members of the earthly org)
+
+If you have access to `earthly-technologies/core`, you can make use of the internal mirror by running:
+
+```bash
+./build/*/*/earthly -P \
+  ./tests+all --DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS=true
+```
+
+which will use the credentials which are stored in earthly's [cloud-hosted secrets](https://docs.earthly.dev/earthly-cloud/cloud-secrets).
+
 
 ## Updates to buildkit or fsutil
 
@@ -145,6 +189,8 @@ The earthly-fork of the buildkit repository does not automatically squash commit
 To update earthly's reference to buildkit, you may run `earthly +update-buildkit --BUILDKIT_GIT_ORG=<git-user-or-org> --BUILDKIT_GIT_SHA=<40-char-git-reference-here>`.
 
 Updates to fsutil must first be vendored into buildkit, then updated under `go.mod`; additional docs and scripts exist in the buildkit repo.
+
+Note that the buildkit tests in the earthly fork of buildkit may not all pass -- this is a tech-debt trade-off -- we do not enforce the buildkit tests to pass, but instead rely on the earthly integration tests to pass before merging in changes to our fork.
 
 ## Running buildkit under debug mode
 

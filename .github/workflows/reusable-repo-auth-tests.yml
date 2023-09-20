@@ -37,37 +37,23 @@ jobs:
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: install sshpass and net-tools
-        run: sudo apt-get install -y sshpass net-tools
-      - name: remove docker
-        run: ${{inputs.SUDO}} apt-get purge docker-engine docker docker.io docker-ce docker-ce-cli ; ${{inputs.SUDO}} rm -rf /usr/bin/docker
-        if: inputs.BINARY == 'podman'
-      - name: Install Podman (with apt-get)
-        run: ${{inputs.SUDO}} apt-get update && ${{inputs.SUDO}} apt-get install -y podman && ${{inputs.SUDO}} rm -f /etc/containers/registries.conf
-        if: inputs.BINARY == 'podman'
-      - name: Podman debug info
-        run: podman version && podman info && podman info --debug
-        if: inputs.BINARY == 'podman'
-      - name: Bootstrap Earthly
-        run: earthly bootstrap
-        if: inputs.BINARY == 'podman'
-      - name: Docker mirror login via ${{inputs.BINARY}} (Earthly Only)
-        run: ${{inputs.SUDO}} ${{inputs.BINARY}} login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Retrieve earthly from build-earthly job
-        run: |-
-          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-${{inputs.RUNS_ON}}-${{inputs.BINARY}} ./earthly upgrade
-          mkdir -p $(dirname "${{inputs.BUILT_EARTHLY_PATH}}")
-          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-${{inputs.RUNS_ON}}-${{inputs.BINARY}} ${{inputs.BUILT_EARTHLY_PATH}}
-      - name: Configure Earthly to use mirror (Earthly Only)
-        run: |-
-          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.buildkit_additional_config "'[registry.\"docker.io\"]
-          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+      - uses: ./.github/actions/stage2-setup
+        with:
+          DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
+          DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+          DOCKERHUB_USERNAME: "${{ secrets.DOCKERHUB_USERNAME }}"
+          DOCKERHUB_PASSWORD: "${{ secrets.DOCKERHUB_TOKEN }}"
+          EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+          BUILT_EARTHLY_PATH: "${{ inputs.BUILT_EARTHLY_PATH }}"
+          BINARY: "${{ inputs.BINARY }}"
+          SUDO: "${{ inputs.SUDO }}"
+          USE_SATELLITE: "${{ inputs.USE_SATELLITE }}"
+          SATELLITE_NAME: "${{ inputs.SATELLITE_NAME }}"
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
-            set -euo pipefail
-            EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
-            echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
+          set -euo pipefail
+          EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+          echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
 # to regenerate the entries below; run earthly ./scripts/tests/auth+generate-github-tasks
 # auto-generated-entries start;
       - name: run test-hello-world-no-ssh-agent.sh
@@ -80,5 +66,5 @@ jobs:
         run: env earthly=${{inputs.BUILT_EARTHLY_PATH}} frontend=${{inputs.BINARY}} scripts/tests/auth/test-self-hosted.sh
 # auto-generated-entries end
       - name: Buildkit logs (runs on failure)
-        run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
+        run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd || true
         if: ${{ failure() }}

@@ -1,5 +1,5 @@
 VERSION 0.7
-FROM alpine:3.15
+FROM alpine:3.18
 
 #################################################################################################################
 # tests for testing RUN commands are executed on the localhost
@@ -137,7 +137,7 @@ test-copy-from-busybox-to-local-with-workdir:
     RUN cat /tmp/earthly-test-5816ebd4-6b18-421e-a1b4-5991af91e11e/0b59ac77-91d7-4b84-9d1c-12f64fc6f48e | grep "BusyBox v1.32.1"
 
 alpine-artifacts:
-    FROM alpine:3.15.0 # if this is changed, the grep in test-multi-copy-from-alpine-to-local must also be updated
+    FROM alpine:3.18.3 # if this is changed, the grep in test-multi-copy-from-alpine-to-local must also be updated
     SAVE ARTIFACT /etc/alpine-release alpine-release
     SAVE ARTIFACT /etc/motd alpine-motd
     SAVE ARTIFACT /etc/os-release alpine-os-release
@@ -146,7 +146,7 @@ test-multi-copy-from-alpine-to-local:
     LOCALLY
     RUN rm -rf /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d
     COPY +alpine-artifacts/alpine-release +alpine-artifacts/alpine-motd +alpine-artifacts/alpine-os-release /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d
-    RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-release | grep 3\\.15\\.0
+    RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-release | grep 3\\.18\\.3
     RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-motd | grep alpinelinux.org
     RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-os-release | grep "ID=alpine"
 

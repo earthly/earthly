@@ -459,7 +459,7 @@ foo:
 		o.Spec("it parses multiline documentation on global ARGs", func(tt testCtx) {
 			mockEarthfile(tt.t, tt.reader, []byte(`
 VERSION 0.7
-FROM alpine:3.15
+FROM alpine:3.18
 
 # globalArg is a documented global arg
 # with multiple lines.

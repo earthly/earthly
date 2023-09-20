@@ -1,5 +1,5 @@
 VERSION 0.7
-FROM alpine:3.15
+FROM alpine:3.18
 arg-target:
     ARG SOMEARG=default
     RUN echo content >file.txt

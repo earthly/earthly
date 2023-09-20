@@ -120,6 +120,13 @@ start_dockerd() {
     data_root=$(TMPDIR="$EARTHLY_DOCKERD_DATA_ROOT/" mktemp -d)
     echo "Starting dockerd with data root $data_root"
 
+    if uname -a | grep microsoft-standard-WSL >/dev/null; then
+        if iptables --version | grep nf_tables >/dev/null; then
+            echo "WARNING: WSL and iptables-nft may not work; attempting to switch to iptables-legacy"
+            ln -sf "/sbin/iptables-legacy" /sbin/iptables
+        fi
+    fi
+
     # Use a specific IP range to avoid collision with host dockerd (we need to also connect to host
     # docker containers for the debugger).
     if ! [ -f /etc/docker/daemon.json ]; then

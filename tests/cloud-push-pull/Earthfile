@@ -1,4 +1,5 @@
-VERSION --pass-args 0.6 # TODO need to update azure-container-registry secrets first before moving to 0.7
+VERSION --pass-args 0.7
+PROJECT earthly-technologies/core
 FROM --pass-args ../..+earthly-integration-test-base
 WORKDIR /test
 
@@ -16,7 +17,7 @@ google-base:
 
     ENV PATH $PATH:/test/google-cloud-sdk/bin
 
-    RUN --secret=GCP_KEY=+secrets/earthly-technologies/gcp/ci-cd-key \
+    RUN --secret=GCP_KEY=gcp/ci-cd-key \
         echo $GCP_KEY > key.json
 
     RUN gcloud auth activate-service-account --key-file /test/key.json
@@ -57,8 +58,8 @@ azure-container-registry:
     COPY azure-container-registry.earth ./Earthfile
 
    # Note that we dont have to install a cred helper here, also the cred helper wouldnt help here anyways
-    RUN --secret AZ_USERNAME=+secrets/earthly-technologies/azure/ci-cd-username \ # TODO these need to be updated for the new projects-based secret
-        --secret AZ_PASSWORD=+secrets/earthly-technologies/azure/ci-cd-password \ # TODO these need to be updated for the new projects-based secret
+    RUN --secret AZ_USERNAME=azure/ci-cd-username \
+        --secret AZ_PASSWORD=azure/ci-cd-password \
         (test -n "$AZ_USERNAME" || (echo "ERROR: AZ_USERNAME not set"; exit 1)) && \
         (test -n "$AZ_PASSWORD" || (echo "ERROR: AZ_PASSWORD not set"; exit 1)) && \
         docker login earthlyintegrationtest.azurecr.io --username "$AZ_USERNAME" --password "$AZ_PASSWORD"
@@ -114,31 +115,31 @@ amazon-elastic-container-registry:
     ENV AWS_REGION us-west-2
 
     # Set up the AWS credential helper
-    # RUN --secret ACCT_ID=+secrets/earthly-technologies/aws/account-id \
+    # RUN --secret ACCT_ID=aws/account-id \
     #    mkdir -p /root/.docker && \
     #    echo "{\"credHelpers\":{\"$ACCT_ID.dkr.ecr.us-west-2.amazonaws.com\": \"ecr-login\"}}" > /root/.docker/config.json
 
 
     # Do a manual login, since the credential helper doesn't work with a pull-through cache.
-    RUN --secret AWS_ACCESS_KEY_ID=+secrets/earthly-technologies/aws/ci-cd-access-key \
-        --secret AWS_SECRET_ACCESS_KEY=+secrets/earthly-technologies/aws/ci-cd-access-secret \
-        --secret ACCT_ID=+secrets/earthly-technologies/aws/account-id \
+    RUN --secret AWS_ACCESS_KEY_ID=aws/ci-cd-access-key \
+        --secret AWS_SECRET_ACCESS_KEY=aws/ci-cd-access-secret \
+        --secret ACCT_ID=aws/account-id \
         --privileged \
         -- aws ecr get-login-password | docker login --username AWS --password-stdin 404851345508.dkr.ecr.us-west-2.amazonaws.com
 
     # Pass through Account ID this way to avoid checking it into GitHub;
     # its not strictly secret this way but its secret enough
-    RUN --secret AWS_ACCESS_KEY_ID=+secrets/earthly-technologies/aws/ci-cd-access-key \
-    --secret AWS_SECRET_ACCESS_KEY=+secrets/earthly-technologies/aws/ci-cd-access-secret \
-    --secret ACCT_ID=+secrets/earthly-technologies/aws/account-id \
+    RUN --secret AWS_ACCESS_KEY_ID=aws/ci-cd-access-key \
+    --secret AWS_SECRET_ACCESS_KEY=aws/ci-cd-access-secret \
+    --secret ACCT_ID=aws/account-id \
     --privileged \
     --entrypoint \
     --mount=type=tmpfs,target=/tmp/earthly \
     -- --build-arg ACCT_ID --ci --push +push
 
-    RUN --secret AWS_ACCESS_KEY_ID=+secrets/earthly-technologies/aws/ci-cd-access-key \
-    --secret AWS_SECRET_ACCESS_KEY=+secrets/earthly-technologies/aws/ci-cd-access-secret \
-    --secret ACCT_ID=+secrets/earthly-technologies/aws/account-id \
+    RUN --secret AWS_ACCESS_KEY_ID=aws/ci-cd-access-key \
+    --secret AWS_SECRET_ACCESS_KEY=aws/ci-cd-access-secret \
+    --secret ACCT_ID=aws/account-id \
     --privileged \
     --entrypoint \
     --mount=type=tmpfs,target=/tmp/earthly \

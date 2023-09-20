@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"time"
 
 	pb "github.com/earthly/cloud-api/compute"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -190,43 +193,76 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed reserving satellite")}
 			return
 		}
-		// Some notes on the 10-minute timeout here:
 		// Usually satellites reserve in 1-15 seconds, however, in some edge cases it will take longer.
 		// It can take a minute if the satellite is actively falling asleep (it needs to finish, then wake back up).
-		// In extreme cases, if a satellite update is running, the satellite can take around 6 minutes to finish,
-		// however, those updates typically only run overnight when the user is not expected to run builds.
-		ctxTimeout, cancel := context.WithTimeout(ctx, 10*time.Minute)
+		// In extreme cases, if a satellite update is running, the satellite can take around 6 minutes to finish.
+		ctxTimeout, cancel := context.WithTimeout(ctx, 20*time.Minute)
 		defer cancel()
 		defer close(out)
-		stream, err := c.compute.ReserveSatellite(c.withAuth(ctxTimeout), &pb.ReserveSatelliteRequest{
-			OrgId:          orgID,
-			Name:           name,
-			CommitEmail:    gitAuthor,
-			GitConfigEmail: gitConfigEmail,
-			IsCi:           isCI,
-		})
-		if err != nil {
-			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite reserve stream")}
-			return
-		}
-		for {
-			update, err := stream.Recv()
-			if err == io.EOF {
-				return
-			}
+		// Note: we were having issues with the stream closing unexpectedly,
+		// so we have wrapped this in a retry loop. This may be a temporary solution.
+		const numRetries = 5
+		var retriedError error
+		for i := 1; i <= numRetries; i++ {
+			stream, err := c.compute.ReserveSatellite(c.withRetryCount(c.withAuth(ctxTimeout), i), &pb.ReserveSatelliteRequest{
+				OrgId:          orgID,
+				Name:           name,
+				CommitEmail:    gitAuthor,
+				GitConfigEmail: gitConfigEmail,
+				IsCi:           isCI,
+			})
 			if err != nil {
-				out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed receiving satellite reserve update")}
-				return
+				_, _ = fmt.Fprintf(os.Stderr, "retrying connection [attempt %d/%d]\n", i, numRetries)
+				time.Sleep(time.Duration(i) * 2 * time.Second)
+				continue
 			}
-			status := satelliteStatus(update.Status)
-			if status == SatelliteStatusFailed {
-				out <- SatelliteStatusUpdate{Err: errors.New("satellite is in a failed state")}
-				return
+			var lastStatus string
+			for {
+				update, err := stream.Recv()
+				if err == io.EOF {
+					return
+				}
+				if err != nil {
+					if isRetryable(err) {
+						retriedError = err
+						_, _ = fmt.Fprintf(os.Stderr, "retrying connection [attempt %d/%d]\n", i, numRetries)
+						time.Sleep(time.Duration(i) * 2 * time.Second)
+						break
+					}
+					out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed receiving satellite reserve update")}
+					return
+				}
+				lastStatus = satelliteStatus(update.Status)
+				if lastStatus == SatelliteStatusFailed {
+					out <- SatelliteStatusUpdate{Err: errors.New("satellite is in a failed state")}
+					return
+				}
+				out <- SatelliteStatusUpdate{State: satelliteStatus(update.Status)}
 			}
-			out <- SatelliteStatusUpdate{State: satelliteStatus(update.Status)}
 		}
+		// max retries consumed
+		out <- SatelliteStatusUpdate{Err: errors.Wrap(retriedError, "failed to retrieve satellite status")}
 	}()
 	return out
+}
+
+func isRetryable(err error) bool {
+	switch status.Code(err) {
+	case codes.DeadlineExceeded:
+		return true
+	case codes.Internal:
+		return true
+	case codes.Unavailable:
+		return true
+	case codes.ResourceExhausted:
+		return true
+	case codes.FailedPrecondition:
+		return true
+	case codes.DataLoss:
+		return true
+	default:
+		return false
+	}
 }
 
 func (c *Client) WakeSatellite(ctx context.Context, name, orgName string) (out chan SatelliteStatusUpdate) {
@@ -262,7 +298,7 @@ func (c *Client) WakeSatellite(ctx context.Context, name, orgName string) (out c
 				out <- SatelliteStatusUpdate{Err: errors.New("satellite is in a failed state")}
 				return
 			}
-			out <- SatelliteStatusUpdate{State: satelliteStatus(update.Status)}
+			out <- SatelliteStatusUpdate{State: status}
 		}
 	}()
 	return out
@@ -302,7 +338,7 @@ func (c *Client) SleepSatellite(ctx context.Context, name, orgName string) (out 
 				out <- SatelliteStatusUpdate{Err: errors.New("satellite is in a failed state")}
 				return
 			}
-			out <- SatelliteStatusUpdate{State: satelliteStatus(update.Status)}
+			out <- SatelliteStatusUpdate{State: status}
 		}
 	}()
 	return out

@@ -19,8 +19,7 @@ on:
 jobs:
 
   build-earthly:
-    name: --push +ci-release
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    name: build (and push) earthly using ${{inputs.BINARY}}
     runs-on: ${{inputs.RUNS_ON}}
     env:
       FORCE_COLOR: 1

@@ -18,6 +18,7 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/internal/version"
 	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
@@ -25,7 +26,7 @@ import (
 	"github.com/earthly/earthly/variables"
 
 	"github.com/docker/go-connections/nat"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/jessevdk/go-flags"
 	"github.com/pkg/errors"
 )
 
@@ -1127,6 +1128,17 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 		fmt.Fprintf(os.Stderr, "Deprecation: using SAVE IMAGE with no arguments is no longer necessary and can be safely removed\n")
 		return nil
 	}
+
+	labels := map[string]string{
+		"dev.earthly.version":  version.Version,
+		"dev.earthly.git-sha":  version.GitSha,
+		"dev.earthly.built-by": version.BuiltBy,
+	}
+	err = i.converter.Label(ctx, labels)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to create dev.earthly.* labels during SAVE IMAGE")
+	}
+
 	err = i.converter.SaveImage(ctx, imageNames, opts.Push, opts.Insecure, opts.CacheHint, opts.CacheFrom, opts.NoManifestList)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "save image")
@@ -1524,6 +1536,9 @@ func (i *Interpreter) handleLabel(ctx context.Context, cmd spec.Command) error {
 			key, err = i.expandArgs(ctx, arg, false, false)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "failed to expand LABEL key %s", arg)
+			}
+			if strings.HasPrefix(key, "dev.earthly.") {
+				return i.wrapError(err, cmd.SourceLocation, "LABEL keys starting with \"dev.earthly.\" are reserved")
 			}
 			nextEqual = true
 			nextKey = false

@@ -152,8 +152,7 @@ func (f *Formatter) Manifest() *logstream.RunManifest {
 }
 
 func (f *Formatter) processDelta(delta *logstream.Delta) error {
-	var err error
-	f.manifest, err = deltautil.WithDeltaManifest(f.manifest, delta)
+	err := deltautil.ApplyDelta(f.manifest, delta)
 	if err != nil {
 		return errors.Wrap(err, "failed to apply delta")
 	}
@@ -227,7 +226,7 @@ func (f *Formatter) handleDeltaManifest(dm *logstream.DeltaManifest) error {
 		if cmd.GetHasHasProgress() && f.shouldPrintProgress(cm.GetTargetId(), commandID, cm) {
 			f.printProgress(cm.GetTargetId(), commandID, cm)
 		}
-		if cmd.GetStatus() == logstream.RunStatus_RUN_STATUS_FAILURE {
+		if cmd.GetStatus() == logstream.RunStatus_RUN_STATUS_FAILURE && cm.GetTargetId() != "" {
 			f.printError(cm.GetTargetId(), commandID, tm, cm)
 		}
 	}
@@ -407,6 +406,7 @@ func (f *Formatter) printBuildFailure() {
 	c, _ := f.targetConsole(failure.GetTargetId(), failure.GetCommandId())
 	c = c.WithFailed(true)
 	if failure.GetCommandId() != "" {
+		c.PrintFailure("")
 		c.Printf("Repeating the failure error...\n")
 		f.printHeader(failure.GetTargetId(), failure.GetCommandId(), tm, cm, true)
 		if len(failure.GetOutput()) > 0 {

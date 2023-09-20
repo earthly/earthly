@@ -29,7 +29,7 @@ earthly --config \$earthly_config --verbose --debug +gitclone >output.txt 2>&1
         else \
             echo "OK: password was not leaked"; \
         fi
-    RUN grep 'https://testuser:\*\*\*@selfsigned.example.com' output.txt >/dev/null
+    RUN grep 'https://testuser:xxxxx@selfsigned.example.com' output.txt >/dev/null
 
 scrub-remote-credentials:
     FROM --pass-args ../git-webserver+server
@@ -55,7 +55,7 @@ earthly --config \$earthly_config --verbose --debug selfsigned.example.com/repo:
             echo "OK: password was not leaked"; \
         fi
     # make sure the scrubbed URL appears somewhere (usually under llb.customname under the debug-level gwclientlogger)
-    RUN grep 'https://testuser:\*\*\*@selfsigned.example.com' output.txt >/dev/null
+    RUN grep 'https://testuser:xxxxx@selfsigned.example.com' output.txt >/dev/null
     # echo -n 98e15fb5-197c-43bf-886e-3291e65d646e | base64
     RUN grep 'OThlMTVmYjUtMTk3Yy00M2JmLTg4NmUtMzI5MWU2NWQ2NDZl' output.txt >/dev/null
 
@@ -80,7 +80,7 @@ fi
 
     RUN grep 'failed to fetch remote' output.txt
     # test the failure message correctly scrubs the credentials
-    RUN grep 'https://kallaxtheshelf:\*\*\*@github.com' output.txt >/dev/null
+    RUN grep 'https://kallaxtheshelf:xxxxx@github.com' output.txt >/dev/null
 
     # make sure the password doesn't appear anywhere
     RUN cat output.txt && \

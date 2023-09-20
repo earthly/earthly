@@ -66,7 +66,7 @@ mkdir -p /tmp/earthtest
 cat << EOF > /tmp/earthtest/Earthfile
 VERSION 0.7
 PROJECT manitou-org/earthly-core-integration-test
-FROM alpine:3.15
+FROM alpine:3.18
 test-local-secret:
     WORKDIR /test
     RUN --mount=type=secret,target=/tmp/test_file,id=my_secret test "\$(cat /tmp/test_file)" = "my-local-value"
@@ -128,5 +128,15 @@ echo "=== test 1 ==="
 echo "=== test 2 ==="
 # test RUN --mount can reference a secret from the server that is only specified in the Earthfile
 "$earthly" --no-cache /tmp/earthtest+test-server-secret
+
+echo "=== test 3 ==="
+# Test earthly will display a message containing the name of the secret that was not found
+set +e
+"$earthly" --no-cache /tmp/earthtest+test-local-secret > output 2>&1
+exit_code="$?"
+set -e
+cat output
+test "$exit_code" != "0"
+acbgrep 'unable to lookup secret my_secret: not found' output
 
 echo "=== All tests have passed ==="

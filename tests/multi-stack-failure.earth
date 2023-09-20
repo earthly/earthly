@@ -1,5 +1,5 @@
 VERSION 0.7
-FROM alpine:3.15
+FROM alpine:3.18
 
 ARG GLOBAL_ARG
 ARG GLOBAL_ARG_DEFAULT="mydefault"

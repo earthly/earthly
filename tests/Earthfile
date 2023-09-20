@@ -119,6 +119,7 @@ ga-no-qemu-quick:
     BUILD +test-init-unsupported
     BUILD +test-init-golang
     BUILD +pass-args-test
+    BUILD +test-reserved-label
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -179,9 +180,10 @@ ga-no-qemu:
     BUILD +ga-no-qemu-slow
 
 tests-that-require-earthly-technologies-account-access:
-    BUILD --pass-args ./web+test
-    BUILD --pass-args ./registry-command+test
+    BUILD --pass-args +test-earthly-mirror-was-setup
     BUILD --pass-args ./account+test
+    BUILD --pass-args ./registry-command+test
+    BUILD --pass-args ./web+test
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
@@ -194,7 +196,7 @@ experimental:
     BUILD ./dind-auto-install+all
 
 ast-test-input:
-    FROM alpine:3.15
+    FROM alpine:3.18
     COPY ./*.earth ./
     COPY ./with-docker/Earthfile ./with-docker.earth
     COPY ./with-docker-compose/Earthfile ./with-docker-compose.earth
@@ -229,7 +231,7 @@ earthly --config \$earthly_config --verbose +copy 2>&1 | tee output2.txt;
     DO +RUN_EARTHLY --earthfile=copy-verbose.earth --exec_cmd=/tmp/multiple-earthly-script
 
     # test that the first run sends a.txt and doesn't send any non-referenced files
-    RUN cat output.txt | grep 'sent data for a.txt (1 B)'
+    RUN cat output.txt | acbgrep 'sent data for a.txt (1 B)'
     RUN if grep "sent data for alpha.txt" output.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
     RUN if grep "sent data for .*beta.txt" output.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
 
@@ -257,7 +259,7 @@ cache-test:
     DO +RUN_EARTHLY --earthfile=cache1.earth --target=+test-no-bust-on-change --use_tmpfs=false \
         --post_command=">output.txt 2>&1" # check that all is still cached if re-running the prev version
     RUN cat output.txt
-    RUN cat output.txt | grep '\*cached\* --> RUN echo hey'
+    RUN cat output.txt | acbgrep '\*cached\* --> RUN echo hey'
 
 git-clone-test:
     DO +RUN_EARTHLY --earthfile=git-clone.earth --target=+test
@@ -408,15 +410,15 @@ transitive-args-test:
     RUN test -f ./abc
     RUN test -f ./xyz
     RUN test ! -f ./default
-    RUN cat ./abc | grep abc
-    RUN cat ./xyz | grep xyz
+    RUN cat ./abc | acbgrep abc
+    RUN cat ./xyz | acbgrep xyz
 
 transitive-args-test2:
     DO +RUN_EARTHLY --earthfile=transitive-args.earth --target=+test
     RUN ls
     RUN test -f ./abc && test -f ./default
-    RUN cat ./abc | grep abc
-    RUN cat ./default | grep default
+    RUN cat ./abc | acbgrep abc
+    RUN cat ./default | acbgrep default
 
 non-transitive-args-test:
     COPY non-transitive-args1.earth ./Earthfile
@@ -471,13 +473,13 @@ fail-test:
     RUN cat output.txt
     # The output of the failed command should have been printed twice.
     RUN cat output.txt | grep 'ZmFpbCA3YjcyZTAyNC01ZTIxLTRlMWItOTZlNC02NTVjMzk4NzYxMDcK' | test "$(wc -l)" -eq 2
-    RUN cat output.txt | grep 'Repeating the output of the command that caused the failure'
+    RUN cat output.txt | grep 'Repeating the failure error...'
     RUN cat output.txt | grep 'ERROR Earthfile line 10:4'
     RUN cat output.txt | grep 'RUN echo "fail 7b72e024-5e21-4e1b-96e4-655c39876107" | base64; false'
     RUN cat output.txt | grep 'did not complete successfully. Exit code 1'
     DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --verbose=0 --target=+test-copy --post_command="2>output.txt"
     RUN cat output.txt
-    RUN cat output.txt | grep 'Repeating the output of the command that caused the failure'
+    RUN cat output.txt | grep 'Repeating the failure error...'
     RUN cat output.txt | grep 'ERROR Earthfile line 14:4'
     RUN cat output.txt | grep 'COPY ./does-not-exist ./'
     RUN cat output.txt | grep 'failed: "/does-not-exist": not found'
@@ -622,7 +624,8 @@ stack-failure-test:
 
 multi-stack-failure-test:
     RUN echo "FOO=foo" >.arg
-    RUN echo "THIS_IS_SECRET=dont-display-this" >>.arg
+    RUN echo "THIS_IS_SECRET=dont-display-this" >>.secret
+    RUN echo "THIS_IS_ALSO_A_SECRET=dont-display-this-either" >>.env # test for user accidentally putting a secret in .env (carried over from a v0.6.0 .env file)
 
     DO +RUN_EARTHLY --earthfile=multi-stack-failure.earth --extra_args="--no-output --build-arg BAR=bar" --output_contains="unknown flag .cause-interpreter-failure." --should_fail="true" --target=+fail
     RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
@@ -689,7 +692,7 @@ target-first-line:
 absolute-reference-with-relative:
     RUN mkdir -p /a/path/to/test/subdir
     # create a base Earthfile which is referenced by target-absolute-reference.earth
-    RUN echo -e "VERSION 0.7\nFROM alpine:3.15\nRUN mkdir -p /dir/from/base" > /a/path/to/test/Earthfile
+    RUN echo -e "VERSION 0.7\nFROM alpine:3.18\nRUN mkdir -p /dir/from/base" > /a/path/to/test/Earthfile
     DO +RUN_EARTHLY --earthfile=absolute-reference-with-relative.earth --earthfile_dest=/a/path/to/test/subdir/Earthfile --extra_args="--no-output" --target=/a/path/to/test/subdir+test
 
 end-comment:
@@ -760,46 +763,46 @@ save-artifact-dont-overwrite:
 
     DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
         --target=+dont-overwrite-abs-ref --post_command="> /tmp/output 2>&1"
-    RUN cat /tmp/output | grep 'Error.*path must be located under'
+    RUN cat /tmp/output | acbgrep 'Error.*path must be located under'
 
     DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
         --target=+dont-overwrite-rel-ref --post_command="> /tmp/output 2>&1"
-    RUN cat /tmp/output | grep 'Error.*path must be located under'
+    RUN cat /tmp/output | acbgrep 'Error.*path must be located under'
 
     DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
         --target=+dont-overwrite-rel-other-ref --post_command="> /tmp/output 2>&1"
-    RUN cat /tmp/output | grep 'Error.*path must be located under'
+    RUN cat /tmp/output | acbgrep 'Error.*path must be located under'
 
     DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
         --target=+dont-overwrite-root --post_command="> /tmp/output 2>&1"
-    RUN cat /tmp/output | grep 'Error.*path must be located under'
+    RUN cat /tmp/output | acbgrep 'Error.*path must be located under'
 
     DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
         --target=+dont-overwrite-root2 --post_command="> /tmp/output 2>&1"
-    RUN cat /tmp/output | grep 'Error.*path must be located under'
+    RUN cat /tmp/output | acbgrep 'Error.*path must be located under'
 
     DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
         --target=+dont-overwrite-root3 --post_command="> /tmp/output 2>&1"
-    RUN cat /tmp/output | grep 'Error.*path must be located under'
+    RUN cat /tmp/output | acbgrep 'Error.*path must be located under'
 
     RUN ls important-data
 
 save-artifact-force-overwrite:
     RUN --no-cache echo hello > /root/important-data
     DO +RUN_EARTHLY --earthfile=save-artifact-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" --target=+overwrite-root
-    RUN cat /root/base | grep 88716877-039f-4dea-8ec3-84eb64f326c5
-    RUN cat /root/sub/data1 | grep ff42c40d-034a-4855-8db7-febfa7322576
-    RUN cat /root/sub/data2 | grep 2b4a653d-cdf6-4574-ac5e-f02bb6993365
+    RUN cat /root/base | acbgrep 88716877-039f-4dea-8ec3-84eb64f326c5
+    RUN cat /root/sub/data1 | acbgrep ff42c40d-034a-4855-8db7-febfa7322576
+    RUN cat /root/sub/data2 | acbgrep 2b4a653d-cdf6-4574-ac5e-f02bb6993365
     RUN ! ls /root/important-data
 
 save-artifact-file-as-dot:
     DO +RUN_EARTHLY --earthfile=save-artifact-dot.earth --target=+save-local-file-as-dot
-    RUN cat uuid | grep eeee5a95-1506-428f-8ef0-94bbad5bd22b
+    RUN cat uuid | acbgrep eeee5a95-1506-428f-8ef0-94bbad5bd22b
 
 save-artifact-dir-as-dot:
     DO +RUN_EARTHLY --earthfile=save-artifact-dot.earth --target=+save-local-dir-as-dot
-    RUN cat the-data/file1 | grep 7be91098-1823-41df-911b-2a8907fe5da7
-    RUN cat the-data/file2 | grep b0359c17-d08b-411c-9db7-1333ef3673d0
+    RUN cat the-data/file1 | acbgrep 7be91098-1823-41df-911b-2a8907fe5da7
+    RUN cat the-data/file2 | acbgrep b0359c17-d08b-411c-9db7-1333ef3673d0
 
 run-no-cache:
     # Run twice to allow the second one to attempt to cache things
@@ -946,6 +949,10 @@ push-build:
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+test \| 0\n/;'
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+run1 \| 1\n/;'
     RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+run2 \| 2\n/;'
+
+test-earthly-mirror-was-setup:
+    DO +RUN_EARTHLY --verbose=false --earthfile=true.earth --target=+true --post_command="> /tmp/output 2>&1"
+    RUN acbgrep registry-1.docker.io.mirror.corp.earthly.dev /etc/buildkitd.toml
 
 build-arg-repeat:
     DO +RUN_EARTHLY --earthfile=build-arg-repeat.earth --target=+build-all-1
@@ -1407,6 +1414,13 @@ test-init-golang:
     fi
     DO +RUN_EARTHLY --target "+build"
     DO +RUN_EARTHLY --target "+test"
+
+test-reserved-label:
+   DO +RUN_EARTHLY \
+       --earthfile=reserved-label.earth \
+       --target=+test1 \
+       --should_fail=true \
+       --output_contains="LABEL keys starting with .dev.earthly.. are reserved"
 
 RUN_EARTHLY:
     COMMAND

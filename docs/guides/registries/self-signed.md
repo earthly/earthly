@@ -9,7 +9,7 @@ For information about configuring the registry itself, see the [Docker Registry 
 No special considerations are needed in the Earthfile itself. You can use `SAVE IMAGE` just like any other repository.
 
 ```
-FROM alpine:3.15
+FROM alpine:3.18
 
 build:
     RUN echo "Hello from Earthly!" > motd
@@ -47,7 +47,7 @@ global:
 In addition, you will need to specify the `--insecure` flag in any `SAVE IMAGE` command.  Again, the quotes are not a mistake, and should be left in.
 
 ```
-FROM alpine:3.15
+FROM alpine:3.18
 
 build:
     RUN echo "Hello from Earthly!" > motd

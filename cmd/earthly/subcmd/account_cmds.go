@@ -169,7 +169,7 @@ func (a *Account) Cmds() []*cli.Command {
 					Usage:     "Create a new authentication token for your account",
 					UsageText: "earthly [options] account create-token [options] <token name>",
 					Description: `Creates a new authentication token. A read-only token is created by default, If the '--write' flag is specified the token will have read+write access.
-				The token will expire in 1 year from creation date unless a different date is supplied via the '--expiry' option.`,
+				The token will never expire, unless an expiry date is supplied via the '--expiry' option.`,
 					Action: a.actionCreateToken,
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
@@ -179,7 +179,7 @@ func (a *Account) Cmds() []*cli.Command {
 						},
 						&cli.StringFlag{
 							Name:        "expiry",
-							Usage:       "Set token expiry date in the form YYYY-MM-DD or never (default 1year)",
+							Usage:       "Set token expiry date in the form YYYY-MM-DD or never (default never)",
 							Destination: &a.expiry,
 						},
 					},

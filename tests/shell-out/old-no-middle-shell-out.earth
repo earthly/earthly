@@ -1,17 +1,17 @@
 VERSION 0.6 # do not change to 0.7; this test is for old functionality
 
 test1:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG key="hello$(cat /data)"
     RUN env | grep -w key | grep 'hello$(cat /data)$'
 
 test2:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG abc="foo=$(whoami)"
     RUN echo -n $abc | base64 -w0 | grep Zm9vPSQod2hvYW1pKQ==
 
 expect-literal-hostname-string:
-    FROM alpine:3.15
+    FROM alpine:3.18
     ARG --required abc
     RUN env | grep -w abc | grep -w hostname
 

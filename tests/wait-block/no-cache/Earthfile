@@ -1,11 +1,11 @@
 VERSION 0.7
 
 a:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN --no-cache sleep 1 && echo YWxwaGEK | base64 -d
 
 b:
-    FROM alpine:3.15
+    FROM alpine:3.18
     RUN --no-cache echo YnJhdm8K | base64 -d && sleep 1
 
 test:

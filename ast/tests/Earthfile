@@ -1,14 +1,7 @@
-VERSION 0.6
-FROM alpine:3.15
+VERSION --pass-args 0.7
+FROM alpine:3.18
 RUN apk add jq
 WORKDIR /test
-
-ARG DOCKERHUB_USER_SECRET=+secrets/DOCKERHUB_USER
-ARG DOCKERHUB_TOKEN_SECRET=+secrets/DOCKERHUB_TOKEN
-ARG DOCKERHUB_MIRROR
-ARG DOCKERHUB_MIRROR_INSECURE=false
-ARG DOCKERHUB_MIRROR_HTTP=false
-ARG DOCKERHUB_AUTH=true
 
 COPY ../..+earthly/earthly /usr/local/bin/earthly
 
@@ -125,7 +118,7 @@ test:
     ARG --required TEST
     ARG INPUT_FROM_DIR=../../tests
     ARG INPUT_FROM_TARGET=ast-test-input
-    DO +INPUT_COPY --TEST=$TEST --INPUT_FROM_DIR=$INPUT_FROM_DIR --INPUT_FROM_TARGET=$INPUT_FROM_TARGET
+    DO --pass-args +INPUT_COPY --TEST=$TEST --INPUT_FROM_DIR=$INPUT_FROM_DIR --INPUT_FROM_TARGET=$INPUT_FROM_TARGET
     COPY ${TEST}.ast.json ./expected.json
     RUN jq -S . ./expected.json >./expected.pretty.json
     RUN earthly debug ast ${TEST}.earth >./actual.json
@@ -136,7 +129,7 @@ update-expected:
     ARG --required TEST
     ARG INPUT_FROM_DIR=../../tests
     ARG INPUT_FROM_TARGET=ast-test-input
-    DO +INPUT_COPY --TEST=$TEST --INPUT_FROM_DIR=$INPUT_FROM_DIR --INPUT_FROM_TARGET=$INPUT_FROM_TARGET
+    DO --pass-args +INPUT_COPY --TEST=$TEST --INPUT_FROM_DIR=$INPUT_FROM_DIR --INPUT_FROM_TARGET=$INPUT_FROM_TARGET
     RUN earthly debug ast ${TEST}.earth >./expected.json
     RUN jq -S . ./expected.json >./expected.pretty.json
     SAVE ARTIFACT ./expected.pretty.json AS LOCAL ./${TEST}.ast.json
@@ -150,14 +143,5 @@ INPUT_COPY:
     IF [[ -z $INPUT_FROM_TARGET ]]
         COPY ${INPUT_FROM_DIR}${TEST}.earth ./
     ELSE
-        COPY \
-            ( \
-                ${INPUT_FROM_DIR}+${INPUT_FROM_TARGET}/${TEST}.earth \
-                --DOCKERHUB_AUTH=$DOCKERHUB_AUTH \
-                --DOCKERHUB_USER_SECRET=$DOCKERHUB_USER_SECRET \
-                --DOCKERHUB_TOKEN_SECRET=$DOCKERHUB_TOKEN_SECRET \
-                --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
-                --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
-                --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
-            ) .
+        COPY --pass-args ${INPUT_FROM_DIR}+${INPUT_FROM_TARGET}/${TEST}.earth .
     END

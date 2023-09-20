@@ -19,6 +19,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
+	"golang.org/x/exp/maps"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/fileutil"
@@ -113,14 +114,14 @@ func (gl *GitLookup) DisableSSH() {
 
 func knownHostsToKeyScans(knownHosts string) []string {
 	knownHosts = strings.ReplaceAll(knownHosts, "\r\n", "\n")
-	var keyScans []string
+	foundKeyScans := make(map[string]bool)
 	for _, s := range strings.Split(knownHosts, "\n") {
 		s = strings.TrimSpace(s)
-		if s != "" && !strings.HasPrefix(s, "#") {
-			keyScans = append(keyScans, s)
+		if s != "" && !strings.HasPrefix(s, "#") && !foundKeyScans[s] {
+			foundKeyScans[s] = true
 		}
 	}
-	return keyScans
+	return maps.Keys(foundKeyScans)
 }
 
 // AddMatcher adds a new matcher for looking up git repos
@@ -300,12 +301,14 @@ var supportedHostKeyAlgos = []string{
 
 func (gl *GitLookup) getHostKeyAlgorithms(hostname string) ([]string, []string, error) {
 	foundAlgs := map[string]bool{}
-	keys := []string{}
 
 	knownHostsKeyScans, err := loadKnownHosts()
 	if err != nil {
 		gl.console.Warnf("failed to load ~/.ssh/known_hosts: %s", err)
 	}
+	gl.console.VerbosePrintf("loaded %d key(s) from known_hosts and %d default key(s)", len(knownHostsKeyScans), len(defaultKeyScans))
+
+	foundKeys := make(map[string]bool)
 	for _, keyScans := range [][]string{
 		knownHostsKeyScans,
 		defaultKeyScans,
@@ -315,15 +318,22 @@ func (gl *GitLookup) getHostKeyAlgorithms(hostname string) ([]string, []string, 
 			switch err {
 			case nil:
 			case errKeyScanNoMatch:
+				gl.console.VerbosePrintf("ignoring key scan %q: due to host mismatch", keyScan)
 				continue
 			default:
 				gl.console.Warnf("failed to parse key scan %q: %s", keyScan, err)
 				continue
 			}
 			foundAlgs[keyAlg] = true
-			keys = append(keys, fmt.Sprintf("%s %s %s", knownhosts.Normalize(hostname), keyAlg, keyData))
+			key := fmt.Sprintf("%s %s %s", knownhosts.Normalize(hostname), keyAlg, keyData)
+			if !foundKeys[key] {
+				gl.console.VerbosePrintf("found (normalized) key %s", key)
+				foundKeys[key] = true
+			}
 		}
 	}
+
+	keys := maps.Keys(foundKeys)
 
 	algs := []string{}
 	for _, alg := range supportedHostKeyAlgos {

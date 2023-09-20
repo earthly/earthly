@@ -8,6 +8,7 @@ import (
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/logbus"
+	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/earthly/earthly/util/xcontext"
 	"github.com/moby/buildkit/client"
@@ -129,8 +130,8 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 			if vm.isFatalError {
 				// Run this at the end so that we capture any additional log lines.
 				defer bp.SetFatalError(
-					*vertex.Completed, vm.meta.TargetID, vm.vertex.Digest.String(),
-					vm.fatalErrorType, vm.errorStr)
+					*vertex.Completed, vm.meta.TargetID, cmdID,
+					vm.fatalErrorType, stringutil.ScrubCredentialsAll(vm.errorStr))
 			}
 		}
 	}
@@ -155,6 +156,7 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 			continue
 		}
 		vm := sm.vertices[cmdID]
+		logLine.Data = []byte(stringutil.ScrubCredentialsAll((string(logLine.Data))))
 		_, err := vm.Write(logLine.Data, logLine.Timestamp, logLine.Stream)
 		if err != nil {
 			return err

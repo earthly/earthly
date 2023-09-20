@@ -123,7 +123,7 @@ func unhideFlagsCommands(ctx context.Context, cmds []*cli.Command) {
 
 func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 	defer func() {
-		if app.BaseCLI.Flags().Logstream {
+		if app.BaseCLI.LogbusSetup() != nil {
 			err := app.BaseCLI.LogbusSetup().Close()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error(s) in logbus: %v", err)
@@ -169,7 +169,6 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 	err := app.BaseCLI.App().RunContext(ctx, args)
 	if err != nil {
 		ie, isInterpreterError := earthfile2llb.GetInterpreterError(err)
-
 		var failedOutput string
 		var buildErr *builder.BuildError
 		if errors.As(err, &buildErr) {
@@ -196,7 +195,11 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 
 		switch {
 		case runExitCodeRegexp.MatchString(err.Error()):
-			// error has already been displayed in console, don't display it again
+			// This error would have been displayed earlier from the SolverMonitor.
+			// This SetFatalError is a catch-all just in case that hasn't happened.
+			app.BaseCLI.Logbus().Run().SetFatalError(
+				time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER,
+				err.Error())
 			return 1
 		case strings.Contains(err.Error(), "security.insecure is not allowed"):
 			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_NEEDS_PRIVILEGED, err.Error())
@@ -240,7 +243,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 				"  docker login%s", registryName, registryHost)
 			return 1
 		case strings.Contains(failedOutput, "Invalid ELF image for this architecture"):
-			app.BaseCLI.Console().Warnf("Error: %v\n", err)
+			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
 			app.BaseCLI.Console().Printf(
 				"Are you using --platform to target a different architecture? You may have to manually install QEMU.\n" +
 					"For more information see https://docs.earthly.dev/guides/multi-platform\n")
@@ -258,8 +261,10 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 					app.printCrashLogs(ctx)
 				}
 				return 7
+			} else {
+				app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
+				return 1
 			}
-			return 1
 		case errors.Is(err, buildkitd.ErrBuildkitCrashed):
 			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, err.Error())
 			app.BaseCLI.Console().Warnf("Error: %v\n", err)
@@ -283,10 +288,12 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 		case errors.Is(err, context.Canceled):
 			app.BaseCLI.Logbus().Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
 			app.BaseCLI.Console().Warnf("Canceled\n")
+			app.BaseCLI.Console().VerbosePrintf("Canceled: %v\n", err)
 			return 2
 		case status.Code(errors.Cause(err)) == codes.Canceled:
 			app.BaseCLI.Logbus().Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
 			app.BaseCLI.Console().Warnf("Canceled\n")
+			app.BaseCLI.Console().VerbosePrintf("Canceled: %v\n", err)
 			if containerutil.IsLocal(app.BaseCLI.Flags().BuildkitdSettings.BuildkitAddress) {
 				app.printCrashLogs(ctx)
 			}
@@ -296,7 +303,11 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			app.BaseCLI.Console().Warnf("Error: %s\n", ie.Error())
 			return 1
 		default:
-			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
+			if app.BaseCLI.CommandName() == "build" {
+				app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
+			} else {
+				app.BaseCLI.Logbus().Run().SkipFatalError()
+			}
 			app.BaseCLI.Console().Warnf("Error: %v\n", err)
 			return 1
 		}

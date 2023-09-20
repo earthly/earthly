@@ -2,11 +2,11 @@ VERSION 0.7
 PROJECT test/project
 
 foo:
-  FROM alpine:3.17
+  FROM alpine:3.18
   RUN echo hi from foo
 
 deps:
-  FROM alpine:3.17
+  FROM alpine:3.18
   RUN touch /setup
 
 bar:
