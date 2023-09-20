@@ -214,8 +214,9 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 				IsCi:           isCI,
 			})
 			if err != nil {
-				out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite reserve stream")}
-				return
+				_, _ = fmt.Fprintf(os.Stderr, "retrying in %d seconds [attempt %d/%d]\n", i, i, numRetries)
+				time.Sleep(time.Duration(i) * 2 * time.Second)
+				continue
 			}
 			var lastStatus string
 			for {
