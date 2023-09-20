@@ -74,22 +74,22 @@ func (c *Client) UnaryInterceptor(opts ...InterceptorOpt) grpc.UnaryClientInterc
 		}
 		ctx, err := c.reAuthIfExpired(ctx)
 		if err != nil {
-			return errors.Wrapf(err, "failed refreshing expired token: %s", getReqID(ctx))
+			return appendRequestId(ctx, err)
 		}
 		err = invoker(ctx, method, req, reply, cc, opts...)
 		if err != nil {
 			s, ok := status.FromError(err)
 			if !ok {
-				return fmt.Errorf("%s {reqID: %s}", err.Error(), getReqID(ctx))
+				return appendRequestId(ctx, err)
 			}
 			if s.Code() == codes.Unauthenticated {
 				ctx, err = c.reAuthCtx(ctx)
 				if err != nil {
-					return fmt.Errorf("%s {reqID: %s}", err.Error(), getReqID(ctx))
+					return appendRequestId(ctx, err)
 				}
 				return invoker(ctx, method, req, reply, cc, opts...)
 			}
-			return status.Errorf(s.Code(), fmt.Sprintf("%s {reqID: %s}", cleanStatusError(err.Error()), getReqID(ctx)))
+			return appendRequestIdStatus(ctx, s)
 		}
 		return nil
 	}
@@ -103,36 +103,35 @@ func (c *Client) StreamInterceptor() grpc.StreamClientInterceptor {
 		ctx = c.withReqID(ctx)
 		ctx, err := c.reAuthIfExpired(ctx)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed refreshing expired token {reqID: %s}", getReqID(ctx))
+			return nil, appendRequestId(ctx, err)
 		}
 		newStreamer, err := streamer(ctx, desc, cc, method, opts...)
 		if err != nil {
 			s, ok := status.FromError(err)
 			if !ok {
-				return nil, fmt.Errorf("%s {reqID: %s}", err.Error(), getReqID(ctx))
+				return nil, appendRequestId(ctx, err)
 			}
 			if s.Code() == codes.Unauthenticated {
 				ctx, err = c.reAuthCtx(ctx)
 				if err != nil {
-					return nil, fmt.Errorf("%s {reqID: %s}", err.Error(), getReqID(ctx))
+					return nil, appendRequestId(ctx, err)
 				}
 				return streamer(ctx, desc, cc, method, opts...)
 			}
-			return nil, status.Errorf(s.Code(), fmt.Sprintf("%s {reqID: %s}",
-				cleanStatusError(err.Error()), getReqID(ctx)))
+			return nil, appendRequestIdStatus(ctx, s)
 		}
 		return newWrappedStream(ctx, newStreamer), nil
 	}
 }
 
-// wrappedStream  wraps around the embedded grpc.ClientStream, and intercepts the RecvMsg and
-// SendMsg method call.
-type wrappedStream struct {
+// requestIDWrappedStream wraps around the embedded grpc.ClientStream.
+// // Itintercepts the RecvMsg and SendMsg methods, appending the request ID when error occurs.
+type requestIDWrappedStream struct {
 	grpc.ClientStream
 	ctx context.Context
 }
 
-func (w *wrappedStream) RecvMsg(m any) error {
+func (w *requestIDWrappedStream) RecvMsg(m any) error {
 	if err := w.ClientStream.RecvMsg(m); err != nil {
 		if err == io.EOF {
 			return err
@@ -147,7 +146,7 @@ func (w *wrappedStream) RecvMsg(m any) error {
 	return nil
 }
 
-func (w *wrappedStream) SendMsg(m any) error {
+func (w *requestIDWrappedStream) SendMsg(m any) error {
 	if err := w.ClientStream.SendMsg(m); err != nil {
 		if err == io.EOF {
 			return err
@@ -163,12 +162,21 @@ func (w *wrappedStream) SendMsg(m any) error {
 }
 
 func newWrappedStream(ctx context.Context, s grpc.ClientStream) grpc.ClientStream {
-	return &wrappedStream{s, ctx}
+	return &requestIDWrappedStream{s, ctx}
 }
 
 // cleanStatusError returns the underlying error message from a gRPC status error
 func cleanStatusError(errStr string) string {
 	return RPCErrRegex.ReplaceAllString(errStr, "")
+}
+
+func appendRequestId(ctx context.Context, err error) error {
+	return fmt.Errorf("%s {reqID: %s}", err.Error(), getReqID(ctx))
+}
+
+func appendRequestIdStatus(ctx context.Context, s *status.Status) error {
+	return status.Errorf(s.Code(), fmt.Sprintf("%s {reqID: %s}",
+		cleanStatusError(s.Err().Error()), getReqID(ctx)))
 }
 
 func (c *Client) reAuthIfExpired(ctx context.Context) (context.Context, error) {
