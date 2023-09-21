@@ -22,7 +22,7 @@ and then restart your shell.
 
 ### CI
 
-For instructions on how to install `earthly` for CI use, see the [CI integration guide](ci-integration/overview.md).
+For instructions on how to install `earthly` for CI use, see the [CI integration guide](../ci-integration/overview.md).
 
 ### Checksum Verification
 
@@ -239,9 +239,9 @@ To install from source, see the [contributing page](https://github.com/earthly/e
 
 ## Configuration
 
-If you use SSH-based git authentication, then your git credentials will just work with Earthly. Read more about [git auth](./guides/auth.md).
+If you use SSH-based git authentication, then your git credentials will just work with Earthly. Read more about [git auth](../guides/auth.md).
 
-For a full list of configuration options, see the [Configuration reference](./earthly-config/earthly-config.md)
+For a full list of configuration options, see the [Configuration reference](../earthly-config/earthly-config.md)
 
 ## Verify installation
 
