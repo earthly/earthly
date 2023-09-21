@@ -261,7 +261,7 @@ RUN --ssh git config --global url."git@github.com:".insteadOf "https://github.co
 ```
 
 {% hint style='warning' %}
-Note that `RUN --ssh` option is only used for creating a tunnel to the host's ssh-agent's socket (set via `$SSH_AUTH_SOCK`); it is **not** related to the git section of the earthly [configuration file](./earthly-config/earthly-config.md).
+Note that `RUN --ssh` option is only used for creating a tunnel to the host's ssh-agent's socket (set via `$SSH_AUTH_SOCK`); it is **not** related to the git section of the earthly [configuration file](../earthly-config/earthly-config.md).
 {% endhint %}
 
 ##### `--mount <mount-spec>`
