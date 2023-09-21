@@ -33,7 +33,7 @@
     ```
   * Merge branch `main` into `docs-0.7` (via `git`):
     ```shell
-      git checkout docs-0.7 && git merge main && git push
+      git checkout docs-0.7 && git pull && git merge main && git push
     ```
 
 * Update the version for the installation command in the following places:
@@ -69,7 +69,7 @@
     ```
   * Note: If you don't have permissions to push directly to `main` branch, do the following:
     * `git checkout -b soon-to-be-main && git push origin soon-to-be-main`
-    * Open a PR against the new branch and get it approved.
+    * Open a PR against the new branch and get it approved; IMPORTANT: don't squash-merge via github
     * Once all (required) checks pass, try pushing the branch again:
     `git checkout main && git push`
   
