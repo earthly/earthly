@@ -30,7 +30,11 @@ import (
 	"github.com/earthly/earthly/util/reflectutil"
 )
 
-var runExitCodeRegexp = regexp.MustCompile(`did not complete successfully: exit code: [^0][0-9]*$`)
+var (
+	runExitCodeRegex = regexp.MustCompile(`did not complete successfully: exit code: [^0][0-9]*($|[\n\t]+in\s+.*?\+.+)`)
+	notFoundRegex    = regexp.MustCompile(`("[^"]*"): not found`)
+	rpcRegex         = regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
+)
 
 func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogger, startTime time.Time, lastSignal os.Signal) int {
 	err := app.unhideFlags(ctx)
@@ -164,7 +168,6 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER,
 			"No SetFatalError called appropriately. This should never happen.")
 	}()
-	rpcRegex := regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
 
 	err := app.BaseCLI.App().RunContext(ctx, args)
 	if err != nil {
@@ -194,12 +197,13 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 		}
 
 		switch {
-		case runExitCodeRegexp.MatchString(err.Error()):
+		case runExitCodeRegex.MatchString(err.Error()):
 			// This error would have been displayed earlier from the SolverMonitor.
 			// This SetFatalError is a catch-all just in case that hasn't happened.
 			app.BaseCLI.Logbus().Run().SetFatalError(
 				time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER,
 				err.Error())
+			app.BaseCLI.Console().VerboseWarnf("Error: %v\n", err)
 			return 1
 		case strings.Contains(err.Error(), "security.insecure is not allowed"):
 			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_NEEDS_PRIVILEGED, err.Error())
@@ -209,9 +213,9 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_GIT, err.Error())
 			gitStdErr, shorterErr, ok := errutil.ExtractEarthlyGitStdErr(err.Error())
 			if ok {
-				app.BaseCLI.Console().Warnf("Error: %v\n\n%s\n", shorterErr, gitStdErr)
+				app.BaseCLI.Console().VerboseWarnf("Error: %v\n\n%s\n", shorterErr, gitStdErr)
 			} else {
-				app.BaseCLI.Console().Warnf("Error: %v\n", err.Error())
+				app.BaseCLI.Console().VerboseWarnf("Error: %v\n", err.Error())
 			}
 			app.BaseCLI.Console().Printf(
 				"Check your git auth settings.\n" +
@@ -220,8 +224,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			return 1
 		case strings.Contains(err.Error(), "failed to compute cache key") && strings.Contains(err.Error(), ": not found"):
 			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND, err.Error())
-			re := regexp.MustCompile(`("[^"]*"): not found`)
-			var matches = re.FindStringSubmatch(err.Error())
+			var matches = notFoundRegex.FindStringSubmatch(err.Error())
 			if len(matches) == 2 {
 				app.BaseCLI.Console().Warnf("Error: File not found %v\n", matches[1])
 			} else {
@@ -251,7 +254,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 		case !app.BaseCLI.Flags().Verbose && rpcRegex.MatchString(err.Error()):
 			baseErr := errors.Cause(err)
 			baseErrMsg := rpcRegex.ReplaceAllString(baseErr.Error(), "")
-			app.BaseCLI.Console().Warnf("Error: %s\n", string(baseErrMsg))
+			app.BaseCLI.Console().Warnf("Error: %s\n", baseErrMsg)
 			if strings.Contains(baseErrMsg, "transport is closing") {
 				app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, baseErr.Error())
 				app.BaseCLI.Console().Warnf(
@@ -261,10 +264,9 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 					app.printCrashLogs(ctx)
 				}
 				return 7
-			} else {
-				app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
-				return 1
 			}
+			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
+			return 1
 		case errors.Is(err, buildkitd.ErrBuildkitCrashed):
 			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, err.Error())
 			app.BaseCLI.Console().Warnf("Error: %v\n", err)
@@ -287,20 +289,26 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			return 6
 		case errors.Is(err, context.Canceled):
 			app.BaseCLI.Logbus().Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
-			app.BaseCLI.Console().Warnf("Canceled\n")
-			app.BaseCLI.Console().VerbosePrintf("Canceled: %v\n", err)
+			if app.BaseCLI.Flags().Verbose {
+				app.BaseCLI.Console().Warnf("Canceled: %v\n", err)
+			} else {
+				app.BaseCLI.Console().Warnf("Canceled\n")
+			}
 			return 2
 		case status.Code(errors.Cause(err)) == codes.Canceled:
 			app.BaseCLI.Logbus().Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
-			app.BaseCLI.Console().Warnf("Canceled\n")
-			app.BaseCLI.Console().VerbosePrintf("Canceled: %v\n", err)
+			if app.BaseCLI.Flags().Verbose {
+				app.BaseCLI.Console().Warnf("Canceled: %v\n", err)
+			} else {
+				app.BaseCLI.Console().Warnf("Canceled\n")
+			}
 			if containerutil.IsLocal(app.BaseCLI.Flags().BuildkitdSettings.BuildkitAddress) {
 				app.printCrashLogs(ctx)
 			}
 			return 2
 		case isInterpreterError:
 			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), ie.TargetID, "", logstream.FailureType_FAILURE_TYPE_SYNTAX, ie.Error())
-			app.BaseCLI.Console().Warnf("Error: %s\n", ie.Error())
+			app.BaseCLI.Console().VerboseWarnf("Error: %s\n", ie.Error())
 			return 1
 		default:
 			if app.BaseCLI.CommandName() == "build" {
@@ -308,7 +316,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			} else {
 				app.BaseCLI.Logbus().Run().SkipFatalError()
 			}
-			app.BaseCLI.Console().Warnf("Error: %v\n", err)
+			app.BaseCLI.Console().VerboseWarnf("Error: %v\n", err)
 			return 1
 		}
 	}

@@ -305,6 +305,14 @@ func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 	cl.colorPrintf(Warn, c, format, args...)
 }
 
+// VerboseWarnf prints a warning message in red to errWriter when verbose flag is set.
+func (cl ConsoleLogger) VerboseWarnf(format string, args ...interface{}) {
+	if cl.logLevel < Verbose {
+		return
+	}
+	cl.Warnf(format, args...)
+}
+
 // Printf prints formatted text to the console.
 func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	c := cl.color(noColor)
