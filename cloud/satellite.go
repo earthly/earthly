@@ -193,12 +193,10 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 			out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed reserving satellite")}
 			return
 		}
-		// Some notes on the 10-minute timeout here:
 		// Usually satellites reserve in 1-15 seconds, however, in some edge cases it will take longer.
 		// It can take a minute if the satellite is actively falling asleep (it needs to finish, then wake back up).
-		// In extreme cases, if a satellite update is running, the satellite can take around 6 minutes to finish,
-		// however, those updates typically only run overnight when the user is not expected to run builds.
-		ctxTimeout, cancel := context.WithTimeout(ctx, 10*time.Minute)
+		// In extreme cases, if a satellite update is running, the satellite can take around 6 minutes to finish.
+		ctxTimeout, cancel := context.WithTimeout(ctx, 20*time.Minute)
 		defer cancel()
 		defer close(out)
 		// Note: we were having issues with the stream closing unexpectedly,
@@ -214,8 +212,9 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 				IsCi:           isCI,
 			})
 			if err != nil {
-				out <- SatelliteStatusUpdate{Err: errors.Wrap(err, "failed opening satellite reserve stream")}
-				return
+				_, _ = fmt.Fprintf(os.Stderr, "retrying connection [attempt %d/%d]\n", i, numRetries)
+				time.Sleep(time.Duration(i) * 2 * time.Second)
+				continue
 			}
 			var lastStatus string
 			for {
@@ -226,7 +225,7 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 				if err != nil {
 					if isRetryable(err) {
 						retriedError = err
-						_, _ = fmt.Fprintf(os.Stderr, "retrying in %d seconds [attempt %d/%d]\n", i, i, numRetries)
+						_, _ = fmt.Fprintf(os.Stderr, "retrying connection [attempt %d/%d]\n", i, numRetries)
 						time.Sleep(time.Duration(i) * 2 * time.Second)
 						break
 					}
