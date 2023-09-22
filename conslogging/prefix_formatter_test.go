@@ -24,11 +24,11 @@ func Test_prefixFormatter_Format(t *testing.T) {
 
 		f := NewPrefixFormatter(truncateSha)
 		require.Zero(t, getCacheSize(&f.cache))
-
 		formatter.Format(random, DefaultPadding)
 		size := getCacheSize(&formatter.cache)
 		assert.Equal(t, 1, size, "cache size should have incremented by 1")
 		formatter.Format(random, DefaultPadding)
+		size = getCacheSize(&formatter.cache)
 		assert.Equal(t, 1, size, "cache size should have stayed the same")
 		formatter.Format(random, 3)
 		size = getCacheSize(&formatter.cache)

@@ -104,6 +104,12 @@ func Test_prettyPrefix(t *testing.T) {
 			prefix:        "./path/./to//redundant/../target+hello-world",
 			expected:      "./p/t/target+hello-world",
 		},
+		{
+			name:          "git url with credentials gets truncated",
+			prefixPadding: DefaultPadding,
+			prefix:        "https://testuser:xxxx@selfsigned.example.com/repo.git#main",
+			expected:      "    h://t:x@s/repo#m",
+		},
 	}
 
 	for _, tc := range testCases {

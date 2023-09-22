@@ -6,25 +6,28 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/earthly/earthly/util/stringutil"
 )
 
 var (
-	// urlPath is used to find all parts of a url
+	// urlPathPartRegex is used to find all parts of a url
 	// for example github.com/earthly/my-repo => p1="github.com/", p2="earthly/" (note: "my-repo" is intentionally not captured as p3)
-	urlPath = regexp.MustCompile(`(.*?/)`)
-	// githubRegExp Matches :2dd88e53f2e59e96ec1f9215f24a3981e5565edf+ in a prefix.
+	urlPathPartRegex = regexp.MustCompile(`(.*?/)`)
+	// githubRegex Matches :2dd88e53f2e59e96ec1f9215f24a3981e5565edf+ in a prefix.
 	// 	Prefix containing hash may resemble: g/e/hello-world:2dd88e53f2e59e96ec1f9215f24a3981e5565edf+base
 	//	Prefix must be exactly 40 characters
-	githubRegExp = regexp.MustCompile(`:[a-f0-9]{40}\+`)
-	// gitURL matches the url appearing in parentheses for example:
+	githubRegex = regexp.MustCompile(`:[a-f0-9]{40}\+`)
+	// gitURLRegex matches the url appearing in parentheses for example:
 	// +my-target(https://github/earthly/earthly)
-	gitURL = regexp.MustCompile(`\(.+?\)`)
-	// urlPrefix is used to captured url protocol, for example "https://" in "https://github.com/earthly/earthly"
-	urlPrefix = regexp.MustCompile("^.+?//")
-	// targetURL is used to capture any target path - relative (./my-dir+my-target), absolute (/abs/my-dir+my-target) or remote (github.com/my-org-my-repo+my-target)
+	gitURLRegex = regexp.MustCompile(`\(.+?\)`)
+	// urlPrefixRegex is used to captured url protocol, for example "https://" in "https://github.com/earthly/earthly"
+	urlPrefixRegex = regexp.MustCompile("^.+?//")
+	// targetURLRegex is used to capture any target path - relative (./my-dir+my-target), absolute (/abs/my-dir+my-target) or remote (github.com/my-org-my-repo+my-target)
 	// the url my include an optional branch name or commit sha, e.g. github.com/my-org/my-repo:my-branch+my-target
-	targetURL = regexp.MustCompile(`^.+?(:|\+)`)
-	formatter = NewPrefixFormatter(truncateSha, truncateGITURL, truncateTargetURL)
+	targetURLRegex       = regexp.MustCompile(`^.+?(:|\+)`)
+	gitURLWithCredsRegex = regexp.MustCompile(`(?P<protocol>.+?)://(?P<user>.+?):(?P<password>.+?)@(?P<repoURL>.+?).git#(?P<ref>.+?)$`)
+	formatter            = NewPrefixFormatter(truncateURLWithCreds, truncateSha, truncateGITURL, truncateTargetURL)
 )
 
 type prefixFormatter struct {
@@ -34,14 +37,50 @@ type prefixFormatter struct {
 
 type formatOpt func(str string, padding int, curLen int) string
 
+func truncateURLWithCreds(str string, padding int, curLen int) string {
+	namedMatches := stringutil.NamedGroupMatches(str, gitURLWithCredsRegex)
+	if len(namedMatches) != 5 {
+		// no match for the regex, return original string
+		return str
+	}
+	matches := make([]string, 0, len(namedMatches))
+	for _, name := range gitURLWithCredsRegex.SubexpNames() {
+		if name == "" {
+			continue
+		}
+		if len(namedMatches[name]) == 0 {
+			//something was wrong with the regex, return original string
+			return str
+		}
+		if curLen <= padding || namedMatches[name][0] == "" {
+			// no need to keep truncating the url parts
+			matches = append(matches, namedMatches[name][0])
+		} else if name == "repoURL" {
+			truncatedURL := truncateURL(namedMatches[name][0], padding, curLen)
+			matches = append(matches, truncatedURL)
+			curLen -= len(namedMatches[name][0]) - len(truncatedURL)
+		} else {
+			matches = append(matches, string(namedMatches[name][0][0]))
+			curLen -= len(namedMatches[name][0]) - 1
+		}
+	}
+	seps := []string{"://", ":", "@", "#", ""}
+	var sb strings.Builder
+	for i := range matches {
+		sb.WriteString(matches[i])
+		sb.WriteString(seps[i])
+	}
+	return sb.String()
+}
+
 func truncateSha(str string, _, _ int) string {
-	return githubRegExp.ReplaceAllStringFunc(str, func(s string) string {
+	return githubRegex.ReplaceAllStringFunc(str, func(s string) string {
 		return s[:8] + "+"
 	})
 }
 
 func truncateURL(str string, padding int, curLen int) string {
-	return urlPath.ReplaceAllStringFunc(str, func(part string) string {
+	return urlPathPartRegex.ReplaceAllStringFunc(str, func(part string) string {
 		if curLen <= padding || len(part) <= 1 || part == ".." {
 			return part
 		}
@@ -55,9 +94,9 @@ func truncateURL(str string, padding int, curLen int) string {
 }
 
 func truncateGITURL(str string, padding int, curLen int) string {
-	return gitURL.ReplaceAllStringFunc(str, func(s string) string {
+	return gitURLRegex.ReplaceAllStringFunc(str, func(s string) string {
 		s = s[1 : len(s)-1]
-		urlProtocol := urlPrefix.FindString(s)
+		urlProtocol := urlPrefixRegex.FindString(s)
 		s = strings.TrimPrefix(s, urlProtocol)
 		l1 := len(s)
 		s = normalize(s)
@@ -71,7 +110,7 @@ func truncateGITURL(str string, padding int, curLen int) string {
 }
 
 func truncateTargetURL(str string, padding int, curLen int) string {
-	return targetURL.ReplaceAllStringFunc(str, func(s string) string {
+	return targetURLRegex.ReplaceAllStringFunc(str, func(s string) string {
 		suffixChar := s[len(s)-1]
 		s = s[:len(s)-1]
 		l1 := len(s)
@@ -83,11 +122,6 @@ func truncateTargetURL(str string, padding int, curLen int) string {
 		}
 		return fmt.Sprintf("%s%c", truncateURL(s, padding, curLen), suffixChar)
 	})
-}
-
-func padStr(s string, padding int) string {
-	formatString := fmt.Sprintf("%%%vv", padding)
-	return fmt.Sprintf(formatString, s)
 }
 
 func normalize(s string) string {
@@ -109,7 +143,7 @@ func (pb *prefixFormatter) getKey(prefix string, padding int) string {
 	return fmt.Sprintf("%s-%d", prefix, padding)
 }
 
-func (pb *prefixFormatter) Format(prefix string, padding int) string {
+func (pb *prefixFormatter) Format(prefix string, padding int) (modifiedPrefix string) {
 	if padding <= NoPadding {
 		return prefix
 	}
@@ -117,12 +151,17 @@ func (pb *prefixFormatter) Format(prefix string, padding int) string {
 	if cachedPrefix, ok := pb.cache.Load(key); ok {
 		return cachedPrefix.(string)
 	}
+	defer func() {
+		modifiedPrefix = fmt.Sprintf("%*s", padding, prefix)
+		pb.cache.Store(key, modifiedPrefix)
+	}()
 	curLen := len(prefix)
 	for _, formatOpt := range pb.formatOpts {
+		if curLen <= padding {
+			return
+		}
 		prefix = formatOpt(prefix, padding, curLen)
 		curLen = len(prefix)
 	}
-	modifiedPrefix := padStr(prefix, padding)
-	pb.cache.Store(key, modifiedPrefix)
-	return modifiedPrefix
+	return
 }
