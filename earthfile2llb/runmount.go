@@ -1,6 +1,7 @@
 package earthfile2llb
 
 import (
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -137,9 +138,6 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 		if mountTarget == "" {
 			return nil, errors.Errorf("mount target not specified")
 		}
-		if mountMode != 0 {
-			return nil, errors.Errorf("mode is not supported for type=cache")
-		}
 		key, err := cacheKeyTargetInput(c.targetInputActiveOnly())
 		if err != nil {
 			return nil, err
@@ -147,6 +145,8 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 		cachePath := path.Join("/run/cache", key, mountID)
 		mountOpts = append(mountOpts, llb.AsPersistentCacheDir(cachePath, sharingMode))
 		state = c.cacheContext
+		state = state.File(pllb.Mkdir("/cache", os.FileMode(mountMode)))
+		mountOpts = append(mountOpts, llb.SourcePath("/cache"))
 		return []llb.RunOption{pllb.AddMount(mountTarget, state, mountOpts...)}, nil
 	case "tmpfs":
 		if mountTarget == "" {
@@ -176,9 +176,7 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 			//       buildkit side. Then we wouldn't need to open this up to everyone.
 			mountMode = 0444
 		}
-
 		secretName := strings.TrimPrefix(mountID, "+secrets/")
-
 		secretOpts := []llb.SecretOption{
 			llb.SecretID(c.secretID(secretName)),
 			llb.SecretFileOpt(0, 0, mountMode),

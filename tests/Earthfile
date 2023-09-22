@@ -120,6 +120,7 @@ ga-no-qemu-quick:
     BUILD +test-init-golang
     BUILD +pass-args-test
     BUILD +test-reserved-label
+    BUILD +test-cache-mount-mode
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -1421,6 +1422,21 @@ test-reserved-label:
        --target=+test1 \
        --should_fail=true \
        --output_contains="LABEL keys starting with .dev.earthly.. are reserved"
+
+test-cache-mount-mode:
+  DO +RUN_EARTHLY \
+      --earthfile=cache-mount-mode.earth \
+      --target=+test \
+      --post_command="--mode=0004 "\
+      --should_fail=false \
+      --output_contains="d------r-- /cache-folder"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-mount-mode.earth \
+      --target=+test \
+      --post_command="--mode=0777 "\
+      --should_fail=false \
+      --output_contains="drwxrwxrwx /cache-folder"
 
 RUN_EARTHLY:
     COMMAND
