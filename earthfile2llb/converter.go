@@ -2395,7 +2395,7 @@ func (c *Converter) imageVertexPrefix(id string, platform platutil.Platform) str
 }
 
 func (c *Converter) vertexPrefixWithURL(url string) string {
-	return fmt.Sprintf("[%s(%s) %s] ", c.mts.Final.Target.String(), url, url)
+	return fmt.Sprintf("[%s(%s)] ", c.mts.Final.Target.String(), url)
 }
 
 func (c *Converter) markFakeDeps() {
