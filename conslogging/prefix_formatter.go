@@ -38,16 +38,13 @@ type prefixFormatter struct {
 type formatOpt func(str string, padding int, curLen int) string
 
 func truncateURLWithCreds(str string, padding int, curLen int) string {
-	namedMatches := stringutil.NamedGroupMatches(str, gitURLWithCredsRegex)
+	namedMatches, namedGroups := stringutil.NamedGroupMatches(str, gitURLWithCredsRegex)
 	if len(namedMatches) != 5 {
 		// no match for the regex, return original string
 		return str
 	}
 	matches := make([]string, 0, len(namedMatches))
-	for _, name := range gitURLWithCredsRegex.SubexpNames() {
-		if name == "" {
-			continue
-		}
+	for _, name := range namedGroups {
 		if len(namedMatches[name]) == 0 {
 			//something was wrong with the regex, return original string
 			return str
