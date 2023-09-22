@@ -1,0 +1,45 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+    'default:pinDigestsDisabled',
+  ],
+  configMigration: true,
+  prHourlyLimit: 1,
+  prConcurrentLimit: 3,
+  includePaths: [
+    'docs/**', '.github/'
+  ],
+  enabledManagers: [
+    'regex',
+  ],
+  regexManagers: [
+    {
+      // Earthly Version in md files
+      customType: 'regex',
+      fileMatch: [
+        '.+\.md',
+      ],
+      matchStrings: [
+        'earthly/releases/download/(?<currentValue>.+?)/',
+        '- uses: earthly/actions/setup-earthly@.*?[\\s\\n]+.*?[\\s\\n]+with:[\\s\\n]*version: (?<currentValue>.+?)[\\s\\n/]+',
+        '\'earthly/earthly:(?<currentValue>.+?)\'',
+        'github.com/earthly/earthly:(?<currentValue>.+?)(\\+|`)',
+        '(:|\\s+)earthly/earthly:(?<currentValue>.+?)[\\s\\n/]+',
+        '\\* `(?<currentValue>.+?)`, `latest`',
+      ],
+      depNameTemplate: 'earthly/earthly',
+      datasourceTemplate: 'github-releases',
+    },
+  ],
+  labels: [
+    'renovate',
+  ],
+  packageRules: [
+    {
+      matchPackageNames: ['earthly/earthly'],
+      matchDatasources: ['github-releases'],
+      addLabels: ['earthly-version-in-docs'],
+    },
+  ],
+}
