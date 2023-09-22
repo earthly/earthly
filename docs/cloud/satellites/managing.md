@@ -79,16 +79,18 @@ Currently selected: No
 ## Clearing cache
 
 There are two ways to clear the cache on satellite.
+One method may be faster than the other, depending on the size of your cache.
 
-### Recreating the Underlying Satellite Instance (often faster)
+### Recreating the Underlying Satellite Instance
 
 Running the `update` command with `--drop-cache` will relaunch the instance with an empty cache volume.
 Note that this operation can take a while, and the satellite may also receive any available updates during the process.
+The satellite must also be in a sleep state first, you can force a satellite to sleep by running `earthly satellite sleep`
 
 ```bash
 earthly satellite update --drop-cache my-satellite
 ```
-### Using the prune command (slower)
+### Using the prune command
 
 The `earthly prune` command also works on satellites.
 It usually takes longer than running `satellite update`; however, it does not trigger a relaunch.
