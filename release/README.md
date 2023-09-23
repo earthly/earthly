@@ -3,7 +3,7 @@
 ### earthly
 * Make sure you have access to the `earthly-technologies` organization secrets.
   ```bash
-  ./earthly secrets ls /earthly-technologies
+  ./earthly secrets --org earthly-technologies --project core ls
   ```
 * Choose the next [release tag](https://github.com/earthly/earthly/releases).
   ```bash
@@ -18,7 +18,7 @@
   git checkout main && git pull
   ```
 * Update the CHANGELOG.md with the corresponding release notes and open a PR
-  * Use a comparison such as https://github.com/earthly/earthly/compare/v0.3.0...main (replace the versions in the URL with the previously released version) to see which PRs will go into this release.
+  * Use a comparison such as https://github.com/earthly/earthly/compare/v0.7.19...main (replace the versions in the URL with the previously released version) or a tool such as `gitk` (aka `git-gui`) to see which PRs will go into this release.
 * Make sure that main build is green for all platforms (check build status for the latest commit on GitHub).
 * Make sure nightly BuildKite builds are green for most recent build
   | Platform      | Status        |
@@ -26,11 +26,16 @@
   | MacOS (x86)   | [![Build status](https://badge.buildkite.com/cc0627732806ab3b76cf13b02c498658b851056242ec28f62d.svg)](https://buildkite.com/earthly-technologies/earthly-mac-scheduled)
   | MacOS (M1)    | [![Build status](https://badge.buildkite.com/10a7331b2032fcc9f7f311c5218d12c1a18c317cd7fc9270ba.svg)](https://buildkite.com/earthly-technologies/earthly-m1-scheduled)
   | Windows (WSL) | [![Build status](https://badge.buildkite.com/19d9cf7fcfb3e0ee45adcb29abb5ef3cfcd994fba2d6dc148c.svg)](https://buildkite.com/earthly-technologies/earthly-windows-scheduled)
-* Run
-  ```bash
-  env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG="$RELEASE_TAG" USER="$USER" PRERELEASE="$PRERELEASE" ./release.sh
-  ```
-* Merge branch `main` into `docs-0.7`
+  * Run
+    ```bash
+    cd release
+    env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG="$RELEASE_TAG" USER="$USER" PRERELEASE="$PRERELEASE" ./release.sh
+    ```
+  * Merge branch `main` into `docs-0.7` (via `git`):
+    ```shell
+      git checkout docs-0.7 && git pull && git merge main && git push
+    ```
+
 * Update the version for the installation command in the following places:
 <!-- vale HouseStyle.Spelling = NO -->
   * [circle-integration.md](../docs/ci-integration/guides/circle-integration.md)
@@ -59,8 +64,17 @@
   * [buildkit-standalone.md](../docs/docker-images/buildkit-standalone.md)
 * Commit updated version changes to `docs-0.7`.
 * Merge `docs-0.7` into `main`.
+  ```shell
+    git checkout main && git merge docs-0.7 && git push
+    ```
+  * Note: If you don't have permissions to push directly to `main` branch, do the following:
+    * `git checkout -b soon-to-be-main && git push origin soon-to-be-main`
+    * Open a PR against the new branch and get it approved; IMPORTANT: don't squash-merge via github
+    * Once all (required) checks pass, try pushing the branch again:
+    `git checkout main && git push`
+  
 <!-- vale HouseStyle.Spelling = YES -->
-* After GitBook has processed the `main` branch, run a broken link checker over https://docs.earthly.dev. This one is fast and easy: https://www.deadlinkchecker.com/.
+* After GitBook has processed the `main` branch (you can see the gitbook check/job in Github), run a broken link checker over https://docs.earthly.dev. This one is fast and easy: https://www.deadlinkchecker.com/.
 * Verify the [Homebrew release job](https://github.com/earthly/homebrew-earthly) has successfully run and has merged the new `release-v...` branch into `main`.
 * Copy the release notes you have written before and paste them in the Earthly Community slack channel `#announcements`, together with a link to the release's GitHub page. If you have Slack markdown editing activated, you can copy the markdown version of the text.
 * Ask Adam to tweet about the release.
@@ -97,15 +111,15 @@ If you need to rollback/disable a version:
 
 1. Go to [GitHub releases](https://github.com/earthly/earthly/releases), click on the `edit release` button, then check the `This is a prerelease` checkbox.
 2. Check out the [earthly/homebrew-earthly](https://github.com/earthly/homebrew-earthly) repo, and run:
-
 ```bash
 git checkout main
 git revert --no-commit 123abc..HEAD # where `123abc` is the sha1 commit to roll back to
 git commit # enter a message saying you are rolling back
 git push
 ```
-
-3. TODO need to create targets for apt and yum Earthfiles to perform rollbacks
+3. Mark the release title in [CHANGELOG.log](../CHANGELOG.md) as `(aborted release/not recommended)`, e.g.:
+`## v0.7.18 - 2023-09-18 (aborted release/not recommended)`
+4. TODO need to create targets for apt and yum Earthfiles to perform rollbacks
 
 ### dind
 
