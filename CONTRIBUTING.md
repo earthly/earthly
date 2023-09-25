@@ -192,6 +192,15 @@ Updates to fsutil must first be vendored into buildkit, then updated under `go.m
 
 Note that the buildkit tests in the earthly fork of buildkit may not all pass -- this is a tech-debt trade-off -- we do not enforce the buildkit tests to pass, but instead rely on the earthly integration tests to pass before merging in changes to our fork.
 
+### Local development of earthly and buildkit
+
+To build Earthly from source with local changes to buildkit, you can use the `--BUILDKIT_PROJECT` to point to a local checkout of the buildkit source.
+For example, if you were compiling on a linux host, you can run:
+
+    ./earthly +for-linux --BUILDKIT_PROJECT=$HOME/your/path/to/buildkit
+
+which will compile earthly against local changes to buildkit, without the need to commit them.
+
 ## Running buildkit under debug mode
 
 Buildkit's scheduler has a debug mode, which can be enabled with the following `~/.earthly/config.yml`[^dir] config:
