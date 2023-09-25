@@ -1533,7 +1533,7 @@ func (c *Converter) Cache(ctx context.Context, mountTarget string, opts commandf
 		mountOpts = append(mountOpts, llb.SourcePath("/cache"))
 		var mountMode int
 		if opts.Mode == "" {
-			mountMode = 0644
+			opts.Mode = "0644"
 		}
 		mountMode, err = ParseMode(opts.Mode)
 		if err != nil {
