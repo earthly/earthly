@@ -17,7 +17,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/earthly/earthly/analytics"
-	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/cmd/earthly/common"
@@ -30,6 +29,7 @@ import (
 )
 
 var runExitCodeRegexp = regexp.MustCompile(`did not complete successfully: exit code: [^0][0-9]*$`)
+var qemuExitCodeRegexp = regexp.MustCompile(`process "/dev/.buildkit_qemu_emulator.*?did not complete successfully: exit code: 255$`)
 
 func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogger, startTime time.Time, lastSignal os.Signal) int {
 	err := app.unhideFlags(ctx)
@@ -167,11 +167,6 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 	err := app.BaseCLI.App().RunContext(ctx, args)
 	if err != nil {
 		ie, isInterpreterError := earthfile2llb.GetInterpreterError(err)
-		var failedOutput string
-		var buildErr *builder.BuildError
-		if errors.As(err, &buildErr) {
-			failedOutput = buildErr.VertexLog()
-		}
 		if app.BaseCLI.Flags().Debug {
 			// Get the stack trace from the deepest error that has it and print it.
 			type stackTracer interface {
@@ -192,6 +187,16 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 		}
 
 		switch {
+		case qemuExitCodeRegexp.MatchString(err.Error()):
+			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
+			if app.BaseCLI.AnaMetaIsSat() {
+				app.BaseCLI.Console().DebugPrintf("Are you using --platform to target a different architecture? Please note that \"disable-emulation\" flag is set in your satellite.\n")
+			} else {
+				app.BaseCLI.Console().Printf(
+					"Are you using --platform to target a different architecture? You may have to manually install QEMU.\n" +
+						"For more information see https://docs.earthly.dev/guides/multi-platform\n")
+			}
+			return 255
 		case runExitCodeRegexp.MatchString(err.Error()):
 			// This error would have been displayed earlier from the SolverMonitor.
 			// This SetFatalError is a catch-all just in case that hasn't happened.
@@ -239,12 +244,6 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			app.BaseCLI.Console().Warnf("Error: %s responded with a rate limit error. This is usually because you are not logged in.\n"+
 				"You can login using the command:\n"+
 				"  docker login%s", registryName, registryHost)
-			return 1
-		case strings.Contains(failedOutput, "Invalid ELF image for this architecture"):
-			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
-			app.BaseCLI.Console().Printf(
-				"Are you using --platform to target a different architecture? You may have to manually install QEMU.\n" +
-					"For more information see https://docs.earthly.dev/guides/multi-platform\n")
 			return 1
 		case !app.BaseCLI.Flags().Verbose && cloud.RPCErrRegex.MatchString(err.Error()):
 			baseErr := errors.Cause(err)
