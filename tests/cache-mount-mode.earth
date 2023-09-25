@@ -1,8 +1,13 @@
 VERSION 0.7
 
+test-default:
+    FROM ubuntu:22.10
+    ARG mode
+    RUN --mount=type=cache,sharing=shared,target=/cache-folder \
+    stat -c '%A %n' /cache-folder
+
 test:
     FROM ubuntu:22.10
     ARG mode
     RUN --mount=type=cache,sharing=shared,mode=$mode,target=/cache-folder \
     stat -c '%A %n' /cache-folder
-

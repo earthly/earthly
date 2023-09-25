@@ -1371,7 +1371,7 @@ example:
 #### Synopsis
 
 * ```
-  CACHE [--sharing <sharing-mode>] <mountpoint>
+  CACHE [--sharing <sharing-mode>] [--mode <chmod>] <mountpoint>
   ```
 
 #### Description
@@ -1389,6 +1389,11 @@ The sharing mode for the cache mount, from one of the following:
 * `locked` (default) - the cache mount is locked for the duration of the execution, other concurrent builds will wait for the lock to be released.
 * `shared` - the cache mount is shared between all concurrent builds.
 * `private` - if another concurrent build attempts to use the cache, a new (empty) cache will be created for the concurrent build.
+
+##### `--mode <chmod>`
+
+The permission of the mounted folder, in octal format (the same format the chmod unix command line expects). 
+Default `--chmod 0644`
 
 ## LOCALLY
 

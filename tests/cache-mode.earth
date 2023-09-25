@@ -1,0 +1,13 @@
+VERSION 0.7
+
+test-default:
+    FROM ubuntu:22.10
+    ARG mode
+    CACHE /cache-folder
+    RUN stat -c '%A %n' /cache-folder
+
+test:
+    FROM ubuntu:22.10
+    ARG mode
+    CACHE --mode=$mode /cache-folder
+    RUN stat -c '%A %n' /cache-folder
