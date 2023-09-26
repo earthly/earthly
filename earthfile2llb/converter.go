@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/alessio/shellescape"
@@ -55,6 +56,7 @@ import (
 	solverpb "github.com/moby/buildkit/solver/pb"
 	"github.com/moby/buildkit/util/apicaps"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -92,6 +94,15 @@ const (
 	setCmd                               // "SET"
 	letCmd                               // "LET"
 )
+
+var (
+	forcedStatesMu sync.Mutex
+	forcedStates   map[string]*errgroup.Group
+)
+
+func init() {
+	forcedStates = map[string]*errgroup.Group{}
+}
 
 // Converter turns earthly commands to buildkit LLB representation.
 type Converter struct {
@@ -2203,22 +2214,38 @@ func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr 
 		// Scratch - no need to execute.
 		return nil
 	}
-	ref, err := llbutil.StateToRef(
-		ctx, c.opt.GwClient, state, c.opt.NoCache,
-		platr, c.opt.CacheImports.AsSlice())
-	if err != nil {
-		return errors.Wrap(err, "force execution state to ref")
+
+	// work-around for https://github.com/earthly/earthly/issues/2957
+	// we will only call forceExecution a single time
+	stateID := state.GetStatePointerAsString()
+	forcedStatesMu.Lock()
+	if eg, found := forcedStates[stateID]; found {
+		forcedStatesMu.Unlock()
+		//fmt.Printf("duplicated state in forceExecution found, waiting for initial forceExecution to complete\n")
+		return eg.Wait() // TODO also wait on caller's ctx here
 	}
-	if ref == nil {
+	eg := &errgroup.Group{}
+	forcedStates[stateID] = eg
+	eg.Go(func() error {
+		ref, err := llbutil.StateToRef(
+			ctx, c.opt.GwClient, state, c.opt.NoCache,
+			platr, c.opt.CacheImports.AsSlice())
+		if err != nil {
+			return errors.Wrap(err, "force execution state to ref")
+		}
+		if ref == nil {
+			return nil
+		}
+		// We're not really interested in reading the dir - we just
+		// want to un-lazy the ref so that the commands have executed.
+		_, err = ref.ReadDir(ctx, gwclient.ReadDirRequest{Path: "/"})
+		if err != nil {
+			return errors.Wrap(err, "unlazy force execution")
+		}
 		return nil
-	}
-	// We're not really interested in reading the dir - we just
-	// want to un-lazy the ref so that the commands have executed.
-	_, err = ref.ReadDir(ctx, gwclient.ReadDirRequest{Path: "/"})
-	if err != nil {
-		return errors.Wrap(err, "unlazy force execution")
-	}
-	return nil
+	})
+	forcedStatesMu.Unlock()
+	return eg.Wait()
 }
 
 func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, artifact domain.Artifact) ([]byte, error) {
