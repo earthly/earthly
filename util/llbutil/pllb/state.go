@@ -158,7 +158,7 @@ func (s State) AddExtraHost(hostname string, ip net.IP) State {
 
 // GetStatePointerAsString returns the address of the wrapped state as a pointer, it is used for deduplication
 func (s State) GetStatePointerAsString() string {
-	return fmt.Sprintf("%p", s.st)
+	return fmt.Sprintf("%p", &s.st)
 }
 
 // ExecState is a wrapper around llb.ExecState.

@@ -2209,6 +2209,25 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 	return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=+secrets/<secret-id> or <secret-id>", secretKeyValue)
 }
 
+// errGroupOrCtx will wait for all funcs to complete, and then returns the first non-nil error (if any), or
+// will return prematurely if the context expires. This is different from errgroup.WithContext (which does not return prematurely)
+func errGroupOrCtx(ctx context.Context, fns ...func() error) error {
+	var eg errgroup.Group
+	for _, fn := range fns {
+		eg.Go(fn)
+	}
+	egDone := make(chan error)
+	go func() {
+		egDone <- eg.Wait()
+	}()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err := <-egDone:
+		return err
+	}
+}
+
 func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr *platutil.Resolver) error {
 	if state.Output() == nil {
 		// Scratch - no need to execute.
@@ -2222,7 +2241,7 @@ func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr 
 	if eg, found := forcedStates[stateID]; found {
 		forcedStatesMu.Unlock()
 		//fmt.Printf("duplicated state in forceExecution found, waiting for initial forceExecution to complete\n")
-		return eg.Wait() // TODO also wait on caller's ctx here
+		return errGroupOrCtx(ctx, eg.Wait)
 	}
 	eg := &errgroup.Group{}
 	forcedStates[stateID] = eg
