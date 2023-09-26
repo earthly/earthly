@@ -1427,14 +1427,21 @@ test-reserved-label:
 test-cache-mount-mode:
   DO +RUN_EARTHLY \
       --earthfile=cache-mount-mode.earth \
-      --target=+test \
+      --target=+test-chmod \
       --post_command="--mode=0004 " \
       --should_fail=false \
       --output_contains="d------r-- /cache-folder"
 
   DO +RUN_EARTHLY \
       --earthfile=cache-mount-mode.earth \
-      --target=+test \
+      --target=+test-chmod \
+      --post_command="--mode=0777 " \
+      --should_fail=false \
+      --output_contains="drwxrwxrwx /cache-folder"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-mount-mode.earth \
+      --target=+test-mode \
       --post_command="--mode=0777 " \
       --should_fail=false \
       --output_contains="drwxrwxrwx /cache-folder"

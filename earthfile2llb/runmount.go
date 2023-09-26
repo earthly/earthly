@@ -85,14 +85,14 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 			// if err != nil {
 			// 	return nil, errors.Errorf("invalid mount arg %s", kvPair)
 			// }
-		case "mode":
+		case "mode", "chmod":
 			if len(kvSplit) != 2 {
 				return nil, errors.Errorf("invalid mount arg %s", kvPair)
 			}
 			var err error
 			mountMode, err = ParseMode(kvSplit[1])
 			if err != nil {
-				return nil, errors.Errorf("failed to parse mount mode %s", kvSplit[1])
+				return nil, errors.Errorf("failed to parse mount %s %s", kvSplit[0], kvSplit[1])
 			}
 		case "sharing":
 			if len(kvSplit) != 2 {

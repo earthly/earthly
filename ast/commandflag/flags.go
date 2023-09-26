@@ -138,5 +138,5 @@ type PipelineOpts struct {
 
 type CacheOpts struct {
 	Sharing string `long:"sharing" description:"The cache sharing mode: locked (default), shared, private"`
-	Mode    string `long:"mode" description:"Apply a mode to the cache folder" default:"0644"`
+	Mode    string `long:"chmod" description:"Apply a mode to the cache folder" default:"0644"`
 }

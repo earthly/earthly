@@ -8,5 +8,5 @@ test-default:
 test:
     FROM ubuntu:22.10
     ARG mode
-    CACHE --mode=$mode /cache-folder
+    CACHE --chmod=$mode /cache-folder
     RUN stat -c '%A %n' /cache-folder
