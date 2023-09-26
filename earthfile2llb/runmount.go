@@ -85,14 +85,14 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 			// if err != nil {
 			// 	return nil, errors.Errorf("invalid mount arg %s", kvPair)
 			// }
-		case "mode":
+		case "mode", "chmod":
 			if len(kvSplit) != 2 {
 				return nil, errors.Errorf("invalid mount arg %s", kvPair)
 			}
 			var err error
-			mountMode, err = parseMode(kvSplit[1])
+			mountMode, err = ParseMode(kvSplit[1])
 			if err != nil {
-				return nil, errors.Errorf("failed to parse mount mode %s", kvSplit[1])
+				return nil, errors.Errorf("failed to parse mount %s %s", kvSplit[0], kvSplit[1])
 			}
 		case "sharing":
 			if len(kvSplit) != 2 {
@@ -142,6 +142,9 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 		if err != nil {
 			return nil, err
 		}
+		if mountMode == 0 {
+			mountMode = 0644
+		}
 		cachePath := path.Join("/run/cache", key, mountID)
 		mountOpts = append(mountOpts, llb.AsPersistentCacheDir(cachePath, sharingMode))
 		state = c.cacheContext
@@ -189,7 +192,7 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 
 var errInvalidOctal = errors.New("invalid octal")
 
-func parseMode(s string) (int, error) {
+func ParseMode(s string) (int, error) {
 	if len(s) == 0 || s[0] != '0' {
 		return 0, errInvalidOctal
 	}

@@ -121,10 +121,11 @@ ga-no-qemu-quick:
     BUILD +pass-args-test
     BUILD +test-reserved-label
     BUILD +test-cache-mount-mode
+    BUILD +test-cache-mode
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
-    # (with the last SAVE IMAGE command taking presidence)
+    # (with the last SAVE IMAGE command taking precedence)
     # Earthly, when using the wait-end feature, will return an error for such cases.
     # As a result, the following tests are incompatible with WAIT/END block.
     # Once version 0.7 is released AND support for 0.6 has been dropped,
@@ -1426,17 +1427,51 @@ test-reserved-label:
 test-cache-mount-mode:
   DO +RUN_EARTHLY \
       --earthfile=cache-mount-mode.earth \
-      --target=+test \
-      --post_command="--mode=0004 "\
+      --target=+test-chmod \
+      --post_command="--mode=0004 " \
       --should_fail=false \
       --output_contains="d------r-- /cache-folder"
 
   DO +RUN_EARTHLY \
       --earthfile=cache-mount-mode.earth \
-      --target=+test \
-      --post_command="--mode=0777 "\
+      --target=+test-chmod \
+      --post_command="--mode=0777 " \
       --should_fail=false \
       --output_contains="drwxrwxrwx /cache-folder"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-mount-mode.earth \
+      --target=+test-mode \
+      --post_command="--mode=0777 " \
+      --should_fail=false \
+      --output_contains="drwxrwxrwx /cache-folder"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-mount-mode.earth \
+      --target=+test-default \
+      --should_fail=false \
+      --output_contains="drw-r--r-- /cache-folder"
+
+test-cache-mode:
+  DO +RUN_EARTHLY \
+      --earthfile=cache-mode.earth \
+      --target=+test \
+      --post_command="--mode=0004 " \
+      --should_fail=false \
+      --output_contains="d------r-- /cache-folder"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-mode.earth \
+      --target=+test \
+      --post_command="--mode=0777 " \
+      --should_fail=false \
+      --output_contains="drwxrwxrwx /cache-folder"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-mode.earth \
+      --target=+test-default \
+      --should_fail=false \
+      --output_contains="drw-r--r-- /cache-folder"
 
 RUN_EARTHLY:
     COMMAND

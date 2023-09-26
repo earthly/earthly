@@ -242,7 +242,7 @@ earthly +release --SECRET_ID=""
 earthly +release-short --SECRET_ID=""
 ```
 
-It is also possible to mount a secret as a file with `RUN --mount type=secret,id=secret-id,target=/path/of/secret,mode=0400`. See `--mount` below.
+It is also possible to mount a secret as a file with `RUN --mount type=secret,id=secret-id,target=/path/of/secret,chmod=0400`. See `--mount` below.
 
 For more information on how to use secrets see the [build arguments and secrets guide](../guides/build-args.md). See also the [Cloud secrets guide](../cloud/cloud-secrets.md).
 
@@ -270,12 +270,12 @@ Mounts a file or directory in the context of the build environment.
 
 The `<mount-spec>` is defined as a series of comma-separated list of key-values. The following keys are allowed
 
-| Key | Description | Example |
-| --- | --- | --- |
-| `type` | The type of the mount. Currently only `cache`, `tmpfs`, and `secret` are allowed. | `type=cache` |
-| `target` | The target path for the mount. | `target=/var/lib/data` |
-| `mode` | The permission of the mounted file, in octal format (the same format the chmod unix command line expects). | `mode=0400` |
-| `id` | The secret ID for the contents of the `target` file, only applicable for `type=secret`. | `id=my-password` |
+| Key       | Description | Example |
+|-----------| --- | --- |
+| `type`    | The type of the mount. Currently only `cache`, `tmpfs`, and `secret` are allowed. | `type=cache` |
+| `target`  | The target path for the mount. | `target=/var/lib/data` |
+| `mode`, `chmod`   | The permission of the mounted file, in octal format (the same format the chmod unix command line expects). | `chmod=0400` |
+| `id`      | The secret ID for the contents of the `target` file, only applicable for `type=secret`. | `id=my-password` |
 | `sharing` | The sharing mode (`locked`, `shared`, `private`) for the cache mount, only applicable for `type=cache`. | `sharing=shared` |
 
 For cache mounts, the sharing mode can be one of the following:
@@ -407,9 +407,9 @@ Instructs Earthly to not overwrite the file creation timestamps with a constant.
 
 Instructs Earthly to keep file ownership information. This applies only to the *artifact form* and has no effect otherwise.
 
-##### `--chmod <mode>`
+##### `--chmod <octal-format>`
 
-Instructs Earthly to change the file permissions of the copied files. The `<mode>` needs to be in octal format, e.g. `--chmod 0755` or `--chmod 755`.
+Instructs Earthly to change the file permissions of the copied files. The `<chmod>` needs to be in octal format, e.g. `--chmod 0755` or `--chmod 755`.
 
 {% hint style='info' %}
 Note that you must include the flag in the corresponding `SAVE ARTIFACT --keep-own ...` command, if using *artifact form*.
@@ -1371,7 +1371,7 @@ example:
 #### Synopsis
 
 * ```
-  CACHE [--sharing <sharing-mode>] <mountpoint>
+  CACHE [--sharing <sharing-mode>] [--chmod <octal-format>] <mountpoint>
   ```
 
 #### Description
@@ -1389,6 +1389,11 @@ The sharing mode for the cache mount, from one of the following:
 * `locked` (default) - the cache mount is locked for the duration of the execution, other concurrent builds will wait for the lock to be released.
 * `shared` - the cache mount is shared between all concurrent builds.
 * `private` - if another concurrent build attempts to use the cache, a new (empty) cache will be created for the concurrent build.
+
+##### `--chmod <octal-format>`
+
+The permission of the mounted folder, in octal format (the same format the chmod unix command line expects). 
+Default `--chmod 0644`
 
 ## LOCALLY
 
