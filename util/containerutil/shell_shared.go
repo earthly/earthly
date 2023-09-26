@@ -327,6 +327,8 @@ func (sf *shellFrontend) setupAndValidateAddresses(feType string, cfg *FrontendC
 			cfg.Console.VerbosePrintf("Local registry host is specified while using remote buildkit. Local registry will not be used.")
 		}
 	}
+
+	fmt.Println("LOCAL REG URL:", lrURL)
 	return &FrontendURLs{
 		BuildkitHost:      bkURL,
 		LocalRegistryHost: lrURL,

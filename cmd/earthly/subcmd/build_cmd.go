@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -16,6 +17,7 @@ import (
 	"github.com/earthly/earthly/cmd/earthly/flag"
 	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/docker2earthly"
+	"github.com/earthly/earthly/regproxy"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
@@ -579,14 +581,50 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return fmt.Errorf("configuration error: \"conversion_parallelism\" must be larger than zero")
 	}
 	parallelism := semutil.NewWeighted(int64(a.cli.Cfg().Global.ConversionParallelism))
+
 	localRegistryAddr := ""
 	if isLocal && a.cli.Flags().LocalRegistryHost != "" {
-		lrURL, err := url.Parse(a.cli.Flags().LocalRegistryHost)
+		u, err := url.Parse(a.cli.Flags().LocalRegistryHost)
 		if err != nil {
 			return errors.Wrapf(err, "parse local registry host %s", a.cli.Flags().LocalRegistryHost)
 		}
-		localRegistryAddr = lrURL.Host
+		localRegistryAddr = u.Host
 	}
+
+	fmt.Println("LOCAL", localRegistryAddr)
+
+	// A remote BK registry can be used by proxying requests to localhost.
+	if a.cli.Flags().UseRemoteRegistry {
+		port := 8888 // TODO: Make this a flag or env?
+		addr := fmt.Sprintf("localhost:%d", port)
+
+		p := regproxy.NewRegistryProxy(bkclient.RegistryClient())
+
+		a.cli.Console().Printf("Starting local registry proxy: %s", addr)
+
+		regProxy := &http.Server{
+			Addr:    addr,
+			Handler: p,
+		}
+
+		// TODO: Is there a better way to deal with errors?
+
+		go func() {
+			err := regProxy.ListenAndServe()
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				a.cli.Console().Warnf("Failed to start registry proxy: %v", err)
+			}
+		}()
+
+		defer func() {
+			ctx := context.Background()
+			err := regProxy.Shutdown(ctx)
+			if err != nil {
+				a.cli.Console().Warnf("Failed to shutdown registry proxy: %v", err)
+			}
+		}()
+	}
+
 	var logbusSM *solvermon.SolverMonitor
 	if a.cli.Flags().Logstream {
 		logbusSM = a.cli.LogbusSetup().SolverMonitor
