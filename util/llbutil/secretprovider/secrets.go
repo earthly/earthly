@@ -37,14 +37,14 @@ func (sp *secretProvider) GetSecret(ctx context.Context, req *secrets.GetSecretR
 			if errors.Is(err, secrets.ErrNotFound) || errors.Is(err, cloud.ErrNotFound) {
 				continue
 			}
-			return nil, err
+			return nil, errors.WithStack(errors.Wrapf(err, "unable to lookup secret %s (id=%s)", v.Get("name"), req.ID))
 		}
 		return &secrets.GetSecretResponse{
 			Data: data,
 		}, nil
 	}
 
-	return nil, errors.WithStack(errors.Wrapf(secrets.ErrNotFound, "unable to lookup secret %s", v.Get("name")))
+	return nil, errors.WithStack(errors.Wrapf(secrets.ErrNotFound, "unable to lookup secret %s (id=%s)", v.Get("name"), req.ID))
 }
 
 // New returns a new secrets provider which looks up secrets
