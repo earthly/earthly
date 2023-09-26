@@ -8,22 +8,22 @@
   prHourlyLimit: 1,
   prConcurrentLimit: 3,
   includePaths: [
-    'docs/**', '.github/'
+    'docs/**',
+    '.github/',
   ],
   enabledManagers: [
     'regex',
   ],
-  regexManagers: [
+  customManagers: [
     {
-      // Earthly Version in md files
       customType: 'regex',
       fileMatch: [
-        '.+\.md',
+        '.+.md',
       ],
       matchStrings: [
         'earthly/releases/download/(?<currentValue>.+?)/',
         '- uses: earthly/actions/setup-earthly@.*?[\\s\\n]+.*?[\\s\\n]+with:[\\s\\n]*version: (?<currentValue>.+?)[\\s\\n/]+',
-        '\'earthly/earthly:(?<currentValue>.+?)\'',
+        "'earthly/earthly:(?<currentValue>.+?)'",
         'github.com/earthly/earthly:(?<currentValue>.+?)(\\+|`)',
         '(:|\\s+)earthly/earthly:(?<currentValue>.+?)[\\s\\n/]+',
         '\\* `(?<currentValue>.+?)`, `latest`',
@@ -37,9 +37,15 @@
   ],
   packageRules: [
     {
-      matchPackageNames: ['earthly/earthly'],
-      matchDatasources: ['github-releases'],
-      addLabels: ['earthly-version-in-docs'],
+      matchPackageNames: [
+        'earthly/earthly',
+      ],
+      matchDatasources: [
+        'github-releases',
+      ],
+      addLabels: [
+        'earthly-version-in-docs',
+      ],
     },
   ],
 }
