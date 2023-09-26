@@ -122,6 +122,7 @@ ga-no-qemu-quick:
     BUILD +test-reserved-label
     BUILD +test-cache-mount-mode
     BUILD +test-cache-mode
+    BUILD +test-unsafe-cache
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -1472,6 +1473,12 @@ test-cache-mode:
       --target=+test-default \
       --should_fail=false \
       --output_contains="drw-r--r-- /cache-folder"
+
+test-unsafe-cache:
+  DO +RUN_EARTHLY \
+      --earthfile=unsafe-cache.earth \
+      --target=+test \
+      --should_fail=false
 
 RUN_EARTHLY:
     COMMAND
