@@ -161,10 +161,11 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 		mountOpts = append(mountOpts, llb.Tmpfs())
 		return []llb.RunOption{pllb.AddMount(mountTarget, state, mountOpts...)}, nil
 	case "ssh-experimental":
-		if mountID == "" {
-			mountID = path.Clean(mountTarget)
+		sshID := mountID
+		if sshID == "" {
+			sshID = path.Clean(mountTarget)
 		}
-		sshOpts := []llb.SSHOption{llb.SSHID(mountID)}
+		sshOpts := []llb.SSHOption{llb.SSHID(sshID)}
 		if mountTarget != "" {
 			sshOpts = append(sshOpts, llb.SSHSocketTarget(mountTarget))
 		}
@@ -181,10 +182,11 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 			//       buildkit side. Then we wouldn't need to open this up to everyone.
 			mountMode = 0444
 		}
-		if mountID == "" {
-			mountID = path.Clean(mountTarget)
+		secretID := mountID
+		if secretID == "" {
+			secretID = path.Clean(mountTarget)
 		}
-		secretName := strings.TrimPrefix(mountID, "+secrets/")
+		secretName := strings.TrimPrefix(secretID, "+secrets/")
 		secretOpts := []llb.SecretOption{
 			llb.SecretID(c.secretID(secretName)),
 			llb.SecretFileOpt(0, 0, mountMode),
