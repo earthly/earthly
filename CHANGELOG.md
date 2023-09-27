@@ -26,6 +26,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Satellite reserve calls will now retry on error [#3255](https://github.com/earthly/earthly/issues/3255).
 - Display warning when TLS is disabled.
 
+### Additional Info
+- This release has no changes to buildkit
+
 ## v0.7.18 - 2023-09-18 (aborted release/not recommended)
 <!--changelog-parser-ignore-start-->
 Note: This release was aborted due to a regression in the log sharing functionality

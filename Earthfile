@@ -300,6 +300,7 @@ changelog:
 
 lint-changelog:
     FROM python:3
+    RUN pip install packaging
     COPY release/changelogparser.py /usr/bin/changelogparser
     COPY CHANGELOG.md .
     RUN changelogparser --changelog CHANGELOG.md
