@@ -73,6 +73,7 @@ func ConnectTerm(ctx context.Context, conn io.ReadWriteCloser, console consloggi
 				buf, err := common.SerializeDataPacket(common.PtyData, []byte{common.EOT})
 				if err != nil {
 					console.VerbosePrintf("failed to serialize: %s\n", err.Error())
+					break outer
 				}
 				writeCh <- buf
 				err = ts.restore()
