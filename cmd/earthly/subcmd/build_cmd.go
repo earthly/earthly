@@ -617,9 +617,8 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		}()
 
 		defer func() {
-			ctx := context.Background()
-			err := regProxy.Shutdown(ctx)
-			if err != nil {
+			err := regProxy.Shutdown(cliCtx.Context)
+			if err != nil && !errors.Is(err, context.Canceled) {
 				a.cli.Console().Warnf("Failed to shutdown registry proxy: %v", err)
 			}
 		}()
