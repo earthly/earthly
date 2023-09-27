@@ -55,8 +55,10 @@ func ConnectTerm(ctx context.Context, conn io.ReadWriteCloser, console consloggi
 		for {
 			connDataType, data, err := common.ReadDataPacket(conn)
 			if err != nil {
-				console.VerbosePrintf("ReadDataPacket failed: %s\n", err.Error())
-				break
+				if err != io.EOF {
+					console.VerbosePrintf("ReadDataPacket failed: %s\n", err.Error())
+				}
+				break outer
 			}
 			switch connDataType {
 			case common.StartShellSession:
@@ -68,11 +70,16 @@ func ConnectTerm(ctx context.Context, conn io.ReadWriteCloser, console consloggi
 				}
 				sigs <- syscall.SIGWINCH
 			case common.EndShellSession:
-				err := ts.restore()
+				buf, err := common.SerializeDataPacket(common.PtyData, []byte{common.EOT})
+				if err != nil {
+					console.VerbosePrintf("failed to serialize: %s\n", err.Error())
+				}
+				writeCh <- buf
+				err = ts.restore()
 				if err != nil {
 					console.VerbosePrintf("restore failed: %s\n", err.Error())
-					break outer
 				}
+				break outer
 			case common.PtyData:
 				err := handlePtyData(data)
 				if err != nil {

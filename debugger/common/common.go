@@ -43,6 +43,9 @@ const (
 
 	// WinSizeData identifies the terminal window data payload packet
 	WinSizeData = 0x04
+
+	// EOT identifies End of Transmission sent as a data payload
+	EOT = 0x04
 )
 
 // End of network protocol magic numbers

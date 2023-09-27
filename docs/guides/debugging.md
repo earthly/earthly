@@ -37,15 +37,19 @@ print(text_model.make_sentence())
 Now we can run it with `earthly +test`, and we'll see a failure has occurred:
 
 ```
-=========================== FAILURE ===========================
+================================== ❌ FAILURE ===================================
+
++test *failed* | Repeating the failure error...
 +test *failed* | --> RUN python3 generate_phrase.py
 +test *failed* | Traceback (most recent call last):
-+test *failed* |   File "generate_phrase.py", line 3, in <module>
++test *failed* |   File "/code/generate_phrase.py", line 4, in <module>
 +test *failed* |     text = open('sherlock.txt').read()
++test *failed* |            ^^^^^^^^^^^^^^^^^^^^
 +test *failed* | FileNotFoundError: [Errno 2] No such file or directory: 'sherlock.txt'
-+test *failed* | Command /bin/sh -c python3 generate_phrase.py failed with exit code 1
-+test *failed* | +test *failed* | ERROR: Command exited with non-zero code: RUN python3 generate_phrase.py
-Error: solve side effects: solve: failed to solve: rpc error: code = Unknown desc = executor failed running [/bin/sh -c  /usr/bin/earth_debugger /bin/sh -c 'python3 generate_phrase.py']: buildkit-runc did not terminate successfully
++test *failed* | ERROR Earthfile line 72:2
++test *failed* |       The command
++test *failed* |           RUN python3 generate_phrase.py
++test *failed* |       did not complete successfully. Exit code 1
 ```
 
 Why can't it find the sherlock.txt file? Let's re-run `earthly` with the `--interactive` (or `-i`) flag: `earthly -i +test`
@@ -55,12 +59,15 @@ This time we see a slightly different message:
 ```
 +test | --> RUN python3 generate_phrase.py
 +test | Traceback (most recent call last):
-+test |   File "generate_phrase.py", line 3, in <module>
++test |   File "/code/generate_phrase.py", line 4, in <module>
 +test |     text = open('sherlock.txt').read()
++test |            ^^^^^^^^^^^^^^^^^^^^
 +test | FileNotFoundError: [Errno 2] No such file or directory: 'sherlock.txt'
-+test | Command /bin/sh -c python3 generate_phrase.py failed with exit code 1
-+test | Entering interactive debugger (**Warning: only a single debugger per host is supported**)
-+test | root@buildkitsandbox:/code#
++test | earthly debugger | Command /bin/sh -c 'python3 generate_phrase.py' failed with exit code 1
++test | Entering interactive debugger
++test | 
+
+root@buildkitsandbox:/code# 
 ```
 
 This time rather than exiting, earthly will drop us into an interactive root shell within the container of the build environment.
@@ -88,9 +95,11 @@ I struck him down with the servants and with the lantern and left a fragment in 
 At this point we know what needs to be done to fix the test, so we can type exit (or ctrl-D), to exit the interactive shell.
 
 ```
-+test | time="2020-09-16T22:23:53Z" level=error msg="failed to read from ptmx: read /dev/ptmx: input/output error"
-+test | time="2020-09-16T22:23:53Z" level=error msg="failed to read data from conn: read tcp 127.0.0.1:36672->127.0.0.1:5000: use of closed network connection"
-+test | ERROR: Command exited with non-zero code: RUN python3 generate_phrase.py
++test *failed* | Entering interactive debugger
++test *failed* |                +test *failed* | ERROR Earthfile line 72:2
++test *failed* |       The command
++test *failed* |           RUN python3 generate_phrase.py
++test *failed* |       did not complete successfully. Exit code 1
 ```
 
 Note that even though we fixed the problem during debugging, the image will not have been saved, so we must go back to our Earthfile and fix the problem there:

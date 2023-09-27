@@ -10,6 +10,8 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/earthly/earthly/conslogging"
@@ -19,7 +21,7 @@ import (
 	"github.com/alessio/shellescape"
 	"github.com/creack/pty"
 	"github.com/fatih/color"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -100,7 +102,7 @@ func sendFile(ctx context.Context, sockAddr, src, dst string) error {
 	defer func() {
 		err := conn.Close()
 		if err != nil {
-			log.Error(errors.Wrap(err, "error closing"))
+			log.Error(errors.Wrap(err, "earthly debugger: error closing"))
 		}
 	}()
 
@@ -140,7 +142,7 @@ func sendFile(ctx context.Context, sockAddr, src, dst string) error {
 	return common.WriteUint16PrefixedData(conn, nil)
 }
 
-func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder func() (*exec.Cmd, error)) error {
+func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder func() (*exec.Cmd, error), console conslogging.ConsoleLogger) error {
 	log := slog.GetLogger(ctx)
 
 	conn, err := net.Dial("unix", remoteConsoleAddr)
@@ -150,7 +152,7 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 	defer func() {
 		err := conn.Close()
 		if err != nil {
-			log.Error(errors.Wrap(err, "error closing"))
+			log.Error(errors.Wrap(err, "earthly debugger: error closing"))
 		}
 	}()
 
@@ -166,46 +168,57 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 
 	ptmx, err := pty.Start(c)
 	if err != nil {
-		log.Error(errors.Wrap(err, "failed to start pty"))
+		console.VerbosePrintf("failed to start pty: %v\n", err)
 		return err
 	}
 	defer func() { _ = ptmx.Close() }() // Best effort.
 
 	ctx, cancel := context.WithCancel(ctx)
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		defer cancel()
-		for {
+		done := false
+		for !done {
 			connDataType, data, err := common.ReadDataPacket(conn)
 			if err != nil {
-				log.Error(errors.Wrap(err, "failed to read data from conn"))
+				console.VerbosePrintf("failed to read data from conn\n")
 				return
 			}
 			switch connDataType {
 			case common.PtyData:
+				done = len(data) == 1 && data[0] == common.EOT
 				err = handlePtyData(ptmx, data)
 				if err != nil {
-					log.Error(errors.Wrap(err, "failed to handle pty data"))
+					console.VerbosePrintf("failed to handle pty data: %v\n", err)
 					return
 				}
 			case common.WinSizeData:
 				err = handleWinChangeData(ptmx, data)
 				if err != nil {
-					log.Error(errors.Wrap(err, "failed to handle win change data"))
+					console.VerbosePrintf("failed to handle win change data: %v\n", err)
 					return
 				}
 			default:
-				log.With("datatype", connDataType).Warning("unhandled data type")
+				console.VerbosePrintf("unhandled data type (%v)\n", connDataType)
 			}
 		}
 	}()
+
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		defer cancel()
 		initialData := true
 		for {
 			buf := make([]byte, 100)
 			n, err := ptmx.Read(buf)
 			if err != nil {
-				log.Error(errors.Wrap(err, "failed to read from ptmx"))
+				if errors.Unwrap(err) != syscall.EIO {
+					console.VerbosePrintf("failed to read from ptmx: %v\n", err)
+				}
 				return
 			}
 			buf = buf[:n]
@@ -215,7 +228,7 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 			}
 			err = common.WriteDataPacket(conn, common.PtyData, buf)
 			if err != nil {
-				log.Error(errors.Wrap(err, "failed to write data to conn"))
+				console.VerbosePrintf("failed to write data to conn: %v\n", err)
 				return
 			}
 		}
@@ -223,7 +236,9 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 
 	var waitErr error
 	var waitErrSet bool
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		waitErr = c.Wait()
 		waitErrSet = true
 		cancel()
@@ -235,6 +250,8 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 	if err != nil {
 		return errors.Wrap(err, "failed to send end shell session")
 	}
+
+	wg.Wait()
 
 	if !waitErrSet {
 		return errInteractiveModeWaitFailed
@@ -268,7 +285,9 @@ func main() {
 		forceInteractive = true
 	}
 
-	conslogger := conslogging.Current(conslogging.ForceColor, conslogging.NoPadding, conslogging.Info)
+	conslogger := conslogging.Current(conslogging.ForceColor, conslogging.NoPadding, conslogging.Debug).
+		WithPrefix("earthly debugger")
+
 	color.NoColor = false
 
 	debuggerSettings, err := getSettings(fmt.Sprintf("/run/secrets/%s", common.DebuggerSettingsSecretsKey))
@@ -305,9 +324,9 @@ func main() {
 		}
 
 		exitCode := 0
-		err = interactiveMode(ctx, debuggerSettings.SocketPath, cmdBuilder)
+		err = interactiveMode(ctx, debuggerSettings.SocketPath, cmdBuilder, conslogger)
 		if err != nil {
-			log.Error(err)
+			conslogger.VerbosePrintf("%v\n", err)
 			if exitErr, ok := err.(*exec.ExitError); ok {
 				exitCode = exitErr.ExitCode()
 			} else {
@@ -320,7 +339,7 @@ func main() {
 		os.Exit(exitCode)
 	}
 
-	log.With("command", args).With("version", Version).Debug("running command")
+	log.With("command", args).With("version", Version).Debug("earthly-debugger: running command")
 
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Stdout = os.Stdout
@@ -359,13 +378,13 @@ func main() {
 				if !ok {
 					return nil, ErrNoShellFound
 				}
-				log.With("shell", shellPath).Debug("found shell")
+				log.With("shell", shellPath).Debug("earthly debugger: found shell")
 				return exec.Command(shellPath), nil
 			}
 
-			err = interactiveMode(ctx, debuggerSettings.SocketPath, cmdBuilder)
+			err = interactiveMode(ctx, debuggerSettings.SocketPath, cmdBuilder, conslogger)
 			if err != nil {
-				log.Error(err)
+				conslogger.VerbosePrintf("%v\n", err)
 			}
 		}
 
