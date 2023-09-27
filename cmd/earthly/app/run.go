@@ -31,8 +31,7 @@ import (
 var (
 	runExitCodeRegex  = regexp.MustCompile(`did not complete successfully: exit code: [^0][0-9]*($|[\n\t]+in\s+.*?\+.+)`)
 	notFoundRegex     = regexp.MustCompile(`("[^"]*"): not found`)
-	rpcRegex          = regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
-  qemuExitCodeRegex = regexp.MustCompile(`process "/dev/.buildkit_qemu_emulator.*?did not complete successfully: exit code: 255$`)
+  	qemuExitCodeRegex = regexp.MustCompile(`process "/dev/.buildkit_qemu_emulator.*?did not complete successfully: exit code: 255$`)
 )
 func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogger, startTime time.Time, lastSignal os.Signal) int {
 	err := app.unhideFlags(ctx)
