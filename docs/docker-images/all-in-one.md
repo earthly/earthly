@@ -2,7 +2,7 @@ This image contains `earthly`, `buildkit`, and some extra configuration to enabl
 
 ## Tags
 
-Currently, the `latest` tag is :`v0.7.19`
+Currently, the `latest` tag is `v0.7.19`.
 For other available tags, please check out https://hub.docker.com/r/earthly/earthly/tags
 
 ## Quickstart
