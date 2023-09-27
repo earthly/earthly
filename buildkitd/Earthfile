@@ -5,7 +5,7 @@ FROM alpine:3.18
 buildkitd:
     ARG BUILDKIT_PROJECT
     IF [ "$BUILDKIT_PROJECT" != "" ]
-        IF case "$BUILDKIT_PROJECT" in "../*") true;; *) false;; esac
+        IF case "$BUILDKIT_PROJECT" in ../*) true;; *) false;; esac
             # Assuming this is coming from the main Earthly Earthfile.
             ARG BUILDKIT_BASE_IMAGE=../$BUILDKIT_PROJECT+build
         ELSE
