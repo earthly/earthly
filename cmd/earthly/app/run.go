@@ -31,8 +31,9 @@ import (
 var (
 	runExitCodeRegex  = regexp.MustCompile(`did not complete successfully: exit code: [^0][0-9]*($|[\n\t]+in\s+.*?\+.+)`)
 	notFoundRegex     = regexp.MustCompile(`("[^"]*"): not found`)
-  	qemuExitCodeRegex = regexp.MustCompile(`process "/dev/.buildkit_qemu_emulator.*?did not complete successfully: exit code: 255$`)
+	qemuExitCodeRegex = regexp.MustCompile(`process "/dev/.buildkit_qemu_emulator.*?did not complete successfully: exit code: 255$`)
 )
+
 func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogger, startTime time.Time, lastSignal os.Signal) int {
 	err := app.unhideFlags(ctx)
 	if err != nil {
@@ -308,11 +309,12 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			return 1
 		default:
 			if app.BaseCLI.CommandName() == "build" {
+				app.BaseCLI.Console().VerboseWarnf("Error: %v\n", err)
 				app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
 			} else {
 				app.BaseCLI.Logbus().Run().SkipFatalError()
+				app.BaseCLI.Console().Warnf("Error: %v\n", err)
 			}
-			app.BaseCLI.Console().VerboseWarnf("Error: %v\n", err)
 			return 1
 		}
 	}
