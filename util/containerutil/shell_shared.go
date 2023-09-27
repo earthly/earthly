@@ -328,7 +328,6 @@ func (sf *shellFrontend) setupAndValidateAddresses(feType string, cfg *FrontendC
 		}
 	}
 
-	fmt.Println("LOCAL REG URL:", lrURL)
 	return &FrontendURLs{
 		BuildkitHost:      bkURL,
 		LocalRegistryHost: lrURL,

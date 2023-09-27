@@ -1,14 +1,14 @@
 package regproxy
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/httputil"
 	"strconv"
+	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	registry "github.com/moby/buildkit/api/services/registry"
 	"google.golang.org/grpc/metadata"
 )
@@ -24,120 +24,81 @@ type RegistryProxy struct {
 }
 
 func (r *RegistryProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	err := r.serveDirect(w, req)
+	err := r.serve(w, req)
 	if err != nil {
-		fmt.Println(err)
 		http.Error(w, err.Error(), statusInternal)
 	}
 }
 
-func (r *RegistryProxy) serveDirect(w http.ResponseWriter, req *http.Request) error {
+func parseHeader(r io.Reader) (status int, header http.Header, err error) {
+	sc := bufio.NewScanner(r)
+	header = http.Header{}
 
-	fmt.Println("ORIG REQ")
-	data, _ := httputil.DumpRequest(req, true)
-	fmt.Println(string(data))
-
-	u := "http://localhost:8371" + req.URL.Path
-
-	out, err := http.NewRequestWithContext(req.Context(), req.Method, u, req.Body)
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+	for sc.Scan() {
+		line := sc.Text()
+		if line == "" {
+			break
+		}
+		if strings.Contains(line, "HTTP/") {
+			parts := strings.Split(line, " ")
+			if len(parts) < 2 {
+				err = errors.New("invalid status line")
+			}
+			status, err = strconv.Atoi(parts[1])
+			if err != nil {
+				return
+			}
+			continue
+		}
+		parts := strings.Split(line, ": ")
+		if len(parts) < 2 {
+			err = errors.New("invalid header format")
+			return
+		}
+		header.Add(parts[0], parts[1])
 	}
 
-	for key := range req.Header {
-		out.Header.Set(key, req.Header.Get(key))
-	}
+	err = sc.Err()
 
-	fmt.Println("PROXY REQ")
-	data, _ = httputil.DumpRequestOut(out, true)
-	fmt.Println(string(data))
-
-	res, err := http.DefaultClient.Do(out)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	data, _ = httputil.DumpResponse(res, true)
-	fmt.Println(string(data))
-
-	w.WriteHeader(res.StatusCode)
-
-	for key := range res.Header {
-		w.Header().Set(key, res.Header.Get(key))
-	}
-
-	_, err = io.Copy(w, res.Body)
-	if err != nil {
-		return fmt.Errorf("failed to write response: %w", err)
-	}
-
-	return nil
+	return
 }
 
 func (r *RegistryProxy) serve(w http.ResponseWriter, req *http.Request) error {
 
-	data, _ := httputil.DumpRequest(req, true)
-	fmt.Println(string(data))
-
-	head := map[string]string{}
-	for key := range req.Header {
-		head[key] = req.Header.Get(key)
-	}
-
-	out := &registry.RegistryRequest{
-		Path:    req.URL.Path,
-		Headers: head,
-		Method:  req.Method,
-	}
-
-	stream, err := r.cl.Proxy(req.Context(), out)
+	stream, err := r.cl.Proxy(req.Context())
 	if err != nil {
 		return fmt.Errorf("failed to send proxy request: %w", err)
 	}
 
-	md, err := stream.Header()
+	rw := registry.NewStreamRW(stream)
+
+	err = req.WriteProxy(rw)
 	if err != nil {
-		return fmt.Errorf("failed to receive stream header: %w", err)
+		return fmt.Errorf("failed to write request: %w", err)
 	}
 
-	if md == nil {
-		return errors.New("invalid stream metadata")
-	}
-
-	spew.Dump(md)
-
-	status, err := strconv.Atoi(mdFirst(md, "status"))
+	err = stream.CloseSend()
 	if err != nil {
-		return fmt.Errorf("invalid status: %w", err)
+		return fmt.Errorf("failed to send close: %w", err)
 	}
+
+	status, header, err := parseHeader(rw)
+	if err != nil {
+		return err
+	}
+
+	for key, vals := range header {
+		for _, val := range vals {
+			w.Header().Add(key, val)
+		}
+	}
+
 	w.WriteHeader(status)
 
-	md.Delete("status")
-
-	for key := range md {
-		w.Header().Set(key, mdFirst(md, key))
+	_, err = io.Copy(w, rw)
+	if err != nil {
+		return fmt.Errorf("failed to write body: %w", err)
 	}
-
-	for {
-		msg, err := stream.Recv()
-		if errors.Is(err, io.EOF) {
-			break
-		} else if err != nil {
-			return fmt.Errorf("failed to receive stream message: %w", err)
-		}
-		buf := msg.GetData()
-		fmt.Print(string(buf))
-		n, err := w.Write(buf)
-		if err != nil {
-			return fmt.Errorf("failed to write response: %w", err)
-		}
-		if n != len(buf) {
-			return fmt.Errorf("invalid buffer length", err)
-		}
-	}
-
-	fmt.Println()
 
 	return nil
 }

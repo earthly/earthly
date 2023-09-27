@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -21,6 +22,7 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
+	"github.com/docker/distribution/registry/listener"
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 	"github.com/moby/buildkit/client/llb"
@@ -591,28 +593,26 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		localRegistryAddr = u.Host
 	}
 
-	fmt.Println("LOCAL", localRegistryAddr)
-
-	// A remote BK registry can be used by proxying requests to localhost.
 	if a.cli.Flags().UseRemoteRegistry {
-		port := 8888 // TODO: Make this a flag or env?
-		addr := fmt.Sprintf("localhost:%d", port)
+		tmpAddr := "localhost:0" // Have the OS select a port
 
-		p := regproxy.NewRegistryProxy(bkclient.RegistryClient())
-
-		a.cli.Console().Printf("Starting local registry proxy: %s", addr)
-
-		regProxy := &http.Server{
-			Addr:    addr,
-			Handler: p,
+		ln, err := listener.NewListener("tcp", tmpAddr)
+		if err != nil {
+			return errors.Wrapf(err, "failed to listen on %q", tmpAddr)
 		}
 
-		// TODO: Is there a better way to deal with errors?
+		localRegistryAddr = fmt.Sprintf("localhost:%d", ln.Addr().(*net.TCPAddr).Port)
+
+		regProxy := &http.Server{
+			Handler: regproxy.NewRegistryProxy(bkclient.RegistryClient()),
+		}
+
+		a.cli.Console().VerbosePrintf("Starting local registry proxy: %s", localRegistryAddr)
 
 		go func() {
-			err := regProxy.ListenAndServe()
+			err := regProxy.Serve(ln)
 			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				a.cli.Console().Warnf("Failed to start registry proxy: %v", err)
+				a.cli.Console().Warnf("Failed to serve registry proxy: %v", err)
 			}
 		}()
 

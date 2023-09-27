@@ -90,11 +90,8 @@ func DockerPullLocalImages(ctx context.Context, fe containerutil.ContainerFronte
 }
 
 func dockerPullLocalImage(ctx context.Context, fe containerutil.ContainerFrontend, localRegistryAddr string, pullName string, finalName string) error {
-	localRegistryAddr = "localhost:8888"
 	fullPullName := fmt.Sprintf("%s/%s", localRegistryAddr, pullName)
-	fmt.Printf("PULLING FROM LOCAL REG: %s\n", fullPullName)
 	err := fe.ImagePull(ctx, fullPullName)
-	fmt.Printf("PULL COMPLETE: %v\n", err)
 	if err != nil {
 		return errors.Wrapf(err, "image pull")
 	}
