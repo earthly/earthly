@@ -35,33 +35,27 @@
     ```shell
       git checkout docs-0.7 && git pull && git merge main && git push
     ```
+* Updating the Earthly version in our docs:  
+  [Renovate](https://www.mend.io/renovate/) will open a PR to update all docs as soon as a new release is available in this repo,  
+  which you should then review & merge (An example PR can be found [here](https://github.com/earthly/earthly/pull/3285/files)).
 
-* Update the version for the installation command in the following places:
+  * If for whatever reason you need/want to do this manually, please do the following:
+    * Update the version in the following places:
 <!-- vale HouseStyle.Spelling = NO -->
   * [circle-integration.md](../docs/ci-integration/guides/circle-integration.md)
   * [gh-actions-integration.md](../docs/ci-integration/guides/gh-actions-integration.md)
   * [codebuild-integration.md](../docs/ci-integration/guides/codebuild-integration.md)
   * [gitlab-integration.md](../docs/ci-integration/guides/gitlab-integration.md)
   * [build-an-earthly-ci-image.md](../docs/ci-integration/build-an-earthly-ci-image.md)
-<!-- vale HouseStyle.Spelling = YES -->
-  * you can try doing that with:
-    ```
-    REGEX='\(earthly\/releases\/download\/\)v[0-9]\+\.[0-9]\+\.[0-9]\+\(\/\)'; grep -Ril './docs/' -e $REGEX | xargs -n1 sed -i 's/'$REGEX'/\1'$RELEASE_TAG'\2/g'
-    ```
-* Update the pinned image tags used in the following places:
-<!-- vale HouseStyle.Spelling = NO -->
   * [all-in-one.md](../docs/docker-images/all-in-one.md)
   * [buildkit-standalone.md](../docs/docker-images/buildkit-standalone.md)
-  * [build-an-earthly-ci-image.md](../docs/ci-integration/build-an-earthly-ci-image.md)
 <!-- vale HouseStyle.Spelling = YES -->
   * you can try doing that with:
     ```shell
+    REGEX='\(earthly\/releases\/download\/\)v[0-9]\+\.[0-9]\+\.[0-9]\+\(\/\)'; grep -Ril './docs/' -e $REGEX | xargs -n1 sed -i 's/'$REGEX'/\1'$RELEASE_TAG'\2/g'
     REGEX='\(\searthly\/\(buildkitd\|earthly\):\)v[0-9]\+\.[0-9]\+\.[0-9]\+'; grep -Ril './docs/' -e $REGEX | xargs -n1 sed -i 's/'$REGEX'/\1'$RELEASE_TAG'/g'
     ```
-* Update the Docker image documentation's tags with the new version, plus the prior two image versions under:
-<!-- vale HouseStyle.Spelling = NO -->
-  * [all-in-one.md](../docs/docker-images/all-in-one.md)
-  * [buildkit-standalone.md](../docs/docker-images/buildkit-standalone.md)
+
 * Commit updated version changes to `docs-0.7`.
 * Merge `docs-0.7` into `main`.
   ```shell
