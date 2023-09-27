@@ -13,23 +13,31 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-var statusInternal = http.StatusInternalServerError
-
+// NewRegistryProxy creates and returns a new RegistryProxy that streams image
+// data from the BK embedded Docker registry.
 func NewRegistryProxy(cl registry.RegistryClient) *RegistryProxy {
 	return &RegistryProxy{cl: cl}
 }
 
+// RegistryProxy uses a gRPC stream to translate incoming Docker image requests
+// into a gRPC byte stream and back out into a valid HTTP response. The data is
+// streamed over the gRPC connection rather than buffered as the images can be
+// rather large.
 type RegistryProxy struct {
 	cl registry.RegistryClient
 }
 
+// ServeHTTP implements http.Handler.
 func (r *RegistryProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	err := r.serve(w, req)
 	if err != nil {
-		http.Error(w, err.Error(), statusInternal)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
+// parseHeader parses an HTTP response header and extracts the response status &
+// header values. This function does not close the reader as it will be used
+// further on to stream the body data.
 func parseHeader(r io.Reader) (status int, header http.Header, err error) {
 	sc := bufio.NewScanner(r)
 	header = http.Header{}
@@ -63,6 +71,9 @@ func parseHeader(r io.Reader) (status int, header http.Header, err error) {
 	return
 }
 
+// serve the HTTP request by writing it to BK via a streaming gRPC request. The
+// request will be reconstituted on the other end and forwarded to the embedded
+// registry and back again.
 func (r *RegistryProxy) serve(w http.ResponseWriter, req *http.Request) error {
 
 	stream, err := r.cl.Proxy(req.Context())
@@ -101,12 +112,4 @@ func (r *RegistryProxy) serve(w http.ResponseWriter, req *http.Request) error {
 	}
 
 	return nil
-}
-
-func mdFirst(md metadata.MD, key string) string {
-	v := md.Get(key)
-	if len(v) == 0 {
-		return ""
-	}
-	return v[0]
 }
