@@ -10,6 +10,8 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/earthly/earthly/conslogging"
@@ -164,6 +166,25 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 		return err
 	}
 
+	// once the command completes, waitErrSet will be set to true, indicating the command finished (or failed)
+	// if is is not set, then that means the interactive debugger has exited before the wrapped command has finished.
+	var waitErrMu sync.Mutex
+	var waitErr error
+	var waitErrSet bool
+
+	hasCommandFinished := func() bool {
+		waitErrMu.Lock()
+		defer waitErrMu.Unlock()
+		return waitErrSet
+	}
+
+	logErrorIfNonCleanExit := func(err error) {
+		if hasCommandFinished() {
+			return
+		}
+		log.Error(err)
+	}
+
 	ptmx, err := pty.Start(c)
 	if err != nil {
 		log.Error(errors.Wrap(err, "failed to start pty"))
@@ -177,20 +198,20 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 		for {
 			connDataType, data, err := common.ReadDataPacket(conn)
 			if err != nil {
-				log.Error(errors.Wrap(err, "failed to read data from conn"))
+				logErrorIfNonCleanExit(errors.Wrap(err, "failed to read data from conn"))
 				return
 			}
 			switch connDataType {
 			case common.PtyData:
 				err = handlePtyData(ptmx, data)
 				if err != nil {
-					log.Error(errors.Wrap(err, "failed to handle pty data"))
+					logErrorIfNonCleanExit(errors.Wrap(err, "failed to handle pty data"))
 					return
 				}
 			case common.WinSizeData:
 				err = handleWinChangeData(ptmx, data)
 				if err != nil {
-					log.Error(errors.Wrap(err, "failed to handle win change data"))
+					logErrorIfNonCleanExit(errors.Wrap(err, "failed to handle win change data"))
 					return
 				}
 			default:
@@ -205,7 +226,11 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 			buf := make([]byte, 100)
 			n, err := ptmx.Read(buf)
 			if err != nil {
-				log.Error(errors.Wrap(err, "failed to read from ptmx"))
+				if errors.Unwrap(err) == syscall.EIO {
+					// give c.Wait() time to acquire the lock first, to detect if the command closed as expected
+					time.Sleep(time.Millisecond * 10)
+				}
+				logErrorIfNonCleanExit(errors.Wrap(err, "failed to read from ptmx here"))
 				return
 			}
 			buf = buf[:n]
@@ -215,17 +240,18 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 			}
 			err = common.WriteDataPacket(conn, common.PtyData, buf)
 			if err != nil {
-				log.Error(errors.Wrap(err, "failed to write data to conn"))
+				logErrorIfNonCleanExit(errors.Wrap(err, "failed to write data to conn"))
 				return
 			}
 		}
 	}()
 
-	var waitErr error
-	var waitErrSet bool
 	go func() {
-		waitErr = c.Wait()
+		err := c.Wait()
+		waitErrMu.Lock()
+		waitErr = err
 		waitErrSet = true
+		waitErrMu.Unlock()
 		cancel()
 	}()
 
@@ -236,6 +262,8 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 		return errors.Wrap(err, "failed to send end shell session")
 	}
 
+	waitErrMu.Lock()
+	defer waitErrMu.Unlock()
 	if !waitErrSet {
 		return errInteractiveModeWaitFailed
 	}
