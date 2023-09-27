@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	registry "github.com/moby/buildkit/api/services/registry"
-	"google.golang.org/grpc/metadata"
 )
 
 // NewRegistryProxy creates and returns a new RegistryProxy that streams image
