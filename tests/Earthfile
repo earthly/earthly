@@ -122,7 +122,7 @@ ga-no-qemu-quick:
     BUILD +test-reserved-label
     BUILD +test-cache-mount-mode
     BUILD +test-cache-mode
-    BUILD +test-unsafe-cache
+    BUILD +test-shared-cache
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -339,13 +339,11 @@ project-secrets-test:
         --earthfile=project-secrets.earth \
         --target=+local-override \
         --extra_args="--secret foo/bar=override" \
-        --should_fail=false \
         --output_contains="my secret is override"
     DO +RUN_EARTHLY \
         --earthfile=project-secrets.earth \
         --target=+basic \
         --extra_args="--secret SECRET1=foo --secret SECRET2=bar" \
-        --should_fail=false \
         --output_contains="my secrets are foo and bar"
 
 secrets-args-precedence-test:
@@ -975,7 +973,7 @@ build-arg-repeat:
 
 arg-redeclare-error:
     DO +RUN_EARTHLY --earthfile=arg-redeclare-error.earth --target=+test-working-global
-    DO +RUN_EARTHLY --earthfile=arg-redeclare-error.earth --target=+test-working-global-override --should_fail=false
+    DO +RUN_EARTHLY --earthfile=arg-redeclare-error.earth --target=+test-working-global-override
     DO +RUN_EARTHLY --earthfile=arg-redeclare-error.earth --target=+test-working-default-override
     DO +RUN_EARTHLY --earthfile=arg-redeclare-error.earth --target=+test-error-conflict --should_fail=true
     DO +RUN_EARTHLY --earthfile=arg-redeclare-error.earth --target=+test-error-conflict-if --should_fail=true
@@ -1430,27 +1428,23 @@ test-cache-mount-mode:
       --earthfile=cache-mount-mode.earth \
       --target=+test-chmod \
       --post_command="--mode=0004 " \
-      --should_fail=false \
       --output_contains="d------r-- /cache-folder"
 
   DO +RUN_EARTHLY \
       --earthfile=cache-mount-mode.earth \
       --target=+test-chmod \
       --post_command="--mode=0777 " \
-      --should_fail=false \
       --output_contains="drwxrwxrwx /cache-folder"
 
   DO +RUN_EARTHLY \
       --earthfile=cache-mount-mode.earth \
       --target=+test-mode \
       --post_command="--mode=0777 " \
-      --should_fail=false \
       --output_contains="drwxrwxrwx /cache-folder"
 
   DO +RUN_EARTHLY \
       --earthfile=cache-mount-mode.earth \
       --target=+test-default \
-      --should_fail=false \
       --output_contains="drw-r--r-- /cache-folder"
 
 test-cache-mode:
@@ -1458,27 +1452,26 @@ test-cache-mode:
       --earthfile=cache-mode.earth \
       --target=+test \
       --post_command="--mode=0004 " \
-      --should_fail=false \
       --output_contains="d------r-- /cache-folder"
 
   DO +RUN_EARTHLY \
       --earthfile=cache-mode.earth \
       --target=+test \
       --post_command="--mode=0777 " \
-      --should_fail=false \
       --output_contains="drwxrwxrwx /cache-folder"
 
   DO +RUN_EARTHLY \
       --earthfile=cache-mode.earth \
       --target=+test-default \
-      --should_fail=false \
       --output_contains="drw-r--r-- /cache-folder"
 
-test-unsafe-cache:
+test-shared-cache:
+  COPY --dir shared-cache/lib1 lib1
   DO +RUN_EARTHLY \
-      --earthfile=unsafe-cache.earth \
+      --earthfile=shared-cache/Earthfile \
       --target=+test \
-      --should_fail=false
+      --extra_args=" --secret=content=filecontents " \
+      --output_contains="filecontents"
 
 RUN_EARTHLY:
     COMMAND

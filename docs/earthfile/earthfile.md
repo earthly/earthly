@@ -270,13 +270,13 @@ Mounts a file or directory in the context of the build environment.
 
 The `<mount-spec>` is defined as a series of comma-separated list of key-values. The following keys are allowed
 
-| Key       | Description                                                                                                                                                         | Example |
-|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------| --- |
-| `type`    | The type of the mount. Currently only `cache`, `tmpfs`, and `secret` are allowed.                                                                                   | `type=cache` |
-| `target`  | The target path for the mount.                                                                                                                                      | `target=/var/lib/data` |
-| `mode`, `chmod`   | The permission of the mounted file, in octal format (the same format the chmod unix command line expects).                                                          | `chmod=0400` |
-| `id`      | <ul><li>The cache ID for a shared cache mount to be used across other targets or Earthfiles, when `type=cache`.</li><li>The secret ID for the contents of the `target` file, when `type=secret`</li></ul> | `id=my-shared-cache`, `id=my-password` |
-| `sharing` | The sharing mode (`locked`, `shared`, `private`) for the cache mount, only applicable for `type=cache`.                                                             | `sharing=shared` |
+| Key             | Description                                                                                                                                                                     | Example                                |
+|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------|
+| `type`          | The type of the mount. Currently only `cache`, `tmpfs`, and `secret` are allowed.                                                                                               | `type=cache`                           |
+| `target`        | The target path for the mount.                                                                                                                                                  | `target=/var/lib/data`                 |
+| `mode`, `chmod` | The permission of the mounted file, in octal format (the same format the chmod unix command line expects).                                                                      | `chmod=0400`                           |
+| `id`            | The cache ID for a shared cache mount to be used across other targets or Earthfiles, when `type=cache`. The secret ID for the contents of the `target` file, when `type=secret` | `id=my-shared-cache`, `id=my-password` |
+| `sharing`       | The sharing mode (`locked`, `shared`, `private`) for the cache mount, only applicable for `type=cache`.                                                                         | `sharing=shared`                       |
 
 For cache mounts, the sharing mode can be one of the following:
 
