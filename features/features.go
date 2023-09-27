@@ -60,7 +60,6 @@ type Features struct {
 	EarthlyCIRunnerArg         bool `long:"earthly-ci-runner-arg" description:"includes EARTHLY_CI_RUNNER ARG"`
 	UseDockerIgnore            bool `long:"use-docker-ignore" description:"fallback to .dockerignore incase .earthlyignore or .earthignore do not exist in a local \"FROM DOCKERFILE\" target"`
 	PassArgs                   bool `long:"pass-args" description:"Allow the use of the --pass-arg flag in FROM, BUILD, COPY, WITH DOCKER, and DO commands"`
-	UseRemoteRegistry          bool `long:"use-remote-registry" description:"Make use of the embedded BuildKit Docker registry for image pulls (rather than Tar transfer)"`
 
 	Major int
 	Minor int
