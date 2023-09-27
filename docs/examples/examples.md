@@ -121,14 +121,14 @@ Here's a snip from an support request with gitbook:
 * [buildkitd/Earthfile](https://github.com/earthly/earthly/blob/main/buildkitd/Earthfile) - the build of the Buildkit daemon
 * [AST/parser/Earthfile](https://github.com/earthly/earthly/blob/main/ast/parser/Earthfile) - the build of the parser, which generates .go files
 * [tests/Earthfile](https://github.com/earthly/earthly/blob/main/tests/Earthfile) - system and smoke tests
-* [earthfile-grammar/Earthfile](https://github.com/earthly/earthfile-grammar/Earthfile) - the build of the VS Code extension
+* [earthfile-grammar/Earthfile](https://github.com/earthly/earthfile-grammar/blob/main/Earthfile) - the build of the VS Code extension
 -->
 
 * [Earthfile](https://tinyurl.com/yt3d3cx6) - the root build file
 * [buildkitd/Earthfile](https://tinyurl.com/yvnpuru7) - the build of the Buildkit daemon
 * [AST/parser/Earthfile](https://tinyurl.com/2k3u4vty) - the build of the parser, which generates .go files
 * [tests/Earthfile](https://tinyurl.com/2p8ws579) - system and smoke tests
-* [earthfile-grammar/Earthfile](https://tinyurl.com/2fkcw6r4) - the build of the VS Code extension
+* [earthfile-grammar/Earthfile](https://tinyurl.com/2vyjprt6) - the build of the VS Code extension
 
 To invoke Earthly's build, check out the code and then run the following in the root of the repository
 

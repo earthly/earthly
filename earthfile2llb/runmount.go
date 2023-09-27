@@ -1,6 +1,7 @@
 package earthfile2llb
 
 import (
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -84,14 +85,14 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 			// if err != nil {
 			// 	return nil, errors.Errorf("invalid mount arg %s", kvPair)
 			// }
-		case "mode":
+		case "mode", "chmod":
 			if len(kvSplit) != 2 {
 				return nil, errors.Errorf("invalid mount arg %s", kvPair)
 			}
 			var err error
-			mountMode, err = parseMode(kvSplit[1])
+			mountMode, err = ParseMode(kvSplit[1])
 			if err != nil {
-				return nil, errors.Errorf("failed to parse mount mode %s", kvSplit[1])
+				return nil, errors.Errorf("failed to parse mount %s %s", kvSplit[0], kvSplit[1])
 			}
 		case "sharing":
 			if len(kvSplit) != 2 {
@@ -137,16 +138,18 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 		if mountTarget == "" {
 			return nil, errors.Errorf("mount target not specified")
 		}
-		if mountMode != 0 {
-			return nil, errors.Errorf("mode is not supported for type=cache")
-		}
 		key, err := cacheKeyTargetInput(c.targetInputActiveOnly())
 		if err != nil {
 			return nil, err
 		}
+		if mountMode == 0 {
+			mountMode = 0644
+		}
 		cachePath := path.Join("/run/cache", key, mountID)
 		mountOpts = append(mountOpts, llb.AsPersistentCacheDir(cachePath, sharingMode))
 		state = c.cacheContext
+		state = state.File(pllb.Mkdir("/cache", os.FileMode(mountMode)))
+		mountOpts = append(mountOpts, llb.SourcePath("/cache"))
 		return []llb.RunOption{pllb.AddMount(mountTarget, state, mountOpts...)}, nil
 	case "tmpfs":
 		if mountTarget == "" {
@@ -176,9 +179,7 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 			//       buildkit side. Then we wouldn't need to open this up to everyone.
 			mountMode = 0444
 		}
-
 		secretName := strings.TrimPrefix(mountID, "+secrets/")
-
 		secretOpts := []llb.SecretOption{
 			llb.SecretID(c.secretID(secretName)),
 			llb.SecretFileOpt(0, 0, mountMode),
@@ -191,7 +192,7 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 
 var errInvalidOctal = errors.New("invalid octal")
 
-func parseMode(s string) (int, error) {
+func ParseMode(s string) (int, error) {
 	if len(s) == 0 || s[0] != '0' {
 		return 0, errInvalidOctal
 	}

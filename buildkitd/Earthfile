@@ -5,13 +5,12 @@ FROM alpine:3.18
 buildkitd:
     ARG BUILDKIT_PROJECT
     IF [ "$BUILDKIT_PROJECT" != "" ]
-        # Update to https://github.com/earthly/earthly/pull/3293#pullrequestreview-1643149385
-        #IF case "$BUILDKIT_PROJECT" in "../*") true;; *) false;; esac
+        IF case "$BUILDKIT_PROJECT" in ../*) true;; *) false;; esac
             # Assuming this is coming from the main Earthly Earthfile.
             ARG BUILDKIT_BASE_IMAGE=../$BUILDKIT_PROJECT+build
-        #ELSE
-        #    ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
-        #END
+        ELSE
+            ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
+        END
     ELSE
         ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:40cd44f81962f99200f10df3a79d044f9df0aefe+build
     END

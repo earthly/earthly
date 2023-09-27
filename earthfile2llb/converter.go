@@ -1502,7 +1502,7 @@ func (c *Converter) Import(ctx context.Context, importStr, as string, isGlobal, 
 // Cache handles a `CACHE` command in a Target.
 // It appends run options to the Converter which will mount a cache volume in each successive `RUN` command,
 // and configures the `Converter` to persist the cache in the image at the end of the target.
-func (c *Converter) Cache(ctx context.Context, mountTarget string, sharing string) error {
+func (c *Converter) Cache(ctx context.Context, mountTarget string, opts commandflag.CacheOpts) error {
 	err := c.checkAllowed(cacheCmd)
 	if err != nil {
 		return err
@@ -1516,7 +1516,7 @@ func (c *Converter) Cache(ctx context.Context, mountTarget string, sharing strin
 	mountID := path.Clean(mountTarget)
 	cachePath := path.Join("/run/cache", key, mountID)
 	var shareMode llb.CacheMountSharingMode
-	switch sharing {
+	switch opts.Sharing {
 	case "shared":
 		shareMode = llb.CacheMountShared
 	case "private":
@@ -1524,12 +1524,22 @@ func (c *Converter) Cache(ctx context.Context, mountTarget string, sharing strin
 	case "locked", "":
 		shareMode = llb.CacheMountLocked
 	default:
-		return errors.Errorf("invalid cache sharing mode %q", sharing)
+		return errors.Errorf("invalid cache sharing mode %q", opts.Sharing)
 	}
 
 	if _, exists := c.persistentCacheDirs[mountTarget]; !exists {
-		c.persistentCacheDirs[mountTarget] = pllb.AddMount(mountTarget, pllb.Scratch(),
-			llb.AsPersistentCacheDir(cachePath, shareMode))
+		var mountOpts []llb.MountOption
+		mountOpts = append(mountOpts, llb.AsPersistentCacheDir(cachePath, shareMode))
+		mountOpts = append(mountOpts, llb.SourcePath("/cache"))
+		var mountMode int
+		if opts.Mode == "" {
+			opts.Mode = "0644"
+		}
+		mountMode, err = ParseMode(opts.Mode)
+		if err != nil {
+			return errors.Errorf("failed to parse mount mode %s", opts.Mode)
+		}
+		c.persistentCacheDirs[mountTarget] = pllb.AddMount(mountTarget, pllb.Scratch().File(pllb.Mkdir("/cache", os.FileMode(mountMode))), mountOpts...)
 	}
 	return nil
 }
@@ -2395,7 +2405,7 @@ func (c *Converter) imageVertexPrefix(id string, platform platutil.Platform) str
 }
 
 func (c *Converter) vertexPrefixWithURL(url string) string {
-	return fmt.Sprintf("[%s(%s) %s] ", c.mts.Final.Target.String(), url, url)
+	return fmt.Sprintf("[%s(%s)] ", c.mts.Final.Target.String(), url)
 }
 
 func (c *Converter) markFakeDeps() {

@@ -1,6 +1,6 @@
 ---
 name: Feature proposal
-about: Propose a change in how earthly works
+about: Submit an idea for a new feature
 title: ''
 labels: type:proposal
 assignees: ''

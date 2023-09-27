@@ -181,7 +181,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	analytics.Count("gitResolver.resolveEarthProject", "")
 
 	// Check the cache first.
-	cacheKey := fmt.Sprintf("%s#%s", gitURL, gitRef)
+	scrubbedGITURL := stringutil.ScrubCredentials(gitURL)
+	cacheKey := fmt.Sprintf("%s#%s", scrubbedGITURL, gitRef)
 	rgpValue, err := gr.projectCache.Do(ctx, cacheKey, func(ctx context.Context, k interface{}) (interface{}, error) {
 		// Copy all Earthfile, build.earth and Dockerfile files.
 		vm := &vertexmeta.VertexMeta{
@@ -189,7 +190,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			Internal:   true,
 		}
 		gitOpts := []llb.GitOption{
-			llb.WithCustomNamef("%sGIT CLONE %s", vm.ToVertexPrefix(), stringutil.ScrubCredentials(gitURL)),
+			llb.WithCustomNamef("%sGIT CLONE %s", vm.ToVertexPrefix(), scrubbedGITURL),
 			llb.KeepGitDir(),
 			llb.LogLevel(gr.logLevel),
 		}
@@ -328,7 +329,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		gitAuthorTs := strings.SplitN(string(gitAuthorTsBytes), "\n", 2)[0]
 
 		gitOpts = []llb.GitOption{
-			llb.WithCustomNamef("[context %s] git context %s", stringutil.ScrubCredentials(gitURL), ref.StringCanonical()),
+			llb.WithCustomNamef("[context %s] git context %s", scrubbedGITURL, ref.StringCanonical()),
 			llb.KeepGitDir(),
 		}
 		if len(keyScans) > 0 {
@@ -356,11 +357,11 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		go func() {
 			// Add cache entries for the branch and for the tag (if any).
 			if len(gitBranches2) > 0 {
-				cacheKey3 := fmt.Sprintf("%s#%s", gitURL, gitBranches2[0])
+				cacheKey3 := fmt.Sprintf("%s#%s", scrubbedGITURL, gitBranches2[0])
 				_ = gr.projectCache.Add(ctx, cacheKey3, rgp, nil)
 			}
 			if len(gitTags2) > 0 {
-				cacheKey4 := fmt.Sprintf("%s#%s", gitURL, gitTags2[0])
+				cacheKey4 := fmt.Sprintf("%s#%s", scrubbedGITURL, gitTags2[0])
 				_ = gr.projectCache.Add(ctx, cacheKey4, rgp, nil)
 			}
 		}()

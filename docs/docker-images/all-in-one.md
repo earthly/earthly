@@ -15,7 +15,7 @@ Want to just get started? Here are a couple sample `docker run` commands that co
 This example shows how to use the Earthly container in conjunction with a Docker socket that Earthly can use to start up the Buildkit daemon.
 
 ```bash
-docker run -t -v $(pwd):/workspace -v /var/run/docker.sock:/var/run/docker.sock -e NO_BUILDKIT=1 earthly/earthly:v0.7.17 +for-linux
+docker run -t -v $(pwd):/workspace -v /var/run/docker.sock:/var/run/docker.sock -e NO_BUILDKIT=1 earthly/earthly:v0.7.19 +for-linux
 ```
 
 Here's a quick breakdown:
@@ -47,7 +47,7 @@ Here's a quick breakdown:
 This example utilizes an [Earthly Satellite](https://docs.earthly.dev/earthly-cloud/satellites) to perform builds. The code to be built is downloaded directly from GitHub.
 
 ```bash
-docker run -t -e NO_BUILDKIT=1 -e EARTHLY_TOKEN=<my-token> earthly/earthly:v0.7.17 --ci --org <my-org> --sat <my-sat> github.com/earthly/earthly+for-linux
+docker run -t -e NO_BUILDKIT=1 -e EARTHLY_TOKEN=<my-token> earthly/earthly:v0.7.19 --ci --org <my-org> --sat <my-sat> github.com/earthly/earthly+for-linux
 ```
 
 Here's what this does:

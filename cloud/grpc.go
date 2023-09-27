@@ -3,6 +3,8 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"io"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -12,6 +14,8 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
+
+var RPCErrRegex = regexp.MustCompile(`(?U)rpc error: code = .+ desc = `)
 
 func (c *Client) withAuth(ctx context.Context) context.Context {
 	return metadata.AppendToOutgoingContext(ctx, "authorization", fmt.Sprintf("Bearer %s", c.authToken))
@@ -70,23 +74,22 @@ func (c *Client) UnaryInterceptor(opts ...InterceptorOpt) grpc.UnaryClientInterc
 		}
 		ctx, err := c.reAuthIfExpired(ctx)
 		if err != nil {
-			return errors.Wrap(err, "failed refreshing expired token")
+			return appendRequestID(ctx, err)
 		}
 		err = invoker(ctx, method, req, reply, cc, opts...)
 		if err != nil {
 			s, ok := status.FromError(err)
 			if !ok {
-				return err
+				return appendRequestID(ctx, err)
 			}
-			err = status.Errorf(s.Code(), fmt.Sprintf("%s {reqID: %s}", s.Err(), getReqID(ctx)))
 			if s.Code() == codes.Unauthenticated {
 				ctx, err = c.reAuthCtx(ctx)
 				if err != nil {
-					return err
+					return appendRequestID(ctx, err)
 				}
 				return invoker(ctx, method, req, reply, cc, opts...)
 			}
-			return err
+			return appendRequestIDStatus(ctx, s)
 		}
 		return nil
 	}
@@ -100,26 +103,80 @@ func (c *Client) StreamInterceptor() grpc.StreamClientInterceptor {
 		ctx = c.withReqID(ctx)
 		ctx, err := c.reAuthIfExpired(ctx)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed refreshing expired token")
+			return nil, appendRequestID(ctx, err)
 		}
 		newStreamer, err := streamer(ctx, desc, cc, method, opts...)
 		if err != nil {
 			s, ok := status.FromError(err)
 			if !ok {
-				return newStreamer, err
+				return nil, appendRequestID(ctx, err)
 			}
-			err = status.Errorf(s.Code(), fmt.Sprintf("%s {reqID: %s}", s.Err(), getReqID(ctx)))
 			if s.Code() == codes.Unauthenticated {
 				ctx, err = c.reAuthCtx(ctx)
 				if err != nil {
-					return newStreamer, err
+					return nil, appendRequestID(ctx, err)
 				}
 				return streamer(ctx, desc, cc, method, opts...)
 			}
-			return newStreamer, err
+			return nil, appendRequestIDStatus(ctx, s)
 		}
-		return newStreamer, nil
+		return newRequestIDWrappedStream(ctx, newStreamer), nil
 	}
+}
+
+// requestIDWrappedStream wraps around the embedded grpc.ClientStream.
+// // Itintercepts the RecvMsg and SendMsg methods, appending the request ID when error occurs.
+type requestIDWrappedStream struct {
+	grpc.ClientStream
+	ctx context.Context
+}
+
+func (w *requestIDWrappedStream) RecvMsg(m any) error {
+	if err := w.ClientStream.RecvMsg(m); err != nil {
+		if err == io.EOF {
+			return err
+		}
+		s, ok := status.FromError(err)
+		if !ok {
+			return fmt.Errorf("%s {reqID: %s}", err.Error(), getReqID(w.ctx))
+		}
+		return status.Errorf(s.Code(), fmt.Sprintf("%s {reqID: %s}",
+			cleanStatusError(err.Error()), getReqID(w.ctx)))
+	}
+	return nil
+}
+
+func (w *requestIDWrappedStream) SendMsg(m any) error {
+	if err := w.ClientStream.SendMsg(m); err != nil {
+		if err == io.EOF {
+			return err
+		}
+		s, ok := status.FromError(err)
+		if !ok {
+			return fmt.Errorf("%s {reqID: %s}", err.Error(), getReqID(w.ctx))
+		}
+		return status.Errorf(s.Code(), fmt.Sprintf("%s {reqID: %s}",
+			cleanStatusError(err.Error()), getReqID(w.ctx)))
+	}
+	return nil
+}
+
+func newRequestIDWrappedStream(ctx context.Context, s grpc.ClientStream) grpc.ClientStream {
+	return &requestIDWrappedStream{s, ctx}
+}
+
+// cleanStatusError returns the underlying error message from a gRPC status error
+func cleanStatusError(errStr string) string {
+	return RPCErrRegex.ReplaceAllString(errStr, "")
+}
+
+func appendRequestID(ctx context.Context, err error) error {
+	return fmt.Errorf("%s {reqID: %s}", err.Error(), getReqID(ctx))
+}
+
+func appendRequestIDStatus(ctx context.Context, s *status.Status) error {
+	return status.Errorf(s.Code(), fmt.Sprintf("%s {reqID: %s}",
+		cleanStatusError(s.Err().Error()), getReqID(ctx)))
 }
 
 func (c *Client) reAuthIfExpired(ctx context.Context) (context.Context, error) {

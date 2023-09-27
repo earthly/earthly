@@ -1960,7 +1960,7 @@ func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
 	opts := commandflag.CacheOpts{}
 	args, err := parseArgs("CACHE", &opts, getArgsCopy(cmd))
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "invalid IMPORT arguments %v", cmd.Args)
+		return i.wrapError(err, cmd.SourceLocation, "invalid CACHE arguments %v", cmd.Args)
 	}
 	if len(args) != 1 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for CACHE: %s", args)
@@ -1970,12 +1970,18 @@ func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
 	}
 	dir, err := i.expandArgs(ctx, args[0], false, false)
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "failed to expand CACHE %s", args[0])
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand CACHE directory %s", args[0])
+	}
+	expandedMode, err := i.expandArgs(ctx, opts.Mode, false, false)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand CACHE mode %s", opts.Mode)
+	} else {
+		opts.Mode = expandedMode
 	}
 	if !path.IsAbs(dir) {
 		dir = path.Clean(path.Join("/", i.converter.mts.Final.MainImage.Config.WorkingDir, dir))
 	}
-	if err := i.converter.Cache(ctx, dir, opts.Sharing); err != nil {
+	if err := i.converter.Cache(ctx, dir, opts); err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply CACHE")
 	}
 	return nil
