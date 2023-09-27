@@ -1398,7 +1398,7 @@ Default `--chmod 0644`
 
 ##### `--id <cache-id>`
 
-The cache ID for unsafe/cross-earthfiles caches.
+The cache ID for a shared cache volume to be used across other targets or Earthfiles.
 
 ## LOCALLY
 
