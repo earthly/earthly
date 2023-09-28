@@ -10,7 +10,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/earthly/earthly/conslogging"
@@ -37,6 +37,18 @@ var (
 
 	errInteractiveModeWaitFailed = errors.New("interactive mode wait failed")
 )
+
+type waitError struct {
+	set bool
+	err error
+}
+
+func newWaitError(err error, set bool) *waitError {
+	return &waitError{
+		set: set,
+		err: err,
+	}
+}
 
 func getShellPath() (string, bool) {
 	for _, sh := range []string{
@@ -165,18 +177,15 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 		return err
 	}
 
-	// once the command completes, waitErrSet will be set to true, indicating the command finished (or failed)
-	// if is is not set, then that means the interactive debugger has exited before the wrapped command has finished.
-	var waitErrMu sync.Mutex
-	var waitErr error
-	var waitErrSet bool
+	// once the command completes, waitErr will be set to true, indicating the command finished (or failed)
+	// if it is not set, then that means the interactive debugger has exited before the wrapped command has finished.
+	waitErr := atomic.Pointer[waitError]{}
+	waitErr.Store(newWaitError(nil, false))
 
 	hasCommandFinished := func() bool {
 		// give c.Wait() time to acquire the lock first, to detect if the command closed as expected
 		time.Sleep(time.Millisecond * 10)
-		waitErrMu.Lock()
-		defer waitErrMu.Unlock()
-		return waitErrSet
+		return waitErr.Load().set
 	}
 
 	logErrorIfNonCleanExit := func(console conslogging.ConsoleLogger, err error) {
@@ -245,10 +254,7 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 
 	go func() {
 		err := c.Wait()
-		waitErrMu.Lock()
-		waitErr = err
-		waitErrSet = true
-		waitErrMu.Unlock()
+		waitErr.Store(newWaitError(err, true))
 		cancel()
 	}()
 
@@ -259,12 +265,10 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 		return errors.Wrap(err, "failed to send end shell session")
 	}
 
-	waitErrMu.Lock()
-	defer waitErrMu.Unlock()
-	if !waitErrSet {
+	if !waitErr.Load().set {
 		return errInteractiveModeWaitFailed
 	}
-	return waitErr
+	return waitErr.Load().err
 }
 
 func getSettings(path string) (*common.DebuggerSettings, error) {
