@@ -24,6 +24,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Some error messages at the end of an execution will only be displayed in verbose mode (`earthly -V ...`), e.g. `Error: build target: build main: failed to solve:`... [#3200](https://github.com/earthly/earthly/issues/3200)
 - `GIT CLONE` URLs will only be printed once as part of a prefix, e.g. `+my-clone-target(https://g/e/earthly) | --> GIT CLONE (--branch ) https://github.com/earthly/earthly`
 
+### Additional Info
+- This release includes changes to buildkit
+
 ## v0.7.19 - 2023-09-20
 
 ### Added
