@@ -179,11 +179,11 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 		return waitErrSet
 	}
 
-	logErrorIfNonCleanExit := func(console conslogging.ConsoleLogger, err error) {
+	logErrorIfNonCleanExit := func(err error) {
 		if hasCommandFinished() {
 			return
 		}
-		console.VerboseWarnf(err.Error())
+		conslogger.Warnf("%v\n", errors.Wrap(err, "failed to start pty"))
 	}
 
 	ptmx, err := pty.Start(c)
@@ -199,24 +199,24 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 		for {
 			connDataType, data, err := common.ReadDataPacket(conn)
 			if err != nil {
-				logErrorIfNonCleanExit(conslogger, errors.Wrap(err, "failed to read data from conn"))
+				logErrorIfNonCleanExit(errors.Wrap(err, "failed to read data from conn"))
 				return
 			}
 			switch connDataType {
 			case common.PtyData:
 				err = handlePtyData(ptmx, data)
 				if err != nil {
-					logErrorIfNonCleanExit(conslogger, errors.Wrap(err, "failed to handle pty data"))
+					logErrorIfNonCleanExit(errors.Wrap(err, "failed to handle pty data"))
 					return
 				}
 			case common.WinSizeData:
 				err = handleWinChangeData(ptmx, data)
 				if err != nil {
-					logErrorIfNonCleanExit(conslogger, errors.Wrap(err, "failed to handle win change data"))
+					logErrorIfNonCleanExit(errors.Wrap(err, "failed to handle win change data"))
 					return
 				}
 			default:
-				conslogger.VerboseWarnf("unhandled data type (%v)\n", connDataType)
+				conslogger.Warnf("unhandled data type (%v)\n", connDataType)
 			}
 		}
 	}()
@@ -227,7 +227,7 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 			buf := make([]byte, 100)
 			n, err := ptmx.Read(buf)
 			if err != nil {
-				logErrorIfNonCleanExit(conslogger, errors.Wrap(err, "failed to read from ptmx"))
+				logErrorIfNonCleanExit(errors.Wrap(err, "failed to read from ptmx"))
 				return
 			}
 			buf = buf[:n]
@@ -237,7 +237,7 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 			}
 			err = common.WriteDataPacket(conn, common.PtyData, buf)
 			if err != nil {
-				logErrorIfNonCleanExit(conslogger, errors.Wrap(err, "failed to write data to conn"))
+				logErrorIfNonCleanExit(errors.Wrap(err, "failed to write data to conn"))
 				return
 			}
 		}
@@ -311,20 +311,18 @@ func main() {
 
 	ctx := context.Background()
 
-	log := slog.GetLogger(ctx)
-
 	if forceInteractive {
 		quotedCmd := shellescape.QuoteCommand(args)
 
 		conslogger.PrintBar(color.New(color.FgHiMagenta), "🌍 Earthly Build Interactive Session", quotedCmd)
 
 		// Sometimes the interactive shell doesn't correctly get a newline
-		// Take a brief pause and issue a new line as a work around.
+		// Take a brief pause and issue a new line as a workaround.
 		time.Sleep(time.Millisecond * 5)
 
 		err := os.Setenv("TERM", debuggerSettings.Term)
 		if err != nil {
-			conslogger.VerboseWarnf("Failed to set term: %v\n", err)
+			conslogger.Warnf("Failed to set term: %v\n", err)
 		}
 
 		cmdBuilder := func() (*exec.Cmd, error) {
@@ -347,7 +345,7 @@ func main() {
 		os.Exit(exitCode)
 	}
 
-	log.With("command", args).With("version", Version).Debug("earthly-debugger: running command")
+	conslogger.VerbosePrintf("running command: (%s); version: %s\n", args, Version)
 
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Stdout = os.Stdout
@@ -376,7 +374,7 @@ func main() {
 
 			err := os.Setenv("TERM", debuggerSettings.Term)
 			if err != nil {
-				conslogger.VerboseWarnf("Failed to set term: %v\n", err)
+				conslogger.Warnf("Failed to set term: %v\n", err)
 			}
 
 			cmdBuilder := func() (*exec.Cmd, error) {
@@ -386,7 +384,7 @@ func main() {
 				if !ok {
 					return nil, ErrNoShellFound
 				}
-				log.With("shell", shellPath).Debug("earthly debugger: found shell")
+				conslogger.VerbosePrintf("found shell: (%s)\n", shellPath)
 				return exec.Command(shellPath), nil
 			}
 
