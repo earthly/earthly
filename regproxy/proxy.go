@@ -50,6 +50,7 @@ func parseHeader(r io.Reader) (status int, header http.Header, err error) {
 			parts := strings.Split(line, " ")
 			if len(parts) < 2 {
 				err = errors.New("invalid status line")
+				return
 			}
 			status, err = strconv.Atoi(parts[1])
 			if err != nil {
