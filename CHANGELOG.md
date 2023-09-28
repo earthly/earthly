@@ -9,6 +9,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - If a build fails because of `qemu` missing, earthly will display a proper hint to install it [#3200](https://github.com/earthly/earthly/issues/3200).
 
 ### Changed
+- Some error messages at the end of an execution will only be displayed in verbose mode (`earthly -V ...`), e.g. `Error: build target: build main: failed to solve:`... [#3200](https://github.com/earthly/earthly/issues/3200)
 - `GIT CLONE` URLs will only be printed once as part of a prefix, e.g. `+my-clone-target(https://g/e/earthly) | --> GIT CLONE (--branch ) https://github.com/earthly/earthly`
 
 ## v0.7.19 - 2023-09-20

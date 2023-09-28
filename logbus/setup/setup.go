@@ -152,7 +152,9 @@ func (bs *BusSetup) Close() error {
 					multi = multierror.Append(multi, err)
 				}
 			}
-			ret = multierror.Append(ret, errors.Wrap(multi, "log streamer"))
+			if len(multi.Errors) > 0 {
+				ret = multierror.Append(ret, errors.Wrap(multi, "log streamer"))
+			}
 		}
 	}
 

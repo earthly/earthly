@@ -117,10 +117,6 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 	if mountType == "" {
 		return nil, errors.Errorf("mount type not specified")
 	}
-	if mountID == "" {
-		mountID = path.Clean(mountTarget)
-	}
-
 	switch mountType {
 	case "bind-experimental":
 		if mountSource == "" {
@@ -138,15 +134,18 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 		if mountTarget == "" {
 			return nil, errors.Errorf("mount target not specified")
 		}
-		key, err := cacheKeyTargetInput(c.targetInputActiveOnly())
-		if err != nil {
-			return nil, err
-		}
 		if mountMode == 0 {
 			mountMode = 0644
 		}
-		cachePath := path.Join("/run/cache", key, mountID)
-		mountOpts = append(mountOpts, llb.AsPersistentCacheDir(cachePath, sharingMode))
+		cacheID := mountID
+		if cacheID == "" {
+			key, err := cacheKeyTargetInput(c.targetInputActiveOnly())
+			if err != nil {
+				return nil, err
+			}
+			cacheID = path.Join("/run/cache", key, path.Clean(mountTarget))
+		}
+		mountOpts = append(mountOpts, llb.AsPersistentCacheDir(cacheID, sharingMode))
 		state = c.cacheContext
 		state = state.File(pllb.Mkdir("/cache", os.FileMode(mountMode)))
 		mountOpts = append(mountOpts, llb.SourcePath("/cache"))
@@ -162,7 +161,11 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 		mountOpts = append(mountOpts, llb.Tmpfs())
 		return []llb.RunOption{pllb.AddMount(mountTarget, state, mountOpts...)}, nil
 	case "ssh-experimental":
-		sshOpts := []llb.SSHOption{llb.SSHID(mountID)}
+		sshID := mountID
+		if sshID == "" {
+			sshID = path.Clean(mountTarget)
+		}
+		sshOpts := []llb.SSHOption{llb.SSHID(sshID)}
 		if mountTarget != "" {
 			sshOpts = append(sshOpts, llb.SSHSocketTarget(mountTarget))
 		}
@@ -179,7 +182,11 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 			//       buildkit side. Then we wouldn't need to open this up to everyone.
 			mountMode = 0444
 		}
-		secretName := strings.TrimPrefix(mountID, "+secrets/")
+		secretID := mountID
+		if secretID == "" {
+			secretID = path.Clean(mountTarget)
+		}
+		secretName := strings.TrimPrefix(secretID, "+secrets/")
 		secretOpts := []llb.SecretOption{
 			llb.SecretID(c.secretID(secretName)),
 			llb.SecretFileOpt(0, 0, mountMode),
