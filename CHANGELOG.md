@@ -15,7 +15,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Buildkit support for the gRPC Docker registry proxy [#25](https://github.com/earthly/buildkit/pull/25).
 
 ### Fixed
-- Regression where URLs will not always get shorter when used as a prefix. Partially addresses [#3200](https://github.com/earthly/earthly/issues/3200).
+A regression where URLs will not always get shorter when used as a prefix. Partially addresses [#3200](https://github.com/earthly/earthly/issues/3200).
 - If a build fails because of `qemu` missing, earthly will display a proper hint to install it [#3200](https://github.com/earthly/earthly/issues/3200).
 - Request ID logging in gRPC streams [#3267](https://github.com/earthly/earthly/pull/3267).
 - Incorrect error count report (#3306)(https://github.com/earthly/earthly/pull/3306).
