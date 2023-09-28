@@ -188,7 +188,7 @@ func interactiveMode(ctx context.Context, remoteConsoleAddr string, cmdBuilder f
 
 	ptmx, err := pty.Start(c)
 	if err != nil {
-		conslogger.VerboseWarnf("failed to start pty\n")
+		conslogger.Warnf("%v\n", errors.Wrap(err, "failed to start pty"))
 		return err
 	}
 	defer func() { _ = ptmx.Close() }() // Best effort.
