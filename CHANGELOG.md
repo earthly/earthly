@@ -4,9 +4,20 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.20 - 2023-09-28
+
+### Added
+- Documentation for experimental option `--pass-args` [#3229](https://github.com/earthly/earthly/pull/3229).
+- Clarification about `RUN --ssh` no being related to GIT [3eb60e87](https://github.com/earthly/earthly/commit/3eb60e87bbbee965a7c0f5d7b0f89cc2f65a7d02).
+- Support for `mode` in mount cache [#3279](https://github.com/earthly/earthly/pull/3279).
+- Support for `mode` in CACHE commands [#3290](https://github.com/earthly/earthly/pull/3290).
+- Support for shared/global caches [#3296](https://github.com/earthly/earthly/pull/3296).
+
 ### Fixed
-- Fix a regression where URLs will not always get shorter when used as a prefix. Partially addresses [#3200](https://github.com/earthly/earthly/issues/3200).
+- Regression where URLs will not always get shorter when used as a prefix. Partially addresses [#3200](https://github.com/earthly/earthly/issues/3200).
 - If a build fails because of `qemu` missing, earthly will display a proper hint to install it [#3200](https://github.com/earthly/earthly/issues/3200).
+- Request ID logging in gRPC streams [#3267](https://github.com/earthly/earthly/pull/3267).
+- Incorrect error count report (#3306)(https://github.com/earthly/earthly/pull/3306).
 
 ### Changed
 - Some error messages at the end of an execution will only be displayed in verbose mode (`earthly -V ...`), e.g. `Error: build target: build main: failed to solve:`... [#3200](https://github.com/earthly/earthly/issues/3200)
