@@ -12,6 +12,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Support for `mode` in mount cache [#3279](https://github.com/earthly/earthly/pull/3279).
 - Support for `mode` in CACHE commands [#3290](https://github.com/earthly/earthly/pull/3290).
 - Support for shared/global caches [#3296](https://github.com/earthly/earthly/pull/3296).
+- Buildkit support for the gRPC Docker registry proxy [#25](https://github.com/earthly/buildkit/pull/25).
 
 ### Fixed
 - Regression where URLs will not always get shorter when used as a prefix. Partially addresses [#3200](https://github.com/earthly/earthly/issues/3200).
