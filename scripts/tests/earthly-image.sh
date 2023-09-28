@@ -62,13 +62,13 @@ if "$FRONTEND" run --rm --privileged "${EARTHLY_IMAGE}" 2>&1 | tee output.txt; t
     exit 1
 fi
 acbgrep "Executes Earthly builds" output.txt # Display help
-acbgrep "Error: no target reference provided" output.txt # Show error
+acbgrep "| no target reference provided" output.txt # Show error
 if "$FRONTEND" run --rm -e NO_BUILDKIT=1 "${EARTHLY_IMAGE}" 2>&1 | tee output.txt; then
     echo "expected failure"
     exit 1
 fi
 acbgrep "Executes Earthly builds" output.txt # Display help
-acbgrep "Error: no target reference provided" output.txt # Show error
+acbgrep "| no target reference provided" output.txt # Show error
 
 echo "Test --version (smoke test)."
 "$FRONTEND" run --rm --privileged "${EARTHLY_IMAGE}" --version 2>&1
