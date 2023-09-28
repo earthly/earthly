@@ -822,21 +822,24 @@ npm-update-all:
 # merge-main-to-docs merges the main branch into docs-0.7
 merge-main-to-docs:
     FROM alpine/git
-    # Ok, if you have no choice
-    ARG git_url="git@github.com:earthly/earthly"
-    GIT CLONE "$git_url" earthly
-    RUN --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
-          ssh-keyscan github.com >> ~/.ssh/known_hosts && \
-        rm -rf earthly &&\
-        git clone "$git_url" earthly
-    WORKDIR earthly
+    ARG git_repo="earthly/earthly"
+    ARG git_url="git@github.com:$git_repo"
+    ARG to_branch="docs-0.7"
+    ARG from_branch="main"
     RUN git config --global user.name "littleredcorvette" && \
         git config --global user.email "littleredcorvette@users.noreply.github.com"
-    RUN git checkout docs-0.7 && \
-    git merge --no-commit --no-ff main && \
-    git status && \
-    git merge --abort
+    GIT CLONE "$git_url" earthly
+    WORKDIR earthly
+    ARG git_hash=$(git rev-parse HEAD)
+    RUN --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
+          ssh-keyscan github.com >> ~/.ssh/known_hosts && \
+        git fetch --unshallow && \
+        # dry run merge:
+        git checkout $to_branch && \
+        git merge --no-commit origin/$from_branch && \
+        git status && \
+        git merge --abort
     RUN --push --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
-        git checkout docs-0.7 && \
-        git merge main && \
+        git checkout $to_branch && \
+        git merge $from_branch && \
         git push
