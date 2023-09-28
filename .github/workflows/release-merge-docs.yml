@@ -27,4 +27,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: earthly/actions-setup@main
       - name: Execute merge
+        # currently this is just in dry-run mode Add --push to the earthly command
+        # to get it out of dry run mode
         run: earthly --ci +merge-main-to-docs
