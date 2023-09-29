@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 	"net"
+	"os"
+	"strings"
 	"sync"
 
 	registry "github.com/moby/buildkit/api/services/registry"
@@ -67,7 +69,9 @@ func (r *RegistryProxy) handle(ctx context.Context, conn net.Conn) error {
 
 	rw := registry.NewStreamRW(stream)
 
-	_, err = io.Copy(rw, conn)
+	connR := &httpConnReader{conn: conn}
+
+	_, err = io.Copy(rw, connR)
 	if err != nil {
 		return errors.Wrap(err, "failed to write to stream")
 	}
@@ -83,4 +87,26 @@ func (r *RegistryProxy) handle(ctx context.Context, conn net.Conn) error {
 	}
 
 	return nil
+}
+
+type httpConnReader struct {
+	conn net.Conn
+	done bool
+}
+
+func (h *httpConnReader) Read(p []byte) (int, error) {
+	if h.done {
+		return 0, io.EOF
+	}
+	buf := make([]byte, 512)
+	n, err := h.conn.Read(buf)
+	if err != nil {
+		return 0, err
+	}
+	buf = buf[0:n]
+	if strings.HasSuffix(string(buf), "\r\n\r\n") {
+		h.done = true
+	}
+	copy(p, buf)
+	return n, nil
 }
