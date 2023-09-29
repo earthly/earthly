@@ -826,14 +826,13 @@ merge-main-to-docs:
     ARG git_url="git@github.com:$git_repo"
     ARG to_branch="docs-0.7"
     ARG from_branch="main"
+    DO github.com/earthly/lib/ssh:ido-add-known_hosts_udc+ADD_KNOWN_HOSTS --target_file=~/.ssh/known_hosts
     RUN git config --global user.name "littleredcorvette" && \
         git config --global user.email "littleredcorvette@users.noreply.github.com"
     GIT CLONE "$git_url" earthly
     WORKDIR earthly
     ARG git_hash=$(git rev-parse HEAD)
     RUN --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
-        --mount=type=secret,id=littleredcorvette-id_rsa.pub,mode=0400,target=/root/.ssh/id_rsa.pub \
-        cat /root/.ssh/id_rsa.pub >> ~/.ssh/known_hosts && \
         git fetch --unshallow && \
         # dry run merge:
         git checkout $to_branch && \
