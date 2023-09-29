@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -16,9 +18,11 @@ import (
 	"github.com/earthly/earthly/cmd/earthly/flag"
 	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/docker2earthly"
+	"github.com/earthly/earthly/regproxy"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
+	"github.com/docker/distribution/registry/listener"
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 	"github.com/moby/buildkit/client/llb"
@@ -579,14 +583,47 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return fmt.Errorf("configuration error: \"conversion_parallelism\" must be larger than zero")
 	}
 	parallelism := semutil.NewWeighted(int64(a.cli.Cfg().Global.ConversionParallelism))
+
 	localRegistryAddr := ""
 	if isLocal && a.cli.Flags().LocalRegistryHost != "" {
-		lrURL, err := url.Parse(a.cli.Flags().LocalRegistryHost)
+		u, err := url.Parse(a.cli.Flags().LocalRegistryHost)
 		if err != nil {
 			return errors.Wrapf(err, "parse local registry host %s", a.cli.Flags().LocalRegistryHost)
 		}
-		localRegistryAddr = lrURL.Host
+		localRegistryAddr = u.Host
 	}
+
+	if a.cli.Flags().UseRemoteRegistry {
+		tmpAddr := "localhost:0" // Have the OS select a port
+
+		ln, err := listener.NewListener("tcp", tmpAddr)
+		if err != nil {
+			return errors.Wrapf(err, "failed to listen on %q", tmpAddr)
+		}
+
+		localRegistryAddr = fmt.Sprintf("localhost:%d", ln.Addr().(*net.TCPAddr).Port)
+
+		regProxy := &http.Server{
+			Handler: regproxy.NewRegistryProxy(bkclient.RegistryClient()),
+		}
+
+		a.cli.Console().VerbosePrintf("Starting local registry proxy: %s", localRegistryAddr)
+
+		go func() {
+			err := regProxy.Serve(ln)
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				a.cli.Console().Warnf("Failed to serve registry proxy: %v", err)
+			}
+		}()
+
+		defer func() {
+			err := regProxy.Shutdown(cliCtx.Context)
+			if err != nil && !errors.Is(err, context.Canceled) {
+				a.cli.Console().Warnf("Failed to shutdown registry proxy: %v", err)
+			}
+		}()
+	}
+
 	var logbusSM *solvermon.SolverMonitor
 	if a.cli.Flags().Logstream {
 		logbusSM = a.cli.LogbusSetup().SolverMonitor

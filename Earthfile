@@ -62,7 +62,7 @@ code:
     END
     COPY ./ast/parser+parser/*.go ./ast/parser/
     COPY --dir analytics autocomplete buildcontext builder logbus cleanup cloud cmd config conslogging debugger \
-        dockertar docker2earthly domain features internal outmon slog states util variables ./
+        dockertar docker2earthly domain features internal outmon slog states util variables regproxy ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
     COPY --dir ast/antlrhandler ast/spec ast/hint ast/command ast/commandflag ast/*.go ast/
@@ -358,7 +358,7 @@ earthly:
         echo "$(cat ./build/ldflags)"
     # Important! If you change the go build options, you may need to also change them
     # in https://github.com/earthly/homebrew-earthly/blob/main/Formula/earthly.rb
-    # as well as https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb 
+    # as well as https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb
     RUN --mount=type=cache,target=$GOCACHE \
         GOARM=${VARIANT#v} go build \
             -tags "$(cat ./build/tags)" \
@@ -680,7 +680,7 @@ lint-docs:
     BUILD +lint-newline-ending
     BUILD +lint-changelog
 
-# test-no-qemu runs tests without qemu virtualization by passing in dockerhub authentication and 
+# test-no-qemu runs tests without qemu virtualization by passing in dockerhub authentication and
 # using secure docker hub mirror configurations
 test-no-qemu:
     BUILD --pass-args +test-quick
