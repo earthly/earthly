@@ -270,13 +270,13 @@ Mounts a file or directory in the context of the build environment.
 
 The `<mount-spec>` is defined as a series of comma-separated list of key-values. The following keys are allowed
 
-| Key             | Description                                                                                                                                                                     | Example                                |
-|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------|
-| `type`          | The type of the mount. Currently only `cache`, `tmpfs`, and `secret` are allowed.                                                                                               | `type=cache`                           |
-| `target`        | The target path for the mount.                                                                                                                                                  | `target=/var/lib/data`                 |
-| `mode`, `chmod` | The permission of the mounted file, in octal format (the same format the chmod unix command line expects).                                                                      | `chmod=0400`                           |
-| `id`            | The cache ID for a shared cache mount to be used across other targets or Earthfiles, when `type=cache`. The secret ID for the contents of the `target` file, when `type=secret` | `id=my-shared-cache`, `id=my-password` |
-| `sharing`       | The sharing mode (`locked`, `shared`, `private`) for the cache mount, only applicable for `type=cache`.                                                                         | `sharing=shared`                       |
+| Key             | Description                                                                                                                                                                                                                 | Example                                 |
+|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
+| `type`          | The type of the mount. Currently only `cache`, `tmpfs`, and `secret` are allowed.                                                                                                                                           | `type=cache`                            |
+| `target`        | The target path for the mount.                                                                                                                                                                                              | `target=/var/lib/data`                  |
+| `mode`, `chmod` | The permission of the mounted file, in octal format (the same format the chmod unix command line expects).                                                                                                                  | `chmod=0400`                            |
+| `id`            | The cache ID for a global cache mount to be used across other targets or Earthfiles, when `type=cache`. The secret ID for the contents of the `target` file, when `type=secret`. Use `VERSION --global-cache 0.7` to enable | `id=my-shared-cache`, `id=my-password`  |
+| `sharing`       | The sharing mode (`locked`, `shared`, `private`) for the cache mount, only applicable for `type=cache`.                                                                                                                     | `sharing=shared`                        |
 
 For cache mounts, the sharing mode can be one of the following:
 
@@ -1398,7 +1398,7 @@ Default `--chmod 0644`
 
 ##### `--id <cache-id>`
 
-The cache ID for a shared cache volume to be used across other targets or Earthfiles.
+The cache ID for a global cache volume to be used across other targets or Earthfiles. Use `VERSION --global-cache 0.7` to enable
 
 ## LOCALLY
 

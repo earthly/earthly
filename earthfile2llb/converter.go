@@ -1508,14 +1508,15 @@ func (c *Converter) Cache(ctx context.Context, mountTarget string, opts commandf
 		return err
 	}
 	c.nonSaveCommand()
-	cacheId := opts.ID
-	if cacheId == "" {
-		key, err := cacheKeyTargetInput(c.targetInputActiveOnly())
-		if err != nil {
-			return err
-		}
-		cacheId = path.Join("/run/cache", key, path.Clean(mountTarget))
+	key, err := cacheKeyTargetInput(c.targetInputActiveOnly())
+	if err != nil {
+		return err
 	}
+	cacheID := path.Join("/run/cache", key, path.Clean(mountTarget))
+	if c.ftrs.GlobalCache && opts.ID != "" {
+		cacheID = opts.ID
+	}
+
 	var shareMode llb.CacheMountSharingMode
 	switch opts.Sharing {
 	case "shared":
@@ -1530,7 +1531,7 @@ func (c *Converter) Cache(ctx context.Context, mountTarget string, opts commandf
 
 	if _, exists := c.persistentCacheDirs[mountTarget]; !exists {
 		var mountOpts []llb.MountOption
-		mountOpts = append(mountOpts, llb.AsPersistentCacheDir(cacheId, shareMode))
+		mountOpts = append(mountOpts, llb.AsPersistentCacheDir(cacheID, shareMode))
 		mountOpts = append(mountOpts, llb.SourcePath("/cache"))
 		var mountMode int
 		if opts.Mode == "" {
