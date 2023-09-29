@@ -894,6 +894,22 @@ The command `GIT CLONE` clones a git repository from `<git-url>`, optionally ref
 
 In contrast to an operation like `RUN git clone <git-url> <dest-path>`, the command `GIT CLONE` is cache-aware and correctly distinguishes between different git commit IDs when deciding to reuse a previous cache or not. In addition, `GIT CLONE` can also use [Git authentication configuration](../guides/auth.md) passed on to `earthly`, whereas `RUN git clone` would require additional secrets passing, if the repository is not publicly accessible.
 
+Note that the repository is cloned via a shallow-clone opperation (i.e. a single-depth clone).
+
+{% hint style='info' %}
+
+If you need to perform a full-depth clone of a repository, you can use the following pattern:
+
+```Dockerfile
+GIT CLONE <git-url> <dest-path>
+WORKDIR <dest-path>
+ARG git_hash=$(git rev-parse HEAD)
+RUN git fetch --unshallow
+```
+{% endhint %}
+
+See the "GIT CLONE vs RUN git clone" section under the [best practices guide](../best-practices/best-practices.md#git-clone-vs-run-git-clone) for more details.
+
 #### Options
 
 ##### `--branch <git-ref>`
