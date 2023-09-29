@@ -603,23 +603,16 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 
 		localRegistryAddr = fmt.Sprintf("localhost:%d", ln.Addr().(*net.TCPAddr).Port)
 
-		regProxy := &http.Server{
-			Handler: regproxy.NewRegistryProxy(bkclient.RegistryClient()),
-		}
-
 		a.cli.Console().VerbosePrintf("Starting local registry proxy: %s", localRegistryAddr)
 
-		go func() {
-			err := regProxy.Serve(ln)
-			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				a.cli.Console().Warnf("Failed to serve registry proxy: %v", err)
-			}
-		}()
+		p := regproxy.NewRegistryProxy(bkclient.RegistryClient())
+		go p.Serve(cliCtx.Context, ln)
 
-		defer func() {
-			err := regProxy.Shutdown(cliCtx.Context)
-			if err != nil && !errors.Is(err, context.Canceled) {
-				a.cli.Console().Warnf("Failed to shutdown registry proxy: %v", err)
+		go func() {
+			for err := range p.Err() {
+				if err != nil && !errors.Is(err, context.Canceled) {
+					a.cli.Console().Warnf("Failed to serve registry proxy: %v", err)
+				}
 			}
 		}()
 	}

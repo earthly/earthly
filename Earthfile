@@ -818,3 +818,8 @@ npm-update-all:
         RUN cd $nodepath && npm update
         SAVE ARTIFACT --if-exists $nodepath/package-lock.json AS LOCAL $nodepath/package-lock.json
     END
+
+image-test:
+    FROM alpine
+    RUN echo "hello"
+    SAVE IMAGE foo

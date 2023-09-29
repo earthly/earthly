@@ -1,21 +1,19 @@
 package regproxy
 
 import (
-	"bufio"
-	"errors"
-	"fmt"
+	"context"
 	"io"
-	"net/http"
-	"strconv"
-	"strings"
+	"net"
+	"sync"
 
 	registry "github.com/moby/buildkit/api/services/registry"
+	"github.com/pkg/errors"
 )
 
-// NewRegistryProxy creates and returns a new RegistryProxy that streams image
-// data from the BK embedded Docker registry.
+// NewRegistryProxy creates and returns a new RegistryProxy that streams Docker
+// container image data from the BK embedded Docker registry.
 func NewRegistryProxy(cl registry.RegistryClient) *RegistryProxy {
-	return &RegistryProxy{cl: cl}
+	return &RegistryProxy{cl: cl, errCh: make(chan error)}
 }
 
 // RegistryProxy uses a gRPC stream to translate incoming Docker image requests
@@ -23,92 +21,65 @@ func NewRegistryProxy(cl registry.RegistryClient) *RegistryProxy {
 // streamed over the gRPC connection rather than buffered as the images can be
 // rather large.
 type RegistryProxy struct {
-	cl registry.RegistryClient
+	cl    registry.RegistryClient
+	errCh chan error
 }
 
-// ServeHTTP implements http.Handler.
-func (r *RegistryProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	err := r.serve(w, req)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-// parseHeader parses an HTTP response header and extracts the response status &
-// header values. This function does not close the reader as it will be used
-// further on to stream the body data.
-func parseHeader(r io.Reader) (status int, header http.Header, err error) {
-	sc := bufio.NewScanner(r)
-	header = http.Header{}
-
-	for sc.Scan() {
-		line := sc.Text()
-		if line == "" {
-			break
-		}
-		if strings.Contains(line, "HTTP/") {
-			parts := strings.Split(line, " ")
-			if len(parts) < 2 {
-				err = errors.New("invalid status line")
-				return
-			}
-			status, err = strconv.Atoi(parts[1])
-			if err != nil {
-				return
-			}
-			continue
-		}
-		parts := strings.Split(line, ": ")
-		if len(parts) < 2 {
-			err = errors.New("invalid header format")
+// Serve waits for TCP connections and pipes data received from the connection
+// to BK via the gRPC server.
+func (r *RegistryProxy) Serve(ctx context.Context, ln net.Listener) {
+	wg := sync.WaitGroup{}
+	defer func() {
+		wg.Wait()
+		close(r.errCh)
+	}()
+	for {
+		select {
+		case <-ctx.Done():
+			r.errCh <- ctx.Err()
 			return
+		default:
+			conn, err := ln.Accept()
+			if err != nil {
+				r.errCh <- errors.Wrap(err, "failed to accept")
+				continue
+			}
+			go func() {
+				wg.Add(1)
+				defer wg.Done()
+				r.errCh <- r.handle(ctx, conn)
+			}()
 		}
-		header.Add(parts[0], parts[1])
 	}
-
-	err = sc.Err()
-
-	return
 }
 
-// serve the HTTP request by writing it to BK via a streaming gRPC request. The
-// request will be reconstituted on the other end and forwarded to the embedded
-// registry and back again.
-func (r *RegistryProxy) serve(w http.ResponseWriter, req *http.Request) error {
+func (r *RegistryProxy) Err() <-chan error {
+	return r.errCh
+}
 
-	stream, err := r.cl.Proxy(req.Context())
+func (r *RegistryProxy) handle(ctx context.Context, conn net.Conn) error {
+	defer conn.Close()
+
+	stream, err := r.cl.Proxy(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to send proxy request: %w", err)
+		return errors.Wrap(err, "failed to create proxy stream")
 	}
 
 	rw := registry.NewStreamRW(stream)
 
-	err = req.WriteProxy(rw)
+	_, err = io.Copy(rw, conn)
 	if err != nil {
-		return fmt.Errorf("failed to write request: %w", err)
+		return errors.Wrap(err, "failed to write to stream")
 	}
 
 	err = stream.CloseSend()
 	if err != nil {
-		return fmt.Errorf("failed to send close: %w", err)
+		return errors.Wrap(err, "failed to close stream")
 	}
 
-	status, header, err := parseHeader(rw)
+	_, err = io.Copy(conn, rw)
 	if err != nil {
-		return err
-	}
-
-	for key, vals := range header {
-		for _, val := range vals {
-			w.Header().Add(key, val)
-		}
-	}
-
-	w.WriteHeader(status)
-
-	_, err = io.Copy(w, rw)
-	if err != nil {
-		return fmt.Errorf("failed to write body: %w", err)
+		return errors.Wrap(err, "failed to read from stream")
 	}
 
 	return nil
