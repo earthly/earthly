@@ -2,6 +2,8 @@ package ship
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -41,6 +43,8 @@ func NewLogShipper(cl streamer, man *pb.RunManifest, verbose bool) *LogShipper {
 
 func (l *LogShipper) Write(delta *pb.Delta) {
 	if l.closed.Load() {
+		logMsg := string(delta.GetDeltaFormattedLog().GetData())
+		fmt.Fprintf(os.Stderr, "WARNING: Message sent to closed log stream: %s", logMsg)
 		return
 	}
 	l.ch <- delta
