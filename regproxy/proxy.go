@@ -4,12 +4,11 @@ import (
 	"context"
 	"io"
 	"net"
-	"os"
-	"strings"
 	"sync"
 
 	registry "github.com/moby/buildkit/api/services/registry"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 // NewRegistryProxy creates and returns a new RegistryProxy that streams Docker
@@ -69,44 +68,34 @@ func (r *RegistryProxy) handle(ctx context.Context, conn net.Conn) error {
 
 	rw := registry.NewStreamRW(stream)
 
-	connR := &httpConnReader{conn: conn}
+	eg, ctx := errgroup.WithContext(ctx)
 
-	_, err = io.Copy(rw, connR)
-	if err != nil {
-		return errors.Wrap(err, "failed to write to stream")
-	}
+	eg.Go(func() error {
+		_, err = io.Copy(rw, conn)
+		if err != nil {
+			return errors.Wrap(err, "failed to write to stream")
+		}
+		return nil
+	})
 
-	err = stream.CloseSend()
-	if err != nil {
-		return errors.Wrap(err, "failed to close stream")
-	}
+	// err = stream.CloseSend()
+	// if err != nil {
+	// 	return errors.Wrap(err, "failed to close stream")
+	// }
 
-	_, err = io.Copy(conn, rw)
+	eg.Go(func() error {
+
+		_, err = io.Copy(conn, rw)
+		if err != nil {
+			return errors.Wrap(err, "failed to read from stream")
+		}
+		return nil
+	})
+
+	err = eg.Wait()
 	if err != nil {
-		return errors.Wrap(err, "failed to read from stream")
+		return errors.Wrap(err, "failed to wait")
 	}
 
 	return nil
-}
-
-type httpConnReader struct {
-	conn net.Conn
-	done bool
-}
-
-func (h *httpConnReader) Read(p []byte) (int, error) {
-	if h.done {
-		return 0, io.EOF
-	}
-	buf := make([]byte, 512)
-	n, err := h.conn.Read(buf)
-	if err != nil {
-		return 0, err
-	}
-	buf = buf[0:n]
-	if strings.HasSuffix(string(buf), "\r\n\r\n") {
-		h.done = true
-	}
-	copy(p, buf)
-	return n, nil
 }
