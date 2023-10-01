@@ -60,6 +60,7 @@ type Features struct {
 	EarthlyCIRunnerArg         bool `long:"earthly-ci-runner-arg" description:"includes EARTHLY_CI_RUNNER ARG"`
 	UseDockerIgnore            bool `long:"use-docker-ignore" description:"fallback to .dockerignore incase .earthlyignore or .earthignore do not exist in a local \"FROM DOCKERFILE\" target"`
 	PassArgs                   bool `long:"pass-args" description:"Allow the use of the --pass-arg flag in FROM, BUILD, COPY, WITH DOCKER, and DO commands"`
+	GlobalCache                bool `long:"global-cache" description:"enable global caches (shared across different Earthfiles), for cache mounts and CACHEs having an ID"`
 
 	Major int
 	Minor int

@@ -137,13 +137,13 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 		if mountMode == 0 {
 			mountMode = 0644
 		}
-		cacheID := mountID
-		if cacheID == "" {
-			key, err := cacheKeyTargetInput(c.targetInputActiveOnly())
-			if err != nil {
-				return nil, err
-			}
-			cacheID = path.Join("/run/cache", key, path.Clean(mountTarget))
+		key, err := cacheKeyTargetInput(c.targetInputActiveOnly())
+		if err != nil {
+			return nil, err
+		}
+		cacheID := path.Join("/run/cache", key, path.Clean(mountTarget))
+		if c.ftrs.GlobalCache && mountID != "" {
+			cacheID = mountID
 		}
 		mountOpts = append(mountOpts, llb.AsPersistentCacheDir(cacheID, sharingMode))
 		state = c.cacheContext
