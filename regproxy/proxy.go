@@ -2,7 +2,6 @@ package regproxy
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net"
 	"sync"
