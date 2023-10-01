@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -595,18 +594,23 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 
 	if a.cli.Flags().UseRemoteRegistry {
 		tmpAddr := "localhost:0" // Have the OS select a port
-
 		ln, err := listener.NewListener("tcp", tmpAddr)
+
 		if err != nil {
 			return errors.Wrapf(err, "failed to listen on %q", tmpAddr)
 		}
 
+		p := regproxy.NewRegistryProxy(ln, bkclient.RegistryClient())
+		go p.Serve(cliCtx.Context)
+
+		doneCh := make(chan struct{})
+		defer func() {
+			p.Close()
+			<-doneCh
+		}()
+
 		localRegistryAddr = fmt.Sprintf("localhost:%d", ln.Addr().(*net.TCPAddr).Port)
-
 		a.cli.Console().VerbosePrintf("Starting local registry proxy: %s", localRegistryAddr)
-
-		p := regproxy.NewRegistryProxy(bkclient.RegistryClient())
-		go p.Serve(cliCtx.Context, ln)
 
 		go func() {
 			for err := range p.Err() {
@@ -614,6 +618,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 					a.cli.Console().Warnf("Failed to serve registry proxy: %v", err)
 				}
 			}
+			doneCh <- struct{}{}
 		}()
 	}
 

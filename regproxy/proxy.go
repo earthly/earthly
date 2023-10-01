@@ -2,9 +2,11 @@ package regproxy
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"sync"
+	"sync/atomic"
 
 	registry "github.com/moby/buildkit/api/services/registry"
 	"github.com/pkg/errors"
@@ -13,8 +15,8 @@ import (
 
 // NewRegistryProxy creates and returns a new RegistryProxy that streams Docker
 // container image data from the BK embedded Docker registry.
-func NewRegistryProxy(cl registry.RegistryClient) *RegistryProxy {
-	return &RegistryProxy{cl: cl, errCh: make(chan error)}
+func NewRegistryProxy(ln net.Listener, cl registry.RegistryClient) *RegistryProxy {
+	return &RegistryProxy{ln: ln, cl: cl, errCh: make(chan error)}
 }
 
 // RegistryProxy uses a gRPC stream to translate incoming Docker image requests
@@ -22,13 +24,15 @@ func NewRegistryProxy(cl registry.RegistryClient) *RegistryProxy {
 // streamed over the gRPC connection rather than buffered as the images can be
 // rather large.
 type RegistryProxy struct {
+	ln    net.Listener
 	cl    registry.RegistryClient
 	errCh chan error
+	done  atomic.Bool
 }
 
 // Serve waits for TCP connections and pipes data received from the connection
 // to BK via the gRPC server.
-func (r *RegistryProxy) Serve(ctx context.Context, ln net.Listener) {
+func (r *RegistryProxy) Serve(ctx context.Context) {
 	wg := sync.WaitGroup{}
 	defer func() {
 		wg.Wait()
@@ -40,18 +44,27 @@ func (r *RegistryProxy) Serve(ctx context.Context, ln net.Listener) {
 			r.errCh <- ctx.Err()
 			return
 		default:
-			conn, err := ln.Accept()
+			conn, err := r.ln.Accept()
 			if err != nil {
-				r.errCh <- errors.Wrap(err, "failed to accept")
-				continue
+				if !r.done.Load() {
+					r.errCh <- errors.Wrap(err, "failed to accept")
+				}
+				return
 			}
 			go func() {
 				wg.Add(1)
-				defer wg.Done()
+				defer func() {
+					wg.Done()
+				}()
 				r.errCh <- r.handle(ctx, conn)
 			}()
 		}
 	}
+}
+
+func (r *RegistryProxy) Close() {
+	r.done.Store(true)
+	r.ln.Close()
 }
 
 func (r *RegistryProxy) Err() <-chan error {
@@ -75,16 +88,14 @@ func (r *RegistryProxy) handle(ctx context.Context, conn net.Conn) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to write to stream")
 		}
+		err = stream.CloseSend()
+		if err != nil {
+			return errors.Wrap(err, "failed to close stream")
+		}
 		return nil
 	})
 
-	// err = stream.CloseSend()
-	// if err != nil {
-	// 	return errors.Wrap(err, "failed to close stream")
-	// }
-
 	eg.Go(func() error {
-
 		_, err = io.Copy(conn, rw)
 		if err != nil {
 			return errors.Wrap(err, "failed to read from stream")
