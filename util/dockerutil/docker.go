@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/platutil"
