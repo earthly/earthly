@@ -126,17 +126,15 @@ func waitForImage(ctx context.Context, fe containerutil.ContainerFrontend, fullN
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-ticker.C:
+		default:
 			m, err := fe.ImageInfo(ctx, fullName)
 			if err != nil {
 				// Not available. Retry.
+				time.Sleep(100 * time.Millisecond)
 				continue
 			}
 			if info, ok := m[fullName]; ok && info.ID != "" {
