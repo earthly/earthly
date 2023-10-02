@@ -24,6 +24,7 @@ import (
 	"github.com/docker/distribution/registry/listener"
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
+	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth"
@@ -366,7 +367,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return errors.New("Frontend is not available to perform the build. Is Docker installed and running?")
 	}
 
-	bkclient, err := buildkitd.NewClient(
+	bkClient, err := buildkitd.NewClient(
 		cliCtx.Context,
 		a.cli.Console(),
 		a.cli.Flags().BuildkitdImage,
@@ -379,10 +380,10 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
-	defer bkclient.Close()
+	defer bkClient.Close()
 	a.cli.SetAnaMetaIsRemoteBK(!isLocal)
 
-	nativePlatform, err := platutil.GetNativePlatformViaBkClient(cliCtx.Context, bkclient)
+	nativePlatform, err := platutil.GetNativePlatformViaBkClient(cliCtx.Context, bkClient)
 	if err != nil {
 		return errors.Wrap(err, "get native platform via buildkit client")
 	}
@@ -592,42 +593,18 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		localRegistryAddr = u.Host
 	}
 
-	if a.cli.Flags().UseRemoteRegistry {
-		tmpAddr := "localhost:0" // Have the OS select a port
-		ln, err := listener.NewListener("tcp", tmpAddr)
-
-		if err != nil {
-			return errors.Wrapf(err, "failed to listen on %q", tmpAddr)
-		}
-
-		p := regproxy.NewRegistryProxy(ln, bkclient.RegistryClient())
-		go p.Serve(cliCtx.Context)
-
-		doneCh := make(chan struct{})
-		defer func() {
-			p.Close()
-			<-doneCh
-		}()
-
-		localRegistryAddr = fmt.Sprintf("localhost:%d", ln.Addr().(*net.TCPAddr).Port)
-		a.cli.Console().VerbosePrintf("Starting local registry proxy: %s", localRegistryAddr)
-
-		go func() {
-			for err := range p.Err() {
-				if err != nil && !errors.Is(err, context.Canceled) {
-					a.cli.Console().Warnf("Failed to serve registry proxy: %v", err)
-				}
-			}
-			doneCh <- struct{}{}
-		}()
+	localRegistryAddr, closeProxy, err := a.startRegistryProxy(cliCtx.Context, bkClient)
+	if err != nil {
+		return err
 	}
+	defer closeProxy()
 
 	var logbusSM *solvermon.SolverMonitor
 	if a.cli.Flags().Logstream {
 		logbusSM = a.cli.LogbusSetup().SolverMonitor
 	}
 	builderOpts := builder.Opt{
-		BkClient:                              bkclient,
+		BkClient:                              bkClient,
 		LogBusSolverMonitor:                   logbusSM,
 		UseLogstream:                          a.cli.Flags().Logstream,
 		Console:                               a.cli.Console(),
@@ -744,6 +721,41 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	}
 
 	return nil
+}
+
+func (a *Build) startRegistryProxy(ctx context.Context, client *client.Client) (string, func(), error) {
+	if !a.cli.Flags().UseRemoteRegistry {
+		return "", func() {}, nil
+	}
+
+	addr := "localhost:0" // Have the OS select a port
+	ln, err := listener.NewListener("tcp", addr)
+
+	if err != nil {
+		return "", nil, errors.Wrapf(err, "failed to listen on %q", addr)
+	}
+
+	p := regproxy.NewRegistryProxy(ln, client.RegistryClient())
+	go p.Serve(ctx)
+
+	addr = fmt.Sprintf("localhost:%d", ln.Addr().(*net.TCPAddr).Port)
+	a.cli.Console().VerbosePrintf("Starting local registry proxy: %s", addr)
+
+	doneCh := make(chan struct{})
+
+	go func() {
+		for err := range p.Err() {
+			if err != nil && !errors.Is(err, context.Canceled) {
+				a.cli.Console().Warnf("Failed to serve registry proxy: %v", err)
+			}
+		}
+		doneCh <- struct{}{}
+	}()
+
+	return addr, func() {
+		p.Close()
+		<-doneCh
+	}, nil
 }
 
 func getTryCatchSaveFileHandler(localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) func(ctx context.Context, conn io.ReadWriteCloser) error {
