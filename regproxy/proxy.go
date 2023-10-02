@@ -53,11 +53,9 @@ func (r *RegistryProxy) Serve(ctx context.Context) {
 				}
 				return
 			}
+			wg.Add(1)
 			go func() {
-				wg.Add(1)
-				defer func() {
-					wg.Done()
-				}()
+				defer wg.Done()
 				r.errCh <- r.handle(ctx, conn)
 			}()
 		}
@@ -82,7 +80,7 @@ func (r *RegistryProxy) handle(ctx context.Context, conn net.Conn) error {
 	}
 
 	rw := registry.NewStreamRW(stream)
-	eg, ctx := errgroup.WithContext(ctx)
+	eg, _ := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
 		_, err = copyWithDeadline(conn, rw)

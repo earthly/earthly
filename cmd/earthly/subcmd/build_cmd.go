@@ -593,11 +593,14 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		localRegistryAddr = u.Host
 	}
 
-	localRegistryAddr, closeProxy, err := a.startRegistryProxy(cliCtx.Context, bkClient)
-	if err != nil {
-		return err
+	if a.cli.Flags().UseRemoteRegistry {
+		var closeProxy func()
+		localRegistryAddr, closeProxy, err = a.startRegistryProxy(cliCtx.Context, bkClient)
+		if err != nil {
+			return err
+		}
+		defer closeProxy()
 	}
-	defer closeProxy()
 
 	var logbusSM *solvermon.SolverMonitor
 	if a.cli.Flags().Logstream {
@@ -724,10 +727,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 }
 
 func (a *Build) startRegistryProxy(ctx context.Context, client *client.Client) (string, func(), error) {
-	if !a.cli.Flags().UseRemoteRegistry {
-		return "", func() {}, nil
-	}
-
 	addr := "localhost:0" // Have the OS select a port
 	ln, err := listener.NewListener("tcp", addr)
 
