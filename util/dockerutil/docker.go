@@ -130,11 +130,10 @@ func waitForImage(ctx context.Context, fe containerutil.ContainerFrontend, fullN
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		default:
+		case <-time.After(100 * time.Millisecond):
 			m, err := fe.ImageInfo(ctx, fullName)
 			if err != nil {
 				// Not available. Retry.
-				time.Sleep(100 * time.Millisecond)
 				continue
 			}
 			if info, ok := m[fullName]; ok && info.ID != "" {
