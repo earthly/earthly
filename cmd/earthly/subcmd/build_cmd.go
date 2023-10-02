@@ -594,11 +594,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	}
 
 	if a.cli.Flags().UseRemoteRegistry {
-		doneCh := make(chan struct{})
-		defer func() {
-			<-doneCh // Wait for server shutdown before returning.
-		}()
-
 		tmpAddr := "localhost:0" // Have the OS select a port
 
 		ln, err := listener.NewListener("tcp", tmpAddr)
@@ -619,7 +614,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 			if err != nil && !errors.Is(err, http.ErrServerClosed) {
 				a.cli.Console().Warnf("Failed to serve registry proxy: %v", err)
 			}
-			doneCh <- struct{}{}
 		}()
 
 		defer func() {
