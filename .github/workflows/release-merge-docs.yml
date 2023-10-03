@@ -1,18 +1,17 @@
-name: lint-docs
+name: update docs
 
 on:
   push:
-    branches: [ main, next ]
-  pull_request:
-    branches: [ main, next ]
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: +lint-docs
+  main-to-docs:
+    name: merge (dry-run)
     runs-on: "ubuntu-latest"
     env:
       FORCE_COLOR: 1
@@ -27,5 +26,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: earthly/actions-setup@main
-      - name: Execute lint
-        run: earthly --ci -P +lint-docs
+      - name: Execute merge
+        # currently this is just in dry-run mode Add --push to the earthly command
+        # to get it out of dry run mode
+        run: earthly --ci +merge-main-to-docs

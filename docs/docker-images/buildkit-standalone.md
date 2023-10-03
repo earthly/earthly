@@ -4,9 +4,8 @@ This image contains `buildkit` with some Earthly-specific setup. This is what Ea
 
 ## Tags
 
-* `v0.7.19`, `latest`
-* `v0.7.17`
-* `v0.7.16`
+Currently, the `latest` tag is `v0.7.19`.  
+For other available tags, please check out https://hub.docker.com/r/earthly/buildkitd/tags
 
 ## Quickstart
 

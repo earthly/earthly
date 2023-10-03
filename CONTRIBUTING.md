@@ -181,16 +181,27 @@ which will use the credentials which are stored in earthly's [cloud-hosted secre
 
 Earthly is built against a fork of [buildkit](https://github.com/earthly/buildkit) and [fsutil](https://github.com/earthly/fsutil).
 
+To work with changes to this fork, you can use `earthly +for-linux --BUILDKIT_PROJECT=../buildkit`. This will use the local directory `../buildkit` for the buildkit code, when using buildkit in both `go.mod` and when building the buildkitd image.
+
 For contributions that require updates to these forks, a PR must be opened in in the earthly-fork of the repository, and a corresponding PR should
 be opened in the earthly repository -- please link the two PRs together, in order to show that earthly's tests will continue to pass with the changes to buildkit or fsutil.
 
-The earthly-fork of the buildkit repository does not automatically squash commits; if you are submitting a PR for a new feature, it must be squashed manually. Do not squash commits when merging upstream changes from moby.
+The linked-PRs should be merged at the same time, in order to prevent earthly's main branch from pointing to a non-main branch of buildkit.
+This is because the buildkit tests in the earthly fork of buildkit may not all pass -- this is a tech-debt trade-off -- instead of fixing (and extending these tests),
+we instead rely on the earthly integration tests to pass before merging in changes to our fork.
+
+The earthly-fork of the buildkit repository does not automatically squash commits; if you are submitting a PR for a new feature, it must be squashed manually.
+The buildkit github repo is only setup to explicitly create a new merge commit for all merges -- this means you will have to go update your PR in earthly with a reference to
+the new merge-commit (and wait for tests to run again); however, you may do a `git merge --ff-only <branch> && git push` using git on the command line, which will speed up the merge
+process, since you will not have to edit your linked earthly PR (since a fast-forward change will not create a new merge commit, therefore allowing you to keep the existing referenced git sha in the
+earthly PR).
+
+If on the otherhand, you are pulling in upstream changes from moby, they should never be squashed.
 
 To update earthly's reference to buildkit, you may run `earthly +update-buildkit --BUILDKIT_GIT_ORG=<git-user-or-org> --BUILDKIT_GIT_SHA=<40-char-git-reference-here>`.
 
 Updates to fsutil must first be vendored into buildkit, then updated under `go.mod`; additional docs and scripts exist in the buildkit repo.
 
-Note that the buildkit tests in the earthly fork of buildkit may not all pass -- this is a tech-debt trade-off -- we do not enforce the buildkit tests to pass, but instead rely on the earthly integration tests to pass before merging in changes to our fork.
 
 ## Running buildkit under debug mode
 
