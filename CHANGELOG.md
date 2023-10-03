@@ -9,7 +9,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Added
 - Documentation for experimental option `--pass-args` [#3229](https://github.com/earthly/earthly/pull/3229).
 - Clarification about `RUN --ssh` no being related to GIT [3eb60e87](https://github.com/earthly/earthly/commit/3eb60e87bbbee965a7c0f5d7b0f89cc2f65a7d02).
-- Support for `mode` in mount cache [#3279](https://github.com/earthly/earthly/pull/3279).
+- Support for `mode` in mount cache [#3278](https://github.com/earthly/earthly/issues/3278).
 - Support for `mode` in CACHE commands [#3290](https://github.com/earthly/earthly/pull/3290).
 - Support for shared/global caches [#3296](https://github.com/earthly/earthly/pull/3296).
 - Buildkit support for the gRPC Docker registry proxy [#25](https://github.com/earthly/buildkit/pull/25).
