@@ -60,10 +60,7 @@ perform-release-dockerhub:
         --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
 
 release-notes:
-    FROM python:3
-    WORKDIR /changelog
-    COPY changelogparser.py /usr/bin/changelogparser
-    COPY ..+changelog/CHANGELOG.md .
+    FROM ..+changelog-parser
     ARG --required RELEASE_TAG
     RUN changelogparser --changelog CHANGELOG.md --version "$RELEASE_TAG" > notes.txt
     ARG SKIP_CHANGELOG_DATE_TEST="false"

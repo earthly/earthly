@@ -295,14 +295,17 @@ submodule-decouple-check:
 # changelog saves the CHANGELOG.md as an artifact
 changelog:
     FROM scratch
-    COPY CHANGELOG.md .
     SAVE ARTIFACT CHANGELOG.md
 
-lint-changelog:
+changelog-parser:
     FROM python:3
     RUN pip install packaging
     COPY release/changelogparser.py /usr/bin/changelogparser
+    WORKDIR /changelog
     COPY CHANGELOG.md .
+
+lint-changelog:
+    FROM +changelog-parser
     RUN changelogparser --changelog CHANGELOG.md
 
 # debugger builds the earthly debugger and saves the artifact in build/earth_debugger
