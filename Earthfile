@@ -818,3 +818,29 @@ npm-update-all:
         RUN cd $nodepath && npm update
         SAVE ARTIFACT --if-exists $nodepath/package-lock.json AS LOCAL $nodepath/package-lock.json
     END
+
+# merge-main-to-docs merges the main branch into docs-0.7
+merge-main-to-docs:
+    FROM alpine/git
+    ARG git_repo="earthly/earthly"
+    ARG git_url="git@github.com:$git_repo"
+    ARG to_branch="docs-0.7"
+    ARG from_branch="main"
+    ARG earthly_lib_version=2.2.2
+    DO github.com/earthly/lib/ssh:$earthly_lib_version+ADD_KNOWN_HOSTS --target_file=~/.ssh/known_hosts
+    RUN git config --global user.name "littleredcorvette" && \
+        git config --global user.email "littleredcorvette@users.noreply.github.com"
+    GIT CLONE "$git_url" earthly
+    WORKDIR earthly
+    ARG git_hash=$(git rev-parse HEAD)
+    RUN --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
+        git fetch --unshallow && \
+        # dry run merge:
+        git checkout $to_branch && \
+        git merge --no-commit origin/$from_branch && \
+        git status && \
+        git merge --abort
+    RUN --push --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
+        git checkout $to_branch && \
+        git merge $from_branch && \
+        git push
