@@ -117,7 +117,7 @@ func copyWithDeadline(conn net.Conn, w io.Writer) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		buf := make([]byte, 1024)
+		buf := make([]byte, 32*1024)
 		n, err := conn.Read(buf)
 		if err != nil {
 			if errors.Is(err, io.EOF) || isNetTimeout(err) {

@@ -21,7 +21,6 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
-	"github.com/docker/distribution/registry/listener"
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 	"github.com/moby/buildkit/client"
@@ -728,8 +727,9 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 
 func (a *Build) startRegistryProxy(ctx context.Context, client *client.Client) (string, func(), error) {
 	addr := "localhost:0" // Have the OS select a port
-	ln, err := listener.NewListener("tcp", addr)
 
+	lnCfg := net.ListenConfig{}
+	ln, err := lnCfg.Listen(ctx, "tcp", addr)
 	if err != nil {
 		return "", nil, errors.Wrapf(err, "failed to listen on %q", addr)
 	}
