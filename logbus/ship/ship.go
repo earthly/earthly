@@ -2,7 +2,10 @@ package ship
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	pb "github.com/earthly/cloud-api/logstream"
@@ -12,6 +15,9 @@ type streamer interface {
 	StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta) []error
 }
 
+// LogShipper subscribes to the Log Bus & streams log entries up to the remote
+// Logstream service. It uses a non-blocking, dynamically resizing buffer to
+// reliably stream logs to the server.
 type LogShipper struct {
 	cl      streamer
 	ch      chan *pb.Delta
@@ -21,8 +27,10 @@ type LogShipper struct {
 	done    chan struct{}
 	verbose bool
 	mu      sync.Mutex
+	closed  atomic.Bool
 }
 
+// NewLogShipper creates and returns a new LogShipper.
 func NewLogShipper(cl streamer, man *pb.RunManifest, verbose bool) *LogShipper {
 	return &LogShipper{
 		cl:      cl,
@@ -34,9 +42,15 @@ func NewLogShipper(cl streamer, man *pb.RunManifest, verbose bool) *LogShipper {
 }
 
 func (l *LogShipper) Write(delta *pb.Delta) {
+	if l.closed.Load() {
+		logMsg := string(delta.GetDeltaFormattedLog().GetData())
+		fmt.Fprintf(os.Stderr, "WARNING: Message sent to closed log stream: %s", logMsg)
+		return
+	}
 	l.ch <- delta
 }
 
+// Start the log streaming process and begin writing logs to the server.
 func (l *LogShipper) Start(ctx context.Context) {
 	go func() {
 		ctx, l.cancel = context.WithCancel(ctx)
@@ -52,7 +66,13 @@ func (l *LogShipper) Start(ctx context.Context) {
 	}()
 }
 
+// Close the process and allow for a 10s grace period where lagging messages
+// will be drained.
 func (l *LogShipper) Close() {
+	if l.closed.Load() {
+		return
+	}
+	l.closed.Store(true)
 	close(l.ch)
 	// Graceful attempt to drain any in-flight logs then force-quit after delay.
 	t := time.NewTimer(10 * time.Second)
@@ -65,6 +85,7 @@ func (l *LogShipper) Close() {
 	}
 }
 
+// Errs returns all errors that were encountered during the process.
 func (l *LogShipper) Errs() []error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
