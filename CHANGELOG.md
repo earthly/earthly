@@ -9,18 +9,16 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Added
 - Support for `mode` in mount cache [#3278](https://github.com/earthly/earthly/issues/3278).
 - Support for `mode` in CACHE commands [#3290](https://github.com/earthly/earthly/pull/3290).
-- Support for shared/global caches [#1129](https://github.com/earthly/earthly/issues/1129).
+- Support for shared/global caches (cache `id` is no longer scoped per Earthfile) [#1129](https://github.com/earthly/earthly/issues/1129).
 
 ### Fixed
 - A regression where URLs will not always get shorter when used as a prefix. Partially addresses [#3200](https://github.com/earthly/earthly/issues/3200).
 - If a build fails because of `qemu` missing, earthly will display a proper hint to install it [#3200](https://github.com/earthly/earthly/issues/3200).
 - Removed erroneous error-message which said error: 0 errors occured (#3306)(https://github.com/earthly/earthly/pull/3306).
 - A race condition when exiting interactive debugger mode resulting in confusing errors [#3200](https://github.com/earthly/earthly/issues/3200).
-- Removed invalid error-messages which occurred when the interactive debugger exits [#3310](https://github.com/earthly/earthly/pull/3310).
 - Docker auto-install script failures related to attempts to read from tty, while verifying docker's pgp key [#3324](https://github.com/earthly/earthly/pull/3324).
 - Issue affecting pulling images in Podman [#2471](https://github.com/earthly/earthly/issues/2471).
 - A panic which may sometimes occur during shutdown of the logstream [#3325](https://github.com/earthly/earthly/pull/3325).
-- Buildkit entrypoint killing externally provided pids [#3328](https://github.com/earthly/earthly/pull/3328).
 
 ### Changed
 - Some error messages at the end of an execution will only be displayed in verbose mode (`earthly -V ...`), e.g. `Error: build target: build main: failed to solve:`... [#3200](https://github.com/earthly/earthly/issues/3200)
