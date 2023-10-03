@@ -20,7 +20,6 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Request ID logging in gRPC streams [#3267](https://github.com/earthly/earthly/pull/3267).
 - Incorrect error count report (#3306)(https://github.com/earthly/earthly/pull/3306).
 - A Race condition when exiting interactive debugger mode resulting in confusing errors [#3200](https://github.com/earthly/earthly/issues/3200).
-- Log errors that occur due to debugger exiting [#3310](https://github.com/earthly/earthly/pull/3310).
 - Cases where gpg may attempt to use a tty, which will result in an error during the docker auto-install script [#3324](https://github.com/earthly/earthly/pull/3324).
 - Issue affecting pulling images in Podman [#2471](https://github.com/earthly/earthly/issues/2471).
 - Panic when logs are written after Close called [#3325](https://github.com/earthly/earthly/pull/3325).
