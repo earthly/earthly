@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/containerutil"
@@ -91,10 +92,19 @@ func DockerPullLocalImages(ctx context.Context, fe containerutil.ContainerFronte
 
 func dockerPullLocalImage(ctx context.Context, fe containerutil.ContainerFrontend, localRegistryAddr string, pullName string, finalName string) error {
 	fullPullName := fmt.Sprintf("%s/%s", localRegistryAddr, pullName)
+
 	err := fe.ImagePull(ctx, fullPullName)
 	if err != nil {
-		return errors.Wrapf(err, "image pull")
+		return errors.Wrap(err, "image pull")
 	}
+
+	// Fix for #2471 where Podman pulls seem exit before the image is available
+	// for tagging. Wait for the image to become available.
+	err = waitForImage(ctx, fe, fullPullName)
+	if err != nil {
+		return err
+	}
+
 	err = fe.ImageTag(ctx, containerutil.ImageTag{
 		SourceRef: fullPullName,
 		TargetRef: finalName,
@@ -102,10 +112,37 @@ func dockerPullLocalImage(ctx context.Context, fe containerutil.ContainerFronten
 	if err != nil {
 		return errors.Wrap(err, "image tag after pull")
 	}
+
 	force := true // Sometimes Docker GCs images automatically (force prevents an error).
 	err = fe.ImageRemove(ctx, force, fullPullName)
 	if err != nil {
 		return errors.Wrap(err, "image rmi after pull and retag")
 	}
+
 	return nil
+}
+
+func waitForImage(ctx context.Context, fe containerutil.ContainerFrontend, fullName string) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			m, err := fe.ImageInfo(ctx, fullName)
+			if err != nil {
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(100 * time.Millisecond):
+					continue // Not available. Retry.
+				}
+			}
+			if info, ok := m[fullName]; ok && info.ID != "" {
+				return nil
+			}
+		}
+	}
 }
