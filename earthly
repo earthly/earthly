@@ -2,6 +2,7 @@
 set -e
 
 export EARTHLY_GLOBAL_WAIT_END=true
+export EARTHLY_USE_REMOTE_REGISTRY=true
 
 bindir="$HOME/.earthly"
 if [ ! -d "$bindir" ]; then

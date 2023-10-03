@@ -62,7 +62,7 @@ code:
     END
     COPY ./ast/parser+parser/*.go ./ast/parser/
     COPY --dir analytics autocomplete buildcontext builder logbus cleanup cloud cmd config conslogging debugger \
-        dockertar docker2earthly domain features internal outmon slog states util variables ./
+        dockertar docker2earthly domain features internal outmon slog states util variables regproxy ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
     COPY --dir ast/antlrhandler ast/spec ast/hint ast/command ast/commandflag ast/*.go ast/
@@ -358,7 +358,7 @@ earthly:
         echo "$(cat ./build/ldflags)"
     # Important! If you change the go build options, you may need to also change them
     # in https://github.com/earthly/homebrew-earthly/blob/main/Formula/earthly.rb
-    # as well as https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb 
+    # as well as https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb
     RUN --mount=type=cache,target=$GOCACHE \
         GOARM=${VARIANT#v} go build \
             -tags "$(cat ./build/tags)" \
@@ -680,7 +680,7 @@ lint-docs:
     BUILD +lint-newline-ending
     BUILD +lint-changelog
 
-# test-no-qemu runs tests without qemu virtualization by passing in dockerhub authentication and 
+# test-no-qemu runs tests without qemu virtualization by passing in dockerhub authentication and
 # using secure docker hub mirror configurations
 test-no-qemu:
     BUILD --pass-args +test-quick
@@ -818,3 +818,29 @@ npm-update-all:
         RUN cd $nodepath && npm update
         SAVE ARTIFACT --if-exists $nodepath/package-lock.json AS LOCAL $nodepath/package-lock.json
     END
+
+# merge-main-to-docs merges the main branch into docs-0.7
+merge-main-to-docs:
+    FROM alpine/git
+    ARG git_repo="earthly/earthly"
+    ARG git_url="git@github.com:$git_repo"
+    ARG to_branch="docs-0.7"
+    ARG from_branch="main"
+    ARG earthly_lib_version=2.2.2
+    DO github.com/earthly/lib/ssh:$earthly_lib_version+ADD_KNOWN_HOSTS --target_file=~/.ssh/known_hosts
+    RUN git config --global user.name "littleredcorvette" && \
+        git config --global user.email "littleredcorvette@users.noreply.github.com"
+    GIT CLONE "$git_url" earthly
+    WORKDIR earthly
+    ARG git_hash=$(git rev-parse HEAD)
+    RUN --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
+        git fetch --unshallow && \
+        # dry run merge:
+        git checkout $to_branch && \
+        git merge --no-commit origin/$from_branch && \
+        git status && \
+        git merge --abort
+    RUN --push --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
+        git checkout $to_branch && \
+        git merge $from_branch && \
+        git push

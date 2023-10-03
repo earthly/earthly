@@ -4,7 +4,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
-## v0.7.20 - 2023-09-28
+## v0.7.20 - 2023-10-03
 
 ### Added
 - Documentation for experimental option `--pass-args` [#3229](https://github.com/earthly/earthly/pull/3229).
@@ -15,14 +15,22 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Buildkit support for the gRPC Docker registry proxy [#25](https://github.com/earthly/buildkit/pull/25).
 
 ### Fixed
-- Regression where URLs will not always get shorter when used as a prefix. Partially addresses [#3200](https://github.com/earthly/earthly/issues/3200).
+- A Regression where URLs will not always get shorter when used as a prefix. Partially addresses [#3200](https://github.com/earthly/earthly/issues/3200).
 - If a build fails because of `qemu` missing, earthly will display a proper hint to install it [#3200](https://github.com/earthly/earthly/issues/3200).
 - Request ID logging in gRPC streams [#3267](https://github.com/earthly/earthly/pull/3267).
 - Incorrect error count report (#3306)(https://github.com/earthly/earthly/pull/3306).
+- A Race condition when exiting interactive debugger mode resulting in confusing errors [#3200](https://github.com/earthly/earthly/issues/3200).
+- Log errors that occur due to debugger exiting [#3310](https://github.com/earthly/earthly/pull/3310).
+- Cases where gpg may attempt to use a tty, which will result in an error during the docker auto-install script [#3324](https://github.com/earthly/earthly/pull/3324).
+- Issue affecting pulling images in Podman [#2471](https://github.com/earthly/earthly/issues/2471).
+- Panic when logs are written after Close called [#3325](https://github.com/earthly/earthly/pull/3325).
+- Buildkit entrypoint killing externally provided pids [#3328](https://github.com/earthly/earthly/pull/3328).
 
 ### Changed
 - Some error messages at the end of an execution will only be displayed in verbose mode (`earthly -V ...`), e.g. `Error: build target: build main: failed to solve:`... [#3200](https://github.com/earthly/earthly/issues/3200)
 - `GIT CLONE` URLs will only be printed once as part of a prefix, e.g. `+my-clone-target(https://g/e/earthly) | --> GIT CLONE (--branch ) https://github.com/earthly/earthly`
+- Clarify errors in interactive debugger so that they won't be confused with the build errors [#3200](https://github.com/earthly/earthly/issues/3200).
+- The `WITH DOCKER` auto-install script will now pass the `--no-tty` option to `gpg` [#3288](https://github.com/earthly/earthly/issues/3288).
 
 ### Additional Info
 - This release includes changes to buildkit

@@ -55,7 +55,9 @@ func ConnectTerm(ctx context.Context, conn io.ReadWriteCloser, console consloggi
 		for {
 			connDataType, data, err := common.ReadDataPacket(conn)
 			if err != nil {
-				console.VerbosePrintf("ReadDataPacket failed: %s\n", err.Error())
+				if err != io.EOF {
+					console.VerbosePrintf("ReadDataPacket failed: %s\n", err.Error())
+				}
 				break
 			}
 			switch connDataType {

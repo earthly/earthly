@@ -26,7 +26,7 @@
         "'earthly/earthly:(?<currentValue>.+?)'",
         'github.com/earthly/earthly:(?<currentValue>.+?)(\\+|`)',
         '(:|\\s+)earthly/earthly:(?<currentValue>.+?)[\\s\\n/]+',
-        '\\* `(?<currentValue>.+?)`, `latest`',
+        'the `latest` tag is `(?<currentValue>.+?)`',
       ],
       depNameTemplate: 'earthly/earthly',
       datasourceTemplate: 'github-releases',

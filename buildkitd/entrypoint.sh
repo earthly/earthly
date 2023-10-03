@@ -268,6 +268,11 @@ execpid=$!
 
 stop_buildkit() {
   echo "Shutdown signal received. Stopping buildkit..."
+  for i in $(echo "$OOM_EXCLUDED_PIDS" | sed "s/,/ /g"); do
+    echo "killing externally provided pid: $i"
+    kill -SIGTERM "$i"
+  done
+  echo "killing buildkit pid: $execpid"
   kill -SIGTERM "$execpid"
 }
 
