@@ -1,21 +1,24 @@
 package regproxy
 
 import (
-	"bufio"
-	"errors"
-	"fmt"
+	"context"
 	"io"
-	"net/http"
-	"strconv"
-	"strings"
+	"net"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	registry "github.com/moby/buildkit/api/services/registry"
+	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
-// NewRegistryProxy creates and returns a new RegistryProxy that streams image
-// data from the BK embedded Docker registry.
-func NewRegistryProxy(cl registry.RegistryClient) *RegistryProxy {
-	return &RegistryProxy{cl: cl}
+const readDeadline = 50 * time.Millisecond
+
+// NewRegistryProxy creates and returns a new RegistryProxy that streams Docker
+// container image data from the BK embedded Docker registry.
+func NewRegistryProxy(ln net.Listener, cl registry.RegistryClient) *RegistryProxy {
+	return &RegistryProxy{ln: ln, cl: cl, errCh: make(chan error)}
 }
 
 // RegistryProxy uses a gRPC stream to translate incoming Docker image requests
@@ -23,93 +26,118 @@ func NewRegistryProxy(cl registry.RegistryClient) *RegistryProxy {
 // streamed over the gRPC connection rather than buffered as the images can be
 // rather large.
 type RegistryProxy struct {
-	cl registry.RegistryClient
+	ln    net.Listener
+	cl    registry.RegistryClient
+	errCh chan error
+	done  atomic.Bool
 }
 
-// ServeHTTP implements http.Handler.
-func (r *RegistryProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	err := r.serve(w, req)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-// parseHeader parses an HTTP response header and extracts the response status &
-// header values. This function does not close the reader as it will be used
-// further on to stream the body data.
-func parseHeader(r io.Reader) (status int, header http.Header, err error) {
-	sc := bufio.NewScanner(r)
-	header = http.Header{}
-
-	for sc.Scan() {
-		line := sc.Text()
-		if line == "" {
-			break
-		}
-		if strings.Contains(line, "HTTP/") {
-			parts := strings.Split(line, " ")
-			if len(parts) < 2 {
-				err = errors.New("invalid status line")
-				return
-			}
-			status, err = strconv.Atoi(parts[1])
-			if err != nil {
-				return
-			}
-			continue
-		}
-		parts := strings.Split(line, ": ")
-		if len(parts) < 2 {
-			err = errors.New("invalid header format")
+// Serve waits for TCP connections and pipes data received from the connection
+// to BK via the gRPC server.
+func (r *RegistryProxy) Serve(ctx context.Context) {
+	wg := sync.WaitGroup{}
+	defer func() {
+		wg.Wait()
+		close(r.errCh)
+	}()
+	for {
+		select {
+		case <-ctx.Done():
+			r.errCh <- ctx.Err()
 			return
+		default:
+			conn, err := r.ln.Accept()
+			if err != nil {
+				if !r.done.Load() {
+					r.errCh <- errors.Wrap(err, "failed to accept")
+				}
+				return
+			}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				r.errCh <- r.handle(ctx, conn)
+			}()
 		}
-		header.Add(parts[0], parts[1])
 	}
-
-	err = sc.Err()
-
-	return
 }
 
-// serve the HTTP request by writing it to BK via a streaming gRPC request. The
-// request will be reconstituted on the other end and forwarded to the embedded
-// registry and back again.
-func (r *RegistryProxy) serve(w http.ResponseWriter, req *http.Request) error {
+func (r *RegistryProxy) Close() {
+	r.done.Store(true)
+	r.ln.Close()
+}
 
-	stream, err := r.cl.Proxy(req.Context())
+func (r *RegistryProxy) Err() <-chan error {
+	return r.errCh
+}
+
+func (r *RegistryProxy) handle(ctx context.Context, conn net.Conn) error {
+	defer conn.Close()
+
+	stream, err := r.cl.Proxy(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to send proxy request: %w", err)
+		return errors.Wrap(err, "failed to create proxy stream")
 	}
 
 	rw := registry.NewStreamRW(stream)
+	eg, _ := errgroup.WithContext(ctx)
 
-	err = req.WriteProxy(rw)
-	if err != nil {
-		return fmt.Errorf("failed to write request: %w", err)
-	}
-
-	err = stream.CloseSend()
-	if err != nil {
-		return fmt.Errorf("failed to send close: %w", err)
-	}
-
-	status, header, err := parseHeader(rw)
-	if err != nil {
-		return err
-	}
-
-	for key, vals := range header {
-		for _, val := range vals {
-			w.Header().Add(key, val)
+	eg.Go(func() error {
+		_, err = copyWithDeadline(conn, rw)
+		if err != nil {
+			return errors.Wrap(err, "failed to write to stream")
 		}
-	}
+		err = stream.CloseSend()
+		if err != nil {
+			return errors.Wrap(err, "failed to close stream")
+		}
+		return nil
+	})
 
-	w.WriteHeader(status)
+	eg.Go(func() error {
+		_, err = io.Copy(conn, rw)
+		if err != nil {
+			return errors.Wrap(err, "failed to read from stream")
+		}
+		return nil
+	})
 
-	_, err = io.Copy(w, rw)
+	err = eg.Wait()
 	if err != nil {
-		return fmt.Errorf("failed to write body: %w", err)
+		return errors.Wrap(err, "failed to wait")
 	}
 
 	return nil
+}
+
+func copyWithDeadline(conn net.Conn, w io.Writer) (int64, error) {
+	var t int64
+	for {
+		err := conn.SetReadDeadline(time.Now().Add(readDeadline))
+		if err != nil {
+			return 0, err
+		}
+		buf := make([]byte, 32*1024)
+		n, err := conn.Read(buf)
+		if err != nil {
+			if errors.Is(err, io.EOF) || isNetTimeout(err) {
+				break
+			}
+			return 0, err
+		}
+		buf = buf[0:n]
+		n, err = w.Write(buf)
+		if err != nil {
+			return 0, err
+		}
+		t += int64(n)
+	}
+	return t, nil
+}
+
+func isNetTimeout(err error) bool {
+	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+		return true
+	}
+	return false
 }
