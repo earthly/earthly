@@ -12,7 +12,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Support for shared/global caches [#1129](https://github.com/earthly/earthly/issues/1129).
 
 ### Fixed
-- A Regression where URLs will not always get shorter when used as a prefix. Partially addresses [#3200](https://github.com/earthly/earthly/issues/3200).
+- A regression where URLs will not always get shorter when used as a prefix. Partially addresses [#3200](https://github.com/earthly/earthly/issues/3200).
 - If a build fails because of `qemu` missing, earthly will display a proper hint to install it [#3200](https://github.com/earthly/earthly/issues/3200).
 - Removed erroneous error-message which said error: 0 errors occured (#3306)(https://github.com/earthly/earthly/pull/3306).
 - A race condition when exiting interactive debugger mode resulting in confusing errors [#3200](https://github.com/earthly/earthly/issues/3200).
