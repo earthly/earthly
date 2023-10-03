@@ -231,6 +231,13 @@ WORKDIR my-proj
 RUN ls
 ```
 
+{% hint style='info' %}
+##### Note
+The final "if you have no choice" example contains an `ARG` shell-out, which will be set to the latest git sha; this is done so that if the git repository doesn't
+contain any new commits between multiple runs, the `ARG git_hash` value will stay constant, and will allow earthly to skip over the `RUN` command; whereas a `RUN --no-cache`
+command will be run each time even if the `ARG git_hash` value has never changed.
+{% endhint %}
+
 Finally, here is a comparison between `GIT CLONE` and `RUN git clone`:
 
 | | `GIT CLONE` | `RUN git clone` |
