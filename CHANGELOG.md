@@ -7,20 +7,17 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ## v0.7.20 - 2023-10-03
 
 ### Added
-- Documentation for experimental option `--pass-args` [#3229](https://github.com/earthly/earthly/pull/3229).
-- Clarification about `RUN --ssh` no being related to GIT [3eb60e87](https://github.com/earthly/earthly/commit/3eb60e87bbbee965a7c0f5d7b0f89cc2f65a7d02).
 - Support for `mode` in mount cache [#3278](https://github.com/earthly/earthly/issues/3278).
 - Support for `mode` in CACHE commands [#3290](https://github.com/earthly/earthly/pull/3290).
 - Support for shared/global caches [#1129](https://github.com/earthly/earthly/issues/1129).
-- Buildkit support for the gRPC Docker registry proxy [#25](https://github.com/earthly/buildkit/pull/25).
 
 ### Fixed
 - A Regression where URLs will not always get shorter when used as a prefix. Partially addresses [#3200](https://github.com/earthly/earthly/issues/3200).
 - If a build fails because of `qemu` missing, earthly will display a proper hint to install it [#3200](https://github.com/earthly/earthly/issues/3200).
-- Request ID logging in gRPC streams [#3267](https://github.com/earthly/earthly/pull/3267).
-- Incorrect error count report (#3306)(https://github.com/earthly/earthly/pull/3306).
-- A Race condition when exiting interactive debugger mode resulting in confusing errors [#3200](https://github.com/earthly/earthly/issues/3200).
-- Cases where gpg may attempt to use a tty, which will result in an error during the docker auto-install script [#3324](https://github.com/earthly/earthly/pull/3324).
+- Removed erroneous error-message which said error: 0 errors occured (#3306)(https://github.com/earthly/earthly/pull/3306).
+- A race condition when exiting interactive debugger mode resulting in confusing errors [#3200](https://github.com/earthly/earthly/issues/3200).
+- Removed invalid error-messages which occurred when the interactive debugger exits [#3310](https://github.com/earthly/earthly/pull/3310).
+- Docker auto-install script failures related to attempts to read from tty, while verifying docker's pgp key [#3324](https://github.com/earthly/earthly/pull/3324).
 - Issue affecting pulling images in Podman [#2471](https://github.com/earthly/earthly/issues/2471).
 - Panic when logs are written after Close called [#3325](https://github.com/earthly/earthly/pull/3325).
 - Buildkit entrypoint killing externally provided pids [#3328](https://github.com/earthly/earthly/pull/3328).
