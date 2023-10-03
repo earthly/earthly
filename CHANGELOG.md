@@ -19,7 +19,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Removed invalid error-messages which occurred when the interactive debugger exits [#3310](https://github.com/earthly/earthly/pull/3310).
 - Docker auto-install script failures related to attempts to read from tty, while verifying docker's pgp key [#3324](https://github.com/earthly/earthly/pull/3324).
 - Issue affecting pulling images in Podman [#2471](https://github.com/earthly/earthly/issues/2471).
-- Panic when logs are written after Close called [#3325](https://github.com/earthly/earthly/pull/3325).
+- A panic which may sometimes occur during shutdown of the logstream [#3325](https://github.com/earthly/earthly/pull/3325).
 - Buildkit entrypoint killing externally provided pids [#3328](https://github.com/earthly/earthly/pull/3328).
 
 ### Changed
