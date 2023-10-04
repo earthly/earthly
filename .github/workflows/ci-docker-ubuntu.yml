@@ -21,12 +21,16 @@ jobs:
   # since all jobs depend on `build-earthly` job, conditionally running it will either cause all jobs to run or skip,
   # depending on the output value of this job
   check-essential-files:
+    # only run on pull request since push to main is already checking files with paths-ignore
+    if: ${{ github.event_name == 'pull_request' }}
     uses: ./.github/workflows/reusable-find-pr-changes.yaml
     permissions:
       pull-requests: read
     secrets: inherit
   build-earthly:
     needs: check-essential-files
+    # allow the job to execute even if check-essential-files is skipped
+    if: ${{ !failure() }}
     # using "!= 'false'" so that an empty string (in case of output problem) will evaluate to true
     uses: ./.github/workflows/build-earthly.yml
     with:
