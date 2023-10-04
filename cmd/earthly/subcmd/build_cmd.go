@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net"
 	"net/url"
 	"os"
 	"path"
@@ -17,16 +16,11 @@ import (
 	"github.com/earthly/earthly/cmd/earthly/flag"
 	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/docker2earthly"
-	"github.com/earthly/earthly/regproxy"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
-	registry "github.com/moby/buildkit/api/services/registry"
-	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth"
@@ -595,15 +589,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		localRegistryAddr = u.Host
 	}
 
-	if a.remoteRegistryEnabled(cliCtx.Context, bkClient) {
-		var closeProxy func()
-		localRegistryAddr, closeProxy, err = a.startRegistryProxy(cliCtx.Context, bkClient)
-		if err != nil {
-			return err
-		}
-		defer closeProxy()
-	}
-
 	var logbusSM *solvermon.SolverMonitor
 	if a.cli.Flags().Logstream {
 		logbusSM = a.cli.LogbusSetup().SolverMonitor
@@ -726,59 +711,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	}
 
 	return nil
-}
-
-func (a *Build) remoteRegistryEnabled(ctx context.Context, client *client.Client) bool {
-	if a.cli.Flags().UseRemoteRegistry {
-		return false
-	}
-	res, err := client.RegistryClient().Caps(ctx, &registry.CapsRequest{})
-	if err != nil {
-		if status.Code(err) == codes.Unimplemented || status.Code(err) == codes.Unavailable {
-			a.cli.Console().VerbosePrintf("Call not supported by remote BuildKit: %s", err)
-			return false
-		}
-		a.cli.Console().Warnf("Failed to check for registry proxy support: %s", err)
-		return false
-	}
-	for _, cap := range res.Caps {
-		if cap.ID == "earthly.registry" && cap.GetEnabled() {
-			return true
-		}
-	}
-	return false
-}
-
-func (a *Build) startRegistryProxy(ctx context.Context, client *client.Client) (string, func(), error) {
-	addr := "localhost:0" // Have the OS select a port
-
-	lnCfg := net.ListenConfig{}
-	ln, err := lnCfg.Listen(ctx, "tcp", addr)
-	if err != nil {
-		return "", nil, errors.Wrapf(err, "failed to listen on %q", addr)
-	}
-
-	p := regproxy.NewRegistryProxy(ln, client.RegistryClient())
-	go p.Serve(ctx)
-
-	addr = fmt.Sprintf("localhost:%d", ln.Addr().(*net.TCPAddr).Port)
-	a.cli.Console().VerbosePrintf("Starting local registry proxy: %s", addr)
-
-	doneCh := make(chan struct{})
-
-	go func() {
-		for err := range p.Err() {
-			if err != nil && !errors.Is(err, context.Canceled) {
-				a.cli.Console().Warnf("Failed to serve registry proxy: %v", err)
-			}
-		}
-		doneCh <- struct{}{}
-	}()
-
-	return addr, func() {
-		p.Close()
-		<-doneCh
-	}, nil
 }
 
 func getTryCatchSaveFileHandler(localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) func(ctx context.Context, conn io.ReadWriteCloser) error {
