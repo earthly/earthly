@@ -3,6 +3,10 @@
 Documentation for this repo Github actions configuration
 
 ## Skipping PR Workflows
+
+The following is disabled due to issue https://github.com/orgs/community/discussions/13261.  
+Once this issue is resolved, the configuration can be restoed by reverting the changes in this PR
+
 ### Motivation
 Some PR workflows (workflows triggered by PRs) in this repo might take substantial time to complete,  
 and it is not always necessary to run them all, especially in cases where the affected files are documents or any other file that don't affect our workflows or tests.  
