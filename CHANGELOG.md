@@ -9,12 +9,12 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Added
 - Support for `mode` in mount cache [#3278](https://github.com/earthly/earthly/issues/3278).
 - Support for `mode` in CACHE commands [#3290](https://github.com/earthly/earthly/pull/3290).
-- Support for shared/global caches (cache `id` is no longer scoped per Earthfile) [#1129](https://github.com/earthly/earthly/issues/1129).
+- Experimental support for shared/global caches (cache `id` is no longer scoped per Earthfile) [#1129](https://github.com/earthly/earthly/issues/1129). Note that this is feature-flagged, and only changed when `VERSION --global-cache 0.7` is defined.
 
 ### Fixed
 - A regression where URLs will not always get shorter when used as a prefix. Partially addresses [#3200](https://github.com/earthly/earthly/issues/3200).
 - If a build fails because of `qemu` missing, earthly will display a proper hint to install it [#3200](https://github.com/earthly/earthly/issues/3200).
-- Removed erroneous error-message which said error: 0 errors occured (#3306)(https://github.com/earthly/earthly/pull/3306).
+- Removed erroneous error-message which said error: 0 errors occured [#3306](https://github.com/earthly/earthly/pull/3306).
 - A race condition when exiting interactive debugger mode resulting in confusing errors [#3200](https://github.com/earthly/earthly/issues/3200).
 - Docker auto-install script failures related to attempts to read from tty, while verifying docker's pgp key [#3324](https://github.com/earthly/earthly/pull/3324).
 - Issue affecting pulling images in Podman [#2471](https://github.com/earthly/earthly/issues/2471).
