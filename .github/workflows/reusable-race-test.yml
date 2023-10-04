@@ -24,7 +24,7 @@ on:
       SKIP_JOB:
         required: false
         type: boolean
-        default: true
+        default: false
 
 jobs:
   test-race:
