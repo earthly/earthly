@@ -8,7 +8,7 @@
 <br/>
 
 [![GitHub Actions CI](https://github.com/earthly/earthly/workflows/GitHub%20Actions%20CI/badge.svg)](https://github.com/earthly/earthly/actions?query=workflow%3A%22GitHub+Actions+CI%22+branch%3Amain)
-[![Join the chat on Slack](https://img.shields.io/badge/slack-join%20chat-red.svg)](https://earthly.dev/slack)
+[![Join the chat on Slack](https://img.shields.io/badge/slack-join%20chat-dred.svg)](https://earthly.dev/slack)
 [![Docs](https://img.shields.io/badge/docs-git%20book-blue)](https://docs.earthly.dev)
 [![Website](https://img.shields.io/badge/website-earthly.dev-blue)](https://earthly.dev)
 [![Install Earthly](https://img.shields.io/github/v/release/earthly/earthly.svg?label=install&color=1f626c)](https://earthly.dev/get-earthly)
