@@ -734,11 +734,12 @@ func (a *Build) remoteRegistryEnabled(ctx context.Context, client *client.Client
 	}
 	res, err := client.RegistryClient().Caps(ctx, &registry.CapsRequest{})
 	if err != nil {
-		if status.Code(err) == codes.Unimplemented {
+		if status.Code(err) == codes.Unimplemented || status.Code(err) == codes.Unavailable {
 			a.cli.Console().VerbosePrintf("Call not supported by remote BuildKit: %s", err)
 			return false
 		}
 		a.cli.Console().Warnf("Failed to check for registry proxy support: %s", err)
+		return false
 	}
 	for _, cap := range res.Caps {
 		if cap.ID == "earthly.registry" && cap.GetEnabled() {
