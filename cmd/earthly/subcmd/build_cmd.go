@@ -619,6 +619,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		ParallelConversion:                    (a.cli.Cfg().Global.ConversionParallelism != 0),
 		Parallelism:                           parallelism,
 		LocalRegistryAddr:                     localRegistryAddr,
+		UseRemoteRegistry:                     a.cli.Flags().UseRemoteRegistry,
 		FeatureFlagOverrides:                  a.cli.Flags().FeatureFlagOverrides,
 		ContainerFrontend:                     a.cli.Flags().ContainerFrontend,
 		InternalSecretStore:                   internalSecretStore,

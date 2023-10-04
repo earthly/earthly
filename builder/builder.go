@@ -80,6 +80,7 @@ type Opt struct {
 	DisableNoOutputUpdates                bool
 	ParallelConversion                    bool
 	Parallelism                           semutil.Semaphore
+	UseRemoteRegistry                     bool
 	LocalRegistryAddr                     string
 	FeatureFlagOverrides                  string
 	ContainerFrontend                     containerutil.ContainerFrontend
@@ -161,13 +162,13 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 
 func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (func(), bool) {
 
+	if !b.opt.UseRemoteRegistry {
+		b.opt.Console.VerbosePrintf("Registry proxy not enabled")
+		return nil, false
+	}
+
 	if err := caps.Supports(pb.CapEarthlyRegistryProxy); err != nil {
-		var capErr *apicaps.CapError
-		if ok := errors.As(err, &capErr); ok && capErr.State != nil && !capErr.State.Enabled {
-			b.opt.Console.VerboseWarnf("Registry proxy is not supported by BuildKit: %s", err)
-		} else {
-			b.opt.Console.Warnf("Failed to check for proxy support: %s", err)
-		}
+		b.opt.Console.Warnf("Registry proxy is not supported by BuildKit: %s", err)
 		return nil, false
 	}
 
