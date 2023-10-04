@@ -31,7 +31,6 @@ jobs:
     needs: check-essential-files
     # allow the job to execute even if check-essential-files is skipped
     if: ${{ !failure() }}
-    # using "!= 'false'" so that an empty string (in case of output problem) will evaluate to true
     uses: ./.github/workflows/build-earthly.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
