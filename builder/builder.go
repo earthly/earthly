@@ -202,7 +202,10 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 
 	return func() {
 		p.Close()
-		<-doneCh
+		select {
+		case <-ctx.Done():
+		case <-doneCh:
+		}
 	}, true
 }
 
