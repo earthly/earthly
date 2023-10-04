@@ -21,10 +21,15 @@ on:
       USE_QEMU:
         required: false
         type: boolean
+      CONTINUE:
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   test-race:
     name: ${{inputs.TEST_TARGET}} (-race)
+    if: ${{inputs.CONTINUE}}
     runs-on: ${{inputs.RUNS_ON}}
     env:
       FORCE_COLOR: 1

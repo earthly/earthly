@@ -32,11 +32,16 @@ on:
       EARTHLY_ORG:
         required: false
         type: string
+      CONTINUE:
+        required: false
+        type: boolean
+        default: true
 
 
 jobs:
   test-local:
     name: test-local ${{inputs.BINARY}}
+    if: ${{inputs.CONTINUE}}
     runs-on: ${{inputs.RUNS_ON}}
     env:
       FORCE_COLOR: 1

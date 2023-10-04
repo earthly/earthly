@@ -15,10 +15,15 @@ on:
       RUNS_ON:
         required: true
         type: string
+      CONTINUE:
+        required: false
+        type: boolean
+        default: true
 
 
 jobs:
   misc-tests-2:
+    if: ${{inputs.CONTINUE}}
     runs-on: ${{inputs.RUNS_ON}}
     env:
       FORCE_COLOR: 1

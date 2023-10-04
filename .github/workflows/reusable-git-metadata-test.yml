@@ -25,11 +25,16 @@ on:
       EARTHLY_ORG:
         required: false
         type: string
+      CONTINUE:
+        required: false
+        type: boolean
+        default: true
 
 
 jobs:
   test:
     name: +testing-gha-${{inputs.RUNS_ON}}-${{inputs.BINARY}}
+    if: ${{inputs.CONTINUE}}
     runs-on: ${{inputs.RUNS_ON}}
     env:
       FORCE_COLOR: 1

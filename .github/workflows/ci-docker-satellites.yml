@@ -3,10 +3,20 @@ name: Satellites Docker CI Ubuntu
 on:
   push:
     branches: [ main ]
-    paths-ignore: [ docs/** ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.github/renovate.json5'
+      - '.github/CODEOWNERS'
+      - 'LICENSE'
   pull_request:
     branches: [ main ]
-    paths-ignore: [ docs/** ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.github/renovate.json5'
+      - '.github/CODEOWNERS'
+      - 'LICENSE'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
