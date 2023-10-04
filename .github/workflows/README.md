@@ -44,8 +44,3 @@ and so if the child job is skipped, even if it is marked as a required check, it
 Lastly, because most jobs are dependent on (`needs` directive) `build-earthly` job, if the latter is skipped, by default - so will the dependent jobs.  
 As described before, that is something we need to avoid. To change that default configuration, we change
 the default condition of each dependent job to `$ {{ !failure() }}` which will allow the dependent jobs to run whether the dependency job was successful or if it was skipped.
-
-
-
-
-
