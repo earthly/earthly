@@ -22,8 +22,7 @@ jobs:
   # depending on the output value of this job
   check-essential-files:
     # only run on pull request since push to main is already checking files with paths-ignore
-    # disable this job for now, see workflows/README.md
-    if: ${{ false && github.event_name == 'pull_request' }}
+    if: ${{ github.event_name == 'pull_request' }}
     uses: ./.github/workflows/reusable-find-pr-changes.yaml
     permissions:
       pull-requests: read
