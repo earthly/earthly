@@ -86,6 +86,9 @@ func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gituti
 			ret.Add(arg.EarthlyGitAuthor, gitMeta.Author)
 			ret.Add(arg.EarthlyGitCoAuthors, strings.Join(gitMeta.CoAuthors, " "))
 		}
+		if ftrs.GitRefs {
+			ret.Add(arg.EarthlyGitRefs, strings.Join(gitMeta.Refs, " "))
+		}
 	} else {
 		// Ensure SOURCE_DATE_EPOCH is always available
 		ret.Add(arg.EarthlySourceDateEpoch, "0")

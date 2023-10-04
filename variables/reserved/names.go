@@ -13,6 +13,7 @@ const (
 	EarthlyGitCoAuthors             = "EARTHLY_GIT_CO_AUTHORS"
 	EarthlyGitShortHash             = "EARTHLY_GIT_SHORT_HASH"
 	EarthlyGitTag                   = "EARTHLY_GIT_TAG"
+	EarthlyGitRefs                  = "EARTHLY_GIT_REFS"
 	EarthlyLocally                  = "EARTHLY_LOCALLY"
 	EarthlyPush                     = "EARTHLY_PUSH"
 	EarthlyCI                       = "EARTHLY_CI"

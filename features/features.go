@@ -61,6 +61,7 @@ type Features struct {
 	UseDockerIgnore            bool `long:"use-docker-ignore" description:"fallback to .dockerignore incase .earthlyignore or .earthignore do not exist in a local \"FROM DOCKERFILE\" target"`
 	PassArgs                   bool `long:"pass-args" description:"Allow the use of the --pass-arg flag in FROM, BUILD, COPY, WITH DOCKER, and DO commands"`
 	GlobalCache                bool `long:"global-cache" description:"enable global caches (shared across different Earthfiles), for cache mounts and CACHEs having an ID"`
+	GitRefs                    bool `long:"git-refs" description:"includes EARTHLY_GIT_REFS ARG"`
 
 	Major int
 	Minor int

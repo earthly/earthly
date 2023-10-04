@@ -10,6 +10,7 @@ import (
 
 	"github.com/earthly/earthly/domain"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -42,6 +43,7 @@ type GitMetadata struct {
 	AuthorTimestamp      string
 	Author               string
 	CoAuthors            []string
+	Refs                 []string
 }
 
 // Metadata performs git metadata detection on the provided directory.
@@ -111,6 +113,11 @@ func Metadata(ctx context.Context, dir, gitBranchOverride string) (*GitMetadata,
 		retErr = err
 		// Keep going.
 	}
+	refs, err := detectGitRefs(ctx, dir)
+	if err != nil {
+		retErr = err
+		// Keep going.
+	}
 
 	relDir, isRel, err := gitRelDir(baseDir, dir)
 	if err != nil {
@@ -134,6 +141,7 @@ func Metadata(ctx context.Context, dir, gitBranchOverride string) (*GitMetadata,
 		AuthorTimestamp:      authorTimestamp,
 		Author:               author,
 		CoAuthors:            coAuthors,
+		Refs:                 refs,
 	}, retErr
 }
 
@@ -153,6 +161,7 @@ func (gm *GitMetadata) Clone() *GitMetadata {
 		AuthorTimestamp:      gm.AuthorTimestamp,
 		Author:               gm.Author,
 		CoAuthors:            gm.CoAuthors,
+		Refs:                 gm.Refs,
 	}
 }
 
@@ -274,6 +283,27 @@ func detectGitTags(ctx context.Context, dir string) ([]string, error) {
 	outStr := string(out)
 	if outStr != "" {
 		return strings.Split(outStr, "\n"), nil
+	}
+	return nil, nil
+}
+
+func detectGitRefs(ctx context.Context, dir string) ([]string, error) {
+	cmd := exec.CommandContext(ctx, "git", "for-each-ref", "--contains", "HEAD", "--format", "'%(refname:lstrip=-1)'")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, errors.Wrap(err, "detect git current refs")
+	}
+	outStr := string(out)
+	if outStr != "" {
+		refs := []string{}
+		for _, ref := range strings.Split(outStr, "\n") {
+			ref = strings.Trim(ref, "'\"")
+			if ref != "" && ref != "HEAD" && !slices.Contains(refs, ref) {
+				refs = append(refs, ref)
+			}
+		}
+		return refs, nil
 	}
 	return nil, nil
 }
