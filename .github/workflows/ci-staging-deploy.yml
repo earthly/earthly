@@ -7,6 +7,10 @@ on:
       - '**-staging-test'
     paths-ignore:
       - 'docs/**'
+      - '**.md'
+      - '.github/renovate.json5'
+      - '.github/CODEOWNERS'
+      - 'LICENSE'
 
 jobs:
   build-earthly:

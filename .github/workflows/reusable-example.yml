@@ -31,11 +31,16 @@ on:
       EARTHLY_ORG:
         required: false
         type: string
+      SKIP_JOB:
+        required: false
+        type: boolean
+        default: false
 
 
 jobs:
   example:
     name: ${{inputs.EXAMPLE_NAME}}-${{inputs.RUNS_ON}}-${{inputs.BINARY}}
+    if: ${{!inputs.SKIP_JOB}}
     runs-on: ${{inputs.RUNS_ON}}
     env:
       FORCE_COLOR: 1
