@@ -18,11 +18,14 @@ import (
 	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/docker2earthly"
 	"github.com/earthly/earthly/regproxy"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
+	registry "github.com/moby/buildkit/api/services/registry"
 	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/session"
@@ -32,8 +35,6 @@ import (
 	"github.com/moby/buildkit/session/socketforward/socketprovider"
 	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast"
@@ -62,6 +63,8 @@ import (
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
 )
 
 type Build struct {
@@ -592,7 +595,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		localRegistryAddr = u.Host
 	}
 
-	if a.cli.Flags().UseRemoteRegistry {
+	if a.remoteRegistryEnabled(cliCtx.Context, bkClient) {
 		var closeProxy func()
 		localRegistryAddr, closeProxy, err = a.startRegistryProxy(cliCtx.Context, bkClient)
 		if err != nil {
@@ -723,6 +726,26 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	}
 
 	return nil
+}
+
+func (a *Build) remoteRegistryEnabled(ctx context.Context, client *client.Client) bool {
+	if a.cli.Flags().UseRemoteRegistry {
+		return false
+	}
+	res, err := client.RegistryClient().Caps(ctx, &registry.CapsRequest{})
+	if err != nil {
+		if status.Code(err) == codes.Unimplemented {
+			a.cli.Console().VerbosePrintf("Call not supported by remote BuildKit: %s", err)
+			return false
+		}
+		a.cli.Console().Warnf("Failed to check for registry proxy support: %s", err)
+	}
+	for _, cap := range res.Caps {
+		if cap.ID == "earthly.registry" && cap.GetEnabled() {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *Build) startRegistryProxy(ctx context.Context, client *client.Client) (string, func(), error) {
