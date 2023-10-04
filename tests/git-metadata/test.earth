@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION --git-refs 0.7
 
 # Note: this is tests both locally and remotely
 # the population of git metadata occurs in two **different** functions respectively:
@@ -11,6 +11,7 @@ test-git-metadata:
     ARG --required expected_committer_timestamp
     ARG --required expected_author_timestamp
     ARG --required expected_branch
+    ARG --required expected_refs
     ARG EARTHLY_GIT_SHORT_HASH
     ARG EARTHLY_GIT_HASH
     ARG EARTHLY_GIT_AUTHOR
@@ -18,10 +19,12 @@ test-git-metadata:
     ARG EARTHLY_GIT_COMMIT_TIMESTAMP
     ARG EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP
     ARG EARTHLY_GIT_BRANCH
+    ARG EARTHLY_GIT_REFS
     RUN test "$EARTHLY_GIT_HASH" = "$expected_sha"
     RUN test "$EARTHLY_GIT_COMMIT_TIMESTAMP" = "$expected_committer_timestamp"
     RUN test "$EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP" = "$expected_author_timestamp"
     RUN test "$EARTHLY_GIT_BRANCH" = "$expected_branch"
+    RUN test "$EARTHLY_GIT_REFS" = "$expected_refs"
     RUN test -n "$EARTHLY_GIT_SHORT_HASH"
     RUN echo "$EARTHLY_GIT_HASH" | grep "$EARTHLY_GIT_SHORT_HASH"
     RUN test "$EARTHLY_GIT_AUTHOR" = "onlyspammersemailthis@earthly.dev"
