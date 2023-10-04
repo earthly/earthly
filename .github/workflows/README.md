@@ -2,10 +2,10 @@
 
 Documentation for this repo Github actions configuration
 
-## Skipping PR Workflows
+## Skipping PR Workflows (DISABLED! SEE NOTE BELOW)
 
 The following is disabled due to issue https://github.com/orgs/community/discussions/13261.  
-Once this issue is resolved, the configuration can be restoed by reverting the changes in this PR
+Once this issue is resolved, the configuration can be restoed by reverting the changes in [this PR](https://github.com/earthly/earthly/pull/3345)
 
 ### Motivation
 Some PR workflows (workflows triggered by PRs) in this repo might take substantial time to complete,  
