@@ -57,6 +57,7 @@ import (
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
+	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -166,14 +167,14 @@ func (a *Build) warnIfArgContainsBuildArg(flagArgs []string) {
 	}
 }
 
-func (a *Build) gitLogLevel() llb.GitLogLevel {
+func (a *Build) gitLogLevel() buildkitgitutil.GitLogLevel {
 	if a.cli.Flags().Debug {
-		return llb.GitLogLevelTrace
+		return buildkitgitutil.GitLogLevelTrace
 	}
 	if a.cli.Flags().Verbose {
-		return llb.GitLogLevelDebug
+		return buildkitgitutil.GitLogLevelDebug
 	}
-	return llb.GitLogLevelDefault
+	return buildkitgitutil.GitLogLevelDefault
 }
 
 func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []string) error {
@@ -463,7 +464,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 
 	default:
 		// includes containerutil.FrontendDocker, containerutil.FrontendDockerShell:
-		authChildren = append(authChildren, dockerauthprovider.NewDockerAuthProvider(cfg).(auth.AuthServer))
+		authChildren = append(authChildren, dockerauthprovider.NewDockerAuthProvider(cfg, nil).(auth.AuthServer))
 	}
 
 	authProvider := authprovider.New(authChildren)

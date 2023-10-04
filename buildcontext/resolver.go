@@ -15,8 +15,8 @@ import (
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/synccache"
-	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
 	"github.com/pkg/errors"
 )
 
@@ -58,7 +58,7 @@ type Resolver struct {
 }
 
 // NewResolver returns a new NewResolver.
-func NewResolver(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides, gitBranchOverride, gitLFSInclude string, gitLogLevel llb.GitLogLevel, gitImage string) *Resolver {
+func NewResolver(cleanCollection *cleanup.Collection, gitLookup *GitLookup, console conslogging.ConsoleLogger, featureFlagOverrides, gitBranchOverride, gitLFSInclude string, gitLogLevel buildkitgitutil.GitLogLevel, gitImage string) *Resolver {
 	return &Resolver{
 		gr: &gitResolver{
 			gitBranchOverride: gitBranchOverride,
