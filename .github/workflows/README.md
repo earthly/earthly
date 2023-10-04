@@ -37,7 +37,7 @@ In this scenario, if a child job is skipped as a result of skipping its parent, 
 #### Final Solution
 So, in order to work around the above-mentioned issue, we need to avoid
 skipping the parent job. Instead, we evaluate the boolean as before, and pass it as  
-an input argument to the child job. As a matter of standardization, we call this input arg `CONTINUE`.
+an input argument to the child job. As a matter of standardization, we call this input arg `SKIP_JOB`.
 This argument is then used to conditionally run the _child_ job instead of the _parent_ job,  
 and so if the child job is skipped, even if it is marked as a required check, it won't get stuck in `pending`.
 

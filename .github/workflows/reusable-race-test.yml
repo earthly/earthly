@@ -21,7 +21,7 @@ on:
       USE_QEMU:
         required: false
         type: boolean
-      CONTINUE:
+      SKIP_JOB:
         required: false
         type: boolean
         default: true
@@ -29,7 +29,7 @@ on:
 jobs:
   test-race:
     name: ${{inputs.TEST_TARGET}} (-race)
-    if: ${{inputs.CONTINUE}}
+    if: ${{!inputs.SKIP_JOB}}
     runs-on: ${{inputs.RUNS_ON}}
     env:
       FORCE_COLOR: 1

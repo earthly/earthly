@@ -38,7 +38,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.check-essential-files.outputs.essential-files != 'false' }}
+      SKIP_JOB: ${{ needs.check-essential-files.outputs.essential-files == 'false' }}
     secrets: inherit
 
   docker-lint:
@@ -50,7 +50,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-tests-quick:
@@ -63,7 +63,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-tests-no-qemu-quick:
@@ -76,7 +76,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-tests-no-qemu-quick-no-logbus:
@@ -90,7 +90,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       EXTRA_ARGS: "--logstream=false --logstream-upload=false"
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-tests-no-qemu-normal:
@@ -103,7 +103,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-tests-no-qemu-normal-no-logbus:
@@ -117,7 +117,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       EXTRA_ARGS: "--logstream=false --logstream-upload=false"
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-tests-no-qemu-slow:
@@ -130,7 +130,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-tests-no-qemu-kind:
@@ -143,7 +143,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-tests-require-account-access:
@@ -156,7 +156,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-tests-qemu:
@@ -170,7 +170,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-examples-1:
@@ -183,7 +183,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       EXAMPLE_NAME: "+examples1"
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-examples-2:
@@ -196,7 +196,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       EXAMPLE_NAME: "+examples2"
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-test-local:
@@ -209,7 +209,7 @@ jobs:
       BINARY: "docker"
       BINARY_COMPOSE: "\"docker compose\""
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-push-integrations:
@@ -221,7 +221,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-secret-integrations:
@@ -233,7 +233,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-bootstrap-integrations:
@@ -245,7 +245,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-repo-auth-tests:
@@ -257,7 +257,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-export-test:
@@ -269,7 +269,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-docker-build-integrations:
@@ -281,7 +281,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-earthly-image-test:
@@ -293,7 +293,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-misc-test-1:
@@ -305,7 +305,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-misc-test-2:
@@ -317,7 +317,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-wait-block-override:
@@ -329,7 +329,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   docker-git-metadata-test:
@@ -341,7 +341,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   race-tests-quick:
@@ -355,7 +355,7 @@ jobs:
       USE_QEMU: false
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   race-tests-no-qemu-quick:
@@ -369,7 +369,7 @@ jobs:
       USE_QEMU: false
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   race-tests-no-qemu-normal:
@@ -383,7 +383,7 @@ jobs:
       USE_QEMU: false
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   race-tests-no-qemu-slow:
@@ -397,7 +397,7 @@ jobs:
       USE_QEMU: false
       BINARY: "docker"
       SUDO: ""
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   tutorial:

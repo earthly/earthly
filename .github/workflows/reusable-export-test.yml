@@ -22,7 +22,7 @@ on:
       SATELLITE_NAME:
         required: false
         type: string
-      CONTINUE:
+      SKIP_JOB:
         required: false
         type: boolean
         default: true
@@ -31,7 +31,7 @@ jobs:
   export-test:
     name: Export tests
     runs-on: ${{inputs.RUNS_ON}}
-    if: ${{ inputs.CONTINUE && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    if: ${{ !inputs.SKIP_JOB && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"

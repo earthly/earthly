@@ -37,7 +37,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo -E"
-      CONTINUE: ${{ needs.check-essential-files.outputs.essential-files != 'false' }}
+      SKIP_JOB: ${{ needs.check-essential-files.outputs.essential-files == 'false' }}
     secrets: inherit
 
   podman-lint:
@@ -50,7 +50,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo -E"
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   podman-tests-quick:
@@ -63,7 +63,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo -E"
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   podman-tests-no-qemu-quick:
@@ -76,7 +76,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo -E"
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   podman-tests-no-qemu-normal:
@@ -89,7 +89,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo -E"
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   podman-tests-no-qemu-slow:
@@ -102,7 +102,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo -E"
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   podman-tests-require-account-access:
@@ -115,7 +115,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo -E"
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   podman-tests-qemu:
@@ -129,7 +129,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
       SUDO: "sudo -E"
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   podman-examples-1:
@@ -144,7 +144,7 @@ jobs:
       USE_QEMU: true
       SUDO: "sudo -E"
       EXAMPLE_NAME: "+examples1"
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
   podman-examples-2:
@@ -159,7 +159,7 @@ jobs:
       USE_QEMU: true
       SUDO: "sudo -E"
       EXAMPLE_NAME: "+examples2"
-      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
 #  podman-test-local:
@@ -173,7 +173,7 @@ jobs:
 #      BINARY: "podman"
 #      BINARY_COMPOSE: "\"sudo -E podman-compose\""
 #      SUDO: "sudo -E"
-#      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+#      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
 #    secrets: inherit
 #
 # TODO: Fix and bring back the below tests
@@ -187,7 +187,7 @@ jobs:
 #      RUNS_ON: "ubuntu-latest"
 #      BINARY: "podman"
 #      SUDO: "sudo -E"
-#      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+#      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
 #    secrets: inherit
 #
 #  podman-secret-integrations:
@@ -200,7 +200,7 @@ jobs:
 #      RUNS_ON: "ubuntu-latest"
 #      BINARY: "podman"
 #      SUDO: "sudo -E"
-#      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+#      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
 #    secrets: inherit
 #
 #  podman-bootstrap-integrations:
@@ -213,7 +213,7 @@ jobs:
 #      RUNS_ON: "ubuntu-latest"
 #      BINARY: "podman"
 #      SUDO: "sudo -E"
-#      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+#      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
 #    secrets: inherit
 #
 #  podman-repo-auth-tests:
@@ -226,7 +226,7 @@ jobs:
 #      RUNS_ON: "ubuntu-latest"
 #      BINARY: "podman"
 #      SUDO: "sudo -E"
-#      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+#      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
 #    secrets: inherit
 #
 #  podman-export-tests:
@@ -239,7 +239,7 @@ jobs:
 #      RUNS_ON: "ubuntu-latest"
 #      BINARY: "podman"
 #      SUDO: "sudo -E"
-#      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+#      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
 #    secrets: inherit
 #
 #  podman-earthly-image-tests:
@@ -252,7 +252,7 @@ jobs:
 #      RUNS_ON: "ubuntu-latest"
 #      BINARY: "podman"
 #      SUDO: "sudo -E"
-#      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+#      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
 #    secrets: inherit
 #
 #  podman-misc-tests-1:
@@ -265,7 +265,7 @@ jobs:
 #      RUNS_ON: "ubuntu-latest"
 #      BINARY: "podman"
 #      SUDO: "sudo -E"
-#      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+#      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
 #    secrets: inherit
 #
 #  podman-misc-tests-2:
@@ -278,5 +278,5 @@ jobs:
 #      RUNS_ON: "ubuntu-latest"
 #      BINARY: "podman"
 #      SUDO: "sudo -E"
-#      CONTINUE: ${{ needs.build-earthly.result == 'success' }}
+#      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
 #    secrets: inherit

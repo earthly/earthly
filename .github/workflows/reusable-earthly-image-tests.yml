@@ -15,7 +15,7 @@ on:
       RUNS_ON:
         required: true
         type: string
-      CONTINUE:
+      SKIP_JOB:
         required: false
         type: boolean
         default: true
@@ -23,7 +23,7 @@ on:
 
 jobs:
   earthly-image-tests:
-    if: ${{inputs.CONTINUE}}
+    if: ${{!inputs.SKIP_JOB}}
     runs-on: ${{inputs.RUNS_ON}}
     env:
       FORCE_COLOR: 1
@@ -60,7 +60,7 @@ jobs:
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
         if: ${{ failure() && ! inputs.USE_SATELLITE }}
   earthly-image-sat-tests:
-    if: ${{inputs.CONTINUE}}
+    if: ${{!inputs.SKIP_JOB}}
     runs-on: ${{inputs.RUNS_ON}}
     env:
       FORCE_COLOR: 1

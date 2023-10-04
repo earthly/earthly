@@ -32,7 +32,7 @@ on:
       EARTHLY_ORG:
         required: false
         type: string
-      CONTINUE:
+      SKIP_JOB:
         required: false
         type: boolean
         default: true
@@ -41,7 +41,7 @@ on:
 jobs:
   test-local:
     name: test-local ${{inputs.BINARY}}
-    if: ${{inputs.CONTINUE}}
+    if: ${{!inputs.SKIP_JOB}}
     runs-on: ${{inputs.RUNS_ON}}
     env:
       FORCE_COLOR: 1

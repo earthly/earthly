@@ -22,7 +22,7 @@ on:
       SATELLITE_NAME:
         required: false
         type: string
-      CONTINUE:
+      SKIP_JOB:
         required: false
         type: boolean
         default: true
@@ -37,7 +37,7 @@ jobs:
       DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    if: ${{ inputs.CONTINUE && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    if: ${{ !inputs.SKIP_JOB && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ${{inputs.RUNS_ON}}
     steps:
       - uses: actions/checkout@v3
