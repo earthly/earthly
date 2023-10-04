@@ -162,7 +162,12 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (func(), bool) {
 
 	if err := caps.Supports(pb.CapEarthlyRegistryProxy); err != nil {
-		b.opt.Console.VerbosePrintf("Registry proxying not supported by BuildKit: %s", err)
+		var capErr *apicaps.CapError
+		if ok := errors.As(err, &capErr); ok && capErr.State != nil && !capErr.State.Enabled {
+			b.opt.Console.VerboseWarnf("Registry proxy is not supported by BuildKit: %s", err)
+		} else {
+			b.opt.Console.Warnf("Failed to check for proxy support: %s", err)
+		}
 		return nil, false
 	}
 
@@ -219,7 +224,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		dirIndex   = 0
 	)
 	var mts *states.MultiTarget
-	buildFn := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
+	buildFunc := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		if opt.EnableGatewayClientLogging {
 			gwClient = gwclientlogger.New(gwClient)
 		}
@@ -573,7 +578,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	if opt.PrintPhases {
 		b.opt.Console.PrintPhaseHeader(PhaseBuild, false, "")
 	}
-	err := b.s.buildMainMulti(ctx, buildFn, onImage, onArtifact, onFinalArtifact, onPull, PhaseBuild, b.opt.Console)
+	err := b.s.buildMainMulti(ctx, buildFunc, onImage, onArtifact, onFinalArtifact, onPull, PhaseBuild, b.opt.Console)
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
 	}
@@ -597,7 +602,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 		}
 		if hasRunPush {
-			err = b.s.buildMainMulti(ctx, buildFn, onImage, onArtifact, onFinalArtifact, onPull, PhasePush, b.opt.Console)
+			err = b.s.buildMainMulti(ctx, buildFunc, onImage, onArtifact, onFinalArtifact, onPull, PhasePush, b.opt.Console)
 			if err != nil {
 				return nil, errors.Wrapf(err, "build push")
 			}
