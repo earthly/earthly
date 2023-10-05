@@ -9,7 +9,6 @@ on:
 
 jobs:
   file-changes:
-    if: ${{ false }} # remove this line to re-enable
     runs-on: ubuntu-latest
     # Set permissions to minimum required
     permissions:
