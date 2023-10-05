@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net"
 	"net/url"
 	"os"
 	"path"
@@ -17,13 +16,11 @@ import (
 	"github.com/earthly/earthly/cmd/earthly/flag"
 	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/docker2earthly"
-	"github.com/earthly/earthly/regproxy"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
-	"github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth"
@@ -32,8 +29,6 @@ import (
 	"github.com/moby/buildkit/session/socketforward/socketprovider"
 	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast"
@@ -62,6 +57,8 @@ import (
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
 )
 
 type Build struct {
@@ -592,15 +589,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		localRegistryAddr = u.Host
 	}
 
-	if a.cli.Flags().UseRemoteRegistry {
-		var closeProxy func()
-		localRegistryAddr, closeProxy, err = a.startRegistryProxy(cliCtx.Context, bkClient)
-		if err != nil {
-			return err
-		}
-		defer closeProxy()
-	}
-
 	var logbusSM *solvermon.SolverMonitor
 	if a.cli.Flags().Logstream {
 		logbusSM = a.cli.LogbusSetup().SolverMonitor
@@ -631,6 +619,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		ParallelConversion:                    (a.cli.Cfg().Global.ConversionParallelism != 0),
 		Parallelism:                           parallelism,
 		LocalRegistryAddr:                     localRegistryAddr,
+		UseRemoteRegistry:                     a.cli.Flags().UseRemoteRegistry,
 		FeatureFlagOverrides:                  a.cli.Flags().FeatureFlagOverrides,
 		ContainerFrontend:                     a.cli.Flags().ContainerFrontend,
 		InternalSecretStore:                   internalSecretStore,
@@ -723,38 +712,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	}
 
 	return nil
-}
-
-func (a *Build) startRegistryProxy(ctx context.Context, client *client.Client) (string, func(), error) {
-	addr := "localhost:0" // Have the OS select a port
-
-	lnCfg := net.ListenConfig{}
-	ln, err := lnCfg.Listen(ctx, "tcp", addr)
-	if err != nil {
-		return "", nil, errors.Wrapf(err, "failed to listen on %q", addr)
-	}
-
-	p := regproxy.NewRegistryProxy(ln, client.RegistryClient())
-	go p.Serve(ctx)
-
-	addr = fmt.Sprintf("localhost:%d", ln.Addr().(*net.TCPAddr).Port)
-	a.cli.Console().VerbosePrintf("Starting local registry proxy: %s", addr)
-
-	doneCh := make(chan struct{})
-
-	go func() {
-		for err := range p.Err() {
-			if err != nil && !errors.Is(err, context.Canceled) {
-				a.cli.Console().Warnf("Failed to serve registry proxy: %v", err)
-			}
-		}
-		doneCh <- struct{}{}
-	}()
-
-	return addr, func() {
-		p.Close()
-		<-doneCh
-	}, nil
 }
 
 func getTryCatchSaveFileHandler(localArtifactWhiteList *gatewaycrafter.LocalArtifactWhiteList) func(ctx context.Context, conn io.ReadWriteCloser) error {

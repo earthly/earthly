@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/outmon"
+	"github.com/earthly/earthly/regproxy"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/dockerutil"
@@ -34,6 +36,8 @@ import (
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session"
+	"github.com/moby/buildkit/solver/pb"
+	"github.com/moby/buildkit/util/apicaps"
 	"github.com/moby/buildkit/util/entitlements"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -76,6 +80,7 @@ type Opt struct {
 	DisableNoOutputUpdates                bool
 	ParallelConversion                    bool
 	Parallelism                           semutil.Semaphore
+	UseRemoteRegistry                     bool
 	LocalRegistryAddr                     string
 	FeatureFlagOverrides                  string
 	ContainerFrontend                     containerutil.ContainerFrontend
@@ -155,6 +160,55 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 	return mts, nil
 }
 
+func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (func(), bool) {
+
+	if !b.opt.UseRemoteRegistry {
+		b.opt.Console.VerbosePrintf("Registry proxy not enabled")
+		return nil, false
+	}
+
+	if err := caps.Supports(pb.CapEarthlyRegistryProxy); err != nil {
+		b.opt.Console.Warnf("Registry proxy is not supported by BuildKit: %s", err)
+		return nil, false
+	}
+
+	addr := "localhost:0" // Have the OS select a port
+
+	lnCfg := net.ListenConfig{}
+	ln, err := lnCfg.Listen(ctx, "tcp", addr)
+	if err != nil {
+		b.opt.Console.Warnf("Failed to create proxy listener: %v", err)
+		return nil, false
+	}
+
+	p := regproxy.NewRegistryProxy(ln, b.s.bkClient.RegistryClient())
+	go p.Serve(ctx)
+
+	addr = fmt.Sprintf("localhost:%d", ln.Addr().(*net.TCPAddr).Port)
+	b.opt.Console.VerbosePrintf("Starting local registry proxy: %s", addr)
+
+	doneCh := make(chan struct{})
+
+	go func() {
+		for err := range p.Err() {
+			if err != nil && !errors.Is(err, context.Canceled) {
+				b.opt.Console.Warnf("Failed to serve registry proxy: %v", err)
+			}
+		}
+		doneCh <- struct{}{}
+	}()
+
+	b.opt.LocalRegistryAddr = addr
+
+	return func() {
+		p.Close()
+		select {
+		case <-ctx.Done():
+		case <-doneCh:
+		}
+	}, true
+}
+
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
 	var (
 		sharedLocalStateCache = earthfile2llb.NewSharedLocalStateCache()
@@ -174,12 +228,17 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		dirIndex   = 0
 	)
 	var mts *states.MultiTarget
-	bf := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
+	buildFunc := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		if opt.EnableGatewayClientLogging {
 			gwClient = gwclientlogger.New(gwClient)
 		}
 		var err error
 		caps := gwClient.BuildOpts().LLBCaps
+
+		if stopProxy, ok := b.startRegistryProxy(ctx, caps); ok {
+			defer stopProxy()
+		}
+
 		if !b.builtMain {
 			opt := earthfile2llb.ConvertOpt{
 				GwClient:                             gwClient,
@@ -523,7 +582,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	if opt.PrintPhases {
 		b.opt.Console.PrintPhaseHeader(PhaseBuild, false, "")
 	}
-	err := b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, PhaseBuild, b.opt.Console)
+	err := b.s.buildMainMulti(ctx, buildFunc, onImage, onArtifact, onFinalArtifact, onPull, PhaseBuild, b.opt.Console)
 	if err != nil {
 		return nil, errors.Wrapf(err, "build main")
 	}
@@ -547,7 +606,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			}
 		}
 		if hasRunPush {
-			err = b.s.buildMainMulti(ctx, bf, onImage, onArtifact, onFinalArtifact, onPull, PhasePush, b.opt.Console)
+			err = b.s.buildMainMulti(ctx, buildFunc, onImage, onArtifact, onFinalArtifact, onPull, PhasePush, b.opt.Console)
 			if err != nil {
 				return nil, errors.Wrapf(err, "build push")
 			}
