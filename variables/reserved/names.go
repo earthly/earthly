@@ -56,6 +56,7 @@ func init() {
 		EarthlyGitProjectName:           {},
 		EarthlyGitShortHash:             {},
 		EarthlyGitTag:                   {},
+		EarthlyGitRefs:                  {},
 		EarthlyLocally:                  {},
 		EarthlyPush:                     {},
 		EarthlyCI:                       {},
