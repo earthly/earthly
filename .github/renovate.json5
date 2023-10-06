@@ -10,6 +10,7 @@
   includePaths: [
     'docs/**',
     '.github/',
+    'release/**',
   ],
   enabledManagers: [
     'regex',
@@ -27,6 +28,7 @@
         'github.com/earthly/earthly:(?<currentValue>.+?)(\\+|`)',
         '(:|\\s+)earthly/earthly:(?<currentValue>.+?)[\\s\\n/]+',
         'the `latest` tag is `(?<currentValue>.+?)`',
+        'earthly/compare/(?<currentValue>.+?)\\.\\.\\.main',
       ],
       depNameTemplate: 'earthly/earthly',
       datasourceTemplate: 'github-releases',
