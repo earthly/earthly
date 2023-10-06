@@ -254,47 +254,9 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return err
 	}
 
-	// Default upload logs, unless explicitly configured
-	doLogstreamUpload := false
-	var logstreamURL string
-	if !a.cli.Cfg().Global.DisableLogSharing {
-		if cloudClient.IsLoggedIn(cliCtx.Context) {
-			if a.cli.Flags().LogstreamUpload {
-				doLogstreamUpload = true
-				logstreamURL = fmt.Sprintf("%s/builds/%s", a.cli.CIHost(), a.cli.LogbusSetup().InitialManifest.GetBuildId())
-				defer func() {
-					a.cli.Console().ColorPrintf(color.New(color.FgHiYellow), "View logs at %s\n", logstreamURL)
-				}()
-			} else {
-				// If you are logged in, then add the bundle builder code, and configure cleanup and post-build messages.
-				a.cli.SetConsole(a.cli.Console().WithLogBundleWriter(target.String(), cleanCollection))
-
-				defer func() { // Defer this to keep log upload code together
-					logPath, err := a.cli.Console().WriteBundleToDisk()
-					if err != nil {
-						err := errors.Wrapf(err, "failed to write log to disk")
-						a.cli.Console().Warnf(err.Error())
-						return
-					}
-
-					id, err := cloudClient.UploadLog(cliCtx.Context, logPath)
-					if err != nil {
-						err := errors.Wrapf(err, "failed to upload log")
-						a.cli.Console().Warnf(err.Error())
-						return
-					}
-					a.cli.Console().ColorPrintf(color.New(color.FgHiYellow), "Shareable link: %s\n", id)
-				}()
-			}
-		} else {
-			defer func() { // Defer this to keep log upload code together
-				a.cli.Console().Printf(
-					"🛰️ Reuse cache between CI runs with Earthly Satellites! " +
-						"2-20X faster than without cache. Generous free tier " +
-						"https://cloud.earthly.dev\n")
-			}()
-		}
-	}
+	// Determine if Logstream is enabled and create log sharing link in either case.
+	logstreamURL, doLogstreamUpload, printLinkFn := a.logShareLink(cliCtx.Context, cloudClient, target, cleanCollection)
+	defer printLinkFn() // Output log sharing link after build.
 
 	a.cli.Console().PrintPhaseHeader(builder.PhaseInit, false, "")
 	a.warnIfArgContainsBuildArg(flagArgs)
@@ -842,6 +804,54 @@ func receiveFileVersion2(ctx context.Context, conn io.ReadWriteCloser, localArti
 	}
 
 	return f.Close()
+}
+
+func (a *Build) logShareLink(ctx context.Context, cloudClient *cloud.Client, target domain.Target, clean *cleanup.Collection) (string, bool, func()) {
+
+	if a.cli.Cfg().Global.DisableLogSharing {
+		return "", false, func() {}
+	}
+
+	if !cloudClient.IsLoggedIn(ctx) {
+		printLinkFn := func() {
+			a.cli.Console().Printf(
+				"🛰️ Reuse cache between CI runs with Earthly Satellites! " +
+					"2-20X faster than without cache. Generous free tier " +
+					"https://cloud.earthly.dev\n")
+		}
+		return "", false, printLinkFn
+	}
+
+	if !a.cli.Flags().LogstreamUpload {
+		// If you are logged in, then add the bundle builder code, and
+		// configure cleanup and post-build messages.
+		a.cli.SetConsole(a.cli.Console().WithLogBundleWriter(target.String(), clean))
+		printLinkFn := func() { // Defer this to keep log upload code together
+			logPath, err := a.cli.Console().WriteBundleToDisk()
+			if err != nil {
+				err := errors.Wrapf(err, "failed to write log to disk")
+				a.cli.Console().Warnf(err.Error())
+				return
+			}
+
+			id, err := cloudClient.UploadLog(ctx, logPath)
+			if err != nil {
+				err := errors.Wrapf(err, "failed to upload log")
+				a.cli.Console().Warnf(err.Error())
+				return
+			}
+			a.cli.Console().ColorPrintf(color.New(color.FgHiYellow), "Shareable link: %s\n", id)
+		}
+		return "", false, printLinkFn
+	}
+
+	logstreamURL := fmt.Sprintf("%s/builds/%s", a.cli.CIHost(), a.cli.LogbusSetup().InitialManifest.GetBuildId())
+
+	printLinkFn := func() {
+		a.cli.Console().ColorPrintf(color.New(color.FgHiYellow), "View logs at %s\n", logstreamURL)
+	}
+
+	return logstreamURL, true, printLinkFn
 }
 
 func (a *Build) actionDockerBuild(cliCtx *cli.Context) error {
