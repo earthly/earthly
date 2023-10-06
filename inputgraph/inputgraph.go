@@ -195,7 +195,14 @@ func (l *loader) handleFor(ctx context.Context, forStmt spec.ForStatement) error
 }
 
 func (l *loader) handleWait(ctx context.Context, waitStmt spec.WaitStatement) error {
-	return errors.Wrap(ErrUnableToDetermineHash, "wait not supported")
+	l.hasher.HashString("wait")
+	l.hasher.HashString(strings.Join(waitStmt.Args, " "))
+	for _, stmt := range waitStmt.Body {
+		if err := l.handleStatement(ctx, stmt); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (l *loader) handleTry(ctx context.Context, tryStmt spec.TryStatement) error {
@@ -351,9 +358,6 @@ func HashTarget(ctx context.Context, target domain.Target, conslog conslogging.C
 	err = loaderInst.load(ctx)
 	if err != nil {
 		return "", "", nil, err
-	}
-	if !loaderInst.isPipeline {
-		return "", "", nil, errors.Wrap(ErrUnableToDetermineHash, "target is not a pipeline")
 	}
 
 	return org, project, loaderInst.hasher.GetHash(), nil
