@@ -50,7 +50,7 @@
     `git checkout main && git push`
   
 <!-- vale HouseStyle.Spelling = YES -->
-* After GitBook has processed the [docs-0.7](https://github.com/earthly/earthly/tree/docs-0.7) branch (you can see the gitbook check/job in Github), run a broken link checker over https://docs.earthly.dev. This one is fast and easy: https://www.deadlinkchecker.com/.
+* After GitBook has processed the [docs-0.7](https://github.com/earthly/earthly/tree/docs-0.7), a GH action will run to check for broken links in https://docs.earthly.dev. [This](https://github.com/earthly/earthly/actions/runs/6434655743/job/17474292828) is an example of such workflow.
 * Verify the [Homebrew release job](https://github.com/earthly/homebrew-earthly) has successfully run and has merged the new `release-v...` branch into `main`.
 * Copy the release notes you have written before and paste them in the Earthly Community slack channel `#announcements`, together with a link to the release's GitHub page. If you have Slack markdown editing activated, you can copy the markdown version of the text.
 
