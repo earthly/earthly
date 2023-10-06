@@ -322,7 +322,7 @@ jobs:
   docker-wait-block-main:
     needs: build-earthly
     if: ${{ !failure() }}
-    uses: ./.github/workflows/reusable-wait-block-override-main.yml
+    uses: ./.github/workflows/reusable-wait-block-main.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
@@ -334,7 +334,7 @@ jobs:
   docker-wait-block-no-qemu:
     needs: build-earthly
     if: ${{ !failure() }}
-    uses: ./.github/workflows/reusable-wait-block-override-target.yml
+    uses: ./.github/workflows/reusable-wait-block-target.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
@@ -347,7 +347,7 @@ jobs:
   docker-wait-block-qemu:
     needs: build-earthly
     if: ${{ !failure() }}
-    uses: ./.github/workflows/reusable-wait-block-override-target.yml
+    uses: ./.github/workflows/reusable-wait-block-target.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
