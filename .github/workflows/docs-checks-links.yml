@@ -1,12 +1,12 @@
 name: check docs broken links
 
 on:
-  push:
-    branches: [ docs-0.7 ]
+  push: # this can be removed if we noticed the workflow_run trigger is working as expected (after the gitbook workflow completes)
+    branches: [docs-0.7]
   workflow_run:
     workflows: ['GitBook']
-    types:
-      - completed
+    types: [completed]
+    branches: [docs-0.7]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   check-broken-links:
+    if: ${{ github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: "ubuntu-latest"
     env:
       FORCE_COLOR: 1
