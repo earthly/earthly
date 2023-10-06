@@ -24,7 +24,8 @@ on:
         type: string
 
 jobs:
-  wait-block-override:
+  test:
+    name: ${{inputs.TARGET_NAME}} (--global-wait-end)
     if: ${{!inputs.SKIP_JOB}}
     runs-on: ${{inputs.RUNS_ON}}
     env:
