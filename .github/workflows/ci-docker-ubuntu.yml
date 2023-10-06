@@ -427,8 +427,6 @@ jobs:
           ./build/earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
           mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-      - name: Build latest earthly using released earthly
-        run: ./build/earthly --use-inline-cache +for-linux
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
