@@ -319,16 +319,42 @@ jobs:
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
-  docker-wait-block-override:
+  docker-wait-block-main:
     needs: build-earthly
     if: ${{ !failure() }}
-    uses: ./.github/workflows/reusable-wait-block-override.yml
+    uses: ./.github/workflows/reusable-wait-block-override-main.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+    secrets: inherit
+
+  docker-wait-block-no-qemu:
+    needs: build-earthly
+    if: ${{ !failure() }}
+    uses: ./.github/workflows/reusable-wait-block-override-target.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      TARGET_NAME: "+test-no-qemu"
+    secrets: inherit
+
+  docker-wait-block-qemu:
+    needs: build-earthly
+    if: ${{ !failure() }}
+    uses: ./.github/workflows/reusable-wait-block-override-target.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      TARGET_NAME: "+test-qemu"
     secrets: inherit
 
   docker-git-metadata-test:

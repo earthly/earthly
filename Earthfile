@@ -714,7 +714,7 @@ test-no-qemu-slow:
     BUILD --pass-args ./tests+ga-no-qemu-slow \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
-# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-slow
+# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-kind
 test-no-qemu-kind:
     BUILD --pass-args ./tests+ga-no-qemu-kind \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
