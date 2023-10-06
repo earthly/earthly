@@ -856,7 +856,7 @@ check-broken-links:
     ARG ADDRESS=https://docs.earthly.dev
     ARG VERBOSE=false
     LET REPORT_FILE_NAME=report.txt
-    LET BLC_COMMAND="blc $ADDRESS -rog --exclude https://twitter.com/E1arthlyTech --exclude http://localhost:8080/"
+    LET BLC_COMMAND="blc $ADDRESS -rog --exclude https://twitter.com/EarthlyTech --exclude http://localhost:8080/"
     IF [ $VERBOSE = "true" ]
         RUN --no-cache $BLC_COMMAND |tee $REPORT_FILE_NAME
     ELSE

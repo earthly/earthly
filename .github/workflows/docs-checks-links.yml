@@ -5,6 +5,10 @@ on:
     branches: [ docs-0.7 ]
   pull_request:
     branches: [ main ]
+  workflow_run:
+    workflows: ['GitBook']
+    types:
+      - completed
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
