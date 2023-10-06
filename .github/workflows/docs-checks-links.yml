@@ -3,8 +3,6 @@ name: check docs broken links
 on:
   push:
     branches: [ docs-0.7 ]
-  pull_request:
-    branches: [ main ]
   workflow_run:
     workflows: ['GitBook']
     types:
