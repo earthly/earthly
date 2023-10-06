@@ -847,3 +847,29 @@ merge-main-to-docs:
         git checkout $to_branch && \
         git merge $from_branch && \
         git push
+
+# check-broken-links checks for broken links in our docs website
+check-broken-links:
+    FROM node:20-alpine3.18
+    RUN npm install broken-link-checker -g
+    WORKDIR /report
+    ARG ADDRESS=https://docs.earthly.dev
+    ARG VERBOSE=false
+    LET REPORT_FILE_NAME=report.txt
+    LET BLC_COMMAND="blc $ADDRESS -rog --exclude https://twitter.com/EarthlyTech --exclude http://localhost:8080/"
+    IF [ $VERBOSE = "true" ]
+        RUN --no-cache $BLC_COMMAND |tee $REPORT_FILE_NAME
+    ELSE
+        RUN --no-cache $BLC_COMMAND &> $REPORT_FILE_NAME || true
+    END
+    LET RESULT=$(grep -qE '^├─BROKEN─' $REPORT_FILE_NAME; echo $?)
+    LET NOCOLOR='\033[0m'
+    LET RED='\033[0;31m'
+    LET GREEN='\033[0;32m'
+    IF [ $RESULT = "0" ]
+        RUN --no-cache echo -e "${RED}Final Broken Links Report:${NOCOLOR}"
+        RUN --no-cache grep --color=always -E '^(Getting links from|├─BROKEN─|Finished!|Elapsed)' $REPORT_FILE_NAME
+        RUN exit 1
+    ELSE
+        RUN --no-cache echo -e "${GREEN}No Broken Links were found${NOCOLOR}"
+    END
