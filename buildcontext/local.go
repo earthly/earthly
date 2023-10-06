@@ -38,7 +38,10 @@ func (lr *localResolver) resolveLocal(ctx context.Context, gwClient gwclient.Cli
 				errors.Is(err, gitutil.ErrNotAGitDir) ||
 				errors.Is(err, gitutil.ErrCouldNotDetectRemote) ||
 				errors.Is(err, gitutil.ErrCouldNotDetectGitHash) ||
-				errors.Is(err, gitutil.ErrCouldNotDetectGitBranch) {
+				errors.Is(err, gitutil.ErrCouldNotDetectGitShortHash) ||
+				errors.Is(err, gitutil.ErrCouldNotDetectGitBranch) ||
+				errors.Is(err, gitutil.ErrCouldNotDetectGitTags) ||
+				errors.Is(err, gitutil.ErrCouldNotDetectGitRefs) {
 				// Keep going anyway. Either not a git dir, or git not installed, or
 				// remote not detected.
 				if errors.Is(err, gitutil.ErrNoGitBinary) {

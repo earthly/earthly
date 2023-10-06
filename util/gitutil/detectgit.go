@@ -26,6 +26,10 @@ var (
 	ErrCouldNotDetectGitShortHash = errors.New("Could not auto-detect or parse Git short hash")
 	// ErrCouldNotDetectGitBranch is an error returned when git branch could not be detected.
 	ErrCouldNotDetectGitBranch = errors.New("Could not auto-detect or parse Git branch")
+	// ErrCouldNotDetectGitTags is an error returned when git tags could not be detected.
+	ErrCouldNotDetectGitTags = errors.New("Could not auto-detect or parse Git tags")
+	// ErrCouldNotDetectGitRefs is an error returned when git refs could not be detected.
+	ErrCouldNotDetectGitRefs = errors.New("Could not auto-detect or parse Git refs")
 )
 
 // GitMetadata is a collection of git information about a certain directory.
@@ -90,8 +94,8 @@ func Metadata(ctx context.Context, dir, gitBranchOverride string) (*GitMetadata,
 	}
 	tags, err := detectGitTags(ctx, dir)
 	if err != nil {
-		// Most likely no tags. Keep going.
-		tags = nil
+		retErr = err
+		// Keep going.
 	}
 	committerTimestamp, err := detectGitTimestamp(ctx, dir, committer)
 	if err != nil {
@@ -278,7 +282,7 @@ func detectGitTags(ctx context.Context, dir string) ([]string, error) {
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, errors.Wrap(err, "detect git current tags")
+		return nil, errors.Wrapf(ErrCouldNotDetectGitTags, "returned error %s: %s", err.Error(), string(out))
 	}
 	outStr := string(out)
 	if outStr != "" {
@@ -292,7 +296,7 @@ func detectGitRefs(ctx context.Context, dir string) ([]string, error) {
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, errors.Wrap(err, "detect git current refs")
+		return nil, errors.Wrapf(ErrCouldNotDetectGitRefs, "returned error %s: %s", err.Error(), string(out))
 	}
 	outStr := string(out)
 	if outStr != "" {
