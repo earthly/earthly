@@ -295,7 +295,7 @@ func (l *loader) findProject(ctx context.Context) (org, project string, err erro
 	ef := bc.Earthfile
 
 	if ef.Version != nil {
-		l.hasher.HashVersion(*ef.Version)
+		l.hasher.HashJSONMarshalled(*ef.Version)
 	}
 
 	for _, stmt := range ef.BaseRecipe {
@@ -326,7 +326,7 @@ func (l *loader) load(ctx context.Context) error {
 	ef := bc.Earthfile
 
 	if ef.Version != nil {
-		l.hasher.HashVersion(*ef.Version)
+		l.hasher.HashJSONMarshalled(*ef.Version)
 	}
 
 	if l.target.Target == "base" {

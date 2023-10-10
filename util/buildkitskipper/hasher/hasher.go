@@ -34,14 +34,6 @@ func (h *Hasher) HashInt(i int) {
 	h.HashString(fmt.Sprintf("int:%d", i))
 }
 
-func (h *Hasher) HashVersion(version spec.Version) {
-	dt, err := json.Marshal(version)
-	if err != nil {
-		panic(fmt.Sprintf("failed to hash version: %s", err)) // shouldn't happen
-	}
-	h.HashBytes(dt)
-}
-
 func (h *Hasher) HashJSONMarshalled(v any) {
 	dt, err := json.Marshal(v)
 	if err != nil {
