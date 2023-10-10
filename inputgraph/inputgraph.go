@@ -194,8 +194,14 @@ func (l *loader) handleFor(ctx context.Context, forStmt spec.ForStatement) error
 	return errors.Wrap(ErrUnableToDetermineHash, "for not supported")
 }
 
+func (l *loader) hashWaitStatement(waitStmt spec.WaitStatement) {
+	l.hasher.HashString("WAIT")
+	l.hasher.HashInt(len(waitStmt.Body))
+	l.hasher.HashJSONMarshalled(waitStmt.Args)
+}
+
 func (l *loader) handleWait(ctx context.Context, waitStmt spec.WaitStatement) error {
-	l.hasher.HashStatement("WAIT", waitStmt.Args, waitStmt.Body)
+	l.hashWaitStatement(waitStmt)
 	for _, stmt := range waitStmt.Body {
 		if err := l.handleStatement(ctx, stmt); err != nil {
 			return err
