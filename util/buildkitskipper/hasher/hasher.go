@@ -9,8 +9,6 @@ import (
 	"hash"
 	"io"
 	"os"
-
-	"github.com/earthly/earthly/ast/spec"
 )
 
 type Hasher struct {
