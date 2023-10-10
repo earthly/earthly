@@ -30,14 +30,6 @@ func (h *Hasher) GetHash() []byte {
 	return h.h.Sum(nil)
 }
 
-func (h *Hasher) HashCommand(cmd spec.Command) {
-	dt, err := json.Marshal(cmd)
-	if err != nil {
-		panic(fmt.Sprintf("failed to hash command: %s", err)) // shouldn't happen
-	}
-	h.HashBytes(dt)
-}
-
 func (h *Hasher) HashInt(i int) {
 	h.HashString(fmt.Sprintf("int:%d", i))
 }

@@ -137,7 +137,7 @@ func (l *loader) handlePipeline(ctx context.Context, cmd spec.Command) error {
 }
 
 func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
-	l.hasher.HashCommand(cmd)
+	l.hasher.HashJSONMarshalled(cmd)
 	switch cmd.Name {
 	case command.From:
 		return l.handleFrom(ctx, cmd)
@@ -164,7 +164,7 @@ func (l *loader) handleWith(ctx context.Context, with spec.WithStatement) error 
 }
 
 func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
-	l.hasher.HashCommand(cmd) // special case since handleWithDocker doesn't get called from handleCommand
+	l.hasher.HashJSONMarshalled(cmd) // special case since handleWithDocker doesn't get called from handleCommand
 	opts := commandflag.WithDockerOpts{}
 	_, err := parseArgs("WITH DOCKER", &opts, getArgsCopy(cmd))
 	if err != nil {
