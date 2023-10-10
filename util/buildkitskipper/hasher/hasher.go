@@ -34,7 +34,11 @@ func (h *Hasher) GetHash() []byte {
 func (h *Hasher) HashStatement(name string, args []string, body spec.Block) {
 	h.HashString(name)
 	h.HashInt(len(body))
-	h.HashString(strings.Join(args, ";"))
+	dt, err := json.Marshal(args)
+	if err != nil {
+		panic(fmt.Sprintf("failed to hash args: %s", err))
+	}
+	h.HashBytes(dt)
 }
 
 func (h *Hasher) HashCommand(cmd spec.Command) {
@@ -46,7 +50,7 @@ func (h *Hasher) HashCommand(cmd spec.Command) {
 }
 
 func (h *Hasher) HashInt(i int) {
-	h.h.Write([]byte(fmt.Sprintf("%d", i)))
+	h.HashString(fmt.Sprintf("int:%d", i))
 }
 
 func (h *Hasher) HashVersion(version spec.Version) {
@@ -58,7 +62,7 @@ func (h *Hasher) HashVersion(version spec.Version) {
 }
 
 func (h *Hasher) HashString(s string) {
-	h.HashBytes([]byte(s))
+	h.HashString(fmt.Sprintf("str:%s", s))
 }
 
 func (h *Hasher) HashBytes(b []byte) {
