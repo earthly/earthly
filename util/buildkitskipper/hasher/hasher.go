@@ -31,9 +31,10 @@ func (h *Hasher) GetHash() []byte {
 	return h.h.Sum(nil)
 }
 
-func (h *Hasher) HashStatement(name string, args []string) {
+func (h *Hasher) HashStatement(name string, args []string, body spec.Block) {
 	h.HashString(name)
-	h.HashString(strings.Join(args, " "))
+	h.HashInt(len(body))
+	h.HashString(strings.Join(args, ";"))
 }
 
 func (h *Hasher) HashCommand(cmd spec.Command) {
@@ -42,6 +43,10 @@ func (h *Hasher) HashCommand(cmd spec.Command) {
 		panic(fmt.Sprintf("failed to hash command: %s", err)) // shouldn't happen
 	}
 	h.HashBytes(dt)
+}
+
+func (h *Hasher) HashInt(i int) {
+	h.h.Write([]byte(fmt.Sprintf("%d", i)))
 }
 
 func (h *Hasher) HashVersion(version spec.Version) {
