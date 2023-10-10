@@ -9,6 +9,7 @@ import (
 	"hash"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/earthly/earthly/ast/spec"
 )
@@ -28,6 +29,11 @@ func (h *Hasher) GetHash() []byte {
 		return nil
 	}
 	return h.h.Sum(nil)
+}
+
+func (h *Hasher) HashStatement(name string, args []string) {
+	h.HashString(name)
+	h.HashString(strings.Join(args, " "))
 }
 
 func (h *Hasher) HashCommand(cmd spec.Command) {

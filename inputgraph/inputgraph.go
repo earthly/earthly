@@ -195,8 +195,7 @@ func (l *loader) handleFor(ctx context.Context, forStmt spec.ForStatement) error
 }
 
 func (l *loader) handleWait(ctx context.Context, waitStmt spec.WaitStatement) error {
-	l.hasher.HashString("wait")
-	l.hasher.HashString(strings.Join(waitStmt.Args, " "))
+	l.hasher.HashStatement("WAIT", waitStmt.Args)
 	for _, stmt := range waitStmt.Body {
 		if err := l.handleStatement(ctx, stmt); err != nil {
 			return err
