@@ -9,7 +9,6 @@ import (
 	"hash"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/earthly/earthly/ast/spec"
 )
