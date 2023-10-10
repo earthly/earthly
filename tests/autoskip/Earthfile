@@ -9,7 +9,8 @@ WORKDIR /test
 test-all:
     BUILD +test-auto-skip
     BUILD +test-auto-skip-with-subdir
-    BUILD +test-auto-skip-requires-pipeline
+    BUILD +test-auto-skip-requires-project
+    BUILD +test-auto-skip-wait
 
 test-auto-skip:
     RUN echo hello > my-file
@@ -36,10 +37,14 @@ test-auto-skip-with-subdir:
     DO --pass-args +RUN_EARTHLY_ARGS --target=+allpipe --output_contains="ba1f2511fc30423bdbb183fe33f3dd0f"
     DO --pass-args +RUN_EARTHLY_ARGS --target=+allpipe --output_does_not_contain="ba1f2511fc30423bdbb183fe33f3dd0f" --output_contains="target .* has already been run; exiting"
 
-test-auto-skip-requires-pipeline:
+test-auto-skip-requires-project:
     RUN echo hello > my-file
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+mytarget --output_contains="I was run"
-    RUN if ! grep "target is not a pipeline" earthly.output >/dev/null; then echo "no warning was displayed saying target must be a pipeline" && exit 1; fi
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=no-project.earth --target=+no-project --output_contains="I was run"
+    RUN if ! grep "PROJECT command missing" earthly.output >/dev/null; then echo "no warning displayed for missing PROJECT keyword" && exit 1; fi
+
+test-auto-skip-wait:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=wait.earth --target=+test --output_contains="not skipped"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=wait.earth --target=+test --output_contains="4d178232e5141dbe1bfb7e2581ebd71313ca99e6"
 
 RUN_EARTHLY_ARGS:
     COMMAND
