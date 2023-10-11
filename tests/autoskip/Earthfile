@@ -11,6 +11,7 @@ test-all:
     BUILD +test-auto-skip-with-subdir
     BUILD +test-auto-skip-requires-project
     BUILD +test-auto-skip-wait
+    BUILD +test-auto-skip-if-else
 
 test-auto-skip:
     RUN echo hello > my-file
