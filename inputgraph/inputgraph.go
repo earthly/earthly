@@ -137,7 +137,7 @@ func (l *loader) handlePipeline(ctx context.Context, cmd spec.Command) error {
 }
 
 func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
-	l.hasher.HashJSONMarshalled(cmd)
+	l.hashCommand(cmd)
 	switch cmd.Name {
 	case command.From:
 		return l.handleFrom(ctx, cmd)
@@ -164,7 +164,7 @@ func (l *loader) handleWith(ctx context.Context, with spec.WithStatement) error 
 }
 
 func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
-	l.hasher.HashJSONMarshalled(cmd) // special case since handleWithDocker doesn't get called from handleCommand
+	l.hashCommand(cmd) // special case since handleWithDocker doesn't get called from handleCommand
 	opts := commandflag.WithDockerOpts{}
 	_, err := parseArgs("WITH DOCKER", &opts, getArgsCopy(cmd))
 	if err != nil {
@@ -194,10 +194,11 @@ func (l *loader) handleFor(ctx context.Context, forStmt spec.ForStatement) error
 	return errors.Wrap(ErrUnableToDetermineHash, "for not supported")
 }
 
-func (l *loader) hashWaitStatement(waitStmt spec.WaitStatement) {
+func (l *loader) hashWaitStatement(w spec.WaitStatement) {
+	w.SourceLocation = nil
 	l.hasher.HashString("WAIT")
-	l.hasher.HashInt(len(waitStmt.Body))
-	l.hasher.HashJSONMarshalled(waitStmt.Args)
+	l.hasher.HashInt(len(w.Body))
+	l.hasher.HashJSONMarshalled(w.Args)
 }
 
 func (l *loader) handleWait(ctx context.Context, waitStmt spec.WaitStatement) error {
@@ -286,6 +287,11 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string) er
 func (l *loader) hashVersion(v spec.Version) {
 	v.SourceLocation = nil
 	l.hasher.HashJSONMarshalled(v)
+}
+
+func (l *loader) hashCommand(cmd spec.Command) {
+	cmd.SourceLocation = nil
+	l.hasher.HashJSONMarshalled(cmd)
 }
 
 func (l *loader) findProject(ctx context.Context) (org, project string, err error) {
