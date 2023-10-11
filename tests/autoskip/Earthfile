@@ -44,7 +44,7 @@ test-auto-skip-requires-project:
 
 test-auto-skip-wait:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=wait.earth --target=+test --output_contains="not skipped"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=wait.earth --target=+test --output_contains="1b389e587f8b6650662403d17ac92493c4e68b43"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=wait.earth --target=+test --output_contains="ec3d61867365de2deda79ce06f7afa849b765bb1"
 
 RUN_EARTHLY_ARGS:
     COMMAND
