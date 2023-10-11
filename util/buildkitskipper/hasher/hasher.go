@@ -41,7 +41,7 @@ func (h *Hasher) HashJSONMarshalled(v any) {
 }
 
 func (h *Hasher) HashString(s string) {
-	h.HashString(fmt.Sprintf("str:%s", s))
+	h.HashBytes([]byte(fmt.Sprintf("str:%s", s)))
 }
 
 func (h *Hasher) HashBytes(b []byte) {

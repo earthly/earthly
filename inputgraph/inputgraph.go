@@ -283,6 +283,11 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string) er
 	return loaderInst.load(ctx)
 }
 
+func (l *loader) hashVersion(v spec.Version) {
+	v.SourceLocation = nil
+	l.hasher.HashJSONMarshalled(v)
+}
+
 func (l *loader) findProject(ctx context.Context) (org, project string, err error) {
 	if l.target.IsRemote() {
 		return "", "", ErrRemoteNotSupported
@@ -295,7 +300,7 @@ func (l *loader) findProject(ctx context.Context) (org, project string, err erro
 	ef := bc.Earthfile
 
 	if ef.Version != nil {
-		l.hasher.HashJSONMarshalled(*ef.Version)
+		l.hashVersion(*ef.Version)
 	}
 
 	for _, stmt := range ef.BaseRecipe {
@@ -326,7 +331,7 @@ func (l *loader) load(ctx context.Context) error {
 	ef := bc.Earthfile
 
 	if ef.Version != nil {
-		l.hasher.HashJSONMarshalled(*ef.Version)
+		l.hashVersion(*ef.Version)
 	}
 
 	if l.target.Target == "base" {
