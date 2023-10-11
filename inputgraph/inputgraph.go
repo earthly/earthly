@@ -137,7 +137,7 @@ func (l *loader) handlePipeline(ctx context.Context, cmd spec.Command) error {
 }
 
 func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
-	l.hasher.HashCommand(cmd)
+	l.hashCommand(cmd)
 	switch cmd.Name {
 	case command.From:
 		return l.handleFrom(ctx, cmd)
@@ -164,7 +164,7 @@ func (l *loader) handleWith(ctx context.Context, with spec.WithStatement) error 
 }
 
 func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
-	l.hasher.HashCommand(cmd) // special case since handleWithDocker doesn't get called from handleCommand
+	l.hashCommand(cmd) // special case since handleWithDocker doesn't get called from handleCommand
 	opts := commandflag.WithDockerOpts{}
 	_, err := parseArgs("WITH DOCKER", &opts, getArgsCopy(cmd))
 	if err != nil {
@@ -194,8 +194,21 @@ func (l *loader) handleFor(ctx context.Context, forStmt spec.ForStatement) error
 	return errors.Wrap(ErrUnableToDetermineHash, "for not supported")
 }
 
+func (l *loader) hashWaitStatement(w spec.WaitStatement) {
+	w.SourceLocation = nil
+	l.hasher.HashString("WAIT")
+	l.hasher.HashInt(len(w.Body))
+	l.hasher.HashJSONMarshalled(w.Args)
+}
+
 func (l *loader) handleWait(ctx context.Context, waitStmt spec.WaitStatement) error {
-	return errors.Wrap(ErrUnableToDetermineHash, "wait not supported")
+	l.hashWaitStatement(waitStmt)
+	for _, stmt := range waitStmt.Body {
+		if err := l.handleStatement(ctx, stmt); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (l *loader) handleTry(ctx context.Context, tryStmt spec.TryStatement) error {
@@ -271,6 +284,16 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string) er
 	return loaderInst.load(ctx)
 }
 
+func (l *loader) hashVersion(v spec.Version) {
+	v.SourceLocation = nil
+	l.hasher.HashJSONMarshalled(v)
+}
+
+func (l *loader) hashCommand(cmd spec.Command) {
+	cmd.SourceLocation = nil
+	l.hasher.HashJSONMarshalled(cmd)
+}
+
 func (l *loader) findProject(ctx context.Context) (org, project string, err error) {
 	if l.target.IsRemote() {
 		return "", "", ErrRemoteNotSupported
@@ -283,7 +306,7 @@ func (l *loader) findProject(ctx context.Context) (org, project string, err erro
 	ef := bc.Earthfile
 
 	if ef.Version != nil {
-		l.hasher.HashVersion(*ef.Version)
+		l.hashVersion(*ef.Version)
 	}
 
 	for _, stmt := range ef.BaseRecipe {
@@ -314,7 +337,7 @@ func (l *loader) load(ctx context.Context) error {
 	ef := bc.Earthfile
 
 	if ef.Version != nil {
-		l.hasher.HashVersion(*ef.Version)
+		l.hashVersion(*ef.Version)
 	}
 
 	if l.target.Target == "base" {
@@ -351,9 +374,6 @@ func HashTarget(ctx context.Context, target domain.Target, conslog conslogging.C
 	err = loaderInst.load(ctx)
 	if err != nil {
 		return "", "", nil, err
-	}
-	if !loaderInst.isPipeline {
-		return "", "", nil, errors.Wrap(ErrUnableToDetermineHash, "target is not a pipeline")
 	}
 
 	return org, project, loaderInst.hasher.GetHash(), nil

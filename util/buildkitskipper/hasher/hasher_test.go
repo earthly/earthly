@@ -5,7 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/util/buildkitskipper/hasher"
 )
 
@@ -20,28 +19,6 @@ func TestEmptyHasherIsNil(t *testing.T) {
 func TestNilHasherIsNil(t *testing.T) {
 	var h *hasher.Hasher
 	Nil(t, h.GetHash())
-}
-
-func TestHashCommand(t *testing.T) {
-	h1 := hasher.New()
-	h1.HashCommand(spec.Command{
-		Name: "RUN",
-		Args: []string{"ls", "/foo"},
-	})
-	hash1 := h1.GetHash()
-	NotNil(t, hash1)
-	NotEqual(t, hash1, emptyHash)
-
-	h2 := hasher.New()
-	h2.HashCommand(spec.Command{
-		Name: "RUN",
-		Args: []string{"ls", "/bar"},
-	})
-	hash2 := h2.GetHash()
-	NotNil(t, hash2)
-	NotEqual(t, hash2, emptyHash)
-
-	NotEqual(t, hash1, hash2)
 }
 
 func TestHashEmptyFile(t *testing.T) {

@@ -9,8 +9,6 @@ import (
 	"hash"
 	"io"
 	"os"
-
-	"github.com/earthly/earthly/ast/spec"
 )
 
 type Hasher struct {
@@ -30,24 +28,20 @@ func (h *Hasher) GetHash() []byte {
 	return h.h.Sum(nil)
 }
 
-func (h *Hasher) HashCommand(cmd spec.Command) {
-	dt, err := json.Marshal(cmd)
+func (h *Hasher) HashInt(i int) {
+	h.HashBytes([]byte(fmt.Sprintf("int:%d", i)))
+}
+
+func (h *Hasher) HashJSONMarshalled(v any) {
+	dt, err := json.Marshal(v)
 	if err != nil {
 		panic(fmt.Sprintf("failed to hash command: %s", err)) // shouldn't happen
 	}
 	h.HashBytes(dt)
 }
 
-func (h *Hasher) HashVersion(version spec.Version) {
-	dt, err := json.Marshal(version)
-	if err != nil {
-		panic(fmt.Sprintf("failed to hash version: %s", err)) // shouldn't happen
-	}
-	h.HashBytes(dt)
-}
-
 func (h *Hasher) HashString(s string) {
-	h.HashBytes([]byte(s))
+	h.HashBytes([]byte(fmt.Sprintf("str:%s", s)))
 }
 
 func (h *Hasher) HashBytes(b []byte) {
