@@ -46,6 +46,10 @@ test-auto-skip-wait:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=wait.earth --target=+test --output_contains="not skipped"
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=wait.earth --target=+test --output_contains="ec3d61867365de2deda79ce06f7afa849b765bb1"
 
+test-auto-skip-if-else:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=if-else.earth --target=+test --output_contains="condition ok"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=if-else.earth --target=+test --output_contains="d7ba3699b3342c386fd40b3368c167898ae58f2a"
+
 RUN_EARTHLY_ARGS:
     COMMAND
     ARG earthfile
