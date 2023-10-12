@@ -3,6 +3,7 @@ package inputgraph
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -93,36 +94,102 @@ func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
 
 func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 	opts := commandflag.CopyOpts{}
+
 	args, err := parseArgs(command.Copy, &opts, getArgsCopy(cmd))
 	if err != nil {
 		return err
 	}
-	if argsContainsStr(args, "$") || argsContainsStr(args, "*") || len(args) < 2 || opts.From != "" { // TODO handle globbing (e.g. *), ignored for now
-		return errors.Wrap(ErrUnableToDetermineHash, "unable to handle COPY with arg or wildcard")
+
+	if opts.From != "" {
+		return errors.Wrap(ErrUnableToDetermineHash, "COPY --form is not supported")
 	}
+
+	if len(args) < 2 {
+		return errors.Wrap(ErrUnableToDetermineHash, "COPY must include a source and destination")
+	}
+
+	if argsContainsStr(args, "$") {
+		return errors.Wrap(ErrUnableToDetermineHash, "unable to handle COPY with arg")
+	}
+
 	srcs := args[:len(args)-1]
 	for _, src := range srcs {
-		artifactSrc, parseErr := domain.ParseArtifact(src)
-		if parseErr != nil {
-			// COPY classical
+		if err := l.handleCopySingle(ctx, src, opts.IsDirCopy); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (l *loader) handleCopySingle(ctx context.Context, src string, isDir bool) error {
+	if strings.Contains(src, "**") {
+		return errors.Wrap(ErrUnableToDetermineHash, "globstar (**) not supported")
+	}
+	artifactSrc, parseErr := domain.ParseArtifact(src)
+	if parseErr != nil {
+		// COPY classical
+		if strings.Contains(src, "*") {
+			path := filepath.Join(l.target.GetLocalPath(), src)
+			err := l.handleCopyGlob(ctx, path)
+			if err != nil {
+				return err
+			}
+		} else {
 			path := filepath.Join(l.target.GetLocalPath(), src)
 			err := l.hasher.HashFile(ctx, path)
 			if err != nil {
 				return errors.Wrapf(ErrUnableToDetermineHash, "failed to hash file %s: %s", path, err)
 			}
+		}
+		return nil
+	}
+
+	// COPY from a different target
+	if artifactSrc.Target.IsRemote() {
+		return errors.Wrap(ErrUnableToDetermineHash, "unable to handle remote target")
+	}
+
+	targetName := artifactSrc.Target.LocalPath + "+" + artifactSrc.Target.Target
+	err := l.loadTargetFromString(ctx, targetName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (l *loader) handleCopyGlob(ctx context.Context, src string) error {
+	if filepath.Base(src) != "*" {
+		return errors.Wrap(ErrUnableToDetermineHash, "wildcard paths must end with *")
+	}
+
+	dir := filepath.Dir(src)
+	if dir == "" {
+		dir = "."
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read dir: %s", dir)
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			path := filepath.Join(dir, entry.Name(), "*") // Recurse into sub-directories
+			err = l.handleCopyGlob(ctx, path)
+			if err != nil {
+				return err
+			}
 			continue
 		}
-		// COPY from a different target
-		if artifactSrc.Target.IsRemote() {
-			return errors.Wrap(ErrUnableToDetermineHash, "unable to handle remote target")
-		}
-		targetName := artifactSrc.Target.LocalPath + "+" + artifactSrc.Target.Target
-
-		err := l.loadTargetFromString(ctx, targetName)
+		path := filepath.Join(dir, entry.Name())
+		err := l.hasher.HashFile(ctx, path)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to hash file: %s", path)
 		}
 	}
+
 	return nil
 }
 
