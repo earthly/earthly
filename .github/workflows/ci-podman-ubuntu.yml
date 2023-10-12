@@ -143,7 +143,7 @@ jobs:
       BINARY: "podman"
       USE_QEMU: true
       SUDO: "sudo -E"
-      EXAMPLE_NAME: "+examples1"
+      EXAMPLE_NAME: "+examples-1"
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
@@ -158,7 +158,22 @@ jobs:
       BINARY: "podman"
       USE_QEMU: true
       SUDO: "sudo -E"
-      EXAMPLE_NAME: "+examples2"
+      EXAMPLE_NAME: "+examples-2"
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+    secrets: inherit
+
+  podman-examples-3:
+    # TODO: Figure out how to run multiple Podman instances in parallel with different ports for buildkitd
+    needs: build-earthly
+    if: ${{ !failure() }}
+    uses: ./.github/workflows/reusable-example.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "podman"
+      USE_QEMU: true
+      SUDO: "sudo -E"
+      EXAMPLE_NAME: "+examples-3"
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 

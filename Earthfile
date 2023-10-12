@@ -737,13 +737,12 @@ test-all:
     BUILD --pass-args +test-qemu
     BUILD --pass-args ./tests+experimental
 
-# examples runs both sets of examples
 examples:
-    BUILD +examples1
-    BUILD +examples2
+    BUILD +examples-1
+    BUILD +examples-2
+    BUILD +examples-3
 
-# examples1 runs set 1 of examples
-examples1:
+examples-1:
     ARG TARGETARCH
     BUILD ./examples/c+docker
     BUILD ./examples/cpp+docker
@@ -769,8 +768,7 @@ examples1:
     BUILD ./examples/secrets+base
     BUILD ./examples/cloud-secrets+base
 
-# examples2 runs set 2 of examples
-examples2:
+examples-2:
     BUILD ./examples/readme/go1+all
     BUILD ./examples/readme/go2+build
     BUILD ./examples/readme/proto+docker
@@ -790,6 +788,8 @@ examples2:
     BUILD github.com/earthly/hello-world:main+hello
     BUILD ./examples/cache-command/npm+docker
     BUILD ./examples/cache-command/mvn+docker
+
+examples-3:
     BUILD ./examples/typescript-node+docker
     BUILD ./examples/bazel+run
     BUILD ./examples/bazel+image
