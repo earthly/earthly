@@ -40,6 +40,10 @@ func (h *Hasher) HashJSONMarshalled(v any) {
 	h.HashBytes(dt)
 }
 
+func (h *Hasher) HashBool(v bool) {
+	h.HashBytes([]byte(fmt.Sprintf("bool:%t", v)))
+}
+
 func (h *Hasher) HashString(s string) {
 	h.HashBytes([]byte(fmt.Sprintf("str:%s", s)))
 }

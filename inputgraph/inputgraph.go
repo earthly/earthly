@@ -187,18 +187,26 @@ func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 }
 
 func (l *loader) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
-	return errors.Wrap(ErrUnableToDetermineHash, "if not supported")
+	l.hashIfStatement(ifStmt)
+	if err := l.loadBlock(ctx, ifStmt.IfBody); err != nil {
+		return err
+	}
+	if ifStmt.ElseBody != nil {
+		if err := l.loadBlock(ctx, *ifStmt.ElseBody); err != nil {
+			return err
+		}
+	}
+	for _, elseIf := range ifStmt.ElseIf {
+		l.hashElseIf(elseIf)
+		if err := l.loadBlock(ctx, elseIf.Body); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (l *loader) handleFor(ctx context.Context, forStmt spec.ForStatement) error {
 	return errors.Wrap(ErrUnableToDetermineHash, "for not supported")
-}
-
-func (l *loader) hashWaitStatement(w spec.WaitStatement) {
-	w.SourceLocation = nil
-	l.hasher.HashString("WAIT")
-	l.hasher.HashInt(len(w.Body))
-	l.hasher.HashJSONMarshalled(w.Args)
 }
 
 func (l *loader) handleWait(ctx context.Context, waitStmt spec.WaitStatement) error {
@@ -247,6 +255,43 @@ func (l *loader) loadBlock(ctx context.Context, b spec.Block) error {
 	return nil
 }
 
+func (l *loader) hashIfStatement(s spec.IfStatement) {
+	s.SourceLocation = nil
+	l.hasher.HashString("IF")
+	l.hasher.HashJSONMarshalled(s.Expression)
+	l.hasher.HashBool(s.ExecMode)
+	l.hasher.HashInt(len(s.IfBody))
+	l.hasher.HashInt(len(s.ElseIf))
+	if s.ElseBody != nil {
+		l.hasher.HashInt(len(*s.ElseBody))
+	}
+}
+
+func (l *loader) hashElseIf(e spec.ElseIf) {
+	e.SourceLocation = nil
+	l.hasher.HashString("ELSE IF")
+	l.hasher.HashJSONMarshalled(e.Expression)
+	l.hasher.HashBool(e.ExecMode)
+	l.hasher.HashInt(len(e.Body))
+}
+
+func (l *loader) hashWaitStatement(w spec.WaitStatement) {
+	w.SourceLocation = nil
+	l.hasher.HashString("WAIT")
+	l.hasher.HashInt(len(w.Body))
+	l.hasher.HashJSONMarshalled(w.Args)
+}
+
+func (l *loader) hashVersion(v spec.Version) {
+	v.SourceLocation = nil
+	l.hasher.HashJSONMarshalled(v)
+}
+
+func (l *loader) hashCommand(cmd spec.Command) {
+	cmd.SourceLocation = nil
+	l.hasher.HashJSONMarshalled(cmd)
+}
+
 func copyVisited(m map[string]struct{}) map[string]struct{} {
 	m2 := map[string]struct{}{}
 	for k := range m {
@@ -282,16 +327,6 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string) er
 		hasher:  l.hasher,
 	}
 	return loaderInst.load(ctx)
-}
-
-func (l *loader) hashVersion(v spec.Version) {
-	v.SourceLocation = nil
-	l.hasher.HashJSONMarshalled(v)
-}
-
-func (l *loader) hashCommand(cmd spec.Command) {
-	cmd.SourceLocation = nil
-	l.hasher.HashJSONMarshalled(cmd)
 }
 
 func (l *loader) findProject(ctx context.Context) (org, project string, err error) {
