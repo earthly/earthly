@@ -101,7 +101,7 @@ func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 	}
 
 	if opts.From != "" {
-		return errors.Wrap(ErrUnableToDetermineHash, "COPY --form is not supported")
+		return errors.Wrap(ErrUnableToDetermineHash, "COPY --from is not supported")
 	}
 
 	if len(args) < 2 {
@@ -126,17 +126,17 @@ func (l *loader) handleCopySingle(ctx context.Context, src string, isDir bool) e
 	if strings.Contains(src, "**") {
 		return errors.Wrap(ErrUnableToDetermineHash, "globstar (**) not supported")
 	}
+
 	artifactSrc, parseErr := domain.ParseArtifact(src)
 	if parseErr != nil {
 		// COPY classical
+		path := filepath.Join(l.target.GetLocalPath(), src)
 		if strings.Contains(src, "*") {
-			path := filepath.Join(l.target.GetLocalPath(), src)
 			err := l.handleCopyGlob(ctx, path)
 			if err != nil {
 				return err
 			}
 		} else {
-			path := filepath.Join(l.target.GetLocalPath(), src)
 			err := l.hasher.HashFile(ctx, path)
 			if err != nil {
 				return errors.Wrapf(ErrUnableToDetermineHash, "failed to hash file %s: %s", path, err)
