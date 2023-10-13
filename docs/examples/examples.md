@@ -82,6 +82,15 @@ Please note that these examples, although similar, are distinct from the ones us
 * [readme](https://github.com/earthly/earthly/tree/main/examples/readme) - some sample code we used in our README.
 * [tests](https://github.com/earthly/earthly/tree/main/tests) - a suite of tests Earthly uses to ensure that its features are working correctly.
 
+### Larger Examples And Community Examples
+
+* [Earthly Rust, GoLang, NodeJS and GitHubActions Example](https://github.com/earthly/earthly-vs-gha)
+* [Cloud Services In GoLang](https://github.com/adamgordonbell/cloudservices)
+* [Earthlfile workshop Repo](https://github.com/earthly/workshop-2023-09-18)
+* [Python & C Example](https://github.com/earthly/pymerge)
+* [Python Docker Example](https://github.com/earthly/build-transpose/blob/main/Earthfile)
+* [Awesome Earthly - Community Examples](https://github.com/earthly/awesome-earthly)
+
 ### Earthly's own build
 
 As a distinct example of a complete build, you can take a look at Earthly's own build. Earthly builds itself, and the build files are available on GitHub:
