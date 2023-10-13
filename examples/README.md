@@ -65,7 +65,7 @@ Please note that these examples, although similar, are distinct from the ones us
 ### Larger Examples And Community Examples
 
 * [Earthly, Rust, GoLang, NodeJS and GitHub Actions Example](https://github.com/earthly/earthly-vs-gha)
-* [Cloud Services In GoLang](https://github.com/earthly/cloud_services_example)
+* [Cloud Services In GoLang](https://github.com/earthly/cloud-services-example)
 * [Earthfile workshop Repo](https://github.com/earthly/workshop-2023-09-18)
 * [Python & C Example](https://github.com/earthly/pymerge)
 * [Python Docker Example](https://github.com/earthly/build-transpose/blob/main/Earthfile)
