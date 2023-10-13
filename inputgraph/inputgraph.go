@@ -206,7 +206,12 @@ func (l *loader) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
 }
 
 func (l *loader) handleFor(ctx context.Context, forStmt spec.ForStatement) error {
-	return errors.Wrap(ErrUnableToDetermineHash, "for not supported")
+	l.hashFor(forStmt)
+	err := l.loadBlock(ctx, forStmt.Body)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (l *loader) handleWait(ctx context.Context, waitStmt spec.WaitStatement) error {
@@ -256,7 +261,6 @@ func (l *loader) loadBlock(ctx context.Context, b spec.Block) error {
 }
 
 func (l *loader) hashIfStatement(s spec.IfStatement) {
-	s.SourceLocation = nil
 	l.hasher.HashString("IF")
 	l.hasher.HashJSONMarshalled(s.Expression)
 	l.hasher.HashBool(s.ExecMode)
@@ -268,7 +272,6 @@ func (l *loader) hashIfStatement(s spec.IfStatement) {
 }
 
 func (l *loader) hashElseIf(e spec.ElseIf) {
-	e.SourceLocation = nil
 	l.hasher.HashString("ELSE IF")
 	l.hasher.HashJSONMarshalled(e.Expression)
 	l.hasher.HashBool(e.ExecMode)
@@ -276,20 +279,25 @@ func (l *loader) hashElseIf(e spec.ElseIf) {
 }
 
 func (l *loader) hashWaitStatement(w spec.WaitStatement) {
-	w.SourceLocation = nil
 	l.hasher.HashString("WAIT")
 	l.hasher.HashInt(len(w.Body))
 	l.hasher.HashJSONMarshalled(w.Args)
 }
 
 func (l *loader) hashVersion(v spec.Version) {
-	v.SourceLocation = nil
-	l.hasher.HashJSONMarshalled(v)
+	l.hasher.HashString("VERSION")
+	l.hasher.HashJSONMarshalled(v.Args)
 }
 
-func (l *loader) hashCommand(cmd spec.Command) {
-	cmd.SourceLocation = nil
-	l.hasher.HashJSONMarshalled(cmd)
+func (l *loader) hashCommand(c spec.Command) {
+	l.hasher.HashString(c.Name)
+	l.hasher.HashJSONMarshalled(c.Args)
+	l.hasher.HashBool(c.ExecMode)
+}
+
+func (l *loader) hashFor(f spec.ForStatement) {
+	l.hasher.HashString("FOR")
+	l.hasher.HashJSONMarshalled(f.Args)
 }
 
 func copyVisited(m map[string]struct{}) map[string]struct{} {
