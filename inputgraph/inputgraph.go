@@ -183,7 +183,8 @@ func (l *loader) expandCopyFiles(src string) ([]string, error) {
 }
 
 // expandDirs takes a list of paths (directories and files) and recursively
-// expands all directories in order to discover all nested files.
+// expands all directories into a list of nested files. The final list will not
+// contain directories.
 func (l *loader) expandDirs(dirs ...string) ([]string, error) {
 	ret := []string{}
 	for _, dir := range dirs {
