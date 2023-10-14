@@ -228,40 +228,6 @@ func uniqStrs(all []string) []string {
 	return ret
 }
 
-func (l *loader) handleCopyGlob(ctx context.Context, src string) error {
-	if filepath.Base(src) != "*" {
-		return errors.Wrap(ErrUnableToDetermineHash, "wildcard paths must end with *")
-	}
-
-	dir := filepath.Dir(src)
-	if dir == "" {
-		dir = "."
-	}
-
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return errors.Wrapf(err, "failed to read dir: %s", dir)
-	}
-
-	for _, entry := range entries {
-		if entry.IsDir() {
-			path := filepath.Join(dir, entry.Name(), "*") // Recurse into sub-directories
-			err = l.handleCopyGlob(ctx, path)
-			if err != nil {
-				return err
-			}
-			continue
-		}
-		path := filepath.Join(dir, entry.Name())
-		err := l.hasher.HashFile(ctx, path)
-		if err != nil {
-			return errors.Wrapf(err, "failed to hash file: %s", path)
-		}
-	}
-
-	return nil
-}
-
 func (l *loader) handlePipeline(ctx context.Context, cmd spec.Command) error {
 	opts := commandflag.PipelineOpts{}
 	_, err := parseArgs(command.Copy, &opts, getArgsCopy(cmd))
