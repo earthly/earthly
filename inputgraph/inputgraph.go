@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/earthly/earthly/ast/command"
@@ -114,7 +115,7 @@ func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 
 	srcs := args[:len(args)-1]
 	for _, src := range srcs {
-		if err := l.handleCopySingle(ctx, src, opts.IsDirCopy); err != nil {
+		if err := l.handleCopySrc(ctx, src, opts.IsDirCopy); err != nil {
 			return err
 		}
 	}
@@ -122,23 +123,19 @@ func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 	return nil
 }
 
-func (l *loader) handleCopySingle(ctx context.Context, src string, isDir bool) error {
-	if strings.Contains(src, "**") {
-		return errors.Wrap(ErrUnableToDetermineHash, "globstar (**) not supported")
-	}
+func (l *loader) handleCopySrc(ctx context.Context, src string, isDir bool) error {
 
 	artifactSrc, parseErr := domain.ParseArtifact(src)
 	if parseErr != nil {
-		// COPY classical
+		// COPY classical (not from another target)
 		path := filepath.Join(l.target.GetLocalPath(), src)
-		if strings.Contains(src, "*") {
-			err := l.handleCopyGlob(ctx, path)
-			if err != nil {
-				return err
-			}
-		} else {
-			err := l.hasher.HashFile(ctx, path)
-			if err != nil {
+		files, err := l.expandCopyFiles(path)
+		if err != nil {
+			return err
+		}
+		sort.Strings(files)
+		for _, file := range files {
+			if err := l.hasher.HashFile(ctx, file); err != nil {
 				return errors.Wrapf(ErrUnableToDetermineHash, "failed to hash file %s: %s", path, err)
 			}
 		}
@@ -151,12 +148,83 @@ func (l *loader) handleCopySingle(ctx context.Context, src string, isDir bool) e
 	}
 
 	targetName := artifactSrc.Target.LocalPath + "+" + artifactSrc.Target.Target
-	err := l.loadTargetFromString(ctx, targetName)
-	if err != nil {
+	if err := l.loadTargetFromString(ctx, targetName); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// expandCopyFiles expands a single COPY source into a slice containing all
+// nested files. The file names will then be used in our hash.
+func (l *loader) expandCopyFiles(src string) ([]string, error) {
+	if strings.Contains(src, "**") {
+		return nil, errors.Wrap(ErrUnableToDetermineHash, "globstar (**) not supported")
+	}
+
+	if strings.Contains(src, "*") {
+		matches, err := filepath.Glob(src)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to expand glob pattern")
+		}
+		return l.expandDirs(matches...)
+	}
+
+	stat, err := os.Stat(src)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to stat file")
+	}
+
+	if stat.IsDir() {
+		return l.expandDirs(src)
+	}
+
+	return []string{src}, nil
+}
+
+// expandDirs takes a list of paths (directories and files) and recursively
+// expands all directories in order to discover all nested files.
+func (l *loader) expandDirs(dirs ...string) ([]string, error) {
+	ret := []string{}
+	for _, dir := range dirs {
+		stat, err := os.Stat(dir)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to stat file")
+		}
+		if stat.IsDir() {
+			entries, err := os.ReadDir(dir)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to read dir")
+			}
+			for _, entry := range entries {
+				next := filepath.Join(dir, entry.Name())
+				if entry.IsDir() {
+					found, err := l.expandDirs(next)
+					if err != nil {
+						return nil, err
+					}
+					ret = append(ret, found...)
+				} else {
+					ret = append(ret, next)
+				}
+			}
+		} else {
+			ret = append(ret, dir)
+		}
+	}
+	return uniqStrs(ret), nil
+}
+
+func uniqStrs(all []string) []string {
+	m := map[string]struct{}{}
+	for _, v := range all {
+		m[v] = struct{}{}
+	}
+	ret := []string{}
+	for k := range m {
+		ret = append(ret, k)
+	}
+	return ret
 }
 
 func (l *loader) handleCopyGlob(ctx context.Context, src string) error {
