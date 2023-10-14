@@ -30,6 +30,13 @@ func Parse(s string) (Version, error) {
 	return v, nil
 }
 
+func Equal(s string, ver string) bool {
+	if s == ver {
+		return true
+	}
+	return s == "v"+ver
+}
+
 // String returns the string representation of the version.
 func (v Version) String() string {
 	return fmt.Sprintf("v%d.%d.%d%s", v.Major, v.Minor, v.Patch, v.Tail)

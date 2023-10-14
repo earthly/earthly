@@ -851,22 +851,23 @@ func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, work
 	if isLocal {
 		printFun = bkCons.VerbosePrintf
 	}
-	if info.BuildkitVersion.Version != "unknown" {
-		printFun(
-			"Version %s %s %s",
-			info.BuildkitVersion.Package, info.BuildkitVersion.Version, info.BuildkitVersion.Revision)
-		if info.BuildkitVersion.Package != "github.com/earthly/buildkit" {
+	bkVer := &info.BuildkitVersion
+	if bkVer.Version != "unknown" {
+		printFun("Version %s %s %s", bkVer.Package, bkVer.Version, bkVer.Revision)
+		if bkVer.Package != "github.com/earthly/buildkit" {
 			bkCons.Warnf("Using a non-Earthly version of Buildkit. This is not supported.")
 		} else {
-			if info.BuildkitVersion.Version != earthlyVersion {
+			if semverutil.Equal(bkVer.Version, earthlyVersion) {
+				bkCons.Printf("Buildkit version: %s", bkVer.Version)
+			} else {
 				if isLocal {
 					// For local buildkits we expect perfect version match.
 					bkCons.Warnf(
 						"Warning: Buildkit version (%s) is different from Earthly version (%s)",
-						info.BuildkitVersion.Version, earthlyVersion)
+						bkVer.Version, earthlyVersion)
 				} else {
 					compatible := true
-					bkVersion, err := semverutil.Parse(info.BuildkitVersion.Version)
+					_version, err := semverutil.Parse(bkVer.Version)
 					if err != nil {
 						bkCons.VerbosePrintf("Warning: could not parse buildkit version: %v", err)
 						compatible = false
@@ -876,13 +877,13 @@ func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, work
 						bkCons.VerbosePrintf("Warning: could not parse earthly version: %v", err)
 						compatible = false
 					}
-					compatible = compatible && semverutil.IsCompatible(bkVersion, earthlyVersion)
+					compatible = compatible && semverutil.IsCompatible(_version, earthlyVersion)
 					if !compatible {
 						bkCons.Warnf("Warning: Buildkit version (%s) is not compatible with Earthly version (%s)",
-							info.BuildkitVersion.Version, earthlyVersion)
+							bkVer.Version, earthlyVersion)
 					} else {
 						bkCons.VerbosePrintf("Buildkit version (%s) is compatible with Earthly version (%s)",
-							info.BuildkitVersion.Version, earthlyVersion)
+							bkVer.Version, earthlyVersion)
 					}
 				}
 			}
