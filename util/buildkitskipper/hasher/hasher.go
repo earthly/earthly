@@ -9,8 +9,6 @@ import (
 	"hash"
 	"io"
 	"os"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 type Hasher struct {
@@ -60,10 +58,9 @@ func (h *Hasher) HashFile(ctx context.Context, src string) error {
 	if err != nil {
 		return err
 	}
-	h.HashString(fmt.Sprintf("mode: %d;", stat.Mode()))
-	h.HashString(fmt.Sprintf("size: %d;", stat.Size()))
 
-	spew.Dump(stat.Mode(), stat.Size())
+	h.HashString(fmt.Sprintf("name: %s;", stat.Name()))
+	h.HashString(fmt.Sprintf("size: %d;", stat.Size()))
 
 	f, err := os.Open(src)
 	if err != nil {
@@ -88,7 +85,6 @@ func (h *Hasher) HashFile(ctx context.Context, src string) error {
 			} else if err != nil {
 				return err
 			}
-			fmt.Println("HASH", buf[:n])
 			h.h.Write(buf[:n])
 		case <-ctx.Done():
 			return ctx.Err()
