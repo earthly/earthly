@@ -126,6 +126,8 @@ func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 
 func (l *loader) handleCopySrc(ctx context.Context, src string, isDir bool) error {
 
+	fmt.Println("CURRENT", fmt.Sprintf("%x", l.hasher.GetHash()))
+
 	artifactSrc, parseErr := domain.ParseArtifact(src)
 	if parseErr != nil {
 		// COPY classical (not from another target)
