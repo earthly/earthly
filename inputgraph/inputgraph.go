@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/earthly/earthly/ast/command"
 	"github.com/earthly/earthly/ast/commandflag"
 	"github.com/earthly/earthly/ast/spec"
@@ -134,6 +135,7 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, isDir bool) erro
 			return err
 		}
 		sort.Strings(files)
+		spew.Dump(files)
 		for _, file := range files {
 			if err := l.hasher.HashFile(ctx, file); err != nil {
 				return errors.Wrapf(ErrUnableToDetermineHash, "failed to hash file %s: %s", path, err)
