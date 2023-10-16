@@ -14,6 +14,7 @@ test-all:
     BUILD +test-auto-skip-if-else
     BUILD +test-auto-skip-for-in
     BUILD +test-auto-skip-copy-glob
+    BUILD +test-auto-skip-with-docker-load
 
 test-auto-skip:
     RUN echo hello > my-file
@@ -77,9 +78,8 @@ test-auto-skip-copy-glob:
     RUN echo data > glob/subdir/new.txt
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob-dir --output_contains="glob/subdir/new.txt"
 
-test-invalid:
-    COPY glob/*/hello.txt /
-    RUN --no-cache ls -l /
+test-auto-skip-with-docker-load:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=with-docker.earth --extra_args="-P" --target=+with-docker-load --output_contains="foo"
 
 RUN_EARTHLY_ARGS:
     COMMAND
@@ -88,10 +88,11 @@ RUN_EARTHLY_ARGS:
     ARG should_fail=false
     ARG output_contains
     ARG output_does_not_contain
+    ARG extra_args
     DO --pass-args tests+RUN_EARTHLY \
         --earthfile=$earthfile \
         --target=$target \
         --should_fail=$should_fail \
         --output_contains=$output_contains \
         --output_does_not_contain=$output_does_not_contain \
-        --extra_args="--auto-skip --auto-skip-db-path=test.db"
+        --extra_args="--auto-skip --auto-skip-db-path=test.db $extra_args"

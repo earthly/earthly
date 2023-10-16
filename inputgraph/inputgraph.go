@@ -249,9 +249,23 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 		return l.handleCopy(ctx, cmd)
 	case command.Pipeline:
 		return l.handlePipeline(ctx, cmd)
+	case command.SaveImage:
+		return l.handleSaveImage(ctx, cmd)
+	case command.Run:
+		return l.handleRun(ctx, cmd)
 	default:
-		return nil
+		return errors.Errorf("unhandled command: %s", cmd.Name)
 	}
+}
+
+func (l *loader) handleSaveImage(ctx context.Context, cmd spec.Command) error {
+	l.hashCommand(cmd)
+	return nil
+}
+
+func (l *loader) handleRun(ctx context.Context, cmd spec.Command) error {
+	l.hashCommand(cmd)
+	return nil
 }
 
 func (l *loader) handleWith(ctx context.Context, with spec.WithStatement) error {
