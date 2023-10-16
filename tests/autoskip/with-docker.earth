@@ -1,0 +1,14 @@
+VERSION 0.7
+
+PROJECT earthly-technologies/core
+
+load-target:
+    FROM alpine
+    RUN echo "hi" > /tmp/x
+    SAVE IMAGE saved:latest
+
+with-docker-load:
+    FROM earthly/dind:alpine
+    WITH DOCKER --load saved:latest=+load-target
+         RUN echo "loaded"
+    END
