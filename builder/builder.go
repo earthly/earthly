@@ -39,6 +39,7 @@ import (
 	"github.com/moby/buildkit/solver/pb"
 	"github.com/moby/buildkit/util/apicaps"
 	"github.com/moby/buildkit/util/entitlements"
+	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -89,7 +90,7 @@ type Opt struct {
 	InteractiveDebuggingDebugLevelLogging bool
 	GitImage                              string
 	GitLFSInclude                         string
-	GitLogLevel                           llb.GitLogLevel
+	GitLogLevel                           buildkitgitutil.GitLogLevel
 }
 
 type ProjectAdder interface {
