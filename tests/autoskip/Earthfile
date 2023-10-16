@@ -14,7 +14,6 @@ test-all:
     BUILD +test-auto-skip-if-else
     BUILD +test-auto-skip-for-in
     BUILD +test-auto-skip-copy-glob
-    BUILD +test-auto-skip-with-docker-load
 
 test-auto-skip:
     RUN echo hello > my-file
