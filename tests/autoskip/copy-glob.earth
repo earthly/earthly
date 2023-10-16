@@ -1,0 +1,25 @@
+VERSION 0.7
+
+PROJECT earthly-technologies/core
+
+FROM alpine
+
+globstar:
+    COPY /**/* /
+    RUN echo "hello"
+
+glob:
+    COPY glob/* /
+    RUN echo "hello"
+
+glob-dir:
+    COPY --dir glob/* /
+    RUN echo "hello"
+
+dir:
+    COPY glob /
+    RUN echo "hello"
+
+glob-mid-path:
+    COPY glob/*/hello.txt /
+    RUN echo "hello"
