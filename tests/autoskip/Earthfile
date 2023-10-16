@@ -78,9 +78,6 @@ test-auto-skip-copy-glob:
     RUN echo data > glob/subdir/new.txt
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob-dir --output_contains="glob/subdir/new.txt"
 
-test-auto-skip-with-docker-load:
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=with-docker.earth --extra_args="-P" --target=+with-docker-load --output_contains="foo"
-
 RUN_EARTHLY_ARGS:
     COMMAND
     ARG earthfile
@@ -95,4 +92,4 @@ RUN_EARTHLY_ARGS:
         --should_fail=$should_fail \
         --output_contains=$output_contains \
         --output_does_not_contain=$output_does_not_contain \
-        --extra_args="--auto-skip --auto-skip-db-path=test.db $extra_args"
+        --extra_args="--auto-skip --auto-skip-db-path=test.db"

@@ -290,11 +290,18 @@ func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 		if strings.Contains(load, "$") {
 			return errors.Wrap(ErrUnableToDetermineHash, "unable to handle arg in WITH DOCKER --load")
 		}
-		_, v, _ := variables.ParseKeyValue(load)
-		if v == "" {
-			return errors.Wrap(ErrUnableToDetermineHash, "unable to handle WITH DOCKER --load with implicit image name (hint: specify the image name rather than relying on the target's SAVE IMAGE command)")
+		loadImage := load
+		if strings.Contains(load, "=") {
+			_, v, _ := variables.ParseKeyValue(load)
+			if v == "" {
+				return errors.Wrap(ErrUnableToDetermineHash, "unexpected empty value for --load value")
+			}
+			loadImage = v
 		}
-		err := l.loadTargetFromString(ctx, v)
+		if !strings.Contains(loadImage, "+") {
+			return errors.Wrap(ErrUnableToDetermineHash, "--load image is not a valid target")
+		}
+		err := l.loadTargetFromString(ctx, loadImage)
 		if err != nil {
 			return err
 		}
