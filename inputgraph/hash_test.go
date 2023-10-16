@@ -25,13 +25,14 @@ func TestHashTargetWithDocker(t *testing.T) {
 	ctx := context.Background()
 	cons := conslogging.New(os.Stderr, &sync.Mutex{}, conslogging.NoColor, 0, conslogging.Info)
 
-	org, project, hash, err := HashTarget(ctx, target, cons)
+	hashOpt := HashOpt{Console: cons, Target: target}
+	org, project, hash, err := HashTarget(ctx, hashOpt)
 	r.NoError(err)
 	r.Equal("earthly-technologies", org)
 	r.Equal("core", project)
 
 	hex := fmt.Sprintf("%x", hash)
-	r.Equal("9d2903bc18c99831f4a299090abaf94d25d89321", hex)
+	r.Equal("f208c09aa799764ae27686f551a60a62769d4183", hex)
 
 	path := "./testdata/with-docker/Earthfile"
 
@@ -55,11 +56,12 @@ func TestHashTargetWithDocker(t *testing.T) {
 		Target:    "with-docker-load",
 	}
 
-	_, _, hash, err = HashTarget(ctx, target, cons)
+	hashOpt = HashOpt{Console: cons, Target: target}
+	_, _, hash, err = HashTarget(ctx, hashOpt)
 	r.NoError(err)
 
 	hex = fmt.Sprintf("%x", hash)
-	r.Equal("84b6f722421695a7ded144c1b72efb3b8f3339c6", hex)
+	r.Equal("b638f270f40d93abc4618775470602b41e5c0755", hex)
 }
 
 func copyFile(src, dst string) error {
@@ -117,25 +119,12 @@ func TestHashTargetWithDockerNoAlias(t *testing.T) {
 	ctx := context.Background()
 	cons := conslogging.New(os.Stderr, &sync.Mutex{}, conslogging.NoColor, 0, conslogging.Info)
 
-	org, project, hash, err := HashTarget(ctx, target, cons)
+	hashOpt := HashOpt{Console: cons, Target: target}
+	org, project, hash, err := HashTarget(ctx, hashOpt)
 	r.NoError(err)
 	r.Equal("earthly-technologies", org)
 	r.Equal("core", project)
 
 	hex := fmt.Sprintf("%x", hash)
-	r.Equal("d73e37689c7780cbff2cba2de1a23141618b7b14", hex)
-}
-
-func TestHashTargetWithDockerArgs(t *testing.T) {
-	r := require.New(t)
-	target := domain.Target{
-		LocalPath: "./testdata/with-docker",
-		Target:    "with-docker-load-args",
-	}
-
-	ctx := context.Background()
-	cons := conslogging.New(os.Stderr, &sync.Mutex{}, conslogging.NoColor, 0, conslogging.Info)
-
-	_, _, _, err := HashTarget(ctx, target, cons)
-	r.Error(err)
+	r.Equal("2b25818489d6b44508829424009c4b05e6f14c7a", hex)
 }

@@ -7,15 +7,19 @@ IMPORT .. AS tests
 WORKDIR /test
 
 test-all:
-    BUILD +test-auto-skip
-    BUILD +test-auto-skip-with-subdir
-    BUILD +test-auto-skip-requires-project
-    BUILD +test-auto-skip-wait
-    BUILD +test-auto-skip-if-else
-    BUILD +test-auto-skip-for-in
-    BUILD +test-auto-skip-copy-glob
+    BUILD +test-files
+    BUILD +test-with-subdir
+    BUILD +test-requires-project
+    BUILD +test-wait
+    BUILD +test-if-else
+    BUILD +test-for-in
+    BUILD +test-copy-glob
+    BUILD +test-expand-args
+    BUILD +test-build-args
+    BUILD +test-pass-args
+    BUILD +test-copy-target-args
 
-test-auto-skip:
+test-files:
     RUN echo hello > my-file
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+mypipeline --output_contains="I was run"
     RUN if ! grep "SSB3YXMgcnVuCg" earthly.output >/dev/null; then echo "base64 encoded RUN echo command is missing from output" && exit 1; fi
@@ -28,7 +32,7 @@ test-auto-skip:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+mypipeline --output_contains="I was run"
     RUN if ! grep "SSB3YXMgcnVuCg" earthly.output >/dev/null; then echo "base64 encoded RUN echo command is missing from output" && exit 1; fi
 
-test-auto-skip-with-subdir:
+test-with-subdir:
     COPY subdir.earth Earthfile
     RUN mkdir subdir
     COPY subdir/test.earth subdir/Earthfile
@@ -40,42 +44,76 @@ test-auto-skip-with-subdir:
     DO --pass-args +RUN_EARTHLY_ARGS --target=+allpipe --output_contains="ba1f2511fc30423bdbb183fe33f3dd0f"
     DO --pass-args +RUN_EARTHLY_ARGS --target=+allpipe --output_does_not_contain="ba1f2511fc30423bdbb183fe33f3dd0f" --output_contains="target .* has already been run; exiting"
 
-test-auto-skip-requires-project:
+test-requires-project:
     RUN echo hello > my-file
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=no-project.earth --target=+no-project --output_contains="I was run"
     RUN if ! grep "PROJECT command missing" earthly.output >/dev/null; then echo "no warning displayed for missing PROJECT keyword" && exit 1; fi
 
-test-auto-skip-wait:
+test-wait:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=wait.earth --target=+test --output_contains="not skipped"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=wait.earth --target=+test --output_contains="3deeaceb7e263a72114ebc2da62d9fecc87506f3"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=wait.earth --target=+test --output_contains="target .* has already been run; exiting"
 
-test-auto-skip-if-else:
+test-if-else:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=if-else.earth --target=+test --output_contains="condition ok"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=if-else.earth --target=+test --output_contains="26ac9a5c6e4893049c218da18decfba3caff1746"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=if-else.earth --target=+test --output_contains="target .* has already been run; exiting"
 
-test-auto-skip-for-in:
+test-for-in:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=for.earth --target=+test --output_contains="hello 3"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=for.earth --target=+test --output_contains="ac33a31a36f496ed219293301bb44513a3a52d28"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=for.earth --target=+test --output_contains="target .* has already been run; exiting"
 
-test-auto-skip-copy-glob:
+test-copy-glob:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --should_fail=true --target=+globstar --output_contains="globstar (\*\*) not supported"
 
     COPY --dir glob .
 
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+dir --output_contains="glob/subdir/hello.txt"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+dir --output_contains="7dc88536e40a00684aeeb5ef3d6621d1e867aab2"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+dir --output_contains="target .* has already been run; exiting"
 
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob --output_contains="glob/subdir/hello.txt"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob --output_contains="9a45ff884f09e576caf91fed3d3a209b109c68e4"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob --output_contains="target .* has already been run; exiting"
 
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob-mid-path --output_contains="glob/subdir/hello.txt"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob-mid-path --output_contains="cec86ff354a3064adda819695eb91db965bf0b3e"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob-mid-path --output_contains="target .* has already been run; exiting"
 
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob-dir --output_contains="glob/subdir/hello.txt"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob-dir --output_contains="111c0b03e1c36e9e55740cade50719e4c6e4e0ec"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob-dir --output_contains="target .* has already been run; exiting"
 
     RUN echo data > glob/subdir/new.txt
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob-dir --output_contains="glob/subdir/new.txt"
+
+test-expand-args:
+    COPY glob/hello.txt .
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+basic --output_contains="COPY hello.txt"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+basic --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+dynamic-build --output_contains="dynamic target ok"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+dynamic-build --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+dynamic-arg --output_contains="hello bar"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+dynamic-arg --output_contains="target .* has already been run; exiting"
+
+test-build-args:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+build-args --output_contains="hello 3 4"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+build-args --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+build-args-2 --post_command="--foo=5 --bar=6" --output_contains="hello 5 6"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+build-args-2 --post_command="--foo=5 --bar=6" --output_contains="target .* has already been run; exiting"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+build-args-2 --post_command="--foo=5 --bar=7" --output_does_not_contain="target .* has already been run; exiting"
+
+test-pass-args:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+pass-args --post_command="--foo=3 --bar=4" --output_contains="hello 3 4"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+pass-args --post_command="--foo=3 --bar=4" --output_contains="target .* has already been run; exiting"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+pass-args --post_command="--foo=3 --bar=5" --output_does_not_contain="target .* has already been run; exiting"
+
+test-copy-target-args:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+copy-target-args --output_contains="+copy-target-args | hello"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+copy-target-args --output_contains="target .* has already been run; exiting"
+
+    RUN sed -i s/--foo=hello/--foo=changed/g Earthfile
+
+    DO --pass-args +RUN_EARTHLY_ARGS --target=+copy-target-args --output_contains="+copy-target-args | changed"
+    DO --pass-args +RUN_EARTHLY_ARGS --target=+copy-target-args --output_contains="target .* has already been run; exiting"
+
 
 RUN_EARTHLY_ARGS:
     COMMAND
@@ -84,10 +122,12 @@ RUN_EARTHLY_ARGS:
     ARG should_fail=false
     ARG output_contains
     ARG output_does_not_contain
+    ARG post_command
     DO --pass-args tests+RUN_EARTHLY \
         --earthfile=$earthfile \
         --target=$target \
         --should_fail=$should_fail \
         --output_contains=$output_contains \
         --output_does_not_contain=$output_does_not_contain \
-        --extra_args="--auto-skip --auto-skip-db-path=test.db"
+        --extra_args="--auto-skip --auto-skip-db-path=test.db $extra_args" \
+        --post_command=$post_command

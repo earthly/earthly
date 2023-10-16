@@ -8,6 +8,7 @@ import (
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/platutil"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
@@ -54,7 +55,7 @@ func GetTargetArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 			isBase := t.Name == "base"
 			// since Arg opts are ignored (and feature flags are not available) we set explicitGlobalArgFlag as false
 			explicitGlobal := false
-			_, argName, _, err := parseArgArgs(ctx, *stmt.Command, isBase, explicitGlobal)
+			_, argName, _, err := flagutil.ParseArgArgs(ctx, *stmt.Command, isBase, explicitGlobal)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to parse ARG arguments %v", stmt.Command.Args)
 			}
@@ -71,7 +72,7 @@ func ArgName(ctx context.Context, cmd spec.Command, isBase bool, explicitGlobal 
 	if cmd.Name != "ARG" {
 		return "", nil, false, false, errors.Errorf("ArgName was called with non-arg command type '%v'", cmd.Name)
 	}
-	opts, argName, dflt, err := parseArgArgs(ctx, cmd, isBase, explicitGlobal)
+	opts, argName, dflt, err := flagutil.ParseArgArgs(ctx, cmd, isBase, explicitGlobal)
 	if err != nil {
 		return "", nil, false, false, errors.Wrapf(err, "could not parse opts for ARG [%v]", cmd)
 	}
@@ -97,7 +98,7 @@ func ArtifactName(ctx context.Context, cmd spec.Command) (string, *string, error
 // ImageNames returns the parsed names of a SAVE IMAGE command.
 func ImageNames(ctx context.Context, cmd spec.Command) ([]string, error) {
 	var opts commandflag.SaveImageOpts
-	args, err := parseArgs("SAVE IMAGE", &opts, getArgsCopy(cmd))
+	args, err := flagutil.ParseArgs("SAVE IMAGE", &opts, flagutil.GetArgsCopy(cmd))
 	if err != nil {
 		return nil, errors.Wrapf(err, "invalid SAVE IMAGE arguments %v", cmd.Args)
 	}

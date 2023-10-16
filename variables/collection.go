@@ -481,5 +481,6 @@ func (c *Collection) effective() *Scope {
 	if c.effectiveCache == nil {
 		c.effectiveCache = CombineScopes(c.vars(), c.overriding(), c.builtin, c.args(), c.envs, c.globals())
 	}
+
 	return c.effectiveCache
 }
