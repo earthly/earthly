@@ -85,7 +85,6 @@ RUN_EARTHLY_ARGS:
     ARG should_fail=false
     ARG output_contains
     ARG output_does_not_contain
-    ARG extra_args
     DO --pass-args tests+RUN_EARTHLY \
         --earthfile=$earthfile \
         --target=$target \
