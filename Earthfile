@@ -900,6 +900,7 @@ open-pr-for-fork:
         --secret GH_TOKEN=littleredcorvette-github-token \
         ./bin/gh pr checkout $pr_number --branch "test-pr-$pr_number" && \
         git merge origin/main && \
+        git commit --allow-empty -m "please run the test" && \
         git push origin && \
         ./bin/gh pr create --title "Run tests for PR $pr_number" --draft \
         --body "Running tests for https://github.com/$git_repo/pull/$pr_number"
