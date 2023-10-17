@@ -875,7 +875,7 @@ check-broken-links:
         RUN --no-cache echo -e "${GREEN}No Broken Links were found${NOCOLOR}"
     END
 
-# open-pr-for-fork would open a new PR based on the given pr_number
+# open-pr-for-fork creates a new PR based on the given pr_number
 open-pr-for-fork:
     ARG git_repo="earthly/earthly"
     ARG git_url="git@github.com:$git_repo"

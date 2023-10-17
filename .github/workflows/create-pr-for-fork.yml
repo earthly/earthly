@@ -1,4 +1,4 @@
-name: open pr for fork
+name: create pr for fork
 
 on:
   pull_request:
@@ -22,5 +22,5 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: earthly/actions-setup@main
-      - name: Open a draft PR based on PR $PR_NUMBER
+      - name: Create a draft PR based on PR $PR_NUMBER
         run: earthly --ci +open-pr-for-fork --pr_number=$PR_NUMBER
