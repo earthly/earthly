@@ -301,7 +301,7 @@ load_registry_images() {
         done
         end_time=$(date +%s%N | cut -b1-13)
 
-        elapsed=$(($end_time-$start_time))
+        elapsed=$((end_time-start_time))
         echo "Loading images done in ${elapsed} ms"
     fi
 }
