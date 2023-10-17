@@ -1,8 +1,9 @@
 name: create pr for fork
 
 on:
-  pull_request:
+  pull_request_target:
     types: [ labeled ]
+    branches: [ "main" ]
 
 jobs:
   create-pr:
