@@ -58,7 +58,8 @@ func (h *Hasher) HashFile(ctx context.Context, src string) error {
 	if err != nil {
 		return err
 	}
-	h.HashString(fmt.Sprintf("mode: %d;", stat.Mode()))
+
+	h.HashString(fmt.Sprintf("name: %s;", stat.Name()))
 	h.HashString(fmt.Sprintf("size: %d;", stat.Size()))
 
 	f, err := os.Open(src)
