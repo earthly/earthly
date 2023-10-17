@@ -14,10 +14,10 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/util/buildkitskipper/hasher"
 	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/stringutil"
-	"github.com/earthly/earthly/variables"
 	"github.com/pkg/errors"
 )
 
@@ -253,6 +253,8 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 		return l.handleSaveImage(ctx, cmd)
 	case command.Run:
 		return l.handleRun(ctx, cmd)
+	case command.Arg:
+		return l.handleArg(ctx, cmd)
 	default:
 		return errors.Errorf("unhandled command: %s", cmd.Name)
 	}
@@ -264,6 +266,11 @@ func (l *loader) handleSaveImage(ctx context.Context, cmd spec.Command) error {
 }
 
 func (l *loader) handleRun(ctx context.Context, cmd spec.Command) error {
+	l.hashCommand(cmd)
+	return nil
+}
+
+func (l *loader) handleArg(ctx context.Context, cmd spec.Command) error {
 	l.hashCommand(cmd)
 	return nil
 }
@@ -290,17 +297,14 @@ func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 		if strings.Contains(load, "$") {
 			return errors.Wrap(ErrUnableToDetermineHash, "unable to handle arg in WITH DOCKER --load")
 		}
-		if strings.Contains(load, "=") {
-			_, v, _ := variables.ParseKeyValue(load)
-			if v == "" {
-				return errors.Wrap(ErrUnableToDetermineHash, "unexpected empty value for --load value")
-			}
-			load = v
+		_, target, extraArgs, err := earthfile2llb.ParseLoad(load)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse --load value")
 		}
-		if !strings.Contains(load, "+") {
-			return errors.Wrap(ErrUnableToDetermineHash, "--load image is not a valid target")
+		if len(extraArgs) > 0 {
+			return errors.Wrap(ErrUnableToDetermineHash, "--load args are not yet supported")
 		}
-		err := l.loadTargetFromString(ctx, load)
+		err = l.loadTargetFromString(ctx, target)
 		if err != nil {
 			return err
 		}

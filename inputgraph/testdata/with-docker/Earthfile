@@ -3,6 +3,7 @@ VERSION 0.7
 PROJECT earthly-technologies/core
 
 load-target:
+    ARG foo=1
     FROM alpine
     RUN echo "hi" > /tmp/x
     SAVE IMAGE saved:latest
@@ -17,5 +18,12 @@ with-docker-load-no-alias:
     BUILD +load-target
     FROM earthly/dind:alpine
     WITH DOCKER --load +load-target
+         RUN echo "loaded"
+    END
+
+with-docker-load-args:
+    BUILD +load-target
+    FROM earthly/dind:alpine
+    WITH DOCKER --load foo=(+load-target --foo=2)
          RUN echo "loaded"
     END

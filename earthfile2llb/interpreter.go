@@ -1720,7 +1720,7 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 		})
 	}
 	for _, loadStr := range opts.Loads {
-		loadImg, loadTarget, flagArgs, err := parseLoad(loadStr)
+		loadImg, loadTarget, flagArgs, err := ParseLoad(loadStr)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "parse load")
 		}
@@ -2109,7 +2109,9 @@ func unescapeSlashPlus(str string) string {
 	return strings.ReplaceAll(str, "\\+", "+")
 }
 
-func parseLoad(loadStr string) (image string, target string, extraArgs []string, err error) {
+// ParseLoad splits a --load value into the image, target, & extra args.
+// Example: --load my-image=(+target --arg1 foo --arg2=bar)
+func ParseLoad(loadStr string) (image string, target string, extraArgs []string, err error) {
 	words := strings.SplitN(loadStr, " ", 2)
 	if len(words) == 0 {
 		return "", "", nil, nil
