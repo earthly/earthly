@@ -8,8 +8,9 @@
   prHourlyLimit: 1,
   prConcurrentLimit: 3,
   includePaths: [
+    'Earthfile',
     'docs/**',
-    '.github/',
+    '.github/**',
     'release/**',
   ],
   enabledManagers: [
@@ -33,6 +34,15 @@
       ],
       depNameTemplate: 'earthly/earthly',
       datasourceTemplate: 'github-releases',
+    },
+    {
+      customType: 'regex',
+      fileMatch: [
+        'Earthfile',
+      ],
+      matchStrings: [
+        'datasource=(?<datasource>.*?) depName=(?<depName>.*?)[\\s\\n]+ARG .*?_version=(?<currentValue>.*)[\\n\\s]+',
+      ]
     },
   ],
   labels: [
