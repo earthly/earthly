@@ -14,10 +14,10 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/util/buildkitskipper/hasher"
 	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/stringutil"
-	"github.com/earthly/earthly/variables"
 	"github.com/pkg/errors"
 )
 
@@ -249,9 +249,37 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 		return l.handleCopy(ctx, cmd)
 	case command.Pipeline:
 		return l.handlePipeline(ctx, cmd)
+	case command.SaveImage:
+		return l.handleSaveImage(ctx, cmd)
+	case command.Run:
+		return l.handleRun(ctx, cmd)
+	case command.Arg:
+		return l.handleArg(ctx, cmd)
+	case command.SaveArtifact:
+		return l.handleSaveArtifact(ctx, cmd)
 	default:
-		return nil
+		return errors.Errorf("unhandled command: %s", cmd.Name)
 	}
+}
+
+func (l *loader) handleSaveImage(ctx context.Context, cmd spec.Command) error {
+	l.hashCommand(cmd)
+	return nil
+}
+
+func (l *loader) handleSaveArtifact(ctx context.Context, cmd spec.Command) error {
+	l.hashCommand(cmd)
+	return nil
+}
+
+func (l *loader) handleRun(ctx context.Context, cmd spec.Command) error {
+	l.hashCommand(cmd)
+	return nil
+}
+
+func (l *loader) handleArg(ctx context.Context, cmd spec.Command) error {
+	l.hashCommand(cmd)
+	return nil
 }
 
 func (l *loader) handleWith(ctx context.Context, with spec.WithStatement) error {
@@ -276,11 +304,14 @@ func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 		if strings.Contains(load, "$") {
 			return errors.Wrap(ErrUnableToDetermineHash, "unable to handle arg in WITH DOCKER --load")
 		}
-		_, v, _ := variables.ParseKeyValue(load)
-		if v == "" {
-			return errors.Wrap(ErrUnableToDetermineHash, "unable to handle WITH DOCKER --load with implicit image name (hint: specify the image name rather than relying on the target's SAVE IMAGE command)")
+		_, target, extraArgs, err := earthfile2llb.ParseLoad(load)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse --load value")
 		}
-		err := l.loadTargetFromString(ctx, v)
+		if len(extraArgs) > 0 {
+			return errors.Wrap(ErrUnableToDetermineHash, "--load args are not yet supported")
+		}
+		err = l.loadTargetFromString(ctx, target)
 		if err != nil {
 			return err
 		}
