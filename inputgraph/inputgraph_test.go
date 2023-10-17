@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -33,17 +34,50 @@ func TestHashTargetWithDocker(t *testing.T) {
 	r.Equal("9d2903bc18c99831f4a299090abaf94d25d89321", hex)
 
 	path := "./testdata/with-docker/Earthfile"
-	err = replaceInFile(path, "saved:latest", "other:latest")
+
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "with-docker")
 	r.NoError(err)
+
+	tmpFile := filepath.Join(tmpDir, "Earthfile")
+	defer func() {
+		err = os.RemoveAll(tmpDir)
+		r.NoError(err)
+	}()
+
+	err = copyFile(path, tmpFile)
+	r.NoError(err)
+
+	err = replaceInFile(tmpFile, "saved:latest", "other:latest")
+	r.NoError(err)
+
+	target = domain.Target{
+		LocalPath: tmpDir,
+		Target:    "with-docker-load",
+	}
 
 	_, _, hash, err = HashTarget(ctx, target, cons)
 	r.NoError(err)
 
 	hex = fmt.Sprintf("%x", hash)
 	r.Equal("84b6f722421695a7ded144c1b72efb3b8f3339c6", hex)
+}
 
-	err = replaceInFile(path, "other:latest", "saved:latest")
-	r.NoError(err)
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func replaceInFile(path, find, replace string) error {
