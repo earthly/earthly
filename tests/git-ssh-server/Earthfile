@@ -6,6 +6,7 @@ test-rsa-only:
         --SSHD_ED25519=false \
         --USER_RSA=true \
         --USER_ED25519=false
+    ENV BUILDKIT_DEBUG_GIT=1 # TODO: remove this? it's here for debugging.
     RUN echo "#!/bin/sh
 set -ex
 
@@ -20,6 +21,19 @@ ssh-add -l
 
 # next validate ssh is working
 ssh git@git.example.com | grep \"Hi git! You've successfully authenticated, but you get no shellz\"
+
+# test the clone can work (unsure if we should merge this, or merge it commented out -- it's useful if you need to debug something, but makes test runs longer)
+git clone git@git.example.com:testuser/repo.git therepo1
+ls -la therepo1
+rm -rf therepo1
+
+git clone ssh://git@git.example.com/~/testuser/repo.git therepo2
+ls -la therepo2
+rm -rf therepo2
+
+git clone ssh://git@git.example.com/testuser/repo.git therepo3
+ls -la therepo3
+rm -rf therepo3
 
 # finally perform earthly tests
 earthly --config \$earthly_config --verbose -D +test
