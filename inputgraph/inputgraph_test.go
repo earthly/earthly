@@ -3,7 +3,9 @@ package inputgraph
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 
@@ -29,6 +31,46 @@ func TestHashTargetWithDocker(t *testing.T) {
 
 	hex := fmt.Sprintf("%x", hash)
 	r.Equal("9d2903bc18c99831f4a299090abaf94d25d89321", hex)
+
+	path := "./testdata/with-docker/Earthfile"
+	err = replaceInFile(path, "saved:latest", "other:latest")
+	r.NoError(err)
+
+	_, _, hash, err = HashTarget(ctx, target, cons)
+	r.NoError(err)
+
+	hex = fmt.Sprintf("%x", hash)
+	r.Equal("84b6f722421695a7ded144c1b72efb3b8f3339c6", hex)
+
+	err = replaceInFile(path, "other:latest", "saved:latest")
+	r.NoError(err)
+}
+
+func replaceInFile(path, find, replace string) error {
+	f, err := os.OpenFile(path, os.O_RDWR, 0)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	dataBytes, err := io.ReadAll(f)
+	if err != nil {
+		return err
+	}
+
+	data := string(dataBytes)
+	data = strings.ReplaceAll(data, find, replace)
+	_, err = f.Seek(0, 0)
+	if err != nil {
+		return err
+	}
+
+	_, err = f.WriteString(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func TestHashTargetWithDockerNoAlias(t *testing.T) {

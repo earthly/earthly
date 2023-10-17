@@ -255,12 +255,19 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 		return l.handleRun(ctx, cmd)
 	case command.Arg:
 		return l.handleArg(ctx, cmd)
+	case command.SaveArtifact:
+		return l.handleSaveArtifact(ctx, cmd)
 	default:
 		return errors.Errorf("unhandled command: %s", cmd.Name)
 	}
 }
 
 func (l *loader) handleSaveImage(ctx context.Context, cmd spec.Command) error {
+	l.hashCommand(cmd)
+	return nil
+}
+
+func (l *loader) handleSaveArtifact(ctx context.Context, cmd spec.Command) error {
 	l.hashCommand(cmd)
 	return nil
 }
