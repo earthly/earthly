@@ -5,7 +5,7 @@ on:
     types: [ labeled ]
 
 jobs:
-  build:
+  create-pr:
     if: ${{ github.event.label.name == 'approved-for-tests' && github.event.pull_request.head.repo.full_name != github.repository }}
     runs-on: "ubuntu-latest"
     env:
