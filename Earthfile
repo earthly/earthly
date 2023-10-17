@@ -898,8 +898,8 @@ open-pr-for-fork:
     ARG --required pr_number
     RUN --no-cache --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
         --secret GH_TOKEN=littleredcorvette-github-token \
-        ../bin/gh pr checkout $pr_number --branch "test-pr-$pr_number" && \
+        ./bin/gh pr checkout $pr_number --branch "test-pr-$pr_number" && \
         git merge origin/main && \
         git push origin && \
-        ../bin/gh pr create --title "Run tests for PR $pr_number" --draft \
+        ./bin/gh pr create --title "Run tests for PR $pr_number" --draft \
         --body "Running tests for https://github.com/$git_repo/pull/$pr_number"
