@@ -1482,7 +1482,7 @@ test-with-docker-parallel:
     order=$(cat $f | grep -Eo "### [[:digit:]]+"  | cut -d' ' -f2- | tr '\n' ' ' | tr -d '[:space:]'); \
     rm $f; \
     echo order:$order; \
-    (echo $order | grep -Eq ^1+2+3+4+5+$) && echo "no parallelization" && exit 1|| echo "parallelization";
+    (echo $order | grep -Eq ^1+2+3+4+5+$) && echo "no parallelization" && exit 1 || echo "parallelization";
 
 RUN_EARTHLY:
     COMMAND
