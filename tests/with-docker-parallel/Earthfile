@@ -1,0 +1,17 @@
+VERSION 0.7
+
+FROM earthly/dind:alpine
+
+parallel:
+    FOR i IN $(seq 5)
+        BUILD +test-executor --INDEX=$i
+    END
+
+test-executor:
+    ARG INDEX
+    WITH DOCKER --pull hello-world
+       RUN --no-cache for i in $(seq 1 3); do  \
+             echo "### $INDEX"; \
+             sleep 0.3; \
+           done;
+    END

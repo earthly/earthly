@@ -123,6 +123,7 @@ ga-no-qemu-quick:
     BUILD +test-cache-mount-mode
     BUILD +test-cache-mode
     BUILD +test-shared-cache
+    BUILD +test-with-docker-parallel
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -1473,6 +1474,16 @@ test-shared-cache:
       --extra_args=" --secret=content=filecontents " \
       --output_contains="filecontents"
 
+test-with-docker-parallel:
+  LOCALLY
+  RUN cd with-docker-parallel; \
+    f=/tmp/earthly.output-$(cat /proc/sys/kernel/random/uuid); \
+    earthly -P +parallel 2>&1 | tee -a $f; \
+    order=$(cat $f | grep -Eo "### [[:digit:]]+"  | cut -d' ' -f2- | tr '\n' ' ' | tr -d '[:space:]'); \
+    rm $f; \
+    echo order:$order; \
+    (echo $order | grep -Eq ^1+2+3+4+5+$) && echo "no parallelization" && exit 1|| echo "parallelization";
+
 RUN_EARTHLY:
     COMMAND
     ARG earthfile=
@@ -1491,6 +1502,7 @@ RUN_EARTHLY:
     IF [ ! -z "$earthfile" ]
         COPY "$earthfile" "$earthfile_dest"
     END
+    RUN cat $earthfile_dest
     RUN echo "
         set -ex
         export EARTHLY_VERBOSE=$verbose
