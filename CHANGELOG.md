@@ -5,8 +5,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ## Unreleased
 
 ### Added
-
 - The new ARG `EARTHLY_GIT_REFS` will contain the references to the current git commit, this ARG must be enabled with the `VERSION --git-refs` feature flag. [#3341](https://github.com/earthly/earthly/pull/3341)
+
+### Fixed
+- `prune --age` does not support `d` (for days) as a suffix in contradictory to help message [#3401](https://github.com/earthly/earthly/issues/3401)  
 
 ## v0.7.20 - 2023-10-03
 

@@ -2,6 +2,9 @@ package subcmd
 
 import (
 	"context"
+	"fmt"
+	"strings"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/earthly/earthly/cloud"
@@ -21,6 +24,36 @@ func (b *byteSizeValue) Set(s string) error {
 }
 
 func (b *byteSizeValue) String() string { return humanize.Bytes(uint64(*b)) }
+
+// duration implements cli.GenericFlag methods to support time.Duration with days, e.g. 1d
+type duration struct {
+	time.Duration
+}
+
+func (d *duration) Set(value string) error {
+	if value == "" {
+		return nil
+	}
+	daysToHours := false
+	if strings.HasSuffix(value, "d") {
+		value = fmt.Sprintf("%s%s", strings.TrimSuffix(value, "d"), "h")
+		daysToHours = true
+	}
+	duration, err := time.ParseDuration(value)
+	if err != nil {
+		return errors.New("parse error")
+	}
+
+	if daysToHours {
+		duration = duration * 24
+	}
+	d.Duration = duration
+	return nil
+}
+
+func (d *duration) Value() time.Duration {
+	return d.Duration
+}
 
 // projectOrgName returns the specified org or retrieves the default org from the API.
 func projectOrgName(cli CLI, ctx context.Context, cloudClient *cloud.Client) (string, error) {
