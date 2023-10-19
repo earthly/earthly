@@ -2,9 +2,6 @@ package states
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/earthly/earthly/domain"
@@ -51,11 +48,6 @@ func (vc *newVisitedCollection) Add(ctx context.Context, target domain.Target, p
 	sts, found := vc.visited[newKey]
 	if found {
 		vc.mu.Unlock()
-		if !sts.targetInput.Equals(newSts.targetInput) {
-			nb, _ := json.Marshal(newSts.targetInput)
-			b, _ := json.Marshal(sts.targetInput)
-			fmt.Println(fmt.Sprintf("%s %s\ncreated:%s\nfound:  %s", target.String(), strings.Join(overridingVars.Sorted(), " "), string(nb), string(b)))
-		}
 		// Wait for the existing sts to complete outside the lock.
 		select {
 		case <-ctx.Done():
