@@ -26,8 +26,10 @@ func (b *byteSizeValue) Set(s string) error {
 func (b *byteSizeValue) String() string { return humanize.Bytes(uint64(*b)) }
 
 // duration implements cli.GenericFlag methods to support time.Duration with days, e.g. 1d
-type duration struct {
-	time.Duration
+type duration time.Duration
+
+func (d *duration) String() string {
+	return (time.Duration(*d)).String()
 }
 
 func (d *duration) Set(value string) error {
@@ -39,20 +41,16 @@ func (d *duration) Set(value string) error {
 		value = fmt.Sprintf("%s%s", strings.TrimSuffix(value, "d"), "h")
 		daysToHours = true
 	}
-	duration, err := time.ParseDuration(value)
+	dur, err := time.ParseDuration(value)
 	if err != nil {
 		return errors.New("parse error")
 	}
 
 	if daysToHours {
-		duration = duration * 24
+		dur *= 24
 	}
-	d.Duration = duration
+	*d = duration(dur)
 	return nil
-}
-
-func (d *duration) Value() time.Duration {
-	return d.Duration
 }
 
 // projectOrgName returns the specified org or retrieves the default org from the API.

@@ -1,6 +1,8 @@
 package subcmd
 
 import (
+	"time"
+
 	"github.com/dustin/go-humanize"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cmd/earthly/helper"
@@ -104,8 +106,8 @@ func (a *Prune) action(cliCtx *cli.Context) error {
 		opts = append(opts, client.PruneAll)
 	}
 
-	if a.keepDuration.Value() > 0 || a.targetSize > 0 {
-		opts = append(opts, client.WithKeepOpt(a.keepDuration.Value(), int64(a.targetSize)))
+	if a.keepDuration > 0 || a.targetSize > 0 {
+		opts = append(opts, client.WithKeepOpt(time.Duration(a.keepDuration), int64(a.targetSize)))
 	}
 
 	ch := make(chan client.UsageInfo, 1)
