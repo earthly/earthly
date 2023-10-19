@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package moby.localhost.v1;
+
+option go_package = "localhost";
+
+// Localhost is a service that allows for local execution on the client
+service Localhost {
+	rpc Exec(stream InputMessage) returns (stream OutputMessage);
+	// Get fetches a file or dir from the localhost and copies it to buildkit
+	rpc Get(stream BytesMessage) returns (stream BytesMessage);
+	// Put sends a file or dir from buildkit and tells the localhost to save it locally
+	rpc Put(stream BytesMessage) returns (stream BytesMessage);
+}
+
+// InputMessage contains stdin data
+message InputMessage {
+	repeated string command = 1;
+	bytes stdin = 2;
+	string dir = 3;
+}
+
+// OutputMessage contains stdout and stderr data
+message OutputMessage {
+	bytes stdout = 1;
+	bytes stderr = 2;
+	enum Status {
+		RUNNING = 0;
+		DONE = 1;
+		KILLED = 2;
+	}
+	Status status = 3;
+	int32 exit_code = 4; // only valid if status is done
+}
+
+// BytesMessage contains a chunk of byte data
+message BytesMessage{
+	bytes data = 1;
+}

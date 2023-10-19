@@ -1,0 +1,13 @@
+syntax = "proto3";
+package api.public.logs;
+option go_package =  "./logs";
+
+message UploadLogBundleResponse {
+  string logID = 1;
+  string manifestURL = 2;
+  string viewURL = 3;
+}
+
+message ListAvaliableLogsResponse {
+  repeated string logIDs = 1;
+}

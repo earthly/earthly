@@ -1,0 +1,57 @@
+syntax = "proto3";
+package api.public.askv;
+option go_package = "./askv";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+service Askv {
+  rpc Exists(ExistsRequest) returns (ExistsResponse) {}
+  rpc Add(AddRequest) returns (AddResponse) {}
+  rpc PruneOrg(PruneOrgRequest) returns (PruneOrgResponse) {}
+  rpc PruneTarget(PruneTargetRequest) returns (PruneTargetResponse) {}
+}
+
+message ExistsRequest {
+  string org_name = 1;
+  bytes hash = 4;
+
+  reserved 2; // project_name
+  reserved 3; // pipeline_name
+}
+
+message ExistsResponse {
+  bool exists = 1;
+}
+
+message AddRequest {
+  string org_name = 1;
+  bytes hash = 4;
+  string target_name = 5;
+  string target_path = 6;
+
+  reserved 2; // project_name
+  reserved 3; // pipeline_name
+}
+
+message AddResponse {}
+
+message PruneOrgRequest {
+  string org_name = 1;
+}
+
+message PruneOrgResponse {}
+
+message PruneTargetRequest {
+  string org_name = 1;
+  string target_name = 3;
+  string target_path = 4;
+  bool use_path_prefix = 5;
+
+  reserved 2; // project_name
+}
+
+message PruneTargetResponse {
+  int32 count = 1;
+}

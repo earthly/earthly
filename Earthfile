@@ -31,7 +31,9 @@ deps:
     COPY go.mod go.sum ./
     COPY ./ast/go.mod ./ast/go.sum ./ast
     COPY ./util/deltautil/go.mod ./util/deltautil/go.sum ./util/deltautil
-    RUN go mod download
+    COPY --dir vendor ./
+    COPY --dir ast/vendor ast/
+    COPY --dir util/deltautil/vendor util/deltautil/
     SAVE ARTIFACT go.mod AS LOCAL go.mod
     SAVE ARTIFACT go.sum AS LOCAL go.sum
 
@@ -67,6 +69,25 @@ code:
     COPY --dir earthfile2llb/*.go earthfile2llb/
     COPY --dir ast/antlrhandler ast/spec ast/hint ast/command ast/commandflag ast/*.go ast/
     COPY --dir inputgraph/*.go inputgraph/testdata inputgraph/
+
+# vendor outputs a vendor directory for each go module which contains a copy of all packages required to build earthly
+vendor:
+    FROM +code
+    RUN go mod vendor
+    SAVE ARTIFACT vendor AS LOCAL vendor
+    RUN cd ast && go mod vendor
+    SAVE ARTIFACT ast/vendor AS LOCAL ast/vendor
+    RUN cd util/deltautil && go mod vendor
+    SAVE ARTIFACT util/deltautil/vendor AS LOCAL util/deltautil/vendor
+
+check-vendor:
+    FROM +code
+    FOR wd IN "/earthly /earthly/ast /earthly/util/deltautil"
+        WORKDIR $wd
+        RUN cp -r vendor vendor-bkup
+        RUN go mod vendor
+        RUN diff -qr vendor-bkup vendor || ( echo "the $(pwd)/vendor directory in git doesn't match a clean go mod vendor; did you change go.mod but forget to run earthly +vendor ?" && exit 1)
+    END
 
 # update-buildkit updates earthly's buildkit dependency.
 update-buildkit:
@@ -155,7 +176,7 @@ lint-newline-ending:
     # test that line endings are unix-style
     RUN set -e; \
         code=0; \
-        for f in $(find . -not -path "./.git/*" -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' -o -iname '*.md' -o -iname '*.json'\) | grep -v "ast/tests/empty-targets.earth" ); do \
+        for f in $(find . -not -path "./.git/*" -not -path "./vendor/*" -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' -o -iname '*.md' -o -iname '*.json'\) | grep -v "ast/tests/empty-targets.earth" ); do \
             if ! dos2unix < "$f" | cmp - "$f"; then \
                 echo "$f contains windows-style newlines and must be converted to unix-style (use dos2unix to fix)"; \
                 code=1; \
@@ -165,7 +186,7 @@ lint-newline-ending:
     # test file ends with a single newline
     RUN set -e; \
         code=0; \
-        for f in $(find . -not -path "./.git/*" -type f \( -iname '*.yml' -o -iname '*.go' -o -iname '*.sh' -o -iname '*.template' -o -iname 'Earthfile' -o -iname '*.earth' -o -iname '*.md' -o -iname '*.json' \) | grep -v "ast/tests/empty-targets.earth" | grep -v "tests/version/version-only.earth" ); do \
+        for f in $(find . -not -path "./.git/*" -not -path "./vendor/*" -type f \( -iname '*.yml' -o -iname '*.go' -o -iname '*.sh' -o -iname '*.template' -o -iname 'Earthfile' -o -iname '*.earth' -o -iname '*.md' -o -iname '*.json' \) | grep -v "ast/tests/empty-targets.earth" | grep -v "tests/version/version-only.earth" ); do \
             if [ "$(tail -c 1 $f)" != "$(printf '\n')" ]; then \
                 echo "$f does not end with a newline"; \
                 code=1; \
@@ -180,7 +201,7 @@ lint-newline-ending:
     # check for files with trailing newlines
     RUN set -e; \
         code=0; \
-        for f in $(find . -not -path "./.git/*" -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' -o -iname '*.md' -o -iname '*.json'\) | grep -v "ast/tests/empty-targets.earth" | grep -v "ast/parser/earth_parser.go" | grep -v "ast/parser/earth_lexer.go" ); do \
+        for f in $(find . -not -path "./.git/*" -not -path "./vendor/*" -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' -o -iname '*.md' -o -iname '*.json'\) | grep -v "ast/tests/empty-targets.earth" | grep -v "ast/parser/earth_parser.go" | grep -v "ast/parser/earth_lexer.go" ); do \
             if [ "$(tail -c 2 $f)" == "$(printf '\n\n')" ]; then \
                 echo "$f has trailing newlines"; \
                 code=1; \
@@ -698,6 +719,7 @@ lint-all:
     BUILD +lint-scripts
     BUILD +lint-docs
     BUILD +submodule-decouple-check
+    BUILD +check-vendor
 
 # lint-docs runs lint against changelog and checks that line endings are unix style and files end
 # with a single newline.

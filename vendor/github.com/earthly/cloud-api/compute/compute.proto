@@ -1,0 +1,315 @@
+syntax = "proto3";
+package api.public.compute;
+option go_package = "./compute";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+service Compute {
+  // LaunchSatellite starts a new Earthly Satellite instance on the latest version.
+  // The instance can be used by users to build their local, Cloud, or 3rd-party CI builds.
+  rpc LaunchSatellite(LaunchSatelliteRequest) returns (LaunchSatelliteResponse) {
+    option (google.api.http) = {
+      post: "/api/v0/satellites"
+      body: "*"
+    };
+  }
+  // ListSatellites returns a list of Earthly Satellite instances available in the organization.
+  rpc ListSatellites(ListSatellitesRequest) returns (ListSatellitesResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/satellites"
+    };
+  }
+  // UpdateSatellite updates a Satellite instance to the latest version.
+  // (I.e. the latest AMI we have in AWS).
+  // Calling this may result in some down-time on the instance while it updates.
+  rpc UpdateSatellite(UpdateSatelliteRequest) returns (UpdateSatelliteResponse) {
+    option (google.api.http) = {
+      post: "/api/v0/satellites/{name}/update"
+      body: "*"
+    };
+  }
+  // DeleteSatellite decommissions a Satellite instance.
+  rpc DeleteSatellite(DeleteSatelliteRequest) returns (DeleteSatelliteResponse) {
+    option (google.api.http) = {
+      delete: "/api/v0/satellites/{name}"
+    };
+  }
+  // GetSatellite retrieves the details of a particular Satellite instance.
+  // Mainly intended for use by Buildkit Proxy when establishing a new connection to an instance.
+  rpc GetSatellite(GetSatelliteRequest) returns (GetSatelliteResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/satellites/{name}"
+    };
+  }
+
+  // GetSatelliteMetrics retrieves the recent requested metrics for the given satellites. This is not meant to be a
+  // definitive historical record of build metrics, but instead a way to catch a glimpse into the current or recent
+  // state of the satellite.
+  rpc ListSatellitesMetrics(ListSatellitesMetricsRequest) returns (ListSatellitesMetricsResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/satellites-metrics"
+    };
+  }
+
+  // RegisterSatellite is called by a satellite once it is online and ready to accept builds.
+  // The registration contains the satellite's connection info.
+  // A registration token is returned, which must be passed-in to other endpoints related to registration,
+  // such as DeregisterSatellite and SatelliteHeartbeat.
+  rpc RegisterSatellite(RegisterSatelliteRequest) returns (RegisterSatelliteResponse) {}
+
+  // DeregisterSatellite immediately removes the satellite from the organization.
+  rpc DeregisterSatellite(DeregisterSatelliteRequest) returns (DeregisterSatelliteResponse) {}
+
+  // SatelliteHeartbeat must be called periodically while a satellite is online.
+  // The heartbeat request may also contain useful information about the satellite's state,
+  // such as its op-load, or (in the future) session history.
+  // If the compute service stops receiving heartbeats unexpectedly,
+  // the satellite is automatically deregistered.
+  rpc SatelliteHeartbeat(SatelliteHeartbeatRequest) returns (SatelliteHeartbeatResponse) {}
+
+  // WakeSatellite wakes a satellite that is in a sleep state.
+  // The response returns a stream that sends updates as the satellite wakes up.
+  // For example, the stream may send the following statuses:
+  //    SLEEP -> STARTING -> ... -> STARTING -> OPERATIONAL -> EOF
+  rpc WakeSatellite(WakeSatelliteRequest) returns (stream WakeSatelliteResponse) {}
+
+  // SleepSatellite puts a satellite to sleep when it is awake.
+  // The response is a stream which looks like the inverse of a WakeSatellite response.
+  // Example when satellite is awake:
+  //   OPERATIONAL -> STOPPING -> ... -> STOPPING -> SLEEP -> EOF
+  // Example when satellite is already asleep:
+  //   SLEEP -> EOF
+  rpc SleepSatellite(SleepSatelliteRequest) returns (stream SleepSatelliteResponse) {}
+
+  // ReserveSatellite both wakes the instance (if necessary) and calls reserve on buildkit.
+  // It is a streaming call which returns status updates during the wake up process,
+  // which can take a few moments. Some examples:
+  // When the satellite is already awake, a single event is emitted before closing the stream:
+  //   OPERATIONAL -> EOF
+  // When the satellite is asleep, several events are emitted in the following sequence:
+  //   SLEEP -> STARTING -> ... -> STARTING -> OPERATIONAL -> EOF
+  // When the satellite is already being woken up, or launching for the first time:
+  //   STARTING -> ... -> STARTING -> OPERATIONAL -> EOF
+  // When the satellite is actively being put to sleep and needs to finish that process first:
+  //   STOPPING -> ... -> STARTING -> ... -> OPERATIONAL -> EOF
+  rpc ReserveSatellite(ReserveSatelliteRequest) returns (stream ReserveSatelliteResponse) {}
+}
+
+message LaunchSatelliteRequest {
+  string org_id = 1;
+  string name = 2; // characters should be valid within a URL
+  string platform = 3; // Supported values now are: linux/amd64, linux/arm64
+  repeated string feature_flags = 4;
+  string size = 5; // small, medium, large
+  string version = 6; // Which version data to use when launching satellite
+  string maintenance_window_start = 7; // when can we auto-update your satellite
+  bool maintenance_weekends_only = 8; // Auto-updates only run on weekends
+}
+
+enum SatelliteStatus {
+  SATELLITE_STATUS_UNKNOWN = 0;
+  SATELLITE_STATUS_CREATING = 1;
+  SATELLITE_STATUS_OPERATIONAL = 2;
+  SATELLITE_STATUS_OFFLINE = 3;
+  SATELLITE_STATUS_DESTROYING = 4;
+  SATELLITE_STATUS_FAILED = 5;
+  SATELLITE_STATUS_SLEEP = 6;
+  SATELLITE_STATUS_STARTING = 7;
+  SATELLITE_STATUS_STOPPING = 8;
+  SATELLITE_STATUS_UPDATING = 9;
+}
+
+message LaunchSatelliteResponse {
+  SatelliteStatus status = 1;
+  string version = 2;
+  string maintenance_window_start = 3;
+  string maintenance_window_end = 4;
+  int32 revision_id = 5;
+}
+
+message ListSatellitesRequest {
+  string org_id = 1;
+  bool include_hidden = 2;
+}
+
+message ListSatellitesResponse {
+  message SatelliteInstance {
+    string user_id = 1;
+    string name = 2;
+    string platform = 3;
+    SatelliteStatus status = 4;
+    string version = 5;
+    string size = 6;
+    bool hidden = 7;
+    google.protobuf.Duration cache_retention = 8;
+    google.protobuf.Timestamp last_used = 9;
+  }
+  repeated SatelliteInstance instances = 1;
+}
+
+message UpdateSatelliteRequest {
+  string org_id = 1;
+  string name = 2;
+  string version = 3;
+  bool drop_cache = 4; // preserve cache during upgrade, or not?
+  string maintenance_window_start = 5;
+  repeated string feature_flags = 6;
+  bool maintenance_weekends_only = 7;
+  string size = 8; // Changes the size of the satellite when set
+  string platform = 9; // Changes the platform of the satellite when set
+}
+
+message UpdateSatelliteResponse {}
+
+message DeleteSatelliteRequest {
+  string org_id = 1;
+  string name = 2;
+}
+
+message DeleteSatelliteResponse{}
+
+message GetSatelliteRequest {
+  string org_id = 1;
+  string name = 2;
+}
+
+message GetSatelliteResponse {
+  string user_id = 1;
+  string platform = 2;
+  SatelliteStatus status = 3;
+  string version = 4;
+  string id = 5;
+  string private_ip = 6;
+  string private_dns = 7;
+  string size = 8;
+  repeated string feature_flags = 9;
+  string maintenance_window_start = 10;
+  string maintenance_window_end = 11;
+  int32 revision_id = 12;
+  bool version_pinned = 13;
+  bool maintenance_weekends_only = 14;
+  bool hidden = 15;
+  google.protobuf.Duration cache_retention = 16;
+  google.protobuf.Timestamp last_used = 17;
+  SatelliteMetrics current_metrics = 18;
+  bool is_managed = 19;
+}
+
+message WakeSatelliteRequest {
+  string org_id = 1;
+  string name = 2;
+  google.protobuf.Duration update_interval = 3;
+}
+
+message WakeSatelliteResponse {
+  SatelliteStatus status = 1;
+}
+
+message SleepSatelliteRequest {
+  string org_id = 1;
+  string name = 2;
+  google.protobuf.Duration update_interval = 3;
+}
+
+message SleepSatelliteResponse {
+  SatelliteStatus status = 1;
+}
+
+message ReserveSatelliteRequest {
+  string org_id = 1;
+  string name = 2;
+  string commit_email = 3;
+  bool is_ci = 4;
+  google.protobuf.Duration update_interval = 5;
+  string git_config_email = 6;
+  message Metadata {
+   repeated string env_entry_names = 1;
+   string cli_version = 2;
+  }
+  Metadata metadata = 7;
+}
+
+message ReserveSatelliteResponse {
+  SatelliteStatus status = 1;
+}
+
+enum MetricType {
+  METRICTYPE_UNSPECIFIED = 0;
+  METRICTYPE_CPU_ONE_MIN_PCT = 1;
+  METRICTYPE_CPU_FIVE_MIN_PCT = 2;
+  METRICTYPE_CPU_FIFTEEN_MIN_PCT = 3;
+  METRICTYPE_MEMORY_USAGE_GIB = 4;
+  METRICTYPE_CACHE_USAGE_GIB = 5;
+  METRICTYPE_DISK_READ_MBPS = 6;
+  METRICTYPE_DISK_WRITE_MBPS = 7;
+  METRICTYPE_NETWORK_TX_MBPS = 8;
+  METRICTYPE_NETWORK_RX_MBPS = 9;
+  METRICTYPE_OP_LOAD = 10;
+}
+
+// Double? Or Single? Plural? Who knows we all gave up
+message ListSatellitesMetricsRequest {
+  string org_id = 1;
+  repeated string names = 2; // At least one required
+  uint32 history_minutes = 3;
+  repeated MetricType metrics = 4; // Empty means all metrics
+}
+
+message ListSatellitesMetricsResponse {
+  repeated SatelliteMetrics metrics = 1;
+}
+
+message SatelliteMetrics {
+  string name = 1;
+  repeated MetricSeries metrics = 2;
+  SatelliteSpecs specs = 3;
+  string error = 4; // Allow for partial success/failure
+  SatelliteStatus status = 5;
+}
+
+message SatelliteSpecs {
+  string platform = 1;
+  int32 vcpus = 2;
+  double memory_gib = 3;
+  double cache_size_gib = 4;
+  string size = 5;
+  int32 max_op_load = 6;
+}
+
+message MetricSeries {
+  MetricType type = 1;
+  repeated Datapoint data = 2;
+}
+
+message Datapoint {
+  google.protobuf.Timestamp time = 1; // this should be minute-truncated, unless its not a complete minute yet
+  double value = 2;
+}
+
+message RegisterSatelliteRequest {
+  string org_id = 1;
+  string satellite_name = 2;
+  string satellite_host = 3;
+  int32 satellite_port = 4;
+  string platform = 5;
+  string version = 6;
+}
+
+message RegisterSatelliteResponse {
+  string registration_token = 1;
+}
+
+message DeregisterSatelliteRequest {
+  string registration_token = 1;
+}
+
+message DeregisterSatelliteResponse {}
+
+message SatelliteHeartbeatRequest {
+  string registration_token = 1;
+  int32 op_load = 2;
+}
+
+message SatelliteHeartbeatResponse {}

@@ -1,0 +1,127 @@
+syntax = "proto3";
+package api.public.logstream;
+option go_package = "./logstream";
+
+enum RunStatus {
+  RUN_STATUS_UNKNOWN = 0;
+  RUN_STATUS_NOT_STARTED = 1;
+  RUN_STATUS_IN_PROGRESS = 2;
+  RUN_STATUS_SUCCESS = 3;
+  RUN_STATUS_FAILURE = 4;
+  RUN_STATUS_CANCELED = 5;
+}
+
+message RunManifest {
+  string build_id = 1;
+  int32 version = 2;
+  uint64 created_at_unix_nanos = 3;
+  uint64 started_at_unix_nanos = 4;
+  uint64 ended_at_unix_nanos = 5;
+  RunStatus status = 6;
+  map<string, TargetManifest> targets = 7;
+  map<string, CommandManifest> commands = 13;
+  string main_target_id = 8;
+  Failure failure = 9;
+  string resume_token = 16;
+
+  // org_name is the name of the organization that owns this run.
+  // May be empty for builds that don't have a PROJECT declaration.
+  string org_name = 14;
+  // project_name is the name of the project that owns this run.
+  // May be empty for builds that don't have a PROJECT declaration.
+  string project_name = 15;
+
+  // The following are populated by the logstream server on delta ingestion.
+
+  // The UUID of the user that ran the build.
+  string user_id = 10;
+  // The UUID of the organization that owns this run.
+  string org_id = 11;
+  // The UUID of the project that owns this run.
+  string project_id = 12;
+}
+
+enum FailureType {
+  FAILURE_TYPE_UNKNOWN = 0;
+  FAILURE_TYPE_OTHER = 1;
+  FAILURE_TYPE_NONZERO_EXIT = 2;
+  FAILURE_TYPE_FILE_NOT_FOUND = 3;
+  FAILURE_TYPE_SYNTAX = 4;
+  FAILURE_TYPE_OOM_KILLED = 5;
+  FAILURE_TYPE_BUILDKIT_CRASHED = 6;
+  FAILURE_TYPE_CONNECTION_FAILURE = 7;
+  FAILURE_TYPE_NEEDS_PRIVILEGED = 8;
+  FAILURE_TYPE_GIT = 9;
+  FAILURE_TYPE_RATE_LIMITED = 10;
+  FAILURE_TYPE_INVALID_PARAM = 11;
+  FAILURE_TYPE_AUTO_SKIP = 12;
+}
+
+message Failure {
+  FailureType type = 1;
+  string target_id = 2;
+  string command_id = 3;
+  string error_message = 4;
+  bytes output = 5;
+}
+
+message TargetManifest {
+  string name = 1; // e.g. +build
+  string canonical_name = 2; // e.g. github.com/foo/bar/buz:main+build
+  repeated string override_args = 3;
+  string git_url = 10;
+  string local_path = 11;
+  string tag = 12;
+  string import_ref = 13;
+  string initial_platform = 4;
+  string final_platform = 8;
+  // runner is the runner identifier that this target runs on. Possible formats:
+  // * local:<hostname>
+  // * bk:<buildkit-address>
+  // * sat:<org-name>/<satellite-name>
+  string runner = 9;
+  RunStatus status = 5;
+  uint64 started_at_unix_nanos = 6;
+  uint64 ended_at_unix_nanos = 7;
+}
+
+message CommandManifest {
+  reserved 4;
+  reserved "is_push";
+
+  string name = 1;
+  // target_id is the ID of the target this command is part of
+  // (may be empty for commands that are not part of a target)
+  string target_id = 12;
+  // category is a grouping separate from target. This is used for things
+  // like "context", "output", or Dockerfile stages, which would
+  // not be part of an Earthly target.
+  string category = 14;
+  string platform = 13;
+  RunStatus status = 2;
+  bool is_cached = 3;
+  bool is_local = 5;
+  bool is_interactive = 15;
+  uint64 started_at_unix_nanos = 6;
+  uint64 ended_at_unix_nanos = 7;
+  bool has_progress = 8;
+  int32 progress = 9;
+  // error_message is a string representation of an error related to this command.
+  // The presence of an error here might not mean that the command has failed,
+  // if the error is transient.
+  string error_message = 10;
+  SourceLocation source_location = 11;
+}
+
+message SourceLocation {
+  // repository_url is the URL of the repository.
+  string repository_url = 1;
+  // repository_hash is the Git sha hash of the repository.
+  string repository_hash = 7;
+  // file is the name of the Earthfile relative to the repository.
+  string file = 2;
+  int32 start_line = 3;
+  int32 start_column = 4;
+  int32 end_line = 5;
+  int32 end_column = 6;
+}

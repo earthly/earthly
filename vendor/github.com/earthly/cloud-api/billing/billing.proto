@@ -1,0 +1,114 @@
+syntax = "proto3";
+package api.public.billing;
+option go_package = "./billing";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service Billing {
+  rpc GetBillingPlan(GetBillingPlanRequest) returns (GetBillingPlanResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/billing/plans/{org_name}"
+    };
+  }
+  rpc CreateSubscriptionLink(CreateSubscriptionLinkRequest) returns (CreateSubscriptionLinkResponse) {
+    option (google.api.http) = {
+      post: "/api/v0/billing/subscribe"
+      body: "*"
+    };
+  }
+}
+
+message CreateSubscriptionLinkRequest {
+  string org_name = 1;
+  enum Type {
+    PAYMENT_UNKNOWN = 0;
+    PAYMENT_FREE_TIER_VALIDATION = 4;
+    PAYMENT_STARTER_SUBSCRIPTION = 5;
+    PAYMENT_PRO_SUBSCRIPTION = 6;
+    PAYMENT_TEAM_SUBSCRIPTION = 7;
+  }
+  Type type = 2;
+  bool monthly = 3;
+}
+
+message CreateSubscriptionLinkResponse {
+  string url = 1;
+}
+
+message GetBillingPlanRequest {
+  string org_name = 1;
+}
+
+message GetBillingPlanResponse {
+  BillingPlan plan = 1;
+  int32 billing_cycle_used_build_seconds = 2;
+}
+message BillingPlan {
+  enum PlanType {
+    PLAN_TYPE_UNKNOWN = 0;
+    PLAN_TYPE_FREE = 1;
+    PLAN_TYPE_MONTHLY = 2;
+    PLAN_TYPE_YEARLY = 3;
+  }
+  PlanType type = 1;
+  // Date the plan was started
+  google.protobuf.Timestamp started_at = 2;
+  int32 max_satellites = 3;
+  // Max projects with pipelines (CI)
+  int32 max_projects = 4;
+  // Max pipelines per project (CI)
+  int32 max_pipelines = 5;
+  enum InstanceType {
+    INSTANCE_TYPE_UNKNOWN = 0;
+    INSTANCE_TYPE_XSMALL = 1;
+    INSTANCE_TYPE_SMALL = 2;
+    INSTANCE_TYPE_MEDIUM = 3;
+    INSTANCE_TYPE_LARGE = 4;
+    INSTANCE_TYPE_XLARGE = 5;
+  }
+  repeated InstanceType allowed_instances = 6;
+  enum ArchType {
+    ARCH_TYPE_UNKNOWN = 0;
+    ARCH_TYPE_AMD64 = 1;
+    ARCH_TYPE_ARM64 = 2;
+  }
+  repeated ArchType allowed_archs = 7;
+  // Max total build time per month. 0 means no limit
+  int32 max_build_minutes = 8;
+  // Max build duration. 0 means no limit
+  int32 max_minutes_per_build = 9;
+  // Buildkit cache TTL. 0 means forever
+  int32 max_hours_cache_retention = 10;
+  // consider moving this to a common proto file
+  enum Tier {
+    TIER_UNKNOWN = 0;
+    TIER_SATELLITES = 1;
+    TIER_CI = 2;
+    TIER_LIMITED_FREE_TIER = 3;
+    TIER_FREE_TIER = 4;
+    TIER_STARTER = 5;
+    TIER_PRO = 6;
+    TIER_TEAM = 7;
+  }
+  // Tier type. Might include tier/products no longer available.
+  Tier tier = 11;
+  // Free description associated to the tier
+  string tier_description = 12;
+  // Number of seats for current and subsequent tiers
+  repeated int32 seats_per_tier = 13;
+  // Monthly seat price per seat for the current and subsequent tiers
+  repeated int32 price_per_seat = 14;
+  // Monthly seat price per seat for the current and subsequent tiers (annually paid)
+  repeated int32 price_per_seat_year = 15;
+  // Number of monthly minutes included per seat for the current and subsequent tiers
+  repeated int32 included_minutes_per_seat = 16;
+  // Number of base minutes included per month for the current tier (in addition to the previous ones).
+  int32 included_minutes = 17;
+  // Users allowed to select runners Earthly version
+  bool selectable_earthly_version = 18;
+  // Outgoing traffic coming from Satellites observed from static IP(s)
+  bool static_originating_ip_address = 19;
+  // Default size to launch new instances when none is specified by the user
+  InstanceType default_instance_type = 20;
+}
