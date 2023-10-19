@@ -1,4 +1,4 @@
-package subcmd
+package flagutil
 
 import (
 	"github.com/pkg/errors"
@@ -12,15 +12,15 @@ func TestDurationSet(t *testing.T) {
 	tests := map[string]struct {
 		value    string
 		err      error
-		expected duration
+		expected Duration
 	}{
 		"parse value successfully": {
 			value:    "3h",
-			expected: duration(3 * time.Hour),
+			expected: Duration(3 * time.Hour),
 		},
 		"parse days value successfully": {
 			value:    "5d",
-			expected: duration(5 * 24 * time.Hour),
+			expected: Duration(5 * 24 * time.Hour),
 		},
 		"returns parsing error": {
 			value: "5dd",
@@ -37,7 +37,7 @@ func TestDurationSet(t *testing.T) {
 		name, tc := name, tc
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			var d duration
+			var d Duration
 			err := d.Set(tc.value)
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())

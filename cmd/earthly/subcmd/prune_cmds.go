@@ -6,6 +6,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cmd/earthly/helper"
+	"github.com/earthly/earthly/util/flagutil"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
@@ -17,8 +18,8 @@ type Prune struct {
 
 	all          bool
 	reset        bool
-	keepDuration duration
-	targetSize   byteSizeValue
+	keepDuration flagutil.Duration
+	targetSize   flagutil.ByteSizeValue
 }
 
 func NewPrune(cli CLI) *Prune {
