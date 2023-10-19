@@ -62,6 +62,7 @@ type Features struct {
 	PassArgs                   bool `long:"pass-args" description:"Allow the use of the --pass-arg flag in FROM, BUILD, COPY, WITH DOCKER, and DO commands"`
 	GlobalCache                bool `long:"global-cache" description:"enable global caches (shared across different Earthfiles), for cache mounts and CACHEs having an ID"`
 	GitRefs                    bool `long:"git-refs" description:"includes EARTHLY_GIT_REFS ARG"`
+	UseNewTargetVisitor        bool `long:"use-new-target-visitor" description:"Uses a new target visitor implementation that supports running all targets with the same name but different args in parallel"`
 
 	Major int
 	Minor int
