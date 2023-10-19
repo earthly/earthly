@@ -1,10 +1,11 @@
 package flagutil
 
 import (
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
+	"errors"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDurationSet(t *testing.T) {
@@ -39,11 +40,7 @@ func TestDurationSet(t *testing.T) {
 			t.Parallel()
 			var d Duration
 			err := d.Set(tc.value)
-			if tc.err != nil {
-				assert.EqualError(t, err, tc.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.Equal(t, tc.err, err)
 			assert.Equal(t, tc.expected, d)
 		})
 
