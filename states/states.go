@@ -20,7 +20,7 @@ type MultiTarget struct {
 	// Visited represents the previously visited states, grouped by target
 	// name. Duplicate targets are possible if same target is called with different
 	// build args.
-	Visited *VisitedCollection2
+	Visited VisitedCollection
 	// Final is the main target to be built.
 	Final *SingleTarget
 }

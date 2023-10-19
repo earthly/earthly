@@ -48,7 +48,7 @@ type ConvertOpt struct {
 	CleanCollection *cleanup.Collection
 	// Visited is a collection of target states which have been converted to LLB.
 	// This is used for deduplication and infinite cycle detection.
-	Visited *states.VisitedCollection2
+	Visited states.VisitedCollection
 	// PlatformResolver is a platform resolver, which keeps track of
 	// the current platform, the native platform, the user platform, and
 	// the default platform.
@@ -189,9 +189,6 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if opt.SolveCache == nil {
 		opt.SolveCache = states.NewSolveCache()
 	}
-	if opt.Visited == nil {
-		opt.Visited = states.NewVisitedCollection2()
-	}
 	if opt.MetaResolver == nil {
 		opt.MetaResolver = NewCachedMetaResolver(opt.GwClient)
 	}
@@ -223,6 +220,14 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	bc, err := opt.Resolver.Resolve(ctx, opt.GwClient, opt.PlatformResolver, target)
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolve build context for target %s", target.String())
+	}
+
+	if opt.Visited == nil {
+		if bc.Features.UseNewTargetVisitor {
+			opt.Visited = states.NewVisitedCollection()
+		} else {
+			opt.Visited = states.NewLegacyVisitedCollection()
+		}
 	}
 
 	opt.Features = bc.Features
