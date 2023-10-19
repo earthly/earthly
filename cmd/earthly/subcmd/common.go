@@ -2,25 +2,10 @@ package subcmd
 
 import (
 	"context"
-
-	"github.com/dustin/go-humanize"
 	"github.com/earthly/earthly/cloud"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
-
-type byteSizeValue uint64
-
-func (b *byteSizeValue) Set(s string) error {
-	v, err := humanize.ParseBytes(s)
-	if err != nil {
-		return err
-	}
-	*b = byteSizeValue(v)
-	return nil
-}
-
-func (b *byteSizeValue) String() string { return humanize.Bytes(uint64(*b)) }
 
 // projectOrgName returns the specified org or retrieves the default org from the API.
 func projectOrgName(cli CLI, ctx context.Context, cloudClient *cloud.Client) (string, error) {
