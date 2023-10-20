@@ -1475,12 +1475,12 @@ test-shared-cache:
       --output_contains="filecontents"
 
 test-new-visitor:
-  RUN apk update; apk add --upgrade sed
   DO +RUN_EARTHLY \
       --earthfile=new-visitor.earth \
       --target=+parallel
   RUN order=$(cat earthly.output | grep -Eo "### [[:digit:]]+"  | cut -d' ' -f2- | tr '\n' ' ' | tr -d '[:space:]'); \
       echo "order: $order"; \
+      # This regex matches succession of trios of numbers like 222111444333555, happening when the builds didn't run in parallel
       match=$(echo $order | sed -nr '/^([[:digit:]])\1\1([[:digit:]])\2\2([[:digit:]])\3\3([[:digit:]])\4\4([[:digit:]])\5\5$/p'); \
       if [[ $match ]]; then \
         echo "no parallelization observed"; \
