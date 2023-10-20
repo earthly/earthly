@@ -1507,7 +1507,6 @@ RUN_EARTHLY:
     IF [ ! -z "$earthfile" ]
         COPY "$earthfile" "$earthfile_dest"
     END
-    RUN cat $earthfile_dest
     RUN echo "
         set -ex
         export EARTHLY_VERBOSE=$verbose
