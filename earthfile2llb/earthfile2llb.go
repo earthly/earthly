@@ -246,9 +246,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		if bc.Features.UseVisitedUpfrontHashCollection {
 			opt.Visited = states.NewVisitedUpfrontHashCollection()
 		} else {
-			//TODO revert
-			// opt.Visited = states.NewLegacyVisitedCollection()
-			opt.Visited = states.NewVisitedUpfrontHashCollection()
+			opt.Visited = states.NewLegacyVisitedCollection()
 		}
 	}
 
