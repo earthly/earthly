@@ -135,6 +135,10 @@ type ConvertOpt struct {
 	// parentDepSub is a channel informing of any new dependencies from the parent.
 	parentDepSub chan string // chan of sts IDs.
 
+	// TargetInputHashStackSet is a set of target input hashes that are currently in the call stack.
+	// This is used to detect infinite cycles.
+	TargetInputHashStackSet map[string]bool
+
 	// ContainerFrontend is the currently used container frontend, as detected by Earthly at app start. It provides info
 	// and access to commands to manipulate the current container frontend.
 	ContainerFrontend containerutil.ContainerFrontend
@@ -198,6 +202,16 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if opt.LocallyLock == nil {
 		opt.LocallyLock = leaselock.New()
 	}
+	if opt.TargetInputHashStackSet == nil {
+		opt.TargetInputHashStackSet = make(map[string]bool)
+	} else {
+		// We are in a recursive call. Copy the stack set.
+		newMap := make(map[string]bool)
+		for k, v := range opt.TargetInputHashStackSet {
+			newMap[k] = v
+		}
+		opt.TargetInputHashStackSet = newMap
+	}
 	egWait := false
 	if opt.ErrorGroup == nil {
 		opt.ErrorGroup, ctx = serrgroup.WithContext(ctx)
@@ -254,17 +268,21 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if err != nil {
 		return nil, err
 	}
-	if opt.MainTargetDetailsFunc != nil {
-		err := opt.MainTargetDetailsFunc(TargetDetails{
-			EarthlyOrgName:     bc.EarthlyOrgName,
-			EarthlyProjectName: bc.EarthlyProjectName,
-		})
-		if err != nil {
-			return nil, errors.Wrapf(err, "target details handler error: %v", err)
-		}
-		opt.MainTargetDetailsFunc = nil
+	tiHash, err := sts.TargetInput().Hash()
+	if err != nil {
+		return nil, err
 	}
 	if found {
+		if opt.TargetInputHashStackSet[tiHash] {
+			return nil, errors.Errorf("infinite cycle detected for target %s", target.String())
+		}
+		// Wait for the existing sts to complete first.
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-sts.Done():
+		}
+
 		// The found target may have initially been created by a FROM or a COPY;
 		// however, if it is referenced a second time by a BUILD, it may contain items that
 		// require a save (export to the local host) or a push
@@ -287,6 +305,17 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 			Final:   sts,
 			Visited: opt.Visited,
 		}, nil
+	}
+	opt.TargetInputHashStackSet[tiHash] = true
+	if opt.MainTargetDetailsFunc != nil {
+		err := opt.MainTargetDetailsFunc(TargetDetails{
+			EarthlyOrgName:     bc.EarthlyOrgName,
+			EarthlyProjectName: bc.EarthlyProjectName,
+		})
+		if err != nil {
+			return nil, errors.Wrapf(err, "target details handler error: %v", err)
+		}
+		opt.MainTargetDetailsFunc = nil
 	}
 	converter, err := NewConverter(ctx, targetWithMetadata, bc, sts, opt)
 	if err != nil {
