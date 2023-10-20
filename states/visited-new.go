@@ -33,7 +33,7 @@ func (vc *newVisitedCollection) All() []*SingleTarget {
 
 // Add adds a target to the collection, if it hasn't yet been visited. The returned sts is
 // either the previously visited one or a brand new one.
-// This function blocks if there is a visited target that is still running.
+// This function blocks if there is a previous visit to this target that is still running.
 func (vc *newVisitedCollection) Add(ctx context.Context, target domain.Target, platr *platutil.Resolver, allowPrivileged bool, overridingVars *variables.Scope, parentDepSub chan string) (*SingleTarget, bool, error) {
 	// Constructing a new sts early to be able to compute its target input hash.
 	newSts, err := newSingleTarget(ctx, target, platr, allowPrivileged, overridingVars, nil)

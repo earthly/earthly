@@ -123,7 +123,7 @@ ga-no-qemu-quick:
     BUILD +test-cache-mount-mode
     BUILD +test-cache-mode
     BUILD +test-shared-cache
-    BUILD +test-with-docker-parallel
+    BUILD +test-new-visitor
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -1474,15 +1474,20 @@ test-shared-cache:
       --extra_args=" --secret=content=filecontents " \
       --output_contains="filecontents"
 
-test-with-docker-parallel:
-  LOCALLY
-  RUN cd with-docker-parallel; \
-    f=/tmp/earthly.output-$(cat /proc/sys/kernel/random/uuid); \
-    earthly -P +parallel 2>&1 | tee -a $f; \
-    order=$(cat $f | grep -Eo "### [[:digit:]]+"  | cut -d' ' -f2- | tr '\n' ' ' | tr -d '[:space:]'); \
-    rm $f; \
-    echo order:$order; \
-    (echo $order | grep -Eq ^1+2+3+4+5+$) && echo "no parallelization" && exit 1 || echo "parallelization";
+test-new-visitor:
+  RUN apk update; apk add --upgrade sed
+  DO +RUN_EARTHLY \
+      --earthfile=new-visitor.earth \
+      --target=+parallel
+  RUN order=$(cat earthly.output | grep -Eo "### [[:digit:]]+"  | cut -d' ' -f2- | tr '\n' ' ' | tr -d '[:space:]'); \
+      echo "order: $order"; \
+      match=$(echo $order | sed -nr '/^([[:digit:]])\1\1([[:digit:]])\2\2([[:digit:]])\3\3([[:digit:]])\4\4([[:digit:]])\5\5$/p'); \
+      if [[ $match ]]; then \
+        echo "no parallelization observed"; \
+        exit 1; \
+      else \
+         echo "parallelization checked"; \
+      fi
 
 RUN_EARTHLY:
     COMMAND
