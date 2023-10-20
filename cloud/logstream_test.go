@@ -95,17 +95,19 @@ func TestStreamLogs(t *testing.T) {
 		},
 	}
 
-	cl := &Client{logstream: testClient}
+	cl := &Client{
+		logstream:        testClient,
+		logstreamBackoff: 10 * time.Millisecond,
+	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 
 	man := &pb.RunManifest{
 		BuildId: uuid.NewString(),
 	}
 
 	ch := make(chan *pb.Delta)
-	errsCh := make(chan []error)
-
 	go func() {
 		for i := 0; i < 10; i++ {
 			ch <- logDelta("log")
@@ -113,11 +115,13 @@ func TestStreamLogs(t *testing.T) {
 		close(ch)
 	}()
 
-	go func() {
-		errsCh <- cl.StreamLogs(ctx, man, ch)
-	}()
+	errCh := cl.StreamLogs(ctx, man, ch)
 
-	errs := <-errsCh
+	var errs []error
+	for err := range errCh {
+		errs = append(errs, err)
+	}
+
 	require.Empty(t, errs)
 	require.Equal(t, 12, stream.calls["Send"], "expected 10 Sends plus first manifest & EOF (12)")
 	require.Equal(t, 1, stream.calls["Recv"], "expected 1 Recv")
@@ -134,16 +138,19 @@ func TestStreamLogsResume(t *testing.T) {
 		},
 	}
 
-	cl := &Client{logstream: testClient}
+	cl := &Client{
+		logstream:        testClient,
+		logstreamBackoff: 10 * time.Millisecond,
+	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 
 	man := &pb.RunManifest{
 		BuildId: uuid.NewString(),
 	}
 
 	ch := make(chan *pb.Delta)
-	errsCh := make(chan []error)
 
 	go func() {
 		for i := 0; i < 15; i++ {
@@ -158,11 +165,13 @@ func TestStreamLogsResume(t *testing.T) {
 		close(ch)
 	}()
 
-	go func() {
-		errsCh <- cl.StreamLogs(ctx, man, ch)
-	}()
+	errCh := cl.StreamLogs(ctx, man, ch)
 
-	errs := <-errsCh
+	var errs []error
+	for err := range errCh {
+		errs = append(errs, err)
+	}
+
 	require.Len(t, errs, 1)
 
 	// This is the second stream.
