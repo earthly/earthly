@@ -38,6 +38,7 @@ server:
         git init --bare /home/git/testuser/repo.git && \
         git -C /home/git/testuser/repo.git symbolic-ref HEAD refs/heads/main && \
         chown -R git:git /home/git/testuser
+    RUN ln -s /home/git/testuser /testuser # hack to get around https://github.com/moby/buildkit/pull/4142
     COPY sshd_config /etc/ssh/sshd_config
 
     ARG SSHD_RSA="true"

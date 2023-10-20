@@ -22,6 +22,7 @@ import (
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/syncutil/synccache"
 	"github.com/earthly/earthly/util/vertexmeta"
+	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
 
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -36,7 +37,7 @@ type gitResolver struct {
 	cleanCollection   *cleanup.Collection
 	gitBranchOverride string
 	lfsInclude        string
-	logLevel          llb.GitLogLevel
+	logLevel          buildkitgitutil.GitLogLevel
 	gitImage          string
 	projectCache      *synccache.SyncCache // "gitURL#gitRef" -> *resolvedGitProject
 	buildFileCache    *synccache.SyncCache // project ref -> local path

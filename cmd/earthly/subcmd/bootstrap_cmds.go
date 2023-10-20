@@ -29,6 +29,7 @@ type Bootstrap struct {
 
 	homebrewSource   string
 	noBuildkit       bool
+	genCerts         bool
 	withAutocomplete bool
 	certsHostName    string
 }
@@ -63,6 +64,11 @@ func (b *Bootstrap) Cmds() []*cli.Command {
 					Name:        "with-autocomplete",
 					Usage:       "Install shell autocompletions during bootstrap",
 					Destination: &b.withAutocomplete,
+				},
+				&cli.BoolFlag{
+					Name:        "force-certificate-generation",
+					Usage:       "Force the generation of self-signed TLS certificates, even when no BuildKit container is started",
+					Destination: &b.genCerts,
 				},
 				&cli.StringFlag{
 					Name:        "certs-hostname",
@@ -144,7 +150,7 @@ func (a *Bootstrap) bootstrap(cliCtx *cli.Context) error {
 		err = nil
 	}
 
-	if !a.noBuildkit && !a.cli.IsUsingSatellite(cliCtx) {
+	if (!a.noBuildkit || a.genCerts) && !a.cli.IsUsingSatellite(cliCtx) {
 		bkURL, err := url.Parse(a.cli.Flags().BuildkitHost)
 		if err != nil {
 			return errors.Wrapf(err, "invalid buildkit_host: %s", a.cli.Flags().BuildkitHost)
@@ -155,9 +161,10 @@ func (a *Bootstrap) bootstrap(cliCtx *cli.Context) error {
 				return errors.Wrap(err, "failed to generate TLS certs")
 			}
 		}
+	}
 
-		// Bootstrap buildkit - pulls image and starts daemon.
-		// This is in this package actually. I just need a satellite I guess
+	if !a.noBuildkit && !a.cli.IsUsingSatellite(cliCtx) {
+		// connect to local buildkit instance (to trigger pulling and running the earthly/buildkitd image)
 		bkClient, err := a.cli.GetBuildkitClient(cliCtx, nil)
 		if err != nil {
 			console.Warnf("Warning: Bootstrapping buildkit failed: %v", err)

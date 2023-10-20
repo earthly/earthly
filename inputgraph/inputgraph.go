@@ -3,7 +3,9 @@ package inputgraph
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/earthly/earthly/ast/command"
@@ -12,10 +14,10 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/util/buildkitskipper/hasher"
 	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/stringutil"
-	"github.com/earthly/earthly/variables"
 	"github.com/pkg/errors"
 )
 
@@ -93,37 +95,137 @@ func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
 
 func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 	opts := commandflag.CopyOpts{}
+
 	args, err := parseArgs(command.Copy, &opts, getArgsCopy(cmd))
 	if err != nil {
 		return err
 	}
-	if argsContainsStr(args, "$") || argsContainsStr(args, "*") || len(args) < 2 || opts.From != "" { // TODO handle globbing (e.g. *), ignored for now
-		return errors.Wrap(ErrUnableToDetermineHash, "unable to handle COPY with arg or wildcard")
+
+	if opts.From != "" {
+		return errors.Wrap(ErrUnableToDetermineHash, "COPY --from is not supported")
 	}
+
+	if len(args) < 2 {
+		return errors.Wrap(ErrUnableToDetermineHash, "COPY must include a source and destination")
+	}
+
+	if argsContainsStr(args, "$") {
+		return errors.Wrap(ErrUnableToDetermineHash, "unable to handle COPY with arg")
+	}
+
 	srcs := args[:len(args)-1]
 	for _, src := range srcs {
-		artifactSrc, parseErr := domain.ParseArtifact(src)
-		if parseErr != nil {
-			// COPY classical
-			path := filepath.Join(l.target.GetLocalPath(), src)
-			err := l.hasher.HashFile(ctx, path)
-			if err != nil {
-				return errors.Wrapf(ErrUnableToDetermineHash, "failed to hash file %s: %s", path, err)
-			}
-			continue
-		}
-		// COPY from a different target
-		if artifactSrc.Target.IsRemote() {
-			return errors.Wrap(ErrUnableToDetermineHash, "unable to handle remote target")
-		}
-		targetName := artifactSrc.Target.LocalPath + "+" + artifactSrc.Target.Target
-
-		err := l.loadTargetFromString(ctx, targetName)
-		if err != nil {
+		if err := l.handleCopySrc(ctx, src, opts.IsDirCopy); err != nil {
 			return err
 		}
 	}
+
 	return nil
+}
+
+func (l *loader) handleCopySrc(ctx context.Context, src string, isDir bool) error {
+
+	artifactSrc, parseErr := domain.ParseArtifact(src)
+	if parseErr != nil {
+		// COPY classical (not from another target)
+		path := filepath.Join(l.target.GetLocalPath(), src)
+		files, err := l.expandCopyFiles(path)
+		if err != nil {
+			return err
+		}
+		sort.Strings(files)
+		for _, file := range files {
+			if err := l.hasher.HashFile(ctx, file); err != nil {
+				return errors.Wrapf(ErrUnableToDetermineHash, "failed to hash file %s: %s", path, err)
+			}
+		}
+		return nil
+	}
+
+	// COPY from a different target
+	if artifactSrc.Target.IsRemote() {
+		return errors.Wrap(ErrUnableToDetermineHash, "unable to handle remote target")
+	}
+
+	targetName := artifactSrc.Target.LocalPath + "+" + artifactSrc.Target.Target
+	if err := l.loadTargetFromString(ctx, targetName); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// expandCopyFiles expands a single COPY source into a slice containing all
+// nested files. The file names will then be used in our hash.
+func (l *loader) expandCopyFiles(src string) ([]string, error) {
+	if strings.Contains(src, "**") {
+		return nil, errors.Wrap(ErrUnableToDetermineHash, "globstar (**) not supported")
+	}
+
+	if strings.Contains(src, "*") {
+		matches, err := filepath.Glob(src)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to expand glob pattern")
+		}
+		return l.expandDirs(matches...)
+	}
+
+	stat, err := os.Stat(src)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to stat file")
+	}
+
+	if stat.IsDir() {
+		return l.expandDirs(src)
+	}
+
+	return []string{src}, nil
+}
+
+// expandDirs takes a list of paths (directories and files) and recursively
+// expands all directories into a list of nested files. The final list will not
+// contain directories.
+func (l *loader) expandDirs(dirs ...string) ([]string, error) {
+	ret := []string{}
+	for _, dir := range dirs {
+		stat, err := os.Stat(dir)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to stat file")
+		}
+		if stat.IsDir() {
+			entries, err := os.ReadDir(dir)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to read dir")
+			}
+			for _, entry := range entries {
+				next := filepath.Join(dir, entry.Name())
+				if entry.IsDir() {
+					found, err := l.expandDirs(next)
+					if err != nil {
+						return nil, err
+					}
+					ret = append(ret, found...)
+				} else {
+					ret = append(ret, next)
+				}
+			}
+		} else {
+			ret = append(ret, dir)
+		}
+	}
+	return uniqStrs(ret), nil
+}
+
+func uniqStrs(all []string) []string {
+	m := map[string]struct{}{}
+	for _, v := range all {
+		m[v] = struct{}{}
+	}
+	ret := []string{}
+	for k := range m {
+		ret = append(ret, k)
+	}
+	return ret
 }
 
 func (l *loader) handlePipeline(ctx context.Context, cmd spec.Command) error {
@@ -147,9 +249,37 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 		return l.handleCopy(ctx, cmd)
 	case command.Pipeline:
 		return l.handlePipeline(ctx, cmd)
+	case command.SaveImage:
+		return l.handleSaveImage(ctx, cmd)
+	case command.Run:
+		return l.handleRun(ctx, cmd)
+	case command.Arg:
+		return l.handleArg(ctx, cmd)
+	case command.SaveArtifact:
+		return l.handleSaveArtifact(ctx, cmd)
 	default:
-		return nil
+		return errors.Errorf("unhandled command: %s", cmd.Name)
 	}
+}
+
+func (l *loader) handleSaveImage(ctx context.Context, cmd spec.Command) error {
+	l.hashCommand(cmd)
+	return nil
+}
+
+func (l *loader) handleSaveArtifact(ctx context.Context, cmd spec.Command) error {
+	l.hashCommand(cmd)
+	return nil
+}
+
+func (l *loader) handleRun(ctx context.Context, cmd spec.Command) error {
+	l.hashCommand(cmd)
+	return nil
+}
+
+func (l *loader) handleArg(ctx context.Context, cmd spec.Command) error {
+	l.hashCommand(cmd)
+	return nil
 }
 
 func (l *loader) handleWith(ctx context.Context, with spec.WithStatement) error {
@@ -174,11 +304,14 @@ func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 		if strings.Contains(load, "$") {
 			return errors.Wrap(ErrUnableToDetermineHash, "unable to handle arg in WITH DOCKER --load")
 		}
-		_, v, _ := variables.ParseKeyValue(load)
-		if v == "" {
-			return errors.Wrap(ErrUnableToDetermineHash, "unable to handle WITH DOCKER --load with implicit image name (hint: specify the image name rather than relying on the target's SAVE IMAGE command)")
+		_, target, extraArgs, err := earthfile2llb.ParseLoad(load)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse --load value")
 		}
-		err := l.loadTargetFromString(ctx, v)
+		if len(extraArgs) > 0 {
+			return errors.Wrap(ErrUnableToDetermineHash, "--load args are not yet supported")
+		}
+		err = l.loadTargetFromString(ctx, target)
 		if err != nil {
 			return err
 		}
@@ -206,7 +339,12 @@ func (l *loader) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
 }
 
 func (l *loader) handleFor(ctx context.Context, forStmt spec.ForStatement) error {
-	return errors.Wrap(ErrUnableToDetermineHash, "for not supported")
+	l.hashFor(forStmt)
+	err := l.loadBlock(ctx, forStmt.Body)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (l *loader) handleWait(ctx context.Context, waitStmt spec.WaitStatement) error {
@@ -256,7 +394,6 @@ func (l *loader) loadBlock(ctx context.Context, b spec.Block) error {
 }
 
 func (l *loader) hashIfStatement(s spec.IfStatement) {
-	s.SourceLocation = nil
 	l.hasher.HashString("IF")
 	l.hasher.HashJSONMarshalled(s.Expression)
 	l.hasher.HashBool(s.ExecMode)
@@ -268,7 +405,6 @@ func (l *loader) hashIfStatement(s spec.IfStatement) {
 }
 
 func (l *loader) hashElseIf(e spec.ElseIf) {
-	e.SourceLocation = nil
 	l.hasher.HashString("ELSE IF")
 	l.hasher.HashJSONMarshalled(e.Expression)
 	l.hasher.HashBool(e.ExecMode)
@@ -276,20 +412,25 @@ func (l *loader) hashElseIf(e spec.ElseIf) {
 }
 
 func (l *loader) hashWaitStatement(w spec.WaitStatement) {
-	w.SourceLocation = nil
 	l.hasher.HashString("WAIT")
 	l.hasher.HashInt(len(w.Body))
 	l.hasher.HashJSONMarshalled(w.Args)
 }
 
 func (l *loader) hashVersion(v spec.Version) {
-	v.SourceLocation = nil
-	l.hasher.HashJSONMarshalled(v)
+	l.hasher.HashString("VERSION")
+	l.hasher.HashJSONMarshalled(v.Args)
 }
 
-func (l *loader) hashCommand(cmd spec.Command) {
-	cmd.SourceLocation = nil
-	l.hasher.HashJSONMarshalled(cmd)
+func (l *loader) hashCommand(c spec.Command) {
+	l.hasher.HashString(c.Name)
+	l.hasher.HashJSONMarshalled(c.Args)
+	l.hasher.HashBool(c.ExecMode)
+}
+
+func (l *loader) hashFor(f spec.ForStatement) {
+	l.hasher.HashString("FOR")
+	l.hasher.HashJSONMarshalled(f.Args)
 }
 
 func copyVisited(m map[string]struct{}) map[string]struct{} {

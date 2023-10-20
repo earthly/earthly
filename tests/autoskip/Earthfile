@@ -12,6 +12,8 @@ test-all:
     BUILD +test-auto-skip-requires-project
     BUILD +test-auto-skip-wait
     BUILD +test-auto-skip-if-else
+    BUILD +test-auto-skip-for-in
+    BUILD +test-auto-skip-copy-glob
 
 test-auto-skip:
     RUN echo hello > my-file
@@ -45,11 +47,35 @@ test-auto-skip-requires-project:
 
 test-auto-skip-wait:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=wait.earth --target=+test --output_contains="not skipped"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=wait.earth --target=+test --output_contains="ec3d61867365de2deda79ce06f7afa849b765bb1"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=wait.earth --target=+test --output_contains="3deeaceb7e263a72114ebc2da62d9fecc87506f3"
 
 test-auto-skip-if-else:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=if-else.earth --target=+test --output_contains="condition ok"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=if-else.earth --target=+test --output_contains="d7ba3699b3342c386fd40b3368c167898ae58f2a"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=if-else.earth --target=+test --output_contains="26ac9a5c6e4893049c218da18decfba3caff1746"
+
+test-auto-skip-for-in:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=for.earth --target=+test --output_contains="hello 3"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=for.earth --target=+test --output_contains="ac33a31a36f496ed219293301bb44513a3a52d28"
+
+test-auto-skip-copy-glob:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --should_fail=true --target=+globstar --output_contains="globstar (\*\*) not supported"
+
+    COPY --dir glob .
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+dir --output_contains="glob/subdir/hello.txt"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+dir --output_contains="7dc88536e40a00684aeeb5ef3d6621d1e867aab2"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob --output_contains="glob/subdir/hello.txt"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob --output_contains="9a45ff884f09e576caf91fed3d3a209b109c68e4"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob-mid-path --output_contains="glob/subdir/hello.txt"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob-mid-path --output_contains="cec86ff354a3064adda819695eb91db965bf0b3e"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob-dir --output_contains="glob/subdir/hello.txt"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob-dir --output_contains="111c0b03e1c36e9e55740cade50719e4c6e4e0ec"
+
+    RUN echo data > glob/subdir/new.txt
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=copy-glob.earth --target=+glob-dir --output_contains="glob/subdir/new.txt"
 
 RUN_EARTHLY_ARGS:
     COMMAND
