@@ -223,8 +223,8 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	}
 
 	if opt.Visited == nil {
-		if bc.Features.UseNewTargetVisitor {
-			opt.Visited = states.NewVisitedCollection()
+		if bc.Features.UseVisitedUpfrontHashCollection {
+			opt.Visited = states.NewVisitedUpfrontHashCollection()
 		} else {
 			opt.Visited = states.NewLegacyVisitedCollection()
 		}

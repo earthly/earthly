@@ -123,7 +123,7 @@ ga-no-qemu-quick:
     BUILD +test-cache-mount-mode
     BUILD +test-cache-mode
     BUILD +test-shared-cache
-    BUILD +test-new-visitor
+    BUILD +test-visited-upfront-hash-collection
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -1474,13 +1474,13 @@ test-shared-cache:
       --extra_args=" --secret=content=filecontents " \
       --output_contains="filecontents"
 
-test-new-visitor:
+test-visited-upfront-hash-collection:
   DO +RUN_EARTHLY \
-      --earthfile=new-visitor.earth \
+      --earthfile=visited-upfront-hash-collection.earth \
       --target=+parallel
   RUN order=$(cat earthly.output | grep -Eo "### [[:digit:]]+"  | cut -d' ' -f2- | tr '\n' ' ' | tr -d '[:space:]'); \
       echo "order: $order"; \
-      # This regex matches succession of trios of numbers like 222111444333555, happening when the builds didn't run in parallel
+      # This regex matches successions of number trios like: 222111444333555, happening when the builds didn't run in parallel
       match=$(echo $order | sed -nr '/^([[:digit:]])\1\1([[:digit:]])\2\2([[:digit:]])\3\3([[:digit:]])\4\4([[:digit:]])\5\5$/p'); \
       if [[ $match ]]; then \
         echo "no parallelization observed"; \
