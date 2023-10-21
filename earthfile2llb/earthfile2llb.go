@@ -196,9 +196,6 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if opt.MetaResolver == nil {
 		opt.MetaResolver = NewCachedMetaResolver(opt.GwClient)
 	}
-	if opt.LocallyLock == nil {
-		opt.LocallyLock = leaselock.New()
-	}
 	if opt.TargetInputHashStackSet == nil {
 		opt.TargetInputHashStackSet = make(map[string]bool)
 	} else {
