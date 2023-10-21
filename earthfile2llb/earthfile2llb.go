@@ -15,7 +15,6 @@ import (
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
-	"github.com/earthly/earthly/util/syncutil/leaselock"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/syncutil/serrgroup"
 	"github.com/earthly/earthly/variables"
@@ -120,8 +119,6 @@ type ConvertOpt struct {
 	ParallelConversion bool
 	// Parallelism is a semaphore controlling the maximum parallelism.
 	Parallelism semutil.Semaphore
-	// LocallyLock is a global lock controlling the parallelism for LOCALLY targets.
-	LocallyLock leaselock.LeaseLock
 	// ErrorGroup is a serrgroup used to submit parallel conversion jobs.
 	ErrorGroup *serrgroup.Group
 
