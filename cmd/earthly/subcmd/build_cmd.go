@@ -63,8 +63,6 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-const autoSkipPrefix = "auto-skip"
-
 type Build struct {
 	cli CLI
 
@@ -617,7 +615,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	if a.cli.Flags().SkipBuildkit && targetHash != nil {
 		err := skipDB.Add(cliCtx.Context, targetHash)
 		if err != nil {
-			a.cli.Console().WithPrefix(autoSkipPrefix).Warnf("failed to record %s (hash %x) as completed: %s", target.String(), target, err)
+			a.cli.Console().Warnf("failed to record %s (hash %x) as completed: %s", target.String(), target, err)
 		}
 	}
 
@@ -827,7 +825,7 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		projectName string
 	)
 
-	console := a.cli.Console().WithPrefix(autoSkipPrefix)
+	console := a.cli.Console()
 
 	orgName, projectName, targetHash, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
 		Target:          target,
