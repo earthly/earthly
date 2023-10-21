@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -185,7 +186,8 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 	p := regproxy.NewRegistryProxy(ln, b.s.bkClient.RegistryClient())
 	go p.Serve(ctx)
 
-	addr = fmt.Sprintf("localhost:%d", ln.Addr().(*net.TCPAddr).Port)
+	port := ln.Addr().(*net.TCPAddr).Port
+	addr = fmt.Sprintf("localhost:%d", port)
 	b.opt.Console.VerbosePrintf("Starting local registry proxy: %s", addr)
 
 	doneCh := make(chan struct{})
@@ -199,15 +201,50 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 		doneCh <- struct{}{}
 	}()
 
+	isDarwin := runtime.GOOS == "darwin"
+
+	if isDarwin {
+		b.opt.Console.VerbosePrintf("Starting support container for registry proxy")
+		addr = strings.ReplaceAll(addr, "localhost", "docker.host.internal")
+		err = b.opt.ContainerFrontend.ContainerRun(ctx, containerutil.ContainerRun{
+			NameOrID: "darwin-registry-proxy",
+			ImageRef: "alpine/socat:1.7.4.4",
+			Ports: []containerutil.Port{
+				{
+					IP:            "127.0.0.1",
+					HostPort:      port,
+					ContainerPort: port,
+					Protocol:      containerutil.ProtocolTCP,
+				},
+			},
+			ContainerArgs: []string{
+				fmt.Sprintf("tcp-listen:%d,fork,reuseaddr", port),
+				fmt.Sprintf("tcp:host.docker.internal:%d", port),
+			},
+		})
+		if err != nil {
+			b.opt.Console.Warnf("Failed to start support container for registry proxy: %v", err)
+			return nil, false
+		}
+	}
+
 	b.opt.LocalRegistryAddr = addr
 
-	return func() {
+	closeFn := func() {
+		if isDarwin {
+			err = b.opt.ContainerFrontend.ContainerRemove(ctx, true, "darwin-registry-proxy")
+			if err != nil {
+				b.opt.Console.Warnf("Failed to stop registry proxy support container: %v", err)
+			}
+		}
 		p.Close()
 		select {
 		case <-ctx.Done():
 		case <-doneCh:
 		}
-	}, true
+	}
+
+	return closeFn, true
 }
 
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {

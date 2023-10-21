@@ -556,6 +556,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	if a.cli.Flags().Logstream {
 		logbusSM = a.cli.LogbusSetup().SolverMonitor
 	}
+
 	builderOpts := builder.Opt{
 		BkClient:                              bkClient,
 		LogBusSolverMonitor:                   logbusSM,
