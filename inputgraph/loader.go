@@ -15,9 +15,10 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/buildkitskipper/hasher"
 	"github.com/earthly/earthly/util/flagutil"
-	"github.com/earthly/earthly/util/stringutil"
+	"github.com/earthly/earthly/variables"
 	"github.com/pkg/errors"
 )
 
@@ -26,91 +27,83 @@ var (
 	ErrUnableToDetermineHash = fmt.Errorf("unable to determine hash")
 )
 
-func argsContainsStr(args []string, substr string) bool {
-	for _, s := range args {
-		if strings.Contains(s, substr) {
-			return true
-		}
+type loader struct {
+	conslog         conslogging.ConsoleLogger
+	target          domain.Target
+	visited         map[string]struct{}
+	hasher          *hasher.Hasher
+	varCollection   *variables.Collection
+	features        *features.Features
+	isBaseTarget    bool
+	ci              bool
+	push            bool
+	builtinArgs     variables.DefaultArgs
+	overridingVars  *variables.Scope
+	earthlyCIRunner bool
+}
+
+func newLoader(ctx context.Context, opt HashOpt) *loader {
+	// Other important values are set by load().
+	return &loader{
+		conslog:         opt.Console,
+		target:          opt.Target,
+		visited:         map[string]struct{}{},
+		hasher:          hasher.New(),
+		isBaseTarget:    opt.Target.Target == "base",
+		ci:              opt.CI,
+		push:            opt.Push,
+		builtinArgs:     opt.BuiltinArgs,
+		overridingVars:  opt.OverridingVars,
+		earthlyCIRunner: opt.EarthlyCIRunner,
 	}
-	return false
-}
-
-func requiresCrossProduct(args []string) bool {
-	seen := map[string]struct{}{}
-	for _, s := range args {
-		k := strings.SplitN(s, "=", 2)[0]
-		if _, found := seen[k]; found {
-			return true
-		}
-		seen[k] = struct{}{}
-	}
-	return false
-}
-
-func getArgsCopy(cmd spec.Command) []string {
-	argsCopy := make([]string, len(cmd.Args))
-	copy(argsCopy, cmd.Args)
-	return argsCopy
-}
-
-func parseArgs(cmdName string, opts interface{}, args []string) ([]string, error) {
-	processed := stringutil.ProcessParamsAndQuotes(args)
-	return flagutil.ParseArgs(cmdName, opts, processed)
 }
 
 func (l *loader) handleFrom(ctx context.Context, cmd spec.Command) error {
 	opts := commandflag.FromOpts{}
-	args, err := parseArgs(command.From, &opts, getArgsCopy(cmd))
+	args, err := flagutil.ParseArgsCleaned(command.From, &opts, flagutil.GetArgsCopy(cmd))
 	if err != nil {
 		return err
 	}
-	if argsContainsStr(args, "$") {
-		return errors.Wrap(ErrUnableToDetermineHash, "unable to handle arg in FROM")
-	}
+
 	fromTarget := args[0]
 	if !strings.Contains(fromTarget, "+") {
 		return nil
 	}
-	return l.loadTargetFromString(ctx, fromTarget)
+
+	return l.loadTargetFromString(ctx, fromTarget, args[1:], false)
 }
 
 func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
 	opts := commandflag.BuildOpts{}
-	args, err := parseArgs(command.Build, &opts, getArgsCopy(cmd))
+	args, err := flagutil.ParseArgsCleaned(command.Build, &opts, flagutil.GetArgsCopy(cmd))
 	if err != nil {
 		return err
 	}
+
 	if len(args) < 1 {
-		return errors.Wrap(ErrUnableToDetermineHash, "missing BUILD arg")
+		return errors.New("missing BUILD arg")
 	}
-	targetName := args[0]
-	if strings.Contains(targetName, "$") {
-		return errors.Wrap(ErrUnableToDetermineHash, "unable to handle arg in BUILD")
-	}
+
 	if requiresCrossProduct(args) {
-		return errors.Wrap(ErrUnableToDetermineHash, "unable to cross-product in BUILD")
+		return errors.New("unable to cross-product in BUILD")
 	}
-	return l.loadTargetFromString(ctx, targetName)
+
+	return l.loadTargetFromString(ctx, args[0], args[1:], opts.PassArgs)
 }
 
 func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 	opts := commandflag.CopyOpts{}
-
-	args, err := parseArgs(command.Copy, &opts, getArgsCopy(cmd))
+	args, err := flagutil.ParseArgsCleaned(command.Copy, &opts, flagutil.GetArgsCopy(cmd))
 	if err != nil {
 		return err
 	}
 
 	if opts.From != "" {
-		return errors.Wrap(ErrUnableToDetermineHash, "COPY --from is not supported")
+		return errors.New("COPY --from is not supported")
 	}
 
 	if len(args) < 2 {
-		return errors.Wrap(ErrUnableToDetermineHash, "COPY must include a source and destination")
-	}
-
-	if argsContainsStr(args, "$") {
-		return errors.Wrap(ErrUnableToDetermineHash, "unable to handle COPY with arg")
+		return errors.New("COPY must include a source and destination")
 	}
 
 	srcs := args[:len(args)-1]
@@ -125,9 +118,34 @@ func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 
 func (l *loader) handleCopySrc(ctx context.Context, src string, isDir bool) error {
 
-	artifactSrc, parseErr := domain.ParseArtifact(src)
-	if parseErr != nil {
-		// COPY classical (not from another target)
+	var (
+		classical   bool
+		artifactSrc domain.Artifact
+		extraArgs   []string
+		err         error
+	)
+
+	// Complex form with args: (+target --arg=1)
+	if flagutil.IsInParamsForm(src) {
+		var artifactName string
+		classical = false
+		artifactName, extraArgs, err = flagutil.ParseParams(src)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse COPY params")
+		}
+		artifactSrc, err = domain.ParseArtifact(artifactName)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse artifact")
+		}
+	} else { // Simpler form: '+target/artifact' or 'file/path'
+		artifactSrc, err = domain.ParseArtifact(src)
+		if err != nil {
+			classical = true
+		}
+	}
+
+	// COPY classical (not from another target)
+	if classical {
 		path := filepath.Join(l.target.GetLocalPath(), src)
 		files, err := l.expandCopyFiles(path)
 		if err != nil {
@@ -136,19 +154,19 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, isDir bool) erro
 		sort.Strings(files)
 		for _, file := range files {
 			if err := l.hasher.HashFile(ctx, file); err != nil {
-				return errors.Wrapf(ErrUnableToDetermineHash, "failed to hash file %s: %s", path, err)
+				return errors.Wrapf(err, "failed to hash file %s", path)
 			}
 		}
 		return nil
 	}
 
-	// COPY from a different target
+	// Remote targets aren't supported.
 	if artifactSrc.Target.IsRemote() {
-		return errors.Wrap(ErrUnableToDetermineHash, "unable to handle remote target")
+		return errors.New("unable to handle remote target")
 	}
 
 	targetName := artifactSrc.Target.LocalPath + "+" + artifactSrc.Target.Target
-	if err := l.loadTargetFromString(ctx, targetName); err != nil {
+	if err := l.loadTargetFromString(ctx, targetName, extraArgs, false); err != nil {
 		return err
 	}
 
@@ -159,7 +177,7 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, isDir bool) erro
 // nested files. The file names will then be used in our hash.
 func (l *loader) expandCopyFiles(src string) ([]string, error) {
 	if strings.Contains(src, "**") {
-		return nil, errors.Wrap(ErrUnableToDetermineHash, "globstar (**) not supported")
+		return nil, errors.New("globstar (**) not supported")
 	}
 
 	if strings.Contains(src, "*") {
@@ -216,30 +234,30 @@ func (l *loader) expandDirs(dirs ...string) ([]string, error) {
 	return uniqStrs(ret), nil
 }
 
-func uniqStrs(all []string) []string {
-	m := map[string]struct{}{}
-	for _, v := range all {
-		m[v] = struct{}{}
-	}
+func (l *loader) expandArgs(ctx context.Context, args []string) ([]string, error) {
 	ret := []string{}
-	for k := range m {
-		ret = append(ret, k)
+	for _, arg := range args {
+		expanded, err := l.varCollection.Expand(arg, func(cmd string) (string, error) {
+			return "", errors.New("shell-out is not supported")
+		})
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, expanded)
 	}
-	return ret
-}
-
-func (l *loader) handlePipeline(ctx context.Context, cmd spec.Command) error {
-	opts := commandflag.PipelineOpts{}
-	_, err := parseArgs(command.Copy, &opts, getArgsCopy(cmd))
-	if err != nil {
-		return err
-	}
-	l.isPipeline = !opts.NoPipelineCache
-	return nil
+	return ret, nil
 }
 
 func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
+	// All commands are expanded and hashed at a minimum.
+	var err error
+	cmd.Args, err = l.expandArgs(ctx, cmd.Args)
+	if err != nil {
+		return err
+	}
 	l.hashCommand(cmd)
+
+	// Some commands require more processing.
 	switch cmd.Name {
 	case command.From:
 		return l.handleFrom(ctx, cmd)
@@ -247,44 +265,42 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 		return l.handleBuild(ctx, cmd)
 	case command.Copy:
 		return l.handleCopy(ctx, cmd)
-	case command.Pipeline:
-		return l.handlePipeline(ctx, cmd)
-	case command.SaveImage:
-		return l.handleSaveImage(ctx, cmd)
-	case command.Run:
-		return l.handleRun(ctx, cmd)
 	case command.Arg:
 		return l.handleArg(ctx, cmd)
-	case command.SaveArtifact:
-		return l.handleSaveArtifact(ctx, cmd)
 	default:
-		return errors.Errorf("unhandled command: %s", cmd.Name)
+		return nil
 	}
 }
 
-func (l *loader) handleSaveImage(ctx context.Context, cmd spec.Command) error {
-	l.hashCommand(cmd)
-	return nil
-}
-
-func (l *loader) handleSaveArtifact(ctx context.Context, cmd spec.Command) error {
-	l.hashCommand(cmd)
-	return nil
-}
-
-func (l *loader) handleRun(ctx context.Context, cmd spec.Command) error {
-	l.hashCommand(cmd)
-	return nil
-}
-
 func (l *loader) handleArg(ctx context.Context, cmd spec.Command) error {
-	l.hashCommand(cmd)
+	opts, key, valueOrNil, err := flagutil.ParseArgArgs(ctx, cmd, l.isBaseTarget, l.features.ExplicitGlobal)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse ARG args")
+	}
+
+	declOpts := []variables.DeclareOpt{
+		variables.AsArg(),
+	}
+
+	if valueOrNil != nil {
+		declOpts = append(declOpts, variables.WithValue(*valueOrNil))
+	}
+
+	if opts.Global {
+		declOpts = append(declOpts, variables.AsGlobal())
+	}
+
+	_, _, err = l.varCollection.DeclareVar(key, declOpts...)
+	if err != nil {
+		return errors.Wrap(err, "failed to declare variable")
+	}
+
 	return nil
 }
 
 func (l *loader) handleWith(ctx context.Context, with spec.WithStatement) error {
 	if with.Command.Name != command.Docker {
-		return errors.Wrap(ErrUnableToDetermineHash, "expected WITH DOCKER")
+		return errors.New("expected WITH DOCKER")
 	}
 	err := l.handleWithDocker(ctx, with.Command)
 	if err != nil {
@@ -294,24 +310,24 @@ func (l *loader) handleWith(ctx context.Context, with spec.WithStatement) error 
 }
 
 func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
-	l.hashCommand(cmd) // special case since handleWithDocker doesn't get called from handleCommand
-	opts := commandflag.WithDockerOpts{}
-	_, err := parseArgs("WITH DOCKER", &opts, getArgsCopy(cmd))
+	// Special case since handleWithDocker doesn't get called from handleCommand.
+	var err error
+	cmd.Args, err = l.expandArgs(ctx, cmd.Args)
 	if err != nil {
-		return errors.Wrap(ErrUnableToDetermineHash, "failed to parse WITH DOCKER flags")
+		return err
+	}
+	l.hashCommand(cmd)
+	opts := commandflag.WithDockerOpts{}
+	_, err = flagutil.ParseArgsCleaned("WITH DOCKER", &opts, flagutil.GetArgsCopy(cmd))
+	if err != nil {
+		return errors.New("failed to parse WITH DOCKER flags")
 	}
 	for _, load := range opts.Loads {
-		if strings.Contains(load, "$") {
-			return errors.Wrap(ErrUnableToDetermineHash, "unable to handle arg in WITH DOCKER --load")
-		}
 		_, target, extraArgs, err := earthfile2llb.ParseLoad(load)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse --load value")
 		}
-		if len(extraArgs) > 0 {
-			return errors.Wrap(ErrUnableToDetermineHash, "--load args are not yet supported")
-		}
-		err = l.loadTargetFromString(ctx, target)
+		err = l.loadTargetFromString(ctx, target, extraArgs, false)
 		if err != nil {
 			return err
 		}
@@ -358,7 +374,7 @@ func (l *loader) handleWait(ctx context.Context, waitStmt spec.WaitStatement) er
 }
 
 func (l *loader) handleTry(ctx context.Context, tryStmt spec.TryStatement) error {
-	return errors.Wrap(ErrUnableToDetermineHash, "try not supported")
+	return errors.New("try not supported")
 }
 
 func (l *loader) handleStatement(ctx context.Context, stmt spec.Statement) error {
@@ -380,7 +396,7 @@ func (l *loader) handleStatement(ctx context.Context, stmt spec.Statement) error
 	if stmt.Try != nil {
 		return l.handleTry(ctx, *stmt.Try)
 	}
-	return errors.Wrap(ErrUnableToDetermineHash, "unexpected statement type")
+	return errors.New("unexpected statement type")
 }
 
 func (l *loader) loadBlock(ctx context.Context, b spec.Block) error {
@@ -393,94 +409,84 @@ func (l *loader) loadBlock(ctx context.Context, b spec.Block) error {
 	return nil
 }
 
-func (l *loader) hashIfStatement(s spec.IfStatement) {
-	l.hasher.HashString("IF")
-	l.hasher.HashJSONMarshalled(s.Expression)
-	l.hasher.HashBool(s.ExecMode)
-	l.hasher.HashInt(len(s.IfBody))
-	l.hasher.HashInt(len(s.ElseIf))
-	if s.ElseBody != nil {
-		l.hasher.HashInt(len(*s.ElseBody))
+func (l *loader) forTarget(ctx context.Context, target domain.Target, args []string, passArgs bool) (*loader, error) {
+	fullTargetName := target.String()
+
+	visited := copyVisited(l.visited)
+	visited[fullTargetName] = struct{}{}
+
+	flagArgs, err := variables.ParseFlagArgs(args)
+	if err != nil {
+		return nil, err
 	}
-}
 
-func (l *loader) hashElseIf(e spec.ElseIf) {
-	l.hasher.HashString("ELSE IF")
-	l.hasher.HashJSONMarshalled(e.Expression)
-	l.hasher.HashBool(e.ExecMode)
-	l.hasher.HashInt(len(e.Body))
-}
-
-func (l *loader) hashWaitStatement(w spec.WaitStatement) {
-	l.hasher.HashString("WAIT")
-	l.hasher.HashInt(len(w.Body))
-	l.hasher.HashJSONMarshalled(w.Args)
-}
-
-func (l *loader) hashVersion(v spec.Version) {
-	l.hasher.HashString("VERSION")
-	l.hasher.HashJSONMarshalled(v.Args)
-}
-
-func (l *loader) hashCommand(c spec.Command) {
-	l.hasher.HashString(c.Name)
-	l.hasher.HashJSONMarshalled(c.Args)
-	l.hasher.HashBool(c.ExecMode)
-}
-
-func (l *loader) hashFor(f spec.ForStatement) {
-	l.hasher.HashString("FOR")
-	l.hasher.HashJSONMarshalled(f.Args)
-}
-
-func copyVisited(m map[string]struct{}) map[string]struct{} {
-	m2 := map[string]struct{}{}
-	for k := range m {
-		m2[k] = struct{}{}
+	overriding, err := variables.ParseCommandLineArgs(flagArgs)
+	if err != nil {
+		return nil, err
 	}
-	return m2
+
+	if passArgs {
+		overriding = variables.CombineScopes(overriding, l.overridingVars)
+	}
+
+	return &loader{
+		conslog:         l.conslog,
+		target:          target,
+		visited:         visited,
+		hasher:          l.hasher,
+		isBaseTarget:    target.Target == "base",
+		ci:              l.ci,
+		push:            l.push,
+		builtinArgs:     l.builtinArgs,
+		overridingVars:  overriding,
+		earthlyCIRunner: l.earthlyCIRunner,
+	}, nil
 }
 
-func (l *loader) loadTargetFromString(ctx context.Context, targetName string) error {
+func (l *loader) loadTargetFromString(ctx context.Context, targetName string, args []string, passArgs bool) error {
 	relTarget, err := domain.ParseTarget(targetName)
 	if err != nil {
 		return errors.Wrapf(err, "parse target name %s", targetName)
 	}
+
 	targetRef, err := domain.JoinReferences(l.target, relTarget)
 	if err != nil {
 		return errors.Wrapf(err, "failed to join %s and %s", l.target, relTarget)
 	}
+
 	target := targetRef.(domain.Target)
 	fullTargetName := target.String()
 	if fullTargetName == "" {
 		return fmt.Errorf("missing target string")
 	}
+
 	if _, exists := l.visited[fullTargetName]; exists {
-		// prevent infinite loops; the converter does a better job since it also looks at args and if conditions
-		return errors.Wrapf(ErrUnableToDetermineHash, "circular dependency detected; %s already called", fullTargetName)
+		// Prevent infinite loops; the converter does a better job since it also
+		// looks at args and if conditions.
+		return errors.Errorf("circular dependency detected; %s already called", fullTargetName)
 	}
-	visited := copyVisited(l.visited)
-	visited[fullTargetName] = struct{}{}
-	loaderInst := &loader{
-		conslog: l.conslog,
-		target:  target,
-		visited: visited,
-		hasher:  l.hasher,
+
+	targetLoader, err := l.forTarget(ctx, target, args, passArgs)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create loader for target %q", targetName)
 	}
-	return loaderInst.load(ctx)
+
+	return targetLoader.load(ctx)
 }
 
 func (l *loader) findProject(ctx context.Context) (org, project string, err error) {
 	if l.target.IsRemote() {
 		return "", "", ErrRemoteNotSupported
 	}
+
 	resolver := buildcontext.NewResolver(nil, nil, l.conslog, "", "", "", 0, "")
-	bc, err := resolver.Resolve(ctx, nil, nil, l.target)
+
+	buildCtx, err := resolver.Resolve(ctx, nil, nil, l.target)
 	if err != nil {
 		return "", "", err
 	}
-	ef := bc.Earthfile
 
+	ef := buildCtx.Earthfile
 	if ef.Version != nil {
 		l.hashVersion(*ef.Version)
 	}
@@ -489,29 +495,47 @@ func (l *loader) findProject(ctx context.Context) (org, project string, err erro
 		if stmt.Command != nil && stmt.Command.Name == command.Project {
 			args := stmt.Command.Args
 			if len(args) != 1 {
-				return "", "", errors.Wrapf(ErrUnableToDetermineHash, "failed to parse PROJECT command")
+				return "", "", errors.New("failed to parse PROJECT command")
 			}
 			parts := strings.Split(args[0], "/")
 			if len(parts) != 2 {
-				return "", "", errors.Wrapf(ErrUnableToDetermineHash, "failed to parse PROJECT command")
+				return "", "", errors.New("failed to parse PROJECT command")
 			}
 			return parts[0], parts[1], nil
 		}
 	}
-	return "", "", errors.Wrapf(ErrUnableToDetermineHash, "PROJECT command missing")
+
+	return "", "", errors.New("PROJECT command missing")
 }
 
 func (l *loader) load(ctx context.Context) error {
 	if l.target.IsRemote() {
 		return ErrRemoteNotSupported
 	}
+
 	resolver := buildcontext.NewResolver(nil, nil, l.conslog, "", "", "", 0, "")
-	bc, err := resolver.Resolve(ctx, nil, nil, l.target)
+
+	buildCtx, err := resolver.Resolve(ctx, nil, nil, l.target)
 	if err != nil {
 		return err
 	}
-	ef := bc.Earthfile
 
+	l.features = buildCtx.Features
+
+	collOpt := variables.NewCollectionOpt{
+		Console:         l.conslog,
+		Target:          l.target,
+		CI:              l.ci,
+		Push:            l.push,
+		BuiltinArgs:     l.builtinArgs,
+		OverridingVars:  l.overridingVars,
+		EarthlyCIRunner: l.earthlyCIRunner,
+		GitMeta:         buildCtx.GitMetadata,
+		Features:        l.features,
+	}
+	l.varCollection = variables.NewCollection(collOpt)
+
+	ef := buildCtx.Earthfile
 	if ef.Version != nil {
 		l.hashVersion(*ef.Version)
 	}
@@ -519,38 +543,12 @@ func (l *loader) load(ctx context.Context) error {
 	if l.target.Target == "base" {
 		return l.loadBlock(ctx, ef.BaseRecipe)
 	}
+
 	for _, t := range ef.Targets {
 		if t.Name == l.target.Target {
 			return l.loadBlock(ctx, t.Recipe)
 		}
 	}
+
 	return fmt.Errorf("target %s not found", l.target.Target)
-}
-
-type loader struct {
-	conslog    conslogging.ConsoleLogger
-	target     domain.Target
-	visited    map[string]struct{}
-	hasher     *hasher.Hasher
-	isPipeline bool
-}
-
-func HashTarget(ctx context.Context, target domain.Target, conslog conslogging.ConsoleLogger) (org, project string, hash []byte, err error) {
-	loaderInst := &loader{
-		conslog: conslog,
-		target:  target,
-		visited: map[string]struct{}{},
-		hasher:  hasher.New(),
-	}
-	org, project, err = loaderInst.findProject(ctx)
-	if err != nil {
-		return "", "", nil, err
-	}
-
-	err = loaderInst.load(ctx)
-	if err != nil {
-		return "", "", nil, err
-	}
-
-	return org, project, loaderInst.hasher.GetHash(), nil
 }

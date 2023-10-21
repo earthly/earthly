@@ -34,11 +34,15 @@ func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gituti
 	ret.Add(arg.EarthlyTargetName, target.Target)
 
 	setTargetTag(ret, target, gitMeta)
-	SetPlatformArgs(ret, platr)
-	setUserPlatformArgs(ret, platr)
-	if ftrs.NewPlatform {
-		setNativePlatformArgs(ret, platr)
+
+	if platr != nil {
+		SetPlatformArgs(ret, platr)
+		setUserPlatformArgs(ret, platr)
+		if ftrs.NewPlatform {
+			setNativePlatformArgs(ret, platr)
+		}
 	}
+
 	if ftrs.WaitBlock {
 		ret.Add(arg.EarthlyPush, fmt.Sprintf("%t", push))
 	}

@@ -1,9 +1,11 @@
 package flagutil
 
 import (
-	"github.com/urfave/cli/v2"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/urfave/cli/v2"
 )
 
 func TestSplitFlagString(t *testing.T) {
@@ -43,5 +45,50 @@ func TestSplitFlagString(t *testing.T) {
 				t.Errorf("SplitFlagString() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestParseParams(t *testing.T) {
+	var tests = []struct {
+		in    string
+		first string
+		args  []string
+	}{
+		{"(+target/art --flag=something)", "+target/art", []string{"--flag=something"}},
+		{"(+target/art --flag=something\"\")", "+target/art", []string{"--flag=something\"\""}},
+		{"( \n  +target/art \t \n --flag=something\t   )", "+target/art", []string{"--flag=something"}},
+		{"(+target/art --flag=something\\ --another=something)", "+target/art", []string{"--flag=something\\ --another=something"}},
+		{"(+target/art --flag=something --another=something)", "+target/art", []string{"--flag=something", "--another=something"}},
+		{"(+target/art --flag=\"something in quotes\")", "+target/art", []string{"--flag=\"something in quotes\""}},
+		{"(+target/art --flag=\\\"something --not=in-quotes\\\")", "+target/art", []string{"--flag=\\\"something", "--not=in-quotes\\\""}},
+		{"(+target/art --flag=look-ma-a-\\))", "+target/art", []string{"--flag=look-ma-a-\\)"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.in, func(t *testing.T) {
+			actualFirst, actualArgs, err := ParseParams(tt.in)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.first, actualFirst)
+			assert.Equal(t, tt.args, actualArgs)
+		})
+
+	}
+}
+
+func TestNegativeParseParams(t *testing.T) {
+	var tests = []struct {
+		in string
+	}{
+		{"+target/art --flag=something)"},
+		{"(+target/art --flag=something"},
+		{"(+target/art --flag=\"something)"},
+		{"(+target/art --flag=something\\)"},
+		{"()"},
+		{"(          \t\n   )"},
+	}
+
+	for _, tt := range tests {
+		_, _, err := ParseParams(tt.in)
+		assert.Error(t, err)
 	}
 }

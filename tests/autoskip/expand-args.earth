@@ -1,0 +1,60 @@
+VERSION --pass-args 0.7
+
+PROJECT earthly-technologies/core
+
+FROM alpine
+
+foo:
+    RUN echo "dynamic target ok"
+
+basic:
+    ARG ext=txt
+    COPY hello.$ext /tmp
+    RUN ls -l /tmp
+
+dynamic-build:
+    ARG target=+foo
+    BUILD $target
+
+dynamic-arg:
+    ARG foo=bar
+    ARG baz=$foo
+    RUN echo "hello $baz"
+
+other-target:
+    ARG foo=1
+    ARG bar=2
+    RUN echo "hello $foo $bar"
+
+build-args:
+    BUILD +other-target --foo=3 --bar=4
+
+build-args-2:
+    ARG foo
+    ARG bar
+    BUILD +other-target --foo=$foo --bar=$bar
+
+pass-args-target:
+    ARG foo=1
+    ARG bar=2
+    RUN echo "hello $foo $bar"
+
+pass-args:
+    BUILD --pass-args +pass-args-target --baz=1
+
+target-2:
+    ARG foo
+    ARG bar
+    RUN echo "hello $foo $bar"
+
+build-args-flag:
+    BUILD +target-2 --build-flags
+
+copy-target:
+    ARG foo
+    RUN echo $foo > x
+    SAVE ARTIFACT x
+
+copy-target-args:
+    COPY (+copy-target/x --foo=hello) .
+    RUN cat x
