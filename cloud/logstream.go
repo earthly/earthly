@@ -24,39 +24,47 @@ func (s *StreamError) Error() string {
 	return s.Err.Error()
 }
 
-func (c *Client) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta) []error {
+func (c *Client) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta) <-chan error {
 	if man.GetResumeToken() == "" {
 		man.ResumeToken = stringutil.RandomAlphanumeric(40)
 	}
-	var (
-		errs   []error
-		retry  bool
-		counts []int
-		last   *pb.Delta
-	)
-	for {
-		first := []*pb.Delta{firstDelta(man, retry)}
-		if last != nil {
-			first = append(first, last)
-		}
+	errCh := make(chan error)
+	go func() {
+		defer close(errCh)
 		var (
-			err       error
-			sendCount int
+			retry  bool
+			counts []int
+			last   *pb.Delta
 		)
-		sendCount, last, err = c.streamLogsAttempt(ctx, man.GetBuildId(), first, ch)
-		if err != nil {
-			recoverable := recoverableError(err)
-			errs = append(errs, &StreamError{Err: err, Recoverable: recoverable})
-			if recoverable {
-				retry = true
-				counts = append(counts, sendCount)
-				time.Sleep(calcBackoff(c.logstreamBackoff, counts))
-				continue
+		for {
+			first := []*pb.Delta{firstDelta(man, retry)}
+			if last != nil {
+				first = append(first, last)
 			}
+			var (
+				err       error
+				sendCount int
+			)
+			sendCount, last, err = c.streamLogsAttempt(ctx, man.GetBuildId(), first, ch)
+			if err != nil {
+				recoverable := recoverableError(err)
+				errCh <- &StreamError{Err: err, Recoverable: recoverable}
+				if recoverable {
+					retry = true
+					counts = append(counts, sendCount)
+					select {
+					case <-time.After(calcBackoff(c.logstreamBackoff, counts)):
+					case <-ctx.Done():
+						errCh <- ctx.Err()
+						return
+					}
+					continue
+				}
+			}
+			break
 		}
-		break
-	}
-	return errs
+	}()
+	return errCh
 }
 
 // calcBackoff calculates the time to wait before attempting another stream. The
