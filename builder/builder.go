@@ -177,7 +177,7 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 		return nil, false
 	}
 
-	addr := "127.0.0.1:0" // Have the OS select a port
+	addr := ":0" // Have the OS select a port
 
 	lnCfg := net.ListenConfig{}
 	ln, err := lnCfg.Listen(ctx, "tcp", addr)
@@ -217,7 +217,7 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 			return nil, false
 		}
 		b.opt.Console.VerbosePrintf("Started support container for registry proxy on port %d", darwinProxyPort)
-		addr = fmt.Sprintf("127.0.0.1:%d", darwinProxyPort)
+		addr = fmt.Sprintf("localhost:%d", darwinProxyPort)
 	}
 
 	b.opt.LocalRegistryAddr = addr
