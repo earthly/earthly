@@ -217,7 +217,7 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 			return nil, false
 		}
 		b.opt.Console.VerbosePrintf("Started support container for registry proxy on port %d", darwinProxyPort)
-		addr = fmt.Sprintf("host.docker.internal:%d", darwinProxyPort)
+		addr = fmt.Sprintf("127.0.0.1:%d", darwinProxyPort)
 	}
 
 	b.opt.LocalRegistryAddr = addr
