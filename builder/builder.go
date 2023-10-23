@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
@@ -174,7 +177,7 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 		return nil, false
 	}
 
-	addr := "localhost:0" // Have the OS select a port
+	addr := "127.0.0.1:0" // Have the OS select a port
 
 	lnCfg := net.ListenConfig{}
 	ln, err := lnCfg.Listen(ctx, "tcp", addr)
@@ -186,8 +189,8 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 	p := regproxy.NewRegistryProxy(ln, b.s.bkClient.RegistryClient())
 	go p.Serve(ctx)
 
-	port := ln.Addr().(*net.TCPAddr).Port
-	addr = fmt.Sprintf("localhost:%d", port)
+	registryPort := ln.Addr().(*net.TCPAddr).Port
+	addr = fmt.Sprintf("localhost:%d", registryPort)
 	b.opt.Console.VerbosePrintf("Starting local registry proxy: %s", addr)
 
 	doneCh := make(chan struct{})
@@ -204,35 +207,25 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 	isDarwin := runtime.GOOS == "darwin"
 
 	if isDarwin {
-		b.opt.Console.VerbosePrintf("Starting support container for registry proxy")
-		addr = strings.ReplaceAll(addr, "localhost", "docker.host.internal")
-		err = b.opt.ContainerFrontend.ContainerRun(ctx, containerutil.ContainerRun{
-			NameOrID: "darwin-registry-proxy",
-			ImageRef: "alpine/socat:1.7.4.4",
-			Ports: []containerutil.Port{
-				{
-					IP:            "127.0.0.1",
-					HostPort:      port,
-					ContainerPort: port,
-					Protocol:      containerutil.ProtocolTCP,
-				},
-			},
-			ContainerArgs: []string{
-				fmt.Sprintf("tcp-listen:%d,fork,reuseaddr", port),
-				fmt.Sprintf("tcp:host.docker.internal:%d", port),
-			},
-		})
+		darwinProxyPort, err := b.startDarwinProxyHelper(ctx, registryPort)
 		if err != nil {
-			b.opt.Console.Warnf("Failed to start support container for registry proxy: %v", err)
+			b.opt.Console.Warnf("Darwin registry container: %v", err)
+			err := b.stopDarwinProxyHelper(ctx) // Clean up dangling container on failure.
+			if err != nil {
+				b.opt.Console.Warnf("Failed to stop registry proxy support container: %v", err)
+			}
 			return nil, false
 		}
+		b.opt.Console.VerbosePrintf("Started support container for registry proxy on port %d", darwinProxyPort)
+		addr = fmt.Sprintf("host.docker.internal:%d", darwinProxyPort)
 	}
 
 	b.opt.LocalRegistryAddr = addr
 
 	closeFn := func() {
+		fmt.Println("Closing registry proxy")
 		if isDarwin {
-			err = b.opt.ContainerFrontend.ContainerRemove(ctx, true, "darwin-registry-proxy")
+			err := b.stopDarwinProxyHelper(ctx)
 			if err != nil {
 				b.opt.Console.Warnf("Failed to stop registry proxy support container: %v", err)
 			}
@@ -245,6 +238,107 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 	}
 
 	return closeFn, true
+}
+
+const darwinProxyContainerName = "darwin-registry-proxy"
+
+// startDarwinProxyHelper: Since Docker Desktop (Mac) containers run in a VM, a
+// special host name, host.docker.internal, is made available to access the
+// host's network. Docker can only pull insecurely from localhost, so we use a
+// socat container to proxy localhost:<port> request back out to the local
+// registry proxy created above.
+func (b *Builder) startDarwinProxyHelper(ctx context.Context, registryPort int) (int, error) {
+	infoMap, err := b.opt.ContainerFrontend.ContainerInfo(ctx, darwinProxyContainerName)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to check info")
+	}
+
+	var exists bool
+	if info, ok := infoMap[darwinProxyContainerName]; ok && info.Status != "missing" {
+		exists = true
+	}
+
+	if exists {
+		err := b.opt.ContainerFrontend.ContainerRemove(ctx, true, darwinProxyContainerName)
+		if err != nil {
+			return 0, errors.Wrap(err, "failed to remove existing container")
+		}
+	}
+
+	runCfg := containerutil.ContainerRun{
+		NameOrID: darwinProxyContainerName,
+		ImageRef: "alpine/socat:1.7.4.4",
+		Ports: []containerutil.Port{
+			{
+				IP:            "127.0.0.1",
+				HostPort:      0, // Bind to available port
+				ContainerPort: 80,
+				Protocol:      containerutil.ProtocolTCP,
+			},
+		},
+		ContainerArgs: []string{
+			"tcp-listen:80,fork,reuseaddr",
+			fmt.Sprintf("tcp:host.docker.internal:%d", registryPort),
+		},
+	}
+
+	err = b.opt.ContainerFrontend.ContainerRun(ctx, runCfg)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to start support container")
+	}
+
+	infoMap, err = b.opt.ContainerFrontend.ContainerInfo(ctx, darwinProxyContainerName)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to check info")
+	}
+
+	info, ok := infoMap[darwinProxyContainerName]
+	if !ok {
+		return 0, errors.New("container does not exist")
+	}
+
+	if len(info.Ports) == 0 {
+		return 0, errors.New("container port not set")
+	}
+
+	parts := strings.Split(info.Ports[0], ":")
+	if len(parts) != 3 {
+		return 0, errors.Errorf("invalid container port format: %s", info.Ports[0])
+	}
+
+	assignedPort, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to parse container port")
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	for {
+		res, err := http.Get(fmt.Sprintf("http://localhost:%d/v2/", assignedPort))
+		if res != nil && res.Body != nil {
+			res.Body.Close()
+		}
+		if err == nil && res != nil && res.StatusCode == http.StatusOK {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return 0, ctx.Err()
+		case <-time.After(time.Second):
+			continue
+		}
+	}
+
+	return assignedPort, nil
+}
+
+func (b *Builder) stopDarwinProxyHelper(ctx context.Context) error {
+	err := b.opt.ContainerFrontend.ContainerRemove(ctx, true, darwinProxyContainerName)
+	if err != nil {
+		return errors.Wrap(err, "failed to stop support container")
+	}
+	return nil
 }
 
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {

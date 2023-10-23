@@ -17,6 +17,28 @@ import (
 	"github.com/pkg/errors"
 )
 
+type containerInfo struct {
+	ID    string `json:"Id"`
+	Name  string `json:"Name"`
+	State struct {
+		Status string `json:"Status"`
+	} `json:"State"`
+	NetworkSettings struct {
+		Networks map[string]struct {
+			IPAddress string `json:"IPAddress"`
+		} `json:"Networks"`
+		Ports map[string][]struct {
+			HostIP   string `json:"HostIP"`
+			HostPort string `json:"HostPort"`
+		} `json:"Ports"`
+	} `json:"NetworkSettings"`
+	Config struct {
+		Image  string            `json:"Image"`
+		Labels map[string]string `json:"Labels"`
+	} `json:"Config"`
+	Image string `json:"Image"`
+}
+
 type shellFrontend struct {
 	binaryName              string
 	rootless                bool
@@ -52,23 +74,7 @@ func (sf *shellFrontend) ContainerInfo(ctx context.Context, namesOrIDs ...string
 	}
 
 	// Anonymous struct to just pick out what we need
-	containers := []struct {
-		ID    string `json:"Id"`
-		Name  string `json:"Name"`
-		State struct {
-			Status string `json:"Status"`
-		} `json:"State"`
-		NetworkSettings struct {
-			Networks map[string]struct {
-				IPAddress string `json:"IPAddress"`
-			} `json:"Networks"`
-		} `json:"NetworkSettings"`
-		Config struct {
-			Image  string            `json:"Image"`
-			Labels map[string]string `json:"Labels"`
-		} `json:"Config"`
-		Image string `json:"Image"`
-	}{}
+	containers := []containerInfo{}
 	err := json.Unmarshal([]byte(output.stdout.String()), &containers)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to unmarshal container inspect output %s", output.stdout.String())
@@ -88,10 +94,21 @@ func (sf *shellFrontend) ContainerInfo(ctx context.Context, namesOrIDs ...string
 			Image:   container.Config.Image,
 			ImageID: container.Image,
 			Labels:  container.Config.Labels,
+			Ports:   formatPorts(container),
 		}
 	}
 
 	return infos, nil
+}
+
+func formatPorts(info containerInfo) []string {
+	ret := []string{}
+	for key, ports := range info.NetworkSettings.Ports {
+		for _, port := range ports {
+			ret = append(ret, fmt.Sprintf("%s:%s:%s", port.HostIP, port.HostPort, key))
+		}
+	}
+	return ret
 }
 
 func (sf *shellFrontend) ContainerRemove(ctx context.Context, force bool, namesOrIDs ...string) error {

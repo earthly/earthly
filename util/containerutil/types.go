@@ -12,6 +12,7 @@ type ContainerInfo struct {
 	Name    string
 	Status  string
 	IPs     map[string]string
+	Ports   []string
 	Image   string
 	ImageID string
 	Labels  map[string]string

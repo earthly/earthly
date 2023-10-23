@@ -83,7 +83,7 @@ func (r *RegistryProxy) handle(ctx context.Context, conn net.Conn) error {
 	eg, _ := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
-		_, err = copyWithDeadline(conn, rw)
+		_, err = registry.CopyWithDeadline(conn, rw)
 		if err != nil {
 			return errors.Wrap(err, "failed to write to stream")
 		}
@@ -108,36 +108,4 @@ func (r *RegistryProxy) handle(ctx context.Context, conn net.Conn) error {
 	}
 
 	return nil
-}
-
-func copyWithDeadline(conn net.Conn, w io.Writer) (int64, error) {
-	var t int64
-	for {
-		err := conn.SetReadDeadline(time.Now().Add(readDeadline))
-		if err != nil {
-			return 0, err
-		}
-		buf := make([]byte, 32*1024)
-		n, err := conn.Read(buf)
-		if err != nil {
-			if errors.Is(err, io.EOF) || isNetTimeout(err) {
-				break
-			}
-			return 0, err
-		}
-		buf = buf[0:n]
-		n, err = w.Write(buf)
-		if err != nil {
-			return 0, err
-		}
-		t += int64(n)
-	}
-	return t, nil
-}
-
-func isNetTimeout(err error) bool {
-	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-		return true
-	}
-	return false
 }
