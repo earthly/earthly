@@ -209,7 +209,7 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 	if isDarwin {
 		darwinProxyPort, err := b.startDarwinProxyHelper(ctx, registryPort)
 		if err != nil {
-			b.opt.Console.Warnf("Darwin registry container: %v", err)
+			b.opt.Console.Warnf("Failed to start registry proxy support container: %v", err)
 			err := b.stopDarwinProxyHelper(ctx) // Clean up dangling container on failure.
 			if err != nil {
 				b.opt.Console.Warnf("Failed to stop registry proxy support container: %v", err)
