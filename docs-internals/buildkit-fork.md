@@ -11,3 +11,7 @@ and would not be a good fit to submit upstream.
 - `Export` method on gateway client, which is used to enable WAIT / END blocks
 - healthcheck overrides, which are required for maintaining stability of our satellite instances
 - modifications to the `llbsolver/ops/exec.go` in order to support `LOCALLY` mode
+- GCAnalytics for stats on garbage collection and disk space used
+- info call that includes the op load and the number of sessions currently executing
+- StopIfIdle - the ability to shut down buildkit while ensuring that no session is active and that no session is accepted while closing
+- session management capabilities, including the ability to sessions that run for too long
