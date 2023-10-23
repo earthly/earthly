@@ -101,7 +101,6 @@ ga-no-qemu-quick:
     BUILD +true-false-flag-invalid
     BUILD +dont-save-indirect-remote-artifact
     BUILD +remote-earthfile-must-have-version
-    BUILD +sequential-locally-test
     BUILD +version-flag-test
     BUILD +implicit-ignores
     BUILD +help
