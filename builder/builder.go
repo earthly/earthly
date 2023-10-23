@@ -314,6 +314,8 @@ func (b *Builder) startDarwinProxyHelper(ctx context.Context, registryPort int) 
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
+	// Wait for the proxy chain to resolve to the BK registry. The /v2/ path
+	// will return a 200 when ready.
 	for {
 		res, err := http.Get(fmt.Sprintf("http://localhost:%d/v2/", assignedPort))
 		if res != nil && res.Body != nil {
