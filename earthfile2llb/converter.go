@@ -124,7 +124,6 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		Final:   sts,
 		Visited: opt.Visited,
 	}
-	sts.AddOverridingVarsAsBuildArgInputs(opt.OverridingVars)
 	newCollOpt := variables.NewCollectionOpt{
 		Console:          opt.Console,
 		Target:           target,

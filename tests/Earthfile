@@ -101,7 +101,6 @@ ga-no-qemu-quick:
     BUILD +true-false-flag-invalid
     BUILD +dont-save-indirect-remote-artifact
     BUILD +remote-earthfile-must-have-version
-    BUILD +sequential-locally-test
     BUILD +version-flag-test
     BUILD +implicit-ignores
     BUILD +help
@@ -123,6 +122,7 @@ ga-no-qemu-quick:
     BUILD +test-cache-mount-mode
     BUILD +test-cache-mode
     BUILD +test-shared-cache
+    BUILD +test-visited-upfront-hash-collection
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -1142,42 +1142,6 @@ true-false-flag-invalid:
     RUN cat output3.txt
     RUN cat output3.txt | grep 'invalid argument for flag .*--no-cache.*expected bool'
 
-sequential-locally-test:
-    DO +RUN_EARTHLY --earthfile=sequential-locally.earth --use_tmpfs=false --target="+run-lots" --post_command="2>output.txt"
-    RUN cat output.txt | grep -vw RUN | grep -vw char | grep -o '\(start\|mid\|end\)\s[a-d]$' > output-filtered.txt
-    RUN echo "set -e
-expectedmode=\"start\"
-expectedchar=\"?\"
-while read line; do
-    mode=\$(echo \"\$line\" | cut -d \" \" -f1)
-    char=\$(echo \"\$line\" | cut -d \" \" -f2)
-    echo \"mode=\$mode char=\$char\"
-    case \"\$mode\" in
-        start)
-            test \"\$expectedmode\" = \"start\" || (echo \"expected \$expectedmode; got \$mode\" && exit 1)
-            expectedmode=\"mid\"
-            expectedchar=\"$char\"
-            ;;
-        mid)
-            test \"\$expectedmode\" = \"mid\" || (echo \"expected \$expectedmode; got \$mode\" && exit 1)
-            test \"\$expectedchar\" = \"$char\" || (echo \"expected \$expectedchar; got \$char\" && exit 1)
-            # we don't change expectedmode to end, because we can have multiple 'mid's
-            ;;
-        end)
-            test \"\$expectedmode\" = \"mid\" || (echo \"expected \$expectedmode; got \$mode\" && exit 1)
-            test \"\$expectedchar\" = \"$char\" || (echo \"expected \$expectedchar; got \$char\" && exit 1)
-            expectedmode=\"start\"
-            expectedchar=\"?\"
-            ;;
-        *)
-            echo unhandled mode: $mode
-            exit 1
-    esac
-done
-echo test passed: RUNs were sequentially grouped
-" > test-output.sh && chmod +x test-output.sh
-    RUN cat output-filtered.txt | ./test-output.sh
-
 version-flag-test:
     # In addition to testing the --version flag works; this flag is critical for the homebrew deployment test, which
     # performs an assert in https://github.com/earthly/homebrew-earthly/blob/main/Formula/earthly.rb
@@ -1472,6 +1436,21 @@ test-shared-cache:
       --target=+test \
       --extra_args=" --secret=content=filecontents " \
       --output_contains="filecontents"
+
+test-visited-upfront-hash-collection:
+  DO +RUN_EARTHLY \
+      --earthfile=visited-upfront-hash-collection.earth \
+      --target=+parallel
+  RUN order=$(cat earthly.output | grep -Eo "### [[:digit:]]+"  | cut -d' ' -f2- | tr '\n' ' ' | tr -d '[:space:]'); \
+      echo "order: $order"; \
+      # This regex matches successions of number trios like: 222111444333555, happening when the builds didn't run in parallel
+      match=$(echo $order | sed -nr '/^([[:digit:]])\1\1([[:digit:]])\2\2([[:digit:]])\3\3([[:digit:]])\4\4([[:digit:]])\5\5$/p'); \
+      if [[ $match ]]; then \
+        echo "no parallelization observed"; \
+        exit 1; \
+      else \
+         echo "parallelization checked"; \
+      fi
 
 RUN_EARTHLY:
     COMMAND
