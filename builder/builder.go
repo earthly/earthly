@@ -223,7 +223,6 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 	b.opt.LocalRegistryAddr = addr
 
 	closeFn := func() {
-		fmt.Println("Closing registry proxy")
 		if isDarwin {
 			err := b.stopDarwinProxyHelper(ctx)
 			if err != nil {
