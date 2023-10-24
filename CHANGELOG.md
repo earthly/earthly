@@ -15,7 +15,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Fix for limited parallelism when the target is the same but has different args [#2377](https://github.com/earthly/earthly/issues/2377)
 - `prune --age` did not support `d` (for days) suffix, even thought `earthly --help` said it did [#3401](https://github.com/earthly/earthly/issues/3401)
 - `buildkit scheduler error: return leaving incoming open` which occured during deduplication of opperations within buildkit; cherry-picked 100d3cb6b6903be50f7a3e5dba193515aa9530fa from upstream buildkit repo. [#2957](https://github.com/earthly/earthly/issues/2957)
-- dockerd-wrapper.sh: pull images in parallel [#2351](https://github.com/earthly/earthly/issues/2351)
+- changed `WITH DOCKER` to pull images in parallel [#2351](https://github.com/earthly/earthly/issues/2351)
 
 ### Changed
 - Registry proxy: Use lower-level TCP streaming [#2351](https://github.com/earthly/earthly/pull/3317)
