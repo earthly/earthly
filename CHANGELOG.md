@@ -4,13 +4,24 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.7.21 - 2023-10-24
+
 ### Added
 - The new ARG `EARTHLY_GIT_REFS` will contain the references to the current git commit, this ARG must be enabled with the `VERSION --git-refs` feature flag. [#3341](https://github.com/earthly/earthly/pull/3341)
 - A new `--force-certificate-generation` flag for bootstrapping, which will force the generation of self signed TLS certificates even when the `--no-buildkit` flag is set.
+- Add builtin support for Git references [#3341](https://github.com/earthly/earthly/issues/2735)
 
 ### Fixed
-- `prune --age` did not support `d` (for days) suffix, even thought `earthly --help` said it did [#3401](https://github.com/earthly/earthly/issues/3401)  
+- Fix for limited parallelism when the target is the same but has different args [#2377](https://github.com/earthly/earthly/issues/2377)
+- `prune --age` did not support `d` (for days) suffix, even thought `earthly --help` said it did [#3401](https://github.com/earthly/earthly/issues/3401)
 - `buildkit scheduler error: return leaving incoming open` which occured during deduplication of opperations within buildkit; cherry-picked 100d3cb6b6903be50f7a3e5dba193515aa9530fa from upstream buildkit repo. [#2957](https://github.com/earthly/earthly/issues/2957)
+- dockerd-wrapper.sh: pull images in parallel [#2351](https://github.com/earthly/earthly/issues/2351)
+
+### Changed
+- Registry proxy: Use lower-level TCP streaming [#2351](https://github.com/earthly/earthly/pull/3317)
+
+### Additional Info
+- This release includes changes to buildkit
 
 ## v0.7.20 - 2023-10-03
 
@@ -107,7 +118,7 @@ Note: This release was aborted due to a regression in the log sharing functional
 
 ### Fixed
 - Fixed a bug, where the command to create tokens with a set expiration failed.
-- Long pauses at the end of builds, which were characterized by apparent freezes or delays with the message `Waiting on Buildkit...`. 
+- Long pauses at the end of builds, which were characterized by apparent freezes or delays with the message `Waiting on Buildkit...`.
 - `earthly account create-token` no longer panics when parsing expiration date
 - `earthly account login` could change the active user when the JWT expired and an SSH key existed for a different user; now earthly will either refresh the JWT or error
 
