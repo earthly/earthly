@@ -3,10 +3,20 @@ name: Satellites Docker CI Ubuntu
 on:
   push:
     branches: [ main ]
-    paths-ignore: [ docs/** ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.github/renovate.json5'
+      - '.github/CODEOWNERS'
+      - 'LICENSE'
   pull_request:
     branches: [ main ]
-    paths-ignore: [ docs/** ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.github/renovate.json5'
+      - '.github/CODEOWNERS'
+      - 'LICENSE'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -130,7 +140,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      EXAMPLE_NAME: "+examples1"
+      EXAMPLE_NAME: "+examples-1"
       USE_SATELLITE: true
       SATELLITE_NAME: "core-examples"
       EARTHLY_ORG: "earthly-technologies"
@@ -144,7 +154,21 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      EXAMPLE_NAME: "+examples2"
+      EXAMPLE_NAME: "+examples-2"
+      USE_SATELLITE: true
+      SATELLITE_NAME: "core-examples"
+      EARTHLY_ORG: "earthly-technologies"
+    secrets: inherit
+
+  docker-satellites-examples-3:
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-example.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      EXAMPLE_NAME: "+examples-3"
       USE_SATELLITE: true
       SATELLITE_NAME: "core-examples"
       EARTHLY_ORG: "earthly-technologies"
@@ -177,4 +201,3 @@ jobs:
       SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
     secrets: inherit
-

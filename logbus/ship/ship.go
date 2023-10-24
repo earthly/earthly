@@ -12,7 +12,7 @@ import (
 )
 
 type streamer interface {
-	StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta) []error
+	StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta) <-chan error
 }
 
 // LogShipper subscribes to the Log Bus & streams log entries up to the remote
@@ -56,10 +56,10 @@ func (l *LogShipper) Start(ctx context.Context) {
 		ctx, l.cancel = context.WithCancel(ctx)
 		defer l.cancel()
 		out := bufferedDeltaChan(ctx, l.ch)
-		errs := l.cl.StreamLogs(ctx, l.man, out)
-		if len(errs) > 0 {
+		errCh := l.cl.StreamLogs(ctx, l.man, out)
+		for err := range errCh {
 			l.mu.Lock()
-			l.errs = errs
+			l.errs = append(l.errs, err)
 			l.mu.Unlock()
 		}
 		l.done <- struct{}{}

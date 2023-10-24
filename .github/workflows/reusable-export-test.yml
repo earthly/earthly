@@ -22,12 +22,16 @@ on:
       SATELLITE_NAME:
         required: false
         type: string
+      SKIP_JOB:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   export-test:
     name: Export tests
     runs-on: ${{inputs.RUNS_ON}}
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    if: ${{ !inputs.SKIP_JOB && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"

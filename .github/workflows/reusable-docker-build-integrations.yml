@@ -25,10 +25,14 @@ on:
       EARTHLY_ORG:
         required: false
         type: string
+      SKIP_JOB:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   docker-build-integration:
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    if: ${{ !inputs.SKIP_JOB && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ${{inputs.RUNS_ON}}
     env:
       FORCE_COLOR: 1

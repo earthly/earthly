@@ -51,28 +51,6 @@ func (ti TargetInput) WithFilterBuildArgs(buildArgNames map[string]bool) TargetI
 	return tiClone
 }
 
-// Equals compares to another TargetInput for equality.
-func (ti TargetInput) Equals(other TargetInput) bool {
-	if ti.TargetCanonical != other.TargetCanonical {
-		return false
-	}
-	if ti.Platform != other.Platform {
-		return false
-	}
-	if ti.AllowPrivileged != other.AllowPrivileged {
-		return false
-	}
-	if len(ti.BuildArgs) != len(other.BuildArgs) {
-		return false
-	}
-	for index := range ti.BuildArgs {
-		if !ti.BuildArgs[index].Equals(other.BuildArgs[index]) {
-			return false
-		}
-	}
-	return true
-}
-
 func (ti TargetInput) clone() TargetInput {
 	tiCopy := TargetInput{
 		TargetCanonical: ti.TargetCanonical,
@@ -139,7 +117,8 @@ type BuildArgInput struct {
 	// ConstantValue is the constant value of this build arg.
 	ConstantValue string `json:"constantValue"`
 	// DefaultValue represents the default value of the build arg.
-	DefaultValue string `json:"defaultConstant"`
+	// Not used as part of the hashing.
+	DefaultValue string `json:"-"`
 }
 
 // IsDefaultValue returns whether the value of the BuildArgInput
@@ -159,9 +138,8 @@ func (bai BuildArgInput) Equals(other BuildArgInput) bool {
 	if bai.ConstantValue != other.ConstantValue {
 		return false
 	}
-	if bai.DefaultValue != other.DefaultValue {
-		return false
-	}
+	// Ignoring the default value comparison - it is not used for
+	// deduplication.
 	return true
 }
 

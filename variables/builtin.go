@@ -34,11 +34,15 @@ func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gituti
 	ret.Add(arg.EarthlyTargetName, target.Target)
 
 	setTargetTag(ret, target, gitMeta)
-	SetPlatformArgs(ret, platr)
-	setUserPlatformArgs(ret, platr)
-	if ftrs.NewPlatform {
-		setNativePlatformArgs(ret, platr)
+
+	if platr != nil {
+		SetPlatformArgs(ret, platr)
+		setUserPlatformArgs(ret, platr)
+		if ftrs.NewPlatform {
+			setNativePlatformArgs(ret, platr)
+		}
 	}
+
 	if ftrs.WaitBlock {
 		ret.Add(arg.EarthlyPush, fmt.Sprintf("%t", push))
 	}
@@ -85,6 +89,9 @@ func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gituti
 		if ftrs.EarthlyGitAuthorArgs {
 			ret.Add(arg.EarthlyGitAuthor, gitMeta.Author)
 			ret.Add(arg.EarthlyGitCoAuthors, strings.Join(gitMeta.CoAuthors, " "))
+		}
+		if ftrs.GitRefs {
+			ret.Add(arg.EarthlyGitRefs, strings.Join(gitMeta.Refs, " "))
 		}
 	} else {
 		// Ensure SOURCE_DATE_EPOCH is always available

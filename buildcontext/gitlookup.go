@@ -26,7 +26,6 @@ import (
 	"github.com/earthly/earthly/util/stringutil"
 
 	"github.com/jdxcode/netrc"
-	"github.com/moby/buildkit/util/gitutil"
 	"github.com/moby/buildkit/util/sshutil"
 )
 
@@ -569,6 +568,46 @@ func (gl *GitLookup) makeCloneURL(m *gitMatcher, host, gitPath string) (string, 
 	return gitURL, keyScans, nil
 }
 
+// TODO eventually we should use gitutil.parseURL directly; but for now we want to avoid this change to keep this commit smaller
+const (
+	HTTPProtocol = iota + 1
+	HTTPSProtocol
+	SSHProtocol
+	GitProtocol
+	UnknownProtocol
+)
+
+// parseGitProtocol comes from buildkit (which was named ParseProtocol); it was since deleted and replaced with ParseURL)
+func parseGitProtocol(remote string) (string, int) {
+	prefixes := map[string]int{
+		"http://":  HTTPProtocol,
+		"https://": HTTPSProtocol,
+		"git://":   GitProtocol,
+		"ssh://":   SSHProtocol,
+	}
+	protocolType := UnknownProtocol
+	for prefix, potentialType := range prefixes {
+		if strings.HasPrefix(remote, prefix) {
+			remote = strings.TrimPrefix(remote, prefix)
+			protocolType = potentialType
+		}
+	}
+
+	if protocolType == UnknownProtocol && sshutil.IsImplicitSSHTransport(remote) {
+		protocolType = SSHProtocol
+	}
+
+	// remove name from ssh
+	if protocolType == SSHProtocol {
+		parts := strings.SplitN(remote, "@", 2)
+		if len(parts) == 2 {
+			remote = parts[1]
+		}
+	}
+
+	return remote, protocolType
+}
+
 // GetCloneURL returns the repo to clone, and a path relative to the repo
 //
 //	"github.com/earthly/earthly"             ---> ("git@github.com/earthly/earthly.git", "")
@@ -600,8 +639,8 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, []string, error) 
 		gitURL := m.re.ReplaceAllString(path, m.sub)
 		gl.console.VerbosePrintf("converted earthly reference %s to git url %s (using regex substitution %s)", path, stringutil.ScrubCredentials(gitURL), stringutil.ScrubCredentials(m.sub))
 		var keyScans []string
-		remote, protocol := gitutil.ParseProtocol(gitURL)
-		if protocol == gitutil.SSHProtocol {
+		remote, protocol := parseGitProtocol(gitURL)
+		if protocol == SSHProtocol {
 			subHost := remote[:strings.IndexByte(remote, '/')]
 			_, keyScans, err = gl.getHostKeyAlgorithms(subHost)
 			if err != nil {
@@ -631,16 +670,16 @@ func (gl *GitLookup) ConvertCloneURL(inURL string) (string, []string, error) {
 	var host string
 	var gitPath string
 
-	remote, protocol := gitutil.ParseProtocol(inURL)
+	remote, protocol := parseGitProtocol(inURL)
 	switch protocol {
-	case gitutil.HTTPProtocol, gitutil.HTTPSProtocol:
+	case HTTPProtocol, HTTPSProtocol:
 		splits := strings.SplitN(remote, "/", 2)
 		if len(splits) != 2 {
 			return "", nil, errors.Errorf("failed to split path from host in %s", remote)
 		}
 		host = splits[0]
 		gitPath = splits[1]
-	case gitutil.SSHProtocol:
+	case SSHProtocol:
 		if sshutil.IsImplicitSSHTransport(inURL) {
 			splits := strings.SplitN(remote, ":", 2)
 			if len(splits) != 2 {
@@ -671,8 +710,8 @@ func (gl *GitLookup) ConvertCloneURL(inURL string) (string, []string, error) {
 		}
 		gitURL := m.re.ReplaceAllString(path, m.sub)
 		var keyScans []string
-		remote, protocol := gitutil.ParseProtocol(gitURL)
-		if protocol == gitutil.SSHProtocol {
+		remote, protocol := parseGitProtocol(gitURL)
+		if protocol == SSHProtocol {
 			subHost := remote[:strings.IndexByte(remote, '/')]
 			_, keyScans, err = gl.getHostKeyAlgorithms(subHost)
 			if err != nil {

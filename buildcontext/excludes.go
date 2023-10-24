@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/earthly/earthly/util/fileutil"
-	"github.com/moby/buildkit/frontend/dockerfile/dockerignore"
+	"github.com/moby/patternmatcher/ignorefile"
 	"github.com/pkg/errors"
 )
 
@@ -76,7 +76,7 @@ func readExcludes(dir string, noImplicitIgnore bool, useDockerIgnore bool) ([]st
 	if err != nil {
 		return nil, errors.Wrapf(err, "read %s", filePath)
 	}
-	excludes, err := dockerignore.ReadAll(f)
+	excludes, err := ignorefile.ReadAll(f)
 	if err != nil {
 		return nil, errors.Wrapf(err, "parse %s", filePath)
 	}

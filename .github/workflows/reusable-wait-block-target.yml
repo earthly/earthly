@@ -15,10 +15,18 @@ on:
       RUNS_ON:
         required: true
         type: string
-
+      SKIP_JOB:
+        required: false
+        type: boolean
+        default: false
+      TARGET_NAME:
+        required: true
+        type: string
 
 jobs:
-  wait-block-override:
+  test:
+    name: ${{inputs.TARGET_NAME}} (--global-wait-end)
+    if: ${{!inputs.SKIP_JOB}}
     runs-on: ${{inputs.RUNS_ON}}
     env:
       FORCE_COLOR: 1
@@ -47,12 +55,10 @@ jobs:
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
-      - name: Execute wait-block test
-        run: ./tests/wait-block/test.sh
-      - name: Execute +test using wait-block override (Earthly Only)
+      - name: Execute ${{inputs.TARGET_NAME}} using wait-block override
         run: |-
           ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P --global-wait-end \
-           +test --GLOBAL_WAIT_END=true
+           ${{inputs.TARGET_NAME}} --GLOBAL_WAIT_END=true
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd || true
         if: ${{ failure() && ! inputs.USE_SATELLITE }}

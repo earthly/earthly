@@ -1,7 +1,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -15,7 +15,7 @@ func TestService(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 	expected := "Hello, Friend!"
-	actual, _ := ioutil.ReadAll(resp.Body)
+	actual, _ := io.ReadAll(resp.Body)
 	if expected != string(actual) {
 		t.Fail()
 	}

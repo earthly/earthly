@@ -113,15 +113,13 @@ def parse_changelog(changelog_data):
                 continue
             if is_addition_info:
                 allowed_additional_info_lines = ('- This release has no changes to buildkit', '- This release includes changes to buildkit')
-                if line == '':
-                    continue
-                if is_buildkit_change_found:
-                    raise DuplicateBuildkitUpdateRequired('buildkit update string already exists', line_num)
-                if line not in allowed_additional_info_lines:
-                    raise MalformedAdditionalInfoLint(f'expected line of either {allowed_additional_info_lines}, but got "{line}" instead', line_num)
+                if line != '':
+                    if is_buildkit_change_found:
+                        raise DuplicateBuildkitUpdateRequired('buildkit update string already exists', line_num)
+                    if line not in allowed_additional_info_lines:
+                        raise MalformedAdditionalInfoLint(f'expected line of either {allowed_additional_info_lines}, but got "{line}" instead', line_num)
                 is_buildkit_change_found = True
-                continue
-            if ignore:
+            elif ignore:
                 pass
             elif is_title_body:
                 pass # no linting of title body
@@ -167,13 +165,12 @@ def parse_changelog(changelog_data):
             is_addition_info = False
             if title == 'Additional Info':
                 is_addition_info = True
-                continue
-            allowed_titles = ('Added', 'Changed', 'Removed', 'Fixed')
-            if title not in allowed_titles:
-                raise UnexpectedHeaderError(f'expected header of {allowed_titles}; but got "{title}"', line_num)
-            if prev_header_num not in (2, 3):
-                raise UnexpectedHeaderError(f'expected header "{title}" to be under a "vX.Y.Z" or "Unreleased" section, but instead it was located after "{prev_header_title}"', line_num)
-
+            else:
+                allowed_titles = ('Added', 'Changed', 'Removed', 'Fixed')
+                if title not in allowed_titles:
+                    raise UnexpectedHeaderError(f'expected header of {allowed_titles}; but got "{title}"', line_num)
+                if prev_header_num not in (2, 3):
+                    raise UnexpectedHeaderError(f'expected header "{title}" to be under a "vX.Y.Z" or "Unreleased" section, but instead it was located after "{prev_header_title}"', line_num)
             body.append(line)
         else:
             raise UnexpectedHeaderError(f'unsupported header {line}')
@@ -205,16 +202,22 @@ if __name__ == '__main__':
     try:
         changelog = parse_changelog(changelog_str)
     except MalformedVersionHeaderError as e:
-        print(f'failed to parse {path_str}:{e.line+1}: unable to parse "{e}"; should be of the form "v1.2.3 - YYYY-MM-DD" (or "v1.2.3-rc4 - YYYY-MM-DD")', file=sys.stderr)
+        print(f'{path_str}:{e.line+1}: unable to parse "{e}"; should be of the form "v1.2.3 - YYYY-MM-DD" (or "v1.2.3-rc4 - YYYY-MM-DD")', file=sys.stderr)
         sys.exit(1)
     except MalformedHeaderError as e:
-        print(f'failed to parse {path_str}:{e.line+1}: malformed header found ({e}); should be "#[#[...]] <title>"', file=sys.stderr)
+        print(f'{path_str}:{e.line+1}: malformed header found ({e}); should be "#[#[...]] <title>"', file=sys.stderr)
         sys.exit(1)
     except DuplicateVersionError as e:
-        print(f'failed to parse {path_str}:{e.line+1}: duplicate titles ({e}) detected', file=sys.stderr)
+        print(f'{path_str}:{e.line+1}: duplicate titles ({e}) detected', file=sys.stderr)
+        sys.exit(1)
+    except MissingIsBuildkitUpdateRequired as e:
+        print(f'{path_str}:{e.line+1}: Missing "Additional Info" section ({e})', file=sys.stderr)
+        sys.exit(1)
+    except MalformedAdditionalInfoLint as e:
+        print(f'{path_str}:{e.line+1}: Found an "Additional Info" section; however it is malformed: {e}', file=sys.stderr)
         sys.exit(1)
     except ChangeLogParseError as e:
-        print(f'failed to parse {path_str}:{e.line+1}: unhandled exception {e.__class__.__name__}: {e}', file=sys.stderr)
+        print(f'{path_str}:{e.line+1}: unhandled exception {e.__class__.__name__}: {e}', file=sys.stderr)
         sys.exit(1)
 
     if args.version is None:

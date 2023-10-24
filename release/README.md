@@ -18,9 +18,9 @@
   git checkout main && git pull
   ```
 * Update the CHANGELOG.md with the corresponding release notes and open a PR
-  * Use a comparison such as https://github.com/earthly/earthly/compare/v0.7.19...main (replace the versions in the URL with the previously released version) or a tool such as `gitk` (aka `git-gui`) to see which PRs will go into this release.
+  * Use a comparison such as https://github.com/earthly/earthly/compare/v0.7.20...main (replace the versions in the URL with the previously released version) or a tool such as `gitk` (aka `git-gui`) to see which PRs will go into this release.
 * Make sure that main build is green for all platforms (check build status for the latest commit on GitHub).
-* Make sure nightly BuildKite builds are green for most recent build
+* Make sure the following build status are green:
   | Platform      | Status        |
   | ------------- | ------------- |
   | MacOS (x86)   | [![Build status](https://badge.buildkite.com/cc0627732806ab3b76cf13b02c498658b851056242ec28f62d.svg)](https://buildkite.com/earthly-technologies/earthly-mac-scheduled)
@@ -38,24 +38,6 @@
 * Updating the Earthly version in our docs:  
   [Renovate](https://www.mend.io/renovate/) will open a PR to update all docs as soon as a new release is available in this repo,  
   which you should then review & merge (An example PR can be found [here](https://github.com/earthly/earthly/pull/3285/files)).
-
-  * If for whatever reason you need/want to do this manually, please do the following:
-    * Update the version in the following places:
-<!-- vale HouseStyle.Spelling = NO -->
-  * [circle-integration.md](../docs/ci-integration/guides/circle-integration.md)
-  * [gh-actions-integration.md](../docs/ci-integration/guides/gh-actions-integration.md)
-  * [codebuild-integration.md](../docs/ci-integration/guides/codebuild-integration.md)
-  * [gitlab-integration.md](../docs/ci-integration/guides/gitlab-integration.md)
-  * [build-an-earthly-ci-image.md](../docs/ci-integration/build-an-earthly-ci-image.md)
-  * [all-in-one.md](../docs/docker-images/all-in-one.md)
-  * [buildkit-standalone.md](../docs/docker-images/buildkit-standalone.md)
-<!-- vale HouseStyle.Spelling = YES -->
-  * you can try doing that with:
-    ```shell
-    REGEX='\(earthly\/releases\/download\/\)v[0-9]\+\.[0-9]\+\.[0-9]\+\(\/\)'; grep -Ril './docs/' -e $REGEX | xargs -n1 sed -i 's/'$REGEX'/\1'$RELEASE_TAG'\2/g'
-    REGEX='\(\searthly\/\(buildkitd\|earthly\):\)v[0-9]\+\.[0-9]\+\.[0-9]\+'; grep -Ril './docs/' -e $REGEX | xargs -n1 sed -i 's/'$REGEX'/\1'$RELEASE_TAG'/g'
-    ```
-
 * Commit updated version changes to `docs-0.7`.
 * Merge `docs-0.7` into `main`.
   ```shell
@@ -68,10 +50,9 @@
     `git checkout main && git push`
   
 <!-- vale HouseStyle.Spelling = YES -->
-* After GitBook has processed the `main` branch (you can see the gitbook check/job in Github), run a broken link checker over https://docs.earthly.dev. This one is fast and easy: https://www.deadlinkchecker.com/.
+* After GitBook has processed the [docs-0.7](https://github.com/earthly/earthly/tree/docs-0.7), a GH action will run to check for broken links in https://docs.earthly.dev. [This](https://github.com/earthly/earthly/actions/runs/6434655743/job/17474292828) is an example of such workflow.
 * Verify the [Homebrew release job](https://github.com/earthly/homebrew-earthly) has successfully run and has merged the new `release-v...` branch into `main`.
 * Copy the release notes you have written before and paste them in the Earthly Community slack channel `#announcements`, together with a link to the release's GitHub page. If you have Slack markdown editing activated, you can copy the markdown version of the text.
-* Ask Adam to tweet about the release.
 
 ### One-Time (clear this section when done during release)
 

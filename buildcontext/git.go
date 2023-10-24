@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/earthly/earthly/analytics"
@@ -21,6 +22,7 @@ import (
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/syncutil/synccache"
 	"github.com/earthly/earthly/util/vertexmeta"
+	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
 
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -35,7 +37,7 @@ type gitResolver struct {
 	cleanCollection   *cleanup.Collection
 	gitBranchOverride string
 	lfsInclude        string
-	logLevel          llb.GitLogLevel
+	logLevel          buildkitgitutil.GitLogLevel
 	gitImage          string
 	projectCache      *synccache.SyncCache // "gitURL#gitRef" -> *resolvedGitProject
 	buildFileCache    *synccache.SyncCache // project ref -> local path
@@ -58,6 +60,8 @@ type resolvedGitProject struct {
 	authorTs  string
 	author    string
 	coAuthors []string
+	// refs is the git refs
+	refs []string
 	// state is the state holding the git files.
 	state pllb.State
 }
@@ -164,6 +168,7 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 			AuthorTimestamp:      rgp.authorTs,
 			Author:               rgp.author,
 			CoAuthors:            rgp.coAuthors,
+			Refs:                 rgp.refs,
 		},
 		Features: localBuildFile.ftrs,
 	}, nil
@@ -225,6 +230,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 					"git log -1 --format=%at >/dest/git-author-ts || touch /dest/git-author-ts ; " +
 					"git log -1 --format=%ae >/dest/git-author || touch /dest/git-author ; " +
 					"git log -1 --format=%b >/dest/git-body || touch /dest/git-body ; " +
+					"git for-each-ref --contains HEAD --format '%(refname:lstrip=-1)' >/dest/git-refs || touch /dest/git-refs ; " +
 					"",
 			}),
 			llb.Dir("/git-src"),
@@ -294,6 +300,12 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		if err != nil {
 			return nil, errors.Wrap(err, "read git-body")
 		}
+		gitRefsBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: "git-refs",
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "read git-refs")
+		}
 
 		gitHash := strings.SplitN(string(gitHashBytes), "\n", 2)[0]
 		gitShortHash := strings.SplitN(string(gitShortHashBytes), "\n", 2)[0]
@@ -327,6 +339,14 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		}
 		gitCommiterTs := strings.SplitN(string(gitCommitterTsBytes), "\n", 2)[0]
 		gitAuthorTs := strings.SplitN(string(gitAuthorTsBytes), "\n", 2)[0]
+		gitRefs := strings.Split(string(gitRefsBytes), "\n")
+		var gitRefs2 []string
+		for _, gitRef := range gitRefs {
+			gitRef = strings.Trim(gitRef, "'\"")
+			if gitRef != "" && gitRef != "HEAD" && !slices.Contains(gitRefs2, gitRef) {
+				gitRefs2 = append(gitRefs2, gitRef)
+			}
+		}
 
 		gitOpts = []llb.GitOption{
 			llb.WithCustomNamef("[context %s] git context %s", scrubbedGITURL, ref.StringCanonical()),
@@ -348,6 +368,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			authorTs:    gitAuthorTs,
 			author:      gitAuthor,
 			coAuthors:   gitCoAuthors,
+			refs:        gitRefs2,
 			state: pllb.Git(
 				gitURL,
 				gitHash,

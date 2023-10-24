@@ -1,0 +1,14 @@
+VERSION 0.7
+
+PROJECT earthly-technologies/core
+
+FROM alpine
+
+test:
+    IF [ true ]
+       RUN echo "condition ok"
+    ELSE IF [ false ]
+       RUN echo "never"
+    ELSE
+       RUN echo "nope"
+    END

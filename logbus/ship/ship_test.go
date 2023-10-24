@@ -13,18 +13,24 @@ type testClient struct {
 	count int
 }
 
-func (t *testClient) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta) []error {
-	for {
-		select {
-		case _, ok := <-ch:
-			if !ok {
-				return nil
+func (t *testClient) StreamLogs(ctx context.Context, man *pb.RunManifest, ch <-chan *pb.Delta) <-chan error {
+	errCh := make(chan error)
+	go func() {
+		defer close(errCh)
+		for {
+			select {
+			case _, ok := <-ch:
+				if !ok {
+					return
+				}
+				t.count++
+			case <-ctx.Done():
+				errCh <- ctx.Err()
+				return
 			}
-			t.count++
-		case <-ctx.Done():
-			return []error{ctx.Err()}
 		}
-	}
+	}()
+	return errCh
 }
 
 func TestLogShipper(t *testing.T) {

@@ -80,6 +80,14 @@
         {
           "command": {
             "args": [
+              "EARTHLY_GIT_REFS"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
               "EARTHLY_VERSION"
             ],
             "name": "ARG"
@@ -242,6 +250,16 @@
               "test",
               "-z",
               "\"$EARTHLY_GIT_BRANCH\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-z",
+              "\"$EARTHLY_GIT_REFS\""
             ],
             "name": "RUN"
           }

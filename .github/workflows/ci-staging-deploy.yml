@@ -7,6 +7,10 @@ on:
       - '**-staging-test'
     paths-ignore:
       - 'docs/**'
+      - '**.md'
+      - '.github/renovate.json5'
+      - '.github/CODEOWNERS'
+      - 'LICENSE'
 
 jobs:
   build-earthly:
@@ -76,6 +80,7 @@ jobs:
             git remote add staging git@github.com:earthly/earthly-staging.git
             git push staging HEAD:pre-release-$RELEASE_TAG
             echo -e "# Earthly Changelog\n\nAll notable changes to [Earthly](https://github.com/earthly/earthly) will be documented in this file.\n\n## Unreleased\n\n## $RELEASE_TAG - $(date +%Y-%m-%d)\n\nThis pre-release was built from $(git rev-parse HEAD)" > CHANGELOG.md
+            echo -e "\n### Additional Info\n- This release includes changes to buildkit" >> CHANGELOG.md
             ./release/release.sh
       - name: Buildkit logs (runs on failure)
         if: ${{ failure() }}

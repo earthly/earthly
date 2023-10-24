@@ -66,7 +66,7 @@ code:
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
     COPY --dir ast/antlrhandler ast/spec ast/hint ast/command ast/commandflag ast/*.go ast/
-    COPY --dir inputgraph/*.go inputgraph/
+    COPY --dir inputgraph/*.go inputgraph/testdata inputgraph/
 
 # update-buildkit updates earthly's buildkit dependency.
 update-buildkit:
@@ -466,7 +466,7 @@ earthly-docker:
 # Otherwise, it will attempt to login to the docker hub mirror using the provided username and password
 earthly-integration-test-base:
     FROM +earthly-docker
-    RUN apk update && apk add pcre-tools curl python3 bash perl findutils expect yq
+    RUN apk update && apk add pcre-tools curl python3 bash perl findutils expect yq && apk add --upgrade sed
     COPY scripts/acbtest/acbtest scripts/acbtest/acbgrep /bin/
     ENV NO_DOCKER=1
     ENV NETWORK_MODE=host # Note that this breaks access to embedded registry in WITH DOCKER.
@@ -638,7 +638,7 @@ all-buildkitd:
         ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
 dind-alpine:
-    BUILD +dind --OS_IMAGE=alpine --OS_VERSION=3.18 --DOCKER_VERSION=23.0.6-r5
+    BUILD +dind --OS_IMAGE=alpine --OS_VERSION=3.18 --DOCKER_VERSION=23.0.6-r6
 
 dind-ubuntu:
     BUILD +dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal
@@ -714,7 +714,7 @@ test-no-qemu-slow:
     BUILD --pass-args ./tests+ga-no-qemu-slow \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
-# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-slow
+# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-kind
 test-no-qemu-kind:
     BUILD --pass-args ./tests+ga-no-qemu-kind \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
@@ -737,13 +737,12 @@ test-all:
     BUILD --pass-args +test-qemu
     BUILD --pass-args ./tests+experimental
 
-# examples runs both sets of examples
 examples:
-    BUILD +examples1
-    BUILD +examples2
+    BUILD +examples-1
+    BUILD +examples-2
+    BUILD +examples-3
 
-# examples1 runs set 1 of examples
-examples1:
+examples-1:
     ARG TARGETARCH
     BUILD ./examples/c+docker
     BUILD ./examples/cpp+docker
@@ -769,8 +768,7 @@ examples1:
     BUILD ./examples/secrets+base
     BUILD ./examples/cloud-secrets+base
 
-# examples2 runs set 2 of examples
-examples2:
+examples-2:
     BUILD ./examples/readme/go1+all
     BUILD ./examples/readme/go2+build
     BUILD ./examples/readme/proto+docker
@@ -790,6 +788,8 @@ examples2:
     BUILD github.com/earthly/hello-world:main+hello
     BUILD ./examples/cache-command/npm+docker
     BUILD ./examples/cache-command/mvn+docker
+
+examples-3:
     BUILD ./examples/typescript-node+docker
     BUILD ./examples/bazel+run
     BUILD ./examples/bazel+image
@@ -847,3 +847,29 @@ merge-main-to-docs:
         git checkout $to_branch && \
         git merge $from_branch && \
         git push
+
+# check-broken-links checks for broken links in our docs website
+check-broken-links:
+    FROM node:20-alpine3.18
+    RUN npm install broken-link-checker -g
+    WORKDIR /report
+    ARG ADDRESS=https://docs.earthly.dev
+    ARG VERBOSE=false
+    LET REPORT_FILE_NAME=report.txt
+    LET BLC_COMMAND="blc $ADDRESS -rog --exclude https://twitter.com/EarthlyTech --exclude http://localhost:8080/"
+    IF [ $VERBOSE = "true" ]
+        RUN --no-cache $BLC_COMMAND |tee $REPORT_FILE_NAME
+    ELSE
+        RUN --no-cache $BLC_COMMAND &> $REPORT_FILE_NAME || true
+    END
+    LET RESULT=$(grep -qE '^├─BROKEN─' $REPORT_FILE_NAME; echo $?)
+    LET NOCOLOR='\033[0m'
+    LET RED='\033[0;31m'
+    LET GREEN='\033[0;32m'
+    IF [ $RESULT = "0" ]
+        RUN --no-cache echo -e "${RED}Final Broken Links Report:${NOCOLOR}"
+        RUN --no-cache grep --color=always -E '^(Getting links from|├─BROKEN─|Finished!|Elapsed)' $REPORT_FILE_NAME
+        RUN exit 1
+    ELSE
+        RUN --no-cache echo -e "${GREEN}No Broken Links were found${NOCOLOR}"
+    END
