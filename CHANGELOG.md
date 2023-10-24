@@ -7,7 +7,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ## v0.7.21 - 2023-10-24
 
 ### Added
-- The new ARG `EARTHLY_GIT_REFS` will contain the references to the current git commit, this ARG must be enabled with the `VERSION --git-refs` feature flag. [#2735](https://github.com/earthly/earthly/pull/2735)
+- The new ARG `EARTHLY_GIT_REFS` will contain the references to the current git commit, this ARG must be enabled with the `VERSION --git-refs` feature flag. [#2735](https://github.com/earthly/earthly/issues/2735)
 - A new `--force-certificate-generation` flag for bootstrapping, which will force the generation of self signed TLS certificates even when the `--no-buildkit` flag is set.
 
 ### Fixed
