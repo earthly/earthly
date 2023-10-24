@@ -11,7 +11,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - A new `--force-certificate-generation` flag for bootstrapping, which will force the generation of self signed TLS certificates even when the `--no-buildkit` flag is set.
 
 ### Fixed
-- Fixed reduced parallelism regression which occurred when the target is the same but has different args [#2377](https://github.com/earthly/earthly/issues/2377)
+- Fixed reduced parallelism regression which occurred when the target is the same but has different args -- can be enabled with `VERSION --use-visited-upfront-hash-collection` [#2377](https://github.com/earthly/earthly/issues/2377)
 - `prune --age` did not support `d` (for days) suffix, even thought `earthly --help` said it did [#3401](https://github.com/earthly/earthly/issues/3401)
 - `buildkit scheduler error: return leaving incoming open` which occured during deduplication of opperations within buildkit; cherry-picked 100d3cb6b6903be50f7a3e5dba193515aa9530fa from upstream buildkit repo. [#2957](https://github.com/earthly/earthly/issues/2957)
 - changed `WITH DOCKER` to pull images in parallel [#2351](https://github.com/earthly/earthly/issues/2351)
