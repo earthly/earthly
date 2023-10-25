@@ -15,6 +15,7 @@ import (
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 )
 
@@ -539,7 +540,11 @@ func (c *Client) getChallenge(ctx context.Context) (string, error) {
 }
 
 func (c *Client) signChallenge(challenge string, key *agent.Key) (string, string, error) {
-	sig, err := c.sshAgent.SignWithFlags(key, []byte(challenge), agent.SignatureFlagRsaSha512)
+	var sigFlags agent.SignatureFlags
+	if key.Type() == ssh.KeyAlgoRSA {
+		sigFlags = agent.SignatureFlagRsaSha512
+	}
+	sig, err := c.sshAgent.SignWithFlags(key, []byte(challenge), sigFlags)
 	if err != nil {
 		return "", "", err
 	}
