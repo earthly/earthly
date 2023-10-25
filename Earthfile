@@ -873,7 +873,3 @@ check-broken-links:
     ELSE
         RUN --no-cache echo -e "${GREEN}No Broken Links were found${NOCOLOR}"
     END
-
-image-test:
-    FROM alpine
-    SAVE IMAGE alpine
