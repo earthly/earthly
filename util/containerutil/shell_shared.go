@@ -73,7 +73,6 @@ func (sf *shellFrontend) ContainerInfo(ctx context.Context, namesOrIDs ...string
 		}
 	}
 
-	// Anonymous struct to just pick out what we need
 	containers := []containerInfo{}
 	err := json.Unmarshal([]byte(output.stdout.String()), &containers)
 	if err != nil {
