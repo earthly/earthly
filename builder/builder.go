@@ -165,18 +165,24 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 }
 
 func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (func(), bool) {
+	cons := b.opt.Console.WithPrefix("registry-proxy")
 
 	if !b.opt.UseRemoteRegistry {
-		b.opt.Console.VerbosePrintf("Registry proxy not enabled")
+		cons.VerbosePrintf("Registry proxy not enabled")
 		return nil, false
 	}
 
 	if err := caps.Supports(pb.CapEarthlyRegistryProxy); err != nil {
-		b.opt.Console.Warnf("Registry proxy is not supported by BuildKit: %s", err)
+		cons.Warnf(err.Error())
 		return nil, false
 	}
 
 	isDarwin := runtime.GOOS == "darwin"
+
+	if isDarwin && b.opt.ContainerFrontend.Scheme() == "podman-container" {
+		cons.Warnf("Registry proxy not supported on Podman. Falling back to tar-based outputs.")
+		return nil, false
+	}
 
 	controller := regproxy.NewController(
 		b.s.bkClient.RegistryClient(),
@@ -184,11 +190,11 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 		isDarwin,
 		b.opt.DarwinProxyImage,
 		b.opt.DarwinProxyWait,
-		b.opt.Console.WithPrefix("registry-proxy"),
+		cons,
 	)
 	addr, closeFn, err := controller.Start(ctx)
 	if err != nil {
-		b.opt.Console.Warnf("Failed to start registry proxy: %v", err)
+		cons.Printf("Failed to start registry proxy: %v", err)
 		return nil, false
 	}
 
