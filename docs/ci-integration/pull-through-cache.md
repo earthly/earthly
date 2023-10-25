@@ -18,9 +18,9 @@ A pull through cache is a registry mirror that contains no images. When your cli
 To run a cache, you'll need the ability to deploy a persistent service, somewhere. This could be a dedicated instance with Docker installed, or a container in your Kubernetes cluster.
 
 There are multiple ways to setup a registry -- Docker, for example, has a [guide for using the registry as a pull through cache](https://docs.docker.com/registry/recipes/mirror),
-as well as documentation for the [available options](https://docs.docker.com/registry/configuration/), and other details under the [registry image](https://hub.docker.com/_/registry).
+as well as documentation for the [available options](https://distribution.github.io/distribution/about/configuration/), and other details under the [registry image](https://hub.docker.com/_/registry).
 
-Documenting all the possible ways to setup a pull through cache is beyond the scope of this document; however, it does include a [quick getting-started section](#insecure-docker-hub-cache-example) for those who wish
+Documenting all the possible ways to set up a pull through cache is beyond the scope of this document; however, it does include a [quick getting-started section](#insecure-docker-hub-cache-example) for those who wish
 to run an insecure pull through cache.
 
 ### Configuration & Tips

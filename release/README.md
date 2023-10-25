@@ -31,10 +31,9 @@
     cd release
     env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG="$RELEASE_TAG" USER="$USER" PRERELEASE="$PRERELEASE" ./release.sh
     ```
-  * Merge branch `main` into `docs-0.7` (via `git`):
-    ```shell
-      git checkout docs-0.7 && git pull && git merge main && git push
-    ```
+  * Make sure `main` branch is properly merged to `docs-0.7`:  
+    [![update docs](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml/badge.svg)](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml)
+
 * Updating the Earthly version in our docs:  
   [Renovate](https://www.mend.io/renovate/) will open a PR to update all docs as soon as a new release is available in this repo,  
   which you should then review & merge (An example PR can be found [here](https://github.com/earthly/earthly/pull/3285/files)).
@@ -50,7 +49,8 @@
     `git checkout main && git push`
   
 <!-- vale HouseStyle.Spelling = YES -->
-* After GitBook has processed the [docs-0.7](https://github.com/earthly/earthly/tree/docs-0.7), a GH action will run to check for broken links in https://docs.earthly.dev. [This](https://github.com/earthly/earthly/actions/runs/6434655743/job/17474292828) is an example of such workflow.
+* Make sure there are no broken links in https://docs.earthly.dev:  
+  [![check docs broken links](https://github.com/earthly/earthly/actions/workflows/docs-checks-links.yml/badge.svg)](https://github.com/earthly/earthly/actions/workflows/docs-checks-links.yml)
 * Verify the [Homebrew release job](https://github.com/earthly/homebrew-earthly) has successfully run and has merged the new `release-v...` branch into `main`.
 * Copy the release notes you have written before and paste them in the Earthly Community slack channel `#announcements`, together with a link to the release's GitHub page. If you have Slack markdown editing activated, you can copy the markdown version of the text.
 
