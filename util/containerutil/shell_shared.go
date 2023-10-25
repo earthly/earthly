@@ -2,14 +2,13 @@ package containerutil
 
 import (
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net"
 	"net/url"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -61,46 +60,46 @@ func (sf *shellFrontend) IsAvailable(ctx context.Context) bool {
 	return err == nil
 }
 
+var listRE = regexp.MustCompile("\\s{2,}")
+
 func (sf *shellFrontend) ContainerList(ctx context.Context) ([]*ContainerInfo, error) {
 	output, err := sf.commandContextOutput(ctx, "ps")
 	if err != nil {
 		return nil, err
 	}
 	ret := []*ContainerInfo{}
-	r := csv.NewReader(strings.NewReader(output.stdout.String()))
-	for {
-		record, err := r.Read()
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			return nil, errors.Wrap(err, "failed to parse command output")
-		}
-		if len(record) != 7 {
-			return nil, errors.Errorf("unexpected format: %+v", record)
-		}
-		dur, err := parseDuration(record[3])
+
+	// The Docker & Podman JSON output format differs, so we parse the standard output here.
+	lines := strings.Split(strings.Trim(output.stdout.String(), "\n"), "\n")
+	for _, line := range lines[1:] { // Ignore header
+		parts := listRE.Split(line, 7)
+		dur, err := parseDuration(parts[3])
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to parse duration")
 		}
 		createdAt := time.Now().Add(-dur)
 		ret = append(ret, &ContainerInfo{
-			ID:      record[0],
-			Name:    record[6],
-			Status:  record[4],
-			Created: createdAt,
-			Image:   record[1],
+			ID:      parts[0],
+			Name:    parts[len(parts)-1], // Always last (some lines don't container port info).
+			Status:  parts[4],
+			Created: createdAt, // Approximate value.
+			Image:   parts[1],
 		})
 	}
 	return ret, nil
 }
 
-// parseDuration parses a duration from a
+// parseDuration parses a duration from a human-readable strings (e.g., "5 minutes ago").
 func parseDuration(val string) (time.Duration, error) {
+	if strings.HasPrefix(val, "About a") {
+		val = strings.ReplaceAll(val, "About an", "1")
+		val = strings.ReplaceAll(val, "About a", "1")
+	}
 	parts := strings.Fields(val)
 	if len(parts) != 3 {
 		return 0, errors.Errorf("invalid duration: %s", val)
 	}
+	var n int
 	n, err := strconv.Atoi(parts[0])
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to parse number")
