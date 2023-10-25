@@ -6,14 +6,11 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	registry "github.com/moby/buildkit/api/services/registry"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
-
-const readDeadline = 50 * time.Millisecond
 
 // newRegistryProxy creates and returns a new registry proxy that streams Docker
 // container image data from the BK embedded Docker registry.

@@ -184,7 +184,7 @@ func (c *Controller) stopOldDarwinProxies(ctx context.Context) error {
 	}
 	for _, container := range containers {
 		if strings.HasPrefix(container.Name, darwinContainerPrefix) &&
-			time.Now().Sub(container.Created) > darwinContainerMaxAge {
+			time.Since(container.Created) > darwinContainerMaxAge {
 			err = c.stopDarwinProxy(ctx, container.Name, false)
 			if err != nil {
 				return err
@@ -194,9 +194,9 @@ func (c *Controller) stopOldDarwinProxies(ctx context.Context) error {
 	return nil
 }
 
-func (c *Controller) stopDarwinProxy(ctx context.Context, containerName string, checkExists bool) error {
+func (c *Controller) stopDarwinProxy(_ context.Context, containerName string, checkExists bool) error {
 	// Ignore parent context cancellations as to prevent orphaned containers.
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	if checkExists {
 		infos, err := c.containerFrontend.ContainerInfo(ctx, containerName)

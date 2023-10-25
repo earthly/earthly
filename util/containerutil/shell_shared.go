@@ -60,7 +60,7 @@ func (sf *shellFrontend) IsAvailable(ctx context.Context) bool {
 	return err == nil
 }
 
-var listRE = regexp.MustCompile("\\s{2,}")
+var listRE = regexp.MustCompile(`\s{2,}`)
 
 func (sf *shellFrontend) ContainerList(ctx context.Context) ([]*ContainerInfo, error) {
 	output, err := sf.commandContextOutput(ctx, "ps")
