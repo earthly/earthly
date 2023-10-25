@@ -77,7 +77,7 @@ func (sf *shellFrontend) ContainerList(ctx context.Context) ([]*ContainerInfo, e
 			return nil, errors.Wrap(err, "failed to parse command output")
 		}
 		if len(record) != 7 {
-			return nil, errors.Errorf("expected 7 fields, got %d", len(record))
+			return nil, errors.Errorf("unexpected format: %+v", record)
 		}
 		dur, err := parseDuration(record[3])
 		if err != nil {
