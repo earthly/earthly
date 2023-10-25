@@ -83,7 +83,7 @@ type Opt struct {
 	ParallelConversion                    bool
 	Parallelism                           semutil.Semaphore
 	UseRemoteRegistry                     bool
-	DarwinProxyImageTag                   string
+	DarwinProxyImage                      string
 	DarwinProxyWait                       time.Duration
 	LocalRegistryAddr                     string
 	FeatureFlagOverrides                  string
@@ -182,7 +182,7 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 		b.s.bkClient.RegistryClient(),
 		b.opt.ContainerFrontend,
 		isDarwin,
-		b.opt.DarwinProxyImageTag,
+		b.opt.DarwinProxyImage,
 		b.opt.DarwinProxyWait,
 		b.opt.Console,
 	)

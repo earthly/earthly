@@ -23,12 +23,12 @@ const (
 // Controller handles the management of the registry proxy. This may also
 // include the Darwin proxy used to enable Docker Desktop setups.
 type Controller struct {
-	registryClient      registry.RegistryClient
-	containerFrontend   containerutil.ContainerFrontend
-	darwinProxy         bool
-	darwinProxyImageTag string
-	darwinProxyWait     time.Duration
-	cons                conslog.ConsoleLogger
+	registryClient    registry.RegistryClient
+	containerFrontend containerutil.ContainerFrontend
+	darwinProxy       bool
+	darwinProxyImage  string
+	darwinProxyWait   time.Duration
+	cons              conslog.ConsoleLogger
 }
 
 // NewController creates and returns a new registry proxy controller.
@@ -36,16 +36,16 @@ func NewController(
 	registryClient registry.RegistryClient,
 	containerFrontend containerutil.ContainerFrontend,
 	darwinProxy bool,
-	darwinProxyImageTag string,
+	darwinProxyImage string,
 	darwinProxyWait time.Duration,
 	cons conslog.ConsoleLogger,
 ) *Controller {
 	return &Controller{
-		registryClient:      registryClient,
-		containerFrontend:   containerFrontend,
-		darwinProxy:         darwinProxy,
-		darwinProxyImageTag: darwinProxyImageTag,
-		cons:                cons,
+		registryClient:    registryClient,
+		containerFrontend: containerFrontend,
+		darwinProxy:       darwinProxy,
+		darwinProxyImage:  darwinProxyImage,
+		cons:              cons,
 	}
 }
 
@@ -133,7 +133,7 @@ func (c *Controller) startDarwinProxy(ctx context.Context, containerName string,
 
 	runCfg := containerutil.ContainerRun{
 		NameOrID: containerName,
-		ImageRef: fmt.Sprintf("alpine/socat:%s", c.darwinProxyImageTag),
+		ImageRef: fmt.Sprintf("alpine/socat:%s", c.darwinProxyImage),
 		Ports: []containerutil.Port{
 			{
 				IP:            "127.0.0.1",

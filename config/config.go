@@ -19,8 +19,8 @@ const (
 	// DefaultLocalRegistryPort is the default user-facing port for the local registry used for exports.
 	DefaultLocalRegistryPort = 8371
 
-	// DefaultDarwinProxyImageTag is the alpine/socat tag used for the Docker Desktop registry proxy on Darwin.
-	DefaultDarwinProxyImageTag = "1.7.4.4"
+	// DefaultDarwinProxyImage is the image tag used for the Docker Desktop registry proxy on Darwin.
+	DefaultDarwinProxyImage = "alpine/socat:1.7.4.4"
 
 	// DefaultDarwinProxyWait is the maximum time to wait for the Darwin registry proxy support container to become available.
 	DefaultDarwinProxyWait = 10 * time.Second
@@ -79,7 +79,7 @@ type GlobalConfig struct {
 	CniMtu                     uint16        `yaml:"cni_mtu"                        help:"Override auto-detection of the default interface MTU, for all containers within buildkit"`
 	BuildkitHost               string        `yaml:"buildkit_host"                  help:"The URL of your buildkit, remote or local."`
 	LocalRegistryHost          string        `yaml:"local_registry_host"            help:"The URL of the local registry used for image exports to Docker."`
-	DarwinProxyImageTag        string        `yaml:"darwin_proxy_image_tag"         help:"The 'alpine/socat' image tag used for the Docker Desktop registry proxy."`
+	DarwinProxyImage           string        `yaml:"darwin_proxy_image"             help:"The container image & tag used for the Docker Desktop registry proxy."`
 	DarwinProxyWait            time.Duration `yaml:"darwin_proxy_wait"              help:"The maximum time to wait for the Darwin registry proxy support container to become available."`
 	TLSCACert                  string        `yaml:"tlsca"                          help:"The path to the CA cert for verification. Relative paths are interpreted as relative to the config path."`
 	TLSCAKey                   string        `yaml:"tlsca_key"                      help:"The path to the CA key for generating any missing certificates. Relative paths are interpreted as relative to the config path."`
@@ -146,7 +146,7 @@ func ParseYAML(yamlData []byte, installationName string) (Config, error) {
 			BuildkitCacheSizeMb:     0,
 			BuildkitCacheSizePct:    0,
 			LocalRegistryHost:       fmt.Sprintf("tcp://127.0.0.1:%d", defaultLocalRegistryPort),
-			DarwinProxyImageTag:     DefaultDarwinProxyImageTag,
+			DarwinProxyImage:        DefaultDarwinProxyImage,
 			DarwinProxyWait:         DefaultDarwinProxyWait,
 			BuildkitScheme:          DefaultBuildkitScheme,
 			BuildkitRestartTimeoutS: 60,
