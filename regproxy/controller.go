@@ -133,7 +133,7 @@ func (c *Controller) startDarwinProxy(ctx context.Context, containerName string,
 
 	runCfg := containerutil.ContainerRun{
 		NameOrID: containerName,
-		ImageRef: fmt.Sprintf("alpine/socat:%s", c.darwinProxyImage),
+		ImageRef: c.darwinProxyImage,
 		Ports: []containerutil.Port{
 			{
 				IP:            "127.0.0.1",
