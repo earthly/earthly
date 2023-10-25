@@ -837,12 +837,7 @@ merge-main-to-docs:
     WORKDIR earthly
     ARG git_hash=$(git rev-parse HEAD)
     RUN --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
-        git fetch --unshallow && \
-        # dry run merge:
-        git checkout $to_branch && \
-        git merge --no-commit origin/$from_branch && \
-        git status && \
-        git merge --abort
+        git fetch --unshallow
     RUN --push --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
         git checkout $to_branch && \
         git merge $from_branch && \
