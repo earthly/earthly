@@ -584,6 +584,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		Parallelism:                           parallelism,
 		LocalRegistryAddr:                     localRegistryAddr,
 		UseRemoteRegistry:                     a.cli.Flags().UseRemoteRegistry,
+		DarwinProxyImageTag:                   a.cli.Cfg().Global.DarwinProxyImageTag,
 		FeatureFlagOverrides:                  a.cli.Flags().FeatureFlagOverrides,
 		ContainerFrontend:                     a.cli.Flags().ContainerFrontend,
 		InternalSecretStore:                   internalSecretStore,

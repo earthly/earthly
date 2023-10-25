@@ -15,17 +15,17 @@ import (
 
 const readDeadline = 50 * time.Millisecond
 
-// NewRegistryProxy creates and returns a new RegistryProxy that streams Docker
+// newRegistryProxy creates and returns a new registry proxy that streams Docker
 // container image data from the BK embedded Docker registry.
-func NewRegistryProxy(ln net.Listener, cl registry.RegistryClient) *RegistryProxy {
-	return &RegistryProxy{ln: ln, cl: cl, errCh: make(chan error)}
+func newRegistryProxy(ln net.Listener, cl registry.RegistryClient) *registryProxy {
+	return &registryProxy{ln: ln, cl: cl, errCh: make(chan error)}
 }
 
-// RegistryProxy uses a gRPC stream to translate incoming Docker image requests
+// registryProxy uses a gRPC stream to translate incoming Docker image requests
 // into a gRPC byte stream and back out into a valid HTTP response. The data is
 // streamed over the gRPC connection rather than buffered as the images can be
 // rather large.
-type RegistryProxy struct {
+type registryProxy struct {
 	ln    net.Listener
 	cl    registry.RegistryClient
 	errCh chan error
@@ -34,7 +34,7 @@ type RegistryProxy struct {
 
 // Serve waits for TCP connections and pipes data received from the connection
 // to BK via the gRPC server.
-func (r *RegistryProxy) Serve(ctx context.Context) {
+func (r *registryProxy) serve(ctx context.Context) {
 	wg := sync.WaitGroup{}
 	defer func() {
 		wg.Wait()
@@ -62,16 +62,16 @@ func (r *RegistryProxy) Serve(ctx context.Context) {
 	}
 }
 
-func (r *RegistryProxy) Close() {
+func (r *registryProxy) close() {
 	r.done.Store(true)
 	r.ln.Close()
 }
 
-func (r *RegistryProxy) Err() <-chan error {
+func (r *registryProxy) err() <-chan error {
 	return r.errCh
 }
 
-func (r *RegistryProxy) handle(ctx context.Context, conn net.Conn) error {
+func (r *registryProxy) handle(ctx context.Context, conn net.Conn) error {
 	defer conn.Close()
 
 	stream, err := r.cl.Proxy(ctx)
