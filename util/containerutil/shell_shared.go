@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -60,71 +59,33 @@ func (sf *shellFrontend) IsAvailable(ctx context.Context) bool {
 	return err == nil
 }
 
-var listRE = regexp.MustCompile(`\s{2,}`)
+const containerDateFormat = "2006-01-02 15:04:05.999999999 -0700 MST"
 
 func (sf *shellFrontend) ContainerList(ctx context.Context) ([]*ContainerInfo, error) {
-	output, err := sf.commandContextOutput(ctx, "ps")
+	// The custom format below is supported by Docker and Podman.
+	args := []string{"ps", "--format", `{{.ID}},{{.Names}},{{.Status}},{{.Image}},{{.CreatedAt}}`}
+	output, err := sf.commandContextOutput(ctx, args...)
 	if err != nil {
 		return nil, err
 	}
 	ret := []*ContainerInfo{}
-
 	// The Docker & Podman JSON output format differs, so we parse the standard output here.
 	lines := strings.Split(strings.Trim(output.stdout.String(), "\n"), "\n")
-	for _, line := range lines[1:] { // Ignore header
-		parts := listRE.Split(line, 7)
-		dur, err := parseDuration(parts[3])
+	for _, line := range lines {
+		parts := strings.Split(line, ",")
+		createdAt, err := time.Parse(containerDateFormat, parts[4])
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to parse duration")
+			return nil, errors.Wrap(err, "failed to parse container date")
 		}
-		createdAt := time.Now().Add(-dur)
 		ret = append(ret, &ContainerInfo{
 			ID:      parts[0],
-			Name:    parts[len(parts)-1], // Always last (some lines don't container port info).
-			Status:  parts[4],
-			Created: createdAt, // Approximate value.
-			Image:   parts[1],
+			Name:    parts[1],
+			Status:  parts[2],
+			Image:   parts[3],
+			Created: createdAt,
 		})
 	}
 	return ret, nil
-}
-
-// parseDuration parses a duration from a human-readable strings (e.g., "5 minutes ago").
-func parseDuration(val string) (time.Duration, error) {
-	if strings.HasPrefix(val, "About a") {
-		val = strings.ReplaceAll(val, "About an", "1")
-		val = strings.ReplaceAll(val, "About a", "1")
-	}
-	parts := strings.Fields(val)
-	if len(parts) != 3 {
-		return 0, errors.Errorf("invalid duration: %s", val)
-	}
-	var n int
-	n, err := strconv.Atoi(parts[0])
-	if err != nil {
-		return 0, errors.Wrap(err, "failed to parse number")
-	}
-	var unit time.Duration
-	switch parts[1] {
-	case "second", "seconds":
-		unit = time.Second
-	case "minute", "minutes":
-		unit = time.Minute
-	case "hour", "hours":
-		unit = time.Hour
-	case "day", "days":
-		unit = time.Hour * 24
-	case "week", "weeks":
-		unit = time.Hour * 24 * 7
-	case "month", "months":
-		unit = time.Hour * 24 * 7 * 30
-	case "year", "years":
-		unit = time.Hour * 24 * 7 * 365
-	default:
-		return 0, errors.Errorf("unexpected format %q", parts[1])
-	}
-
-	return time.Duration(n) * unit, nil
 }
 
 func (sf *shellFrontend) ContainerInfo(ctx context.Context, namesOrIDs ...string) (map[string]*ContainerInfo, error) {
