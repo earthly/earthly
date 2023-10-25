@@ -184,7 +184,7 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 		isDarwin,
 		b.opt.DarwinProxyImage,
 		b.opt.DarwinProxyWait,
-		b.opt.Console,
+		b.opt.Console.WithPrefix("registry-proxy"),
 	)
 	addr, closeFn, err := controller.Start(ctx)
 	if err != nil {

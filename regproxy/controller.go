@@ -72,7 +72,7 @@ func (c *Controller) Start(ctx context.Context) (string, func(), error) {
 	go func() {
 		for err := range p.err() {
 			if err != nil && !errors.Is(err, context.Canceled) {
-				c.cons.Warnf("Failed to serve registry proxy: %v", err)
+				c.cons.VerbosePrintf("Failed to serve registry proxy: %v", err)
 			}
 		}
 		doneCh <- struct{}{}
@@ -93,7 +93,7 @@ func (c *Controller) Start(ctx context.Context) (string, func(), error) {
 		stopFn := func(ctx context.Context) {
 			err := c.stopDarwinProxy(ctx, containerName, true)
 			if err != nil {
-				c.cons.Warnf("Failed to stop registry proxy support container: %v", err)
+				c.cons.VerbosePrintf("Failed to stop registry proxy support container: %v", err)
 			}
 		}
 		port, err := c.startDarwinProxy(ctx, containerName, registryPort)
@@ -122,7 +122,7 @@ func (c *Controller) startDarwinProxy(ctx context.Context, containerName string,
 	go func() {
 		err := c.stopOldDarwinProxies(ctx)
 		if err != nil {
-			c.cons.Warnf("Failed to stop old Darwin proxy support container: %s", err)
+			c.cons.VerbosePrintf("Failed to stop old Darwin proxy support container: %s", err)
 		}
 	}()
 
