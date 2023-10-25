@@ -904,7 +904,17 @@ If you need to perform a full-depth clone of a repository, you can use the follo
 GIT CLONE <git-url> <dest-path>
 WORKDIR <dest-path>
 ARG git_hash=$(git rev-parse HEAD)
+RUN git remote set-url origin <git-url> # only required if using authentication
 RUN git fetch --unshallow
+```
+{% endhint %}
+
+{% hint style='warning' %}
+As of Earthly v0.7.21, git credentials are no longer stored in the `.git/config` file; this includes the username.
+This means any ssh-based or https-based fetches or pushes will no longer work unless you restore the configured url,
+which can be done with:
+```Dockerfile
+RUN git remote set-url origin <git-url>
 ```
 {% endhint %}
 
