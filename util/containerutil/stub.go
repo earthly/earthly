@@ -46,6 +46,9 @@ func (sf *stubFrontend) Config() *CurrentFrontend {
 func (*stubFrontend) Information(ctx context.Context) (*FrontendInfo, error) {
 	return &FrontendInfo{}, nil
 }
+func (*stubFrontend) ContainerList(ctx context.Context) ([]*ContainerInfo, error) {
+	return nil, ErrFrontendNotInitialized
+}
 func (*stubFrontend) ContainerInfo(ctx context.Context, namesOrIDs ...string) (map[string]*ContainerInfo, error) {
 	return nil, ErrFrontendNotInitialized
 }

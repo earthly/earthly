@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
@@ -83,6 +84,7 @@ type Opt struct {
 	Parallelism                           semutil.Semaphore
 	UseRemoteRegistry                     bool
 	DarwinProxyImageTag                   string
+	DarwinProxyWait                       time.Duration
 	LocalRegistryAddr                     string
 	FeatureFlagOverrides                  string
 	ContainerFrontend                     containerutil.ContainerFrontend
@@ -181,6 +183,7 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 		b.opt.ContainerFrontend,
 		isDarwin,
 		b.opt.DarwinProxyImageTag,
+		b.opt.DarwinProxyWait,
 		b.opt.Console,
 	)
 	addr, closeFn, err := controller.Start(ctx)

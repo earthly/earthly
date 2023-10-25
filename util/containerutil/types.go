@@ -2,6 +2,7 @@ package containerutil
 
 import (
 	"net/url"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -10,6 +11,7 @@ import (
 type ContainerInfo struct {
 	ID      string
 	Name    string
+	Created time.Time
 	Status  string
 	IPs     map[string]string
 	Ports   []string

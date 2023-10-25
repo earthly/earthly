@@ -2,14 +2,17 @@ package containerutil
 
 import (
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/url"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/hashicorp/go-multierror"
@@ -18,9 +21,10 @@ import (
 )
 
 type containerInfo struct {
-	ID    string `json:"Id"`
-	Name  string `json:"Name"`
-	State struct {
+	ID      string    `json:"Id"`
+	Name    string    `json:"Name"`
+	Created time.Time `json:"Created"`
+	State   struct {
 		Status string `json:"Status"`
 	} `json:"State"`
 	NetworkSettings struct {
@@ -57,6 +61,73 @@ func (sf *shellFrontend) IsAvailable(ctx context.Context) bool {
 	return err == nil
 }
 
+func (sf *shellFrontend) ContainerList(ctx context.Context) ([]*ContainerInfo, error) {
+	output, err := sf.commandContextOutput(ctx, "ps")
+	if err != nil {
+		return nil, err
+	}
+	ret := []*ContainerInfo{}
+	r := csv.NewReader(strings.NewReader(output.stdout.String()))
+	for {
+		record, err := r.Read()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, errors.Wrap(err, "failed to parse command output")
+		}
+		if len(record) != 7 {
+			return nil, errors.Errorf("expected 7 fields, got %d", len(record))
+		}
+		dur, err := parseDuration(record[3])
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse duration")
+		}
+		createdAt := time.Now().Add(-dur)
+		ret = append(ret, &ContainerInfo{
+			ID:      record[0],
+			Name:    record[6],
+			Status:  record[4],
+			Created: createdAt,
+			Image:   record[1],
+		})
+	}
+	return ret, nil
+}
+
+// parseDuration parses a duration from a
+func parseDuration(val string) (time.Duration, error) {
+	parts := strings.Fields(val)
+	if len(parts) != 3 {
+		return 0, errors.Errorf("invalid duration: %s", val)
+	}
+	n, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to parse number")
+	}
+	var unit time.Duration
+	switch parts[1] {
+	case "second", "seconds":
+		unit = time.Second
+	case "minute", "minutes":
+		unit = time.Minute
+	case "hour", "hours":
+		unit = time.Hour
+	case "day", "days":
+		unit = time.Hour * 24
+	case "week", "weeks":
+		unit = time.Hour * 24 * 7
+	case "month", "months":
+		unit = time.Hour * 24 * 7 * 30
+	case "year", "years":
+		unit = time.Hour * 24 * 7 * 365
+	default:
+		return 0, errors.Errorf("unexpected format %q", parts[1])
+	}
+
+	return time.Duration(n) * unit, nil
+}
+
 func (sf *shellFrontend) ContainerInfo(ctx context.Context, namesOrIDs ...string) (map[string]*ContainerInfo, error) {
 	args := append([]string{"container", "inspect"}, namesOrIDs...)
 
@@ -88,6 +159,7 @@ func (sf *shellFrontend) ContainerInfo(ctx context.Context, namesOrIDs ...string
 		infos[namesOrIDs[i]] = &ContainerInfo{
 			ID:      container.ID,
 			Name:    container.Name,
+			Created: container.Created,
 			Status:  container.State.Status,
 			IPs:     ipAddresses,
 			Image:   container.Config.Image,

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	conslog "github.com/earthly/earthly/conslogging"
@@ -14,19 +15,29 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	darwinContainerPrefix = "earthly-darwin-proxy"
+	darwinContainerMaxAge = 5 * time.Hour
+)
+
+// Controller handles the management of the registry proxy. This may also
+// include the Darwin proxy used to enable Docker Desktop setups.
 type Controller struct {
 	registryClient      registry.RegistryClient
 	containerFrontend   containerutil.ContainerFrontend
 	darwinProxy         bool
 	darwinProxyImageTag string
+	darwinProxyWait     time.Duration
 	cons                conslog.ConsoleLogger
 }
 
+// NewController creates and returns a new registry proxy controller.
 func NewController(
 	registryClient registry.RegistryClient,
 	containerFrontend containerutil.ContainerFrontend,
 	darwinProxy bool,
 	darwinProxyImageTag string,
+	darwinProxyWait time.Duration,
 	cons conslog.ConsoleLogger,
 ) *Controller {
 	return &Controller{
@@ -38,6 +49,7 @@ func NewController(
 	}
 }
 
+// Start the proxy and create any support containers.
 func (c *Controller) Start(ctx context.Context) (string, func(), error) {
 	addr := "127.0.0.1:0"
 
@@ -77,9 +89,9 @@ func (c *Controller) Start(ctx context.Context) (string, func(), error) {
 	}
 
 	if c.darwinProxy {
-		containerName := fmt.Sprintf("earthly-darwin-proxy-%s", stringutil.RandomAlphanumeric(6))
+		containerName := fmt.Sprintf("%s-%s", darwinContainerPrefix, stringutil.RandomAlphanumeric(6))
 		stopFn := func(ctx context.Context) {
-			err := c.stopDarwinProxy(ctx, containerName)
+			err := c.stopDarwinProxy(ctx, containerName, true)
 			if err != nil {
 				c.cons.Warnf("Failed to stop registry proxy support container: %v", err)
 			}
@@ -102,11 +114,18 @@ func (c *Controller) Start(ctx context.Context) (string, func(), error) {
 }
 
 // startDarwinProxy: Since Docker Desktop (Mac) containers run in a VM, a
-// special host name, host.docker.internal, is made available to access the
-// host's network. Docker can only pull insecurely from localhost, so we use a
-// socat container to proxy localhost:<port> request back out to the local
-// registry proxy created above.
+// special host name, host.docker.internal, is made available to access the host
+// machine. Docker can only pull insecurely from localhost, so we use a socat
+// container to proxy localhost:<port> request back out to the local registry
+// proxy created above.
 func (c *Controller) startDarwinProxy(ctx context.Context, containerName string, registryPort int) (int, error) {
+	go func() {
+		err := c.stopOldDarwinProxies(ctx)
+		if err != nil {
+			c.cons.Warnf("Failed to stop old Darwin proxy support container: %s", err)
+		}
+	}()
+
 	containerPort, err := acquireFreePort(ctx)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to acquire free port")
@@ -129,17 +148,12 @@ func (c *Controller) startDarwinProxy(ctx context.Context, containerName string,
 		},
 	}
 
-	// Debugging on Linux
-	// if true {
-	// 	runCfg.AdditionalArgs = []string{"--add-host=host.docker.internal:host-gateway"}
-	// }
-
 	err = c.containerFrontend.ContainerRun(ctx, runCfg)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to start support container")
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 1000*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, c.darwinProxyWait)
 	defer cancel()
 
 	// Wait for the proxy chain to resolve to the BK registry. The /v2/ path
@@ -163,7 +177,36 @@ func (c *Controller) startDarwinProxy(ctx context.Context, containerName string,
 	return containerPort, nil
 }
 
-func (c *Controller) stopDarwinProxy(ctx context.Context, containerName string) error {
+func (c *Controller) stopOldDarwinProxies(ctx context.Context) error {
+	containers, err := c.containerFrontend.ContainerList(ctx)
+	if err != nil {
+		return err
+	}
+	for _, container := range containers {
+		if strings.HasPrefix(container.Name, darwinContainerPrefix) &&
+			time.Now().Sub(container.Created) > darwinContainerMaxAge {
+			err = c.stopDarwinProxy(ctx, container.Name, false)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (c *Controller) stopDarwinProxy(ctx context.Context, containerName string, checkExists bool) error {
+	// Ignore parent context cancellations as to prevent orphaned containers.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if checkExists {
+		infos, err := c.containerFrontend.ContainerInfo(ctx, containerName)
+		if err != nil {
+			return err
+		}
+		if info, ok := infos[containerName]; !ok || info.Status == containerutil.StatusMissing {
+			return nil
+		}
+	}
 	err := c.containerFrontend.ContainerRemove(ctx, true, containerName)
 	if err != nil {
 		return errors.Wrap(err, "failed to stop support container")
