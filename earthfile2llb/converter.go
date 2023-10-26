@@ -144,8 +144,12 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		ovVars = append(ovVars, fmt.Sprintf("%s=%s", k, v))
 	}
 	logbusTarget, err := opt.Logbus.Run().NewTarget(
-		sts.ID, target.String(), target.StringCanonical(), ovVars,
-		opt.PlatformResolver.Current().String(), opt.Runner)
+		sts.ID,
+		target,
+		ovVars,
+		opt.PlatformResolver.Current().String(),
+		opt.Runner,
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "new logbus target")
 	}
