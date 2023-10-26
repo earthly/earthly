@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
@@ -82,6 +83,8 @@ type Opt struct {
 	ParallelConversion                    bool
 	Parallelism                           semutil.Semaphore
 	UseRemoteRegistry                     bool
+	DarwinProxyImage                      string
+	DarwinProxyWait                       time.Duration
 	LocalRegistryAddr                     string
 	FeatureFlagOverrides                  string
 	ContainerFrontend                     containerutil.ContainerFrontend
@@ -162,52 +165,43 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 }
 
 func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (func(), bool) {
+	cons := b.opt.Console.WithPrefix("registry-proxy")
 
 	if !b.opt.UseRemoteRegistry {
-		b.opt.Console.VerbosePrintf("Registry proxy not enabled")
+		cons.VerbosePrintf("Registry proxy not enabled")
 		return nil, false
 	}
 
 	if err := caps.Supports(pb.CapEarthlyRegistryProxy); err != nil {
-		b.opt.Console.Warnf("Registry proxy is not supported by BuildKit: %s", err)
+		cons.Printf(err.Error())
 		return nil, false
 	}
 
-	addr := "localhost:0" // Have the OS select a port
+	// Podman does not support the insecure localhost
+	if b.opt.ContainerFrontend.Scheme() == "podman-container" {
+		cons.Printf("Registry proxy not supported on Podman. Falling back to tar-based outputs.")
+		return nil, false
+	}
 
-	lnCfg := net.ListenConfig{}
-	ln, err := lnCfg.Listen(ctx, "tcp", addr)
+	isDarwin := runtime.GOOS == "darwin"
+
+	controller := regproxy.NewController(
+		b.s.bkClient.RegistryClient(),
+		b.opt.ContainerFrontend,
+		isDarwin,
+		b.opt.DarwinProxyImage,
+		b.opt.DarwinProxyWait,
+		cons,
+	)
+	addr, closeFn, err := controller.Start(ctx)
 	if err != nil {
-		b.opt.Console.Warnf("Failed to create proxy listener: %v", err)
+		cons.Printf("Failed to start registry proxy: %v", err)
 		return nil, false
 	}
-
-	p := regproxy.NewRegistryProxy(ln, b.s.bkClient.RegistryClient())
-	go p.Serve(ctx)
-
-	addr = fmt.Sprintf("localhost:%d", ln.Addr().(*net.TCPAddr).Port)
-	b.opt.Console.VerbosePrintf("Starting local registry proxy: %s", addr)
-
-	doneCh := make(chan struct{})
-
-	go func() {
-		for err := range p.Err() {
-			if err != nil && !errors.Is(err, context.Canceled) {
-				b.opt.Console.Warnf("Failed to serve registry proxy: %v", err)
-			}
-		}
-		doneCh <- struct{}{}
-	}()
 
 	b.opt.LocalRegistryAddr = addr
 
-	return func() {
-		p.Close()
-		select {
-		case <-ctx.Done():
-		case <-doneCh:
-		}
-	}, true
+	return closeFn, true
 }
 
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
