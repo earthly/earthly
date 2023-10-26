@@ -173,16 +173,17 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 	}
 
 	if err := caps.Supports(pb.CapEarthlyRegistryProxy); err != nil {
-		cons.Warnf(err.Error())
+		cons.Printf(err.Error())
+		return nil, false
+	}
+
+	// Podman does not support the insecure localhost
+	if b.opt.ContainerFrontend.Scheme() == "podman-container" {
+		cons.Printf("Registry proxy not supported on Podman. Falling back to tar-based outputs.")
 		return nil, false
 	}
 
 	isDarwin := runtime.GOOS == "darwin"
-
-	if isDarwin && b.opt.ContainerFrontend.Scheme() == "podman-container" {
-		cons.Warnf("Registry proxy not supported on Podman. Falling back to tar-based outputs.")
-		return nil, false
-	}
 
 	controller := regproxy.NewController(
 		b.s.bkClient.RegistryClient(),
