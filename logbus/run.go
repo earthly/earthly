@@ -131,12 +131,6 @@ func (run *Run) SetStart(start time.Time) {
 	})
 }
 
-// SkipFatalError is used to explicitly denote that we're ignoring the build
-// error. The error will not be printed or sent to the server.
-func (run *Run) SkipFatalError() {
-	run.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_FAILURE)
-}
-
 // SetFatalError sets a fatal error for the build.
 func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, failureType logstream.FailureType, errString string, args ...any) {
 	run.mu.Lock()
