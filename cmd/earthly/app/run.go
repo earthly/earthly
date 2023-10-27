@@ -198,7 +198,6 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			{
 				app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_INVALID_PARAM, errorWithPrefix(paramsErr.ParentError()))
 				if paramsErr.Error() != paramsErr.ParentError() {
-					app.BaseCLI.Console().Warnf("The cause is <%v>\n", paramsErr.Cause())
 					app.BaseCLI.Console().VerboseWarnf(errorWithPrefix(paramsErr.Error()))
 				}
 				return 1
@@ -244,7 +243,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			} else {
 				msg = fmt.Sprintf("Error: File not found: %s\n", err.Error())
 			}
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND, "Error: File not found: %s", msg)
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND, msg)
 			return 1
 		case strings.Contains(err.Error(), "429 Too Many Requests"):
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_RATE_LIMITED, errorWithPrefix(err.Error()))
@@ -312,7 +311,6 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			}
 			return 1
 		default:
-			app.BaseCLI.Console().Printf("Identified default error")
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, errorWithPrefix(err.Error()))
 			return 1
 		}
