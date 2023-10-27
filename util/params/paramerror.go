@@ -2,6 +2,7 @@ package params
 
 import (
 	"fmt"
+
 	"github.com/pkg/errors"
 )
 
@@ -25,7 +26,7 @@ func Wrapf(err error, format string, args ...any) error {
 
 func (e *Error) Error() string {
 	if e.cause != nil {
-		fmt.Errorf("%s: %w", e.msg, e.cause)
+		return fmt.Errorf("%s: %w", e.msg, e.cause).Error()
 	}
 	return e.msg
 }
