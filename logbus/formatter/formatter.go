@@ -30,6 +30,10 @@ const (
 
 const esc = 27
 
+const (
+	genericPrefix = "_generic:"
+)
+
 var (
 	ansiUp            = []byte(fmt.Sprintf("%c[A", esc))
 	ansiEraseRestLine = []byte(fmt.Sprintf("%c[K", esc))
@@ -405,7 +409,7 @@ func (f *Formatter) printBuildFailure() {
 	}
 	c, _ := f.targetConsole(failure.GetTargetId(), failure.GetCommandId())
 	c = c.WithFailed(true)
-	if failure.GetCommandId() != "" {
+	if failure.GetCommandId() != "" && failure.GetCommandId() != logbus.GenericDefaultMagicString {
 		c.PrintFailure("")
 		c.Printf("Repeating the failure error...\n")
 		f.printHeader(failure.GetTargetId(), failure.GetCommandId(), tm, cm, true)
@@ -430,11 +434,11 @@ func (f *Formatter) targetConsole(targetID string, commandID string) (consloggin
 		tm := f.manifest.GetTargets()[targetID]
 		targetName = tm.GetName()
 		writerTargetID = targetID
-	case commandID == "_generic:default":
+	case commandID == logbus.GenericDefaultMagicString:
 		targetName = ""
 		writerTargetID = commandID
-	case strings.HasPrefix(commandID, "_generic:"):
-		targetName = strings.TrimPrefix(commandID, "_generic:")
+	case strings.HasPrefix(commandID, genericPrefix):
+		targetName = strings.TrimPrefix(commandID, genericPrefix)
 		writerTargetID = commandID
 		switch targetName {
 		case "context":

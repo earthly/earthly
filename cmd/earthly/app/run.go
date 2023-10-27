@@ -11,6 +11,7 @@ import (
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/fatih/color"
+	"github.com/moby/buildkit/util/grpcerrors"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/grpc/codes"
@@ -25,6 +26,7 @@ import (
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/errutil"
+	"github.com/earthly/earthly/util/params"
 	"github.com/earthly/earthly/util/reflectutil"
 )
 
@@ -162,9 +164,9 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 
 	defer func() {
 		// Just in case this is forgotten somewhere else.
-		app.BaseCLI.Logbus().Run().SetFatalError(
-			time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER,
-			"No SetFatalError called appropriately. This should never happen.")
+		app.BaseCLI.Logbus().Run().SetGenericFatalError(
+			time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER,
+			"Error: No SetFatalError called appropriately. This should never happen.")
 	}()
 
 	err := app.BaseCLI.App().RunContext(ctx, args)
@@ -189,9 +191,20 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			}
 		}
 
+		grpcErr, grpcErrOK := grpcerrors.AsGRPCStatus(err)
+		var paramsErr *params.Error
 		switch {
+		case errors.As(err, &paramsErr):
+			{
+				app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_INVALID_PARAM, errorWithPrefix(paramsErr.ParentError()))
+				if paramsErr.Error() != paramsErr.ParentError() {
+					app.BaseCLI.Console().Warnf("The cause is <%v>\n", paramsErr.Cause())
+					app.BaseCLI.Console().VerboseWarnf(errorWithPrefix(paramsErr.Error()))
+				}
+				return 1
+			}
 		case qemuExitCodeRegex.MatchString(err.Error()):
-			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, errorWithPrefix(err.Error()))
 			if app.BaseCLI.AnaMetaIsSat() {
 				app.BaseCLI.Console().DebugPrintf("Are you using --platform to target a different architecture? Please note that \"disable-emulation\" flag is set in your satellite.\n")
 			} else {
@@ -203,17 +216,15 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 		case runExitCodeRegex.MatchString(err.Error()):
 			// This error would have been displayed earlier from the SolverMonitor.
 			// This SetFatalError is a catch-all just in case that hasn't happened.
-			app.BaseCLI.Logbus().Run().SetFatalError(
-				time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER,
-				err.Error())
-			app.BaseCLI.Console().VerboseWarnf("Error: %v\n", err)
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER,
+				errorWithPrefix(err.Error()))
 			return 1
 		case strings.Contains(err.Error(), "security.insecure is not allowed"):
-			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_NEEDS_PRIVILEGED, err.Error())
-			app.BaseCLI.Console().Warnf("Error: earthly --allow-privileged (earthly -P) flag is required\n")
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_NEEDS_PRIVILEGED, errorWithPrefix(err.Error()))
+			app.BaseCLI.Console().Printf("earthly --allow-privileged (earthly -P) flag is required\n")
 			return 9
 		case strings.Contains(err.Error(), errutil.EarthlyGitStdErrMagicString):
-			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_GIT, err.Error())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_GIT, errorWithPrefix(err.Error()))
 			gitStdErr, shorterErr, ok := errutil.ExtractEarthlyGitStdErr(err.Error())
 			if ok {
 				app.BaseCLI.Console().VerboseWarnf("Error: %v\n\n%s\n", shorterErr, gitStdErr)
@@ -226,16 +237,17 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 					"For more information see https://docs.earthly.dev/guides/auth\n")
 			return 1
 		case strings.Contains(err.Error(), "failed to compute cache key") && strings.Contains(err.Error(), ": not found"):
-			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND, err.Error())
 			var matches = notFoundRegex.FindStringSubmatch(err.Error())
+			msg := ""
 			if len(matches) == 2 {
-				app.BaseCLI.Console().Warnf("Error: File not found %v\n", matches[1])
+				msg = fmt.Sprintf("Error: File not found: %s, %s\n", matches[1], err.Error())
 			} else {
-				app.BaseCLI.Console().Warnf("Error: File not found: %v\n", err.Error())
+				msg = fmt.Sprintf("Error: File not found: %s\n", err.Error())
 			}
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND, "Error: File not found: %s", msg)
 			return 1
 		case strings.Contains(err.Error(), "429 Too Many Requests"):
-			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_RATE_LIMITED, err.Error())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_RATE_LIMITED, errorWithPrefix(err.Error()))
 			var registryName string
 			var registryHost string
 			if strings.Contains(err.Error(), "docker.com/increase-rate-limit") {
@@ -248,51 +260,39 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 				"You can login using the command:\n"+
 				"  docker login%s", registryName, registryHost)
 			return 1
-		case !app.BaseCLI.Flags().Verbose && cloud.RPCErrRegex.MatchString(err.Error()):
-			baseErr := errors.Cause(err)
-			baseErrMsg := cloud.RPCErrRegex.ReplaceAllString(baseErr.Error(), "")
-			app.BaseCLI.Console().Warnf("Error: %s\n", baseErrMsg)
-			if strings.Contains(baseErrMsg, "transport is closing") {
-				app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, baseErr.Error())
-				app.BaseCLI.Console().Warnf(
-					"It seems that buildkitd is shutting down or it has crashed. " +
-						"You can report crashes at https://github.com/earthly/earthly/issues/new.")
-				if containerutil.IsLocal(app.BaseCLI.Flags().BuildkitdSettings.BuildkitAddress) {
-					app.printCrashLogs(ctx)
-				}
-				return 7
+		case grpcErrOK:
+			app.BaseCLI.Console().VerboseWarnf(errorWithPrefix(err.Error()))
+			if !strings.Contains(grpcErr.Message(), "transport is closing") {
+				app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, errorWithPrefix(grpcErr.Message()))
+				return 1
 			}
-			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
-			return 1
-		case errors.Is(err, buildkitd.ErrBuildkitCrashed):
-			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, err.Error())
-			app.BaseCLI.Console().Warnf("Error: %v\n", err)
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, errorWithPrefix(grpcErr.Message()))
 			app.BaseCLI.Console().Warnf(
-				"It seems that buildkitd is shutting down or it has crashed. " +
+				"Error: It seems that buildkitd is shutting down or it has crashed. " +
+					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
+			if containerutil.IsLocal(app.BaseCLI.Flags().BuildkitdSettings.BuildkitAddress) {
+				app.printCrashLogs(ctx)
+			}
+			return 7
+		case errors.Is(err, buildkitd.ErrBuildkitCrashed):
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, errorWithPrefix(err.Error()))
+			app.BaseCLI.Console().Warnf(
+				"Error: It seems that buildkitd is shutting down or it has crashed. " +
 					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
 			if containerutil.IsLocal(app.BaseCLI.Flags().BuildkitdSettings.BuildkitAddress) {
 				app.printCrashLogs(ctx)
 			}
 			return 7
 		case errors.Is(err, buildkitd.ErrBuildkitConnectionFailure):
-			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_CONNECTION_FAILURE, err.Error())
-			app.BaseCLI.Console().Warnf("Error: %v\n", err)
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_CONNECTION_FAILURE, errorWithPrefix(err.Error()))
 			if containerutil.IsLocal(app.BaseCLI.Flags().BuildkitdSettings.BuildkitAddress) {
 				app.BaseCLI.Console().Warnf(
-					"It seems that buildkitd had an issue. " +
+					"Error: It seems that buildkitd had an issue. " +
 						"You can report crashes at https://github.com/earthly/earthly/issues/new.")
 				app.printCrashLogs(ctx)
 			}
 			return 6
-		case errors.Is(err, context.Canceled):
-			app.BaseCLI.Logbus().Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
-			if app.BaseCLI.Flags().Verbose {
-				app.BaseCLI.Console().Warnf("Canceled: %v\n", err)
-			} else {
-				app.BaseCLI.Console().Warnf("Canceled\n")
-			}
-			return 2
-		case status.Code(errors.Cause(err)) == codes.Canceled:
+		case errors.Is(err, context.Canceled), status.Code(errors.Cause(err)) == codes.Canceled:
 			app.BaseCLI.Logbus().Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
 			if app.BaseCLI.Flags().Verbose {
 				app.BaseCLI.Console().Warnf("Canceled: %v\n", err)
@@ -304,17 +304,16 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			}
 			return 2
 		case isInterpreterError:
-			app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), ie.TargetID, "", logstream.FailureType_FAILURE_TYPE_SYNTAX, ie.Error())
-			app.BaseCLI.Console().VerboseWarnf("Error: %s\n", ie.Error())
+			app.BaseCLI.Console().Printf("Identified interperter error")
+			if ie.TargetID == "" {
+				app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_SYNTAX, errorWithPrefix(ie.Error()))
+			} else {
+				app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), ie.TargetID, "", logstream.FailureType_FAILURE_TYPE_SYNTAX, errorWithPrefix(ie.Error()))
+			}
 			return 1
 		default:
-			if app.BaseCLI.CommandName() == "build" {
-				app.BaseCLI.Console().VerboseWarnf("Error: %v\n", err)
-				app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), "", "", logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
-			} else {
-				app.BaseCLI.Logbus().Run().SkipFatalError()
-				app.BaseCLI.Console().Warnf("Error: %v\n", err)
-			}
+			app.BaseCLI.Console().Printf("Identified default error")
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, errorWithPrefix(err.Error()))
 			return 1
 		}
 	}
@@ -343,4 +342,8 @@ func (app *EarthlyApp) printCrashLogs(ctx context.Context) {
 		app.BaseCLI.Console().PrintBar(color.New(color.FgHiRed), "Buildkit Logs", "")
 		fmt.Fprintln(os.Stderr, logs)
 	}
+}
+
+func errorWithPrefix(err string) string {
+	return fmt.Sprintf("Error: %s", err)
 }

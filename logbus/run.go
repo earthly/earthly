@@ -2,12 +2,16 @@ package logbus
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/ast/spec"
 )
+
+// GenericDefaultMagicString is used to identify printing messages without a "_unknown" prefix
+const GenericDefaultMagicString = "_generic:default"
 
 // Run is a run logstream delta generator for a run.
 type Run struct {
@@ -134,7 +138,7 @@ func (run *Run) SkipFatalError() {
 }
 
 // SetFatalError sets a fatal error for the build.
-func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, failureType logstream.FailureType, errString string) {
+func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, failureType logstream.FailureType, errString string, args ...any) {
 	run.mu.Lock()
 	defer run.mu.Unlock()
 	if run.ended {
@@ -157,9 +161,14 @@ func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, 
 			TargetId:     targetID,
 			CommandId:    commandID,
 			Output:       tailOutput,
-			ErrorMessage: errString,
+			ErrorMessage: fmt.Sprintf(errString, args...),
 		},
 	})
+}
+
+// SetGenericFatalError sets a fatal error for the build with an empty target id and a command id indicating not to prefix the error with target info.
+func (run *Run) SetGenericFatalError(end time.Time, failureType logstream.FailureType, errString string, args ...any) {
+	run.SetFatalError(end, "", GenericDefaultMagicString, failureType, errString, args...)
 }
 
 // SetEnd sets the end time and status of the build.

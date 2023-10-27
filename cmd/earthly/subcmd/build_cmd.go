@@ -11,12 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/earthly/earthly/cmd/earthly/bk"
-	"github.com/earthly/earthly/cmd/earthly/common"
-	"github.com/earthly/earthly/cmd/earthly/flag"
-	"github.com/earthly/earthly/cmd/earthly/helper"
-	"github.com/earthly/earthly/docker2earthly"
-
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
 	"github.com/fatih/color"
@@ -30,6 +24,8 @@ import (
 	"github.com/moby/buildkit/session/socketforward/socketprovider"
 	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast"
@@ -39,8 +35,13 @@ import (
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/cloud"
+	"github.com/earthly/earthly/cmd/earthly/bk"
+	"github.com/earthly/earthly/cmd/earthly/common"
+	"github.com/earthly/earthly/cmd/earthly/flag"
+	"github.com/earthly/earthly/cmd/earthly/helper"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/debugger/terminal"
+	"github.com/earthly/earthly/docker2earthly"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/inputgraph"
@@ -54,13 +55,12 @@ import (
 	"github.com/earthly/earthly/util/llbutil/authprovider"
 	"github.com/earthly/earthly/util/llbutil/authprovider/cloudauth"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
+	"github.com/earthly/earthly/util/params"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
 	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
 )
 
 type Build struct {
@@ -132,22 +132,22 @@ func (a *Build) Action(cliCtx *cli.Context) error {
 		a.cli.Flags().Strict = true
 
 		if a.cli.Flags().InteractiveDebugging {
-			return errors.New("unable to use --ci flag in combination with --interactive flag")
+			return params.Errorf("unable to use --ci flag in combination with --interactive flag")
 		}
 	}
 
 	if a.cli.Flags().ImageMode && a.cli.Flags().ArtifactMode {
-		return errors.New("both image and artifact modes cannot be active at the same time")
+		return params.Errorf("both image and artifact modes cannot be active at the same time")
 	}
 	if (a.cli.Flags().ImageMode && a.cli.Flags().NoOutput) || (a.cli.Flags().ArtifactMode && a.cli.Flags().NoOutput) {
 		if a.cli.Flags().CI {
 			a.cli.Flags().NoOutput = false
 		} else {
-			return errors.New("cannot use --no-output with image or artifact modes")
+			return params.Errorf("cannot use --no-output with image or artifact modes")
 		}
 	}
 	if a.cli.Flags().InteractiveDebugging && !termutil.IsTTY() {
-		return errors.New("A tty-terminal must be present in order to use the --interactive flag")
+		return params.Errorf("A tty-terminal must be present in order to use the --interactive flag")
 	}
 
 	flagArgs, nonFlagArgs, err := variables.ParseFlagArgsWithNonFlags(cliCtx.Args().Slice())
@@ -185,26 +185,26 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	if a.cli.Flags().ImageMode {
 		if len(nonFlagArgs) == 0 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return errors.Errorf(
+			return params.Errorf(
 				"no image reference provided. Try %s --image +<target-name>", cliCtx.App.Name)
 		} else if len(nonFlagArgs) != 1 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return errors.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
+			return params.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
 		targetName := nonFlagArgs[0]
 		var err error
 		target, err = domain.ParseTarget(targetName)
 		if err != nil {
-			return errors.Wrapf(err, "parse target name %s", targetName)
+			return params.Wrapf(err, "invalid target name %s", targetName)
 		}
 	} else if a.cli.Flags().ArtifactMode {
 		if len(nonFlagArgs) == 0 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return errors.Errorf(
+			return params.Errorf(
 				"no artifact reference provided. Try %s --artifact +<target-name>/<artifact-name>", cliCtx.App.Name)
 		} else if len(nonFlagArgs) > 2 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return errors.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
+			return params.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
 		artifactName := nonFlagArgs[0]
 		if len(nonFlagArgs) == 2 {
@@ -213,23 +213,23 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		var err error
 		artifact, err = domain.ParseArtifact(artifactName)
 		if err != nil {
-			return errors.Wrapf(err, "parse artifact name %s", artifactName)
+			return params.Wrapf(err, "invalid artifact name %s", artifactName)
 		}
 		target = artifact.Target
 	} else {
 		if len(nonFlagArgs) == 0 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return errors.Errorf(
+			return params.Errorf(
 				"no target reference provided. Try %s +<target-name>", cliCtx.App.Name)
 		} else if len(nonFlagArgs) != 1 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return errors.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
+			return params.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
 		targetName := nonFlagArgs[0]
 		var err error
 		target, err = domain.ParseTarget(targetName)
 		if err != nil {
-			return errors.Wrapf(err, "parse target name %s", targetName)
+			return params.Errorf("invalid target %s", targetName)
 		}
 	}
 	a.cli.SetAnaMetaTarget(target)
