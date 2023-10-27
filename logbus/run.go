@@ -10,7 +10,7 @@ import (
 	"github.com/earthly/earthly/ast/spec"
 )
 
-// GenericDefaultMagicString is used to identify printing messages without a "_unknown" prefix
+// GenericDefault is the internal name used to identify messages unrelated to a specific target or command.
 const GenericDefaultMagicString = "_generic:default"
 
 // Run is a run logstream delta generator for a run.
