@@ -57,7 +57,7 @@ func (run *Run) NewTarget(targetID string, target domain.Target, overrideArgs []
 		MainTargetId: mainTargetID,
 		Targets: map[string]*logstream.DeltaTargetManifest{
 			targetID: {
-				Name:            target.GetName(),
+				Name:            target.String(), // Includes "+" prefix (e.g., "+target-name").
 				CanonicalName:   target.StringCanonical(),
 				GitUrl:          target.GetGitURL(),
 				LocalPath:       target.GetLocalPath(),
