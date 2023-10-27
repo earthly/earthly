@@ -206,6 +206,6 @@ func platformIncompatMsg(platr *platutil.Resolver) string {
 	return "running WITH DOCKER as a non-native CPU architecture. This is not supported.\n" +
 		fmt.Sprintf("Current platform: %s\n", currentPlatStr) +
 		fmt.Sprintf("Native platform of the worker: %s\n", nativePlatStr) +
-		"Try using\n\n\tFROM --platform=native earthly/dind:alpine\n\ninstead.\n" +
+		"Try using\n\n\tFROM --platform=native earthly/dind:alpine-3.18\n\ninstead.\n" +
 		"You may still --load and --pull images of a different platform.\n"
 }

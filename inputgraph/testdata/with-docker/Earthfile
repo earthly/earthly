@@ -9,21 +9,21 @@ load-target:
     SAVE IMAGE saved:latest
 
 with-docker-load:
-    FROM earthly/dind:alpine
+    FROM earthly/dind:alpine-3.18
     WITH DOCKER --load saved:latest=+load-target
          RUN echo "loaded"
     END
 
 with-docker-load-no-alias:
     BUILD +load-target
-    FROM earthly/dind:alpine
+    FROM earthly/dind:alpine-3.18
     WITH DOCKER --load +load-target
          RUN echo "loaded"
     END
 
 with-docker-load-args:
     BUILD +load-target
-    FROM earthly/dind:alpine
+    FROM earthly/dind:alpine-3.18
     WITH DOCKER --load foo=(+load-target --foo=2)
          RUN echo "loaded"
     END

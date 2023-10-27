@@ -114,7 +114,7 @@ And here is how you would run it:
 4/hello-earthly:with-love | --> DOCKER PULL <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with-love
 4/hello-earthly:with-love | [██████████] resolve <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with-love@sha256:9ab4df74dafa2a71d71e39e1af133d110186698c78554ab000159cfa92081de4 ... 100%
                +base | --> FROM earthly/dind:alpine-3.18
-               +base | [██████████] resolve docker.io/earthly/dind:alpine@sha256:2cef4089960efe028de40721749e3ec6eba9f471562bf10681de729287bd78fb ... 100%
+               +base | [██████████] resolve docker.io/earthly/dind:alpine-3.18@sha256:2cef4089960efe028de40721749e3ec6eba9f471562bf10681de729287bd78fb ... 100%
                 +run | *cached* --> WITH DOCKER (install deps)
                 +run | *cached* --> WITH DOCKER RUN docker run <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with-love
               output | --> exporting outputs
