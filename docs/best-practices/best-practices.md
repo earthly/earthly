@@ -296,7 +296,7 @@ In certain cases, it may be desirable to execute certain targets on the host mac
 Suppose we wanted the following target to be executed on against the host's Docker daemon:
 
 ```Dockerfile
-FROM earthly/dind:alpine
+FROM earthly/dind:alpine-3.18
 WORKDIR /app
 COPY docker-compose.yml ./
 WITH DOCKER --compose docker-compose.yml \
@@ -327,7 +327,7 @@ ARG run_locally=false
 IF [ "$run_locally" = "true" ]
     LOCALLY
 ELSE
-    FROM earthly/dind:alpine
+    FROM earthly/dind:alpine-3.18
     WORKDIR /app
     COPY docker-compose.yml ./
 END
@@ -1054,7 +1054,7 @@ The best supported option, however, is to use the `earthly/dind` image, if possi
 ```Dockerfile
 # Best - if possible
 integration-test:
-    FROM earthly/dind:alpine
+    FROM earthly/dind:alpine-3.18
     COPY docker-compose.yml ./
     WITH DOCKER --compose docker-compose.yml
         RUN ...
