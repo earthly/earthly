@@ -62,6 +62,7 @@ func (run *Run) NewTarget(targetID string, target domain.Target, overrideArgs []
 				GitUrl:          target.GetGitURL(),
 				LocalPath:       target.GetLocalPath(),
 				Tag:             target.GetTag(),
+				ImportRef:       target.GetImportRef(),
 				OverrideArgs:    overrideArgs,
 				InitialPlatform: initialPlatform,
 				Runner:          runner,
