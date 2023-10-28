@@ -11,7 +11,7 @@ import (
 )
 
 // GenericDefault is the internal name used to identify messages unrelated to a specific target or command.
-const GenericDefaultMagicString = "_generic:default"
+const GenericDefault = "_generic:default"
 
 // Run is a run logstream delta generator for a run.
 type Run struct {
@@ -162,7 +162,7 @@ func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, 
 
 // SetGenericFatalError sets a fatal error for the build with an empty target id and a command id indicating not to prefix the error with target info.
 func (run *Run) SetGenericFatalError(end time.Time, failureType logstream.FailureType, errString string, args ...any) {
-	run.SetFatalError(end, "", GenericDefaultMagicString, failureType, errString, args...)
+	run.SetFatalError(end, "", GenericDefault, failureType, errString, args...)
 }
 
 // SetEnd sets the end time and status of the build.

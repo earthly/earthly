@@ -409,7 +409,7 @@ func (f *Formatter) printBuildFailure() {
 	}
 	c, _ := f.targetConsole(failure.GetTargetId(), failure.GetCommandId())
 	c = c.WithFailed(true)
-	if failure.GetCommandId() != "" && failure.GetCommandId() != logbus.GenericDefaultMagicString {
+	if failure.GetCommandId() != "" && failure.GetCommandId() != logbus.GenericDefault {
 		c.PrintFailure("")
 		c.Printf("Repeating the failure error...\n")
 		f.printHeader(failure.GetTargetId(), failure.GetCommandId(), tm, cm, true)
@@ -434,7 +434,7 @@ func (f *Formatter) targetConsole(targetID string, commandID string) (consloggin
 		tm := f.manifest.GetTargets()[targetID]
 		targetName = tm.GetName()
 		writerTargetID = targetID
-	case commandID == logbus.GenericDefaultMagicString:
+	case commandID == logbus.GenericDefault:
 		targetName = ""
 		writerTargetID = commandID
 	case strings.HasPrefix(commandID, genericPrefix):
