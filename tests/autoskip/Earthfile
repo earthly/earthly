@@ -18,6 +18,7 @@ test-all:
     BUILD +test-build-args
     BUILD +test-pass-args
     BUILD +test-copy-target-args
+    BUILD +test-arg-matrix
 
 test-files:
     RUN echo hello > my-file
