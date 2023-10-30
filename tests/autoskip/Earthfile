@@ -114,6 +114,14 @@ test-copy-target-args:
     DO --pass-args +RUN_EARTHLY_ARGS --target=+copy-target-args --output_contains="+copy-target-args | changed"
     DO --pass-args +RUN_EARTHLY_ARGS --target=+copy-target-args --output_contains="target .* has already been run; exiting"
 
+test-arg-matrix:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=matrix.earth --target=+arg-matrix --output_contains="Hello Bob. From Todd"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=matrix.earth --target=+arg-matrix --output_contains="target .* has already been run; exiting"
+
+    RUN sed -i s/Bill/Sam/g Earthfile
+
+    DO --pass-args +RUN_EARTHLY_ARGS --target=+arg-matrix --output_contains="Hello Sam. From Todd"
+    DO --pass-args +RUN_EARTHLY_ARGS --target=+arg-matrix --output_contains="target .* has already been run; exiting"
 
 RUN_EARTHLY_ARGS:
     COMMAND
