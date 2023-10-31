@@ -363,7 +363,7 @@ func (l *loader) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
 }
 
 func (l *loader) handleFor(ctx context.Context, forStmt spec.ForStatement) error {
-	l.hashFor(forStmt)
+	l.hashForStatement(forStmt)
 	err := l.loadBlock(ctx, forStmt.Body)
 	if err != nil {
 		return err
@@ -382,7 +382,27 @@ func (l *loader) handleWait(ctx context.Context, waitStmt spec.WaitStatement) er
 }
 
 func (l *loader) handleTry(ctx context.Context, tryStmt spec.TryStatement) error {
-	return errors.New("try not supported")
+	l.hashTryStatement(tryStmt)
+	for _, stmt := range tryStmt.TryBody {
+		if err := l.handleStatement(ctx, stmt); err != nil {
+			return err
+		}
+	}
+	if tryStmt.CatchBody != nil {
+		for _, stmt := range *tryStmt.CatchBody {
+			if err := l.handleStatement(ctx, stmt); err != nil {
+				return err
+			}
+		}
+	}
+	if tryStmt.FinallyBody != nil {
+		for _, stmt := range *tryStmt.FinallyBody {
+			if err := l.handleStatement(ctx, stmt); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (l *loader) handleStatement(ctx context.Context, stmt spec.Statement) error {
