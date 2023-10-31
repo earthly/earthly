@@ -129,7 +129,7 @@ lint-scripts:
 earthly-script-no-stdout:
     # This validates the ./earthly script doesn't print anything to stdout (it should print to stderr)
     # This is to ensure commands such as: MYSECRET="$(./earthly secrets get -n /user/my-secret)" work
-    FROM earthly/dind:alpine-3.18
+    FROM earthly/dind:alpine-3.18-docker-23.0.6-r4
     RUN apk add --no-cache --update bash
     COPY earthly .earthly_version_flag_overrides .
 
@@ -561,7 +561,7 @@ dind:
     END
     ARG DOCKERHUB_USER=earthly
     IF [ "$LATEST" = "true" ]
-      # latest means the version is ommitted (for historical reasons we initially just called it earthly/dind:alpine-3.18 or earthly/dind:ubuntu)
+      # latest means the version is ommitted (for historical reasons we initially just called it earthly/dind:alpine or earthly/dind:ubuntu)
       SAVE IMAGE --push --cache-from=earthly/dind:$OS_IMAGE-main $DOCKERHUB_USER/dind:$OS_IMAGE
     END
     ARG DATETIME="$(date --utc +%Y%m%d%H%M%S)" # note this must be overriden when building a multi-platform image (otherwise the values wont match)
