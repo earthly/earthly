@@ -84,11 +84,19 @@ func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
 		return errors.New("missing BUILD arg")
 	}
 
-	if requiresCrossProduct(args) {
-		return errors.New("unable to cross-product in BUILD")
+	argCombos, err := flagutil.BuildArgMatrix(args)
+	if err != nil {
+		return errors.Wrap(err, "failed to compute arg matrix")
 	}
 
-	return l.loadTargetFromString(ctx, args[0], args[1:], opts.PassArgs)
+	for _, args := range argCombos {
+		err := l.loadTargetFromString(ctx, args[0], args[1:], opts.PassArgs)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
