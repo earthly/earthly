@@ -112,6 +112,18 @@ func setManifestFields(dm *pb.DeltaManifest, ret *pb.RunManifest) {
 		if t2.GetEndedAtUnixNanos() != 0 {
 			t.EndedAtUnixNanos = t2.GetEndedAtUnixNanos()
 		}
+		if t2.GetGitUrl() != "" {
+			t.GitUrl = t2.GetGitUrl()
+		}
+		if t2.GetTag() != "" {
+			t.Tag = t2.GetTag()
+		}
+		if t2.GetImportRef() != "" {
+			t.ImportRef = t2.GetImportRef()
+		}
+		if t2.GetLocalPath() != "" {
+			t.LocalPath = t2.GetLocalPath()
+		}
 	}
 	for commandID, c2 := range f.GetCommands() {
 		c := ensureCommandExists(ret, commandID)
