@@ -373,33 +373,32 @@ func (l *loader) handleFor(ctx context.Context, forStmt spec.ForStatement) error
 
 func (l *loader) handleWait(ctx context.Context, waitStmt spec.WaitStatement) error {
 	l.hashWaitStatement(waitStmt)
-	for _, stmt := range waitStmt.Body {
-		if err := l.handleStatement(ctx, stmt); err != nil {
+	return l.handleStatements(ctx, waitStmt.Body)
+}
+
+func (l *loader) handleTry(ctx context.Context, tryStmt spec.TryStatement) error {
+	l.hashTryStatement(tryStmt)
+	if err := l.handleStatements(ctx, tryStmt.TryBody); err != nil {
+		return err
+	}
+	if tryStmt.CatchBody != nil {
+		if err := l.handleStatements(ctx, *tryStmt.CatchBody); err != nil {
+			return err
+		}
+	}
+	if tryStmt.FinallyBody != nil {
+		if err := l.handleStatements(ctx, *tryStmt.FinallyBody); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (l *loader) handleTry(ctx context.Context, tryStmt spec.TryStatement) error {
-	l.hashTryStatement(tryStmt)
-	for _, stmt := range tryStmt.TryBody {
+func (l *loader) handleStatements(ctx context.Context, stmts []spec.Statement) error {
+	l.hasher.HashInt(len(stmts))
+	for _, stmt := range stmts {
 		if err := l.handleStatement(ctx, stmt); err != nil {
 			return err
-		}
-	}
-	if tryStmt.CatchBody != nil {
-		for _, stmt := range *tryStmt.CatchBody {
-			if err := l.handleStatement(ctx, stmt); err != nil {
-				return err
-			}
-		}
-	}
-	if tryStmt.FinallyBody != nil {
-		for _, stmt := range *tryStmt.FinallyBody {
-			if err := l.handleStatement(ctx, stmt); err != nil {
-				return err
-			}
 		}
 	}
 	return nil
@@ -428,13 +427,7 @@ func (l *loader) handleStatement(ctx context.Context, stmt spec.Statement) error
 }
 
 func (l *loader) loadBlock(ctx context.Context, b spec.Block) error {
-	for _, stmt := range b {
-		err := l.handleStatement(ctx, stmt)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return l.handleStatements(ctx, b)
 }
 
 func (l *loader) forTarget(ctx context.Context, target domain.Target, args []string, passArgs bool) (*loader, error) {
