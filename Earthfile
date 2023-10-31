@@ -638,11 +638,13 @@ all-buildkitd:
         ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
 dind-alpine:
-    BUILD +dind --OS_IMAGE=alpine --OS_VERSION=3.18 --DOCKER_VERSION=23.0.6-r6
+    DO +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=alpine --OS_VERSION=3.18 --DOCKER_VERSION=23.0.6-r6
 
-dind-ubuntu:
-    BUILD +dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal
-    BUILD +dind --OS_IMAGE=ubuntu --OS_VERSION=23.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.23.04~lunar
+dind-ubuntu-20.04:
+    DO +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal
+
+dind-ubuntu-23.04:
+    DO +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=23.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.23.04~lunar
 
 # all-dind builds alpine and ubuntu dind containers for both linux amd64 and linux arm64
 all-dind:
@@ -655,7 +657,11 @@ all-dind:
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
-        +dind-ubuntu --DATETIME=$DATETIME
+        +dind-ubuntu-20.04 --DATETIME=$DATETIME
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm64 \
+        +dind-ubuntu-23.04 --DATETIME=$DATETIME
 
 # all builds all of the following:
 # - Buildkitd for both linux amd64 and linux arm64
@@ -868,3 +874,10 @@ check-broken-links:
     ELSE
         RUN --no-cache echo -e "${GREEN}No Broken Links were found${NOCOLOR}"
     END
+
+# BUILD_AND_FROM will issue a FROM and a BUILD commands for the provided target
+BUILD_AND_FROM:
+    COMMAND
+    ARG --required TARGET
+    FROM --pass-args +$TARGET
+    BUILD --pass-args +$TARGET
