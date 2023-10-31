@@ -8,6 +8,7 @@ import (
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/ast/spec"
+	"github.com/earthly/earthly/domain"
 )
 
 // GenericDefault is the internal name used to identify messages unrelated to a specific target or command.
@@ -43,7 +44,7 @@ func (run *Run) Generic() *Generic {
 }
 
 // NewTarget creates a new target printer.
-func (run *Run) NewTarget(targetID, shortTargetName, canonicalTargetName string, overrideArgs []string, initialPlatform string, runner string) (*Target, error) {
+func (run *Run) NewTarget(targetID string, target domain.Target, overrideArgs []string, initialPlatform string, runner string) (*Target, error) {
 	run.mu.Lock()
 	defer run.mu.Unlock()
 	mainTargetID := ""
@@ -60,17 +61,21 @@ func (run *Run) NewTarget(targetID, shortTargetName, canonicalTargetName string,
 		MainTargetId: mainTargetID,
 		Targets: map[string]*logstream.DeltaTargetManifest{
 			targetID: {
-				Name:            shortTargetName,
-				CanonicalName:   canonicalTargetName,
+				Name:            target.String(), // Includes "+" prefix (e.g., "+target-name").
+				CanonicalName:   target.StringCanonical(),
+				GitUrl:          target.GetGitURL(),
+				LocalPath:       target.GetLocalPath(),
+				Tag:             target.GetTag(),
+				ImportRef:       target.GetImportRef(),
 				OverrideArgs:    overrideArgs,
 				InitialPlatform: initialPlatform,
 				Runner:          runner,
 			},
 		},
 	})
-	target := newTarget(run.b, targetID)
-	run.targets[targetID] = target
-	return target, nil
+	t := newTarget(run.b, targetID)
+	run.targets[targetID] = t
+	return t, nil
 }
 
 // Target returns the target printer for the given target ID.
