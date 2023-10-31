@@ -14,7 +14,7 @@ ga:
 ga-qemu:
     BUILD ./platform+test
 
-ga-no-qemu-quick:
+ga-no-qemu-quick1:
     BUILD --pass-args ./autocompletion+test-all
     BUILD ./dockerfile+test
     BUILD ./dockerfile2/subdir+test
@@ -69,6 +69,8 @@ ga-no-qemu-quick:
     BUILD +escape-test --EARTHFILE=escape-v0.5.earth
     BUILD +escape-dir-test
     BUILD +fail-invalid-artifact-test
+
+ga-no-qemu-quick2:
     BUILD +target-first-line
     BUILD +absolute-reference-with-relative
     BUILD +end-comment
@@ -178,7 +180,8 @@ ga-no-qemu-kind:
     BUILD ./with-docker-kind+all
 
 ga-no-qemu:
-    BUILD +ga-no-qemu-quick
+    BUILD +ga-no-qemu-quick1
+    BUILD +ga-no-qemu-quick2
     BUILD +ga-no-qemu-normal
     BUILD +ga-no-qemu-slow
 

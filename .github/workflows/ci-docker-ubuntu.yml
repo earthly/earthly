@@ -66,12 +66,12 @@ jobs:
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
-  docker-tests-no-qemu-quick:
+  docker-tests-no-qemu-quick1:
     needs: build-earthly
     if: ${{ !failure() }}
     uses: ./.github/workflows/reusable-test.yml
     with:
-      TEST_TARGET: "+test-no-qemu-quick"
+      TEST_TARGET: "+test-no-qemu-quick1"
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
@@ -79,12 +79,39 @@ jobs:
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
-  docker-tests-no-qemu-quick-no-logbus:
+  docker-tests-no-qemu-quick2:
     needs: build-earthly
     if: ${{ !failure() }}
     uses: ./.github/workflows/reusable-test.yml
     with:
-      TEST_TARGET: "+test-no-qemu-quick"
+      TEST_TARGET: "+test-no-qemu-quick2"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+    secrets: inherit
+
+  docker-tests-no-qemu-quick1-no-logbus:
+    needs: build-earthly
+    if: ${{ !failure() }}
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-quick1"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      EXTRA_ARGS: "--logstream=false --logstream-upload=false"
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+    secrets: inherit
+
+  docker-tests-no-qemu-quick2-no-logbus:
+    needs: build-earthly
+    if: ${{ !failure() }}
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-quick2"
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
@@ -358,7 +385,7 @@ jobs:
       TARGET_NAME: "+test-quick"
     secrets: inherit
 
-  docker-wait-block-no-qemu-quick:
+  docker-wait-block-no-qemu-quick1:
     needs: build-earthly
     if: ${{ !failure() }}
     uses: ./.github/workflows/reusable-wait-block-target.yml
@@ -368,7 +395,20 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
-      TARGET_NAME: "+test-no-qemu-quick"
+      TARGET_NAME: "+test-no-qemu-quick1"
+    secrets: inherit
+
+  docker-wait-block-no-qemu-quick2:
+    needs: build-earthly
+    if: ${{ !failure() }}
+    uses: ./.github/workflows/reusable-wait-block-target.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      TARGET_NAME: "+test-no-qemu-quick2"
     secrets: inherit
 
   docker-wait-block-no-qemu-normal:
@@ -436,13 +476,27 @@ jobs:
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
-  race-tests-no-qemu-quick:
+  race-tests-no-qemu-quick1:
     needs: build-earthly
     if: ${{ !failure() }}
     uses: ./.github/workflows/reusable-race-test.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      TEST_TARGET: "+test-no-qemu-quick"
+      TEST_TARGET: "+test-no-qemu-quick1"
+      RUNS_ON: "ubuntu-latest"
+      USE_QEMU: false
+      BINARY: "docker"
+      SUDO: ""
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+    secrets: inherit
+
+  race-tests-no-qemu-quick2:
+    needs: build-earthly
+    if: ${{ !failure() }}
+    uses: ./.github/workflows/reusable-race-test.yml
+    with:
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      TEST_TARGET: "+test-no-qemu-quick2"
       RUNS_ON: "ubuntu-latest"
       USE_QEMU: false
       BINARY: "docker"
