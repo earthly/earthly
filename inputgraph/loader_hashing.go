@@ -37,7 +37,11 @@ func (l *loader) hashCommand(c spec.Command) {
 	l.hasher.HashBool(c.ExecMode)
 }
 
-func (l *loader) hashFor(f spec.ForStatement) {
+func (l *loader) hashForStatement(f spec.ForStatement) {
 	l.hasher.HashString("FOR")
 	l.hasher.HashJSONMarshalled(f.Args)
+}
+
+func (l *loader) hashTryStatement(t spec.TryStatement) {
+	l.hasher.HashString("TRY")
 }

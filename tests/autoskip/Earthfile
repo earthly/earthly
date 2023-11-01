@@ -19,6 +19,7 @@ test-all:
     BUILD +test-pass-args
     BUILD +test-copy-target-args
     BUILD +test-arg-matrix
+    BUILD +test-try-catch
 
 test-files:
     RUN echo hello > my-file
@@ -123,6 +124,10 @@ test-arg-matrix:
 
     DO --pass-args +RUN_EARTHLY_ARGS --target=+arg-matrix --output_contains="Hello Sam. From Todd"
     DO --pass-args +RUN_EARTHLY_ARGS --target=+arg-matrix --output_contains="target .* has already been run; exiting"
+
+test-try-catch:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=try-catch.earth --target=+basic --output_contains="Artifact +basic/hello.txt output as hello.txt"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=try-catch.earth --target=+basic --output_contains="target .* has already been run; exiting"
 
 RUN_EARTHLY_ARGS:
     COMMAND
