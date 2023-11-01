@@ -98,6 +98,8 @@ runs:
         if [ "$SATELLITE_NAME" = "core-test" ]; then
           SATELLITE_NAME="$SATELLITE_NAME-$(( $RANDOM % 4 ))"
           echo "Using core-test satellite: $SATELLITE_NAME"
+          # limit converstion parallelism to prevent overloading the core-test satellite
+          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} config global.conversion_parallelism 2
         fi
         ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} sat ls
         ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} satellite select $SATELLITE_NAME
