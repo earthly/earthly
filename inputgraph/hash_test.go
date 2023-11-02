@@ -32,7 +32,7 @@ func TestHashTargetWithDocker(t *testing.T) {
 	r.Equal("core", project)
 
 	hex := fmt.Sprintf("%x", hash)
-	r.Equal("8cf1c171937b425cdc926f17eb8ba99aca8d1fff", hex)
+	r.Equal("e4ccd01c9eeee569917873921a6e5e531c1e4108", hex)
 
 	path := "./testdata/with-docker/Earthfile"
 
@@ -61,7 +61,7 @@ func TestHashTargetWithDocker(t *testing.T) {
 	r.NoError(err)
 
 	hex = fmt.Sprintf("%x", hash)
-	r.Equal("b5b21cdbebc6df09ec1dab717cada72cdeecdcb2", hex)
+	r.Equal("40cac0a443327bdfcfba682fd1d813daa36681ee", hex)
 }
 
 func copyFile(src, dst string) error {
@@ -126,5 +126,5 @@ func TestHashTargetWithDockerNoAlias(t *testing.T) {
 	r.Equal("core", project)
 
 	hex := fmt.Sprintf("%x", hash)
-	r.Equal("6aaabf6d323280d4fd23960a4ba2b159dcfb84fd", hex)
+	r.Equal("39bffc98d13240836efb8ae777eb2451e7f5574e", hex)
 }
