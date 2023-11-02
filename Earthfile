@@ -693,7 +693,8 @@ lint-docs:
 # using secure docker hub mirror configurations
 test-no-qemu:
     BUILD --pass-args +test-quick
-    BUILD --pass-args +test-no-qemu-quick
+    BUILD --pass-args +test-no-qemu-quick1
+    BUILD --pass-args +test-no-qemu-quick2
     BUILD --pass-args +test-no-qemu-normal
     BUILD --pass-args +test-no-qemu-slow
 
