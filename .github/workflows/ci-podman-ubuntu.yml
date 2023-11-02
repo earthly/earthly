@@ -66,12 +66,25 @@ jobs:
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
-  podman-tests-no-qemu-quick:
+  podman-tests-no-qemu-quick1:
     needs: build-earthly
     if: ${{ !failure() }}
     uses: ./.github/workflows/reusable-test.yml
     with:
-      TEST_TARGET: "+test-no-qemu-quick"
+      TEST_TARGET: "+test-no-qemu-quick1"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "podman"
+      SUDO: "sudo -E"
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+    secrets: inherit
+
+  podman-tests-no-qemu-quick2:
+    needs: build-earthly
+    if: ${{ !failure() }}
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-quick2"
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
       BINARY: "podman"
