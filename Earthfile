@@ -687,9 +687,10 @@ lint-docs:
 # using secure docker hub mirror configurations
 test-no-qemu:
     BUILD --pass-args +test-quick
-    BUILD --pass-args +test-no-qemu-quick1
-    BUILD --pass-args +test-no-qemu-quick2
-    BUILD --pass-args +test-no-qemu-normal
+    BUILD --pass-args +test-no-qemu-group1
+    BUILD --pass-args +test-no-qemu-group2
+    BUILD --pass-args +test-no-qemu-group3
+    BUILD --pass-args +test-no-qemu-group4
     BUILD --pass-args +test-no-qemu-slow
 
 # test-quick runs the unit, chaos, offline, and go tests and ensures the earthly script does not write to stdout
@@ -700,19 +701,24 @@ test-quick:
     BUILD +earthly-script-no-stdout
     BUILD --pass-args ./ast/tests+all
 
-# test-no-qemu-quick1 runs the tests from ./tests+ga-no-qemu-quick1
-test-no-qemu-quick1:
-    BUILD --pass-args ./tests+ga-no-qemu-quick1 \
+# test-no-qemu-group1 runs the tests from ./tests+ga-no-qemu-group1
+test-no-qemu-group1:
+    BUILD --pass-args ./tests+ga-no-qemu-group1 \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
-# test-no-qemu-quick2 runs the tests from ./tests+ga-no-qemu-quick2
-test-no-qemu-quick2:
-    BUILD --pass-args ./tests+ga-no-qemu-quick2 \
+# test-no-qemu-group2 runs the tests from ./tests+ga-no-qemu-group2
+test-no-qemu-group2:
+    BUILD --pass-args ./tests+ga-no-qemu-group2 \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
-# test-no-qemu-normal runs the tests from ./tests+ga-no-qemu-normal
-test-no-qemu-normal:
-    BUILD --pass-args ./tests+ga-no-qemu-normal \
+# test-no-qemu-group3 runs the tests from ./tests+ga-no-qemu-group3
+test-no-qemu-group3:
+    BUILD --pass-args ./tests+ga-no-qemu-group3 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group4 runs the tests from ./tests+ga-no-qemu-group4
+test-no-qemu-group4:
+    BUILD --pass-args ./tests+ga-no-qemu-group4 \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
 # test-no-qemu-slow runs the tests from ./tests+ga-no-qemu-slow
