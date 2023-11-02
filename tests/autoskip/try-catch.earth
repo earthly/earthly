@@ -1,0 +1,12 @@
+VERSION --try 0.7
+
+PROJECT earthly-technologies/core
+
+FROM alpine
+
+basic:
+    TRY
+        RUN echo "hello" > /tmp/hello.txt
+    FINALLY
+        SAVE ARTIFACT /tmp/hello.txt AS LOCAL hello.txt
+    END

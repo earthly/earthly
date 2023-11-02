@@ -699,9 +699,14 @@ test-quick:
     BUILD +earthly-script-no-stdout
     BUILD --pass-args ./ast/tests+all
 
-# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-quick
-test-no-qemu-quick:
-    BUILD --pass-args ./tests+ga-no-qemu-quick \
+# test-no-qemu-quick1 runs the tests from ./tests+ga-no-qemu-quick1
+test-no-qemu-quick1:
+    BUILD --pass-args ./tests+ga-no-qemu-quick1 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-quick2
+test-no-qemu-quick2:
+    BUILD --pass-args ./tests+ga-no-qemu-quick2 \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
 # test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-normal
