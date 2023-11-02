@@ -15,60 +15,68 @@ ga-qemu:
     BUILD ./platform+test
 
 ga-no-qemu-quick1:
-    BUILD --pass-args ./autocompletion+test-all
-    BUILD ./dockerfile+test
-    BUILD ./dockerfile2/subdir+test
-    BUILD --pass-args ./locally-in-command+all
-    BUILD ./import+build
-    BUILD ./import+build-imported
-    BUILD +privileged-test
-    BUILD +copy-test
-    BUILD +copy-test-verbose-output
-    BUILD +copy-keep-own-test
-    BUILD +git-clone-test
-    BUILD +builtin-args-invalid-default-test
-    BUILD +builtin-args-invalid-pass-test
-    BUILD +builtin-args-cli-tests
-    BUILD +smoke-test
-    BUILD --pass-args ./invalid+test-all
-    BUILD +excludes-test
-    BUILD +secrets-test
-    BUILD +secrets-optional-prefix-test
-    BUILD +secrets-args-precedence-test
-    BUILD +project-secrets-test
-    BUILD +build-arg-test
-    BUILD +build-arg-explicit-global-test
-    BUILD +build-arg-dynamic-with-empty-base
-    BUILD +lc-test
-    BUILD +from-expose-test
-    BUILD +scratch-test
-    BUILD +build-earthly-test
-    BUILD +host-bind-test
-    BUILD +transitive-args-test
-    BUILD +transitive-args-test2
-    BUILD +non-transitive-args-test
-    BUILD +star-test
-    BUILD +dockerfile-test
-    BUILD +fail-test
-    BUILD +fail-push-test
-    BUILD +allow-privileged-import-test
-    BUILD +reject-privileged-import-test
-    BUILD +required-arg-test
-    BUILD +push-test
-    BUILD +push-arg-test
-    BUILD +ci-arg-test
-    BUILD +gen-dockerfile-test
-    BUILD +chown-test
-    BUILD +env-test
-    BUILD +env-home-test
-    BUILD +stack-failure-test
-    BUILD +multi-stack-failure-test
-    BUILD +no-cache-local-artifact-test
-    BUILD +empty-git-test
-    BUILD +escape-test
-    BUILD +escape-test --EARTHFILE=escape-v0.5.earth
-    BUILD +escape-dir-test
-    BUILD +fail-invalid-artifact-test
+    WAIT
+        BUILD --pass-args ./autocompletion+test-all
+        BUILD ./dockerfile+test
+        BUILD ./dockerfile2/subdir+test
+        BUILD --pass-args ./locally-in-command+all
+        BUILD ./import+build
+        BUILD ./import+build-imported
+        BUILD +privileged-test
+        BUILD +copy-test
+        BUILD +copy-test-verbose-output
+        BUILD +copy-keep-own-test
+        BUILD +git-clone-test
+        BUILD +builtin-args-invalid-default-test
+        BUILD +builtin-args-invalid-pass-test
+        BUILD +builtin-args-cli-tests
+    END
+    WAIT
+        BUILD +smoke-test
+        BUILD --pass-args ./invalid+test-all
+        BUILD +excludes-test
+        BUILD +secrets-test
+        BUILD +secrets-optional-prefix-test
+        BUILD +secrets-args-precedence-test
+        BUILD +project-secrets-test
+        BUILD +build-arg-test
+        BUILD +build-arg-explicit-global-test
+        BUILD +build-arg-dynamic-with-empty-base
+        BUILD +lc-test
+        BUILD +from-expose-test
+        BUILD +scratch-test
+        BUILD +build-earthly-test
+        BUILD +host-bind-test
+    END
+    WAIT
+        BUILD +transitive-args-test
+        BUILD +transitive-args-test2
+        BUILD +non-transitive-args-test
+        BUILD +star-test
+        BUILD +dockerfile-test
+        BUILD +fail-test
+        BUILD +fail-push-test
+        BUILD +allow-privileged-import-test
+        BUILD +reject-privileged-import-test
+        BUILD +required-arg-test
+        BUILD +push-test
+        BUILD +push-arg-test
+        BUILD +ci-arg-test
+    END
+    WAIT
+        BUILD +gen-dockerfile-test
+        BUILD +chown-test
+        BUILD +env-test
+        BUILD +env-home-test
+        BUILD +stack-failure-test
+        BUILD +multi-stack-failure-test
+        BUILD +no-cache-local-artifact-test
+        BUILD +empty-git-test
+        BUILD +escape-test
+        BUILD +escape-test --EARTHFILE=escape-v0.5.earth
+        BUILD +escape-dir-test
+        BUILD +fail-invalid-artifact-test
+    END
 
 ga-no-qemu-quick2:
     BUILD +target-first-line
