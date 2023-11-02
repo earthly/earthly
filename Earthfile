@@ -687,7 +687,8 @@ lint-docs:
 # using secure docker hub mirror configurations
 test-no-qemu:
     BUILD --pass-args +test-quick
-    BUILD --pass-args +test-no-qemu-quick
+    BUILD --pass-args +test-no-qemu-quick1
+    BUILD --pass-args +test-no-qemu-quick2
     BUILD --pass-args +test-no-qemu-normal
     BUILD --pass-args +test-no-qemu-slow
 
@@ -704,27 +705,27 @@ test-no-qemu-quick1:
     BUILD --pass-args ./tests+ga-no-qemu-quick1 \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
-# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-quick2
+# test-no-qemu-quick2 runs the tests from ./tests+ga-no-qemu-quick2
 test-no-qemu-quick2:
     BUILD --pass-args ./tests+ga-no-qemu-quick2 \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
-# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-normal
+# test-no-qemu-normal runs the tests from ./tests+ga-no-qemu-normal
 test-no-qemu-normal:
     BUILD --pass-args ./tests+ga-no-qemu-normal \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
-# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-slow
+# test-no-qemu-slow runs the tests from ./tests+ga-no-qemu-slow
 test-no-qemu-slow:
     BUILD --pass-args ./tests+ga-no-qemu-slow \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
-# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-kind
+# test-no-qemu-kind runs the tests from ./tests+ga-no-qemu-kind
 test-no-qemu-kind:
     BUILD --pass-args ./tests+ga-no-qemu-kind \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
-# test-no-qemu-quick runs the tests from ./tests+ga-qemu
+# test-qemu runs the tests from ./tests+ga-qemu
 test-qemu:
     ARG GLOBAL_WAIT_END="false"
     BUILD --pass-args ./tests+ga-qemu \
