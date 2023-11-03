@@ -25,8 +25,8 @@ import (
 
 var (
 	// ErrUnauthorized occurs when a user is unauthorized to access a resource
-	ErrUnauthorized             = errors.New("unauthorized")
-	ErrUnauthorizedExpiredToken = errors.New("unauthorized expired token")
+	ErrUnauthorized     = errors.New("unauthorized")
+	ErrAuthTokenExpired = errors.New("auth token expired")
 	// ErrNoAuthorizedPublicKeys occurs when no authorized public keys are found
 	ErrNoAuthorizedPublicKeys = errors.New("no authorized public keys found")
 	ErrNotFound               = errors.Errorf("not found")

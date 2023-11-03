@@ -101,8 +101,8 @@ func (c *Client) doCall(ctx context.Context, method, url string, opts ...request
 			if errors.Is(err, ErrUnauthorized) {
 				return 0, nil, ErrUnauthorized
 			}
-			if errors.Is(err, ErrUnauthorizedExpiredToken) {
-				return 0, nil, ErrUnauthorizedExpiredToken
+			if errors.Is(err, ErrAuthTokenExpired) {
+				return 0, nil, ErrAuthTokenExpired
 			}
 			return 0, nil, errors.Wrap(err, "failed refreshing expired auth token")
 		}
@@ -130,7 +130,7 @@ func (c *Client) doCall(ctx context.Context, method, url string, opts ...request
 				if err != nil || msg != "token expired" {
 					return status, body, ErrUnauthorized
 				}
-				return status, body, ErrUnauthorizedExpiredToken
+				return status, body, ErrAuthTokenExpired
 			}
 			_, err := c.Authenticate(ctx)
 			if err != nil {

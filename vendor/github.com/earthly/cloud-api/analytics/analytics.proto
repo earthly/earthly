@@ -1,0 +1,37 @@
+syntax = "proto3";
+package api.public.analytics;
+option go_package = "./analytics";
+
+import "google/protobuf/timestamp.proto";
+
+service Analytics {
+  rpc SendAnalytics(SendAnalyticsRequest) returns (SendAnalyticsResponse) {}
+}
+
+message SendAnalyticsRequest {
+  string key = 1;
+  string install_id = 2;
+  string version = 3;
+  string platform = 4;
+  string buildkit_platform = 5;
+  string user_platform = 6;
+  string git_sha = 7;
+  int32 exit_code = 8;
+  string ci_name = 9;
+  bool is_satellite = 10;
+  string satellite_version = 11;
+  bool is_remote_buildkit = 12;
+  string target_hash = 19;
+  string repo_hash = 13;
+  double execution_seconds = 14;
+  bool terminal = 15;
+  message SubSystem {
+    map<string, int32> sub_system = 1;
+  }
+  map<string, SubSystem> counts = 16;
+  string org_name = 17;
+  string project_name = 18;
+}
+
+// using an empty response instead of pb.Empty to preserve the possibility of sending fields in the response in the future without a breaking change.
+message SendAnalyticsResponse {}

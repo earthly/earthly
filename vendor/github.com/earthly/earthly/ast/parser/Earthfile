@@ -1,0 +1,70 @@
+VERSION 0.7
+
+FROM alpine:3.18
+ARG NATIVEARCH
+IF [ "$NATIVEARCH" = "arm64" ]
+    FROM arm64v8/openjdk:19-slim
+ELSE
+    FROM --platform="linux/$NATIVEARCH" openjdk:19-slim
+END
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    openssl
+
+# Install antlr.
+WORKDIR /usr/local/lib
+ARG --global ANTLR_VERSION=4.12.0
+RUN echo curl -O https://www.antlr.org/download/antlr-${ANTLR_VERSION}-complete.jar
+RUN curl -O https://www.antlr.org/download/antlr-${ANTLR_VERSION}-complete.jar
+WORKDIR /earthly
+
+parser:
+    COPY ./*.g4 ./ast/parser/
+    COPY ./export.go ./ast/parser/
+    RUN java \
+        -Xmx500M \
+        -cp "/usr/local/lib/antlr-${ANTLR_VERSION}-complete.jar:$CLASSPATH" \
+        org.antlr.v4.Tool \
+        -Dlanguage=Go \
+        -lib ast/parser/EarthLexer.g4 \
+        -lib ast/parser/EarthParser.g4 \
+        ast/parser/EarthLexer.g4 \
+        ast/parser/EarthParser.g4
+    # Fix for overflow of int on 32bit architectures (eg arm/v7).
+    # https://github.com/antlr/antlr4/issues/2433#issuecomment-666056924
+    RUN sed -i.bak 's/(1<</(int64(1)<</g' ./ast/parser/*.go
+    RUN diff ./ast/parser/earth_parser.go.bak ./ast/parser/earth_parser.go || true
+    SAVE ARTIFACT ./ast/parser/*.go / AS LOCAL ./
+
+test-not-committed:
+    COPY ./*.go ./locally/
+    COPY +parser/* ./generated/
+    RUN diff -qr ./locally ./generated
+
+rrd-antlr4:
+    FROM maven:3.8.6-jdk-11
+    WORKDIR /rrd-antlr4
+    ENV RRD_SHA c41b36b68fa29d2ba82847395caf87c8c1da4efc
+    RUN curl -L https://github.com/bkiers/rrd-antlr4/archive/$RRD_SHA.zip > rrdantlr4.zip
+    RUN unzip rrdantlr4.zip
+    WORKDIR rrd-antlr4-$RRD_SHA
+    RUN mvn package
+    SAVE ARTIFACT target/rrd-antlr4-0.1.2.jar rrd-antlr4.jar
+
+generate-railroad-diagrams:
+    COPY +rrd-antlr4/rrd-antlr4.jar .
+    COPY ./*.g4 ./ast/parser/
+    RUN java \
+        -Xmx500M \
+        -cp "/usr/local/lib/antlr-${ANTLR_VERSION}-complete.jar:$CLASSPATH" \
+        -jar rrd-antlr4.jar \
+        ast/parser/EarthLexer.g4
+    RUN java \
+        -Xmx500M \
+        -cp "/usr/local/lib/antlr-${ANTLR_VERSION}-complete.jar:$CLASSPATH" \
+        -jar rrd-antlr4.jar \
+        ast/parser/EarthParser.g4
+    SAVE ARTIFACT output/EarthLexer/index.html AS LOCAL lexer-railroad-diagram.html
+    SAVE ARTIFACT output/EarthParser/index.html AS LOCAL parser-railroad-diagram.html

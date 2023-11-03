@@ -1,0 +1,650 @@
+syntax = "proto3";
+package api.public.pipelines;
+option go_package = "./pipelines";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service Pipelines {
+  // ManualBuild manually triggers a Pipeline build with the
+  // provided Targets, Args and Secrets. The new build_id is returned.
+  rpc ManualBuild(ManualBuildRequest) returns (ManualBuildResponse) {
+    option (google.api.http) = {
+      post: "/api/v0/projects/{project_id}/pipelines/{pipeline_id}/builds"
+      body: "*"
+    };
+  }
+  // LaunchSatellite starts a new Earthly Satellite instance on the latest version.
+  // The instance can be used by users to build their local, Cloud, or 3rd-party CI builds.
+  rpc LaunchSatellite(LaunchSatelliteRequest) returns (LaunchSatelliteResponse) {
+    option (google.api.http) = {
+      post: "/api/v0/satellites"
+      body: "*"
+    };
+  }
+  // ListSatellites returns a list of Earthly Satellite instances available in the organization.
+  rpc ListSatellites(ListSatellitesRequest) returns (ListSatellitesResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/satellites"
+    };
+  }
+  // UpdateSatellite updates a Satellite instance to the latest version.
+  // (I.e. the latest AMI we have in AWS).
+  // Calling this may result in some down-time on the instance while it updates.
+  rpc UpdateSatellite(UpdateSatelliteRequest) returns (UpdateSatelliteResponse) {
+    option (google.api.http) = {
+      post: "/api/v0/satellites/{name}/update"
+      body: "*"
+    };
+  }
+  // DeleteSatellite decommissions a Satellite instance.
+  rpc DeleteSatellite(DeleteSatelliteRequest) returns (DeleteSatelliteResponse) {
+    option (google.api.http) = {
+      delete: "/api/v0/satellites/{name}"
+    };
+  }
+  // GetSatellite retrieves the details of a particular Satellite instance.
+  // Mainly intended for use by Buildkit Proxy when establishing a new connection to an instance.
+  rpc GetSatellite(GetSatelliteRequest) returns (GetSatelliteResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/satellites/{name}"
+    };
+  }
+  // WakeSatellite starts the instance from a sleep state.
+  rpc WakeSatellite(WakeSatelliteRequest) returns (WakeSatelliteResponse) {
+    option (google.api.http) = {
+      post: "/api/v0/satellites/{name}/wake"
+      body: "*"
+    };
+  }
+  // ReserveSatellite wakes a satellite when necessary and calls Buildkit's Reserve.
+  rpc ReserveSatellite(ReserveSatelliteRequest) returns (stream ReserveSatelliteResponse) {}
+  // ListRemoteRepos uses the GitHub API to list remote repositories.
+  rpc ListRemoteRepos(ListRemoteReposRequest) returns (ListRemoteReposResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/repos/remote"
+    };
+  }
+  // ListRemoteOrgs lists Git repository organizations from external providers like GitHub.
+  rpc ListRemoteOrgs(ListRemoteOrgsRequest) returns (ListRemoteOrgsResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/repos/orgs"
+    };
+  }
+  // AddProjectRepos adds one or more repositories to a project.
+  rpc AddProjectRepos(AddProjectReposRequest) returns (AddProjectReposResponse) {
+    option (google.api.http) = {
+      post: "/api/v0/repos"
+      body: "*"
+    };
+  }
+  // RemoveProjectRepo removes a repository from a project.
+  rpc RemoveProjectRepo(RemoveProjectRepoRequest) returns (RemoveProjectRepoResponse) {
+    option (google.api.http) = {
+      delete: "/api/v0/repos/{id}"
+    };
+  }
+
+  // UpdateProjectRepoBranch modifies the reference_branch for a project repository
+  // This is a dedicated RPC because changing the definition_branch will cause a resync of pipelines (potentially destructive)
+  rpc UpdateProjectRepoBranch(UpdateProjectRepoBranchRequest) returns (UpdateProjectRepoBranchResponse) {
+    option (google.api.http) = {
+      post: "/api/v0/repos/{repo_id}/reference-branch"
+      body: "*"
+    };
+  }
+
+  // ListProjectRespos lists all project repositories.
+  rpc ListProjectRepos(ListProjectReposRequest) returns (ListProjectReposResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/repos"
+    };
+  }
+
+  // ListPipelines returns a collection of pipelines that can be filtered by project.
+  // listing can be done according to project name & org name OR project id & org id
+  rpc ListPipelines(ListPipelinesRequest) returns (ListPipelinesResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/pipelines"
+    };
+  }
+  // AddPipelines will create one or more pipelines.
+  rpc AddPipelines(AddPipelinesRequest) returns (AddPipelinesResponse) {
+    option (google.api.http) = {
+      post: "/api/v0/pipelines"
+      body: "*"
+    };
+  }
+
+  // GetPipeline will return a pipeline. Needs to appear before ListRemotePipelines due to gRPC specificity rules.
+  rpc GetPipeline(GetPipelineRequest) returns (GetPipelineResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/pipelines/{pipeline_id}"
+    };
+  }
+
+  // ListRemotePipelines uses the GitHub API to list pipeline definitions present in a remote repository.
+  rpc ListRemotePipelines(ListRemotePipelinesRequest) returns (ListRemotePipelinesResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/pipelines/remote"
+    };
+  }
+
+  // RemovePipeline will remove an existing pipeline.
+  rpc RemovePipeline(RemovePipelineRequest) returns (RemovePipelineResponse) {
+    option (google.api.http) = {
+      delete: "/api/v0/pipelines/{pipeline_id}"
+    };
+  }
+  // ListRuns returns a collection of pipelines runs that can be sorted and filtered.
+  rpc ListRuns(ListRunsRequest) returns (ListRunsResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/runs"
+    };
+  }
+  // GetRun returns a single pipeline run, specified by ID.
+  rpc GetRun(GetRunRequest) returns (GetRunResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/run"
+    };
+  }
+  // Rerun can trigger a new pipeline run using an existing run as a reference.
+  rpc Rerun(RerunRequest) returns (RerunResponse) {
+    option (google.api.http) = {
+      post: "/api/v0/run/clone"
+      body: "*"
+    };
+  }
+  // Cancel triggers a run cancellation.
+  rpc CancelRun(CancelRunRequest) returns (CancelRunResponse) {
+    option (google.api.http) = {
+      post: "/api/v0/run/cancel"
+      body: "*"
+    };
+  }
+  // GetOrgLimits will return the org limits for the CI beta testers
+  rpc GetOrgLimits(GetOrgLimitsRequest) returns (GetOrgLimitsResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/limits/org/{orgName}"
+    };
+  }
+  // ListSyncStatuses returns all pipeline sync statuses for projects within an organization.
+  rpc ListSyncStatuses(ListSyncStatusesRequest) returns (ListSyncStatusesResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/sync/status"
+    };
+  }
+  // TriggerRunEvent will publish a build start or end event.
+  rpc TriggerRunEvent(TriggerRunEventRequest) returns (TriggerRunEventResponse) {}
+
+  // ListAccountEmails lists all emails associated with an account from external providers like GitHub.
+  rpc ListAccountEmails(ListAccountEmailsRequest) returns (ListAccountEmailsResponse) {
+    option (google.api.http) = {
+      get: "/api/v0/account-emails"
+    };
+  }
+}
+
+message GetOrgLimitsRequest {
+  string orgName = 1;
+}
+
+message GetOrgLimitsResponse {
+  int32 max_pipelines_per_project = 1;
+  int32 max_projects_with_pipelines = 2;
+
+  int32 project_room = 3;
+}
+
+message ManualBuildRequest {
+  string org_id = 1;
+  string project_id = 2;
+  string pipeline_id = 3;
+  repeated Target targets = 4;
+}
+
+message ManualBuildResponse {
+  string build_id = 1;
+}
+
+message Target {
+  string reference = 1;
+  repeated TargetArg args = 2;
+  repeated TargetSecret secrets = 4;
+}
+
+message TargetArg {
+  string name = 1;
+  string value = 2;
+}
+
+message TargetSecret {
+  string name = 1;
+  string value = 2;
+}
+
+message LaunchSatelliteRequest {
+  string org_id = 1;
+  string name = 2; // characters should be valid within a URL
+  string platform = 3; // Supported values now are: linux/amd64, linux/arm64
+  repeated string feature_flags = 4;
+}
+
+enum SatelliteStatus {
+  SATELLITE_STATUS_UNKNOWN = 0;
+  SATELLITE_STATUS_CREATING = 1;
+  SATELLITE_STATUS_OPERATIONAL = 2;
+  SATELLITE_STATUS_OFFLINE = 3;
+  SATELLITE_STATUS_DESTROYING = 4;
+  SATELLITE_STATUS_FAILED = 5;
+  SATELLITE_STATUS_SLEEP = 6;
+  SATELLITE_STATUS_STARTING = 7;
+  SATELLITE_STATUS_STOPPING = 8;
+}
+
+message LaunchSatelliteResponse {
+  SatelliteStatus status = 1;
+  string version = 2; // deprecated
+}
+
+message ListSatellitesRequest {
+  string org_id = 1;
+}
+
+message ListSatellitesResponse {
+  message SatelliteInstance {
+    string user_id = 1;
+    string name = 2;
+    string platform = 3;
+    SatelliteStatus status = 4;
+    string version = 5; // deprecated
+  }
+  repeated SatelliteInstance instances = 1;
+}
+
+message UpdateSatelliteRequest {
+  string org_id = 1;
+  string name = 2;
+}
+
+message UpdateSatelliteResponse {}
+
+message DeleteSatelliteRequest {
+  string org_id = 1;
+  string name = 2;
+}
+
+message DeleteSatelliteResponse{}
+
+message GetSatelliteRequest {
+  string org_id = 1;
+  string name = 2;
+}
+
+message GetSatelliteResponse {
+  string user_id = 1;
+  string platform = 2;
+  SatelliteStatus status = 3;
+  string version = 4; // deprecated
+  string id = 5;
+  string private_ip = 6;
+  string private_dns = 7;
+}
+
+message WakeSatelliteRequest {
+  string org_id = 1;
+  string name = 2;
+}
+
+message WakeSatelliteResponse {
+  // triggered_wake_up indicates if the satellite was asleep when the request
+  // was made, and hence may take a short moment to wake back up.
+  bool triggered_wake_up = 1;
+}
+
+message ReserveSatelliteRequest {
+  string org_id = 1;
+  string name = 2;
+}
+
+message ReserveSatelliteResponse {
+  SatelliteStatus status = 1;
+}
+
+message ListRemoteReposRequest {
+  string org = 1;
+}
+
+message RemoteRepo {
+  string name = 1;
+  string org = 2;
+  string url = 3;
+  string provider = 4;
+  string default_branch = 5;
+}
+
+message ListRemoteReposResponse {
+  repeated RemoteRepo repos = 1;
+}
+
+message ProjectRepo {
+  string id = 1;
+  string name = 2;
+  string org = 3;
+  string url = 4;
+  string provider = 5;
+  string project = 6;
+  google.protobuf.Timestamp created_at = 7;
+  string provider_org = 8;
+  // reference_branch is the branch used when syncing pipelines
+  string reference_branch = 9;
+}
+
+message AddProjectReposRequest {
+  repeated ProjectRepo repos = 1;
+  // sync_pipelines indicates whether this add call should also sync the pipelines for these repositories
+  bool sync_pipelines = 2;
+}
+
+message AddProjectReposResponse {
+  repeated ProjectRepo repos = 1;
+}
+
+message RemoveProjectRepoRequest {
+  string id = 1;
+}
+
+message RemoveProjectRepoResponse {}
+
+message UpdateProjectRepoBranchRequest {
+  string repo_id = 1;
+
+  // reference_branch is the branch the pipeline definitions are retrieved from
+  // Note: The pipelines themselves will still run on the branch a run is occurring on.
+  string reference_branch = 2;
+
+  // force_sync will force a sync even if the branch already matches.
+  // By default, no sync work is performed if we are setting the branch to the same value.
+  bool force_sync = 3;
+}
+
+message UpdateProjectRepoBranchResponse {}
+
+message ListProjectReposRequest {
+  string project = 1;
+  string org = 2;
+}
+
+message ListProjectReposResponse {
+  repeated ProjectRepo repos = 1;
+}
+
+enum TriggerType {
+  TRIGGER_TYPE_UNSPECIFIED = 0;
+  TRIGGER_TYPE_MANUAL = 1;
+  TRIGGER_TYPE_PUSH = 2;
+  TRIGGER_TYPE_PR = 3;
+}
+
+message PipelineTrigger {
+  TriggerType type = 1;
+  string modifier = 2;
+}
+
+message PipelineArg {
+  string name = 1;
+  string default_value = 2;
+}
+
+message RemotePipeline {
+  string repo = 1;
+  string path = 2;
+  string name = 3;
+  string org = 4;
+  repeated PipelineTrigger triggers = 5;
+  repeated PipelineArg args = 6;
+  int32 start_line = 7;
+  int32 end_line = 8;
+  bool is_push = 9;
+}
+
+enum PipelineStatus {
+  STATUS_UNKNOWN = 0;
+  STATUS_OK = 1;
+  STATUS_ERROR = 2;
+}
+
+enum PipelineErrorCode {
+  ERROR_UNKNOWN = 0;
+  ERROR_NONE = 1;
+  ERROR_PAYMENT = 2;
+  ERROR_PARSING = 3;
+  ERROR_PROJECT = 4;
+}
+
+message Pipeline {
+  string repo = 1;
+  string path = 2;
+  string name = 3;
+  string org = 4;
+  repeated PipelineTrigger triggers = 5;
+  repeated PipelineArg args = 6;
+  string repo_id = 8;
+  string project = 9;
+  bool is_push = 10;
+  string id = 11;
+  string path_hash = 12;
+  // The name of the provider organization (for example, the GH org name)
+  string provider_org = 13;
+  string satellite_name = 14;
+  PipelineStatus status = 15;
+  PipelineErrorCode error_code = 16;
+  string error_details = 17;
+  reserved 7; // old 'enabled' field
+}
+
+enum ParsingErrorCode {
+  // Shouldn't be used
+  PARSING_ERROR_UNKNOWN = 0;
+
+  // PARSING_ERROR_PARSE_GENERIC means there wasn't another appropriate error code to assign this to
+  PARSING_ERROR_PARSE_GENERIC = 1;
+
+  // PARSING_ERROR_INVALID means there was an error parsing the Earthfile because it is invalid
+  PARSING_ERROR_INVALID = 2;
+
+  // PARSING_ERROR_NOT_A_PIPELINE_FILE means the Earthfile was valid, but not considered a pipeline Earthfile
+  PARSING_ERROR_NOT_A_PIPELINE_FILE = 3;
+}
+
+message EarthfileParsingError {
+  string path = 1;
+  string error = 2;
+  ParsingErrorCode code = 3;
+}
+
+message ListRemotePipelinesRequest {
+  string repo = 1;
+  string org = 2;
+  string provider = 3;
+  // reference_branch is the branch to use when obtaining the RemotePipelines
+  string reference_branch = 4;
+}
+
+message ListRemotePipelinesResponse {
+  repeated RemotePipeline pipelines = 1;
+  repeated EarthfileParsingError parsing_errors = 2;
+}
+
+message ListRemoteOrgsRequest {}
+
+message RemoteOrg {
+  string name = 1;
+  string membership = 2;
+  string provider = 3;
+  bool app_installed = 4;
+}
+
+message ListRemoteOrgsResponse {
+  repeated RemoteOrg remote_orgs = 1;
+}
+
+message GetPipelineRequest {
+  string pipeline_id = 1;
+}
+
+message GetPipelineResponse {
+  Pipeline pipeline = 1;
+}
+
+message ListPipelinesRequest {
+  string project = 1; // project Name
+  string org = 2; // Org Name
+  string earthfile_hash = 3;
+  string project_id = 4;
+  string org_id = 5;
+}
+
+message ListPipelinesResponse {
+  repeated Pipeline pipelines = 1;
+}
+
+message AddPipelinesRequest {
+  repeated Pipeline pipelines = 1;
+}
+
+message AddPipelinesResponse {
+  repeated Pipeline pipelines = 1;
+}
+
+message RemovePipelineRequest {
+  string pipeline_id = 1;
+}
+
+message RemovePipelineResponse {}
+
+enum RunStatus {
+  RUN_STATUS_UNSPECIFIED = 0;
+  RUN_STATUS_PENDING = 1;
+  RUN_STATUS_STARTED = 2;
+  RUN_STATUS_SUCCESS = 3;
+  RUN_STATUS_FAILED = 4;
+}
+
+message PipelineRun {
+  string id = 1;
+  string pipeline_id = 2;
+  RunStatus status = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp started_at = 5;
+  google.protobuf.Timestamp ended_at = 6;
+  TriggerType trigger_type = 7;
+  string trigger_modifier = 8;
+  int32 pr_num = 9;
+  string commit_hash = 10;
+  int32 seq_num = 11;
+  string commit_email = 12;
+  string commit_login = 13;
+  int32 org_seq_num = 14;
+  // head_branch is the branch that contains the proposed changes
+  string head_branch = 15;
+  // base_branch is the branch the changes from head_branch will be merged into (may be the same branch)
+  string base_branch = 16;
+}
+
+message CommitInfo {
+  string hash = 1;
+  string avatar_url = 2;
+  string message = 3;
+}
+
+message ListRunsRequest {
+  string pipeline_id = 1;
+  string org = 2;
+  string project = 3;
+  int32 limit = 4;
+}
+
+message ListRunsResponse {
+  repeated PipelineRun runs = 1;
+  repeated CommitInfo commit_info = 2;
+}
+
+message GetRunRequest {
+  string run_id = 1;
+  string pipeline_id = 2;
+  int32 seq_num = 3;
+  string org_name = 4;
+  int32 org_seq_num = 5;
+}
+
+message GetRunResponse {
+  PipelineRun run = 1;
+  CommitInfo commit_info = 2;
+}
+
+message CancelRunRequest {
+  string run_id = 1;
+}
+
+message CancelRunResponse {
+}
+
+message RerunRequest {
+  // An existing run ID that can be used as a basis for the new run.
+  string run_id = 1;
+}
+
+message RerunResponse {
+  PipelineRun run = 1;
+  CommitInfo commit_info = 2;
+}
+
+message ListSyncStatusesRequest {
+  string org_id = 1;
+  string project_id = 2;
+  string org_name = 3;
+  string project_name = 4;
+}
+
+enum SyncStatusType {
+  SYNC_STATUS_UNKNOWN = 0;
+  SYNC_STATUS_OK = 1;
+  SYNC_STATUS_ERROR = 2;
+}
+
+enum SyncErrorCode {
+  SYNC_ERROR_UNKNOWN = 0;
+  SYNC_ERROR_NONE = 1;
+  SYNC_ERROR_PARSING = 2;
+  SYNC_ERROR_PAYMENT = 3;
+  SYNC_ERROR_OTHER = 4;
+}
+
+message SyncStatus {
+  string org_id = 1;
+  string project_id = 2;
+  SyncStatusType status = 3;
+  SyncErrorCode error_code = 4;
+  string details = 5;
+}
+
+message ListSyncStatusesResponse {
+  repeated SyncStatus statuses = 1;
+}
+
+message TriggerRunEventRequest {
+  string run_id = 1;
+  RunStatus status = 2;
+  google.protobuf.Timestamp happened_at = 3;
+}
+
+message TriggerRunEventResponse {}
+
+message ListAccountEmailsRequest {
+}
+
+message ListAccountEmailsResponse {
+  repeated string emails = 1;
+  string primary_email = 2;
+}

@@ -14,7 +14,7 @@ import (
 	secretsapi "github.com/earthly/cloud-api/secrets"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
-	
+
 	"github.com/hako/durafmt"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	authExpirationWarningGracePeriod = time.Hour * 24 * 30
+	authExpirationWarningGracePeriod = time.Hour * 24 * 14
 )
 
 var authExpirationWarningDisplayed = false
@@ -45,7 +45,7 @@ func (c *Client) Authenticate(ctx context.Context) (AuthMethod, error) {
 		return "", err
 	}
 	c.lastAuthMethod = authMethod
-	c.maybeWarnAuthExpiration(authMethod, c.lastAuthMethodExpiry, authExpirationWarningGracePeriod)
+	c.maybeWarnAuthExpiration()
 	return authMethod, nil
 }
 
@@ -523,7 +523,7 @@ func (c *Client) login(ctx context.Context, credentials string) (token string, e
 	if err != nil {
 		return "", zero, errors.Wrap(err, "failed to unmarshal login response")
 	}
-	c.lastAuthMethodExpiry = resp.AuthMethodExpiry.AsTime().UTC()
+	c.lastAuthMethodExpiry = resp.GetAuthMethodExpiry().AsTime().UTC()
 	return resp.Token, resp.Expiry.AsTime().UTC(), nil
 }
 
@@ -572,13 +572,13 @@ func (c *Client) getSSHCredentials(challenge string, key *agent.Key) (credential
 	return credentials, nil
 }
 
-func (c *Client) maybeWarnAuthExpiration(authMethod AuthMethod, expiry time.Time, gracePeriod time.Duration) {
-	if authExpirationWarningDisplayed {
+func (c *Client) maybeWarnAuthExpiration() {
+	if authExpirationWarningDisplayed || c.lastAuthMethodExpiry.IsZero() {
 		return
 	}
-	if diff := expiry.Sub(time.Now().UTC()); diff <= gracePeriod {
+	if diff := c.lastAuthMethodExpiry.Sub(time.Now().UTC()); diff >= 0 && diff <= authExpirationWarningGracePeriod {
+		c.warnFunc("Warning: %s will expire in %s\n", c.lastAuthMethod, durafmt.Parse(diff).LimitFirstN(2))
 		authExpirationWarningDisplayed = true
-		c.warnFunc("Warning: %s will expire in %s\n", authMethod, durafmt.Parse(diff).LimitFirstN(2))
 	}
 }
 
