@@ -125,6 +125,7 @@ ga-no-qemu-group2:
     BUILD +test-cache-mode
     BUILD +test-shared-cache
     BUILD +test-visited-upfront-hash-collection
+    BUILD +test-exec-stats
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -1457,6 +1458,13 @@ test-visited-upfront-hash-collection:
       else \
          echo "parallelization checked"; \
       fi
+
+test-exec-stats:
+  DO +RUN_EARTHLY \
+      --earthfile=stats.earth \
+      --target=+sleep \
+      --extra_args=" --exec-stats " \
+      --output_contains="total CPU:.*total memory:.*"
 
 RUN_EARTHLY:
     COMMAND

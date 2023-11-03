@@ -10,7 +10,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-const tailErrorBufferSizeBytes = 80 * 1024 // About as much as 1024 lines of 80 chars each.
+const (
+	stdout = 1
+	stderr = 2
+
+	tailErrorBufferSizeBytes = 80 * 1024 // About as much as 1024 lines of 80 chars each.
+)
 
 // Command is a build log writer for a command.
 type Command struct {
@@ -40,8 +45,11 @@ func newCommand(b *Bus, commandID string, targetID string) *Command {
 
 // Write prints a byte slice with a timestamp.
 func (c *Command) Write(dt []byte, ts time.Time, stream int32) (int, error) {
+	var err error
 	c.mu.Lock()
-	_, err := c.tailOutput.Write(dt)
+	if stream == stdout || stream == stderr {
+		_, err = c.tailOutput.Write(dt)
+	}
 	c.mu.Unlock()
 	if err != nil {
 		return 0, errors.Wrap(err, "write to tail output")

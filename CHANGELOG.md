@@ -4,6 +4,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+- A new experimental `earthly --exec-stats` flag, which displays per-target execution stats such as total CPU and memory usage.
+
 ### Fixed
 - Remove redundant verbose error messages that were not different from messages that were already being printed.
 

@@ -1907,7 +1907,6 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	if err != nil {
 		return pllb.State{}, errors.Wrap(err, "parse mounts")
 	}
-
 	if opts.NoNetwork {
 		runOpts = append(runOpts, llb.Network(llb.NetModeNone))
 	}

@@ -39,6 +39,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-e', '--earthly', help="earthly binary to run test against", default='earthly')
     parser.add_argument('-t', '--timeout', help="fail test if it takes longer than this many seconds", type=float, default=30.0)
+    parser.add_argument('--test', help="run specified test instead of all tests")
     args = parser.parse_args()
 
     earthly_path = os.path.realpath(get_earthly_binary(args.earthly))
@@ -55,6 +56,8 @@ if __name__ == '__main__':
     exit_code = 0
     summary_msgs = []
     for test_name, test in tests:
+        if args.test and test_name != args.test:
+            continue
         print_box(f'Running {test_name}')
         test_exit_code = test(earthly_path, args.timeout)
         if test_exit_code == 2:

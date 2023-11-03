@@ -1,6 +1,7 @@
 package solvermon
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"regexp"
@@ -11,10 +12,16 @@ import (
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/util/errutil"
+	"github.com/earthly/earthly/util/statsstreamparser"
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
+)
+
+const (
+	// BuildkitStatsStream is the stream number associated with runc stats
+	BuildkitStatsStream = 99 // TODO move to a common location in buildkit
 )
 
 type vertexMonitor struct {
@@ -22,6 +29,7 @@ type vertexMonitor struct {
 	meta      *vertexmeta.VertexMeta
 	operation string
 	cp        *logbus.Command
+	ssp       *statsstreamparser.Parser
 
 	isFatalError   bool // If set, this is the root cause of the entire build failure.
 	fatalErrorType logstream.FailureType
@@ -33,6 +41,23 @@ var reErrExitCode = regexp.MustCompile(`^(?:process ".*" did not complete succes
 var reErrNotFound = regexp.MustCompile(`^failed to calculate checksum of ref ([^ ]*): (.*)$`)
 
 func (vm *vertexMonitor) Write(dt []byte, ts time.Time, stream int) (int, error) {
+	if stream == BuildkitStatsStream {
+		stats, err := vm.ssp.Parse(dt)
+		if err != nil {
+			return 0, errors.Wrap(err, "failed decoding stats stream")
+		}
+		for _, statsSample := range stats {
+			statsJSON, err := json.Marshal(statsSample)
+			if err != nil {
+				return 0, errors.Wrap(err, "stats json encode failed")
+			}
+			_, err = vm.cp.Write(statsJSON, ts, int32(stream))
+			if err != nil {
+				return 0, errors.Wrap(err, "write stats")
+			}
+		}
+		return len(dt), nil
+	}
 	_, err := vm.cp.Write(dt, ts, int32(stream))
 	if err != nil {
 		return 0, errors.Wrap(err, "write log line")

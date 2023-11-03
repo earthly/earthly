@@ -1,14 +1,18 @@
 module github.com/earthly/earthly
 
-go 1.21
+go 1.21.0
+
+toolchain go1.21.4
 
 require (
 	git.sr.ht/~nelsam/hel v0.4.6
 	github.com/adrg/xdg v0.4.0
 	github.com/alessio/shellescape v1.4.1
+	github.com/alexcb/binarystream v0.0.0-20231107003751-3af02e542c26
 	github.com/aws/aws-sdk-go-v2 v1.17.6
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20230227212328-9f4511cd144a
 	github.com/containerd/containerd v1.7.7
+	github.com/containerd/go-runc v1.1.0
 	github.com/creack/pty v1.1.18
 	github.com/docker/cli v24.0.5+incompatible
 	github.com/docker/distribution v2.8.2+incompatible
@@ -108,6 +112,7 @@ require (
 	github.com/moby/sys/signal v0.7.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opencontainers/runc v1.1.9 // indirect
+	github.com/opencontainers/runtime-spec v1.1.0-rc.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
@@ -142,6 +147,6 @@ replace (
 	github.com/jdxcode/netrc => github.com/mikejholly/netrc v0.0.0-20221121193719-a154cb29ec2a
 	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
 
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.0-20231031185549-c7c1f7a1cff4
+	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.0-20231114180628-b4cfdf184379
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20231030221755-644b08355b65
 )
