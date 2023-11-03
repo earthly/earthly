@@ -596,7 +596,7 @@ func (a *Account) actionLogin(cliCtx *cli.Context) error {
 		a.cli.Console().Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
 		return nil
 	}
-	if errors.Cause(err) != cloud.ErrUnauthorized {
+	if errors.Cause(err) != cloud.ErrUnauthorized && errors.Cause(err) != cloud.ErrUnauthorizedExpiredToken {
 		return errors.Wrap(err, "failed to login")
 	}
 

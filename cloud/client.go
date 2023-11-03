@@ -25,7 +25,8 @@ import (
 
 var (
 	// ErrUnauthorized occurs when a user is unauthorized to access a resource
-	ErrUnauthorized = errors.New("unauthorized")
+	ErrUnauthorized             = errors.New("unauthorized")
+	ErrUnauthorizedExpiredToken = errors.New("unauthorized expired token")
 	// ErrNoAuthorizedPublicKeys occurs when no authorized public keys are found
 	ErrNoAuthorizedPublicKeys = errors.New("no authorized public keys found")
 	ErrNotFound               = errors.Errorf("not found")
@@ -69,6 +70,7 @@ type Client struct {
 	serverConnTimeout        time.Duration
 	orgIDCache               sync.Map // orgName -> orgID
 	lastAuthMethod           AuthMethod
+	lastAuthMethodExpiry     time.Time
 }
 
 type ClientOpt func(*Client)

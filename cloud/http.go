@@ -101,6 +101,9 @@ func (c *Client) doCall(ctx context.Context, method, url string, opts ...request
 			if errors.Is(err, ErrUnauthorized) {
 				return 0, nil, ErrUnauthorized
 			}
+			if errors.Is(err, ErrUnauthorizedExpiredToken) {
+				return 0, nil, ErrUnauthorizedExpiredToken
+			}
 			return 0, nil, errors.Wrap(err, "failed refreshing expired auth token")
 		}
 		alreadyReAuthed = true
@@ -123,7 +126,11 @@ func (c *Client) doCall(ctx context.Context, method, url string, opts ...request
 
 		if status == http.StatusUnauthorized {
 			if !r.hasAuth || alreadyReAuthed {
-				return status, body, ErrUnauthorized
+				msg, err := getMessageFromJSON(bytes.NewReader(body))
+				if err != nil || msg != "token expired" {
+					return status, body, ErrUnauthorized
+				}
+				return status, body, ErrUnauthorizedExpiredToken
 			}
 			_, err := c.Authenticate(ctx)
 			if err != nil {

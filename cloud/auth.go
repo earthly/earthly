@@ -14,10 +14,18 @@ import (
 	secretsapi "github.com/earthly/cloud-api/secrets"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
+	
+	"github.com/hako/durafmt"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 )
+
+const (
+	authExpirationWarningGracePeriod = time.Hour * 24 * 30
+)
+
+var authExpirationWarningDisplayed = false
 
 // Authenticate fetches a new auth token from the server and saves it to the client.
 // The user should have credentials store on disk within the ~/.earthly directory.
@@ -37,6 +45,7 @@ func (c *Client) Authenticate(ctx context.Context) (AuthMethod, error) {
 		return "", err
 	}
 	c.lastAuthMethod = authMethod
+	c.maybeWarnAuthExpiration(authMethod, c.lastAuthMethodExpiry, authExpirationWarningGracePeriod)
 	return authMethod, nil
 }
 
@@ -494,7 +503,7 @@ func (c *Client) loginWithSSH(ctx context.Context) error {
 }
 
 // login calls the login endpoint on the cloud server, passing the provided credentials.
-// If auth succeeds, a new jwt token is returned with it's expiry date.
+// If auth succeeds, a new jwt token is returned with its expiry date.
 // ErrUnauthorized is returned if the credentials are not valid.
 func (c *Client) login(ctx context.Context, credentials string) (token string, expiry time.Time, err error) {
 	var zero time.Time
@@ -514,6 +523,7 @@ func (c *Client) login(ctx context.Context, credentials string) (token string, e
 	if err != nil {
 		return "", zero, errors.Wrap(err, "failed to unmarshal login response")
 	}
+	c.lastAuthMethodExpiry = resp.AuthMethodExpiry.AsTime().UTC()
 	return resp.Token, resp.Expiry.AsTime().UTC(), nil
 }
 
@@ -560,6 +570,16 @@ func (c *Client) getSSHCredentials(challenge string, key *agent.Key) (credential
 	blob := base64.StdEncoding.EncodeToString(key.Blob)
 	credentials = fmt.Sprintf("%s %s %s", sigFormat, blob, sig)
 	return credentials, nil
+}
+
+func (c *Client) maybeWarnAuthExpiration(authMethod AuthMethod, expiry time.Time, gracePeriod time.Duration) {
+	if authExpirationWarningDisplayed {
+		return
+	}
+	if diff := expiry.Sub(time.Now().UTC()); diff <= gracePeriod {
+		authExpirationWarningDisplayed = true
+		c.warnFunc("Warning: %s will expire in %s\n", authMethod, durafmt.Parse(diff).LimitFirstN(2))
+	}
 }
 
 func getPasswordAuthToken(email, password string) string {
