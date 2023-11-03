@@ -127,7 +127,7 @@ func (c *Client) doCall(ctx context.Context, method, url string, opts ...request
 		if status == http.StatusUnauthorized {
 			if !r.hasAuth || alreadyReAuthed {
 				msg, err := getMessageFromJSON(bytes.NewReader(body))
-				if err != nil || msg != "token expired" {
+				if err != nil || msg != tokenExpiredServerError {
 					return status, body, ErrUnauthorized
 				}
 				return status, body, ErrAuthTokenExpired
