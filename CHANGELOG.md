@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+- An authentication attempt with an expired auth token will result in a `auth token expired` error instead of `unauthorized`.
+- A successful authentication with an auth token will display a warning with time left before token expires if it's 14 days or under.
+
 ## v0.7.21 - 2023-10-24
 
 ### Added
