@@ -1467,7 +1467,7 @@ RUN_EARTHLY:
     ARG pre_command
     ARG post_command
     ARG should_fail=false
-    ARG use_tmpfs=true
+    ARG use_tmpfs=false
     ARG exec_cmd=
     ARG output_contains=
     ARG output_does_not_contain=
