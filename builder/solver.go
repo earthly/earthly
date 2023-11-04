@@ -6,15 +6,18 @@ import (
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/fsutilprogress"
+
 	"github.com/moby/buildkit/client"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/pullping"
 	"github.com/moby/buildkit/util/entitlements"
+	"github.com/moby/buildkit/util/grpcerrors"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -54,6 +57,11 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 		var err error
 		_, err = s.bkClient.Build(ctx, *solveOpt, "", bf, ch)
 		if err != nil {
+			if grpcErr, ok := grpcerrors.AsGRPCStatus(err); ok {
+				if ie, ok := earthfile2llb.FromError(errors.New(grpcErr.Message())); ok {
+					err = ie
+				}
+			}
 			// The actual error from bkClient.Build sometimes races with
 			// a context cancelled in the solver monitor.
 			buildErr = err

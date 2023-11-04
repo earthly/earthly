@@ -2,6 +2,7 @@ package logbus
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -9,6 +10,9 @@ import (
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/domain"
 )
+
+// GenericDefault is the internal name used to identify messages unrelated to a specific target or command.
+const GenericDefault = "_generic:default"
 
 // Run is a run logstream delta generator for a run.
 type Run struct {
@@ -132,14 +136,8 @@ func (run *Run) SetStart(start time.Time) {
 	})
 }
 
-// SkipFatalError is used to explicitly denote that we're ignoring the build
-// error. The error will not be printed or sent to the server.
-func (run *Run) SkipFatalError() {
-	run.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_FAILURE)
-}
-
 // SetFatalError sets a fatal error for the build.
-func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, failureType logstream.FailureType, errString string) {
+func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, failureType logstream.FailureType, errString string, args ...any) {
 	run.mu.Lock()
 	defer run.mu.Unlock()
 	if run.ended {
@@ -162,9 +160,14 @@ func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, 
 			TargetId:     targetID,
 			CommandId:    commandID,
 			Output:       tailOutput,
-			ErrorMessage: errString,
+			ErrorMessage: fmt.Sprintf(errString, args...),
 		},
 	})
+}
+
+// SetGenericFatalError sets a fatal error for the build with an empty target id and a command id indicating not to prefix the error with target info.
+func (run *Run) SetGenericFatalError(end time.Time, failureType logstream.FailureType, errString string, args ...any) {
+	run.SetFatalError(end, "", GenericDefault, failureType, errString, args...)
 }
 
 // SetEnd sets the end time and status of the build.

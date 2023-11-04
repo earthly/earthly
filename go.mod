@@ -17,7 +17,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/earthly/cloud-api v1.0.1-0.20231101152931-4597a1393c65
 	github.com/earthly/earthly/ast v0.0.0-00010101000000-000000000000
-	github.com/earthly/earthly/util/deltautil v0.0.0-00010101000000-000000000000
 	github.com/elastic/go-sysinfo v1.9.0
 	github.com/fatih/color v1.15.0
 	github.com/gofrs/flock v0.8.1
@@ -85,6 +84,7 @@ require (
 	github.com/docker/docker v24.0.0-rc.2.0.20230905130451-032797ea4bcb+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
+	github.com/earthly/earthly/util/deltautil v0.0.0-20231026053558-e847d5741513 // indirect
 	github.com/elastic/go-windows v1.0.0 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
