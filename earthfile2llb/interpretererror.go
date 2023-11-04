@@ -2,12 +2,18 @@ package earthfile2llb
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 
 	"github.com/earthly/earthly/ast/spec"
+	"github.com/earthly/earthly/util/stringutil"
 	"github.com/pkg/errors"
 )
 
 var _ error = &InterpreterError{}
+
+// note this regex should be updated in case the error format changes in Errorf
+var regex = regexp.MustCompile(`(?P<file_path>.*?) line (?P<line>\d+):(?P<column>\d+) (?P<error>.+?)($|\nin\t\t(?P<stack>.+?)$)`)
 
 // InterpreterError is an error of the interpreter, which contains optional references to the original
 // source code location.
@@ -88,4 +94,46 @@ func GetInterpreterError(err error) (*InterpreterError, bool) {
 		return GetInterpreterError(unwrapped)
 	}
 	return nil, false
+}
+
+// FromError attempts to parse the given error's string to an *InterpreterError
+func FromError(err error) (*InterpreterError, bool) {
+	if err == nil {
+		return nil, false
+	}
+	matches, _ := stringutil.NamedGroupMatches(err.Error(), regex)
+	if len(matches) != 4 && len(matches) != 5 {
+		return nil, false
+	}
+	for k := range matches {
+		if k != "stack" && len(matches[k]) != 1 {
+			return nil, false
+		}
+	}
+	filePath := matches["file_path"][0]
+	line, err := strconv.Atoi(matches["line"][0])
+	if err != nil {
+		return nil, false
+	}
+	column, err := strconv.Atoi(matches["column"][0])
+	if err != nil {
+		return nil, false
+	}
+	errMsg := matches["error"][0]
+
+	stack := ""
+	if len(matches["stack"]) == 1 {
+		stack = matches["stack"][0]
+	}
+
+	return Errorf(
+		&spec.SourceLocation{
+			File:        filePath,
+			StartLine:   line,
+			StartColumn: column,
+		},
+		"",
+		stack,
+		errMsg,
+	), true
 }

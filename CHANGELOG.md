@@ -4,6 +4,14 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Fixed
+- Remove redundant verbose error messages that were not different from messages that were already being printed.
+
+### Changed
+- Final error messages for executions without a known target will be displayed without `_unknown *failed* |` prefix. and instead use `Error: ` as prefix more consistently.
+- Use dedicated logstream failure category for param related error.
+ 
+
 ## v0.7.21 - 2023-10-24
 
 ### Added
