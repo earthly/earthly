@@ -576,8 +576,8 @@ func (c *Client) maybeWarnAuthExpiration() {
 	if authExpirationWarningDisplayed || c.lastAuthMethodExpiry.IsZero() {
 		return
 	}
-	if diff := c.lastAuthMethodExpiry.Sub(time.Now().UTC()); diff >= 0 && diff <= authExpirationWarningGracePeriod {
-		c.warnFunc("Warning: %s will expire in %s\n", c.lastAuthMethod, durafmt.Parse(diff).LimitFirstN(2))
+	if remaining := c.lastAuthMethodExpiry.Sub(time.Now().UTC()); remaining >= 0 && remaining <= authExpirationWarningGracePeriod {
+		c.warnFunc("Warning: %s will expire in %s\n", c.lastAuthMethod, durafmt.Parse(remaining).LimitFirstN(2))
 		authExpirationWarningDisplayed = true
 	}
 }
