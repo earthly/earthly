@@ -2,7 +2,7 @@
 # Table of contents
 
 * [👋 Introduction](README.md)
-* [💻 Get started for free](https://cloud.earthly.dev/login)
+* [💻 Install Earthly](install/install.md)
 * [🎓 Learn the basics](basics/basics.md)
     * [Part 1: A simple Earthfile](basics/part-1-a-simple-earthfile.md)
     * [Part 2: Outputs](basics/part-2-outputs.md)
