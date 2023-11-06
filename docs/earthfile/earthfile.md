@@ -1042,7 +1042,7 @@ Earthly provides officially supported images such as `earthly/dind:alpine-3.18-d
 
 {% hint style='info' %}
 ##### Note
-Note that the cleanup phase (after the `RUN` command has finished), does not occur when using a `LOCALLY` target, users should use `RUN docker run --rm ...` to have docker clean remove the image after execution.
+Note that the cleanup phase (after the `RUN` command has finished), does not occur when using a `LOCALLY` target, users should use `RUN docker run --rm ...` to have docker remove the image after execution.
 {% endhint %}
 
 #### Options
