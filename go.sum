@@ -171,8 +171,8 @@ github.com/docker/cli v24.0.5+incompatible h1:WeBimjvS0eKdH4Ygx+ihVq1Q++xg36M/rM
 github.com/docker/cli v24.0.5+incompatible/go.mod h1:JLrzqnKDaYBop7H2jaqPtU4hHvMKP+vjCwu2uszcLI8=
 github.com/docker/distribution v2.8.2+incompatible h1:T3de5rq0dB1j30rp0sA2rER+m322EBzniBPB6ZIzuh8=
 github.com/docker/distribution v2.8.2+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
-github.com/docker/docker v24.0.0-rc.2.0.20230905130451-032797ea4bcb+incompatible h1:1UUPAB9PAPUbM10+qIKPL5tKZ+VAddWgbQUf+x1QBfI=
-github.com/docker/docker v24.0.0-rc.2.0.20230905130451-032797ea4bcb+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
+github.com/docker/docker v24.0.7+incompatible h1:Wo6l37AuwP3JaMnZa226lzVXGA3F9Ig1seQen0cKYlM=
+github.com/docker/docker v24.0.7+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker-credential-helpers v0.7.0 h1:xtCHsjxogADNZcdv1pKUHXryefjlVRqWqIhk/uXJp0A=
 github.com/docker/docker-credential-helpers v0.7.0/go.mod h1:rETQfLdHNT3foU5kuNkFR1R1V12OJRRO5lzt2D1b5X0=
 github.com/docker/go-connections v0.4.0 h1:El9xVISelRB7BuFusrZozjnkIM5YnzCViNKohAFqRJQ=
@@ -185,16 +185,6 @@ github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkp
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/earthly/buildkit v0.0.0-20231025204852-d5e9d257c398 h1:Zco4CmxV7h1lds9enPRx7mebto0I8zj9EgucRCV1OxE=
 github.com/earthly/buildkit v0.0.0-20231025204852-d5e9d257c398/go.mod h1:AJ3nMleWpsh6L06n2sFkT70+zGjnD9+rtsdmyw5YHLU=
-github.com/earthly/cloud-api v1.0.0 h1:9XsrkHGbfuQc84YjWiOc5+ZhhoQ3afRTx4AYUGv+GmM=
-github.com/earthly/cloud-api v1.0.0/go.mod h1:Xg9V1xG0/j7GlisqstxcartfOz5OJoXEAJdGPjrBnWw=
-github.com/earthly/cloud-api v1.0.1-0.20230914190823-c58662fdabd8 h1:8EW/AMPNtzOcExSV7Dk1weQGK/XqbAuhvLs062xlBH4=
-github.com/earthly/cloud-api v1.0.1-0.20230914190823-c58662fdabd8/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
-github.com/earthly/cloud-api v1.0.1-0.20231026202759-f8644c3705ad h1:F5gQOTQ1KtzkiSLRMpw5C05dJw//OUcBehMZpoAdLYc=
-github.com/earthly/cloud-api v1.0.1-0.20231026202759-f8644c3705ad/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
-github.com/earthly/cloud-api v1.0.1-0.20231027183434-d79534194d95 h1:stFmLhGY7dbf4UhBtbMIN+oaIMEDZez/epwHt7g6MqM=
-github.com/earthly/cloud-api v1.0.1-0.20231027183434-d79534194d95/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
-github.com/earthly/cloud-api v1.0.1-0.20231101152931-4597a1393c65 h1:OVcAjiQy40kc1/ztE3UQ2ES/VlWGYbbiUY7MDg7955Y=
-github.com/earthly/cloud-api v1.0.1-0.20231101152931-4597a1393c65/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
 github.com/earthly/cloud-api v1.0.1-0.20231104021724-b38162a550cb h1:a5u2YnTVZGScHBHo3qugai43RTXRYnt1x33lsKTOy2I=
 github.com/earthly/cloud-api v1.0.1-0.20231104021724-b38162a550cb/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
 github.com/earthly/fsutil v0.0.0-20230530182746-82567e6e2a92 h1:dy3w3B4OiDyQS+iHi/beUgMDJ1+fAAgbtr7OZ0d9ks0=
