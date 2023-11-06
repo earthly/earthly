@@ -1,6 +1,6 @@
 # Alternative Installation
 
-This page outlines alternative installation instructions for the `earthly` build tool. The main instructions that most users need are available on the [installation instructions page](https://earthly.dev/get-earthly).
+This page outlines alternative installation instructions for the `earthly` build tool. The main instructions that most users need are available in [Earthly Cloud](https://cloud.earthly.dev/login), or on the [installation instructions page](https://earthly.dev/get-earthly).
 
 ## Prerequisites
 
