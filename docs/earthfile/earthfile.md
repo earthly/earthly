@@ -1040,6 +1040,11 @@ For performance reasons, it is recommended to use a Docker image that already co
 Earthly provides officially supported images such as `earthly/dind:alpine-3.18-docker-23.0.6-r4` and `earthly/dind:ubuntu-23.04-docker-24.0.5-1` to be used together with `WITH DOCKER`.
 {% endhint %}
 
+{% hint style='info' %}
+##### Note
+Note that the cleanup phase (after the `RUN` command has finished), does not occur when using a `LOCALLY` target, users should use `RUN docker run --rm ...` to have docker remove the image after execution.
+{% endhint %}
+
 #### Options
 
 ##### `--pull <image-name>`
