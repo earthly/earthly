@@ -10,6 +10,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Changed
 - Final error messages for executions without a known target will be displayed without `_unknown *failed* |` prefix. and instead use `Error: ` as prefix more consistently.
 - Use dedicated logstream failure category for param related error.
+- An authentication attempt with an expired auth token will result in a `auth token expired` error instead of `unauthorized`.
+- A successful authentication with an auth token will display a warning with time left before token expires if it's 14 days or under.
  
 
 ## v0.7.21 - 2023-10-24

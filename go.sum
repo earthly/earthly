@@ -193,6 +193,10 @@ github.com/earthly/cloud-api v1.0.1-0.20231026202759-f8644c3705ad h1:F5gQOTQ1Ktz
 github.com/earthly/cloud-api v1.0.1-0.20231026202759-f8644c3705ad/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
 github.com/earthly/cloud-api v1.0.1-0.20231027183434-d79534194d95 h1:stFmLhGY7dbf4UhBtbMIN+oaIMEDZez/epwHt7g6MqM=
 github.com/earthly/cloud-api v1.0.1-0.20231027183434-d79534194d95/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
+github.com/earthly/cloud-api v1.0.1-0.20231101152931-4597a1393c65 h1:OVcAjiQy40kc1/ztE3UQ2ES/VlWGYbbiUY7MDg7955Y=
+github.com/earthly/cloud-api v1.0.1-0.20231101152931-4597a1393c65/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
+github.com/earthly/cloud-api v1.0.1-0.20231104021724-b38162a550cb h1:a5u2YnTVZGScHBHo3qugai43RTXRYnt1x33lsKTOy2I=
+github.com/earthly/cloud-api v1.0.1-0.20231104021724-b38162a550cb/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
 github.com/earthly/fsutil v0.0.0-20230530182746-82567e6e2a92 h1:dy3w3B4OiDyQS+iHi/beUgMDJ1+fAAgbtr7OZ0d9ks0=
 github.com/earthly/fsutil v0.0.0-20230530182746-82567e6e2a92/go.mod h1:q1CxMSzcAbjUkVGHoZeQUcCaALnaE4XdWk+zJcgMYFw=
 github.com/elastic/go-sysinfo v1.9.0 h1:usICqY/Nw4Mpn9f4LdtpFrKxXroJDe81GaxxUlCckIo=
@@ -300,6 +304,8 @@ github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFb
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0/go.mod h1:hgWBS7lorOAVIJEQMi4ZsPv9hVvWI6+ch50m39Pf2Ks=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.1 h1:I6ITHEanAwjB0FvaxmGm8pKqmCLR7QIe05ZmO4QAXMw=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.1/go.mod h1:gYC+WX4YJFarA2ie73G2epzt7TBWpo9pzcBnK1g0MSw=
+github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b h1:wDUNC2eKiL35DbLvsDhiblTUXHxcOPwQSCzi7xpQUN4=
+github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b/go.mod h1:VzxiSdG6j1pi7rwGm/xYI5RbtpBgM8sARDXlvEvxlu0=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
 github.com/hashicorp/errwrap v1.1.0 h1:OxrOeh75EUXMY8TBjag2fzXGZ40LB6IKw45YeGUDY2I=
 github.com/hashicorp/errwrap v1.1.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
