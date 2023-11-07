@@ -141,3 +141,10 @@ type CacheOpts struct {
 	Mode    string `long:"chmod" description:"Apply a mode to the cache folder" default:"0644"`
 	ID      string `long:"id" description:"Cache ID, to reuse the same cache across different targets and Earthfiles"`
 }
+
+// NewForOpts creates and returns a ForOpts with default separators.
+func NewForOpts() ForOpts {
+	return ForOpts{
+		Separators: "\n\t ",
+	}
+}
