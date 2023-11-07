@@ -1,6 +1,12 @@
 VERSION 0.7
 FROM alpine/git:1.0.7
+
 test:
+    BUILD +test-default
+    BUILD +test-branch
+    BUILD +test-sha
+
+test-default:
     WORKDIR /test
     GIT CLONE https://github.com/moby/buildkit.git buildkit
     RUN test "$(pwd)" = "/test"
@@ -9,3 +15,16 @@ test:
     RUN git status
     RUN git branch
     RUN test -f README.md
+
+test-branch:
+    WORKDIR /test
+    GIT CLONE --branch v0.7.20 git@github.com:earthly/earthly.git myrepo
+    WORKDIR /test/myrepo
+    RUN test "$(cat CHANGELOG.md | grep '## v' | head -n 1)" = "## v0.7.20 - 2023-10-03"
+
+test-sha:
+    WORKDIR /test
+    # git rev-parse v0.7.10 --> f862451125039f2071f26168ae9bc0e69ec24bf3
+    GIT CLONE --branch f862451125039f2071f26168ae9bc0e69ec24bf3 git@github.com:earthly/earthly.git myrepo
+    WORKDIR /test/myrepo
+    RUN test "$(cat CHANGELOG.md | grep '## v' | head -n 1)" = "## v0.7.10 - 2023-07-05"
