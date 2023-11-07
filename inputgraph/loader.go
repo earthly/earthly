@@ -365,9 +365,7 @@ func (l *loader) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
 func (l *loader) handleFor(ctx context.Context, forStmt spec.ForStatement) error {
 	l.hashForStatement(forStmt)
 
-	opts := commandflag.ForOpts{
-		Separators: "\n\t ",
-	}
+	opts := commandflag.NewForOpts()
 
 	args, err := flagutil.ParseArgsCleaned("FOR", &opts, forStmt.Args)
 	if err != nil {

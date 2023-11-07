@@ -417,9 +417,7 @@ func (i *Interpreter) handleFor(ctx context.Context, forStmt spec.ForStatement) 
 }
 
 func (i *Interpreter) handleForArgs(ctx context.Context, forArgs []string, sl *spec.SourceLocation) (string, []string, error) {
-	opts := commandflag.ForOpts{
-		Separators: "\n\t ",
-	}
+	opts := commandflag.NewForOpts()
 	args, err := flagutil.ParseArgsCleaned("FOR", &opts, forArgs)
 	if err != nil {
 		return "", nil, i.wrapError(err, sl, "invalid FOR arguments %v", forArgs)
