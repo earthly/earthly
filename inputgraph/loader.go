@@ -364,11 +364,52 @@ func (l *loader) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
 
 func (l *loader) handleFor(ctx context.Context, forStmt spec.ForStatement) error {
 	l.hashForStatement(forStmt)
-	err := l.loadBlock(ctx, forStmt.Body)
+
+	opts := commandflag.ForOpts{
+		Separators: "\n\t ",
+	}
+
+	args, err := flagutil.ParseArgsCleaned("FOR", &opts, forStmt.Args)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse FOR args")
+	}
+
+	expandedArgs, err := l.expandArgs(ctx, args)
 	if err != nil {
 		return err
 	}
+
+	name := expandedArgs[0]
+	vals := flattenForArgs(expandedArgs, opts.Separators)
+
+	l.hasher.HashInt(len(vals))
+
+	for _, val := range vals {
+		l.hasher.HashString(fmt.Sprintf("FOR %s=%s", name, val))
+		l.varCollection.SetArg(name, val)
+		err := l.loadBlock(ctx, forStmt.Body)
+		if err != nil {
+			return err
+		}
+		l.varCollection.UnsetArg(name)
+	}
+
 	return nil
+}
+
+func flattenForArgs(args []string, seps string) []string {
+	var ret []string
+	for _, arg := range args {
+		if strings.ContainsAny(arg, seps) {
+			found := strings.FieldsFunc(arg, func(r rune) bool {
+				return strings.ContainsRune(seps, r)
+			})
+			ret = append(ret, found...)
+		} else {
+			ret = append(ret, arg)
+		}
+	}
+	return ret
 }
 
 func (l *loader) handleWait(ctx context.Context, waitStmt spec.WaitStatement) error {
