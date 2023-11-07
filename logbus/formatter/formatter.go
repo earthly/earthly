@@ -409,7 +409,9 @@ func (f *Formatter) printBuildFailure() {
 	}
 	c, _ := f.targetConsole(failure.GetTargetId(), failure.GetCommandId())
 	c = c.WithFailed(true)
+	msgPrefix := "Error: " // print this prefix only when the command id is set
 	if failure.GetCommandId() != "" && failure.GetCommandId() != logbus.GenericDefault {
+		msgPrefix = ""
 		c.PrintFailure("")
 		c.Printf("Repeating the failure error...\n")
 		f.printHeader(failure.GetTargetId(), failure.GetCommandId(), tm, cm, true)
@@ -419,7 +421,7 @@ func (f *Formatter) printBuildFailure() {
 			c.Printf("[no output]\n")
 		}
 	}
-	c.Printf("Error: %s\n", failure.GetErrorMessage())
+	c.Printf("%s%s\n", msgPrefix, failure.GetErrorMessage())
 	f.lastOutputWasOngoingUpdate = false
 	f.lastOutputWasProgress = false
 	f.lastCommandOutput = nil

@@ -11,6 +11,7 @@ import (
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/util/errutil"
+	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
@@ -28,7 +29,7 @@ type vertexMonitor struct {
 	isCanceled     bool
 }
 
-var reErrExitCode = regexp.MustCompile(`^process (".*") did not complete successfully: exit code: ([0-9]+)$`)
+var reErrExitCode = regexp.MustCompile(`^(?:process ".*" did not complete successfully|error calling LocalhostExec): exit code: (?P<exit_code>[0-9]+)$`)
 var reErrNotFound = regexp.MustCompile(`^failed to calculate checksum of ref ([^ ]*): (.*)$`)
 
 func (vm *vertexMonitor) Write(dt []byte, ts time.Time, stream int) (int, error) {
@@ -52,11 +53,12 @@ func (vm *vertexMonitor) parseError() {
 		vm.errorStr = "WARN: Canceled"
 		return
 	case reErrExitCode.MatchString(errString):
-		m := reErrExitCode.FindStringSubmatch(errString)
+		matches, _ := stringutil.NamedGroupMatches(errString, reErrExitCode)
+		exitCodeMatch := matches["exit_code"][0]
 
 		// Ignore the parse error as default case will print it as a string using
 		// the source, so we won't miss any data.
-		exitCode, _ := strconv.ParseUint(m[2], 10, 32)
+		exitCode, _ := strconv.ParseUint(exitCodeMatch, 10, 32)
 		switch exitCode {
 		case math.MaxUint32:
 			errString = fmt.Sprintf(""+
@@ -71,7 +73,7 @@ func (vm *vertexMonitor) parseError() {
 				"      The%s command\n"+
 				"          %s\n"+
 				"      did not complete successfully. Exit code %s",
-				internalStr, indentOp, m[2])
+				internalStr, indentOp, exitCodeMatch)
 			vm.fatalErrorType = logstream.FailureType_FAILURE_TYPE_NONZERO_EXIT
 		}
 		vm.isFatalError = true
