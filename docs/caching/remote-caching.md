@@ -1,10 +1,17 @@
 # Remote caching
 
+{% hint style='danger' %}
+##### Important
+**Remote caching is an advanced feature that requires significant experimentation to get right**. Remote caching is generally not recommended unless remote runners are not possible in your setup. Remote caching does not cache everything in your build, and is very difficult to debug when it doesn't work. Remote caching also does not allow concurrent writes, and can be tricky to use in a mix of main vs PR CI builds.
+
+[Remote runners](./remote-runners.md) (either self-managed, or [Earthly Satellites](cloud/satellites.md)) are faster, and easier to set up because the cache does not need any transferring between runs (allowing for the entire build to be cached efficiently), cache mounts are correctly persisted, and concurrent access is built-in.
+
+For a comparison between remote runners and remote caching, see the [Caching page](./caching.md).
+{% endhint %}
+
 Earthly has the ability to share cache between different isolated CI runs and even with developers via remote caching. This page goes through the available features, common use-cases and situations where remote caching is most useful.
 
 Remote caching is made possible by storing intermediate steps of a build in a cloud-based Docker registry. This cache can then be downloaded on another machine in order to skip common parts.
-
-Note that there is yet another way to share cache between builds, via [Earthly Satellites](cloud/satellites.md) (Earthly Cloud includes a generous free tier for Satellites, sign up [here](https://cloud.earthly.dev/login)). Using the cache of Earthly Satellites is easier to manage, because there is no upload or download step (the cache is always there, available instantly) and no additional experimentation is required (everything is automatically cached without the need to experiment). This page only covers remote shared caching through the use of a registry.
 
 ## Types of remote cache
 
@@ -226,19 +233,3 @@ If, however, you are using a CI which reuses the same environment (e.g. Jenkins,
 It is possible to use cache in read-only mode for developers to speed up local development. This can be achieved by enabling read-write remote caching in CI and read-only cache for individual developers. Since all Earthly cache is kept in Docker registries, managing access to the cache can be controlled by managing access to individual Docker images.
 
 Note however that there is small performance penalty for regularly checking the remote registry on every run.
-
-## Alternatives
-
-An alternative to using remote caching is to use [remote runners](./remote-runners.md). Remote runners execute the build remotely, and this allows the cache to be located in close proximity to the execution, which is very efficient. They are also significantly easier to set up, as the caching just works and there is no need for additional experimentation. [Earthly Satellites](./cloud/satellites.md) is one such implementation of remote runners. You can get started with Earthly Satellites for free by [creating an Earthly Cloud account](https://cloud.earthly.dev/login).
-
-Below is a comparison between Earthly Satellites and remote caching.
-
-| Cache characteristic | Satellite | Remote Cache |
-| --- | --- | --- |
-| Storage location | Satellite | A container registry of your choice |
-| Proximity to compute | ✅ Same machine | ❌ Performing upload/download is required |
-| Just works, no configuration necessary | ✅ Yes | ❌ Requires experimentation with the various settings |
-| Concurrent access | ✅ Yes | 🟡 Concurrent read access only |
-| Retains entire cache of the build | ✅ Yes | ❌ Usually no, due to prohibitive upload time |
-| Retains cache for multiple historical builds | ✅ Yes | ❌ No, only one build retained |
-| Cache mounts (`RUN --mount type=cache` and `CACHE`) included | ✅ Yes | ❌ No |

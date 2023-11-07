@@ -37,8 +37,11 @@
     * Using the Earthly Docker Images
         * [earthly/earthly](docker-images/all-in-one.md)
         * [earthly/buildkitd](docker-images/buildkit-standalone.md)
+* [Caching](./caching/caching.md)
+    * [Caching in Earthfiles](./caching/managing-cache.md)
+    * [Remote caching (advanced)](./caching/remote-caching.md)
+    * [Managing cache](./caching/managing-cache.md) <!-- TODO -->
 * [Remote runners](remote-runners.md)
-* [Remote caching](remote-caching.md)
 * [Earthfile reference](earthfile/earthfile.md)
     * [Builtin args](earthfile/builtin-args.md)
     * [Excluding patterns](earthfile/earthlyignore.md)
