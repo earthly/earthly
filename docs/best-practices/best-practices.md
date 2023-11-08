@@ -43,6 +43,7 @@ Below we list some of the best practices that we have found to be useful in desi
     * [Technique: Use `earthly -i` to debug failures](#technique-use-earthly-i-to-debug-failures)
     * [Run everything in a single Earthly invocation, do not wrap Earthly](#run-everything-in-a-single-earthly-invocation-do-not-wrap-earthly)
     * [Use `RUN --ssh` for passing host SSH keys to builds](#use-run-ssh-for-passing-host-ssh-keys-to-builds)
+    * [Use SAVE IMAGE to always cache](#use-save-image-to-always-cache)
     * [Future: Saving an artifact even if the build fails](#future-saving-an-artifact-even-if-the-build-fails)
 
 ## Earthfile-specific
@@ -1166,6 +1167,60 @@ Earthly provides a way to pass-through access to your host's SSH keys to the bui
 ```Dockerfile
 RUN --ssh go mod download
 ```
+
+### Use SAVE IMAGE to always cache
+
+The simplicity of Earthly comes from its ability to cache build steps that do not need to be rerun. There are times, though, when you have more insight into the build process than Earthly does and may need to manually manage the cache for certain steps. Using an image push is an advanced technique that lets you tell Earthly, **"I want to always cache this step."**
+
+For example, consider the Earthly Blog's Earthfile, which has a base image that installs Pandoc, among other utilities:
+
+```Dockerfile
+base:
+    FROM ruby:2.7
+    ARG TARGETARCH
+    WORKDIR /site
+    ...
+    RUN apt-get install pandoc  pandocfilters -y
+
+build:
+    FROM +base
+    # Build blog
+```
+
+Typically, installing Pandoc from source can take up to 30 minutes. When cached, the blog build process takes about 5 minutes, but without the cache, it jumps to 35 minutes. Occasionally, due to the heavy disk usage of the blog build, the base image may be evicted from the cache, leading to a slower build.
+
+To circumvent this, the solution is to push the base step as an image and reference it directly in subsequent builds:
+
+```Dockerfile
+base:
+    FROM ruby:2.7
+    ARG TARGETARCH
+    WORKDIR /site
+    ...
+    RUN apt-get install pandoc  pandocfilters -y
+
+    # Manually cache the base image by pushing it to a registry
+    SAVE IMAGE –push earthly/blog-base-image:latest
+
+build:
+    # Use the cached base image for builds  
+    FROM earthly/blog-base-image:latest
+    RUN ...
+```
+
+By doing this, we ensure that the build process is consistently swift, as the base layers do not need to be rebuilt. The trade-off is that the base target needs to be updated manually. For the Earthly website, we address this by running earthly `+base` once a week via a CI job, and on-demand whenever there are changes to the base image. You can see the full example, including flags for manual rerunning the base image, on GitHub.
+
+#### Caveats to this approach
+
+- Caching externally in an image registry adds download time to the build. This technique is most effective when the build time saved is significantly greater than the potential time to download the layer from a registry.
+
+- By manually caching part of the build, you risk introducing inconsistencies. It's important to rerun the step that produces the image manually whenever there are changes. Scheduling a regular job can mitigate this risk.
+
+#### Effective use cases
+
+- **Expensive build steps that rarely change.** Earthly's cache operates on a least-recently-used (LRU) basis, trying to retain frequently used cache steps. However, some steps are more costly to regenerate than others. An external image can serve as a reliable fallback if an expensive step is evicted from the cache.
+
+- **Benign Nondeterminism:** Earthly’s cache expects determinism. It assumes that if an input file changes, the associated build step must be rerun. If you know a step can be cached despite changes in inputs, using SAVE IMAGE for caching allows you to manage this manually and avoid unnecessary cache invalidation.
 
 ### Future: Saving an artifact even if the build fails
 
