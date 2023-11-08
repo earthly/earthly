@@ -312,6 +312,11 @@ func (cl ConsoleLogger) VerboseWarnf(format string, args ...interface{}) {
 	cl.Warnf(format, args...)
 }
 
+// HelpPrintf prints formatted text to the console with `Help:` prefix in a specific color
+func (cl ConsoleLogger) HelpPrintf(format string, args ...interface{}) {
+	cl.ColorPrintf(cl.color(helpColor), fmt.Sprintf("\nHelp: %s\n", format), args...)
+}
+
 // Printf prints formatted text to the console.
 func (cl ConsoleLogger) Printf(format string, args ...interface{}) {
 	c := cl.color(noColor)

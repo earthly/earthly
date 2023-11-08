@@ -258,7 +258,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 
 	// Determine if Logstream is enabled and create log sharing link in either case.
 	logstreamURL, doLogstreamUpload, printLinkFn := a.logShareLink(cliCtx.Context, cloudClient, target, cleanCollection)
-	defer printLinkFn() // Output log sharing link after build.
+	a.cli.AddDeferredFunc(printLinkFn) // Output log sharing link after build and other possible messages
 
 	a.cli.Console().PrintPhaseHeader(builder.PhaseInit, false, "")
 	a.warnIfArgContainsBuildArg(flagArgs)

@@ -139,6 +139,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			}
 		}
 	}()
+	defer app.BaseCLI.ExecuteDeferredFuncs()
 	app.BaseCLI.Logbus().Run().SetStart(time.Now())
 	// Initialize log streaming early if we're passed the organization and
 	// project names as environmental variables. This will allow nearly all
@@ -206,7 +207,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			if app.BaseCLI.AnaMetaIsSat() {
 				app.BaseCLI.Console().DebugPrintf("Are you using --platform to target a different architecture? Please note that \"disable-emulation\" flag is set in your satellite.\n")
 			} else {
-				app.BaseCLI.Console().Printf(
+				app.BaseCLI.Console().HelpPrintf(
 					"Are you using --platform to target a different architecture? You may have to manually install QEMU.\n" +
 						"For more information see https://docs.earthly.dev/guides/multi-platform\n")
 			}
@@ -219,7 +220,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			return 1
 		case strings.Contains(err.Error(), "security.insecure is not allowed"):
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_NEEDS_PRIVILEGED, err.Error())
-			app.BaseCLI.Console().Printf("earthly --allow-privileged (earthly -P) flag is required\n")
+			app.BaseCLI.Console().HelpPrintf("earthly --allow-privileged (earthly -P) flag is required\n")
 			return 9
 		case strings.Contains(err.Error(), errutil.EarthlyGitStdErrMagicString):
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_GIT, err.Error())
@@ -229,7 +230,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			} else {
 				app.BaseCLI.Console().VerboseWarnf("Error: %v\n", err.Error())
 			}
-			app.BaseCLI.Console().Printf(
+			app.BaseCLI.Console().HelpPrintf(
 				"Check your git auth settings.\n" +
 					"Did you ssh-add today? Need to configure ~/.earthly/config.yml?\n" +
 					"For more information see https://docs.earthly.dev/guides/auth\n")
@@ -254,7 +255,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 				registryName = "The remote registry"
 				registryHost = " <server>" // keep the leading space
 			}
-			app.BaseCLI.Console().Warnf("Error: %s responded with a rate limit error. This is usually because you are not logged in.\n"+
+			app.BaseCLI.Console().HelpPrintf("%s responded with a rate limit error. This is usually because you are not logged in.\n"+
 				"You can login using the command:\n"+
 				"  docker login%s", registryName, registryHost)
 			return 1
