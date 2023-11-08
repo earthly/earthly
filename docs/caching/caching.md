@@ -59,7 +59,7 @@ Below is a comparison between remote runners, such as [Earthly Satellites](../cl
 
 | Cache characteristic | Remote runners (e.g. Satellite) | Remote Cache via registry |
 | --- | --- | --- |
-| Storage location | Satellite | A container registry of your choice |
+| Storage location | Runner (e.g. Satellite) | A container registry of your choice |
 | Proximity to compute | ✅ Same machine | ❌ Performing upload/download is required |
 | Just works, no configuration necessary | ✅ Yes | ❌ Requires experimentation with the various settings |
 | Concurrent access | ✅ Yes | 🟡 Concurrent read access only |

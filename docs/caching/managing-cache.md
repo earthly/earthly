@@ -49,7 +49,7 @@ Earthly also has a command that automates the above:
 earthly prune --reset
 ```
 
-## Cache on a remote runner
+## Cache on a remote runner / Earthly Satellite
 
 ### Configuring the cache size on a remote runner
 
