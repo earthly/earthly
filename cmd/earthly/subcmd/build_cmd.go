@@ -830,6 +830,11 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		return nil, nil, false, nil
 	}
 
+	if a.cli.Flags().NoCache {
+		console.Warnf("--no-cache is not supported")
+		return nil, nil, false, nil
+	}
+
 	var (
 		skipDB      bk.BuildkitSkipper
 		targetHash  []byte
