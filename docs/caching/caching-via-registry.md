@@ -1,4 +1,4 @@
-# Remote caching
+# Caching via a registry (advanced)
 
 {% hint style='danger' %}
 ##### Important
@@ -12,6 +12,27 @@ For a comparison between remote runners and remote caching, see the [Caching pag
 Earthly has the ability to share cache between different isolated CI runs and even with developers via remote caching. This page goes through the available features, common use-cases and situations where remote caching is most useful.
 
 Remote caching is made possible by storing intermediate steps of a build in a cloud-based Docker registry. This cache can then be downloaded on another machine in order to skip common parts.
+
+## When to use remote caching
+
+Remote caching should be used in the following circumstances:
+
+* When remote runners are not possible in your setup
+* When preserving cache mounts is not needed
+* When caching only part of the build is sufficient
+* When you want to cache compute-intensive steps, but not download-intensive steps
+* When concurrent writing to the cache is not important
+* When you are willing to experiment with the various settings to get the best performance
+
+## When NOT to use remote caching
+
+Remote caching should NOT be used in the following circumstances:
+
+* When remote runners are possible in your setup
+* When preserving cache mounts is needed
+* When caching the entire build is useful
+* When you want to cache download-intensive steps too, not just compute-intensive steps
+* If you want a simple setup that just works and does not require significant debugging
 
 ## Types of remote cache
 

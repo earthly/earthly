@@ -39,8 +39,9 @@
         * [earthly/buildkitd](docker-images/buildkit-standalone.md)
 * [Caching](./caching/caching.md)
     * [Caching in Earthfiles](./caching/managing-cache.md)
-    * [Remote caching (advanced)](./caching/remote-caching.md)
     * [Managing cache](./caching/managing-cache.md) <!-- TODO -->
+    * [Caching via remote runners](./caching/caching-via-remote-runners.md) <!-- TODO -->
+    * [Caching via a registry (advanced)](./caching/caching-via-registry.md)
 * [Remote runners](remote-runners.md)
 * [Earthfile reference](earthfile/earthfile.md)
     * [Builtin args](earthfile/builtin-args.md)
