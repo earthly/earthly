@@ -1,6 +1,6 @@
 # Caching
 
-Caching is the heart of how Earthly works. It is what makes Earthly builds fast. This page provides a high-level understanding of the main concepts.
+Caching is at the heart of how Earthly works. It is what makes Earthly builds fast. This page provides a high-level understanding of the main concepts.
 
 1. **When is Earthly fast** - in what situations Earthly will be fast
 2. **How caching works in Earthfiles**
@@ -9,9 +9,9 @@ Caching is the heart of how Earthly works. It is what makes Earthly builds fast.
 
 ## When is Earthly fast
 
-The word “build” can mean many things across many different contexts. When we say that it makes builds faster, we generally mean CI/CD builds.
+The word "build" can mean many things across many different contexts. When we say that it makes builds faster, we generally mean CI/CD builds.
 
-Here are contexts in which Earthly does a particularly good job in:
+Here are contexts in which Earthly does a particularly good job in, thanks to its caching:
 
 * Making CI builds faster, especially in these circumstances
   * The CI performs many redundant tasks upfront, like installing dependencies and pulling container images.
@@ -39,23 +39,23 @@ The sections below go into more detail about how you are able to get faster buil
 
 ## Caching in Earthfiles
 
+Main article: [Caching in Earthfiles](./caching-in-earthfiles.md)
+
 Earthfiles rely on a layer-based caching system. If an Earthfile command is run again, and the inputs to that command are the same, then the cache layer is reused. This allows Earthly to skip re-executing parts of the build that have not changed.
 
-Earthfiles also allow you to use cache mounts - either via [`RUN --mount type=cache`](../earthfile/earthfile.md#run), or via the [`CACHE`](../earthfile/earthfile.md#cache) command. These are directories that are persisted between runs and can be used to store intermediate artifacts, or dependencies that are downloaded from the internet.
+Earthfiles also allow you to use cache mounts - either via [`RUN --mount type=cache`](../earthfile/earthfile.md#run), or via the [`CACHE`](../earthfile/earthfile.md#cache) command. These are directories that are persisted between runs and can be used to store intermediate build files for incremental compilers, or dependencies that are downloaded from the internet.
 
 And finally, Earthly allows you to ignore cache in certain cases, which is useful when performing deployments. This is possible via `RUN --no-cache`, or `RUN --push`. For more information see the [`RUN` command reference](../earthfile/earthfile.md#run).
 
-To read more, check out the [Caching in Earthfiles guide](./caching-in-earthfiles.md).
-
 ## Sharing Cache
 
-The above capabilities can make your builds very fast. However, if you are using ephemeral CI runners, all of that valuable context is lost between runs. Earthly's remote runners and remote caching capabilities solve this problem.
+The above capabilities can make your builds very fast. However, if you are using ephemeral CI runners, all of that valuable context can be lost between runs, resulting in poor build performance. Earthly's remote runners and caching via a registry capabilities solve this problem.
 
 Since most CI platforms do not allow reusing state between runs efficiently, passing Earthly's cache via traditional CI cache constructs that rely on an upload and a download is too inefficient to be practical. Earthly's remote caching via a registry helps by optimizing what is uploaded and downloaded for maximum efficiency, although it does require experimentation to get right, and there are a number of limitations.
 
-The most effective means of sharing cache between runs is to execute the Earthly builds remotely. This allows Earthly to have the cache available where it executes instantly, without the need for an upload/download step. Because all builds are containerized, you still get the ephemeral nature of the CI runner, allowing for build repeatability, but you also get the benefits of a fast cache that is local to the execution environment.
+The most effective means of sharing cache between runs is to execute the Earthly builds remotely. This allows Earthly maintain the cache close to where it executes, thus being able to access it instantly without the need for an upload/download step. Because all Earthly builds are containerized, you still get the ephemeral nature of the CI runner, allowing for build repeatability, but you also get the benefits of a fast cache that is local to the execution environment.
 
-Below is a comparison between remote runners, such as [Earthly Satellites](../cloud/satellites.md), and remote caching.
+Below is a comparison between remote runners, such as [Earthly Satellites](../cloud/satellites.md), and remote caching via a registry.
 
 | Cache characteristic | Remote runners (e.g. Satellite) | Remote Cache via registry |
 | --- | --- | --- |
@@ -67,7 +67,7 @@ Below is a comparison between remote runners, such as [Earthly Satellites](../cl
 | Retains cache for multiple historical builds | ✅ Yes | ❌ No, only one build retained |
 | Cache mounts (`RUN --mount type=cache` and `CACHE`) included | ✅ Yes | ❌ No |
 
-To read more, check out the [remote runners page](../remote-runners.md), and the [remote caching page](./caching-via-registry.md).
+To read more, check out the [remote runners page](../remote-runners.md), and the [caching via a registry](./caching-via-registry.md).
 
 ## Managing Cache
 

@@ -4,13 +4,15 @@ Caching is at the heart of how Earthly works. This page will walk you through th
 
 ## Layer caching
 
-The most important commands in an Earthfile create a cache layer as part of the way they execute. You can think of a target in an Earthfile as a cake with multiple layers. If a layer's ingredients change, you need to redo the affected layer, plus any layer on top. Similarly, in an Earthfile target, if the input to a command is different (different ARG values, different source files being COPY'd, or the command itself is different), then Earthly can reuse the layers from a previous run up to that command, but it would have to re-execute that command and what follows after it.
+Most commands in an Earthfile create a cache layer as part of the way they execute. You can think of a target in an Earthfile as a cake with multiple layers. If a layer's ingredients change, you need to redo the affected layer, plus any layer on top. Similarly, in an Earthfile target, if the input to a command is different (different ARG values, different source files being COPY'd, or the command itself is different), then Earthly can reuse the layers from a previous run up to that command, but it would have to re-execute that command and what follows after it.
 
 If you happen to be familiar with Dockerfile layer caching, then layer caching in Earthly targets will be very familiar to you as it works the same way.
 
-Earthly supports inheriting other targets, copying artifacts that result from them, or simply issuing the build of another target. These various cross-references of targets results in a build graph underneath. As a result, one target could influence whether another target is executed - for example, if a source file changes and that results in rebuilding an artifact in `target1`, but then `target2` performs a `COPY` of that artifact, then at least part of `target2` will need to be re-executed too as a result. Earthly deals with all of this automatically.
+Earthly supports inheriting from other targets, copying artifacts that result from them, or simply issuing the build of another target. These various target cross-references result in a build graph underneath. Thus, one target could influence whether another target is executed - for example, if a source file changes and that results in rebuilding an artifact in `target1`, but then `target2` performs a `COPY` of that artifact, then at least part of `target2` will need to be re-executed too as a result. Earthly deals with all of this automatically.
 
-Because of how layer caching works, it is best to organize builds in a manner that best utilizes the cache. A common strategy is to download and install dependencies early on in the build. Since the list of dependencies doesn't change very often, this expensive operation will usually be cached. To achieve this, it is important to copy the minimal amount of source files (usually just the file that defines what the dependencies are) before issuing the command that installs the dependencies. Here is an example:
+Because of how layer caching works, it is best to organize builds in a manner that best utilizes the cache. A common strategy is to download and install dependencies early on in the build. Since the list of dependencies doesn't change very often, this expensive operation will usually be cached. To achieve this, it is important to copy the minimal amount of source files (usually just the file that defines what the dependencies are) before issuing the command that installs the dependencies.
+
+Here is a practical example:
 
 ```Dockerfile
 # Avoid
@@ -46,7 +48,7 @@ In general, including the smallest set of input files as possible at every step 
 
 ## Cache mounts
 
-Sometimes layer caching is not enough to properly express the best way to cache something. Cache mounts help complement layer caching, by allowing the contents of a directory to be reused across multiple builds. Cache mounts can be helpful in cases where the tool you're using to build within Earthly is able to leverage incremental caching on its own, and the difference is significant. Some package managers are able to do that for downloaded dependencies.
+Sometimes layer caching is not enough to properly express the best way to cache something. Cache mounts help complement layer caching, by allowing the contents of a directory to be reused across multiple builds. Cache mounts can be helpful in cases where the tool you're using to build within Earthly is able to leverage incremental caching on its own. Some package managers are able to do that for downloaded dependencies.
 
 <!-- TODO: It would be nice to include a practical example from a programming language -->
 
@@ -61,10 +63,13 @@ Cache mounts can be used either via [`RUN --mount type=cache`](../earthfile/eart
 * Performance
   * `RUN --mount type=cache` is very performant as it does not require transferring contents at the end
   * `CACHE` can be slow in certain cases, if the contents are large, due to the need to copy the contents into the final image
+* Consistency
+  * `RUN --mount type=cache` is isolated to a single command, making it more difficult (but not impossible) to pass along files between steps via the cache
+  * `CACHE` is available to all commands in the target, making it easier to pass along files between steps via the cache, and thus also easier to run into race conditions, if a parallel build changes the contents of the cache in unexpected ways
 
-Cache mounts, by default, are only available within the same target. So if both `target1` and `target2` define `RUN --mount type=cache,target=/my-cache`, the contents would not be shared. If you would like to share the contents, you can use the `id` option. Setting the `id` makes the cache mount global, allowing any target to access the same contents, as long as they both use the same `id`: `RUN --mount type=cache,id=my-cache-id,target=/my-cache`.
+Cache mounts, by default, are only available within the same target, as long as the target is called with the same ARGs. So if both `target1` and `target2` define `RUN --mount type=cache,target=/my-cache`, the contents would not be shared. If you would like to share the contents, you can use the `id` option. Setting the `id` makes the cache mount global, allowing any target to access the same contents, as long as they both use the same `id`: `RUN --mount type=cache,id=my-cache-id,target=/my-cache`.
 
-Parallel builds using the same cache mount (or the same build where the mount is used in multiple targets) pose another aspect to be aware of: accessing the cache mount concurrently. By default, sharing is set to `locked` - meaning that parallel executions will wait for each other to complete, thus allowing access by one process at a time. Other possible options are `shared` (allows concurrent access), or `private` (if a parallel execution occurs, a new empty mount is created).
+Parallel builds using the same cache mount (or the same build where the mount is used in multiple targets) pose another aspect to be aware of: accessing the cache mount concurrently. By default, sharing is set to `locked` - meaning that parallel executions will wait for each other to complete, thus allowing access by one process at a time. While this is the safest option, it is also the slowest. Keep in mind that this will limit your build parallelism significantly if you overuse global cache mounts. Other possible options are `shared` (allows concurrent access), or `private` (if a parallel execution occurs, a new empty mount is created).
 
 ### Drawbacks of cache mounts
 
@@ -72,13 +77,13 @@ Cache mounts can be a versatile tool for controlling caching in ways that layer 
 
 The most important limitation to be aware of is that reusing state from a previous run can be a source of build inconsistency. A test passing just because it starts off with the right contents in cache could later result in deploying a broken application to production.
 
-Another limitation is that cache mounts are not great for passing files from one build step to another. This is because a parallel build could interfere with the cache in-between steps in ways that are difficult to debug. Be especially mindful that builds from different development branches might interact with each other unexpectedly in this situation. It is therefore best to avoid using cache mounts as a mechanism to pass along information. It is best to extract the result of an operation out of the cache mount within the same operation, to ensure that the cache is locked during this time.
+Another limitation is that cache mounts are not great for passing files from one build step to another. This is because a parallel build could interfere with the cache between steps in ways that are difficult to debug. Be especially mindful that builds from different development branches might interact with each other unexpectedly in this situation. It is therefore best to avoid using cache mounts as a mechanism to pass along information. It is best to extract the result of an operation out of the cache mount within the same operation, to ensure that the cache is locked during this time.
 
 Finally, another important limitation is the fact that cache mounts can grow in size indefinitely. While Earthly does garbage-collect layers and cache mounts on a least-recently-used basis, a cache mount that is used frequently could grow more than expected. In such situations, you should consider managing the lifecycle of the cache contents yourself, by removing unused files from it every few runs. A good place for such cleanup operations is within the same layer (same `RUN` command) that uses the contents, at the end.
 
 ## Disabling caching
 
-In certain situations, you might want to disable caching either for a specific command, or for the entire build. This can be done by using the `--no-cache` flag. For example, `RUN --no-cache echo "Hello"` will always execute the `echo` command, even if the `RUN` command was executed before with the same arguments.
+In certain situations, you might want to disable caching either for a specific command, or for the entire build. This can be done by using the `--no-cache` flag. For example, `RUN --no-cache echo "Hello"` will always execute the `echo` command, even if the `RUN` command was executed before with the same arguments. To disable caching for an entire run, you can use `earthly --no-cache +my-target`.
 
 Another way to disable caching is to use the `RUN --push` flag. This flag is useful when you want to perform an operation with external effects (e.g. deploying to production). By default Earthly does not run `--push` commands unless the `--push` flag is also specified when invoking Earthly itself (`earthly --push +my-target`). `RUN --push` commands are never cached.
 
@@ -88,7 +93,7 @@ Debugging caching issues can be tricky. Here are some common issues that you mig
 
 ### Cache size
 
-If the configured cache size is too small, then Earthly might garbage-collect cached layers more often than you might expect. This can manifest in builds randomly not using cache for certain layers. Usually it is the biggest layers that suffer from this (and oftentimes the biggest layers are the most expensive to recreate). To resolve this, either configure a larger cache size if you are running local builds, or launch a larger Satellite if you are using remote builds via Earthly Satellites. For more information see the [managing cache page](./managing-cache.md).
+If the configured cache size is too small, then Earthly might garbage-collect cached layers more often than you might expect. This can manifest in builds randomly not using cache for certain layers. Usually it is the biggest layers that suffer from this (and oftentimes the biggest layers are the most expensive to recreate). This problem is most common on Mac and Windows, where Docker uses a VM with limited disk size. To resolve this, either configure a larger cache size if you are running local builds, or launch a larger Satellite if you are using remote builds via Earthly Satellites. For more information see the [managing cache page](./managing-cache.md).
 
 ### ARGs
 
@@ -97,6 +102,10 @@ In Earthly, like in Dockerfiles, ARGs declared in Earthfiles also behave as envi
 For this reason, it is best to declare ARGs as late as possible within the target they are used in, and try to avoid declaring `--global` ARGs as much as possible. If an ARG is not yet declared, it will not influence the cache state of a layer, allowing for more cache hits. Limiting the scope of ARGs as much as possible will yield better cache performance.
 
 Watch out especially for ARGs that change often, such as the built-in ARG `EARTHLY_GIT_HASH`. Declaring this ARG as late as possible in the build will cause less cache misses.
+
+### Cache mounts and ARGs
+
+Cache mounts are only reused within the same target only if that target is called with the same ARGs, for safety reasons. To avoid this limitation, you can use the `id` option to make the cache mount global.
 
 ### Secrets
 
