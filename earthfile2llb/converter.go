@@ -1511,10 +1511,7 @@ func (c *Converter) Cache(ctx context.Context, mountTarget string, opts commandf
 		return err
 	}
 	c.nonSaveCommand()
-	key, err := cacheKeyTargetInput(c.targetInputActiveOnly())
-	if err != nil {
-		return err
-	}
+	key := cacheKey(c.target)
 	cacheID := path.Join("/run/cache", key, path.Clean(mountTarget))
 	if c.ftrs.GlobalCache && opts.ID != "" {
 		cacheID = opts.ID
@@ -2492,14 +2489,6 @@ func (c *Converter) checkAllowed(command cmdType) error {
 	}
 
 	return nil
-}
-
-func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
-	activeBuildArgs := make(map[string]bool)
-	for _, k := range c.varCollection.SortedVariables(variables.WithActive()) {
-		activeBuildArgs[k] = true
-	}
-	return c.mts.Final.TargetInput().WithFilterBuildArgs(activeBuildArgs)
 }
 
 // persistCache makes temporary cache directories permanent by writing their contents
