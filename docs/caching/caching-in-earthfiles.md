@@ -67,7 +67,7 @@ Cache mounts can be used either via [`RUN --mount type=cache`](../earthfile/eart
   * `RUN --mount type=cache` is isolated to a single command, making it more difficult (but not impossible) to pass along files between steps via the cache
   * `CACHE` is available to all commands in the target, making it easier to pass along files between steps via the cache, and thus also easier to run into race conditions, if a parallel build changes the contents of the cache in unexpected ways
 
-Cache mounts, by default, are only available within the same target, as long as the target is called with the same ARGs. So if both `target1` and `target2` define `RUN --mount type=cache,target=/my-cache`, the contents would not be shared. If you would like to share the contents, you can use the `id` option. Setting the `id` makes the cache mount global, allowing any target to access the same contents, as long as they both use the same `id`: `RUN --mount type=cache,id=my-cache-id,target=/my-cache`.
+Cache mounts, by default, are only available within the same target. So if both `target1` and `target2` define `RUN --mount type=cache,target=/my-cache`, the contents would not be shared. If you would like to share the contents, you can use the `id` option. Setting the `id` makes the cache mount global, allowing any target to access the same contents, as long as they both use the same `id`: `RUN --mount type=cache,id=my-cache-id,target=/my-cache`.
 
 Parallel builds using the same cache mount (or the same build where the mount is used in multiple targets) pose another aspect to be aware of: accessing the cache mount concurrently. By default, sharing is set to `locked` - meaning that parallel executions will wait for each other to complete, thus allowing access by one process at a time. While this is the safest option, it is also the slowest. Keep in mind that this will limit your build parallelism significantly if you overuse global cache mounts. Other possible options are `shared` (allows concurrent access), or `private` (if a parallel execution occurs, a new empty mount is created).
 
@@ -102,10 +102,6 @@ In Earthly, like in Dockerfiles, ARGs declared in Earthfiles also behave as envi
 For this reason, it is best to declare ARGs as late as possible within the target they are used in, and try to avoid declaring `--global` ARGs as much as possible. If an ARG is not yet declared, it will not influence the cache state of a layer, allowing for more cache hits. Limiting the scope of ARGs as much as possible will yield better cache performance.
 
 Watch out especially for ARGs that change often, such as the built-in ARG `EARTHLY_GIT_HASH`. Declaring this ARG as late as possible in the build will cause less cache misses.
-
-### Cache mounts and ARGs
-
-Cache mounts are only reused within the same target only if that target is called with the same ARGs, for safety reasons. To avoid this limitation, you can use the `id` option to make the cache mount global.
 
 ### Secrets
 
