@@ -1,6 +1,8 @@
 package earthfile2llb
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"path"
 	"strconv"
@@ -207,6 +209,7 @@ func ParseMode(s string) (int, error) {
 // cacheKey returns a key that can be used to uniquely identify the target.
 // Cache mounts use this key to ensure that the cache is unique to the target.
 func cacheKey(target domain.Target) string {
-	target.Tag = ""
-	return target.StringCanonical()
+	target.Tag = "" // Strip away tag info (e.g. git sha)
+	digest := sha256.Sum256([]byte(target.StringCanonical()))
+	return hex.EncodeToString(digest[:])
 }
