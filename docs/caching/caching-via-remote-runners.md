@@ -1,6 +1,6 @@
 # Caching via remote runners
 
-Caching via remote runners in Earthly works by simply reusing the same runner for multiple builds. This allows the runner to retain the cache between execution, and thus reuse it. There is nothing special that needs to be configured for this to work. All of the features of caching in Earthly work as expected, including layer caching and cache mounts. The key to what makes remote runners great is the fact that the cache is local to the runner, and thus is available instantly, without the need for an upload/download step.
+Caching via remote runners in Earthly works by simply reusing the same runner for multiple builds. The runner retains the cache between executions, and thus is able to perform significantly better than any caching mechanism that relies on upload and download. There is nothing special that needs to be configured for this to work. All of the features of caching in Earthly work as expected, including layer caching and cache mounts.
 
 To learn more, see the [remote runners page](../remote-runners.md).
 
