@@ -9,4 +9,4 @@ filetarget:
 test:
   FROM ..+deps
   COPY +filetarget/hash .
-  RUN cat hash
+  RUN --no-cache cat hash
