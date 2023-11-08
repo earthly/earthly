@@ -1175,16 +1175,16 @@ The simplicity of Earthly comes from its ability to cache build steps that do no
 For example, consider the Earthly Blog's Earthfile, which has a base image that installs Pandoc, among other utilities:
 
 ```Dockerfile
-    base:
-      FROM ruby:2.7
-      ARG TARGETARCH
-      WORKDIR /site
-      ...
-      RUN apt-get install pandoc  pandocfilters -y
+base:
+    FROM ruby:2.7
+    ARG TARGETARCH
+    WORKDIR /site
+    ...
+    RUN apt-get install pandoc  pandocfilters -y
 
-    build:
-      FROM +base
-      # Build blog
+build:
+    FROM +base
+    # Build blog
 ```
 
 Typically, installing Pandoc from source can take up to 30 minutes. When cached, the blog build process takes about 5 minutes, but without the cache, it jumps to 35 minutes. Occasionally, due to the heavy disk usage of the blog build, the base image may be evicted from the cache, leading to a slower build.
@@ -1192,23 +1192,23 @@ Typically, installing Pandoc from source can take up to 30 minutes. When cached,
 To circumvent this, the solution is to push the base step as an image and reference it directly in subsequent builds:
 
 ```Dockerfile
-    base:
-      FROM ruby:2.7
-      ARG TARGETARCH
-      WORKDIR /site
-      ...
-      RUN apt-get install pandoc  pandocfilters -y
+base:
+    FROM ruby:2.7
+    ARG TARGETARCH
+    WORKDIR /site
+    ...
+    RUN apt-get install pandoc  pandocfilters -y
 
-      # Manually cache the base image by pushing it to a registry
-      SAVE IMAGE –push earthly/blog-base-image:latest
+    # Manually cache the base image by pushing it to a registry
+    SAVE IMAGE –push earthly/blog-base-image:latest
 
-    build:
-      # Use the cached base image for builds  
-      FROM earthly/blog-base-image:latest
-      RUN ...
+build:
+    # Use the cached base image for builds  
+    FROM earthly/blog-base-image:latest
+    RUN ...
 ```
 
-By doing this, we ensure that the build process is consistently swift, as the base layers do not need to be rebuilt. The trade-off is that the base target needs to be updated manually. For the Earthly website, we address this by running earthly +base once a week via a CI job, and on-demand whenever there are changes to the base image. You can see the full example, including flags for manual rerunning the base image, on GitHub.
+By doing this, we ensure that the build process is consistently swift, as the base layers do not need to be rebuilt. The trade-off is that the base target needs to be updated manually. For the Earthly website, we address this by running earthly `+base` once a week via a CI job, and on-demand whenever there are changes to the base image. You can see the full example, including flags for manual rerunning the base image, on GitHub.
 
 #### Caveats to this approach
 
