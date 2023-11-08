@@ -20,6 +20,8 @@ test-all:
     BUILD +test-copy-target-args
     BUILD +test-arg-matrix
     BUILD +test-try-catch
+    BUILD +test-push
+    BUILD +test-no-cache
 
 test-files:
     RUN echo hello > my-file
@@ -137,6 +139,14 @@ test-try-catch:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=try-catch.earth --target=+basic --output_contains="Artifact +basic/hello.txt output as hello.txt"
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=try-catch.earth --target=+basic --output_contains="target .* has already been run; exiting"
 
+test-no-cache:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+no-cache --output_contains="no-cache not supported"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+no-cache --output_does_not_contain="target .* has already been run; exiting"
+
+test-push:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+simple --extra_args="--push" --output_contains="push is not supported"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+simple --extra_args="--push" --output_does_not_contain="target .* has already been run; exiting"
+
 RUN_EARTHLY_ARGS:
     COMMAND
     ARG earthfile
@@ -145,6 +155,7 @@ RUN_EARTHLY_ARGS:
     ARG output_contains
     ARG output_does_not_contain
     ARG post_command
+    ARG extra_args
     DO --pass-args tests+RUN_EARTHLY \
         --earthfile=$earthfile \
         --target=$target \

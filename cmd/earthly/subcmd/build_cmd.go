@@ -63,6 +63,8 @@ import (
 	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
 )
 
+const autoSkipPrefix = "auto-skip"
+
 type Build struct {
 	cli CLI
 
@@ -618,7 +620,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	if a.cli.Flags().SkipBuildkit && targetHash != nil {
 		err := skipDB.Add(cliCtx.Context, targetHash)
 		if err != nil {
-			a.cli.Console().Warnf("failed to record %s (hash %x) as completed: %s", target.String(), target, err)
+			a.cli.Console().WithPrefix(autoSkipPrefix).Warnf("failed to record %s (hash %x) as completed: %s", target.String(), target, err)
 		}
 	}
 
@@ -821,6 +823,13 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		return nil, nil, false, nil
 	}
 
+	console := a.cli.Console().WithPrefix(autoSkipPrefix)
+
+	if a.cli.Flags().Push {
+		console.Warnf("--push is not supported")
+		return nil, nil, false, nil
+	}
+
 	var (
 		skipDB      bk.BuildkitSkipper
 		targetHash  []byte
@@ -828,13 +837,10 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		projectName string
 	)
 
-	console := a.cli.Console()
-
 	orgName, projectName, targetHash, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
 		Target:          target,
 		Console:         a.cli.Console(),
 		CI:              a.cli.Flags().CI,
-		Push:            a.cli.Flags().Push,
 		BuiltinArgs:     variables.DefaultArgs{EarthlyVersion: a.cli.Version(), EarthlyBuildSha: a.cli.GitSHA()},
 		OverridingVars:  overridingVars,
 		EarthlyCIRunner: a.cli.Flags().EarthlyCIRunner,

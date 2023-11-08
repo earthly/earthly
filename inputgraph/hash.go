@@ -2,7 +2,6 @@ package inputgraph
 
 import (
 	"context"
-	"errors"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
@@ -14,7 +13,6 @@ type HashOpt struct {
 	Target          domain.Target
 	Console         conslogging.ConsoleLogger
 	CI              bool
-	Push            bool
 	BuiltinArgs     variables.DefaultArgs
 	OverridingVars  *variables.Scope
 	EarthlyCIRunner bool
@@ -31,7 +29,7 @@ func HashTarget(ctx context.Context, opt HashOpt) (org, project string, hash []b
 
 	err = l.load(ctx)
 	if err != nil {
-		return "", "", nil, errors.Join(ErrUnableToDetermineHash, err)
+		return "", "", nil, err
 	}
 
 	return org, project, l.hasher.GetHash(), nil
