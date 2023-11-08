@@ -260,7 +260,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 
 	// Determine if Logstream is enabled and create log sharing link in either case.
 	logstreamURL, doLogstreamUpload, printLinkFn := a.logShareLink(cliCtx.Context, cloudClient, target, cleanCollection)
-	a.cli.AddDeferredFunc(printLinkFn) // Output log sharing link after build and other possible messages
 
 	a.cli.Console().PrintPhaseHeader(builder.PhaseInit, false, "")
 	a.warnIfArgContainsBuildArg(flagArgs)
@@ -324,6 +323,9 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	if doSkip {
 		return nil
 	}
+
+	// Output log sharing link after build. Invoked after auto-skip is checked (above).
+	a.cli.AddDeferredFunc(printLinkFn)
 
 	err = a.cli.InitFrontend(cliCtx)
 	if err != nil {
@@ -824,15 +826,14 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 	}
 
 	console := a.cli.Console().WithPrefix(autoSkipPrefix)
+	consoleNoPrefix := a.cli.Console()
 
 	if a.cli.Flags().Push {
-		console.Warnf("--push is not supported")
-		return nil, nil, false, nil
+		return nil, nil, false, errors.New("--push cannot be used with --auto-skip")
 	}
 
 	if a.cli.Flags().NoCache {
-		console.Warnf("--no-cache is not supported")
-		return nil, nil, false, nil
+		return nil, nil, false, errors.New("--no-cache cannot be used with --auto-skip")
 	}
 
 	var (
@@ -867,7 +868,7 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 	}
 
 	if exists {
-		console.Printf("target %s (hash %x) has already been run; exiting", target.String(), targetHash)
+		consoleNoPrefix.Printf("target %s (hash %x) has already been run; exiting", target.String(), targetHash)
 		return nil, nil, true, nil
 	}
 

@@ -53,20 +53,6 @@ func newLoader(ctx context.Context, opt HashOpt) *loader {
 	}
 }
 
-func (l *loader) handleRun(ctx context.Context, cmd spec.Command) error {
-	opts := commandflag.RunOpts{}
-	_, err := flagutil.ParseArgsCleaned(command.From, &opts, flagutil.GetArgsCopy(cmd))
-	if err != nil {
-		return err
-	}
-
-	if opts.NoCache {
-		return errors.New("--no-cache not supported")
-	}
-
-	return nil
-}
-
 func (l *loader) handleFrom(ctx context.Context, cmd spec.Command) error {
 	opts := commandflag.FromOpts{}
 	args, err := flagutil.ParseArgsCleaned(command.From, &opts, flagutil.GetArgsCopy(cmd))
@@ -284,8 +270,6 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 		return l.handleCopy(ctx, cmd)
 	case command.Arg:
 		return l.handleArg(ctx, cmd)
-	case command.Run:
-		return l.handleRun(ctx, cmd)
 	default:
 		return nil
 	}

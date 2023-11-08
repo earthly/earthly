@@ -140,12 +140,12 @@ test-try-catch:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=try-catch.earth --target=+basic --output_contains="target .* has already been run; exiting"
 
 test-no-cache:
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+no-cache --output_contains="no-cache not supported"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+no-cache --output_does_not_contain="target .* has already been run; exiting"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+no-cache --should_fail=true --extra_args="--no-cache" --output_contains="no-cache cannot be used"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+no-cache --should_fail=true --extra_args="--no-cache" --output_does_not_contain="target .* has already been run; exiting"
 
 test-push:
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+simple --extra_args="--push" --output_contains="push is not supported"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+simple --extra_args="--push" --output_does_not_contain="target .* has already been run; exiting"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+simple --should_fail=true --extra_args="--push" --output_contains="push cannot be used"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+simple --should_fail=true --extra_args="--push" --output_does_not_contain="target .* has already been run; exiting"
 
 RUN_EARTHLY_ARGS:
     COMMAND
