@@ -1546,3 +1546,7 @@ RUN_EARTHLY:
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly-tmpfs \
         /bin/sh /tmp/earthly-script
+
+foo:
+    FROM alpine
+    RUN echo "hi"
