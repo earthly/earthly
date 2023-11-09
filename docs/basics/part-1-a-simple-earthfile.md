@@ -88,7 +88,7 @@ Here we copy the artifact `/example` produced by another target, `+build`, to th
 
 You may notice the command `COPY +build/... ...`, which has an unfamiliar form if you're coming from Docker. This is a special type of `COPY`, which can be used to pass artifacts from one target to another. In this case, the target `build` (referenced as `+build`) produces an artifact, which has been declared with `SAVE ARTIFACT`, and the target `docker` copies that artifact in its build environment.
 
-With Earthly you have the ability to pass such artifacts or images between targets within the same Earthfile, but also across different Earthfiles across directories or even across repositories. To read more about this, see the [target, artifact and image referencing guide](../guides/target-ref.md) or jump to [part 5](./part-5-importing.md) of this guide.
+With Earthly you have the ability to pass such artifacts or images between targets within the same Earthfile, but also across different Earthfiles across directories or even across repositories. To read more about this, see the [importing guide](../guides/importing.md) or jump to [part 5](./part-5-importing.md) of this guide.
 
 Lastly, we save the current state as a docker image, which will have the docker tag `go-example:latest`. This image is only made available to the host's docker if the entire build succeeds.
 

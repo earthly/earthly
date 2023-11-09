@@ -18,14 +18,14 @@
 ## 📖 Docs
 
 * Guides
-    * [Authenticating Git and image registries](guides/auth.md)
-    * [Target, artifact and command referencing](guides/target-ref.md)
+    * [Importing](guides/importing.md)
     * [Build arguments and secrets](guides/build-args.md)
     * [User-defined commands (UDCs)](guides/udc.md)
     * [Using Docker in Earthly](guides/docker-in-earthly.md)
+    * [Multi-platform builds](guides/multi-platform.md)
+    * [Authenticating Git and image registries](guides/auth.md)
     * [Integration Testing](guides/integration.md)
     * [Debugging techniques](guides/debugging.md)
-    * [Multi-platform builds](guides/multi-platform.md)
     * [Podman](guides/podman.md)
     * Configuring registries
         * [AWS ECR](guides/registries/aws-ecr.md)

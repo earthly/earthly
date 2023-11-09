@@ -1,18 +1,90 @@
-# Target, artifact and command referencing
+# Importing
 
-This page describes the different types of references used in Earthly:
+Importing in Earthly is how multiple build components (targets, artifacts, commands, Earthfiles) can be interconnected to compose complex build setups while reusing build code. This page describes the syntax and semantics of importing in Earthly.
 
-* Target references: `<project-ref>+my-target`
-* Artifact references: `<project-ref>+my-target/my-artifact.bin`
+## Import basics
+
+<img src="img/ref-infographic-v2.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="800px" />
+
+Let's start with a few simple examples.
+
+### Importing within the same Earthfile
+
+When importing a target from the same Earthfile, the import reference is simply the name of the target being imported, with a `+` in front. For example:
+
+```Dockerfile
+target1:
+    RUN echo "Hello World"
+
+target2:
+    BUILD +target1
+```
+
+If you want to import an artifact, the import reference is the target reference, followed by a `/`, followed by the path to the artifact. For example:
+
+```Dockerfile
+target1:
+    RUN echo "Hello World" > out.txt
+    SAVE ARTIFACT out.txt
+
+target2:
+    COPY +my-target/out.txt ./
+```
+
+### Importing from other repositories
+
+When importing from other repositories, making use of the `IMPORT` command helps to keep the Earthfile clean and readable. The `IMPORT` command takes an Earthfile reference, and optionally an import alias. For example:
+
+```Dockerfile
+IMPORT github.com/earthly/hello-world:main AS hello-world
+
+...
+
+my-target:
+    BUILD hello-world+hello
+    COPY hello-world+hello/hello.txt ./
+```
+
+In this example, the target `my-target` uses the import alias `hello-world` to reference a GitHub repository called `github.com/earthly/hello-world`, and the target `hello` within that repository. The `AS hello-world` part is optional, and is only needed if the import alias is different from the repository name.
+
+`BUILD` is used used to simply issue the build of the referenced target. Commands like `COPY` or `FROM` can be used to import artifacts or images, respectively.
+
+### Importing from other directories
+
+Importing from other directories is similar to importing from other repositories. The only difference is that the Earthfile reference is a relative path to the directory containing the Earthfile. For example:
+
+```Dockerfile
+IMPORT ./some/other/dir AS other-dir
+
+my-target:
+    BUILD other-dir+my-target
+    COPY other-dir+my-target/out.txt ./
+```
+
+### Inline imports
+
+Importing can also be done inline, without the need for an `IMPORT` command. This is useful for importing a single target or artifact from a remote repository. For example:
+
+```Dockerfile
+BUILD github.com/earthly/hello-world:main+hello
+COPY ./some/other/dir+my-target/out.txt ./
+```
+
+## Referencing syntax
+
+This subsection goes through the different types of references that Earthly uses:
+
+* Earthfile references `github.com/foo/bar`, `./my/local/path`
+* Target references: `<earthfile-ref>+my-target`
+* Artifact references: `<earthfile-ref>+my-target/my-artifact.bin`
 * Image references (same as target references)
-* Command references: `<project-ref>+MY_COMMAND`
-* Project references (the prefix of the above references): `github.com/foo/bar`, `./my/local/path`
+* Command references: `<earthfile-ref>+MY_COMMAND`
 
 ## Target reference
 
 Target references point to an Earthly target. They have the general form
 
-`<project-ref>+<target>`
+`<earthfile-ref>+<target>`
 
 Target references distinguish themselves from command references (see below) by having a name in all-lower-case, kebab-case (e.g. `+my-target`).
 
@@ -21,6 +93,7 @@ Here are some examples:
 * `+build`
 * `./js+deps`
 * `github.com/earthly/earthly:v0.7.20+earthly`
+* `my-import+build`
 
 ## Artifact reference
 
@@ -34,6 +107,7 @@ Here are some examples:
 * `+build/some/artifact/deep/in/a/dir`
 * `./js+build/dist`
 * `github.com/earthly/earthly:v0.7.20+earthly/earthly`
+* `my-import+build/my-artifact`
 
 ## Image reference
 
@@ -43,9 +117,9 @@ The only difference is the context where they are used. For example, a `FROM` co
 
 ## Command reference
 
-Command references point to a user-defined command (UDC) in an Earthfile. They have the general form
+Command references point to a [user-defined command](./udc.md) (UDC) in an Earthfile. They have the general form
 
-`<project-ref>+<command>`
+`<earthfile-ref>+<command>`
 
 Command references distinguish themselves from target references by having a name in all-caps, snake-case (e.g. `+MY_COMMAND`).
 
@@ -54,20 +128,19 @@ Here are some examples:
 * `+COMPILE`
 * `./js+NPM_INSTALL`
 * `github.com/earthly/earthly:v0.7.20+DOWNLOAD_DIND`
+* `my-import+COMPILE`
 
 For more information on UDCs, see the [User-defined commands guide](./udc.md).
 
-## Project references
+## Earthfile references
 
-<img src="img/ref-infographic-v2.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="800px" />
-
-Project references appear in target, artifact and command references. They point to the Earthfile containing the respective target, artifact or command. Below are the different types of project references available in Earthly.
+Earthfile references appear in target, artifact and command references. They point to the Earthfile containing the respective target, artifact or command. Below are the different types of Earthfile references available in Earthly.
 
 ### Local, internal
 
-The simplest form, is where a target, command or artifact is referenced from the same Earthfile. In this case, the project reference is simply **the empty string**. Here are some examples of this type of project reference being used in various other references:
+The simplest form, is where a target, command or artifact is referenced from the same Earthfile. In this case, the Earthfile reference is simply **the empty string**. Here are some examples of this type of Earthfile reference being used in various other references:
 
-| Project ref | Target ref | Artifact ref | Command ref |
+| Earthfile ref | Target ref | Artifact ref | Command ref |
 |----|----|----|----|
 | (**empty string**) | `+<target-name>` | `+<target-name>/<artifact-path>` | `+<command-name>` |
 | (**empty string**) | `+build` | `+build/out.bin` | `+COMPILE` |
@@ -78,7 +151,7 @@ In this form, Earthly will look for the target within the same Earthfile. We cal
 
 Another form, is where a target, command or artifact is referenced from a different directory. In this form, the path to that directory is specified before `+`. It must always start with either `./`, `../` or `/`, on any operating system (including Windows). Example:
 
-| Project ref | Target ref | Artifact ref | Command ref |
+| Earthfile ref | Target ref | Artifact ref | Command ref |
 |----|----|----|----|
 | `./path/to/another/dir` | `./path/to/another/dir+<target-name>` | `./path/to/another/dir+<target-name>/<artifact-path>` | `./path/to/another/dir+<command-name>` |
 | `./js` | `./js+build` | `./js+build/out.bin` | `./js+COMPILE` |
@@ -87,9 +160,9 @@ It is recommended that relative paths are used, for portability reasons: the wor
 
 ### Remote
 
-Another form of a project reference is the remote form. In this form, the recipe and the build context are imported from a remote location. It has the following form:
+Another form of a Earthfile reference is the remote form. In this form, the recipe and the build context are imported from a remote location. It has the following form:
 
-| Project ref | Target ref | Artifact ref | Command ref |
+| Earthfile ref | Target ref | Artifact ref | Command ref |
 |----|----|----|----|
 | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<target-name>` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<target-name>/<artifact-path>` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<command-name>` |
 | `github.com/earthly/earthly/buildkitd` | `github.com/earthly/earthly/buildkitd+build` | `github.com/earthly/earthly/buildkitd+build/out.bin` | `github.com/earthly/earthly/buildkitd+COMPILE` |
@@ -97,11 +170,11 @@ Another form of a project reference is the remote form. In this form, the recipe
 
 ### Import reference
 
-Finally, the last form of project referencing is an import reference. Import references may only exist after an `IMPORT` command, which helps resolve the reference to a full project reference of the types above.
+Finally, the last form of Earthfile referencing is an import reference. Import references may only exist after an `IMPORT` command, which helps resolve the reference to a full Earthfile reference of the types above.
 
-| Import command | Project ref | Target ref | Artifact ref | Command ref |
+| Import command | Earthfile ref | Target ref | Artifact ref | Command ref |
 |----|----|----|----|----|
-| `IMPORT <full-project-ref> AS <import-alias>` | `<import-alias>` | `<import-alias>+<target-name>` | `<import-alias>+<target-name>/<artifact-path>` | `<import-alias>+<command-name>` |
+| `IMPORT <full-earthfile-ref> AS <import-alias>` | `<import-alias>` | `<import-alias>+<target-name>` | `<import-alias>+<target-name>/<artifact-path>` | `<import-alias>+<command-name>` |
 | `IMPORT github.com/earthly/earthly/buildkitd` | `buildkitd` | `buildkitd+build` | `buildkitd+build/out.bin` | `buildkitd+COMPILE` |
 | `IMPORT github.com/earthly/earthly:v0.7.20` | `earthly` | `earthly+build` | `earthly+build/out.bin` | `earthly+COMPILE` |
 

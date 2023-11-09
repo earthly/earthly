@@ -56,7 +56,7 @@ The `<artifact-ref>` can reference artifacts built by targets. `<target-ref>/<ar
 
 ##### Examples
 
-See the [Target, artifact, and image referencing guide](../guides/target-ref.md) for more details and examples.
+See the [importing guide](../guides/importing.md) for more details and examples.
 
 #### Build args
 
@@ -355,7 +355,7 @@ Prints version information about earthly.
 #### Synopsis
 
 * ```
-  earthly ls [<project-ref>]
+  earthly ls [<earthfile-ref>]
   ```
 
 #### Description
@@ -377,7 +377,7 @@ Show full, canonical target references (includes the project part of the referen
 #### Synopsis
 
 * ```
-  earthly doc [<project-ref>[+<target-ref>]]
+  earthly doc [<earthfile-ref>[+<target-ref>]]
   ```
 
 #### Description

@@ -19,7 +19,8 @@ redirects:
     guides/docker-in-earthly: guides/docker-in-earthly.md
     guides/integration: guides/integration.md
     guides/multi-platform: guides/multi-platform.md
-    guides/target-ref: guides/target-ref.md
+    guides/target-ref: guides/importing.md
+    docs/guides/target-ref: guides/importing.md
     guides/udc: guides/udc.md
     earthly-config: earthly-config/earthly-config.md
     ci-integration: ci-integration/overview.md

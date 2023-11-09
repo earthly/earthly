@@ -356,7 +356,7 @@ The command `COPY` allows copying of files and directories between different con
 
 The command may take a couple of possible forms. In the *classical form*, `COPY` copies files and directories from the build context into the build environment - in this form, it works similarly to the [Dockerfile `COPY` command](https://docs.docker.com/engine/reference/builder/#copy). In the *artifact form*, `COPY` copies files or directories (also known as "artifacts" in this context) from the artifact environment of other build targets into the build environment of the current target. Either form allows the use of wildcards for the sources.
 
-The parameter `<src-artifact>` is an [artifact reference](../guides/target-ref.md#artifact-reference) and is generally of the form `<target-ref>/<artifact-path>`, where `<target-ref>` is the reference to the target which needs to be built in order to yield the artifact and `<artifact-path>` is the path within the artifact environment of the target, where the file or directory is located. The `<artifact-path>` may also be a wildcard.
+The parameter `<src-artifact>` is an [artifact reference](../guides/importing.md#artifact-reference) and is generally of the form `<target-ref>/<artifact-path>`, where `<target-ref>` is the reference to the target which needs to be built in order to yield the artifact and `<artifact-path>` is the path within the artifact environment of the target, where the file or directory is located. The `<artifact-path>` may also be a wildcard.
 
 The `COPY` command does not mark any saved images or artifacts of the referenced target for output, nor does it mark any push commands of the referenced target for pushing. For that, please use [`BUILD`](#build).
 
@@ -615,7 +615,7 @@ If `AS LOCAL ...` is also specified, it additionally marks the artifact to be co
 
 If `<artifact-dest-path>` is not specified, it is inferred as `/`.
 
-Files within the artifact environment are also known as "artifacts". Once a file has been copied into the artifact environment, it can be referenced in other places of the build (for example in a `COPY` command), using an [artifact reference](../guides/target-ref.md#artifact-reference).
+Files within the artifact environment are also known as "artifacts". Once a file has been copied into the artifact environment, it can be referenced in other places of the build (for example in a `COPY` command), using an [artifact reference](../guides/importing.md#artifact-reference).
 
 {% hint style='info' %}
 ##### Hint
@@ -778,7 +778,7 @@ Instructs Earthly to not create a manifest list for the image. This may be usefu
 
 #### Description
 
-The command `BUILD` instructs Earthly to additionally invoke the build of the target referenced by `<target-ref>`, where `<target-ref>` follows the rules defined by [target referencing](../guides/target-ref.md#target-reference). The invocation will mark any images, or artifacts saved by the referenced target for local output (assuming local output is enabled), and any push commands issued by the referenced target for pushing (assuming pushing is enabled).
+The command `BUILD` instructs Earthly to additionally invoke the build of the target referenced by `<target-ref>`, where `<target-ref>` follows the rules defined by [target referencing](../guides/importing.md#target-reference). The invocation will mark any images, or artifacts saved by the referenced target for local output (assuming local output is enabled), and any push commands issued by the referenced target for pushing (assuming pushing is enabled).
 
 {% hint style='info' %}
 ##### What is being output and pushed
@@ -940,17 +940,17 @@ Instructs Earthly to not overwrite the file creation timestamps with a constant.
 
 The `FROM DOCKERFILE` command initializes a new build environment, inheriting from an existing Dockerfile. This allows the use of Dockerfiles in Earthly builds.
 
-The `<context-path>` is the path where the Dockerfile build context exists. By default, it is assumed that a file named `Dockerfile` exists in that directory. The context path can be either a path on the host system, or an [artifact reference](../guides/target-ref.md#artifact-reference), pointing to a directory containing a `Dockerfile`.
+The `<context-path>` is the path where the Dockerfile build context exists. By default, it is assumed that a file named `Dockerfile` exists in that directory. The context path can be either a path on the host system, or an [artifact reference](../guides/importing.md#artifact-reference), pointing to a directory containing a `Dockerfile`.
 Additionally, when using a `<context-path>` from the host system, a `.dockerignore` in the directory root will be used to exclude files (unless `.earthlyignore` or `.earthignore` are present). Use `VERSION --use-docker-ignore 0.7` to enable.
 
 #### Options
 
 ##### `-f <dockerfile-path>`
 
-Specify an alternative Dockerfile to use. The `<dockerfile-path>` can be either a path on the host system, relative to the current Earthfile, or an [artifact reference](../guides/target-ref.md#artifact-reference) pointing to a Dockerfile.
+Specify an alternative Dockerfile to use. The `<dockerfile-path>` can be either a path on the host system, relative to the current Earthfile, or an [artifact reference](../guides/importing.md#artifact-reference) pointing to a Dockerfile.
 
 {% hint style='info' %}
-It is possible to split the `Dockerfile` and the build context across two separate [artifact references](../guides/target-ref.md#artifact-reference):
+It is possible to split the `Dockerfile` and the build context across two separate [artifact references](../guides/importing.md#artifact-reference):
 
 ```Dockerfile
 FROM alpine
@@ -1550,7 +1550,7 @@ For more information see the [User-defined commands guide](../guides/udc.md).
 
 #### Description
 
-The command `DO` expands and executes the series of commands contained within a user-defined command (UDC) [referenced by `<command-ref>`](../guides/target-ref.md#command-reference).
+The command `DO` expands and executes the series of commands contained within a user-defined command (UDC) [referenced by `<command-ref>`](../guides/importing.md#command-reference).
 
 Unlike performing a `BUILD +target`, UDCs inherit the build context and the build environment from the caller.
 
@@ -1568,19 +1568,19 @@ Same as [`FROM --allow-privileged`](#allow-privileged).
 
 #### Synopsis
 
-* `IMPORT [--allow-privileged] <project-ref> [AS <alias>]`
+* `IMPORT [--allow-privileged] <earthfile-ref> [AS <alias>]`
 
 #### Description
 
-The command `IMPORT` aliases a project reference (`<project-ref>`) that can be used in subsequent [target, artifact or command references](../guides/target-ref.md).
+The command `IMPORT` aliases an Earthfile reference (`<earthfile-ref>`) that can be used in subsequent [target, artifact or command references](../guides/importing.md).
 
-If not provided, the `<alias>` is inferred automatically as the last element of the path provided in `<project-ref>`. For example, if `<project-ref>` is `github.com/foo/bar/buz:v1.2.3`, then the alias is inferred as `buz`.
+If not provided, the `<alias>` is inferred automatically as the last element of the path provided in `<earthfile-ref>`. For example, if `<earthfile-ref>` is `github.com/foo/bar/buz:v1.2.3`, then the alias is inferred as `buz`.
 
-The `<project-ref>` can be a reference to any directory other than `.`. If the reference ends in `..`, then mentioning `AS <alias>` is mandatory.
+The `<earthfile-ref>` can be a reference to any directory other than `.`. If the reference ends in `..`, then mentioning `AS <alias>` is mandatory.
 
 If an `IMPORT` is defined in the `base` target of the Earthfile, then it becomes a global `IMPORT` and it is made available to every other target or command in that file, regardless of their base images used.
 
-For more information see the [target, artifact and command references guide](../guides/target-ref.md).
+For more information see the [importing guide](../guides/importing.md).
 
 #### Options
 

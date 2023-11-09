@@ -111,7 +111,7 @@ However, if the use-case is build configurability, then `ARG` is the way to achi
 
 ### Use cross-repo references, and avoid `GIT CLONE` if possible
 
-Earthly provides rich set of features to allow working with and across Git repositories. It is recommended to use Earthly [cross-repository references](../guides/target-ref.md) rather than `GIT CLONE` or `RUN git clone`, whenever possible.
+Earthly provides rich set of features to allow working with and across Git repositories. It is recommended to use Earthly [cross-repository references](../guides/importing.md) rather than `GIT CLONE` or `RUN git clone`, whenever possible.
 
 Here is an example.
 
@@ -474,7 +474,7 @@ build:
 
 This will not actually work, as in Earthly all output takes place only at the end of a successful build. Meaning that when `+build` starts, the artifact would not have been output yet. In fact, `+dep` and `+build` will run completely parallel anyway - as Earthly does not know of a dependency between them.
 
-The proper way to achieve this is to use [artifact references](../guides/target-ref.md).
+The proper way to achieve this is to use [artifact references](../guides/importing.md).
 
 ```Dockerfile
 # Good
@@ -525,7 +525,7 @@ test:
 
 Similarly, in this case, pushing of the image takes place at the end of the build, which means that when `+test` runs, it will not have the image available, unless it has been pushed in a previous execution (which means that the image may be stale).
 
-To fix this, we need to use `WITH DOCKER --load` and a [target reference](../guides/target-ref.md):
+To fix this, we need to use `WITH DOCKER --load` and a [target reference](../guides/importing.md):
 
 ```Dockerfile
 # Good
@@ -592,7 +592,7 @@ build:
 
 This setup may actually work, but it has a key issue: the order of `+dep` and `+build` is not guaranteed. So in some runs, the file `./my-artifact.txt` will be created before the `+build` target is executed, and in some runs it will be created after.
 
-To fix this race condition, you need to use an [artifact reference](../guides/target-ref.md), to ensure that Earthly is aware of the dependency between the two targets:
+To fix this race condition, you need to use an [artifact reference](../guides/importing.md), to ensure that Earthly is aware of the dependency between the two targets:
 
 ```Dockerfile
 # Good
@@ -710,7 +710,7 @@ run-img:
     RUN docker run my-co/my-img:latest
 ```
 
-The above will not work as the output will take place at the end of the build only. In addition, Earthly is unaware that there is a dependency between the two targets. To address this, we need to use `WITH DOCKER --load` and a [target reference](../guides/target-ref.md):
+The above will not work as the output will take place at the end of the build only. In addition, Earthly is unaware that there is a dependency between the two targets. To address this, we need to use `WITH DOCKER --load` and a [target reference](../guides/importing.md):
 
 ```Dockerfile
 # Good
