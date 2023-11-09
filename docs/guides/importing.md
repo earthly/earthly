@@ -2,9 +2,13 @@
 
 Importing in Earthly is how multiple build components (targets, artifacts, commands, Earthfiles) can be interconnected to compose complex build setups while reusing build code. This page describes the syntax and semantics of importing in Earthly.
 
-## Import basics
+## Cheat sheet
 
-<img src="img/ref-infographic-v2.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="800px" />
+Here's a quick cheat sheet for the syntax of importing in Earthly. The sections below go into more detail on each of these.
+
+<img src="img/import-cheat-sheet.png" alt="Import syntax" title="Import syntax cheat sheet" width="800px" />
+
+## Import basics
 
 Let's start with a few simple examples.
 
