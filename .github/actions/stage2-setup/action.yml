@@ -96,7 +96,7 @@ runs:
       run: |-
         SATELLITE_NAME=${{inputs.SATELLITE_NAME}}
         if [ "$SATELLITE_NAME" = "core-test" ]; then
-          SATELLITE_NAME="$SATELLITE_NAME-$(( $RANDOM % 4 ))"
+          SATELLITE_NAME="$SATELLITE_NAME-1"
           echo "Using core-test satellite: $SATELLITE_NAME"
         fi
         ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} sat ls
