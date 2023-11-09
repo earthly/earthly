@@ -22,10 +22,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	ErrRemoteNotSupported    = fmt.Errorf("remote targets not supported")
-	ErrUnableToDetermineHash = fmt.Errorf("unable to determine hash")
-)
+var ErrRemoteNotSupported = fmt.Errorf("remote targets not supported")
 
 type loader struct {
 	conslog         conslogging.ConsoleLogger
@@ -36,7 +33,6 @@ type loader struct {
 	features        *features.Features
 	isBaseTarget    bool
 	ci              bool
-	push            bool
 	builtinArgs     variables.DefaultArgs
 	overridingVars  *variables.Scope
 	earthlyCIRunner bool
@@ -51,7 +47,6 @@ func newLoader(ctx context.Context, opt HashOpt) *loader {
 		hasher:          hasher.New(),
 		isBaseTarget:    opt.Target.Target == "base",
 		ci:              opt.CI,
-		push:            opt.Push,
 		builtinArgs:     opt.BuiltinArgs,
 		overridingVars:  opt.OverridingVars,
 		earthlyCIRunner: opt.EarthlyCIRunner,
@@ -496,7 +491,6 @@ func (l *loader) forTarget(ctx context.Context, target domain.Target, args []str
 		hasher:          l.hasher,
 		isBaseTarget:    target.Target == "base",
 		ci:              l.ci,
-		push:            l.push,
 		builtinArgs:     l.builtinArgs,
 		overridingVars:  overriding,
 		earthlyCIRunner: l.earthlyCIRunner,
@@ -586,7 +580,6 @@ func (l *loader) load(ctx context.Context) error {
 		Console:         l.conslog,
 		Target:          l.target,
 		CI:              l.ci,
-		Push:            l.push,
 		BuiltinArgs:     l.builtinArgs,
 		OverridingVars:  l.overridingVars,
 		EarthlyCIRunner: l.earthlyCIRunner,

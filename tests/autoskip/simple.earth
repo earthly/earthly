@@ -12,3 +12,11 @@ mytarget:
 mypipeline:
   PIPELINE
   BUILD +mytarget
+
+no-cache:
+  FROM alpine
+  RUN --no-cache echo "hello"
+
+simple:
+  FROM alpine
+  RUN echo "hello"

@@ -63,6 +63,8 @@ import (
 	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
 )
 
+const autoSkipPrefix = "auto-skip"
+
 type Build struct {
 	cli CLI
 
@@ -258,7 +260,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 
 	// Determine if Logstream is enabled and create log sharing link in either case.
 	logstreamURL, doLogstreamUpload, printLinkFn := a.logShareLink(cliCtx.Context, cloudClient, target, cleanCollection)
-	a.cli.AddDeferredFunc(printLinkFn) // Output log sharing link after build and other possible messages
 
 	a.cli.Console().PrintPhaseHeader(builder.PhaseInit, false, "")
 	a.warnIfArgContainsBuildArg(flagArgs)
@@ -322,6 +323,9 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	if doSkip {
 		return nil
 	}
+
+	// Output log sharing link after build. Invoked after auto-skip is checked (above).
+	a.cli.AddDeferredFunc(printLinkFn)
 
 	err = a.cli.InitFrontend(cliCtx)
 	if err != nil {
@@ -618,7 +622,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	if a.cli.Flags().SkipBuildkit && targetHash != nil {
 		err := skipDB.Add(cliCtx.Context, targetHash)
 		if err != nil {
-			a.cli.Console().Warnf("failed to record %s (hash %x) as completed: %s", target.String(), target, err)
+			a.cli.Console().WithPrefix(autoSkipPrefix).Warnf("failed to record %s (hash %x) as completed: %s", target.String(), target, err)
 		}
 	}
 
@@ -821,6 +825,17 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		return nil, nil, false, nil
 	}
 
+	console := a.cli.Console().WithPrefix(autoSkipPrefix)
+	consoleNoPrefix := a.cli.Console()
+
+	if a.cli.Flags().Push {
+		return nil, nil, false, errors.New("--push cannot be used with --auto-skip")
+	}
+
+	if a.cli.Flags().NoCache {
+		return nil, nil, false, errors.New("--no-cache cannot be used with --auto-skip")
+	}
+
 	var (
 		skipDB      bk.BuildkitSkipper
 		targetHash  []byte
@@ -828,13 +843,10 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		projectName string
 	)
 
-	console := a.cli.Console()
-
 	orgName, projectName, targetHash, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
 		Target:          target,
 		Console:         a.cli.Console(),
 		CI:              a.cli.Flags().CI,
-		Push:            a.cli.Flags().Push,
 		BuiltinArgs:     variables.DefaultArgs{EarthlyVersion: a.cli.Version(), EarthlyBuildSha: a.cli.GitSHA()},
 		OverridingVars:  overridingVars,
 		EarthlyCIRunner: a.cli.Flags().EarthlyCIRunner,
@@ -856,7 +868,7 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 	}
 
 	if exists {
-		console.Printf("target %s (hash %x) has already been run; exiting", target.String(), targetHash)
+		consoleNoPrefix.Printf("target %s (hash %x) has already been run; exiting", target.String(), targetHash)
 		return nil, nil, true, nil
 	}
 
