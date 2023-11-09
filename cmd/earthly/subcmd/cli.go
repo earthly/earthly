@@ -41,4 +41,6 @@ type CLI interface {
 	CIHost() string
 	LogbusSetup() *setup.BusSetup
 	Logbus() *logbus.Bus
+
+	AddDeferredFunc(f func())
 }
