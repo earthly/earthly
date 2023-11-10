@@ -5,8 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/armon/circbuf"
 	"github.com/earthly/cloud-api/logstream"
+	"github.com/earthly/earthly/util/circbuf"
 	"github.com/pkg/errors"
 )
 

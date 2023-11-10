@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/armon/circbuf"
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/util/circbuf"
 	"github.com/earthly/earthly/util/progressbar"
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/mattn/go-isatty"

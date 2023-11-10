@@ -6,7 +6,6 @@ require (
 	git.sr.ht/~nelsam/hel v0.4.6
 	github.com/adrg/xdg v0.4.0
 	github.com/alessio/shellescape v1.4.1
-	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/aws/aws-sdk-go-v2 v1.17.6
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20230227212328-9f4511cd144a
 	github.com/containerd/containerd v1.7.7
