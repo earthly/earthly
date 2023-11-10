@@ -215,6 +215,7 @@ privileged-test:
     DO +RUN_EARTHLY --earthfile=privileged.earth --extra_args="--allow-privileged" --target=+test
 
 copy-test:
+    ARG arg=1
     RUN mkdir -p in/sub/1 in/sub/2 && \
         echo "root" > in/root && \
         echo "1" > in/sub/1/file && \
@@ -1546,3 +1547,10 @@ RUN_EARTHLY:
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly-tmpfs \
         /bin/sh /tmp/earthly-script
+
+loop-test:
+    FOR idx IN $(seq 100)
+        WAIT
+            BUILD +copy-test --arg=$idx
+        END
+    END
