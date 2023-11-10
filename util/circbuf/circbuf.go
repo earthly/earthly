@@ -9,6 +9,7 @@ type Buffer struct {
 	data    []byte
 	offset  int
 	maxSize int
+	written int
 }
 
 // NewBuffer creates and returns a Buffer pointer with a max size.
@@ -25,6 +26,7 @@ func NewBuffer(maxSize int) (*Buffer, error) {
 func (c *Buffer) Write(buf []byte) (int, error) {
 	l := len(c.data)
 	n := len(buf)
+	c.written += n
 
 	if n > c.maxSize {
 		buf = buf[n-c.maxSize:]
@@ -62,4 +64,12 @@ func (c *Buffer) Bytes() []byte {
 	copy(ret, c.data[c.offset:])
 	copy(ret[c.maxSize-c.offset:], c.data[:c.offset])
 	return ret
+}
+
+func (c *Buffer) Size() int {
+	return len(c.data)
+}
+
+func (c *Buffer) TotalWritten() int {
+	return c.written
 }
