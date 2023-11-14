@@ -129,6 +129,8 @@ func (a *Build) Cmds() []*cli.Command {
 func (a *Build) Action(cliCtx *cli.Context) error {
 	a.cli.SetCommandName("build")
 
+	// COMMENT!
+
 	if a.cli.Flags().CI {
 		a.cli.Flags().NoOutput = !a.cli.Flags().Output && !a.cli.Flags().ArtifactMode && !a.cli.Flags().ImageMode
 		a.cli.Flags().Strict = true
