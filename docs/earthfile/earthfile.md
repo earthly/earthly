@@ -1443,7 +1443,7 @@ The `LOCALLY` command can be used in place of a `FROM` command, which will cause
 on the host system, rather than inside a container. Commands within a `LOCALLY` target will never be cached.
 This feature should be used with caution as locally run commands have no guarantee they will behave the same on different systems.
 
-Only `RUN` commands are supported under a `LOCALLY` defined target; furthermore only `RUN`'s `--push` flag is supported.
+`LOCALLY` defined targets only support a subset of commands (along with a subset of their flags): `RUN`, `RUN --push`, `SAVE ARTIFACT`, and `COPY`.
 
 `RUN` commands have access to the environment variables which are exposed to the `earthly` command; however, the commands
 are executed within a working directory which is set to the location of the referenced Earthfile and not where the `earthly` command is run from.
