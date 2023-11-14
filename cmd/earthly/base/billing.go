@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+// CollectBillingInfo will collect billing plan info from billing service and make it available for other commands
+// to use later
 func (cli *CLI) CollectBillingInfo(ctx context.Context, cloudClient *cloud.Client, orgName string) error {
 	if !cloudClient.IsLoggedIn(ctx) {
 		return nil
