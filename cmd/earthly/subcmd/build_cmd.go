@@ -13,6 +13,7 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
+	billingpb "github.com/earthly/cloud-api/billing"
 	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 	bkclient "github.com/moby/buildkit/client"
@@ -29,6 +30,7 @@ import (
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast"
+	"github.com/earthly/earthly/billing"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
@@ -332,6 +334,11 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return errors.Wrapf(err, "could not init frontend")
 	}
 
+	// Collect info to help with printing a richer message in the beginning of the build or on failure to reserve satellite due to missing build minutes.
+	if err = a.cli.CollectBillingInfo(cliCtx.Context, cloudClient, a.cli.Flags().OrgName); err != nil {
+		a.cli.Console().DebugPrintf("failed to get billing plan info, error is %v\n", err)
+	}
+
 	err = a.cli.ConfigureSatellite(cliCtx, cloudClient, gitCommitAuthor, gitConfigEmail)
 	if err != nil {
 		return errors.Wrapf(err, "could not configure satellite")
@@ -613,6 +620,8 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	if a.cli.Flags().Logstream && doLogstreamUpload && !a.cli.LogbusSetup().LogStreamerStarted() {
 		a.cli.Console().ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
 	}
+
+	a.maybePrintBuildMinutesInfo(a.cli.Flags().OrgName)
 
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
 	if err != nil {
@@ -921,6 +930,24 @@ func (a *Build) logShareLink(ctx context.Context, cloudClient *cloud.Client, tar
 	}
 
 	return logstreamURL, true, printLinkFn
+}
+
+func (a *Build) maybePrintBuildMinutesInfo(orgName string) {
+	if billing.Plan().MaxBuildMinutes == 0 {
+		return
+	}
+
+	sb := strings.Builder{}
+	sb.WriteString(fmt.Sprintf("Build Minutes: %d out of %d used\n", int(billing.UsedBuildTime().Minutes()), billing.Plan().MaxBuildMinutes))
+	if billing.Plan().Tier == billingpb.BillingPlan_TIER_LIMITED_FREE_TIER {
+		sb.WriteString(fmt.Sprintf("Visit your organization settings to verify your account\nand get 6000 free build minutes per month: %s\n", billing.GetBillingURL(a.cli.CIHost(), orgName)))
+	}
+	sb.WriteRune('\n')
+	if billing.Plan().Type == billingpb.BillingPlan_PLAN_TYPE_FREE {
+		a.cli.Console().ColorPrintf(color.New(color.FgGreen), sb.String())
+	} else {
+		a.cli.Console().VerbosePrintf(sb.String())
+	}
 }
 
 func (a *Build) actionDockerBuild(cliCtx *cli.Context) error {

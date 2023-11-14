@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	billingpb "github.com/earthly/cloud-api/billing"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/fatih/color"
 	"github.com/moby/buildkit/util/grpcerrors"
@@ -17,8 +18,8 @@ import (
 	"google.golang.org/grpc/codes"
 
 	"github.com/earthly/earthly/analytics"
+	"github.com/earthly/earthly/billing"
 	"github.com/earthly/earthly/buildkitd"
-	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/cmd/earthly/common"
 	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/conslogging"
@@ -27,12 +28,16 @@ import (
 	"github.com/earthly/earthly/util/errutil"
 	"github.com/earthly/earthly/util/params"
 	"github.com/earthly/earthly/util/reflectutil"
+	"github.com/earthly/earthly/util/stringutil"
 )
 
 var (
-	runExitCodeRegex  = regexp.MustCompile(`did not complete successfully: exit code: [^0][0-9]*($|[\n\t]+in\s+.*?\+.+)`)
-	notFoundRegex     = regexp.MustCompile(`("[^"]*"): not found`)
-	qemuExitCodeRegex = regexp.MustCompile(`process "/dev/.buildkit_qemu_emulator.*?did not complete successfully: exit code: 255$`)
+	runExitCodeRegex   = regexp.MustCompile(`did not complete successfully: exit code: [^0][0-9]*($|[\n\t]+in\s+.*?\+.+)`)
+	notFoundRegex      = regexp.MustCompile(`("[^"]*"): not found`)
+	qemuExitCodeRegex  = regexp.MustCompile(`process "/dev/.buildkit_qemu_emulator.*?did not complete successfully: exit code: 255$`)
+	buildMinutesRegex  = regexp.MustCompile(`(?P<msg>used \d+ of \d+ allowed minutes in current plan) {reqID: .*?}`)
+	maxSatellitesRegex = regexp.MustCompile(`(?P<msg>plan only allows \d+ satellites in use at one time) {reqID: .*?}`)
+	requestIDRegex     = regexp.MustCompile(`(?P<msg>.*?) {reqID: .*?}`)
 )
 
 func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogger, startTime time.Time, lastSignal os.Signal) int {
@@ -54,7 +59,7 @@ func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogge
 		displayErrors := app.BaseCLI.Flags().Verbose
 		cloudClient, err := helper.NewCloudClient(app.BaseCLI)
 		if err != nil && displayErrors {
-			app.BaseCLI.Console().Warnf("unable to start cloud app.BaseCLIent: %s", err)
+			app.BaseCLI.Console().Warnf("unable to start cloud app.BaseClient: %s", err)
 		} else if err == nil {
 			analytics.AddCLIProject(app.BaseCLI.Flags().OrgName, app.BaseCLI.Flags().ProjectName)
 			org, project := analytics.ProjectDetails()
@@ -141,26 +146,6 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 	}()
 	defer app.BaseCLI.ExecuteDeferredFuncs()
 	app.BaseCLI.Logbus().Run().SetStart(time.Now())
-	// Initialize log streaming early if we're passed the organization and
-	// project names as environmental variables. This will allow nearly all
-	// initialization errors to be surfaced to the log streaming service. Access
-	// to this organization and project will be verified when the stream begins.
-
-	if app.BaseCLI.Flags().OrgName != "" && app.BaseCLI.Flags().ProjectName != "" && app.BaseCLI.Cfg() != nil && !app.BaseCLI.Cfg().Global.DisableLogSharing && app.BaseCLI.Flags().LogstreamUpload {
-		cloudClient, err := helper.NewCloudClient(app.BaseCLI, cloud.WithLogstreamGRPCAddressOverride(app.BaseCLI.Flags().LogstreamAddressOverride))
-		if err != nil {
-			app.BaseCLI.Console().Warnf("Failed to initialize cloud app.BaseCLIent: %v", err)
-			return 1
-		}
-		if cloudClient.IsLoggedIn(ctx) {
-			app.BaseCLI.Console().VerbosePrintf("Logbus: setting organization %q and project %q", app.BaseCLI.Flags().OrgName, app.BaseCLI.Flags().ProjectName)
-			analytics.AddEarthfileProject(app.BaseCLI.Flags().OrgName, app.BaseCLI.Flags().ProjectName)
-			app.BaseCLI.LogbusSetup().SetOrgAndProject(app.BaseCLI.Flags().OrgName, app.BaseCLI.Flags().ProjectName)
-			app.BaseCLI.LogbusSetup().StartLogStreamer(ctx, cloudClient)
-			logstreamURL := fmt.Sprintf("%s/builds/%s", app.BaseCLI.CIHost(), app.BaseCLI.LogbusSetup().InitialManifest.GetBuildId())
-			app.BaseCLI.Console().ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
-		}
-	}
 
 	defer func() {
 		// Just in case this is forgotten somewhere else.
@@ -203,6 +188,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 				return 1
 			}
 		case qemuExitCodeRegex.MatchString(err.Error()):
+			fmt.Println("1")
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
 			if app.BaseCLI.AnaMetaIsSat() {
 				app.BaseCLI.Console().DebugPrintf("Are you using --platform to target a different architecture? Please note that \"disable-emulation\" flag is set in your satellite.\n")
@@ -213,16 +199,19 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			}
 			return 255
 		case runExitCodeRegex.MatchString(err.Error()):
+			fmt.Println("2")
 			// This error would have been displayed earlier from the SolverMonitor.
 			// This SetFatalError is a catch-all just in case that hasn't happened.
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER,
 				err.Error())
 			return 1
 		case strings.Contains(err.Error(), "security.insecure is not allowed"):
+			fmt.Println("3")
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_NEEDS_PRIVILEGED, err.Error())
 			app.BaseCLI.Console().HelpPrintf("earthly --allow-privileged (earthly -P) flag is required\n")
 			return 9
 		case strings.Contains(err.Error(), errutil.EarthlyGitStdErrMagicString):
+			fmt.Println("4")
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_GIT, err.Error())
 			gitStdErr, shorterErr, ok := errutil.ExtractEarthlyGitStdErr(err.Error())
 			if ok {
@@ -236,6 +225,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 					"For more information see https://docs.earthly.dev/guides/auth\n")
 			return 1
 		case strings.Contains(err.Error(), "failed to compute cache key") && strings.Contains(err.Error(), ": not found"):
+			fmt.Println("5")
 			var matches = notFoundRegex.FindStringSubmatch(err.Error())
 			msg := ""
 			if len(matches) == 2 {
@@ -246,6 +236,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND, msg)
 			return 1
 		case strings.Contains(err.Error(), "429 Too Many Requests"):
+			fmt.Println("6")
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_RATE_LIMITED, err.Error())
 			var registryName string
 			var registryHost string
@@ -259,7 +250,54 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 				"You can login using the command:\n"+
 				"  docker login%s", registryName, registryHost)
 			return 1
+		case grpcErrOK && grpcErr.Code() == codes.PermissionDenied && buildMinutesRegex.MatchString(grpcErr.Message()):
+			fmt.Println("7")
+			msg := grpcErr.Message()
+			matches, _ := stringutil.NamedGroupMatches(msg, buildMinutesRegex)
+			if len(matches["msg"]) > 0 {
+				msg = matches["msg"][0]
+			}
+			msg = fmt.Sprintf("%s (%s)", msg, stringutil.Title(billing.Plan().Tier))
+			app.BaseCLI.Console().VerboseWarnf(err.Error())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, msg)
+			switch billing.Plan().Tier {
+			case billingpb.BillingPlan_TIER_LIMITED_FREE_TIER:
+				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to verify your account\nand get 6000 free build minutes per month: %s\n", billing.GetBillingURL(app.BaseCLI.CIHost(), app.BaseCLI.Flags().OrgName))
+			case billingpb.BillingPlan_TIER_FREE_TIER:
+				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to upgrade your account: %s\n", billing.GetUpgradeURL(app.BaseCLI.CIHost(), app.BaseCLI.Flags().OrgName))
+			}
+			return 1
+		case grpcErrOK && grpcErr.Code() == codes.PermissionDenied && maxSatellitesRegex.MatchString(grpcErr.Message()):
+			fmt.Println("8")
+			msg := grpcErr.Message()
+			matches, _ := stringutil.NamedGroupMatches(msg, maxSatellitesRegex)
+			if len(matches["msg"]) > 0 {
+				msg = matches["msg"][0]
+			}
+			msg = fmt.Sprintf("%s %s", stringutil.Title(billing.Plan().Tier), msg)
+			app.BaseCLI.Console().VerboseWarnf(err.Error())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, msg)
+			switch billing.Plan().Tier {
+			case billingpb.BillingPlan_TIER_LIMITED_FREE_TIER:
+				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to verify your account\nfor an option to launch more satellites: %s\nor consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)", billing.GetBillingURL(app.BaseCLI.CIHost(), app.BaseCLI.Flags().OrgName))
+			case billingpb.BillingPlan_TIER_FREE_TIER:
+				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to upgrade your account for an option to launch more satellites: %s.\nAlternatively consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)\nor contact support at support@earthly.dev to potentially increase your satellites' limit", billing.GetUpgradeURL(app.BaseCLI.CIHost(), app.BaseCLI.Flags().OrgName))
+			default:
+				app.BaseCLI.Console().HelpPrintf("Consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)\nor contact support at support@earthly.dev to potentially increase your satellites' limit")
+			}
+			return 1
+		case grpcErrOK && grpcErr.Code() == codes.PermissionDenied && requestIDRegex.MatchString(grpcErr.Message()):
+			fmt.Println("9")
+			msg := grpcErr.Message()
+			matches, _ := stringutil.NamedGroupMatches(msg, requestIDRegex)
+			if len(matches["msg"]) > 0 {
+				msg = matches["msg"][0]
+			}
+			app.BaseCLI.Console().VerboseWarnf(err.Error())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, msg)
+			return 1
 		case grpcErrOK && grpcErr.Code() != codes.Canceled:
+			fmt.Println("10")
 			app.BaseCLI.Console().VerboseWarnf(errorWithPrefix(err.Error()))
 			if !strings.Contains(grpcErr.Message(), "transport is closing") {
 				app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, grpcErr.Message())
@@ -274,6 +312,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			}
 			return 7
 		case errors.Is(err, buildkitd.ErrBuildkitCrashed):
+			fmt.Println("11")
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, err.Error())
 			app.BaseCLI.Console().Warnf(
 				"Error: It seems that buildkitd is shutting down or it has crashed. " +
@@ -283,6 +322,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			}
 			return 7
 		case errors.Is(err, buildkitd.ErrBuildkitConnectionFailure):
+			fmt.Println("12")
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_CONNECTION_FAILURE, err.Error())
 			if containerutil.IsLocal(app.BaseCLI.Flags().BuildkitdSettings.BuildkitAddress) {
 				app.BaseCLI.Console().Warnf(
@@ -292,6 +332,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			}
 			return 6
 		case errors.Is(err, context.Canceled), grpcErrOK && grpcErr.Code() == codes.Canceled:
+			fmt.Println("13")
 			app.BaseCLI.Logbus().Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
 			if app.BaseCLI.Flags().Verbose {
 				app.BaseCLI.Console().Warnf("Canceled: %v\n", err)
@@ -303,6 +344,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			}
 			return 2
 		case isInterpreterError:
+			fmt.Println("14")
 			if ie.TargetID == "" {
 				app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_SYNTAX, ie.Error())
 			} else {
@@ -310,6 +352,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			}
 			return 1
 		default:
+			fmt.Println("15")
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
 			return 1
 		}
