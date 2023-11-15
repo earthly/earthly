@@ -18,7 +18,6 @@ import (
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildkitd"
-	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/cmd/earthly/common"
 	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/conslogging"
@@ -54,9 +53,9 @@ func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogge
 		displayErrors := app.BaseCLI.Flags().Verbose
 		cloudClient, err := helper.NewCloudClient(app.BaseCLI)
 		if err != nil && displayErrors {
-			app.BaseCLI.Console().Warnf("unable to start cloud app.BaseCLIent: %s", err)
+			app.BaseCLI.Console().Warnf("unable to start cloud app.BaseClient: %s", err)
 		} else if err == nil {
-			analytics.AddCLIProject(app.BaseCLI.Flags().OrgName, app.BaseCLI.Flags().ProjectName)
+			analytics.AddCLIProject(app.BaseCLI.OrgName(), app.BaseCLI.Flags().ProjectName)
 			org, project := analytics.ProjectDetails()
 			analytics.CollectAnalytics(
 				ctxTimeout, cloudClient, displayErrors, analytics.Meta{
@@ -141,26 +140,6 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 	}()
 	defer app.BaseCLI.ExecuteDeferredFuncs()
 	app.BaseCLI.Logbus().Run().SetStart(time.Now())
-	// Initialize log streaming early if we're passed the organization and
-	// project names as environmental variables. This will allow nearly all
-	// initialization errors to be surfaced to the log streaming service. Access
-	// to this organization and project will be verified when the stream begins.
-
-	if app.BaseCLI.Flags().OrgName != "" && app.BaseCLI.Flags().ProjectName != "" && app.BaseCLI.Cfg() != nil && !app.BaseCLI.Cfg().Global.DisableLogSharing && app.BaseCLI.Flags().LogstreamUpload {
-		cloudClient, err := helper.NewCloudClient(app.BaseCLI, cloud.WithLogstreamGRPCAddressOverride(app.BaseCLI.Flags().LogstreamAddressOverride))
-		if err != nil {
-			app.BaseCLI.Console().Warnf("Failed to initialize cloud app.BaseCLIent: %v", err)
-			return 1
-		}
-		if cloudClient.IsLoggedIn(ctx) {
-			app.BaseCLI.Console().VerbosePrintf("Logbus: setting organization %q and project %q", app.BaseCLI.Flags().OrgName, app.BaseCLI.Flags().ProjectName)
-			analytics.AddEarthfileProject(app.BaseCLI.Flags().OrgName, app.BaseCLI.Flags().ProjectName)
-			app.BaseCLI.LogbusSetup().SetOrgAndProject(app.BaseCLI.Flags().OrgName, app.BaseCLI.Flags().ProjectName)
-			app.BaseCLI.LogbusSetup().StartLogStreamer(ctx, cloudClient)
-			logstreamURL := fmt.Sprintf("%s/builds/%s", app.BaseCLI.CIHost(), app.BaseCLI.LogbusSetup().InitialManifest.GetBuildId())
-			app.BaseCLI.Console().ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
-		}
-	}
 
 	defer func() {
 		// Just in case this is forgotten somewhere else.

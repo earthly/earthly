@@ -180,10 +180,10 @@ func (a *Registry) Cmds() []*cli.Command {
 }
 
 func (a *Registry) isUserRegistryLocation() (bool, error) {
-	if a.cli.Flags().OrgName == "" && a.cli.Flags().ProjectName == "" {
+	if a.cli.OrgName() == "" && a.cli.Flags().ProjectName == "" {
 		return true, nil
 	}
-	if a.cli.Flags().OrgName == "" {
+	if a.cli.OrgName() == "" {
 		return false, fmt.Errorf("--project was specified without an --org value")
 	}
 	if a.cli.Flags().ProjectName == "" {
