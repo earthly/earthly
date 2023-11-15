@@ -501,7 +501,7 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string, ar
 	// If the target name contains a variable that hasn't been expanded, we
 	// won't be able to explore the rest of the graph and generate a valid hash.
 	if strings.Contains(targetName, "$") {
-		return errors.Errorf("target name %q is the result of a shell expression", targetName)
+		return errors.Errorf("dynamic target %q cannot be resolved", targetName)
 	}
 
 	relTarget, err := domain.ParseTarget(targetName)

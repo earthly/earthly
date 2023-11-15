@@ -152,10 +152,10 @@ test-shell-out:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out --should_fail=false
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out --output_contains="target .* has already been run; exiting"
 
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out-target --output_contains="result of a shell expression"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out-target --output_contains="dynamic target"
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out-target --output_does_not_contain="target .* has already been run; exiting"
 
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out-target-2 --output_contains="result of a shell expression"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out-target-2 --output_contains="dynamic target"
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out-target-2 --output_does_not_contain="target .* has already been run; exiting"
 
 RUN_EARTHLY_ARGS:
