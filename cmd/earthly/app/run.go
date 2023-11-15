@@ -255,9 +255,9 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, msg)
 			switch billing.Plan().Tier {
 			case billingpb.BillingPlan_TIER_LIMITED_FREE_TIER:
-				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to verify your account\nand get 6000 free build minutes per month: %s\n", billing.GetBillingURL(app.BaseCLI.CIHost(), app.BaseCLI.Flags().OrgName))
+				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to verify your account\nand get 6000 free build minutes per month: %s\n", billing.GetBillingURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
 			case billingpb.BillingPlan_TIER_FREE_TIER:
-				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to upgrade your account: %s\n", billing.GetUpgradeURL(app.BaseCLI.CIHost(), app.BaseCLI.Flags().OrgName))
+				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to upgrade your account: %s\n", billing.GetUpgradeURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
 			}
 			return 1
 		case grpcErrOK && grpcErr.Code() == codes.PermissionDenied && maxSatellitesRegex.MatchString(grpcErr.Message()):
@@ -271,9 +271,9 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, msg)
 			switch billing.Plan().Tier {
 			case billingpb.BillingPlan_TIER_LIMITED_FREE_TIER:
-				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to verify your account\nfor an option to launch more satellites: %s\nor consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)", billing.GetBillingURL(app.BaseCLI.CIHost(), app.BaseCLI.Flags().OrgName))
+				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to verify your account\nfor an option to launch more satellites: %s\nor consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)", billing.GetBillingURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
 			case billingpb.BillingPlan_TIER_FREE_TIER:
-				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to upgrade your account for an option to launch more satellites: %s.\nAlternatively consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)\nor contact support at support@earthly.dev to potentially increase your satellites' limit", billing.GetUpgradeURL(app.BaseCLI.CIHost(), app.BaseCLI.Flags().OrgName))
+				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to upgrade your account for an option to launch more satellites: %s.\nAlternatively consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)\nor contact support at support@earthly.dev to potentially increase your satellites' limit", billing.GetUpgradeURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
 			default:
 				app.BaseCLI.Console().HelpPrintf("Consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)\nor contact support at support@earthly.dev to potentially increase your satellites' limit")
 			}

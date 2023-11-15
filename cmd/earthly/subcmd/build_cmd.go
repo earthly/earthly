@@ -335,7 +335,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	}
 
 	// Collect info to help with printing a richer message in the beginning of the build or on failure to reserve satellite due to missing build minutes.
-	if err = a.cli.CollectBillingInfo(cliCtx.Context, cloudClient, a.cli.Flags().OrgName); err != nil {
+	if err = a.cli.CollectBillingInfo(cliCtx.Context, cloudClient, a.cli.OrgName()); err != nil {
 		a.cli.Console().DebugPrintf("failed to get billing plan info, error is %v\n", err)
 	}
 
@@ -612,7 +612,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		a.cli.Console().ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
 	}
 
-	a.maybePrintBuildMinutesInfo(a.cli.Flags().OrgName)
+	a.maybePrintBuildMinutesInfo(a.cli.OrgName())
 
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
 	if err != nil {

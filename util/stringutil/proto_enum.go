@@ -17,21 +17,25 @@ type caser interface {
 	String(s string) string
 }
 
-type Enum interface {
-	String() string
+type ProtoEnum interface {
+	fmt.Stringer
 }
 
-type EnumToStringFunc func(item Enum) string
+// EnumToStringFunc takes an ProtoEnum and returns a string
+type EnumToStringFunc func(item ProtoEnum) string
 
-func Title(e Enum) string {
+// Title takes an enum and returns its string value in title mode
+func Title(e ProtoEnum) string {
 	return pretty(titleCaser, e)
 }
 
-func Lower(e Enum) string {
+// Lower takes an enum and returns its string value in lower case mode
+func Lower(e ProtoEnum) string {
 	return pretty(lowerCaser, e)
 }
 
-func EnumToStringArray[T Enum](items []T, f EnumToStringFunc) []string {
+// EnumToStringArray takes an array of enum values and returns an array of their string values after applying EnumToStringFunc on each item
+func EnumToStringArray[T ProtoEnum](items []T, f EnumToStringFunc) []string {
 	strs := make([]string, 0, len(items))
 	for _, item := range items {
 		strs = append(strs, f(item))
@@ -39,7 +43,7 @@ func EnumToStringArray[T Enum](items []T, f EnumToStringFunc) []string {
 	return strs
 }
 
-func pretty(caser caser, e Enum) string {
+func pretty(caser caser, e ProtoEnum) string {
 	val := reflect.TypeOf(e).Name()
 	idx := strings.Index(val, "_")
 	val = val[idx+1:]

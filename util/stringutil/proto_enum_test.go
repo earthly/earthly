@@ -23,7 +23,7 @@ func (e Prefix_TestEnum) String() string {
 func Test_EnumToString(t *testing.T) {
 
 	tests := map[string]struct {
-		input    Enum
+		input    ProtoEnum
 		f        EnumToStringFunc
 		expected string
 	}{

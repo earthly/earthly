@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+- Experimental command `earthly billing view` to get information about the org billing plan.
+- messages about used build minutes during a build. 
+
 ### Fixed
 - Remove redundant verbose error messages that were not different from messages that were already being printed.
 
@@ -16,6 +20,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - An authentication attempt with an expired auth token will result in a `auth token expired` error instead of `unauthorized`.
 - A successful authentication with an auth token will display a warning with time left before token expires if it's 14 days or under.
 - The command `earthly registry` will attempt to use the selected org if no org is specified.
+- provide information on how to get more build minutes when a build fails due to missing minutes.
+- Provide information on how to increase max number of satellites when lanchging a satellite fails to reaching the limit. 
  
 
 ## v0.7.21 - 2023-10-24

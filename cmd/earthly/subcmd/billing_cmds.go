@@ -1,12 +1,14 @@
 package subcmd
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/earthly/earthly/util/stringutil"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/earthly/earthly/billing"
 	"github.com/earthly/earthly/cmd/earthly/helper"
+	"github.com/earthly/earthly/util/stringutil"
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
@@ -64,7 +66,7 @@ func (a *Billing) actionView(cliCtx *cli.Context) error {
 		return errors.New("user must be logged in")
 	}
 
-	orgName := verifyOrg(a.cli)
+	orgName := a.cli.OrgName()
 
 	if orgName == "" {
 		return errors.New("organization name must be specified")
@@ -76,43 +78,25 @@ func (a *Billing) actionView(cliCtx *cli.Context) error {
 	allowedArches := strings.Join(stringutil.EnumToStringArray(billing.Plan().AllowedArchs, stringutil.Lower), ",")
 	allowedInstances := strings.Join(stringutil.EnumToStringArray(billing.Plan().AllowedInstances, stringutil.Lower), ",")
 
-	items := []*tuple{
-		{key: "Tier", value: stringutil.Title(billing.Plan().Tier)},
-		{key: "Plan Type", value: stringutil.Title(billing.Plan().Type)},
-		{key: "Started At", value: billing.Plan().StartedAt.AsTime().UTC().Format("January 2, 2006")},
-		{key: "Used Builds Minutes", value: fmt.Sprintf("%d", int(billing.UsedBuildTime().Minutes()))},
-		{key: "Max Builds Minutes", value: valueOrUnlimited(billing.Plan().MaxBuildMinutes)},
-		{key: "Max Minutes per Build", value: fmt.Sprintf("%d", billing.Plan().MaxMinutesPerBuild)},
-		{key: "Included Minutes", value: fmt.Sprintf("%d", billing.Plan().IncludedMinutes)},
-		{key: "Max Satellites", value: fmt.Sprintf("%d", billing.Plan().MaxSatellites)},
-		{key: "Max Hours Cache Retention", value: valueOrUnlimited(billing.Plan().MaxHoursCacheRetention)},
-		{key: "Allowed Architectures", value: allowedArches},
-		{key: "Allowed Instances", value: allowedInstances},
-		{key: "Default Instance", value: stringutil.Lower(billing.Plan().DefaultInstanceType)},
-	}
-
-	a.cli.Console().Printf(planInfoText(items, 5))
+	w := new(tabwriter.Writer)
+	buf := new(bytes.Buffer)
+	w.Init(buf, 0, 8, 0, '\t', 0)
+	fmt.Fprintf(w, "Tier\t%s\n", stringutil.Title(billing.Plan().Tier))
+	fmt.Fprintf(w, "Plan Type\t%s\n", stringutil.Title(billing.Plan().Type))
+	fmt.Fprintf(w, "Started At\t%s\n", billing.Plan().StartedAt.AsTime().UTC().Format("January 2, 2006"))
+	fmt.Fprintf(w, "Used Build Time\t%s (%d minutes)\n", billing.UsedBuildTime(), int(billing.UsedBuildTime().Minutes()))
+	fmt.Fprintf(w, "Max Builds Minutes\t%s\n", valueOrUnlimited(billing.Plan().MaxBuildMinutes))
+	fmt.Fprintf(w, "Max Minutes per Build\t%d\n", billing.Plan().MaxMinutesPerBuild)
+	fmt.Fprintf(w, "Included Minutes\t%d\n", billing.Plan().IncludedMinutes)
+	fmt.Fprintf(w, "Max Satellites\t%d\n", billing.Plan().MaxSatellites)
+	fmt.Fprintf(w, "Max Hours Cache Retention\t%s\n", valueOrUnlimited(billing.Plan().MaxHoursCacheRetention))
+	fmt.Fprintf(w, "Allowed Architectures\t%s\n", allowedArches)
+	fmt.Fprintf(w, "Allowed Instances\t%s\n", allowedInstances)
+	fmt.Fprintf(w, "Default Instance\t%s\n", stringutil.Lower(billing.Plan().DefaultInstanceType))
+	w.Flush()
+	a.cli.Console().Printf(buf.String())
 
 	return nil
-}
-
-func planInfoText(items []*tuple, padding int) string {
-	maxKeyLen := 0
-	for _, item := range items {
-		if len(item.key) > maxKeyLen {
-			maxKeyLen = len(item.key)
-		}
-	}
-
-	sb := &strings.Builder{}
-	for i, item := range items {
-		if i != 0 {
-			sb.WriteRune('\n')
-		}
-		sb.WriteString(fmt.Sprintf("%-*s", maxKeyLen+padding, fmt.Sprintf("%s:", item.key)))
-		sb.WriteString(item.value)
-	}
-	return sb.String()
 }
 
 func valueOrUnlimited(value int32) string {
@@ -120,9 +104,4 @@ func valueOrUnlimited(value int32) string {
 		return fmt.Sprintf("%d", value)
 	}
 	return "Unlimited"
-}
-
-type tuple struct {
-	key   string
-	value string
 }
