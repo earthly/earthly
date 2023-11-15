@@ -121,6 +121,10 @@ func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 
 func (l *loader) handleCopySrc(ctx context.Context, src string, isDir bool) error {
 
+	if strings.Contains(src, "$") {
+		return errors.Errorf("dynamic COPY source %q cannot be resolved", src)
+	}
+
 	var (
 		classical   bool
 		artifactSrc domain.Artifact

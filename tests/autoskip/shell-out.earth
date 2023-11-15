@@ -19,3 +19,7 @@ shell-out-target-2:
   ARG name="+foo"
   ARG target=$(echo $name)
   BUILD $target
+
+shell-out-copy:
+  ARG file=$(echo "my-file")
+  COPY $file /
