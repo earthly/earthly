@@ -40,7 +40,7 @@ func DetectCI(isEarthlyCIRunner bool) (string, bool) {
 		"GITLAB_CI":          "gitlab",
 		"EARTHLY_IMAGE":      "earthly-image",
 		"AGENT_WORKDIR":      "jenkins", // https://github.com/jenkinsci/docker-agent/blob/master/11/alpine/Dockerfile#L35
-		"CODEBUILD_BUILD_ID": "aws codebuild",
+		"CODEBUILD_BUILD_ID": "aws-codebuild",
 	} {
 		if _, ok := os.LookupEnv(k); ok {
 			return v, true
