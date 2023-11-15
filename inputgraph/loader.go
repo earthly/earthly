@@ -241,7 +241,7 @@ func (l *loader) expandArgs(ctx context.Context, args []string) ([]string, error
 	ret := []string{}
 	for _, arg := range args {
 		expanded, err := l.varCollection.Expand(arg, func(cmd string) (string, error) {
-			return "", errors.New("shell-out is not supported")
+			return arg, nil // Return the original expression so it can be referenced later.
 		})
 		if err != nil {
 			return nil, err
@@ -498,6 +498,12 @@ func (l *loader) forTarget(ctx context.Context, target domain.Target, args []str
 }
 
 func (l *loader) loadTargetFromString(ctx context.Context, targetName string, args []string, passArgs bool) error {
+	// If the target name contains a variable that hasn't been expanded, we
+	// won't be able to explore the rest of the graph and generate a valid hash.
+	if strings.Contains(targetName, "$") {
+		return errors.Errorf("target name %q is the result of a shell expression", targetName)
+	}
+
 	relTarget, err := domain.ParseTarget(targetName)
 	if err != nil {
 		return errors.Wrapf(err, "parse target name %s", targetName)
