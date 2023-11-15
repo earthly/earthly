@@ -82,7 +82,7 @@ func ParseOpts(ctx context.Context, from FromOpt, opts ...Opt) (spec.Earthfile, 
 			errorStrategy.RE.GetOffendingToken().GetColumn(),
 			errorStrategy.RE.GetOffendingToken().GetText())
 		if errorStrategy.Hint != "" {
-			err = hint.Wrap(err, errorStrategy.Hint)
+			err = hint.WrapWithDisplay(err, errorStrategy.Hint)
 		}
 		return spec.Earthfile{}, err
 	}
