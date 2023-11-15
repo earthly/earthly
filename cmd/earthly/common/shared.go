@@ -75,7 +75,6 @@ func ProcessSecrets(secrets, secretFiles []string, dotEnvMap map[string]string, 
 		}
 		if _, ok := finalSecrets[k]; ok {
 			return nil, hint.Wrapf(errors.Errorf("failed to set secret %q via --secret-file flag", k), "Check the secret %q has not already been set in the file %q, or passed via --secret flag", k, secretsFilePath)
-			return nil, errors.Errorf("secret %q already contains a value", k)
 		}
 		finalSecrets[k] = data
 	}
