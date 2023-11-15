@@ -16,8 +16,8 @@ import (
 	"github.com/urfave/cli/v2"
 	"google.golang.org/grpc/codes"
 
-	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/analytics"
+	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/cmd/earthly/common"
@@ -198,7 +198,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 		switch {
 		case errors.As(err, &hintErr):
 			{
-				app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_INVALID_PARAM, hintErr.Error())
+				app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, hintErr.Error())
 				if hintErr.Hint() != "" {
 					app.BaseCLI.Console().HelpPrintf(hintErr.Hint())
 				}
@@ -320,7 +320,6 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			}
 			return 1
 		default:
-			fmt.Printf("using default, the err type is <%T>\n", err)
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
 			return 1
 		}
