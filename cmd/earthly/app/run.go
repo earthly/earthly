@@ -61,7 +61,7 @@ func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogge
 		if err != nil && displayErrors {
 			app.BaseCLI.Console().Warnf("unable to start cloud app.BaseClient: %s", err)
 		} else if err == nil {
-			analytics.AddCLIProject(app.BaseCLI.Flags().OrgName, app.BaseCLI.Flags().ProjectName)
+			analytics.AddCLIProject(app.BaseCLI.OrgName(), app.BaseCLI.Flags().ProjectName)
 			org, project := analytics.ProjectDetails()
 			analytics.CollectAnalytics(
 				ctxTimeout, cloudClient, displayErrors, analytics.Meta{
