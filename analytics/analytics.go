@@ -31,15 +31,16 @@ func DetectCI(isEarthlyCIRunner bool) (string, bool) {
 		return "earthly-ci", true
 	}
 	for k, v := range map[string]string{
-		"GITHUB_WORKFLOW": "github-actions",
-		"CIRCLECI":        "circle-ci",
-		"JENKINS_HOME":    "jenkins",
-		"BUILDKITE":       "buildkite",
-		"DRONE_BRANCH":    "drone",
-		"TRAVIS":          "travis",
-		"GITLAB_CI":       "gitlab",
-		"EARTHLY_IMAGE":   "earthly-image",
-		"AGENT_WORKDIR":   "jenkins", // https://github.com/jenkinsci/docker-agent/blob/master/11/alpine/Dockerfile#L35
+		"GITHUB_WORKFLOW":    "github-actions",
+		"CIRCLECI":           "circle-ci",
+		"JENKINS_HOME":       "jenkins",
+		"BUILDKITE":          "buildkite",
+		"DRONE_BRANCH":       "drone",
+		"TRAVIS":             "travis",
+		"GITLAB_CI":          "gitlab",
+		"EARTHLY_IMAGE":      "earthly-image",
+		"AGENT_WORKDIR":      "jenkins", // https://github.com/jenkinsci/docker-agent/blob/master/11/alpine/Dockerfile#L35
+		"CODEBUILD_BUILD_ID": "aws codebuild",
 	} {
 		if _, ok := os.LookupEnv(k); ok {
 			return v, true
