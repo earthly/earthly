@@ -43,9 +43,6 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 	if cli.Flags().SatelliteName == "" {
 		cli.Flags().SatelliteName = cli.Cfg().Satellite.Name
 	}
-	if cli.Flags().OrgName == "" {
-		cli.Flags().OrgName = cli.Cfg().Satellite.Org
-	}
 
 	cli.Flags().BuildkitdSettings.UseTCP = true
 	if cli.Cfg().Global.TLSEnabled {
@@ -109,6 +106,13 @@ func (c *CLI) IsUsingSatellite(cliCtx *cli.Context) bool {
 		return false
 	}
 	return c.Cfg().Satellite.Name != "" || c.Flags().SatelliteName != ""
+}
+
+func (c *CLI) OrgName() string {
+	if c.Flags().OrgName != "" {
+		return c.Flags().OrgName
+	}
+	return c.Cfg().Global.Org
 }
 
 func (c *CLI) GetSatelliteOrg(ctx context.Context, cloudClient *cloud.Client) (orgName, orgID string, err error) {
