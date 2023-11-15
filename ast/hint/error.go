@@ -9,6 +9,7 @@ import (
 // remove displayHints field and let earthly/cmd/earthly/app/run.go use the Hint() value instead of printing it
 // as part of the Error() function
 
+// Error is an error that includes hints to be displayed after the error.
 type Error struct {
 	err   error
 	hints []string
@@ -18,6 +19,7 @@ type Error struct {
 	displayHints bool
 }
 
+// Error returns the error string with or without the provided hints, depending on how the error was created
 func (e Error) Error() string {
 	if !e.displayHints {
 		return e.err.Error()
@@ -39,6 +41,7 @@ func (e Error) Error() string {
 	}
 }
 
+// Hint returns all hints in a single string separated by a new line
 func (e Error) Hint() string {
 	if e.displayHints {
 		// if true we can leave this empty so that it is not displayed twice in cmd/earthly/app/run.go
