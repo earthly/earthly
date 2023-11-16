@@ -111,7 +111,8 @@ func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 
 	srcs := args[:len(args)-1]
 	for _, src := range srcs {
-		if err := l.handleCopySrc(ctx, src, opts.IsDirCopy); err != nil {
+		mustExist := !opts.IfExists
+		if err := l.handleCopySrc(ctx, src, mustExist); err != nil {
 			return err
 		}
 	}
@@ -123,7 +124,7 @@ func hasShellExpr(s string) bool {
 	return strings.Contains(s, "$(") && strings.Contains(s, ")")
 }
 
-func (l *loader) handleCopySrc(ctx context.Context, src string, isDir bool) error {
+func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) error {
 
 	if hasShellExpr(src) {
 		return errors.Errorf("dynamic COPY source %q cannot be resolved", src)
@@ -158,13 +159,16 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, isDir bool) erro
 	// COPY classical (not from another target)
 	if classical {
 		path := filepath.Join(l.target.GetLocalPath(), src)
-		files, err := l.expandCopyFiles(path)
+		files, err := l.expandCopyFiles(path, mustExist)
 		if err != nil {
 			return err
 		}
 		sort.Strings(files)
 		for _, file := range files {
 			if err := l.hasher.HashFile(ctx, file); err != nil {
+				if errors.Is(err, os.ErrNotExist) && !mustExist {
+					continue
+				}
 				return errors.Wrapf(err, "failed to hash file %s", path)
 			}
 		}
@@ -186,7 +190,7 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, isDir bool) erro
 
 // expandCopyFiles expands a single COPY source into a slice containing all
 // nested files. The file names will then be used in our hash.
-func (l *loader) expandCopyFiles(src string) ([]string, error) {
+func (l *loader) expandCopyFiles(src string, mustExist bool) ([]string, error) {
 	if strings.Contains(src, "**") {
 		return nil, errors.New("globstar (**) not supported")
 	}
@@ -201,6 +205,9 @@ func (l *loader) expandCopyFiles(src string) ([]string, error) {
 
 	stat, err := os.Stat(src)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) && !mustExist {
+			return []string{src}, nil
+		}
 		return nil, errors.Wrap(err, "failed to stat file")
 	}
 
@@ -397,8 +404,13 @@ func (l *loader) handleFor(ctx context.Context, forStmt spec.ForStatement) error
 }
 
 func flattenForArgs(args []string, seps string) []string {
+	// The first 2 args will be the index variable name and IN so we ignore the
+	// first 2 values. Example: "FOR idx IN vars..." etc.
+	if len(args) < 3 {
+		return nil
+	}
 	var ret []string
-	for _, arg := range args {
+	for _, arg := range args[2:] {
 		if strings.ContainsAny(arg, seps) {
 			found := strings.FieldsFunc(arg, func(r rune) bool {
 				return strings.ContainsRune(seps, r)
