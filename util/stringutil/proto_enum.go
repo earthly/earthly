@@ -2,12 +2,12 @@ package stringutil
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/iancoleman/strcase"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 var titleCaser = cases.Title(language.English)
@@ -19,6 +19,7 @@ type caser interface {
 
 type ProtoEnum interface {
 	fmt.Stringer
+	Type() protoreflect.EnumType
 }
 
 // EnumToStringFunc takes an ProtoEnum and returns a string
@@ -44,7 +45,7 @@ func EnumToStringArray[T ProtoEnum](items []T, f EnumToStringFunc) []string {
 }
 
 func pretty(caser caser, e ProtoEnum) string {
-	val := reflect.TypeOf(e).Name()
+	val := string(e.Type().Descriptor().Name())
 	idx := strings.Index(val, "_")
 	val = val[idx+1:]
 	prefix := fmt.Sprintf("%s_", strcase.ToScreamingSnake(val))

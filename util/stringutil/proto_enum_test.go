@@ -3,22 +3,9 @@ package stringutil
 import (
 	"testing"
 
+	"github.com/earthly/cloud-api/logstream"
 	"github.com/stretchr/testify/assert"
 )
-
-type Prefix_TestEnum int32
-
-const (
-	Prefix_TEST_ENUM_VAL1                Prefix_TestEnum = 0
-	Prefix_TEST_ENUM_VAl_WITH_UNDERSCORE Prefix_TestEnum = 1
-)
-
-func (e Prefix_TestEnum) String() string {
-	if e == Prefix_TEST_ENUM_VAL1 {
-		return "val1"
-	}
-	return "val_with_underscore"
-}
 
 func Test_EnumToString(t *testing.T) {
 
@@ -27,25 +14,15 @@ func Test_EnumToString(t *testing.T) {
 		f        EnumToStringFunc
 		expected string
 	}{
-		"Title short value": {
-			input:    Prefix_TEST_ENUM_VAL1,
+		"Title": {
+			input:    logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED,
 			f:        Title,
-			expected: "Val1",
+			expected: "Buildkit Crashed",
 		},
-		"Title value with underscores": {
-			input:    Prefix_TEST_ENUM_VAl_WITH_UNDERSCORE,
-			f:        Title,
-			expected: "Val With Underscore",
-		},
-		"Lower short value": {
-			input:    Prefix_TEST_ENUM_VAL1,
+		"Lower": {
+			input:    logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED,
 			f:        Lower,
-			expected: "val1",
-		},
-		"Lower value with underscores": {
-			input:    Prefix_TEST_ENUM_VAl_WITH_UNDERSCORE,
-			f:        Lower,
-			expected: "val with underscore",
+			expected: "buildkit crashed",
 		},
 	}
 
@@ -60,7 +37,7 @@ func Test_EnumToString(t *testing.T) {
 }
 
 func Test_EnumToStringArray(t *testing.T) {
-	input := []Prefix_TestEnum{Prefix_TEST_ENUM_VAL1, Prefix_TEST_ENUM_VAl_WITH_UNDERSCORE, Prefix_TEST_ENUM_VAL1}
+	input := []ProtoEnum{logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, logstream.FailureType_FAILURE_TYPE_CONNECTION_FAILURE}
 	res := EnumToStringArray(input, Title)
-	assert.Equal(t, []string{"Val1", "Val With Underscore", "Val1"}, res)
+	assert.Equal(t, []string{"Buildkit Crashed", "Connection Failure"}, res)
 }
