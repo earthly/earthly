@@ -222,18 +222,16 @@ func (l *loader) expandDirs(dirs ...string) ([]string, error) {
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to read dir")
 			}
+			children := []string{}
 			for _, entry := range entries {
-				next := filepath.Join(dir, entry.Name())
-				if entry.IsDir() {
-					found, err := l.expandDirs(next)
-					if err != nil {
-						return nil, err
-					}
-					ret = append(ret, found...)
-				} else {
-					ret = append(ret, next)
-				}
+				child := filepath.Join(dir, entry.Name())
+				children = append(children, child)
 			}
+			found, err := l.expandDirs(children...)
+			if err != nil {
+				return nil, err
+			}
+			ret = append(ret, found...)
 		} else {
 			ret = append(ret, dir)
 		}

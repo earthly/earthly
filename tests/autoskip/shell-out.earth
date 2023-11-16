@@ -22,4 +22,4 @@ shell-out-target-2:
 
 shell-out-copy:
   ARG file=$(echo "my-file")
-  COPY $file /
+  COPY $file .
