@@ -13,7 +13,7 @@
     'release/**',
   ],
   enabledManagers: [
-    'regex',
+    'custom.regex',
     'github-actions',
   ],
   customManagers: [
