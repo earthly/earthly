@@ -71,5 +71,5 @@ func Wrapf(err error, hintf string, args ...any) error {
 // WrapfWithDisplay wraps an error with a single hint with formatting arguments.
 // Deprecated: use Wrapf instead after verifying hint is properly displayed
 func WrapfWithDisplay(err error, hintf string, args ...any) error {
-	return Wrap(err, fmt.Sprintf(hintf, args...))
+	return WrapWithDisplay(err, fmt.Sprintf(hintf, args...))
 }
