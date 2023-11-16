@@ -4,7 +4,7 @@ IMPORT github.com/earthly/lib/rust:2.2.10 AS rust
 FROM rust:slim-buster
 WORKDIR /rustexample
 
-# build creates a docker image using cached rust commands
+# build creates the binary target/release/example-rust
 build:
     # Cargo UDC adds caching to cargo runs.
     # See https://github.com/earthly/lib/tree/main/rust
