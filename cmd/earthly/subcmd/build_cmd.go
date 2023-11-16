@@ -590,15 +590,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	// information to logbusSetup. This function will be called right at the
 	// beginning of the build within earthfile2llb.
 	buildOpts.MainTargetDetailsFunc = func(d earthfile2llb.TargetDetails) error {
-		if a.cli.LogbusSetup().LogStreamerStarted() {
-			// If the org & project have been provided by envs, let's verify
-			// that they're correct once we've parsed them from the Earthfile.
-			if a.cli.Flags().OrgName != d.EarthlyOrgName || a.cli.Flags().ProjectName != d.EarthlyProjectName {
-				return fmt.Errorf("organization or project do not match PROJECT statement")
-			}
-			a.cli.Console().VerbosePrintf("Organization and project already set via environmental")
-			return nil
-		}
 		a.cli.Console().VerbosePrintf("Logbus: setting organization %q and project %q at %s", d.EarthlyOrgName, d.EarthlyProjectName, time.Now().Format(time.RFC3339Nano))
 		analytics.AddEarthfileProject(d.EarthlyOrgName, d.EarthlyProjectName)
 		if a.cli.Flags().Logstream {
@@ -774,7 +765,7 @@ func (a *Build) runnerName(ctx context.Context) (string, bool, error) {
 		runnerName = fmt.Sprintf("local:%s", hostname)
 	} else {
 		if a.cli.Flags().SatelliteName != "" {
-			runnerName = fmt.Sprintf("sat:%s/%s", a.cli.Flags().OrgName, a.cli.Flags().SatelliteName)
+			runnerName = fmt.Sprintf("sat:%s/%s", a.cli.OrgName(), a.cli.Flags().SatelliteName)
 		} else {
 			runnerName = fmt.Sprintf("bk:%s", a.cli.Flags().BuildkitdSettings.BuildkitAddress)
 		}
