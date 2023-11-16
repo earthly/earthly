@@ -1,10 +1,10 @@
 VERSION --global-cache 0.7
-IMPORT github.com/earthly/lib/rust AS rust
+IMPORT github.com/earthly/lib/rust:2.2.10 AS rust
 
 FROM rust:slim-buster
 WORKDIR /rustexample
 
-# Cache dependencies
+# build creates a docker image using cached rust commands
 build:
     # Cargo UDC adds caching to cargo runs.
     # See https://github.com/earthly/lib/tree/main/rust
@@ -13,7 +13,7 @@ build:
     DO rust+CARGO --args="build --release --bin example-rust" --output="release/[^/\.]+"
     SAVE ARTIFACT target/release/example-rust example-rust
 
-# Build Docker image
+# docker creates docker image earthly/examples:rust
 docker:
     FROM debian:buster-slim
     COPY +build/example-rust example-rust
