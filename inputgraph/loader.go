@@ -119,9 +119,13 @@ func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 	return nil
 }
 
+func hasShellExpr(s string) bool {
+	return strings.Contains(s, "$(") && strings.Contains(s, ")")
+}
+
 func (l *loader) handleCopySrc(ctx context.Context, src string, isDir bool) error {
 
-	if strings.Contains(src, "$") {
+	if hasShellExpr(src) {
 		return errors.Errorf("dynamic COPY source %q cannot be resolved", src)
 	}
 
@@ -502,7 +506,7 @@ func (l *loader) forTarget(ctx context.Context, target domain.Target, args []str
 func (l *loader) loadTargetFromString(ctx context.Context, targetName string, args []string, passArgs bool) error {
 	// If the target name contains a variable that hasn't been expanded, we
 	// won't be able to explore the rest of the graph and generate a valid hash.
-	if strings.Contains(targetName, "$") {
+	if hasShellExpr(targetName) {
 		return errors.Errorf("dynamic target %q cannot be resolved", targetName)
 	}
 
