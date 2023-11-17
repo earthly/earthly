@@ -44,4 +44,6 @@ type CLI interface {
 	Logbus() *logbus.Bus
 
 	AddDeferredFunc(f func())
+
+	CollectBillingInfo(ctx context.Context, cloudClient *cloud.Client, orgName string) error
 }

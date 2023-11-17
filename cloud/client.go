@@ -8,6 +8,7 @@ import (
 
 	"github.com/earthly/cloud-api/analytics"
 	"github.com/earthly/cloud-api/askv"
+	"github.com/earthly/cloud-api/billing"
 	"github.com/earthly/cloud-api/compute"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/cloud-api/pipelines"
@@ -65,6 +66,7 @@ type Client struct {
 	logstreamBackoff         time.Duration
 	analytics                analytics.AnalyticsClient
 	askv                     askv.AskvClient
+	billing                  billing.BillingClient
 	requestID                string
 	installationName         string
 	logstreamAddressOverride string
@@ -141,6 +143,7 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	c.compute = compute.NewComputeClient(conn)
 	c.analytics = analytics.NewAnalyticsClient(conn)
 	c.askv = askv.NewAskvClient(conn)
+	c.billing = billing.NewBillingClient(conn)
 
 	logstreamAddr := grpcAddr
 	if c.logstreamAddressOverride != "" {

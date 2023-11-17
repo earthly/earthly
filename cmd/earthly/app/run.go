@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	billingpb "github.com/earthly/cloud-api/billing"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/fatih/color"
 	"github.com/moby/buildkit/util/grpcerrors"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast/hint"
+	"github.com/earthly/earthly/billing"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cmd/earthly/common"
 	"github.com/earthly/earthly/cmd/earthly/helper"
@@ -27,12 +29,16 @@ import (
 	"github.com/earthly/earthly/util/errutil"
 	"github.com/earthly/earthly/util/params"
 	"github.com/earthly/earthly/util/reflectutil"
+	"github.com/earthly/earthly/util/stringutil"
 )
 
 var (
-	runExitCodeRegex  = regexp.MustCompile(`did not complete successfully: exit code: [^0][0-9]*($|[\n\t]+in\s+.*?\+.+)`)
-	notFoundRegex     = regexp.MustCompile(`("[^"]*"): not found`)
-	qemuExitCodeRegex = regexp.MustCompile(`process "/dev/.buildkit_qemu_emulator.*?did not complete successfully: exit code: 255$`)
+	runExitCodeRegex   = regexp.MustCompile(`did not complete successfully: exit code: [^0][0-9]*($|[\n\t]+in\s+.*?\+.+)`)
+	notFoundRegex      = regexp.MustCompile(`("[^"]*"): not found`)
+	qemuExitCodeRegex  = regexp.MustCompile(`process "/dev/.buildkit_qemu_emulator.*?did not complete successfully: exit code: 255$`)
+	buildMinutesRegex  = regexp.MustCompile(`(?P<msg>used \d+ of \d+ allowed minutes in current plan) {reqID: .*?}`)
+	maxSatellitesRegex = regexp.MustCompile(`(?P<msg>plan only allows \d+ satellites in use at one time) {reqID: .*?}`)
+	requestIDRegex     = regexp.MustCompile(`(?P<msg>.*?) {reqID: .*?}`)
 )
 
 func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogger, startTime time.Time, lastSignal os.Signal) int {
@@ -243,6 +249,55 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			app.BaseCLI.Console().HelpPrintf("%s responded with a rate limit error. This is usually because you are not logged in.\n"+
 				"You can login using the command:\n"+
 				"  docker login%s", registryName, registryHost)
+			return 1
+		case grpcErrOK && grpcErr.Code() == codes.PermissionDenied && buildMinutesRegex.MatchString(grpcErr.Message()):
+			msg := grpcErr.Message()
+			matches, _ := stringutil.NamedGroupMatches(msg, buildMinutesRegex)
+			if len(matches["msg"]) > 0 {
+				msg = matches["msg"][0]
+			}
+			tier := billing.Plan().GetTier()
+			msg = fmt.Sprintf("%s (%s)", msg, stringutil.Title(tier))
+			app.BaseCLI.Console().VerboseWarnf(err.Error())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, msg)
+			switch tier {
+			case billingpb.BillingPlan_TIER_UNKNOWN:
+				app.BaseCLI.Console().DebugPrintf("failed to get billing plan tier\n")
+			case billingpb.BillingPlan_TIER_LIMITED_FREE_TIER:
+				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to verify your account\nand get 6000 free build minutes per month: %s\n", billing.GetBillingURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
+			case billingpb.BillingPlan_TIER_FREE_TIER:
+				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to upgrade your account: %s\n", billing.GetUpgradeURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
+			}
+			return 1
+		case grpcErrOK && grpcErr.Code() == codes.PermissionDenied && maxSatellitesRegex.MatchString(grpcErr.Message()):
+			msg := grpcErr.Message()
+			matches, _ := stringutil.NamedGroupMatches(msg, maxSatellitesRegex)
+			if len(matches["msg"]) > 0 {
+				msg = matches["msg"][0]
+			}
+			tier := billing.Plan().GetTier()
+			msg = fmt.Sprintf("%s %s", stringutil.Title(tier), msg)
+			app.BaseCLI.Console().VerboseWarnf(err.Error())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, msg)
+			switch tier {
+			case billingpb.BillingPlan_TIER_UNKNOWN:
+				app.BaseCLI.Console().DebugPrintf("failed to get billing plan tier\n")
+			case billingpb.BillingPlan_TIER_LIMITED_FREE_TIER:
+				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to verify your account\nfor an option to launch more satellites: %s\nor consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)", billing.GetBillingURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
+			case billingpb.BillingPlan_TIER_FREE_TIER:
+				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to upgrade your account for an option to launch more satellites: %s.\nAlternatively consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)\nor contact support at support@earthly.dev to potentially increase your satellites' limit", billing.GetUpgradeURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
+			default:
+				app.BaseCLI.Console().HelpPrintf("Consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)\nor contact support at support@earthly.dev to potentially increase your satellites' limit")
+			}
+			return 1
+		case grpcErrOK && grpcErr.Code() == codes.PermissionDenied && requestIDRegex.MatchString(grpcErr.Message()):
+			msg := grpcErr.Message()
+			matches, _ := stringutil.NamedGroupMatches(msg, requestIDRegex)
+			if len(matches["msg"]) > 0 {
+				msg = matches["msg"][0]
+			}
+			app.BaseCLI.Console().VerboseWarnf(err.Error())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, msg)
 			return 1
 		case grpcErrOK && grpcErr.Code() != codes.Canceled:
 			app.BaseCLI.Console().VerboseWarnf(errorWithPrefix(err.Error()))

@@ -5,6 +5,7 @@ ENV EARTHLY_SHOW_HIDDEN=0
 
 test-root-commands:
     RUN echo "account 
+billing 
 bootstrap 
 config 
 doc 
@@ -23,6 +24,7 @@ web " > expected
 test-hidden-root-commands:
     ENV EARTHLY_SHOW_HIDDEN=1
     RUN echo "account 
+billing 
 bootstrap 
 build 
 config 
