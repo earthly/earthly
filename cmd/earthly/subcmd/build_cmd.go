@@ -924,17 +924,18 @@ func (a *Build) logShareLink(ctx context.Context, cloudClient *cloud.Client, tar
 }
 
 func (a *Build) maybePrintBuildMinutesInfo(orgName string) {
-	if billing.Plan().MaxBuildMinutes == 0 {
+	plan := billing.Plan()
+	if plan.GetMaxBuildMinutes() == 0 {
 		return
 	}
 
 	sb := strings.Builder{}
-	sb.WriteString(fmt.Sprintf("Build Minutes: %d out of %d used\n", int(billing.UsedBuildTime().Minutes()), billing.Plan().MaxBuildMinutes))
-	if billing.Plan().Tier == billingpb.BillingPlan_TIER_LIMITED_FREE_TIER {
+	sb.WriteString(fmt.Sprintf("Build Minutes: %d out of %d used\n", int(billing.UsedBuildTime().Minutes()), plan.GetMaxBuildMinutes()))
+	if plan.GetTier() == billingpb.BillingPlan_TIER_LIMITED_FREE_TIER {
 		sb.WriteString(fmt.Sprintf("Visit your organization settings to verify your account\nand get 6000 free build minutes per month: %s\n", billing.GetBillingURL(a.cli.CIHost(), orgName)))
 	}
 	sb.WriteRune('\n')
-	if billing.Plan().Type == billingpb.BillingPlan_PLAN_TYPE_FREE {
+	if plan.GetType() == billingpb.BillingPlan_PLAN_TYPE_FREE {
 		a.cli.Console().ColorPrintf(color.New(color.FgGreen), sb.String())
 	} else {
 		a.cli.Console().VerbosePrintf(sb.String())

@@ -19,7 +19,7 @@ import (
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast/hint"
-  "github.com/earthly/earthly/billing"
+	"github.com/earthly/earthly/billing"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cmd/earthly/common"
 	"github.com/earthly/earthly/cmd/earthly/helper"
@@ -256,10 +256,13 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			if len(matches["msg"]) > 0 {
 				msg = matches["msg"][0]
 			}
-			msg = fmt.Sprintf("%s (%s)", msg, stringutil.Title(billing.Plan().Tier))
+			tier := billing.Plan().GetTier()
+			msg = fmt.Sprintf("%s (%s)", msg, stringutil.Title(tier))
 			app.BaseCLI.Console().VerboseWarnf(err.Error())
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, msg)
-			switch billing.Plan().Tier {
+			switch tier {
+			case billingpb.BillingPlan_TIER_UNKNOWN:
+				app.BaseCLI.Console().DebugPrintf("failed to get billing plan tier\n")
 			case billingpb.BillingPlan_TIER_LIMITED_FREE_TIER:
 				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to verify your account\nand get 6000 free build minutes per month: %s\n", billing.GetBillingURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
 			case billingpb.BillingPlan_TIER_FREE_TIER:
@@ -272,10 +275,13 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			if len(matches["msg"]) > 0 {
 				msg = matches["msg"][0]
 			}
-			msg = fmt.Sprintf("%s %s", stringutil.Title(billing.Plan().Tier), msg)
+			tier := billing.Plan().GetTier()
+			msg = fmt.Sprintf("%s %s", stringutil.Title(tier), msg)
 			app.BaseCLI.Console().VerboseWarnf(err.Error())
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, msg)
-			switch billing.Plan().Tier {
+			switch tier {
+			case billingpb.BillingPlan_TIER_UNKNOWN:
+				app.BaseCLI.Console().DebugPrintf("failed to get billing plan tier\n")
 			case billingpb.BillingPlan_TIER_LIMITED_FREE_TIER:
 				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to verify your account\nfor an option to launch more satellites: %s\nor consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)", billing.GetBillingURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
 			case billingpb.BillingPlan_TIER_FREE_TIER:
