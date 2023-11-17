@@ -22,17 +22,17 @@ func (a *Build) buildFlags() []cli.Flag {
 			Hidden:  true, // Deprecated
 		},
 		&cli.StringSliceFlag{
-			Name:    "secret",
-			Aliases: []string{"s"},
-			EnvVars: []string{"EARTHLY_SECRETS"},
-			Usage:   "A secret override, specified as <key>=[<value>]",
-			Value:   &a.secrets,
+			Name:        "secret",
+			Aliases:     []string{"s"},
+			EnvVars:     []string{"EARTHLY_SECRETS"},
+			Usage:       "A secret override, specified as <key>=[<value>]",
+			Destination: &a.secrets,
 		},
 		&cli.StringSliceFlag{
-			Name:    "secret-file",
-			EnvVars: []string{"EARTHLY_SECRET_FILES"},
-			Usage:   "A secret override, specified as <key>=<path>",
-			Value:   &a.secretFiles,
+			Name:        "secret-file",
+			EnvVars:     []string{"EARTHLY_SECRET_FILES"},
+			Usage:       "A secret override, specified as <key>=<path>",
+			Destination: &a.secretFiles,
 		},
 		&cli.StringSliceFlag{
 			Name:    "cache-from",

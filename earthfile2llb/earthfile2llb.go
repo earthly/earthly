@@ -177,6 +177,7 @@ type ConvertOpt struct {
 	// * "sat:<org-name>/<sat-name>" - remote builds via satellite
 	Runner string
 
+	// ProjectAdder is a callback that is used to discover PROJECT <org>/<project> values
 	ProjectAdder ProjectAdder
 }
 

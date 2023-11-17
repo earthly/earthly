@@ -44,6 +44,7 @@ type Global struct {
 	SSHAuthSock                string
 	Verbose                    bool
 	Debug                      bool
+	DisplayExecStats           bool
 	CloudHTTPAddr              string
 	CloudGRPCAddr              string
 	CloudGRPCInsecure          bool
@@ -174,6 +175,13 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			Usage:       "Enable debug mode. This flag also turns on the debug mode of buildkitd, which may cause it to restart",
 			Destination: &global.Debug,
 			Hidden:      true, // For development purposes only.
+		},
+		&cli.BoolFlag{
+			Name:        "exec-stats",
+			EnvVars:     []string{"EARTHLY_EXEC_STATS"},
+			Usage:       "Display container stats (e.g. cpu and memory usage)",
+			Destination: &global.DisplayExecStats,
+			Hidden:      true, // Experimental
 		},
 		&cli.BoolFlag{
 			Name:        "profiler",

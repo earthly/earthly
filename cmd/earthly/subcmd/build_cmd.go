@@ -302,7 +302,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		}
 	}
 
-	secretsMap, err := common.ProcessSecrets(a.secrets.Value(), a.secretFiles.Value(), secretsFileMap)
+	secretsMap, err := common.ProcessSecrets(a.secrets.Value(), a.secretFiles.Value(), secretsFileMap, a.cli.Flags().SecretFile)
 	if err != nil {
 		return err
 	}

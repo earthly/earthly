@@ -18,7 +18,8 @@ import (
 	"google.golang.org/grpc/codes"
 
 	"github.com/earthly/earthly/analytics"
-	"github.com/earthly/earthly/billing"
+	"github.com/earthly/earthly/ast/hint"
+  "github.com/earthly/earthly/billing"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cmd/earthly/common"
 	"github.com/earthly/earthly/cmd/earthly/helper"
@@ -178,15 +179,20 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 
 		grpcErr, grpcErrOK := grpcerrors.AsGRPCStatus(err)
 		var paramsErr *params.Error
+		var hintErr hint.Error
 		switch {
-		case errors.As(err, &paramsErr):
-			{
-				app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_INVALID_PARAM, paramsErr.ParentError())
-				if paramsErr.Error() != paramsErr.ParentError() {
-					app.BaseCLI.Console().VerboseWarnf(errorWithPrefix(paramsErr.Error()))
-				}
-				return 1
+		case errors.As(err, &hintErr):
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, hintErr.Error())
+			if hintErr.Hint() != "" {
+				app.BaseCLI.Console().HelpPrintf(hintErr.Hint())
 			}
+			return 1
+		case errors.As(err, &paramsErr):
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_INVALID_PARAM, paramsErr.ParentError())
+			if paramsErr.Error() != paramsErr.ParentError() {
+				app.BaseCLI.Console().VerboseWarnf(errorWithPrefix(paramsErr.Error()))
+			}
+			return 1
 		case qemuExitCodeRegex.MatchString(err.Error()):
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
 			if app.BaseCLI.AnaMetaIsSat() {

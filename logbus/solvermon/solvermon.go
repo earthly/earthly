@@ -8,6 +8,7 @@ import (
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/logbus"
+	"github.com/earthly/earthly/util/statsstreamparser"
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/earthly/earthly/util/xcontext"
@@ -102,6 +103,7 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 				meta:      meta,
 				operation: operation,
 				cp:        cp,
+				ssp:       statsstreamparser.New(),
 			}
 			sm.vertices[cmdID] = vm
 			sm.digests[vertex.Digest] = cmdID

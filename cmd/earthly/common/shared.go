@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/variables"
 	gsysinfo "github.com/elastic/go-sysinfo"
@@ -36,7 +37,7 @@ func CombineVariables(dotEnvMap map[string]string, flagArgs []string, buildFlagA
 	return variables.CombineScopes(overridingVars, dotEnvVars), nil
 }
 
-func ProcessSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) (map[string][]byte, error) {
+func ProcessSecrets(secrets, secretFiles []string, dotEnvMap map[string]string, secretsFilePath string) (map[string][]byte, error) {
 	finalSecrets := make(map[string][]byte)
 	for k, v := range dotEnvMap {
 		finalSecrets[k] = []byte(v)
@@ -52,12 +53,12 @@ func ProcessSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) 
 			// Not set. Use environment to fetch it.
 			value, found := os.LookupEnv(secret)
 			if !found {
-				return nil, errors.Errorf("env var %s not set", secret)
+				return nil, hint.Wrapf(errors.Errorf("failed to set secret %q via --secret flag without a value", secret), "Try to set an env var by the name %q with the secret value or pass the value as part of the --secret flag", secret)
 			}
 			data = []byte(value)
 		}
 		if _, ok := finalSecrets[key]; ok {
-			return nil, errors.Errorf("secret %q already contains a value", key)
+			return nil, hint.Wrapf(errors.Errorf("failed to set secret %q via --secret flag", key), "Check the secret %q has not already been set in the file %q or passed more than once to the command", key, secretsFilePath)
 		}
 		finalSecrets[key] = data
 	}
@@ -73,9 +74,9 @@ func ProcessSecrets(secrets, secretFiles []string, dotEnvMap map[string]string) 
 			return nil, errors.Wrapf(err, "failed to open %q", path)
 		}
 		if _, ok := finalSecrets[k]; ok {
-			return nil, errors.Errorf("secret %q already contains a value", k)
+			return nil, hint.Wrapf(errors.Errorf("failed to set secret %q via --secret-file flag", k), "Check the secret %q has not already been set in the file %q, or passed via --secret flag", k, secretsFilePath)
 		}
-		finalSecrets[k] = []byte(data)
+		finalSecrets[k] = data
 	}
 	return finalSecrets, nil
 }
