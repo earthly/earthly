@@ -24,6 +24,7 @@ test-all:
     BUILD +test-no-cache
     BUILD +test-shell-out
     BUILD +test-copy-if-exists
+    BUILD +test-remote-targets
 
 test-files:
     RUN echo hello > my-file
@@ -172,7 +173,7 @@ test-copy-if-exists:
 
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+copy-if-exists --output_does_not_contain="target .* has already been run; exiting"
 
-test-remote:
+test-remote-targets:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-copy
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-copy --output_contains="target .* has already been run; exiting"
 
