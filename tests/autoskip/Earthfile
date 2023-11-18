@@ -172,6 +172,26 @@ test-copy-if-exists:
 
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+copy-if-exists --output_does_not_contain="target .* has already been run; exiting"
 
+test-remote:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-copy
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-copy --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-copy-sha
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-copy-sha --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-from
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-from --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-from-sha
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-from-sha --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+invalid-copy-branch --output_contains="targets with full SHAs or tags"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-build
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-build --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+invalid-build --output_contains="targets with full SHAs or tags"
+
 RUN_EARTHLY_ARGS:
     COMMAND
     ARG earthfile
