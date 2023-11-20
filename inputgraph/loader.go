@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -22,7 +23,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-var ErrRemoteNotSupported = fmt.Errorf("remote targets not supported")
+var (
+	errUnsupportedRemoteTarget = errors.New("only remote targets referenced by a complete Git SHA or tag (e.g. tags/my-tag) are supported")
+	errCannotLoadRemoteTarget  = errors.New("cannot load remote target")
+)
 
 type loader struct {
 	conslog         conslogging.ConsoleLogger
@@ -65,6 +69,15 @@ func (l *loader) handleFrom(ctx context.Context, cmd spec.Command) error {
 		return nil
 	}
 
+	target, err := domain.ParseTarget(fromTarget)
+	if err == nil && target.IsRemote() {
+		if supportedRemoteTarget(target) {
+			l.hasher.HashString(target.StringCanonical())
+			return nil
+		}
+		return errUnsupportedRemoteTarget
+	}
+
 	return l.loadTargetFromString(ctx, fromTarget, args[1:], false)
 }
 
@@ -79,13 +92,24 @@ func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
 		return errors.New("missing BUILD arg")
 	}
 
+	targetName := args[0]
+
 	argCombos, err := flagutil.BuildArgMatrix(args)
 	if err != nil {
 		return errors.Wrap(err, "failed to compute arg matrix")
 	}
 
+	target, err := domain.ParseTarget(targetName)
+	if err == nil && target.IsRemote() {
+		if supportedRemoteTarget(target) {
+			l.hasher.HashString(target.StringCanonical())
+			return nil
+		}
+		return errUnsupportedRemoteTarget
+	}
+
 	for _, args := range argCombos {
-		err := l.loadTargetFromString(ctx, args[0], args[1:], opts.PassArgs)
+		err := l.loadTargetFromString(ctx, targetName, args[1:], opts.PassArgs)
 		if err != nil {
 			return err
 		}
@@ -120,13 +144,13 @@ func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 	return nil
 }
 
-func hasShellExpr(s string) bool {
+func containsShellExpr(s string) bool {
 	return strings.Contains(s, "$(") && strings.Contains(s, ")")
 }
 
 func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) error {
 
-	if hasShellExpr(src) {
+	if containsShellExpr(src) {
 		return errors.Errorf("dynamic COPY source %q cannot be resolved", src)
 	}
 
@@ -177,7 +201,11 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) 
 
 	// Remote targets aren't supported.
 	if artifactSrc.Target.IsRemote() {
-		return errors.New("unable to handle remote target")
+		if supportedRemoteTarget(artifactSrc.Target) {
+			l.hasher.HashString(artifactSrc.Target.StringCanonical())
+			return nil
+		}
+		return errUnsupportedRemoteTarget
 	}
 
 	targetName := artifactSrc.Target.LocalPath + "+" + artifactSrc.Target.Target
@@ -186,6 +214,12 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) 
 	}
 
 	return nil
+}
+
+var sha1RE = regexp.MustCompile("^[0-9a-f]{40}$")
+
+func supportedRemoteTarget(t domain.Target) bool {
+	return strings.HasPrefix(t.GetTag(), "tags/") || sha1RE.MatchString(t.GetTag())
 }
 
 // expandCopyFiles expands a single COPY source into a slice containing all
@@ -518,7 +552,7 @@ func (l *loader) forTarget(ctx context.Context, target domain.Target, args []str
 func (l *loader) loadTargetFromString(ctx context.Context, targetName string, args []string, passArgs bool) error {
 	// If the target name contains a variable that hasn't been expanded, we
 	// won't be able to explore the rest of the graph and generate a valid hash.
-	if hasShellExpr(targetName) {
+	if containsShellExpr(targetName) {
 		return errors.Errorf("dynamic target %q cannot be resolved", targetName)
 	}
 
@@ -554,7 +588,7 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string, ar
 
 func (l *loader) findProject(ctx context.Context) (org, project string, err error) {
 	if l.target.IsRemote() {
-		return "", "", ErrRemoteNotSupported
+		return "", "", errCannotLoadRemoteTarget
 	}
 
 	resolver := buildcontext.NewResolver(nil, nil, l.conslog, "", "", "", 0, "")
@@ -588,7 +622,7 @@ func (l *loader) findProject(ctx context.Context) (org, project string, err erro
 
 func (l *loader) load(ctx context.Context) error {
 	if l.target.IsRemote() {
-		return ErrRemoteNotSupported
+		return errCannotLoadRemoteTarget
 	}
 
 	resolver := buildcontext.NewResolver(nil, nil, l.conslog, "", "", "", 0, "")
