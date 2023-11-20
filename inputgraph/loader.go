@@ -1,6 +1,7 @@
 package inputgraph
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -145,7 +146,28 @@ func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 }
 
 func containsShellExpr(s string) bool {
-	return strings.Contains(s, "$(") && strings.Contains(s, ")")
+	var (
+		last    string
+		depth   int
+		hasExpr bool
+	)
+	scan := bufio.NewScanner(strings.NewReader(s))
+	scan.Split(bufio.ScanRunes)
+	for scan.Scan() {
+		c := scan.Text()
+		switch {
+		case c == "(" && last == "$":
+			hasExpr = true
+			depth++
+		case c == ")":
+			depth--
+		}
+		if depth < 0 {
+			return false
+		}
+		last = c
+	}
+	return depth == 0 && hasExpr
 }
 
 func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) error {
