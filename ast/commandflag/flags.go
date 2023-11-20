@@ -137,9 +137,10 @@ type PipelineOpts struct {
 }
 
 type CacheOpts struct {
-	Sharing string `long:"sharing" description:"The cache sharing mode: locked (default), shared, private"`
-	Mode    string `long:"chmod" description:"Apply a mode to the cache folder" default:"0644"`
-	ID      string `long:"id" description:"Cache ID, to reuse the same cache across different targets and Earthfiles"`
+	Sharing   string `long:"sharing" description:"The cache sharing mode: locked (default), shared, private"`
+	Mode      string `long:"chmod" description:"Apply a mode to the cache folder" default:"0644"`
+	ID        string `long:"id" description:"Cache ID, to reuse the same cache across different targets and Earthfiles"`
+	Persisted bool   `long:"persisted" description:"If should persist cache state in image"`
 }
 
 // NewForOpts creates and returns a ForOpts with default separators.
