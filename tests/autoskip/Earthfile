@@ -186,12 +186,12 @@ test-remote-targets:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-from-sha
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-from-sha --output_contains="target .* has already been run; exiting"
 
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+invalid-copy-branch --output_contains="targets with full SHAs or tags"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+invalid-copy-branch --output_contains="complete Git SHA or tag"
 
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-build
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-build --output_contains="target .* has already been run; exiting"
 
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+invalid-build --output_contains="targets with full SHAs or tags"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+invalid-build --output_contains="complete Git SHA or tag"
 
 RUN_EARTHLY_ARGS:
     COMMAND

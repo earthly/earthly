@@ -24,8 +24,8 @@ import (
 )
 
 var (
-	errCannotLoadRemoteTarget  = errors.New("remote targets not supported")
-	errUnsupportedRemoteTarget = errors.New("only remote targets referenced by a complete git SHA or tag are supported")
+	errUnsupportedRemoteTarget = errors.New("only remote targets referenced by a complete Git SHA or tag (e.g. tags/my-tag) are supported")
+	errCannotLoadRemoteTarget  = errors.New("cannot load remote target")
 )
 
 type loader struct {
