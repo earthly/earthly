@@ -24,8 +24,8 @@ import (
 )
 
 var (
-	errRemoteNotSupported  = errors.New("remote targets not supported")
-	errInvalidRemoteTarget = errors.New("only remote targets with full SHAs or tags are supported")
+	errCannotLoadRemoteTarget  = errors.New("remote targets not supported")
+	errUnsupportedRemoteTarget = errors.New("only remote targets with full SHAs or tags are supported")
 )
 
 type loader struct {
@@ -75,11 +75,11 @@ func (l *loader) handleFrom(ctx context.Context, cmd spec.Command) error {
 	}
 
 	if target.IsRemote() {
-		if validRemoteTarget(target) {
+		if supportedRemoteTarget(target) {
 			l.hasher.HashString(target.StringCanonical())
 			return nil
 		}
-		return errInvalidRemoteTarget
+		return errUnsupportedRemoteTarget
 	}
 
 	return l.loadTargetFromString(ctx, fromTarget, args[1:], false)
@@ -109,11 +109,11 @@ func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
 	}
 
 	if target.IsRemote() {
-		if validRemoteTarget(target) {
+		if supportedRemoteTarget(target) {
 			l.hasher.HashString(target.StringCanonical())
 			return nil
 		}
-		return errInvalidRemoteTarget
+		return errUnsupportedRemoteTarget
 	}
 
 	for _, args := range argCombos {
@@ -209,11 +209,11 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) 
 
 	// Remote targets aren't supported.
 	if artifactSrc.Target.IsRemote() {
-		if validRemoteTarget(artifactSrc.Target) {
+		if supportedRemoteTarget(artifactSrc.Target) {
 			l.hasher.HashString(artifactSrc.Target.StringCanonical())
 			return nil
 		}
-		return errInvalidRemoteTarget
+		return errUnsupportedRemoteTarget
 	}
 
 	targetName := artifactSrc.Target.LocalPath + "+" + artifactSrc.Target.Target
@@ -226,7 +226,7 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) 
 
 var sha1RE = regexp.MustCompile("^[0-9a-f]{40}$")
 
-func validRemoteTarget(t domain.Target) bool {
+func supportedRemoteTarget(t domain.Target) bool {
 	return strings.HasPrefix(t.GetTag(), "tags/") || sha1RE.MatchString(t.GetTag())
 }
 
@@ -596,7 +596,7 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string, ar
 
 func (l *loader) findProject(ctx context.Context) (org, project string, err error) {
 	if l.target.IsRemote() {
-		return "", "", errRemoteNotSupported
+		return "", "", errCannotLoadRemoteTarget
 	}
 
 	resolver := buildcontext.NewResolver(nil, nil, l.conslog, "", "", "", 0, "")
@@ -630,7 +630,7 @@ func (l *loader) findProject(ctx context.Context) (org, project string, err erro
 
 func (l *loader) load(ctx context.Context) error {
 	if l.target.IsRemote() {
-		return errRemoteNotSupported
+		return errCannotLoadRemoteTarget
 	}
 
 	resolver := buildcontext.NewResolver(nil, nil, l.conslog, "", "", "", 0, "")
