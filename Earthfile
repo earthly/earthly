@@ -800,7 +800,7 @@ examples-2:
     END
     BUILD ./examples/clojure+docker
     BUILD ./examples/cobol+docker
-    BUILD ./examples/rust+dcker
+    BUILD ./examples/rust+docker
     BUILD ./examples/multiplatform+all
     BUILD ./examples/multiplatform-cross-compile+build-all-platforms
     BUILD github.com/earthly/hello-world:main+hello
