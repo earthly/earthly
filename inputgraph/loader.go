@@ -70,11 +70,7 @@ func (l *loader) handleFrom(ctx context.Context, cmd spec.Command) error {
 	}
 
 	target, err := domain.ParseTarget(fromTarget)
-	if err != nil {
-		return errors.Wrap(err, "failed to parse target")
-	}
-
-	if target.IsRemote() {
+	if err == nil && target.IsRemote() {
 		if supportedRemoteTarget(target) {
 			l.hasher.HashString(target.StringCanonical())
 			return nil
@@ -104,11 +100,7 @@ func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
 	}
 
 	target, err := domain.ParseTarget(targetName)
-	if err != nil {
-		return errors.Wrap(err, "failed to parse target")
-	}
-
-	if target.IsRemote() {
+	if err == nil && target.IsRemote() {
 		if supportedRemoteTarget(target) {
 			l.hasher.HashString(target.StringCanonical())
 			return nil
