@@ -638,7 +638,7 @@ all-buildkitd:
         ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
 dind-alpine:
-    DO +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=alpine --OS_VERSION=3.18 --DOCKER_VERSION=23.0.6-r6
+    DO +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=alpine --OS_VERSION=3.18 --DOCKER_VERSION=23.0.6-r7
 
 dind-ubuntu-20.04:
     DO +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal
@@ -800,7 +800,7 @@ examples-2:
     END
     BUILD ./examples/clojure+docker
     BUILD ./examples/cobol+docker
-    BUILD ./examples/rust+docker
+    BUILD ./examples/rust+dcker
     BUILD ./examples/multiplatform+all
     BUILD ./examples/multiplatform-cross-compile+build-all-platforms
     BUILD github.com/earthly/hello-world:main+hello
