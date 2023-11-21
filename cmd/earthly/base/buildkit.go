@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/moby/buildkit/client"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
+
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/util/containerutil"
-	"github.com/moby/buildkit/client"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
 )
 
 func (cli *CLI) GetBuildkitClient(cliCtx *cli.Context, cloudClient *cloud.Client) (*client.Client, error) {
@@ -60,15 +61,22 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 	if err != nil {
 		return errors.Wrap(err, "failed getting org")
 	}
-	satelliteName, err := GetSatelliteName(cliCtx.Context, orgName, cli.Flags().SatelliteName, cloudClient)
+	satelliteName := cli.Flags().SatelliteName
+	sat, err := cloudClient.GetSatellite(cliCtx.Context, satelliteName, orgName)
 	if err != nil {
-		return errors.Wrap(err, "failed getting satellite name")
+		return errors.Wrap(err, "failed getting satellite")
+	}
+	satelliteAddress := cli.Flags().SatelliteAddress
+	if satelliteAddress == "" && !sat.IsManaged {
+		// A self-hosted satellite uses its own address
+		satelliteAddress = sat.Address
+		cli.Cfg().Global.TLSEnabled = false // We do not yet support TLS with self-hosted
 	}
 	cli.Flags().BuildkitdSettings.SatelliteName = satelliteName
 	cli.Flags().BuildkitdSettings.SatelliteDisplayName = cli.Flags().SatelliteName
 	cli.Flags().BuildkitdSettings.SatelliteOrgID = orgID
-	if cli.Flags().SatelliteAddress != "" {
-		cli.Flags().BuildkitdSettings.BuildkitAddress = cli.Flags().SatelliteAddress
+	if satelliteAddress != "" {
+		cli.Flags().BuildkitdSettings.BuildkitAddress = satelliteAddress
 	} else {
 		cli.Flags().BuildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
 	}

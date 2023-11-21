@@ -70,6 +70,8 @@ type SatelliteInstance struct {
 	Hidden                  bool
 	LastUsed                time.Time
 	CacheRetention          time.Duration
+	Address                 string
+	IsManaged               bool
 }
 
 func (c *Client) ListSatellites(ctx context.Context, orgName string, includeHidden bool) ([]SatelliteInstance, error) {
@@ -129,6 +131,8 @@ func (c *Client) GetSatellite(ctx context.Context, name, orgName string) (*Satel
 		Hidden:                  resp.Hidden,
 		LastUsed:                resp.LastUsed.AsTime(),
 		CacheRetention:          resp.CacheRetention.AsDuration(),
+		IsManaged:               resp.IsManaged,
+		Address:                 resp.PrivateDns,
 	}, nil
 }
 
