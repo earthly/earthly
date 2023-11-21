@@ -9,8 +9,8 @@ import (
 	"github.com/earthly/earthly/util/stringutil"
 )
 
-// note this regex should be updated in case the error format changes in Error
-var regex = regexp.MustCompile(`(?P<error>.+?):Hint: (?P<hint>(?s).+)`)
+// note that this regex should be updated in case the error format changes in Error()
+var errWithHintRegex = regexp.MustCompile(`(?P<error>.+?):Hint: (?P<hint>(?s).+)`)
 
 // Error is an error that includes hints to be displayed after the error.
 type Error struct {
@@ -55,8 +55,8 @@ func FromError(err error) (*Error, bool) {
 	if err == nil {
 		return nil, false
 	}
-	matches, _ := stringutil.NamedGroupMatches(err.Error(), regex)
-	if len(matches) != 2 && len(matches) != 2 {
+	matches, _ := stringutil.NamedGroupMatches(err.Error(), errWithHintRegex)
+	if len(matches) != 2 {
 		return nil, false
 	}
 	for k := range matches {

@@ -76,7 +76,7 @@ func (vm *vertexMonitor) parseError() {
 	switch {
 	case reHint.MatchString(errString):
 		matches, _ := stringutil.NamedGroupMatches(errString, reHint)
-		errString = matches["msg"][0]
+		errString = matches["msg"][0] //nolint:ineffassign,staticcheck
 		fallthrough
 	case strings.Contains(errString, "context canceled"):
 		vm.isCanceled = true

@@ -179,10 +179,10 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 		}
 
 		grpcErr, grpcErrOK := grpcerrors.AsGRPCStatus(err)
+		hintErr, hintErrOK := getHintErr(err, grpcErr)
 		var paramsErr *params.Error
-		var hintErr *hint.Error
 		switch {
-		case getHintErr(err, grpcErr, &hintErr):
+		case hintErrOK:
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, hintErr.Message())
 			app.BaseCLI.Console().HelpPrintf(hintErr.Hint())
 			return 1
@@ -384,23 +384,14 @@ func errorWithPrefix(err string) string {
 	return fmt.Sprintf("Error: %s", err)
 }
 
-func getHintErr(err error, grpcError *status.Status, target **hint.Error) bool {
-	targetInitialized := false
-	if *target == nil {
-		targetInitialized = true
-		*target = &hint.Error{}
-	}
-	if errors.As(err, target) {
-		return true
+func getHintErr(err error, grpcError *status.Status) (*hint.Error, bool) {
+	if res := new(hint.Error); errors.As(err, &res) {
+		return res, true
 	}
 	if grpcError != nil {
-		var ok bool
-		if *target, ok = hint.FromError(errors.New(grpcError.Message())); ok {
-			return ok
+		if res, ok := hint.FromError(errors.New(grpcError.Message())); ok {
+			return res, ok
 		}
 	}
-	if targetInitialized {
-		*target = nil
-	}
-	return false
+	return nil, false
 }
