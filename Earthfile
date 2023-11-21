@@ -638,27 +638,30 @@ all-buildkitd:
         ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
 dind-alpine:
-    DO +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=alpine --OS_VERSION=3.18 --DOCKER_VERSION=23.0.6-r7
+    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=alpine --OS_VERSION=3.18 --DOCKER_VERSION=23.0.6-r7
 
 dind-ubuntu-20.04:
-    DO +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal
+    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal
 
 dind-ubuntu-23.04:
-    DO +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=23.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.23.04~lunar
+    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=23.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.23.04~lunar
 
 # all-dind builds alpine and ubuntu dind containers for both linux amd64 and linux arm64
 all-dind:
     RUN --no-cache date --utc +%Y%m%d%H%M%S > datetime
     ARG DATETIME="$(cat datetime)"
     BUILD \
+        --pass-args \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
         +dind-alpine --DATETIME=$DATETIME
     BUILD \
+        --pass-args \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
         +dind-ubuntu-20.04 --DATETIME=$DATETIME
     BUILD \
+        --pass-args \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
         +dind-ubuntu-23.04 --DATETIME=$DATETIME
