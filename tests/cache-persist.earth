@@ -2,7 +2,7 @@ VERSION --cache-persist-option 0.7
 FROM alpine:3.18
 
 build:
-    CACHE --persisted /cache/persisted
+    CACHE --persist /cache/persisted
     RUN touch /cache/persisted/persisted.txt
 
     CACHE /cache/not-persisted
