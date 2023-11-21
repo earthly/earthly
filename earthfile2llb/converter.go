@@ -1541,8 +1541,12 @@ func (c *Converter) Cache(ctx context.Context, mountTarget string, opts commandf
 		if err != nil {
 			return errors.Errorf("failed to parse mount mode %s", opts.Mode)
 		}
+		persisted := true // Without new --cache-persist-option we use old behaviour which is persisted
+		if c.ftrs.CachePersistOption {
+			persisted = opts.Persisted
+		}
 		c.persistentCacheDirs[mountTarget] = states.CacheMount{
-			Persisted: opts.Persisted,
+			Persisted: persisted,
 			RunOption: pllb.AddMount(mountTarget, pllb.Scratch().File(pllb.Mkdir("/cache", os.FileMode(mountMode))), mountOpts...),
 		}
 	}
