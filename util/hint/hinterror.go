@@ -3,9 +3,10 @@ package hint
 import (
 	"errors"
 	"fmt"
-	"github.com/earthly/earthly/util/stringutil"
 	"regexp"
 	"strings"
+
+	"github.com/earthly/earthly/util/stringutil"
 )
 
 // note this regex should be updated in case the error format changes in Error
@@ -19,9 +20,6 @@ type Error struct {
 
 // Error returns the error string
 func (e *Error) Error() string {
-	if len(e.hints) == 0 {
-		return e.err.Error()
-	}
 	return fmt.Sprintf(`%v:Hint: %v`, e.err, e.Hint())
 }
 
