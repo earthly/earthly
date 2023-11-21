@@ -1430,7 +1430,7 @@ func (i *Interpreter) handleLet(ctx context.Context, cmd spec.Command) error {
 		return errors.Wrap(err, "failed to parse LET args")
 	}
 	if len(args) != 3 || args[1] != "=" {
-		return hint.WrapWithDisplay(flagutil.ErrInvalidSyntax, "LET requires a variable assignment, e.g. LET foo = bar")
+		return hint.Wrap(flagutil.ErrInvalidSyntax, "LET requires a variable assignment, e.g. LET foo = bar")
 	}
 
 	key := args[0]

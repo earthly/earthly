@@ -137,6 +137,6 @@ exit_code="$?"
 set -e
 cat output
 test "$exit_code" != "0"
-acbgrep 'unable to lookup secret my_secret: not found' output
-
+acbgrep 'unable to lookup secret "my_secret": not found' output
+acbgrep 'Help: Make sure to set the project at the top of the Earthfile' output
 echo "=== All tests have passed ==="

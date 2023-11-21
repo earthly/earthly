@@ -39,6 +39,7 @@ type vertexMonitor struct {
 
 var reErrExitCode = regexp.MustCompile(`^(?:process ".*" did not complete successfully|error calling LocalhostExec): exit code: (?P<exit_code>[0-9]+)$`)
 var reErrNotFound = regexp.MustCompile(`^failed to calculate checksum of ref ([^ ]*): (.*)$`)
+var reHint = regexp.MustCompile(`^(?P<msg>.+?):Hint: .+`)
 
 func (vm *vertexMonitor) Write(dt []byte, ts time.Time, stream int) (int, error) {
 	if stream == BuildkitStatsStream {
@@ -73,6 +74,10 @@ func (vm *vertexMonitor) parseError() {
 		internalStr = " internal"
 	}
 	switch {
+	case reHint.MatchString(errString):
+		matches, _ := stringutil.NamedGroupMatches(errString, reHint)
+		errString = matches["msg"][0]
+		fallthrough
 	case strings.Contains(errString, "context canceled"):
 		vm.isCanceled = true
 		vm.errorStr = "WARN: Canceled"

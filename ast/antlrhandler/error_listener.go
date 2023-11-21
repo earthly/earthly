@@ -111,5 +111,5 @@ func (rel *ReturnErrorListener) SyntaxError(recognizer antlr.Recognizer, offendi
 			}
 		}
 	}
-	rel.Errs = append(rel.Errs, hint.WrapWithDisplay(finalErr, hints[0], hints[1:]...))
+	rel.Errs = append(rel.Errs, hint.Wrap(finalErr, hints[0], hints[1:]...))
 }
