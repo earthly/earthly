@@ -668,7 +668,7 @@ all-dind:
 
 # all builds all of the following:
 # - Buildkitd for both linux amd64 and linux arm64
-# - Earthly for all supported enironments linux amd64 and linux arm64, Darwin amd64 and arm64, and Windos amd64
+# - Earthly for all supported environments linux amd64 and linux arm64, Darwin amd64 and arm64, and Windos amd64
 # - Earthly as a container image
 # - Prerelease version of earthly as a container image
 # - Dind alpine and ubuntu for both linux amd64 and linux arm64 as container images
