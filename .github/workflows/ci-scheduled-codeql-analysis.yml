@@ -73,7 +73,7 @@ jobs:
     - run: |
         wget https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64 -O /usr/local/bin/earthly
         chmod +x /usr/local/bin/earthly
-        /usr/local/bin/earthly bootstrapa
+        /usr/local/bin/earthly bootstrap
         /usr/local/bin/earthly +for-linux
 
     - name: Perform CodeQL Analysis
