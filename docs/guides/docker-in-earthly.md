@@ -91,6 +91,7 @@ The current implementation of Docker in Earthly has a number of limitations:
 * `docker build` cannot be used to build Dockerfiles. However, the Earthly command `FROM DOCKERFILE` can be used instead. See [alternative to docker build](#alternative-to-docker-build) below.
 * The state of the Docker daemon within Earthly cannot be inspected on the host (e.g. for debugging purposes). For example, if a `docker-compose` stack fails, you cannot execute commands like `docker-compose logs` or `docker logs` on the host. However, you may use the interactive mode to drop into a shell within the build environment and execute such commands there. For more information, see the [debugging guide](./debugging.md).
 * It is currently not possible to mount `/var/run/docker.sock` in order to use the host Docker daemon. This goes against Earthly's principles of keeping execution repeatable. Mounting the Docker socket may cause builds to depend on the host Daemon state (e.g. pre-cached images) in ways that may not be obvious or easy to reproduce if the build were executed in another environment.
+* Creating external networks (the default docker behavior), will sometimes fail and produce 100% packet loss; however __internal__ networks do no have this issue. Use `docker network create --internal ...` or the `internal: true` compose option instead. See [#3495](https://github.com/earthly/earthly/issues/3495) for details.
 
 ## Alternatives to Docker in Earthly
 
