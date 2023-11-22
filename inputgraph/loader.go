@@ -560,6 +560,7 @@ func evalCondition(c []string) (bool, bool) {
 }
 
 func (l *loader) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
+	l.hashIfStatement(ifStmt)
 
 	err := l.handleIfEval(ctx, ifStmt)
 	if err != nil {
