@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/earthly/earthly/ast/command"
@@ -27,6 +28,7 @@ import (
 var (
 	errUnsupportedRemoteTarget = errors.New("only remote targets referenced by a complete Git SHA or tag (e.g. tags/my-tag) are supported")
 	errCannotLoadRemoteTarget  = errors.New("cannot load remote target")
+	errComplexCondition        = errors.New("condition cannot be evaluated")
 )
 
 type loader struct {
@@ -441,16 +443,161 @@ func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 	return nil
 }
 
+// evalConditions will first split compound expressions by OR (||) and evaluate
+// each set of sub-expressions until a positive result is encountered. When an
+// AND (&&) is encountered, the function will recursively call itself to compute
+// a final boolean result for that set of expressions.
+func evalConditions(c []string) (bool, bool) {
+	all := strings.Join(c, " ")
+	orGroups := strings.Split(all, "||")
+
+	for _, orGroup := range orGroups {
+		cur := []string{}
+		result, inExpr := false, false
+		parts := strings.Split(orGroup, " ")
+		for i, v := range parts {
+			switch v {
+			case "[[", "]]":
+				// Extended expressions not yet supported.
+				return false, false
+			case "[":
+				inExpr = true
+				cur = []string{}
+			case "]":
+				if !inExpr {
+					return false, false
+				}
+				var ok bool
+				result, ok = evalCondition(cur)
+				if !ok {
+					return false, false
+				}
+			case "&&":
+				rest, ok := evalConditions(parts[i+1:])
+				if !ok {
+					return false, false
+				}
+				result = result && rest
+			default:
+				cur = append(cur, v)
+			}
+		}
+		if result {
+			return true, true
+		}
+	}
+
+	return false, true
+}
+
+// evalCondition will compute the result of a single expression (e.g., '[ true
+// ]'). It currently only handles POSIX shell expressions.
+func evalCondition(c []string) (bool, bool) {
+
+	// Strip quotes
+	for i, v := range c {
+		c[i] = strings.Trim(v, ` "`)
+	}
+
+	switch len(c) {
+	case 1:
+		switch c[0] {
+		case "true":
+			return true, true
+		case "false":
+			return false, true
+		default:
+			return len(c[0]) > 0, true
+		}
+	case 2:
+		switch c[0] {
+		case "-z":
+			return c[1] == "", true
+		case "-n":
+			return c[1] != "", true
+		}
+	case 3:
+		switch c[1] {
+		case "==", "!=", "=", ">", "<", "<=", ">=":
+			switch c[1] {
+			case "==", "=":
+				return c[0] == c[2], true
+			case "!=":
+				return c[0] != c[2], true
+			case ">":
+				return c[0] > c[2], true
+			case ">=":
+				return c[0] >= c[2], true
+			case "<":
+				return c[0] < c[2], true
+			case "<=":
+				return c[0] <= c[2], true
+			}
+		case "-eq", "-ne", "-gt", "-lt", "-le", "-ge":
+			a, errA := strconv.Atoi(c[0])
+			b, errB := strconv.Atoi(c[2])
+			if errA != nil || errB != nil {
+				return false, false
+			}
+			switch c[1] {
+			case "-eq":
+				return a == b, true
+			case "-ne":
+				return a != b, true
+			case "-gt", ">":
+				return a > b, true
+			case "-lt", "<":
+				return a < b, true
+			case "-le", "<=":
+				return a <= b, true
+			case "-ge", ">=":
+				return a >= b, true
+			}
+		}
+	}
+
+	return false, false
+}
+
 func (l *loader) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
-	l.hashIfStatement(ifStmt)
-	if err := l.loadBlock(ctx, ifStmt.IfBody); err != nil {
+
+	err := l.handleIfEval(ctx, ifStmt)
+	if err != nil {
+		if errors.Is(err, errComplexCondition) {
+			return l.handleIfDefault(ctx, ifStmt)
+		}
 		return err
 	}
 
-	if ifStmt.ElseBody != nil {
-		if err := l.loadBlock(ctx, *ifStmt.ElseBody); err != nil {
-			return err
+	return nil
+}
+
+func (l *loader) handleIfEval(ctx context.Context, ifStmt spec.IfStatement) error {
+	result, ok := evalConditions(ifStmt.Expression)
+	if !ok {
+		return errComplexCondition
+	}
+	if result {
+		return l.loadBlock(ctx, ifStmt.IfBody)
+	}
+	for _, elseIf := range ifStmt.ElseIf {
+		result, ok := evalConditions(ifStmt.Expression)
+		if !ok {
+			return errComplexCondition
 		}
+		if result {
+			return l.loadBlock(ctx, elseIf.Body)
+		}
+	}
+	if ifStmt.ElseBody != nil {
+		return l.loadBlock(ctx, *ifStmt.ElseBody)
+	}
+	return nil
+}
+
+func (l *loader) handleIfDefault(ctx context.Context, ifStmt spec.IfStatement) error {
+	if err := l.loadBlock(ctx, ifStmt.IfBody); err != nil {
+		return err
 	}
 
 	for _, elseIf := range ifStmt.ElseIf {
@@ -459,7 +606,11 @@ func (l *loader) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
 			return err
 		}
 	}
-
+	if ifStmt.ElseBody != nil {
+		if err := l.loadBlock(ctx, *ifStmt.ElseBody); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
