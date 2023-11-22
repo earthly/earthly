@@ -1544,6 +1544,8 @@ func (c *Converter) Cache(ctx context.Context, mountTarget string, opts commandf
 		persisted := true // Without new --cache-persist-option we use old behaviour which is persisted
 		if c.ftrs.CachePersistOption {
 			persisted = opts.Persist
+		} else if opts.Persist {
+			return errors.Errorf("the --persist flag is only available when VERSION --cache-persist-option is enabled")
 		}
 		c.persistentCacheDirs[mountTarget] = states.CacheMount{
 			Persisted: persisted,
