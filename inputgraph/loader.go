@@ -221,7 +221,6 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) 
 		return nil
 	}
 
-	// Remote targets aren't supported.
 	if artifactSrc.Target.IsRemote() {
 		if supportedRemoteTarget(artifactSrc.Target) {
 			l.hasher.HashString(artifactSrc.Target.StringCanonical())
@@ -339,9 +338,30 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 		return l.handleCopy(ctx, cmd)
 	case command.Arg:
 		return l.handleArg(ctx, cmd)
+	case command.FromDockerfile:
+		return l.handleFromDockerfile(ctx, cmd)
 	default:
 		return nil
 	}
+}
+
+func (l *loader) handleFromDockerfile(ctx context.Context, cmd spec.Command) error {
+	opts := commandflag.FromDockerfileOpts{}
+	args, err := flagutil.ParseArgsCleaned(command.FromDockerfile, &opts, flagutil.GetArgsCopy(cmd))
+	if err != nil {
+		return err
+	}
+	if opts.Path != "" {
+		if err := l.handleCopySrc(ctx, opts.Path, false); err != nil {
+			return err
+		}
+	}
+	if len(args) > 0 {
+		if err := l.handleCopySrc(ctx, args[0], false); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (l *loader) handleArg(ctx context.Context, cmd spec.Command) error {
@@ -388,22 +408,36 @@ func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return err
 	}
+
 	l.hashCommand(cmd)
 	opts := commandflag.WithDockerOpts{}
+
 	_, err = flagutil.ParseArgsCleaned("WITH DOCKER", &opts, flagutil.GetArgsCopy(cmd))
 	if err != nil {
 		return errors.New("failed to parse WITH DOCKER flags")
 	}
+
 	for _, load := range opts.Loads {
 		_, target, extraArgs, err := earthfile2llb.ParseLoad(load)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse --load value")
 		}
+
+		t, err := domain.ParseTarget(target)
+		if err == nil && t.IsRemote() {
+			if supportedRemoteTarget(t) {
+				l.hasher.HashString(t.StringCanonical())
+				return nil
+			}
+			return errUnsupportedRemoteTarget
+		}
+
 		err = l.loadTargetFromString(ctx, target, extraArgs, false)
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -412,17 +446,20 @@ func (l *loader) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
 	if err := l.loadBlock(ctx, ifStmt.IfBody); err != nil {
 		return err
 	}
+
 	if ifStmt.ElseBody != nil {
 		if err := l.loadBlock(ctx, *ifStmt.ElseBody); err != nil {
 			return err
 		}
 	}
+
 	for _, elseIf := range ifStmt.ElseIf {
 		l.hashElseIf(elseIf)
 		if err := l.loadBlock(ctx, elseIf.Body); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -578,17 +615,18 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string, ar
 		return errors.Errorf("dynamic target %q cannot be resolved", targetName)
 	}
 
-	relTarget, err := domain.ParseTarget(targetName)
+	target, err := domain.ParseTarget(targetName)
 	if err != nil {
 		return errors.Wrapf(err, "parse target name %s", targetName)
 	}
 
-	targetRef, err := domain.JoinReferences(l.target, relTarget)
+	targetRef, err := domain.JoinReferences(l.target, target)
 	if err != nil {
-		return errors.Wrapf(err, "failed to join %s and %s", l.target, relTarget)
+		return errors.Wrapf(err, "failed to join %s and %s", l.target, target)
 	}
 
-	target := targetRef.(domain.Target)
+	target = targetRef.(domain.Target)
+
 	fullTargetName := target.String()
 	if fullTargetName == "" {
 		return fmt.Errorf("missing target string")

@@ -25,6 +25,7 @@ test-all:
     BUILD +test-shell-out
     BUILD +test-copy-if-exists
     BUILD +test-remote-targets
+    BUILD +test-from-dockerfile
 
 test-files:
     RUN echo hello > my-file
@@ -192,6 +193,20 @@ test-remote-targets:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-build --output_contains="target .* has already been run; exiting"
 
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+invalid-build --output_contains="complete Git SHA or tag"
+
+test-from-dockerfile:
+    RUN mkdir /dist
+    COPY Dockerfile /dist
+    RUN echo "foo" > /dist/my-file
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=from-dockerfile.earth --target=+local
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=from-dockerfile.earth --target=+local --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=from-dockerfile.earth --target=+local-target
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=from-dockerfile.earth --target=+local-target --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=from-dockerfile.earth --target=+remote
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=from-dockerfile.earth --target=+remote --output_contains="target .* has already been run; exiting"
 
 RUN_EARTHLY_ARGS:
     COMMAND

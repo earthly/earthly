@@ -1,0 +1,29 @@
+VERSION 0.7
+
+PROJECT earthly-technologies/core
+
+FROM alpine
+
+local:
+    FROM DOCKERFILE -f /dist/Dockerfile /dist
+    RUN echo "hi"
+
+local-target:
+    FROM DOCKERFILE +create-dockerfile/
+    RUN echo "hi"
+
+remote:
+    FROM DOCKERFILE github.com/earthly/test-remote/from-dockerfile:40080b4fc1fd4881f5123f03ba030055efbbbafe+create-dockerfile/
+    RUN echo "hi"
+
+create-dockerfile:
+    FROM alpine:3.18
+    RUN mkdir dist
+    RUN echo "
+FROM alpine:3.18
+ARG my_arg=default
+RUN echo \${my_arg}
+RUN echo \${my_arg} >/arg-value
+" > dist/Dockerfile
+    RUN cat dist/Dockerfile
+    SAVE ARTIFACT dist/*
