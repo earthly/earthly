@@ -10,4 +10,3 @@ test-persisted:
     IF [ -e /cache/persisted/persisted.txt ]
         RUN echo "test persisted ok"
     END
-
