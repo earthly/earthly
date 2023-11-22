@@ -20,7 +20,7 @@ const (
 	dockerdWrapperPath          = "/var/earthly/dockerd-wrapper.sh"
 	dockerAutoInstallScriptPath = "/var/earthly/docker-auto-install.sh"
 	composeConfigFile           = "compose-config.yml"
-	suggestedDINDImage          = "earthly/dind:alpine-3.18-docker-23.0.6-r4"
+	suggestedDINDImage          = "earthly/dind:alpine-3.18-docker-23.0.6-r7"
 )
 
 // DockerLoadOpt holds parameters for WITH DOCKER --load parameter.
