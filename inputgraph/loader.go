@@ -560,6 +560,7 @@ func evalCondition(c []string) (bool, bool) {
 }
 
 func (l *loader) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
+
 	l.hashIfStatement(ifStmt)
 
 	err := l.handleIfEval(ctx, ifStmt)
@@ -573,18 +574,30 @@ func (l *loader) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
 	return nil
 }
 
-func (l *loader) handleIfEval(ctx context.Context, ifStmt spec.IfStatement) error {
-	result, ok := evalConditions(ifStmt.Expression)
+func (l *loader) expandAndEval(ctx context.Context, expr []string) (bool, error) {
+	expr, err := l.expandArgs(ctx, expr)
+	if err != nil {
+		return false, err
+	}
+	result, ok := evalConditions(expr)
 	if !ok {
-		return errComplexCondition
+		return false, errComplexCondition
+	}
+	return result, nil
+}
+
+func (l *loader) handleIfEval(ctx context.Context, ifStmt spec.IfStatement) error {
+	result, err := l.expandAndEval(ctx, ifStmt.Expression)
+	if err != nil {
+		return err
 	}
 	if result {
 		return l.loadBlock(ctx, ifStmt.IfBody)
 	}
 	for _, elseIf := range ifStmt.ElseIf {
-		result, ok := evalConditions(ifStmt.Expression)
-		if !ok {
-			return errComplexCondition
+		result, err := l.expandAndEval(ctx, elseIf.Expression)
+		if err != nil {
+			return err
 		}
 		if result {
 			return l.loadBlock(ctx, elseIf.Body)
