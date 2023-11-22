@@ -389,9 +389,7 @@ func getHintErr(err error, grpcError *status.Status) (*hint.Error, bool) {
 		return res, true
 	}
 	if grpcError != nil {
-		if res, ok := hint.FromError(errors.New(grpcError.Message())); ok {
-			return res, ok
-		}
+		return hint.FromError(errors.New(grpcError.Message()))
 	}
 	return nil, false
 }

@@ -73,11 +73,10 @@ func (vm *vertexMonitor) parseError() {
 	if vm.meta.Internal {
 		internalStr = " internal"
 	}
+	if matches, _ := stringutil.NamedGroupMatches(errString, reHint); len(matches["msg"]) == 1 {
+		errString = matches["msg"][0]
+	}
 	switch {
-	case reHint.MatchString(errString):
-		matches, _ := stringutil.NamedGroupMatches(errString, reHint)
-		errString = matches["msg"][0] //nolint:ineffassign,staticcheck
-		fallthrough
 	case strings.Contains(errString, "context canceled"):
 		vm.isCanceled = true
 		vm.errorStr = "WARN: Canceled"
