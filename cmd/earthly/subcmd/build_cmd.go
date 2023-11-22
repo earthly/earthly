@@ -852,8 +852,7 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		EarthlyCIRunner: a.cli.Flags().EarthlyCIRunner,
 	})
 	if err != nil {
-		console.Warnf("unable to calculate hash for %s: %s", target.String(), err.Error())
-		return nil, nil, false, nil
+		return nil, nil, false, errors.Wrapf(err, "unable to calculate hash for %s", target)
 	}
 
 	skipDB, err = bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, orgName, projectName, target.GetName(), client)
