@@ -322,14 +322,6 @@ func (l *loader) expandArgs(ctx context.Context, args []string) ([]string, error
 }
 
 func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
-	// All commands are expanded and hashed at a minimum.
-	var err error
-	cmd.Args, err = l.expandArgs(ctx, cmd.Args)
-	if err != nil {
-		return err
-	}
-	l.hashCommand(cmd)
-
 	// Some commands require more processing.
 	switch cmd.Name {
 	case command.From:
@@ -342,9 +334,79 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 		return l.handleArg(ctx, cmd)
 	case command.FromDockerfile:
 		return l.handleFromDockerfile(ctx, cmd)
+	case command.Run:
+		return l.handleRun(ctx, cmd)
+	case command.Project, command.Workdir, command.Env, command.Volume, command.Entrypoint:
+		return l.handleSimpleCommand(ctx, cmd)
+	case command.SaveArtifact:
+		return l.handleSaveArtifact(ctx, cmd)
+	case command.SaveImage:
+		return l.handleSaveImage(ctx, cmd)
 	default:
-		return nil
+		return errors.Errorf("unhandled command %s", cmd.Name)
 	}
+}
+
+func (l *loader) handleSimpleCommand(ctx context.Context, cmd spec.Command) error {
+	var err error
+	cmd.Args, err = l.expandArgs(ctx, cmd.Args)
+	if err != nil {
+		return err
+	}
+
+	l.hashCommand(cmd)
+	return nil
+}
+
+func (l *loader) handleSaveArtifact(ctx context.Context, cmd spec.Command) error {
+	opts := commandflag.SaveArtifactOpts{}
+
+	args, err := flagutil.ParseArgsCleaned(command.SaveArtifact, &opts, flagutil.GetArgsCopy(cmd))
+	if err != nil {
+		return err
+	}
+
+	cmd.Args, err = l.expandArgs(ctx, args)
+	if err != nil {
+		return err
+	}
+
+	l.hashCommand(cmd)
+	return nil
+}
+
+func (l *loader) handleSaveImage(ctx context.Context, cmd spec.Command) error {
+	opts := commandflag.SaveImageOpts{}
+
+	args, err := flagutil.ParseArgsCleaned(command.SaveArtifact, &opts, flagutil.GetArgsCopy(cmd))
+	if err != nil {
+		return err
+	}
+
+	cmd.Args, err = l.expandArgs(ctx, args)
+	if err != nil {
+		return err
+	}
+
+	l.hashCommand(cmd)
+	return nil
+}
+
+func (l *loader) handleRun(ctx context.Context, cmd spec.Command) error {
+	opts := commandflag.RunOpts{}
+
+	args, err := flagutil.ParseArgsCleaned(command.Run, &opts, flagutil.GetArgsCopy(cmd))
+	if err != nil {
+		return err
+	}
+
+	cmd.Args, err = l.expandArgs(ctx, args)
+	if err != nil {
+		return err
+	}
+
+	l.hashCommand(cmd)
+	return nil
 }
 
 func (l *loader) handleFromDockerfile(ctx context.Context, cmd spec.Command) error {
