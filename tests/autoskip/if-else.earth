@@ -6,9 +6,29 @@ FROM alpine
 
 test:
     IF [ true ]
-       RUN echo "condition ok"
+        RUN echo "condition ok"
     ELSE IF [ false ]
-       RUN echo "never"
+        RUN echo "never"
     ELSE
-       RUN echo "nope"
+        RUN echo "nope"
+    END
+
+test-eval:
+    ARG VAL=FOO
+    IF [ -n "$VAL" ]
+        RUN echo "condition ok"
+    ELSE
+        # Unsupported op should not be visited.
+        COPY --from my-file .
+    END
+
+test-eval-2:
+    ARG VAL=2
+    IF [ "$VAL" -gt 5 ]
+        RUN echo "nope"
+    ELSE IF [ "$VAL" -lt 10 ]
+        RUN echo "condition ok"
+    ELSE
+        # Unsupported op should not be visited.
+        COPY --from my-file .
     END
