@@ -21,7 +21,8 @@ redirects:
     guides/multi-platform: guides/multi-platform.md
     guides/target-ref: guides/importing.md
     docs/guides/target-ref: guides/importing.md
-    guides/udc: guides/udc.md
+    guides/udc: guides/functions.md
+    docs/guides/udc: guides/functions.md
     earthly-config: earthly-config/earthly-config.md
     ci-integration: ci-integration/overview.md
     earth-command: earthly-command/earthly-command.md
