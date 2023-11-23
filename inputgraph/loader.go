@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/earthly/earthly/ast/command"
 	"github.com/earthly/earthly/ast/commandflag"
 	"github.com/earthly/earthly/ast/spec"
@@ -22,7 +21,7 @@ import (
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/buildkitskipper/hasher"
 	"github.com/earthly/earthly/util/flagutil"
-	"github.com/earthly/earthly/util/shell"
+	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/variables"
 	"github.com/pkg/errors"
 )
@@ -312,21 +311,11 @@ func (l *loader) expandDirs(dirs ...string) ([]string, error) {
 
 func (l *loader) expandArgs(ctx context.Context, args []string) ([]string, error) {
 
-	// The args passed to this method have been split on whitespace without
-	// keeping quoted strings intact. Let's split them correctly using shlex.
-	all := strings.Join(args, " ")
-	shlex := shell.NewLex('\\')
-	shlex.ShellOut = func(arg string) (string, error) {
-		return arg, nil
-	}
-	shlex.SkipUnsetEnv = true
-	cleaned, err := shlex.ProcessWords(all, nil, nil)
-	if err != nil {
-		return nil, err
-	}
+	// Reform the args such that quoted args are combined.
+	args = stringutil.ProcessParamsAndQuotes(args)
 
 	ret := []string{}
-	for _, arg := range cleaned {
+	for _, arg := range args {
 		expanded, err := l.varCollection.Expand(arg, func(cmd string) (string, error) {
 			return arg, nil // Return the original expression so it can be referenced later.
 		})
@@ -341,14 +330,12 @@ func (l *loader) expandArgs(ctx context.Context, args []string) ([]string, error
 
 func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 	// All commands are expanded and hashed at a minimum.
-	if cmd.Name != command.Arg {
-		var err error
-		cmd.Args, err = l.expandArgs(ctx, cmd.Args)
-		if err != nil {
-			return err
-		}
-		l.hashCommand(cmd)
+	var err error
+	cmd.Args, err = l.expandArgs(ctx, cmd.Args)
+	if err != nil {
+		return err
 	}
+	l.hashCommand(cmd)
 
 	// Some commands require more processing.
 	switch cmd.Name {
@@ -387,7 +374,6 @@ func (l *loader) handleFromDockerfile(ctx context.Context, cmd spec.Command) err
 }
 
 func (l *loader) handleArg(ctx context.Context, cmd spec.Command) error {
-	spew.Dump(cmd)
 	opts, key, valueOrNil, err := flagutil.ParseArgArgs(ctx, cmd, l.isBaseTarget, l.features.ExplicitGlobal)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse ARG args")
@@ -468,7 +454,8 @@ func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 // each set of sub-expressions until a positive result is encountered. When an
 // AND (&&) is encountered, the function will recursively call itself to compute
 // a final boolean result for that set of expressions.
-func evalConditions(all string) (bool, bool) {
+func evalConditions(c []string) (bool, bool) {
+	all := strings.Join(c, " ")
 	orGroups := strings.Split(all, "||")
 
 	for _, orGroup := range orGroups {
@@ -493,7 +480,7 @@ func evalConditions(all string) (bool, bool) {
 					return false, false
 				}
 			case "&&":
-				rest, ok := evalConditions(strings.Join(parts[i+1:], " "))
+				rest, ok := evalConditions(parts[i+1:])
 				if !ok {
 					return false, false
 				}
@@ -595,22 +582,12 @@ func (l *loader) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
 }
 
 func (l *loader) expandAndEval(ctx context.Context, expr []string) (bool, error) {
-	// expr, err := l.expandArgs(ctx, expr)
-	// if err != nil {
-	// 	return false, err
-	// }
-	// spew.Dump(expr)
-
-	all := strings.Join(expr, " ")
-
-	expanded, err := l.varCollection.Expand(all, func(cmd string) (string, error) {
-		return all, nil // Return the original expression so it can be referenced later.
-	})
+	expr, err := l.expandArgs(ctx, expr)
 	if err != nil {
 		return false, err
 	}
 
-	result, ok := evalConditions(expanded)
+	result, ok := evalConditions(expr)
 	if !ok {
 		return false, errComplexCondition
 	}
