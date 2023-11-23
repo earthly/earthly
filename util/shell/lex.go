@@ -6,6 +6,7 @@ package shell
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"strings"
 	"text/scanner"
 	"unicode"
@@ -501,6 +502,32 @@ func (sw *shellWord) processDollarCurlyBracket() (string, error) {
 			return "", errors.Errorf("%s: %s", name, message)
 		}
 		return newValue, nil
+	case '%':
+		word, _, err := sw.processStopOn('}')
+		if err != nil {
+			if sw.scanner.Peek() == scanner.EOF {
+				return "", errors.New("syntax error: missing '}'")
+			}
+			return "", err
+		}
+		newValue, err := sw.getEnv(name)
+		var found bool
+		switch err {
+		case nil:
+			found = true
+		case errEnvNotFound:
+			break
+		default:
+			return "", err
+		}
+		if !found && sw.skipUnsetEnv {
+			return fmt.Sprintf("${%s%%%s}", name, word), nil
+		}
+		re, err := regexp.Compile(word + "$")
+		if err != nil {
+			return "", errors.Wrap(err, "failed to compile regexp")
+		}
+		return re.ReplaceAllString(newValue, ""), nil
 	case '#':
 		word, _, err := sw.processStopOn('}')
 		if err != nil {
@@ -519,17 +546,14 @@ func (sw *shellWord) processDollarCurlyBracket() (string, error) {
 		default:
 			return "", err
 		}
-		if !found {
-			if sw.skipUnsetEnv {
-				return fmt.Sprintf("${%s#%s}", name, word), nil
-			}
-			message := "is not allowed to be unset"
-			if word != "" {
-				message = word
-			}
-			return "", errors.Errorf("%s: %s", name, message)
+		if !found && sw.skipUnsetEnv {
+			return fmt.Sprintf("${%s#%s}", name, word), nil
 		}
-		return newValue, nil
+		re, err := regexp.Compile("^" + word)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to compile regexp")
+		}
+		return re.ReplaceAllString(newValue, ""), nil
 	case ':':
 		// Special ${xx:...} format processing
 		// Yes it allows for recursive $'s in the ... spot

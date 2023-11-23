@@ -48,6 +48,26 @@ func TestShellParserMandatoryEnvVars(t *testing.T) {
 	require.Contains(t, err.Error(), "message herex")
 }
 
+func TestShellParserHash(t *testing.T) {
+	shlex := NewLex('\\')
+	setEnvs := map[string]string{"VAR": "hello world"}
+	word := "goodbye${VAR#hello}"
+
+	newWord, err := shlex.ProcessWordWithMap(word, setEnvs, nil)
+	require.NoError(t, err)
+	require.Equal(t, "goodbye world", newWord)
+}
+
+func TestShellParserPercent(t *testing.T) {
+	shlex := NewLex('\\')
+	setEnvs := map[string]string{"VAR": "image.jpg"}
+	word := "${VAR%.jpg}"
+
+	newWord, err := shlex.ProcessWordWithMap(word, setEnvs, nil)
+	require.NoError(t, err)
+	require.Equal(t, "image", newWord)
+}
+
 func TestShellParser4EnvVars(t *testing.T) {
 	fn := "envVarTest"
 	lineCount := 0
