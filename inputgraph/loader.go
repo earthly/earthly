@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/earthly/earthly/ast/command"
 	"github.com/earthly/earthly/ast/commandflag"
 	"github.com/earthly/earthly/ast/spec"
@@ -308,6 +309,16 @@ func (l *loader) expandDirs(dirs ...string) ([]string, error) {
 }
 
 func (l *loader) expandArgs(ctx context.Context, args []string) ([]string, error) {
+
+	// The args passed to this method have been split on whitespace without
+	// keeping quoted strings intact. Let's split them correctly using shlex.
+	cleaned, err := flagutil.ParseArgsCleaned("", nil, args)
+	if err != nil {
+		return nil, err
+	}
+
+	spew.Dump(args, cleaned)
+
 	ret := []string{}
 	for _, arg := range args {
 		expanded, err := l.varCollection.Expand(arg, func(cmd string) (string, error) {
@@ -318,6 +329,7 @@ func (l *loader) expandArgs(ctx context.Context, args []string) ([]string, error
 		}
 		ret = append(ret, expanded)
 	}
+
 	return ret, nil
 }
 

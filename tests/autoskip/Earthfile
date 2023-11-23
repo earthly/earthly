@@ -4,6 +4,8 @@ FROM --pass-args ../..+earthly-integration-test-base
 
 IMPORT .. AS tests
 
+PROJECT earthly-technologies/core
+
 WORKDIR /test
 
 test-all:
