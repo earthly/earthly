@@ -1532,31 +1532,37 @@ a-locally-example:
 
 #### Description
 
-The command `COMMAND` marks the beginning of a user-defined command (UDC) definition. UDCs are templates (much like functions in regular programming languages), which can be used to define a series of steps to be executed in sequence. In order to reference and execute a UDC, you may use the command [`DO`](#do).
+{% hint style='danger' %}
+#### UDCs have been renamed to Functions
 
-Unlike performing a `BUILD +target`, UDCs inherit the build context and the build environment from the caller.
+Functions used to be called UDCs (User Defined Commands). Earthly 0.7 still uses `COMMAND` for declaring functions, but the keyword is deprecated and will be replaced by `FUNCTION` in Earthly 0.8.
+{% endhint %}
 
-UDCs create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +COMMAND --<build-arg-key>=<build-arg-value>`.
+The command `COMMAND` marks the beginning of a function definition. Functions are reusable sets of instructions that can be inserted in targets or other functions. In order to reference and execute a function, you may use the command [`DO`](#do).
+
+Unlike performing a `BUILD +target`, functions inherit the build context and the build environment from the caller.
+
+Functions create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +MY_FUNCTION --<build-arg-key>=<build-arg-value>`.
 
 Global imports and global args are inherited from the `base` target of the same Earthfile where the command is defined in (this may be distinct from the `base` target of the caller).
 
-For more information see the [User-defined commands guide](../guides/udc.md).
+For more information see the [Functions Guide](../guides/functions.md).
 
 ## DO
 
 #### Synopsis
 
-* `DO [--allow-privileged] <command-ref> [--<build-arg-key>=<build-arg-value>...]`
+* `DO [--allow-privileged] <function-ref> [--<build-arg-key>=<build-arg-value>...]`
 
 #### Description
 
-The command `DO` expands and executes the series of commands contained within a user-defined command (UDC) [referenced by `<command-ref>`](../guides/importing.md#command-reference).
+The command `DO` expands and executes the series of commands contained within a function [referenced by `<function-ref>`](../guides/importing.md#function-reference).
 
-Unlike performing a `BUILD +target`, UDCs inherit the build context and the build environment from the caller.
+Unlike performing a `BUILD +target`, functions inherit the build context and the build environment from the caller.
 
-UDCs create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +COMMAND --<build-arg-key>=<build-arg-value>`.
+Functions create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +MY_FUNCTION --<build-arg-key>=<build-arg-value>`.
 
-For more information see the [User-defined commands guide](../guides/udc.md).
+For more information see the [Functions Guide](../guides/functions.md).
 
 #### Options
 

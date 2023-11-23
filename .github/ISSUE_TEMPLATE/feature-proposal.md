@@ -13,7 +13,7 @@ assignees: ''
 **Expected Behavior**
 <!-- Please describe how you expect the change to work. Ideally, follow the style of reproduction steps - the steps that you expect to take, followed by the expected outcome.
 
-Example: if the proposal is to "allow user defined commands to return values", the steps may be:
+Example: if the proposal is to "allow functions to return values", the steps may be:
 
 1. Given the following Earthfile:
 ```

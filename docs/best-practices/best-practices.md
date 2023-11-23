@@ -947,7 +947,7 @@ And then running `docker build -f ./services/app1.Dockerfile ./app1-src-dir ...`
 In Earthly, however, this is an anti-pattern, for a couple reasons:
 
 - Every repository using Earthly should have a common structure, to help the user navigate the build. The convention is that Earthfiles are as close to the code as possible, with some high-level targets exposed in the root of the repository, or the root of the directory containing the code for a specific app. Having this convention helps the users who have not written the Earthfiles to quickly be able to browse around and understand the build, at least at a high level.
-- Cross-directory and cross-repository references will point to directories where the user expects an Earthfile to be present, and then to a specific target or UDC within that Earthfile. It is important for this discoverability to be available to anyone browsing the build code and understanding the connections between Earthfiles.
+- Cross-directory and cross-repository references will point to directories where the user expects an Earthfile to be present, and then to a specific target or function within that Earthfile. It is important for this discoverability to be available to anyone browsing the build code and understanding the connections between Earthfiles.
 
 For these reasons, Earthly does not support placing all Earthfiles in a single directory, nor the equivalent of a `docker build -f` option.
 
@@ -1037,7 +1037,7 @@ Let's assume that `some-other-image:latest` does not already have Docker engine 
 
 The problem, however, will be apparent when there is a change (no matter how small) to `docker-compose.yml`. That will cause the build to re-execute without cache from the `COPY` command onwards, meaning that the installation of Docker engine will be repeated.
 
-A simple way to fix this is to use an earthly-provided [UDC](../guides/udc.md) to install Docker engine before the `COPY` command. Please note that this particular UDC is fastest when ran on top of an alpine-based image.
+A simple way to fix this is to use an earthly-provided [function](../guides/functions.md) to install Docker engine before the `COPY` command. Please note that this particular function is fastest when ran on top of an alpine-based image.
 
 ```Dockerfile
 # Better

@@ -1,6 +1,6 @@
 # Importing
 
-Importing in Earthly is how multiple build components (targets, artifacts, commands, Earthfiles) can be interconnected to compose complex build setups while reusing build code. This page describes the syntax and semantics of importing in Earthly.
+Importing in Earthly is how multiple build components (targets, artifacts, functions, Earthfiles) can be interconnected to compose complex build setups while reusing build code. This page describes the syntax and semantics of importing in Earthly.
 
 ## Cheat sheet
 
@@ -82,7 +82,7 @@ This subsection goes through the different types of references that Earthly uses
 * Target references: `<earthfile-ref>+my-target`
 * Artifact references: `<earthfile-ref>+my-target/my-artifact.bin`
 * Image references (same as target references)
-* Command references: `<earthfile-ref>+MY_COMMAND`
+* Function references: `<earthfile-ref>+MY_FUNCTION`
 
 ## Target reference
 
@@ -90,7 +90,7 @@ Target references point to an Earthly target. They have the general form
 
 `<earthfile-ref>+<target>`
 
-Target references distinguish themselves from command references (see below) by having a name in all-lower-case, kebab-case (e.g. `+my-target`).
+Target references distinguish themselves from function references (see below) by having a name in all-lower-case, kebab-case (e.g. `+my-target`).
 
 Here are some examples:
 
@@ -119,13 +119,13 @@ Because there can only be one image per target, image references have the exact 
 
 The only difference is the context where they are used. For example, a `FROM` command takes an image reference. While a `BUILD` command takes a target reference.
 
-## Command reference
+## Function reference
 
-Command references point to a [user-defined command](./udc.md) (UDC) in an Earthfile. They have the general form
+Function references point to a [function](./functions.md) in an Earthfile. They have the general form
 
-`<earthfile-ref>+<command>`
+`<earthfile-ref>+<function>`
 
-Command references distinguish themselves from target references by having a name in all-caps, snake-case (e.g. `+MY_COMMAND`).
+Function references distinguish themselves from target references by having a name in all-caps, snake-case (e.g. `+MY_FUNCTION`).
 
 Here are some examples:
 
@@ -134,30 +134,30 @@ Here are some examples:
 * `github.com/earthly/earthly:v0.7.20+DOWNLOAD_DIND`
 * `my-import+COMPILE`
 
-For more information on UDCs, see the [User-defined commands guide](./udc.md).
+For more information on functions, see the [Functions Guide](./functions.md).
 
 ## Earthfile references
 
-Earthfile references appear in target, artifact and command references. They point to the Earthfile containing the respective target, artifact or command. Below are the different types of Earthfile references available in Earthly.
+Earthfile references appear in target, artifact and function references. They point to the Earthfile containing the respective target, artifact or function. Below are the different types of Earthfile references available in Earthly.
 
 ### Local, internal
 
-The simplest form, is where a target, command or artifact is referenced from the same Earthfile. In this case, the Earthfile reference is simply **the empty string**. Here are some examples of this type of Earthfile reference being used in various other references:
+The simplest form, is where a target, function or artifact is referenced from the same Earthfile. In this case, the Earthfile reference is simply **the empty string**. Here are some examples of this type of Earthfile reference being used in various other references:
 
-| Earthfile ref | Target ref | Artifact ref | Command ref |
+| Earthfile ref | Target ref | Artifact ref | Function ref |
 |----|----|----|----|
-| (**empty string**) | `+<target-name>` | `+<target-name>/<artifact-path>` | `+<command-name>` |
+| (**empty string**) | `+<target-name>` | `+<target-name>/<artifact-path>` | `+<function-name>` |
 | (**empty string**) | `+build` | `+build/out.bin` | `+COMPILE` |
 
 In this form, Earthly will look for the target within the same Earthfile. We call this type of referencing local, internal. Local, because it comes from the same system, and internal, because it is within the same Earthfile.
 
 ### Local, external
 
-Another form, is where a target, command or artifact is referenced from a different directory. In this form, the path to that directory is specified before `+`. It must always start with either `./`, `../` or `/`, on any operating system (including Windows). Example:
+Another form, is where a target, function or artifact is referenced from a different directory. In this form, the path to that directory is specified before `+`. It must always start with either `./`, `../` or `/`, on any operating system (including Windows). Example:
 
-| Earthfile ref | Target ref | Artifact ref | Command ref |
+| Earthfile ref | Target ref | Artifact ref | Function ref |
 |----|----|----|----|
-| `./path/to/another/dir` | `./path/to/another/dir+<target-name>` | `./path/to/another/dir+<target-name>/<artifact-path>` | `./path/to/another/dir+<command-name>` |
+| `./path/to/another/dir` | `./path/to/another/dir+<target-name>` | `./path/to/another/dir+<target-name>/<artifact-path>` | `./path/to/another/dir+<function-name>` |
 | `./js` | `./js+build` | `./js+build/out.bin` | `./js+COMPILE` |
 
 It is recommended that relative paths are used, for portability reasons: the working directory checked out by different users will be different, making absolute paths infeasible in most cases.
@@ -166,9 +166,9 @@ It is recommended that relative paths are used, for portability reasons: the wor
 
 Another form of a Earthfile reference is the remote form. In this form, the recipe and the build context are imported from a remote location. It has the following form:
 
-| Earthfile ref | Target ref | Artifact ref | Command ref |
+| Earthfile ref | Target ref | Artifact ref | Function ref |
 |----|----|----|----|
-| `<vendor>/<namespace>/<project>/path/in/project[:some-tag]` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<target-name>` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<target-name>/<artifact-path>` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<command-name>` |
+| `<vendor>/<namespace>/<project>/path/in/project[:some-tag]` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<target-name>` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<target-name>/<artifact-path>` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<function-name>` |
 | `github.com/earthly/earthly/buildkitd` | `github.com/earthly/earthly/buildkitd+build` | `github.com/earthly/earthly/buildkitd+build/out.bin` | `github.com/earthly/earthly/buildkitd+COMPILE` |
 | `github.com/earthly/earthly:v0.7.20` | `github.com/earthly/earthly:v0.7.20+build` | `github.com/earthly/earthly:v0.7.20+build/out.bin` | `github.com/earthly/earthly:v0.7.20+COMPILE` |
 
@@ -176,9 +176,9 @@ Another form of a Earthfile reference is the remote form. In this form, the reci
 
 Finally, the last form of Earthfile referencing is an import reference. Import references may only exist after an `IMPORT` command, which helps resolve the reference to a full Earthfile reference of the types above.
 
-| Import command | Earthfile ref | Target ref | Artifact ref | Command ref |
+| Import command | Earthfile ref | Target ref | Artifact ref | Function ref |
 |----|----|----|----|----|
-| `IMPORT <full-earthfile-ref> AS <import-alias>` | `<import-alias>` | `<import-alias>+<target-name>` | `<import-alias>+<target-name>/<artifact-path>` | `<import-alias>+<command-name>` |
+| `IMPORT <full-earthfile-ref> AS <import-alias>` | `<import-alias>` | `<import-alias>+<target-name>` | `<import-alias>+<target-name>/<artifact-path>` | `<import-alias>+<function-name>` |
 | `IMPORT github.com/earthly/earthly/buildkitd` | `buildkitd` | `buildkitd+build` | `buildkitd+build/out.bin` | `buildkitd+COMPILE` |
 | `IMPORT github.com/earthly/earthly:v0.7.20` | `earthly` | `earthly+build` | `earthly+build/out.bin` | `earthly+COMPILE` |
 
