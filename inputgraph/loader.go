@@ -62,7 +62,13 @@ func newLoader(ctx context.Context, opt HashOpt) *loader {
 
 func (l *loader) handleFrom(ctx context.Context, cmd spec.Command) error {
 	opts := commandflag.FromOpts{}
+
 	args, err := flagutil.ParseArgsCleaned(command.From, &opts, flagutil.GetArgsCopy(cmd))
+	if err != nil {
+		return err
+	}
+
+	args, err = l.expandArgs(ctx, args)
 	if err != nil {
 		return err
 	}
@@ -86,7 +92,13 @@ func (l *loader) handleFrom(ctx context.Context, cmd spec.Command) error {
 
 func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
 	opts := commandflag.BuildOpts{}
+
 	args, err := flagutil.ParseArgsCleaned(command.Build, &opts, flagutil.GetArgsCopy(cmd))
+	if err != nil {
+		return err
+	}
+
+	args, err = l.expandArgs(ctx, args)
 	if err != nil {
 		return err
 	}
@@ -123,7 +135,13 @@ func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
 
 func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 	opts := commandflag.CopyOpts{}
+
 	args, err := flagutil.ParseArgsCleaned(command.Copy, &opts, flagutil.GetArgsCopy(cmd))
+	if err != nil {
+		return err
+	}
+
+	args, err = l.expandArgs(ctx, args)
 	if err != nil {
 		return err
 	}
@@ -336,14 +354,12 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 		return l.handleFromDockerfile(ctx, cmd)
 	case command.Run:
 		return l.handleRun(ctx, cmd)
-	case command.Project, command.Workdir, command.Env, command.Volume, command.Entrypoint:
-		return l.handleSimpleCommand(ctx, cmd)
 	case command.SaveArtifact:
 		return l.handleSaveArtifact(ctx, cmd)
 	case command.SaveImage:
 		return l.handleSaveImage(ctx, cmd)
 	default:
-		return errors.Errorf("unhandled command %s", cmd.Name)
+		return l.handleSimpleCommand(ctx, cmd)
 	}
 }
 
@@ -411,24 +427,40 @@ func (l *loader) handleRun(ctx context.Context, cmd spec.Command) error {
 
 func (l *loader) handleFromDockerfile(ctx context.Context, cmd spec.Command) error {
 	opts := commandflag.FromDockerfileOpts{}
+
 	args, err := flagutil.ParseArgsCleaned(command.FromDockerfile, &opts, flagutil.GetArgsCopy(cmd))
 	if err != nil {
 		return err
 	}
+
+	args, err = l.expandArgs(ctx, args)
+	if err != nil {
+		return err
+	}
+
 	if opts.Path != "" {
 		if err := l.handleCopySrc(ctx, opts.Path, false); err != nil {
 			return err
 		}
 	}
+
 	if len(args) > 0 {
 		if err := l.handleCopySrc(ctx, args[0], false); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
 func (l *loader) handleArg(ctx context.Context, cmd spec.Command) error {
+
+	var err error
+	cmd.Args, err = l.expandArgs(ctx, cmd.Args)
+	if err != nil {
+		return err
+	}
+
 	opts, key, valueOrNil, err := flagutil.ParseArgArgs(ctx, cmd, l.isBaseTarget, l.features.ExplicitGlobal)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse ARG args")
