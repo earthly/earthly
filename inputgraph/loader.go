@@ -73,6 +73,10 @@ func (l *loader) handleFrom(ctx context.Context, cmd spec.Command) error {
 		return err
 	}
 
+	cmd.Args = args
+	l.hashCommand(cmd)
+	l.hasher.HashJSONMarshalled(opts)
+
 	fromTarget := args[0]
 	if !strings.Contains(fromTarget, "+") {
 		return nil
@@ -102,6 +106,10 @@ func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return err
 	}
+
+	cmd.Args = args
+	l.hashCommand(cmd)
+	l.hasher.HashJSONMarshalled(opts)
 
 	if len(args) < 1 {
 		return errors.New("missing BUILD arg")
@@ -145,6 +153,10 @@ func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return err
 	}
+
+	cmd.Args = args
+	l.hashCommand(cmd)
+	l.hasher.HashJSONMarshalled(opts)
 
 	if opts.From != "" {
 		return errors.New("COPY --from is not supported")
@@ -388,6 +400,8 @@ func (l *loader) handleSaveArtifact(ctx context.Context, cmd spec.Command) error
 	}
 
 	l.hashCommand(cmd)
+	l.hasher.HashJSONMarshalled(opts)
+
 	return nil
 }
 
@@ -405,6 +419,8 @@ func (l *loader) handleSaveImage(ctx context.Context, cmd spec.Command) error {
 	}
 
 	l.hashCommand(cmd)
+	l.hasher.HashJSONMarshalled(opts)
+
 	return nil
 }
 
@@ -422,6 +438,8 @@ func (l *loader) handleRun(ctx context.Context, cmd spec.Command) error {
 	}
 
 	l.hashCommand(cmd)
+	l.hasher.HashJSONMarshalled(opts)
+
 	return nil
 }
 
@@ -437,6 +455,10 @@ func (l *loader) handleFromDockerfile(ctx context.Context, cmd spec.Command) err
 	if err != nil {
 		return err
 	}
+
+	cmd.Args = args
+	l.hashCommand(cmd)
+	l.hasher.HashJSONMarshalled(opts)
 
 	if opts.Path != "" {
 		if err := l.handleCopySrc(ctx, opts.Path, false); err != nil {
@@ -465,6 +487,9 @@ func (l *loader) handleArg(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to parse ARG args")
 	}
+
+	l.hashCommand(cmd)
+	l.hasher.HashJSONMarshalled(opts)
 
 	declOpts := []variables.DeclareOpt{
 		variables.AsArg(),
@@ -505,13 +530,15 @@ func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 		return err
 	}
 
-	l.hashCommand(cmd)
 	opts := commandflag.WithDockerOpts{}
 
 	_, err = flagutil.ParseArgsCleaned("WITH DOCKER", &opts, flagutil.GetArgsCopy(cmd))
 	if err != nil {
 		return errors.New("failed to parse WITH DOCKER flags")
 	}
+
+	l.hashCommand(cmd)
+	l.hasher.HashJSONMarshalled(opts)
 
 	for _, load := range opts.Loads {
 		_, target, extraArgs, err := earthfile2llb.ParseLoad(load)
