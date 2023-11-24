@@ -310,7 +310,6 @@ func (l *loader) expandDirs(dirs ...string) ([]string, error) {
 }
 
 func (l *loader) expandArgs(ctx context.Context, args []string) ([]string, error) {
-
 	// Reform the args such that quoted args are combined.
 	args = stringutil.ProcessParamsAndQuotes(args)
 

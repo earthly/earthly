@@ -6,7 +6,6 @@ package shell
 import (
 	"bytes"
 	"fmt"
-	"regexp"
 	"strings"
 	"text/scanner"
 	"unicode"
@@ -523,11 +522,13 @@ func (sw *shellWord) processDollarCurlyBracket() (string, error) {
 		if !found && sw.skipUnsetEnv {
 			return fmt.Sprintf("${%s%%%s}", name, word), nil
 		}
-		re, err := regexp.Compile(word + "$")
-		if err != nil {
-			return "", errors.Wrap(err, "failed to compile regexp")
+		if len(word) > len(newValue) {
+			return newValue, nil
 		}
-		return re.ReplaceAllString(newValue, ""), nil
+		if newValue[len(newValue)-len(word):] == word {
+			return newValue[:len(newValue)-len(word)], nil
+		}
+		return newValue, nil
 	case '#':
 		word, _, err := sw.processStopOn('}')
 		if err != nil {
@@ -549,11 +550,13 @@ func (sw *shellWord) processDollarCurlyBracket() (string, error) {
 		if !found && sw.skipUnsetEnv {
 			return fmt.Sprintf("${%s#%s}", name, word), nil
 		}
-		re, err := regexp.Compile("^" + word)
-		if err != nil {
-			return "", errors.Wrap(err, "failed to compile regexp")
+		if len(word) > len(newValue) {
+			return newValue, nil
 		}
-		return re.ReplaceAllString(newValue, ""), nil
+		if newValue[0:len(word)] == word {
+			return newValue[len(word):], nil
+		}
+		return newValue, nil
 	case ':':
 		// Special ${xx:...} format processing
 		// Yes it allows for recursive $'s in the ... spot
