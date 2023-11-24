@@ -36,5 +36,4 @@ RUN_EARTHLY_ARGS:
         --output_contains=$output_contains \
         --output_does_not_contain=$output_does_not_contain \
         --pre_command=$pre_command \
-        --post_command=$post_command \
-        --extra_args="--auto-skip --auto-skip-db-path=test.db" \
+        --post_command=$post_command

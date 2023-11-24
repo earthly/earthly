@@ -1,0 +1,38 @@
+VERSION --pass-args 0.7
+FROM --pass-args ../..+earthly-integration-test-base
+
+IMPORT .. AS tests
+
+WORKDIR /test
+
+all:
+    BUILD +test-calls-from-other-file
+    BUILD +test-failed-calls
+
+test-calls-from-other-file:
+    WORKDIR /my/test
+    RUN mkdir -p some/subdir
+    COPY caller.earth Earthfile
+    COPY command.earth some/subdir/Earthfile
+    DO --pass-args +RUN_EARTHLY_ARGS --target=+test-successful-command
+    COPY function.earth some/subdir/Earthfile
+    DO --pass-args +RUN_EARTHLY_ARGS --target=+test-successful-function
+
+test-failed-calls:
+    WORKDIR /my/test
+    RUN mkdir -p some/subdir
+    COPY caller.earth Earthfile
+    COPY function.earth some/subdir/Earthfile
+    DO --pass-args +RUN_EARTHLY_ARGS --should_fail=true --target=+test-failed-command
+    COPY command.earth some/subdir/Earthfile
+    DO --pass-args +RUN_EARTHLY_ARGS --should_fail=true --target=+test-failed-function
+
+RUN_EARTHLY_ARGS:
+    COMMAND
+    ARG earthfile
+    ARG target
+    ARG should_fail=false
+    DO --pass-args tests+RUN_EARTHLY \
+        --earthfile=$earthfile \
+        --target=$target \
+        --should_fail=$should_fail

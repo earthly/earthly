@@ -1,0 +1,15 @@
+VERSION 0.7
+
+FROM alpine:3.18
+
+test-successful-command:
+    DO ./some/subdir+COMMAND_THAT_SUCCEEDS
+
+test-successful-function:
+    DO ./some/subdir+FUNCTION_THAT_SUCCEEDS
+
+test-failed-command:
+    DO ./some/subdir+COMMAND_THAT_FAILS
+
+test-failed-function:
+    DO ./some/subdir+FUNCTION_THAT_FAILS

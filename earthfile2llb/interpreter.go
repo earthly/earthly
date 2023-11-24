@@ -278,6 +278,8 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 		return i.handleShell(ctx, cmd)
 	case command.Command:
 		return i.handleUserCommand(ctx, cmd)
+	case command.Function:
+		return i.handleUserFunction(ctx, cmd)
 	case command.Do:
 		return i.handleDo(ctx, cmd)
 	case command.Import:
@@ -1727,8 +1729,12 @@ func (i *Interpreter) handleShell(ctx context.Context, cmd spec.Command) error {
 	return i.errorf(cmd.SourceLocation, "command SHELL not yet supported")
 }
 
-func (i *Interpreter) handleUserCommand(ctx context.Context, cmd spec.Command) error {
+func (i *Interpreter) handleUserCommand(_ context.Context, cmd spec.Command) error {
 	return i.errorf(cmd.SourceLocation, "command COMMAND not allowed in a target definition")
+}
+
+func (i *Interpreter) handleUserFunction(_ context.Context, cmd spec.Command) error {
+	return i.errorf(cmd.SourceLocation, "command FUNCTION not allowed in a target definition")
 }
 
 func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
@@ -1779,9 +1785,9 @@ func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 		return i.errorf(cmd.SourceLocation, "the DO --pass-args flag must be enabled with the VERSION --pass-args feature flag.")
 	}
 
-	for _, uc := range bc.Earthfile.UserCommands {
+	for _, uc := range bc.Earthfile.Functions {
 		if uc.Name == command.Command {
-			return i.handleDoUserCommand(ctx, command, relCommand, uc, cmd, parsedFlagArgs, allowPrivileged, opts.PassArgs)
+			return i.handleDoUserFunction(ctx, command, relCommand, uc, cmd, parsedFlagArgs, allowPrivileged, opts.PassArgs, bc.Features.UseFunctionKeyword)
 		}
 	}
 	return i.errorf(cmd.SourceLocation, "user command %s not found", ucName)
@@ -1970,15 +1976,25 @@ func (i *Interpreter) handleHost(ctx context.Context, cmd spec.Command) error {
 
 // ----------------------------------------------------------------------------
 
-func (i *Interpreter) handleDoUserCommand(ctx context.Context, command domain.Command, relCommand domain.Command, uc spec.UserCommand, do spec.Command, buildArgs []string, allowPrivileged, passArgs bool) error {
-	if allowPrivileged && !i.allowPrivileged {
-		return i.errorf(uc.SourceLocation, "invalid privileged in COMMAND") // this shouldn't happen, but check just in case
+func (i *Interpreter) handleDoUserFunction(ctx context.Context, command domain.Command, relCommand domain.Command, uc spec.Function, do spec.Command, buildArgs []string, allowPrivileged, passArgs bool, useFunctionCmd bool) error {
+	cmdName := "FUNCTION"
+	if !useFunctionCmd {
+		cmdName = "COMMAND"
 	}
-	if len(uc.Recipe) == 0 || uc.Recipe[0].Command == nil || uc.Recipe[0].Command.Name != "COMMAND" {
-		return i.errorf(uc.SourceLocation, "command recipes must start with COMMAND")
+	if allowPrivileged && !i.allowPrivileged {
+		return i.errorf(uc.SourceLocation, "invalid privileged in %s", cmdName) // this shouldn't happen, but check just in case
+	}
+	if len(uc.Recipe) == 0 || uc.Recipe[0].Command == nil || uc.Recipe[0].Command.Name != cmdName {
+		return i.errorf(uc.SourceLocation, "%s recipes must start with %s", strings.ToLower(cmdName), cmdName)
+	}
+	if !useFunctionCmd {
+		i.console.Warnf(
+			`COMMAND keyword has been deprecated and replaced by FUNCTION. This change will be enforced as of VERSION 0.8.
+To start using the FUNCTION keyword please use the flag use-function-keyword in the Earthfile that defines the function (e.g. VERSION --use-function-keyword 0.7).
+`)
 	}
 	if len(uc.Recipe[0].Command.Args) > 0 {
-		return i.errorf(uc.Recipe[0].SourceLocation, "COMMAND takes no arguments")
+		return i.errorf(uc.Recipe[0].SourceLocation, "%s takes no arguments", cmdName)
 	}
 	scopeName := fmt.Sprintf(
 		"%s (%s line %d:%d)",

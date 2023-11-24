@@ -63,6 +63,18 @@ func (s *BaseEarthParserListener) EnterUserCommandHeader(ctx *UserCommandHeaderC
 // ExitUserCommandHeader is called when production userCommandHeader is exited.
 func (s *BaseEarthParserListener) ExitUserCommandHeader(ctx *UserCommandHeaderContext) {}
 
+// EnterFunction is called when production function is entered.
+func (s *BaseEarthParserListener) EnterFunction(ctx *FunctionContext) {}
+
+// ExitFunction is called when production function is exited.
+func (s *BaseEarthParserListener) ExitFunction(ctx *FunctionContext) {}
+
+// EnterFunctionHeader is called when production functionHeader is entered.
+func (s *BaseEarthParserListener) EnterFunctionHeader(ctx *FunctionHeaderContext) {}
+
+// ExitFunctionHeader is called when production functionHeader is exited.
+func (s *BaseEarthParserListener) ExitFunctionHeader(ctx *FunctionHeaderContext) {}
+
 // EnterStmts is called when production stmts is entered.
 func (s *BaseEarthParserListener) EnterStmts(ctx *StmtsContext) {}
 
@@ -452,6 +464,12 @@ func (s *BaseEarthParserListener) EnterUserCommandStmt(ctx *UserCommandStmtConte
 
 // ExitUserCommandStmt is called when production userCommandStmt is exited.
 func (s *BaseEarthParserListener) ExitUserCommandStmt(ctx *UserCommandStmtContext) {}
+
+// EnterFunctionStmt is called when production functionStmt is entered.
+func (s *BaseEarthParserListener) EnterFunctionStmt(ctx *FunctionStmtContext) {}
+
+// ExitFunctionStmt is called when production functionStmt is exited.
+func (s *BaseEarthParserListener) ExitFunctionStmt(ctx *FunctionStmtContext) {}
 
 // EnterDoStmt is called when production doStmt is entered.
 func (s *BaseEarthParserListener) EnterDoStmt(ctx *DoStmtContext) {}

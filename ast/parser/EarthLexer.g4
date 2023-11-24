@@ -12,6 +12,7 @@ channels {
 
 Target: [a-z] ([a-zA-Z0-9.] | '-')* ':' -> pushMode(RECIPE);
 UserCommand: [A-Z] ([A-Z0-9._])* ':' -> pushMode(RECIPE);
+Function: [A-Z] ([A-Z0-9._])* ':' -> pushMode(RECIPE);
 
 FROM: 'FROM' -> pushMode(COMMAND_ARGS);
 FROM_DOCKERFILE: 'FROM DOCKERFILE' -> pushMode(COMMAND_ARGS);
@@ -40,6 +41,7 @@ HEALTHCHECK: 'HEALTHCHECK' -> pushMode(COMMAND_ARGS);
 SHELL: 'SHELL' -> pushMode(COMMAND_ARGS);
 DO: 'DO' -> pushMode(COMMAND_ARGS);
 COMMAND: 'COMMAND' -> pushMode(COMMAND_ARGS);
+FUNCTION: 'FUNCTION' -> pushMode(COMMAND_ARGS);
 IMPORT: 'IMPORT' -> pushMode(COMMAND_ARGS);
 VERSION: 'VERSION' -> pushMode(COMMAND_ARGS);
 CACHE: 'CACHE' -> pushMode(COMMAND_ARGS);
@@ -72,6 +74,7 @@ mode RECIPE;
 
 Target_R: Target -> type(Target);
 UserCommand_R: UserCommand -> type(UserCommand);
+Function_R: Function -> type(Function);
 
 FROM_R: FROM -> type(FROM), pushMode(COMMAND_ARGS);
 FROM_DOCKERFILE_R: FROM_DOCKERFILE -> type(FROM_DOCKERFILE), pushMode(COMMAND_ARGS);
@@ -100,6 +103,7 @@ HEALTHCHECK_R: HEALTHCHECK -> type(HEALTHCHECK), pushMode(COMMAND_ARGS);
 SHELL_R: SHELL -> type(SHELL), pushMode(COMMAND_ARGS);
 DO_R: DO -> type(DO), pushMode(COMMAND_ARGS);
 COMMAND_R: COMMAND -> type(COMMAND), pushMode(COMMAND_ARGS);
+FUNCTION_R: FUNCTION -> type(FUNCTION), pushMode(COMMAND_ARGS);
 IMPORT_R: IMPORT -> type(IMPORT), pushMode(COMMAND_ARGS);
 CACHE_R: CACHE -> type(CACHE), pushMode(COMMAND_ARGS);
 HOST_R: HOST -> type(HOST), pushMode(COMMAND_ARGS);
@@ -148,6 +152,7 @@ HEALTHCHECK_B: HEALTHCHECK -> type(HEALTHCHECK), pushMode(COMMAND_ARGS);
 SHELL_B: SHELL -> type(SHELL), pushMode(COMMAND_ARGS);
 DO_B: DO -> type(DO), pushMode(COMMAND_ARGS);
 COMMAND_B: COMMAND -> type(COMMAND), pushMode(COMMAND_ARGS);
+FUNCTION_B: FUNCTION -> type(FUNCTION), pushMode(COMMAND_ARGS);
 IMPORT_B: IMPORT -> type(IMPORT), pushMode(COMMAND_ARGS);
 CACHE_B: CACHE -> type(CACHE), pushMode(COMMAND_ARGS);
 HOST_B: HOST -> type(HOST), pushMode(COMMAND_ARGS);

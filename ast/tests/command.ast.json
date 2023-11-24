@@ -28,9 +28,301 @@
       }
     }
   ],
+  "functions": [
+    {
+      "name": "TOUCH",
+      "recipe": [
+        {
+          "command": {
+            "args": [],
+            "name": "COMMAND"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "touch",
+              "a.txt"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "COMMANDCEPTION",
+      "recipe": [
+        {
+          "command": {
+            "args": [],
+            "name": "COMMAND"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+ANOTHER_COMMAND"
+            ],
+            "name": "DO"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ANOTHER_COMMAND",
+      "recipe": [
+        {
+          "command": {
+            "args": [],
+            "name": "COMMAND"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+TOUCH"
+            ],
+            "name": "DO"
+          }
+        }
+      ]
+    },
+    {
+      "name": "COMMAND_ARGS",
+      "recipe": [
+        {
+          "command": {
+            "args": [],
+            "name": "COMMAND"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "arg1",
+              "=",
+              "default"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "touch",
+              "\"./$arg1\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "RECURSIVE",
+      "recipe": [
+        {
+          "command": {
+            "args": [],
+            "name": "COMMAND"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "level",
+              "=",
+              "5"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "if": {
+            "expression": [
+              "[",
+              "\"$level\"",
+              "-gt",
+              "\"0\"",
+              "]"
+            ],
+            "ifBody": [
+              {
+                "command": {
+                  "args": [
+                    "touch",
+                    "$level"
+                  ],
+                  "name": "RUN"
+                }
+              },
+              {
+                "command": {
+                  "args": [
+                    "newlevel",
+                    "=",
+                    "\"$(echo $((level-1)))\""
+                  ],
+                  "name": "ARG"
+                }
+              },
+              {
+                "command": {
+                  "args": [
+                    "+RECURSIVE",
+                    "--level=$newlevel"
+                  ],
+                  "name": "DO"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TEST_SCOPE",
+      "recipe": [
+        {
+          "command": {
+            "args": [],
+            "name": "COMMAND"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "incommand",
+              "=",
+              "true"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$incommand\"",
+              "=",
+              "\"true\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "!",
+              "test",
+              "\"$notincommand\"",
+              "=",
+              "\"true\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$envincommand\"",
+              "=",
+              "\"true\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TEST_BUILTIN",
+      "recipe": [
+        {
+          "command": {
+            "args": [],
+            "name": "COMMAND"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_TARGET_NAME"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_TARGET_NAME\"",
+              "=",
+              "\"test-builtin\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TOUCH_GLOBAL",
+      "recipe": [
+        {
+          "command": {
+            "args": [],
+            "name": "COMMAND"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$global_var\"",
+              "!=",
+              "\"\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "touch",
+              "$global_var"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TEST_FUNCTION_FAILS",
+      "recipe": [
+        {
+          "command": {
+            "args": [],
+            "name": "FUNCTION"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "this",
+              "should",
+              "not",
+              "be",
+              "printed"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ],
   "targets": [
     {
-      "name": "all",
+      "name": "all-positive",
       "recipe": [
         {
           "command": {
@@ -477,271 +769,16 @@
           }
         }
       ]
-    }
-  ],
-  "userCommands": [
-    {
-      "name": "TOUCH",
-      "recipe": [
-        {
-          "command": {
-            "args": [],
-            "name": "COMMAND"
-          }
-        },
-        {
-          "command": {
-            "args": [
-              "touch",
-              "a.txt"
-            ],
-            "name": "RUN"
-          }
-        }
-      ]
     },
     {
-      "name": "COMMANDCEPTION",
+      "name": "test-function-fails",
       "recipe": [
         {
           "command": {
-            "args": [],
-            "name": "COMMAND"
-          }
-        },
-        {
-          "command": {
             "args": [
-              "+ANOTHER_COMMAND"
+              "+TEST_FUNCTION_FAILS"
             ],
             "name": "DO"
-          }
-        }
-      ]
-    },
-    {
-      "name": "ANOTHER_COMMAND",
-      "recipe": [
-        {
-          "command": {
-            "args": [],
-            "name": "COMMAND"
-          }
-        },
-        {
-          "command": {
-            "args": [
-              "+TOUCH"
-            ],
-            "name": "DO"
-          }
-        }
-      ]
-    },
-    {
-      "name": "COMMAND_ARGS",
-      "recipe": [
-        {
-          "command": {
-            "args": [],
-            "name": "COMMAND"
-          }
-        },
-        {
-          "command": {
-            "args": [
-              "arg1",
-              "=",
-              "default"
-            ],
-            "name": "ARG"
-          }
-        },
-        {
-          "command": {
-            "args": [
-              "touch",
-              "\"./$arg1\""
-            ],
-            "name": "RUN"
-          }
-        }
-      ]
-    },
-    {
-      "name": "RECURSIVE",
-      "recipe": [
-        {
-          "command": {
-            "args": [],
-            "name": "COMMAND"
-          }
-        },
-        {
-          "command": {
-            "args": [
-              "level",
-              "=",
-              "5"
-            ],
-            "name": "ARG"
-          }
-        },
-        {
-          "if": {
-            "expression": [
-              "[",
-              "\"$level\"",
-              "-gt",
-              "\"0\"",
-              "]"
-            ],
-            "ifBody": [
-              {
-                "command": {
-                  "args": [
-                    "touch",
-                    "$level"
-                  ],
-                  "name": "RUN"
-                }
-              },
-              {
-                "command": {
-                  "args": [
-                    "newlevel",
-                    "=",
-                    "\"$(echo $((level-1)))\""
-                  ],
-                  "name": "ARG"
-                }
-              },
-              {
-                "command": {
-                  "args": [
-                    "+RECURSIVE",
-                    "--level=$newlevel"
-                  ],
-                  "name": "DO"
-                }
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "TEST_SCOPE",
-      "recipe": [
-        {
-          "command": {
-            "args": [],
-            "name": "COMMAND"
-          }
-        },
-        {
-          "command": {
-            "args": [
-              "incommand",
-              "=",
-              "true"
-            ],
-            "name": "ARG"
-          }
-        },
-        {
-          "command": {
-            "args": [
-              "test",
-              "\"$incommand\"",
-              "=",
-              "\"true\""
-            ],
-            "name": "RUN"
-          }
-        },
-        {
-          "command": {
-            "args": [
-              "!",
-              "test",
-              "\"$notincommand\"",
-              "=",
-              "\"true\""
-            ],
-            "name": "RUN"
-          }
-        },
-        {
-          "command": {
-            "args": [
-              "test",
-              "\"$envincommand\"",
-              "=",
-              "\"true\""
-            ],
-            "name": "RUN"
-          }
-        }
-      ]
-    },
-    {
-      "name": "TEST_BUILTIN",
-      "recipe": [
-        {
-          "command": {
-            "args": [],
-            "name": "COMMAND"
-          }
-        },
-        {
-          "command": {
-            "args": [
-              "EARTHLY_TARGET_NAME"
-            ],
-            "name": "ARG"
-          }
-        },
-        {
-          "command": {
-            "args": [
-              "test",
-              "\"$EARTHLY_TARGET_NAME\"",
-              "=",
-              "\"test-builtin\""
-            ],
-            "name": "RUN"
-          }
-        }
-      ]
-    },
-    {
-      "name": "TOUCH_GLOBAL",
-      "recipe": [
-        {
-          "command": {
-            "args": [],
-            "name": "COMMAND"
-          }
-        },
-        {
-          "command": {
-            "args": [
-              "test",
-              "\"$global_var\"",
-              "!=",
-              "\"\""
-            ],
-            "name": "RUN"
-          }
-        },
-        {
-          "command": {
-            "args": [
-              "touch",
-              "$global_var"
-            ],
-            "name": "RUN"
           }
         }
       ]

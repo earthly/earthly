@@ -39,4 +39,5 @@ const (
 	UserCmd                           // "USER"
 	VolumeCmd                         // "VOLUME"
 	WorkdirCmd                        // "WORKDIR"
+	FunctionCmd                       // FUNCTION
 )
