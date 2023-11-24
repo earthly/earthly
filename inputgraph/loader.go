@@ -849,7 +849,7 @@ func (l *loader) findProject(ctx context.Context) (org, project string, err erro
 		}
 	}
 
-	return "", "", errors.New("PROJECT command missing")
+	return "", "", errors.New("PROJECT command is required for remote storage")
 }
 
 func (l *loader) load(ctx context.Context) error {

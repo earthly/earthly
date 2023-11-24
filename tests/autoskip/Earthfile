@@ -56,7 +56,9 @@ test-with-subdir:
 
 test-requires-project:
     RUN echo hello > my-file
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=no-project.earth --target=+no-project --should_fail=true --output_contains="command missing"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=no-project.earth --target=+no-project --output_contains="I was run"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=no-project.earth --target=+no-project --should_fail=true --extra_args="--auto-skip-db-path=" --output_contains="PROJECT command is required"
 
 test-wait:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=wait.earth --target=+test --output_contains="not skipped"
