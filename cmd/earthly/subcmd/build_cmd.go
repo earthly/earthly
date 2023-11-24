@@ -823,6 +823,7 @@ func (a *Build) platformResolver(ctx context.Context, bkClient *bkclient.Client,
 }
 
 func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridingVars *variables.Scope, client *cloud.Client) (bk.BuildkitSkipper, []byte, bool, error) {
+
 	if !a.cli.Flags().SkipBuildkit {
 		return nil, nil, false, nil
 	}
@@ -846,12 +847,13 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 	)
 
 	orgName, projectName, targetHash, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
-		Target:          target,
-		Console:         a.cli.Console(),
-		CI:              a.cli.Flags().CI,
-		BuiltinArgs:     variables.DefaultArgs{EarthlyVersion: a.cli.Version(), EarthlyBuildSha: a.cli.GitSHA()},
-		OverridingVars:  overridingVars,
-		EarthlyCIRunner: a.cli.Flags().EarthlyCIRunner,
+		Target:           target,
+		Console:          a.cli.Console(),
+		CI:               a.cli.Flags().CI,
+		BuiltinArgs:      variables.DefaultArgs{EarthlyVersion: a.cli.Version(), EarthlyBuildSha: a.cli.GitSHA()},
+		OverridingVars:   overridingVars,
+		EarthlyCIRunner:  a.cli.Flags().EarthlyCIRunner,
+		SkipProjectCheck: a.cli.Flags().LocalSkipDB != "",
 	})
 	if err != nil {
 		return nil, nil, false, errors.Wrapf(err, "unable to calculate hash for %s", target)
