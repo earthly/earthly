@@ -823,6 +823,7 @@ func (a *Build) platformResolver(ctx context.Context, bkClient *bkclient.Client,
 }
 
 func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridingVars *variables.Scope, client *cloud.Client) (bk.BuildkitSkipper, []byte, bool, error) {
+
 	if !a.cli.Flags().SkipBuildkit {
 		return nil, nil, false, nil
 	}
