@@ -501,6 +501,62 @@ func (sw *shellWord) processDollarCurlyBracket() (string, error) {
 			return "", errors.Errorf("%s: %s", name, message)
 		}
 		return newValue, nil
+	case '%':
+		word, _, err := sw.processStopOn('}')
+		if err != nil {
+			if sw.scanner.Peek() == scanner.EOF {
+				return "", errors.New("syntax error: missing '}'")
+			}
+			return "", err
+		}
+		newValue, err := sw.getEnv(name)
+		var found bool
+		switch err {
+		case nil:
+			found = true
+		case errEnvNotFound:
+			break
+		default:
+			return "", err
+		}
+		if !found && sw.skipUnsetEnv {
+			return fmt.Sprintf("${%s%%%s}", name, word), nil
+		}
+		if len(word) > len(newValue) {
+			return newValue, nil
+		}
+		if newValue[len(newValue)-len(word):] == word {
+			return newValue[:len(newValue)-len(word)], nil
+		}
+		return newValue, nil
+	case '#':
+		word, _, err := sw.processStopOn('}')
+		if err != nil {
+			if sw.scanner.Peek() == scanner.EOF {
+				return "", errors.New("syntax error: missing '}'")
+			}
+			return "", err
+		}
+		newValue, err := sw.getEnv(name)
+		var found bool
+		switch err {
+		case nil:
+			found = true
+		case errEnvNotFound:
+			break
+		default:
+			return "", err
+		}
+		if !found && sw.skipUnsetEnv {
+			return fmt.Sprintf("${%s#%s}", name, word), nil
+		}
+		if len(word) > len(newValue) {
+			return newValue, nil
+		}
+		if newValue[0:len(word)] == word {
+			return newValue[len(word):], nil
+		}
+		return newValue, nil
 	case ':':
 		// Special ${xx:...} format processing
 		// Yes it allows for recursive $'s in the ... spot

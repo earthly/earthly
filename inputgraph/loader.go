@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/earthly/earthly/ast/command"
@@ -20,6 +21,7 @@ import (
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/buildkitskipper/hasher"
 	"github.com/earthly/earthly/util/flagutil"
+	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/variables"
 	"github.com/pkg/errors"
 )
@@ -27,6 +29,7 @@ import (
 var (
 	errUnsupportedRemoteTarget = errors.New("only remote targets referenced by a complete Git SHA or tag (e.g. tags/my-tag) are supported")
 	errCannotLoadRemoteTarget  = errors.New("cannot load remote target")
+	errComplexCondition        = errors.New("condition cannot be evaluated")
 )
 
 type loader struct {
@@ -59,6 +62,7 @@ func newLoader(ctx context.Context, opt HashOpt) *loader {
 }
 
 func (l *loader) handleFrom(ctx context.Context, cmd spec.Command) error {
+
 	opts := commandflag.FromOpts{}
 	args, err := flagutil.ParseArgsCleaned(command.From, &opts, flagutil.GetArgsCopy(cmd))
 	if err != nil {
@@ -221,7 +225,6 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) 
 		return nil
 	}
 
-	// Remote targets aren't supported.
 	if artifactSrc.Target.IsRemote() {
 		if supportedRemoteTarget(artifactSrc.Target) {
 			l.hasher.HashString(artifactSrc.Target.StringCanonical())
@@ -307,6 +310,9 @@ func (l *loader) expandDirs(dirs ...string) ([]string, error) {
 }
 
 func (l *loader) expandArgs(ctx context.Context, args []string) ([]string, error) {
+	// Reform the args such that quoted args are combined.
+	args = stringutil.ProcessParamsAndQuotes(args)
+
 	ret := []string{}
 	for _, arg := range args {
 		expanded, err := l.varCollection.Expand(arg, func(cmd string) (string, error) {
@@ -317,6 +323,7 @@ func (l *loader) expandArgs(ctx context.Context, args []string) ([]string, error
 		}
 		ret = append(ret, expanded)
 	}
+
 	return ret, nil
 }
 
@@ -339,9 +346,30 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 		return l.handleCopy(ctx, cmd)
 	case command.Arg:
 		return l.handleArg(ctx, cmd)
+	case command.FromDockerfile:
+		return l.handleFromDockerfile(ctx, cmd)
 	default:
 		return nil
 	}
+}
+
+func (l *loader) handleFromDockerfile(ctx context.Context, cmd spec.Command) error {
+	opts := commandflag.FromDockerfileOpts{}
+	args, err := flagutil.ParseArgsCleaned(command.FromDockerfile, &opts, flagutil.GetArgsCopy(cmd))
+	if err != nil {
+		return err
+	}
+	if opts.Path != "" {
+		if err := l.handleCopySrc(ctx, opts.Path, false); err != nil {
+			return err
+		}
+	}
+	if len(args) > 0 {
+		if err := l.handleCopySrc(ctx, args[0], false); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (l *loader) handleArg(ctx context.Context, cmd spec.Command) error {
@@ -388,38 +416,219 @@ func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return err
 	}
+
 	l.hashCommand(cmd)
 	opts := commandflag.WithDockerOpts{}
+
 	_, err = flagutil.ParseArgsCleaned("WITH DOCKER", &opts, flagutil.GetArgsCopy(cmd))
 	if err != nil {
 		return errors.New("failed to parse WITH DOCKER flags")
 	}
+
 	for _, load := range opts.Loads {
 		_, target, extraArgs, err := earthfile2llb.ParseLoad(load)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse --load value")
 		}
+
+		t, err := domain.ParseTarget(target)
+		if err == nil && t.IsRemote() {
+			if supportedRemoteTarget(t) {
+				l.hasher.HashString(t.StringCanonical())
+				return nil
+			}
+			return errUnsupportedRemoteTarget
+		}
+
 		err = l.loadTargetFromString(ctx, target, extraArgs, false)
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
+// evalConditions will first split compound expressions by OR (||) and evaluate
+// each set of sub-expressions until a positive result is encountered. When an
+// AND (&&) is encountered, the function will recursively call itself to compute
+// a final boolean result for that set of expressions.
+func evalConditions(c []string) (bool, bool) {
+	all := strings.Join(c, " ")
+	orGroups := strings.Split(all, "||")
+
+	for _, orGroup := range orGroups {
+		cur := []string{}
+		result, inExpr := false, false
+		parts := strings.Split(orGroup, " ")
+		for i, v := range parts {
+			switch v {
+			case "[[", "]]":
+				// Extended expressions not yet supported.
+				return false, false
+			case "[":
+				inExpr = true
+				cur = []string{}
+			case "]":
+				if !inExpr {
+					return false, false
+				}
+				var ok bool
+				result, ok = evalCondition(cur)
+				if !ok {
+					return false, false
+				}
+			case "&&":
+				rest, ok := evalConditions(parts[i+1:])
+				if !ok {
+					return false, false
+				}
+				result = result && rest
+			default:
+				cur = append(cur, v)
+			}
+		}
+		if result {
+			return true, true
+		}
+	}
+
+	return false, true
+}
+
+// evalCondition will compute the result of a single expression (e.g., '[ true
+// ]'). It currently only handles POSIX shell expressions.
+func evalCondition(c []string) (bool, bool) {
+
+	// Strip quotes
+	for i, v := range c {
+		c[i] = strings.Trim(v, ` "`)
+	}
+
+	switch len(c) {
+	case 1:
+		switch c[0] {
+		case "true":
+			return true, true
+		case "false":
+			return false, true
+		default:
+			return len(c[0]) > 0, true
+		}
+	case 2:
+		switch c[0] {
+		case "-z":
+			return c[1] == "", true
+		case "-n":
+			return c[1] != "", true
+		}
+	case 3:
+		switch c[1] {
+		case "==", "!=", "=", ">", "<", "<=", ">=":
+			switch c[1] {
+			case "==", "=":
+				return c[0] == c[2], true
+			case "!=":
+				return c[0] != c[2], true
+			case ">":
+				return c[0] > c[2], true
+			case ">=":
+				return c[0] >= c[2], true
+			case "<":
+				return c[0] < c[2], true
+			case "<=":
+				return c[0] <= c[2], true
+			}
+		case "-eq", "-ne", "-gt", "-lt", "-le", "-ge":
+			a, errA := strconv.Atoi(c[0])
+			b, errB := strconv.Atoi(c[2])
+			if errA != nil || errB != nil {
+				return false, false
+			}
+			switch c[1] {
+			case "-eq":
+				return a == b, true
+			case "-ne":
+				return a != b, true
+			case "-gt", ">":
+				return a > b, true
+			case "-lt", "<":
+				return a < b, true
+			case "-le", "<=":
+				return a <= b, true
+			case "-ge", ">=":
+				return a >= b, true
+			}
+		}
+	}
+
+	return false, false
+}
+
 func (l *loader) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
+
 	l.hashIfStatement(ifStmt)
+
+	err := l.handleIfEval(ctx, ifStmt)
+	if err != nil {
+		if errors.Is(err, errComplexCondition) {
+			return l.handleIfDefault(ctx, ifStmt)
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (l *loader) expandAndEval(ctx context.Context, expr []string) (bool, error) {
+	expr, err := l.expandArgs(ctx, expr)
+	if err != nil {
+		return false, err
+	}
+
+	result, ok := evalConditions(expr)
+	if !ok {
+		return false, errComplexCondition
+	}
+	return result, nil
+}
+
+func (l *loader) handleIfEval(ctx context.Context, ifStmt spec.IfStatement) error {
+	result, err := l.expandAndEval(ctx, ifStmt.Expression)
+	if err != nil {
+		return err
+	}
+	if result {
+		return l.loadBlock(ctx, ifStmt.IfBody)
+	}
+	for _, elseIf := range ifStmt.ElseIf {
+		result, err := l.expandAndEval(ctx, elseIf.Expression)
+		if err != nil {
+			return err
+		}
+		if result {
+			return l.loadBlock(ctx, elseIf.Body)
+		}
+	}
+	if ifStmt.ElseBody != nil {
+		return l.loadBlock(ctx, *ifStmt.ElseBody)
+	}
+	return nil
+}
+
+func (l *loader) handleIfDefault(ctx context.Context, ifStmt spec.IfStatement) error {
 	if err := l.loadBlock(ctx, ifStmt.IfBody); err != nil {
 		return err
 	}
-	if ifStmt.ElseBody != nil {
-		if err := l.loadBlock(ctx, *ifStmt.ElseBody); err != nil {
-			return err
-		}
-	}
+
 	for _, elseIf := range ifStmt.ElseIf {
 		l.hashElseIf(elseIf)
 		if err := l.loadBlock(ctx, elseIf.Body); err != nil {
+			return err
+		}
+	}
+	if ifStmt.ElseBody != nil {
+		if err := l.loadBlock(ctx, *ifStmt.ElseBody); err != nil {
 			return err
 		}
 	}
@@ -578,17 +787,18 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string, ar
 		return errors.Errorf("dynamic target %q cannot be resolved", targetName)
 	}
 
-	relTarget, err := domain.ParseTarget(targetName)
+	target, err := domain.ParseTarget(targetName)
 	if err != nil {
 		return errors.Wrapf(err, "parse target name %s", targetName)
 	}
 
-	targetRef, err := domain.JoinReferences(l.target, relTarget)
+	targetRef, err := domain.JoinReferences(l.target, target)
 	if err != nil {
-		return errors.Wrapf(err, "failed to join %s and %s", l.target, relTarget)
+		return errors.Wrapf(err, "failed to join %s and %s", l.target, target)
 	}
 
-	target := targetRef.(domain.Target)
+	target = targetRef.(domain.Target)
+
 	fullTargetName := target.String()
 	if fullTargetName == "" {
 		return fmt.Errorf("missing target string")
@@ -639,7 +849,7 @@ func (l *loader) findProject(ctx context.Context) (org, project string, err erro
 		}
 	}
 
-	return "", "", errors.New("PROJECT command missing")
+	return "", "", errors.New("PROJECT command is required for remote storage")
 }
 
 func (l *loader) load(ctx context.Context) error {
@@ -683,5 +893,5 @@ func (l *loader) load(ctx context.Context) error {
 		}
 	}
 
-	return fmt.Errorf("target %s not found", l.target.Target)
+	return fmt.Errorf("target %q not found", l.target.Target)
 }

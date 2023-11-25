@@ -10,6 +10,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/earthly/earthly/conslogging"
+	"github.com/earthly/earthly/logbus/formatter"
 	"github.com/earthly/earthly/util/buildkitutil"
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/moby/buildkit/client"
@@ -191,6 +192,10 @@ func (sm *SolverMonitor) processStatus(ss *client.SolveStatus) error {
 		}
 		if !vm.headerPrinted {
 			sm.printHeader(vm)
+		}
+		if logLine.Stream == formatter.BuildkitStatsStream {
+			// --exec-stats requires logbus to be enabled
+			continue
 		}
 		err := sm.printOutput(vm, logLine.Data)
 		if err != nil {

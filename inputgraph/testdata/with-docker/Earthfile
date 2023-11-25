@@ -27,3 +27,10 @@ with-docker-load-args:
     WITH DOCKER --load foo=(+load-target --foo=2)
          RUN echo "loaded"
     END
+
+with-docker-load-remote:
+    BUILD +load-target
+    FROM earthly/dind:alpine-3.18-docker-23.0.6-r7
+    WITH DOCKER --load foo=github.com/earthly/earthly:6610b73131f94cbe594dba3b90665748f21a9b8d+license
+         RUN echo "loaded"
+    END
