@@ -1,4 +1,4 @@
-VERSION --pass-args --no-network --arg-scope-and-set 0.7
+VERSION --pass-args --no-network --arg-scope-and-set --use-function-keyword 0.7
 PROJECT earthly-technologies/core
 
 # TODO update to 3.18; however currently "podman login" (used under not-a-unit-test.sh) will error with
@@ -892,7 +892,7 @@ check-broken-links:
 
 # BUILD_AND_FROM will issue a FROM and a BUILD commands for the provided target
 BUILD_AND_FROM:
-    COMMAND
+    FUNCTION
     ARG --required TARGET
     FROM --pass-args +$TARGET
     BUILD --pass-args +$TARGET

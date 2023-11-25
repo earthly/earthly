@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 FROM --pass-args ../..+earthly-integration-test-base
 
 IMPORT .. AS tests
@@ -16,7 +16,7 @@ test-all:
     BUILD +test-leading-whitespace
 
 RUN_EARTHLY_ARGS:
-    COMMAND
+    FUNCTION
     ARG earthfile
     ARG target
     ARG should_fail=false

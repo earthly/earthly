@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 
 FROM --pass-args ../..+earthly-integration-test-base
 
@@ -68,7 +68,7 @@ test3:
 
 # Work around the lack of variable overriding, since the base image already includes EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
 DO_REMOTE_CACHE_EARTHLY:
-    COMMAND
+    FUNCTION
 
     ARG EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
     ARG REGISTRY_CONFIG

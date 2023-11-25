@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 FROM --pass-args ..+earthly-integration-test-base
 
 WORKDIR /test
@@ -19,6 +19,7 @@ ga-no-qemu-group1:
     BUILD ./dockerfile+test
     BUILD ./dockerfile2/subdir+test
     BUILD --pass-args ./locally-in-command+all
+    BUILD --pass-args ./locally-in-function+all
     BUILD ./command-to-function-rename+all
     BUILD ./import+build
     BUILD ./import+build-imported
@@ -1483,7 +1484,7 @@ test-exec-stats:
       --output_contains="total CPU:.*total memory:.*"
 
 RUN_EARTHLY:
-    COMMAND
+    FUNCTION
     ARG earthfile=
     ARG earthfile_dest="./Earthfile"
     ARG target=+all

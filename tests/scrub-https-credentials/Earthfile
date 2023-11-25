@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 FROM --pass-args ..+base
 
 all:
@@ -95,7 +95,7 @@ fi
         fi
 
 RUN_EARTHLY_ARGS:
-    COMMAND
+    FUNCTION
     ARG earthfile
     ARG pre_command
     ARG exec_cmd
