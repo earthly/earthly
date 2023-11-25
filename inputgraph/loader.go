@@ -21,6 +21,7 @@ import (
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/buildkitskipper/hasher"
 	"github.com/earthly/earthly/util/flagutil"
+	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/variables"
 	"github.com/pkg/errors"
 )
@@ -61,6 +62,7 @@ func newLoader(ctx context.Context, opt HashOpt) *loader {
 }
 
 func (l *loader) handleFrom(ctx context.Context, cmd spec.Command) error {
+
 	opts := commandflag.FromOpts{}
 	args, err := flagutil.ParseArgsCleaned(command.From, &opts, flagutil.GetArgsCopy(cmd))
 	if err != nil {
@@ -308,6 +310,9 @@ func (l *loader) expandDirs(dirs ...string) ([]string, error) {
 }
 
 func (l *loader) expandArgs(ctx context.Context, args []string) ([]string, error) {
+	// Reform the args such that quoted args are combined.
+	args = stringutil.ProcessParamsAndQuotes(args)
+
 	ret := []string{}
 	for _, arg := range args {
 		expanded, err := l.varCollection.Expand(arg, func(cmd string) (string, error) {
@@ -318,6 +323,7 @@ func (l *loader) expandArgs(ctx context.Context, args []string) ([]string, error
 		}
 		ret = append(ret, expanded)
 	}
+
 	return ret, nil
 }
 
@@ -579,6 +585,7 @@ func (l *loader) expandAndEval(ctx context.Context, expr []string) (bool, error)
 	if err != nil {
 		return false, err
 	}
+
 	result, ok := evalConditions(expr)
 	if !ok {
 		return false, errComplexCondition
@@ -842,7 +849,7 @@ func (l *loader) findProject(ctx context.Context) (org, project string, err erro
 		}
 	}
 
-	return "", "", errors.New("PROJECT command missing")
+	return "", "", errors.New("PROJECT command is required for remote storage")
 }
 
 func (l *loader) load(ctx context.Context) error {
@@ -886,5 +893,5 @@ func (l *loader) load(ctx context.Context) error {
 		}
 	}
 
-	return fmt.Errorf("target %s not found", l.target.Target)
+	return fmt.Errorf("target %q not found", l.target.Target)
 }
