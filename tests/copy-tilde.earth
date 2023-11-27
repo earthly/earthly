@@ -37,4 +37,3 @@ copy-tilde-in-destination-not-prefix:
     RUN echo destination contains a tilde but that should not trigger a warning
     RUN mkdir -p some/di~r
     COPY in some/di~r.
-
