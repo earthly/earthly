@@ -12,8 +12,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/util/fileutil"
+	"github.com/earthly/earthly/util/hint"
 	"github.com/earthly/earthly/variables"
 	gsysinfo "github.com/elastic/go-sysinfo"
 	"github.com/pkg/errors"

@@ -18,7 +18,6 @@ import (
 	"google.golang.org/grpc/codes"
 
 	"github.com/earthly/earthly/analytics"
-	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/billing"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cmd/earthly/common"
@@ -27,9 +26,11 @@ import (
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/errutil"
+	"github.com/earthly/earthly/util/hint"
 	"github.com/earthly/earthly/util/params"
 	"github.com/earthly/earthly/util/reflectutil"
 	"github.com/earthly/earthly/util/stringutil"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -178,14 +179,12 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 		}
 
 		grpcErr, grpcErrOK := grpcerrors.AsGRPCStatus(err)
+		hintErr, hintErrOK := getHintErr(err, grpcErr)
 		var paramsErr *params.Error
-		var hintErr hint.Error
 		switch {
-		case errors.As(err, &hintErr):
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, hintErr.Error())
-			if hintErr.Hint() != "" {
-				app.BaseCLI.Console().HelpPrintf(hintErr.Hint())
-			}
+		case hintErrOK:
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, hintErr.Message())
+			app.BaseCLI.Console().HelpPrintf(hintErr.Hint())
 			return 1
 		case errors.As(err, &paramsErr):
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_INVALID_PARAM, paramsErr.ParentError())
@@ -383,4 +382,14 @@ func (app *EarthlyApp) printCrashLogs(ctx context.Context) {
 
 func errorWithPrefix(err string) string {
 	return fmt.Sprintf("Error: %s", err)
+}
+
+func getHintErr(err error, grpcError *status.Status) (*hint.Error, bool) {
+	if res := new(hint.Error); errors.As(err, &res) {
+		return res, true
+	}
+	if grpcError != nil {
+		return hint.FromError(errors.New(grpcError.Message()))
+	}
+	return nil, false
 }
