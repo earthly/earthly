@@ -29,6 +29,10 @@ on:
         required: false
         type: boolean
         default: false
+      EXTRA_ENVS:
+        required: false
+        type: string
+        default: ""
 
 jobs:
   docker-build-integration:
@@ -65,7 +69,7 @@ jobs:
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: run docker-build-integration
-        run: ${{inputs.SUDO}} env earthly=${{inputs.BUILT_EARTHLY_PATH}} scripts/tests/docker-build/integration.sh
+        run: ${{inputs.SUDO}} env earthly=${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.EXTRA_ENVS}} scripts/tests/docker-build/integration.sh
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} docker logs earthly-buildkitd || true
         if: ${{ failure() && ! inputs.USE_SATELLITE }}

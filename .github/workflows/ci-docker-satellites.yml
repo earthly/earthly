@@ -1,5 +1,8 @@
 name: Satellites Docker CI Ubuntu
 
+# Note: These tests currently use --no-cache due to memory use issues we've been
+# experiencing with Earthly-in-Earthly tests on Satellites.
+
 on:
   push:
     branches: [ main ]
@@ -44,6 +47,7 @@ jobs:
       USE_SATELLITE: true
       SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
+      EXTRA_ARGS: "--no-cache"
     secrets: inherit
 
   docker-tests-quick:
@@ -58,6 +62,7 @@ jobs:
       USE_SATELLITE: true
       SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
+      EXTRA_ARGS: "--no-cache"
     secrets: inherit
 
   docker-tests-no-qemu-group1:
@@ -72,6 +77,7 @@ jobs:
       USE_SATELLITE: true
       SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
+      EXTRA_ARGS: "--no-cache"
     secrets: inherit
 
   docker-tests-no-qemu-group2:
@@ -86,6 +92,7 @@ jobs:
       USE_SATELLITE: true
       SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
+      EXTRA_ARGS: "--no-cache"
     secrets: inherit
 
   docker-tests-no-qemu-group3:
@@ -100,6 +107,7 @@ jobs:
       USE_SATELLITE: true
       SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
+      EXTRA_ARGS: "--no-cache"
     secrets: inherit
 
   docker-tests-no-qemu-group4:
@@ -114,6 +122,7 @@ jobs:
       USE_SATELLITE: true
       SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
+      EXTRA_ARGS: "--no-cache"
     secrets: inherit
 
   docker-tests-no-qemu-slow:
@@ -128,6 +137,7 @@ jobs:
       USE_SATELLITE: true
       SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
+      EXTRA_ARGS: "--no-cache"
     secrets: inherit
 
   docker-tests-require-account-access:
@@ -143,6 +153,7 @@ jobs:
       USE_SATELLITE: true
       SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
+      EXTRA_ARGS: "--no-cache"
     secrets: inherit
 
   docker-tests-qemu:
@@ -158,6 +169,7 @@ jobs:
       USE_SATELLITE: true
       SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
+      EXTRA_ARGS: "--no-cache"
     secrets: inherit
 
   docker-satellites-examples-1:
@@ -172,6 +184,7 @@ jobs:
       USE_SATELLITE: true
       SATELLITE_NAME: "core-examples"
       EARTHLY_ORG: "earthly-technologies"
+      EXTRA_ARGS: "--no-cache"
     secrets: inherit
 
   docker-satellites-examples-2:
@@ -186,6 +199,7 @@ jobs:
       USE_SATELLITE: true
       SATELLITE_NAME: "core-examples"
       EARTHLY_ORG: "earthly-technologies"
+      EXTRA_ARGS: "--no-cache"
     secrets: inherit
 
   docker-satellites-examples-3:
@@ -200,6 +214,7 @@ jobs:
       USE_SATELLITE: true
       SATELLITE_NAME: "core-examples"
       EARTHLY_ORG: "earthly-technologies"
+      EXTRA_ARGS: "--no-cache"
     secrets: inherit
 
   docker-satellites-test-local:
@@ -207,7 +222,7 @@ jobs:
     uses: ./.github/workflows/reusable-test-local.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      RUN_EARTHLY_TEST_ARGS: "--no-output"
+      RUN_EARTHLY_TEST_ARGS: "--no-output --no-cache"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       BINARY_COMPOSE: "\"docker compose\""
@@ -228,4 +243,5 @@ jobs:
       USE_SATELLITE: true
       SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
+      EXTRA_ENVS: "EARTHLY_NO_CACHE=true"
     secrets: inherit
