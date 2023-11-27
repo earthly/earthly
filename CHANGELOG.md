@@ -8,6 +8,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - A new experimental `earthly --exec-stats` flag, which displays per-target execution stats such as total CPU and memory usage.
 - A new experimental `earthly billing view` command to get information about the organization billing plan.
 - Messages informing used build minutes during a build.
+- Help message when a build fails due to a missing referenced cloud secret.
 
 ### Fixed
 - Remove redundant verbose error messages that were not different from messages that were already being printed.
@@ -22,7 +23,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - A successful authentication with an auth token will display a warning with time left before token expires if it's 14 days or under.
 - The command `earthly registry` will attempt to use the selected org if no org is specified.
 - Clarify error messages when failing to pass secrets to a build.
-- provide information on how to get more build minutes when a build fails due to missing minutes.
+- Provide information on how to get more build minutes when a build fails due to missing minutes.
 - Provide information on how to increase the max number of allowed satellites when failing to launch a satellite.
 
 ## v0.7.21 - 2023-10-24

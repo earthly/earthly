@@ -339,7 +339,7 @@ secrets-test:
         --extra_args="--secret SECRET1 --secret SECRET2=bar --build-arg SECRET_ID=\"\" --build-arg SECRET_ID_2=\"\"" \
         --target=+test \
         --should_fail=true \
-        --output_contains="unable to lookup secret SECRET3: not found"
+        --output_contains='unable to lookup secret \"SECRET3\": not found'
 
 project-secrets-test:
     DO +RUN_EARTHLY \
