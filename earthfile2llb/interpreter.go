@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -966,6 +967,10 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	}
 	if !allClassical && !allArtifacts {
 		return i.errorf(cmd.SourceLocation, "combining artifacts and build context arguments in a single COPY command is not allowed: %v", srcs)
+	}
+
+	if slices.Contains(strings.Split(dest, "/"), "~") {
+		i.console.Warnf(`destination path %q contains a "~" which does not expand to a home directory`, dest)
 	}
 	if allArtifacts {
 		if dest == "" || dest == "." || len(srcs) > 1 {

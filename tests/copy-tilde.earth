@@ -1,0 +1,29 @@
+VERSION 0.7
+
+FROM alpine:3.18
+WORKDIR /test
+
+artifact:
+    COPY --dir in in
+    SAVE ARTIFACT in
+
+copy-tilde-destination:
+    RUN echo destination is tilde
+    COPY in ~/.
+
+copy-tilde-in-destination:
+    RUN echo destination contains tilde
+    RUN mkdir -p /some/dir
+    COPY in /some/dir/~/.
+
+copy-tilde-arg-in-destination:
+    RUN echo destination arg contains tilde
+    RUN mkdir -p /some/dir
+    ARG dest=/some/dir/~/.
+    COPY in $dest
+
+copy-tilde-artifact:
+    RUN echo destination contains tilde for artifact
+    RUN mkdir -p /some/dir
+    ARG dest=/some/dir/~/.
+    COPY +artifact/in /some/dir/~/.

@@ -24,6 +24,7 @@ ga-no-qemu-group1:
     BUILD +privileged-test
     BUILD +copy-test
     BUILD +copy-test-verbose-output
+    BUILD +copy-tilde-test
     BUILD +copy-keep-own-test
     BUILD +git-clone-test
     BUILD +builtin-args-invalid-default-test
@@ -221,7 +222,7 @@ copy-test:
         echo "1" > in/sub/1/file && \
         echo "2" > in/sub/2/file && \
         echo "sub" > in/sub/file
-    DO +RUN_EARTHLY --earthfile=copy.earth
+    DO +RUN_EARTHLY --earthfile=copy.earth --output_does_not_contain="which does not expand to a home directory"
 
 copy-test-verbose-output:
     RUN mkdir -p subdir/a.txt && \
@@ -257,6 +258,13 @@ earthly --config \$earthly_config --verbose +copy 2>&1 | tee output2.txt;
 copy-keep-own-test:
     DO +RUN_EARTHLY --target=+test-known-user --earthfile=copy-keep-own.earth
     DO +RUN_EARTHLY --target=+test-unknown-user --earthfile=copy-keep-own.earth
+
+copy-tilde-test:
+    RUN touch in
+    DO +RUN_EARTHLY --target=+copy-tilde-destination --earthfile=copy-tilde.earth --output_contains='destination path \"~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-in-destination --earthfile=copy-tilde.earth --output_contains='destination path \"/some/dir/~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-arg-in-destination --earthfile=copy-tilde.earth --output_contains='destination path \"/some/dir/~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-artifact --earthfile=copy-tilde.earth --output_contains='destination path \"/some/dir/~/.\" contains a \"~\" which does not expand to a home directory'
 
 cache-test:
     # Test that a file can be passed between runs through the mounted cache.

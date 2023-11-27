@@ -9,6 +9,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - A new experimental `earthly billing view` command to get information about the organization billing plan.
 - Messages informing used build minutes during a build.
 - Help message when a build fails due to a missing referenced cloud secret.
+- A warning when a `COPY` destination includes a tilde (~). Related to [#1789](https://github.com/earthly/earthly/issues/1789).
 
 ### Fixed
 - Remove redundant verbose error messages that were not different from messages that were already being printed.
