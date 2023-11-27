@@ -61,6 +61,7 @@ type Features struct {
 	UseDockerIgnore                 bool `long:"use-docker-ignore" description:"fallback to .dockerignore incase .earthlyignore or .earthignore do not exist in a local \"FROM DOCKERFILE\" target"`
 	PassArgs                        bool `long:"pass-args" description:"Allow the use of the --pass-arg flag in FROM, BUILD, COPY, WITH DOCKER, and DO commands"`
 	GlobalCache                     bool `long:"global-cache" description:"enable global caches (shared across different Earthfiles), for cache mounts and CACHEs having an ID"`
+	CachePersistOption              bool `long:"cache-persist-option" description:"Adds option to persist caches, Changes default CACHE behaviour to not persist"`
 	GitRefs                         bool `long:"git-refs" description:"includes EARTHLY_GIT_REFS ARG"`
 	UseVisitedUpfrontHashCollection bool `long:"use-visited-upfront-hash-collection" description:"Uses a new target visitor implementation that computes upfront the hash of the visited targets and adds support for running all targets with the same name but different args in parallel"`
 

@@ -2,6 +2,7 @@ package states
 
 import (
 	"context"
+	"github.com/moby/buildkit/client/llb"
 	"sync"
 
 	"github.com/earthly/earthly/domain"
@@ -23,6 +24,14 @@ type MultiTarget struct {
 	Visited VisitedCollection
 	// Final is the main target to be built.
 	Final *SingleTarget
+}
+
+// CacheMount holds run options needed to cache mounts, and some extra options.
+type CacheMount struct {
+	// Persisted should the cache be persisted to image.
+	Persisted bool
+	// RunOption Run options
+	RunOption llb.RunOption
 }
 
 // FinalTarget returns the final target of the states.
