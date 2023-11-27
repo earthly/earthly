@@ -263,8 +263,10 @@ copy-tilde-test:
     RUN touch in
     DO +RUN_EARTHLY --target=+copy-tilde-destination --earthfile=copy-tilde.earth --output_contains='destination path \"~/.\" contains a \"~\" which does not expand to a home directory'
     DO +RUN_EARTHLY --target=+copy-tilde-in-destination --earthfile=copy-tilde.earth --output_contains='destination path \"/some/dir/~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-in-destination-prefix --earthfile=copy-tilde.earth --output_contains='destination path \"~some/dir.\" contains a \"~\" which does not expand to a home directory'
     DO +RUN_EARTHLY --target=+copy-tilde-arg-in-destination --earthfile=copy-tilde.earth --output_contains='destination path \"/some/dir/~/.\" contains a \"~\" which does not expand to a home directory'
     DO +RUN_EARTHLY --target=+copy-tilde-artifact --earthfile=copy-tilde.earth --output_contains='destination path \"/some/dir/~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-in-destination-not-prefix --earthfile=copy-tilde.earth --output_does_not_contain="which does not expand to a home directory"
 
 cache-test:
     # Test that a file can be passed between runs through the mounted cache.

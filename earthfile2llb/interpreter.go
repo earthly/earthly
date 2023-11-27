@@ -969,7 +969,9 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 		return i.errorf(cmd.SourceLocation, "combining artifacts and build context arguments in a single COPY command is not allowed: %v", srcs)
 	}
 
-	if slices.Contains(strings.Split(dest, "/"), "~") {
+	if slices.ContainsFunc(strings.Split(dest, "/"), func(s string) bool {
+		return s == "~" || strings.HasPrefix(s, "~")
+	}) {
 		i.console.Warnf(`destination path %q contains a "~" which does not expand to a home directory`, dest)
 	}
 	if allArtifacts {
