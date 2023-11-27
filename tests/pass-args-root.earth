@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 
 parent-target-wants-bar:
     FROM alpine:3.18
@@ -15,6 +15,6 @@ parent-target-wants-empty:
     SAVE ARTIFACT data
 
 PARENTCMD:
-    COMMAND
+    FUNCTION
     ARG foo
     RUN echo "foo=$foo" > data

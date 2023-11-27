@@ -39,6 +39,7 @@ func init() {
 		UserCmd:           User,
 		VolumeCmd:         Volume,
 		WorkdirCmd:        Workdir,
+		FunctionCmd:       Function,
 	}
 }
 

@@ -1,0 +1,6 @@
+VERSION --use-function-keyword 0.7
+IMPORT .. AS imported-name
+
+FUNCTION_THAT_CALLS_OTHER_FUNCTION:
+    FUNCTION
+    DO imported-name+FUNCTION_THAT_SAVES_FILE_LOCALLY

@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 FROM --pass-args ../..+earthly-integration-test-base
 
 IMPORT .. AS tests
@@ -6,15 +6,15 @@ IMPORT .. AS tests
 WORKDIR /test
 
 all:
-    BUILD +test-command-in-sub-dir
-    BUILD +test-udc-that-calls-other-udc
+    BUILD +test-function-in-sub-dir
+    BUILD +test-function-that-calls-other-function
 
-test-command-in-sub-dir:
+test-function-in-sub-dir:
     RUN mkdir -p /the-test/some/subdir
     RUN mkdir -p /the-test/other/path
-    COPY command.earth /the-test/some/subdir/Earthfile
-    COPY target-that-calls-command.earth /the-test/Earthfile
-    COPY other-target-that-calls-command.earth /the-test/other/path/Earthfile
+    COPY function.earth /the-test/some/subdir/Earthfile
+    COPY target-that-calls-function.earth /the-test/Earthfile
+    COPY other-target-that-calls-function.earth /the-test/other/path/Earthfile
     RUN touch /this-file-exists-locally
     DO --pass-args +RUN_EARTHLY_ARGS --target=/the-test+test
     RUN test "$(cat /the-test/data)" = "I am running in /the-test"
@@ -24,7 +24,7 @@ test-command-in-sub-dir:
     RUN rm /the-test/data
     RUN find /the-test | grep -v data
 
-    # next test a target that calls the same UDC from a different location
+    # next test a target that calls the same function from a different location
     DO --pass-args +RUN_EARTHLY_ARGS --target=/the-test+test-other
     RUN ! test -f /the-test/data
     RUN test "$(cat /the-test/other/path/data)" = "I am running in /the-test/other/path"
@@ -33,22 +33,22 @@ test-command-in-sub-dir:
     RUN rm /the-test/other/path/data
     RUN find /the-test | grep -v data
 
-    # finally test both targets that call the same locally command result in both files being created
+    # finally test both targets that call the same locally function result in both files being created
     DO --pass-args +RUN_EARTHLY_ARGS --target=/the-test+test-both
     RUN test "$(cat /the-test/data)" = "I am running in /the-test"
     RUN test "$(cat /the-test/other/path/data)" = "I am running in /the-test/other/path"
 
-test-udc-that-calls-other-udc:
+test-function-that-calls-other-function:
     WORKDIR /my/test
     RUN mkdir -p some/subdir/submarine
-    COPY command.earth some/subdir/Earthfile
-    COPY command-that-calls-command.earth some/subdir/submarine/Earthfile
-    COPY target-that-calls-command-that-calls-command.earth Earthfile
+    COPY function.earth some/subdir/Earthfile
+    COPY function-that-calls-function.earth some/subdir/submarine/Earthfile
+    COPY target-that-calls-function-that-calls-function.earth Earthfile
     DO --pass-args +RUN_EARTHLY_ARGS --target=+test
     RUN test "$(cat data)" = "I am running in /my/test"
 
 RUN_EARTHLY_ARGS:
-    COMMAND
+    FUNCTION
     ARG earthfile
     ARG target
     ARG should_fail=false

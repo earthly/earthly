@@ -64,6 +64,7 @@ type Features struct {
 	CachePersistOption              bool `long:"cache-persist-option" description:"Adds option to persist caches, Changes default CACHE behaviour to not persist"`
 	GitRefs                         bool `long:"git-refs" description:"includes EARTHLY_GIT_REFS ARG"`
 	UseVisitedUpfrontHashCollection bool `long:"use-visited-upfront-hash-collection" description:"Uses a new target visitor implementation that computes upfront the hash of the visited targets and adds support for running all targets with the same name but different args in parallel"`
+	UseFunctionKeyword              bool `long:"use-function-keyword" description:"Use the FUNCTION key word instead of COMMAND"`
 
 	Major int
 	Minor int

@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 
 FROM --pass-args ../..+earthly-integration-test-base
 
@@ -84,7 +84,7 @@ test-all:
     BUILD +test-no-feature-flag-overrides
 
 RUN_EARTHLY_ARGS:
-    COMMAND
+    FUNCTION
     ARG earthfile
     ARG target
     ARG should_fail=false

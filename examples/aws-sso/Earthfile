@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION --use-function-keyword 0.7
 FROM amazon/aws-cli
 
 target:
@@ -67,7 +67,7 @@ run:
 
 # Installs the AWS CLI
 INSTALL_CLI:
-  COMMAND
+  FUNCTION
   ARG TARGETARCH
   IF [ "$TARGETARCH" = "amd64" ]
     ARG aws_architecture="x86_64"
@@ -82,7 +82,7 @@ INSTALL_CLI:
     rm -rf awscliv2.zip aws
 
 LOGIN:
-  COMMAND
+  FUNCTION
   ARG --required sso_region
   BUILD +login --sso_region=$sso_region
   COPY (+login/credentials --sso_region=$sso_region) /root/.aws/credentials

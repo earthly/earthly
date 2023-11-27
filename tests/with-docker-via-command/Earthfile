@@ -1,10 +1,10 @@
-VERSION 0.7
+VERSION --use-function-keyword 0.7
 my-image:
     FROM alpine
     SAVE IMAGE my/image:test
 
 MY_COMMAND_WITH_DOCKER:
-    COMMAND
+    FUNCTION
     ARG MY_ARG="default"
     WITH DOCKER --load +my-image
         RUN echo "got $MY_ARG"

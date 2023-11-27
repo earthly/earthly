@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 FROM --pass-args ..+earthly-integration-test-base
 
 WORKDIR /test
@@ -19,6 +19,8 @@ ga-no-qemu-group1:
     BUILD ./dockerfile+test
     BUILD ./dockerfile2/subdir+test
     BUILD --pass-args ./locally-in-command+all
+    BUILD --pass-args ./locally-in-function+all
+    BUILD ./command-to-function-rename+all
     BUILD ./import+build
     BUILD ./import+build-imported
     BUILD +privileged-test
@@ -93,6 +95,9 @@ ga-no-qemu-group2:
     BUILD +command
     BUILD +command-explicit-global
     BUILD +command-nested-global
+    BUILD +function
+    BUILD +function-explicit-global
+    BUILD +function-nested-global
     BUILD +duplicate
     BUILD +reserved
     BUILD +quotes-test
@@ -1034,13 +1039,25 @@ platform-output:
 
 command:
     RUN echo "hello command" >./message.txt
-    DO +RUN_EARTHLY --earthfile=command.earth
+    DO +RUN_EARTHLY --earthfile=command.earth --target=+all-positive
+    DO +RUN_EARTHLY --earthfile=command.earth --should_fail=true --target=+test-function-fails
 
 command-explicit-global:
     DO +RUN_EARTHLY --earthfile=command-explicit-global.earth
 
 command-nested-global:
     DO +RUN_EARTHLY --earthfile=command-nested-global.earth --target="+test-overriding --foo=expected"
+
+function:
+    RUN echo "hello command" >./message.txt
+    DO +RUN_EARTHLY --earthfile=function.earth --target=+all-positive
+    DO +RUN_EARTHLY --earthfile=function.earth --should_fail=true --target=+test-command-fails
+
+function-explicit-global:
+    DO +RUN_EARTHLY --earthfile=function-explicit-global.earth
+
+function-nested-global:
+    DO +RUN_EARTHLY --earthfile=function-nested-global.earth --target="+test-overriding --foo=expected"
 
 duplicate:
     DO +RUN_EARTHLY --earthfile=duplicate-target-names.earth --should_fail=true --target=+duplicate
@@ -1484,7 +1501,7 @@ test-exec-stats:
       --output_contains="total CPU:.*total memory:.*"
 
 RUN_EARTHLY:
-    COMMAND
+    FUNCTION
     ARG earthfile=
     ARG earthfile_dest="./Earthfile"
     ARG target=+all
