@@ -279,7 +279,7 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 	case command.Command:
 		return i.handleUserCommand(ctx, cmd)
 	case command.Function:
-		return i.handleUserFunction(ctx, cmd)
+		return i.handleFunction(ctx, cmd)
 	case command.Do:
 		return i.handleDo(ctx, cmd)
 	case command.Import:
@@ -1733,7 +1733,7 @@ func (i *Interpreter) handleUserCommand(_ context.Context, cmd spec.Command) err
 	return i.errorf(cmd.SourceLocation, "command COMMAND not allowed in a target definition")
 }
 
-func (i *Interpreter) handleUserFunction(_ context.Context, cmd spec.Command) error {
+func (i *Interpreter) handleFunction(_ context.Context, cmd spec.Command) error {
 	return i.errorf(cmd.SourceLocation, "command FUNCTION not allowed in a target definition")
 }
 
@@ -1787,7 +1787,7 @@ func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 
 	for _, uc := range bc.Earthfile.Functions {
 		if uc.Name == command.Command {
-			return i.handleDoUserFunction(ctx, command, relCommand, uc, cmd, parsedFlagArgs, allowPrivileged, opts.PassArgs, bc.Features.UseFunctionKeyword)
+			return i.handleDoFunction(ctx, command, relCommand, uc, cmd, parsedFlagArgs, allowPrivileged, opts.PassArgs, bc.Features.UseFunctionKeyword)
 		}
 	}
 	return i.errorf(cmd.SourceLocation, "user command %s not found", ucName)
@@ -1976,7 +1976,7 @@ func (i *Interpreter) handleHost(ctx context.Context, cmd spec.Command) error {
 
 // ----------------------------------------------------------------------------
 
-func (i *Interpreter) handleDoUserFunction(ctx context.Context, command domain.Command, relCommand domain.Command, uc spec.Function, do spec.Command, buildArgs []string, allowPrivileged, passArgs bool, useFunctionCmd bool) error {
+func (i *Interpreter) handleDoFunction(ctx context.Context, command domain.Command, relCommand domain.Command, uc spec.Function, do spec.Command, buildArgs []string, allowPrivileged, passArgs bool, useFunctionCmd bool) error {
 	cmdName := "FUNCTION"
 	if !useFunctionCmd {
 		cmdName = "COMMAND"
@@ -1989,8 +1989,8 @@ func (i *Interpreter) handleDoUserFunction(ctx context.Context, command domain.C
 	}
 	if !useFunctionCmd {
 		i.console.Warnf(
-			`COMMAND keyword has been deprecated and replaced by FUNCTION. This change will be enforced as of VERSION 0.8.
-To start using the FUNCTION keyword please use the flag use-function-keyword in the Earthfile that defines the function (e.g. VERSION --use-function-keyword 0.7).
+			`Note that the COMMAND keyword will be replaced by FUNCTION starting with VERSION 0.8.
+To start using the FUNCTION keyword now (experimental) please use VERSION --use-function-keyword 0.7. Note that switching now may cause breakages for your colleagues if they are using older Earthly versions.
 `)
 	}
 	if len(uc.Recipe[0].Command.Args) > 0 {
