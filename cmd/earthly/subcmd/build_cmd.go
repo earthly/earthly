@@ -856,7 +856,7 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		SkipProjectCheck: a.cli.Flags().LocalSkipDB != "",
 	})
 	if err != nil {
-		return nil, nil, false, errors.Wrapf(err, "unable to calculate hash for %s", target)
+		return nil, nil, false, errors.Wrapf(err, "unable to generate auto-skip ID for %q", target)
 	}
 
 	skipDB, err = bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, orgName, projectName, target.GetName(), client)
@@ -866,12 +866,12 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 
 	exists, err := skipDB.Exists(ctx, targetHash)
 	if err != nil {
-		console.Warnf("unable to check if target %s (hash %x) has already been run: %s", target.String(), targetHash, err.Error())
+		console.Warnf("unable to check if target %q (auto-skip ID: %x) has already been run: %s", target.String(), targetHash, err.Error())
 		return nil, nil, false, nil
 	}
 
 	if exists {
-		consoleNoPrefix.Printf("target %s (hash %x) has already been run; exiting", target.String(), targetHash)
+		consoleNoPrefix.Printf("target %q (auto-skip ID: %x) has already been run; exiting", target.String(), targetHash)
 		return nil, nil, true, nil
 	}
 
