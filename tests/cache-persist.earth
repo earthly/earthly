@@ -1,0 +1,22 @@
+VERSION --cache-persist-option 0.7
+FROM alpine:3.18
+
+build:
+    CACHE --persist /cache/persisted
+    RUN touch /cache/persisted/persisted.txt
+
+    CACHE /cache/not-persisted
+    RUN touch /cache/not-persisted/not-persisted.txt
+
+test-persisted:
+    FROM +build
+    IF [ -e /cache/persisted/persisted.txt ]
+        RUN echo "test persisted ok"
+    END
+
+
+test-non-persisted:
+    FROM +build
+    IF [ ! -e /cache/not-persisted/not-persisted.txt ]
+        RUN echo "test non persisted ok"
+    END

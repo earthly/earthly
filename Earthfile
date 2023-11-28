@@ -61,7 +61,7 @@ code:
         RUN go mod download
     END
     COPY ./ast/parser+parser/*.go ./ast/parser/
-    COPY --dir analytics autocomplete buildcontext builder logbus cleanup cloud cmd config conslogging debugger \
+    COPY --dir analytics autocomplete billing buildcontext builder logbus cleanup cloud cmd config conslogging debugger \
         dockertar docker2earthly domain features internal outmon slog states util variables regproxy ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
@@ -129,7 +129,7 @@ lint-scripts:
 earthly-script-no-stdout:
     # This validates the ./earthly script doesn't print anything to stdout (it should print to stderr)
     # This is to ensure commands such as: MYSECRET="$(./earthly secrets get -n /user/my-secret)" work
-    FROM earthly/dind:alpine-3.18
+    FROM earthly/dind:alpine-3.18-docker-23.0.6-r7
     RUN apk add --no-cache --update bash
     COPY earthly .earthly_version_flag_overrides .
 
@@ -561,7 +561,7 @@ dind:
     END
     ARG DOCKERHUB_USER=earthly
     IF [ "$LATEST" = "true" ]
-      # latest means the version is ommitted (for historical reasons we initially just called it earthly/dind:alpine-3.18 or earthly/dind:ubuntu)
+      # latest means the version is ommitted (for historical reasons we initially just called it earthly/dind:alpine or earthly/dind:ubuntu)
       SAVE IMAGE --push --cache-from=earthly/dind:$OS_IMAGE-main $DOCKERHUB_USER/dind:$OS_IMAGE
     END
     ARG DATETIME="$(date --utc +%Y%m%d%H%M%S)" # note this must be overriden when building a multi-platform image (otherwise the values wont match)
@@ -638,24 +638,33 @@ all-buildkitd:
         ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
 dind-alpine:
-    BUILD +dind --OS_IMAGE=alpine --OS_VERSION=3.18 --DOCKER_VERSION=23.0.6-r6
+    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=alpine --OS_VERSION=3.18 --DOCKER_VERSION=23.0.6-r7
 
-dind-ubuntu:
-    BUILD +dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal
-    BUILD +dind --OS_IMAGE=ubuntu --OS_VERSION=23.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.23.04~lunar
+dind-ubuntu-20.04:
+    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal
+
+dind-ubuntu-23.04:
+    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=23.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.23.04~lunar
 
 # all-dind builds alpine and ubuntu dind containers for both linux amd64 and linux arm64
 all-dind:
     RUN --no-cache date --utc +%Y%m%d%H%M%S > datetime
     ARG DATETIME="$(cat datetime)"
     BUILD \
+        --pass-args \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
         +dind-alpine --DATETIME=$DATETIME
     BUILD \
+        --pass-args \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
-        +dind-ubuntu --DATETIME=$DATETIME
+        +dind-ubuntu-20.04 --DATETIME=$DATETIME
+    BUILD \
+        --pass-args \
+        --platform=linux/amd64 \
+        --platform=linux/arm64 \
+        +dind-ubuntu-23.04 --DATETIME=$DATETIME
 
 # all builds all of the following:
 # - Buildkitd for both linux amd64 and linux arm64
@@ -687,8 +696,10 @@ lint-docs:
 # using secure docker hub mirror configurations
 test-no-qemu:
     BUILD --pass-args +test-quick
-    BUILD --pass-args +test-no-qemu-quick
-    BUILD --pass-args +test-no-qemu-normal
+    BUILD --pass-args +test-no-qemu-group1
+    BUILD --pass-args +test-no-qemu-group2
+    BUILD --pass-args +test-no-qemu-group3
+    BUILD --pass-args +test-no-qemu-group4
     BUILD --pass-args +test-no-qemu-slow
 
 # test-quick runs the unit, chaos, offline, and go tests and ensures the earthly script does not write to stdout
@@ -699,27 +710,37 @@ test-quick:
     BUILD +earthly-script-no-stdout
     BUILD --pass-args ./ast/tests+all
 
-# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-quick
-test-no-qemu-quick:
-    BUILD --pass-args ./tests+ga-no-qemu-quick \
+# test-no-qemu-group1 runs the tests from ./tests+ga-no-qemu-group1
+test-no-qemu-group1:
+    BUILD --pass-args ./tests+ga-no-qemu-group1 \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
-# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-normal
-test-no-qemu-normal:
-    BUILD --pass-args ./tests+ga-no-qemu-normal \
+# test-no-qemu-group2 runs the tests from ./tests+ga-no-qemu-group2
+test-no-qemu-group2:
+    BUILD --pass-args ./tests+ga-no-qemu-group2 \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
-# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-slow
+# test-no-qemu-group3 runs the tests from ./tests+ga-no-qemu-group3
+test-no-qemu-group3:
+    BUILD --pass-args ./tests+ga-no-qemu-group3 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group4 runs the tests from ./tests+ga-no-qemu-group4
+test-no-qemu-group4:
+    BUILD --pass-args ./tests+ga-no-qemu-group4 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-slow runs the tests from ./tests+ga-no-qemu-slow
 test-no-qemu-slow:
     BUILD --pass-args ./tests+ga-no-qemu-slow \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
-# test-no-qemu-quick runs the tests from ./tests+ga-no-qemu-kind
+# test-no-qemu-kind runs the tests from ./tests+ga-no-qemu-kind
 test-no-qemu-kind:
     BUILD --pass-args ./tests+ga-no-qemu-kind \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
-# test-no-qemu-quick runs the tests from ./tests+ga-qemu
+# test-qemu runs the tests from ./tests+ga-qemu
 test-qemu:
     ARG GLOBAL_WAIT_END="false"
     BUILD --pass-args ./tests+ga-qemu \
@@ -837,12 +858,7 @@ merge-main-to-docs:
     WORKDIR earthly
     ARG git_hash=$(git rev-parse HEAD)
     RUN --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
-        git fetch --unshallow && \
-        # dry run merge:
-        git checkout $to_branch && \
-        git merge --no-commit origin/$from_branch && \
-        git status && \
-        git merge --abort
+        git fetch --unshallow
     RUN --push --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
         git checkout $to_branch && \
         git merge $from_branch && \
@@ -873,3 +889,10 @@ check-broken-links:
     ELSE
         RUN --no-cache echo -e "${GREEN}No Broken Links were found${NOCOLOR}"
     END
+
+# BUILD_AND_FROM will issue a FROM and a BUILD commands for the provided target
+BUILD_AND_FROM:
+    COMMAND
+    ARG --required TARGET
+    FROM --pass-args +$TARGET
+    BUILD --pass-args +$TARGET

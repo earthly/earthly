@@ -1,6 +1,8 @@
 package inputgraph
 
-import "github.com/earthly/earthly/ast/spec"
+import (
+	"github.com/earthly/earthly/ast/spec"
+)
 
 func (l *loader) hashIfStatement(s spec.IfStatement) {
 	l.hasher.HashString("IF")
@@ -37,7 +39,11 @@ func (l *loader) hashCommand(c spec.Command) {
 	l.hasher.HashBool(c.ExecMode)
 }
 
-func (l *loader) hashFor(f spec.ForStatement) {
+func (l *loader) hashForStatement(f spec.ForStatement) {
 	l.hasher.HashString("FOR")
 	l.hasher.HashJSONMarshalled(f.Args)
+}
+
+func (l *loader) hashTryStatement(t spec.TryStatement) {
+	l.hasher.HashString("TRY")
 }

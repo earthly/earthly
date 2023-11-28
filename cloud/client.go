@@ -8,6 +8,7 @@ import (
 
 	"github.com/earthly/cloud-api/analytics"
 	"github.com/earthly/cloud-api/askv"
+	"github.com/earthly/cloud-api/billing"
 	"github.com/earthly/cloud-api/compute"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/cloud-api/pipelines"
@@ -25,7 +26,8 @@ import (
 
 var (
 	// ErrUnauthorized occurs when a user is unauthorized to access a resource
-	ErrUnauthorized = errors.New("unauthorized")
+	ErrUnauthorized     = errors.New("unauthorized")
+	ErrAuthTokenExpired = errors.New("auth token expired")
 	// ErrNoAuthorizedPublicKeys occurs when no authorized public keys are found
 	ErrNoAuthorizedPublicKeys = errors.New("no authorized public keys found")
 	ErrNotFound               = errors.Errorf("not found")
@@ -33,10 +35,11 @@ var (
 )
 
 const (
-	tokenExpiryLayout    = "2006-01-02 15:04:05.999999999 -0700 MST"
-	satelliteMgmtTimeout = "5M" // 5 minute timeout when launching or deleting a Satellite
-	requestID            = "request-id"
-	retryCount           = "retry-count"
+	tokenExpiryLayout       = "2006-01-02 15:04:05.999999999 -0700 MST"
+	satelliteMgmtTimeout    = "5M" // 5 minute timeout when launching or deleting a Satellite
+	requestID               = "request-id"
+	retryCount              = "retry-count"
+	tokenExpiredServerError = "token expired"
 )
 
 type logstreamClient interface {
@@ -63,12 +66,14 @@ type Client struct {
 	logstreamBackoff         time.Duration
 	analytics                analytics.AnalyticsClient
 	askv                     askv.AskvClient
+	billing                  billing.BillingClient
 	requestID                string
 	installationName         string
 	logstreamAddressOverride string
 	serverConnTimeout        time.Duration
 	orgIDCache               sync.Map // orgName -> orgID
 	lastAuthMethod           AuthMethod
+	lastAuthMethodExpiry     time.Time
 }
 
 type ClientOpt func(*Client)
@@ -138,6 +143,7 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	c.compute = compute.NewComputeClient(conn)
 	c.analytics = analytics.NewAnalyticsClient(conn)
 	c.askv = askv.NewAskvClient(conn)
+	c.billing = billing.NewBillingClient(conn)
 
 	logstreamAddr := grpcAddr
 	if c.logstreamAddressOverride != "" {

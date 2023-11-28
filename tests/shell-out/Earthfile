@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 
 FROM --pass-args ../..+earthly-integration-test-base
 
@@ -37,7 +37,7 @@ test-new:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=new.earth --target=+test
 
 RUN_EARTHLY_ARGS:
-    COMMAND
+    FUNCTION
     ARG earthfile
     ARG target
     ARG should_fail=false

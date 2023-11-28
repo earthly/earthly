@@ -33,6 +33,7 @@ type CLI interface {
 	SetAnaMetaBKPlatform(string)
 	SetAnaMetaUserPlatform(string)
 	IsUsingSatellite(*cli.Context) bool
+	OrgName() string
 
 	GetBuildkitClient(*cli.Context, *cloud.Client) (*client.Client, error)
 	GetSatelliteOrg(context.Context, *cloud.Client) (string, string, error)
@@ -41,4 +42,8 @@ type CLI interface {
 	CIHost() string
 	LogbusSetup() *setup.BusSetup
 	Logbus() *logbus.Bus
+
+	AddDeferredFunc(f func())
+
+	CollectBillingInfo(ctx context.Context, cloudClient *cloud.Client, orgName string) error
 }

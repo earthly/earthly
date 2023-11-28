@@ -4,6 +4,10 @@ import (
 	"time"
 )
 
+// NOTE: Any new flags must be accompanied by the introduction of a new `VERSION` feature flag.
+// This applies to new features which do **not** break backwards compatibility, which is needed
+// to ensure an Earthfile that uses `VERSION 0.7` can be built by **any** of the earthly-v0.7.x binaries.
+
 type IfOpts struct {
 	Privileged bool     `long:"privileged" description:"Enable privileged mode"`
 	WithSSH    bool     `long:"ssh" description:"Make available the SSH agent of the host"`
@@ -140,4 +144,12 @@ type CacheOpts struct {
 	Sharing string `long:"sharing" description:"The cache sharing mode: locked (default), shared, private"`
 	Mode    string `long:"chmod" description:"Apply a mode to the cache folder" default:"0644"`
 	ID      string `long:"id" description:"Cache ID, to reuse the same cache across different targets and Earthfiles"`
+	Persist bool   `long:"persist" description:"If should persist cache state in image"`
+}
+
+// NewForOpts creates and returns a ForOpts with default separators.
+func NewForOpts() ForOpts {
+	return ForOpts{
+		Separators: "\n\t ",
+	}
 }

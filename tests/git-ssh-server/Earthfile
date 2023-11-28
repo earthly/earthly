@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 
 test-rsa-only:
     FROM --pass-args ./setup+server \
@@ -390,7 +390,7 @@ all:
     BUILD +test-custom-matcher-non-standard-port-and-no-host-checking
 
 RUN_EARTHLY_ARGS:
-    COMMAND
+    FUNCTION
     ARG earthfile
     ARG pre_command
     ARG exec_cmd

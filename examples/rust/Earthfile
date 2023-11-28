@@ -1,29 +1,19 @@
-VERSION 0.7
-FROM rust:1.72
+VERSION --global-cache 0.7
+IMPORT github.com/earthly/lib/rust:2.2.10 AS rust
+
+FROM rust:slim-buster
 WORKDIR /rustexample
 
-install-chef:
-    RUN cargo install --debug cargo-chef
-
-prepare-cache:
-    FROM +install-chef
-    COPY --dir src Cargo.lock Cargo.toml .
-    RUN cargo chef prepare
-    SAVE ARTIFACT recipe.json
-
-# Using cutoff-optimization to ensure cache hit (see examples/cutoff-optimization)
-build-cache:
-    FROM +install-chef
-    COPY +prepare-cache/recipe.json ./
-    CACHE target
-    RUN cargo chef cook --release
-
+# build creates the binary target/release/example-rust
 build:
-    FROM +build-cache
-    COPY --dir src Cargo.lock Cargo.toml .
-    RUN cargo build --release --bin example-rust
+    # Cargo UDC adds caching to cargo runs.
+    # See https://github.com/earthly/lib/tree/main/rust
+    DO rust+INIT --keep_fingerprints=true
+    COPY --keep-ts --dir src Cargo.lock Cargo.toml .
+    DO rust+CARGO --args="build --release --bin example-rust" --output="release/[^/\.]+"
     SAVE ARTIFACT target/release/example-rust example-rust
 
+# docker creates docker image earthly/examples:rust
 docker:
     FROM debian:buster-slim
     COPY +build/example-rust example-rust

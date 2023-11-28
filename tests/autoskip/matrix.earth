@@ -1,0 +1,13 @@
+VERSION 0.7
+
+PROJECT earthly-technologies/core
+
+FROM alpine
+
+foo:
+    ARG NAME
+    ARG SENDER
+    RUN echo "Hello $NAME. From $SENDER"
+
+arg-matrix:
+    BUILD +foo --NAME=Bob --NAME=John --NAME=Bill --NAME=Sarah --SENDER=Todd --SENDER=Owen

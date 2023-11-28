@@ -27,6 +27,7 @@ type CLI struct {
 	defaultBuildkitdImage   string
 	defaultInstallationName string
 	flags                   flag.Global
+	deferredFuncs           []func()
 	analyticsMetadata
 }
 
@@ -212,6 +213,16 @@ func (c *CLI) SetAnaMetaUserPlatform(platform string) {
 }
 func (c *CLI) SetAnaMetaTarget(target domain.Target) {
 	c.analyticsMetadata.target = target
+}
+
+func (c *CLI) AddDeferredFunc(f func()) {
+	c.deferredFuncs = append([]func(){f}, c.deferredFuncs...)
+}
+
+func (c *CLI) ExecuteDeferredFuncs() {
+	for _, f := range c.deferredFuncs {
+		f()
+	}
 }
 
 // CIHost returns protocol://hostname

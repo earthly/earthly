@@ -12,6 +12,7 @@ var (
 	successColor       = makeColor(color.FgGreen)
 	warnColor          = makeColor(color.FgHiRed)
 	localColor         = makeColor(color.FgHiBlue)
+	helpColor          = makeColor(color.FgMagenta)
 )
 
 var availablePrefixColors = []*color.Color{

@@ -10,12 +10,36 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/hashicorp/go-multierror"
 	_ "github.com/moby/buildkit/client/connhelper/dockercontainer" // Load "docker-container://" helper.
 	"github.com/pkg/errors"
 )
+
+type containerInfo struct {
+	ID      string    `json:"Id"`
+	Name    string    `json:"Name"`
+	Created time.Time `json:"Created"`
+	State   struct {
+		Status string `json:"Status"`
+	} `json:"State"`
+	NetworkSettings struct {
+		Networks map[string]struct {
+			IPAddress string `json:"IPAddress"`
+		} `json:"Networks"`
+		Ports map[string][]struct {
+			HostIP   string `json:"HostIP"`
+			HostPort string `json:"HostPort"`
+		} `json:"Ports"`
+	} `json:"NetworkSettings"`
+	Config struct {
+		Image  string            `json:"Image"`
+		Labels map[string]string `json:"Labels"`
+	} `json:"Config"`
+	Image string `json:"Image"`
+}
 
 type shellFrontend struct {
 	binaryName              string
@@ -35,6 +59,35 @@ func (sf *shellFrontend) IsAvailable(ctx context.Context) bool {
 	return err == nil
 }
 
+const containerDateFormat = "2006-01-02 15:04:05.999999999 -0700 MST"
+
+func (sf *shellFrontend) ContainerList(ctx context.Context) ([]*ContainerInfo, error) {
+	// The custom format below is supported by Docker and Podman.
+	args := []string{"ps", "--format", `{{.ID}},{{.Names}},{{.Status}},{{.Image}},{{.CreatedAt}}`}
+	output, err := sf.commandContextOutput(ctx, args...)
+	if err != nil {
+		return nil, err
+	}
+	ret := []*ContainerInfo{}
+	// The Docker & Podman JSON output format differs, so we parse the standard output here.
+	lines := strings.Split(strings.Trim(output.stdout.String(), "\n"), "\n")
+	for _, line := range lines {
+		parts := strings.Split(line, ",")
+		createdAt, err := time.Parse(containerDateFormat, parts[4])
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse container date")
+		}
+		ret = append(ret, &ContainerInfo{
+			ID:      parts[0],
+			Name:    parts[1],
+			Status:  parts[2],
+			Image:   parts[3],
+			Created: createdAt,
+		})
+	}
+	return ret, nil
+}
+
 func (sf *shellFrontend) ContainerInfo(ctx context.Context, namesOrIDs ...string) (map[string]*ContainerInfo, error) {
 	args := append([]string{"container", "inspect"}, namesOrIDs...)
 
@@ -51,24 +104,7 @@ func (sf *shellFrontend) ContainerInfo(ctx context.Context, namesOrIDs ...string
 		}
 	}
 
-	// Anonymous struct to just pick out what we need
-	containers := []struct {
-		ID    string `json:"Id"`
-		Name  string `json:"Name"`
-		State struct {
-			Status string `json:"Status"`
-		} `json:"State"`
-		NetworkSettings struct {
-			Networks map[string]struct {
-				IPAddress string `json:"IPAddress"`
-			} `json:"Networks"`
-		} `json:"NetworkSettings"`
-		Config struct {
-			Image  string            `json:"Image"`
-			Labels map[string]string `json:"Labels"`
-		} `json:"Config"`
-		Image string `json:"Image"`
-	}{}
+	containers := []containerInfo{}
 	err := json.Unmarshal([]byte(output.stdout.String()), &containers)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to unmarshal container inspect output %s", output.stdout.String())
@@ -83,15 +119,27 @@ func (sf *shellFrontend) ContainerInfo(ctx context.Context, namesOrIDs ...string
 		infos[namesOrIDs[i]] = &ContainerInfo{
 			ID:      container.ID,
 			Name:    container.Name,
+			Created: container.Created,
 			Status:  container.State.Status,
 			IPs:     ipAddresses,
 			Image:   container.Config.Image,
 			ImageID: container.Image,
 			Labels:  container.Config.Labels,
+			Ports:   formatPorts(container),
 		}
 	}
 
 	return infos, nil
+}
+
+func formatPorts(info containerInfo) []string {
+	ret := []string{}
+	for key, ports := range info.NetworkSettings.Ports {
+		for _, port := range ports {
+			ret = append(ret, fmt.Sprintf("%s:%s:%s", port.HostIP, port.HostPort, key))
+		}
+	}
+	return ret
 }
 
 func (sf *shellFrontend) ContainerRemove(ctx context.Context, force bool, namesOrIDs ...string) error {

@@ -3,12 +3,15 @@ package formatter
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 	"sync"
 	"time"
 
+	runc "github.com/containerd/go-runc"
+	humanize "github.com/dustin/go-humanize"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/logbus"
@@ -26,9 +29,16 @@ const (
 	durationBetweenProgressUpdateIfSame = 5 * time.Millisecond
 	durationBetweenOngoingUpdates       = 5 * time.Second
 	durationBetweenOngoingUpdatesNoAnsi = 60 * time.Second
+
+	// BuildkitStatsStream is the stream number associated with runc stats
+	BuildkitStatsStream = 99 // TODO move to a common location in buildkit
 )
 
 const esc = 27
+
+const (
+	genericPrefix = "_generic:"
+)
 
 var (
 	ansiUp            = []byte(fmt.Sprintf("%c[A", esc))
@@ -52,6 +62,7 @@ type Formatter struct {
 	bus             *logbus.Bus
 	console         conslogging.ConsoleLogger
 	verbose         bool
+	displayStats    bool
 	ongoingTick     time.Duration
 	ongoingTicker   *time.Ticker
 	startTime       time.Time
@@ -70,7 +81,7 @@ type Formatter struct {
 }
 
 // New creates a new Formatter.
-func New(ctx context.Context, b *logbus.Bus, debug, verbose, forceColor, noColor bool, disableOngoingUpdates bool) *Formatter {
+func New(ctx context.Context, b *logbus.Bus, debug, verbose, displayStats, forceColor, noColor bool, disableOngoingUpdates bool) *Formatter {
 	ongoingTick := durationBetweenOngoingUpdatesNoAnsi
 	if ansiSupported {
 		ongoingTick = durationBetweenOngoingUpdates
@@ -99,6 +110,7 @@ func New(ctx context.Context, b *logbus.Bus, debug, verbose, forceColor, noColor
 		bus:           b,
 		console:       conslogging.New(nil, nil, colorMode, conslogging.DefaultPadding, logLevel),
 		verbose:       verbose,
+		displayStats:  displayStats,
 		timingTable:   make(map[string]time.Duration),
 		startTime:     time.Now(),
 		closedCh:      make(chan struct{}),
@@ -246,6 +258,9 @@ func (f *Formatter) getCommand(commandID string) *command {
 }
 
 func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
+	if dl.Stream == BuildkitStatsStream && !f.displayStats {
+		return nil
+	}
 	c, verboseOnly := f.targetConsole(dl.GetTargetId(), dl.GetCommandId())
 	if verboseOnly && !f.verbose {
 		return nil
@@ -255,7 +270,20 @@ func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
 	sameAsLast := (!f.lastOutputWasOngoingUpdate &&
 		!f.lastOutputWasProgress &&
 		f.lastCommandOutput == cmd)
+
 	output := dl.GetData()
+
+	if dl.Stream == BuildkitStatsStream {
+		var stats runc.Stats
+		err := json.Unmarshal(output, &stats)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse stats")
+		}
+		totalCPU := time.Duration(stats.Cpu.Usage.Total) // Total is reported in nanoseconds
+		totalMem := stats.Memory.Usage.Usage             // in bytes
+		output = []byte(fmt.Sprintf("[stats] total CPU: %s; total memory: %s\n", totalCPU, humanize.Bytes(totalMem)))
+	}
+
 	printOutput := make([]byte, 0, len(cmd.openLine)+len(output)+10)
 	if bytes.HasPrefix(output, []byte{'\n'}) && len(cmd.openLine) > 0 {
 		// Optimization for cases where ansi control sequences are not supported:
@@ -405,7 +433,9 @@ func (f *Formatter) printBuildFailure() {
 	}
 	c, _ := f.targetConsole(failure.GetTargetId(), failure.GetCommandId())
 	c = c.WithFailed(true)
-	if failure.GetCommandId() != "" {
+	msgPrefix := "Error: " // print this prefix only when the command id is set
+	if failure.GetCommandId() != "" && failure.GetCommandId() != logbus.GenericDefault {
+		msgPrefix = ""
 		c.PrintFailure("")
 		c.Printf("Repeating the failure error...\n")
 		f.printHeader(failure.GetTargetId(), failure.GetCommandId(), tm, cm, true)
@@ -415,7 +445,7 @@ func (f *Formatter) printBuildFailure() {
 			c.Printf("[no output]\n")
 		}
 	}
-	c.Printf("%s\n", failure.GetErrorMessage())
+	c.Printf("%s%s\n", msgPrefix, failure.GetErrorMessage())
 	f.lastOutputWasOngoingUpdate = false
 	f.lastOutputWasProgress = false
 	f.lastCommandOutput = nil
@@ -430,11 +460,11 @@ func (f *Formatter) targetConsole(targetID string, commandID string) (consloggin
 		tm := f.manifest.GetTargets()[targetID]
 		targetName = tm.GetName()
 		writerTargetID = targetID
-	case commandID == "_generic:default":
+	case commandID == logbus.GenericDefault:
 		targetName = ""
 		writerTargetID = commandID
-	case strings.HasPrefix(commandID, "_generic:"):
-		targetName = strings.TrimPrefix(commandID, "_generic:")
+	case strings.HasPrefix(commandID, genericPrefix):
+		targetName = strings.TrimPrefix(commandID, genericPrefix)
 		writerTargetID = commandID
 		switch targetName {
 		case "context":

@@ -2,11 +2,11 @@ package proj
 
 import (
 	"context"
-	"text/template"
 	"io"
 	"io/fs"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/earthly/earthly/ast/hint"
 	"github.com/pkg/errors"

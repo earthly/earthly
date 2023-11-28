@@ -1,10 +1,11 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 FROM --pass-args ../..+earthly-integration-test-base
 
 ENV EARTHLY_SHOW_HIDDEN=0
 
 test-root-commands:
     RUN echo "account 
+billing 
 bootstrap 
 config 
 doc 
@@ -23,6 +24,7 @@ web " > expected
 test-hidden-root-commands:
     ENV EARTHLY_SHOW_HIDDEN=1
     RUN echo "account 
+billing 
 bootstrap 
 build 
 config 
@@ -205,7 +207,7 @@ test-no-errors-are-displayed:
     RUN diff expected actual
 
 COMPLETION_TEST:
-    COMMAND
+    FUNCTION
     ARG --required COMP_LINE
     ARG COMP_POINT="$(echo -n "$COMP_LINE" | wc -m)"
     ARG expected_file='expected'
