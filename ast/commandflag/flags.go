@@ -144,6 +144,7 @@ type CacheOpts struct {
 	Sharing string `long:"sharing" description:"The cache sharing mode: locked (default), shared, private"`
 	Mode    string `long:"chmod" description:"Apply a mode to the cache folder" default:"0644"`
 	ID      string `long:"id" description:"Cache ID, to reuse the same cache across different targets and Earthfiles"`
+	Persist bool   `long:"persist" description:"If should persist cache state in image"`
 }
 
 // NewForOpts creates and returns a ForOpts with default separators.

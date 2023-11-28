@@ -200,10 +200,6 @@ Allows to override the image used to run internal `git` commands (e.g. during `G
 
 The default organization to use when performing Earthly operations that require an organization. Ignored when  the `--org` CLI option is present, or when the `EARTHLY_ORG` environment variable are set.
 
-### cache_path (obsolete)
-
-This option is obsolete and it is ignored. Earthly cache has moved to a Docker volume. For more information see the [page on managing cache](../guides/cache.md).
-
 ### Frontend configuration
 
 This option allows you to specify what supported frontend you are using (Docker / Podman).

@@ -7,6 +7,7 @@ const (
 	Cache          = "CACHE"
 	Cmd            = "CMD"
 	Command        = "COMMAND"
+	Function       = "FUNCTION"
 	Copy           = "COPY"
 	Do             = "DO"
 	Docker         = "DOCKER"

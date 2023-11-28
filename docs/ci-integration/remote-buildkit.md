@@ -8,15 +8,7 @@ If you are looking for a way to use remote runners without the complexities of m
 
 ### Why Remote?
 
-Running a remote daemon is a unique feature of Earthly. It allows the build to happen elsewhere; even when executing it from your local development machine. However, it is not always the best option. Before setting up a remote daemon, first look into Earthly's shared caching capabilities and see if those can get you the boost you need. In our experience, [remote caching](../remote-caching.md) is usually enough.
-
-However, there are instances where a remote daemon can make the most sense. Here are some examples:
-
-- You have a single, powerful build machine you would like to share with your development team
-- There is data closer to a remote machine than your development/CI environment, so you bring the build to the data
-- You are using Earthly in Kubernetes, and want to isolate the containers doing the actual building because they require privileged mode
-- You want to share a build machine (or cluster) with your CI environment and your developers
-- Your local computer does not have the capabilities to build the software (`docker`/`dockerd` is missing, or you lack sufficient privileges, or it is simply not powerful enough)
+Running a remote daemon is a unique feature of Earthly. It allows the build to happen elsewhere; even when executing it from your local development machine. The key benefit of remote execution is having instant access to the cache, thus making builds dramatically faster compared to many traditional CI setups that require uploading and downloading the cache.
 
 ### Running Remote BuildKit
 

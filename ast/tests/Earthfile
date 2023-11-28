@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 FROM alpine:3.18
 RUN apk add jq
 WORKDIR /test
@@ -135,7 +135,7 @@ update-expected:
     SAVE ARTIFACT ./expected.pretty.json AS LOCAL ./${TEST}.ast.json
 
 INPUT_COPY:
-    COMMAND
+    FUNCTION
     ARG TEST
     ARG INPUT_FROM_DIR
     ARG INPUT_FROM_TARGET

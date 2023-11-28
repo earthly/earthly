@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 
 FROM --pass-args ../..+earthly-integration-test-base
 
@@ -21,7 +21,7 @@ test-do-not-track:
     DO --pass-args +RUN_EARTHLY_ARGS --pre_command=/bin/api-earthly-stub-server --post_command=" && api-earthly-stub-server-shutdown" --earthfile=true.earth --target=+true
 
 RUN_EARTHLY_ARGS:
-    COMMAND
+    FUNCTION
     ARG earthfile
     ARG target
     ARG should_fail=false

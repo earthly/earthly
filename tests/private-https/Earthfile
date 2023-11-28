@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 FROM --pass-args ..+base
 
 all:
@@ -78,7 +78,7 @@ earthly --config \$earthly_config --verbose -D selfsigned.example.com/testuser/r
     DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-nginx-with-git --earthfile=git-clone-private-https.earth --exec_cmd=/tmp/test-earthly-script
 
 RUN_EARTHLY_ARGS:
-    COMMAND
+    FUNCTION
     ARG earthfile
     ARG pre_command
     ARG exec_cmd

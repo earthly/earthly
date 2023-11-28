@@ -8,17 +8,21 @@ redirects:
     earthfile: earthfile/earthfile.md
     the-earthly-command/earthly-command: earthly-command/earthly-command.md
     guides: ./README.md
-    guides/advanced-local-caching: guides/advanced-local-caching.md
+    guides/advanced-local-caching: caching/caching-in-earthfiles.md
+    docs/guides/advanced-local-caching: caching/caching-in-earthfiles.md
     guides/auth: guides/auth.md
-    guides/cache: guides/cache.md
+    guides/cache: caching/managing-cache.md
+    docs/guides/cache: caching/managing-cache.md
     docs/guides/cloud-secrets: cloud/cloud-secrets.md
     guides/cloud-secrets: cloud/cloud-secrets.md
     guides/debugging: guides/debugging.md
     guides/docker-in-earthly: guides/docker-in-earthly.md
     guides/integration: guides/integration.md
     guides/multi-platform: guides/multi-platform.md
-    guides/target-ref: guides/target-ref.md
-    guides/udc: guides/udc.md
+    guides/target-ref: guides/importing.md
+    docs/guides/target-ref: guides/importing.md
+    guides/udc: guides/functions.md
+    docs/guides/udc: guides/functions.md
     earthly-config: earthly-config/earthly-config.md
     ci-integration: ci-integration/overview.md
     earth-command: earthly-command/earthly-command.md
@@ -71,5 +75,6 @@ redirects:
     examples/per-language-earthfile-examples/js: examples/examples.md
     examples/per-language-earthfile-examples/python: examples/examples.md
     guides/configuring-registries: guides/auth.md
-    guides/shared-cache: remote-caching.md
+    guides/shared-cache: ./caching/caching-via-registry.md
+    docs/remote-caching: ./caching/caching-via-registry.md
     earthly-cloud/satellites: cloud/satellites.md

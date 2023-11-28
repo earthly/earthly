@@ -30,12 +30,12 @@ type block struct {
 type listener struct {
 	*parser.BaseEarthParserListener
 
-	tokStream   *antlr.CommonTokenStream
-	ef          *spec.Earthfile
-	target      *spec.Target
-	userCommand *spec.UserCommand
-	blocks      []*block
-	command     *spec.Command
+	tokStream *antlr.CommonTokenStream
+	ef        *spec.Earthfile
+	target    *spec.Target
+	function  *spec.Function
+	blocks    []*block
+	command   *spec.Command
 
 	stmtWords []string
 	execMode  bool
@@ -154,9 +154,9 @@ func (l *listener) ExitTarget(c *parser.TargetContext) {
 // User command ---------------------------------------------------------------
 
 func (l *listener) EnterUserCommand(c *parser.UserCommandContext) {
-	l.userCommand = new(spec.UserCommand)
+	l.function = new(spec.Function)
 	if l.enableSourceMap {
-		l.userCommand.SourceLocation = &spec.SourceLocation{
+		l.function.SourceLocation = &spec.SourceLocation{
 			File:        l.filePath,
 			StartLine:   c.GetStart().GetLine(),
 			StartColumn: c.GetStart().GetColumn(),
@@ -168,13 +168,39 @@ func (l *listener) EnterUserCommand(c *parser.UserCommandContext) {
 }
 
 func (l *listener) EnterUserCommandHeader(c *parser.UserCommandHeaderContext) {
-	l.userCommand.Name = strings.TrimSuffix(c.GetText(), ":")
+	l.function.Name = strings.TrimSuffix(c.GetText(), ":")
 }
 
 func (l *listener) ExitUserCommand(c *parser.UserCommandContext) {
-	l.userCommand.Recipe = l.popBlock()
-	l.ef.UserCommands = append(l.ef.UserCommands, *l.userCommand)
-	l.userCommand = nil
+	l.function.Recipe = l.popBlock()
+	l.ef.Functions = append(l.ef.Functions, *l.function)
+	l.function = nil
+}
+
+// Function ---------------------------------------------------------------
+
+func (l *listener) EnterFunction(c *parser.FunctionContext) {
+	l.function = new(spec.Function)
+	if l.enableSourceMap {
+		l.function.SourceLocation = &spec.SourceLocation{
+			File:        l.filePath,
+			StartLine:   c.GetStart().GetLine(),
+			StartColumn: c.GetStart().GetColumn(),
+			EndLine:     c.GetStop().GetLine(),
+			EndColumn:   c.GetStop().GetColumn(),
+		}
+	}
+	l.pushNewBlock()
+}
+
+func (l *listener) EnterFunctionHeader(c *parser.FunctionHeaderContext) {
+	l.function.Name = strings.TrimSuffix(c.GetText(), ":")
+}
+
+func (l *listener) ExitFunction(c *parser.FunctionContext) {
+	l.function.Recipe = l.popBlock()
+	l.ef.Functions = append(l.ef.Functions, *l.function)
+	l.function = nil
 }
 
 // Statement ------------------------------------------------------------------
@@ -327,6 +353,10 @@ func (l *listener) EnterShellStmt(c *parser.ShellStmtContext) {
 
 func (l *listener) EnterUserCommandStmt(c *parser.UserCommandStmtContext) {
 	l.command.Name = "COMMAND"
+}
+
+func (l *listener) EnterFunctionStmt(c *parser.FunctionStmtContext) {
+	l.command.Name = "FUNCTION"
 }
 
 func (l *listener) EnterDoStmt(c *parser.DoStmtContext) {
