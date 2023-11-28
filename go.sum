@@ -185,8 +185,8 @@ github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
-github.com/earthly/buildkit v0.0.0-20231123202311-54a44529a366 h1:/3JAhXn78MniRZ/WfFy21505PCjLr13Y++IxIGbVSxk=
-github.com/earthly/buildkit v0.0.0-20231123202311-54a44529a366/go.mod h1:9YV/0upRPk36WbLrmr2bf2MZ0M27fvjxiBr5VD/ia80=
+github.com/earthly/buildkit v0.0.0-20231128190448-10ce29c83b8a h1:3HpDkWTVHvYXc6gI3vLWZzt7l/jJ+etLX45jZNRLQYE=
+github.com/earthly/buildkit v0.0.0-20231128190448-10ce29c83b8a/go.mod h1:9YV/0upRPk36WbLrmr2bf2MZ0M27fvjxiBr5VD/ia80=
 github.com/earthly/cloud-api v1.0.1-0.20231104021724-b38162a550cb h1:a5u2YnTVZGScHBHo3qugai43RTXRYnt1x33lsKTOy2I=
 github.com/earthly/cloud-api v1.0.1-0.20231104021724-b38162a550cb/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
 github.com/earthly/fsutil v0.0.0-20231030221755-644b08355b65 h1:6oyWHoxHXwcTt4EqmMw6361scIV87uEAB1N42+VpIwk=
