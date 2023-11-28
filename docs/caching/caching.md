@@ -71,4 +71,4 @@ To read more, check out the [remote runners page](../remote-runners.md), and the
 
 ## Managing Cache
 
-For information on how to manage cache either locally, or on a remote runner, like a satellite, see the [Managing Cache guide](./guides/managing-cache.md).
+For information on how to manage cache either locally, or on a remote runner, like a satellite, see the [Managing Cache guide](./managing-cache.md).
