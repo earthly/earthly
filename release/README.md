@@ -30,7 +30,7 @@
   cd release
   env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG="$RELEASE_TAG" USER="$USER" PRERELEASE="$PRERELEASE" ./release.sh
   ```
-* Make sure `main` branch is properly merged to `docs-0.7`:
+* Wait for A post release Github job to merge `main` branch to `docs-0.7` branch; you can watch for it here:
   [![update docs](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml/badge.svg)](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml)
 
 * Updating the Earthly version in our docs:
@@ -48,7 +48,7 @@
     `git checkout main && git push`
 
 <!-- vale HouseStyle.Spelling = YES -->
-* Make sure there are no broken links in https://docs.earthly.dev:
+* Wait for A post release Github job to validate https://docs.earthly.dev does not contain any broken links; you can watch for it here:
   [![check docs broken links](https://github.com/earthly/earthly/actions/workflows/docs-checks-links.yml/badge.svg)](https://github.com/earthly/earthly/actions/workflows/docs-checks-links.yml)
 * Verify the [Homebrew release job](https://github.com/earthly/homebrew-earthly) has successfully run and has merged the new `release-v...` branch into `main`.
 * Copy the release notes you have written before and paste them in the Earthly Community slack channel `#announcements`, together with a link to the release's GitHub page. If you have Slack markdown editing activated, you can copy the markdown version of the text.
