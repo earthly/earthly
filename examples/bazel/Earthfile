@@ -27,8 +27,8 @@ build:
     FROM +code
     # Save Bazel's cache as a cache directory. This directory will be reused
     # between runs.
-    ARG bazel_cache = "/root/.cache/bazel"
-    CACHE "$bazel_cache"
+    # ARG bazel_cache = "/root/.cache/bazel"
+    # CACHE "$bazel_cache"
     RUN bazel build --@io_bazel_rules_docker//transitions:enable=false //:ProjectRunner
     ARG bazel_out = "$(readlink -f ./bazel-out)"
     ARG bazel_bin = "$(readlink -f ./bazel-bin)"

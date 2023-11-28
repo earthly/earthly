@@ -207,7 +207,7 @@ jobs:
     uses: ./.github/workflows/reusable-test-local.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      RUN_EARTHLY_TEST_ARGS: "--no-output"
+      RUN_EARTHLY_TEST_ARGS: "--no-output --use-remote-registry"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       BINARY_COMPOSE: "\"docker compose\""
