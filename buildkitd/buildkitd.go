@@ -979,12 +979,7 @@ func addRequiredOpts(settings Settings, installationName string, isUsingPodman b
 // PrintSatelliteInfo prints the instance's details,
 // including its Buildkit version, current workload, and garbage collection.
 func PrintSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, earthlyVersion string, settings Settings, installationName string) error {
-	fmt.Println(settings)
-	selfHostedInfo := ""
-	if settings.SatelliteIsSelfHosted {
-		selfHostedInfo = fmt.Sprintf(" (self-hosted at %s)", settings.BuildkitAddress)
-	}
-	console.Printf("Connecting to %s...%s", settings.SatelliteDisplayName, selfHostedInfo)
+	console.Printf("Connecting to %s...", settings.SatelliteDisplayName)
 	opts, err := addRequiredOpts(settings, installationName, false)
 	if err != nil {
 		return errors.Wrap(err, "add required client opts")

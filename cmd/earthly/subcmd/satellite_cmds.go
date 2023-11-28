@@ -693,9 +693,15 @@ func (a *Satellite) actionInspect(cliCtx *cli.Context) error {
 		selected = "Yes"
 	}
 
+	size := satellite.Size
+	if !satellite.IsManaged {
+		size = "self-hosted"
+		a.cli.Console().Printf("Address: %s", satellite.Address)
+	}
+
 	a.cli.Console().Printf("State: %s", satellite.State)
 	a.cli.Console().Printf("Platform: %s", satellite.Platform)
-	a.cli.Console().Printf("Size: %s", satellite.Size)
+	a.cli.Console().Printf("Size: %s", size)
 	a.cli.Console().Printf("Last Used: %s", satellite.LastUsed.In(time.Local))
 	a.cli.Console().Printf("Cache Duration: %s", durationWithDaysPart(satellite.CacheRetention))
 	pinned := ""
