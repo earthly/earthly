@@ -1,11 +1,9 @@
 name: check docs broken links
 
 on:
-  push: # this can be removed if we noticed the workflow_run trigger is working as expected (after the gitbook workflow completes)
+  push:
     branches: [docs-0.7]
-  workflow_run:
-    workflows: ['GitBook']
-    types: [completed]
+  pull_request:
     branches: [docs-0.7]
 
 concurrency:
@@ -13,8 +11,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check-broken-links:
-    if: ${{ github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+  check-broken-links-pr:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: "ubuntu-latest"
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+      DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
+      DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+      # Used in our github action as the token - TODO: look to change it into an input
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+      - uses: earthly/actions-setup@main
+      - name: Check Broken Links
+        run: earthly --ci +check-broken-links-pr --VERBOSE=true
+
+  check-broken-links-branch:
+    if: ${{ github.event_name == 'push' }}
     runs-on: "ubuntu-latest"
     env:
       FORCE_COLOR: 1
