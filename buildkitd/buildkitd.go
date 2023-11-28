@@ -84,7 +84,11 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 		remoteConsole := console
 		if settings.SatelliteName != "" {
 			remoteConsole = console.WithPrefix("satellite")
-			remoteConsole.Printf("Connecting to %s...", settings.SatelliteDisplayName)
+			selfHostedInfo := ""
+			if settings.SatelliteIsSelfHosted {
+				selfHostedInfo = fmt.Sprintf(" (self-hosted at %s)", settings.BuildkitAddress) // TODO share with the other function
+			}
+			remoteConsole.Printf("Connecting to %s...%s", settings.SatelliteDisplayName, selfHostedInfo)
 		} else {
 			remoteConsole = console.WithPrefix("buildkitd")
 			remoteConsole.Printf("Connecting to %s...", settings.BuildkitAddress)
@@ -975,7 +979,12 @@ func addRequiredOpts(settings Settings, installationName string, isUsingPodman b
 // PrintSatelliteInfo prints the instance's details,
 // including its Buildkit version, current workload, and garbage collection.
 func PrintSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, earthlyVersion string, settings Settings, installationName string) error {
-	console.Printf("Connecting to %s...", settings.SatelliteDisplayName)
+	fmt.Println(settings)
+	selfHostedInfo := ""
+	if settings.SatelliteIsSelfHosted {
+		selfHostedInfo = fmt.Sprintf(" (self-hosted at %s)", settings.BuildkitAddress)
+	}
+	console.Printf("Connecting to %s...%s", settings.SatelliteDisplayName, selfHostedInfo)
 	opts, err := addRequiredOpts(settings, installationName, false)
 	if err != nil {
 		return errors.Wrap(err, "add required client opts")
