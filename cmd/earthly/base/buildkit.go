@@ -94,11 +94,13 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 	}
 	cli.Flags().BuildkitdSettings.SatelliteToken = token
 
-	// Reserve the satellite for the upcoming build.
-	// This operation can take a moment if the satellite is asleep.
-	err = cli.reserveSatellite(cliCtx.Context, cloudClient, satelliteName, cli.Flags().SatelliteName, orgName, gitAuthor, gitConfigEmail)
-	if err != nil {
-		return err
+	if sat.IsManaged {
+		// Reserve the satellite for the upcoming build.
+		// This operation can take a moment if the satellite is asleep.
+		err = cli.reserveSatellite(cliCtx.Context, cloudClient, satelliteName, cli.Flags().SatelliteName, orgName, gitAuthor, gitConfigEmail)
+		if err != nil {
+			return err
+		}
 	}
 
 	// TODO (dchw) what other settings might we want to override here?
