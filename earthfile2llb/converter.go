@@ -46,6 +46,7 @@ import (
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
+	"github.com/google/uuid"
 	"github.com/moby/buildkit/client/llb"
 	dockerimage "github.com/moby/buildkit/exporter/containerimage/image"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
@@ -1937,6 +1938,9 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	var extraEnvVars []string
 
 	// Build args.
+	if opts.NoCache {
+		c.varCollection.DeclareEnv("EARTHLY_NO_CACHE_UUID", uuid.NewString())
+	}
 	for _, buildArgName := range c.varCollection.SortedVariables(variables.WithActive()) {
 		ba, _ := c.varCollection.Get(buildArgName, variables.WithActive())
 		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba)))
