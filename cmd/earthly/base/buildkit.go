@@ -71,7 +71,6 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 		// A self-hosted satellite uses its own address
 		cli.Flags().BuildkitdSettings.SatelliteIsSelfHosted = true
 		satelliteAddress = fmt.Sprintf("tcp://%s", sat.Address)
-		cli.Cfg().Global.TLSEnabled = false // We do not yet support TLS with self-hosted
 	}
 	cli.Flags().BuildkitdSettings.SatelliteName = satelliteName
 	cli.Flags().BuildkitdSettings.SatelliteDisplayName = cli.Flags().SatelliteName

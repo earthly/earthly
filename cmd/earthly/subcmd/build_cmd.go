@@ -612,7 +612,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		a.cli.Console().ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
 	}
 
-	a.maybePrintBuildMinutesInfo()
+	a.maybePrintBuildMinutesInfo(cliCtx)
 
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
 	if err != nil {
@@ -923,10 +923,10 @@ func (a *Build) logShareLink(ctx context.Context, cloudClient *cloud.Client, tar
 	return logstreamURL, true, printLinkFn
 }
 
-func (a *Build) maybePrintBuildMinutesInfo() {
+func (a *Build) maybePrintBuildMinutesInfo(cliCtx *cli.Context) {
 	orgName := a.cli.OrgName()
 	settings := a.cli.Flags().BuildkitdSettings
-	if settings.SatelliteName == "" || settings.SatelliteIsSelfHosted {
+	if a.cli.IsUsingSatellite(cliCtx) || settings.SatelliteIsSelfHosted {
 		return
 	}
 
