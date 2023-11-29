@@ -929,7 +929,7 @@ func (a *Build) logShareLink(ctx context.Context, cloudClient *cloud.Client, tar
 func (a *Build) maybePrintBuildMinutesInfo(cliCtx *cli.Context) {
 	orgName := a.cli.OrgName()
 	settings := a.cli.Flags().BuildkitdSettings
-	if a.cli.IsUsingSatellite(cliCtx) || settings.SatelliteIsSelfHosted {
+	if !a.cli.IsUsingSatellite(cliCtx) || settings.SatelliteIsSelfHosted {
 		return
 	}
 
