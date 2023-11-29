@@ -30,7 +30,7 @@
   cd release
   env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG="$RELEASE_TAG" USER="$USER" PRERELEASE="$PRERELEASE" ./release.sh
   ```
-* Wait for the [Merge main to docs-0.7](../.github/workflows/release-merge-docs.yml) workflow to complete; this workflow automatically merges `main` into `docs-0.7`. You can watch for it here: [![Merge main to docs-0.7](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml/badge.svg)](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml)  
+* Wait for the [Merge main to docs-0.7 on New Earthly Release](../.github/workflows/release-merge-docs.yml) workflow to complete; this workflow automatically merges `main` into `docs-0.7`. You can watch for it here: [![Merge main to docs-0.7 on New Earthly Release](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml/badge.svg)](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml)  
 In case the workflow fails the manual process is:
   ```shell
     git checkout docs-0.7 && git pull && git merge main && git push
