@@ -86,7 +86,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 			remoteConsole = console.WithPrefix("satellite")
 			selfHostedInfo := ""
 			if settings.SatelliteIsSelfHosted {
-				selfHostedInfo = fmt.Sprintf(" (self-hosted at %s)", settings.BuildkitAddress) // TODO share with the other function
+				selfHostedInfo = fmt.Sprintf(" (self-hosted at %s)", settings.BuildkitAddress)
 			}
 			remoteConsole.Printf("Connecting to %s...%s", settings.SatelliteDisplayName, selfHostedInfo)
 		} else {
