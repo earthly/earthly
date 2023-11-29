@@ -36,8 +36,7 @@ In case the workflow fails the manual process is:
     git checkout docs-0.7 && git pull && git merge main && git push
     ```
 * Updating the Earthly version in our docs:
-  [Renovate](https://www.mend.io/renovate/) will open a PR targeting `docs-0.7` branch to update all docs as soon as a new release is available in this repo.  
-  which you should then review & merge (An example PR can be found [here](https://github.com/earthly/earthly/pull/3285/files)).
+  [Renovate](https://www.mend.io/renovate/) will open a PR targeting `docs-0.7` branch to update all docs as soon as a new release is available in this repo which you should then review & merge (An example PR can be found [here](https://github.com/earthly/earthly/pull/3285/files)).
 * Merge `docs-0.7` into `main`.
   ```shell
     git checkout main && git merge docs-0.7 && git push
@@ -116,7 +115,7 @@ We currently have syntax highlighting for the following:
 
 #### VSCode + Github
 
-Release instructions can be found in the [project repo](https://github.com/earthly/earthfile-grammar#how-to-release)
+Release instructions can be found in the [project repo](https://github.com/earthly/earthfile-grammar#how-to-release).
 
 #### Intellij
 
