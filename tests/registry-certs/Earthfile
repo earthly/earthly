@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 
 ARG --global REGISTRY
 ARG --global REGISTRY_IP
@@ -47,7 +47,7 @@ test-connect:
 
 # Work around the lack of variable overriding, since the base image already includes EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
 DO_REMOTE_CACHE_EARTHLY:
-    COMMAND
+    FUNCTION
 
     ARG EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
     ARG REGISTRY_CONFIG

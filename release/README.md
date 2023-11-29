@@ -18,24 +18,23 @@
   git checkout main && git pull
   ```
 * Update the CHANGELOG.md with the corresponding release notes and open a PR
-  * Use a comparison such as https://github.com/earthly/earthly/compare/v0.7.21...main (replace the versions in the URL with the previously released version) or a tool such as `gitk` (aka `git-gui`) to see which PRs will go into this release.
+  * Use a comparison such as https://github.com/earthly/earthly/compare/v0.7.22...main (replace the versions in the URL with the previously released version) or a tool such as `gitk` (aka `git-gui`) to see which PRs will go into this release.
 * Make sure that main build is green for all platforms (check build status for the latest commit on GitHub).
 * Make sure the following build status are green:
   | Platform      | Status        |
   | ------------- | ------------- |
   | MacOS (x86)   | [![Build status](https://badge.buildkite.com/cc0627732806ab3b76cf13b02c498658b851056242ec28f62d.svg)](https://buildkite.com/earthly-technologies/earthly-mac-scheduled)
   | MacOS (M1)    | [![Build status](https://badge.buildkite.com/10a7331b2032fcc9f7f311c5218d12c1a18c317cd7fc9270ba.svg)](https://buildkite.com/earthly-technologies/earthly-m1-scheduled)
-  | Windows (WSL) | [![Build status](https://badge.buildkite.com/19d9cf7fcfb3e0ee45adcb29abb5ef3cfcd994fba2d6dc148c.svg)](https://buildkite.com/earthly-technologies/earthly-windows-scheduled)
-  * Run
-    ```bash
-    cd release
-    env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG="$RELEASE_TAG" USER="$USER" PRERELEASE="$PRERELEASE" ./release.sh
-    ```
-  * Make sure `main` branch is properly merged to `docs-0.7`:  
-    [![update docs](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml/badge.svg)](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml)
+* Run
+  ```bash
+  cd release
+  env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG="$RELEASE_TAG" USER="$USER" PRERELEASE="$PRERELEASE" ./release.sh
+  ```
+* Make sure `main` branch is properly merged to `docs-0.7`:
+  [![update docs](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml/badge.svg)](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml)
 
-* Updating the Earthly version in our docs:  
-  [Renovate](https://www.mend.io/renovate/) will open a PR to update all docs as soon as a new release is available in this repo,  
+* Updating the Earthly version in our docs:
+  [Renovate](https://www.mend.io/renovate/) will open a PR to update all docs as soon as a new release is available in this repo,
   which you should then review & merge (An example PR can be found [here](https://github.com/earthly/earthly/pull/3285/files)).
 * Commit updated version changes to `docs-0.7`.
 * Merge `docs-0.7` into `main`.
@@ -47,9 +46,9 @@
     * Open a PR against the new branch and get it approved; IMPORTANT: don't squash-merge via github
     * Once all (required) checks pass, try pushing the branch again:
     `git checkout main && git push`
-  
+
 <!-- vale HouseStyle.Spelling = YES -->
-* Make sure there are no broken links in https://docs.earthly.dev:  
+* Make sure there are no broken links in https://docs.earthly.dev:
   [![check docs broken links](https://github.com/earthly/earthly/actions/workflows/docs-checks-links.yml/badge.svg)](https://github.com/earthly/earthly/actions/workflows/docs-checks-links.yml)
 * Verify the [Homebrew release job](https://github.com/earthly/homebrew-earthly) has successfully run and has merged the new `release-v...` branch into `main`.
 * Copy the release notes you have written before and paste them in the Earthly Community slack channel `#announcements`, together with a link to the release's GitHub page. If you have Slack markdown editing activated, you can copy the markdown version of the text.

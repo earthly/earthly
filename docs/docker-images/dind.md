@@ -4,7 +4,7 @@ See the ["use-earthly-dind" best-practice](https://docs.earthly.dev/best-practic
 
 ## Tags
 
-* `alpine-3.18-docker-23.0.6-r4`
+* `alpine-3.18-docker-23.0.6-r7`
 * `ubuntu-20.04-docker-24.0.5-1`
 * `ubuntu-23.04-docker-24.0.5-1`
 
@@ -15,7 +15,12 @@ See the ["use-earthly-dind" best-practice](https://docs.earthly.dev/best-practic
 
 ## Note
 
-The `alpine` and `ubuntu` images are incompatible with the earthly v0.7.14 onwards; newer versions of earthly should use the tags that contain an OS specific version in them.
+The outdated `ubuntu` image is incompatible with the earthly v0.7.14 (and fixed in v0.7.15).
+Correspondingly the `alpine` image at one point was also incompatible with v0.7.14, but was updated with
+a backwards-compatable fix.
+
+Users, however, are encouraged to pin to specific version tags moving forward. The unversioned tags will be left as-is
+to help backwards-breaking changes.
 
 To ease this transition, one can make use of an `IF` command that depends on the `EARTHLY_VERSION` builtin argument:
 
@@ -27,8 +32,8 @@ dind:
   ARG EARTHLY_VERSION
   ARG SMALLEST_VERSION="$(echo -e "$EARTHLY_VERSION\nv0.7.14" | sort -V | head -n 1)"
   IF [ "$SMALLEST_VERSION" = "v0.7.14" ]
-    # earthly is at v0.7.14 or newer, and must use the more recent dind:alpine-3.18-docker-23.0.6-r4 image
-    FROM earthly/dind:alpine-3.18-docker-23.0.6-r4
+    # earthly is at v0.7.14 or newer, and must use the more recent dind:alpine-3.18-docker-23.0.6-r7 image
+    FROM earthly/dind:alpine-3.18-docker-23.0.6-r7
   END
 
 test:

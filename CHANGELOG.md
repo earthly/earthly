@@ -5,12 +5,19 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ## Unreleased
 
 ### Added
+- A warning when a `COPY` destination includes a tilde (~). Related to [#1789](https://github.com/earthly/earthly/issues/1789).
+
+## v0.7.22 - 2023-11-27
+
+### Added
 - A new experimental `earthly --exec-stats` flag, which displays per-target execution stats such as total CPU and memory usage.
 - A new experimental `earthly billing view` command to get information about the organization billing plan.
 - Messages informing used build minutes during a build.
+- Help message when a build fails due to a missing referenced cloud secret.
 
 ### Fixed
 - Remove redundant verbose error messages that were not different from messages that were already being printed.
+- Fixed `failed to sign challenge` errors when attempting to login using an ed25519 key with the 1Password ssh-agent. [#3366](https://github.com/earthly/earthly/issues/3366)
 
 ### Changed
 - Final error messages for executions without a known target will be displayed without `_unknown *failed* |` prefix. and instead use `Error: ` as prefix more consistently.
@@ -22,8 +29,16 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - A successful authentication with an auth token will display a warning with time left before token expires if it's 14 days or under.
 - The command `earthly registry` will attempt to use the selected org if no org is specified.
 - Clarify error messages when failing to pass secrets to a build.
-- provide information on how to get more build minutes when a build fails due to missing minutes.
+- Provide information on how to get more build minutes when a build fails due to missing minutes.
 - Provide information on how to increase the max number of allowed satellites when failing to launch a satellite.
+- `CACHE` mounts will no longer depend on the contents of `ARG`s, and instead will be limited to the target name.
+- Child targets will no longer receive the contents of mounted `CACHE` volumes defined in the parent target; this change can be enabled with `VERSION --cache-persist-option`. [#3509](https://github.com/earthly/earthly/issues/3509)
+- Improved memory usage related to log messages by no longer pre-allocating log buffers; this is most noticeable for really large Earthfiles with lots of different targets.
+- Updated buildkit with upstream changes up to 3d50b97793391d81d7bc191d7c5dd5361d5dadca.
+- Improved speed of `SAVE IMAGE` exports when using a remote buildkit instance (e.g. satellite) from a MacOS host; this can be enabled with the `--use-remote-registry` option.
+
+### Additional Info
+- This release includes changes to buildkit
 
 ## v0.7.21 - 2023-10-24
 

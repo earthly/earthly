@@ -1,16 +1,16 @@
-VERSION 0.7
+VERSION --use-function-keyword 0.7
 my-image:
     FROM alpine
     SAVE IMAGE my/image:test
 
 MY_COMMAND_WITH_DOCKER:
-    COMMAND
+    FUNCTION
     ARG MY_ARG="default"
     WITH DOCKER --load +my-image
         RUN echo "got $MY_ARG"
     END
 
 test:
-    FROM earthly/dind:alpine-3.18-docker-23.0.6-r4
+    FROM earthly/dind:alpine-3.18-docker-23.0.6-r7
     DO +MY_COMMAND_WITH_DOCKER --MY_ARG="myvalue"
     DO +MY_COMMAND_WITH_DOCKER

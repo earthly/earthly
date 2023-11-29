@@ -54,7 +54,7 @@ add_executable(fibonacci main.cpp fib.cpp)
 ```
 
 CMake caches object files under CMakeFiles which allows CMake to only recompile objects when the corresponding
-source code changes. We will use a [mount-based cache](https://docs.earthly.dev/docs/guides/advanced-local-caching) to cache these temporary
+source code changes. We will use a mount-based cache to cache these temporary
 files to allow for faster builds on a local machine. Here's a sample `Earthfile`:
 
 ```Dockerfile

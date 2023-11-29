@@ -20,3 +20,7 @@ no-cache:
 simple:
   FROM alpine
   RUN echo "hello"
+
+copy-if-exists:
+  FROM alpine
+  COPY --if-exists my-file .

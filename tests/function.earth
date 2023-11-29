@@ -1,0 +1,121 @@
+VERSION --use-function-keyword 0.7
+
+FROM alpine:3.18
+WORKDIR /test
+
+ARG --global global_var=default
+
+all-positive:
+    BUILD +test-basic
+    BUILD +test-remote-no-context
+    BUILD +test-nested
+    BUILD +test-args
+    BUILD +test-recursive
+    BUILD +test-remote-touch
+    BUILD +test-scope
+    BUILD +test-builtin
+    BUILD +test-global-default
+    BUILD +test-global-override
+
+test-basic:
+    DO +TOUCH
+    RUN test -f a.txt
+
+test-remote-no-context:
+    DO github.com/earthly/earthly-function-example:main+COPY_CAT
+    RUN test -f message.txt
+
+test-nested:
+    DO +FUNCTIONCEPTION
+    RUN test -f a.txt
+
+test-args:
+    DO +FUNCTION_ARGS --arg1=foo
+    RUN test -f ./foo
+    RUN ! test -f ./default
+    DO +FUNCTION_ARGS
+    RUN test -f ./default
+
+test-recursive:
+    DO +RECURSIVE
+    RUN test -f ./5
+    RUN test -f ./4
+    RUN test -f ./3
+    RUN test -f ./2
+    RUN test -f ./1
+    RUN ! test -f ./0
+
+test-remote-touch:
+    DO github.com/earthly/earthly-function-example:main+TOUCH --file=something
+    RUN test -f ./something
+    RUN ! test -f ./touched
+    DO github.com/earthly/earthly-function-example:main+TOUCH
+    RUN test -f ./touched
+
+test-scope:
+    ARG notinfunction=true
+    ENV envinfunction=true
+    RUN test "$notinfunction" = "true"
+    RUN test "$envinfunction" = "true"
+    DO +TEST_SCOPE
+
+test-builtin:
+    DO +TEST_BUILTIN
+
+test-global-default:
+    DO +TOUCH_GLOBAL
+    RUN test -f ./default
+
+test-global-override:
+    DO +TOUCH_GLOBAL --global_var=override
+    RUN test -f ./override
+
+test-command-fails:
+    DO +TEST_COMMAND_FAILS
+
+TOUCH:
+    FUNCTION
+    RUN touch a.txt
+
+FUNCTIONCEPTION:
+    FUNCTION
+    DO +ANOTHER_FUNCTION
+
+ANOTHER_FUNCTION:
+    FUNCTION
+    DO +TOUCH
+
+FUNCTION_ARGS:
+    FUNCTION
+    ARG arg1=default
+    RUN touch "./$arg1"
+
+RECURSIVE:
+    FUNCTION
+    ARG level=5
+    IF [ "$level" -gt "0" ]
+        RUN touch $level
+        ARG newlevel="$(echo $((level-1)))"
+        DO +RECURSIVE --level=$newlevel
+    END
+
+TEST_SCOPE:
+    FUNCTION
+    ARG infunction=true
+    RUN test "$infunction" = "true"
+    RUN ! test "$notinfunction" = "true"
+    RUN test "$envinfunction" = "true"
+
+TEST_BUILTIN:
+    FUNCTION
+    ARG EARTHLY_TARGET_NAME
+    RUN test "$EARTHLY_TARGET_NAME" = "test-builtin"
+
+TOUCH_GLOBAL:
+    FUNCTION
+    RUN test "$global_var" != ""
+    RUN touch $global_var
+
+TEST_COMMAND_FAILS:
+    COMMAND
+    RUN echo this should not be printed

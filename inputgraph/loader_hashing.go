@@ -1,6 +1,8 @@
 package inputgraph
 
-import "github.com/earthly/earthly/ast/spec"
+import (
+	"github.com/earthly/earthly/ast/spec"
+)
 
 func (l *loader) hashIfStatement(s spec.IfStatement) {
 	l.hasher.HashString("IF")

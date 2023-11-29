@@ -2,7 +2,7 @@
 # Table of contents
 
 * [👋 Introduction](README.md)
-* [💻 Get started for free](https://cloud.earthly.dev/login)
+* [💻 Install Earthly](install/install.md)
 * [🎓 Learn the basics](basics/basics.md)
     * [Part 1: A simple Earthfile](basics/part-1-a-simple-earthfile.md)
     * [Part 2: Outputs](basics/part-2-outputs.md)
@@ -18,16 +18,14 @@
 ## 📖 Docs
 
 * Guides
-    * [Authenticating Git and image registries](guides/auth.md)
-    * [Target, artifact and command referencing](guides/target-ref.md)
+    * [Importing](guides/importing.md)
     * [Build arguments and secrets](guides/build-args.md)
-    * [User-defined commands (UDCs)](guides/udc.md)
-    * [Managing cache](guides/cache.md)
-    * [Advanced local caching](guides/advanced-local-caching.md)
+    * [Functions](guides/functions.md)
     * [Using Docker in Earthly](guides/docker-in-earthly.md)
+    * [Multi-platform builds](guides/multi-platform.md)
+    * [Authenticating Git and image registries](guides/auth.md)
     * [Integration Testing](guides/integration.md)
     * [Debugging techniques](guides/debugging.md)
-    * [Multi-platform builds](guides/multi-platform.md)
     * [Podman](guides/podman.md)
     * Configuring registries
         * [AWS ECR](guides/registries/aws-ecr.md)
@@ -37,8 +35,12 @@
     * Using the Earthly Docker Images
         * [earthly/earthly](docker-images/all-in-one.md)
         * [earthly/buildkitd](docker-images/buildkit-standalone.md)
+* [Caching](./caching/caching.md)
+    * [Caching in Earthfiles](./caching/caching-in-earthfiles.md)
+    * [Managing cache](./caching/managing-cache.md)
+    * [Caching via remote runners](./caching/caching-via-remote-runners.md)
+    * [Caching via a registry (advanced)](./caching/caching-via-registry.md)
 * [Remote runners](remote-runners.md)
-* [Remote caching](remote-caching.md)
 * [Earthfile reference](earthfile/earthfile.md)
     * [Builtin args](earthfile/builtin-args.md)
     * [Excluding patterns](earthfile/earthlyignore.md)

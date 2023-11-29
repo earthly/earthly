@@ -57,7 +57,7 @@ Old files no longer used in the cache directory are not automatically cleaned up
 
 For example, if a dependency was cached previously but no longer used (perhaps updated to a new version), the old file would permanently exist in the cache. Doing this enough times may result in a cache directory that becomes quite large. 
 
-A simple solution is to delete the cache, either by running the Target with a [`--no-cache`](https://docs.earthly.dev/docs/guides/advanced-local-caching#option-2-mount-based-caching-advanced) flag, or by running [`earthly prune`](https://docs.earthly.dev/docs/earthly-command#earthly-prune).
+A simple solution is to delete the cache by running [`earthly prune`](https://docs.earthly.dev/docs/earthly-command#earthly-prune).
 
 
 ### Reduced Repeatability

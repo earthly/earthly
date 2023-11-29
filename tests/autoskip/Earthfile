@@ -1,8 +1,10 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 
 FROM --pass-args ../..+earthly-integration-test-base
 
 IMPORT .. AS tests
+
+PROJECT earthly-technologies/core
 
 WORKDIR /test
 
@@ -23,6 +25,9 @@ test-all:
     BUILD +test-push
     BUILD +test-no-cache
     BUILD +test-shell-out
+    BUILD +test-copy-if-exists
+    BUILD +test-remote-targets
+    BUILD +test-from-dockerfile
 
 test-files:
     RUN echo hello > my-file
@@ -52,7 +57,8 @@ test-with-subdir:
 test-requires-project:
     RUN echo hello > my-file
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=no-project.earth --target=+no-project --output_contains="I was run"
-    RUN if ! grep "PROJECT command missing" earthly.output >/dev/null; then echo "no warning displayed for missing PROJECT keyword" && exit 1; fi
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=no-project.earth --target=+no-project --should_fail=true --extra_args="--auto-skip-db-path=" --output_contains="PROJECT command is required"
 
 test-wait:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=wait.earth --target=+test --output_contains="not skipped"
@@ -61,6 +67,12 @@ test-wait:
 test-if-else:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=if-else.earth --target=+test --output_contains="condition ok"
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=if-else.earth --target=+test --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=if-else.earth --target=+test-eval --output_contains="condition ok"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=if-else.earth --target=+test-eval --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=if-else.earth --target=+test-eval-2 --output_contains="condition ok"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=if-else.earth --target=+test-eval-2 --output_contains="target .* has already been run; exiting"
 
 test-for-in:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=for.earth --target=+test --output_contains="hello 3"
@@ -152,19 +164,57 @@ test-shell-out:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out --output_contains="target .* has already been run; exiting"
 
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out-target --output_contains="dynamic target"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out-target --output_does_not_contain="target .* has already been run; exiting"
-
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out-target-2 --output_contains="dynamic target"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out-target-2 --output_does_not_contain="target .* has already been run; exiting"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out-target --should_fail=true --output_contains="dynamic target"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out-target-2 --should_fail=true --output_contains="dynamic target"
 
     RUN echo "foo" > my-file
 
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out-copy --output_contains="dynamic COPY source"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out-copy --output_does_not_contain="target .* has already been run; exiting"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out-copy --should_fail=true --output_contains="dynamic COPY source"
+
+test-copy-if-exists:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+copy-if-exists
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+copy-if-exists --output_contains="target .* has already been run; exiting"
+
+    RUN echo "foo" > my-file
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+copy-if-exists --output_does_not_contain="target .* has already been run; exiting"
+
+test-remote-targets:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-copy
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-copy --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-copy-sha
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-copy-sha --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-from
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-from --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-from-sha
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-from-sha --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+invalid-copy-branch --should_fail=true --output_contains="complete Git SHA or tag"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-build
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+valid-build --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=remote-target.earth --target=+invalid-build --should_fail=true --output_contains="complete Git SHA or tag"
+
+test-from-dockerfile:
+    RUN mkdir /dist
+    COPY Dockerfile /dist
+    RUN echo "foo" > /dist/my-file
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=from-dockerfile.earth --target=+local
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=from-dockerfile.earth --target=+local --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=from-dockerfile.earth --target=+local-target
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=from-dockerfile.earth --target=+local-target --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=from-dockerfile.earth --target=+remote
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=from-dockerfile.earth --target=+remote --output_contains="target .* has already been run; exiting"
 
 RUN_EARTHLY_ARGS:
-    COMMAND
+    FUNCTION
     ARG earthfile
     ARG target
     ARG should_fail=false

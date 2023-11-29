@@ -56,7 +56,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 					settings.ClientTLSCert,
 				}
 				if containsAny(retErr.Error(), tlsPaths...) {
-					retErr = hint.WrapWithDisplay(retErr,
+					retErr = hint.Wrap(retErr,
 						"podman now requires TLS certs by default - try stopping the earthly-buildkitd container and re-running 'earthly bootstrap'",
 						"alternatively, run 'earthly config global.tls_enabled false' to disable TLS",
 					)
@@ -69,7 +69,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 			// verification errors can happen server-side, which means
 			// errors.Is() won't work. We use strings.Contains instead to handle
 			// that case.
-			retErr = hint.WrapWithDisplay(retErr, "did earthly's certificates get regenerated? you may need to manually stop the earthly-buildkitd container.")
+			retErr = hint.Wrap(retErr, "did earthly's certificates get regenerated? you may need to manually stop the earthly-buildkitd container.")
 			return
 		}
 	}()

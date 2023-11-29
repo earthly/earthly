@@ -1,0 +1,12 @@
+VERSION 0.7
+FROM alpine:3.18
+
+build:
+    CACHE /cache/persisted
+    RUN touch /cache/persisted/persisted.txt
+
+test-persisted:
+    FROM +build
+    IF [ -e /cache/persisted/persisted.txt ]
+        RUN echo "test persisted ok"
+    END

@@ -1,4 +1,4 @@
-VERSION --pass-args --no-network --arg-scope-and-set 0.7
+VERSION --pass-args --no-network --arg-scope-and-set --use-function-keyword 0.7
 PROJECT earthly-technologies/core
 
 # TODO update to 3.18; however currently "podman login" (used under not-a-unit-test.sh) will error with
@@ -129,7 +129,7 @@ lint-scripts:
 earthly-script-no-stdout:
     # This validates the ./earthly script doesn't print anything to stdout (it should print to stderr)
     # This is to ensure commands such as: MYSECRET="$(./earthly secrets get -n /user/my-secret)" work
-    FROM earthly/dind:alpine-3.18-docker-23.0.6-r4
+    FROM earthly/dind:alpine-3.18-docker-23.0.6-r7
     RUN apk add --no-cache --update bash
     COPY earthly .earthly_version_flag_overrides .
 
@@ -638,27 +638,30 @@ all-buildkitd:
         ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
 dind-alpine:
-    DO +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=alpine --OS_VERSION=3.18 --DOCKER_VERSION=23.0.6-r6
+    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=alpine --OS_VERSION=3.18 --DOCKER_VERSION=23.0.6-r7
 
 dind-ubuntu-20.04:
-    DO +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal
+    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal
 
 dind-ubuntu-23.04:
-    DO +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=23.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.23.04~lunar
+    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=23.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.23.04~lunar
 
 # all-dind builds alpine and ubuntu dind containers for both linux amd64 and linux arm64
 all-dind:
     RUN --no-cache date --utc +%Y%m%d%H%M%S > datetime
     ARG DATETIME="$(cat datetime)"
     BUILD \
+        --pass-args \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
         +dind-alpine --DATETIME=$DATETIME
     BUILD \
+        --pass-args \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
         +dind-ubuntu-20.04 --DATETIME=$DATETIME
     BUILD \
+        --pass-args \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
         +dind-ubuntu-23.04 --DATETIME=$DATETIME
@@ -889,7 +892,7 @@ check-broken-links:
 
 # BUILD_AND_FROM will issue a FROM and a BUILD commands for the provided target
 BUILD_AND_FROM:
-    COMMAND
+    FUNCTION
     ARG --required TARGET
     FROM --pass-args +$TARGET
     BUILD --pass-args +$TARGET

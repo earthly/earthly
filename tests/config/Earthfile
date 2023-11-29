@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 
 FROM --pass-args ../..+earthly-integration-test-base
 
@@ -113,7 +113,7 @@ test:
 
 
 RUN_EARTHLY_ARGS:
-    COMMAND
+    FUNCTION
     ARG earthfile
     ARG target="+all"
     ARG extra_args

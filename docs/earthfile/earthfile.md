@@ -356,7 +356,7 @@ The command `COPY` allows copying of files and directories between different con
 
 The command may take a couple of possible forms. In the *classical form*, `COPY` copies files and directories from the build context into the build environment - in this form, it works similarly to the [Dockerfile `COPY` command](https://docs.docker.com/engine/reference/builder/#copy). In the *artifact form*, `COPY` copies files or directories (also known as "artifacts" in this context) from the artifact environment of other build targets into the build environment of the current target. Either form allows the use of wildcards for the sources.
 
-The parameter `<src-artifact>` is an [artifact reference](../guides/target-ref.md#artifact-reference) and is generally of the form `<target-ref>/<artifact-path>`, where `<target-ref>` is the reference to the target which needs to be built in order to yield the artifact and `<artifact-path>` is the path within the artifact environment of the target, where the file or directory is located. The `<artifact-path>` may also be a wildcard.
+The parameter `<src-artifact>` is an [artifact reference](../guides/importing.md#artifact-reference) and is generally of the form `<target-ref>/<artifact-path>`, where `<target-ref>` is the reference to the target which needs to be built in order to yield the artifact and `<artifact-path>` is the path within the artifact environment of the target, where the file or directory is located. The `<artifact-path>` may also be a wildcard.
 
 The `COPY` command does not mark any saved images or artifacts of the referenced target for output, nor does it mark any push commands of the referenced target for pushing. For that, please use [`BUILD`](#build).
 
@@ -615,7 +615,7 @@ If `AS LOCAL ...` is also specified, it additionally marks the artifact to be co
 
 If `<artifact-dest-path>` is not specified, it is inferred as `/`.
 
-Files within the artifact environment are also known as "artifacts". Once a file has been copied into the artifact environment, it can be referenced in other places of the build (for example in a `COPY` command), using an [artifact reference](../guides/target-ref.md#artifact-reference).
+Files within the artifact environment are also known as "artifacts". Once a file has been copied into the artifact environment, it can be referenced in other places of the build (for example in a `COPY` command), using an [artifact reference](../guides/importing.md#artifact-reference).
 
 {% hint style='info' %}
 ##### Hint
@@ -717,7 +717,7 @@ For detailed examples demonstrating how other scenarios may function, please see
 
 In the *output form*, the command `SAVE IMAGE` marks the current build environment as the image of the target and assigns one or more output image names.
 
-In the *cache hint form*, it instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [remote caching guide](../remote-caching.md).
+In the *cache hint form*, it instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [remote caching guide](../caching/caching-via-registry.md).
 
 {% hint style='info' %}
 ##### Assigning multiple image names
@@ -760,11 +760,11 @@ earthly --push +docker-image
 
 ##### `--cache-from=<cache-image>`
 
-Adds additional cache sources to be used when `--use-inline-cache` is enabled. For more information see the [remote caching guide](../remote-caching.md).
+Adds additional cache sources to be used when `--use-inline-cache` is enabled. For more information see the [remote caching guide](../caching/caching-via-registry.md).
 
 ##### `--cache-hint`
 
-Instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [remote caching guide](../remote-caching.md).
+Instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [remote caching guide](../caching/caching-via-registry.md).
 
 ##### `--no-manifest-list`
 
@@ -778,7 +778,7 @@ Instructs Earthly to not create a manifest list for the image. This may be usefu
 
 #### Description
 
-The command `BUILD` instructs Earthly to additionally invoke the build of the target referenced by `<target-ref>`, where `<target-ref>` follows the rules defined by [target referencing](../guides/target-ref.md#target-reference). The invocation will mark any images, or artifacts saved by the referenced target for local output (assuming local output is enabled), and any push commands issued by the referenced target for pushing (assuming pushing is enabled).
+The command `BUILD` instructs Earthly to additionally invoke the build of the target referenced by `<target-ref>`, where `<target-ref>` follows the rules defined by [target referencing](../guides/importing.md#target-reference). The invocation will mark any images, or artifacts saved by the referenced target for local output (assuming local output is enabled), and any push commands issued by the referenced target for pushing (assuming pushing is enabled).
 
 {% hint style='info' %}
 ##### What is being output and pushed
@@ -904,7 +904,17 @@ If you need to perform a full-depth clone of a repository, you can use the follo
 GIT CLONE <git-url> <dest-path>
 WORKDIR <dest-path>
 ARG git_hash=$(git rev-parse HEAD)
+RUN git remote set-url origin <git-url> # only required if using authentication
 RUN git fetch --unshallow
+```
+{% endhint %}
+
+{% hint style='warning' %}
+As of Earthly v0.7.21, git credentials are no longer stored in the `.git/config` file; this includes the username.
+This means any ssh-based or https-based fetches or pushes will no longer work unless you restore the configured url,
+which can be done with:
+```Dockerfile
+RUN git remote set-url origin <git-url>
 ```
 {% endhint %}
 
@@ -930,17 +940,17 @@ Instructs Earthly to not overwrite the file creation timestamps with a constant.
 
 The `FROM DOCKERFILE` command initializes a new build environment, inheriting from an existing Dockerfile. This allows the use of Dockerfiles in Earthly builds.
 
-The `<context-path>` is the path where the Dockerfile build context exists. By default, it is assumed that a file named `Dockerfile` exists in that directory. The context path can be either a path on the host system, or an [artifact reference](../guides/target-ref.md#artifact-reference), pointing to a directory containing a `Dockerfile`.
+The `<context-path>` is the path where the Dockerfile build context exists. By default, it is assumed that a file named `Dockerfile` exists in that directory. The context path can be either a path on the host system, or an [artifact reference](../guides/importing.md#artifact-reference), pointing to a directory containing a `Dockerfile`.
 Additionally, when using a `<context-path>` from the host system, a `.dockerignore` in the directory root will be used to exclude files (unless `.earthlyignore` or `.earthignore` are present). Use `VERSION --use-docker-ignore 0.7` to enable.
 
 #### Options
 
 ##### `-f <dockerfile-path>`
 
-Specify an alternative Dockerfile to use. The `<dockerfile-path>` can be either a path on the host system, relative to the current Earthfile, or an [artifact reference](../guides/target-ref.md#artifact-reference) pointing to a Dockerfile.
+Specify an alternative Dockerfile to use. The `<dockerfile-path>` can be either a path on the host system, relative to the current Earthfile, or an [artifact reference](../guides/importing.md#artifact-reference) pointing to a Dockerfile.
 
 {% hint style='info' %}
-It is possible to split the `Dockerfile` and the build context across two separate [artifact references](../guides/target-ref.md#artifact-reference):
+It is possible to split the `Dockerfile` and the build context across two separate [artifact references](../guides/importing.md#artifact-reference):
 
 ```Dockerfile
 FROM alpine
@@ -1005,7 +1015,7 @@ The `WITH DOCKER` clause only supports the command [`RUN`](#run). Other commands
 A typical example of a `WITH DOCKER` clause might be:
 
 ```Dockerfile
-FROM earthly/dind:alpine
+FROM earthly/dind:alpine-3.18-docker-23.0.6-r4
 WORKDIR /test
 COPY docker-compose.yml ./
 WITH DOCKER \
@@ -1027,7 +1037,12 @@ For information on using `WITH DOCKER` with podman see the [Podman guide](../gui
 ##### Note
 For performance reasons, it is recommended to use a Docker image that already contains `dockerd`. If `dockerd` is not found, Earthly will attempt to install it.
 
-Earthly provides officially supported images such as `earthly/dind:alpine` and `earthly/dind:ubuntu` to be used together with `WITH DOCKER`.
+Earthly provides officially supported images such as `earthly/dind:alpine-3.18-docker-23.0.6-r4` and `earthly/dind:ubuntu-23.04-docker-24.0.5-1` to be used together with `WITH DOCKER`.
+{% endhint %}
+
+{% hint style='info' %}
+##### Note
+Note that the cleanup phase (after the `RUN` command has finished), does not occur when using a `LOCALLY` target, users should use `RUN docker run --rm ...` to have docker remove the image after execution.
 {% endhint %}
 
 #### Options
@@ -1428,7 +1443,7 @@ The `LOCALLY` command can be used in place of a `FROM` command, which will cause
 on the host system, rather than inside a container. Commands within a `LOCALLY` target will never be cached.
 This feature should be used with caution as locally run commands have no guarantee they will behave the same on different systems.
 
-Only `RUN` commands are supported under a `LOCALLY` defined target; furthermore only `RUN`'s `--push` flag is supported.
+`LOCALLY` defined targets only support a subset of commands (along with a subset of their flags): `RUN`, `RUN --push`, `SAVE ARTIFACT`, and `COPY`.
 
 `RUN` commands have access to the environment variables which are exposed to the `earthly` command; however, the commands
 are executed within a working directory which is set to the location of the referenced Earthfile and not where the `earthly` command is run from.
@@ -1517,31 +1532,37 @@ a-locally-example:
 
 #### Description
 
-The command `COMMAND` marks the beginning of a user-defined command (UDC) definition. UDCs are templates (much like functions in regular programming languages), which can be used to define a series of steps to be executed in sequence. In order to reference and execute a UDC, you may use the command [`DO`](#do).
+{% hint style='danger' %}
+#### UDCs have been renamed to Functions
 
-Unlike performing a `BUILD +target`, UDCs inherit the build context and the build environment from the caller.
+Functions used to be called UDCs (User Defined Commands). Earthly 0.7 still uses `COMMAND` for declaring functions, but the keyword is deprecated and will be replaced by `FUNCTION` in Earthly 0.8.
+{% endhint %}
 
-UDCs create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +COMMAND --<build-arg-key>=<build-arg-value>`.
+The command `COMMAND` marks the beginning of a function definition. Functions are reusable sets of instructions that can be inserted in targets or other functions. In order to reference and execute a function, you may use the command [`DO`](#do).
+
+Unlike performing a `BUILD +target`, functions inherit the build context and the build environment from the caller.
+
+Functions create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +MY_FUNCTION --<build-arg-key>=<build-arg-value>`.
 
 Global imports and global args are inherited from the `base` target of the same Earthfile where the command is defined in (this may be distinct from the `base` target of the caller).
 
-For more information see the [User-defined commands guide](../guides/udc.md).
+For more information see the [Functions Guide](../guides/functions.md).
 
 ## DO
 
 #### Synopsis
 
-* `DO [--allow-privileged] <command-ref> [--<build-arg-key>=<build-arg-value>...]`
+* `DO [--allow-privileged] <function-ref> [--<build-arg-key>=<build-arg-value>...]`
 
 #### Description
 
-The command `DO` expands and executes the series of commands contained within a user-defined command (UDC) [referenced by `<command-ref>`](../guides/target-ref.md#command-reference).
+The command `DO` expands and executes the series of commands contained within a function [referenced by `<function-ref>`](../guides/importing.md#function-reference).
 
-Unlike performing a `BUILD +target`, UDCs inherit the build context and the build environment from the caller.
+Unlike performing a `BUILD +target`, functions inherit the build context and the build environment from the caller.
 
-UDCs create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +COMMAND --<build-arg-key>=<build-arg-value>`.
+Functions create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +MY_FUNCTION --<build-arg-key>=<build-arg-value>`.
 
-For more information see the [User-defined commands guide](../guides/udc.md).
+For more information see the [Functions Guide](../guides/functions.md).
 
 #### Options
 
@@ -1553,19 +1574,19 @@ Same as [`FROM --allow-privileged`](#allow-privileged).
 
 #### Synopsis
 
-* `IMPORT [--allow-privileged] <project-ref> [AS <alias>]`
+* `IMPORT [--allow-privileged] <earthfile-ref> [AS <alias>]`
 
 #### Description
 
-The command `IMPORT` aliases a project reference (`<project-ref>`) that can be used in subsequent [target, artifact or command references](../guides/target-ref.md).
+The command `IMPORT` aliases an Earthfile reference (`<earthfile-ref>`) that can be used in subsequent [target, artifact or command references](../guides/importing.md).
 
-If not provided, the `<alias>` is inferred automatically as the last element of the path provided in `<project-ref>`. For example, if `<project-ref>` is `github.com/foo/bar/buz:v1.2.3`, then the alias is inferred as `buz`.
+If not provided, the `<alias>` is inferred automatically as the last element of the path provided in `<earthfile-ref>`. For example, if `<earthfile-ref>` is `github.com/foo/bar/buz:v1.2.3`, then the alias is inferred as `buz`.
 
-The `<project-ref>` can be a reference to any directory other than `.`. If the reference ends in `..`, then mentioning `AS <alias>` is mandatory.
+The `<earthfile-ref>` can be a reference to any directory other than `.`. If the reference ends in `..`, then mentioning `AS <alias>` is mandatory.
 
 If an `IMPORT` is defined in the `base` target of the Earthfile, then it becomes a global `IMPORT` and it is made available to every other target or command in that file, regardless of their base images used.
 
-For more information see the [target, artifact and command references guide](../guides/target-ref.md).
+For more information see the [importing guide](../guides/importing.md).
 
 #### Options
 

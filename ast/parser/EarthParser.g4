@@ -12,6 +12,8 @@ target: targetHeader NL+ (INDENT NL* stmts? NL+ DEDENT)?;
 targetHeader: Target;
 userCommand: userCommandHeader NL+ (INDENT NL* stmts NL+ DEDENT)?;
 userCommandHeader: UserCommand;
+function: functionHeader NL+ (INDENT NL* stmts NL+ DEDENT)?;
+functionHeader: Function;
 
 stmts: stmt (NL+ stmt)*;
 
@@ -49,6 +51,7 @@ commandStmt:
 	| healthcheckStmt
 	| shellStmt
 	| userCommandStmt
+	| functionStmt
 	| doStmt
 	| importStmt
 	| cacheStmt
@@ -163,6 +166,7 @@ onbuildStmt: ONBUILD stmtWords?;
 healthcheckStmt: HEALTHCHECK stmtWords?;
 shellStmt: SHELL stmtWords?;
 userCommandStmt: COMMAND stmtWords?;
+functionStmt: FUNCTION stmtWords?;
 doStmt: DO stmtWords?;
 importStmt: IMPORT stmtWords?;
 cacheStmt: CACHE stmtWords?;

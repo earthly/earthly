@@ -2,6 +2,8 @@
 import socket
 import os
 import sys
+import fcntl
+import time
 from contextlib import suppress
 
 host = '127.0.0.1'
@@ -15,44 +17,75 @@ stdin='/dev/null'
 stdout='/dev/null'
 stderr='/dev/null'
 
+ready_pipe_r, ready_pipe_w = os.pipe()
+
 # first fork
 pid = os.fork()
 if pid > 0:
-    sys.exit(0)
+    os.close(ready_pipe_w)
+    fcntl.fcntl(ready_pipe_r, fcntl.F_SETFL, os.O_NONBLOCK)
+    num_attemps_remaining = 10
+    while True:
+        try:
+            msg = os.read(ready_pipe_r, 1024).decode('utf8')
+        except BlockingIOError as e:
+            num_attemps_remaining -= 1
+            if num_attemps_remaining <= 0:
+                print('server failed to start')
+                sys.exit(1)
+            print('waiting for stub-server to start')
+            time.sleep(1)
+            continue
+        msg = msg
+        break
+    if msg == 'ready':
+        print('stub-server ready')
+        sys.exit(0)
+    print(f'unexpected msg "{msg}" while waiting for server to start')
+    sys.exit(1)
 
-os.chdir('/')
-os.setsid()
-os.umask(0)
+os.close(ready_pipe_r)
 
-# second fork
-pid = os.fork()
-if pid > 0:
-    sys.exit(0)
+try:
+    os.chdir('/')
+    os.setsid()
+    os.umask(0)
 
-# redirect stdio
-sys.stdout.flush()
-sys.stderr.flush()
-si = os.open(stdin, os.O_RDWR)
-so = os.open(stdout, os.O_WRONLY|os.O_TRUNC|os.O_CREAT)
-se = os.open(stderr, os.O_WRONLY|os.O_TRUNC|os.O_CREAT)
-os.dup2(si, sys.stdin.fileno())
-os.dup2(so, sys.stdout.fileno())
-os.dup2(se, sys.stderr.fileno())
+    # second fork
+    pid = os.fork()
+    if pid > 0:
+        sys.exit(0)
 
-# write pid to disk
-pid = str(os.getpid())
-with open(pidfile, 'w') as f:
-    f.write(pid)
+    # redirect stdio
+    sys.stdout.flush()
+    sys.stderr.flush()
+    si = os.open(stdin, os.O_RDWR)
+    so = os.open(stdout, os.O_WRONLY|os.O_TRUNC|os.O_CREAT)
+    se = os.open(stderr, os.O_WRONLY|os.O_TRUNC|os.O_CREAT)
+    os.dup2(si, sys.stdin.fileno())
+    os.dup2(so, sys.stdout.fileno())
+    os.dup2(se, sys.stderr.fileno())
 
-# daemon ready to go
+    # write pid to disk
+    pid = str(os.getpid())
+    with open(pidfile, 'w') as f:
+        f.write(pid)
 
-with suppress(FileNotFoundError):
-    os.remove(server_got_a_connection_path)
+    # daemon ready to go
+    os.write(ready_pipe_w, 'ready'.encode('utf8'))
+    os.close(ready_pipe_w)
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((host, port))
-    s.listen()
-    conn, addr = s.accept()
-    with conn:
-        with open(server_got_a_connection_path, 'w') as f:
-            f.write('this should not have happened')
+    with suppress(FileNotFoundError):
+        os.remove(server_got_a_connection_path)
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((host, port))
+        s.listen()
+        conn, addr = s.accept()
+        with conn:
+            with open(server_got_a_connection_path, 'w') as f:
+                f.write('this should not have happened')
+except Exception as e:
+    os.write(ready_pipe_w, f'unexpected exception while starting server: {e}'.encode('utf8'))
+    os.close(ready_pipe_w)
+    raise

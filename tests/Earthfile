@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 FROM --pass-args ..+earthly-integration-test-base
 
 WORKDIR /test
@@ -19,11 +19,14 @@ ga-no-qemu-group1:
     BUILD ./dockerfile+test
     BUILD ./dockerfile2/subdir+test
     BUILD --pass-args ./locally-in-command+all
+    BUILD --pass-args ./locally-in-function+all
+    BUILD ./command-to-function-rename+all
     BUILD ./import+build
     BUILD ./import+build-imported
     BUILD +privileged-test
     BUILD +copy-test
     BUILD +copy-test-verbose-output
+    BUILD +copy-tilde-test
     BUILD +copy-keep-own-test
     BUILD +git-clone-test
     BUILD +builtin-args-invalid-default-test
@@ -93,6 +96,9 @@ ga-no-qemu-group2:
     BUILD +command
     BUILD +command-explicit-global
     BUILD +command-nested-global
+    BUILD +function
+    BUILD +function-explicit-global
+    BUILD +function-nested-global
     BUILD +duplicate
     BUILD +reserved
     BUILD +quotes-test
@@ -124,6 +130,7 @@ ga-no-qemu-group2:
     BUILD +test-cache-mount-mode
     BUILD +test-cache-mode
     BUILD +test-shared-cache
+    BUILD +test-cache-persist
     BUILD +test-visited-upfront-hash-collection
     BUILD +test-exec-stats
 
@@ -221,7 +228,7 @@ copy-test:
         echo "1" > in/sub/1/file && \
         echo "2" > in/sub/2/file && \
         echo "sub" > in/sub/file
-    DO +RUN_EARTHLY --earthfile=copy.earth
+    DO +RUN_EARTHLY --earthfile=copy.earth --output_does_not_contain="which does not expand to a home directory"
 
 copy-test-verbose-output:
     RUN mkdir -p subdir/a.txt && \
@@ -257,6 +264,15 @@ earthly --config \$earthly_config --verbose +copy 2>&1 | tee output2.txt;
 copy-keep-own-test:
     DO +RUN_EARTHLY --target=+test-known-user --earthfile=copy-keep-own.earth
     DO +RUN_EARTHLY --target=+test-unknown-user --earthfile=copy-keep-own.earth
+
+copy-tilde-test:
+    RUN touch in
+    DO +RUN_EARTHLY --target=+copy-tilde-destination --earthfile=copy-tilde.earth --output_contains='destination path \"~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-in-destination --earthfile=copy-tilde.earth --output_contains='destination path \"/some/dir/~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-in-destination-prefix --earthfile=copy-tilde.earth --output_contains='destination path \"~some/dir.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-arg-in-destination --earthfile=copy-tilde.earth --output_contains='destination path \"/some/dir/~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-artifact --earthfile=copy-tilde.earth --output_contains='destination path \"/some/dir/~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-in-destination-not-prefix --earthfile=copy-tilde.earth --output_does_not_contain="which does not expand to a home directory"
 
 cache-test:
     # Test that a file can be passed between runs through the mounted cache.
@@ -334,7 +350,7 @@ secrets-test:
         --extra_args="--secret SECRET1 --secret SECRET2=bar --build-arg SECRET_ID=\"\" --build-arg SECRET_ID_2=\"\"" \
         --target=+test \
         --should_fail=true \
-        --output_contains="unable to lookup secret SECRET3: not found"
+        --output_contains='unable to lookup secret \"SECRET3\": not found'
 
 project-secrets-test:
     DO +RUN_EARTHLY \
@@ -1033,13 +1049,25 @@ platform-output:
 
 command:
     RUN echo "hello command" >./message.txt
-    DO +RUN_EARTHLY --earthfile=command.earth
+    DO +RUN_EARTHLY --earthfile=command.earth --target=+all-positive
+    DO +RUN_EARTHLY --earthfile=command.earth --should_fail=true --target=+test-function-fails
 
 command-explicit-global:
     DO +RUN_EARTHLY --earthfile=command-explicit-global.earth
 
 command-nested-global:
     DO +RUN_EARTHLY --earthfile=command-nested-global.earth --target="+test-overriding --foo=expected"
+
+function:
+    RUN echo "hello command" >./message.txt
+    DO +RUN_EARTHLY --earthfile=function.earth --target=+all-positive
+    DO +RUN_EARTHLY --earthfile=function.earth --should_fail=true --target=+test-command-fails
+
+function-explicit-global:
+    DO +RUN_EARTHLY --earthfile=function-explicit-global.earth
+
+function-nested-global:
+    DO +RUN_EARTHLY --earthfile=function-nested-global.earth --target="+test-overriding --foo=expected"
 
 duplicate:
     DO +RUN_EARTHLY --earthfile=duplicate-target-names.earth --should_fail=true --target=+duplicate
@@ -1444,6 +1472,22 @@ test-shared-cache:
       --extra_args=" --secret=content=filecontents " \
       --output_contains="filecontents"
 
+test-cache-persist:
+  DO +RUN_EARTHLY \
+      --earthfile=cache-persist.earth \
+      --target=+test-persisted \
+      --output_contains="| test persisted ok"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-persist.earth \
+      --target=+test-non-persisted \
+      --output_contains="| test non persisted ok"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-persist-no-flag.earth \
+      --target=+test-persisted \
+      --output_contains="| test persisted ok"
+
 test-visited-upfront-hash-collection:
   DO +RUN_EARTHLY \
       --earthfile=visited-upfront-hash-collection.earth \
@@ -1467,7 +1511,7 @@ test-exec-stats:
       --output_contains="total CPU:.*total memory:.*"
 
 RUN_EARTHLY:
-    COMMAND
+    FUNCTION
     ARG earthfile=
     ARG earthfile_dest="./Earthfile"
     ARG target=+all

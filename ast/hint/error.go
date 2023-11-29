@@ -5,25 +5,13 @@ import (
 	"strings"
 )
 
-// TODO: once WrapWithDisplay & WrapfWithDisplay are out of use,
-// remove displayHints field and let earthly/cmd/earthly/app/run.go use the Hint() value instead of printing it
-// as part of the Error() function
-
-// Error is an error that includes hints to be displayed after the error.
-type Error struct {
+type hintError struct {
 	err   error
 	hints []string
-	// Indicate whether to display the hint as part of the Error() function
-	// or expose the hints via Hint().
-	// Once the deprecated functions are removed, this flag can be removed as well.
-	displayHints bool
 }
 
-// Error returns the error string with or without the provided hints, depending on how the error was created
-func (e Error) Error() string {
-	if !e.displayHints {
-		return e.err.Error()
-	}
+// Error returns the error string
+func (e hintError) Error() string {
 	switch len(e.hints) {
 	case 0:
 		return e.err.Error()
@@ -41,35 +29,14 @@ func (e Error) Error() string {
 	}
 }
 
-// Hint returns all hints in a single string separated by a new line
-func (e Error) Hint() string {
-	if e.displayHints {
-		// if true we can leave this empty so that it is not displayed twice in cmd/earthly/app/run.go
-		return ""
-	}
-	return strings.Join(e.hints, "\n")
-}
-
-// Wrap wraps up an error with hints, to help display hints to a user about what
-// might fix the problem.
+// Wrap wraps up an error with hints, to help display hints to a user about what might fix the problem.
+// Deprecated: use utils/hint.Wrap instead
 func Wrap(err error, firstHint string, extraHints ...string) error {
-	return Error{err: err, hints: append([]string{firstHint}, extraHints...)}
-}
-
-// WrapWithDisplay wraps up an error with hints, to help display hints to a user about what
-// might fix the problem.
-// Deprecated: use Wrap instead after verifying hint is properly displayed
-func WrapWithDisplay(err error, firstHint string, extraHints ...string) error {
-	return Error{err: err, displayHints: true, hints: append([]string{firstHint}, extraHints...)}
+	return hintError{err: err, hints: append([]string{firstHint}, extraHints...)}
 }
 
 // Wrapf wraps an error with a single hint with formatting arguments.
+// Deprecated: use utils/hint.Wrapf instead
 func Wrapf(err error, hintf string, args ...any) error {
 	return Wrap(err, fmt.Sprintf(hintf, args...))
-}
-
-// WrapfWithDisplay wraps an error with a single hint with formatting arguments.
-// Deprecated: use Wrapf instead after verifying hint is properly displayed
-func WrapfWithDisplay(err error, hintf string, args ...any) error {
-	return WrapWithDisplay(err, fmt.Sprintf(hintf, args...))
 }

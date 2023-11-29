@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION --use-function-keyword 0.7
 
 savea:
     FROM alpine:3.18
@@ -51,7 +51,7 @@ test5:
     DO +SAVE_CMD --name test5
 
 SAVE_CMD:
-    COMMAND
+    FUNCTION
     ARG name
     RUN echo $name > data
     SAVE ARTIFACT data AS LOCAL "$name"

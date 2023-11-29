@@ -47,7 +47,7 @@ Please note that these examples, although similar, are distinct from the ones us
 
 ## Examples by Earthly features
 
-* [import](./import) - shows how to use the `IMPORT` command to alias project references.
+* [import](./import) - shows how to use the `IMPORT` command to alias Earthfile references.
 * [cutoff-optimization](./cutoff-optimization) - shows that if an intermediate artifact does not change, then the rest of the build will use the cache, even if the source has changed.
 * [multiplatform](./multiplatform) - shows how Earthly can execute builds and create images for multiple platforms, using QEMU emulation.
 * [multiplatform-cross-compile](./multiplatform-cross-compile) - shows has through the use of cross-compilation, you can create images for multiple platforms, without using QEMU emulation.
