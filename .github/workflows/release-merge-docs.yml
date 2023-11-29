@@ -1,4 +1,4 @@
-name: update docs
+name: Merge main to docs-0.7
 
 on:
   push:
