@@ -31,16 +31,20 @@ func DetectCI(isEarthlyCIRunner bool) (string, bool) {
 		return "earthly-ci", true
 	}
 	for k, v := range map[string]string{
-		"GITHUB_WORKFLOW":    "github-actions",
-		"CIRCLECI":           "circle-ci",
-		"JENKINS_HOME":       "jenkins",
-		"BUILDKITE":          "buildkite",
-		"DRONE_BRANCH":       "drone",
-		"TRAVIS":             "travis",
-		"GITLAB_CI":          "gitlab",
-		"EARTHLY_IMAGE":      "earthly-image",
-		"AGENT_WORKDIR":      "jenkins", // https://github.com/jenkinsci/docker-agent/blob/master/11/alpine/Dockerfile#L35
-		"CODEBUILD_BUILD_ID": "aws-codebuild",
+		"GITHUB_WORKFLOW":        "github-actions",
+		"CIRCLECI":               "circle-ci",
+		"JENKINS_HOME":           "jenkins",
+		"BUILDKITE":              "buildkite",
+		"DRONE_BRANCH":           "drone",
+		"TRAVIS":                 "travis",
+		"GITLAB_CI":              "gitlab",
+		"EARTHLY_IMAGE":          "earthly-image",
+		"AGENT_WORKDIR":          "jenkins", // https://github.com/jenkinsci/docker-agent/blob/master/11/alpine/Dockerfile#L35
+		"zuul_execution_branch":  "zuul",    // https://opendev.org/zuul/zuul/src/branch/master/zuul/executor/server.py#L3259
+		"CODEBUILD_BUILD_ID":     "aws-codebuild",
+		"SEMAPHORE":              "semaphore-ci",
+		"BUILD_BUILDID":          "azure-pipelines",
+		"BITBUCKET_BUILD_NUMBER": "bitbucket-pipelines",
 	} {
 		if _, ok := os.LookupEnv(k); ok {
 			return v, true
@@ -62,7 +66,29 @@ func DetectCI(isEarthlyCIRunner bool) (string, bool) {
 		}
 	}
 
+	// detached head is often used in CIs. This is another heuristic.
+	dh, _ := isDetachedHead()
+	if dh {
+		return "detached-head", true
+	}
+
 	return "false", false
+}
+
+func isDetachedHead() (bool, error) {
+	if !isGitInstalled() {
+		return false, errors.New("git not installed")
+	}
+	if !isGitDir() {
+		return false, errors.New("not a git directory")
+	}
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	out, err := cmd.Output()
+	if err != nil {
+		return false, err
+	}
+	branch := strings.TrimSpace(string(out))
+	return branch == "HEAD", nil
 }
 
 func getLocalRepo() string {
@@ -91,6 +117,7 @@ func getLocalRepo() string {
 		"TRAVIS_REPO_SLUG",
 		"EARTHLY_GIT_ORIGIN_URL",
 		"CI_REPOSITORY_URL",
+		"SEMAPHORE_GIT_URL",
 	} {
 		if v, ok := os.LookupEnv(k); ok {
 			repo := strings.TrimSpace(v)
