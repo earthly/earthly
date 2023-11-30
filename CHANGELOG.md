@@ -9,6 +9,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Changed
 - Changed the color used to print metadata values (such as ARGs values) in the build log to Faint Blue.
+- Updated default alpine/git image to v2.40.1.
 
 ## v0.7.22 - 2023-11-27
 
