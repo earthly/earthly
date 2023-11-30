@@ -40,7 +40,7 @@ func DetectCI(isEarthlyCIRunner bool) (string, bool) {
 		"GITLAB_CI":              "gitlab",
 		"EARTHLY_IMAGE":          "earthly-image",
 		"AGENT_WORKDIR":          "jenkins", // https://github.com/jenkinsci/docker-agent/blob/master/11/alpine/Dockerfile#L35
-		"zuul_execution_branch":  "zuul",    // https://opendev.org/zuul/zuul/src/branch/master/zuul/executor/server.py#L3259
+		"zuul_execution_branch":  "zuul",    // https://opendev.org/zuul/zuul/src/commit/0dacf6064da112dabe1b79ffc35ec9a6a2b93e4e/zuul/executor/server.py#L3259
 		"CODEBUILD_BUILD_ID":     "aws-codebuild",
 		"SEMAPHORE":              "semaphore-ci",
 		"BUILD_BUILDID":          "azure-pipelines",
