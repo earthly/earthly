@@ -67,6 +67,7 @@
       enabled: false,
     },
     {
+      // 2. disable PRs targeting main for earthly/earthly
       matchBaseBranches: [
         'main',
       ],
