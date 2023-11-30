@@ -4,6 +4,7 @@
     'config:recommended',
     'default:pinDigestsDisabled',
   ],
+  baseBranches: ['main', 'docs-0.7'],
   configMigration: true,
   prHourlyLimit: 1,
   prConcurrentLimit: 3,
@@ -49,6 +50,20 @@
       addLabels: [
         'earthly-version-in-docs',
       ],
+      automerge: true,
+    },
+    // Point earthly/earthly updates in docs to docs-0.7 branch by:
+    // 1. disable all PRs targeting docs-0.7 for all packages except earthly/earthly
+    {
+      baseBranchList: ['docs-0.7'],
+      excludePackagePatterns: ['earthly/earthly'],
+      enabled: false,
+    },
+    // 2. disable PRs targeting main for earthly/earthly
+    {
+      baseBranchList: ['main'],
+      matchPackagePatterns: ['earthly/earthly'],
+      enabled: false,
     },
   ],
 }
