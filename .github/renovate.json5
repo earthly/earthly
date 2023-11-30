@@ -56,6 +56,8 @@
       automerge: true,
     },
     {
+     // Point earthly/earthly updates in docs to docs-0.7 branch by:
+     // 1. disable all PRs targeting docs-0.7 for all packages except earthly/earthly
       matchBaseBranches: [
         'docs-0.7',
       ],
