@@ -12,6 +12,8 @@ Earthly lib is split across multiple packages, each of which can be imported sep
 
 See the individual packages for more information.
 
+Additional language-specific functions are currently planned for later in 2024.
+
 ## Usage
 
 To use Earthly lib, import the package you want to use in your Earthfile:
