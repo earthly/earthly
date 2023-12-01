@@ -12,7 +12,7 @@ buildkitd:
             ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
         END
     ELSE
-        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:54a44529a3665e1e28ca59eb0964f6dc2670bda4+build
+        ARG BUILDKIT_BASE_IMAGE=github.com/weaversam8/earthly-buildkit:40627541b08a4b7202714804fb6381045b63701f+build
     END
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
@@ -108,10 +108,11 @@ update-buildkit-earthfile:
     LOCALLY
     ARG --required BUILDKIT_GIT_SHA
     ARG --required BUILDKIT_GIT_ORG
+    ARG --required BUILDKIT_GIT_REPO
     # We run the Mac version on Darwin as it is not compatible with Linux sed
     # The regular expressions are intentionally different, but should be functionally equivalent on the correct uname.
     RUN if [ "$(uname)" = "Darwin" ]; then \
-            sed -E -i '' -e 's/(^[ \t]+ARG BUILDKIT_BASE_IMAGE).*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile; \
+            sed -E -i '' -e 's/(^[ \t]+ARG BUILDKIT_BASE_IMAGE).*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/'$BUILDKIT_GIT_REPO':'$BUILDKIT_GIT_SHA'+build/g' Earthfile; \
         else \
-            sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE\)=github.com\/.*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile; \
+            sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE\)=github.com\/.*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/'$BUILDKIT_GIT_REPO':'$BUILDKIT_GIT_SHA'+build/g' Earthfile; \
         fi

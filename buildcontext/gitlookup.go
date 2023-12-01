@@ -40,6 +40,7 @@ type gitMatcher struct {
 	strictHostKeyChecking bool
 	port                  int
 	prefix                string
+	sshCommand            string
 }
 
 type gitProtocol string
@@ -124,7 +125,7 @@ func knownHostsToKeyScans(knownHosts string) []string {
 }
 
 // AddMatcher adds a new matcher for looking up git repos
-func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, prefix, suffix, protocol, knownHosts string, strictHostKeyChecking bool, port int) error {
+func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, prefix, suffix, protocol, knownHosts string, strictHostKeyChecking bool, port int, sshCommand string) error {
 	gl.mu.Lock()
 	defer gl.mu.Unlock()
 	p := gitProtocol(protocol)
@@ -158,6 +159,7 @@ func (gl *GitLookup) AddMatcher(name, pattern, sub, user, password, prefix, suff
 		suffix:                suffix,
 		protocol:              p,
 		strictHostKeyChecking: strictHostKeyChecking,
+		sshCommand:            sshCommand,
 	}
 
 	// update existing entry
@@ -615,16 +617,18 @@ func parseGitProtocol(remote string) (string, int) {
 //	"github.com/earthly/earthly/examples/go" ---> ("git@github.com/earthly/earthly.git", "examples/go")
 //
 // Additionally a ssh keyscan might be returned (or an empty string indicating none was configured)
-func (gl *GitLookup) GetCloneURL(path string) (string, string, []string, error) {
+// Also, a custom "git ssh command" may be returned. This is part of this function since the user may
+// specify a command necessary to clone their repository successfully.
+func (gl *GitLookup) GetCloneURL(path string) (gitURL string, subPath string, keyScans []string, sshCommand string, err error) {
 	gl.mu.Lock()
 	defer gl.mu.Unlock()
 	match, m, err := gl.getGitMatcherByPath(path)
 	if err != nil {
-		return "", "", nil, err
+		return "", "", nil, "", err
 	}
 
 	n := len(match)
-	subPath := ""
+	subPath = ""
 	if len(path) > n {
 		subPath = path[n+1:]
 		path = path[:n]
@@ -632,9 +636,14 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, []string, error) 
 	host := path[:strings.IndexByte(path, '/')]
 	gitPath := m.prefix + match[(strings.IndexByte(match, '/')+1):] + m.suffix
 
+	sshCommand = ""
+	if m.sshCommand != "" {
+		sshCommand = m.sshCommand
+	}
+
 	if m.sub != "" {
 		if !m.re.MatchString(path) {
-			return "", "", nil, errors.Errorf("failed to determine git path to clone for %q", path)
+			return "", "", nil, "", errors.Errorf("failed to determine git path to clone for %q", path)
 		}
 		gitURL := m.re.ReplaceAllString(path, m.sub)
 		gl.console.VerbosePrintf("converted earthly reference %s to git url %s (using regex substitution %s)", path, stringutil.ScrubCredentials(gitURL), stringutil.ScrubCredentials(m.sub))
@@ -644,21 +653,21 @@ func (gl *GitLookup) GetCloneURL(path string) (string, string, []string, error) 
 			subHost := remote[:strings.IndexByte(remote, '/')]
 			_, keyScans, err = gl.getHostKeyAlgorithms(subHost)
 			if err != nil {
-				return "", "", nil, err
+				return "", "", nil, "", err
 			}
 			if len(keyScans) == 0 && m.strictHostKeyChecking {
-				return "", "", nil, errors.Errorf("no known_hosts entries exist for substituted host %s", subHost)
+				return "", "", nil, "", errors.Errorf("no known_hosts entries exist for substituted host %s", subHost)
 			}
 		}
-		return gitURL, subPath, keyScans, nil
+		return gitURL, subPath, keyScans, sshCommand, nil
 	}
 
-	gitURL, keyScans, err := gl.makeCloneURL(m, host, gitPath)
+	gitURL, keyScans, err = gl.makeCloneURL(m, host, gitPath)
 	if err != nil {
-		return "", "", nil, err
+		return "", "", nil, "", err
 	}
 	gl.console.VerbosePrintf("converted earthly reference %s to git url %s", path, stringutil.ScrubCredentials(gitURL))
-	return gitURL, subPath, keyScans, nil
+	return gitURL, subPath, keyScans, sshCommand, nil
 }
 
 // ConvertCloneURL takes a url such as https://github.com/user/repo.git or git@github.com:user/repo.git
