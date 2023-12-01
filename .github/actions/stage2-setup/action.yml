@@ -43,7 +43,7 @@ runs:
       with:
         image: tonistiigi/binfmt:latest
         platforms: all
-    - uses: actions/setup-go@v1
+    - uses: actions/setup-go@v4
       with:
         go-version: 1.20
     - if: ${{ inputs.BINARY == 'podman' }}
