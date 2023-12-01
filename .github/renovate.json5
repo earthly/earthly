@@ -13,13 +13,29 @@
   prConcurrentLimit: 3,
   includePaths: [
     'docs/**',
-    '.github/',
+    '.github/**',
     'release/**',
+    'buildcontext/**',
+    'tests/**',
+    'ast/tests/**',
+  ],
+  ignorePaths: [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/__fixtures__/**"
   ],
   enabledManagers: [
     'custom.regex',
     'github-actions',
+    'dockerfile',
   ],
+  dockerfile: {
+    fileMatch: [
+      'Earthfile',
+      '.*\\.earth$'
+    ],
+  },
   customManagers: [
     {
       customType: 'regex',
@@ -37,6 +53,18 @@
       ],
       depNameTemplate: 'earthly/earthly',
       datasourceTemplate: 'github-releases',
+    },
+    {
+      customType: 'regex',
+      fileMatch: [
+        'buildcontext/git.go',
+        'ast/tests/git-clone.ast.json',
+      ],
+      matchStrings: [
+        '= "alpine/git:(?<currentValue>.+?)"',
+      ],
+      depNameTemplate: 'alpine/git',
+      datasourceTemplate: 'docker',
     },
   ],
   labels: [
@@ -76,5 +104,23 @@
       ],
       enabled: false,
     },
+    // group all alpine/git updates across the repo to one PR and schedule it to once a month
+    {
+      groupName: 'alpine/git',
+      matchPackageNames: [
+        'alpine/git',
+      ],
+      schedule: [
+        'every month',
+      ],
+    },
+    // disable any docker dependencies that are not alpine/git (temporary until we add other dependencies)
+    {
+      matchManagers: [
+        'dockerfile',
+      ],
+      excludePackagePatterns: ['alpine/git'],
+      enabled: false,
+    }
   ],
 }
