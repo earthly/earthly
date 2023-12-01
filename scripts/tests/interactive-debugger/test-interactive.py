@@ -51,13 +51,16 @@ if __name__ == '__main__':
         ('test-docker-compose', import_test_func(os.path.join(script_dir, 'docker-compose', 'test-docker-compose.py'))),
         )
 
+    if args.test:
+        tests = list( (k,v) for k,v in tests if k == args.test)
+        if not tests:
+            raise RuntimeError(f'no such test: {args.test}')
+
     num_passed = 0
     num_tests = len(tests)
     exit_code = 0
     summary_msgs = []
     for test_name, test in tests:
-        if args.test and test_name != args.test:
-            continue
         print_box(f'Running {test_name}')
         test_exit_code = test(earthly_path, args.timeout)
         if test_exit_code == 2:
