@@ -375,6 +375,42 @@ earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo+hel
 " >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
     DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-self-hosted.earth --exec_cmd=/tmp/test-earthly-script
 
+test-custom-ssh-command:
+    FROM --pass-args ./setup+server \
+        --SSHD_RSA=true \
+        --SSHD_ED25519=true \
+        --USER_RSA=true \
+        --USER_ED25519=false \
+        --SSH_PORT=2244
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 git.example.com
+ping -c 1 buildkitsandbox
+
+# load in preauthorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-rsa-key
+ssh-add -l
+
+# Set the SSH command to use an invalid cipher, which should fail. The presence of
+# the magic word 'badcipher' in the output will confirm that out custom SSH command
+# is being used.
+earthly --config \$earthly_config config 'git.\"git.example.com\"' '{\"auth\": \"ssh\", \"user\": \"git\", \"port\": 2244, \"ssh_command\": \"ssh -c badcipher\", \"strict_host_key_checking\": false}'
+cat \$earthly_config
+
+# call target which performs a git-clone
+(set +e; earthly --config \$earthly_config --verbose -D +test-abs-path 2>&1; echo \"\$?\" > status) | tee output.txt
+test \"\$(cat status)\" = \"1\"
+grep \"Unknown cipher type 'badcipher'\" output.txt
+
+# try to reference it remotely via the cli
+(set +e; earthly --config \$earthly_config --verbose -D git.example.com/testuser/repo+hello 2>&1; echo \"\$?\" > status2) | tee output2.txt
+test \"\$(cat status2)\" = \"1\"
+grep \"Unknown cipher type 'badcipher'\" output2.txt
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --earthfile=git-clone-self-hosted.earth --exec_cmd=/tmp/test-earthly-script
 
 all:
     BUILD +test-rsa-only
@@ -388,6 +424,7 @@ all:
     BUILD +test-with-custom-matcher
     BUILD +test-git-clone-command-with-custom-matcher
     BUILD +test-custom-matcher-non-standard-port-and-no-host-checking
+    BUILD +test-custom-ssh-command
 
 RUN_EARTHLY_ARGS:
     FUNCTION

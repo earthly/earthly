@@ -639,6 +639,7 @@ func (gl *GitLookup) GetCloneURL(path string) (gitURL string, subPath string, ke
 	sshCommand = ""
 	if m.sshCommand != "" {
 		sshCommand = m.sshCommand
+		gl.console.VerbosePrintf("custom ssh command specified '%s'", sshCommand)
 	}
 
 	if m.sub != "" {
