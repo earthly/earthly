@@ -113,7 +113,7 @@ Please note that remote caching via registry tends to be very difficult to get r
 
 ### Force a build step to always cache
 
-If you have already optimized your cache by maximizing its size, declaring arguments as late as possible, and implementing the other recommendations provided here, but you still encounter performance bottlenecks due to computationally intensive tasks being evicted from the cache, consider employing `SAVE IMAGE` commands at strategic points. These images can serve as manual caches and can improve efficiency at the cost of simplicity. For additional details, refer to the [Best Practices](../best-practices/best-practices.md#use-save-image-to-always-cache) section.
+If you have already optimized your cache by maximizing its size, declaring arguments as late as possible, and implementing the other recommendations provided here, but you still encounter performance bottlenecks due to computationally intensive tasks being evicted from the cache, consider employing `SAVE IMAGE` commands at strategic points. These images can serve as manual caches and can improve efficiency at the cost of simplicity. For additional details, refer to the [Best Practices](../guides/best-practices.md#use-save-image-to-always-cache) section.
 
 ### Debugging tips
 

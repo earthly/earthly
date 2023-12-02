@@ -13,7 +13,8 @@
     * [Part 7: Using remote runners](basics/part-7-using-remote-runners.md)
     * [Part 8a: Using Earthly in your current CI](basics/part-8a-using-earthly-in-your-current-ci.md)
     * [Final words](basics/final-words.md)
-* [✅ Best practices](best-practices/best-practices.md)
+* 👩‍💻 Featured guides
+    * [Rust](lang-guides/rust.md)
 
 ## 📖 Docs
 
@@ -35,6 +36,7 @@
     * Using the Earthly Docker Images
         * [earthly/earthly](docker-images/all-in-one.md)
         * [earthly/buildkitd](docker-images/buildkit-standalone.md)
+    * [Best practices](guides/best-practices.md)
 * [Caching](./caching/caching.md)
     * [Caching in Earthfiles](./caching/caching-in-earthfiles.md)
     * [Managing cache](./caching/managing-cache.md)
@@ -46,6 +48,7 @@
     * [Excluding patterns](earthfile/earthlyignore.md)
     * [Version-specific features](earthfile/features.md)
 * [The `earthly` command](earthly-command/earthly-command.md)
+* [Earthly lib](earthly-lib/earthly-lib.md)
 * [Configuration reference](earthly-config/earthly-config.md)
 * [Examples](examples/examples.md)
 * Misc

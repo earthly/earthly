@@ -918,7 +918,7 @@ RUN git remote set-url origin <git-url>
 ```
 {% endhint %}
 
-See the "GIT CLONE vs RUN git clone" section under the [best practices guide](../best-practices/best-practices.md#git-clone-vs-run-git-clone) for more details.
+See the "GIT CLONE vs RUN git clone" section under the [best practices guide](../guides/best-practices.md#git-clone-vs-run-git-clone) for more details.
 
 #### Options
 
