@@ -13,9 +13,8 @@
     * [Part 7: Using remote runners](basics/part-7-using-remote-runners.md)
     * [Part 8a: Using Earthly in your current CI](basics/part-8a-using-earthly-in-your-current-ci.md)
     * [Final words](basics/final-words.md)
-* [👩‍💻  Featured guides](lang-guides/featured-guides.md)
+* [⭐ Featured guides](lang-guides/featured-guides.md)
     * [Rust](lang-guides/rust.md)
-    * [Other](lang-guides/other-languages.md)
 
 ## 📖 Docs
 
