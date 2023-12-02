@@ -13,17 +13,8 @@
     * [Part 7: Using remote runners](basics/part-7-using-remote-runners.md)
     * [Part 8a: Using Earthly in your current CI](basics/part-8a-using-earthly-in-your-current-ci.md)
     * [Final words](basics/final-words.md)
-* 👩‍💻 Language-specific guides
-    * [Go](lang-guides/go.md)
-    * [Python](lang-guides/python.md)
+* 👩‍💻 Featured guides
     * [Rust](lang-guides/rust.md)
-    * [NodeJS](lang-guides/node.md)
-    * [Elixir](lang-guides/elixir.md)
-    * [Java](lang-guides/java.md)
-    * [C/C++](lang-guides/c-cpp.md)
-    * [Ruby](lang-guides/ruby.md)
-    * [Scala](lang-guides/scala.md)
-    * [.NET](lang-guides/dotnet.md)
 
 ## 📖 Docs
 

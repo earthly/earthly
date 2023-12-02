@@ -21,7 +21,6 @@ install:
   FROM rust:1.73.0-bookworm
   RUN apt-get update -qq
   RUN apt-get install --no-install-recommends -qq autoconf autotools-dev libtool-bin clang cmake bsdmainutils
-  RUN cargo install --locked cargo-deny
   RUN rustup component add clippy
   RUN rustup component add rustfmt
   # Call +INIT before copying the source file to avoid installing depencies every time source code changes. 
@@ -37,13 +36,12 @@ Now you can build your Rust project. Collect the necessary sources and call `rus
 source:
   FROM +install
   COPY --keep-ts Cargo.toml Cargo.lock ./
-  COPY --keep-ts deny.toml ./
   COPY --keep-ts --dir package1 package2  ./
 
 build:
   FROM +source
   DO rust+CARGO --args="build --release" --output="release/[^/\.]+"
-  SAVE ARTIFACT ./target/release/ target AS LOCAL artifact/target
+  SAVE ARTIFACT ./target/release/*
 ```
 
 Notice the need for the `--keep-ts` flag when copying the source files. This is necessary to ensure that the timestamps of the source files are preserved such that Rust's incremental compilation works correctly.
