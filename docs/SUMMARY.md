@@ -15,6 +15,7 @@
     * [Final words](basics/final-words.md)
 * [👩‍💻 Featured guides](lang-guides/featured-guides.md)
     * [Rust](lang-guides/rust.md)
+    * [Other](lang-guides/other-languages.md)
 
 ## 📖 Docs
 
