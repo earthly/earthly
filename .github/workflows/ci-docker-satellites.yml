@@ -58,6 +58,7 @@ jobs:
       USE_SATELLITE: true
       SATELLITE_NAME: "core-test"
       EARTHLY_ORG: "earthly-technologies"
+      EXTRA_ARGS: "--no-cache"
     secrets: inherit
 
   docker-build-with-satellites:
