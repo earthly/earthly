@@ -60,9 +60,16 @@ test-whitespace-then-version:
 
 test-invalid-versions:
     DO --pass-args +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-major-version.earth --target=+base
+    RUN acbgrep 'Earthfile version is invalid, supported versions are 0.5, 0.6, or 0.7' earthly.output
+
     DO --pass-args +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-minor-version.earth --target=+base
+    RUN acbgrep 'Earthfile version is invalid, supported versions are 0.5, 0.6, or 0.7' earthly.output
+
     DO --pass-args +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-patch-version.earth --target=+base
+    RUN acbgrep 'unexpected VERSION arguments; should be VERSION \[flags\] <major-version>.<minor-version>' earthly.output
+
     DO --pass-args +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-format-version.earth --target=+base
+    RUN acbgrep 'unexpected VERSION arguments; should be VERSION \[flags\] <major-version>.<minor-version>' earthly.output
 
 test-all:
     BUILD +test-single-line
