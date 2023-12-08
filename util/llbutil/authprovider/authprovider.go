@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/earthly/earthly/conslogging"
 	"github.com/moby/buildkit/session/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -31,8 +32,9 @@ type Child interface {
 }
 
 // New returns a new MultiAuthProvider, wrapping up multiple child auth providers.
-func New(authServers []Child) *MultiAuthProvider {
+func New(console conslogging.ConsoleLogger, authServers []Child) *MultiAuthProvider {
 	return &MultiAuthProvider{
+		console:         console,
 		authServers:     authServers,
 		foundAuthServer: map[string]Child{},
 		skipAuthServer:  map[string][]Child{},
@@ -42,9 +44,9 @@ func New(authServers []Child) *MultiAuthProvider {
 // MultiAuthProvider is an auth provider that delegates authentication to
 // multiple child auth providers.
 type MultiAuthProvider struct {
+	console     conslogging.ConsoleLogger
 	authServers []Child
-
-	mu sync.Mutex
+	mu          sync.Mutex
 
 	// once an authServer has responded succcessfully, only that auth server
 	// will be used for all subsequent calls -- this is to prevent accidentally
@@ -73,6 +75,11 @@ func (ap *MultiAuthProvider) getAuthServers(host string) []Child {
 		}
 	}
 	return res
+}
+
+func (ap *MultiAuthProvider) setAuthServer(host string, as Child) {
+	ap.console.VerbosePrintf("using %T for %s", as, host)
+	ap.foundAuthServer[host] = as
 }
 
 func (ap *MultiAuthProvider) setSkipAuthServer(host string, as Child) {
@@ -121,7 +128,7 @@ func (ap *MultiAuthProvider) FetchToken(ctx context.Context, req *auth.FetchToke
 			}
 			return nil, err
 		}
-		ap.foundAuthServer[req.Host] = as
+		ap.setAuthServer(req.Host, as)
 		return a, nil
 	}
 	return nil, status.Errorf(codes.Unavailable, "no configured auth servers in the list of client-side configs responded")
@@ -141,7 +148,7 @@ func (ap *MultiAuthProvider) Credentials(ctx context.Context, req *auth.Credenti
 			}
 			return nil, err
 		}
-		ap.foundAuthServer[req.Host] = as
+		ap.setAuthServer(req.Host, as)
 		return a, nil
 	}
 	return nil, status.Errorf(codes.Unavailable, "no configured auth servers in the list of client-side configs responded")
@@ -161,7 +168,7 @@ func (ap *MultiAuthProvider) GetTokenAuthority(ctx context.Context, req *auth.Ge
 			}
 			return nil, err
 		}
-		ap.foundAuthServer[req.Host] = as
+		ap.setAuthServer(req.Host, as)
 		return a, nil
 	}
 	return nil, status.Errorf(codes.Unavailable, "no configured auth servers in the list of client-side configs responded")
@@ -181,7 +188,7 @@ func (ap *MultiAuthProvider) VerifyTokenAuthority(ctx context.Context, req *auth
 			}
 			return nil, err
 		}
-		ap.foundAuthServer[req.Host] = as
+		ap.setAuthServer(req.Host, as)
 		return a, nil
 	}
 	return nil, status.Errorf(codes.Unavailable, "no configured auth servers in the list of client-side configs responded")
