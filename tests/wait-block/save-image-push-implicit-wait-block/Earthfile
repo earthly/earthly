@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 
 # dummy target to warm up the cache
 # but the test shouldn't use this since the pre-warming stage passes a --push

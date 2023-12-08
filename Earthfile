@@ -172,7 +172,8 @@ lint-newline-ending:
             fi; \
         done; \
         exit $code
-    RUN if [ "$(tail -c 1 ast/tests/empty-targets.earth)" = "$(printf '\n')" ]; then \
+    RUN export f=ast/tests/empty-targets.earth && \
+    if [ "$(tail -c 1 $f)" = "$(printf '\n')" ]; then \
             echo "$f is a special-case test which must not end with a newline."; \
             exit 1; \
         fi

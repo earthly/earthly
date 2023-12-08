@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 FROM sbtscala/scala-sbt:eclipse-temurin-jammy-17.0.5_8_1.8.2_2.13.10
 WORKDIR /scala-example
 

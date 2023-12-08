@@ -1,4 +1,4 @@
-VERSION --pass-args --use-function-keyword 0.7
+VERSION 0.8
 
 FROM --pass-args ../..+earthly-integration-test-base
 
@@ -70,8 +70,6 @@ test3:
 DO_REMOTE_CACHE_EARTHLY:
     FUNCTION
 
-    ARG EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
-    ARG REGISTRY_CONFIG
     ARG target
 
     RUN --privileged \

@@ -1,4 +1,4 @@
-VERSION --pass-args --use-function-keyword 0.7
+VERSION 0.8
 
 FROM --pass-args ../..+earthly-integration-test-base
 
@@ -25,12 +25,12 @@ test-old2:
 
 test-old-works-with-new:
     COPY old.earth Earthfile
-    RUN sed -i "1s/VERSION .*/VERSION 0.7/" Earthfile
+    RUN sed -i "1s/VERSION .*/VERSION 0.8/" Earthfile
     DO --pass-args +RUN_EARTHLY_ARGS --target=+test
 
 test-new-shellout-errors-are-detected:
     COPY old-ignore-shellout-errors.earth Earthfile
-    RUN sed -i "1s/VERSION .*/VERSION 0.7/" Earthfile
+    RUN sed -i "1s/VERSION .*/VERSION 0.8/" Earthfile
     DO --pass-args +RUN_EARTHLY_ARGS --target=+test --should_fail=true
 
 test-new:

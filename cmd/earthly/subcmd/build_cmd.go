@@ -542,7 +542,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		ParallelConversion:                    (a.cli.Cfg().Global.ConversionParallelism != 0),
 		Parallelism:                           parallelism,
 		LocalRegistryAddr:                     localRegistryAddr,
-		UseRemoteRegistry:                     a.cli.Flags().UseRemoteRegistry,
+		UseRemoteRegistry:                     a.cli.Flags().UseRemoteRegistry, // TODO set this to true, then look into removing dead code
 		DarwinProxyImage:                      a.cli.Cfg().Global.DarwinProxyImage,
 		DarwinProxyWait:                       a.cli.Cfg().Global.DarwinProxyWait,
 		FeatureFlagOverrides:                  a.cli.Flags().FeatureFlagOverrides,
