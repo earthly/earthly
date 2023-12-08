@@ -44,6 +44,7 @@ type loader struct {
 	builtinArgs     variables.DefaultArgs
 	overridingVars  *variables.Scope
 	earthlyCIRunner bool
+	globalImports   map[string]domain.ImportTrackerVal
 }
 
 func newLoader(ctx context.Context, opt HashOpt) *loader {
@@ -58,6 +59,7 @@ func newLoader(ctx context.Context, opt HashOpt) *loader {
 		builtinArgs:     opt.BuiltinArgs,
 		overridingVars:  opt.OverridingVars,
 		earthlyCIRunner: opt.EarthlyCIRunner,
+		globalImports:   map[string]domain.ImportTrackerVal{},
 	}
 }
 
@@ -348,9 +350,28 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 		return l.handleArg(ctx, cmd)
 	case command.FromDockerfile:
 		return l.handleFromDockerfile(ctx, cmd)
+	case command.Import:
+		return l.handleImport(ctx, cmd)
 	default:
 		return nil
 	}
+}
+
+func (l *loader) handleImport(ctx context.Context, cmd spec.Command) error {
+
+	var alias string
+	if len(cmd.Args) == 3 {
+		alias = cmd.Args[2]
+	}
+
+	isGlobal := l.target.Target == "base"
+
+	err := l.varCollection.Imports().Add(cmd.Args[0], alias, isGlobal, false, false)
+	if err != nil {
+		return errors.Wrap(err, "failed to add import")
+	}
+
+	return nil
 }
 
 func (l *loader) handleFromDockerfile(ctx context.Context, cmd spec.Command) error {
@@ -777,6 +798,7 @@ func (l *loader) forTarget(ctx context.Context, target domain.Target, args []str
 		builtinArgs:     l.builtinArgs,
 		overridingVars:  overriding,
 		earthlyCIRunner: l.earthlyCIRunner,
+		globalImports:   l.varCollection.Imports().Global(),
 	}, nil
 }
 
@@ -792,7 +814,12 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string, ar
 		return errors.Wrapf(err, "parse target name %s", targetName)
 	}
 
-	targetRef, err := domain.JoinReferences(l.target, target)
+	derefed, _, _, err := l.varCollection.Imports().Deref(target)
+	if err != nil {
+		return errors.Wrapf(err, "failed to deref target %s", target)
+	}
+
+	targetRef, err := domain.JoinReferences(l.varCollection.AbsRef(), derefed)
 	if err != nil {
 		return errors.Wrapf(err, "failed to join %s and %s", l.target, target)
 	}
@@ -875,12 +902,20 @@ func (l *loader) load(ctx context.Context) error {
 		EarthlyCIRunner: l.earthlyCIRunner,
 		GitMeta:         buildCtx.GitMetadata,
 		Features:        l.features,
+		GlobalImports:   l.globalImports,
 	}
 	l.varCollection = variables.NewCollection(collOpt)
 
 	ef := buildCtx.Earthfile
 	if ef.Version != nil {
 		l.hashVersion(*ef.Version)
+	}
+
+	// Ensure all IMPORT commands are processed.
+	for _, stmt := range ef.BaseRecipe {
+		if stmt.Command != nil && stmt.Command.Name == command.Import {
+			return l.handleImport(ctx, *stmt.Command)
+		}
 	}
 
 	if l.target.Target == "base" {

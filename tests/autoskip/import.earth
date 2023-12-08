@@ -1,0 +1,6 @@
+VERSION 0.7
+
+IMPORT ./imported AS imported
+
+basic:
+    BUILD imported+test
