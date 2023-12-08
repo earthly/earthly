@@ -428,7 +428,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		authChildren = append(authChildren, dockerauthprovider.NewDockerAuthProvider(cfg, nil).(auth.AuthServer))
 	}
 
-	authProvider := authprovider.New(authChildren)
+	authProvider := authprovider.New(a.cli.Console(), authChildren)
 	attachables = append(attachables, authProvider)
 
 	gitLookup := buildcontext.NewGitLookup(a.cli.Console(), a.cli.Flags().SSHAuthSock)
