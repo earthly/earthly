@@ -76,15 +76,6 @@ func (l *loader) handleFrom(ctx context.Context, cmd spec.Command) error {
 		return nil
 	}
 
-	target, err := domain.ParseTarget(fromTarget)
-	if err == nil && target.IsRemote() {
-		if supportedRemoteTarget(target) {
-			l.hasher.HashString(target.StringCanonical())
-			return nil
-		}
-		return errUnsupportedRemoteTarget
-	}
-
 	return l.loadTargetFromString(ctx, fromTarget, args[1:], false)
 }
 
@@ -106,15 +97,6 @@ func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
 		return errors.Wrap(err, "failed to compute arg matrix")
 	}
 
-	target, err := domain.ParseTarget(targetName)
-	if err == nil && target.IsRemote() {
-		if supportedRemoteTarget(target) {
-			l.hasher.HashString(target.StringCanonical())
-			return nil
-		}
-		return errUnsupportedRemoteTarget
-	}
-
 	for _, args := range argCombos {
 		err := l.loadTargetFromString(ctx, targetName, args[1:], opts.PassArgs)
 		if err != nil {
@@ -123,6 +105,27 @@ func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
 	}
 
 	return nil
+}
+
+func (l *loader) derefedTarget(targetName string) (domain.Target, error) {
+	target, err := domain.ParseTarget(targetName)
+	if err != nil {
+		return domain.Target{}, errors.Wrapf(err, "parse target name %s", targetName)
+	}
+
+	derefed, _, _, err := l.varCollection.Imports().Deref(target)
+	if err != nil {
+		return domain.Target{}, errors.Wrapf(err, "failed to deref target %s", target)
+	}
+
+	targetRef, err := domain.JoinReferences(l.varCollection.AbsRef(), derefed)
+	if err != nil {
+		return domain.Target{}, errors.Wrapf(err, "failed to join %s and %s", l.target, target)
+	}
+
+	target = targetRef.(domain.Target)
+
+	return target, nil
 }
 
 func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
@@ -450,15 +453,6 @@ func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 		_, target, extraArgs, err := earthfile2llb.ParseLoad(load)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse --load value")
-		}
-
-		t, err := domain.ParseTarget(target)
-		if err == nil && t.IsRemote() {
-			if supportedRemoteTarget(t) {
-				l.hasher.HashString(t.StringCanonical())
-				return nil
-			}
-			return errUnsupportedRemoteTarget
 		}
 
 		err = l.loadTargetFromString(ctx, target, extraArgs, false)
@@ -809,22 +803,18 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string, ar
 		return errors.Errorf("dynamic target %q cannot be resolved", targetName)
 	}
 
-	target, err := domain.ParseTarget(targetName)
+	target, err := l.derefedTarget(targetName)
 	if err != nil {
-		return errors.Wrapf(err, "parse target name %s", targetName)
+		return err
 	}
 
-	derefed, _, _, err := l.varCollection.Imports().Deref(target)
-	if err != nil {
-		return errors.Wrapf(err, "failed to deref target %s", target)
+	if target.IsRemote() {
+		if supportedRemoteTarget(target) {
+			l.hasher.HashString(target.StringCanonical())
+			return nil
+		}
+		return errUnsupportedRemoteTarget
 	}
-
-	targetRef, err := domain.JoinReferences(l.varCollection.AbsRef(), derefed)
-	if err != nil {
-		return errors.Wrapf(err, "failed to join %s and %s", l.target, target)
-	}
-
-	target = targetRef.(domain.Target)
 
 	fullTargetName := target.String()
 	if fullTargetName == "" {
@@ -914,7 +904,9 @@ func (l *loader) load(ctx context.Context) error {
 	// Ensure all IMPORT commands are processed.
 	for _, stmt := range ef.BaseRecipe {
 		if stmt.Command != nil && stmt.Command.Name == command.Import {
-			return l.handleImport(ctx, *stmt.Command)
+			if err := l.handleImport(ctx, *stmt.Command); err != nil {
+				return err
+			}
 		}
 	}
 
