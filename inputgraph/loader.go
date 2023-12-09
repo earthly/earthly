@@ -238,7 +238,7 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) 
 		return errUnsupportedRemoteTarget
 	}
 
-	targetName := artifactSrc.Target.LocalPath + "+" + artifactSrc.Target.Target
+	targetName := artifactSrc.Target.String()
 	if err := l.loadTargetFromString(ctx, targetName, extraArgs, false); err != nil {
 		return err
 	}
@@ -367,9 +367,7 @@ func (l *loader) handleImport(ctx context.Context, cmd spec.Command) error {
 		alias = cmd.Args[2]
 	}
 
-	isGlobal := l.target.Target == "base"
-
-	err := l.varCollection.Imports().Add(cmd.Args[0], alias, isGlobal, false, false)
+	err := l.varCollection.Imports().Add(cmd.Args[0], alias, false, false, false)
 	if err != nil {
 		return errors.Wrap(err, "failed to add import")
 	}
