@@ -5,6 +5,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ## Unreleased
 
 ### Added
+- Auto-skip (*experimental*) - a feature that allows you to skip large parts of a build in certain situations, especially suited for monorepos. For more information see [the auto-skip section from Caching in Earthfiles](https://docs.earthly.dev/docs/caching/caching-in-earthfiles#auto-skip).
 - A warning when a `COPY` destination includes a tilde (~). Related to [#1789](https://github.com/earthly/earthly/issues/1789).
 
 ### Changed
