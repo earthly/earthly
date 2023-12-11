@@ -207,6 +207,10 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			// This SetFatalError is a catch-all just in case that hasn't happened.
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER,
 				err.Error())
+			if !app.BaseCLI.Flags().InteractiveDebugging && len(args) > 0 {
+				args[0] = args[0] + " --interactive"
+				app.BaseCLI.Console().HelpPrintf("To debug your build, please use --interactive flag: %q\n", strings.Join(args, " "))
+			}
 			return 1
 		case strings.Contains(err.Error(), "security.insecure is not allowed"):
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_NEEDS_PRIVILEGED, err.Error())
