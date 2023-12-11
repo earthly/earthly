@@ -1533,7 +1533,6 @@ earthly --config \$earthly_config github.com/earthly/earthly+base 2>&1 | tee out
 test-ssh-command-config-via-git-clone-earthfile-command:
     RUN ssh-keygen -b 3072 -t rsa -f /root/dont-steal-my-key -q -N "" -C "rsa-testkey"
 
-    # or alternatively do a COPY some-test.earthfile Earthfile
     RUN echo "VERSION 0.7
 test:
     FROM alpine
@@ -1551,7 +1550,7 @@ earthly --config \$earthly_config config git \"{github.com: {auth: ssh, user: gi
 earthly --config \$earthly_config +test 2>&1 | tee output.txt;
 " >/tmp/run-earthly-with-bad-ssh-cipher && chmod +x /tmp/run-earthly-with-bad-ssh-cipher
     DO +RUN_EARTHLY --exec_cmd=/tmp/run-earthly-with-bad-ssh-cipher
-    RUN cat output.txt | acbgrep "Unknown cipher type 'badcipher'" # this might have to be changed if the error is output slightly differently.
+    RUN cat output.txt | acbgrep "Unknown cipher type 'badcipher'"
 
 RUN_EARTHLY:
     FUNCTION
