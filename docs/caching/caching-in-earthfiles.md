@@ -115,7 +115,7 @@ ARG MY_ARG=$(cat ./file)
 BUILD $MY_ARG
 ```
 
-In the first case, the value of `MY_ARG` is known statically as its value can be propagated by the auto-skip algorithm. In the second case, the value of `MY_ARG` is not known statically as it depends on a fail in the build environment. In such a case, auto-skip is not supported. Note that defining such dynamic `ARG`s is generally allowed, however, as long as the value of the `ARG` is not used in a way that would prevent auto-skip from working.
+In the first case, the value of `MY_ARG` is known statically as its value can be propagated by the auto-skip algorithm. In the second case, the value of `MY_ARG` is not known statically as it depends on a file in the build environment. In such a case, auto-skip is not supported. Note that defining such dynamic `ARG`s is generally allowed, however, as long as the value of the `ARG` is not used in a way that would prevent auto-skip from working.
 
 Similarly, the auto-skip algorithm is able to propagate `ARG`s across targets, as long as the value of the `ARG` is known statically. Here is a practical example:
 
