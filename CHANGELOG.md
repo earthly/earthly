@@ -8,6 +8,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - A warning when a `COPY` destination includes a tilde (~). Related to [#1789](https://github.com/earthly/earthly/issues/1789).
 - A hint message to suggest the usage of `-i` flag to debug the build when a RUN command fails.
 
+### Fixed
+- Limit the number of deprecation warnings when using `COMMAND` instead of `FUNCTION` keyword.
+
 ### Changed
 - Changed the color used to print metadata values (such as ARGs values) in the build log to Faint Blue.
 - Updated default alpine/git image to v2.40.1.
