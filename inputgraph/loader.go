@@ -347,7 +347,7 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 	case command.FromDockerfile:
 		return l.handleFromDockerfile(ctx, cmd)
 	case command.Import:
-		return l.handleImport(ctx, cmd, true)
+		return l.handleImport(ctx, cmd, false)
 	default:
 		return nil
 	}
