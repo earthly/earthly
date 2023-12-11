@@ -8,3 +8,9 @@ basic:
 
 remote:
     BUILD remote+license
+
+other:
+    BUILD foo+test
+
+global:
+    BUILD +other # Ensures the 'foo' reference carries across multiple targets (global)

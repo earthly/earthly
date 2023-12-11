@@ -229,6 +229,9 @@ test-import:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=import.earth --target=+remote
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=import.earth --target=+remote --output_contains="target .* has already been run; exiting"
 
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=import.earth --target=+global
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=import.earth --target=+global --output_contains="target .* has already been run; exiting"
+
 RUN_EARTHLY_ARGS:
     FUNCTION
     ARG earthfile
