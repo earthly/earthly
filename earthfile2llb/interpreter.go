@@ -30,10 +30,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-var errCannotAsync = errors.New("cannot run async operation")
+const maxCommandRenameWarnings = 3
 
-var filesWithCommandRenameWarning = make(map[string]bool)
-var maxCommandRenameWarnings = 3
+var errCannotAsync = errors.New("cannot run async operation")
 
 // Interpreter interprets Earthly AST's into calls to the converter.
 type Interpreter struct {
@@ -1998,12 +1997,12 @@ func (i *Interpreter) handleDoFunction(ctx context.Context, command domain.Comma
 	if len(uc.Recipe) == 0 || uc.Recipe[0].Command == nil || uc.Recipe[0].Command.Name != cmdName {
 		return i.errorf(uc.SourceLocation, "%s recipes must start with %s", strings.ToLower(cmdName), cmdName)
 	}
-	if !useFunctionCmd && len(filesWithCommandRenameWarning) < maxCommandRenameWarnings && !filesWithCommandRenameWarning[sourceLocationFile] {
+	if !useFunctionCmd && len(i.converter.opt.FilesWithCommandRenameWarning) < maxCommandRenameWarnings && !i.converter.opt.FilesWithCommandRenameWarning[sourceLocationFile] {
 		i.console.Printf(
 			`Note that the COMMAND keyword will be replaced by FUNCTION starting with VERSION 0.8.
 To start using the FUNCTION keyword now (experimental) please use VERSION --use-function-keyword 0.7 in %s. Note that switching now may cause breakages for your colleagues if they are using older Earthly versions.
 `, sourceLocationFile)
-		filesWithCommandRenameWarning[sourceLocationFile] = true
+		i.converter.opt.FilesWithCommandRenameWarning[sourceLocationFile] = true
 	}
 	if len(uc.Recipe[0].Command.Args) > 0 {
 		return i.errorf(uc.Recipe[0].SourceLocation, "%s takes no arguments", cmdName)
