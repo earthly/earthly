@@ -209,7 +209,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 				err.Error())
 			if !app.BaseCLI.Flags().InteractiveDebugging && len(args) > 0 {
 				args[0] = args[0] + " --interactive"
-				app.BaseCLI.Console().HelpPrintf("To debug your build, please use --interactive flag: %q\n", strings.Join(args, " "))
+				app.BaseCLI.Console().HelpPrintf("To debug your build, you can use the --interactive (-i) flag to drop into a shell of the failing RUN step: %q\n", strings.Join(args, " "))
 			}
 			return 1
 		case strings.Contains(err.Error(), "security.insecure is not allowed"):
