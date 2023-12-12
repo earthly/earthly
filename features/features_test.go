@@ -120,6 +120,7 @@ func TestAvailableFlags(t *testing.T) {
 		{"arg-scope-and-set", "ArgScopeSet"},
 		{"earthly-ci-runner-arg", "EarthlyCIRunnerArg"},
 		{"use-docker-ignore", "UseDockerIgnore"},
+		{"use-function-keyword", "UseFunctionKeyword"},
 	} {
 		tt := tt
 		t.Run(tt.flag, func(t *testing.T) {
