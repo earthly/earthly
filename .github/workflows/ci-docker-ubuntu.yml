@@ -106,9 +106,8 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      EXTRA_ARGS: "--logstream=false --logstream-upload=false"
+      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
-      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-tests-no-qemu-group2-no-logbus:
@@ -121,9 +120,8 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      EXTRA_ARGS: "--logstream=false --logstream-upload=false"
+      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
-      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-tests-no-qemu-group3:
@@ -150,9 +148,8 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      EXTRA_ARGS: "--logstream=false --logstream-upload=false"
+      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
-      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-tests-no-qemu-group4:
@@ -179,9 +176,8 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      EXTRA_ARGS: "--logstream=false --logstream-upload=false"
+      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
-      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-tests-no-qemu-slow:
