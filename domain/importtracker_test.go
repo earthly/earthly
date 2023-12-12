@@ -7,13 +7,13 @@ import (
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/hint"
-	
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestImports(t *testing.T) {
-	var tests = []struct {
+	var tests = map[string]struct {
 		importStr                   string
 		as                          string
 		ref                         string
@@ -21,51 +21,54 @@ func TestImports(t *testing.T) {
 		expectedPathResultFuncCalls int
 		ok                          bool
 	}{
-		{"github.com/foo/bar", "", "bar+abc", "github.com/foo/bar+abc", 0, true},
-		{"github.com/foo/bar", "buz", "buz+abc", "github.com/foo/bar+abc", 0, true},
-		{"github.com/foo/bar", "buz", "bar+abc", "", 0, false},
-		{"github.com/foo/bar:v1.2.3", "", "bar+abc", "github.com/foo/bar:v1.2.3+abc", 0, true},
-		{"github.com/foo/bar:v1.2.3", "buz", "buz+abc", "github.com/foo/bar:v1.2.3+abc", 0, true},
-		{"github.com/foo/bar:v1.2.3", "buz", "bar+abc", "", 0, false},
-		{"./foo/bar", "", "bar+abc", "./foo/bar+abc", 2, true},
-		{"./foo/bar", "buz", "buz+abc", "./foo/bar+abc", 2, true},
-		{"./foo/bar", "buz", "bar+abc", "", 2, false},
-		{"../foo/bar", "", "bar+abc", "../foo/bar+abc", 2, true},
-		{"../foo/bar", "buz", "buz+abc", "../foo/bar+abc", 2, true},
-		{"../foo/bar", "buz", "bar+abc", "", 2, false},
-		{"/foo/bar", "", "bar+abc", "/foo/bar+abc", 2, true},
-		{"/foo/bar", "buz", "buz+abc", "/foo/bar+abc", 2, true},
-		{"/foo/bar", "buz", "bar+abc", "", 2, false},
+		"remote ref no alias":                     {"github.com/foo/bar", "", "bar+abc", "github.com/foo/bar+abc", 0, true},
+		"remote ref with alias":                   {"github.com/foo/bar", "buz", "buz+abc", "github.com/foo/bar+abc", 0, true},
+		"remote ref with alias fail":              {"github.com/foo/bar", "buz", "bar+abc", "", 0, false},
+		"remote ref with version no alias":        {"github.com/foo/bar:v1.2.3", "", "bar+abc", "github.com/foo/bar:v1.2.3+abc", 0, true},
+		"remote ref with version with alias":      {"github.com/foo/bar:v1.2.3", "buz", "buz+abc", "github.com/foo/bar:v1.2.3+abc", 0, true},
+		"remote ref with version with alias fail": {"github.com/foo/bar:v1.2.3", "buz", "bar+abc", "", 0, false},
+		"local relative ref no alias":             {"./foo/bar", "", "bar+abc", "./foo/bar+abc", 2, true},
+		"local relative ref with alias":           {"./foo/bar", "buz", "buz+abc", "./foo/bar+abc", 2, true},
+		"local relative ref with alias fail":      {"./foo/bar", "buz", "bar+abc", "", 2, false},
+		"local up directory ref no alias":         {"../foo/bar", "", "bar+abc", "../foo/bar+abc", 2, true},
+		"local up directory ref with alias":       {"../foo/bar", "buz", "buz+abc", "../foo/bar+abc", 2, true},
+		"local up directory ref with alias fail":  {"../foo/bar", "buz", "bar+abc", "", 2, false},
+		"local absolute directory ref no alias":   {"/foo/bar", "", "bar+abc", "/foo/bar+abc", 2, true},
+		"local absolute directory ref with alias": {"/foo/bar", "buz", "buz+abc", "/foo/bar+abc", 2, true},
 	}
 
 	var console conslogging.ConsoleLogger
 
-	for _, tt := range tests {
-		ir := NewImportTracker(console, nil)
-		pathResultFuncCounter := 0
-		ir.pathResultFunc = func(path string) pathResult {
-			pathResultFuncCounter++
-			if filepath.Base(path) == "Earthfile" {
-				return file
+	for name, tt := range tests {
+		name, tt := name, tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ir := NewImportTracker(console, nil)
+			pathResultFuncCounter := 0
+			ir.pathResultFunc = func(path string) pathResult {
+				pathResultFuncCounter++
+				if filepath.Base(path) == "Earthfile" {
+					return file
+				}
+				return dir
 			}
-			return dir
-		}
-		err := ir.Add(tt.importStr, tt.as, false, false, false)
-		require.NoError(t, err, "add import error")
-		require.Equalf(t, tt.expectedPathResultFuncCalls, pathResultFuncCounter, "pathResultFunc was called an unexpected number of times")
+			err := ir.Add(tt.importStr, tt.as, false, false, false)
+			require.NoError(t, err, "add import error")
+			require.Equalf(t, tt.expectedPathResultFuncCalls, pathResultFuncCounter, "pathResultFunc was called an unexpected number of times")
 
-		ref, err := ParseTarget(tt.ref)
-		require.NoError(t, err, "parse test case ref") // check that the test data is good
-		require.Equal(t, tt.ref, ref.String())         // sanity check
+			ref, err := ParseTarget(tt.ref)
+			require.NoError(t, err, "parse test case ref") // check that the test data is good
+			require.Equal(t, tt.ref, ref.String())         // sanity check
 
-		ref2, _, _, err := ir.Deref(ref)
-		if tt.ok {
-			assert.NoError(t, err, "deref import")
-			assert.Equal(t, tt.expected, ref2.StringCanonical()) // StringCanonical shows its resolved form
-			assert.Equal(t, tt.ref, ref2.String())               // String shows its import form
-		} else {
-			assert.Error(t, err, "deref should have error'd")
-		}
+			ref2, _, _, err := ir.Deref(ref)
+			if tt.ok {
+				assert.NoError(t, err, "deref import")
+				assert.Equal(t, tt.expected, ref2.StringCanonical()) // StringCanonical shows its resolved form
+				assert.Equal(t, tt.ref, ref2.String())               // String shows its import form
+			} else {
+				assert.Error(t, err, "deref should have error'd")
+			}
+		})
 	}
 }
 
