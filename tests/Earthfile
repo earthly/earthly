@@ -3,6 +3,8 @@ FROM --pass-args ..+earthly-integration-test-base
 
 WORKDIR /test
 
+PROJECT earthly-technologies/core
+
 all:
     BUILD +ga
     BUILD +experimental

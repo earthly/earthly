@@ -64,6 +64,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-tests-no-qemu-group1:
@@ -77,6 +78,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-tests-no-qemu-group2:
@@ -90,6 +92,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-tests-no-qemu-group1-no-logbus:
@@ -102,7 +105,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      EXTRA_ARGS: "--logstream=false --logstream-upload=false"
+      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
@@ -116,7 +119,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      EXTRA_ARGS: "--logstream=false --logstream-upload=false"
+      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
@@ -131,6 +134,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-tests-no-qemu-group3-no-logbus:
@@ -143,7 +147,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      EXTRA_ARGS: "--logstream=false --logstream-upload=false"
+      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
@@ -158,6 +162,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-tests-no-qemu-group4-no-logbus:
@@ -170,7 +175,7 @@ jobs:
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
       SUDO: ""
-      EXTRA_ARGS: "--logstream=false --logstream-upload=false"
+      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
@@ -185,6 +190,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-tests-no-qemu-kind:
@@ -198,6 +204,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-tests-require-account-access:
@@ -211,6 +218,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-tests-qemu:
@@ -225,6 +233,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-examples-1:
@@ -410,6 +419,7 @@ jobs:
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
       TARGET_NAME: "+test-quick"
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-wait-block-no-qemu-group1:
@@ -423,6 +433,7 @@ jobs:
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
       TARGET_NAME: "+test-no-qemu-group1"
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-wait-block-no-qemu-group2:
@@ -436,6 +447,7 @@ jobs:
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
       TARGET_NAME: "+test-no-qemu-group2"
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-wait-block-no-qemu-group3:
@@ -449,6 +461,7 @@ jobs:
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
       TARGET_NAME: "+test-no-qemu-group3"
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-wait-block-no-qemu-group4:
@@ -462,6 +475,7 @@ jobs:
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
       TARGET_NAME: "+test-no-qemu-group4"
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-wait-block-no-qemu-slow:
@@ -475,6 +489,7 @@ jobs:
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
       TARGET_NAME: "+test-no-qemu-slow"
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-wait-block-qemu:
@@ -488,6 +503,7 @@ jobs:
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
       TARGET_NAME: "+test-qemu"
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-git-metadata-test:
@@ -514,6 +530,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   race-tests-no-qemu-group1:
@@ -528,6 +545,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   race-tests-no-qemu-group2:
@@ -542,6 +560,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   race-tests-no-qemu-group3:
@@ -556,6 +575,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   race-tests-no-qemu-group4:
@@ -570,6 +590,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   race-tests-no-qemu-slow:
@@ -584,6 +605,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   tutorial:
