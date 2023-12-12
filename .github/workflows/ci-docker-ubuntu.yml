@@ -51,7 +51,6 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
-      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-tests-quick:
