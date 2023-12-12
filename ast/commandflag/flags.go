@@ -101,7 +101,7 @@ type HealthCheckOpts struct {
 	Timeout       time.Duration `long:"timeout" description:"The timeout before the command is considered failed" default:"30s"`
 	StartPeriod   time.Duration `long:"start-period" description:"An initialization time period in which failures are not counted towards the maximum number of retries"`
 	Retries       int           `long:"retries" description:"The number of retries before a container is considered unhealthy" default:"3"`
-	StartInterval time.Duration `long:"start-interval" description:"The time between health checks during the start period" default:"5s"`
+	StartInterval time.Duration `long:"start-interval" description:"The time interval between health checks during the start period" default:"5s"`
 }
 
 type WithDockerOpts struct {
