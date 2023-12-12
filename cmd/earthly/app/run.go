@@ -213,7 +213,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 				if areSecretsUsed(args) {
 					app.BaseCLI.Console().HelpPrintf(msg)
 				} else {
-					app.BaseCLI.Console().HelpPrintf(msg+": %q\n", strings.Join(args, " "))
+					app.BaseCLI.Console().HelpPrintf("%s: %q\n", msg, strings.Join(args, " "))
 				}
 			}
 			return 1
