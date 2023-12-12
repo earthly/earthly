@@ -248,7 +248,6 @@ jobs:
       SUDO: ""
       EXAMPLE_NAME: "+examples-1"
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
-      EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
   docker-examples-2:
