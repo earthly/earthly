@@ -859,7 +859,7 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		return nil, nil, false, errors.Wrapf(err, "unable to calculate hash for %s", target)
 	}
 
-	skipDB, err = bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, orgName, projectName, target.GetName(), client)
+	skipDB, err = bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, orgName, projectName, target, client)
 	if err != nil {
 		return nil, nil, false, err
 	}
