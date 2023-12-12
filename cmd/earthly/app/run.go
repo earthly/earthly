@@ -209,10 +209,11 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 				err.Error())
 			if !app.BaseCLI.Flags().InteractiveDebugging && len(args) > 0 {
 				args[0] = args[0] + " -i"
+				msg := "To debug your build, you can use the --interactive (-i) flag to drop into a shell of the failing RUN step"
 				if areSecretsUsed(args) {
-					app.BaseCLI.Console().HelpPrintf("To debug your build, you can use the --interactive (-i) flag to drop into a shell of the failing RUN step")
+					app.BaseCLI.Console().HelpPrintf(msg)
 				} else {
-					app.BaseCLI.Console().HelpPrintf("To debug your build, you can use the --interactive (-i) flag to drop into a shell of the failing RUN step: %q\n", strings.Join(args, " "))
+					app.BaseCLI.Console().HelpPrintf(msg+": %q\n", strings.Join(args, " "))
 				}
 			}
 			return 1
