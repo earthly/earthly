@@ -39,7 +39,7 @@ runs:
   using: "composite"
   steps:
     - if: inputs.BINARY == 'docker'
-      uses: docker/setup-qemu-action@v1
+      uses: docker/setup-qemu-action@v3
       with:
         image: tonistiigi/binfmt:latest
         platforms: all
