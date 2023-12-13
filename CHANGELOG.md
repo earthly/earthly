@@ -5,8 +5,67 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ## Unreleased
 
 ### Added
+- A warning when a `COPY` destination includes a tilde (~). Related to [#1789](https://github.com/earthly/earthly/issues/1789).
+- A hint message to suggest the usage of `-i` flag to debug the build when a RUN command fails.
+- `start-interval` flag to `HEALTHCHECK` command for dockerfile parity [#3409](https://github.com/earthly/earthly/issues/3409).
 
-- The new ARG `EARTHLY_GIT_REFS` will contain the references to the current git commit, this ARG must be enabled with the `VERSION --git-refs` feature flag. [#3341](https://github.com/earthly/earthly/pull/3341)
+### Fixed
+- Limit the number of deprecation warnings when using `COMMAND` instead of `FUNCTION` keyword.
+
+### Changed
+- Changed the color used to print metadata values (such as ARGs values) in the build log to Faint Blue.
+- Updated default alpine/git image to v2.40.1.
+
+## v0.7.22 - 2023-11-27
+
+### Added
+- A new experimental `earthly --exec-stats` flag, which displays per-target execution stats such as total CPU and memory usage.
+- A new experimental `earthly billing view` command to get information about the organization billing plan.
+- Messages informing used build minutes during a build.
+- Help message when a build fails due to a missing referenced cloud secret.
+
+### Fixed
+- Remove redundant verbose error messages that were not different from messages that were already being printed.
+- Fixed `failed to sign challenge` errors when attempting to login using an ed25519 key with the 1Password ssh-agent. [#3366](https://github.com/earthly/earthly/issues/3366)
+
+### Changed
+- Final error messages for executions without a known target will be displayed without `_unknown *failed* |` prefix. and instead use `Error: ` as prefix more consistently.
+- Failing `RUN` commands under `LOCALLY` will display the same format of error message for `RUN` without `LOCALLY` [#3356](https://github.com/earthly/earthly/issues/3356).
+- Log sharing link will be printed last, even in case of a build error.
+- Help message after a build error will be printed in color.
+- Use dedicated logstream failure category for param related error.
+- An authentication attempt with an expired auth token will result in a `auth token expired` error instead of `unauthorized`.
+- A successful authentication with an auth token will display a warning with time left before token expires if it's 14 days or under.
+- The command `earthly registry` will attempt to use the selected org if no org is specified.
+- Clarify error messages when failing to pass secrets to a build.
+- Provide information on how to get more build minutes when a build fails due to missing minutes.
+- Provide information on how to increase the max number of allowed satellites when failing to launch a satellite.
+- `CACHE` mounts will no longer depend on the contents of `ARG`s, and instead will be limited to the target name.
+- Child targets will no longer receive the contents of mounted `CACHE` volumes defined in the parent target; this change can be enabled with `VERSION --cache-persist-option`. [#3509](https://github.com/earthly/earthly/issues/3509)
+- Improved memory usage related to log messages by no longer pre-allocating log buffers; this is most noticeable for really large Earthfiles with lots of different targets.
+- Updated buildkit with upstream changes up to 3d50b97793391d81d7bc191d7c5dd5361d5dadca.
+- Improved speed of `SAVE IMAGE` exports when using a remote buildkit instance (e.g. satellite) from a MacOS host; this can be enabled with the `--use-remote-registry` option.
+
+### Additional Info
+- This release includes changes to buildkit
+
+## v0.7.21 - 2023-10-24
+
+### Added
+- The new ARG `EARTHLY_GIT_REFS` will contain the references to the current git commit, this ARG must be enabled with the `VERSION --git-refs` feature flag. [#2735](https://github.com/earthly/earthly/issues/2735)
+- A new `--force-certificate-generation` flag for bootstrapping, which will force the generation of self signed TLS certificates even when the `--no-buildkit` flag is set.
+
+### Fixed
+- Fixed reduced parallelism regression which occurred when the target is the same but has different args -- can be enabled with `VERSION --use-visited-upfront-hash-collection` [#2377](https://github.com/earthly/earthly/issues/2377)
+- `prune --age` did not support `d` (for days) suffix, even thought `earthly --help` said it did [#3401](https://github.com/earthly/earthly/issues/3401)
+- `buildkit scheduler error: return leaving incoming open` which occured during deduplication of opperations within buildkit; cherry-picked 100d3cb6b6903be50f7a3e5dba193515aa9530fa from upstream buildkit repo. [#2957](https://github.com/earthly/earthly/issues/2957)
+- Changed `WITH DOCKER` to pull images in parallel [#2351](https://github.com/earthly/earthly/issues/2351)
+
+### Changed
+- Registry proxy: Use lower-level TCP streaming [#2351](https://github.com/earthly/earthly/pull/3317)
+
+### Additional Info
+- This release includes changes to buildkit
 
 ## v0.7.20 - 2023-10-03
 
@@ -103,7 +162,7 @@ Note: This release was aborted due to a regression in the log sharing functional
 
 ### Fixed
 - Fixed a bug, where the command to create tokens with a set expiration failed.
-- Long pauses at the end of builds, which were characterized by apparent freezes or delays with the message `Waiting on Buildkit...`. 
+- Long pauses at the end of builds, which were characterized by apparent freezes or delays with the message `Waiting on Buildkit...`.
 - `earthly account create-token` no longer panics when parsing expiration date
 - `earthly account login` could change the active user when the JWT expired and an SSH key existed for a different user; now earthly will either refresh the JWT or error
 

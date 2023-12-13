@@ -1,6 +1,6 @@
 # Import example
 
-The `IMPORT` command can be used to alias a project reference, allowing it to be reused without duplicating the path.
+The `IMPORT` command can be used to alias an Earthfile reference, allowing it to be reused without duplicating the path.
 
 For example:
 
@@ -25,7 +25,7 @@ build:
     BUILD hello-world+hello
 ```
 
-Note that the `IMPORT` command only supports project references, not target references.
+Note that the `IMPORT` command only supports Earthfile references, not target references.
 
 To run this example, execute:
 

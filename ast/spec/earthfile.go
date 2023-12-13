@@ -5,7 +5,7 @@ type Earthfile struct {
 	Version        *Version        `json:"version,omitempty"`
 	BaseRecipe     Block           `json:"baseRecipe"`
 	Targets        []Target        `json:"targets,omitempty"`
-	UserCommands   []UserCommand   `json:"userCommands,omitempty"`
+	Functions      []Function      `json:"functions,omitempty"`
 	SourceLocation *SourceLocation `json:"sourceLocation,omitempty"`
 }
 
@@ -17,8 +17,8 @@ type Target struct {
 	SourceLocation *SourceLocation `json:"sourceLocation,omitempty"`
 }
 
-// UserCommand is the AST representation of an Earthfile user command definition.
-type UserCommand struct {
+// Function is the AST representation of an Earthfile function definition.
+type Function struct {
 	Name           string          `json:"name"`
 	Recipe         Block           `json:"recipe"`
 	SourceLocation *SourceLocation `json:"sourceLocation,omitempty"`

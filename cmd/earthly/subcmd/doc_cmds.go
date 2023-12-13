@@ -34,7 +34,7 @@ func (a *Doc) Cmds() []*cli.Command {
 		{
 			Name:        "doc",
 			Usage:       "Document targets from an Earthfile",
-			UsageText:   "earthly [options] doc [<project-ref>[+<target-ref>]]",
+			UsageText:   "earthly [options] doc [<earthfile-ref>[+<target-ref>]]",
 			Description: "Document targets from an Earthfile by reading in line comments.",
 			Action:      a.action,
 			Flags: []cli.Flag{

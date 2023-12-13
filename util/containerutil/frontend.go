@@ -19,6 +19,7 @@ type ContainerFrontend interface {
 	Config() *CurrentFrontend
 	Information(ctx context.Context) (*FrontendInfo, error)
 
+	ContainerList(ctx context.Context) ([]*ContainerInfo, error)
 	ContainerInfo(ctx context.Context, namesOrIDs ...string) (map[string]*ContainerInfo, error)
 	ContainerRemove(ctx context.Context, force bool, namesOrIDs ...string) error
 	ContainerStop(ctx context.Context, timeoutSec uint, namesOrIDs ...string) error

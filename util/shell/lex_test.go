@@ -48,6 +48,54 @@ func TestShellParserMandatoryEnvVars(t *testing.T) {
 	require.Contains(t, err.Error(), "message herex")
 }
 
+func TestShellParserReplace(t *testing.T) {
+	cases := []struct {
+		envs map[string]string
+		word string
+		want string
+	}{
+		{
+			envs: map[string]string{"VAR": "image.jpg"},
+			word: "${VAR%.jpg}",
+			want: "image",
+		},
+		{
+			envs: map[string]string{"VAR": "image.jpg"},
+			word: "${VAR#.jpeg}",
+			want: "image.jpg",
+		},
+		{
+			envs: map[string]string{"VAR": "image.jpg"},
+			word: "${VAR#nope}",
+			want: "image.jpg",
+		},
+		{
+			envs: map[string]string{"VAR": "hello world"},
+			word: "${VAR#hello }",
+			want: "world",
+		},
+		{
+			envs: map[string]string{"VAR": "hello world"},
+			word: "${VAR#world}",
+			want: "hello world",
+		},
+		{
+			envs: map[string]string{"VAR": "hello world"},
+			word: "${VAR#hello world too long}",
+			want: "hello world",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.word, func(t *testing.T) {
+			shlex := NewLex('\\')
+			got, err := shlex.ProcessWordWithMap(c.word, c.envs, nil)
+			require.NoError(t, err)
+			require.Equal(t, c.want, got)
+		})
+	}
+}
+
 func TestShellParser4EnvVars(t *testing.T) {
 	fn := "envVarTest"
 	lineCount := 0

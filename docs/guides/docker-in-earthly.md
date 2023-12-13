@@ -7,11 +7,11 @@ This guide walks through using Docker commands in Earthly.
 
 In order to use Docker commands (such as `docker run`), Earthly makes available isolated Docker daemons which are started and stopped on-demand. The reason for using isolated instances of Docker daemons is such that no preexisting Docker state (e.g. images, containers, networks, volumes) can influence the way the build executes. This allows Earthly to achieve high degrees of reproducibility.
 
-Here is a quick example of running a hello-world docker container via `docker run` in Earthly:
+Here is a quick example of running a `hello-world` docker container via `docker run` in Earthly:
 
 ```Dockerfile
 hello:
-    FROM earthly/dind:alpine
+    FROM earthly/dind:alpine-3.18-docker-23.0.6-r4
     WITH DOCKER --pull hello-world
         RUN docker run hello-world
     END
@@ -19,7 +19,7 @@ hello:
 
 Let's break it down.
 
-`FROM earthly/dind:alpine` inherits from an Earthly-supported docker-in-docker (dind) image. This is recommended, because `WITH DOCKER` requires all the Docker binaries (not just the client) to be present in the build environment.
+`FROM earthly/dind:alpine-3.18-docker-23.0.6-r4` inherits from an Earthly-supported docker-in-docker (dind) image. This is recommended, because `WITH DOCKER` requires all the Docker binaries (not just the client) to be present in the build environment.
 
 `WITH DOCKER ... END` starts a Docker daemon for the purpose of running Docker commands against it. At the end of the execution, this also terminates the daemon and permanently deletes all of its data (e.g. daemon cached images).
 
@@ -38,22 +38,24 @@ build:
     SAVE IMAGE my-image:latest
 
 smoke-test:
-    FROM earthly/dind:alpine
+    FROM earthly/dind:alpine-3.18-docker-23.0.6-r4
     WITH DOCKER --load test:latest=+build
         RUN docker run test:latest
+    FROM earthly/dind:alpine
+    WITH DOCKER --load +build
+        RUN docker run my-image:latest
     END
 ```
 
-`--load test:latest=+build` takes the image produced by the target `+build` and loads it into the Docker daemon created by `WITH DOCKER` as the image with the tag `test:latest`. The tag can then be used to reference this image in other docker commands, such as `docker run`.
-
-Notice that the image name produced as output is `my-image:latest`. This image name is not available in the `WITH DOCKER` environment, however, as it is only used to tag for use outside of Earthly. The name `test:latest` is used instead.
+`--load +build` takes the image produced by the target `+build` and loads it into the Docker daemon created by `WITH DOCKER`.
 
 ## Running docker-compose
 
 It is possible to run `docker-compose` via `WITH DOCKER`, either explicitly, simply by running the `docker-compose` tool, or implicitly, via the `--compose` flag. The `--compose` flag allows you to specify a Docker compose stack that needs to be brought up before the execution of the `RUN` command. For example:
 
 ```Dockerfile
-FROM earthly/dind:alpine
+FROM earthly/dind:alpine-3.18-docker-23.0.6-r4
+COPY docker-compose.yml ./
 WITH DOCKER \
         --compose docker-compose.yml \
         --service db \
@@ -66,7 +68,22 @@ Using the `--compose` flag has the added benefit that any images needed by the c
 
 ## Performance
 
-It's recommended to use the `earthly/dind:alpine` image for running docker-in-docker. See the best-practices' section on using [with docker](../best-practices/best-practices.md#use-earthly-dind) for more details.
+It's recommended to use the `earthly/dind:alpine-3.18-docker-23.0.6-r4` image for running docker-in-docker. See the best-practices' section on using [with docker](../best-practices/best-practices.md#use-earthly-dind) for more details.
+
+In cases when using `earthly/dind` is not possible, Earthly will attempt to install Docker in the image you have chosen. This has the drawback of not being able to use cache efficiently and is not recommended for performance reasons.
+
+Another option is to use the Earthly UDC `INSTALL_DIND`. This will install Docker in the build environment, but you can control at what point in the build it happens, thus being able to optimize your cache use. For example:
+
+```Dockerfile
+FROM my-image:latest
+DO github.com/earthly/lib+INSTALL_DIND
+COPY ./docker-compose.yml ./
+WITH DOCKER ...
+    ...
+END
+```
+
+In the above example, the `INSTALL_DIND` command is executed before the `COPY` command, thus ensuring that the Docker installation is cached and reused for subsequent builds when the file `docker-compose.yml` changes.
 
 ## Integration testing
 
@@ -85,12 +102,13 @@ The current implementation of Docker in Earthly has a number of limitations:
           ...
   END
   ```
-* It is recommended that the target containing the `WITH DOCKER` clause inherits from a supported Docker-in-Docker (dind) image such as `earthly/dind:alpine` or `earthly/dind:ubuntu`. If your build requires the use of an alternative environment as part of a test (e.g. to run commands like `sbt test` or `go test` together with a docker-compose stack), consider placing the test itself in a Docker image, then loading that image via `--load` and running the test as a Docker container.
+* It is recommended that the target containing the `WITH DOCKER` clause inherits from a supported Docker-in-Docker (dind) image such as `earthly/dind:alpine-3.18-docker-23.0.6-r4` or `earthly/dind:ubuntu-23.04-docker-24.0.5-1`. If your build requires the use of an alternative environment as part of a test (e.g. to run commands like `sbt test` or `go test` together with a docker-compose stack), consider placing the test itself in a Docker image, then loading that image via `--load` and running the test as a Docker container.
 * If you do not use an officially supported Docker-in-Docker image, Earthly will attempt to install Docker in whatever image you have chosen. This has the drawback of not being able to use cache efficiently and is not recommended for performance reasons.
 * To maximize the use of cache, all external images used should be declared via the options `--pull` or `--compose`. Even though commands such as `docker run` automatically pull an image if it is not found locally, it will do so every single time the `WITH DOCKER` clause is executed, due to Docker caching not being preserved between runs. Pre-declaring the images ensures that they are properly cached by Earthly to minimize unnecessary redownloads.
 * `docker build` cannot be used to build Dockerfiles. However, the Earthly command `FROM DOCKERFILE` can be used instead. See [alternative to docker build](#alternative-to-docker-build) below.
 * The state of the Docker daemon within Earthly cannot be inspected on the host (e.g. for debugging purposes). For example, if a `docker-compose` stack fails, you cannot execute commands like `docker-compose logs` or `docker logs` on the host. However, you may use the interactive mode to drop into a shell within the build environment and execute such commands there. For more information, see the [debugging guide](./debugging.md).
 * It is currently not possible to mount `/var/run/docker.sock` in order to use the host Docker daemon. This goes against Earthly's principles of keeping execution repeatable. Mounting the Docker socket may cause builds to depend on the host Daemon state (e.g. pre-cached images) in ways that may not be obvious or easy to reproduce if the build were executed in another environment.
+* Creating external networks (the default docker behavior), will sometimes fail and produce 100% packet loss; however __internal__ networks do no have this issue. Use `docker network create --internal ...` or the `internal: true` compose option instead. See [#3495](https://github.com/earthly/earthly/issues/3495) for details.
 
 ## Alternatives to Docker in Earthly
 

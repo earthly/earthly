@@ -2,30 +2,15 @@ package subcmd
 
 import (
 	"context"
-
-	"github.com/dustin/go-humanize"
 	"github.com/earthly/earthly/cloud"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
 
-type byteSizeValue uint64
-
-func (b *byteSizeValue) Set(s string) error {
-	v, err := humanize.ParseBytes(s)
-	if err != nil {
-		return err
-	}
-	*b = byteSizeValue(v)
-	return nil
-}
-
-func (b *byteSizeValue) String() string { return humanize.Bytes(uint64(*b)) }
-
 // projectOrgName returns the specified org or retrieves the default org from the API.
 func projectOrgName(cli CLI, ctx context.Context, cloudClient *cloud.Client) (string, error) {
 
-	if configuredOrg := verifyOrg(cli); configuredOrg != "" {
+	if configuredOrg := cli.OrgName(); configuredOrg != "" {
 		return configuredOrg, nil
 	}
 
@@ -41,14 +26,6 @@ func projectOrgName(cli CLI, ctx context.Context, cloudClient *cloud.Client) (st
 	}
 
 	return userOrgs[0].Name, nil
-}
-
-// verifyOrg returns orgName from cli Flags if set, else from config
-func verifyOrg(cli CLI) string {
-	if cli.Flags().OrgName != "" {
-		return cli.Flags().OrgName
-	}
-	return cli.Cfg().Global.Org
 }
 
 func concatCmds(slices [][]*cli.Command) []*cli.Command {
@@ -70,7 +47,7 @@ func concatCmds(slices [][]*cli.Command) []*cli.Command {
 }
 
 func getOrgAndProject(cli CLI, ctx context.Context, client *cloud.Client) (org, project string, isPersonal bool, err error) {
-	org = verifyOrg(cli)
+	org = cli.OrgName()
 	if org == "" {
 		return org, project, isPersonal, errors.Errorf("provide an org using the --org flag or `org select` command")
 	}

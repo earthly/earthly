@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION --use-function-keyword 0.7
 
 base-image:
     FROM busybox:1.32.0
@@ -9,6 +9,6 @@ get-file:
     SAVE ARTIFACT ./file.txt file.txt
 
 PRINT:
-    COMMAND
+    FUNCTION
     ARG text
     RUN echo $text

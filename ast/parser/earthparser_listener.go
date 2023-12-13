@@ -29,6 +29,12 @@ type EarthParserListener interface {
 	// EnterUserCommandHeader is called when entering the userCommandHeader production.
 	EnterUserCommandHeader(c *UserCommandHeaderContext)
 
+	// EnterFunction is called when entering the function production.
+	EnterFunction(c *FunctionContext)
+
+	// EnterFunctionHeader is called when entering the functionHeader production.
+	EnterFunctionHeader(c *FunctionHeaderContext)
+
 	// EnterStmts is called when entering the stmts production.
 	EnterStmts(c *StmtsContext)
 
@@ -224,6 +230,9 @@ type EarthParserListener interface {
 	// EnterUserCommandStmt is called when entering the userCommandStmt production.
 	EnterUserCommandStmt(c *UserCommandStmtContext)
 
+	// EnterFunctionStmt is called when entering the functionStmt production.
+	EnterFunctionStmt(c *FunctionStmtContext)
+
 	// EnterDoStmt is called when entering the doStmt production.
 	EnterDoStmt(c *DoStmtContext)
 
@@ -277,6 +286,12 @@ type EarthParserListener interface {
 
 	// ExitUserCommandHeader is called when exiting the userCommandHeader production.
 	ExitUserCommandHeader(c *UserCommandHeaderContext)
+
+	// ExitFunction is called when exiting the function production.
+	ExitFunction(c *FunctionContext)
+
+	// ExitFunctionHeader is called when exiting the functionHeader production.
+	ExitFunctionHeader(c *FunctionHeaderContext)
 
 	// ExitStmts is called when exiting the stmts production.
 	ExitStmts(c *StmtsContext)
@@ -472,6 +487,9 @@ type EarthParserListener interface {
 
 	// ExitUserCommandStmt is called when exiting the userCommandStmt production.
 	ExitUserCommandStmt(c *UserCommandStmtContext)
+
+	// ExitFunctionStmt is called when exiting the functionStmt production.
+	ExitFunctionStmt(c *FunctionStmtContext)
 
 	// ExitDoStmt is called when exiting the doStmt production.
 	ExitDoStmt(c *DoStmtContext)

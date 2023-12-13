@@ -56,7 +56,7 @@ The `<artifact-ref>` can reference artifacts built by targets. `<target-ref>/<ar
 
 ##### Examples
 
-See the [Target, artifact, and image referencing guide](../guides/target-ref.md) for more details and examples.
+See the [importing guide](../guides/importing.md) for more details and examples.
 
 #### Build args
 
@@ -253,25 +253,25 @@ Permits the build to use the --privileged flag in RUN commands. For more informa
 
 Also available as an env var setting: `EARTHLY_USE_INLINE_CACHE=true`
 
-Enables use of inline cache, if available. Any `SAVE IMAGE --push` command is used to inform the system of possible inline cache sources. For more information see the [remote caching guide](../remote-caching.md).
+Enables use of inline cache, if available. Any `SAVE IMAGE --push` command is used to inform the system of possible inline cache sources. For more information see the [remote caching guide](../caching/caching-via-registry.md).
 
 ##### `--save-inline-cache`
 
 Also available as an env var setting: `EARTHLY_SAVE_INLINE_CACHE=true`
 
-Enables embedding inline cache in any pushed images. This cache can be used on other systems, if enabled via `--use-inline-cache`. For more information see the [remote caching guide](../remote-caching.md).
+Enables embedding inline cache in any pushed images. This cache can be used on other systems, if enabled via `--use-inline-cache`. For more information see the [remote caching guide](../caching/caching-via-registry.md).
 
 ##### `--remote-cache <image-tag>`
 
 Also available as an env var setting: `EARTHLY_REMOTE_CACHE=<image-tag>`
 
-Enables use of explicit cache. The provided `<image-tag>` is used for storing and retrieving the cache to/from a Docker registry. Storing explicit cache is only enabled if the option `--push` is also passed in. For more information see the [remote caching guide](../remote-caching.md).
+Enables use of explicit cache. The provided `<image-tag>` is used for storing and retrieving the cache to/from a Docker registry. Storing explicit cache is only enabled if the option `--push` is also passed in. For more information see the [remote caching guide](../caching/caching-via-registry.md).
 
 ##### `--max-remote-cache`
 
 Also available as an env var setting: `EARTHLY_MAX_REMOTE_CACHE=true`
 
-Enables storing all intermediate layers as part of the explicit cache. Note that this setting is rarely effective due to the excessive upload overhead. For more information see the [remote caching guide](../remote-caching.md).
+Enables storing all intermediate layers as part of the explicit cache. Note that this setting is rarely effective due to the excessive upload overhead. For more information see the [remote caching guide](../caching/caching-via-registry.md).
 
 ##### `--ci`
 
@@ -355,7 +355,7 @@ Prints version information about earthly.
 #### Synopsis
 
 * ```
-  earthly ls [<project-ref>]
+  earthly ls [<earthfile-ref>]
   ```
 
 #### Description
@@ -377,7 +377,7 @@ Show full, canonical target references (includes the project part of the referen
 #### Synopsis
 
 * ```
-  earthly doc [<project-ref>[+<target-ref>]]
+  earthly doc [<earthfile-ref>[+<target-ref>]]
   ```
 
 #### Description

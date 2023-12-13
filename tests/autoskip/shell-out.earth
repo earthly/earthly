@@ -1,0 +1,25 @@
+VERSION 0.7
+
+PROJECT testorg/testproj
+
+FROM alpine:3.18
+
+shell-out:
+  ARG result=$(echo "hi")
+  RUN echo $result
+
+foo:
+  RUN echo "hello from foo"
+
+shell-out-target:
+  ARG target=$(echo "+foo")
+  BUILD $target
+
+shell-out-target-2:
+  ARG name="+foo"
+  ARG target=$(echo $name)
+  BUILD $target
+
+shell-out-copy:
+  ARG file=$(echo "my-file")
+  COPY $file .

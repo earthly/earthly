@@ -25,6 +25,9 @@ on:
         required: false
         type: boolean
         default: false
+      EXTRA_ARGS:
+        required: false
+        type: string
 
 jobs:
   test-race:
@@ -37,7 +40,7 @@ jobs:
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: ./.github/actions/stage2-setup
@@ -61,7 +64,7 @@ jobs:
         run: ${{ inputs.BUILT_EARTHLY_PATH }} --use-inline-cache ./buildkitd+buildkitd --TAG=race-test
       - name: Execute tests
         run: |-
-          GORACE="halt_on_error=1" go run -race ./cmd/earthly/*.go --buildkit-image earthly/buildkitd:race-test -P --no-output \
+          GORACE="halt_on_error=1" go run -race ./cmd/earthly/*.go --buildkit-image earthly/buildkitd:race-test ${{inputs.EXTRA_ARGS}} -P --no-output \
             ${{inputs.TEST_TARGET}}
       - name: Buildkit logs (runs on failure)
         run: docker logs earthly-buildkitd || true

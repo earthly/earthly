@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 
 FROM --pass-args ../..+earthly-integration-test-base
 
@@ -108,9 +108,12 @@ test:
     RUN ! earthly --verbose +hello > output.txt 2>&1
     RUN cat output.txt | grep 'Error: read config: failed to read from /home/testuser/.earthly/config.yml: open /home/testuser/.earthly/config.yml: permission denied'
 
+    # make it obvious that this test passed, due to the previous grep displaying "Error: ..." when it passes
+    RUN echo "config test passed"
+
 
 RUN_EARTHLY_ARGS:
-    COMMAND
+    FUNCTION
     ARG earthfile
     ARG target="+all"
     ARG extra_args

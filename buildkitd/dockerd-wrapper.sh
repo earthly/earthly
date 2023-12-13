@@ -266,6 +266,10 @@ load_registry_images() {
     EARTHLY_DOCKER_LOAD_REGISTRY=${EARTHLY_DOCKER_LOAD_REGISTRY:-''}
     if [ -n "$EARTHLY_DOCKER_LOAD_REGISTRY" ]; then
         echo "Loading images from BuildKit via embedded registry..."
+
+        start_time=$(date +%s%N | cut -b1-13)
+        bg_processes=""  # Initialize the background processes variable
+
         for img in $EARTHLY_DOCKER_LOAD_REGISTRY; do
             case "$img" in
                 *'|'*)
@@ -280,9 +284,25 @@ load_registry_images() {
                     ;;
             esac
             echo "Pulling $with_reg and retagging as $user_tag"
-            (docker pull "$with_reg" && docker tag "$with_reg" "$user_tag" && docker rmi "$with_reg") || (stop_dockerd; exit 1)
+            # Download and tag images in parallel
+            (docker pull -q "$with_reg" && docker tag "$with_reg" "$user_tag" && docker rmi "$with_reg") &
+
+            bg_processes="$bg_processes $!"
+
         done
-        echo "...done"
+
+        # Wait for all background processes to finish
+        for pid in $bg_processes; do
+            wait "$pid" || {
+                echo "Downloading of images failed"
+                stop_dockerd
+                exit 1
+            }
+        done
+        end_time=$(date +%s%N | cut -b1-13)
+
+        elapsed=$((end_time-start_time))
+        echo "Loading images done in ${elapsed} ms"
     fi
 }
 

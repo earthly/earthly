@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION --use-function-keyword 0.7
 
 build:
     BUILD ./lib1+build
@@ -7,7 +7,7 @@ build-imported:
     BUILD ./lib1+build-imported
 
 INSTALL_WHLS:
-    COMMAND
+    FUNCTION
     ARG wheels
 
     FOR wheel IN $wheels

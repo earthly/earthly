@@ -151,13 +151,22 @@ func (bcp *BuildContextProvider) handle(method string, stream grpc.ServerStream)
 		doneCh = bcp.doneCh
 		bcp.doneCh = nil
 	}
-	err = pr.sendFn(stream, fsutil.NewFS(dir.Dir, &fsutil.WalkOpt{
+	fs, err := fsutil.NewFS(dir.Dir)
+	if err != nil {
+		return err
+	}
+	fs, err = fsutil.NewFilterFS(fs, &fsutil.FilterOpt{
 		ExcludePatterns:   excludes,
 		IncludePatterns:   includes,
 		FollowPaths:       followPaths,
 		Map:               dir.Map,
 		VerboseProgressCB: progressCB.Verbose,
-	}), progressCB.Info, progressCB.Verbose)
+	})
+	if err != nil {
+		return err
+	}
+
+	err = pr.sendFn(stream, fs, progressCB.Info, progressCB.Verbose)
 	if doneCh != nil {
 		if err != nil {
 			doneCh <- err

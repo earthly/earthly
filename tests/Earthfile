@@ -1,7 +1,9 @@
-VERSION --pass-args 0.7
+VERSION --pass-args --use-function-keyword 0.7
 FROM --pass-args ..+earthly-integration-test-base
 
 WORKDIR /test
+
+PROJECT earthly-technologies/core
 
 all:
     BUILD +ga
@@ -14,16 +16,19 @@ ga:
 ga-qemu:
     BUILD ./platform+test
 
-ga-no-qemu-quick:
+ga-no-qemu-group1:
     BUILD --pass-args ./autocompletion+test-all
     BUILD ./dockerfile+test
     BUILD ./dockerfile2/subdir+test
     BUILD --pass-args ./locally-in-command+all
+    BUILD --pass-args ./locally-in-function+all
+    BUILD ./command-to-function-rename+all
     BUILD ./import+build
     BUILD ./import+build-imported
     BUILD +privileged-test
     BUILD +copy-test
     BUILD +copy-test-verbose-output
+    BUILD +copy-tilde-test
     BUILD +copy-keep-own-test
     BUILD +git-clone-test
     BUILD +builtin-args-invalid-default-test
@@ -69,6 +74,8 @@ ga-no-qemu-quick:
     BUILD +escape-test --EARTHFILE=escape-v0.5.earth
     BUILD +escape-dir-test
     BUILD +fail-invalid-artifact-test
+
+ga-no-qemu-group2:
     BUILD +target-first-line
     BUILD +absolute-reference-with-relative
     BUILD +end-comment
@@ -91,6 +98,9 @@ ga-no-qemu-quick:
     BUILD +command
     BUILD +command-explicit-global
     BUILD +command-nested-global
+    BUILD +function
+    BUILD +function-explicit-global
+    BUILD +function-nested-global
     BUILD +duplicate
     BUILD +reserved
     BUILD +quotes-test
@@ -101,7 +111,6 @@ ga-no-qemu-quick:
     BUILD +true-false-flag-invalid
     BUILD +dont-save-indirect-remote-artifact
     BUILD +remote-earthfile-must-have-version
-    BUILD +sequential-locally-test
     BUILD +version-flag-test
     BUILD +implicit-ignores
     BUILD +help
@@ -123,6 +132,9 @@ ga-no-qemu-quick:
     BUILD +test-cache-mount-mode
     BUILD +test-cache-mode
     BUILD +test-shared-cache
+    BUILD +test-cache-persist
+    BUILD +test-visited-upfront-hash-collection
+    BUILD +test-exec-stats
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -137,7 +149,7 @@ ga-no-qemu-quick:
         BUILD ./with-docker-via-command+test
     END
 
-ga-no-qemu-normal:
+ga-no-qemu-group3:
     BUILD +cache-test
     BUILD --pass-args ./do-not-track+test-all
     BUILD --pass-args ./scrub-https-credentials+all
@@ -150,6 +162,8 @@ ga-no-qemu-normal:
     BUILD +remote-test
     BUILD +save-artifact-dont-overwrite
     BUILD ./with-docker-expose+all
+
+ga-no-qemu-group4:
     BUILD +cache-mount-arg
     BUILD +infinite-recursion
     BUILD +save-artifact-selective
@@ -178,8 +192,10 @@ ga-no-qemu-kind:
     BUILD ./with-docker-kind+all
 
 ga-no-qemu:
-    BUILD +ga-no-qemu-quick
-    BUILD +ga-no-qemu-normal
+    BUILD +ga-no-qemu-group1
+    BUILD +ga-no-qemu-group2
+    BUILD +ga-no-qemu-group3
+    BUILD +ga-no-qemu-group4
     BUILD +ga-no-qemu-slow
 
 tests-that-require-earthly-technologies-account-access:
@@ -214,7 +230,7 @@ copy-test:
         echo "1" > in/sub/1/file && \
         echo "2" > in/sub/2/file && \
         echo "sub" > in/sub/file
-    DO +RUN_EARTHLY --earthfile=copy.earth
+    DO +RUN_EARTHLY --earthfile=copy.earth --output_does_not_contain="which does not expand to a home directory"
 
 copy-test-verbose-output:
     RUN mkdir -p subdir/a.txt && \
@@ -250,6 +266,15 @@ earthly --config \$earthly_config --verbose +copy 2>&1 | tee output2.txt;
 copy-keep-own-test:
     DO +RUN_EARTHLY --target=+test-known-user --earthfile=copy-keep-own.earth
     DO +RUN_EARTHLY --target=+test-unknown-user --earthfile=copy-keep-own.earth
+
+copy-tilde-test:
+    RUN touch in
+    DO +RUN_EARTHLY --target=+copy-tilde-destination --earthfile=copy-tilde.earth --output_contains='destination path \"~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-in-destination --earthfile=copy-tilde.earth --output_contains='destination path \"/some/dir/~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-in-destination-prefix --earthfile=copy-tilde.earth --output_contains='destination path \"~some/dir.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-arg-in-destination --earthfile=copy-tilde.earth --output_contains='destination path \"/some/dir/~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-artifact --earthfile=copy-tilde.earth --output_contains='destination path \"/some/dir/~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-in-destination-not-prefix --earthfile=copy-tilde.earth --output_does_not_contain="which does not expand to a home directory"
 
 cache-test:
     # Test that a file can be passed between runs through the mounted cache.
@@ -327,7 +352,7 @@ secrets-test:
         --extra_args="--secret SECRET1 --secret SECRET2=bar --build-arg SECRET_ID=\"\" --build-arg SECRET_ID_2=\"\"" \
         --target=+test \
         --should_fail=true \
-        --output_contains="unable to lookup secret SECRET3: not found"
+        --output_contains='unable to lookup secret \"SECRET3\": not found'
 
 project-secrets-test:
     DO +RUN_EARTHLY \
@@ -1026,13 +1051,25 @@ platform-output:
 
 command:
     RUN echo "hello command" >./message.txt
-    DO +RUN_EARTHLY --earthfile=command.earth
+    DO +RUN_EARTHLY --earthfile=command.earth --target=+all-positive
+    DO +RUN_EARTHLY --earthfile=command.earth --should_fail=true --target=+test-function-fails
 
 command-explicit-global:
     DO +RUN_EARTHLY --earthfile=command-explicit-global.earth
 
 command-nested-global:
     DO +RUN_EARTHLY --earthfile=command-nested-global.earth --target="+test-overriding --foo=expected"
+
+function:
+    RUN echo "hello command" >./message.txt
+    DO +RUN_EARTHLY --earthfile=function.earth --target=+all-positive
+    DO +RUN_EARTHLY --earthfile=function.earth --should_fail=true --target=+test-command-fails
+
+function-explicit-global:
+    DO +RUN_EARTHLY --earthfile=function-explicit-global.earth
+
+function-nested-global:
+    DO +RUN_EARTHLY --earthfile=function-nested-global.earth --target="+test-overriding --foo=expected"
 
 duplicate:
     DO +RUN_EARTHLY --earthfile=duplicate-target-names.earth --should_fail=true --target=+duplicate
@@ -1141,42 +1178,6 @@ true-false-flag-invalid:
     DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --verbose=0 --should_fail=true --target=+run-maybe --post_command="2>output3.txt"
     RUN cat output3.txt
     RUN cat output3.txt | grep 'invalid argument for flag .*--no-cache.*expected bool'
-
-sequential-locally-test:
-    DO +RUN_EARTHLY --earthfile=sequential-locally.earth --use_tmpfs=false --target="+run-lots" --post_command="2>output.txt"
-    RUN cat output.txt | grep -vw RUN | grep -vw char | grep -o '\(start\|mid\|end\)\s[a-d]$' > output-filtered.txt
-    RUN echo "set -e
-expectedmode=\"start\"
-expectedchar=\"?\"
-while read line; do
-    mode=\$(echo \"\$line\" | cut -d \" \" -f1)
-    char=\$(echo \"\$line\" | cut -d \" \" -f2)
-    echo \"mode=\$mode char=\$char\"
-    case \"\$mode\" in
-        start)
-            test \"\$expectedmode\" = \"start\" || (echo \"expected \$expectedmode; got \$mode\" && exit 1)
-            expectedmode=\"mid\"
-            expectedchar=\"$char\"
-            ;;
-        mid)
-            test \"\$expectedmode\" = \"mid\" || (echo \"expected \$expectedmode; got \$mode\" && exit 1)
-            test \"\$expectedchar\" = \"$char\" || (echo \"expected \$expectedchar; got \$char\" && exit 1)
-            # we don't change expectedmode to end, because we can have multiple 'mid's
-            ;;
-        end)
-            test \"\$expectedmode\" = \"mid\" || (echo \"expected \$expectedmode; got \$mode\" && exit 1)
-            test \"\$expectedchar\" = \"$char\" || (echo \"expected \$expectedchar; got \$char\" && exit 1)
-            expectedmode=\"start\"
-            expectedchar=\"?\"
-            ;;
-        *)
-            echo unhandled mode: $mode
-            exit 1
-    esac
-done
-echo test passed: RUNs were sequentially grouped
-" > test-output.sh && chmod +x test-output.sh
-    RUN cat output-filtered.txt | ./test-output.sh
 
 version-flag-test:
     # In addition to testing the --version flag works; this flag is critical for the homebrew deployment test, which
@@ -1473,8 +1474,46 @@ test-shared-cache:
       --extra_args=" --secret=content=filecontents " \
       --output_contains="filecontents"
 
+test-cache-persist:
+  DO +RUN_EARTHLY \
+      --earthfile=cache-persist.earth \
+      --target=+test-persisted \
+      --output_contains="| test persisted ok"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-persist.earth \
+      --target=+test-non-persisted \
+      --output_contains="| test non persisted ok"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-persist-no-flag.earth \
+      --target=+test-persisted \
+      --output_contains="| test persisted ok"
+
+test-visited-upfront-hash-collection:
+  DO +RUN_EARTHLY \
+      --earthfile=visited-upfront-hash-collection.earth \
+      --target=+parallel
+  RUN order=$(cat earthly.output | grep -Eo "### [[:digit:]]+"  | cut -d' ' -f2- | tr '\n' ' ' | tr -d '[:space:]'); \
+      echo "order: $order"; \
+      # This regex matches successions of number trios like: 222111444333555, happening when the builds didn't run in parallel
+      match=$(echo $order | sed -nr '/^([[:digit:]])\1\1([[:digit:]])\2\2([[:digit:]])\3\3([[:digit:]])\4\4([[:digit:]])\5\5$/p'); \
+      if [[ $match ]]; then \
+        echo "no parallelization observed"; \
+        exit 1; \
+      else \
+         echo "parallelization checked"; \
+      fi
+
+test-exec-stats:
+  DO +RUN_EARTHLY \
+      --earthfile=stats.earth \
+      --target=+sleep \
+      --extra_args=" --exec-stats " \
+      --output_contains="total CPU:.*total memory:.*"
+
 RUN_EARTHLY:
-    COMMAND
+    FUNCTION
     ARG earthfile=
     ARG earthfile_dest="./Earthfile"
     ARG target=+all

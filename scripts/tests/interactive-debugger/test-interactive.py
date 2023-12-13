@@ -39,6 +39,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-e', '--earthly', help="earthly binary to run test against", default='earthly')
     parser.add_argument('-t', '--timeout', help="fail test if it takes longer than this many seconds", type=float, default=30.0)
+    parser.add_argument('--test', help="run specified test instead of all tests")
     args = parser.parse_args()
 
     earthly_path = os.path.realpath(get_earthly_binary(args.earthly))
@@ -49,6 +50,11 @@ if __name__ == '__main__':
         ('test-interactive-run', import_test_func(os.path.join(script_dir, 'interactive-run', 'test-interactive-run.py'))),
         ('test-docker-compose', import_test_func(os.path.join(script_dir, 'docker-compose', 'test-docker-compose.py'))),
         )
+
+    if args.test:
+        tests = list( (k,v) for k,v in tests if k == args.test)
+        if not tests:
+            raise RuntimeError(f'no such test: {args.test}')
 
     num_passed = 0
     num_tests = len(tests)

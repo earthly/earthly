@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/earthly/earthly/cloud"
+	"github.com/earthly/earthly/util/hint"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/secrets"
 	"github.com/pkg/errors"
@@ -44,7 +45,10 @@ func (sp *secretProvider) GetSecret(ctx context.Context, req *secrets.GetSecretR
 		}, nil
 	}
 
-	return nil, errors.WithStack(errors.Wrapf(secrets.ErrNotFound, "unable to lookup secret %s", v.Get("name")))
+	return nil, hint.Wrap(errors.WithStack(errors.Wrapf(secrets.ErrNotFound, "unable to lookup secret %q", v.Get("name"))),
+		"Make sure to set the project at the top of the Earthfile by using the PROJECT command.",
+		"Note, if this secret was called from a UDC, the project needs to be set in the Earthfile that calls the UDC.")
+
 }
 
 // New returns a new secrets provider which looks up secrets

@@ -6,11 +6,11 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cmd/earthly/helper"
+	"github.com/earthly/earthly/util/flagutil"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
-
 	"github.com/urfave/cli/v2"
+	"golang.org/x/sync/errgroup"
 )
 
 type Prune struct {
@@ -18,8 +18,8 @@ type Prune struct {
 
 	all          bool
 	reset        bool
-	keepDuration time.Duration
-	targetSize   byteSizeValue
+	keepDuration flagutil.Duration
+	targetSize   flagutil.ByteSizeValue
 }
 
 func NewPrune(cli CLI) *Prune {
@@ -55,11 +55,11 @@ func (a *Prune) Cmds() []*cli.Command {
 				This option is not available when using satellites.`,
 					Destination: &a.reset,
 				},
-				&cli.DurationFlag{
+				&cli.GenericFlag{
 					Name: "age",
 					Usage: `Prune cache older than the specified duration passed in as a string;
 						duration is specified with an integer value followed by a m, h, or d suffix which represents minutes, hours, or days respectively, e.g. 24h, or 1d`,
-					Destination: &a.keepDuration,
+					Value: &a.keepDuration,
 				},
 				&cli.GenericFlag{
 					Name:  "size",
@@ -108,7 +108,7 @@ func (a *Prune) action(cliCtx *cli.Context) error {
 	}
 
 	if a.keepDuration > 0 || a.targetSize > 0 {
-		opts = append(opts, client.WithKeepOpt(a.keepDuration, int64(a.targetSize)))
+		opts = append(opts, client.WithKeepOpt(time.Duration(a.keepDuration), int64(a.targetSize)))
 	}
 
 	ch := make(chan client.UsageInfo, 1)

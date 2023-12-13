@@ -2,6 +2,7 @@ package states
 
 import (
 	"context"
+	"github.com/moby/buildkit/client/llb"
 	"sync"
 
 	"github.com/earthly/earthly/domain"
@@ -20,9 +21,17 @@ type MultiTarget struct {
 	// Visited represents the previously visited states, grouped by target
 	// name. Duplicate targets are possible if same target is called with different
 	// build args.
-	Visited *VisitedCollection
+	Visited VisitedCollection
 	// Final is the main target to be built.
 	Final *SingleTarget
+}
+
+// CacheMount holds run options needed to cache mounts, and some extra options.
+type CacheMount struct {
+	// Persisted should the cache be persisted to image.
+	Persisted bool
+	// RunOption Run options
+	RunOption llb.RunOption
 }
 
 // FinalTarget returns the final target of the states.
@@ -107,6 +116,11 @@ func newSingleTarget(ctx context.Context, target domain.Target, platr *platutil.
 		dependentIDs:             make(map[string]bool),
 		doneCh:                   make(chan struct{}),
 		incomingNewSubscriptions: make(chan string, 1024),
+	}
+	sts.addOverridingVarsAsBuildArgInputs(overridingVars)
+	if parentDepSub == nil {
+		// New simplified algorithm.
+		return sts, nil
 	}
 	// Consume all items from the parent subscription before returning control.
 OuterLoop:
@@ -221,17 +235,6 @@ func (sts *SingleTarget) AddBuildArgInput(bai dedup.BuildArgInput) {
 	sts.targetInput = sts.targetInput.WithBuildArgInput(bai)
 }
 
-// AddOverridingVarsAsBuildArgInputs adds some vars to the sts's target input.
-func (sts *SingleTarget) AddOverridingVarsAsBuildArgInputs(overridingVars *variables.Scope) {
-	sts.tiMu.Lock()
-	defer sts.tiMu.Unlock()
-	for _, key := range overridingVars.Sorted() {
-		ovVar, _ := overridingVars.Get(key)
-		sts.targetInput = sts.targetInput.WithBuildArgInput(
-			dedup.BuildArgInput{ConstantValue: ovVar, Name: key})
-	}
-}
-
 // LastSaveImage returns the last save image available (if any).
 func (sts *SingleTarget) LastSaveImage() SaveImage {
 	if len(sts.SaveImages) == 0 {
@@ -295,6 +298,16 @@ func (sts *SingleTarget) NewDependencySubscription() chan string {
 // Done returns a channel that is closed when the sts is complete.
 func (sts *SingleTarget) Done() chan struct{} {
 	return sts.doneCh
+}
+
+func (sts *SingleTarget) addOverridingVarsAsBuildArgInputs(overridingVars *variables.Scope) {
+	sts.tiMu.Lock()
+	defer sts.tiMu.Unlock()
+	for _, key := range overridingVars.Sorted() {
+		ovVar, _ := overridingVars.Get(key)
+		sts.targetInput = sts.targetInput.WithBuildArgInput(
+			dedup.BuildArgInput{ConstantValue: ovVar, Name: key})
+	}
 }
 
 // SaveLocal is an artifact path to be saved to local disk.

@@ -43,6 +43,7 @@ Below we list some of the best practices that we have found to be useful in desi
     * [Technique: Use `earthly -i` to debug failures](#technique-use-earthly-i-to-debug-failures)
     * [Run everything in a single Earthly invocation, do not wrap Earthly](#run-everything-in-a-single-earthly-invocation-do-not-wrap-earthly)
     * [Use `RUN --ssh` for passing host SSH keys to builds](#use-run-ssh-for-passing-host-ssh-keys-to-builds)
+    * [Use SAVE IMAGE to always cache](#use-save-image-to-always-cache)
     * [Future: Saving an artifact even if the build fails](#future-saving-an-artifact-even-if-the-build-fails)
 
 ## Earthfile-specific
@@ -110,7 +111,7 @@ However, if the use-case is build configurability, then `ARG` is the way to achi
 
 ### Use cross-repo references, and avoid `GIT CLONE` if possible
 
-Earthly provides rich set of features to allow working with and across Git repositories. It is recommended to use Earthly [cross-repository references](../guides/target-ref.md) rather than `GIT CLONE` or `RUN git clone`, whenever possible.
+Earthly provides rich set of features to allow working with and across Git repositories. It is recommended to use Earthly [cross-repository references](../guides/importing.md) rather than `GIT CLONE` or `RUN git clone`, whenever possible.
 
 Here is an example.
 
@@ -296,7 +297,7 @@ In certain cases, it may be desirable to execute certain targets on the host mac
 Suppose we wanted the following target to be executed on against the host's Docker daemon:
 
 ```Dockerfile
-FROM earthly/dind:alpine
+FROM earthly/dind:alpine-3.18-docker-23.0.6-r4
 WORKDIR /app
 COPY docker-compose.yml ./
 WITH DOCKER --compose docker-compose.yml \
@@ -327,7 +328,7 @@ ARG run_locally=false
 IF [ "$run_locally" = "true" ]
     LOCALLY
 ELSE
-    FROM earthly/dind:alpine
+    FROM earthly/dind:alpine-3.18-docker-23.0.6-r4
     WORKDIR /app
     COPY docker-compose.yml ./
 END
@@ -473,7 +474,7 @@ build:
 
 This will not actually work, as in Earthly all output takes place only at the end of a successful build. Meaning that when `+build` starts, the artifact would not have been output yet. In fact, `+dep` and `+build` will run completely parallel anyway - as Earthly does not know of a dependency between them.
 
-The proper way to achieve this is to use [artifact references](../guides/target-ref.md).
+The proper way to achieve this is to use [artifact references](../guides/importing.md).
 
 ```Dockerfile
 # Good
@@ -524,7 +525,7 @@ test:
 
 Similarly, in this case, pushing of the image takes place at the end of the build, which means that when `+test` runs, it will not have the image available, unless it has been pushed in a previous execution (which means that the image may be stale).
 
-To fix this, we need to use `WITH DOCKER --load` and a [target reference](../guides/target-ref.md):
+To fix this, we need to use `WITH DOCKER --load` and a [target reference](../guides/importing.md):
 
 ```Dockerfile
 # Good
@@ -591,7 +592,7 @@ build:
 
 This setup may actually work, but it has a key issue: the order of `+dep` and `+build` is not guaranteed. So in some runs, the file `./my-artifact.txt` will be created before the `+build` target is executed, and in some runs it will be created after.
 
-To fix this race condition, you need to use an [artifact reference](../guides/target-ref.md), to ensure that Earthly is aware of the dependency between the two targets:
+To fix this race condition, you need to use an [artifact reference](../guides/importing.md), to ensure that Earthly is aware of the dependency between the two targets:
 
 ```Dockerfile
 # Good
@@ -709,7 +710,7 @@ run-img:
     RUN docker run my-co/my-img:latest
 ```
 
-The above will not work as the output will take place at the end of the build only. In addition, Earthly is unaware that there is a dependency between the two targets. To address this, we need to use `WITH DOCKER --load` and a [target reference](../guides/target-ref.md):
+The above will not work as the output will take place at the end of the build only. In addition, Earthly is unaware that there is a dependency between the two targets. To address this, we need to use `WITH DOCKER --load` and a [target reference](../guides/importing.md):
 
 ```Dockerfile
 # Good
@@ -946,7 +947,7 @@ And then running `docker build -f ./services/app1.Dockerfile ./app1-src-dir ...`
 In Earthly, however, this is an anti-pattern, for a couple reasons:
 
 - Every repository using Earthly should have a common structure, to help the user navigate the build. The convention is that Earthfiles are as close to the code as possible, with some high-level targets exposed in the root of the repository, or the root of the directory containing the code for a specific app. Having this convention helps the users who have not written the Earthfiles to quickly be able to browse around and understand the build, at least at a high level.
-- Cross-directory and cross-repository references will point to directories where the user expects an Earthfile to be present, and then to a specific target or UDC within that Earthfile. It is important for this discoverability to be available to anyone browsing the build code and understanding the connections between Earthfiles.
+- Cross-directory and cross-repository references will point to directories where the user expects an Earthfile to be present, and then to a specific target or function within that Earthfile. It is important for this discoverability to be available to anyone browsing the build code and understanding the connections between Earthfiles.
 
 For these reasons, Earthly does not support placing all Earthfiles in a single directory, nor the equivalent of a `docker build -f` option.
 
@@ -1036,7 +1037,7 @@ Let's assume that `some-other-image:latest` does not already have Docker engine 
 
 The problem, however, will be apparent when there is a change (no matter how small) to `docker-compose.yml`. That will cause the build to re-execute without cache from the `COPY` command onwards, meaning that the installation of Docker engine will be repeated.
 
-A simple way to fix this is to use an earthly-provided [UDC](../guides/udc.md) to install Docker engine before the `COPY` command. Please note that this particular UDC is fastest when ran on top of an alpine-based image.
+A simple way to fix this is to use an earthly-provided [function](../guides/functions.md) to install Docker engine before the `COPY` command. Please note that this particular function is fastest when ran on top of an alpine-based image.
 
 ```Dockerfile
 # Better
@@ -1054,7 +1055,7 @@ The best supported option, however, is to use the `earthly/dind` image, if possi
 ```Dockerfile
 # Best - if possible
 integration-test:
-    FROM earthly/dind:alpine
+    FROM earthly/dind:alpine-3.18-docker-23.0.6-r4
     COPY docker-compose.yml ./
     WITH DOCKER --compose docker-compose.yml
         RUN ...
@@ -1166,6 +1167,60 @@ Earthly provides a way to pass-through access to your host's SSH keys to the bui
 ```Dockerfile
 RUN --ssh go mod download
 ```
+
+### Use SAVE IMAGE to always cache
+
+The simplicity of Earthly comes from its ability to cache build steps that do not need to be rerun. There are times, though, when you have more insight into the build process than Earthly does and may need to manually manage the cache for certain steps. Using an image push is an advanced technique that lets you tell Earthly, **"I want to always cache this step."**
+
+For example, consider the Earthly Blog's Earthfile, which has a base image that installs Pandoc, among other utilities:
+
+```Dockerfile
+base:
+    FROM ruby:2.7
+    ARG TARGETARCH
+    WORKDIR /site
+    ...
+    RUN apt-get install pandoc  pandocfilters -y
+
+build:
+    FROM +base
+    # Build blog
+```
+
+Typically, installing Pandoc from source can take up to 30 minutes. When cached, the blog build process takes about 5 minutes, but without the cache, it jumps to 35 minutes. Occasionally, due to the heavy disk usage of the blog build, the base image may be evicted from the cache, leading to a slower build.
+
+To circumvent this, the solution is to push the base step as an image and reference it directly in subsequent builds:
+
+```Dockerfile
+base:
+    FROM ruby:2.7
+    ARG TARGETARCH
+    WORKDIR /site
+    ...
+    RUN apt-get install pandoc  pandocfilters -y
+
+    # Manually cache the base image by pushing it to a registry
+    SAVE IMAGE –push earthly/blog-base-image:latest
+
+build:
+    # Use the cached base image for builds  
+    FROM earthly/blog-base-image:latest
+    RUN ...
+```
+
+By doing this, we ensure that the build process is consistently swift, as the base layers do not need to be rebuilt. The trade-off is that the base target needs to be updated manually. For the Earthly website, we address this by running earthly `+base` once a week via a CI job, and on-demand whenever there are changes to the base image. You can see the full example, including flags for manual rerunning the base image, on GitHub.
+
+#### Caveats to this approach
+
+- Caching externally in an image registry adds download time to the build. This technique is most effective when the build time saved is significantly greater than the potential time to download the layer from a registry.
+
+- By manually caching part of the build, you risk introducing inconsistencies. It's important to rerun the step that produces the image manually whenever there are changes. Scheduling a regular job can mitigate this risk.
+
+#### Effective use cases
+
+- **Expensive build steps that rarely change.** Earthly's cache operates on a least-recently-used (LRU) basis, trying to retain frequently used cache steps. However, some steps are more costly to regenerate than others. An external image can serve as a reliable fallback if an expensive step is evicted from the cache.
+
+- **Benign Nondeterminism:** Earthly’s cache expects determinism. It assumes that if an input file changes, the associated build step must be rerun. If you know a step can be cached despite changes in inputs, using SAVE IMAGE for caching allows you to manage this manually and avoid unnecessary cache invalidation.
 
 ### Future: Saving an artifact even if the build fails
 

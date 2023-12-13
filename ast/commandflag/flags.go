@@ -4,6 +4,10 @@ import (
 	"time"
 )
 
+// NOTE: Any new flags must be accompanied by the introduction of a new `VERSION` feature flag.
+// This applies to new features which do **not** break backwards compatibility, which is needed
+// to ensure an Earthfile that uses `VERSION 0.7` can be built by **any** of the earthly-v0.7.x binaries.
+
 type IfOpts struct {
 	Privileged bool     `long:"privileged" description:"Enable privileged mode"`
 	WithSSH    bool     `long:"ssh" description:"Make available the SSH agent of the host"`
@@ -93,10 +97,11 @@ type GitCloneOpts struct {
 }
 
 type HealthCheckOpts struct {
-	Interval    time.Duration `long:"interval" description:"The interval between healthchecks" default:"30s"`
-	Timeout     time.Duration `long:"timeout" description:"The timeout before the command is considered failed" default:"30s"`
-	StartPeriod time.Duration `long:"start-period" description:"An initialization time period in which failures are not counted towards the maximum number of retries"`
-	Retries     int           `long:"retries" description:"The number of retries before a container is considered unhealthy" default:"3"`
+	Interval      time.Duration `long:"interval" description:"The interval between healthchecks" default:"30s"`
+	Timeout       time.Duration `long:"timeout" description:"The timeout before the command is considered failed" default:"30s"`
+	StartPeriod   time.Duration `long:"start-period" description:"An initialization time period in which failures are not counted towards the maximum number of retries"`
+	Retries       int           `long:"retries" description:"The number of retries before a container is considered unhealthy" default:"3"`
+	StartInterval time.Duration `long:"start-interval" description:"The time interval between health checks during the start period" default:"5s"`
 }
 
 type WithDockerOpts struct {
@@ -140,4 +145,12 @@ type CacheOpts struct {
 	Sharing string `long:"sharing" description:"The cache sharing mode: locked (default), shared, private"`
 	Mode    string `long:"chmod" description:"Apply a mode to the cache folder" default:"0644"`
 	ID      string `long:"id" description:"Cache ID, to reuse the same cache across different targets and Earthfiles"`
+	Persist bool   `long:"persist" description:"If should persist cache state in image"`
+}
+
+// NewForOpts creates and returns a ForOpts with default separators.
+func NewForOpts() ForOpts {
+	return ForOpts{
+		Separators: "\n\t ",
+	}
 }

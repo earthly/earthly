@@ -32,7 +32,7 @@ jobs:
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: ./.github/actions/stage2-setup
@@ -55,7 +55,7 @@ jobs:
       - name: Build the earthly docker image
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} +earthly-docker --TAG=image-test
       - name: "Run the earthly image tests"
-        run: FRONTEND=${{inputs.BINARY}} EARTHLY_IMAGE=earthly/earthly:image-test DOCKERHUB_MIRROR_USERNAME="${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" DOCKERHUB_MIRROR_PASSWORD="${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}" DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" DOCKERHUB_PASSWORD="${{ secrets.DOCKERHUB_PASSWORD }}" ./scripts/tests/earthly-image.sh
+        run: FRONTEND=${{inputs.BINARY}} EARTHLY_IMAGE=earthly/earthly:image-test DOCKERHUB_MIRROR_USERNAME="${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" DOCKERHUB_MIRROR_PASSWORD="${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}" DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" DOCKERHUB_PASSWORD="${{ secrets.DOCKERHUB_TOKEN }}" ./scripts/tests/earthly-image.sh
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd
         if: ${{ failure() && ! inputs.USE_SATELLITE }}
@@ -69,7 +69,7 @@ jobs:
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: ./.github/actions/stage2-setup
@@ -92,7 +92,7 @@ jobs:
       - name: Build the earthly docker image
         run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} +earthly-docker --TAG=image-test
       - name: "Run the earthly image sat tests"
-        run: FRONTEND=${{inputs.BINARY}} EARTHLY_IMAGE=earthly/earthly:image-test DOCKERHUB_MIRROR_USERNAME="${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" DOCKERHUB_MIRROR_PASSWORD="${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}" DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" DOCKERHUB_PASSWORD="${{ secrets.DOCKERHUB_PASSWORD }}" ./scripts/tests/earthly-image-sat.sh
+        run: FRONTEND=${{inputs.BINARY}} EARTHLY_IMAGE=earthly/earthly:image-test DOCKERHUB_MIRROR_USERNAME="${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" DOCKERHUB_MIRROR_PASSWORD="${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}" DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" DOCKERHUB_PASSWORD="${{ secrets.DOCKERHUB_TOKEN }}" ./scripts/tests/earthly-image-sat.sh
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd || true
         if: ${{ failure() && ! inputs.USE_SATELLITE }}

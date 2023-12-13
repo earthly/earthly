@@ -37,7 +37,8 @@ the [buildkit/docs/dev](https://github.com/moby/buildkit/tree/master/docs/dev) s
 
 ## Guides
 
-[build action lifecycle](build-steps.md)
+- [build action lifecycle](build-steps.md)
+- [Why do we have a fork of buildkit](buildkit-fork.md)
 
 ## Citations
 

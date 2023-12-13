@@ -337,15 +337,17 @@ func printRow(t *tabwriter.Writer, c []color.Attribute, items []string) {
 }
 
 func (a *Satellite) printSatellitesTable(satellites []satelliteWithPipelineInfo, isOrgSelected bool) {
-	slices.SortStableFunc(satellites, func(a, b satelliteWithPipelineInfo) bool {
+	slices.SortStableFunc(satellites, func(a, b satelliteWithPipelineInfo) int {
 		// satellites with associated pipelines group together at the top of the list,
 		// otherwise sort alphabetically
-		if a.pipeline == nil && b.pipeline != nil {
-			return false
+		if a.pipeline != nil && b.pipeline != nil {
+			return strings.Compare(a.pipeline.Name, b.pipeline.Name)
+		} else if a.pipeline == nil && b.pipeline != nil {
+			return +1
 		} else if a.pipeline != nil && b.pipeline == nil {
-			return true
+			return -1
 		}
-		return a.satellite.Name < b.satellite.Name
+		return strings.Compare(a.satellite.Name, b.satellite.Name)
 	})
 
 	includeTypeColumn := false
@@ -498,6 +500,11 @@ func (a *Satellite) actionLaunch(cliCtx *cli.Context) error {
 	a.cli.Console().Printf("Launching Satellite %q with auto-updates set to run at %s (%s)\n",
 		a.cli.Flags().SatelliteName, localWindow, zone)
 	a.cli.Console().Printf("This may take a few minutes...\n")
+
+	// Collect info to help with printing a richer message in the beginning of the build or on failure to reserve satellite due to missing build minutes.
+	if err = a.cli.CollectBillingInfo(cliCtx.Context, cloudClient, orgName); err != nil {
+		a.cli.Console().DebugPrintf("failed to get billing plan info, error is %v\n", err)
+	}
 
 	err = cloudClient.LaunchSatellite(cliCtx.Context, cloud.LaunchSatelliteOpt{
 		Name:                    a.cli.Flags().SatelliteName,

@@ -55,7 +55,7 @@ func (app *EarthlyApp) before(cliCtx *cli.Context) error {
 		noColor := envutil.IsTrue("NO_COLOR")
 		var err error
 		newSetup, err := logbussetup.New(
-			cliCtx.Context, app.BaseCLI.Logbus(), app.BaseCLI.Flags().Debug, app.BaseCLI.Flags().Verbose, forceColor, noColor,
+			cliCtx.Context, app.BaseCLI.Logbus(), app.BaseCLI.Flags().Debug, app.BaseCLI.Flags().Verbose, app.BaseCLI.Flags().DisplayExecStats, forceColor, noColor,
 			disableOngoingUpdates, app.BaseCLI.Flags().LogstreamDebugFile, app.BaseCLI.Flags().BuildID)
 		app.BaseCLI.SetLogbusSetup(newSetup)
 		if err != nil {

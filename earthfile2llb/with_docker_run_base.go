@@ -20,6 +20,7 @@ const (
 	dockerdWrapperPath          = "/var/earthly/dockerd-wrapper.sh"
 	dockerAutoInstallScriptPath = "/var/earthly/docker-auto-install.sh"
 	composeConfigFile           = "compose-config.yml"
+	suggestedDINDImage          = "earthly/dind:alpine-3.18-docker-23.0.6-r7"
 )
 
 // DockerLoadOpt holds parameters for WITH DOCKER --load parameter.
@@ -206,6 +207,6 @@ func platformIncompatMsg(platr *platutil.Resolver) string {
 	return "running WITH DOCKER as a non-native CPU architecture. This is not supported.\n" +
 		fmt.Sprintf("Current platform: %s\n", currentPlatStr) +
 		fmt.Sprintf("Native platform of the worker: %s\n", nativePlatStr) +
-		"Try using\n\n\tFROM --platform=native earthly/dind:alpine\n\ninstead.\n" +
+		fmt.Sprintf("Try using\n\n\tFROM --platform=native %s\n\ninstead.\n", suggestedDINDImage) +
 		"You may still --load and --pull images of a different platform.\n"
 }

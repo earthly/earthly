@@ -5,13 +5,14 @@ import "github.com/fatih/color"
 var (
 	noColor            = makeNoColor()
 	cachedColor        = makeColor(color.FgGreen)
-	metadataModeColor  = makeColor(color.FgHiWhite, color.BgHiBlack)
+	metadataModeColor  = makeColor(color.FgBlue, color.Faint)
 	phaseColor         = makeColor(color.FgCyan)
 	disabledPhaseColor = makeColor(color.FgHiBlack)
 	specialPhaseColor  = makeColor(color.FgYellow)
 	successColor       = makeColor(color.FgGreen)
 	warnColor          = makeColor(color.FgHiRed)
 	localColor         = makeColor(color.FgHiBlue)
+	helpColor          = makeColor(color.FgMagenta)
 )
 
 var availablePrefixColors = []*color.Color{

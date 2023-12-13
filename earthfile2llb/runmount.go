@@ -1,12 +1,14 @@
 package earthfile2llb
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 
-	"github.com/earthly/earthly/states/dedup"
+	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/moby/buildkit/client/llb"
 	"github.com/pkg/errors"
@@ -137,10 +139,7 @@ func (c *Converter) parseMount(mount string) ([]llb.RunOption, error) {
 		if mountMode == 0 {
 			mountMode = 0644
 		}
-		key, err := cacheKeyTargetInput(c.targetInputActiveOnly())
-		if err != nil {
-			return nil, err
-		}
+		key := cacheKey(c.target)
 		cacheID := path.Join("/run/cache", key, path.Clean(mountTarget))
 		if c.ftrs.GlobalCache && mountID != "" {
 			cacheID = mountID
@@ -207,10 +206,10 @@ func ParseMode(s string) (int, error) {
 	return int(mode), err
 }
 
-func cacheKeyTargetInput(ti dedup.TargetInput) (string, error) {
-	digest, err := ti.HashNoTag()
-	if err != nil {
-		return "", errors.Wrapf(err, "compute hash key for %s", ti.TargetCanonical)
-	}
-	return digest, nil
+// cacheKey returns a key that can be used to uniquely identify the target.
+// Cache mounts use this key to ensure that the cache is unique to the target.
+func cacheKey(target domain.Target) string {
+	target.Tag = "" // Strip away tag info (e.g. git sha)
+	digest := sha256.Sum256([]byte(target.StringCanonical()))
+	return hex.EncodeToString(digest[:])
 }

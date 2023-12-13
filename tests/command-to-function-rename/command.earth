@@ -1,0 +1,9 @@
+VERSION 0.7
+
+COMMAND_THAT_SUCCEEDS:
+    COMMAND
+    RUN echo hello world
+
+FUNCTION_THAT_FAILS:
+    FUNCTION
+    RUN echo "I am running in $(pwd)" > data

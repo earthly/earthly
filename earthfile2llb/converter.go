@@ -103,7 +103,7 @@ type Converter struct {
 	directDeps          []*states.SingleTarget
 	buildContextFactory llbfactory.Factory
 	cacheContext        pllb.State
-	persistentCacheDirs map[string]llb.RunOption // maps path->mount
+	persistentCacheDirs map[string]states.CacheMount // maps path->mount
 	varCollection       *variables.Collection
 	ranSave             bool
 	cmdSet              bool
@@ -124,7 +124,6 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		Final:   sts,
 		Visited: opt.Visited,
 	}
-	sts.AddOverridingVarsAsBuildArgInputs(opt.OverridingVars)
 	newCollOpt := variables.NewCollectionOpt{
 		Console:          opt.Console,
 		Target:           target,
@@ -145,8 +144,12 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		ovVars = append(ovVars, fmt.Sprintf("%s=%s", k, v))
 	}
 	logbusTarget, err := opt.Logbus.Run().NewTarget(
-		sts.ID, target.String(), target.StringCanonical(), ovVars,
-		opt.PlatformResolver.Current().String(), opt.Runner)
+		sts.ID,
+		target,
+		ovVars,
+		opt.PlatformResolver.Current().String(),
+		opt.Runner,
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "new logbus target")
 	}
@@ -160,7 +163,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		mts:                 mts,
 		buildContextFactory: bc.BuildContextFactory,
 		cacheContext:        pllb.Scratch(),
-		persistentCacheDirs: make(map[string]llb.RunOption),
+		persistentCacheDirs: make(map[string]states.CacheMount),
 		varCollection:       variables.NewCollection(newCollOpt),
 		ftrs:                bc.Features,
 		localWorkingDir:     filepath.Dir(bc.BuildFilePath),
@@ -183,7 +186,7 @@ func (c *Converter) From(ctx context.Context, imageName string, platform platuti
 	}
 	c.nonSaveCommand()
 	if len(c.persistentCacheDirs) > 0 {
-		c.persistentCacheDirs = make(map[string]llb.RunOption)
+		c.persistentCacheDirs = make(map[string]states.CacheMount)
 	}
 	c.cmdSet = false
 	err = c.checkOldPlatformIncompatibility(platform)
@@ -607,8 +610,8 @@ func (c *Converter) Run(ctx context.Context, opts ConvertRunOpts) error {
 	}
 	c.nonSaveCommand()
 
-	for _, cache := range c.persistentCacheDirs {
-		opts.extraRunOpts = append(opts.extraRunOpts, cache)
+	for _, state := range c.persistentCacheDirs {
+		opts.extraRunOpts = append(opts.extraRunOpts, state.RunOption)
 	}
 	_, err = c.internalRun(ctx, opts)
 	return err
@@ -621,8 +624,8 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 		return 0, err
 	}
 	c.nonSaveCommand()
-	for _, cache := range c.persistentCacheDirs {
-		opts.extraRunOpts = append(opts.extraRunOpts, cache)
+	for _, state := range c.persistentCacheDirs {
+		opts.extraRunOpts = append(opts.extraRunOpts, state.RunOption)
 	}
 
 	var exitCodeFile string
@@ -685,8 +688,8 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 // RunExpression runs an expression and returns its output. The run is transient - any state created
 // is not used in subsequent commands.
 func (c *Converter) RunExpression(ctx context.Context, expressionName string, opts ConvertRunOpts) (string, error) {
-	for _, cache := range c.persistentCacheDirs {
-		opts.extraRunOpts = append(opts.extraRunOpts, cache)
+	for _, state := range c.persistentCacheDirs {
+		opts.extraRunOpts = append(opts.extraRunOpts, state.RunOption)
 	}
 	return c.runCommand(ctx, expressionName, true, opts)
 }
@@ -694,8 +697,8 @@ func (c *Converter) RunExpression(ctx context.Context, expressionName string, op
 // RunCommand runs a command and returns its output. The run is transient - any state created
 // is not used in subsequent commands.
 func (c *Converter) RunCommand(ctx context.Context, commandName string, opts ConvertRunOpts) (string, error) {
-	for _, cache := range c.persistentCacheDirs {
-		opts.extraRunOpts = append(opts.extraRunOpts, cache)
+	for _, state := range c.persistentCacheDirs {
+		opts.extraRunOpts = append(opts.extraRunOpts, state.RunOption)
 	}
 	return c.runCommand(ctx, commandName, false, opts)
 }
@@ -1436,8 +1439,8 @@ func (c *Converter) WithDockerRun(ctx context.Context, args []string, opt WithDo
 
 	enableParallel := allowParallel && c.opt.ParallelConversion && c.ftrs.ParallelLoad
 
-	for _, cache := range c.persistentCacheDirs {
-		opt.extraRunOpts = append(opt.extraRunOpts, cache)
+	for _, state := range c.persistentCacheDirs {
+		opt.extraRunOpts = append(opt.extraRunOpts, state.RunOption)
 	}
 
 	if c.ftrs.UseRegistryForWithDocker {
@@ -1468,7 +1471,7 @@ func (c *Converter) WithDockerRunLocal(ctx context.Context, args []string, opt W
 }
 
 // Healthcheck applies the HEALTHCHECK command.
-func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int) error {
+func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int, startInterval time.Duration) error {
 	err := c.checkAllowed(healthcheckCmd)
 	if err != nil {
 		return err
@@ -1485,6 +1488,7 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 		hc.Timeout = timeout
 		hc.StartPeriod = startPeriod
 		hc.Retries = retries
+		hc.StartInterval = startInterval
 	}
 	c.mts.Final.MainImage.Config.Healthcheck = hc
 	return nil
@@ -1508,10 +1512,7 @@ func (c *Converter) Cache(ctx context.Context, mountTarget string, opts commandf
 		return err
 	}
 	c.nonSaveCommand()
-	key, err := cacheKeyTargetInput(c.targetInputActiveOnly())
-	if err != nil {
-		return err
-	}
+	key := cacheKey(c.target)
 	cacheID := path.Join("/run/cache", key, path.Clean(mountTarget))
 	if c.ftrs.GlobalCache && opts.ID != "" {
 		cacheID = opts.ID
@@ -1541,7 +1542,16 @@ func (c *Converter) Cache(ctx context.Context, mountTarget string, opts commandf
 		if err != nil {
 			return errors.Errorf("failed to parse mount mode %s", opts.Mode)
 		}
-		c.persistentCacheDirs[mountTarget] = pllb.AddMount(mountTarget, pllb.Scratch().File(pllb.Mkdir("/cache", os.FileMode(mountMode))), mountOpts...)
+		persisted := true // Without new --cache-persist-option we use old behaviour which is persisted
+		if c.ftrs.CachePersistOption {
+			persisted = opts.Persist
+		} else if opts.Persist {
+			return errors.Errorf("the --persist flag is only available when VERSION --cache-persist-option is enabled")
+		}
+		c.persistentCacheDirs[mountTarget] = states.CacheMount{
+			Persisted: persisted,
+			RunOption: pllb.AddMount(mountTarget, pllb.Scratch().File(pllb.Mkdir("/cache", os.FileMode(mountMode))), mountOpts...),
+		}
 	}
 	return nil
 }
@@ -1907,7 +1917,6 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	if err != nil {
 		return pllb.State{}, errors.Wrap(err, "parse mounts")
 	}
-
 	if opts.NoNetwork {
 		runOpts = append(runOpts, llb.Network(llb.NetModeNone))
 	}
@@ -2491,32 +2500,26 @@ func (c *Converter) checkAllowed(command cmdType) error {
 	return nil
 }
 
-func (c *Converter) targetInputActiveOnly() dedup.TargetInput {
-	activeBuildArgs := make(map[string]bool)
-	for _, k := range c.varCollection.SortedVariables(variables.WithActive()) {
-		activeBuildArgs[k] = true
-	}
-	return c.mts.Final.TargetInput().WithFilterBuildArgs(activeBuildArgs)
-}
-
 // persistCache makes temporary cache directories permanent by writing their contents
 // from the cached directory to the persistent image layers at the same directory.
 // This only has an effect when the Target contains at least one `CACHE /my/directory` command.
 func (c *Converter) persistCache(srcState pllb.State) pllb.State {
 	dest := srcState
 	// User may have multiple CACHE commands in a single target
-	for dir, cache := range c.persistentCacheDirs {
-		// Copy the contents of the user's cache directory to the temporary backup.
-		// It's important to use DockerfileCopy here, since traditional llb.Copy()
-		// doesn't support adding mounts via RunOptions.
-		runOpts := []llb.RunOption{cache, llb.WithCustomName("persist cache directory")}
-		dest = llbutil.CopyWithRunOptions(
-			dest,
-			dir, // cache dir from external mount
-			dir, // cache dir on dest state (same location but without the mount)
-			c.platr,
-			runOpts...,
-		)
+	for dir, state := range c.persistentCacheDirs {
+		if state.Persisted {
+			// Copy the contents of the user's cache directory to the temporary backup.
+			// It's important to use DockerfileCopy here, since traditional llb.Copy()
+			// doesn't support adding mounts via RunOptions.
+			runOpts := []llb.RunOption{state.RunOption, llb.WithCustomName("persist cache directory: " + dir)}
+			dest = llbutil.CopyWithRunOptions(
+				dest,
+				dir, // cache dir from external mount
+				dir, // cache dir on dest state (same location but without the mount)
+				c.platr,
+				runOpts...,
+			)
+		}
 	}
 
 	return dest
