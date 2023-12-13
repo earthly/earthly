@@ -2,6 +2,7 @@ package buildkitskipper
 
 import (
 	"context"
+	"strings"
 
 	"github.com/earthly/earthly/domain"
 )
@@ -12,11 +13,12 @@ type ASKVClient interface {
 }
 
 func NewCloud(org, project string, target domain.Target, client ASKVClient) (*CloudClient, error) {
+	parts := strings.Split(target.StringCanonical(), "+")
 	return &CloudClient{
 		org:     org,
 		project: project,
-		path:    target.GetLocalPath(),
-		target:  target.GetName(),
+		path:    parts[0],
+		target:  parts[1],
 		client:  client,
 	}, nil
 }

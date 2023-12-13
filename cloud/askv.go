@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"strings"
 
 	"github.com/earthly/cloud-api/askv"
 	"github.com/pkg/errors"
@@ -33,15 +34,23 @@ func (c *Client) AutoSkipAdd(ctx context.Context, org, project, path, target str
 	return nil
 }
 
-func (c *Client) AutoSkipPrune(ctx context.Context, org, project, pathPrefix, target string) error {
-	_, err := c.askv.PruneTarget(c.withAuth(ctx), &askv.PruneTargetRequest{
-		OrgName:     org,
-		ProjectName: project,
-		TargetPath:  pathPrefix,
-		TargetName:  target,
-	})
-	if err != nil {
-		return errors.Wrap(err, "failed to prune auto-skip data")
+func (c *Client) AutoSkipPrune(ctx context.Context, org, project, pathPrefix, target string, deep bool) (int, error) {
+	if strings.HasPrefix(target, "+") {
+		target = target[1:]
 	}
-	return nil
+
+	req := &askv.PruneTargetRequest{
+		OrgName:       org,
+		ProjectName:   project,
+		TargetPath:    pathPrefix,
+		TargetName:    target,
+		UsePathPrefix: deep,
+	}
+
+	res, err := c.askv.PruneTarget(c.withAuth(ctx), req)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to prune auto-skip data")
+	}
+
+	return int(res.GetCount()), nil
 }

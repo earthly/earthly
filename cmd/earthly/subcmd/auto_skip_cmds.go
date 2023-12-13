@@ -1,8 +1,6 @@
 package subcmd
 
 import (
-	"strings"
-
 	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
@@ -11,7 +9,9 @@ import (
 type AutoSkip struct {
 	cli CLI
 
-	prefix string
+	path   string
+	target string
+	deep   bool
 }
 
 func NewAutoSkip(cli CLI) *AutoSkip {
@@ -29,9 +29,19 @@ func (a *AutoSkip) Cmds() []*cli.Command {
 			Action:      a.action,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
-					Name:        "prefix",
-					Usage:       "Prune auto-skip data by path prefix and/org target name",
-					Destination: &a.prefix,
+					Name:        "path",
+					Usage:       "Prune auto-skip data by the specified path",
+					Destination: &a.path,
+				},
+				&cli.StringFlag{
+					Name:        "target",
+					Usage:       "Prune auto-skip data by the specified target name",
+					Destination: &a.target,
+				},
+				&cli.BoolFlag{
+					Name:        "deep",
+					Usage:       "Prune all sub-directories that begin with the provided path",
+					Destination: &a.deep,
 				},
 				&cli.StringFlag{
 					Name:        "org",
@@ -63,32 +73,27 @@ func (a *AutoSkip) action(cliCtx *cli.Context) error {
 		return err
 	}
 
-	if a.prefix == "" {
-		return errors.New("no target specified")
+	if a.path == "" && a.target == "" {
+		return errors.New("no target or path specified")
 	}
 
-	// Supports the following forms:
-	// * ./path/name+target
-	// * ./path/n+target (where n is a prefix)
-	// * +target
-
-	var pathPrefix, target string
-
-	if strings.HasPrefix(a.prefix, "+") {
-		target = a.prefix[1:]
-	} else {
-		parts := strings.Split(a.prefix, "+")
-		pathPrefix = parts[0]
-		if len(parts) > 1 {
-			target = parts[1]
-		}
-	}
-
-	err = cloudClient.AutoSkipPrune(cliCtx.Context, a.cli.Flags().OrgName, a.cli.Flags().ProjectName, pathPrefix, target)
+	count, err := cloudClient.AutoSkipPrune(
+		cliCtx.Context,
+		a.cli.Flags().OrgName,
+		a.cli.Flags().ProjectName,
+		a.path,
+		a.target,
+		a.deep,
+	)
 	if err != nil {
 		return errors.Wrap(err, "failed to prune auto-skip hashes")
 	}
 
-	a.cli.Console().Printf("Deleted hashes for pattern: %q", a.prefix)
+	pluralForm := "hashes"
+	if count == 1 {
+		pluralForm = "hash"
+	}
+
+	a.cli.Console().Printf("Deleted %d matching auto-skip %s", count, pluralForm)
 	return nil
 }
