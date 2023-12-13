@@ -360,6 +360,8 @@ The parameter `<src-artifact>` is an [artifact reference](../guides/importing.md
 
 The `COPY` command does not mark any saved images or artifacts of the referenced target for output, nor does it mark any push commands of the referenced target for pushing. For that, please use [`BUILD`](#build).
 
+Multiple `COPY` commands issued one after the other will build the referenced targets in parallel, if the targets don't depend on each other. The resulting artifacts will then be copied sequentially in the order in which the `COPY` commands were issued.
+
 The classical form of the `COPY` command differs from Dockerfiles in three cases:
 
 * URL sources are not yet supported.
@@ -780,6 +782,8 @@ Instructs Earthly to not create a manifest list for the image. This may be usefu
 
 The command `BUILD` instructs Earthly to additionally invoke the build of the target referenced by `<target-ref>`, where `<target-ref>` follows the rules defined by [target referencing](../guides/importing.md#target-reference). The invocation will mark any images, or artifacts saved by the referenced target for local output (assuming local output is enabled), and any push commands issued by the referenced target for pushing (assuming pushing is enabled).
 
+Multiple `BUILD` commands issued one after the other will be executed in parallel if the referenced targets don't depend on each other.
+
 {% hint style='info' %}
 ##### What is being output and pushed
 
@@ -1007,6 +1011,8 @@ END
 #### Description
 
 The clause `WITH DOCKER` initializes a Docker daemon to be used in the context of a `RUN` command. The Docker daemon can be pre-loaded with a set of images using options such as `-pull` and `--load`. Once the execution of the `RUN` command has completed, the Docker daemon is stopped and all of its data is deleted, including any volumes and network configuration. Any other files that may have been created are kept, however.
+
+If multiple targets are referenced via `--load`, the images are built in parallel. Similarly, multiple images referenced with `--pull` will be downloaded in parallel.
 
 The clause `WITH DOCKER` automatically implies the `RUN --privileged` flag.
 
