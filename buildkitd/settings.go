@@ -35,6 +35,7 @@ type Settings struct {
 	SatelliteDisplayName string `hash:"ignore"`
 	SatelliteOrgID       string `hash:"ignore"`
 	SatelliteToken       string `hash:"ignore"`
+	SatelliteIsManaged   bool   `hash:"ignore"`
 	EnableProfiler       bool
 	NoUpdate             bool   `hash:"ignore"`
 	StartUpLockPath      string `hash:"ignore"`
