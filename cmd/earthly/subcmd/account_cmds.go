@@ -591,12 +591,12 @@ func (a *Account) actionLogin(cliCtx *cli.Context) error {
 	}
 
 	loggedInEmail, authType, _, err := cloudClient.WhoAmI(cliCtx.Context)
-	if err == nil {
+	if err == nil && loggedInEmail == email {
 		// already logged in, don't re-attempt a login
 		a.cli.Console().Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
 		return nil
 	}
-	if errors.Cause(err) != cloud.ErrUnauthorized && errors.Cause(err) != cloud.ErrAuthTokenExpired {
+	if err != nil && errors.Cause(err) != cloud.ErrUnauthorized && errors.Cause(err) != cloud.ErrAuthTokenExpired {
 		return errors.Wrap(err, "failed to login")
 	}
 
@@ -750,7 +750,6 @@ func (a *Account) loginAndSavePasswordCredentials(ctx context.Context, cloudClie
 	if err != nil {
 		return err
 	}
-	a.cli.Console().Printf("Logged in as %q using password auth\n", email)
 	a.cli.Console().Printf("Warning unencrypted password has been stored under ~/.earthly/auth.credentials; consider using ssh-based auth to prevent this.\n")
 	return nil
 }
@@ -816,6 +815,7 @@ func (a *Account) actionReset(cliCtx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	a.cli.Console().Printf("Logged in as %q using password auth\n", a.email)
 	a.printLogSharingMessage()
 	return nil
 }
