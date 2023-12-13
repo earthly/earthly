@@ -591,7 +591,7 @@ func (a *Account) actionLogin(cliCtx *cli.Context) error {
 	}
 
 	loggedInEmail, authType, _, err := cloudClient.WhoAmI(cliCtx.Context)
-	if err == nil && loggedInEmail == email {
+	if err == nil && (loggedInEmail == email || (email == "" && token == "")) {
 		// already logged in, don't re-attempt a login
 		a.cli.Console().Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
 		return nil
