@@ -1403,7 +1403,7 @@ func (c *Converter) Label(ctx context.Context, labels map[string]string) error {
 }
 
 // GitClone applies the GIT CLONE command.
-func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, dest string, keepTs bool) error {
+func (c *Converter) GitClone(ctx context.Context, gitURL string, sshCommand string, branch string, dest string, keepTs bool) error {
 	err := c.checkAllowed(gitCloneCmd)
 	if err != nil {
 		return err
@@ -1414,6 +1414,9 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 		llb.WithCustomNamef(
 			"%sGIT CLONE (--branch %s) %s", c.vertexPrefixWithURL(gitURLScrubbed), branch, gitURLScrubbed),
 		llb.KeepGitDir(),
+	}
+	if sshCommand != "" {
+		gitOpts = append(gitOpts, llb.SSHCommand(sshCommand))
 	}
 	gitState := pllb.Git(gitURL, branch, gitOpts...)
 	c.mts.Final.MainState, err = llbutil.CopyOp(ctx,

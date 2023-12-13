@@ -177,6 +177,8 @@ ga-no-qemu-group4:
     BUILD +dotenv-test
     BUILD +allow-privileged-test
     BUILD ./with-docker-registry+all
+    BUILD +test-ssh-command-config-via-remote-target
+    BUILD +test-ssh-command-config-via-git-clone-earthfile-command
 
 ga-no-qemu-slow:
     BUILD +server
@@ -1511,6 +1513,46 @@ test-exec-stats:
       --target=+sleep \
       --extra_args=" --exec-stats " \
       --output_contains="total CPU:.*total memory:.*"
+
+# test-ssh-command-config-via-remote-target tests that we can set a custom ssh_command
+# The test intentionally sets a bad cipher type, then tests that buildkit fails, and the failure message
+# contains the underlying ssh failure due to attempting to use an invalid cipher
+test-ssh-command-config-via-remote-target:
+    RUN ssh-keygen -b 3072 -t rsa -f /root/dont-steal-my-key -q -N "" -C "rsa-testkey"
+    RUN echo "#!/bin/sh
+set -ex
+
+# needed to get past the \"no SSH key default forwarded from the client\" error
+eval \$(ssh-agent)
+ssh-add /root/dont-steal-my-key
+
+earthly --config \$earthly_config config git \"{github.com: {auth: ssh, user: git, strict_host_key_checking: false, ssh_command: ssh -c badcipher}}\"
+earthly --config \$earthly_config github.com/earthly/earthly+base 2>&1 | tee output.txt;
+" >/tmp/run-earthly-with-bad-ssh-cipher && chmod +x /tmp/run-earthly-with-bad-ssh-cipher
+    DO +RUN_EARTHLY --exec_cmd=/tmp/run-earthly-with-bad-ssh-cipher
+    RUN cat output.txt | acbgrep "Unknown cipher type 'badcipher'"
+
+test-ssh-command-config-via-git-clone-earthfile-command:
+    RUN ssh-keygen -b 3072 -t rsa -f /root/dont-steal-my-key -q -N "" -C "rsa-testkey"
+
+    RUN echo "VERSION 0.7
+test:
+    FROM alpine
+    GIT CLONE ssh://git@github.com/earthly/earthly.git ./earthly_repo # the command we are testing
+" > Earthfile
+
+    RUN echo "#!/bin/sh
+set -ex
+
+# needed to get past the \"no SSH key default forwarded from the client\" error
+eval \$(ssh-agent)
+ssh-add /root/dont-steal-my-key
+
+earthly --config \$earthly_config config git \"{github.com: {auth: ssh, user: git, strict_host_key_checking: false, ssh_command: ssh -c badcipher}}\"
+earthly --config \$earthly_config +test 2>&1 | tee output.txt;
+" >/tmp/run-earthly-with-bad-ssh-cipher && chmod +x /tmp/run-earthly-with-bad-ssh-cipher
+    DO +RUN_EARTHLY --exec_cmd=/tmp/run-earthly-with-bad-ssh-cipher
+    RUN cat output.txt | acbgrep "Unknown cipher type 'badcipher'"
 
 RUN_EARTHLY:
     FUNCTION

@@ -669,7 +669,7 @@ func (a *Build) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) error {
 		if suffix == "" {
 			suffix = ".git"
 		}
-		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, v.Prefix, suffix, auth, v.ServerKey, common.IfNilBoolDefault(v.StrictHostKeyChecking, true), v.Port)
+		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, v.Prefix, suffix, auth, v.ServerKey, common.IfNilBoolDefault(v.StrictHostKeyChecking, true), v.Port, v.SSHCommand)
 		if err != nil {
 			return errors.Wrap(err, "gitlookup")
 		}
