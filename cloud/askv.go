@@ -35,9 +35,7 @@ func (c *Client) AutoSkipAdd(ctx context.Context, org, project, path, target str
 }
 
 func (c *Client) AutoSkipPrune(ctx context.Context, org, project, pathPrefix, target string, deep bool) (int, error) {
-	if strings.HasPrefix(target, "+") {
-		target = target[1:]
-	}
+	target = strings.TrimPrefix(target, "+")
 
 	req := &askv.PruneTargetRequest{
 		OrgName:       org,
