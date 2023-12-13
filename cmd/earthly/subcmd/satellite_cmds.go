@@ -337,15 +337,17 @@ func printRow(t *tabwriter.Writer, c []color.Attribute, items []string) {
 }
 
 func (a *Satellite) printSatellitesTable(satellites []satelliteWithPipelineInfo, isOrgSelected bool) {
-	slices.SortStableFunc(satellites, func(a, b satelliteWithPipelineInfo) bool {
+	slices.SortStableFunc(satellites, func(a, b satelliteWithPipelineInfo) int {
 		// satellites with associated pipelines group together at the top of the list,
 		// otherwise sort alphabetically
-		if a.pipeline == nil && b.pipeline != nil {
-			return false
+		if a.pipeline != nil && b.pipeline != nil {
+			return strings.Compare(a.pipeline.Name, b.pipeline.Name)
+		} else if a.pipeline == nil && b.pipeline != nil {
+			return +1
 		} else if a.pipeline != nil && b.pipeline == nil {
-			return true
+			return -1
 		}
-		return a.satellite.Name < b.satellite.Name
+		return strings.Compare(a.satellite.Name, b.satellite.Name)
 	})
 
 	includeTypeColumn := false

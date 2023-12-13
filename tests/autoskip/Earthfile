@@ -28,6 +28,7 @@ test-all:
     BUILD +test-copy-if-exists
     BUILD +test-remote-targets
     BUILD +test-from-dockerfile
+    BUILD +test-import
 
 test-files:
     RUN echo hello > my-file
@@ -212,6 +213,24 @@ test-from-dockerfile:
 
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=from-dockerfile.earth --target=+remote
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=from-dockerfile.earth --target=+remote --output_contains="target .* has already been run; exiting"
+
+test-import:
+    COPY --dir imported .
+
+    RUN echo "hello" > imported/my-file
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=import.earth --target=+basic
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=import.earth --target=+basic --output_contains="target .* has already been run; exiting"
+
+    RUN echo "bye-bye" > imported/my-file
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=import.earth --target=+basic --output_does_not_contain="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=import.earth --target=+remote
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=import.earth --target=+remote --output_contains="target .* has already been run; exiting"
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=import.earth --target=+global
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=import.earth --target=+global --output_contains="target .* has already been run; exiting"
 
 RUN_EARTHLY_ARGS:
     FUNCTION

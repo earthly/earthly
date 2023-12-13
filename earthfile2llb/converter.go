@@ -1471,7 +1471,7 @@ func (c *Converter) WithDockerRunLocal(ctx context.Context, args []string, opt W
 }
 
 // Healthcheck applies the HEALTHCHECK command.
-func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int) error {
+func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int, startInterval time.Duration) error {
 	err := c.checkAllowed(healthcheckCmd)
 	if err != nil {
 		return err
@@ -1488,6 +1488,7 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 		hc.Timeout = timeout
 		hc.StartPeriod = startPeriod
 		hc.Retries = retries
+		hc.StartInterval = startInterval
 	}
 	c.mts.Final.MainImage.Config.Healthcheck = hc
 	return nil

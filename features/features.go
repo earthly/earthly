@@ -19,6 +19,11 @@ import (
 // Features is used to denote which features to flip on or off; this is for use in maintaining
 // backwards compatibility
 type Features struct {
+
+	// Never enabled by default
+	NoUseRegistryForWithDocker bool `long:"no-use-registry-for-with-docker" description:"disable use-registry-for-with-docker"` // escape hatch for disabling WITH DOCKER registry, e.g. used by eine-based tests
+	EarthlyCIRunnerArg         bool `long:"earthly-ci-runner-arg" description:"includes EARTHLY_CI_RUNNER ARG"`                 // earthly CI was discontinued, no reason to enable this by default
+
 	// VERSION 0.5
 	ExecAfterParallel        bool `long:"exec-after-parallel" description:"force execution after parallel conversion"`
 	ParallelLoad             bool `long:"parallel-load" description:"perform parallel loading of images into WITH DOCKER"`
@@ -53,11 +58,9 @@ type Features struct {
 	WaitBlock                bool `long:"wait-block" description:"enable WITH/END feature, also allows RUN --push mixed with non-push commands"`
 
 	// unreleased
-	NoUseRegistryForWithDocker      bool `long:"no-use-registry-for-with-docker" description:"disable use-registry-for-with-docker"`
 	TryFinally                      bool `long:"try" description:"allow the use of the TRY/FINALLY commands"`
 	NoNetwork                       bool `long:"no-network" description:"allow the use of RUN --network=none commands"`
 	ArgScopeSet                     bool `long:"arg-scope-and-set" description:"enable SET to reassign ARGs and prevent ARGs from being redeclared in the same scope"`
-	EarthlyCIRunnerArg              bool `long:"earthly-ci-runner-arg" description:"includes EARTHLY_CI_RUNNER ARG"`
 	UseDockerIgnore                 bool `long:"use-docker-ignore" description:"fallback to .dockerignore incase .earthlyignore or .earthignore do not exist in a local \"FROM DOCKERFILE\" target"`
 	PassArgs                        bool `long:"pass-args" description:"Allow the use of the --pass-arg flag in FROM, BUILD, COPY, WITH DOCKER, and DO commands"`
 	GlobalCache                     bool `long:"global-cache" description:"enable global caches (shared across different Earthfiles), for cache mounts and CACHEs having an ID"`

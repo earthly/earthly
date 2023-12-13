@@ -1,0 +1,16 @@
+VERSION 0.7
+
+IMPORT ./imported AS foo
+IMPORT github.com/earthly/earthly:tags/v0.7.21 AS remote
+
+basic:
+    BUILD foo+test
+
+remote:
+    BUILD remote+license
+
+other:
+    BUILD foo+test
+
+global:
+    BUILD +other # Ensures the 'foo' reference carries across multiple targets (global)

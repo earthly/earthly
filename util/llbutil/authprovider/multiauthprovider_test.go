@@ -2,10 +2,13 @@ package authprovider_test
 
 import (
 	"context"
+	"os"
+	"sync"
 	"testing"
 	"time"
 
 	"git.sr.ht/~nelsam/hel/pkg/pers"
+	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/llbutil/authprovider"
 	"github.com/moby/buildkit/session/auth"
 	"github.com/poy/onpar"
@@ -13,6 +16,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+func newConsLogger() conslogging.ConsoleLogger {
+	return conslogging.New(os.Stderr, &sync.Mutex{}, conslogging.NoColor, 0, conslogging.Info)
+}
 
 func TestMultiAuth(t *testing.T) {
 	type testCtx struct {
@@ -35,7 +42,7 @@ func TestMultiAuth(t *testing.T) {
 			T:        t,
 			expect:   expect.New(t),
 			children: children,
-			multi:    authprovider.New(srv),
+			multi:    authprovider.New(newConsLogger(), srv),
 		}
 	})
 	defer o.Run()
@@ -54,7 +61,7 @@ func TestMultiAuth(t *testing.T) {
 			mockChild:        newMockChild(t, mockTimeout),
 			mockProjectAdder: newMockProjectAdder(t, mockTimeout),
 		}
-		t.multi = authprovider.New([]authprovider.Child{p})
+		t.multi = authprovider.New(newConsLogger(), []authprovider.Child{p})
 		t.multi.AddProject("foo", "bar")
 		t.expect(p.mockProjectAdder).To(haveMethodExecuted("AddProject", withArgs("foo", "bar")))
 	})

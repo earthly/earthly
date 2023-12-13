@@ -7,7 +7,7 @@ on:
 jobs:
   tests:
     name: +testing-gha-podman
-    runs-on: macos-12 # GitHub Actions the latest tag still uses macos-11, which does not have brew installed by default
+    runs-on: macos-13 # GitHub Actions the latest tag still uses macos-11, which does not have brew installed by default
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
@@ -25,7 +25,7 @@ jobs:
       PODMAN_MEMORY_MB: 13000
       PODMAN_DISK_SPACE_GB: 13
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: earthly/actions-setup@main

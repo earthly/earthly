@@ -53,11 +53,12 @@ func (img *Image) Clone() *Image {
 	}
 	if img.Config.Healthcheck != nil {
 		clone.Config.Healthcheck = &image.HealthConfig{
-			Test:        make([]string, len(img.Config.Healthcheck.Test)),
-			Interval:    img.Config.Healthcheck.Interval,
-			Timeout:     img.Config.Healthcheck.Timeout,
-			StartPeriod: img.Config.Healthcheck.StartPeriod,
-			Retries:     img.Config.Healthcheck.Retries,
+			Test:          make([]string, len(img.Config.Healthcheck.Test)),
+			Interval:      img.Config.Healthcheck.Interval,
+			Timeout:       img.Config.Healthcheck.Timeout,
+			StartPeriod:   img.Config.Healthcheck.StartPeriod,
+			Retries:       img.Config.Healthcheck.Retries,
+			StartInterval: img.Config.Healthcheck.StartInterval,
 		}
 		copy(clone.Config.Healthcheck.Test, img.Config.Healthcheck.Test)
 	}
