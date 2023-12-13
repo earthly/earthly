@@ -66,7 +66,6 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 	if err != nil {
 		return errors.Wrap(err, "failed getting satellite")
 	}
-	fmt.Println(sat.IsManaged)
 	cli.Flags().BuildkitdSettings.SatelliteIsManaged = sat.IsManaged
 	satelliteAddress := cli.Flags().SatelliteAddress
 	if !sat.IsManaged {
