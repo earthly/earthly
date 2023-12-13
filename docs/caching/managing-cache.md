@@ -71,6 +71,6 @@ Unlike the layer cache and the cache mounts, the auto-skip cache is global and i
 
 To clear the entire auto-skip cache for your Earthly org, you can use the command `earthly prune-auto-skip`.
 
-To clear the auto-skip cache for a repository, you can use the command `earthly prune-auto-skip --prefix github.com/foo/bar`.
+To clear the auto-skip cache for an entire repository, you can use the command `earthly prune-auto-skip --path github.com/foo/bar --deep`.
 
-To clear the auto-skip cache for a specific target, you can use the command `earthly prune-auto-skip --prefix github.com/foo/bar+build`.
+To clear the auto-skip cache for a specific target, you can use the command `earthly prune-auto-skip --path github.com/foo/bar --target +my-target`.
