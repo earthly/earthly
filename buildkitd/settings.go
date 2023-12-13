@@ -11,34 +11,34 @@ import (
 
 // Settings represents the buildkitd settings used to start up the daemon with.
 type Settings struct {
-	CacheSizeMb           int
-	CacheSizePct          int
-	CacheKeepDuration     int
-	Debug                 bool
-	BuildkitAddress       string
-	LocalRegistryAddress  string
-	AdditionalArgs        []string
-	AdditionalConfig      string
-	CniMtu                uint16
-	Timeout               time.Duration `hash:"ignore"`
-	TLSCA                 string
-	ClientTLSCert         string
-	ClientTLSKey          string
-	ServerTLSCert         string
-	ServerTLSKey          string
-	UseTCP                bool
-	UseTLS                bool
-	VolumeName            string
-	IPTables              string
-	MaxParallelism        int
-	SatelliteName         string `hash:"ignore"`
-	SatelliteDisplayName  string `hash:"ignore"`
-	SatelliteOrgID        string `hash:"ignore"`
-	SatelliteToken        string `hash:"ignore"`
-	SatelliteIsSelfHosted bool   `hash:"ignore"`
-	EnableProfiler        bool
-	NoUpdate              bool   `hash:"ignore"`
-	StartUpLockPath       string `hash:"ignore"`
+	CacheSizeMb          int
+	CacheSizePct         int
+	CacheKeepDuration    int
+	Debug                bool
+	BuildkitAddress      string
+	LocalRegistryAddress string
+	AdditionalArgs       []string
+	AdditionalConfig     string
+	CniMtu               uint16
+	Timeout              time.Duration `hash:"ignore"`
+	TLSCA                string
+	ClientTLSCert        string
+	ClientTLSKey         string
+	ServerTLSCert        string
+	ServerTLSKey         string
+	UseTCP               bool
+	UseTLS               bool
+	VolumeName           string
+	IPTables             string
+	MaxParallelism       int
+	SatelliteName        string `hash:"ignore"`
+	SatelliteDisplayName string `hash:"ignore"`
+	SatelliteOrgID       string `hash:"ignore"`
+	SatelliteToken       string `hash:"ignore"`
+	SatelliteIsManaged   bool   `hash:"ignore"`
+	EnableProfiler       bool
+	NoUpdate             bool   `hash:"ignore"`
+	StartUpLockPath      string `hash:"ignore"`
 }
 
 // Hash returns a secure hash of the settings.

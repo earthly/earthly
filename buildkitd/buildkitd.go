@@ -84,11 +84,11 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 		remoteConsole := console
 		if settings.SatelliteName != "" {
 			remoteConsole = console.WithPrefix("satellite")
-			selfHostedInfo := ""
-			if settings.SatelliteIsSelfHosted {
-				selfHostedInfo = fmt.Sprintf(" (self-hosted at %s)", settings.BuildkitAddress)
+			if settings.SatelliteIsManaged {
+				remoteConsole.Printf("Connecting to %s...", settings.SatelliteDisplayName)
+			} else {
+				remoteConsole.Printf("Connecting to %s (hosted at: %s)...", settings.SatelliteDisplayName, settings.BuildkitAddress)
 			}
-			remoteConsole.Printf("Connecting to %s...%s", settings.SatelliteDisplayName, selfHostedInfo)
 		} else {
 			remoteConsole = console.WithPrefix("buildkitd")
 			remoteConsole.Printf("Connecting to %s...", settings.BuildkitAddress)

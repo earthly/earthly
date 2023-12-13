@@ -681,7 +681,7 @@ func (a *Satellite) actionInspect(cliCtx *cli.Context) error {
 	a.cli.Flags().BuildkitdSettings.Timeout = 30 * time.Second
 	a.cli.Flags().BuildkitdSettings.SatelliteToken = token
 	a.cli.Flags().BuildkitdSettings.SatelliteName = satelliteToInspectName
-	a.cli.Flags().BuildkitdSettings.SatelliteIsSelfHosted = !satellite.IsManaged
+	a.cli.Flags().BuildkitdSettings.SatelliteIsManaged = satellite.IsManaged
 	a.cli.Flags().BuildkitdSettings.SatelliteDisplayName = satelliteToInspect
 	a.cli.Flags().BuildkitdSettings.SatelliteOrgID = orgID // must be the ID and not name, due to satellite-proxy requirements
 	if a.cli.Flags().SatelliteAddress != "" {
