@@ -14,7 +14,8 @@ init
 ls 
 org 
 project 
-prune 
+prune
+prune-auto-skip
 registry 
 satellite 
 secret 
@@ -36,7 +37,8 @@ init
 ls 
 org 
 project 
-prune 
+prune
+prune-auto-skip
 registry 
 satellite 
 secret 
