@@ -185,11 +185,11 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 		var autoSkipErr *inputgraph.Error
 		switch {
 		case hintErrOK:
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_AUTO_SKIP, hintErr.Message())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_SYNTAX, hintErr.Message())
 			app.BaseCLI.Console().HelpPrintf(hintErr.Hint())
 			return 1
 		case errors.As(err, &autoSkipErr):
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_SYNTAX, inputgraph.FormatError(err))
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_AUTO_SKIP, inputgraph.FormatError(err))
 			return 1
 		case errors.As(err, &paramsErr):
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_INVALID_PARAM, paramsErr.ParentError())
