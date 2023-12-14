@@ -31,6 +31,7 @@ func (a *Root) Cmds() []*cli.Command {
 		NewOrg(a.cli).Cmds(),
 		NewProject(a.cli).Cmds(),
 		NewPrune(a.cli).Cmds(),
+		NewAutoSkip(a.cli).Cmds(),
 		NewRegistry(a.cli).Cmds(),
 		NewSatellite(a.cli).Cmds(),
 		NewSecret(a.cli).Cmds(),

@@ -840,27 +840,37 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		return nil, nil, false, errors.New("--no-cache cannot be used with --auto-skip")
 	}
 
-	var (
-		skipDB      bk.BuildkitSkipper
-		targetHash  []byte
-		orgName     string
-		projectName string
-	)
+	orgName := a.cli.Flags().OrgName
 
-	orgName, projectName, targetHash, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
-		Target:           target,
-		Console:          a.cli.Console(),
-		CI:               a.cli.Flags().CI,
-		BuiltinArgs:      variables.DefaultArgs{EarthlyVersion: a.cli.Version(), EarthlyBuildSha: a.cli.GitSHA()},
-		OverridingVars:   overridingVars,
-		EarthlyCIRunner:  a.cli.Flags().EarthlyCIRunner,
-		SkipProjectCheck: a.cli.Flags().LocalSkipDB != "",
+	targetHash, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
+		Target:          target,
+		Console:         a.cli.Console(),
+		CI:              a.cli.Flags().CI,
+		BuiltinArgs:     variables.DefaultArgs{EarthlyVersion: a.cli.Version(), EarthlyBuildSha: a.cli.GitSHA()},
+		OverridingVars:  overridingVars,
+		EarthlyCIRunner: a.cli.Flags().EarthlyCIRunner,
 	})
 	if err != nil {
 		return nil, nil, false, errors.Wrapf(err, "auto-skip is unable to calculate hash for %s", target)
 	}
 
-	skipDB, err = bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, orgName, projectName, target.GetName(), client)
+	if a.cli.Flags().LocalSkipDB == "" && orgName == "" {
+		orgName, _, err = inputgraph.ParseProjectCommand(ctx, target, console)
+		if err != nil {
+			return nil, nil, false, errors.New("organization not found in Earthfile, command flag or environmental variables")
+		}
+	}
+
+	if !target.IsRemote() {
+		meta, err := gitutil.Metadata(ctx, target.GetLocalPath(), a.cli.Flags().GitBranchOverride)
+		if err != nil {
+			console.VerboseWarnf("unable to detect all git metadata: %v", err.Error())
+		}
+		target = gitutil.ReferenceWithGitMeta(target, meta).(domain.Target)
+		target.Tag = ""
+	}
+
+	skipDB, err := bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, orgName, target, client)
 	if err != nil {
 		return nil, nil, false, err
 	}
