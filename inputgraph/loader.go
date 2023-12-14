@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	errUnsupportedRemoteTarget = errors.New("only remote targets referenced by a complete Git SHA or tag (e.g. tags/my-tag) are supported")
+	errUnsupportedRemoteTarget = errors.New("only remote targets referenced by a complete Git SHA or an explicit tag referenced as 'tags/...' are supported")
 	errCannotLoadRemoteTarget  = errors.New("cannot load remote target")
 	errComplexCondition        = errors.New("condition cannot be evaluated")
 )
