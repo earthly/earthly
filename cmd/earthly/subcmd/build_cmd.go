@@ -25,6 +25,7 @@ import (
 	"github.com/moby/buildkit/session/socketforward/socketprovider"
 	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
+	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
@@ -62,7 +63,6 @@ import (
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
-	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
 )
 
 const autoSkipPrefix = "auto-skip"
@@ -334,14 +334,14 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return errors.Wrapf(err, "could not init frontend")
 	}
 
-	// Collect info to help with printing a richer message in the beginning of the build or on failure to reserve satellite due to missing build minutes.
-	if err = a.cli.CollectBillingInfo(cliCtx.Context, cloudClient, a.cli.OrgName()); err != nil {
-		a.cli.Console().DebugPrintf("failed to get billing plan info, error is %v\n", err)
-	}
-
 	err = a.cli.ConfigureSatellite(cliCtx, cloudClient, gitCommitAuthor, gitConfigEmail)
 	if err != nil {
 		return errors.Wrapf(err, "could not configure satellite")
+	}
+
+	// Collect info to help with printing a richer message in the beginning of the build or on failure to reserve satellite due to missing build minutes.
+	if err = a.cli.CollectBillingInfo(cliCtx.Context, cloudClient, a.cli.OrgName()); err != nil {
+		a.cli.Console().DebugPrintf("failed to get billing plan info, error is %v\n", err)
 	}
 
 	// After configuring frontend and satellites, buildkit address should not be empty.
@@ -614,7 +614,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		a.cli.Console().ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
 	}
 
-	a.maybePrintBuildMinutesInfo(a.cli.OrgName())
+	a.maybePrintBuildMinutesInfo(cliCtx)
 
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
 	if err != nil {
@@ -669,7 +669,7 @@ func (a *Build) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) error {
 		if suffix == "" {
 			suffix = ".git"
 		}
-		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, v.Prefix, suffix, auth, v.ServerKey, common.IfNilBoolDefault(v.StrictHostKeyChecking, true), v.Port)
+		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, v.Prefix, suffix, auth, v.ServerKey, common.IfNilBoolDefault(v.StrictHostKeyChecking, true), v.Port, v.SSHCommand)
 		if err != nil {
 			return errors.Wrap(err, "gitlookup")
 		}
@@ -935,7 +935,13 @@ func (a *Build) logShareLink(ctx context.Context, cloudClient *cloud.Client, tar
 	return logstreamURL, true, printLinkFn
 }
 
-func (a *Build) maybePrintBuildMinutesInfo(orgName string) {
+func (a *Build) maybePrintBuildMinutesInfo(cliCtx *cli.Context) {
+	orgName := a.cli.OrgName()
+	settings := a.cli.Flags().BuildkitdSettings
+	if !a.cli.IsUsingSatellite(cliCtx) || !settings.SatelliteIsManaged {
+		return
+	}
+
 	plan := billing.Plan()
 	if plan.GetMaxBuildMinutes() == 0 {
 		return

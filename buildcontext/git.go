@@ -179,7 +179,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 
 	var err error
 	var keyScans []string
-	gitURL, subDir, keyScans, err = gr.gitLookup.GetCloneURL(ref.GetGitURL())
+	var sshCommand string
+	gitURL, subDir, keyScans, sshCommand, err = gr.gitLookup.GetCloneURL(ref.GetGitURL())
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "failed to get url for cloning")
 	}
@@ -206,6 +207,9 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			// TODO this should eventually be infered by the contents of a COPY command, which means the call to resolveGitProject will need to be lazy-evaluated
 			// However this makes it really difficult for an Earthfile which first has an ARG EARTHLY_GIT_HASH, then a RUN, then a COPY
 			gitOpts = append(gitOpts, llb.LFSInclude(gr.lfsInclude))
+		}
+		if sshCommand != "" {
+			gitOpts = append(gitOpts, llb.SSHCommand(sshCommand))
 		}
 
 		gitState := llb.Git(gitURL, gitRef, gitOpts...)
