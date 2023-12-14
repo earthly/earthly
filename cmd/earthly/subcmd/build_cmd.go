@@ -320,6 +320,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 
 	skipDB, targetHash, doSkip, err := a.initAutoSkip(cliCtx.Context, target, overridingVars, cloudClient)
 	if err != nil {
+		a.cli.Console().PrintFailure("auto-skip")
 		return err
 	}
 	if doSkip {
@@ -856,7 +857,7 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		SkipProjectCheck: a.cli.Flags().LocalSkipDB != "",
 	})
 	if err != nil {
-		return nil, nil, false, errors.Wrapf(err, "unable to calculate hash for %s", target)
+		return nil, nil, false, errors.Wrapf(err, "auto-skip is unable to calculate hash for %s", target)
 	}
 
 	skipDB, err = bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, orgName, projectName, target.GetName(), client)
@@ -864,14 +865,17 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		return nil, nil, false, err
 	}
 
+	targetConsole := a.cli.Console().WithPrefix(target.String())
+	targetStr := targetConsole.PrefixColor().Sprintf("%s", target.StringCanonical())
 	exists, err := skipDB.Exists(ctx, targetHash)
 	if err != nil {
-		console.Warnf("unable to check if target %s (hash %x) has already been run: %s", target.String(), targetHash, err.Error())
+		console.Warnf("Unable to check if target %s (hash %x) has already been run: %s", targetStr, targetHash, err.Error())
 		return nil, nil, false, nil
 	}
 
 	if exists {
-		consoleNoPrefix.Printf("target %s (hash %x) has already been run; exiting", target.String(), targetHash)
+		console.Printf("Target %s (hash %x) has already been run. Skipping.", targetStr, targetHash)
+		consoleNoPrefix.PrintSuccess()
 		return nil, nil, true, nil
 	}
 
