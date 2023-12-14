@@ -832,38 +832,35 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string, ar
 	return newLoader.load(ctx)
 }
 
-func (l *loader) findProject(ctx context.Context) (org, project string, err error) {
+func (l *loader) findOrg(ctx context.Context) string {
 	if l.target.IsRemote() {
-		return "", "", errCannotLoadRemoteTarget
+		return ""
 	}
 
 	resolver := buildcontext.NewResolver(nil, nil, l.conslog, "", "", "", 0, "")
 
 	buildCtx, err := resolver.Resolve(ctx, nil, nil, l.target)
 	if err != nil {
-		return "", "", err
+		return ""
 	}
 
 	ef := buildCtx.Earthfile
-	if ef.Version != nil {
-		l.hashVersion(*ef.Version)
-	}
 
 	for _, stmt := range ef.BaseRecipe {
 		if stmt.Command != nil && stmt.Command.Name == command.Project {
 			args := stmt.Command.Args
 			if len(args) != 1 {
-				return "", "", errors.New("failed to parse PROJECT command")
+				return ""
 			}
 			parts := strings.Split(args[0], "/")
 			if len(parts) != 2 {
-				return "", "", errors.New("failed to parse PROJECT command")
+				return ""
 			}
-			return parts[0], parts[1], nil
+			return parts[0]
 		}
 	}
 
-	return "", "", errors.New("PROJECT command is required for remote storage")
+	return ""
 }
 
 func (l *loader) load(ctx context.Context) error {

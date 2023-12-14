@@ -14,7 +14,7 @@ type BuildkitSkipper interface {
 }
 
 // NewBuildkitSkipper returns a local buildkitskipper when localSkipDB is specified, or alternatively a cloud-based skipper
-func NewBuildkitSkipper(localSkipDB, orgName, projectName string, target domain.Target, cloudClient buildkitskipper.ASKVClient) (BuildkitSkipper, error) {
+func NewBuildkitSkipper(localSkipDB, orgName string, target domain.Target, cloudClient buildkitskipper.ASKVClient) (BuildkitSkipper, error) {
 	if localSkipDB != "" {
 		skipDB, err := buildkitskipper.NewLocal(localSkipDB)
 		if err != nil {
@@ -23,7 +23,7 @@ func NewBuildkitSkipper(localSkipDB, orgName, projectName string, target domain.
 		return skipDB, nil
 	}
 
-	skipDB, err := buildkitskipper.NewCloud(orgName, projectName, target, cloudClient)
+	skipDB, err := buildkitskipper.NewCloud(orgName, target, cloudClient)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create cloud-based buildkit skipper database")
 	}

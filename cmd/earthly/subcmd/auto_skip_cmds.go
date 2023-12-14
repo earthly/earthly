@@ -80,7 +80,6 @@ func (a *AutoSkip) action(cliCtx *cli.Context) error {
 	count, err := cloudClient.AutoSkipPrune(
 		cliCtx.Context,
 		a.cli.Flags().OrgName,
-		a.cli.Flags().ProjectName,
 		a.path,
 		a.target,
 		a.deep,

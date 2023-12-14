@@ -20,20 +20,17 @@ type HashOpt struct {
 }
 
 // HashTarget produces a hash from an Earthly target.
-func HashTarget(ctx context.Context, opt HashOpt) (org, project string, hash []byte, err error) {
+func HashTarget(ctx context.Context, opt HashOpt) (org string, hash []byte, err error) {
 	l := newLoader(ctx, opt)
 
 	if !opt.SkipProjectCheck {
-		org, project, err = l.findProject(ctx)
-		if err != nil {
-			return "", "", nil, err
-		}
+		org = l.findOrg(ctx)
 	}
 
 	err = l.load(ctx)
 	if err != nil {
-		return "", "", nil, err
+		return "", nil, err
 	}
 
-	return org, project, l.hasher.GetHash(), nil
+	return org, l.hasher.GetHash(), nil
 }

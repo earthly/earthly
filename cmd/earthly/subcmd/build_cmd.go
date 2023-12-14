@@ -839,24 +839,27 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		return nil, nil, false, errors.New("--no-cache cannot be used with --auto-skip")
 	}
 
-	var (
-		skipDB      bk.BuildkitSkipper
-		targetHash  []byte
-		orgName     string
-		projectName string
-	)
+	orgName := a.cli.Flags().OrgName
 
-	orgName, projectName, targetHash, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
+	fileOrg, targetHash, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
 		Target:           target,
 		Console:          a.cli.Console(),
 		CI:               a.cli.Flags().CI,
 		BuiltinArgs:      variables.DefaultArgs{EarthlyVersion: a.cli.Version(), EarthlyBuildSha: a.cli.GitSHA()},
 		OverridingVars:   overridingVars,
 		EarthlyCIRunner:  a.cli.Flags().EarthlyCIRunner,
-		SkipProjectCheck: a.cli.Flags().LocalSkipDB != "",
+		SkipProjectCheck: a.cli.Flags().LocalSkipDB != "" || orgName != "",
 	})
 	if err != nil {
 		return nil, nil, false, errors.Wrapf(err, "unable to calculate hash for %s", target)
+	}
+
+	if orgName == "" {
+		orgName = fileOrg
+	}
+
+	if a.cli.Flags().LocalSkipDB == "" && orgName == "" {
+		return nil, nil, false, errors.New("organization not found in Earthfile, command flag or environmental variables")
 	}
 
 	if !target.IsRemote() {
@@ -868,7 +871,7 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		target.Tag = ""
 	}
 
-	skipDB, err = bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, orgName, projectName, target, client)
+	skipDB, err := bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, orgName, target, client)
 	if err != nil {
 		return nil, nil, false, err
 	}
