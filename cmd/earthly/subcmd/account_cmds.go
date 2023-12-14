@@ -38,6 +38,7 @@ type Account struct {
 	registrationPublicKey  string
 	writePermission        bool
 	expiry                 string
+	overWrite              bool
 }
 
 func NewAccount(cli CLI) *Account {
@@ -181,6 +182,11 @@ func (a *Account) Cmds() []*cli.Command {
 							Name:        "expiry",
 							Usage:       "Set token expiry date in the form YYYY-MM-DD or never (default never)",
 							Destination: &a.expiry,
+						},
+						&cli.BoolFlag{
+							Name:        "overwrite",
+							Usage:       "Overwrite the token if it already exists",
+							Destination: &a.overWrite,
 						},
 					},
 				},
@@ -548,7 +554,7 @@ func (a *Account) actionCreateToken(cliCtx *cli.Context) error {
 		return err
 	}
 	name := cliCtx.Args().First()
-	token, err := cloudClient.CreateToken(cliCtx.Context, name, a.writePermission, expiry)
+	token, err := cloudClient.CreateToken(cliCtx.Context, name, a.writePermission, expiry, a.overWrite)
 	if err != nil {
 		return errors.Wrap(err, "failed to create token")
 	}
