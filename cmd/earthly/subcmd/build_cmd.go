@@ -841,25 +841,23 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 
 	orgName := a.cli.Flags().OrgName
 
-	fileOrg, targetHash, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
-		Target:           target,
-		Console:          a.cli.Console(),
-		CI:               a.cli.Flags().CI,
-		BuiltinArgs:      variables.DefaultArgs{EarthlyVersion: a.cli.Version(), EarthlyBuildSha: a.cli.GitSHA()},
-		OverridingVars:   overridingVars,
-		EarthlyCIRunner:  a.cli.Flags().EarthlyCIRunner,
-		SkipProjectCheck: a.cli.Flags().LocalSkipDB != "" || orgName != "",
+	targetHash, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
+		Target:          target,
+		Console:         a.cli.Console(),
+		CI:              a.cli.Flags().CI,
+		BuiltinArgs:     variables.DefaultArgs{EarthlyVersion: a.cli.Version(), EarthlyBuildSha: a.cli.GitSHA()},
+		OverridingVars:  overridingVars,
+		EarthlyCIRunner: a.cli.Flags().EarthlyCIRunner,
 	})
 	if err != nil {
 		return nil, nil, false, errors.Wrapf(err, "unable to calculate hash for %s", target)
 	}
 
-	if orgName == "" {
-		orgName = fileOrg
-	}
-
 	if a.cli.Flags().LocalSkipDB == "" && orgName == "" {
-		return nil, nil, false, errors.New("organization not found in Earthfile, command flag or environmental variables")
+		orgName, _, err = inputgraph.ParseProjectCommand(ctx, target, console)
+		if err != nil {
+			return nil, nil, false, errors.New("organization not found in Earthfile, command flag or environmental variables")
+		}
 	}
 
 	if !target.IsRemote() {

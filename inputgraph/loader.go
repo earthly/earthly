@@ -832,37 +832,6 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string, ar
 	return newLoader.load(ctx)
 }
 
-func (l *loader) findOrg(ctx context.Context) string {
-	if l.target.IsRemote() {
-		return ""
-	}
-
-	resolver := buildcontext.NewResolver(nil, nil, l.conslog, "", "", "", 0, "")
-
-	buildCtx, err := resolver.Resolve(ctx, nil, nil, l.target)
-	if err != nil {
-		return ""
-	}
-
-	ef := buildCtx.Earthfile
-
-	for _, stmt := range ef.BaseRecipe {
-		if stmt.Command != nil && stmt.Command.Name == command.Project {
-			args := stmt.Command.Args
-			if len(args) != 1 {
-				return ""
-			}
-			parts := strings.Split(args[0], "/")
-			if len(parts) != 2 {
-				return ""
-			}
-			return parts[0]
-		}
-	}
-
-	return ""
-}
-
 func (l *loader) load(ctx context.Context) error {
 	if l.target.IsRemote() {
 		return errCannotLoadRemoteTarget
