@@ -22,6 +22,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Updated default alpine/git image to v2.40.1.
 - When creating an auth token, an existing token will no longer be overwritten by default. To overwrite, the `--overwrite` flag should be used.
 
+### Additional Info
+- This release includes changes to buildkit
+
 ## v0.7.22 - 2023-11-27
 
 ### Added
