@@ -7,13 +7,11 @@ ${PPROF_SETTINGS}
 ${TLS_ENABLED}
 
 [worker.oci]
+  rootless = true
   enabled = true
   snapshotter = "auto"
   max-parallelism = ${BUILDKIT_MAX_PARALLELISM}
   gc = true
-  networkMode = "${NETWORK_MODE}"
-  cniBinaryPath = "/usr/libexec/cni"
-  cniConfigPath = "/etc/cni/cni-conf.json"
   ${CACHE_DURATION_SETTINGS}
   ${CACHE_SETTINGS}
 

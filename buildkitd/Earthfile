@@ -28,7 +28,25 @@ buildkitd:
         openssh-client \
         pigz \
         util-linux \
-        xz
+        xz \
+        fuse3 \
+        fuse-overlayfs \
+        shadow-uidmap
+
+    RUN adduser -D -u 1000 user \
+      && mkdir -p /run/user/1000 /home/user/.local/tmp /home/user/.local/share/buildkit \
+      && chown -R user /run/user/1000 /home/user \
+      && echo user:100000:65536 | tee /etc/subuid | tee /etc/subgid
+
+    COPY +rootlesskit/rootlesskit /usr/bin/rootlesskit
+
+    USER 1000:1000
+    ENV HOME /home/user
+    ENV USER user
+    ENV XDG_RUNTIME_DIR=/run/user/1000
+    ENV TMPDIR=/home/user/.local/tmp
+    #ENV BUILDKIT_HOST=unix:///run/user/1000/buildkit/buildkitd.sock
+    VOLUME /home/user/.local/share/earthly
 
     # Add github and gitlab to known hosts.
     RUN mkdir -p ~/.ssh
@@ -75,8 +93,8 @@ buildkitd:
     ENV EARTHLY_GIT_HASH=$EARTHLY_GIT_HASH
     ENV BUILDKIT_BASE_IMAGE=$BUILDKIT_BASE_IMAGE
     ENV EARTHLY_CACHE_VERSION="2" # whenever this value changes, a forced cache reset is performed
-    VOLUME /tmp/earthly
-    ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--config=/etc/buildkitd.toml"]
+    #VOLUME /tmp/earthly
+    ENTRYPOINT ["rootlesskit", "/usr/bin/entrypoint.sh", "buildkitd", "--config=/home/user/buildkitd.toml", "--oci-worker-no-process-sandbox"]
     ARG DOCKERHUB_USER="earthly"
     ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
     ARG IMAGE_REGISTRY="docker.io"
@@ -115,3 +133,14 @@ update-buildkit-earthfile:
         else \
             sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE\)=github.com\/.*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile; \
         fi
+
+rootlesskit:
+    RUN apk add git go
+    ARG ROOTLESSKIT_VERSION=v1.0.1
+    RUN git clone https://github.com/rootless-containers/rootlesskit.git /go/src/github.com/rootless-containers/rootlesskit
+    WORKDIR /go/src/github.com/rootless-containers/rootlesskit
+    ARG TARGETPLATFORM
+    RUN git checkout -q "$ROOTLESSKIT_VERSION"  && \
+      CGO_ENABLED=0 go build -o /rootlesskit ./cmd/rootlesskit
+
+    SAVE ARTIFACT /rootlesskit

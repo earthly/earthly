@@ -896,3 +896,18 @@ BUILD_AND_FROM:
     ARG --required TARGET
     FROM --pass-args +$TARGET
     BUILD --pass-args +$TARGET
+
+buildkit-unconfined:
+    FROM earthly/buildkitd:dev-main
+    RUN apk add fuse-overlayfs
+    SAVE IMAGE earthly/buildkitd:dev-main-fuse
+
+test-shell:
+    FROM alpine:latest
+    RUN --interactive /bin/ash
+
+test-with-docker:
+    FROM alpine:latest
+    WITH DOCKER
+        RUN docker run alpine echo "hi from rootless container?" && sleep 99999
+    END

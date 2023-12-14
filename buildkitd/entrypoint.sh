@@ -107,7 +107,11 @@ if [ -z "$IP_TABLES" ]; then
 else
     echo "Manual iptables specified ($IP_TABLES), skipping autodetection."
 fi
-ln -sf "/sbin/$IP_TABLES" /sbin/iptables
+if [ ! -f /sbin/iptables ]; then
+  ln -sf "/sbin/$IP_TABLES" /sbin/iptables
+else
+  echo "/sbin/iptables exists, skipping link"
+fi
 
 # clear any leftovers in the dind dir
 rm -rf "$EARTHLY_TMP_DIR/dind"
@@ -129,7 +133,7 @@ do
     fi
     i=$((i+1))
 done
-echo "$EARTHLY_GIT_CONFIG" | base64 -d >/root/.gitconfig
+echo "$EARTHLY_GIT_CONFIG" | base64 -d >$HOME/.gitconfig
 
 #Set up CNI
 if [ -z "$CNI_MTU" ]; then
@@ -208,7 +212,7 @@ if [ "$BUILDKIT_TLS_ENABLED" = "true" ]; then
 fi
 export TLS_ENABLED
 
-envsubst </etc/buildkitd.toml.template >/etc/buildkitd.toml
+envsubst </etc/buildkitd.toml.template >$HOME/buildkitd.toml
 
 # Session history is 1h by default unless otherwise specified
 if [ -z "$BUILDKIT_SESSION_HISTORY_DURATION" ]; then
@@ -238,8 +242,8 @@ ignored_by_oom() {
   fi
 }
 
-envsubst "\${OOM_SCORE_ADJ} \${BUILDKIT_DEBUG}" </bin/oom-adjust.sh.template >/bin/oom-adjust.sh
-chmod +x /bin/oom-adjust.sh
+envsubst "\${OOM_SCORE_ADJ} \${BUILDKIT_DEBUG}" </bin/oom-adjust.sh.template >$HOME/oom-adjust.sh
+chmod +x $HOME/oom-adjust.sh
 
 echo "BUILDKIT_ROOT_DIR=$BUILDKIT_ROOT_DIR"
 echo "CACHE_SIZE_MB=$CACHE_SIZE_MB"
@@ -254,11 +258,11 @@ cat /etc/cni/cni-conf.json
 echo "======== End CNI config =========="
 echo ""
 echo "======== Buildkitd config =========="
-cat /etc/buildkitd.toml
+cat $HOME/buildkitd.toml
 echo "======== End buildkitd config =========="
 echo ""
 echo "======== OOM Adjust script =========="
-cat /bin/oom-adjust.sh
+cat $HOME/oom-adjust.sh
 echo "======== OOM Adjust script =========="
 echo ""
 echo "Detected container architecture is $(uname -m)"
@@ -298,10 +302,10 @@ do
         # all those PIDs, and kills them to prevent accidential "ghost" loads.
         if [ "$PID" != "$execpid" ] && [ "$(ignored_by_oom "$PID")" = "false" ]; then
             if [ "$OOM_SCORE_ADJ" -ne "0" ]; then
-                ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) killed with OOM_SCORE_ADJ=$OOM_SCORE_ADJ" >> /var/log/oom_adj
+                ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) killed with OOM_SCORE_ADJ=$OOM_SCORE_ADJ" >> $HOME/oom_adj
                 kill -9 "$PID"
             else 
-                ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) was not killed because OOM_SCORE_ADJ was default or not set" >> /var/log/oom_adj
+                ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) was not killed because OOM_SCORE_ADJ was default or not set" >> $HOME/oom_adj
             fi
         fi
     done
