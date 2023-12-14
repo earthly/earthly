@@ -27,24 +27,25 @@ import (
 )
 
 var (
-	errUnsupportedRemoteTarget = errors.New("only remote targets referenced by a complete Git SHA or tag (e.g. tags/my-tag) are supported")
+	errUnsupportedRemoteTarget = errors.New("only remote targets referenced by a complete Git SHA or an explicit tag referenced as 'tags/...' are supported")
 	errCannotLoadRemoteTarget  = errors.New("cannot load remote target")
 	errComplexCondition        = errors.New("condition cannot be evaluated")
 )
 
 type loader struct {
-	conslog         conslogging.ConsoleLogger
-	target          domain.Target
-	visited         map[string]struct{}
-	hasher          *hasher.Hasher
-	varCollection   *variables.Collection
-	features        *features.Features
-	isBaseTarget    bool
-	ci              bool
-	builtinArgs     variables.DefaultArgs
-	overridingVars  *variables.Scope
-	earthlyCIRunner bool
-	globalImports   map[string]domain.ImportTrackerVal
+	conslog          conslogging.ConsoleLogger
+	target           domain.Target
+	visited          map[string]struct{}
+	hasher           *hasher.Hasher
+	varCollection    *variables.Collection
+	features         *features.Features
+	isBaseTarget     bool
+	ci               bool
+	builtinArgs      variables.DefaultArgs
+	overridingVars   *variables.Scope
+	earthlyCIRunner  bool
+	globalImports    map[string]domain.ImportTrackerVal
+	importsProcessed bool
 }
 
 func newLoader(ctx context.Context, opt HashOpt) *loader {
@@ -230,15 +231,7 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) 
 		return nil
 	}
 
-	if artifactSrc.Target.IsRemote() {
-		if supportedRemoteTarget(artifactSrc.Target) {
-			l.hasher.HashString(artifactSrc.Target.StringCanonical())
-			return nil
-		}
-		return errUnsupportedRemoteTarget
-	}
-
-	targetName := artifactSrc.Target.LocalPath + "+" + artifactSrc.Target.Target
+	targetName := artifactSrc.Target.String()
 	if err := l.loadTargetFromString(ctx, targetName, extraArgs, false); err != nil {
 		return err
 	}
@@ -354,22 +347,20 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 	case command.FromDockerfile:
 		return l.handleFromDockerfile(ctx, cmd)
 	case command.Import:
-		return l.handleImport(ctx, cmd)
+		return l.handleImport(ctx, cmd, false)
 	default:
 		return nil
 	}
 }
 
-func (l *loader) handleImport(ctx context.Context, cmd spec.Command) error {
+func (l *loader) handleImport(ctx context.Context, cmd spec.Command, global bool) error {
 
 	var alias string
 	if len(cmd.Args) == 3 {
 		alias = cmd.Args[2]
 	}
 
-	isGlobal := l.target.Target == "base"
-
-	err := l.varCollection.Imports().Add(cmd.Args[0], alias, isGlobal, false, false)
+	err := l.varCollection.Imports().Add(cmd.Args[0], alias, global, false, false)
 	if err != nil {
 		return errors.Wrap(err, "failed to add import")
 	}
@@ -782,7 +773,7 @@ func (l *loader) forTarget(ctx context.Context, target domain.Target, args []str
 		overriding = variables.CombineScopes(overriding, l.overridingVars)
 	}
 
-	return &loader{
+	ret := &loader{
 		conslog:         l.conslog,
 		target:          target,
 		visited:         visited,
@@ -792,8 +783,14 @@ func (l *loader) forTarget(ctx context.Context, target domain.Target, args []str
 		builtinArgs:     l.builtinArgs,
 		overridingVars:  overriding,
 		earthlyCIRunner: l.earthlyCIRunner,
-		globalImports:   l.varCollection.Imports().Global(),
-	}, nil
+	}
+
+	if target.IsLocalInternal() {
+		ret.importsProcessed = true
+		ret.globalImports = l.varCollection.Imports().Global()
+	}
+
+	return ret, nil
 }
 
 func (l *loader) loadTargetFromString(ctx context.Context, targetName string, args []string, passArgs bool) error {
@@ -827,46 +824,12 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string, ar
 		return errors.Errorf("circular dependency detected; %s already called", fullTargetName)
 	}
 
-	targetLoader, err := l.forTarget(ctx, target, args, passArgs)
+	newLoader, err := l.forTarget(ctx, target, args, passArgs)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create loader for target %q", targetName)
 	}
 
-	return targetLoader.load(ctx)
-}
-
-func (l *loader) findProject(ctx context.Context) (org, project string, err error) {
-	if l.target.IsRemote() {
-		return "", "", errCannotLoadRemoteTarget
-	}
-
-	resolver := buildcontext.NewResolver(nil, nil, l.conslog, "", "", "", 0, "")
-
-	buildCtx, err := resolver.Resolve(ctx, nil, nil, l.target)
-	if err != nil {
-		return "", "", err
-	}
-
-	ef := buildCtx.Earthfile
-	if ef.Version != nil {
-		l.hashVersion(*ef.Version)
-	}
-
-	for _, stmt := range ef.BaseRecipe {
-		if stmt.Command != nil && stmt.Command.Name == command.Project {
-			args := stmt.Command.Args
-			if len(args) != 1 {
-				return "", "", errors.New("failed to parse PROJECT command")
-			}
-			parts := strings.Split(args[0], "/")
-			if len(parts) != 2 {
-				return "", "", errors.New("failed to parse PROJECT command")
-			}
-			return parts[0], parts[1], nil
-		}
-	}
-
-	return "", "", errors.New("PROJECT command is required for remote storage")
+	return newLoader.load(ctx)
 }
 
 func (l *loader) load(ctx context.Context) error {
@@ -902,10 +865,12 @@ func (l *loader) load(ctx context.Context) error {
 	}
 
 	// Ensure all IMPORT commands are processed.
-	for _, stmt := range ef.BaseRecipe {
-		if stmt.Command != nil && stmt.Command.Name == command.Import {
-			if err := l.handleImport(ctx, *stmt.Command); err != nil {
-				return err
+	if !l.importsProcessed {
+		for _, stmt := range ef.BaseRecipe {
+			if stmt.Command != nil && stmt.Command.Name == command.Import {
+				if err := l.handleImport(ctx, *stmt.Command, true); err != nil {
+					return err
+				}
 			}
 		}
 	}

@@ -17,5 +17,5 @@ test:
     VOLUME /tmp/earthly2 /another/volume2
     HEALTHCHECK NONE
     HEALTHCHECK CMD true
-    HEALTHCHECK --interval 15s --retries 2 --timeout 45s --start-period 10s  CMD echo one two three
+    HEALTHCHECK --interval 15s --retries 2 --timeout 45s --start-period 10s --start-interval 3s CMD echo one two three
     USER jack

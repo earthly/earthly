@@ -1691,7 +1691,7 @@ The `WORKDIR` command sets the working directory for following commands in the r
 #### Synopsis
 
 * `HEALTHCHECK NONE` (disable health checking)
-* `HEALTHCHECK [--interval=DURATION] [--timeout=DURATION] [--start-period=DURATION] [--retries=N] CMD command arg1 arg2` (check container health by running command inside the container)
+* `HEALTHCHECK [--interval=DURATION] [--timeout=DURATION] [--start-period=DURATION] [--retries=N] [--start-interval=DURATION] CMD command arg1 arg2` (check container health by running command inside the container)
 
 #### Description
 
@@ -1714,6 +1714,10 @@ Sets an initialization time period in which failures are not counted towards the
 ##### `--retries=N`
 
 Sets the number of retries before a container is considered `unhealthy`. Defaults to `3`.
+
+##### `--start-interval=DURATION`
+
+Sets the time interval between health checks during the start period. Defaults to `5s`.
 
 ## HOST
 

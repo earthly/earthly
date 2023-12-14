@@ -1403,7 +1403,7 @@ func (c *Converter) Label(ctx context.Context, labels map[string]string) error {
 }
 
 // GitClone applies the GIT CLONE command.
-func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, dest string, keepTs bool) error {
+func (c *Converter) GitClone(ctx context.Context, gitURL string, sshCommand string, branch string, dest string, keepTs bool) error {
 	err := c.checkAllowed(gitCloneCmd)
 	if err != nil {
 		return err
@@ -1414,6 +1414,9 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, branch string, 
 		llb.WithCustomNamef(
 			"%sGIT CLONE (--branch %s) %s", c.vertexPrefixWithURL(gitURLScrubbed), branch, gitURLScrubbed),
 		llb.KeepGitDir(),
+	}
+	if sshCommand != "" {
+		gitOpts = append(gitOpts, llb.SSHCommand(sshCommand))
 	}
 	gitState := pllb.Git(gitURL, branch, gitOpts...)
 	c.mts.Final.MainState, err = llbutil.CopyOp(ctx,
@@ -1471,7 +1474,7 @@ func (c *Converter) WithDockerRunLocal(ctx context.Context, args []string, opt W
 }
 
 // Healthcheck applies the HEALTHCHECK command.
-func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int) error {
+func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []string, interval time.Duration, timeout time.Duration, startPeriod time.Duration, retries int, startInterval time.Duration) error {
 	err := c.checkAllowed(healthcheckCmd)
 	if err != nil {
 		return err
@@ -1488,6 +1491,7 @@ func (c *Converter) Healthcheck(ctx context.Context, isNone bool, cmdArgs []stri
 		hc.Timeout = timeout
 		hc.StartPeriod = startPeriod
 		hc.Retries = retries
+		hc.StartInterval = startInterval
 	}
 	c.mts.Final.MainImage.Config.Healthcheck = hc
 	return nil
