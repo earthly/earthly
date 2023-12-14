@@ -11,13 +11,14 @@ import (
 	"strings"
 
 	"github.com/adrg/xdg"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
+
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cmd/earthly/common"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/termutil"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
 )
 
 type BootstrapInterface interface {
@@ -150,7 +151,9 @@ func (a *Bootstrap) bootstrap(cliCtx *cli.Context) error {
 		err = nil
 	}
 
+	fmt.Println("gen certs?")
 	if (!a.noBuildkit || a.genCerts) && !a.cli.IsUsingSatellite(cliCtx) {
+		fmt.Println("gen certs!")
 		bkURL, err := url.Parse(a.cli.Flags().BuildkitHost)
 		if err != nil {
 			return errors.Wrapf(err, "invalid buildkit_host: %s", a.cli.Flags().BuildkitHost)

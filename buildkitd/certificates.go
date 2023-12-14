@@ -14,10 +14,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/earthly/earthly/ast/hint"
+	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/util/fileutil"
-	"github.com/pkg/errors"
 )
 
 type certData struct {
@@ -35,6 +37,7 @@ const (
 
 // GenCerts creates and saves a CA and certificates for both sides of an mTLS TCP connection.
 func GenCerts(cfg config.Config, hostname string) error {
+	fmt.Println("GEN CERTS")
 	caKey, err := parseTLSKey(cfg.Global.TLSCAKey)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return errors.Wrap(err, "failed reading CA key")
@@ -93,6 +96,7 @@ func GenCerts(cfg config.Config, hostname string) error {
 		Key:  caKey,
 		Cert: caCert,
 	}
+	fmt.Println("CREATING CERTS")
 
 	if err := genCert(ca, buildkit, hostname, cfg.Global.ServerTLSKey, cfg.Global.ServerTLSCert); err != nil {
 		return errors.Wrapf(err, "could not generate server TLS key/cert pair for %v", buildkit)
@@ -242,6 +246,49 @@ func savePEM(path, typ string, bytes []byte) error {
 	}
 
 	if err := f.Chmod(0444); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func saveFile(path string, bytes []byte) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+	if err := os.WriteFile(path, bytes, 0444); err != nil {
+		return err
+	}
+	return nil
+}
+
+func SaveCertsFromCloud(sat *cloud.SatelliteInstance, cfg *config.Config) error {
+	var err error
+	//err = savePEM(cfg.Global.ClientTLSCert, typeCert, sat.Certs.TlsCert)
+	//if err != nil {
+	//	return err
+	//}
+	//err = savePEM(cfg.Global.ServerTLSCert, typeCert, sat.Certs.BuildkitTlsCert)
+	//if err != nil {
+	//	return err
+	//}
+
+	if err = saveFile(cfg.Global.TLSCACert, sat.Certs.TlsCert); err != nil {
+		return err
+	}
+	if err = saveFile(cfg.Global.TLSCAKey, sat.Certs.TlsKey); err != nil {
+		return err
+	}
+	if err = saveFile(cfg.Global.ServerTLSCert, sat.Certs.BuildkitTlsCert); err != nil {
+		return err
+	}
+	if err = saveFile(cfg.Global.ServerTLSKey, sat.Certs.BuildkitTlsKey); err != nil {
+		return err
+	}
+	if err = saveFile(cfg.Global.ClientTLSCert, sat.Certs.TlsCert); err != nil {
+		return err
+	}
+	if err = saveFile(cfg.Global.ClientTLSKey, sat.Certs.TlsKey); err != nil {
 		return err
 	}
 

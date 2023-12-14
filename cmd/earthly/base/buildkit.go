@@ -45,18 +45,6 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 		cli.Flags().SatelliteName = cli.Cfg().Satellite.Name
 	}
 
-	cli.Flags().BuildkitdSettings.UseTCP = true
-	if cli.Cfg().Global.TLSEnabled {
-		// satellite connection with tls enabled does not use configuration certificates
-		cli.Flags().BuildkitdSettings.ClientTLSCert = ""
-		cli.Flags().BuildkitdSettings.ClientTLSKey = ""
-		cli.Flags().BuildkitdSettings.TLSCA = ""
-		cli.Flags().BuildkitdSettings.ServerTLSCert = ""
-		cli.Flags().BuildkitdSettings.ServerTLSKey = ""
-	} else {
-		cli.Console().Warnf("TLS has been disabled; this should never be done when connecting to Earthly's production API\n")
-	}
-
 	orgName, orgID, err := cli.GetSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "failed getting org")
@@ -66,6 +54,26 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 	if err != nil {
 		return errors.Wrap(err, "failed getting satellite")
 	}
+
+	cli.Flags().BuildkitdSettings.UseTCP = true
+	if cli.Cfg().Global.TLSEnabled {
+		if sat.IsManaged {
+			// satellite connection with tls enabled does not use configuration certificates
+			cli.Flags().BuildkitdSettings.ClientTLSCert = ""
+			cli.Flags().BuildkitdSettings.ClientTLSKey = ""
+			cli.Flags().BuildkitdSettings.TLSCA = ""
+			cli.Flags().BuildkitdSettings.ServerTLSCert = ""
+			cli.Flags().BuildkitdSettings.ServerTLSKey = ""
+		} else if sat.Certs != nil {
+			err = buildkitd.SaveCertsFromCloud(sat, cli.Cfg())
+			if err != nil {
+				return fmt.Errorf("failed saving satellite certificates: %w", err)
+			}
+		}
+	} else {
+		cli.Console().Warnf("TLS has been disabled; this should never be done when connecting to Earthly's production API\n")
+	}
+
 	cli.Flags().BuildkitdSettings.SatelliteIsManaged = sat.IsManaged
 	satelliteAddress := cli.Flags().SatelliteAddress
 	if !sat.IsManaged {
