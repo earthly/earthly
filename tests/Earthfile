@@ -1642,3 +1642,6 @@ RUN_EARTHLY:
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly-tmpfs \
         /bin/sh /tmp/earthly-script
+
+bad-remote:
+    BUILD github.com/earthly/earthly:main+license

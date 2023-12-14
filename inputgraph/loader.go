@@ -27,9 +27,8 @@ import (
 )
 
 var (
-	errUnsupportedRemoteTarget = errors.New("only remote targets referenced by a complete Git SHA or an explicit tag referenced as 'tags/...' are supported")
-	errCannotLoadRemoteTarget  = errors.New("cannot load remote target")
-	errComplexCondition        = errors.New("condition cannot be evaluated")
+	errCannotLoadRemoteTarget = errors.New("cannot load remote target")
+	errComplexCondition       = errors.New("condition cannot be evaluated")
 )
 
 type loader struct {
@@ -77,7 +76,7 @@ func (l *loader) handleFrom(ctx context.Context, cmd spec.Command) error {
 		return nil
 	}
 
-	return l.loadTargetFromString(ctx, fromTarget, args[1:], false)
+	return l.loadTargetFromString(ctx, fromTarget, args[1:], false, cmd.SourceLocation)
 }
 
 func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
@@ -99,7 +98,7 @@ func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
 	}
 
 	for _, args := range argCombos {
-		err := l.loadTargetFromString(ctx, targetName, args[1:], opts.PassArgs)
+		err := l.loadTargetFromString(ctx, targetName, args[1:], opts.PassArgs, cmd.SourceLocation)
 		if err != nil {
 			return err
 		}
@@ -147,7 +146,7 @@ func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 	srcs := args[:len(args)-1]
 	for _, src := range srcs {
 		mustExist := !opts.IfExists
-		if err := l.handleCopySrc(ctx, src, mustExist); err != nil {
+		if err := l.handleCopySrc(ctx, cmd, src, mustExist); err != nil {
 			return err
 		}
 	}
@@ -180,7 +179,7 @@ func containsShellExpr(s string) bool {
 	return depth == 0 && hasExpr
 }
 
-func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) error {
+func (l *loader) handleCopySrc(ctx context.Context, cmd spec.Command, src string, mustExist bool) error {
 
 	if containsShellExpr(src) {
 		return errors.Errorf("dynamic COPY source %q cannot be resolved", src)
@@ -232,7 +231,7 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) 
 	}
 
 	targetName := artifactSrc.Target.String()
-	if err := l.loadTargetFromString(ctx, targetName, extraArgs, false); err != nil {
+	if err := l.loadTargetFromString(ctx, targetName, extraArgs, false, cmd.SourceLocation); err != nil {
 		return err
 	}
 
@@ -375,12 +374,12 @@ func (l *loader) handleFromDockerfile(ctx context.Context, cmd spec.Command) err
 		return err
 	}
 	if opts.Path != "" {
-		if err := l.handleCopySrc(ctx, opts.Path, false); err != nil {
+		if err := l.handleCopySrc(ctx, cmd, opts.Path, false); err != nil {
 			return err
 		}
 	}
 	if len(args) > 0 {
-		if err := l.handleCopySrc(ctx, args[0], false); err != nil {
+		if err := l.handleCopySrc(ctx, cmd, args[0], false); err != nil {
 			return err
 		}
 	}
@@ -446,7 +445,7 @@ func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 			return errors.Wrap(err, "failed to parse --load value")
 		}
 
-		err = l.loadTargetFromString(ctx, target, extraArgs, false)
+		err = l.loadTargetFromString(ctx, target, extraArgs, false, cmd.SourceLocation)
 		if err != nil {
 			return err
 		}
@@ -793,7 +792,7 @@ func (l *loader) forTarget(ctx context.Context, target domain.Target, args []str
 	return ret, nil
 }
 
-func (l *loader) loadTargetFromString(ctx context.Context, targetName string, args []string, passArgs bool) error {
+func (l *loader) loadTargetFromString(ctx context.Context, targetName string, args []string, passArgs bool, srcLoc *spec.SourceLocation) error {
 	// If the target name contains a variable that hasn't been expanded, we
 	// won't be able to explore the rest of the graph and generate a valid hash.
 	if containsShellExpr(targetName) {
@@ -810,7 +809,8 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string, ar
 			l.hasher.HashString(target.StringCanonical())
 			return nil
 		}
-		return errUnsupportedRemoteTarget
+		msg := "only remote targets referenced by a complete Git SHA or an explicit tag referenced as 'tags/...' are supported (location: %s:%d)"
+		return errors.Errorf(msg, srcLoc.File, srcLoc.StartLine)
 	}
 
 	fullTargetName := target.String()
