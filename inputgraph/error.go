@@ -8,6 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Error represents an auto-skip error that can include the source file name and
+// associated line number.
 type Error struct {
 	srcLoc *spec.SourceLocation
 	msg    string
@@ -25,9 +27,12 @@ func (e *Error) Error() string {
 	return strings.Join(parts, ": ")
 }
 
+// FormatError looks for a wrapped instance of Error in the error list. If one
+// is found, it will prefix the error message with source file information
+// associated with the error.
 func FormatError(err error) string {
 	e := &Error{}
-	if ok := errors.As(err, &e); ok {
+	if errors.As(err, &e) {
 		return fmt.Sprintf("%s line %d:%d: %s", e.srcLoc.File, e.srcLoc.StartLine, e.srcLoc.StartColumn, err)
 	}
 	return e.Error()

@@ -185,7 +185,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 		var autoSkipErr *inputgraph.Error
 		switch {
 		case hintErrOK:
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, hintErr.Message())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_AUTO_SKIP, hintErr.Message())
 			app.BaseCLI.Console().HelpPrintf(hintErr.Hint())
 			return 1
 		case errors.As(err, &autoSkipErr):
