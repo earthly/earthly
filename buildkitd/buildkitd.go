@@ -593,7 +593,7 @@ func waitForConnection(ctx context.Context, containerName, address string, opTim
 	if !containerutil.IsLocal(address) {
 		retryInterval = 1 * time.Second
 	}
-	ctxTimeout, cancel := context.WithTimeout(ctx, opTimeout)
+	ctxTimeout, cancel := context.WithTimeout(ctx, 3*time.Second) //opTimeout)
 	defer cancel()
 	attemptTimeout := 500 * time.Millisecond
 	if !containerutil.IsLocal(address) {
@@ -968,6 +968,7 @@ func addRequiredOpts(settings Settings, installationName string, isUsingPodman b
 		return append(opts, client.WithServerConfigSystem("")), nil
 	}
 
+	fmt.Println("append tls!" + server.Hostname())
 	opts = append(opts,
 		client.WithCredentials(settings.ClientTLSCert, settings.ClientTLSKey),
 		client.WithServerConfig(server.Hostname(), settings.TLSCA),

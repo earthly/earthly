@@ -273,10 +273,14 @@ func SaveCertsFromCloud(sat *cloud.SatelliteInstance, cfg *config.Config) error 
 	//	return err
 	//}
 
-	if err = saveFile(cfg.Global.TLSCACert, sat.Certs.TlsCert); err != nil {
+	if err := os.RemoveAll(filepath.Dir(cfg.Global.TLSCACert)); err != nil {
 		return err
 	}
-	if err = saveFile(cfg.Global.TLSCAKey, sat.Certs.TlsKey); err != nil {
+
+	if err = saveFile(cfg.Global.TLSCACert, sat.Certs.TlsCa); err != nil {
+		return err
+	}
+	if err = saveFile(cfg.Global.TLSCAKey, sat.Certs.TlsCaKey); err != nil {
 		return err
 	}
 	if err = saveFile(cfg.Global.ServerTLSCert, sat.Certs.BuildkitTlsCert); err != nil {
