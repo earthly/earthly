@@ -896,6 +896,21 @@ check-broken-links:
         RUN --no-cache echo -e "${GREEN}No Broken Links were found${NOCOLOR}"
     END
 
+check-broken-links-pr:
+    FROM alpine/git
+    WORKDIR /tmp
+    RUN apk add github-cli
+    ARG BRANCH
+    ARG EARTHLY_GIT_BRANCH
+    LET branch=$BRANCH
+    IF [ -z $branch ]
+        SET branch=$EARTHLY_GIT_BRANCH
+    END
+    RUN --secret GH_TOKEN=littleredcorvette-github-token gh pr checks $branch --repo earthly/earthly | grep GitBook|awk '{print $4}' > url
+    ARG VERBOSE
+    BUILD --pass-args +check-broken-links --ADDRESS=$(cat url)
+
+
 # BUILD_AND_FROM will issue a FROM and a BUILD commands for the provided target
 BUILD_AND_FROM:
     FUNCTION
