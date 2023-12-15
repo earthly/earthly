@@ -1,0 +1,39 @@
+name: GitHub Actions CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+  
+jobs:
+  test1:
+    name: compute, satellite-proxy, canary, runner
+    runs-on: ubuntu-latest
+    env:
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_ORG: "earthly-technologies"
+      GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: test
+        run: |-
+          /bin/sh -c "which git" ; \
+          git status ; \
+          git rev-parse --show-toplevel; \
+          git config --get remote.origin.url; \
+          git rev-parse HEAD; \
+          git rev-parse --short=8 HEAD; \
+          git rev-parse --abbrev-ref HEAD; \
+          git describe --exact-match" --tags; \
+          git log -1 --format=%at ; \
+          git log -1 --format=%ct ; \
+          git log -1 --format=%ae; \
+          git log -1 --format=%b; \
+          git for-each-ref --contains HEAD --format '%(refname:lstrip=-1)'; \

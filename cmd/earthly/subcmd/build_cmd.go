@@ -243,7 +243,8 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		gitConfigEmail  string
 	)
 	if !target.IsRemote() {
-		if meta, err := gitutil.Metadata(cliCtx.Context, target.GetLocalPath(), a.cli.Flags().GitBranchOverride); err == nil {
+		meta, _ := gitutil.Metadata(cliCtx.Context, target.GetLocalPath(), a.cli.Flags().GitBranchOverride)
+		if meta != nil {
 			// Git commit detection here is best effort
 			gitCommitAuthor = meta.Author
 		}
