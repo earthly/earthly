@@ -24,6 +24,7 @@ import (
 	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/inputgraph"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/errutil"
 	"github.com/earthly/earthly/util/hint"
@@ -181,10 +182,14 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 		grpcErr, grpcErrOK := grpcerrors.AsGRPCStatus(err)
 		hintErr, hintErrOK := getHintErr(err, grpcErr)
 		var paramsErr *params.Error
+		var autoSkipErr *inputgraph.Error
 		switch {
 		case hintErrOK:
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, hintErr.Message())
 			app.BaseCLI.Console().HelpPrintf(hintErr.Hint())
+			return 1
+		case errors.As(err, &autoSkipErr):
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_AUTO_SKIP, inputgraph.FormatError(err))
 			return 1
 		case errors.As(err, &paramsErr):
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_INVALID_PARAM, paramsErr.ParentError())
