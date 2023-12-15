@@ -21,8 +21,7 @@ earthly account login 2>&1 | acbgrep 'Logged in as "other-service.earthly-user1@
 
 ssh-add -D # remove the key
 
-echo "== forcing a logout should allow us to change users =="
-earthly account logout
+echo "== using a token by a different user should allow us to change users =="
 EARTHLY_TOKEN="$USER2_TOKEN" earthly account login 2>&1 | acbgrep 'Logged in as "other-service.earthly-user2@earthly.dev" using token auth'
 
 echo "== it should stay logged in as user2 =="

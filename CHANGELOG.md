@@ -12,6 +12,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Fixed
 - Limit the number of deprecation warnings when using `COMMAND` instead of `FUNCTION` keyword.
+- Login with a different email address no longer requires logging out from the current logged in user [#3157](https://github.com/earthly/earthly/issues/3157).
 
 ### Changed
 - Changed the color used to print metadata values (such as ARGs values) in the build log to Faint Blue.
