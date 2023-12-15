@@ -18,7 +18,6 @@ jobs:
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
       EARTHLY_ORG: "earthly-technologies"
       GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-
     steps:
       - uses: actions/checkout@v4
         with:
