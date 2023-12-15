@@ -4,7 +4,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
-## v0.7.23 - 2023-12-14
+## v0.7.23 - 2023-12-15
 
 ### Added
 - Auto-skip (*experimental*) - a feature that allows you to skip large parts of a build in certain situations, especially suited for monorepos. For more information see [the auto-skip section from Caching in Earthfiles](https://docs.earthly.dev/docs/caching/caching-in-earthfiles#auto-skip).
@@ -16,7 +16,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Fixed
 - Limit the number of deprecation warnings when using `COMMAND` instead of `FUNCTION` keyword.
-- Fixes an error which stated `VERSION 0.0` is a valid Earthfile version.
+- Fixed an error which stated `VERSION 0.0` is a valid Earthfile version.
 
 ### Changed
 - Changed the color used to print metadata values (such as ARGs values) in the build log to Faint Blue.
