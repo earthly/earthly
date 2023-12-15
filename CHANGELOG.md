@@ -7,6 +7,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ## v0.7.23 - 2023-12-14
 
 ### Added
+- Auto-skip (*experimental*) - a feature that allows you to skip large parts of a build in certain situations, especially suited for monorepos. For more information see [the auto-skip section from Caching in Earthfiles](https://docs.earthly.dev/docs/caching/caching-in-earthfiles#auto-skip).
 - A warning when a `COPY` destination includes a tilde (~). Related to [#1789](https://github.com/earthly/earthly/issues/1789).
 - A hint message to suggest the usage of `-i` flag to debug the build when a RUN command fails.
 - `start-interval` flag to `HEALTHCHECK` command for dockerfile parity [#3409](https://github.com/earthly/earthly/issues/3409).
