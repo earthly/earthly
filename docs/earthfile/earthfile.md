@@ -177,7 +177,12 @@ Push commands were introduced to allow the user to define commands that have an 
 
 ##### `--no-cache`
 
-Force the command to run every time; ignoring any cache. Any commands following the invocation of `RUN --no-cache`, will also ignore the cache. If `--no-cache` is used as an option on the `RUN` statement within a `WITH DOCKER` statement, all commands after the `WITH DOCKER` will also ignore the cache.
+Force the command to run every time; ignoring the layer cache. Any commands following the invocation of `RUN --no-cache`, will also ignore the cache. If `--no-cache` is used as an option on the `RUN` statement within a `WITH DOCKER` statement, all commands after the `WITH DOCKER` will also ignore the cache.
+
+{% hint style='danger' %}
+##### Auto-skip
+Note that `RUN --no-cache` commands may still be skipped by auto-skip. For more information see the [Caching in Earthfiles guide](../caching/caching-in-earthfiles.md#auto-skip).
+{% endhint %}
 
 ##### `--entrypoint`
 
@@ -774,7 +779,7 @@ Instructs Earthly to not create a manifest list for the image. This may be usefu
 
 #### Synopsis
 
-* `BUILD [--platform <platform>] [--allow-privileged] <target-ref> [--<build-arg-name>=<build-arg-value>...]`
+* `BUILD [options...] <target-ref> [--<build-arg-name>=<build-arg-value>...]`
 
 #### Description
 
@@ -841,6 +846,10 @@ build-all-platforms:
 ```
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
+
+##### `--auto-skip` (*coming soon*)
+
+Instructs Earthly to skip the build of the target if the target's dependencies have not changed from a previous successful build. For more information on how to use this feature, see the [auto-skip section of the caching in Earthfiles guide](../caching/caching-in-earthfiles.md#auto-skip).
 
 ##### `--allow-privileged`
 
