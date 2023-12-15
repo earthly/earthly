@@ -832,10 +832,6 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 	console := a.cli.Console().WithPrefix(autoSkipPrefix)
 	consoleNoPrefix := a.cli.Console()
 
-	if a.cli.Flags().Push {
-		return nil, nil, false, errors.New("--push cannot be used with --auto-skip")
-	}
-
 	if a.cli.Flags().NoCache {
 		return nil, nil, false, errors.New("--no-cache cannot be used with --auto-skip")
 	}

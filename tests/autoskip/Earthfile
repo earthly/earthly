@@ -160,8 +160,8 @@ test-no-cache:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+no-cache --should_fail=true --extra_args="--no-cache" --output_does_not_contain="Target .* has already been run. Skipping."
 
 test-push:
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+simple --should_fail=true --extra_args="--push" --output_contains="push cannot be used"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+simple --should_fail=true --extra_args="--push" --output_does_not_contain="Target .* has already been run. Skipping."
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+simple --extra_args="--push" --output_contains="hello"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+simple --extra_args="--push" --output_contains="Target .* has already been run. Skipping."
 
 test-shell-out:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=shell-out.earth --target=+shell-out
