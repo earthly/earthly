@@ -280,7 +280,7 @@ The `<mount-spec>` is defined as a series of comma-separated list of key-values.
 | `type`          | The type of the mount. Currently only `cache`, `tmpfs`, and `secret` are allowed.                                                                                                                                            | `type=cache`                            |
 | `target`        | The target path for the mount.                                                                                                                                                                                               | `target=/var/lib/data`                  |
 | `mode`, `chmod` | The permission of the mounted file, in octal format (the same format the chmod unix command line expects).                                                                                                                   | `chmod=0400`                            |
-| `id`            | The cache ID for a global cache mount to be used across other targets or Earthfiles, when `type=cache`. The secret ID for the contents of the `target` file, when `type=secret`. Use `VERSION --global-cache 0.7` to enable. | `id=my-shared-cache`, `id=my-password`  |
+| `id`            | The cache ID for a global cache mount to be used across other targets or Earthfiles, when `type=cache`. The secret ID for the contents of the `target` file, when `type=secret`. | `id=my-shared-cache`, `id=my-password`  |
 | `sharing`       | The sharing mode (`locked`, `shared`, `private`) for the cache mount, only applicable for `type=cache`.                                                                                                                      | `sharing=shared`                        |
 
 For cache mounts, the sharing mode can be one of the following:
@@ -567,25 +567,6 @@ FROM +docker-image --NAME=john
 
 For more information on how to use build args see the [build arguments and secrets guide](../guides/build-args.md). A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
 
-{% hint style='info' %}
-##### Shadowing Variables
-
-By default, `ARG` scoping isn't intuitive. When an `ARG` statement is parsed, earthly will look up _any_ previous declaration of the `ARG` and use the previous value, ignoring any new default. So for example:
-
-```
-VERSION 0.7
-ARG --global foo = bar
-
-baz:
-    ARG foo = bacon
-    RUN echo $foo
-```
-
-would print `bar`.
-
-The experimental `--arg-scope-and-set` feature flag changes this behavior. With `VERSION --arg-scope-and-set 0.7` local `ARG`s may shadow global `ARG`s, and redeclaring an `ARG` in the same scope will cause an error. This means that the above example would instead print `bacon`.
-{% endhint %}
-
 #### Options
 
 ##### `--required`
@@ -747,7 +728,7 @@ SAVE IMAGE my-example-registry.com/another-image:latest
 {% hint style='danger' %}
 ##### Important
 
-As of [`VERSION 0.6`](#version), the `--referenced-save-only` feature flag is enabled by default. Images are only saved [if they are connected to the initial target through a chain of `BUILD` commands](#what-is-being-output-and-pushed).
+As of [`VERSION 0.6`](#version), images are only saved [if they are connected to the initial target through a chain of `BUILD` commands](#what-is-being-output-and-pushed).
 
 {% endhint %}
 
@@ -863,6 +844,47 @@ Same as [`FROM --allow-privileged`](#allow-privileged).
 
 This option is deprecated. Please use `--<build-arg-key>=<build-arg-value>` instead.
 
+## LET
+
+#### Synopsis
+
+* `LET <name>=<value>`
+
+#### Description
+
+The command `LET` declares a variable with the name `<name>` and with a value `<value>`. This command works similarly to `ARG` except that it cannot be overridden from the CLI.
+
+`LET` variables are allowed to shadow `ARG` variables, which allows you to promote an `ARG` to a local variable so that it may be used with `SET`.
+
+##### Example
+
+```
+VERSION 0.8
+
+# mode defines the build mode. Valid values are 'dev' and 'prod'.
+ARG --global mode = dev
+
+foo:
+    LET buildArgs = --mode development
+    IF [ "$mode" = "prod" ]
+        SET buildArgs = --mode production --optimize
+    END
+```
+
+## SET
+
+#### Synopsis
+
+* `SET <name>=<value>`
+
+#### Description
+
+The command `SET` may be used to change the value of a previously declared variable, so long as the variable was declared with `LET`.
+
+`ARG` variables may *not* be changed by `SET`, since `ARG` is intended to accept overrides from the CLI. If you want to change the value of an `ARG` variable, redeclare it with `LET someVar = "$someVar"` first.
+
+See [the `LET` docs for more info](#let).
+
 ## VERSION
 
 #### Synopsis
@@ -954,7 +976,7 @@ Instructs Earthly to not overwrite the file creation timestamps with a constant.
 The `FROM DOCKERFILE` command initializes a new build environment, inheriting from an existing Dockerfile. This allows the use of Dockerfiles in Earthly builds.
 
 The `<context-path>` is the path where the Dockerfile build context exists. By default, it is assumed that a file named `Dockerfile` exists in that directory. The context path can be either a path on the host system, or an [artifact reference](../guides/importing.md#artifact-reference), pointing to a directory containing a `Dockerfile`.
-Additionally, when using a `<context-path>` from the host system, a `.dockerignore` in the directory root will be used to exclude files (unless `.earthlyignore` or `.earthignore` are present). Use `VERSION --use-docker-ignore 0.7` to enable.
+Additionally, when using a `<context-path>` from the host system, a `.dockerignore` in the directory root will be used to exclude files (unless `.earthlyignore` or `.earthignore` are present).
 
 #### Options
 
@@ -1322,62 +1344,11 @@ END
 RUN ./test data # even if this fails, data will have been output
 ```
 
-## LET (experimental)
-
-{% hint style='info' %}
-##### Note
-The `LET` command is currently incomplete and has experimental status. To use this feature, it must be enabled via `VERSION --arg-scope-and-set 0.7`.
-{% endhint %}
-
-#### Synopsis
-
-* `LET <name>=<value>`
-
-#### Description
-
-The command `LET` declares a variable with the name `<name>` and with a value `<value>`. This command works similarly to `ARG` except that it cannot be overridden from the CLI.
-
-`LET` variables are allowed to shadow `ARG` variables, which allows you to promote an `ARG` to a local variable so that it may be used with `SET`.
-
-##### Example
-
-```
-VERSION --arg-scope-and-set 0.7
-
-# mode defines the build mode. Valid values are 'dev' and 'prod'.
-ARG --global mode = dev
-
-foo:
-    LET buildArgs = --mode development
-    IF [ "$mode" = "prod" ]
-        SET buildArgs = --mode production --optimize
-    END
-```
-
-## SET (experimental)
-
-{% hint style='info' %}
-##### Note
-The `SET` command is currently incomplete and has experimental status. To use this feature, it must be enabled via `VERSION --arg-scope-and-set 0.7`.
-{% endhint %}
-
-#### Synopsis
-
-* `SET <name>=<value>`
-
-#### Description
-
-The command `SET` may be used to change the value of a previously declared variable, so long as the variable was declared with `LET`.
-
-`ARG` variables may *not* be changed by `SET`, since `ARG` is intended to accept overrides from the CLI. If you want to change the value of an `ARG` variable, redeclare it with `LET someVar = "$someVar"` first.
-
-See [the `LET` docs for more info](#let).
-
 ## TRY (experimental)
 
 {% hint style='info' %}
 ##### Note
-The `TRY` command is currently incomplete and has experimental status. To use this feature, it must be enabled via `VERSION --try 0.7`.
+The `TRY` command is currently incomplete and has experimental status. To use this feature, it must be enabled via `VERSION --try 0.8`.
 {% endhint %}
 
 #### Synopsis
@@ -1399,7 +1370,7 @@ This clause is still under active development. For now, only a single `RUN` comm
 #### Example
 
 ```Dockerfile
-VERSION --try 0.7
+VERSION --try 0.8
 
 example:
     FROM ...
@@ -1444,7 +1415,7 @@ Default `--chmod 0644`
 
 ##### `--id <cache-id>`
 
-The cache ID for a global cache volume to be used across other targets or Earthfiles. Use `VERSION --global-cache 0.7` to enable.
+The cache ID for a global cache volume to be used across other targets or Earthfiles.
 
 ## LOCALLY
 
@@ -1539,21 +1510,21 @@ a-locally-example:
 ```
 {% endhint %}
 
-## COMMAND
+## FUNCTION
 
 #### Synopsis
 
-* `COMMAND`
+* `FUNCTION`
 
 #### Description
 
-{% hint style='danger' %}
+{% hint style='hint' %}
 #### UDCs have been renamed to Functions
 
-Functions used to be called UDCs (User Defined Commands). Earthly 0.7 still uses `COMMAND` for declaring functions, but the keyword is deprecated and will be replaced by `FUNCTION` in Earthly 0.8.
+Functions used to be called UDCs (User Defined Commands). Earthly 0.7 uses `COMMAND` instead of `FUNCTION`.
 {% endhint %}
 
-The command `COMMAND` marks the beginning of a function definition. Functions are reusable sets of instructions that can be inserted in targets or other functions. In order to reference and execute a function, you may use the command [`DO`](#do).
+The command `FUNCTION` marks the beginning of a function definition. Functions are reusable sets of instructions that can be inserted in targets or other functions. In order to reference and execute a function, you may use the command [`DO`](#do).
 
 Unlike performing a `BUILD +target`, functions inherit the build context and the build environment from the caller.
 
@@ -1775,7 +1746,7 @@ Pipelines and their definitions, including their triggers must be merged into th
 The following example shows a simple pipeline called `my-pipeline`, which is triggered on either a push to the `main` branch, or a pull request against the `main` branch. The pipeline executes the target `my-build`, which simply prints `Hello world`.
 
 ```Earthfile
-VERSION 0.7
+VERSION 0.8
 PROJECT my-org/my-project
 
 FROM alpine:3.18

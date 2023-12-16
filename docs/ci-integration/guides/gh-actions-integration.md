@@ -26,7 +26,7 @@ jobs:
     steps:
     - uses: earthly/actions-setup@v1
       with:
-        version: v0.7.8
+        version: v0.8.0
     - uses: actions/checkout@v2
     - name: Put back the git branch into git (Earthly uses it for tagging)
       run: |

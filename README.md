@@ -153,7 +153,7 @@ Reference pages
 
 ```earthly
 # Earthfile
-VERSION 0.7
+VERSION 0.8
 FROM golang:1.15-alpine3.13
 RUN apk --update --no-cache add git
 WORKDIR /go-example
@@ -215,7 +215,7 @@ Cut down build times in CI through [shared remote caching](https://docs.earthly.
 Build for multiple platforms in parallel.
 
 ```earthly
-VERSION 0.7
+VERSION 0.8
 all:
     BUILD \
         --platform=linux/amd64 \
@@ -235,7 +235,7 @@ build:
 No need to ask your team to install `protoc`, a specific version of Python, Java 1.6, or the .NET Core ecosystem. Install once in your Earthfile, and it works for everyone. Or even better, you can just make use of the rich Docker Hub ecosystem.
 
 ```earthly
-VERSION 0.7
+VERSION 0.8
 FROM golang:1.15-alpine3.13
 WORKDIR /proto-example
 

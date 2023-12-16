@@ -397,7 +397,7 @@ immediately above the target definition and begins with the name of the target.
 Given the following `Earthfile`:
 
 ```
-VERSION 0.7
+VERSION 0.8
 FROM golang:1.19-alpine3.15
 
 deps:
