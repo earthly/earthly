@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
+	"syscall"
 	"time"
 
 	billingpb "github.com/earthly/cloud-api/billing"
@@ -155,6 +158,18 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 		app.BaseCLI.Logbus().Run().SetGenericFatalError(
 			time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER,
 			"Error: No SetFatalError called appropriately. This should never happen.")
+	}()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGINT)
+
+	userKilled := atomic.Bool{}
+
+	go func() {
+		for range sigChan {
+			userKilled.Store(true)
+			return
+		}
 	}()
 
 	err := app.BaseCLI.App().RunContext(ctx, args)
@@ -351,7 +366,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			} else {
 				app.BaseCLI.Console().Warnf("Canceled\n")
 			}
-			if containerutil.IsLocal(app.BaseCLI.Flags().BuildkitdSettings.BuildkitAddress) {
+			if containerutil.IsLocal(app.BaseCLI.Flags().BuildkitdSettings.BuildkitAddress) && !userKilled.Load() {
 				app.printCrashLogs(ctx)
 			}
 			return 2
