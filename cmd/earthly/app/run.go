@@ -161,7 +161,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 	}()
 
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGINT)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	userKilled := atomic.Bool{}
 
