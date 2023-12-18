@@ -542,7 +542,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		ParallelConversion:                    (a.cli.Cfg().Global.ConversionParallelism != 0),
 		Parallelism:                           parallelism,
 		LocalRegistryAddr:                     localRegistryAddr,
-		UseRemoteRegistry:                     a.cli.Flags().UseRemoteRegistry,
+		UseRemoteRegistry:                     true, // TODO remove this (and corresponding old code), previously was: a.cli.Flags().UseRemoteRegistry,
 		DarwinProxyImage:                      a.cli.Cfg().Global.DarwinProxyImage,
 		DarwinProxyWait:                       a.cli.Cfg().Global.DarwinProxyWait,
 		FeatureFlagOverrides:                  a.cli.Flags().FeatureFlagOverrides,
