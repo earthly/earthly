@@ -260,28 +260,38 @@ func saveFile(path string, bytes []byte) error {
 	return nil
 }
 
-func SaveCertsFromCloud(sat *cloud.SatelliteInstance, cfg *config.Config) error {
-	var err error
+func ConfigureCertsForSatellite(sat *cloud.SatelliteInstance, settings *Settings, cfg *config.Config) error {
+	dir := filepath.Join(cfg.Global.SatelliteCertsDir, sat.Org, sat.Name)
+	caCertPath := filepath.Join(dir, "ca_cert.pem")
+	caKeyPath := filepath.Join(dir, "ca_key.pem")
+	earthlyCertPath := filepath.Join(dir, "earthly_cert.pem")
+	earthlyKeyPath := filepath.Join(dir, "earthly_key.pem")
 
-	if err := os.RemoveAll(filepath.Dir(cfg.Global.TLSCACert)); err != nil {
-		return err
+	settings.TLSCA = caCertPath
+	settings.ClientTLSCert = earthlyCertPath
+	settings.ClientTLSKey = earthlyKeyPath
+	settings.ServerTLSCert = ""
+	settings.ServerTLSKey = ""
+
+	if err := os.RemoveAll(dir); err != nil {
+		return errors.Wrap(err, "failed clearing previous certificates")
 	}
 
-	if err = saveFile(cfg.Global.TLSCACert, sat.Certificate.Ca); err != nil {
-		return err
+	if err := saveFile(caCertPath, sat.Certificate.Ca); err != nil {
+		return errors.Wrap(err, "failed saving ca cert")
 	}
-	if err = saveFile(cfg.Global.TLSCAKey, sat.Certificate.CaKey); err != nil {
-		return err
+	if err := saveFile(caKeyPath, sat.Certificate.CaKey); err != nil {
+		return errors.Wrap(err, "failed saving ca key")
 	}
 
-	caCert, err := parseTLSCert(cfg.Global.TLSCACert)
+	caCert, err := parseTLSCert(caCertPath)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed parsing ca cert")
 	}
 
-	caKey, err := parseTLSKey(cfg.Global.TLSCAKey)
+	caKey, err := parseTLSKey(caKeyPath)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed parsing ca key")
 	}
 
 	ca := &certData{
@@ -289,8 +299,8 @@ func SaveCertsFromCloud(sat *cloud.SatelliteInstance, cfg *config.Config) error 
 		Key:  caKey,
 	}
 
-	if err := genCert(ca, earthly, sat.Address, cfg.Global.ClientTLSKey, cfg.Global.ClientTLSCert); err != nil {
-		return errors.Wrapf(err, "could not generate client TLS key/cert pair for %v", earthly)
+	if err = genCert(ca, earthly, sat.Address, earthlyKeyPath, earthlyCertPath); err != nil {
+		return errors.Wrap(err, "could not generate client TLS key/cert pair")
 	}
 
 	return nil
