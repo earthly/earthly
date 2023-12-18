@@ -522,12 +522,13 @@ func parseTLSPaths(instName string, cfg *Config) error {
 		return nil
 	}
 	fields := map[string]*string{
-		"ca key":      &cfg.Global.TLSCAKey,
-		"ca cert":     &cfg.Global.TLSCACert,
-		"client key":  &cfg.Global.ClientTLSKey,
-		"client cert": &cfg.Global.ClientTLSCert,
-		"server key":  &cfg.Global.ServerTLSKey,
-		"server cert": &cfg.Global.ServerTLSCert,
+		"ca key":          &cfg.Global.TLSCAKey,
+		"ca cert":         &cfg.Global.TLSCACert,
+		"client key":      &cfg.Global.ClientTLSKey,
+		"client cert":     &cfg.Global.ClientTLSCert,
+		"server key":      &cfg.Global.ServerTLSKey,
+		"server cert":     &cfg.Global.ServerTLSCert,
+		"satellite certs": &cfg.Global.SatelliteCertsDir,
 	}
 	for name, field := range fields {
 		if err := parsePath(instName, field); err != nil {

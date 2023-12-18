@@ -55,6 +55,11 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 		return errors.Wrap(err, "failed getting satellite")
 	}
 
+	if !sat.IsManaged && sat.State != cloud.SatelliteStatusOperational {
+		// Self-hosted satellites cannot be "woken up" like those that are hosted in earthly cloud.
+		return errors.New("self-hosted satellite is not operational")
+	}
+
 	cli.Flags().BuildkitdSettings.UseTCP = true
 	if cli.Cfg().Global.TLSEnabled {
 		if sat.IsManaged {

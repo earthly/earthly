@@ -267,13 +267,14 @@ func ConfigureCertsForSatellite(sat *cloud.SatelliteInstance, settings *Settings
 		return errors.Wrap(err, "failed clearing previous certificates")
 	}
 
-	if err := os.MkdirAll(filepath.Dir(dir), 0755); err != nil {
+	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
 
 	if err := os.WriteFile(caCertPath, sat.Certificate.Ca, 0444); err != nil {
 		return errors.Wrap(err, "failed saving ca cert")
 	}
+
 	if err := os.WriteFile(caKeyPath, sat.Certificate.CaKey, 0444); err != nil {
 		return errors.Wrap(err, "failed saving ca key")
 	}
