@@ -4,12 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/signal"
 	"regexp"
 	"strconv"
 	"strings"
-	"sync/atomic"
-	"syscall"
 	"time"
 
 	billingpb "github.com/earthly/cloud-api/billing"
@@ -34,6 +31,7 @@ import (
 	"github.com/earthly/earthly/util/params"
 	"github.com/earthly/earthly/util/reflectutil"
 	"github.com/earthly/earthly/util/stringutil"
+	"github.com/earthly/earthly/util/syncutil"
 	"google.golang.org/grpc/status"
 )
 
@@ -46,7 +44,7 @@ var (
 	requestIDRegex     = regexp.MustCompile(`(?P<msg>.*?) {reqID: .*?}`)
 )
 
-func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogger, startTime time.Time, lastSignal os.Signal) int {
+func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogger, startTime time.Time, lastSignal *syncutil.Signal) int {
 	err := app.unhideFlags(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error un-hiding flags %v", err)
@@ -54,7 +52,7 @@ func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogge
 	}
 	helper.AutoComplete(ctx, app.BaseCLI)
 
-	exitCode := app.run(ctx, os.Args)
+	exitCode := app.run(ctx, os.Args, lastSignal)
 
 	// app.Cfg will be nil when a user runs `earthly --version`;
 	// however in all other regular commands app.Cfg will be set in app.Before
@@ -90,9 +88,6 @@ func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogge
 				app.BaseCLI.Flags().InstallationName,
 			)
 		}
-	}
-	if lastSignal != nil {
-		app.BaseCLI.Console().PrintBar(color.New(color.FgHiYellow), fmt.Sprintf("WARNING: exiting due to received %s signal", lastSignal.String()), "")
 	}
 
 	return exitCode
@@ -135,7 +130,7 @@ func unhideFlagsCommands(ctx context.Context, cmds []*cli.Command) {
 	}
 }
 
-func (app *EarthlyApp) run(ctx context.Context, args []string) int {
+func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncutil.Signal) int {
 	defer func() {
 		if app.BaseCLI.LogbusSetup() != nil {
 			err := app.BaseCLI.LogbusSetup().Close()
@@ -158,18 +153,6 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 		app.BaseCLI.Logbus().Run().SetGenericFatalError(
 			time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER,
 			"Error: No SetFatalError called appropriately. This should never happen.")
-	}()
-
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
-	userKilled := atomic.Bool{}
-
-	go func() {
-		for range sigChan {
-			userKilled.Store(true)
-			return
-		}
 	}()
 
 	err := app.BaseCLI.App().RunContext(ctx, args)
@@ -366,7 +349,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			} else {
 				app.BaseCLI.Console().Warnf("Canceled\n")
 			}
-			if containerutil.IsLocal(app.BaseCLI.Flags().BuildkitdSettings.BuildkitAddress) && !userKilled.Load() {
+			if containerutil.IsLocal(app.BaseCLI.Flags().BuildkitdSettings.BuildkitAddress) && lastSignal.Get() == nil {
 				app.printCrashLogs(ctx)
 			}
 			return 2
