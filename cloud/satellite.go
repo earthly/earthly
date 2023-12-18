@@ -72,7 +72,7 @@ type SatelliteInstance struct {
 	CacheRetention          time.Duration
 	Address                 string
 	IsManaged               bool
-	Certs                   *pb.GetSatelliteResponse_TLSCertificates
+	Certificate             *pb.TLSCertificate
 }
 
 func (c *Client) ListSatellites(ctx context.Context, orgName string, includeHidden bool) ([]SatelliteInstance, error) {
@@ -134,7 +134,7 @@ func (c *Client) GetSatellite(ctx context.Context, name, orgName string) (*Satel
 		CacheRetention:          resp.CacheRetention.AsDuration(),
 		IsManaged:               resp.IsManaged,
 		Address:                 resp.PrivateDns,
-		Certs:                   resp.Certificates,
+		Certs:                   resp.Certificate,
 	}, nil
 }
 

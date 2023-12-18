@@ -968,7 +968,7 @@ func addRequiredOpts(settings Settings, installationName string, isUsingPodman b
 		return append(opts, client.WithServerConfigSystem("")), nil
 	}
 
-	fmt.Println("append tls!" + server.Hostname())
+	fmt.Println("append tls! " + server.Hostname())
 	opts = append(opts,
 		client.WithCredentials(settings.ClientTLSCert, settings.ClientTLSKey),
 		client.WithServerConfig(server.Hostname(), settings.TLSCA),

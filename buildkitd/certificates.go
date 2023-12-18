@@ -37,7 +37,6 @@ const (
 
 // GenCerts creates and saves a CA and certificates for both sides of an mTLS TCP connection.
 func GenCerts(cfg config.Config, hostname string) error {
-	fmt.Println("GEN CERTS")
 	caKey, err := parseTLSKey(cfg.Global.TLSCAKey)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return errors.Wrap(err, "failed reading CA key")
@@ -96,7 +95,6 @@ func GenCerts(cfg config.Config, hostname string) error {
 		Key:  caKey,
 		Cert: caCert,
 	}
-	fmt.Println("CREATING CERTS")
 
 	if err := genCert(ca, buildkit, hostname, cfg.Global.ServerTLSKey, cfg.Global.ServerTLSCert); err != nil {
 		return errors.Wrapf(err, "could not generate server TLS key/cert pair for %v", buildkit)
@@ -264,36 +262,35 @@ func saveFile(path string, bytes []byte) error {
 
 func SaveCertsFromCloud(sat *cloud.SatelliteInstance, cfg *config.Config) error {
 	var err error
-	//err = savePEM(cfg.Global.ClientTLSCert, typeCert, sat.Certs.TlsCert)
-	//if err != nil {
-	//	return err
-	//}
-	//err = savePEM(cfg.Global.ServerTLSCert, typeCert, sat.Certs.BuildkitTlsCert)
-	//if err != nil {
-	//	return err
-	//}
 
 	if err := os.RemoveAll(filepath.Dir(cfg.Global.TLSCACert)); err != nil {
 		return err
 	}
 
-	if err = saveFile(cfg.Global.TLSCACert, sat.Certs.TlsCa); err != nil {
+	if err = saveFile(cfg.Global.TLSCACert, sat.Certificate.Ca); err != nil {
 		return err
 	}
-	if err = saveFile(cfg.Global.TLSCAKey, sat.Certs.TlsCaKey); err != nil {
+	if err = saveFile(cfg.Global.TLSCACert, sat.Certificate.CaKey); err != nil {
 		return err
 	}
-	if err = saveFile(cfg.Global.ServerTLSCert, sat.Certs.BuildkitTlsCert); err != nil {
+
+	caCert, err := parseTLSCert(cfg.Global.TLSCACert)
+	if err != nil {
 		return err
 	}
-	if err = saveFile(cfg.Global.ServerTLSKey, sat.Certs.BuildkitTlsKey); err != nil {
+
+	caKey, err := parseTLSKey(cfg.Global.TLSCAKey)
+	if err != nil {
 		return err
 	}
-	if err = saveFile(cfg.Global.ClientTLSCert, sat.Certs.TlsCert); err != nil {
-		return err
+
+	ca := &certData{
+		Cert: caCert,
+		Key:  caKey,
 	}
-	if err = saveFile(cfg.Global.ClientTLSKey, sat.Certs.TlsKey); err != nil {
-		return err
+
+	if err := genCert(ca, earthly, sat.Address, cfg.Global.ClientTLSKey, cfg.Global.ClientTLSCert); err != nil {
+		return errors.Wrapf(err, "could not generate client TLS key/cert pair for %v", earthly)
 	}
 
 	return nil
