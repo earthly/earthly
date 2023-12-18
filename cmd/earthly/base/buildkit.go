@@ -64,7 +64,7 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 			cli.Flags().BuildkitdSettings.TLSCA = ""
 			cli.Flags().BuildkitdSettings.ServerTLSCert = ""
 			cli.Flags().BuildkitdSettings.ServerTLSKey = ""
-		} else if sat.Certs != nil {
+		} else if sat.Certificate != nil {
 			cli.Flags().BuildkitdSettings.ClientTLSCert = cli.cfg.Global.ClientTLSCert
 			cli.Flags().BuildkitdSettings.ClientTLSKey = cli.cfg.Global.ClientTLSKey
 			cli.Flags().BuildkitdSettings.TLSCA = cli.cfg.Global.TLSCACert

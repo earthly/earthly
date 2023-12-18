@@ -243,7 +243,8 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		gitConfigEmail  string
 	)
 	if !target.IsRemote() {
-		if meta, err := gitutil.Metadata(cliCtx.Context, target.GetLocalPath(), a.cli.Flags().GitBranchOverride); err == nil {
+		meta, _ := gitutil.Metadata(cliCtx.Context, target.GetLocalPath(), a.cli.Flags().GitBranchOverride)
+		if meta != nil {
 			// Git commit detection here is best effort
 			gitCommitAuthor = meta.Author
 		}
@@ -251,7 +252,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 			gitConfigEmail = email
 		}
 	}
-
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
@@ -320,6 +320,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 
 	skipDB, targetHash, doSkip, err := a.initAutoSkip(cliCtx.Context, target, overridingVars, cloudClient)
 	if err != nil {
+		a.cli.Console().PrintFailure("auto-skip")
 		return err
 	}
 	if doSkip {
@@ -831,47 +832,56 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 	console := a.cli.Console().WithPrefix(autoSkipPrefix)
 	consoleNoPrefix := a.cli.Console()
 
-	if a.cli.Flags().Push {
-		return nil, nil, false, errors.New("--push cannot be used with --auto-skip")
-	}
-
 	if a.cli.Flags().NoCache {
 		return nil, nil, false, errors.New("--no-cache cannot be used with --auto-skip")
 	}
 
-	var (
-		skipDB      bk.BuildkitSkipper
-		targetHash  []byte
-		orgName     string
-		projectName string
-	)
+	orgName := a.cli.Flags().OrgName
 
-	orgName, projectName, targetHash, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
-		Target:           target,
-		Console:          a.cli.Console(),
-		CI:               a.cli.Flags().CI,
-		BuiltinArgs:      variables.DefaultArgs{EarthlyVersion: a.cli.Version(), EarthlyBuildSha: a.cli.GitSHA()},
-		OverridingVars:   overridingVars,
-		EarthlyCIRunner:  a.cli.Flags().EarthlyCIRunner,
-		SkipProjectCheck: a.cli.Flags().LocalSkipDB != "",
+	targetHash, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
+		Target:          target,
+		Console:         a.cli.Console(),
+		CI:              a.cli.Flags().CI,
+		BuiltinArgs:     variables.DefaultArgs{EarthlyVersion: a.cli.Version(), EarthlyBuildSha: a.cli.GitSHA()},
+		OverridingVars:  overridingVars,
+		EarthlyCIRunner: a.cli.Flags().EarthlyCIRunner,
 	})
 	if err != nil {
-		return nil, nil, false, errors.Wrapf(err, "unable to calculate hash for %s", target)
+		return nil, nil, false, errors.Wrapf(err, "auto-skip is unable to calculate hash for %s", target)
 	}
 
-	skipDB, err = bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, orgName, projectName, target.GetName(), client)
+	if a.cli.Flags().LocalSkipDB == "" && orgName == "" {
+		orgName, _, err = inputgraph.ParseProjectCommand(ctx, target, console)
+		if err != nil {
+			return nil, nil, false, errors.New("organization not found in Earthfile, command flag or environmental variables")
+		}
+	}
+
+	if !target.IsRemote() {
+		meta, err := gitutil.Metadata(ctx, target.GetLocalPath(), a.cli.Flags().GitBranchOverride)
+		if err != nil {
+			console.VerboseWarnf("unable to detect all git metadata: %v", err.Error())
+		}
+		target = gitutil.ReferenceWithGitMeta(target, meta).(domain.Target)
+		target.Tag = ""
+	}
+
+	skipDB, err := bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, orgName, target, client)
 	if err != nil {
 		return nil, nil, false, err
 	}
 
+	targetConsole := a.cli.Console().WithPrefix(target.String())
+	targetStr := targetConsole.PrefixColor().Sprintf("%s", target.StringCanonical())
 	exists, err := skipDB.Exists(ctx, targetHash)
 	if err != nil {
-		console.Warnf("unable to check if target %s (hash %x) has already been run: %s", target.String(), targetHash, err.Error())
+		console.Warnf("Unable to check if target %s (hash %x) has already been run: %s", targetStr, targetHash, err.Error())
 		return nil, nil, false, nil
 	}
 
 	if exists {
-		consoleNoPrefix.Printf("target %s (hash %x) has already been run; exiting", target.String(), targetHash)
+		console.Printf("Target %s (hash %x) has already been run. Skipping.", targetStr, targetHash)
+		consoleNoPrefix.PrintSuccess()
 		return nil, nil, true, nil
 	}
 

@@ -270,7 +270,7 @@ func SaveCertsFromCloud(sat *cloud.SatelliteInstance, cfg *config.Config) error 
 	if err = saveFile(cfg.Global.TLSCACert, sat.Certificate.Ca); err != nil {
 		return err
 	}
-	if err = saveFile(cfg.Global.TLSCACert, sat.Certificate.CaKey); err != nil {
+	if err = saveFile(cfg.Global.TLSCAKey, sat.Certificate.CaKey); err != nil {
 		return err
 	}
 

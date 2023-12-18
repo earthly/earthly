@@ -26,10 +26,8 @@ func TestHashTargetWithDocker(t *testing.T) {
 	cons := conslogging.New(os.Stderr, &sync.Mutex{}, conslogging.NoColor, 0, conslogging.Info)
 
 	hashOpt := HashOpt{Console: cons, Target: target}
-	org, project, hash, err := HashTarget(ctx, hashOpt)
+	hash, err := HashTarget(ctx, hashOpt)
 	r.NoError(err)
-	r.Equal("earthly-technologies", org)
-	r.Equal("core", project)
 
 	hex := fmt.Sprintf("%x", hash)
 	r.NotEmpty(hex)
@@ -57,7 +55,7 @@ func TestHashTargetWithDocker(t *testing.T) {
 	}
 
 	hashOpt = HashOpt{Console: cons, Target: target}
-	_, _, hash, err = HashTarget(ctx, hashOpt)
+	hash, err = HashTarget(ctx, hashOpt)
 	r.NoError(err)
 
 	second := fmt.Sprintf("%x", hash)
@@ -121,10 +119,8 @@ func TestHashTargetWithDockerNoAlias(t *testing.T) {
 	cons := conslogging.New(os.Stderr, &sync.Mutex{}, conslogging.NoColor, 0, conslogging.Info)
 
 	hashOpt := HashOpt{Console: cons, Target: target}
-	org, project, hash, err := HashTarget(ctx, hashOpt)
+	hash, err := HashTarget(ctx, hashOpt)
 	r.NoError(err)
-	r.Equal("earthly-technologies", org)
-	r.Equal("core", project)
 
 	hex := fmt.Sprintf("%x", hash)
 	r.NotEmpty(hex)
@@ -141,10 +137,8 @@ func TestHashTargetWithDockerRemote(t *testing.T) {
 	cons := conslogging.New(os.Stderr, &sync.Mutex{}, conslogging.NoColor, 0, conslogging.Info)
 
 	hashOpt := HashOpt{Console: cons, Target: target}
-	org, project, hash, err := HashTarget(ctx, hashOpt)
+	hash, err := HashTarget(ctx, hashOpt)
 	r.NoError(err)
-	r.Equal("earthly-technologies", org)
-	r.Equal("core", project)
 
 	hex := fmt.Sprintf("%x", hash)
 	r.NotEmpty(hex)

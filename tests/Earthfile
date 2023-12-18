@@ -34,7 +34,7 @@ ga-no-qemu-group1:
     BUILD +builtin-args-invalid-default-test
     BUILD +builtin-args-invalid-pass-test
     BUILD +builtin-args-cli-tests
-    BUILD +smoke-test
+    BUILD +parser-smoke-test
     BUILD --pass-args ./invalid+test-all
     BUILD +excludes-test
     BUILD +secrets-test
@@ -323,8 +323,8 @@ builtin-args-cli-tests:
     DO +RUN_EARTHLY --should_fail=true --extra_args="--build-arg EARTHLY_VERSION=123" --target=+builtin-args-test \
         --output_contains="cannot be passed on the command line"
 
-smoke-test:
-    DO +RUN_EARTHLY --earthfile=smoke.earth --target=+test
+parser-smoke-test:
+    DO +RUN_EARTHLY --earthfile=parser-smoke.earth --target=+test
 
 excludes-test:
     RUN touch exclude-me.txt
@@ -403,7 +403,7 @@ scratch-test:
 
 build-earthly-test:
     # Test that build.earth is supported.
-    COPY smoke.earth ./build.earth
+    COPY parser-smoke.earth ./build.earth
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
@@ -702,7 +702,7 @@ eine-test-base:
 
 eine-smoke-test:
     FROM +eine-test-base
-    COPY smoke.earth ./Earthfile
+    COPY parser-smoke.earth ./Earthfile
     WITH DOCKER --load earthly/buildkitd:dind-test=../../buildkitd+buildkitd
         RUN earthly +test
     END

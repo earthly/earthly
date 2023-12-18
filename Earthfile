@@ -752,6 +752,11 @@ test:
     BUILD --pass-args +test-no-qemu
     BUILD --pass-args +test-qemu
 
+# smoke-test is used by circleci, and aims to be a medium-weight test which covers some WITH DOCKER and multi-platform tests
+smoke-test:
+    BUILD ./tests/with-docker-kind+alpine-kind
+    BUILD ./tests/platform+test
+
 # test runs examples, no-qemu, qemu, and experimental tests
 test-all:
     BUILD +examples

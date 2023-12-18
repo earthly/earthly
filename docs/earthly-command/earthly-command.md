@@ -243,6 +243,12 @@ Also available as an env var setting: `EARTHLY_NO_CACHE=true`.
 
 Instructs Earthly to ignore any cache when building. It does, however, continue to store new cache formed as part of the build (to be possibly used on future invocations).
 
+##### `--auto-skip` (**experimental**)
+
+Also available as an env var setting: `EARTHLY_AUTO_SKIP=true`.
+
+Instructs Earthly to skip any targets that have not changed from a previous build. For more information see the [auto-skip guide](../caching/caching-in-earthfiles.md#auto-skip).
+
 ##### `--allow-privileged|-P`
 
 Also available as an env var setting: `EARTHLY_ALLOW_PRIVILEGED=true`.
@@ -686,13 +692,14 @@ List account tokens associated with the current Earthly account. A token is usef
 #### Synopsis
 
 * ```
-  earthly [options] account create-token [--write] [--expiry <expiry>] <token-name>
+  earthly [options] account create-token [--write] [--expiry <expiry>] [--overwrite] <token-name>
   ```
 
 #### Description
 
 Creates a new authentication token. A read-only token is created by default, If the `--write` flag is specified the token will have read+write access.
-The token will expire in 1 year from creation date unless a different date is supplied via the `--expiry` option.
+The token will never expire unless a different date is supplied via the `--expiry` flag.  
+If the token by the same name already exists, it will not be overwritten unless the `--overwrite` flag is specified.
 
 {% hint style='info' %}
 It is then possible to `export EARTHLY_TOKEN=...`, which will force earthly to use this token for all authentication (overriding any other currently-logged in sessions).
@@ -707,6 +714,10 @@ Grant write permissions in addition to read permissions
 ##### `--expiry`
 
 Set token expiry date in the form YYYY-MM-DD or never
+
+##### `--overwrite`
+
+Overwrite the token if it already exists
 
 ### earthly account remove-token
 

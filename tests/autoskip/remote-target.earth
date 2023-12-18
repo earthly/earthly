@@ -3,27 +3,27 @@ PROJECT testorg/testproj
 
 valid-copy:
     FROM alpine
-    COPY github.com/earthly/earthly:tags/v0.7.21+license/LICENSE .
+    COPY github.com/earthly/test-remote:tags/v0.2+basic-file/file .
 
 valid-copy-sha:
     FROM alpine
-    COPY github.com/earthly/earthly:6610b73131f94cbe594dba3b90665748f21a9b8d+license/LICENSE .
+    COPY github.com/earthly/test-remote:6accddaba346aeda062ab47bae62e65dcdcc513f+basic-file/file .
 
 valid-from:
-    FROM github.com/earthly/earthly:tags/v0.7.21+license
+    FROM github.com/earthly/test-remote:tags/v0.2+basic
     RUN echo "hello"
 
 valid-from-sha:
-    FROM github.com/earthly/earthly:6610b73131f94cbe594dba3b90665748f21a9b8d+license
+    FROM github.com/earthly/test-remote:6accddaba346aeda062ab47bae62e65dcdcc513f+basic
     RUN echo "hello"
 
 invalid-copy-branch:
     FROM alpine
-    COPY github.com/earthly/earthly:main+license/LICENSE .
+    COPY github.com/earthly/test-remote:main+basic-file/file .
 
 valid-build:
-    BUILD github.com/earthly/earthly:6610b73131f94cbe594dba3b90665748f21a9b8d+license
-    BUILD github.com/earthly/earthly:tags/v0.7.21+license
+    BUILD github.com/earthly/test-remote:6accddaba346aeda062ab47bae62e65dcdcc513f+basic
+    BUILD github.com/earthly/test-remote:tags/v0.2+basic
 
 invalid-build:
-    BUILD github.com/earthly/earthly:main+license
+    BUILD github.com/earthly/test-remote:main+basic

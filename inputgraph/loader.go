@@ -27,9 +27,8 @@ import (
 )
 
 var (
-	errUnsupportedRemoteTarget = errors.New("only remote targets referenced by a complete Git SHA or tag (e.g. tags/my-tag) are supported")
-	errCannotLoadRemoteTarget  = errors.New("cannot load remote target")
-	errComplexCondition        = errors.New("condition cannot be evaluated")
+	errCannotLoadRemoteTarget = errors.New("cannot load remote target")
+	errComplexCondition       = errors.New("condition cannot be evaluated")
 )
 
 type loader struct {
@@ -77,7 +76,7 @@ func (l *loader) handleFrom(ctx context.Context, cmd spec.Command) error {
 		return nil
 	}
 
-	return l.loadTargetFromString(ctx, fromTarget, args[1:], false)
+	return l.loadTargetFromString(ctx, fromTarget, args[1:], false, cmd.SourceLocation)
 }
 
 func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
@@ -88,18 +87,18 @@ func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
 	}
 
 	if len(args) < 1 {
-		return errors.New("missing BUILD arg")
+		return newError(cmd.SourceLocation, "missing BUILD arg")
 	}
 
 	targetName := args[0]
 
 	argCombos, err := flagutil.BuildArgMatrix(args)
 	if err != nil {
-		return errors.Wrap(err, "failed to compute arg matrix")
+		return wrapError(err, cmd.SourceLocation, "failed to compute arg matrix")
 	}
 
 	for _, args := range argCombos {
-		err := l.loadTargetFromString(ctx, targetName, args[1:], opts.PassArgs)
+		err := l.loadTargetFromString(ctx, targetName, args[1:], opts.PassArgs, cmd.SourceLocation)
 		if err != nil {
 			return err
 		}
@@ -111,7 +110,7 @@ func (l *loader) handleBuild(ctx context.Context, cmd spec.Command) error {
 func (l *loader) derefedTarget(targetName string) (domain.Target, error) {
 	target, err := domain.ParseTarget(targetName)
 	if err != nil {
-		return domain.Target{}, errors.Wrapf(err, "parse target name %s", targetName)
+		return domain.Target{}, errors.Wrapf(err, "failed to parse target %s", targetName)
 	}
 
 	derefed, _, _, err := l.varCollection.Imports().Deref(target)
@@ -137,17 +136,17 @@ func (l *loader) handleCopy(ctx context.Context, cmd spec.Command) error {
 	}
 
 	if opts.From != "" {
-		return errors.New("COPY --from is not supported")
+		return newError(cmd.SourceLocation, "COPY --from is not supported")
 	}
 
 	if len(args) < 2 {
-		return errors.New("COPY must include a source and destination")
+		return newError(cmd.SourceLocation, "COPY must include a source and destination")
 	}
 
 	srcs := args[:len(args)-1]
 	for _, src := range srcs {
 		mustExist := !opts.IfExists
-		if err := l.handleCopySrc(ctx, src, mustExist); err != nil {
+		if err := l.handleCopySrc(ctx, cmd, src, mustExist); err != nil {
 			return err
 		}
 	}
@@ -180,10 +179,10 @@ func containsShellExpr(s string) bool {
 	return depth == 0 && hasExpr
 }
 
-func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) error {
+func (l *loader) handleCopySrc(ctx context.Context, cmd spec.Command, src string, mustExist bool) error {
 
 	if containsShellExpr(src) {
-		return errors.Errorf("dynamic COPY source %q cannot be resolved", src)
+		return newError(cmd.SourceLocation, "dynamic COPY source %q cannot be resolved", src)
 	}
 
 	var (
@@ -199,11 +198,11 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) 
 		classical = false
 		artifactName, extraArgs, err = flagutil.ParseParams(src)
 		if err != nil {
-			return errors.Wrap(err, "failed to parse COPY params")
+			return wrapError(err, cmd.SourceLocation, "failed to parse COPY params")
 		}
 		artifactSrc, err = domain.ParseArtifact(artifactName)
 		if err != nil {
-			return errors.Wrap(err, "failed to parse artifact")
+			return wrapError(err, cmd.SourceLocation, "failed to parse artifact")
 		}
 	} else { // Simpler form: '+target/artifact' or 'file/path'
 		artifactSrc, err = domain.ParseArtifact(src)
@@ -217,7 +216,7 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) 
 		path := filepath.Join(l.target.GetLocalPath(), src)
 		files, err := l.expandCopyFiles(path, mustExist)
 		if err != nil {
-			return err
+			return addErrorSrc(err, cmd.SourceLocation)
 		}
 		sort.Strings(files)
 		for _, file := range files {
@@ -225,14 +224,14 @@ func (l *loader) handleCopySrc(ctx context.Context, src string, mustExist bool) 
 				if errors.Is(err, os.ErrNotExist) && !mustExist {
 					continue
 				}
-				return errors.Wrapf(err, "failed to hash file %s", path)
+				return wrapError(err, cmd.SourceLocation, "failed to hash file %s", path)
 			}
 		}
 		return nil
 	}
 
 	targetName := artifactSrc.Target.String()
-	if err := l.loadTargetFromString(ctx, targetName, extraArgs, false); err != nil {
+	if err := l.loadTargetFromString(ctx, targetName, extraArgs, false, cmd.SourceLocation); err != nil {
 		return err
 	}
 
@@ -362,7 +361,7 @@ func (l *loader) handleImport(ctx context.Context, cmd spec.Command, global bool
 
 	err := l.varCollection.Imports().Add(cmd.Args[0], alias, global, false, false)
 	if err != nil {
-		return errors.Wrap(err, "failed to add import")
+		return wrapError(err, cmd.SourceLocation, "failed to add import")
 	}
 
 	return nil
@@ -372,15 +371,15 @@ func (l *loader) handleFromDockerfile(ctx context.Context, cmd spec.Command) err
 	opts := commandflag.FromDockerfileOpts{}
 	args, err := flagutil.ParseArgsCleaned(command.FromDockerfile, &opts, flagutil.GetArgsCopy(cmd))
 	if err != nil {
-		return err
+		return wrapError(err, cmd.SourceLocation, "failed to parse args")
 	}
 	if opts.Path != "" {
-		if err := l.handleCopySrc(ctx, opts.Path, false); err != nil {
+		if err := l.handleCopySrc(ctx, cmd, opts.Path, false); err != nil {
 			return err
 		}
 	}
 	if len(args) > 0 {
-		if err := l.handleCopySrc(ctx, args[0], false); err != nil {
+		if err := l.handleCopySrc(ctx, cmd, args[0], false); err != nil {
 			return err
 		}
 	}
@@ -390,7 +389,7 @@ func (l *loader) handleFromDockerfile(ctx context.Context, cmd spec.Command) err
 func (l *loader) handleArg(ctx context.Context, cmd spec.Command) error {
 	opts, key, valueOrNil, err := flagutil.ParseArgArgs(ctx, cmd, l.isBaseTarget, l.features.ExplicitGlobal)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse ARG args")
+		return wrapError(err, cmd.SourceLocation, "failed to parse args")
 	}
 
 	declOpts := []variables.DeclareOpt{
@@ -407,7 +406,7 @@ func (l *loader) handleArg(ctx context.Context, cmd spec.Command) error {
 
 	_, _, err = l.varCollection.DeclareVar(key, declOpts...)
 	if err != nil {
-		return errors.Wrap(err, "failed to declare variable")
+		return wrapError(err, cmd.SourceLocation, "failed to declare variable")
 	}
 
 	return nil
@@ -415,7 +414,7 @@ func (l *loader) handleArg(ctx context.Context, cmd spec.Command) error {
 
 func (l *loader) handleWith(ctx context.Context, with spec.WithStatement) error {
 	if with.Command.Name != command.Docker {
-		return errors.New("expected WITH DOCKER")
+		return newError(with.Command.SourceLocation, "expected WITH DOCKER")
 	}
 	err := l.handleWithDocker(ctx, with.Command)
 	if err != nil {
@@ -429,7 +428,7 @@ func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 	var err error
 	cmd.Args, err = l.expandArgs(ctx, cmd.Args)
 	if err != nil {
-		return err
+		return wrapError(err, cmd.SourceLocation, "failed to expand args")
 	}
 
 	l.hashCommand(cmd)
@@ -437,16 +436,16 @@ func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 
 	_, err = flagutil.ParseArgsCleaned("WITH DOCKER", &opts, flagutil.GetArgsCopy(cmd))
 	if err != nil {
-		return errors.New("failed to parse WITH DOCKER flags")
+		return newError(cmd.SourceLocation, "failed to parse WITH DOCKER flags")
 	}
 
 	for _, load := range opts.Loads {
 		_, target, extraArgs, err := earthfile2llb.ParseLoad(load)
 		if err != nil {
-			return errors.Wrap(err, "failed to parse --load value")
+			return wrapError(err, cmd.SourceLocation, "failed to parse --load value")
 		}
 
-		err = l.loadTargetFromString(ctx, target, extraArgs, false)
+		err = l.loadTargetFromString(ctx, target, extraArgs, false, cmd.SourceLocation)
 		if err != nil {
 			return err
 		}
@@ -793,16 +792,16 @@ func (l *loader) forTarget(ctx context.Context, target domain.Target, args []str
 	return ret, nil
 }
 
-func (l *loader) loadTargetFromString(ctx context.Context, targetName string, args []string, passArgs bool) error {
+func (l *loader) loadTargetFromString(ctx context.Context, targetName string, args []string, passArgs bool, srcLoc *spec.SourceLocation) error {
 	// If the target name contains a variable that hasn't been expanded, we
 	// won't be able to explore the rest of the graph and generate a valid hash.
 	if containsShellExpr(targetName) {
-		return errors.Errorf("dynamic target %q cannot be resolved", targetName)
+		return newError(srcLoc, "dynamic target %q cannot be resolved", targetName)
 	}
 
 	target, err := l.derefedTarget(targetName)
 	if err != nil {
-		return err
+		return addErrorSrc(err, srcLoc)
 	}
 
 	if target.IsRemote() {
@@ -810,60 +809,27 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string, ar
 			l.hasher.HashString(target.StringCanonical())
 			return nil
 		}
-		return errUnsupportedRemoteTarget
+		msg := "only remote targets referenced by a complete Git SHA or an explicit tag referenced as 'tags/...' are supported"
+		return newError(srcLoc, msg)
 	}
 
 	fullTargetName := target.String()
 	if fullTargetName == "" {
-		return fmt.Errorf("missing target string")
+		return newError(srcLoc, "missing target string")
 	}
 
 	if _, exists := l.visited[fullTargetName]; exists {
 		// Prevent infinite loops; the converter does a better job since it also
 		// looks at args and if conditions.
-		return errors.Errorf("circular dependency detected; %s already called", fullTargetName)
+		return newError(srcLoc, "circular dependency detected; %s already called", fullTargetName)
 	}
 
 	newLoader, err := l.forTarget(ctx, target, args, passArgs)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create loader for target %q", targetName)
+		return wrapError(err, srcLoc, "failed to create loader for target %q", targetName)
 	}
 
 	return newLoader.load(ctx)
-}
-
-func (l *loader) findProject(ctx context.Context) (org, project string, err error) {
-	if l.target.IsRemote() {
-		return "", "", errCannotLoadRemoteTarget
-	}
-
-	resolver := buildcontext.NewResolver(nil, nil, l.conslog, "", "", "", 0, "")
-
-	buildCtx, err := resolver.Resolve(ctx, nil, nil, l.target)
-	if err != nil {
-		return "", "", err
-	}
-
-	ef := buildCtx.Earthfile
-	if ef.Version != nil {
-		l.hashVersion(*ef.Version)
-	}
-
-	for _, stmt := range ef.BaseRecipe {
-		if stmt.Command != nil && stmt.Command.Name == command.Project {
-			args := stmt.Command.Args
-			if len(args) != 1 {
-				return "", "", errors.New("failed to parse PROJECT command")
-			}
-			parts := strings.Split(args[0], "/")
-			if len(parts) != 2 {
-				return "", "", errors.New("failed to parse PROJECT command")
-			}
-			return parts[0], parts[1], nil
-		}
-	}
-
-	return "", "", errors.New("PROJECT command is required for remote storage")
 }
 
 func (l *loader) load(ctx context.Context) error {

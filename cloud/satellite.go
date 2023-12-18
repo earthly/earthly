@@ -134,7 +134,7 @@ func (c *Client) GetSatellite(ctx context.Context, name, orgName string) (*Satel
 		CacheRetention:          resp.CacheRetention.AsDuration(),
 		IsManaged:               resp.IsManaged,
 		Address:                 resp.PrivateDns,
-		Certs:                   resp.Certificate,
+		Certificate:             resp.Certificate,
 	}, nil
 }
 
