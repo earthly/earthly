@@ -162,6 +162,8 @@
               "45s",
               "--start-period",
               "10s",
+              "--start-interval",
+              "3s",
               "CMD",
               "echo",
               "one",

@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -28,6 +29,8 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/pkg/errors"
 )
+
+const maxCommandRenameWarnings = 3
 
 var errCannotAsync = errors.New("cannot run async operation")
 
@@ -969,6 +972,12 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	if !allClassical && !allArtifacts {
 		return i.errorf(cmd.SourceLocation, "combining artifacts and build context arguments in a single COPY command is not allowed: %v", srcs)
 	}
+
+	if slices.ContainsFunc(strings.Split(dest, "/"), func(s string) bool {
+		return s == "~" || strings.HasPrefix(s, "~")
+	}) {
+		i.console.Warnf(`destination path %q contains a "~" which does not expand to a home directory`, dest)
+	}
 	if allArtifacts {
 		if dest == "" || dest == "." || len(srcs) > 1 {
 			dest += string("/") // TODO needs to be the containers platform, not the earthly hosts platform. For now, this is always Linux.
@@ -1553,12 +1562,12 @@ func (i *Interpreter) handleGitClone(ctx context.Context, cmd spec.Command) erro
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand GIT CLONE dest: %s", opts.Branch)
 	}
 
-	convertedGitURL, _, err := i.gitLookup.ConvertCloneURL(gitURL)
+	convertedGitURL, _, sshCommand, err := i.gitLookup.ConvertCloneURL(gitURL)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "unable to use %v with configured earthly credentials from ~/.earthly/config.yml", cmd.Args)
 	}
 
-	err = i.converter.GitClone(ctx, convertedGitURL, gitBranch, gitCloneDest, opts.KeepTs)
+	err = i.converter.GitClone(ctx, convertedGitURL, sshCommand, gitBranch, gitCloneDest, opts.KeepTs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "git clone")
 	}
@@ -1603,7 +1612,7 @@ func (i *Interpreter) handleHealthcheck(ctx context.Context, cmd spec.Command) e
 		}
 		cmdArgs[index] = expandedArg
 	}
-	err = i.converter.Healthcheck(ctx, isNone, cmdArgs, opts.Interval, opts.Timeout, opts.StartPeriod, opts.Retries)
+	err = i.converter.Healthcheck(ctx, isNone, cmdArgs, opts.Interval, opts.Timeout, opts.StartPeriod, opts.Retries, opts.StartInterval)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply HEALTHCHECK")
 	}
@@ -1787,7 +1796,8 @@ func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 
 	for _, uc := range bc.Earthfile.Functions {
 		if uc.Name == command.Command {
-			return i.handleDoFunction(ctx, command, relCommand, uc, cmd, parsedFlagArgs, allowPrivileged, opts.PassArgs, bc.Features.UseFunctionKeyword)
+			sourceFilePath := bc.Ref.ProjectCanonical() + "/Earthfile"
+			return i.handleDoFunction(ctx, command, relCommand, uc, cmd, parsedFlagArgs, allowPrivileged, opts.PassArgs, sourceFilePath, bc.Features.UseFunctionKeyword)
 		}
 	}
 	return i.errorf(cmd.SourceLocation, "user command %s not found", ucName)
@@ -1976,7 +1986,7 @@ func (i *Interpreter) handleHost(ctx context.Context, cmd spec.Command) error {
 
 // ----------------------------------------------------------------------------
 
-func (i *Interpreter) handleDoFunction(ctx context.Context, command domain.Command, relCommand domain.Command, uc spec.Function, do spec.Command, buildArgs []string, allowPrivileged, passArgs bool, useFunctionCmd bool) error {
+func (i *Interpreter) handleDoFunction(ctx context.Context, command domain.Command, relCommand domain.Command, uc spec.Function, do spec.Command, buildArgs []string, allowPrivileged, passArgs bool, sourceLocationFile string, useFunctionCmd bool) error {
 	cmdName := "FUNCTION"
 	if !useFunctionCmd {
 		cmdName = "COMMAND"
@@ -1987,11 +1997,12 @@ func (i *Interpreter) handleDoFunction(ctx context.Context, command domain.Comma
 	if len(uc.Recipe) == 0 || uc.Recipe[0].Command == nil || uc.Recipe[0].Command.Name != cmdName {
 		return i.errorf(uc.SourceLocation, "%s recipes must start with %s", strings.ToLower(cmdName), cmdName)
 	}
-	if !useFunctionCmd {
-		i.console.Warnf(
+	if !useFunctionCmd && len(i.converter.opt.FilesWithCommandRenameWarning) < maxCommandRenameWarnings && !i.converter.opt.FilesWithCommandRenameWarning[sourceLocationFile] {
+		i.console.Printf(
 			`Note that the COMMAND keyword will be replaced by FUNCTION starting with VERSION 0.8.
-To start using the FUNCTION keyword now (experimental) please use VERSION --use-function-keyword 0.7. Note that switching now may cause breakages for your colleagues if they are using older Earthly versions.
-`)
+To start using the FUNCTION keyword now (experimental) please use VERSION --use-function-keyword 0.7 in %s. Note that switching now may cause breakages for your colleagues if they are using older Earthly versions.
+`, sourceLocationFile)
+		i.converter.opt.FilesWithCommandRenameWarning[sourceLocationFile] = true
 	}
 	if len(uc.Recipe[0].Command.Args) > 0 {
 		return i.errorf(uc.Recipe[0].SourceLocation, "%s takes no arguments", cmdName)

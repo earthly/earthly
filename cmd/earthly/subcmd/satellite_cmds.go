@@ -337,15 +337,17 @@ func printRow(t *tabwriter.Writer, c []color.Attribute, items []string) {
 }
 
 func (a *Satellite) printSatellitesTable(satellites []satelliteWithPipelineInfo, isOrgSelected bool) {
-	slices.SortStableFunc(satellites, func(a, b satelliteWithPipelineInfo) bool {
+	slices.SortStableFunc(satellites, func(a, b satelliteWithPipelineInfo) int {
 		// satellites with associated pipelines group together at the top of the list,
 		// otherwise sort alphabetically
-		if a.pipeline == nil && b.pipeline != nil {
-			return false
+		if a.pipeline != nil && b.pipeline != nil {
+			return strings.Compare(a.pipeline.Name, b.pipeline.Name)
+		} else if a.pipeline == nil && b.pipeline != nil {
+			return +1
 		} else if a.pipeline != nil && b.pipeline == nil {
-			return true
+			return -1
 		}
-		return a.satellite.Name < b.satellite.Name
+		return strings.Compare(a.satellite.Name, b.satellite.Name)
 	})
 
 	includeTypeColumn := false
@@ -679,6 +681,7 @@ func (a *Satellite) actionInspect(cliCtx *cli.Context) error {
 	a.cli.Flags().BuildkitdSettings.Timeout = 30 * time.Second
 	a.cli.Flags().BuildkitdSettings.SatelliteToken = token
 	a.cli.Flags().BuildkitdSettings.SatelliteName = satelliteToInspectName
+	a.cli.Flags().BuildkitdSettings.SatelliteIsManaged = satellite.IsManaged
 	a.cli.Flags().BuildkitdSettings.SatelliteDisplayName = satelliteToInspect
 	a.cli.Flags().BuildkitdSettings.SatelliteOrgID = orgID // must be the ID and not name, due to satellite-proxy requirements
 	if a.cli.Flags().SatelliteAddress != "" {
@@ -692,9 +695,15 @@ func (a *Satellite) actionInspect(cliCtx *cli.Context) error {
 		selected = "Yes"
 	}
 
+	size := satellite.Size
+	if !satellite.IsManaged {
+		size = "self-hosted"
+		a.cli.Console().Printf("Address: %s", satellite.Address)
+	}
+
 	a.cli.Console().Printf("State: %s", satellite.State)
 	a.cli.Console().Printf("Platform: %s", satellite.Platform)
-	a.cli.Console().Printf("Size: %s", satellite.Size)
+	a.cli.Console().Printf("Size: %s", size)
 	a.cli.Console().Printf("Last Used: %s", satellite.LastUsed.In(time.Local))
 	a.cli.Console().Printf("Cache Duration: %s", durationWithDaysPart(satellite.CacheRetention))
 	pinned := ""

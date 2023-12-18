@@ -177,7 +177,12 @@ Push commands were introduced to allow the user to define commands that have an 
 
 ##### `--no-cache`
 
-Force the command to run every time; ignoring any cache. Any commands following the invocation of `RUN --no-cache`, will also ignore the cache. If `--no-cache` is used as an option on the `RUN` statement within a `WITH DOCKER` statement, all commands after the `WITH DOCKER` will also ignore the cache.
+Force the command to run every time; ignoring the layer cache. Any commands following the invocation of `RUN --no-cache`, will also ignore the cache. If `--no-cache` is used as an option on the `RUN` statement within a `WITH DOCKER` statement, all commands after the `WITH DOCKER` will also ignore the cache.
+
+{% hint style='danger' %}
+##### Auto-skip
+Note that `RUN --no-cache` commands may still be skipped by auto-skip. For more information see the [Caching in Earthfiles guide](../caching/caching-in-earthfiles.md#auto-skip).
+{% endhint %}
 
 ##### `--entrypoint`
 
@@ -776,7 +781,7 @@ Instructs Earthly to not create a manifest list for the image. This may be usefu
 
 #### Synopsis
 
-* `BUILD [--platform <platform>] [--allow-privileged] <target-ref> [--<build-arg-name>=<build-arg-value>...]`
+* `BUILD [options...] <target-ref> [--<build-arg-name>=<build-arg-value>...]`
 
 #### Description
 
@@ -845,6 +850,10 @@ build-all-platforms:
 ```
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
+
+##### `--auto-skip` (*coming soon*)
+
+Instructs Earthly to skip the build of the target if the target's dependencies have not changed from a previous successful build. For more information on how to use this feature, see the [auto-skip section of the caching in Earthfiles guide](../caching/caching-in-earthfiles.md#auto-skip).
 
 ##### `--allow-privileged`
 
@@ -1697,7 +1706,7 @@ The `WORKDIR` command sets the working directory for following commands in the r
 #### Synopsis
 
 * `HEALTHCHECK NONE` (disable health checking)
-* `HEALTHCHECK [--interval=DURATION] [--timeout=DURATION] [--start-period=DURATION] [--retries=N] CMD command arg1 arg2` (check container health by running command inside the container)
+* `HEALTHCHECK [--interval=DURATION] [--timeout=DURATION] [--start-period=DURATION] [--retries=N] [--start-interval=DURATION] CMD command arg1 arg2` (check container health by running command inside the container)
 
 #### Description
 
@@ -1720,6 +1729,10 @@ Sets an initialization time period in which failures are not counted towards the
 ##### `--retries=N`
 
 Sets the number of retries before a container is considered `unhealthy`. Defaults to `3`.
+
+##### `--start-interval=DURATION`
+
+Sets the time interval between health checks during the start period. Defaults to `5s`.
 
 ## HOST
 

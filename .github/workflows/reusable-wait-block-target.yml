@@ -22,6 +22,9 @@ on:
       TARGET_NAME:
         required: true
         type: string
+      EXTRA_ARGS:
+        required: false
+        type: string
 
 jobs:
   test:
@@ -35,7 +38,7 @@ jobs:
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: ./.github/actions/stage2-setup
@@ -57,7 +60,7 @@ jobs:
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Execute ${{inputs.TARGET_NAME}} using wait-block override
         run: |-
-          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} --ci -P --global-wait-end \
+          ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.EXTRA_ARGS}} --ci -P --global-wait-end \
            ${{inputs.TARGET_NAME}} --GLOBAL_WAIT_END=true
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd || true

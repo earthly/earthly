@@ -24,6 +24,7 @@ import (
 	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/inputgraph"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/errutil"
 	"github.com/earthly/earthly/util/hint"
@@ -181,10 +182,14 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 		grpcErr, grpcErrOK := grpcerrors.AsGRPCStatus(err)
 		hintErr, hintErrOK := getHintErr(err, grpcErr)
 		var paramsErr *params.Error
+		var autoSkipErr *inputgraph.Error
 		switch {
 		case hintErrOK:
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, hintErr.Message())
 			app.BaseCLI.Console().HelpPrintf(hintErr.Hint())
+			return 1
+		case errors.As(err, &autoSkipErr):
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_AUTO_SKIP, inputgraph.FormatError(err))
 			return 1
 		case errors.As(err, &paramsErr):
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_INVALID_PARAM, paramsErr.ParentError())
@@ -207,6 +212,15 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			// This SetFatalError is a catch-all just in case that hasn't happened.
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER,
 				err.Error())
+			if !app.BaseCLI.Flags().InteractiveDebugging && len(args) > 0 {
+				args[0] = args[0] + " -i"
+				msg := "To debug your build, you can use the --interactive (-i) flag to drop into a shell of the failing RUN step"
+				if areSecretsUsed(args) {
+					app.BaseCLI.Console().HelpPrintf(msg)
+				} else {
+					app.BaseCLI.Console().HelpPrintf("%s: %q\n", msg, strings.Join(args, " "))
+				}
+			}
 			return 1
 		case strings.Contains(err.Error(), "security.insecure is not allowed"):
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_NEEDS_PRIVILEGED, err.Error())
@@ -392,4 +406,13 @@ func getHintErr(err error, grpcError *status.Status) (*hint.Error, bool) {
 		return hint.FromError(errors.New(grpcError.Message()))
 	}
 	return nil, false
+}
+
+func areSecretsUsed(args []string) bool {
+	for _, arg := range args {
+		if arg == "-s" || arg == "--secret" {
+			return true
+		}
+	}
+	return false
 }

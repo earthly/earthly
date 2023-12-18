@@ -25,18 +25,18 @@
   | ------------- | ------------- |
   | MacOS (x86)   | [![Build status](https://badge.buildkite.com/cc0627732806ab3b76cf13b02c498658b851056242ec28f62d.svg)](https://buildkite.com/earthly-technologies/earthly-mac-scheduled)
   | MacOS (M1)    | [![Build status](https://badge.buildkite.com/10a7331b2032fcc9f7f311c5218d12c1a18c317cd7fc9270ba.svg)](https://buildkite.com/earthly-technologies/earthly-m1-scheduled)
-  * Run
-    ```bash
-    cd release
-    env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG="$RELEASE_TAG" USER="$USER" PRERELEASE="$PRERELEASE" ./release.sh
+* Run
+  ```bash
+  cd release
+  env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG="$RELEASE_TAG" USER="$USER" PRERELEASE="$PRERELEASE" ./release.sh
+  ```
+* Wait for the [Merge main to docs-0.7 on New Earthly Release](../.github/workflows/release-merge-docs.yml) workflow to complete; this workflow automatically merges `main` into `docs-0.7`. You can watch for it here: [![Merge main to docs-0.7 on New Earthly Release](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml/badge.svg)](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml)  
+In case the workflow fails the manual process is:
+  ```shell
+    git checkout docs-0.7 && git pull && git merge main && git push
     ```
-  * Make sure `main` branch is properly merged to `docs-0.7`:  
-    [![update docs](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml/badge.svg)](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml)
-
-* Updating the Earthly version in our docs:  
-  [Renovate](https://www.mend.io/renovate/) will open a PR to update all docs as soon as a new release is available in this repo,  
-  which you should then review & merge (An example PR can be found [here](https://github.com/earthly/earthly/pull/3285/files)).
-* Commit updated version changes to `docs-0.7`.
+* Updating the Earthly version in our docs:
+  [Renovate](https://www.mend.io/renovate/) will open a PR targeting `docs-0.7` branch to update all docs as soon as a new release is available in this repo which you should then review & merge (An example PR can be found [here](https://github.com/earthly/earthly/pull/3285/files)).
 * Merge `docs-0.7` into `main`.
   ```shell
     git checkout main && git merge docs-0.7 && git push
@@ -46,10 +46,9 @@
     * Open a PR against the new branch and get it approved; IMPORTANT: don't squash-merge via github
     * Once all (required) checks pass, try pushing the branch again:
     `git checkout main && git push`
-  
+
 <!-- vale HouseStyle.Spelling = YES -->
-* Make sure there are no broken links in https://docs.earthly.dev:  
-  [![check docs broken links](https://github.com/earthly/earthly/actions/workflows/docs-checks-links.yml/badge.svg)](https://github.com/earthly/earthly/actions/workflows/docs-checks-links.yml)
+* Wait for the [Check Docs for Broken Links](../.github/workflows/docs-checks-links.yml) workflow to complete; this workflow validates https://docs.earthly.dev does not contain any broken links. You can watch for it here: [![Check Docs for Broken Links](https://github.com/earthly/earthly/actions/workflows/docs-checks-links.yml/badge.svg?event=push)](https://github.com/earthly/earthly/actions/workflows/docs-checks-links.yml)
 * Verify the [Homebrew release job](https://github.com/earthly/homebrew-earthly) has successfully run and has merged the new `release-v...` branch into `main`.
 * Copy the release notes you have written before and paste them in the Earthly Community slack channel `#announcements`, together with a link to the release's GitHub page. If you have Slack markdown editing activated, you can copy the markdown version of the text.
 
@@ -116,29 +115,7 @@ We currently have syntax highlighting for the following:
 
 #### VSCode + Github
 
-1. Go to the [repo](https://github.com/earthly/earthfile-grammar)
-1. Make relevant changes + test
-1. Set the version to publish:
-    ```bash
-    export VSCODE_RELEASE_TAG=${NEW_VERSION_HERE}
-    ```
-    
-    You can [see what is already published](https://marketplace.visualstudio.com/items?itemName=earthly.earthfile-syntax-highlighting)
-1. Make sure that the version has release notes already in the [README](https://github.com/earthly/earthfile-grammar/CHANGELOG.md)
-1. 
-    ```bash
-    earthly --release \
-      --build-arg VSCODE_RELEASE_TAG=${VSCODE_RELEASE_TAG}
-    ```
-1. Finally, tag git for future reference
-    ```bash
-    git tag "vscode-syntax-highlighting-$VSCODE_RELEASE_TAG"
-    git push origin "vscode-syntax-highlighting-$VSCODE_RELEASE_TAG"
-    ```
-
-- If `VSCE_TOKEN` token has expired, Vlad can regenerate one following [this guide](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token) and then setting it using `./earthly secrets set /earthly-technologies/vsce/token '...'`
-
-- If `OVSX_TOKEN` token has expired, Nacho can regenerate one following [this guide](https://github.com/eclipse/openvsx/wiki/Publishing-Extensions#3-create-an-access-token) and then setting it using `./earthly secrets set /earthly-technologies/ovsx/token '...'`
+Release instructions can be found in the [project repo](https://github.com/earthly/earthfile-grammar#how-to-release).
 
 #### Intellij
 

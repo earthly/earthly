@@ -1,0 +1,6 @@
+VERSION 0.7
+
+test:
+    FROM alpine
+    COPY my-file .
+    RUN cat my-file

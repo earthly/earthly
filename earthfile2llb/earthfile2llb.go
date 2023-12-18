@@ -179,6 +179,10 @@ type ConvertOpt struct {
 
 	// ProjectAdder is a callback that is used to discover PROJECT <org>/<project> values
 	ProjectAdder ProjectAdder
+
+	// FilesWithCommandRenameWarning keeps track of the files for which the COMMAND => FUNCTION warning was displayed
+	// this can be removed in VERSION 0.8
+	FilesWithCommandRenameWarning map[string]bool
 }
 
 // TargetDetails contains details about the target being built.
