@@ -57,15 +57,17 @@ to require version `0.X` (or later), and could be rewritten as `VERSION 0.X`.
 | `--use-pipelines`                   | 0.7          | Enable the `PIPELINE` and `TRIGGER` commands                                                                       |
 | `--earthly-git-author-args`         | 0.7          | Enable the `EARTHLY_GIT_AUTHOR` and `EARTHLY_GIT_CO_AUTHORS` args                                                  |
 | `--wait-block`                      | 0.7          | Enable the `WAIT` / `END` block commands                                                                           |
+| `--no-network`                      | 0.8 | Allow the use of `RUN --network=none` commands                                                                     |
+| `--arg-scope-and-set`               | 0.8 | Enable the `LET` / `SET` commands and nested `ARG` scoping                                                         |
+| `--use-docker-ignore`               | 0.8 | Enable the use of `.dockerignore` files in `FROM DOCKERFILE` targets                                               |
+| `--pass-args`                       | 0.8 | Enable the optional `--pass-args` flag for the `BUILD`, `FROM`, `COPY`, `WITH DOCKER --load` commands              |
+| `--global-cache`                    | 0.8 | Enable global caches (shared across different Earthfiles), for cache mounts and `CACHE` commands having an ID      |
+| `--cache-persist-option`            | 0.8 | Adds `CACHE --persist` option to persist cache content in images, Changes default `CACHE` behaviour to not persist |
+| `--use-function-keyword`            | 0.8 | Enable using `FUNCTION` instead of `COMMAND` when declaring a function |
+| `--use-visited-upfront-hash-collection` | 0.8 | Switches to a newer target parallelization algorithm |
 | `--no-use-registry-for-with-docker` | Experimental | Disable `use-registry-for-with-docker`                                                                             |
 | `--try`                             | Experimental | Enable the `TRY` / `FINALLY` / `END` block commands                                                                |
-| `--no-network`                      | Experimental | Allow the use of `RUN --network=none` commands                                                                     |
-| `--arg-scope-and-set`               | Experimental | Enable the `LET` / `SET` commands and nested `ARG` scoping                                                         |
 | `--earthly-ci-runner-arg`           | Experimental | Enable the `EARTHLY_CI_RUNNER` builtin ARG                                                                         |
-| `--use-docker-ignore`               | Experimental | Enable the use of `.dockerignore` files in `FROM DOCKERFILE` targets                                               |
-| `--pass-args`                       | Experimental | Enable the optional `--pass-args` flag for the `BUILD`, `FROM`, `COPY`, `WITH DOCKER --load` commands              |
-| `--global-cache`                    | Experimental | Enable global caches (shared across different Earthfiles), for cache mounts and `CACHE` commands having an ID      |
-| `--cache-persist-option`            | Experimental | Adds `CACHE --persist` option to persist cache content in images, Changes default `CACHE` behaviour to not persist |
 
 Note that the features flags are disabled by default in Earthly versions lower than the version listed in the "status" column above.
 

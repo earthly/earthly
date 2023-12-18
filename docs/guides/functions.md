@@ -1,9 +1,9 @@
 # Functions
 
-{% hint style='danger' %}
+{% hint style='hint' %}
 #### UDCs have been renamed to Functions
 
-Functions used to be called UDCs (User Defined Commands). Earthly 0.7 still uses `COMMAND` for declaring functions, but the keyword is deprecated and will be replaced by `FUNCTION` in Earthly 0.8.
+Functions used to be called UDCs (User Defined Commands). Earthly 0.7 uses `COMMAND` instead of `FUNCTION`.
 {% endhint %}
 
 Earthly Functions are reusable sets of instructions that can be inserted in targets or other functions. In other words, it is a way to import common build steps which can be reused in multiple contexts.
@@ -17,11 +17,11 @@ Thus, when importing and reusing functions across a complex build, it is very mu
 
 ## Usage
 
-Functions are defined similarly to regular targets, with a couple of exceptions: the name is in ALL_UPPERCASE_SNAKE_CASE and the recipe must start with `COMMAND` (Note: this keyword will be replaced with `FUNCTION` in Earthly 0.8). For example:
+Functions are defined similarly to regular targets, with a couple of exceptions: the name is in ALL_UPPERCASE_SNAKE_CASE and the recipe must start with `FUNCTION`. For example:
 
 ```Dockerfile
 MY_COPY:
-    COMMAND
+    FUNCTION
     ARG src
     ARG dest=./
     ARG recursive=false
@@ -47,7 +47,7 @@ A few things to note about this example:
 
 ## Scope
 
-Functions create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +COMMAND --<build-arg-key>=<build-arg-value>`, as in the following example.
+Functions create their own `ARG` scope, which is distinct from the caller. Any `ARG` that needs to be passed from the caller needs to be passed explicitly via `DO +MY_FUNCTION --<build-arg-key>=<build-arg-value>`, as in the following example.
 
 ```Dockerfile
 build:
@@ -58,7 +58,7 @@ build:
     DO +PRINT_VAR --var=$var
 
 PRINT_VAR:
-    COMMAND
+    FUNCTION
     ARG var=something-else
     RUN echo "$var"
 ```
@@ -66,7 +66,7 @@ PRINT_VAR:
 Global imports and global args are inherited from the `base` target of the same Earthfile where the command is defined in (this may be distinct from the `base` target of the caller).
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 
 ARG --global a_global_var=value-in-global
 
@@ -75,7 +75,7 @@ build:
     DO +PRINT_VAR
 
 PRINT_VAR:
-    COMMAND
+    FUNCTION
     RUN echo "$a_global_var"
 ```
 

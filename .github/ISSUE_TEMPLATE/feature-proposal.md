@@ -17,10 +17,10 @@ Example: if the proposal is to "allow functions to return values", the steps may
 
 1. Given the following Earthfile:
 ```
-VERSION 0.7
+VERSION 0.8
 
 FOO:
-    COMMAND
+    FUNCTION
     RETURN "bar"
 
 foo:
