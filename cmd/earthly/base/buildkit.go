@@ -58,7 +58,7 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 	cli.Flags().BuildkitdSettings.UseTCP = true
 	if cli.Cfg().Global.TLSEnabled {
 		if sat.IsManaged {
-			// satellite connection with tls enabled does not use configuration certificates
+			// satellites on earthly-cloud do not use custom certificates
 			cli.Flags().BuildkitdSettings.ClientTLSCert = ""
 			cli.Flags().BuildkitdSettings.ClientTLSKey = ""
 			cli.Flags().BuildkitdSettings.TLSCA = ""
@@ -67,7 +67,7 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 		} else if sat.Certificate != nil {
 			err = buildkitd.ConfigureCertsForSatellite(sat, &cli.Flags().BuildkitdSettings, cli.cfg)
 			if err != nil {
-				return fmt.Errorf("failed saving satellite certificates: %w", err)
+				return fmt.Errorf("failed configuring certificates for satellite: %w", err)
 			}
 		}
 	} else {
