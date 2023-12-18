@@ -250,16 +250,6 @@ func savePEM(path, typ string, bytes []byte) error {
 	return nil
 }
 
-func saveFile(path string, bytes []byte) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return err
-	}
-	if err := os.WriteFile(path, bytes, 0444); err != nil {
-		return err
-	}
-	return nil
-}
-
 func ConfigureCertsForSatellite(sat *cloud.SatelliteInstance, settings *Settings, cfg *config.Config) error {
 	dir := filepath.Join(cfg.Global.SatelliteCertsDir, sat.Org, sat.Name)
 	caCertPath := filepath.Join(dir, "ca_cert.pem")
@@ -277,10 +267,14 @@ func ConfigureCertsForSatellite(sat *cloud.SatelliteInstance, settings *Settings
 		return errors.Wrap(err, "failed clearing previous certificates")
 	}
 
-	if err := saveFile(caCertPath, sat.Certificate.Ca); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dir), 0755); err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(caCertPath, sat.Certificate.Ca, 0444); err != nil {
 		return errors.Wrap(err, "failed saving ca cert")
 	}
-	if err := saveFile(caKeyPath, sat.Certificate.CaKey); err != nil {
+	if err := os.WriteFile(caKeyPath, sat.Certificate.CaKey, 0444); err != nil {
 		return errors.Wrap(err, "failed saving ca key")
 	}
 
