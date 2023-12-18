@@ -151,9 +151,7 @@ func (a *Bootstrap) bootstrap(cliCtx *cli.Context) error {
 		err = nil
 	}
 
-	fmt.Println("gen certs?")
 	if (!a.noBuildkit || a.genCerts) && !a.cli.IsUsingSatellite(cliCtx) {
-		fmt.Println("gen certs!")
 		bkURL, err := url.Parse(a.cli.Flags().BuildkitHost)
 		if err != nil {
 			return errors.Wrapf(err, "invalid buildkit_host: %s", a.cli.Flags().BuildkitHost)
