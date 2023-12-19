@@ -82,7 +82,6 @@ type Opt struct {
 	DisableNoOutputUpdates                bool
 	ParallelConversion                    bool
 	Parallelism                           semutil.Semaphore
-	UseRemoteRegistry                     bool
 	DarwinProxyImage                      string
 	DarwinProxyWait                       time.Duration
 	LocalRegistryAddr                     string
@@ -166,11 +165,6 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 
 func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (func(), bool) {
 	cons := b.opt.Console.WithPrefix("registry-proxy")
-
-	if !b.opt.UseRemoteRegistry {
-		cons.VerbosePrintf("Registry proxy not enabled")
-		return nil, false
-	}
 
 	if err := caps.Supports(pb.CapEarthlyRegistryProxy); err != nil {
 		cons.Printf(err.Error())
