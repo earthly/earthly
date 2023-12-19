@@ -228,7 +228,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	// returns. Previously, it was being closed when the buildFunc returned,
 	// which led to a problem with fetching some images.
 	stopRegistryProxyFunc := func() {}
-	defer stopRegistryProxyFunc()
+	defer func() {
+		stopRegistryProxyFunc()
+	}()
 
 	var mts *states.MultiTarget
 	buildFunc := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
