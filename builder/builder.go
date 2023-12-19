@@ -217,11 +217,19 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		// to accomodate parallelism in the WAIT/END PopWaitBlock handling
 		dirIDs = map[int]string{}
 	)
+
 	var (
 		depIndex   = 0
 		imageIndex = 0
 		dirIndex   = 0
 	)
+
+	// Delay closing the registry proxy server until this method
+	// returns. Previously, it was being closed when the buildFunc returned,
+	// which led to a problem with fetching some images.
+	stopRegistryProxyFunc := func() {}
+	defer stopRegistryProxyFunc()
+
 	var mts *states.MultiTarget
 	buildFunc := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		if opt.EnableGatewayClientLogging {
@@ -231,7 +239,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		caps := gwClient.BuildOpts().LLBCaps
 
 		if stopProxy, ok := b.startRegistryProxy(ctx, caps); ok {
-			defer stopProxy()
+			stopRegistryProxyFunc = stopProxy
 		}
 
 		if !b.builtMain {
