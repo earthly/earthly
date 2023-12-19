@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 IMPORT ./some/subdir AS imported-name
 
 test:

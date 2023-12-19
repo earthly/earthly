@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 hello:
     FROM alpine:3.18
     RUN apk add libcap # for capsh

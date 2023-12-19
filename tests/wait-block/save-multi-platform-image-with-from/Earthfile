@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 
 earthly-multiplatform-wait-test-with-from-amd64:
     FROM --platform=linux/amd64 alpine:latest

@@ -1,4 +1,4 @@
-VERSION --use-function-keyword 0.7
+VERSION 0.8
 
 FROM alpine:3.18
 WORKDIR /test
@@ -14,9 +14,11 @@ test-global-default:
     DO +TOUCH_GLOBAL
     RUN test -f ./default
 
+# test-global-override tests that v0.8 no longer allows overriding the default like this
 test-global-override:
     DO +TOUCH_GLOBAL --global_var=override
-    RUN test -f ./override
+    RUN ! test -f ./override
+    RUN test -f ./default
 
 TOUCH_GLOBAL:
     FUNCTION
