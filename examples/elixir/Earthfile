@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 
 deps:
     FROM elixir:1.10-alpine

@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION 0.8
 
 test:
     FROM --pass-args ../git-ssh-server/setup+server \
@@ -96,7 +96,7 @@ EARTHLY_GIT_BRANCH_OVERRIDE=branch-override earthly --config \$earthly_config --
     DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --exec_cmd=/tmp/test-earthly-script
 
 RUN_EARTHLY_ARGS:
-    COMMAND
+    FUNCTION
     ARG earthfile
     ARG pre_command
     ARG exec_cmd

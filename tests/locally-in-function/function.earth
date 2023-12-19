@@ -1,4 +1,4 @@
-VERSION --use-function-keyword 0.7
+VERSION 0.8
 
 FUNCTION_THAT_SAVES_FILE_LOCALLY:
     FUNCTION
