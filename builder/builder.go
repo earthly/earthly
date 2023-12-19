@@ -218,9 +218,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		dirIndex   = 0
 	)
 
-	// Delay closing the registry proxy server until this method
-	// returns. Previously, it was being closed when the buildFunc returned,
-	// which led to a problem with fetching some images.
+	// Delay closing the registry proxy server until after the build function
+	// returns. This can be deferred within the build function once global wait
+	// block support is enabled.
 	stopRegistryProxyFunc := func() {}
 	defer func() {
 		stopRegistryProxyFunc()
