@@ -250,7 +250,11 @@ func savePEM(path, typ string, bytes []byte) error {
 	return nil
 }
 
-func ConfigureCertsForSatellite(sat *cloud.SatelliteInstance, settings *Settings, cfg *config.Config) error {
+// ConfigureSatelliteTLS uses the CA cert and key associate with the satellite
+// to generate a new certificate/key pair for use in client-side mTLS.
+// The certificates are configured in the settings for a new buildkit client.
+// The certificates are also stored on disk in: `~/.earthly/certs/<org-id>/<sat-name>`.
+func ConfigureSatelliteTLS(sat *cloud.SatelliteInstance, settings *Settings, cfg *config.Config) error {
 	dir := filepath.Join(cfg.Global.SatelliteCertsDir, sat.Org, sat.Name)
 	caCertPath := filepath.Join(dir, "ca_cert.pem")
 	caKeyPath := filepath.Join(dir, "ca_key.pem")

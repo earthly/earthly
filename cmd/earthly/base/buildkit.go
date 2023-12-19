@@ -70,7 +70,7 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 			cli.Flags().BuildkitdSettings.ServerTLSCert = ""
 			cli.Flags().BuildkitdSettings.ServerTLSKey = ""
 		} else if sat.Certificate != nil {
-			err = buildkitd.ConfigureCertsForSatellite(sat, &cli.Flags().BuildkitdSettings, cli.cfg)
+			err = buildkitd.ConfigureSatelliteTLS(sat, &cli.Flags().BuildkitdSettings, cli.cfg)
 			if err != nil {
 				return fmt.Errorf("failed configuring certificates for satellite: %w", err)
 			}
