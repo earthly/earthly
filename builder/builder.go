@@ -82,7 +82,6 @@ type Opt struct {
 	DisableNoOutputUpdates                bool
 	ParallelConversion                    bool
 	Parallelism                           semutil.Semaphore
-	UseRemoteRegistry                     bool
 	DarwinProxyImage                      string
 	DarwinProxyWait                       time.Duration
 	LocalRegistryAddr                     string
@@ -167,11 +166,6 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (func(), bool) {
 	cons := b.opt.Console.WithPrefix("registry-proxy")
 
-	if !b.opt.UseRemoteRegistry {
-		cons.VerbosePrintf("Registry proxy not enabled")
-		return nil, false
-	}
-
 	if err := caps.Supports(pb.CapEarthlyRegistryProxy); err != nil {
 		cons.Printf(err.Error())
 		return nil, false
@@ -217,11 +211,21 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		// to accomodate parallelism in the WAIT/END PopWaitBlock handling
 		dirIDs = map[int]string{}
 	)
+
 	var (
 		depIndex   = 0
 		imageIndex = 0
 		dirIndex   = 0
 	)
+
+	// Delay closing the registry proxy server until after the build function
+	// returns. This can be deferred within the build function once global wait
+	// block support is enabled.
+	stopRegistryProxyFunc := func() {}
+	defer func() {
+		stopRegistryProxyFunc()
+	}()
+
 	var mts *states.MultiTarget
 	buildFunc := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		if opt.EnableGatewayClientLogging {
@@ -231,7 +235,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		caps := gwClient.BuildOpts().LLBCaps
 
 		if stopProxy, ok := b.startRegistryProxy(ctx, caps); ok {
-			defer stopProxy()
+			stopRegistryProxyFunc = stopProxy
 		}
 
 		if !b.builtMain {
