@@ -14,6 +14,7 @@ const (
 
 var (
 	beTrue       = matchers.BeTrue
+	beFalse      = matchers.BeFalse
 	not          = matchers.Not
 	haveOccurred = matchers.HaveOccurred
 	equal        = matchers.Equal
