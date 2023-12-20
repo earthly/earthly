@@ -535,6 +535,7 @@ ci-release:
     ARG BUILDKIT_PROJECT
     ARG EARTHLY_GIT_HASH
     ARG --required TAG_SUFFIX
+    RUN echo "BUILDING ${EARTHLY_GIT_HASH}-${TAG_SUFFIX}"
     BUILD \
         --platform=linux/amd64 \
         ./buildkitd+buildkitd --TAG=${EARTHLY_GIT_HASH}-${TAG_SUFFIX} --BUILDKIT_PROJECT="$BUILDKIT_PROJECT" --DOCKERHUB_BUILDKIT_IMG="buildkitd-staging"
