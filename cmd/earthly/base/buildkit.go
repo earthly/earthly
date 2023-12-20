@@ -3,6 +3,7 @@ package base
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
@@ -70,10 +71,12 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 			cli.Flags().BuildkitdSettings.ServerTLSCert = ""
 			cli.Flags().BuildkitdSettings.ServerTLSKey = ""
 		} else if sat.Certificate != nil {
-			err = buildkitd.ConfigureSatelliteTLS(sat, &cli.Flags().BuildkitdSettings, cli.cfg)
+			t := time.Now()
+			err = buildkitd.ConfigureSatelliteTLS(&cli.Flags().BuildkitdSettings, sat)
 			if err != nil {
 				return fmt.Errorf("failed configuring certificates for satellite: %w", err)
 			}
+			cli.Console().DebugPrintf("TLS certificates configured in: %s", time.Since(t).String())
 		}
 	} else {
 		cli.Console().Warnf("TLS has been disabled; this should never be done when connecting to Earthly's production API\n")
