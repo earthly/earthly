@@ -65,7 +65,7 @@ perform-release-dockerhub:
         --platform=linux/arm64 \
         ../+earthly-docker \
         --TAG="$RELEASE_TAG" \
-        --BIN_VERSION="$BIN_VERSION"
+        --BIN_VERSION="$BIN_VERSION" \
         --DOCKERHUB_USER="$DOCKERHUB_USER" \
         --DOCKERHUB_IMG="$DOCKERHUB_IMG"
     BUILD \
@@ -73,7 +73,7 @@ perform-release-dockerhub:
         --platform=linux/arm64 \
         ../buildkitd+buildkitd \
         --TAG="$RELEASE_TAG" \
-        --BIN_VERSION="$BIN_VERSION"
+        --BIN_VERSION="$BIN_VERSION" \
         --DOCKERHUB_USER="$DOCKERHUB_USER" \
         --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
 
@@ -106,7 +106,7 @@ release-github:
     COPY +release-notes/notes.txt release-notes.txt
     COPY (../+earthly-all/* \
          --TAG=$RELEASE_TAG \
-         --BIN_VERSION=$RELEASE_TAG
+         --BIN_VERSION=$RELEASE_TAG \
          --DEFAULT_BUILDKITD_IMAGE="$DOCKERHUB_HOST/$DOCKERHUB_USER/$DOCKERHUB_BUILDKIT_IMG:$RELEASE_TAG" \
          --DEFAULT_INSTALLATION_NAME="earthly" \
          ) ./release/
