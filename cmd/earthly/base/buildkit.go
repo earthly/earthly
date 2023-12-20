@@ -76,7 +76,8 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 			if err != nil {
 				return fmt.Errorf("failed configuring certificates for satellite: %w", err)
 			}
-			cli.Console().DebugPrintf("TLS certificates configured in: %s", time.Since(t).String())
+			cli.Console().WithPrefix("satellite").
+				DebugPrintf("TLS certificates configured in: %s", time.Since(t).String())
 		}
 	} else {
 		cli.Console().Warnf("TLS has been disabled; this should never be done when connecting to Earthly's production API\n")
