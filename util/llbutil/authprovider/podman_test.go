@@ -60,6 +60,7 @@ func TestPodmanProvider(topT *testing.T) {
 	defer o.Run()
 
 	o.AfterEach(func(tt testCtx) {
+		<-tt.result
 		tt.expect(tt.result).To(beClosed()) // Ensure tests don't leak goroutines.
 	})
 
