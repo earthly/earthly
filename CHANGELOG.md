@@ -4,6 +4,54 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.0-rc1 - 2023-12-20
+
+This version promotes a number of features that have been previously in Experimental and Beta status. To make use of
+the features in this version you need to declare `VERSION 0.8` at the top of your Earthfile.
+
+Declaring `VERSION 0.8` is equivalent to
+
+```
+VERSION \
+  --arg-scope-and-set \
+  --cache-persist-option \
+  --git-refs \
+  --global-cache \
+  --no-network \
+  --pass-args \
+  --use-docker-ignore \
+  --use-function-keyword \
+  --use-visited-upfront-hash-collection \
+  0.7
+```
+
+It should be noted that some of these features break backwards compatibility:
+
+**`--arg-scope-and-set`**
+
+In addition to introducing a new `LET` command, which can be used to declare non-argument variables,
+the following backwards incompatible changes were introduced:
+  - Redeclaring an `ARG` in the same scope as a previous declaration is now an error.
+  - `ARG`s inside of targets will no longer have their default value overridden by global `ARG`s.
+  - It is no longer possible to override a global ARG when calling a target.
+
+**`--cache-persist-option`**
+
+Declaring a `CACHE ...` in a target will no longer be copied to children targets when referenced via a `FROM +...`; to persist the contents
+of the cache, it is now required to use the `CACHE --persist ...` flag.
+
+**`--use-function-keyword`**
+
+The `COMMAND` keyword has been renamed to `FUNCTION`.
+
+**`VERSION 0.5` is obsolete**
+
+Declaring `VERSION 0.5` is no longer supported, and will now raise an error.
+
+---
+
+For more information on the individual Earthfile feature flags see the [Earthfile version-specific features page](https://docs.earthly.dev/docs/earthfile/features).
+
 ## v0.7.23 - 2023-12-18
 
 ### Added
