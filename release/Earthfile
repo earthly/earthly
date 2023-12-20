@@ -12,7 +12,7 @@ release:
     ARG SKIP_GHA_CHECK
     ARG PRERELEASE="false"
     IF --no-cache test -n "$SKIP_GHA_CHECK" || ensure_gha_passing --sha $EARTHLY_GIT_HASH
-        BUILD +release-dockerhub --RELEASE_TAG="$RELEASE_TAG"
+        BUILD +release-dockerhub --RELEASE_TAG="$RELEASE_TAG" --BIN_VERSION="$RELEASE_TAG"
         BUILD +release-github --RELEASE_TAG="$RELEASE_TAG" --PRERELEASE="$PRERELEASE"
     ELSE
         RUN echo "github status check failed; to force the release without performing this check, set --build-arg SKIP_GHA_CHECK=1"
@@ -31,16 +31,32 @@ release-dockerhub:
     ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
     ARG PUSH_LATEST_TAG="false"
     ARG PUSH_PRERELEASE_TAG="false"
-    BUILD +perform-release-dockerhub --RELEASE_TAG="$RELEASE_TAG" --DOCKERHUB_USER="$DOCKERHUB_USER" --DOCKERHUB_IMG="$DOCKERHUB_IMG" --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
+    BUILD +perform-release-dockerhub \
+          --RELEASE_TAG="$RELEASE_TAG" \
+          --BIN_VERSION="$RELEASE_TAG" \
+          --DOCKERHUB_USER="$DOCKERHUB_USER" \
+          --DOCKERHUB_IMG="$DOCKERHUB_IMG" \
+          --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
     IF [ "$PUSH_LATEST_TAG" = "true" ]
-      BUILD +perform-release-dockerhub --RELEASE_TAG="latest" --DOCKERHUB_USER="$DOCKERHUB_USER" --DOCKERHUB_IMG="$DOCKERHUB_IMG" --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
+      BUILD +perform-release-dockerhub \
+            --RELEASE_TAG="latest" \
+            --BIN_VERSION="$RELEASE_TAG" \
+            --DOCKERHUB_USER="$DOCKERHUB_USER" \
+            --DOCKERHUB_IMG="$DOCKERHUB_IMG" \
+            --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
     END
     IF [ "$PUSH_PRERELEASE_TAG" = "true" ]
-      BUILD +perform-release-dockerhub --RELEASE_TAG="prerelease" --DOCKERHUB_USER="$DOCKERHUB_USER" --DOCKERHUB_IMG="$DOCKERHUB_IMG" --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
+      BUILD +perform-release-dockerhub \
+            --RELEASE_TAG="prerelease" \
+            --BIN_VERSION="$RELEASE_TAG" \
+            --DOCKERHUB_USER="$DOCKERHUB_USER" \
+            --DOCKERHUB_IMG="$DOCKERHUB_IMG" \
+            --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
     END
 
 perform-release-dockerhub:
     ARG --required RELEASE_TAG
+    ARG --required BIN_VERSION
     ARG DOCKERHUB_USER="earthly"
     ARG DOCKERHUB_IMG="earthly"
     ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
@@ -49,6 +65,7 @@ perform-release-dockerhub:
         --platform=linux/arm64 \
         ../+earthly-docker \
         --TAG="$RELEASE_TAG" \
+        --BIN_VERSION="$BIN_VERSION"
         --DOCKERHUB_USER="$DOCKERHUB_USER" \
         --DOCKERHUB_IMG="$DOCKERHUB_IMG"
     BUILD \
@@ -56,6 +73,7 @@ perform-release-dockerhub:
         --platform=linux/arm64 \
         ../buildkitd+buildkitd \
         --TAG="$RELEASE_TAG" \
+        --BIN_VERSION="$BIN_VERSION"
         --DOCKERHUB_USER="$DOCKERHUB_USER" \
         --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
 
@@ -76,6 +94,7 @@ release-github:
     RUN npm install -g github-release-cli@v1.3.1
     WORKDIR /earthly
     ARG --required RELEASE_TAG
+    ARG BIN_VERSION=$RELEASE_TAG
     ARG GITHUB_USER="earthly"
     ARG EARTHLY_REPO="earthly"
     ARG DOCKERHUB_HOST="docker.io"
@@ -86,7 +105,8 @@ release-github:
     RUN test -n "$EARTHLY_GIT_HASH"
     COPY +release-notes/notes.txt release-notes.txt
     COPY (../+earthly-all/* \
-         --VERSION=$RELEASE_TAG \
+         --TAG=$RELEASE_TAG \
+         --BIN_VERSION=$RELEASE_TAG
          --DEFAULT_BUILDKITD_IMAGE="$DOCKERHUB_HOST/$DOCKERHUB_USER/$DOCKERHUB_BUILDKIT_IMG:$RELEASE_TAG" \
          --DEFAULT_INSTALLATION_NAME="earthly" \
          ) ./release/
