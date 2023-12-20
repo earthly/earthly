@@ -348,18 +348,15 @@ earthly:
     RUN test -n "$GOOS" && test -n "$GOARCH"
     RUN test "$GOARCH" != "arm" || test -n "$VARIANT"
     ARG EARTHLY_TARGET_TAG_DOCKER
-    # TAG is the container image tag whereas BIN_VERSION is the version
-    # string that will be baked into the binary.
-    ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
-    ARG BIN_VERSION=$TAG
+    ARG VERSION="dev-$EARTHLY_TARGET_TAG_DOCKER"
     ARG EARTHLY_GIT_HASH
-    ARG DEFAULT_BUILDKITD_IMAGE=docker.io/earthly/buildkitd:$TAG # The image needs to be fully qualified for alternative frontend support.
+    ARG DEFAULT_BUILDKITD_IMAGE=docker.io/earthly/buildkitd:$VERSION # The image needs to be fully qualified for alternative frontend support.
     ARG BUILD_TAGS=dfrunmount dfrunsecurity dfsecrets dfssh dfrunnetwork dfheredoc forceposix
     ARG GOCACHE=/go-cache
     RUN mkdir -p build
     RUN printf "$BUILD_TAGS" > ./build/tags && echo "$(cat ./build/tags)"
     RUN printf '-X main.DefaultBuildkitdImage='"$DEFAULT_BUILDKITD_IMAGE" > ./build/ldflags && \
-        printf ' -X main.Version='"$BIN_VERSION" >> ./build/ldflags && \
+        printf ' -X main.Version='"$VERSION" >> ./build/ldflags && \
         printf ' -X main.GitSha='"$EARTHLY_GIT_HASH" >> ./build/ldflags && \
         printf ' -X main.DefaultInstallationName='"$DEFAULT_INSTALLATION_NAME" >> ./build/ldflags && \
         printf ' '"$GO_EXTRA_LDFLAGS" >> ./build/ldflags && \
@@ -454,7 +451,6 @@ earthly-all:
 earthly-docker:
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
-    ARG BIN_VERSION=$TAG
     ARG BUILDKIT_PROJECT
     ARG PUSH_LATEST_TAG="false"
     ARG PUSH_PRERELEASE_TAG="false"
@@ -464,7 +460,7 @@ earthly-docker:
     COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
     ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
     WORKDIR /workspace
-    COPY (+earthly/earthly --TAG=$TAG --BIN_VERSION=$BIN_VERSION --DEFAULT_INSTALLATION_NAME="earthly") /usr/bin/earthly
+    COPY (+earthly/earthly --VERSION=$TAG --DEFAULT_INSTALLATION_NAME="earthly") /usr/bin/earthly
     ARG DOCKERHUB_USER="earthly"
     ARG DOCKERHUB_IMG="earthly"
     # Multiple SAVE IMAGE's lead to differing image digests, but multiple
@@ -477,8 +473,6 @@ earthly-docker:
     ELSE
        SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG
     END
-
-
 
 # earthly-integration-test-base builds earthly docker and then
 # if no dockerhub mirror is not set it will attempt to login to dockerhub using the provided docker hub username and token.
@@ -551,7 +545,7 @@ ci-release:
     BUILD \
         --platform=linux/amd64 \
         ./buildkitd+buildkitd --TAG=${EARTHLY_GIT_HASH}-${TAG_SUFFIX} --BUILDKIT_PROJECT="$BUILDKIT_PROJECT" --DOCKERHUB_BUILDKIT_IMG="buildkitd-staging"
-    COPY (+earthly/earthly --DEFAULT_BUILDKITD_IMAGE="docker.io/earthly/buildkitd-staging:${EARTHLY_GIT_HASH}-${TAG_SUFFIX}" --TAG=${EARTHLY_GIT_HASH}-${TAG_SUFFIX} --DEFAULT_INSTALLATION_NAME=earthly) ./earthly-linux-amd64
+    COPY (+earthly/earthly --DEFAULT_BUILDKITD_IMAGE="docker.io/earthly/buildkitd-staging:${EARTHLY_GIT_HASH}-${TAG_SUFFIX}" --VERSION=${EARTHLY_GIT_HASH}-${TAG_SUFFIX} --DEFAULT_INSTALLATION_NAME=earthly) ./earthly-linux-amd64
     SAVE IMAGE --push earthly/earthlybinaries:${EARTHLY_GIT_HASH}-${TAG_SUFFIX}
 
 # dind builds both the alpine and ubuntu dind containers for earthly
