@@ -341,7 +341,7 @@ earthly:
     # is particularly useful for disabling optimizations to make the binary work
     # with delve. To disable optimizations:
     #
-    #     -GO_GCFLAGS='all=-N -l'
+    #     --GO_GCFLAGS='all=-N -l'
     ARG GO_GCFLAGS
     ARG EXECUTABLE_NAME="earthly"
     ARG DEFAULT_INSTALLATION_NAME="earthly-dev"
@@ -353,7 +353,7 @@ earthly:
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     ARG BIN_VERSION=$TAG
     ARG EARTHLY_GIT_HASH
-    ARG DEFAULT_BUILDKITD_IMAGE=docker.io/earthly/buildkitd:$VERSION # The image needs to be fully qualified for alternative frontend support.
+    ARG DEFAULT_BUILDKITD_IMAGE=docker.io/earthly/buildkitd:$TAG # The image needs to be fully qualified for alternative frontend support.
     ARG BUILD_TAGS=dfrunmount dfrunsecurity dfsecrets dfssh dfrunnetwork dfheredoc forceposix
     ARG GOCACHE=/go-cache
     RUN mkdir -p build
@@ -456,6 +456,8 @@ earthly-docker:
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     ARG BIN_VERSION=$TAG
     ARG BUILDKIT_PROJECT
+    ARG PUSH_LATEST_TAG="false"
+    ARG PUSH_PRERELEASE_TAG="false"
     FROM ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT" --TAG="$TAG"
     RUN apk add --update --no-cache docker-cli libcap-ng-utils git
     ENV EARTHLY_IMAGE=true
@@ -465,7 +467,18 @@ earthly-docker:
     COPY (+earthly/earthly --TAG=$TAG --BIN_VERSION=$BIN_VERSION --DEFAULT_INSTALLATION_NAME="earthly") /usr/bin/earthly
     ARG DOCKERHUB_USER="earthly"
     ARG DOCKERHUB_IMG="earthly"
-    SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG
+    # Multiple SAVE IMAGE's lead to differing image digests, but multiple
+    # arguments to the save SAVE IMAGE do not. Using variables here doesn't work
+    # either, unfortunately, as the names are quoted and treated as a single arg.
+    IF [ "$PUSH_LATEST_TAG" == "true" ]
+       SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG $DOCKERHUB_USER/$DOCKERHUB_IMG:latest
+    ELSE IF [ "$PUSH_PRERELEASE_TAG" == "true" ]
+       SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG $DOCKERHUB_USER/$DOCKERHUB_IMG:prerelease
+    ELSE
+       SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG
+    END
+
+
 
 # earthly-integration-test-base builds earthly docker and then
 # if no dockerhub mirror is not set it will attempt to login to dockerhub using the provided docker hub username and token.
@@ -535,7 +548,6 @@ ci-release:
     ARG BUILDKIT_PROJECT
     ARG EARTHLY_GIT_HASH
     ARG --required TAG_SUFFIX
-    RUN echo "BUILDING ${EARTHLY_GIT_HASH}-${TAG_SUFFIX}"
     BUILD \
         --platform=linux/amd64 \
         ./buildkitd+buildkitd --TAG=${EARTHLY_GIT_HASH}-${TAG_SUFFIX} --BUILDKIT_PROJECT="$BUILDKIT_PROJECT" --DOCKERHUB_BUILDKIT_IMG="buildkitd-staging"

@@ -36,27 +36,15 @@ release-dockerhub:
           --BIN_VERSION="$RELEASE_TAG" \
           --DOCKERHUB_USER="$DOCKERHUB_USER" \
           --DOCKERHUB_IMG="$DOCKERHUB_IMG" \
-          --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
-    IF [ "$PUSH_LATEST_TAG" = "true" ]
-      BUILD +perform-release-dockerhub \
-            --RELEASE_TAG="latest" \
-            --BIN_VERSION="$RELEASE_TAG" \
-            --DOCKERHUB_USER="$DOCKERHUB_USER" \
-            --DOCKERHUB_IMG="$DOCKERHUB_IMG" \
-            --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
-    END
-    IF [ "$PUSH_PRERELEASE_TAG" = "true" ]
-      BUILD +perform-release-dockerhub \
-            --RELEASE_TAG="prerelease" \
-            --BIN_VERSION="$RELEASE_TAG" \
-            --DOCKERHUB_USER="$DOCKERHUB_USER" \
-            --DOCKERHUB_IMG="$DOCKERHUB_IMG" \
-            --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
-    END
+          --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG" \
+          --PUSH_LATEST_TAG="$PUSH_LATEST_TAG" \
+          --PUSH_PRERELEASE_TAG="$PUSH_PRERELEASE_TAG"
 
 perform-release-dockerhub:
     ARG --required RELEASE_TAG
     ARG --required BIN_VERSION
+    ARG PUSH_LATEST_TAG="false"
+    ARG PUSH_PRERELEASE_TAG="false"
     ARG DOCKERHUB_USER="earthly"
     ARG DOCKERHUB_IMG="earthly"
     ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
@@ -67,7 +55,9 @@ perform-release-dockerhub:
         --TAG="$RELEASE_TAG" \
         --BIN_VERSION="$BIN_VERSION" \
         --DOCKERHUB_USER="$DOCKERHUB_USER" \
-        --DOCKERHUB_IMG="$DOCKERHUB_IMG"
+        --DOCKERHUB_IMG="$DOCKERHUB_IMG" \
+        --PUSH_LATEST_TAG="$PUSH_LATEST_TAG" \
+        --PUSH_PRERELEASE_TAG="$PUSH_PRERELEASE_TAG"
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
