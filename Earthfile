@@ -523,7 +523,7 @@ prerelease:
         --platform=linux/amd64 \
         --platform=linux/arm64 \
         ./buildkitd+buildkitd --TAG=prerelease  --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
-    COPY (+earthly-all/* --TAG=prerelease --DEFAULT_INSTALLATION_NAME=earthly) ./
+    COPY (+earthly-all/* --VERSION=prerelease --DEFAULT_INSTALLATION_NAME=earthly) ./
     SAVE IMAGE --push earthly/earthlybinaries:prerelease
 
 # prerelease-script copies the earthly folder and saves it as an artifact
