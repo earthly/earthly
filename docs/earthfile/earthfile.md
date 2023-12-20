@@ -140,6 +140,11 @@ then one can build `my-target` by invoking earthly with the `--allow-privileged`
 earthly --allow-privileged +my-target
 ```
 
+##### `--pass-args`
+
+Earthly automatically passes all current arguments to referenced targets in the _same_ Earthfile.
+However, when the `--pass-args` flag is set, Earthly will also propagate all arguments to an externally referenced target.
+
 ##### `--build-arg <key>=<value>` (**deprecated**)
 
 This option is deprecated. Use `--<build-arg-key>=<build-arg-value>` instead.
@@ -470,6 +475,10 @@ For more information see the [multi-platform guide](../guides/multi-platform.md)
 ##### `--allow-privileged`
 
 Same as [`FROM --allow-privileged`](#allow-privileged).
+
+##### `--pass-args`
+
+Same as [`FROM --pass-args`](#pass-args).
 
 ##### `--build-arg <key>=<value>` (**deprecated**)
 
@@ -839,6 +848,10 @@ Instructs Earthly to skip the build of the target if the target's dependencies h
 ##### `--allow-privileged`
 
 Same as [`FROM --allow-privileged`](#allow-privileged).
+
+##### `--pass-args`
+
+Same as [`FROM --pass-args`](#pass-args).
 
 ##### `--build-arg <build-arg-key>=<build-arg-value>` (**deprecated**)
 
@@ -1555,6 +1568,10 @@ For more information see the [Functions Guide](../guides/functions.md).
 ##### `--allow-privileged`
 
 Same as [`FROM --allow-privileged`](#allow-privileged).
+
+##### `--pass-args`
+
+Same as [`FROM --pass-args`](#pass-args).
 
 ## IMPORT
 
