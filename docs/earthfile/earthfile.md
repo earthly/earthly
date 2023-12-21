@@ -1408,8 +1408,6 @@ example:
 
 The `CACHE` command creates a cache mountpoint at `<mountpoint>` in the build environment. The cache mountpoint is a directory which is shared between the instances of the same build target. The contents of the cache mountpoint are preserved between builds, and can be used to share data across builds.
 
-At the end of the target, the contents of the cache mountpoint are persisted as an additional layer in the image. This means that the contents are available to subsequent targets in the same build using `FROM`, or to any saved images `SAVE IMAGE`.
-
 #### Options
 
 ##### `--sharing <sharing-mode>`
