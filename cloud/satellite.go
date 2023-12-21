@@ -6,9 +6,12 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"sort"
+	"strings"
 	"time"
 
 	pb "github.com/earthly/cloud-api/compute"
+	"github.com/earthly/earthly/internal/version"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -214,6 +217,10 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 				CommitEmail:    gitAuthor,
 				GitConfigEmail: gitConfigEmail,
 				IsCi:           isCI,
+				Metadata: &pb.ReserveSatelliteRequest_Metadata{
+					EnvEntryName: getEnvEntriesNames(),
+					CliVersion:   version.Version,
+				},
 			})
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "retrying connection [attempt %d/%d]\n", i, numRetries)
@@ -453,4 +460,14 @@ var validPlatforms = map[string]bool{
 
 func ValidSatellitePlatform(size string) bool {
 	return validPlatforms[size]
+}
+
+func getEnvEntriesNames() []string {
+	environ := os.Environ()
+	ret := make([]string, len(environ))
+	for i := 0; i < len(environ); i++ {
+		ret[i] = strings.Split(environ[i], "=")[0]
+	}
+	sort.Strings(ret)
+	return ret
 }
