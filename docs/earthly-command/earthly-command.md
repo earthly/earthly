@@ -207,7 +207,7 @@ Passes a secret with ID `<secret-id>` to the build environments. If `<value>` is
 
 The secret can be referenced within Earthfile recipes as `RUN --secret <arbitrary-env-var-name>=<secret-id>`. For more information see the [`RUN --secret` Earthfile command](../earthfile/earthfile.md#run).
 
-Secrets can also be stored in a `.secret` file using the same syntax as an `.arg` file; an example is given under the [build args guide](../guides/build-args.md#setting-secret-values).
+Secrets can also be stored in a `.secret` file using the same syntax as an `.arg` file; an example is given under the [secrets guide](../guides/secrets.md).
 
 ##### `--secret-file <secret-id>=<path>`
 
