@@ -153,8 +153,8 @@ This option is deprecated. Use `--<build-arg-key>=<build-arg-value>` instead.
 
 #### Synopsis
 
-* `RUN [--push] [--entrypoint] [--privileged] [--secret <env-var>=<secret-id>] [--network=none] [--ssh] [--mount <mount-spec>] [--] <command>` (shell form)
-* `RUN [[<flags>...], "<executable>", "<arg1>", "<arg2>", ...]` (exec form)
+* `RUN [options...] [--] <command>` (shell form)
+* `RUN [[options...], "<executable>", "<arg1>", "<arg2>", ...]` (exec form)
 
 #### Description
 
