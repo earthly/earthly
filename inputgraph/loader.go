@@ -314,7 +314,7 @@ func (l *loader) expandArgs(ctx context.Context, args []string) ([]string, error
 	for _, arg := range args {
 		expanded, err := l.varCollection.Expand(arg, func(cmd string) (string, error) {
 			return arg, nil // Return the original expression so it can be referenced later.
-		})
+		}, variables.WithRawQuotes(), variables.WithRawEscapes())
 		if err != nil {
 			return nil, err
 		}
