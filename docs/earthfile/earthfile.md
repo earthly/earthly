@@ -254,7 +254,7 @@ earthly +release-short --SECRET_ID=""
 
 It is also possible to mount a secret as a file with `RUN --mount type=secret,id=secret-id,target=/path/of/secret,chmod=0400`. See `--mount` below.
 
-For more information on how to use secrets see the [build arguments and secrets guide](../guides/build-args.md). See also the [Cloud secrets guide](../cloud/cloud-secrets.md).
+For more information on how to use secrets see the [Secrets guide](../guides/secrets.md). See also the [Cloud secrets guide](../cloud/cloud-secrets.md).
 
 ##### `--network=none`
 
@@ -550,9 +550,9 @@ For detailed examples demonstrating how other scenarios may function, please see
 
 #### Description
 
-The command `ARG` declares a variable (or arg) with the name `<name>` and with an optional default value `<default-value>`. If no default value is provided, then empty string is used as the default value.
+The command `ARG` declares a build argument (or arg) with the name `<name>` and with an optional default value `<default-value>`. If no default value is provided, then empty string is used as the default value.
 
-This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The variable's scope is always limited to the recipe of the current target or command and only from the point it is declared onward. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
+This command works similarly to the [Dockerfile `ARG` command](https://docs.docker.com/engine/reference/builder/#arg), with a few differences regarding the scope and the predefined args (called builtin args in Earthly). The arg's scope is always limited to the recipe of the current target or command and only from the point it is declared onward. For more information regarding builtin args, see the [builtin args page](./builtin-args.md).
 
 In its *constant form*, the arg takes a default value defined as a constant string. If the `<default-value>` is not provided, then the default value is an empty string. In its *dynamic form*, the arg takes a default value defined as an expression. The expression is evaluated at run time and its result is used as the default value. The expression is interpreted via the default shell (`/bin/sh -c`) within the build environment.
 
@@ -578,7 +578,7 @@ COPY (+binary/bin --NAME=john) ./
 FROM +docker-image --NAME=john
 ```
 
-For more information on how to use build args see the [build arguments and secrets guide](../guides/build-args.md). A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
+For more information on how to use build args see the [build arguments and variables guide](../guides/build-args.md). A number of builtin args are available and are pre-filled by Earthly. For more information see [builtin args](./builtin-args.md).
 
 #### Options
 
@@ -869,9 +869,9 @@ This option is deprecated. Please use `--<build-arg-key>=<build-arg-value>` inst
 
 #### Description
 
-The command `LET` declares a variable with the name `<name>` and with a value `<value>`. This command works similarly to `ARG` except that it cannot be overridden from the CLI.
+The command `LET` declares a variable with the name `<name>` and with a value `<value>`. This command works similarly to `ARG` except that it cannot be overridden.
 
-`LET` variables are allowed to shadow `ARG` variables, which allows you to promote an `ARG` to a local variable so that it may be used with `SET`.
+`LET` variables are allowed to shadow `ARG` build arguments, which allows you to promote an `ARG` to a local variable so that it may be used with `SET`.
 
 ##### Example
 

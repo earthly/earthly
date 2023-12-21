@@ -20,7 +20,8 @@
 
 * Guides
     * [Importing](guides/importing.md)
-    * [Build arguments and secrets](guides/build-args.md)
+    * [Build arguments and variables](guides/build-args.md)
+    * [Secrets](guides/secrets.md)
     * [Functions](guides/functions.md)
     * [Using Docker in Earthly](guides/docker-in-earthly.md)
     * [Multi-platform builds](guides/multi-platform.md)
