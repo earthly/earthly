@@ -225,4 +225,4 @@ hello:
 
 This can be useful when you would like to decide on the value of a variable based on an `IF` condition, or if you would like to construct the value of the variable via a `FOR` loop.
 
-For more information on `LET` see the [`LET` Earthfile reference](../earthfile/earthfile.md#set).
+For more information on `LET` see the [`LET` Earthfile reference](../earthfile/earthfile.md#let).
