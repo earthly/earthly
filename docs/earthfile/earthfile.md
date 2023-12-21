@@ -1432,12 +1432,7 @@ The cache ID for a global cache volume to be used across other targets or Earthf
 
 ##### `--persist`
 
-Make a copy of the cache available to any children that inherit from this target, by copying the contents of the cache to the child image.
-
-{% hint style='warning' %}
-Caches were persisted by default in version 0.7, which led to bloated images being pushed to registries. Version 0.8 changed the default behavior
-to prevent copying the contents to children targets unless explicitly enabled by the newly added `--persist` flag.
-{% endhint %}
+At the end of the target, the contents of the cache mountpoint are persisted as an additional layer in the image. This means that the contents are available to subsequent targets in the same build using `FROM`, or to any saved images `SAVE IMAGE`.
 
 ## LOCALLY
 
