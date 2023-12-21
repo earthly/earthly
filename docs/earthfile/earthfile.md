@@ -153,7 +153,7 @@ This option is deprecated. Use `--<build-arg-key>=<build-arg-value>` instead.
 
 #### Synopsis
 
-* `RUN [--push] [--entrypoint] [--privileged] [--secret <env-var>=<secret-id>] [--ssh] [--mount <mount-spec>] [--] <command>` (shell form)
+* `RUN [--push] [--entrypoint] [--privileged] [--secret <env-var>=<secret-id>] [--network=none] [--ssh] [--mount <mount-spec>] [--] <command>` (shell form)
 * `RUN [[<flags>...], "<executable>", "<arg1>", "<arg2>", ...]` (exec form)
 
 #### Description
@@ -255,6 +255,10 @@ earthly +release-short --SECRET_ID=""
 It is also possible to mount a secret as a file with `RUN --mount type=secret,id=secret-id,target=/path/of/secret,chmod=0400`. See `--mount` below.
 
 For more information on how to use secrets see the [build arguments and secrets guide](../guides/build-args.md). See also the [Cloud secrets guide](../cloud/cloud-secrets.md).
+
+##### `--network=none`
+
+Isolate the networking stack (and internet access) from the command.
 
 ##### `--ssh`
 
