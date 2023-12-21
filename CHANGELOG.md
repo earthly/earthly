@@ -60,13 +60,16 @@ It should be noted that some of these features break backwards compatibility. Se
 - `DO --pass-args`, `BUILD --pass-args` etc allow passing all build arguments to external Earthfiles.
 - `CACHE --id=...` and `RUN --mount type=cache,id=...` allows setting a custom cache mount ID, thus allowing sharing cache mounts globally across different targets.
 
-### Removed 
+### Removed
 
 - `VERSION 0.5` is now obsolete. Declaring `VERSION 0.5` is no longer supported, and will now raise an error.
 
 ### Fixed
 
 - Parallelism is improved when running the same target with different arguments in certain cases (e.g. the target uses `WITH DOCKER`).
+
+### Additional Info
+- This release includes changes to buildkit
 
 ## v0.7.23 - 2023-12-18
 
