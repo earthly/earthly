@@ -18,7 +18,6 @@ var (
 	not          = matchers.Not
 	haveOccurred = matchers.HaveOccurred
 	equal        = matchers.Equal
-	beClosed     = matchers.BeClosed
 	matchRegexp  = matchers.MatchRegexp
 	beNil        = matchers.BeNil
 
