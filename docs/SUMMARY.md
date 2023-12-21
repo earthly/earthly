@@ -67,13 +67,13 @@
 * Vendor-Specific Guides
     * [GitHub Actions](ci-integration/guides/gh-actions-integration.md)
     * [Circle CI](ci-integration/guides/circle-integration.md)
+    * [GitLab CI/CD](ci-integration/guides/gitlab-integration.md)
     * [Jenkins](ci-integration/guides/jenkins.md)
     * [AWS CodeBuild](ci-integration/guides/codebuild-integration.md)
-    * [Kubernetes](ci-integration/guides/kubernetes.md)
     * [Google Cloud Build](ci-integration/guides/google-cloud-build.md)
-    * [GitLab CI/CD](ci-integration/guides/gitlab-integration.md)
-    * [Woodpecker CI](ci-integration/guides/woodpecker-integration.md)
     * [Bitbucket Pipelines](ci-integration/guides/bitbucket-pipelines-integration.md)
+    * [Woodpecker CI](ci-integration/guides/woodpecker-integration.md)
+    * [Kubernetes](ci-integration/guides/kubernetes.md)
 
 ## ☁️ Earthly Cloud
 
