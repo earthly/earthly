@@ -60,7 +60,8 @@ func TestPodmanProvider(topT *testing.T) {
 	defer o.Run()
 
 	o.AfterEach(func(tt testCtx) {
-		tt.expect(tt.result).To(beClosed()) // Ensure tests don't leak goroutines.
+		_, ok := <-tt.result
+		tt.expect(ok).To(beFalse()) // Ensure that the channel was closed
 	})
 
 	type authFile struct {
