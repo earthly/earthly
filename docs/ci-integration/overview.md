@@ -97,11 +97,11 @@ If `earthly` is connecting to a remote `earthly-buildkitd`, then you will need t
 
 Below are links to CI systems that we have more specific information for. If you run into anything in your CI that wasn't covered here, we would love to add it to our documentation. Pull requests are welcome!
 
- * [Jenkins](guides/jenkins.md)
- * [Kubernetes](guides/kubernetes.md)
- * [Circle CI](guides/circle-integration.md)
- * [AWS CodeBuild](guides/codebuild-integration.md)
  * [GitHub Actions](guides/gh-actions-integration.md)
- * [Google Cloud Build](guides/google-cloud-build.md)
+ * [Circle CI](guides/circle-integration.md)
  * [GitLab CI/CD](guides/gitlab-integration.md)
+ * [Jenkins](guides/jenkins.md)
+ * [AWS CodeBuild](guides/codebuild-integration.md)
+ * [Google Cloud Build](guides/google-cloud-build.md)
  * [Woodpecker CI](guides/woodpecker-integration.md)
+ * [Kubernetes](guides/kubernetes.md)
