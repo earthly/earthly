@@ -218,8 +218,8 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 				GitConfigEmail: gitConfigEmail,
 				IsCi:           isCI,
 				Metadata: &pb.ReserveSatelliteRequest_Metadata{
-					EnvEntryName: getEnvEntriesNames(),
-					CliVersion:   version.Version,
+					EnvEntryNames: getEnvEntriesNames(),
+					CliVersion:    version.Version,
 				},
 			})
 			if err != nil {
