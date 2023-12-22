@@ -21,7 +21,6 @@ import (
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/buildkitskipper/hasher"
 	"github.com/earthly/earthly/util/flagutil"
-	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/variables"
 	"github.com/pkg/errors"
 )
@@ -48,12 +47,14 @@ type loader struct {
 }
 
 func newLoader(ctx context.Context, opt HashOpt) *loader {
+	h := hasher.New()
+	h.HashJSONMarshalled(opt.BuiltinArgs)
 	// Other important values are set by load().
 	return &loader{
 		conslog:         opt.Console,
 		target:          opt.Target,
 		visited:         map[string]struct{}{},
-		hasher:          hasher.New(),
+		hasher:          h,
 		isBaseTarget:    opt.Target.Target == "base",
 		ci:              opt.CI,
 		builtinArgs:     opt.BuiltinArgs,
@@ -181,10 +182,6 @@ func containsShellExpr(s string) bool {
 
 func (l *loader) handleCopySrc(ctx context.Context, cmd spec.Command, src string, mustExist bool) error {
 
-	if containsShellExpr(src) {
-		return newError(cmd.SourceLocation, "dynamic COPY source %q cannot be resolved", src)
-	}
-
 	var (
 		classical   bool
 		artifactSrc domain.Artifact
@@ -192,7 +189,8 @@ func (l *loader) handleCopySrc(ctx context.Context, cmd spec.Command, src string
 		err         error
 	)
 
-	// Complex form with args: (+target --arg=1)
+	// Complex form with args: (+target --arg=1). We'll wait to expand any args
+	// until the full target is processed below.
 	if flagutil.IsInParamsForm(src) {
 		var artifactName string
 		classical = false
@@ -211,8 +209,16 @@ func (l *loader) handleCopySrc(ctx context.Context, cmd spec.Command, src string
 		}
 	}
 
-	// COPY classical (not from another target)
+	// COPY classical (not from another target). The args are expanded here as
+	// files and directories will by read from.
 	if classical {
+		src, err := l.expandArgs(ctx, src)
+		if err != nil {
+			return wrapError(err, cmd.SourceLocation, "failed to expand args")
+		}
+		if containsShellExpr(src) {
+			return newError(cmd.SourceLocation, "dynamic COPY source %q cannot be resolved", src)
+		}
 		path := filepath.Join(l.target.GetLocalPath(), src)
 		files, err := l.expandCopyFiles(path, mustExist)
 		if err != nil {
@@ -228,6 +234,11 @@ func (l *loader) handleCopySrc(ctx context.Context, cmd spec.Command, src string
 			}
 		}
 		return nil
+	}
+
+	extraArgs, err = l.expandArgsSlice(ctx, extraArgs)
+	if err != nil {
+		return wrapError(err, cmd.SourceLocation, "failed to expand args")
 	}
 
 	targetName := artifactSrc.Target.String()
@@ -306,15 +317,20 @@ func (l *loader) expandDirs(dirs ...string) ([]string, error) {
 	return uniqStrs(ret), nil
 }
 
-func (l *loader) expandArgs(ctx context.Context, args []string) ([]string, error) {
-	// Reform the args such that quoted args are combined.
-	args = stringutil.ProcessParamsAndQuotes(args)
+func (l *loader) expandArgs(ctx context.Context, args string) (string, error) {
+	expanded, err := l.varCollection.Expand(args, func(cmd string) (string, error) {
+		return args, nil // Return the original expression so it can be referenced later.
+	})
+	if err != nil {
+		return "", err
+	}
+	return expanded, nil
+}
 
+func (l *loader) expandArgsSlice(ctx context.Context, args []string) ([]string, error) {
 	ret := []string{}
 	for _, arg := range args {
-		expanded, err := l.varCollection.Expand(arg, func(cmd string) (string, error) {
-			return arg, nil // Return the original expression so it can be referenced later.
-		}, variables.WithRawQuotes(), variables.WithRawEscapes())
+		expanded, err := l.expandArgs(ctx, arg)
 		if err != nil {
 			return nil, err
 		}
@@ -325,12 +341,7 @@ func (l *loader) expandArgs(ctx context.Context, args []string) ([]string, error
 }
 
 func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
-	// All commands are expanded and hashed at a minimum.
-	var err error
-	cmd.Args, err = l.expandArgs(ctx, cmd.Args)
-	if err != nil {
-		return err
-	}
+	// Hash the raw command. Args will be expanded and hashed later.
 	l.hashCommand(cmd)
 
 	// Some commands require more processing.
@@ -348,6 +359,8 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 	case command.Import:
 		return l.handleImport(ctx, cmd, false)
 	default:
+		// By default, no special handling is required. The raw command has been
+		// hashed above and all argument values have been hashed independently.
 		return nil
 	}
 }
@@ -396,9 +409,18 @@ func (l *loader) handleArg(ctx context.Context, cmd spec.Command) error {
 		variables.AsArg(),
 	}
 
+	var expanded string
+
 	if valueOrNil != nil {
-		declOpts = append(declOpts, variables.WithValue(*valueOrNil))
+		var err error
+		expanded, err = l.expandArgs(ctx, *valueOrNil)
+		if err != nil {
+			return wrapError(err, cmd.SourceLocation, "failed to expand args")
+		}
+		declOpts = append(declOpts, variables.WithValue(expanded))
 	}
+
+	l.hasher.HashString(fmt.Sprintf("ARG %s=%s", key, expanded))
 
 	if opts.Global {
 		declOpts = append(declOpts, variables.AsGlobal())
@@ -426,7 +448,7 @@ func (l *loader) handleWith(ctx context.Context, with spec.WithStatement) error 
 func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 	// Special case since handleWithDocker doesn't get called from handleCommand.
 	var err error
-	cmd.Args, err = l.expandArgs(ctx, cmd.Args)
+	cmd.Args, err = l.expandArgsSlice(ctx, cmd.Args)
 	if err != nil {
 		return wrapError(err, cmd.SourceLocation, "failed to expand args")
 	}
@@ -586,7 +608,7 @@ func (l *loader) handleIf(ctx context.Context, ifStmt spec.IfStatement) error {
 }
 
 func (l *loader) expandAndEval(ctx context.Context, expr []string) (bool, error) {
-	expr, err := l.expandArgs(ctx, expr)
+	expr, err := l.expandArgsSlice(ctx, expr)
 	if err != nil {
 		return false, err
 	}
@@ -650,7 +672,7 @@ func (l *loader) handleFor(ctx context.Context, forStmt spec.ForStatement) error
 		return errors.Wrap(err, "failed to parse FOR args")
 	}
 
-	expandedArgs, err := l.expandArgs(ctx, args)
+	expandedArgs, err := l.expandArgsSlice(ctx, args)
 	if err != nil {
 		return err
 	}
@@ -793,6 +815,17 @@ func (l *loader) forTarget(ctx context.Context, target domain.Target, args []str
 }
 
 func (l *loader) loadTargetFromString(ctx context.Context, targetName string, args []string, passArgs bool, srcLoc *spec.SourceLocation) error {
+
+	targetName, err := l.expandArgs(ctx, targetName)
+	if err != nil {
+		return wrapError(err, srcLoc, "failed to expand args")
+	}
+
+	args, err = l.expandArgsSlice(ctx, args)
+	if err != nil {
+		return wrapError(err, srcLoc, "failed to expand args")
+	}
+
 	// If the target name contains a variable that hasn't been expanded, we
 	// won't be able to explore the rest of the graph and generate a valid hash.
 	if containsShellExpr(targetName) {
@@ -858,6 +891,12 @@ func (l *loader) load(ctx context.Context) error {
 		GlobalImports:   l.globalImports,
 	}
 	l.varCollection = variables.NewCollection(collOpt)
+
+	// Ensure that args passed to this target are always hashed. Globals,
+	// built-ins, and ARG values are hashed elsewhere.
+	for _, val := range l.overridingVars.BuildArgs() {
+		l.hasher.HashString(fmt.Sprintf("VAR %s", val))
+	}
 
 	ef := buildCtx.Earthfile
 	if ef.Version != nil {

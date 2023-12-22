@@ -217,32 +217,10 @@ func (c *Collection) ExpandOld(word string) string {
 	return ret
 }
 
-// ExpandOpt can be used to modified the behavior of Expand.
-type ExpandOpt func(shlex *shell.Lex)
-
-// WithRawQuotes will enable the RawQuotes option on the shell lexer and will
-// not strip quotes from strings.
-func WithRawQuotes() ExpandOpt {
-	return func(shlex *shell.Lex) {
-		shlex.RawQuotes = true
-	}
-}
-
-// WithRawEscapes will retain escape characters. This can be used in tandem with
-// WithRawQuotes to preserve quotes and escaped characters.
-func WithRawEscapes() ExpandOpt {
-	return func(shlex *shell.Lex) {
-		shlex.RawEscapes = true
-	}
-}
-
 // Expand expands variables within the given word.
-func (c *Collection) Expand(word string, shellOut shell.EvalShellOutFn, opts ...ExpandOpt) (string, error) {
+func (c *Collection) Expand(word string, shellOut shell.EvalShellOutFn) (string, error) {
 	shlex := shell.NewLex('\\')
 	shlex.ShellOut = shellOut
-	for _, opt := range opts {
-		opt(shlex)
-	}
 	varMap := c.effective().Map(WithActive())
 	return shlex.ProcessWordWithMap(word, varMap, ShellOutEnvs)
 }
