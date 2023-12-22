@@ -466,7 +466,7 @@ func getEnvEntriesNames() []string {
 	environ := os.Environ()
 	ret := make([]string, len(environ))
 	for i := 0; i < len(environ); i++ {
-		ret[i] = strings.Split(environ[i], "=")[0]
+		ret[i] = strings.SplitN(environ[i], "=", 2)[0]
 	}
 	sort.Strings(ret)
 	return ret
