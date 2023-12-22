@@ -894,8 +894,10 @@ func (l *loader) load(ctx context.Context) error {
 
 	// Ensure that args passed to this target are always hashed. Globals,
 	// built-ins, and ARG values are hashed elsewhere.
-	for _, val := range l.overridingVars.BuildArgs() {
-		l.hasher.HashString(fmt.Sprintf("VAR %s", val))
+	if l.overridingVars != nil {
+		for _, val := range l.overridingVars.BuildArgs() {
+			l.hasher.HashString(fmt.Sprintf("VAR %s", val))
+		}
 	}
 
 	ef := buildCtx.Earthfile
