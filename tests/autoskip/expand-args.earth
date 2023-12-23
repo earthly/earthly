@@ -58,3 +58,7 @@ copy-target:
 copy-target-args:
     COPY (+copy-target/x --foo=hello) .
     RUN cat x
+
+copy-target-args-quoted:
+    COPY (+copy-target/x --foo="hello world") .
+    RUN cat x
