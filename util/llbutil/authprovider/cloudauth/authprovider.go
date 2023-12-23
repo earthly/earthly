@@ -11,6 +11,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -26,6 +27,7 @@ import (
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/llbutil/authprovider"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth"
 	"github.com/moby/buildkit/util/progress/progresswriter"
@@ -128,6 +130,16 @@ func (ap *authProvider) FetchToken(ctx context.Context, req *auth.FetchTokenRequ
 		Secret:   creds.Secret,
 	}
 
+	retryClient := retryablehttp.NewClient()
+	retryClient.RetryMax = 5
+	retryClient.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+		if errors.Is(err, io.EOF) {
+			return true, nil
+		}
+		return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
+	}
+	httpClient := retryClient.StandardClient()
+
 	if creds.Secret != "" {
 		done := func(progresswriter.SubLogger) error {
 			return err
@@ -142,7 +154,7 @@ func (ap *authProvider) FetchToken(ctx context.Context, req *auth.FetchTokenRequ
 		}
 		ap.mu.Unlock()
 		// credential information is provided, use oauth POST endpoint
-		resp, err := authutil.FetchTokenWithOAuth(ctx, http.DefaultClient, nil, "buildkit-client", to)
+		resp, err := authutil.FetchTokenWithOAuth(ctx, httpClient, nil, "buildkit-client", to)
 		if err != nil {
 			var errStatus remoteserrors.ErrUnexpectedStatus
 			if errors.As(err, &errStatus) {
@@ -150,7 +162,7 @@ func (ap *authProvider) FetchToken(ctx context.Context, req *auth.FetchTokenRequ
 				// As of September 2017, GCR is known to return 404.
 				// As of February 2018, JFrog Artifactory is known to return 401.
 				if (errStatus.StatusCode == 405 && to.Username != "") || errStatus.StatusCode == 404 || errStatus.StatusCode == 401 {
-					resp, err := authutil.FetchToken(ctx, http.DefaultClient, nil, to)
+					resp, err := authutil.FetchToken(ctx, httpClient, nil, to)
 					if err != nil {
 						ap.console.Warnf("failed to login to %s with username %s (using credentials from %s): %s", req.Host, creds.Username, ac.loc, err)
 						return nil, err
@@ -168,7 +180,7 @@ func (ap *authProvider) FetchToken(ctx context.Context, req *auth.FetchTokenRequ
 		return toTokenResponse(resp.AccessToken, resp.IssuedAt, resp.ExpiresIn), nil
 	}
 	// do request anonymously
-	resp, err := authutil.FetchToken(ctx, http.DefaultClient, nil, to)
+	resp, err := authutil.FetchToken(ctx, httpClient, nil, to)
 	if err != nil {
 		ap.console.Warnf("failed to login to %s anonymously: %s", req.Host, err)
 		return nil, errors.Wrap(err, "failed to fetch anonymous token")
