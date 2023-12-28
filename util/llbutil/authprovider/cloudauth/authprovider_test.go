@@ -17,6 +17,34 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func newRetryClient() *retryablehttp.Client {
+	retryClient := retryablehttp.NewClient()
+	retryClient.RetryMax = 5
+	retryClient.CheckRetry = checkRetryFunc
+
+	// Use backoff of 0 to limit impact to test performance.
+	retryClient.Backoff = func(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
+		return 0
+	}
+
+	return retryClient
+}
+
+func newAuthProvider(host string, httpClient *http.Client) *authProvider {
+	return &authProvider{
+		httpClient: httpClient,
+		authConfigCache: map[string]*authConfig{
+			host: {
+				loc: "user",
+				ac: &types.AuthConfig{
+					Username: "user",
+					Password: "pass",
+				},
+			},
+		},
+	}
+}
+
 func TestFetchTokenRetry(t *testing.T) {
 
 	mux := http.NewServeMux()
@@ -43,14 +71,7 @@ func TestFetchTokenRetry(t *testing.T) {
 	testServer := httptest.NewServer(mux)
 	defer testServer.Close()
 
-	retryClient := retryablehttp.NewClient()
-	retryClient.RetryMax = 5
-	retryClient.CheckRetry = checkRetryFunc
-
-	// Use backoff of 0 to limit impact to test performance.
-	retryClient.Backoff = func(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
-		return 0
-	}
+	retryClient := newRetryClient()
 
 	attempts := 0
 	retryClient.RequestLogHook = func(logger retryablehttp.Logger, r *http.Request, i int) {
@@ -59,18 +80,7 @@ func TestFetchTokenRetry(t *testing.T) {
 
 	u, _ := url.Parse(testServer.URL)
 
-	p := &authProvider{
-		httpClient: retryClient.StandardClient(),
-		authConfigCache: map[string]*authConfig{
-			u.Host: {
-				loc: "user",
-				ac: &types.AuthConfig{
-					Username: "user",
-					Password: "pass",
-				},
-			},
-		},
-	}
+	p := newAuthProvider(u.Host, retryClient.StandardClient())
 
 	ctx := context.Background()
 
@@ -103,15 +113,7 @@ func (t *eofTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 func TestFetchTokenRetryEOF(t *testing.T) {
 
-	retryClient := retryablehttp.NewClient()
-	retryClient.RetryMax = 5
-	retryClient.CheckRetry = checkRetryFunc
-
-	// Use backoff of 0 to limit impact to test performance.
-	retryClient.Backoff = func(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
-		return 0
-	}
-
+	retryClient := newRetryClient()
 	retryClient.HTTPClient = &http.Client{
 		Transport: &eofTransport{fallback: http.DefaultTransport, times: 2},
 	}
@@ -139,18 +141,7 @@ func TestFetchTokenRetryEOF(t *testing.T) {
 
 	u, _ := url.Parse(testServer.URL)
 
-	p := &authProvider{
-		httpClient: retryClient.StandardClient(),
-		authConfigCache: map[string]*authConfig{
-			u.Host: {
-				loc: "user",
-				ac: &types.AuthConfig{
-					Username: "user",
-					Password: "pass",
-				},
-			},
-		},
-	}
+	p := newAuthProvider(u.Host, retryClient.StandardClient())
 
 	ctx := context.Background()
 
@@ -199,14 +190,7 @@ func TestFetchTokenRetry404(t *testing.T) {
 	testServer := httptest.NewServer(mux)
 	defer testServer.Close()
 
-	retryClient := retryablehttp.NewClient()
-	retryClient.RetryMax = 5
-	retryClient.CheckRetry = checkRetryFunc
-
-	// Use backoff of 0 to limit impact to test performance.
-	retryClient.Backoff = func(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
-		return 0
-	}
+	retryClient := newRetryClient()
 
 	attempts := 0
 	retryClient.RequestLogHook = func(logger retryablehttp.Logger, r *http.Request, i int) {
@@ -215,18 +199,7 @@ func TestFetchTokenRetry404(t *testing.T) {
 
 	u, _ := url.Parse(testServer.URL)
 
-	p := &authProvider{
-		httpClient: retryClient.StandardClient(),
-		authConfigCache: map[string]*authConfig{
-			u.Host: {
-				loc: "user",
-				ac: &types.AuthConfig{
-					Username: "user",
-					Password: "pass",
-				},
-			},
-		},
-	}
+	p := newAuthProvider(u.Host, retryClient.StandardClient())
 
 	ctx := context.Background()
 
