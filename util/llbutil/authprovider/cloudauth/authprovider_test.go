@@ -65,7 +65,7 @@ func TestFetchTokenRetry(t *testing.T) {
 			IssuedAt:     time.Now(),
 		}
 
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 
 	testServer := httptest.NewServer(mux)
@@ -128,7 +128,7 @@ func TestFetchTokenRetryEOF(t *testing.T) {
 			IssuedAt:     time.Now(),
 		}
 
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 
 	testServer := httptest.NewServer(mux)
@@ -183,7 +183,7 @@ func TestFetchTokenRetry404(t *testing.T) {
 				IssuedAt:     time.Now(),
 			}
 
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 		}
 	}))
 
