@@ -200,7 +200,7 @@ func (a *Registry) getRegistriesPath(ctx context.Context, cloudClient *cloud.Cli
 	if user {
 		return "/user/std/registry/", nil
 	}
-	orgName, projectName, _, err := getOrgAndProject(a.cli, ctx, cloudClient)
+	orgName, projectName, _, err := getOrgAndProject(ctx, a.cli.OrgName(), a.cli.Flags().ProjectName, cloudClient, "")
 	if err != nil {
 		return "", err
 	}
