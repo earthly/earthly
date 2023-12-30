@@ -30,6 +30,7 @@ ga-no-qemu-group1:
     BUILD +copy-test-verbose-output
     BUILD +copy-tilde-test
     BUILD +copy-keep-own-test
+    BUILD +copy-test-empty-src
     BUILD +git-clone-test
     BUILD +builtin-args-invalid-default-test
     BUILD +builtin-args-invalid-pass-test
@@ -229,6 +230,10 @@ copy-test:
         echo "2" > in/sub/2/file && \
         echo "sub" > in/sub/file
     DO +RUN_EARTHLY --earthfile=copy.earth --output_does_not_contain="which does not expand to a home directory"
+
+copy-test-empty-src:
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-empty-src --should_fail=true --output_contains="empty COPY source encountered"
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-empty-src-if-exists --should_fail=true --output_contains="empty COPY source encountered"
 
 copy-test-verbose-output:
     RUN mkdir -p subdir/a.txt && \
