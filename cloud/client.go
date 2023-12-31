@@ -86,10 +86,13 @@ func WithLogstreamGRPCAddressOverride(address string) ClientOpt {
 	}
 }
 
-// WithAuthToken can be used to specify a custom auth token to the Cloud client.
+// WithAuthToken can be used to ignore other authentication mechanisms
+// besides the given token. Any previously set JWT tokens are cleared.
 func WithAuthToken(token string) ClientOpt {
 	return func(client *Client) {
 		client.authCredToken = token
+		client.authToken = ""
+		client.authTokenExpiry = time.Time{}
 	}
 }
 
