@@ -37,7 +37,7 @@ trap finish EXIT
 
 # Wait for a stopped satellite to finish shutting down. Other states may continue.
 while true; do
-  state=$(earthly sat inspect core-test 2>&1 | grep State | awk '{print $2}')
+  state=$("$FRONTEND" run --rm --privileged -e EARTHLY_TOKEN="${EARTHLY_TOKEN}" "${EARTHLY_IMAGE}" sat --org earthly-technologies inspect core-test 2>&1 | grep State | awk '{print $2}')
   echo "Current state: $state"
   case $state in
     Stopping)
@@ -51,7 +51,7 @@ while true; do
 done
 
 # This will catch the case where the satellite was previously stopping. No effect when already awake.
-earthly sat wake core-test
+"$FRONTEND" run --rm --privileged -e EARTHLY_TOKEN="${EARTHLY_TOKEN}" "${EARTHLY_IMAGE}" sat --org earthly-technologies wake core-test
 
 echo "Test earthly sat inspect."
 "$FRONTEND" run --rm --privileged -e EARTHLY_TOKEN="${EARTHLY_TOKEN}" "${EARTHLY_IMAGE}" sat --org earthly-technologies inspect core-test 2>&1 | tee output.txt
