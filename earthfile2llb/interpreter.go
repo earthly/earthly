@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -1171,6 +1172,10 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD target %s", args[0])
 	}
+	// Expand wildcards into a set of BUILD spec.Command's, one for each discovered Earthfile.
+	if strings.Contains(fullTargetName, "*") {
+		return i.handleWildcardBuilds(ctx, fullTargetName, cmd, async)
+	}
 	platformsSlice := make([]platutil.Platform, 0, len(opts.Platforms))
 	for index, p := range opts.Platforms {
 		expandedPlatform, err := i.expandArgs(ctx, p, false, async)
@@ -1236,6 +1241,62 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 			}
 		}
 	}
+	return nil
+}
+
+func (i *Interpreter) handleWildcardBuilds(ctx context.Context, fullTargetName string, cmd spec.Command, async bool) error {
+
+	if strings.Contains(fullTargetName, "**") {
+		return i.errorf(cmd.SourceLocation, "globstar (**) not yet supported")
+	}
+
+	parsedTarget, err := domain.ParseTarget(fullTargetName)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to parse target")
+	}
+
+	if parsedTarget.IsRemote() {
+		return i.wrapError(err, cmd.SourceLocation, "remote wildcard targets not yet supported")
+	}
+
+	matches, err := filepath.Glob(parsedTarget.GetLocalPath())
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to glob path")
+	}
+
+	children := []spec.Command{}
+	for _, match := range matches {
+		st, err := os.Stat(match)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to stat %q", match)
+		}
+
+		if !st.IsDir() {
+			continue
+		}
+
+		st, err = os.Stat(filepath.Join(match, "Earthfile"))
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+		}
+
+		cloned := cmd.Clone()
+		cloned.Args[0] = fmt.Sprintf("./%s+%s", match, parsedTarget.GetName())
+		children = append(children, cloned)
+	}
+
+	if len(children) == 0 {
+		return i.wrapError(err, cmd.SourceLocation, "no matching targets found for wildcard pattern %q", parsedTarget.GetLocalPath())
+	}
+
+	for _, child := range children {
+		if err := i.handleBuild(ctx, child, async); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
