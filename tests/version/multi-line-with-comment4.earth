@@ -1,6 +1,6 @@
 VERSION \
     # don't count this as the continued line
-    0.5
+    0.8
 
 FROM alpine:3.18
 test:

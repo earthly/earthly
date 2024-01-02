@@ -1,4 +1,4 @@
-VERSION 0.5 # make sure a comment here works
+VERSION 0.8 # make sure a comment here works
 
 FROM alpine:3.18
 test:

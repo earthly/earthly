@@ -1,6 +1,6 @@
 VERSION \ # This is an example of a user that wants to comment out a single feature, lines with only comments should not count towards the continued line
-    #--referenced-save-only \
-    0.5
+    #--try \
+    0.8
 
 FROM alpine:3.18
 test:
