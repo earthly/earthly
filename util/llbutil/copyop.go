@@ -30,14 +30,14 @@ func CopyOp(ctx context.Context, srcState pllb.State, srcs []string, destState p
 		baseCopyOpts = append(baseCopyOpts, llb.WithCreatedTime(*defaultTs()))
 	}
 	for _, src := range srcs {
-		if ifExists {
+		if ifExists && len(src) != 0 {
 			// If the copy came in as optional (ifExists), then we need to trigger the
 			// underlying wildcard matching and allow empty wildcards. The matching uses
-			// the filepath.Match syntax, so by simply creating a wildcard where the
+			// the filepath. Match syntax, so by simply creating a wildcard where the
 			// first letter needs to match the current first letter gets us the single
 			// match; and no error if it is missing.
 
-			//Normalize path by dropping './'
+			// Normalize path by dropping './'
 			src = strings.TrimPrefix(src, "./")
 			// A target source will always have a leading '/' and never match, so strip that as well
 			src = strings.TrimPrefix(src, "/")

@@ -232,8 +232,9 @@ copy-test:
     DO +RUN_EARTHLY --earthfile=copy.earth --output_does_not_contain="which does not expand to a home directory"
 
 copy-test-empty-src:
-    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-empty-src --should_fail=true --output_contains="empty COPY source encountered"
-    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-empty-src-if-exists --should_fail=true --output_contains="empty COPY source encountered"
+    # Regression tests for 'COPY --if-exists "" <dst>' (empty string)
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-empty-src
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-empty-src-if-exists
 
 copy-test-verbose-output:
     RUN mkdir -p subdir/a.txt && \
