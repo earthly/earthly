@@ -1,5 +1,5 @@
 VERSION 0.8
-FROM alpine/git:v2.40.1
+FROM alpine/git:v2.43.0
 
 test:
     BUILD +test-default
