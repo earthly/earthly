@@ -591,7 +591,12 @@ func (a *Account) actionLogin(cliCtx *cli.Context) error {
 	token := a.token
 	pass := a.password
 
-	cloudClient, err := helper.NewCloudClient(a.cli)
+	opts := []cloud.ClientOpt{}
+	if token != "" {
+		opts = append(opts, cloud.WithAuthToken(token))
+	}
+
+	cloudClient, err := helper.NewCloudClient(a.cli, opts...)
 	if err != nil {
 		return err
 	}
