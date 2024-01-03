@@ -3,3 +3,7 @@ VERSION 0.7
 wildcard-build:
     FROM alpine
     BUILD ./wildcard-build/*+test
+
+wildcard-globstar:
+    FROM alpine
+    BUILD ./wildcard-build/**/*+test

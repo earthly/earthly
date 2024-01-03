@@ -1247,7 +1247,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 func (i *Interpreter) handleWildcardBuilds(ctx context.Context, fullTargetName string, cmd spec.Command, async bool) error {
 
 	if strings.Contains(fullTargetName, "**") {
-		return i.errorf(cmd.SourceLocation, "globstar (**) not yet supported")
+		return i.errorf(cmd.SourceLocation, "globstar (**) not yet supported for wildcard BUILD")
 	}
 
 	parsedTarget, err := domain.ParseTarget(fullTargetName)
@@ -1261,14 +1261,14 @@ func (i *Interpreter) handleWildcardBuilds(ctx context.Context, fullTargetName s
 
 	matches, err := filepath.Glob(parsedTarget.GetLocalPath())
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "failed to glob path")
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand path for wildcard BUILD")
 	}
 
 	children := []spec.Command{}
 	for _, match := range matches {
 		st, err := os.Stat(match)
 		if err != nil {
-			return i.wrapError(err, cmd.SourceLocation, "failed to stat %q", match)
+			return i.wrapError(err, cmd.SourceLocation, "failed to stat expanded path %q", match)
 		}
 
 		if !st.IsDir() {
@@ -1278,7 +1278,7 @@ func (i *Interpreter) handleWildcardBuilds(ctx context.Context, fullTargetName s
 		relTargetName := fmt.Sprintf("./%s+%s", match, parsedTarget.GetName())
 		relTarget, err := domain.ParseTarget(relTargetName)
 		if err != nil {
-			return i.wrapError(err, cmd.SourceLocation, "failed to parse target")
+			return i.wrapError(err, cmd.SourceLocation, "failed to parse target %q", relTargetName)
 		}
 
 		data, _, _, err := i.converter.ResolveReference(ctx, relTarget)
@@ -1308,7 +1308,7 @@ func (i *Interpreter) handleWildcardBuilds(ctx context.Context, fullTargetName s
 	}
 
 	if len(children) == 0 {
-		return i.wrapError(err, cmd.SourceLocation, "no matching targets found for wildcard pattern %q", parsedTarget.GetLocalPath())
+		return i.wrapError(err, cmd.SourceLocation, "no matching targets found for wildcard BUILD pattern %q", parsedTarget.GetLocalPath())
 	}
 
 	for _, child := range children {

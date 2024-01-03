@@ -569,6 +569,7 @@ fail-invalid-artifact-test:
 wildcard-build:
     COPY --dir wildcard-build .
     DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-build --output_does_not_contain="not-test run"
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-globstar --should_fail=true --output_contains="not yet supported"
 
 push-test:
     DO +RUN_EARTHLY --earthfile=push.earth --target=+push-test \
