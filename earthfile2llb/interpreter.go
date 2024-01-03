@@ -6,7 +6,6 @@ import (
 	"net"
 	"os"
 	"path"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -21,6 +20,7 @@ import (
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/internal/version"
+	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
@@ -1259,22 +1259,13 @@ func (i *Interpreter) handleWildcardBuilds(ctx context.Context, fullTargetName s
 		return i.wrapError(err, cmd.SourceLocation, "remote wildcard targets not yet supported")
 	}
 
-	matches, err := filepath.Glob(parsedTarget.GetLocalPath())
+	matches, err := fileutil.GlobDirs(parsedTarget.GetLocalPath())
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "failed to expand path for wildcard BUILD")
+		return i.wrapError(err, cmd.SourceLocation, "invalid BUILD wildcard pattern")
 	}
 
 	children := []spec.Command{}
 	for _, match := range matches {
-		st, err := os.Stat(match)
-		if err != nil {
-			return i.wrapError(err, cmd.SourceLocation, "failed to stat expanded path %q", match)
-		}
-
-		if !st.IsDir() {
-			continue
-		}
-
 		relTargetName := fmt.Sprintf("./%s+%s", match, parsedTarget.GetName())
 		relTarget, err := domain.ParseTarget(relTargetName)
 		if err != nil {
