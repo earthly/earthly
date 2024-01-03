@@ -1174,6 +1174,9 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	}
 	// Expand wildcards into a set of BUILD spec.Command's, one for each discovered Earthfile.
 	if strings.Contains(fullTargetName, "*") {
+		if !i.converter.ftrs.WildcardBuilds {
+			return i.errorf(cmd.SourceLocation, "wildcard BUILD commands are not enabled")
+		}
 		return i.handleWildcardBuilds(ctx, fullTargetName, cmd, async)
 	}
 	platformsSlice := make([]platutil.Platform, 0, len(opts.Platforms))
