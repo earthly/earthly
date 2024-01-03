@@ -572,7 +572,7 @@ wildcard-build:
     RUN cat earthly.output | acbgrep 'hello world 1'
     RUN cat earthly.output | acbgrep 'hello world 2'
     RUN cat earthly.output | acbgrep 'hello world 3'
-    RUN cat earthly.output | (! acbgrep 'not-test run')
+    RUN cat earthly.output | acbgrep -v 'not-test run'
     DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-globstar --should_fail=true --output_contains="not yet supported"
 
 push-test:
