@@ -4,7 +4,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
-## v0.8.0-rc1 - 2023-12-20
+## v0.8.0-rc1 - 2024-01-03
 
 This version promotes a number of features that have been previously in Experimental and Beta status. To make use of
 the features in this version you need to declare `VERSION 0.8` at the top of your Earthfile.
