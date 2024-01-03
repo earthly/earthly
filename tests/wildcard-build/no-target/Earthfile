@@ -1,0 +1,5 @@
+VERSION 0.7
+
+not-test:
+  FROM alpine
+  RUN echo "not-test run"
