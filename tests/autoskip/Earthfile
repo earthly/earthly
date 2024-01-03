@@ -29,6 +29,7 @@ test-all:
     BUILD +test-remote-targets
     BUILD +test-from-dockerfile
     BUILD +test-import
+    BUILD +test-copy-target-args-quoted
 
 test-files:
     RUN echo hello > my-file
@@ -141,6 +142,10 @@ test-copy-target-args:
 
     DO --pass-args +RUN_EARTHLY_ARGS --target=+copy-target-args --output_contains="+copy-target-args | changed"
     DO --pass-args +RUN_EARTHLY_ARGS --target=+copy-target-args --output_contains="Target .* has already been run. Skipping."
+
+test-copy-target-args-quoted:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+copy-target-args-quoted --output_contains="hello world"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+copy-target-args-quoted --output_contains="Target .* has already been run. Skipping."
 
 test-arg-matrix:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=matrix.earth --target=+arg-matrix --output_contains="Hello Bob. From Todd"

@@ -61,7 +61,7 @@
         'ast/tests/git-clone.ast.json',
       ],
       matchStrings: [
-        '= "alpine/git:(?<currentValue>.+?)"',
+        '"alpine/git:(?<currentValue>.+?)"',
       ],
       depNameTemplate: 'alpine/git',
       datasourceTemplate: 'docker',

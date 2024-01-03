@@ -341,7 +341,7 @@ earthly:
     # is particularly useful for disabling optimizations to make the binary work
     # with delve. To disable optimizations:
     #
-    #     -GO_GCFLAGS='all=-N -l'
+    #     --GO_GCFLAGS='all=-N -l'
     ARG GO_GCFLAGS
     ARG EXECUTABLE_NAME="earthly"
     ARG DEFAULT_INSTALLATION_NAME="earthly-dev"
@@ -452,6 +452,8 @@ earthly-docker:
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     ARG BUILDKIT_PROJECT
+    ARG PUSH_LATEST_TAG="false"
+    ARG PUSH_PRERELEASE_TAG="false"
     FROM ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT" --TAG="$TAG"
     RUN apk add --update --no-cache docker-cli libcap-ng-utils git
     ENV EARTHLY_IMAGE=true
@@ -461,7 +463,16 @@ earthly-docker:
     COPY (+earthly/earthly --VERSION=$TAG --DEFAULT_INSTALLATION_NAME="earthly") /usr/bin/earthly
     ARG DOCKERHUB_USER="earthly"
     ARG DOCKERHUB_IMG="earthly"
-    SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG
+    # Multiple SAVE IMAGE's lead to differing image digests, but multiple
+    # arguments to the save SAVE IMAGE do not. Using variables here doesn't work
+    # either, unfortunately, as the names are quoted and treated as a single arg.
+    IF [ "$PUSH_LATEST_TAG" == "true" ]
+       SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG $DOCKERHUB_USER/$DOCKERHUB_IMG:latest
+    ELSE IF [ "$PUSH_PRERELEASE_TAG" == "true" ]
+       SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG $DOCKERHUB_USER/$DOCKERHUB_IMG:prerelease
+    ELSE
+       SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG
+    END
 
 # earthly-integration-test-base builds earthly docker and then
 # if no dockerhub mirror is not set it will attempt to login to dockerhub using the provided docker hub username and token.
@@ -588,7 +599,7 @@ for-linux:
     ARG GO_GCFLAGS
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     BUILD ./ast/parser+parser
-    COPY (+earthly-linux-amd64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
+    COPY (+earthly-linux-amd64/earthly --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/linux/amd64/earthly
 
 # for-linux-arm64 builds earthly-buildkitd and the earthly CLI for the a linux arm64 system
@@ -598,7 +609,7 @@ for-linux-arm64:
     ARG GO_GCFLAGS
     BUILD --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     BUILD ./ast/parser+parser
-    COPY (+earthly-linux-arm64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
+    COPY (+earthly-linux-arm64/earthly --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/linux/arm64/earthly
 
 # for-darwin builds earthly-buildkitd and the earthly CLI for the a darwin amd64 system
@@ -609,7 +620,7 @@ for-darwin:
     ARG GO_GCFLAGS
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     BUILD ./ast/parser+parser
-    COPY (+earthly-darwin-amd64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
+    COPY (+earthly-darwin-amd64/earthly --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/amd64/earthly
 
 # for-darwin-m1 builds earthly-buildkitd and the earthly CLI for the a darwin m1 system
@@ -619,7 +630,7 @@ for-darwin-m1:
     ARG GO_GCFLAGS
     BUILD --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     BUILD ./ast/parser+parser
-    COPY (+earthly-darwin-arm64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
+    COPY (+earthly-darwin-arm64/earthly --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/arm64/earthly
 
 # for-windows builds earthly-buildkitd and the earthly CLI for the a windows system
@@ -628,7 +639,7 @@ for-windows:
     ARG GO_GCFLAGS
     # BUILD --platform=linux/amd64 ./buildkitd+buildkitd
     BUILD ./ast/parser+parser
-    COPY (+earthly-windows-amd64/earthly.exe -GO_GCFLAGS="${GO_GCFLAGS}") ./
+    COPY (+earthly-windows-amd64/earthly.exe --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly.exe AS LOCAL ./build/windows/amd64/earthly.exe
 
 # all-buildkitd builds buildkitd for both linux amd64 and linux arm64
