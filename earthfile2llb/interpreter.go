@@ -1275,15 +1275,35 @@ func (i *Interpreter) handleWildcardBuilds(ctx context.Context, fullTargetName s
 			continue
 		}
 
-		st, err = os.Stat(filepath.Join(match, "Earthfile"))
+		relTargetName := fmt.Sprintf("./%s+%s", match, parsedTarget.GetName())
+		relTarget, err := domain.ParseTarget(relTargetName)
 		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
+			return i.wrapError(err, cmd.SourceLocation, "failed to parse target")
+		}
+
+		data, _, _, err := i.converter.ResolveReference(ctx, relTarget)
+		if err != nil {
+			notExist := buildcontext.ErrEarthfileNotExist{}
+			if errors.As(err, &notExist) {
 				continue
+			}
+			return i.wrapError(err, cmd.SourceLocation, "unable to resolve target %q", relTargetName)
+		}
+
+		var found bool
+		for _, target := range data.Earthfile.Targets {
+			if target.Name == relTarget.GetName() {
+				found = true
+				break
 			}
 		}
 
+		if !found {
+			continue
+		}
+
 		cloned := cmd.Clone()
-		cloned.Args[0] = fmt.Sprintf("./%s+%s", match, parsedTarget.GetName())
+		cloned.Args[0] = relTargetName
 		children = append(children, cloned)
 	}
 

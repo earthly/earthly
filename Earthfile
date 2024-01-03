@@ -918,6 +918,3 @@ BUILD_AND_FROM:
     ARG --required TARGET
     FROM --pass-args +$TARGET
     BUILD --pass-args +$TARGET
-
-wildcard-build:
-    BUILD ./wildcard-build/*+test --ARG=1

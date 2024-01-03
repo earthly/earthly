@@ -74,6 +74,7 @@ ga-no-qemu-group1:
     BUILD +escape-test
     BUILD +escape-dir-test
     BUILD +fail-invalid-artifact-test
+    BUILD +wildcard-build
 
 ga-no-qemu-group2:
     BUILD +target-first-line
@@ -564,6 +565,10 @@ fail-invalid-artifact-test:
     # test that the artifact fails to be copied
     DO +RUN_EARTHLY --earthfile=fail-invalid-artifact.earth --should_fail=true --target="--artifact +test/foo /tmp/stuff" \
         --output_contains="cannot save artifact +test/foo, since it does not exist"
+
+wildcard-build:
+    COPY --dir wildcard-build .
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-build --output_does_not_contain="not-test run"
 
 push-test:
     DO +RUN_EARTHLY --earthfile=push.earth --target=+push-test \
