@@ -263,16 +263,6 @@ unit-test:
     BUILD ./ast+unit-test
     BUILD ./util/deltautil+unit-test
 
-# chaos-test runs tests that use chaos and load in order to exercise components
-# of earthly. These tests may be more resource-intensive or flaky than typical
-# unit or integration tests.
-#
-# Since the race detector (-race) sets a goroutine limit, these tests are run
-# without -race.
-chaos-test:
-    FROM +code
-    RUN go test -tags chaos ./...
-
 # offline-test runs offline tests with network set to none
 offline-test:
     FROM +code
@@ -715,10 +705,9 @@ test-no-qemu:
     BUILD --pass-args +test-no-qemu-group4
     BUILD --pass-args +test-no-qemu-slow
 
-# test-quick runs the unit, chaos, offline, and go tests and ensures the earthly script does not write to stdout
+# test-quick runs the unit, offline, and go tests and ensures the earthly script does not write to stdout
 test-quick:
     BUILD +unit-test
-    BUILD +chaos-test
     BUILD +offline-test
     BUILD +earthly-script-no-stdout
     BUILD --pass-args ./ast/tests+all

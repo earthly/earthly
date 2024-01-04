@@ -76,11 +76,23 @@ type Client struct {
 	lastAuthMethodExpiry     time.Time
 }
 
+// ClientOpt is used to customize the Cloud client.
 type ClientOpt func(*Client)
 
+// WithLogstreamGRPCAddressOverride can be used to override the Logstream gRPC address.
 func WithLogstreamGRPCAddressOverride(address string) ClientOpt {
 	return func(client *Client) {
 		client.logstreamAddressOverride = address
+	}
+}
+
+// WithAuthToken can be used to ignore other authentication mechanisms
+// besides the given token. Any previously set JWT tokens are cleared.
+func WithAuthToken(token string) ClientOpt {
+	return func(client *Client) {
+		client.authCredToken = token
+		client.authToken = ""
+		client.authTokenExpiry = time.Time{}
 	}
 }
 

@@ -192,7 +192,7 @@ func (a *Secret) actionListV2(cliCtx *cli.Context) error {
 		return nil
 	}
 
-	orgName, projectName, isPersonal, err := getOrgAndProject(a.cli, cliCtx.Context, cloudClient)
+	orgName, projectName, isPersonal, err := getOrgAndProject(cliCtx.Context, a.cli.OrgName(), a.cli.Flags().ProjectName, cloudClient, path)
 	if err != nil {
 		return err
 	}
@@ -349,7 +349,7 @@ func (a *Secret) fullSecretPath(ctx context.Context, cloudClient *cloud.Client, 
 		return path, nil
 	}
 
-	orgName, projectName, isPersonal, err := getOrgAndProject(a.cli, ctx, cloudClient)
+	orgName, projectName, isPersonal, err := getOrgAndProject(ctx, a.cli.OrgName(), a.cli.Flags().ProjectName, cloudClient, "")
 	if err != nil {
 		return "", err
 	}
