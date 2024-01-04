@@ -17,7 +17,7 @@ Earthly binary versions and Earthfile versions (declared via `VERSION`) follow t
 
 The Earthly binary is able to run some older Earthfiles, but newer Earthfiles are not able to run on older Earthly binaries. The table below shows the compatibility matrix:
 
-| Earthly binary version | Supported Earthfile `VERSION`s |
+| Earthly binary version | Supported Earthfile VERSIONs |
 |------------------------|--------------------------------|
 | 0.8.x | `VERSION 0.6`, `VERSION 0.7`, `VERSION 0.8` |
 | 0.7.x | `VERSION 0.5`, `VERSION 0.6`, `VERSION 0.7` |
@@ -51,7 +51,7 @@ VERSION [<flags>...] <version-number>
 
 ## Feature flags
 
-| Feature flag                        | status       | description                                                                                                        |
+| Feature flag                        | Status       | Description                                                                                                        |
 |-------------------------------------|--------------|--------------------------------------------------------------------------------------------------------------------|
 | `--use-registry-for-with-docker`    | 0.5          | Makes use of the embedded BuildKit Docker registry (instead of tar files) for `WITH DOCKER` loads and pulls        |
 | `--use-copy-include-patterns`       | 0.6          | Speeds up COPY transfers                                                                                           |
