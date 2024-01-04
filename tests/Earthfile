@@ -1,4 +1,4 @@
-VERSION --pass-args --use-function-keyword 0.7
+VERSION 0.8
 FROM --pass-args ..+earthly-integration-test-base
 
 WORKDIR /test
@@ -30,6 +30,7 @@ ga-no-qemu-group1:
     BUILD +copy-test-verbose-output
     BUILD +copy-tilde-test
     BUILD +copy-keep-own-test
+    BUILD +copy-test-empty-src
     BUILD +git-clone-test
     BUILD +builtin-args-invalid-default-test
     BUILD +builtin-args-invalid-pass-test
@@ -71,7 +72,6 @@ ga-no-qemu-group1:
     BUILD +no-cache-local-artifact-test
     BUILD +empty-git-test
     BUILD +escape-test
-    BUILD +escape-test --EARTHFILE=escape-v0.5.earth
     BUILD +escape-dir-test
     BUILD +fail-invalid-artifact-test
 
@@ -84,8 +84,6 @@ ga-no-qemu-group2:
     BUILD +save-artifact-file-as-dot
     BUILD +save-artifact-dir-as-dot
     BUILD +save-artifact-force-overwrite
-    BUILD +save-artifact-selective-legacy
-    BUILD +save-remote-artifact-selective-legacy
     BUILD +save-remote-artifact-selective
     BUILD +push-build
     BUILD +build-arg-repeat
@@ -96,7 +94,6 @@ ga-no-qemu-group2:
     BUILD +first-command
     BUILD +platform-output
     BUILD +command
-    BUILD +command-explicit-global
     BUILD +command-nested-global
     BUILD +function
     BUILD +function-explicit-global
@@ -233,6 +230,11 @@ copy-test:
         echo "2" > in/sub/2/file && \
         echo "sub" > in/sub/file
     DO +RUN_EARTHLY --earthfile=copy.earth --output_does_not_contain="which does not expand to a home directory"
+
+copy-test-empty-src:
+    # Regression tests for 'COPY --if-exists "" <dst>' (empty string)
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-empty-src
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-empty-src-if-exists
 
 copy-test-verbose-output:
     RUN mkdir -p subdir/a.txt && \
@@ -526,7 +528,7 @@ allow-privileged-test:
     DO +RUN_EARTHLY --earthfile=allow-privileged.earth --extra_args="--allow-privileged" --target=+allow-all
 
 allow-privileged-import-test:
-    RUN mkdir -p a/really/deep/subdir && echo "VERSION 0.7
+    RUN mkdir -p a/really/deep/subdir && echo "VERSION 0.8
 subdirprivileged:
     FROM alpine:latest
     RUN --privileged cat /proc/self/status | grep CapEff > output
@@ -683,10 +685,9 @@ empty-git-test:
     DO +RUN_EARTHLY --earthfile=empty-git.earth --extra_args="--no-output" --target=+test-origin-no-hash
 
 escape-test:
-    ARG EARTHFILE=escape.earth
     RUN printf "content" >file-with-+.txt
     RUN printf "content" >regular-file.txt
-    DO +RUN_EARTHLY --earthfile="$EARTHFILE"
+    DO +RUN_EARTHLY --earthfile=escape.earth
 
 escape-dir-test:
     RUN mkdir ./dir-with-+-in-it
@@ -720,7 +721,7 @@ target-first-line:
 absolute-reference-with-relative:
     RUN mkdir -p /a/path/to/test/subdir
     # create a base Earthfile which is referenced by target-absolute-reference.earth
-    RUN echo -e "VERSION 0.7\nFROM alpine:3.18\nRUN mkdir -p /dir/from/base" > /a/path/to/test/Earthfile
+    RUN echo -e "VERSION 0.8\nFROM alpine:3.18\nRUN mkdir -p /dir/from/base" > /a/path/to/test/Earthfile
     DO +RUN_EARTHLY --earthfile=absolute-reference-with-relative.earth --earthfile_dest=/a/path/to/test/subdir/Earthfile --extra_args="--no-output" --target=/a/path/to/test/subdir+test
 
 end-comment:
@@ -906,19 +907,6 @@ save-artifact-selective:
     BUILD +save-artifact-selective-test4
     BUILD +save-artifact-selective-test5
 
-save-artifact-selective-legacy:
-    RUN env | grep EARTHLY
-    DO +RUN_EARTHLY --earthfile=save-artifact-legacy.earth --target=+all
-    RUN test ! -f a && \
-        test   -f b && \
-        test   -f c && \
-        test   -f d && \
-        test   -f e && \
-        test   -f f && \
-        test ! -d output && \
-        test ! -f output/testfile && \    # THIS FAILED
-        test ! -f testfile
-
 save-artifact-selective-referencing-remote-test1:
     DO +RUN_EARTHLY --earthfile=save-artifact-selective-remote.earth --target=+test1
     RUN test   -f a && \
@@ -950,14 +938,6 @@ save-artifact-selective-referencing-remote:
     BUILD +save-artifact-selective-referencing-remote-test1
     BUILD +save-artifact-selective-referencing-remote-test2
     BUILD +save-artifact-selective-referencing-remote-test3
-
-save-remote-artifact-selective-legacy:
-    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/v0.5:main+savelocal
-    # if it were to be saved, it should show up under output/testfile; but we're going to check for
-    # a) no output directory (which also means output/testfile doesn't exist), and
-    # b) that ./testfile wasn't accidentally created.
-    RUN test ! -d output && \
-        test ! -f testfile
 
 save-remote-artifact-selective:
     DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/versioned:main+savelocal
@@ -1051,6 +1031,7 @@ platform-output:
     RUN test -f ./out-arm64
     RUN ! test -f ./out-amd64
 
+# command tests the 0.7 functionality of the COMMAND keyword, it is here for backward compatability
 command:
     RUN echo "hello command" >./message.txt
     DO +RUN_EARTHLY --earthfile=command.earth --target=+all-positive
@@ -1063,7 +1044,7 @@ command-nested-global:
     DO +RUN_EARTHLY --earthfile=command-nested-global.earth --target="+test-overriding --foo=expected"
 
 function:
-    RUN echo "hello command" >./message.txt
+    RUN echo "hello function" >./message.txt
     DO +RUN_EARTHLY --earthfile=function.earth --target=+all-positive
     DO +RUN_EARTHLY --earthfile=function.earth --should_fail=true --target=+test-command-fails
 
@@ -1192,7 +1173,6 @@ implicit-ignores:
         echo "ignored/" > .earthlyignore && \
         echo "test" > notignored/test && \
         echo "test" > ignored/test
-    DO +RUN_EARTHLY --earthfile=implicit-ignore.earth
     DO +RUN_EARTHLY --earthfile=no-implicit-ignore.earth
 
 help:
@@ -1535,7 +1515,7 @@ earthly --config \$earthly_config github.com/earthly/earthly+base 2>&1 | tee out
 test-ssh-command-config-via-git-clone-earthfile-command:
     RUN ssh-keygen -b 3072 -t rsa -f /root/dont-steal-my-key -q -N "" -C "rsa-testkey"
 
-    RUN echo "VERSION 0.7
+    RUN echo "VERSION 0.8
 test:
     FROM alpine
     GIT CLONE ssh://git@github.com/earthly/earthly.git ./earthly_repo # the command we are testing

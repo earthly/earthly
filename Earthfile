@@ -172,7 +172,8 @@ lint-newline-ending:
             fi; \
         done; \
         exit $code
-    RUN if [ "$(tail -c 1 ast/tests/empty-targets.earth)" = "$(printf '\n')" ]; then \
+    RUN export f=ast/tests/empty-targets.earth && \
+    if [ "$(tail -c 1 $f)" = "$(printf '\n')" ]; then \
             echo "$f is a special-case test which must not end with a newline."; \
             exit 1; \
         fi
@@ -262,16 +263,6 @@ unit-test:
     BUILD ./ast+unit-test
     BUILD ./util/deltautil+unit-test
 
-# chaos-test runs tests that use chaos and load in order to exercise components
-# of earthly. These tests may be more resource-intensive or flaky than typical
-# unit or integration tests.
-#
-# Since the race detector (-race) sets a goroutine limit, these tests are run
-# without -race.
-chaos-test:
-    FROM +code
-    RUN go test -tags chaos ./...
-
 # offline-test runs offline tests with network set to none
 offline-test:
     FROM +code
@@ -340,7 +331,7 @@ earthly:
     # is particularly useful for disabling optimizations to make the binary work
     # with delve. To disable optimizations:
     #
-    #     -GO_GCFLAGS='all=-N -l'
+    #     --GO_GCFLAGS='all=-N -l'
     ARG GO_GCFLAGS
     ARG EXECUTABLE_NAME="earthly"
     ARG DEFAULT_INSTALLATION_NAME="earthly-dev"
@@ -451,6 +442,8 @@ earthly-docker:
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     ARG BUILDKIT_PROJECT
+    ARG PUSH_LATEST_TAG="false"
+    ARG PUSH_PRERELEASE_TAG="false"
     FROM ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT" --TAG="$TAG"
     RUN apk add --update --no-cache docker-cli libcap-ng-utils git
     ENV EARTHLY_IMAGE=true
@@ -460,7 +453,16 @@ earthly-docker:
     COPY (+earthly/earthly --VERSION=$TAG --DEFAULT_INSTALLATION_NAME="earthly") /usr/bin/earthly
     ARG DOCKERHUB_USER="earthly"
     ARG DOCKERHUB_IMG="earthly"
-    SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG
+    # Multiple SAVE IMAGE's lead to differing image digests, but multiple
+    # arguments to the save SAVE IMAGE do not. Using variables here doesn't work
+    # either, unfortunately, as the names are quoted and treated as a single arg.
+    IF [ "$PUSH_LATEST_TAG" == "true" ]
+       SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG $DOCKERHUB_USER/$DOCKERHUB_IMG:latest
+    ELSE IF [ "$PUSH_PRERELEASE_TAG" == "true" ]
+       SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG $DOCKERHUB_USER/$DOCKERHUB_IMG:prerelease
+    ELSE
+       SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG
+    END
 
 # earthly-integration-test-base builds earthly docker and then
 # if no dockerhub mirror is not set it will attempt to login to dockerhub using the provided docker hub username and token.
@@ -587,7 +589,7 @@ for-linux:
     ARG GO_GCFLAGS
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     BUILD ./ast/parser+parser
-    COPY (+earthly-linux-amd64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
+    COPY (+earthly-linux-amd64/earthly --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/linux/amd64/earthly
 
 # for-linux-arm64 builds earthly-buildkitd and the earthly CLI for the a linux arm64 system
@@ -597,7 +599,7 @@ for-linux-arm64:
     ARG GO_GCFLAGS
     BUILD --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     BUILD ./ast/parser+parser
-    COPY (+earthly-linux-arm64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
+    COPY (+earthly-linux-arm64/earthly --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/linux/arm64/earthly
 
 # for-darwin builds earthly-buildkitd and the earthly CLI for the a darwin amd64 system
@@ -608,7 +610,7 @@ for-darwin:
     ARG GO_GCFLAGS
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     BUILD ./ast/parser+parser
-    COPY (+earthly-darwin-amd64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
+    COPY (+earthly-darwin-amd64/earthly --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/amd64/earthly
 
 # for-darwin-m1 builds earthly-buildkitd and the earthly CLI for the a darwin m1 system
@@ -618,7 +620,7 @@ for-darwin-m1:
     ARG GO_GCFLAGS
     BUILD --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     BUILD ./ast/parser+parser
-    COPY (+earthly-darwin-arm64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
+    COPY (+earthly-darwin-arm64/earthly --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/arm64/earthly
 
 # for-windows builds earthly-buildkitd and the earthly CLI for the a windows system
@@ -627,7 +629,7 @@ for-windows:
     ARG GO_GCFLAGS
     # BUILD --platform=linux/amd64 ./buildkitd+buildkitd
     BUILD ./ast/parser+parser
-    COPY (+earthly-windows-amd64/earthly.exe -GO_GCFLAGS="${GO_GCFLAGS}") ./
+    COPY (+earthly-windows-amd64/earthly.exe --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly.exe AS LOCAL ./build/windows/amd64/earthly.exe
 
 # all-buildkitd builds buildkitd for both linux amd64 and linux arm64
@@ -703,10 +705,9 @@ test-no-qemu:
     BUILD --pass-args +test-no-qemu-group4
     BUILD --pass-args +test-no-qemu-slow
 
-# test-quick runs the unit, chaos, offline, and go tests and ensures the earthly script does not write to stdout
+# test-quick runs the unit, offline, and go tests and ensures the earthly script does not write to stdout
 test-quick:
     BUILD +unit-test
-    BUILD +chaos-test
     BUILD +offline-test
     BUILD +earthly-script-no-stdout
     BUILD --pass-args ./ast/tests+all
@@ -895,6 +896,21 @@ check-broken-links:
     ELSE
         RUN --no-cache echo -e "${GREEN}No Broken Links were found${NOCOLOR}"
     END
+
+check-broken-links-pr:
+    FROM alpine/git
+    WORKDIR /tmp
+    RUN apk add github-cli
+    ARG BRANCH
+    ARG EARTHLY_GIT_BRANCH
+    LET branch=$BRANCH
+    IF [ -z $branch ]
+        SET branch=$EARTHLY_GIT_BRANCH
+    END
+    RUN --secret GH_TOKEN=littleredcorvette-github-token gh pr checks $branch --repo earthly/earthly | grep GitBook|awk '{print $4}' > url
+    ARG VERBOSE
+    BUILD --pass-args +check-broken-links --ADDRESS=$(cat url)
+
 
 # BUILD_AND_FROM will issue a FROM and a BUILD commands for the provided target
 BUILD_AND_FROM:

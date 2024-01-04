@@ -1,6 +1,6 @@
-VERSION 0.7
+VERSION 0.8
 
 UDC_THAT_SAVES_FILE_LOCALLY:
-    COMMAND
+    FUNCTION
     LOCALLY
     RUN echo "I am running in $(pwd)" > data

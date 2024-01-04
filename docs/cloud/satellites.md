@@ -142,7 +142,7 @@ Then as part of your CI script, simply select your satellite using one of these 
 
 * Selection command: `earthly sat select <satellite-name>`
 * Setellite flag: `earthly --sat my-satellite +build`
-* Environment variable: `SATELLITE_NAME=my-satellite`
+* Environment variable: `EARTHLY_SATELLITE=my-satellite`
 
 before running your Earthly targets.
 

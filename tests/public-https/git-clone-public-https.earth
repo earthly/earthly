@@ -1,5 +1,5 @@
-VERSION 0.7
-FROM alpine/git:v2.40.1
+VERSION 0.8
+FROM alpine/git:v2.43.0
 test:
     WORKDIR /test
     GIT CLONE --branch main https://selfsigned.example.com/testuser/repo.git myrepo

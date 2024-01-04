@@ -18,9 +18,9 @@ require (
 	github.com/docker/distribution v2.8.2+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/earthly/cloud-api v1.0.1-0.20240104155013-ea03cc60c681
+	github.com/earthly/cloud-api v1.0.1-0.20231222193252-f9ebd4fd9a99
 	github.com/earthly/earthly/ast v0.0.0-00010101000000-000000000000
-	github.com/earthly/earthly/util/deltautil v0.0.0-20231103163539-3521397eed7e
+	github.com/earthly/earthly/util/deltautil v0.0.0-20231221211955-0fd4ae2cc257
 	github.com/elastic/go-sysinfo v1.9.0
 	github.com/fatih/color v1.15.0
 	github.com/gofrs/flock v0.8.1
@@ -28,6 +28,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/hashicorp/go-retryablehttp v0.7.5
 	github.com/iancoleman/strcase v0.3.0
 	github.com/jdxcode/netrc v1.0.0
 	github.com/jessevdk/go-flags v1.5.0

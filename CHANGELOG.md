@@ -4,6 +4,73 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.0-rc1 - 2024-01-03
+
+This version promotes a number of features that have been previously in Experimental and Beta status. To make use of
+the features in this version you need to declare `VERSION 0.8` at the top of your Earthfile.
+
+**Migrating from 0.7**
+
+If you are using Earthly 0.7, follow the following steps to migrate:
+
+1. If you are still using `VERSION 0.5`, upgrade those Earthfiles to `VERSION 0.6` or `VERSION 0.7`.
+2. Upgrade your Earthly binary to 0.8 in CI and across your team. The Earthly 0.8 binary can run both `VERSION 0.6` and `VERSION 0.7` Earthfiles (but `VERSION 0.5` support has been dropped).
+3. Once everyone is using the Earthly 0.8 binary, upgrade your Earthfiles one by one to `VERSION 0.8`. It is ok to have a mix of `VERSION 0.6`, `VERSION 0.7` and `VERSION 0.8` Earthfiles in the same project. Earthly handles that gracefully. See changes below for information on backwards incompatible changes when migrating from `VERSION 0.7` to `VERSION 0.8`.
+
+This process helps manage the backward breaking changes with minimal disruption.
+
+**Summary**
+
+Declaring `VERSION 0.8` is equivalent to
+
+```
+VERSION \
+  --arg-scope-and-set \
+  --cache-persist-option \
+  --git-refs \
+  --global-cache \
+  --no-network \
+  --pass-args \
+  --use-docker-ignore \
+  --use-function-keyword \
+  --use-visited-upfront-hash-collection \
+  0.7
+```
+
+For more information on the individual Earthfile feature flags see the [Earthfile version-specific features page](https://docs.earthly.dev/docs/earthfile/features).
+
+It should be noted that some of these features break backwards compatibility. See below.
+
+### Changed
+
+- Redeclaring an `ARG` in the same scope as a previous declaration is now an error.
+- `ARG`s inside of targets will no longer have their default value overridden by global `ARG`s.
+- It is no longer possible to override a global ARG when calling a target.
+- Declaring a `CACHE ...` in a target will no longer be copied to children targets when referenced via a `FROM +...`; to persist the contents of the cache, it is now required to use the `CACHE --persist ...` flag.
+- The `COMMAND` keyword has been renamed to `FUNCTION`.
+
+### Added
+
+- `LET` - Allows declaring a local variable. This command works similarly to `ARG` except that it cannot be overridden from the CLI. `LET` variables are allowed to shadow `ARG` variables, which allows you to promote an `ARG` to a local variable so that it may be used with `SET`.
+- `SET` - a new command that allows changing the value of variables declared with `LET`.
+- Outputting images from a remote runner has improved performance as it no longer transfers layers that are already present locally.
+- [Auto-skip](https://docs.earthly.dev/v/earthly-0.8/docs/caching/caching-in-earthfiles#3.-auto-skip) has been promoted to *beta* status.
+- `RUN --network=none` allows running a command without network access.
+- `.dockerignore` files are now used in `FROM DOCKERFILE` targets.
+- `DO --pass-args`, `BUILD --pass-args` etc allow passing all build arguments to external Earthfiles.
+- `CACHE --id=...` and `RUN --mount type=cache,id=...` allows setting a custom cache mount ID, thus allowing sharing cache mounts globally across different targets.
+
+### Removed
+
+- `VERSION 0.5` is now obsolete. Declaring `VERSION 0.5` is no longer supported, and will now raise an error.
+
+### Fixed
+
+- Parallelism is improved when running the same target with different arguments in certain cases (e.g. the target uses `WITH DOCKER`).
+
+### Additional Info
+- This release includes changes to buildkit
+
 ## v0.7.23 - 2023-12-18
 
 ### Added

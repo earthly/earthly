@@ -922,7 +922,6 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse platform %s", expandedPlatform)
 	}
-
 	allClassical := true
 	allArtifacts := true
 	for index, src := range srcs {
@@ -972,7 +971,6 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 	if !allClassical && !allArtifacts {
 		return i.errorf(cmd.SourceLocation, "combining artifacts and build context arguments in a single COPY command is not allowed: %v", srcs)
 	}
-
 	if slices.ContainsFunc(strings.Split(dest, "/"), func(s string) bool {
 		return s == "~" || strings.HasPrefix(s, "~")
 	}) {

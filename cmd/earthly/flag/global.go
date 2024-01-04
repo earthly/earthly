@@ -98,7 +98,6 @@ type Global struct {
 	GlobalWaitEnd              bool
 	RemoteCache                string
 	LocalSkipDB                string
-	UseRemoteRegistry          bool
 }
 
 func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
@@ -516,13 +515,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			EnvVars:     []string{"EARTHLY_REMOTE_CACHE"},
 			Usage:       "A remote docker image tag use as explicit cache",
 			Destination: &global.RemoteCache,
-		},
-		&cli.BoolFlag{
-			Name:        "use-remote-registry",
-			EnvVars:     []string{"EARTHLY_USE_REMOTE_REGISTRY"},
-			Usage:       "Use remote registry with Docker pull",
-			Destination: &global.UseRemoteRegistry,
-			Hidden:      true, // Internal.
 		},
 	}
 }
