@@ -339,6 +339,9 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	if err != nil {
 		return errors.Wrapf(err, "could not configure satellite")
 	}
+	if settings := a.cli.Flags().BuildkitdSettings; settings.TemporaryTLS {
+		defer func() { _ = os.RemoveAll(settings.TLSDir) }()
+	}
 
 	// Collect info to help with printing a richer message in the beginning of the build or on failure to reserve satellite due to missing build minutes.
 	if err = a.cli.CollectBillingInfo(cliCtx.Context, cloudClient, a.cli.OrgName()); err != nil {

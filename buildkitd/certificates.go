@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
 	"github.com/earthly/earthly/ast/hint"
@@ -254,22 +255,20 @@ func savePEM(path, typ string, bytes []byte) error {
 // to generate a new certificate/key pair for use in client-side mTLS.
 // The certificates are configured in the settings for a new buildkit client.
 func ConfigureSatelliteTLS(settings *Settings, sat *cloud.SatelliteInstance) error {
-	dir := filepath.Join(os.TempDir(), "earthly", "certs", sat.Org, sat.Name)
+	dir := filepath.Join(os.TempDir(), "earthly", "certs", uuid.NewString())
 	caRootPath := filepath.Join(dir, "root_ca_cert.pem")
 	caCertPath := filepath.Join(dir, "ca_cert.pem")
 	caKeyPath := filepath.Join(dir, "ca_key.pem")
 	earthlyCertPath := filepath.Join(dir, "earthly_cert.pem")
 	earthlyKeyPath := filepath.Join(dir, "earthly_key.pem")
 
+	settings.TemporaryTLS = true
+	settings.TLSDir = dir
 	settings.TLSCA = caRootPath
 	settings.ClientTLSCert = earthlyCertPath
 	settings.ClientTLSKey = earthlyKeyPath
 	settings.ServerTLSCert = ""
 	settings.ServerTLSKey = ""
-
-	if err := os.RemoveAll(dir); err != nil {
-		return errors.Wrap(err, "failed clearing previous certificates")
-	}
 
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
@@ -279,11 +278,11 @@ func ConfigureSatelliteTLS(settings *Settings, sat *cloud.SatelliteInstance) err
 		return errors.Wrap(err, "failed saving ca cert")
 	}
 
-	if err := os.WriteFile(caCertPath, sat.Certificate.Ca, 0444); err != nil {
+	if err := os.WriteFile(caCertPath, sat.Certificate.ClientCa, 0444); err != nil {
 		return errors.Wrap(err, "failed saving ca cert")
 	}
 
-	if err := os.WriteFile(caKeyPath, sat.Certificate.CaKey, 0444); err != nil {
+	if err := os.WriteFile(caKeyPath, sat.Certificate.ClientCaKey, 0444); err != nil {
 		return errors.Wrap(err, "failed saving ca key")
 	}
 

@@ -26,6 +26,8 @@ type Settings struct {
 	ClientTLSKey         string
 	ServerTLSCert        string
 	ServerTLSKey         string
+	TLSDir               string
+	TemporaryTLS         bool
 	UseTCP               bool
 	UseTLS               bool
 	VolumeName           string
