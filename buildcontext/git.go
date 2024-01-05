@@ -66,7 +66,7 @@ type resolvedGitProject struct {
 	state pllb.State
 }
 
-func (gr *gitResolver) expandWildcardPath(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, target domain.Target, pattern string) ([]string, error) {
+func (gr *gitResolver) expandWildcard(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, target domain.Target, pattern string) ([]string, error) {
 	if !target.IsRemote() {
 		return nil, errors.Errorf("unexpected local reference %s", target.String())
 	}

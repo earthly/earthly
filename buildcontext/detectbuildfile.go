@@ -64,7 +64,7 @@ func detectBuildFileInRef(ctx context.Context, earthlyRef domain.Reference, ref 
 	if exists {
 		return buildEarthPath, nil
 	}
-	return "", errors.Errorf("no build file found in %s", subDir)
+	return "", ErrEarthfileNotExist{Target: earthlyRef.String()}
 }
 
 func fileExists(ctx context.Context, ref gwclient.Reference, fpath string) (bool, error) {

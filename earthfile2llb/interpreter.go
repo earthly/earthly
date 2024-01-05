@@ -6,7 +6,6 @@ import (
 	"net"
 	"os"
 	"path"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -21,7 +20,6 @@ import (
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/internal/version"
-	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
@@ -1250,66 +1248,9 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 
 func (i *Interpreter) handleWildcardBuilds(ctx context.Context, fullTargetName string, cmd spec.Command, async bool) error {
 
-	parsedTarget, err := domain.ParseTarget(fullTargetName)
+	children, err := i.converter.ExpandWildcard(ctx, fullTargetName, cmd)
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "failed to parse target")
-	}
-
-	dir, base := filepath.Split(parsedTarget.GetLocalPath())
-	if strings.Contains(dir, "*") || base != "*" {
-		return i.errorf(cmd.SourceLocation, "wildcard BUILD pattern must end with a single '*'")
-	}
-
-	isRemoteTarget := i.target.IsRemote()
-
-	var matches []string
-
-	if isRemoteTarget {
-		matches, err = i.converter.ExpandRemoteWildcard(ctx, i.target, parsedTarget.GetLocalPath())
-	} else {
-		matches, err = fileutil.GlobDirs(parsedTarget.GetLocalPath())
-	}
-	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "invalid BUILD wildcard pattern")
-	}
-
-	children := []spec.Command{}
-	for _, match := range matches {
-		childTargetName := fmt.Sprintf("./%s+%s", match, parsedTarget.GetName())
-
-		childTarget, err := domain.ParseTarget(childTargetName)
-		if err != nil {
-			return i.wrapError(err, cmd.SourceLocation, "failed to parse target %q", childTargetName)
-		}
-
-		data, _, _, err := i.converter.ResolveReference(ctx, childTarget)
-		if err != nil {
-			notExist := buildcontext.ErrEarthfileNotExist{}
-			if errors.As(err, &notExist) {
-				continue
-			}
-			return i.wrapError(err, cmd.SourceLocation, "unable to resolve target %q", childTargetName)
-		}
-
-		var found bool
-		for _, target := range data.Earthfile.Targets {
-			if target.Name == childTarget.GetName() {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			continue
-		}
-
-		cloned := cmd.Clone()
-		cloned.Args[0] = childTargetName
-		children = append(children, cloned)
-	}
-
-	if len(children) == 0 {
-		return i.wrapError(err, cmd.SourceLocation, "no matching targets found for wildcard BUILD pattern %q", parsedTarget.GetLocalPath())
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand wildcard BUILD %q", fullTargetName)
 	}
 
 	for _, child := range children {

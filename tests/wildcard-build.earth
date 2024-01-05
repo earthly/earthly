@@ -9,4 +9,4 @@ wildcard-globstar:
     BUILD ./wildcard-build/**/*+test
 
 wildcard-remote:
-    BUILD github.com/earthly/test-remote/wildcard-build:882190030762e620e932e3fab1091bdd50c93131+wildcard-build
+    BUILD github.com/earthly/test-remote/wildcard-build:832569022fc7ff853c0e062a48eaa6fd62b59a40+wildcard-build

@@ -24,6 +24,7 @@ import (
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast/commandflag"
+	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
@@ -1594,8 +1595,70 @@ func (c *Converter) Pipeline(ctx context.Context) error {
 	return nil
 }
 
-func (c *Converter) ExpandRemoteWildcard(ctx context.Context, target domain.Target, pattern string) ([]string, error) {
-	return c.opt.Resolver.ExpandWildcard(ctx, c.opt.GwClient, c.platr, target, pattern)
+func (c *Converter) ExpandWildcard(ctx context.Context, fullTargetName string, cmd spec.Command) ([]spec.Command, error) {
+
+	parsedTarget, err := domain.ParseTarget(fullTargetName)
+	if err != nil {
+		return nil, err
+	}
+
+	dir, base := filepath.Split(parsedTarget.GetLocalPath())
+	if strings.Contains(dir, "*") || base != "*" {
+		return nil, errors.New("pattern must end with a single '*'")
+	}
+
+	var target domain.Target
+	if c.target.IsRemote() {
+		target = c.target
+	} else {
+		target = parsedTarget
+	}
+
+	matches, err := c.opt.Resolver.ExpandWildcard(ctx, c.opt.GwClient, c.platr, target, parsedTarget.GetLocalPath())
+	if err != nil {
+		return nil, err
+	}
+
+	children := []spec.Command{}
+	for _, match := range matches {
+		childTargetName := fmt.Sprintf("./%s+%s", match, parsedTarget.GetName())
+
+		childTarget, err := domain.ParseTarget(childTargetName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to parse target %q", childTargetName)
+		}
+
+		data, _, _, err := c.ResolveReference(ctx, childTarget)
+		if err != nil {
+			notExist := buildcontext.ErrEarthfileNotExist{}
+			if errors.As(err, &notExist) {
+				continue
+			}
+			return nil, errors.Wrapf(err, "unable to resolve target %q", childTargetName)
+		}
+
+		var found bool
+		for _, target := range data.Earthfile.Targets {
+			if target.Name == childTarget.GetName() {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			continue
+		}
+
+		cloned := cmd.Clone()
+		cloned.Args[0] = childTargetName
+		children = append(children, cloned)
+	}
+
+	if len(children) == 0 {
+		return nil, errors.Wrapf(err, "no matching targets found for pattern %q", parsedTarget.GetLocalPath())
+	}
+
+	return children, nil
 }
 
 // ResolveReference resolves a reference's build context given the current state: relativity to the Earthfile, imports etc.
