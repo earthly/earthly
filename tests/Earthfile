@@ -574,13 +574,25 @@ wildcard-build:
     RUN cat earthly.output | acbgrep 'hello world 2'
     RUN cat earthly.output | acbgrep 'hello world 3'
     RUN cat earthly.output | acbgrep -v 'not-test run'
-    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-globstar --should_fail=true --output_contains="pattern must end with a single"
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-globstar --should_fail=true --output_contains="pattern not yet supported"
+
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-glob
+    RUN cat earthly.output | acbgrep 'hello world 2'
+    RUN cat earthly.output | acbgrep 'hello world 3'
+    RUN cat earthly.output | acbgrep -v 'hello world 1'
+    RUN cat earthly.output | acbgrep -v 'not-test run'
 
 wildcard-build-remote:
     DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-remote
     RUN cat earthly.output | acbgrep 'hello world 1'
     RUN cat earthly.output | acbgrep 'hello world 2'
     RUN cat earthly.output | acbgrep 'hello world 3'
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-remote-glob
+    RUN cat earthly.output | acbgrep 'hello world 2'
+    RUN cat earthly.output | acbgrep 'hello world 3'
+    RUN cat earthly.output | acbgrep -v 'hello world 1'
     RUN cat earthly.output | acbgrep -v 'not-test run'
 
 push-test:

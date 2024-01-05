@@ -8,5 +8,12 @@ wildcard-globstar:
     FROM alpine
     BUILD ./wildcard-build/**/*+test
 
+wildcard-glob:
+    FROM alpine
+    BUILD ./wildcard-build/b*[rz]+test
+
 wildcard-remote:
-    BUILD github.com/earthly/test-remote/wildcard-build:832569022fc7ff853c0e062a48eaa6fd62b59a40+wildcard-build
+    BUILD github.com/earthly/test-remote/wildcard-build:fb0ebe1c6181bdfc5a7d92165f3317e85e199794+wildcard-build
+
+wildcard-remote-glob:
+    BUILD github.com/earthly/test-remote/wildcard-build:fb0ebe1c6181bdfc5a7d92165f3317e85e199794+wildcard-glob

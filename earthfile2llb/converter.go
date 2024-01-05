@@ -1602,9 +1602,8 @@ func (c *Converter) ExpandWildcard(ctx context.Context, fullTargetName string, c
 		return nil, err
 	}
 
-	dir, base := filepath.Split(parsedTarget.GetLocalPath())
-	if strings.Contains(dir, "*") || base != "*" {
-		return nil, errors.New("pattern must end with a single '*'")
+	if strings.Contains(fullTargetName, "**") {
+		return nil, errors.New("globstar (**) pattern not yet supported")
 	}
 
 	var target domain.Target
