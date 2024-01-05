@@ -270,19 +270,27 @@ func ConfigureSatelliteTLS(settings *Settings, sat *cloud.SatelliteInstance) (cl
 	settings.ServerTLSCert = ""
 	settings.ServerTLSKey = ""
 
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, err
+	if err = os.MkdirAll(dir, 0755); err != nil {
+		return nil, errors.Wrap(err, "could not make temp tls dir")
 	}
 
-	if err := os.WriteFile(caRootPath, sat.Certificate.RootCa, 0444); err != nil {
+	cleanupFn = func() { _ = os.RemoveAll(dir) }
+
+	if err = os.WriteFile(caRootPath, sat.Certificate.RootCa, 0444); err != nil {
 		return nil, errors.Wrap(err, "failed saving ca cert")
 	}
 
-	if err := os.WriteFile(caCertPath, sat.Certificate.ClientCa, 0444); err != nil {
+	defer func() {
+		if err != nil {
+			cleanupFn()
+		}
+	}()
+
+	if err = os.WriteFile(caCertPath, sat.Certificate.ClientCa, 0444); err != nil {
 		return nil, errors.Wrap(err, "failed saving ca cert")
 	}
 
-	if err := os.WriteFile(caKeyPath, sat.Certificate.ClientCaKey, 0444); err != nil {
+	if err = os.WriteFile(caKeyPath, sat.Certificate.ClientCaKey, 0444); err != nil {
 		return nil, errors.Wrap(err, "failed saving ca key")
 	}
 
@@ -305,5 +313,5 @@ func ConfigureSatelliteTLS(settings *Settings, sat *cloud.SatelliteInstance) (cl
 		return nil, errors.Wrap(err, "could not generate client TLS key/cert pair")
 	}
 
-	return func() { _ = os.RemoveAll(dir) }, nil
+	return cleanupFn, nil
 }
