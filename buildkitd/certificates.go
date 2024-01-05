@@ -262,8 +262,6 @@ func ConfigureSatelliteTLS(settings *Settings, sat *cloud.SatelliteInstance) (cl
 	earthlyCertPath := filepath.Join(dir, "earthly_cert.pem")
 	earthlyKeyPath := filepath.Join(dir, "earthly_key.pem")
 
-	settings.TemporaryTLS = true
-	settings.TLSDir = dir
 	settings.TLSCA = caRootPath
 	settings.ClientTLSCert = earthlyCertPath
 	settings.ClientTLSKey = earthlyKeyPath
