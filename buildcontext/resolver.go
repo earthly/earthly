@@ -83,6 +83,17 @@ func NewResolver(cleanCollection *cleanup.Collection, gitLookup *GitLookup, cons
 	}
 }
 
+// ExpandWildcard will expand a wildcard BUILD target in a remote Git
+// repository. The pattern is the path relative to the target path and should be
+// in the form 'my/path/*'
+func (r *Resolver) ExpandWildcard(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, target domain.Target, pattern string) ([]string, error) {
+	if !target.IsRemote() {
+		return nil, errors.Errorf("unexpected local reference %s", target.String())
+	}
+
+	return r.gr.expandWildcardPath(ctx, gwClient, platr, target, pattern)
+}
+
 // Resolve returns resolved context data for a given Earthly reference. If the reference is a target,
 // then the context will include a build context and possibly additional local directories.
 func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, ref domain.Reference) (*Data, error) {

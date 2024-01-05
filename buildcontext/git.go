@@ -66,6 +66,39 @@ type resolvedGitProject struct {
 	state pllb.State
 }
 
+func (gr *gitResolver) expandWildcardPath(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, target domain.Target, pattern string) ([]string, error) {
+	if !target.IsRemote() {
+		return nil, errors.Errorf("unexpected local reference %s", target.String())
+	}
+
+	rgp, _, subDir, err := gr.resolveGitProject(ctx, gwClient, platr, target)
+	if err != nil {
+		return nil, err
+	}
+
+	gitRef, err := llbutil.StateToRef(ctx, gwClient, rgp.state, false, platr.SubResolver(platutil.NativePlatform), nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "state to ref git meta")
+	}
+
+	path, _ := filepath.Split(pattern)
+
+	stats, err := gitRef.ReadDir(ctx, gwclient.ReadDirRequest{Path: filepath.Join(subDir, path)})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read dir")
+	}
+
+	var matches []string
+
+	for _, st := range stats {
+		if st.IsDir() {
+			matches = append(matches, filepath.Join(path, st.GetPath()))
+		}
+	}
+
+	return matches, nil
+}
+
 func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, ref domain.Reference, featureFlagOverrides string) (*Data, error) {
 	if !ref.IsRemote() {
 		return nil, errors.Errorf("unexpected local reference %s", ref.String())

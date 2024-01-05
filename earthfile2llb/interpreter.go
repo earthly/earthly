@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -1249,44 +1250,50 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 
 func (i *Interpreter) handleWildcardBuilds(ctx context.Context, fullTargetName string, cmd spec.Command, async bool) error {
 
-	if strings.Contains(fullTargetName, "**") {
-		return i.errorf(cmd.SourceLocation, "globstar (**) not yet supported for wildcard BUILD")
-	}
-
 	parsedTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to parse target")
 	}
 
-	if parsedTarget.IsRemote() {
-		return i.wrapError(err, cmd.SourceLocation, "remote wildcard targets not yet supported")
+	dir, base := filepath.Split(parsedTarget.GetLocalPath())
+	if strings.Contains(dir, "*") || base != "*" {
+		return i.errorf(cmd.SourceLocation, "wildcard BUILD pattern must end with a single '*'")
 	}
 
-	matches, err := fileutil.GlobDirs(parsedTarget.GetLocalPath())
+	isRemoteTarget := i.target.IsRemote()
+
+	var matches []string
+
+	if isRemoteTarget {
+		matches, err = i.converter.ExpandRemoteWildcard(ctx, i.target, parsedTarget.GetLocalPath())
+	} else {
+		matches, err = fileutil.GlobDirs(parsedTarget.GetLocalPath())
+	}
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid BUILD wildcard pattern")
 	}
 
 	children := []spec.Command{}
 	for _, match := range matches {
-		relTargetName := fmt.Sprintf("./%s+%s", match, parsedTarget.GetName())
-		relTarget, err := domain.ParseTarget(relTargetName)
+		childTargetName := fmt.Sprintf("./%s+%s", match, parsedTarget.GetName())
+
+		childTarget, err := domain.ParseTarget(childTargetName)
 		if err != nil {
-			return i.wrapError(err, cmd.SourceLocation, "failed to parse target %q", relTargetName)
+			return i.wrapError(err, cmd.SourceLocation, "failed to parse target %q", childTargetName)
 		}
 
-		data, _, _, err := i.converter.ResolveReference(ctx, relTarget)
+		data, _, _, err := i.converter.ResolveReference(ctx, childTarget)
 		if err != nil {
 			notExist := buildcontext.ErrEarthfileNotExist{}
 			if errors.As(err, &notExist) {
 				continue
 			}
-			return i.wrapError(err, cmd.SourceLocation, "unable to resolve target %q", relTargetName)
+			return i.wrapError(err, cmd.SourceLocation, "unable to resolve target %q", childTargetName)
 		}
 
 		var found bool
 		for _, target := range data.Earthfile.Targets {
-			if target.Name == relTarget.GetName() {
+			if target.Name == childTarget.GetName() {
 				found = true
 				break
 			}
@@ -1297,7 +1304,7 @@ func (i *Interpreter) handleWildcardBuilds(ctx context.Context, fullTargetName s
 		}
 
 		cloned := cmd.Clone()
-		cloned.Args[0] = relTargetName
+		cloned.Args[0] = childTargetName
 		children = append(children, cloned)
 	}
 

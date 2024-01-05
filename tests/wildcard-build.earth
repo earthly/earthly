@@ -7,3 +7,6 @@ wildcard-build:
 wildcard-globstar:
     FROM alpine
     BUILD ./wildcard-build/**/*+test
+
+wildcard-remote:
+    BUILD github.com/earthly/test-remote/wildcard-build:882190030762e620e932e3fab1091bdd50c93131+wildcard-build

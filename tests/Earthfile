@@ -75,6 +75,7 @@ ga-no-qemu-group1:
     BUILD +escape-dir-test
     BUILD +fail-invalid-artifact-test
     BUILD +wildcard-build
+    BUILD +wildcard-build-remote
 
 ga-no-qemu-group2:
     BUILD +target-first-line
@@ -574,6 +575,13 @@ wildcard-build:
     RUN cat earthly.output | acbgrep 'hello world 3'
     RUN cat earthly.output | acbgrep -v 'not-test run'
     DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-globstar --should_fail=true --output_contains="not yet supported"
+
+wildcard-build-remote:
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-remote
+    RUN cat earthly.output | acbgrep 'hello world 1'
+    RUN cat earthly.output | acbgrep 'hello world 2'
+    RUN cat earthly.output | acbgrep 'hello world 3'
+    RUN cat earthly.output | acbgrep -v 'not-test run'
 
 push-test:
     DO +RUN_EARTHLY --earthfile=push.earth --target=+push-test \

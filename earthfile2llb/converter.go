@@ -1594,6 +1594,10 @@ func (c *Converter) Pipeline(ctx context.Context) error {
 	return nil
 }
 
+func (c *Converter) ExpandRemoteWildcard(ctx context.Context, target domain.Target, pattern string) ([]string, error) {
+	return c.opt.Resolver.ExpandWildcard(ctx, c.opt.GwClient, c.platr, target, pattern)
+}
+
 // ResolveReference resolves a reference's build context given the current state: relativity to the Earthfile, imports etc.
 func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) (bc *buildcontext.Data, allowPrivileged, allowPrivilegedSet bool, err error) {
 	derefed, allowPrivileged, allowPrivilegedSet, err := c.varCollection.Imports().Deref(ref)
