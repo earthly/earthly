@@ -254,7 +254,7 @@ func savePEM(path, typ string, bytes []byte) error {
 // ConfigureSatelliteTLS uses the CA cert and key associate with the satellite
 // to generate a new certificate/key pair for use in client-side mTLS.
 // The certificates are configured in the settings for a new buildkit client.
-func ConfigureSatelliteTLS(settings *Settings, sat *cloud.SatelliteInstance) error {
+func ConfigureSatelliteTLS(settings *Settings, sat *cloud.SatelliteInstance) (cleanupFn func(), err error) {
 	dir := filepath.Join(os.TempDir(), "earthly", "certs", uuid.NewString())
 	caRootPath := filepath.Join(dir, "root_ca_cert.pem")
 	caCertPath := filepath.Join(dir, "ca_cert.pem")
@@ -271,29 +271,29 @@ func ConfigureSatelliteTLS(settings *Settings, sat *cloud.SatelliteInstance) err
 	settings.ServerTLSKey = ""
 
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := os.WriteFile(caRootPath, sat.Certificate.RootCa, 0444); err != nil {
-		return errors.Wrap(err, "failed saving ca cert")
+		return nil, errors.Wrap(err, "failed saving ca cert")
 	}
 
 	if err := os.WriteFile(caCertPath, sat.Certificate.ClientCa, 0444); err != nil {
-		return errors.Wrap(err, "failed saving ca cert")
+		return nil, errors.Wrap(err, "failed saving ca cert")
 	}
 
 	if err := os.WriteFile(caKeyPath, sat.Certificate.ClientCaKey, 0444); err != nil {
-		return errors.Wrap(err, "failed saving ca key")
+		return nil, errors.Wrap(err, "failed saving ca key")
 	}
 
 	caCert, err := parseTLSCert(caCertPath)
 	if err != nil {
-		return errors.Wrap(err, "failed parsing ca cert")
+		return nil, errors.Wrap(err, "failed parsing ca cert")
 	}
 
 	caKey, err := parseTLSKey(caKeyPath)
 	if err != nil {
-		return errors.Wrap(err, "failed parsing ca key")
+		return nil, errors.Wrap(err, "failed parsing ca key")
 	}
 
 	ca := &certData{
@@ -302,8 +302,8 @@ func ConfigureSatelliteTLS(settings *Settings, sat *cloud.SatelliteInstance) err
 	}
 
 	if err = genCert(ca, earthly, sat.Address, earthlyKeyPath, earthlyCertPath); err != nil {
-		return errors.Wrap(err, "could not generate client TLS key/cert pair")
+		return nil, errors.Wrap(err, "could not generate client TLS key/cert pair")
 	}
 
-	return nil
+	return func() { _ = os.RemoveAll(dir) }, nil
 }

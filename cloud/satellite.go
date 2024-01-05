@@ -11,11 +11,12 @@ import (
 	"time"
 
 	pb "github.com/earthly/cloud-api/compute"
-	"github.com/earthly/earthly/internal/version"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	status "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
+
+	"github.com/earthly/earthly/internal/version"
 )
 
 const (

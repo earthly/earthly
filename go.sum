@@ -193,8 +193,8 @@ github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkp
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/earthly/buildkit v0.0.0-20231213184914-086f60eecf5a h1:LjFYB1dm0Pq9T9tpSpIwppy7SUGRsVQpn+RhWEz1bqQ=
 github.com/earthly/buildkit v0.0.0-20231213184914-086f60eecf5a/go.mod h1:9YV/0upRPk36WbLrmr2bf2MZ0M27fvjxiBr5VD/ia80=
-github.com/earthly/cloud-api v1.0.1-0.20240104155013-ea03cc60c681 h1:7o0RZKpUkirqMRTaBY0o2t3V/jdfgeP4IEJWrBDouTQ=
-github.com/earthly/cloud-api v1.0.1-0.20240104155013-ea03cc60c681/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
+github.com/earthly/cloud-api v1.0.1-0.20240105134001-49d68a012790 h1:UOhvBxm5bVGBZ0wlHTOTSxkq5GnRiQKbNJ3fXGD/COY=
+github.com/earthly/cloud-api v1.0.1-0.20240105134001-49d68a012790/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
 github.com/earthly/fsutil v0.0.0-20231030221755-644b08355b65 h1:6oyWHoxHXwcTt4EqmMw6361scIV87uEAB1N42+VpIwk=
 github.com/earthly/fsutil v0.0.0-20231030221755-644b08355b65/go.mod h1:9kMVqMyQ/Sx2df5LtnGG+nbrmiZzCS7V6gjW3oGHsvI=
 github.com/elastic/go-sysinfo v1.9.0 h1:usICqY/Nw4Mpn9f4LdtpFrKxXroJDe81GaxxUlCckIo=

@@ -4,13 +4,14 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
-	"github.com/earthly/earthly/buildkitd"
-	"github.com/earthly/earthly/cmd/earthly/helper"
-	"github.com/earthly/earthly/util/flagutil"
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/earthly/earthly/buildkitd"
+	"github.com/earthly/earthly/cmd/earthly/helper"
+	"github.com/earthly/earthly/util/flagutil"
 )
 
 type Prune struct {
@@ -96,11 +97,12 @@ func (a *Prune) action(cliCtx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	bkClient, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
+	bkClient, cleanupTLS, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "prune new buildkitd client")
 	}
 	defer bkClient.Close()
+	defer cleanupTLS()
 	var opts []client.PruneOption
 
 	if a.all {

@@ -166,12 +166,13 @@ func (a *Bootstrap) bootstrap(cliCtx *cli.Context) error {
 
 	if !a.noBuildkit && !a.cli.IsUsingSatellite(cliCtx) {
 		// connect to local buildkit instance (to trigger pulling and running the earthly/buildkitd image)
-		bkClient, err := a.cli.GetBuildkitClient(cliCtx, nil)
+		bkClient, cleanupTLS, err := a.cli.GetBuildkitClient(cliCtx, nil)
 		if err != nil {
 			console.Warnf("Warning: Bootstrapping buildkit failed: %v", err)
 			// Keep going.
 		} else {
 			defer bkClient.Close()
+			defer cleanupTLS()
 		}
 	}
 
