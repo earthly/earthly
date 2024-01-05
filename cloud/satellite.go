@@ -13,7 +13,7 @@ import (
 	pb "github.com/earthly/cloud-api/compute"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/earthly/earthly/internal/version"
