@@ -75,6 +75,6 @@ RUN echo "The current target is $EARTHLY_TARGET"
 | `USERPLATFORM` | The platform of the user (the environment the `earthly` binary is invoked from). | `darwin/amd64`, `linux/amd64`, `darwin/arm64` |
 | `USERVARIANT` | The processor architecture variant of the user (the environment the `earthly` binary is invoked from). | `v7` |
 
-To override the target platform, use the `--platform` flag. For example, `earthly --platform linux/amd64` will set the `TARGETPLATFORM` arg to `linux/amd64`. You can also override the target platform in an Earthfile, when issuing `BUILD` commands. For example, `BUILD --platform linux/amd64`, or within the target definition, set the platform in the `FROM` statement (e.g. `FROM --platform linux/amd64 alpine:3.13`).
+To override the target platform, use the `--platform` flag when using the `earthly` CLI. For example, `earthly --platform linux/amd64 +my-target` will set the `TARGETPLATFORM` arg to `linux/amd64`. You can also override the target platform in an Earthfile, when issuing `BUILD` commands. For example, `BUILD --platform linux/amd64 +my-target`. Or you can override the platform within the target definition by setting the platform in the `FROM` statement. For example `FROM --platform linux/amd64 alpine:3.13`.
 
 Note that under `LOCALLY`, the `TARGETPLATFORM` arg is always set to the user platform.
