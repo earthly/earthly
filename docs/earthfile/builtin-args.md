@@ -12,7 +12,6 @@ SAVE IMAGE --push some/name:$TAG
 
 {% hint style='danger' %}
 ##### Important
-
 Earthly builtin args need to be pre-declared before they can be used. For example
 
 ```Dockerfile
