@@ -77,7 +77,7 @@ func (gr *gitResolver) expandWildcard(ctx context.Context, gwClient gwclient.Cli
 		return nil, err
 	}
 
-	fullPattern := "./" + filepath.Join(subDir, pattern)
+	fullPattern := filepath.Clean("./" + filepath.Join(subDir, pattern))
 
 	var matches []string
 
@@ -266,7 +266,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 					"git log -1 --format=%ae >/dest/git-author || touch /dest/git-author ; " +
 					"git log -1 --format=%b >/dest/git-body || touch /dest/git-body ; " +
 					"git for-each-ref --contains HEAD --format '%(refname:lstrip=-1)' >/dest/git-refs || touch /dest/git-refs ; " +
-					"find -name Earthfile > /dest/Earthfile-paths || touch /dest/Earthfile-paths ; " +
+					"find -type f -name Earthfile > /dest/Earthfile-paths || touch /dest/Earthfile-paths ; " +
 					"",
 			}),
 			llb.Dir("/git-src"),
