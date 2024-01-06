@@ -77,7 +77,10 @@ func (gr *gitResolver) expandWildcard(ctx context.Context, gwClient gwclient.Cli
 		return nil, err
 	}
 
-	fullPattern := filepath.Clean("./" + filepath.Join(subDir, pattern))
+	fullPattern := filepath.Join(subDir, pattern)
+	if !strings.HasPrefix(fullPattern, ".") {
+		fullPattern = "./" + fullPattern
+	}
 
 	var matches []string
 
