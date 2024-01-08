@@ -3,6 +3,7 @@ package base
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/moby/buildkit/client"
 	"github.com/pkg/errors"
@@ -14,30 +15,36 @@ import (
 	"github.com/earthly/earthly/util/containerutil"
 )
 
-func (cli *CLI) GetBuildkitClient(cliCtx *cli.Context, cloudClient *cloud.Client) (*client.Client, error) {
-	err := cli.InitFrontend(cliCtx)
+func (cli *CLI) GetBuildkitClient(cliCtx *cli.Context, cloudClient *cloud.Client) (c *client.Client, cleanupTLS func(), err error) {
+	err = cli.InitFrontend(cliCtx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	err = cli.ConfigureSatellite(cliCtx, cloudClient, "", "") // no gitAuthor/gitConfigEmail is passed for non-build commands (e.g. debug_cmds.go or root_cmds.go code)
+	cleanupTLS, err = cli.ConfigureSatellite(cliCtx, cloudClient, "", "") // no gitAuthor/gitConfigEmail is passed for non-build commands (e.g. debug_cmds.go or root_cmds.go code)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not construct new buildkit client")
+		return nil, nil, errors.Wrapf(err, "could not configure satellites")
 	}
-
-	return buildkitd.NewClient(cliCtx.Context, cli.Console(), cli.Flags().BuildkitdImage, cli.Flags().ContainerName, cli.Flags().InstallationName, cli.Flags().ContainerFrontend, cli.Version(), cli.Flags().BuildkitdSettings)
+	c, err = buildkitd.NewClient(cliCtx.Context, cli.Console(), cli.Flags().BuildkitdImage, cli.Flags().ContainerName, cli.Flags().InstallationName, cli.Flags().ContainerFrontend, cli.Version(), cli.Flags().BuildkitdSettings)
+	if err != nil {
+		cleanupTLS()
+		return nil, nil, errors.Wrap(err, "could not construct new buildkit client")
+	}
+	return c, cleanupTLS, nil
 }
 
-func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Client, gitAuthor, gitConfigEmail string) error {
+func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Client, gitAuthor, gitConfigEmail string) (cleanupTLS func(), err error) {
 	if cliCtx.IsSet("buildkit-host") && cliCtx.IsSet("satellite") {
-		return errors.New("cannot specify both buildkit-host and satellite")
+		return nil, errors.New("cannot specify both buildkit-host and satellite")
 	}
 	if cliCtx.IsSet("satellite") && cli.Flags().NoSatellite {
-		return errors.New("cannot specify both no-satellite and satellite")
+		return nil, errors.New("cannot specify both no-satellite and satellite")
 	}
+
+	cleanupTLS = func() {}
 	if !cli.IsUsingSatellite(cliCtx) || cloudClient == nil {
 		// If the app is not using a cloud client, or the command doesn't interact with the cloud (prune, bootstrap)
 		// then pretend its all good and use your regular configuration.
-		return nil
+		return cleanupTLS, nil
 	}
 
 	// Set up extra settings needed for buildkit RPC metadata
@@ -45,27 +52,43 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 		cli.Flags().SatelliteName = cli.Cfg().Satellite.Name
 	}
 
-	cli.Flags().BuildkitdSettings.UseTCP = true
-	if cli.Cfg().Global.TLSEnabled {
-		// satellite connection with tls enabled does not use configuration certificates
-		cli.Flags().BuildkitdSettings.ClientTLSCert = ""
-		cli.Flags().BuildkitdSettings.ClientTLSKey = ""
-		cli.Flags().BuildkitdSettings.TLSCA = ""
-		cli.Flags().BuildkitdSettings.ServerTLSCert = ""
-		cli.Flags().BuildkitdSettings.ServerTLSKey = ""
-	} else {
-		cli.Console().Warnf("TLS has been disabled; this should never be done when connecting to Earthly's production API\n")
-	}
-
 	orgName, orgID, err := cli.GetSatelliteOrg(cliCtx.Context, cloudClient)
 	if err != nil {
-		return errors.Wrap(err, "failed getting org")
+		return nil, errors.Wrap(err, "failed getting org")
 	}
 	satelliteName := cli.Flags().SatelliteName
 	sat, err := cloudClient.GetSatellite(cliCtx.Context, satelliteName, orgName)
 	if err != nil {
-		return errors.Wrap(err, "failed getting satellite")
+		return nil, errors.Wrap(err, "failed getting satellite")
 	}
+
+	if !sat.IsManaged && sat.State != cloud.SatelliteStatusOperational {
+		// Self-hosted satellites cannot be "woken up" like those that are hosted in earthly cloud.
+		return nil, errors.New("self-hosted satellite is not operational")
+	}
+
+	cli.Flags().BuildkitdSettings.UseTCP = true
+	if cli.Cfg().Global.TLSEnabled {
+		if sat.IsManaged {
+			// satellites on earthly-cloud do not use custom certificates
+			cli.Flags().BuildkitdSettings.ClientTLSCert = ""
+			cli.Flags().BuildkitdSettings.ClientTLSKey = ""
+			cli.Flags().BuildkitdSettings.TLSCA = ""
+			cli.Flags().BuildkitdSettings.ServerTLSCert = ""
+			cli.Flags().BuildkitdSettings.ServerTLSKey = ""
+		} else if sat.Certificate != nil {
+			t := time.Now()
+			cleanupTLS, err = buildkitd.ConfigureSatelliteTLS(&cli.Flags().BuildkitdSettings, sat)
+			if err != nil {
+				return nil, fmt.Errorf("failed configuring certificates for satellite: %w", err)
+			}
+			cli.Console().WithPrefix("satellite").
+				DebugPrintf("TLS certificates configured in: %s", time.Since(t).String())
+		}
+	} else {
+		cli.Console().Warnf("TLS has been disabled; this should never be done when connecting to Earthly's production API\n")
+	}
+
 	cli.Flags().BuildkitdSettings.SatelliteIsManaged = sat.IsManaged
 	satelliteAddress := cli.Flags().SatelliteAddress
 	if !sat.IsManaged {
@@ -90,7 +113,7 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 
 	token, err := cloudClient.GetAuthToken(cliCtx.Context)
 	if err != nil {
-		return errors.Wrap(err, "failed to get auth token")
+		return nil, errors.Wrap(err, "failed to get auth token")
 	}
 	cli.Flags().BuildkitdSettings.SatelliteToken = token
 
@@ -99,12 +122,12 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 		// This operation can take a moment if the satellite is asleep.
 		err = cli.reserveSatellite(cliCtx.Context, cloudClient, satelliteName, cli.Flags().SatelliteName, orgName, gitAuthor, gitConfigEmail)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	// TODO (dchw) what other settings might we want to override here?
-	return nil
+	return cleanupTLS, nil
 }
 
 func (c *CLI) IsUsingSatellite(cliCtx *cli.Context) bool {

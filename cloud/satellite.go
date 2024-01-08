@@ -11,11 +11,12 @@ import (
 	"time"
 
 	pb "github.com/earthly/cloud-api/compute"
-	"github.com/earthly/earthly/internal/version"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
+
+	"github.com/earthly/earthly/internal/version"
 )
 
 const (
@@ -75,6 +76,7 @@ type SatelliteInstance struct {
 	CacheRetention          time.Duration
 	Address                 string
 	IsManaged               bool
+	Certificate             *pb.TLSCertificate
 }
 
 func (c *Client) ListSatellites(ctx context.Context, orgName string, includeHidden bool) ([]SatelliteInstance, error) {
@@ -136,6 +138,7 @@ func (c *Client) GetSatellite(ctx context.Context, name, orgName string) (*Satel
 		CacheRetention:          resp.CacheRetention.AsDuration(),
 		IsManaged:               resp.IsManaged,
 		Address:                 resp.PrivateDns,
+		Certificate:             resp.Certificate,
 	}, nil
 }
 

@@ -123,11 +123,12 @@ func (a *Debug) actionBuildkitSessionHistory(cliCtx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	bkClient, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
+	bkClient, cleanupTLS, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
+	defer cleanupTLS()
 
 	history, err := bkClient.SessionHistory(cliCtx.Context)
 	if err != nil {
@@ -146,11 +147,12 @@ func (a *Debug) actionBuildkitInfo(cliCtx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	bkClient, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
+	bkClient, cleanupTLS, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
+	defer cleanupTLS()
 
 	info, err := bkClient.Info(cliCtx.Context)
 	if err != nil {
@@ -171,11 +173,12 @@ func (a *Debug) actionBuildkitDiskUsage(cliCtx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	bkClient, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
+	bkClient, cleanupTLS, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
+	defer cleanupTLS()
 
 	infos, err := bkClient.DiskUsage(cliCtx.Context)
 	if err != nil {
@@ -222,11 +225,12 @@ func (a *Debug) actionBuildkitWorkers(cliCtx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	bkClient, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
+	bkClient, cleanupTLS, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
+	defer cleanupTLS()
 
 	workers, err := bkClient.ListWorkers(cliCtx.Context)
 	if err != nil {
@@ -295,11 +299,12 @@ func (a *Debug) actionBuildkitShutdownIfIdle(cliCtx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	bkClient, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
+	bkClient, cleanupTLS, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
+	defer cleanupTLS()
 
 	ok, numSessions, err := bkClient.ShutdownIfIdle(cliCtx.Context)
 	if err != nil {
