@@ -43,11 +43,14 @@ const (
 )
 
 const (
-	SatelliteSizeXSmall = "xsmall"
-	SatelliteSizeSmall  = "small"
-	SatelliteSizeMedium = "medium"
-	SatelliteSizeLarge  = "large"
-	SatelliteSizeXLarge = "xlarge"
+	SatelliteSizeXSmall  = "xsmall"
+	SatelliteSizeSmall   = "small"
+	SatelliteSizeMedium  = "medium"
+	SatelliteSizeLarge   = "large"
+	SatelliteSizeXLarge  = "xlarge"
+	SatelliteSize2XLarge = "2xlarge"
+	SatelliteSize3XLarge = "3xlarge"
+	SatelliteSize4XLarge = "4xlarge"
 )
 
 const (
@@ -445,11 +448,14 @@ func satelliteStatus(status pb.SatelliteStatus) string {
 }
 
 var validSizes = map[string]bool{
-	SatelliteSizeXSmall: true,
-	SatelliteSizeSmall:  true,
-	SatelliteSizeMedium: true,
-	SatelliteSizeLarge:  true,
-	SatelliteSizeXLarge: true,
+	SatelliteSizeXSmall:  true,
+	SatelliteSizeSmall:   true,
+	SatelliteSizeMedium:  true,
+	SatelliteSizeLarge:   true,
+	SatelliteSizeXLarge:  true,
+	SatelliteSize2XLarge: true,
+	SatelliteSize3XLarge: true,
+	SatelliteSize4XLarge: true,
 }
 
 func ValidSatelliteSize(size string) bool {
