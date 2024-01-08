@@ -87,7 +87,7 @@ as well as run builds in native architectures independent of where the Earthly c
 						&cli.StringFlag{
 							Name: "size",
 							Usage: `The size of the satellite. See https://earthly.dev/pricing for details on each size
-					Supported values: xsmall, small, medium, large, xlarge`,
+					Supported values: xsmall, small, medium, large, xlarge, 2xlarge, 3xlarge, 4xlarge`,
 							Required:    false,
 							Destination: &a.size,
 						},
@@ -216,7 +216,7 @@ as well as run builds in native architectures independent of where the Earthly c
 						&cli.StringFlag{
 							Name: "size",
 							Usage: `Change the size of the satellite. See https://earthly.dev/pricing for details on each size.
-					Supported values: xsmall, small, medium, large, xlarge`,
+					Supported values: xsmall, small, medium, large, xlarge, 2xlarge, 3xlarge, 4xlarge`,
 							Required:    false,
 							Destination: &a.size,
 						},
