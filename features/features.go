@@ -69,7 +69,8 @@ type Features struct {
 	UseFunctionKeyword              bool `long:"use-function-keyword" description:"Use the FUNCTION key word instead of COMMAND"`
 
 	// unreleased
-	TryFinally bool `long:"try" description:"allow the use of the TRY/FINALLY commands"`
+	TryFinally     bool `long:"try" description:"allow the use of the TRY/FINALLY commands"`
+	WildcardBuilds bool `long:"wildcard-builds" description:"allow for the expansion of wildcard (glob) paths for BUILD commands"`
 
 	Major int
 	Minor int
