@@ -11,11 +11,12 @@ import (
 	"time"
 
 	pb "github.com/earthly/cloud-api/compute"
-	"github.com/earthly/earthly/internal/version"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
+
+	"github.com/earthly/earthly/internal/version"
 )
 
 const (
@@ -42,11 +43,14 @@ const (
 )
 
 const (
-	SatelliteSizeXSmall = "xsmall"
-	SatelliteSizeSmall  = "small"
-	SatelliteSizeMedium = "medium"
-	SatelliteSizeLarge  = "large"
-	SatelliteSizeXLarge = "xlarge"
+	SatelliteSizeXSmall  = "xsmall"
+	SatelliteSizeSmall   = "small"
+	SatelliteSizeMedium  = "medium"
+	SatelliteSizeLarge   = "large"
+	SatelliteSizeXLarge  = "xlarge"
+	SatelliteSize2XLarge = "2xlarge"
+	SatelliteSize3XLarge = "3xlarge"
+	SatelliteSize4XLarge = "4xlarge"
 )
 
 const (
@@ -75,6 +79,7 @@ type SatelliteInstance struct {
 	CacheRetention          time.Duration
 	Address                 string
 	IsManaged               bool
+	Certificate             *pb.TLSCertificate
 }
 
 func (c *Client) ListSatellites(ctx context.Context, orgName string, includeHidden bool) ([]SatelliteInstance, error) {
@@ -136,6 +141,7 @@ func (c *Client) GetSatellite(ctx context.Context, name, orgName string) (*Satel
 		CacheRetention:          resp.CacheRetention.AsDuration(),
 		IsManaged:               resp.IsManaged,
 		Address:                 resp.PrivateDns,
+		Certificate:             resp.Certificate,
 	}, nil
 }
 
@@ -442,11 +448,14 @@ func satelliteStatus(status pb.SatelliteStatus) string {
 }
 
 var validSizes = map[string]bool{
-	SatelliteSizeXSmall: true,
-	SatelliteSizeSmall:  true,
-	SatelliteSizeMedium: true,
-	SatelliteSizeLarge:  true,
-	SatelliteSizeXLarge: true,
+	SatelliteSizeXSmall:  true,
+	SatelliteSizeSmall:   true,
+	SatelliteSizeMedium:  true,
+	SatelliteSizeLarge:   true,
+	SatelliteSizeXLarge:  true,
+	SatelliteSize2XLarge: true,
+	SatelliteSize3XLarge: true,
+	SatelliteSize4XLarge: true,
 }
 
 func ValidSatelliteSize(size string) bool {

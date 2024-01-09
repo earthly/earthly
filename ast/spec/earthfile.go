@@ -54,6 +54,16 @@ type Command struct {
 	SourceLocation *SourceLocation `json:"sourceLocation,omitempty"`
 }
 
+func (c Command) Clone() Command {
+	newCmd := c
+	args := make([]string, len(c.Args))
+	copy(args, c.Args)
+	newCmd.Args = args
+	srcLoc := *c.SourceLocation
+	newCmd.SourceLocation = &srcLoc
+	return newCmd
+}
+
 // WithStatement is the AST representation of a with statement.
 type WithStatement struct {
 	Command        Command         `json:"command"`

@@ -14,17 +14,17 @@ ga:
     BUILD +ga-qemu
 
 ga-qemu:
-    BUILD ./platform+test
+    BUILD --pass-args ./platform+test
 
 ga-no-qemu-group1:
     BUILD --pass-args ./autocompletion+test-all
-    BUILD ./dockerfile+test
-    BUILD ./dockerfile2/subdir+test
+    BUILD --pass-args ./dockerfile+test
+    BUILD --pass-args ./dockerfile2/subdir+test
     BUILD --pass-args ./locally-in-command+all
     BUILD --pass-args ./locally-in-function+all
-    BUILD ./command-to-function-rename+all
-    BUILD ./import+build
-    BUILD ./import+build-imported
+    BUILD --pass-args ./command-to-function-rename+all
+    BUILD --pass-args ./import+build
+    BUILD --pass-args ./import+build-imported
     BUILD +privileged-test
     BUILD +copy-test
     BUILD +copy-test-verbose-output
@@ -74,6 +74,8 @@ ga-no-qemu-group1:
     BUILD +escape-test
     BUILD +escape-dir-test
     BUILD +fail-invalid-artifact-test
+    BUILD +wildcard-build
+    BUILD +wildcard-build-remote
 
 ga-no-qemu-group2:
     BUILD +target-first-line
@@ -143,7 +145,7 @@ ga-no-qemu-group2:
     ARG GLOBAL_WAIT_END="false"
     IF [ "$GLOBAL_WAIT_END" = "false" ]
         BUILD +save-artifact-after-push
-        BUILD ./with-docker-via-command+test
+        BUILD --pass-args ./with-docker-via-command+test
     END
 
 ga-no-qemu-group3:
@@ -158,7 +160,7 @@ ga-no-qemu-group3:
     BUILD +builtin-args-test
     BUILD +remote-test
     BUILD +save-artifact-dont-overwrite
-    BUILD ./with-docker-expose+all
+    BUILD --pass-args ./with-docker-expose+all
 
 ga-no-qemu-group4:
     BUILD +cache-mount-arg
@@ -170,16 +172,16 @@ ga-no-qemu-group4:
     BUILD +save-artifact-selective-referencing-remote
     BUILD --pass-args ./secret-provider-config+test-all
     BUILD --pass-args ./shell-out+test-all
-    BUILD ./with-docker-compose+all
+    BUILD --pass-args ./with-docker-compose+all
     BUILD +dotenv-test
     BUILD +allow-privileged-test
-    BUILD ./with-docker-registry+all
+    BUILD --pass-args ./with-docker-registry+all
     BUILD +test-ssh-command-config-via-remote-target
     BUILD +test-ssh-command-config-via-git-clone-earthfile-command
 
 ga-no-qemu-slow:
     BUILD +server
-    BUILD ./with-docker+all
+    BUILD --pass-args ./with-docker+all
     # this has been moved to a seperate target until we get the flakey "tell me who you are" bug
     # fixed; see https://github.com/earthly/earthly/issues/2567
     #BUILD --pass-args ./git-metadata+test
@@ -188,7 +190,7 @@ ga-no-qemu-slow:
     BUILD --pass-args ./version+test-all
 
 ga-no-qemu-kind:
-    BUILD ./with-docker-kind+all
+    BUILD --pass-args ./with-docker-kind+all
 
 ga-no-qemu:
     BUILD +ga-no-qemu-group1
@@ -211,7 +213,7 @@ ga-linux-amd64:
     BUILD +user-arg-test
 
 experimental:
-    BUILD ./dind-auto-install+all
+    BUILD --pass-args ./dind-auto-install+all
 
 ast-test-input:
     FROM alpine:3.18
@@ -564,6 +566,34 @@ fail-invalid-artifact-test:
     # test that the artifact fails to be copied
     DO +RUN_EARTHLY --earthfile=fail-invalid-artifact.earth --should_fail=true --target="--artifact +test/foo /tmp/stuff" \
         --output_contains="cannot save artifact +test/foo, since it does not exist"
+
+wildcard-build:
+    COPY --dir wildcard-build .
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-build
+    RUN cat earthly.output | acbgrep 'hello world 1'
+    RUN cat earthly.output | acbgrep 'hello world 2'
+    RUN cat earthly.output | acbgrep 'hello world 3'
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-globstar --should_fail=true --output_contains="pattern not yet supported"
+
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-glob
+    RUN cat earthly.output | acbgrep 'hello world 2'
+    RUN cat earthly.output | acbgrep 'hello world 3'
+    RUN cat earthly.output | acbgrep -v 'hello world 1'
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+wildcard-build-remote:
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-remote
+    RUN cat earthly.output | acbgrep 'hello world 1'
+    RUN cat earthly.output | acbgrep 'hello world 2'
+    RUN cat earthly.output | acbgrep 'hello world 3'
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-remote-glob
+    RUN cat earthly.output | acbgrep 'hello world 2'
+    RUN cat earthly.output | acbgrep 'hello world 3'
+    RUN cat earthly.output | acbgrep -v 'hello world 1'
+    RUN cat earthly.output | acbgrep -v 'not-test run'
 
 push-test:
     DO +RUN_EARTHLY --earthfile=push.earth --target=+push-test \

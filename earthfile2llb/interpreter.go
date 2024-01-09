@@ -1171,6 +1171,13 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD target %s", args[0])
 	}
+	// Expand wildcards into a set of BUILD spec.Command's, one for each discovered Earthfile.
+	if strings.Contains(fullTargetName, "*") {
+		if !i.converter.ftrs.WildcardBuilds {
+			return i.errorf(cmd.SourceLocation, "wildcard BUILD commands are not enabled")
+		}
+		return i.handleWildcardBuilds(ctx, fullTargetName, cmd, async)
+	}
 	platformsSlice := make([]platutil.Platform, 0, len(opts.Platforms))
 	for index, p := range opts.Platforms {
 		expandedPlatform, err := i.expandArgs(ctx, p, false, async)
@@ -1236,6 +1243,22 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 			}
 		}
 	}
+	return nil
+}
+
+func (i *Interpreter) handleWildcardBuilds(ctx context.Context, fullTargetName string, cmd spec.Command, async bool) error {
+
+	children, err := i.converter.ExpandWildcard(ctx, fullTargetName, cmd)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand wildcard BUILD %q", fullTargetName)
+	}
+
+	for _, child := range children {
+		if err := i.handleBuild(ctx, child, async); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
