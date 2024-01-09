@@ -74,6 +74,18 @@ RUN echo "The current target is $EARTHLY_TARGET"
 | `USERPLATFORM` | The platform of the user (the environment the `earthly` binary is invoked from). | `darwin/amd64`, `linux/amd64`, `darwin/arm64` |
 | `USERVARIANT` | The processor architecture variant of the user (the environment the `earthly` binary is invoked from). | `v7` |
 
-To override the target platform, use the `--platform` flag when using the `earthly` CLI. For example, `earthly --platform linux/amd64 +my-target` will set the `TARGETPLATFORM` arg to `linux/amd64`. You can also override the target platform in an Earthfile, when issuing `BUILD` commands. For example, `BUILD --platform linux/amd64 +my-target`. Or you can override the platform within the target definition by setting the platform in the `FROM` statement. For example `FROM --platform linux/amd64 alpine:3.13`.
+The default value of the `TARGETPLATFORM` arg is the native platform of the runner, for non-LOCALLY targets. This can be overriden by using the `--platform` flag, when using the `earthly` CLI. For example, `earthly --platform linux/amd64 +my-target` will set the `TARGETPLATFORM` arg to `linux/amd64`. You can also override the target platform in an Earthfile, when issuing `BUILD` commands. For example, `BUILD --platform linux/amd64 +my-target`. Or you can override the platform within the target definition by setting the platform in the `FROM` statement. For example `FROM --platform linux/amd64 alpine:3.13`.
 
-Note that under `LOCALLY`, the `TARGETPLATFORM` arg is always set to the user platform.
+Under `LOCALLY`, the `TARGETPLATFORM` arg is always set to the user platform (the environment the `earthly` binary is invoked from) and it is not overriden by the `--platform` flag.
+
+{% hint style='info' %}
+##### Note
+Under `LOCALLY` targets, it is important to declare the `TARGETPLATFORM` arg **after** the `LOCALLY` command, to ensure that it gets the approriate user platform value. For example:
+
+```Dockerfile
+my-target:
+    LOCALLY
+    ARG TARGETPLATFORM
+    RUN echo "The target platform under LOCALLY is $TARGETPLATFORM"
+```
+{% endhint %}
