@@ -198,12 +198,20 @@ func (l *loader) handleCopySrc(ctx context.Context, cmd spec.Command, src string
 		if err != nil {
 			return wrapError(err, cmd.SourceLocation, "failed to parse COPY params")
 		}
-		artifactSrc, err = domain.ParseArtifact(artifactName)
+		expandedArtifact, err := l.expandArgs(ctx, artifactName)
+		if err != nil {
+			return wrapError(err, cmd.SourceLocation, "failed to expand COPY artifact")
+		}
+		artifactSrc, err = domain.ParseArtifact(expandedArtifact)
 		if err != nil {
 			return wrapError(err, cmd.SourceLocation, "failed to parse artifact")
 		}
 	} else { // Simpler form: '+target/artifact' or 'file/path'
-		artifactSrc, err = domain.ParseArtifact(src)
+		expandedSrc, err := l.expandArgs(ctx, src)
+		if err != nil {
+			return wrapError(err, cmd.SourceLocation, "failed to expand COPY artifact")
+		}
+		artifactSrc, err = domain.ParseArtifact(expandedSrc)
 		if err != nil {
 			classical = true
 		}
