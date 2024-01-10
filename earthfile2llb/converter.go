@@ -144,6 +144,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		v, _ := opt.OverridingVars.Get(k)
 		ovVars = append(ovVars, fmt.Sprintf("%s=%s", k, v))
 	}
+
 	logbusTarget, err := opt.Logbus.Run().NewTarget(
 		sts.ID,
 		target,
@@ -154,6 +155,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	if err != nil {
 		return nil, errors.Wrap(err, "new logbus target")
 	}
+
 	logbusTarget.SetStart(time.Now())
 
 	c := &Converter{
@@ -1834,6 +1836,7 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	opt.PlatformResolver = c.platr.SubResolver(platform)
 	opt.HasDangling = isDangling
 	opt.AllowPrivileged = allowPrivileged
+	opt.ParentTargetID = c.mts.Final.ID
 
 	if cmdT == buildCmd {
 		// only BUILD commands get propigated
