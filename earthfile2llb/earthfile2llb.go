@@ -276,9 +276,6 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		}
 	}
 
-	// Update the target ID that child converters will reference as the parent.
-	opt.ParentTargetID = sts.ID
-
 	tiHash, err := sts.TargetInput().Hash()
 	if err != nil {
 		return nil, err

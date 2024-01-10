@@ -1,6 +1,7 @@
 package logbus
 
 import (
+	"sync"
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
@@ -8,14 +9,17 @@ import (
 
 // Target is a delta generator for a target.
 type Target struct {
-	b        *Bus
-	targetID string
+	b         *Bus
+	targetID  string
+	dependsOn map[string]struct{}
+	mu        sync.Mutex
 }
 
 func newTarget(b *Bus, targetID string) *Target {
 	return &Target{
-		b:        b,
-		targetID: targetID,
+		b:         b,
+		targetID:  targetID,
+		dependsOn: map[string]struct{}{},
 	}
 }
 
@@ -39,6 +43,15 @@ func (t *Target) SetEnd(end time.Time, status logstream.RunStatus, finalPlatform
 // AddDependsOn creates a delta that will be used to merge the specified target
 // ID into the current target's list of targets on which it depends.
 func (t *Target) AddDependsOn(targetID string) {
+	// Only add the dependency link once to avoid sending duplicates to Logstream.
+	t.mu.Lock()
+	if _, ok := t.dependsOn[targetID]; ok {
+		defer t.mu.Unlock()
+		return
+	}
+	t.dependsOn[targetID] = struct{}{}
+	t.mu.Unlock()
+
 	t.targetDelta(&logstream.DeltaTargetManifest{
 		DependsOn: []string{targetID},
 	})

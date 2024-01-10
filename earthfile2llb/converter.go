@@ -1836,6 +1836,7 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	opt.PlatformResolver = c.platr.SubResolver(platform)
 	opt.HasDangling = isDangling
 	opt.AllowPrivileged = allowPrivileged
+	opt.ParentTargetID = c.mts.Final.ID
 
 	if cmdT == buildCmd {
 		// only BUILD commands get propigated
