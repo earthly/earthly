@@ -144,6 +144,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		v, _ := opt.OverridingVars.Get(k)
 		ovVars = append(ovVars, fmt.Sprintf("%s=%s", k, v))
 	}
+
 	logbusTarget, err := opt.Logbus.Run().NewTarget(
 		sts.ID,
 		target,
@@ -154,7 +155,17 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	if err != nil {
 		return nil, errors.Wrap(err, "new logbus target")
 	}
+
 	logbusTarget.SetStart(time.Now())
+
+	if opt.ParentTargetID != "" {
+		if parentTarget, ok := opt.Logbus.Run().Target(opt.ParentTargetID); ok {
+			parentTarget.AddDependsOn(sts.ID)
+		}
+	}
+
+	// Update the target ID that child converters will reference as the parent.
+	opt.ParentTargetID = sts.ID
 
 	c := &Converter{
 		target:              target,

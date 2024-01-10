@@ -183,6 +183,10 @@ type ConvertOpt struct {
 	// FilesWithCommandRenameWarning keeps track of the files for which the COMMAND => FUNCTION warning was displayed
 	// this can be removed in VERSION 0.8
 	FilesWithCommandRenameWarning map[string]bool
+
+	// ParentTargetID is the Logbus target ID of the parent target, if any. It
+	// is used to link together targets.
+	ParentTargetID string
 }
 
 // TargetDetails contains details about the target being built.
