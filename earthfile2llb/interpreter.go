@@ -1185,7 +1185,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 			return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD platform %s", p)
 		}
 		opts.Platforms[index] = expandedPlatform
-		platform, err := i.converter.platr.Parse(p)
+		platform, err := i.converter.platr.Parse(expandedPlatform)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "parse platform %s", p)
 		}
