@@ -158,15 +158,6 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 
 	logbusTarget.SetStart(time.Now())
 
-	if opt.ParentTargetID != "" {
-		if parentTarget, ok := opt.Logbus.Run().Target(opt.ParentTargetID); ok {
-			parentTarget.AddDependsOn(sts.ID)
-		}
-	}
-
-	// Update the target ID that child converters will reference as the parent.
-	opt.ParentTargetID = sts.ID
-
 	c := &Converter{
 		target:              target,
 		gitMeta:             bc.GitMetadata,

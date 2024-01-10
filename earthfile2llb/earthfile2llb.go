@@ -269,6 +269,16 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if err != nil {
 		return nil, err
 	}
+
+	if opt.ParentTargetID != "" {
+		if parentTarget, ok := opt.Logbus.Run().Target(opt.ParentTargetID); ok {
+			parentTarget.AddDependsOn(sts.ID)
+		}
+	}
+
+	// Update the target ID that child converters will reference as the parent.
+	opt.ParentTargetID = sts.ID
+
 	tiHash, err := sts.TargetInput().Hash()
 	if err != nil {
 		return nil, err
