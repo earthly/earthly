@@ -1704,7 +1704,7 @@ func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, ba
 		return err
 	}
 	if passArgs {
-		overriding = variables.CombineScopes(overriding, c.varCollection.Overriding())
+		overriding = variables.CombineScopesInactive(overriding, c.varCollection.Overriding(), c.varCollection.Args(), c.varCollection.Globals())
 	}
 	c.varCollection.EnterFrame(
 		scopeName, command, overriding, baseMts.Final.VarCollection.Globals(),
@@ -1828,7 +1828,9 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	}
 	// Don't allow transitive overriding variables to cross project boundaries (unless --pass-args is used).
 	propagateBuildArgs := !relTarget.IsExternal()
-	if passArgs || propagateBuildArgs {
+	if passArgs {
+		overriding = variables.CombineScopes(overriding, c.varCollection.Overriding(), c.varCollection.Args(), c.varCollection.Globals())
+	} else if propagateBuildArgs {
 		overriding = variables.CombineScopes(overriding, c.varCollection.Overriding())
 	}
 

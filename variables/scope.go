@@ -3,6 +3,7 @@ package variables
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // Scope represents a variable scope.
@@ -19,6 +20,22 @@ func NewScope() *Scope {
 		variables:       make(map[string]string),
 		activeVariables: make(map[string]bool),
 	}
+}
+
+// DebugString returns a string that can be printed while debugging
+func (s *Scope) DebugString() string {
+	var sb strings.Builder
+	for _, k := range s.Sorted() {
+		v := s.variables[k]
+		sb.WriteString(fmt.Sprintf("%s=%s", k, v))
+		if s.activeVariables[k] {
+			sb.WriteString(" (active)")
+		} else {
+			sb.WriteString(" (inactive)")
+		}
+		sb.WriteString("\n")
+	}
+	return sb.String()
 }
 
 // Clone returns a copy of the scope.
@@ -124,6 +141,17 @@ func CombineScopes(scopes ...*Scope) *Scope {
 			for k, v := range scope.Map(opts...) {
 				s.Add(k, v, addOpts...)
 			}
+		}
+	}
+	return s
+}
+
+// CombineScopesInactive combines all scopes (leaving all variables inactive), with left-most scope having precedence,
+func CombineScopesInactive(scopes ...*Scope) *Scope {
+	s := NewScope()
+	for _, scope := range scopes {
+		for k, v := range scope.Map() {
+			s.Add(k, v, NoOverride())
 		}
 	}
 	return s

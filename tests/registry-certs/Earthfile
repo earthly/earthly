@@ -25,7 +25,7 @@ certs:
     SAVE ARTIFACT certs AS LOCAL certs
 
 test-base:
-    FROM --pass-args ../..+earthly-integration-test-base
+    FROM --pass-args ..+base
     WORKDIR /test
     COPY ./certs/domain.crt /etc/config/test.ca
     COPY test.earth ./Earthfile

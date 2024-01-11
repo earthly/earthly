@@ -1,5 +1,5 @@
 VERSION 0.8
-FROM --pass-args ..+earthly-integration-test-base
+FROM --pass-args ./integration-base+test-base
 
 WORKDIR /test
 
@@ -127,6 +127,7 @@ ga-no-qemu-group2:
     BUILD +test-init-unsupported
     BUILD +test-init-golang
     BUILD +pass-args-test
+    BUILD +pass-args-defaults-test
     BUILD +test-reserved-label
     BUILD +test-cache-mount-mode
     BUILD +test-cache-mode
@@ -180,6 +181,11 @@ ga-no-qemu-group4:
     BUILD +test-ssh-command-config-via-remote-target
     BUILD +test-ssh-command-config-via-git-clone-earthfile-command
     BUILD --pass-args ./propagate-args-to-base+test-all
+    BUILD --pass-args ./pass-args-default+test
+    BUILD --pass-args ./pass-args-global+test
+    BUILD --pass-args ./pass-args-default-via-function+test
+    BUILD --pass-args ./pass-args-global-via-function+test
+    BUILD --pass-args ./pass-args-via-function-with-override+test
 
 ga-no-qemu-slow:
     BUILD +server
@@ -551,6 +557,12 @@ pass-args-test:
     COPY pass-args-sub-dir.earth subdir/Earthfile
     COPY pass-args-root.earth Earthfile
     DO +RUN_EARTHLY --target=./subdir+test-all --extra_args="--build-arg foo=bar"
+
+pass-args-defaults-test:
+    DO +RUN_EARTHLY --earthfile=pass-args-defaults.earth
+    # test arg can still be overridden from the cli
+    RUN sed -i 's/hello/hellofromcli/g' Earthfile
+    DO +RUN_EARTHLY --extra_args="--build-arg foo=hellofromcli"
 
 required-arg-test:
     # test that build arg is required
@@ -1609,7 +1621,7 @@ RUN_EARTHLY:
             (/bin/sh /usr/bin/earthly-entrypoint.sh; echo exit_code=\$?) 2>&1 | tee earthly.output
             set -e
         else
-            echo running earthly with $target
+            echo running earthly with $extra_args $target $post_command
             set +e
             (eval \"/usr/bin/earthly-entrypoint.sh $extra_args $target $post_command\"; echo exit_code=\$?) 2>&1 | tee earthly.output
             set -e

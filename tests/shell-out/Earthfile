@@ -1,6 +1,5 @@
 VERSION 0.8
-
-FROM --pass-args ../..+earthly-integration-test-base
+FROM --pass-args ..+base
 
 IMPORT .. AS tests
 
@@ -42,7 +41,7 @@ RUN_EARTHLY_ARGS:
     ARG target
     ARG should_fail=false
     ARG output_contains
-    DO --pass-args tests+RUN_EARTHLY \
+    DO tests+RUN_EARTHLY \
         --earthfile=$earthfile \
         --target=$target \
         --should_fail=$should_fail \

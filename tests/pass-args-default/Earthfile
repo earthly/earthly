@@ -1,0 +1,18 @@
+VERSION 0.8
+FROM --pass-args ..+base
+
+test:
+    RUN mkdir sub
+    COPY root.earth Earthfile
+    COPY sub.earth sub/Earthfile
+    DO --pass-args +RUN_EARTHLY_ARGS --target=+test
+
+RUN_EARTHLY_ARGS:
+    FUNCTION
+    ARG earthfile
+    ARG target
+    ARG should_fail=false
+    DO --pass-args ..+RUN_EARTHLY \
+        --earthfile=$earthfile \
+        --target=$target \
+        --should_fail=$should_fail
