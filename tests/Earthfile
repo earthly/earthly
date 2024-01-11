@@ -15,6 +15,7 @@ ga:
 
 ga-qemu:
     BUILD --pass-args ./platform+test
+    BUILD +test-platform-expansion
 
 ga-no-qemu-group1:
     BUILD --pass-args ./autocompletion+test-all
@@ -1523,6 +1524,9 @@ test-exec-stats:
       --target=+sleep \
       --extra_args=" --exec-stats " \
       --output_contains="total CPU:.*total memory:.*"
+
+test-platform-expansion:
+  DO +RUN_EARTHLY --earthfile=platform-expansion.earth
 
 # test-ssh-command-config-via-remote-target tests that we can set a custom ssh_command
 # The test intentionally sets a bad cipher type, then tests that buildkit fails, and the failure message
