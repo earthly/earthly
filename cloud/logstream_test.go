@@ -71,7 +71,7 @@ func (f *flakyStream) Recv() (*pb.StreamLogResponse, error) {
 	case r := <-f.recv:
 		return r, nil
 	case <-f.done:
-		return nil, status.Error(codes.Canceled, "canceled")
+		return nil, status.Error(codes.Unknown, "unknown")
 	}
 }
 
