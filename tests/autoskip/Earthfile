@@ -143,6 +143,12 @@ test-copy-target-args:
     DO --pass-args +RUN_EARTHLY_ARGS --target=+copy-target-args --output_contains="+copy-target-args | changed"
     DO --pass-args +RUN_EARTHLY_ARGS --target=+copy-target-args --output_contains="Target .* has already been run. Skipping."
 
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+copy-target-dynamic --output_contains="+copy-target-dynamic | goodbye"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+copy-target-dynamic --output_contains="Target .* has already been run. Skipping."
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+copy-target-dynamic-2 --output_contains="+copy-target-dynamic-2 | foobar"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+copy-target-dynamic-2 --output_contains="Target .* has already been run. Skipping."
+
 test-copy-target-args-quoted:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+copy-target-args-quoted --output_contains="hello world"
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+copy-target-args-quoted --output_contains="Target .* has already been run. Skipping."
