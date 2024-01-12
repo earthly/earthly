@@ -838,6 +838,8 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 
 	orgName := a.cli.Flags().OrgName
 
+	start := time.Now()
+
 	targetHash, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
 		Target:          target,
 		Console:         a.cli.Console(),
@@ -849,6 +851,8 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 	if err != nil {
 		return nil, nil, false, errors.Wrapf(err, "auto-skip is unable to calculate hash for %s", target)
 	}
+
+	console.VerbosePrintf("hash calculation took %s", time.Now().Sub(start))
 
 	if a.cli.Flags().LocalSkipDB == "" && orgName == "" {
 		orgName, _, err = inputgraph.ParseProjectCommand(ctx, target, console)

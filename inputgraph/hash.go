@@ -22,10 +22,10 @@ type HashOpt struct {
 func HashTarget(ctx context.Context, opt HashOpt) (hash []byte, err error) {
 	l := newLoader(ctx, opt)
 
-	err = l.load(ctx)
+	b, err := l.load(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return l.hasher.GetHash(), nil
+	return b, nil
 }
