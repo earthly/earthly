@@ -35,6 +35,8 @@ var (
 type Stats struct {
 	TargetsHashed   int
 	TargetCacheHits int
+	TargetsVisited  int
+	StartTime       time.Time
 	Duration        time.Duration
 }
 
@@ -45,6 +47,7 @@ type loader struct {
 	importsProcessed bool
 	hashCache        map[string][]byte
 	stats            *Stats
+	primaryTarget    bool
 	conslog          conslogging.ConsoleLogger
 	varCollection    *variables.Collection
 	features         *features.Features
@@ -72,7 +75,8 @@ func newLoader(ctx context.Context, opt HashOpt) *loader {
 		earthlyCIRunner: opt.EarthlyCIRunner,
 		globalImports:   map[string]domain.ImportTrackerVal{},
 		hashCache:       map[string][]byte{},
-		stats:           &Stats{},
+		stats:           &Stats{StartTime: time.Now()},
+		primaryTarget:   true,
 	}
 }
 
@@ -826,6 +830,7 @@ func (l *loader) forTarget(ctx context.Context, target domain.Target, args []str
 		earthlyCIRunner: l.earthlyCIRunner,
 		hashCache:       l.hashCache,
 		stats:           l.stats,
+		primaryTarget:   false,
 	}
 
 	if target.IsLocalInternal() {
@@ -911,6 +916,8 @@ func (l *loader) load(ctx context.Context) ([]byte, error) {
 		return nil, errCannotLoadRemoteTarget
 	}
 
+	l.stats.TargetsVisited++
+
 	// We can avoid reprocessing this target if it's already been hashed. This
 	// hash key is computed using the canonical target name & the provided
 	// arguments.
@@ -991,6 +998,9 @@ func (l *loader) load(ctx context.Context) ([]byte, error) {
 	v := l.hasher.GetHash()
 	l.hashCache[cacheKey] = v
 	l.stats.TargetsHashed++
+	if l.primaryTarget {
+		l.stats.Duration = time.Since(l.stats.StartTime)
+	}
 
 	return v, nil
 }

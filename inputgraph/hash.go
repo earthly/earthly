@@ -2,7 +2,6 @@ package inputgraph
 
 import (
 	"context"
-	"time"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
@@ -20,17 +19,18 @@ type HashOpt struct {
 }
 
 // HashTarget produces a hash from an Earthly target.
-func HashTarget(ctx context.Context, opt HashOpt) ([]byte, *Stats, error) {
+func HashTarget(ctx context.Context, opt HashOpt) ([]byte, Stats, error) {
 	l := newLoader(ctx, opt)
-
-	start := time.Now()
 
 	b, err := l.load(ctx)
 	if err != nil {
-		return nil, nil, err
+		return nil, Stats{}, err
 	}
 
-	l.stats.Duration = time.Since(start)
+	stats := Stats{}
+	if l.stats != nil {
+		stats = *l.stats
+	}
 
-	return b, l.stats, nil
+	return b, stats, nil
 }
