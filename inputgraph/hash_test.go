@@ -26,7 +26,7 @@ func TestHashTargetWithDocker(t *testing.T) {
 	cons := conslogging.New(os.Stderr, &sync.Mutex{}, conslogging.NoColor, 0, conslogging.Info)
 
 	hashOpt := HashOpt{Console: cons, Target: target}
-	hash, err := HashTarget(ctx, hashOpt)
+	hash, _, err := HashTarget(ctx, hashOpt)
 	r.NoError(err)
 
 	hex := fmt.Sprintf("%x", hash)
@@ -55,7 +55,7 @@ func TestHashTargetWithDocker(t *testing.T) {
 	}
 
 	hashOpt = HashOpt{Console: cons, Target: target}
-	hash, err = HashTarget(ctx, hashOpt)
+	hash, _, err = HashTarget(ctx, hashOpt)
 	r.NoError(err)
 
 	second := fmt.Sprintf("%x", hash)
@@ -119,7 +119,7 @@ func TestHashTargetWithDockerNoAlias(t *testing.T) {
 	cons := conslogging.New(os.Stderr, &sync.Mutex{}, conslogging.NoColor, 0, conslogging.Info)
 
 	hashOpt := HashOpt{Console: cons, Target: target}
-	hash, err := HashTarget(ctx, hashOpt)
+	hash, _, err := HashTarget(ctx, hashOpt)
 	r.NoError(err)
 
 	hex := fmt.Sprintf("%x", hash)
@@ -137,8 +137,50 @@ func TestHashTargetWithDockerRemote(t *testing.T) {
 	cons := conslogging.New(os.Stderr, &sync.Mutex{}, conslogging.NoColor, 0, conslogging.Info)
 
 	hashOpt := HashOpt{Console: cons, Target: target}
-	hash, err := HashTarget(ctx, hashOpt)
+	hash, _, err := HashTarget(ctx, hashOpt)
 	r.NoError(err)
+
+	hex := fmt.Sprintf("%x", hash)
+	r.NotEmpty(hex)
+}
+
+func TestHashTargetNoCache(t *testing.T) {
+	r := require.New(t)
+	target := domain.Target{
+		LocalPath: "./testdata/target-cache",
+		Target:    "no-cache-hits",
+	}
+
+	ctx := context.Background()
+	cons := conslogging.New(os.Stderr, &sync.Mutex{}, conslogging.NoColor, 0, conslogging.Info)
+
+	hashOpt := HashOpt{Console: cons, Target: target}
+	hash, stats, err := HashTarget(ctx, hashOpt)
+	r.NoError(err)
+
+	r.Equal(3, stats.TargetsHashed)
+	r.Equal(0, stats.TargetCacheHits)
+
+	hex := fmt.Sprintf("%x", hash)
+	r.NotEmpty(hex)
+}
+
+func TestHashTargetCache(t *testing.T) {
+	r := require.New(t)
+	target := domain.Target{
+		LocalPath: "./testdata/target-cache",
+		Target:    "cache-hits",
+	}
+
+	ctx := context.Background()
+	cons := conslogging.New(os.Stderr, &sync.Mutex{}, conslogging.NoColor, 0, conslogging.Info)
+
+	hashOpt := HashOpt{Console: cons, Target: target}
+	hash, stats, err := HashTarget(ctx, hashOpt)
+	r.NoError(err)
+
+	r.Equal(3, stats.TargetsHashed)
+	r.Equal(4, stats.TargetCacheHits)
 
 	hex := fmt.Sprintf("%x", hash)
 	r.NotEmpty(hex)
