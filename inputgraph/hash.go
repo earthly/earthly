@@ -30,7 +30,7 @@ func HashTarget(ctx context.Context, opt HashOpt) ([]byte, *Stats, error) {
 		return nil, nil, err
 	}
 
-	l.stats.Duration = time.Now().Sub(start)
+	l.stats.Duration = time.Since(start)
 
 	return b, l.stats, nil
 }
