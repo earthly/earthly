@@ -30,11 +30,20 @@ var (
 	errComplexCondition       = errors.New("condition cannot be evaluated")
 )
 
+// Stats contains some statistics about the hashing process.
+type Stats struct {
+	TargetsHashed   int
+	TargetCacheHits int
+}
+
 type loader struct {
-	conslog          conslogging.ConsoleLogger
 	target           domain.Target
 	visited          map[string]struct{}
 	hasher           *hasher.Hasher
+	importsProcessed bool
+	hashCache        map[string][]byte
+	stats            *Stats
+	conslog          conslogging.ConsoleLogger
 	varCollection    *variables.Collection
 	features         *features.Features
 	isBaseTarget     bool
@@ -43,8 +52,6 @@ type loader struct {
 	overridingVars   *variables.Scope
 	earthlyCIRunner  bool
 	globalImports    map[string]domain.ImportTrackerVal
-	importsProcessed bool
-	hashCache        map[string][]byte
 }
 
 func newLoader(ctx context.Context, opt HashOpt) *loader {
@@ -63,6 +70,7 @@ func newLoader(ctx context.Context, opt HashOpt) *loader {
 		earthlyCIRunner: opt.EarthlyCIRunner,
 		globalImports:   map[string]domain.ImportTrackerVal{},
 		hashCache:       map[string][]byte{},
+		stats:           &Stats{},
 	}
 }
 
@@ -815,6 +823,7 @@ func (l *loader) forTarget(ctx context.Context, target domain.Target, args []str
 		overridingVars:  overriding,
 		earthlyCIRunner: l.earthlyCIRunner,
 		hashCache:       l.hashCache,
+		stats:           l.stats,
 	}
 
 	if target.IsLocalInternal() {
@@ -900,11 +909,12 @@ func (l *loader) load(ctx context.Context) ([]byte, error) {
 		return nil, errCannotLoadRemoteTarget
 	}
 
-	// We can avoid processing this target if it's already been hashed. This
+	// We can avoid reprocessing this target if it's already been hashed. This
 	// hash key is computed using the canonical target name & the provided
 	// arguments.
 	cacheKey := l.targetCacheKey()
 	if b, ok := l.hashCache[cacheKey]; ok {
+		l.stats.TargetCacheHits++
 		return b, nil
 	}
 
@@ -978,6 +988,7 @@ func (l *loader) load(ctx context.Context) ([]byte, error) {
 
 	v := l.hasher.GetHash()
 	l.hashCache[cacheKey] = v
+	l.stats.TargetsHashed++
 
 	return v, nil
 }

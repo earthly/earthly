@@ -840,7 +840,7 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 
 	start := time.Now()
 
-	targetHash, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
+	targetHash, stats, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
 		Target:          target,
 		Console:         a.cli.Console(),
 		CI:              a.cli.Flags().CI,
@@ -852,6 +852,7 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		return nil, nil, false, errors.Wrapf(err, "auto-skip is unable to calculate hash for %s", target)
 	}
 
+	console.VerbosePrintf("targets hashed: %d; target cache hits: %d", stats.TargetsHashed, stats.TargetCacheHits)
 	console.VerbosePrintf("hash calculation took %s", time.Now().Sub(start))
 
 	if a.cli.Flags().LocalSkipDB == "" && orgName == "" {
