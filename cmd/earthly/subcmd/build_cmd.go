@@ -838,8 +838,6 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 
 	orgName := a.cli.Flags().OrgName
 
-	start := time.Now()
-
 	targetHash, stats, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
 		Target:          target,
 		Console:         a.cli.Console(),
@@ -853,7 +851,7 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 	}
 
 	console.VerbosePrintf("targets hashed: %d; target cache hits: %d", stats.TargetsHashed, stats.TargetCacheHits)
-	console.VerbosePrintf("hash calculation took %s", time.Now().Sub(start))
+	console.VerbosePrintf("hash calculation took %s", stats.Duration)
 
 	if a.cli.Flags().LocalSkipDB == "" && orgName == "" {
 		orgName, _, err = inputgraph.ParseProjectCommand(ctx, target, console)

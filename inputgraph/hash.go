@@ -2,6 +2,7 @@ package inputgraph
 
 import (
 	"context"
+	"time"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
@@ -22,10 +23,14 @@ type HashOpt struct {
 func HashTarget(ctx context.Context, opt HashOpt) ([]byte, *Stats, error) {
 	l := newLoader(ctx, opt)
 
+	start := time.Now()
+
 	b, err := l.load(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	l.stats.Duration = time.Now().Sub(start)
 
 	return b, l.stats, nil
 }

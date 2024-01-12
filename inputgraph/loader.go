@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/earthly/earthly/ast/command"
 	"github.com/earthly/earthly/ast/commandflag"
@@ -34,6 +35,7 @@ var (
 type Stats struct {
 	TargetsHashed   int
 	TargetCacheHits int
+	Duration        time.Duration
 }
 
 type loader struct {
