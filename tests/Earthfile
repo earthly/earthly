@@ -97,9 +97,7 @@ ga-no-qemu-group2:
     BUILD +first-command
     BUILD +platform-output
     BUILD +command
-    BUILD +command-nested-global
     BUILD +function
-    BUILD +function-explicit-global
     BUILD +function-nested-global
     BUILD --pass-args ./functions-do-not-propagate-args+test-all
     BUILD +duplicate
@@ -171,6 +169,7 @@ ga-no-qemu-group4:
     BUILD --pass-args ./autoskip+test-all
     BUILD +if-exists
     BUILD +let-set
+    BUILD +let-scope
     BUILD +save-artifact-selective-referencing-remote
     BUILD --pass-args ./secret-provider-config+test-all
     BUILD --pass-args ./shell-out+test-all
@@ -180,6 +179,7 @@ ga-no-qemu-group4:
     BUILD --pass-args ./with-docker-registry+all
     BUILD +test-ssh-command-config-via-remote-target
     BUILD +test-ssh-command-config-via-git-clone-earthfile-command
+    BUILD --pass-args ./propagate-args-to-base+test-all
 
 ga-no-qemu-slow:
     BUILD +server
@@ -1075,16 +1075,10 @@ command:
 command-explicit-global:
     DO +RUN_EARTHLY --earthfile=command-explicit-global.earth
 
-command-nested-global:
-    DO +RUN_EARTHLY --earthfile=command-nested-global.earth --target="+test-overriding --foo=expected"
-
 function:
     RUN echo "hello function" >./message.txt
     DO +RUN_EARTHLY --earthfile=function.earth --target=+all-positive
     DO +RUN_EARTHLY --earthfile=function.earth --should_fail=true --target=+test-command-fails
-
-function-explicit-global:
-    DO +RUN_EARTHLY --earthfile=function-explicit-global.earth
 
 function-nested-global:
     DO +RUN_EARTHLY --earthfile=function-nested-global.earth --target="+test-overriding --foo=expected"

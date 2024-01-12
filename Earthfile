@@ -497,6 +497,7 @@ earthly-integration-test-base:
     ELSE
         RUN ./setup-registry.sh
     END
+    RUN rm ./setup-registry.sh
 
     # pull out buildkit_additional_config from the earthly config, for the special case of earthly-in-earthly testing
     # which runs earthly-entrypoint.sh, which calls buildkitd/entrypoint, which requires EARTHLY_VERSION_FLAG_OVERRIDES to be set

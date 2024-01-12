@@ -15,7 +15,7 @@ all-positive:
     BUILD +test-scope
     BUILD +test-builtin
     BUILD +test-global-default
-    BUILD +test-global-override-doesnt-work-in-0.8
+    BUILD +test-global-override-continues-to-work-in-0.8
 
 test-basic:
     DO +TOUCH
@@ -66,10 +66,10 @@ test-global-default:
     DO +TOUCH_GLOBAL
     RUN test -f ./default
 
-test-global-override-doesnt-work-in-0.8:
+test-global-override-continues-to-work-in-0.8:
     DO +TOUCH_GLOBAL --global_var=override
-    RUN ! test -f ./override
-    RUN test -f ./default
+    RUN test -f ./override
+    RUN ! test -f ./default
 
 test-command-fails:
     DO +TEST_COMMAND_FAILS
