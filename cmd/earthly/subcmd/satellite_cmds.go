@@ -740,11 +740,13 @@ func (a *Satellite) actionInspect(cliCtx *cli.Context) error {
 	a.cli.Console().Printf("")
 
 	if satellite.State == cloud.SatelliteStatusOperational {
-		cleanup, err := buildkitd.ConfigureSatelliteTLS(&a.cli.Flags().BuildkitdSettings, satellite)
-		if err != nil {
-			return errors.Wrap(err, "failed configuring satellite tls")
+		if !satellite.IsManaged {
+			cleanup, err := buildkitd.ConfigureSatelliteTLS(&a.cli.Flags().BuildkitdSettings, satellite)
+			if err != nil {
+				return errors.Wrap(err, "failed configuring satellite tls")
+			}
+			defer cleanup()
 		}
-		defer cleanup()
 		err = buildkitd.PrintSatelliteInfo(cliCtx.Context, a.cli.Console(), a.cli.App().Version, a.cli.Flags().BuildkitdSettings, a.cli.Flags().InstallationName)
 		if err != nil {
 			return errors.Wrap(err, "failed checking buildkit info")
