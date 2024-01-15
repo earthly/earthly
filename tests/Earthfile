@@ -200,6 +200,9 @@ ga-no-qemu:
     BUILD +ga-no-qemu-group4
     BUILD +ga-no-qemu-slow
 
+# Note that this target is split up under github action workflows
+# since they are flaky and having the ability to restart them individually
+# saves a lot of time
 tests-that-require-earthly-technologies-account-access:
     BUILD --pass-args +test-earthly-mirror-was-setup
     BUILD --pass-args ./account+test
