@@ -207,7 +207,6 @@ jobs:
       EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
-  # tests-that-require-earthly-technologies-account-access
   docker-test-earthly-mirror-was-setup:
     if: ${{ !failure() && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
     needs: build-earthly
@@ -236,7 +235,6 @@ jobs:
       EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
-  ## docker-test-registry-command
   docker-test-registry-command-dockerhub:
     if: ${{ !failure() && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
     needs: build-earthly
@@ -292,7 +290,6 @@ jobs:
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
       EXTRA_ARGS: "--auto-skip"
     secrets: inherit
-  ## end of docker-test-registry-command
 
   docker-test-web-command:
     if: ${{ !failure() && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
@@ -307,7 +304,6 @@ jobs:
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
       EXTRA_ARGS: "--auto-skip"
     secrets: inherit
-  # end of tests-that-require-earthly-technologies-account-access
 
   docker-tests-qemu:
     needs: build-earthly

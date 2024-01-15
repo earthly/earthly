@@ -131,7 +131,6 @@ jobs:
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
-  # tests-that-require-earthly-technologies-account-access
   podman-test-earthly-mirror-was-setup:
     if: ${{ !failure() && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
     needs: build-earthly
@@ -158,7 +157,6 @@ jobs:
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
-  ## test-registry-command
   podman-test-registry-command-dockerhub:
     if: ${{ !failure() && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
     needs: build-earthly
@@ -211,8 +209,6 @@ jobs:
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
-  ## end of test-registry-command
-
   podman-test-web-command:
     if: ${{ !failure() && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
     needs: build-earthly
@@ -225,7 +221,6 @@ jobs:
       SUDO: "sudo -E"
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
-  # end of tests-that-require-earthly-technologies-account-access
 
   podman-tests-qemu:
     needs: build-earthly
