@@ -303,6 +303,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		// This code is only used when dealing with VERSION 0.5 and 0.6; once these reach end-of-life, we can
 		// delete the code below.
 
+		// NOTE: this code is still required to support remote caching; it can't be removed until
+		// https://github.com/earthly/earthly/issues/2178 is fixed.
+
 		// *** DO NOT ADD CODE TO THE bf BELOW ***
 
 		gwCrafter := gatewaycrafter.NewGatewayCrafter()
