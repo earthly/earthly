@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/earthly/earthly/ast/command"
 	"github.com/earthly/earthly/ast/commandflag"
@@ -30,11 +31,24 @@ var (
 	errComplexCondition       = errors.New("condition cannot be evaluated")
 )
 
+// Stats contains some statistics about the hashing process.
+type Stats struct {
+	TargetsHashed   int
+	TargetCacheHits int
+	TargetsVisited  int
+	StartTime       time.Time
+	Duration        time.Duration
+}
+
 type loader struct {
-	conslog          conslogging.ConsoleLogger
 	target           domain.Target
 	visited          map[string]struct{}
 	hasher           *hasher.Hasher
+	importsProcessed bool
+	hashCache        map[string][]byte
+	stats            *Stats
+	primaryTarget    bool
+	conslog          conslogging.ConsoleLogger
 	varCollection    *variables.Collection
 	features         *features.Features
 	isBaseTarget     bool
@@ -43,7 +57,6 @@ type loader struct {
 	overridingVars   *variables.Scope
 	earthlyCIRunner  bool
 	globalImports    map[string]domain.ImportTrackerVal
-	importsProcessed bool
 }
 
 func newLoader(ctx context.Context, opt HashOpt) *loader {
@@ -61,6 +74,9 @@ func newLoader(ctx context.Context, opt HashOpt) *loader {
 		overridingVars:  opt.OverridingVars,
 		earthlyCIRunner: opt.EarthlyCIRunner,
 		globalImports:   map[string]domain.ImportTrackerVal{},
+		hashCache:       map[string][]byte{},
+		stats:           &Stats{StartTime: time.Now()},
+		primaryTarget:   true,
 	}
 }
 
@@ -806,12 +822,15 @@ func (l *loader) forTarget(ctx context.Context, target domain.Target, args []str
 		conslog:         l.conslog,
 		target:          target,
 		visited:         visited,
-		hasher:          l.hasher,
+		hasher:          hasher.New(),
 		isBaseTarget:    target.Target == "base",
 		ci:              l.ci,
 		builtinArgs:     l.builtinArgs,
 		overridingVars:  overriding,
 		earthlyCIRunner: l.earthlyCIRunner,
+		hashCache:       l.hashCache,
+		stats:           l.stats,
+		primaryTarget:   false,
 	}
 
 	if target.IsLocalInternal() {
@@ -870,19 +889,49 @@ func (l *loader) loadTargetFromString(ctx context.Context, targetName string, ar
 		return wrapError(err, srcLoc, "failed to create loader for target %q", targetName)
 	}
 
-	return newLoader.load(ctx)
+	hash, err := newLoader.load(ctx)
+	if err != nil {
+		return err
+	}
+
+	l.hasher.HashBytes(hash)
+
+	return nil
 }
 
-func (l *loader) load(ctx context.Context) error {
+func (l *loader) targetCacheKey() string {
+	h := hasher.New()
+	h.HashString(l.target.StringCanonical())
+	if l.overridingVars != nil {
+		for _, val := range l.overridingVars.BuildArgs() {
+			h.HashString(fmt.Sprintf("VAR %s", val))
+		}
+	}
+	return fmt.Sprintf("%x", h.GetHash())
+}
+
+func (l *loader) load(ctx context.Context) ([]byte, error) {
+
 	if l.target.IsRemote() {
-		return errCannotLoadRemoteTarget
+		return nil, errCannotLoadRemoteTarget
+	}
+
+	l.stats.TargetsVisited++
+
+	// We can avoid reprocessing this target if it's already been hashed. This
+	// hash key is computed using the canonical target name & the provided
+	// arguments.
+	cacheKey := l.targetCacheKey()
+	if b, ok := l.hashCache[cacheKey]; ok {
+		l.stats.TargetCacheHits++
+		return b, nil
 	}
 
 	resolver := buildcontext.NewResolver(nil, nil, l.conslog, "", "", "", 0, "")
 
 	buildCtx, err := resolver.Resolve(ctx, nil, nil, l.target)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	l.features = buildCtx.Features
@@ -918,21 +967,40 @@ func (l *loader) load(ctx context.Context) error {
 		for _, stmt := range ef.BaseRecipe {
 			if stmt.Command != nil && stmt.Command.Name == command.Import {
 				if err := l.handleImport(ctx, *stmt.Command, true); err != nil {
-					return err
+					return nil, err
 				}
 			}
 		}
 	}
 
-	if l.target.Target == "base" {
-		return l.loadBlock(ctx, ef.BaseRecipe)
-	}
+	var block spec.Block
 
-	for _, t := range ef.Targets {
-		if t.Name == l.target.Target {
-			return l.loadBlock(ctx, t.Recipe)
+	if l.target.Target == "base" {
+		block = ef.BaseRecipe
+	} else {
+		for _, t := range ef.Targets {
+			if t.Name == l.target.Target {
+				block = t.Recipe
+				break
+			}
 		}
 	}
 
-	return fmt.Errorf("target %q not found", l.target.Target)
+	if block == nil {
+		return nil, fmt.Errorf("target %q not found", l.target.Target)
+	}
+
+	err = l.loadBlock(ctx, block)
+	if err != nil {
+		return nil, err
+	}
+
+	v := l.hasher.GetHash()
+	l.hashCache[cacheKey] = v
+	l.stats.TargetsHashed++
+	if l.primaryTarget {
+		l.stats.Duration = time.Since(l.stats.StartTime)
+	}
+
+	return v, nil
 }
