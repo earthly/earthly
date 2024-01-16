@@ -35,8 +35,7 @@ func CopyOp(ctx context.Context, srcState pllb.State, srcs []string, destState p
 		// matching uses the filepath match syntax. So by simply creating a
 		// wildcard where the first letter needs to match the current first
 		// letter gets us the single match; and no error if it is missing. Paths
-		// with wildcards are ignored as they will be automatically ignored
-		// without matches.
+		// with wildcards will be automatically ignored when no match is present.
 		if ifExists && len(src) != 0 && !strings.Contains(src, "*") {
 			// Normalize path by dropping './'
 			src = strings.TrimPrefix(src, "./")
