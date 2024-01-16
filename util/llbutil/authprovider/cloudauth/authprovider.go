@@ -267,7 +267,7 @@ func (ap *authProvider) getAuthConfigUsernamePassword(ctx context.Context, host,
 	} else if !errors.Is(err, cloud.ErrNotFound) {
 		return nil, err
 	}
-	// TODO look for insecure and http config options (not sure how these options will be propigated to the rest of buildkit)
+	// TODO look for insecure and http config options (not sure how these options will be propagated to the rest of buildkit)
 
 	if username == "" && password != "" {
 		return nil, fmt.Errorf("found %s, but no %s", usernamePath, passwordPath)
