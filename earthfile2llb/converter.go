@@ -1839,11 +1839,11 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	opt.ParentTargetID = c.mts.Final.ID
 
 	if cmdT == buildCmd {
-		// only BUILD commands get propigated
+		// only BUILD commands get propagated
 		opt.waitBlock = c.waitBlock()
 	} else {
 		// FROM/COPY commands will return a llb state, which will cause a wait to occur
-		// if the wait block was passed here, calling SetDoSaves would get propigated
+		// if the wait block was passed here, calling SetDoSaves would get propagated
 		opt.waitBlock = nil
 	}
 
