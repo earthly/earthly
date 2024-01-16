@@ -101,6 +101,7 @@ ga-no-qemu-group2:
     BUILD +function
     BUILD +function-explicit-global
     BUILD +function-nested-global
+    BUILD --pass-args ./functions-do-not-propagate-args+test-all
     BUILD +duplicate
     BUILD +reserved
     BUILD +quotes-test

@@ -1,0 +1,13 @@
+VERSION_STRING_TO_REPLACE
+FROM alpine:3.18
+
+F:
+    FUNCTION
+    ARG A
+    RUN test -z "$A" && echo QSB3YXMgbm90IHByb3BhZ2F0ZWQK | base64 -d
+
+t:
+    DO +F
+
+test:
+    BUILD +t --A=abc
