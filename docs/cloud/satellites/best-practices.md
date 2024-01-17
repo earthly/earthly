@@ -1,6 +1,6 @@
 # Satellites Best Practices
 
-Earthly Satellites are remote build runners hosted by Earthly, which enables building in the cloud with instantly available cache. This best practices guide aims to help users optimize their workflow and leverage the full potential of Earthly Satellites.
+Earthly Satellites are [remote build runners](../../remote-runners.md) hosted by Earthly, which enables building in the cloud with instantly available cache. This best practices guide aims to help users optimize their workflow and leverage the full potential of Earthly Satellites.
 
 ## Size Satellites for Builds
 
@@ -87,4 +87,3 @@ On top of the metrics mentioned above, these other symptoms may indicate an over
 * Unexpected build failures or crashes during a build
 
 If you are unsure that your satellite is overloaded, please reach out via [email](mailto:support@earthly.dev) or our [Community Slack channel](https://earthly.dev/slack). An Earthly team member will be happy to investigate your instance and provide advice.
-
