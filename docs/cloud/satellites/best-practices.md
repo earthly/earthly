@@ -79,7 +79,7 @@ In this output, there are a couple of metrics which are worth keeping an eye on:
 * `GC Stats` – The amount of cache on disk, and time spent doing garbage collection. Compare this to the amount of [disk available per the satellite’s size](https://earthly.dev/pricing). The cache typically hovers around 50% of the total disk size, however, if the cache size is close to the max, then aggressive garbage collection can cause degraded performance.
 
 On top of the metrics mentioned above, these other symptoms may indicate an overloaded satellite:
-* “No space left on device” errors
+* "No space left on device" errors
 * “Out of memory” errors
 * Op load metrics printing during the build
 * Noticeably long delays between steps in the build
