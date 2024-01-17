@@ -5,7 +5,7 @@ go 1.21.0
 toolchain go1.21.4
 
 require (
-	git.sr.ht/~nelsam/hel v0.4.6
+	git.sr.ht/~nelsam/hel v0.6.2
 	github.com/adrg/xdg v0.4.0
 	github.com/alessio/shellescape v1.4.2
 	github.com/alexcb/binarystream v0.0.0-20231130184431-f2f7a7543c6d
