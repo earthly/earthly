@@ -80,7 +80,7 @@ In this output, there are a couple of metrics which are worth keeping an eye on:
 
 On top of the metrics mentioned above, these other symptoms may indicate an overloaded satellite:
 * "No space left on device" errors
-* “Out of memory” errors
+* "Out of memory" errors
 * Op load metrics printing during the build
 * Noticeably long delays between steps in the build
 * New builds failing to connect to the satellite
