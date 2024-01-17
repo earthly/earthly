@@ -43,7 +43,7 @@ This strategy is easiest to implement when there are distinct components that ca
 
 When running Earthly on pull requests, it is common for new commits to be pushed before a previous build has finished. Since the previous results may no longer be useful, it’s good practice to cancel the previous build – freeing up resources on the satellite for the current build.
 
-Many CI systems allow this behavior to be configured. For example, on Github Actions the concurrency block can be used:
+Many CI systems allow this behavior to be configured. Github Actions, for example, can be configured with:
 
 ```yaml
 name: Github Actions CI
