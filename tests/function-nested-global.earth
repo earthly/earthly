@@ -11,7 +11,7 @@ ARG --global foo=default
 SHARED:
     FUNCTION
     # Note that foo has not yet been declared in the function, therefore we reference the globally declared arg
-    RUN test "$foo" == "expected"
+    RUN test "$foo" == "baz"
 
     # foo should be passed in as "baz" when DO +SHARED is called for the
     # purposes of this test. This ensures that DO args do not impact globals but

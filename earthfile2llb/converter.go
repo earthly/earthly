@@ -1683,7 +1683,11 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged, passArgs bool, scopeName string, buildArgs []string) error {
 	topArgs := buildArgs
 	if c.ftrs.ArgScopeSet {
-		topArgs = c.varCollection.TopOverriding().BuildArgs()
+		tmpScope, err := variables.ParseArgs(buildArgs, nil, nil)
+		if err != nil {
+			return err
+		}
+		topArgs = variables.CombineScopes(tmpScope, c.varCollection.TopOverriding()).BuildArgs()
 	}
 
 	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.platr.Current(), allowPrivileged, passArgs, topArgs, true, enterScopeDoCmd)
