@@ -60,7 +60,7 @@ jobs:
 
 A satellite may become sluggish, or even fail a build (in extreme cases) if it has taken on more jobs than it has the resources to handle. If you are experiencing a drop in performance, consider using a larger instance, or splitting up your build across multiple satellites. Note that in some cases, performance issues can be the result of a problem in the build script or external factors such as network operations.
 
-There are some metrics printed by the Earthly CLI that can be used to gauge the performance and overall health of a satellite. These metrics are printed at the start of the build during the “Init” phase, when running the satellite inspect command, or sometimes printed midway through the build if Earthly detects a performance problem. Here is an example of the metrics printed during Init:
+There are some metrics printed by the Earthly CLI that can be used to gauge the performance and overall health of a satellite. These metrics are printed at the start of the build during the "Init" phase, when running the satellite inspect command, or sometimes printed midway through the build if Earthly detects a performance problem. Here is an example of the metrics printed during Init:
 
 ```
  Init 🚀
