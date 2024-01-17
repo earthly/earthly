@@ -14,7 +14,7 @@ For example, builds utilizing computationally intensive compilation steps, or la
 
 {% hint style='info' %}
 ##### Tip
-Use the `earthly --exec-stats` flag to view CPU and memory usage during build.
+Use the `earthly --exec-stats` flag to view CPU and memory usage during a build.
 {% endhint %}
 
 ### 2. Concurrent Build Capacity
