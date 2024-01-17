@@ -1,6 +1,6 @@
 # Satellites Best Practices
 
-Earthly Satellites are remote runner instances provided by the Earthly team, offering the ability to perform builds in the cloud while retaining cache between runs. This best practices guide aims to help users optimize their workflow and leverage the full potential of Earthly Satellites.
+Earthly Satellites are remote build runners hosted by Earthly, which enables building in the cloud with instantly available cache. This best practices guide aims to help users optimize their workflow and leverage the full potential of Earthly Satellites.
 
 ## Size Satellites for Builds
 
