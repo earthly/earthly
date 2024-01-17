@@ -22,7 +22,7 @@ One metric to consider is the number of commits made per hour that will trigger 
 
 Large projects will often benefit from using multiple satellites in a single CI run, balancing the load across different machines in parallel. With this strategy, it’s best to optimize for cache reuse, by running the same target on the same satellite rather than alternating runs of the target across different satellites.
 
-As an example, consider this Earthfile for a monorepo that contains a couple of libraries:
+As an example, consider an Earthfile that builds multiple libraries:
 
 ```
 build-all:
