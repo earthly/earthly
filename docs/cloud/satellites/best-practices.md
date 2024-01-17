@@ -4,7 +4,7 @@ Earthly Satellites are remote build runners hosted by Earthly, which enables bui
 
 ## Size Satellites for Builds
 
-Properly sizing Earthly Satellites is crucial to achieving optimal performance and resource utilization. Consider the following when determining which Satellite size is appropriate for your use case.
+Consider the following when picking a satellite size:
 
 ### 1. Resource Requirements of a Single Build
 
