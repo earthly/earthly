@@ -8,9 +8,14 @@ Consider the following when picking a satellite size:
 
 ### 1. Resource Requirements of a Single Build
 
-Understand the resource demands of your build, including memory usage, CPU requirements, and required cache size on disk. 
+Understand the resource demands of your build, including memory usage, CPU requirements, and required cache size on disk.
 
 For example, builds utilizing computationally intensive compilation steps, or large integration tests may require additional CPU and memory. Builds that download many gigabytes of dependencies may require a large amount of cache on disk.
+
+{% hint style='info' %}
+##### Tip
+Use the `earthly --exec-stats` flag to view CPU and memory usage during build.
+{% endhint %}
 
 ### 2. Concurrent Build Capacity
 
