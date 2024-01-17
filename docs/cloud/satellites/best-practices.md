@@ -30,7 +30,7 @@ build-all:
   BUILD +library-2
 ```
 
-If the `+build-all` target is too intensive for a single satellite, we could instead create dedicated satellites for each library, and run their builds separately:
+If the `+build-all` target is too intensive for a single satellite, dedicated satellites can be created for each library:
 
 ```
 earthly --satellite sat-1 +library-1
