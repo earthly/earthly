@@ -16,7 +16,7 @@ For example, builds utilizing computationally intensive compilation steps, or la
 
 Take into account the number of simultaneous builds that are run by your development team. The Satellite size should be chosen to handle the expected concurrency level effectively. 
 
-One metric to consider is the number of commits made per hour that will trigger builds on the satellite. For example, an xsmall or small satellites might handle a couple of concurrent builds, however, larger teams contributing more frequently may require a larger instance to accommodate the extra load.
+One metric to consider is the number of commits made per hour that will trigger builds on the satellite. For example, an xsmall or small satellites might handle a couple of concurrent builds; however, larger teams contributing more frequently may require a larger instance to accommodate the extra load.
 
 ## Splitting Builds and Using More Satellites
 
