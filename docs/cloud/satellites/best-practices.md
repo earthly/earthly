@@ -20,7 +20,7 @@ One metric to consider is the number of commits made per hour that will trigger 
 
 ## Splitting Builds and Using More Satellites
 
-Large projects will often benefit from using multiple satellites in a single CI run, balancing the load across different machines in parallel. With this strategy, it’s best to optimize for the reuse of cache. Running the same target on the same satellite is more effective than alternating runs of the same target across different satellites.
+Large projects will often benefit from using multiple satellites in a single CI run, balancing the load across different machines in parallel. With this strategy, it’s best to optimize for cache reuse, by running the same target on the same satellite rather than alternating runs of the target across different satellites.
 
 As an example, consider this Earthfile for a monorepo that contains a couple of libraries:
 
