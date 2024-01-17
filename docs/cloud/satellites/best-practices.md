@@ -24,11 +24,13 @@ Large projects will often benefit from using multiple satellites in a single CI 
 
 As an example, consider this Earthfile for a monorepo that contains a couple of libraries:
 
+```
 build-all:
   BUILD +library-1
   BUILD +library-2
+```
 
-If the +build-all target is too intensive for a single satellite, we could instead create dedicated satellites for each library, and run their builds separately:
+If the `+build-all` target is too intensive for a single satellite, we could instead create dedicated satellites for each library, and run their builds separately:
 
 ```
 earthly --satellite sat-1 +library-1
