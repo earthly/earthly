@@ -774,6 +774,7 @@ if-exists:
       --output_contains="bad-wildcard-save"
     DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+artifact-copy-exists
     DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+artifact-copy-not-exist
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+artifact-copy-not-exist-wildcard
     RUN mkdir in && \
         echo "this-file-does-exist" > ./in/this-file-does-exist && \
         echo "so-does-this-one" > so-does-this-one

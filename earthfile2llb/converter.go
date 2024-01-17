@@ -781,7 +781,7 @@ func (c *Converter) runCommand(ctx context.Context, outputFileName string, isExp
 }
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
-func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists, symlinkNoFollow, force bool, isPush bool) error {
+func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLocalTo string, keepTs, keepOwn, ifExists, symlinkNoFollow, force, isPush bool) error {
 	err := c.checkAllowed(saveArtifactCmd)
 	if err != nil {
 		return err
