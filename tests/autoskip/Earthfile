@@ -1,6 +1,6 @@
 VERSION --pass-args --use-function-keyword 0.7
 
-FROM --pass-args ../..+earthly-integration-test-base
+FROM --pass-args ..+base
 
 IMPORT .. AS tests
 
@@ -247,18 +247,6 @@ test-import:
 
 RUN_EARTHLY_ARGS:
     FUNCTION
-    ARG earthfile
-    ARG target
-    ARG should_fail=false
-    ARG output_contains
-    ARG output_does_not_contain
-    ARG post_command
     ARG extra_args
     DO --pass-args tests+RUN_EARTHLY \
-        --earthfile=$earthfile \
-        --target=$target \
-        --should_fail=$should_fail \
-        --output_contains=$output_contains \
-        --output_does_not_contain=$output_does_not_contain \
-        --extra_args="--auto-skip --auto-skip-db-path=test.db $extra_args" \
-        --post_command=$post_command
+        --extra_args="--auto-skip --auto-skip-db-path=test.db $extra_args"

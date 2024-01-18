@@ -1,0 +1,6 @@
+VERSION 0.8
+
+ARG --global MY_ARG=defined_globally
+
+test:
+  BUILD --pass-args ./sub+test
