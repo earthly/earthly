@@ -534,7 +534,25 @@ test:
 				r.Len(target.Recipe, 3)
 				// Confirm that the single-quoted string is intact
 				r.Contains(target.Recipe[1].Command.Args, `'s, universe multiverse, universe # multiverse,'`)
-				r.Len(s.Targets[0].Recipe, 3)
+			},
+		},
+		{
+			note: "regression test for escaped # in $()",
+			earthfile: `VERSION 0.8
+
+thebug:
+    FROM alpine
+    ARG myarg=$(echo "a#b#c" | cut -f2 -d\#)
+    RUN touch /some-file
+    RUN echo "myarg is \"$myarg\""
+    RUN test -f /some-file`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 5)
+				// Confirm that the single-quoted string is intact
+				r.Contains(target.Recipe[1].Command.Args, `$(echo "a#b#c" | cut -f2 -d\#)`)
 			},
 		},
 	}
