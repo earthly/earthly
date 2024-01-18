@@ -70,6 +70,10 @@ It should be noted that some of these features break backwards compatibility. Se
 
 - Parallelism is improved when running the same target with different arguments in certain cases (e.g. the target uses `WITH DOCKER`).
 - Fixed a log sharing upload-resumption bug
+- Fixed multiple issues with the lexer failing to parse certain characters in shell command substitution (`$()`) and single quoted strings.
+  - Some escaped characters, like `\#`, were failing to parse when used inside shell expressions. Example: `$(echo "a#b#c" | cut -f2 -d\#)`
+  - Some characters, like `#`, were failing to parse when used inside single-quoted strings: Example: `'this is a # string'`
+  - Some invalid shell commands may have been parsed without issue. Example: `$(find . \( -name 'Earthfile'\))` is missing a space before `\)`
 
 ### Additional Info
 - This release includes changes to buildkit

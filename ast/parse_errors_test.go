@@ -1,10 +1,11 @@
-package ast
+package ast_test
 
 import (
 	"context"
 	"strings"
 	"testing"
 
+	"github.com/earthly/earthly/ast"
 	"github.com/stretchr/testify/require"
 )
 
@@ -50,7 +51,7 @@ test:
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			namedReader := namedStringReader{strings.NewReader(test.earthfile)}
-			_, err := ParseOpts(context.Background(), FromReader(&namedReader))
+			_, err := ast.ParseOpts(context.Background(), ast.FromReader(&namedReader))
 			r := require.New(t)
 			r.Error(err)
 			r.ErrorContains(err, test.expectedHint)
