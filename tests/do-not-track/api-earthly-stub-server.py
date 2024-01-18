@@ -91,7 +91,7 @@ try:
                 f.write('this should not have happened')
 except Exception as e:
     # log to stderr
-    print(f'received connection from {conn}', file=sys.stderr)
+    print(f'unexpected exception {e}', file=sys.stderr)
 
     # send the exception back over the ready_pipe (so the initial process can display the error if it is still running)
     os.write(ready_pipe_w, f'unexpected exception while starting server: {e}'.encode('utf8'))
