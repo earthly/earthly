@@ -179,10 +179,10 @@ mode COMMAND_ARGS;
 
 Atom: (RegularAtomPart | DoubleQuotedAtomPart | SingleQuotedAtomPart | ShellAtomPart)+;
 fragment DoubleQuotedAtomPart: '"' (ShellAtomPart | ~('"' | '\\') | ('\\' .))* '"';
-fragment SingleQuotedAtomPart: '\'' (ShellAtomPart | ~('\'' | '\\') | ('\\' .))* '\'';
-fragment ShellAtomPart: '$(' (~([ \t\r\n\\")]) | DoubleQuotedAtomPart | SingleQuotedAtomPart | ShellAtomPart | WS)+ ')';
+fragment SingleQuotedAtomPart: '\'' (~('\'' | '\\') | ('\\' .))* '\'';
+fragment ShellAtomPart: '$(' (~([ \t\r\n\\"')]) | ('\\' .) | DoubleQuotedAtomPart | SingleQuotedAtomPart | ShellAtomPart | WS)+ ')';
 
-fragment RegularAtomPart: ~([ \t\r\n\\"]) | EscapedAtomPart;
+fragment RegularAtomPart: ~([ \t\r\n\\"']) | EscapedAtomPart;
 fragment EscapedAtomPart: ('\\' .) | (LC [ \t]*);
 
 NL_C: NL -> type(NL), popMode;
