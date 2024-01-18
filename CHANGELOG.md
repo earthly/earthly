@@ -7,9 +7,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Fixed
 
 - Fixed multiple issues with the lexer failing to parse certain characters in shell command substitution (`$()`) and single quoted strings.
-  - Some escaped characters, like `\#`, were failing to parse when used inside shell expressions. Example: `$(echo "a#b#c" | cut -f2 -d\#)`
-  - Some characters, like `#`, were failing to parse when used inside single-quoted strings: Example: `'this is a # string'`
-  - Some invalid shell commands may have been parsed without issue. Example: `$(find . \( -name 'Earthfile'\))` is missing a space before `\)`
+  - Some escaped characters, like `\#`, were failing to parse when used inside shell expressions. Example: `$(echo "a#b#c" | cut -f2 -d\#)` [#3475](https://github.com/earthly/earthly/issues/3475)
+  - Some characters, like `#`, were failing to parse when used inside single-quoted strings: Example: `'this is a # string'` [#1280](https://github.com/earthly/earthly/issues/1280)
 
 ## v0.8.0-rc2 - 2024-01-09
 
