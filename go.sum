@@ -35,8 +35,8 @@ cloud.google.com/go/storage v1.6.0/go.mod h1:N7U0C8pVQ/+NIKOBQyamJIeKQKkZ+mxpohl
 cloud.google.com/go/storage v1.8.0/go.mod h1:Wv1Oy7z6Yz3DshWRJFhqM/UCfaWIRTdp0RXyy7KQOVs=
 cloud.google.com/go/storage v1.10.0/go.mod h1:FLPqc6j+Ki4BU591ie1oL6qBQGu2Bl/tZ9ullr3+Kg0=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
-git.sr.ht/~nelsam/hel v0.4.6 h1:BoH8bA2r9zErUMcfgO7hN9FQFMXXfQC2ZG8rE1qAPIA=
-git.sr.ht/~nelsam/hel v0.4.6/go.mod h1:SP6fXSPxdmd7aOGMTSf8/EMLLCT438LHnZHN66nZqo0=
+git.sr.ht/~nelsam/hel v0.6.2 h1:ClLTpYFlMoQbwE8fj6ssImVc58wYznP3vYlSY1Luxt4=
+git.sr.ht/~nelsam/hel v0.6.2/go.mod h1:e4MpaLK/urZmA8xbasYZU+KSX4BRAxFNudDfFJ2qD7o=
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24 h1:bvDV9vkmnHYOMsOr4WLk+Vo07yKIzd94sVoIqshQ4bU=
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24/go.mod h1:8o94RPi1/7XTJvwPpRSzSUedZrtlirdB3r9Z20bi2f8=
 github.com/AdamKorcz/go-118-fuzz-build v0.0.0-20230306123547-8075edf89bb0 h1:59MxjQVfjXsBpLy+dbd2/ELV5ofnUkUZBvWSC85sheA=
@@ -193,10 +193,6 @@ github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkp
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/earthly/buildkit v0.0.0-20231213184914-086f60eecf5a h1:LjFYB1dm0Pq9T9tpSpIwppy7SUGRsVQpn+RhWEz1bqQ=
 github.com/earthly/buildkit v0.0.0-20231213184914-086f60eecf5a/go.mod h1:9YV/0upRPk36WbLrmr2bf2MZ0M27fvjxiBr5VD/ia80=
-github.com/earthly/cloud-api v1.0.1-0.20240105134001-49d68a012790 h1:UOhvBxm5bVGBZ0wlHTOTSxkq5GnRiQKbNJ3fXGD/COY=
-github.com/earthly/cloud-api v1.0.1-0.20240105134001-49d68a012790/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
-github.com/earthly/cloud-api v1.0.1-0.20240109222428-6e72a4d43742 h1:yitpQF3QLsQ2gRCqIN7HEWmNbJRY1pDEKOZYYNyp/7w=
-github.com/earthly/cloud-api v1.0.1-0.20240109222428-6e72a4d43742/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
 github.com/earthly/cloud-api v1.0.1-0.20240109224637-d374ffd93463 h1:avPg8xiv9HSeQ0mBWX6AoUOf2CZRuXYscB/AUqQRmfc=
 github.com/earthly/cloud-api v1.0.1-0.20240109224637-d374ffd93463/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
 github.com/earthly/fsutil v0.0.0-20231030221755-644b08355b65 h1:6oyWHoxHXwcTt4EqmMw6361scIV87uEAB1N42+VpIwk=

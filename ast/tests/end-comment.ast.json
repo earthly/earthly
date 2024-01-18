@@ -17,8 +17,7 @@
           "command": {
             "args": [
               "echo",
-              "'Hello,",
-              "world!'"
+              "'Hello, world!'"
             ],
             "name": "RUN"
           }

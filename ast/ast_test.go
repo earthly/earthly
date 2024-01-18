@@ -503,6 +503,59 @@ foo:
 				r.Equal("foo is an image that contains a bar.txt file\n", arg.Command.Docs)
 			},
 		},
+		{
+			note: "complex character sequences in single quotes",
+			earthfile: `VERSION 0.8
+
+target:
+  RUN find . -type f -iname '*.md' | xargs -n 1 sed -i 's/{[^}]*}//g'
+  RUN find . -type f -iname '*.md' | xargs vale --config /etc/vale/vale.ini --output line --minAlertLevel error
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				r.Len(s.Targets[0].Recipe, 2)
+			},
+		},
+		{
+			note: "regression test for single-quoted #",
+			earthfile: `VERSION 0.8
+
+test:
+    FROM debian:9
+    RUN set -x \
+     && sed -i \
+            -e 's, universe multiverse, universe # multiverse,' \
+            /etc/apt/sources.list
+    SAVE IMAGE --push blah`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 3)
+				// Confirm that the single-quoted string is intact
+				r.Contains(target.Recipe[1].Command.Args, `'s, universe multiverse, universe # multiverse,'`)
+			},
+		},
+		{
+			note: "regression test for escaped # in $()",
+			earthfile: `VERSION 0.8
+
+thebug:
+    FROM alpine
+    ARG myarg=$(echo "a#b#c" | cut -f2 -d\#)
+    RUN touch /some-file
+    RUN echo "myarg is \"$myarg\""
+    RUN test -f /some-file`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 5)
+				// Confirm that the single-quoted string is intact
+				r.Contains(target.Recipe[1].Command.Args, `$(echo "a#b#c" | cut -f2 -d\#)`)
+			},
+		},
 	}
 
 	for _, test := range tests {

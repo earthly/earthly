@@ -177,11 +177,12 @@ COMMENT_B: COMMENT -> type(COMMENT), channel(COMMENTS_CHANNEL);
 
 mode COMMAND_ARGS;
 
-Atom: (RegularAtomPart | QuotedAtomPart | ShellAtomPart)+;
-fragment QuotedAtomPart: '"' (ShellAtomPart | ~('"' | '\\') | ('\\' .))* '"';
-fragment ShellAtomPart: '$(' (~([ \t\r\n\\")]) | QuotedAtomPart | ShellAtomPart | WS)+ ')';
+Atom: (RegularAtomPart | DoubleQuotedAtomPart | SingleQuotedAtomPart | ShellAtomPart)+;
+fragment DoubleQuotedAtomPart: '"' (ShellAtomPart | ~('"' | '\\') | ('\\' .))* '"';
+fragment SingleQuotedAtomPart: '\'' (~('\'' | '\\') | ('\\' .))* '\'';
+fragment ShellAtomPart: '$(' (~([ \t\r\n\\"')]) | ('\\' .) | DoubleQuotedAtomPart | SingleQuotedAtomPart | ShellAtomPart | WS)+ ')';
 
-fragment RegularAtomPart: ~([ \t\r\n\\"]) | EscapedAtomPart;
+fragment RegularAtomPart: ~([ \t\r\n\\"']) | EscapedAtomPart;
 fragment EscapedAtomPart: ('\\' .) | (LC [ \t]*);
 
 NL_C: NL -> type(NL), popMode;
@@ -196,7 +197,7 @@ mode COMMAND_ARGS_KEY_VALUE;
 EQUALS: '=' -> mode(COMMAND_ARGS_KEY_VALUE_ASSIGNMENT);
 
 // Similar Atom, but don't allow '=' as part of it, unless it's in quotes.
-Atom_CAKV: (RegularAtomPart_CAKV | QuotedAtomPart | ShellAtomPart)+ -> type(Atom);
+Atom_CAKV: (RegularAtomPart_CAKV | DoubleQuotedAtomPart | SingleQuotedAtomPart | ShellAtomPart)+ -> type(Atom);
 fragment RegularAtomPart_CAKV: ~([ \t\r\n"=\\]) | EscapedAtomPart;
 
 NL_CAKV: NL -> type(NL), popMode;
