@@ -18,6 +18,7 @@ import (
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/cmd/earthly/base"
+	"github.com/earthly/earthly/cmd/earthly/common"
 	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
@@ -965,9 +966,9 @@ func (a *Satellite) actionUpdate(cliCtx *cli.Context) error {
 		return err
 	}
 
-	satName, err := base.GetSatelliteName(cliCtx.Context, orgName, a.cli.Flags().SatelliteName, cloudClient)
+	sat, err := cloudClient.GetSatellite(cliCtx.Context, a.cli.Flags().SatelliteName, orgName)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed getting satellite")
 	}
 
 	if window != "" {
@@ -987,8 +988,30 @@ func (a *Satellite) actionUpdate(cliCtx *cli.Context) error {
 		return errors.Errorf("not a valid platform: %q", platform)
 	}
 
+	if sat.State != cloud.SatelliteStatusSleep {
+		a.cli.Console().Printf("")
+		a.cli.Console().Printf("The satellite must be asleep to start the update.")
+		a.cli.Console().Printf("Putting the satellite to sleep will interrupt any running builds.")
+		a.cli.Console().Printf("")
+		answer, err := common.PromptInput(cliCtx.Context, "Would you like to put it to sleep now? [y/N]: ")
+		if err != nil {
+			return errors.Wrap(err, "failed to read permission")
+		}
+		answer = strings.ToLower(answer)
+		if answer != "y" && answer != "yes" {
+			a.cli.Console().Printf("Update aborted.")
+			return nil
+		}
+		a.cli.Console().Printf("")
+		out := cloudClient.SleepSatellite(cliCtx.Context, sat.Name, orgName)
+		err = showSatelliteStopping(a.cli.Console(), a.cli.Flags().SatelliteName, out)
+		if err != nil {
+			return errors.Wrap(err, "failed waiting for satellite to sleep")
+		}
+	}
+
 	err = cloudClient.UpdateSatellite(cliCtx.Context, cloud.UpdateSatelliteOpt{
-		Name:                    satName,
+		Name:                    sat.Name,
 		OrgName:                 orgName,
 		PinnedVersion:           version,
 		MaintenanceWindowStart:  window,
