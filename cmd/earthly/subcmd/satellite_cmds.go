@@ -34,6 +34,7 @@ type Satellite struct {
 	maintenanceWindow      string
 	maintenaceWeekendsOnly bool
 	version                string
+	forceUpdate            bool
 	printJSON              bool
 	listAll                bool
 	dropCache              bool
@@ -255,6 +256,13 @@ as well as run builds in native architectures independent of where the Earthly c
 							Required:    false,
 							Hidden:      true,
 							Destination: &a.version,
+						},
+						&cli.BoolFlag{
+							Name:        "force",
+							Aliases:     []string{"f"},
+							Usage:       "Forces the satellite to sleep (if necessary) before starting the updating",
+							Required:    false,
+							Destination: &a.forceUpdate,
 						},
 					},
 				},
@@ -989,20 +997,21 @@ func (a *Satellite) actionUpdate(cliCtx *cli.Context) error {
 	}
 
 	if sat.State != cloud.SatelliteStatusSleep {
-		a.cli.Console().Printf("")
-		a.cli.Console().Printf("The satellite must be asleep to start the update.")
-		a.cli.Console().Printf("Putting the satellite to sleep will interrupt any running builds.")
-		a.cli.Console().Printf("")
-		answer, err := common.PromptInput(cliCtx.Context, "Would you like to put it to sleep now? [y/N]: ")
-		if err != nil {
-			return errors.Wrap(err, "failed to read permission")
+		if !a.forceUpdate {
+			a.cli.Console().Printf("")
+			a.cli.Console().Printf("The satellite must be asleep to start the update.")
+			a.cli.Console().Printf("Putting the satellite to sleep will interrupt any running builds.")
+			a.cli.Console().Printf("")
+			answer, err := common.PromptInput(cliCtx.Context, "Would you like to put it to sleep now? [y/N]: ")
+			if err != nil {
+				return errors.Wrap(err, "failed to read permission")
+			}
+			if !isResponseYes(answer) {
+				a.cli.Console().Printf("Update aborted.")
+				return nil
+			}
+			a.cli.Console().Printf("")
 		}
-		answer = strings.ToLower(answer)
-		if answer != "y" && answer != "yes" {
-			a.cli.Console().Printf("Update aborted.")
-			return nil
-		}
-		a.cli.Console().Printf("")
 		out := cloudClient.SleepSatellite(cliCtx.Context, sat.Name, orgName)
 		err = showSatelliteStopping(a.cli.Console(), a.cli.Flags().SatelliteName, out)
 		if err != nil {
