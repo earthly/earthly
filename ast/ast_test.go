@@ -621,6 +621,25 @@ arg-esc:
 				r.Contains(target.Recipe[0].Command.Args, `$(echo single | tr -d "\\\"")`)
 			},
 		},
+		{
+			note: "regression test for single-quoted commands",
+			earthfile: `VERSION 0.8
+
+FROM alpine
+
+test:
+  RUN 'echo "message'
+  RUN 'echo "message"'`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 2)
+				// Confirm that the single-quoted strings are intact
+				r.Contains(target.Recipe[0].Command.Args, `'echo "message'`)
+				r.Contains(target.Recipe[1].Command.Args, `'echo "message"'`)
+			},
+		},
 	}
 
 	for _, test := range tests {
