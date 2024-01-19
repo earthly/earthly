@@ -103,6 +103,7 @@ ga-no-qemu-group2:
     BUILD +duplicate
     BUILD +reserved
     BUILD +quotes-test
+    BUILD +quotes-test-extra
     BUILD +new-args
     BUILD +import
     BUILD +from-dockerfile-arg
@@ -1104,6 +1105,11 @@ reserved:
 
 quotes-test:
     DO +RUN_EARTHLY --earthfile=quotes.earth
+
+quotes-test-extra:
+    COPY expected-quotes.txt expected
+    DO +RUN_EARTHLY --earthfile=quotes-extra.earth --target=+test
+    RUN diff actual expected
 
 new-args:
     DO +RUN_EARTHLY --earthfile=new-args.earth
