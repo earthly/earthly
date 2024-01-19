@@ -552,8 +552,73 @@ thebug:
 				r.Len(s.Targets, 1)
 				target := s.Targets[0]
 				r.Len(target.Recipe, 5)
-				// Confirm that the single-quoted string is intact
+				// Confirm that the escaped expression is intact
 				r.Contains(target.Recipe[1].Command.Args, `$(echo "a#b#c" | cut -f2 -d\#)`)
+			},
+		},
+		{
+			note: "regression test for single-quoted string in shell expression",
+			earthfile: `VERSION 0.8
+FROM alpine
+
+arg-plain:
+    ARG val=$(echo run | tr -d '"')
+    RUN echo $val`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 2)
+				// Confirm that the single-quoted string is intact
+				r.Contains(target.Recipe[0].Command.Args, `$(echo run | tr -d '"')`)
+			},
+		},
+		{
+			note: "regression test for single-quoted string in RUN",
+			earthfile: `VERSION 0.8
+FROM alpine
+
+run-plain:
+    RUN echo run | tr -d '"'`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 1)
+			},
+		},
+		{
+			note: "regression test for escaped double-quoted strings in shell expression",
+			earthfile: `VERSION 0.8
+FROM alpine
+
+arg-esc:
+    ARG val=$(echo single | tr -d "\"")
+    RUN echo $val`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 2)
+				// Confirm that the single-quoted string is intact
+				r.Contains(target.Recipe[0].Command.Args, `$(echo single | tr -d "\"")`)
+			},
+		},
+		{
+			note: "regression test for escaped \\ & double-quotes in shell expression",
+			earthfile: `VERSION 0.8
+FROM alpine
+
+arg-esc:
+    ARG val=$(echo single | tr -d "\\\"")
+    RUN echo $val`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 2)
+				// Confirm that the single-quoted string is intact
+				r.Contains(target.Recipe[0].Command.Args, `$(echo single | tr -d "\\\"")`)
 			},
 		},
 	}
