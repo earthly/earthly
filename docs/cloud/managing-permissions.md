@@ -26,7 +26,7 @@ Earthly projects, in turn, may contain the following resources:
 
 Within an Earthly org, users may be granted one of the following access levels:
 
-* `read`: Can view the org, projects, and user membership. Can also view, inspect, wake and build on satellites.
+* `read`: Can view the org, projects, and user membership. Can view, inspect, wake and build on satellites. Can also stream and share logs.
 * `read+secrets`: Same as read, but can also view and use secrets.
 * `write`: Everything in `read+secrets`, plus the ability to create and modify satellites, projects, and secrets.
 * `admin`: Can manage the org, including adding and removing users, and managing projects, secrets and satellites.
