@@ -45,7 +45,6 @@ It should be noted that some of these features break backwards compatibility. Se
 
 - Redeclaring an `ARG` in the same scope as a previous declaration is now an error.
 - `ARG`s inside of targets will no longer have their default value overridden by global `ARG`s.
-- It is no longer possible to override a global ARG when calling a target.
 - Declaring a `CACHE ...` in a target will no longer be copied to children targets when referenced via a `FROM +...`; to persist the contents of the cache, it is now required to use the `CACHE --persist ...` flag.
 - The `COMMAND` keyword has been renamed to `FUNCTION`.
 
@@ -74,6 +73,9 @@ It should be noted that some of these features break backwards compatibility. Se
   - Some escaped characters, like `\#`, were failing to parse when used inside shell expressions. Example: `$(echo "a#b#c" | cut -f2 -d\#)` [#3475](https://github.com/earthly/earthly/issues/3475)
   - Some characters, like `#`, were failing to parse when used inside single-quoted strings: Example: `'this is a # string'` [#1280](https://github.com/earthly/earthly/issues/1280)
 - Fixed an issue where some escaped `ARG` shell expressions were being incorrectly preprocessed. Example: `$(echo "\"")` became `$(echo """)` [#3131](https://github.com/earthly/earthly/issues/3131)
+- The `--pass-args` feature was not passing active arguments which were set via a default value.
+- `SAVE ARTIFACT --if-exists` was not saving files based on a wildcard glob pattern. [#1679](https://github.com/earthly/earthly/issues/1679)
+- `BUILD` was not expanding `--platform` argument values.
 
 ### Additional Info
 - This release includes changes to buildkit
