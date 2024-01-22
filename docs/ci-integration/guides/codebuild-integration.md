@@ -18,7 +18,7 @@ version: 0.2
 phases:
   install:
     commands:
-      - wget https://github.com/earthly/earthly/releases/download/v0.7.23/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly
+      - wget https://github.com/earthly/earthly/releases/download/v0.8.0/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly
   pre_build:
     commands:
       - echo Logging into Docker
