@@ -18,7 +18,6 @@ import (
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/cmd/earthly/base"
-	"github.com/earthly/earthly/cmd/earthly/common"
 	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
@@ -1000,17 +999,10 @@ func (a *Satellite) actionUpdate(cliCtx *cli.Context) error {
 		if !a.forceUpdate {
 			a.cli.Console().Printf("")
 			a.cli.Console().Printf("The satellite must be asleep to start the update.")
-			a.cli.Console().Printf("Putting the satellite to sleep will interrupt any running builds.")
+			a.cli.Console().Printf("You can re-run this command with the `--force` flag to force the satellite asleep and start the update now.")
+			a.cli.Console().Printf("Note that Putting the satellite to sleep will interrupt any running builds.")
 			a.cli.Console().Printf("")
-			answer, err := common.PromptInput(cliCtx.Context, "Would you like to put it to sleep now? [y/N]: ")
-			if err != nil {
-				return errors.Wrap(err, "failed to prompt input")
-			}
-			if !isResponseYes(answer) {
-				a.cli.Console().Printf("Update aborted.")
-				return nil
-			}
-			a.cli.Console().Printf("")
+			return errors.New("update aborted: satellite is not asleep.")
 		}
 		out := cloudClient.SleepSatellite(cliCtx.Context, sat.Name, orgName)
 		err = showSatelliteStopping(a.cli.Console(), a.cli.Flags().SatelliteName, out)
