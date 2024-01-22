@@ -84,3 +84,4 @@
 * [Earthly Satellites](cloud/satellites.md)
     * [Managing Satellites](cloud/satellites/managing.md)
     * [Using Satellites](cloud/satellites/using.md)
+    * [Best Practices](cloud/satellites/best-practices.md)
