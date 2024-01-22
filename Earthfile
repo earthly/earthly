@@ -1,4 +1,4 @@
-VERSION --pass-args --no-network --arg-scope-and-set --use-function-keyword 0.7
+VERSION 0.8
 PROJECT earthly-technologies/core
 
 # TODO update to 3.18; however currently "podman login" (used under not-a-unit-test.sh) will error with
@@ -851,12 +851,12 @@ npm-update-all:
         SAVE ARTIFACT --if-exists $nodepath/package-lock.json AS LOCAL $nodepath/package-lock.json
     END
 
-# merge-main-to-docs merges the main branch into docs-0.7
+# merge-main-to-docs merges the main branch into docs-0.8
 merge-main-to-docs:
     FROM alpine/git
     ARG git_repo="earthly/earthly"
     ARG git_url="git@github.com:$git_repo"
-    ARG to_branch="docs-0.7"
+    ARG to_branch="docs-0.8"
     ARG from_branch="main"
     ARG earthly_lib_version=2.2.2
     DO github.com/earthly/lib/ssh:$earthly_lib_version+ADD_KNOWN_HOSTS --target_file=~/.ssh/known_hosts
