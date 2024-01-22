@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/containerd/containerd/platforms"
+	"github.com/docker/go-units"
 	"github.com/dustin/go-humanize"
 	"github.com/gofrs/flock"
 	"github.com/moby/buildkit/client"
@@ -29,6 +30,8 @@ import (
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/semverutil"
 )
+
+const minRecommendedCacheSize = 10 << 30 // 10 GiB
 
 var (
 	// ErrBuildkitCrashed is an error returned when buildkit has terminated unexpectedly.
@@ -933,6 +936,20 @@ func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, work
 			bkCons.Printf("GC currently ongoing, started %v ago", d)
 		default:
 		}
+	}
+
+	var cacheInfo *client.PruneInfo
+	for _, p := range workerInfo.GCPolicy {
+		if p.All {
+			cacheInfo = &p
+			break
+		}
+	}
+
+	if cacheInfo != nil && cacheInfo.KeepBytes < minRecommendedCacheSize {
+		bkCons.Warnf("Configured cache size of %s is smaller than the minimum recommended size of %s",
+			units.HumanSize(float64(cacheInfo.KeepBytes)), units.HumanSize(minRecommendedCacheSize))
+		bkCons.Warnf("Please consider increasing the cache size: https://docs.earthly.dev/docs/caching/managing-cache")
 	}
 }
 
