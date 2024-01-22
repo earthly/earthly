@@ -938,14 +938,14 @@ func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, work
 		}
 	}
 
-	if size, ok := getGCPolicySize(*workerInfo); ok && size < minRecommendedCacheSize {
+	if size, ok := getGCPolicySize(workerInfo); ok && size < minRecommendedCacheSize {
 		bkCons.Warnf("Configured cache size of %s is smaller than the minimum recommended size of %s",
 			units.HumanSize(float64(size)), units.HumanSize(minRecommendedCacheSize))
 		bkCons.Warnf("Please consider increasing the cache size: https://docs.earthly.dev/docs/caching/managing-cache")
 	}
 }
 
-func getGCPolicySize(workerInfo client.WorkerInfo) (int64, bool) {
+func getGCPolicySize(workerInfo *client.WorkerInfo) (int64, bool) {
 	for _, p := range workerInfo.GCPolicy {
 		if p.All {
 			return p.KeepBytes, true
