@@ -1004,7 +1004,7 @@ func (a *Satellite) actionUpdate(cliCtx *cli.Context) error {
 			a.cli.Console().Printf("")
 			answer, err := common.PromptInput(cliCtx.Context, "Would you like to put it to sleep now? [y/N]: ")
 			if err != nil {
-				return errors.Wrap(err, "failed to read permission")
+				return errors.Wrap(err, "failed to prompt input")
 			}
 			if !isResponseYes(answer) {
 				a.cli.Console().Printf("Update aborted.")
