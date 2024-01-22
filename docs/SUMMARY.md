@@ -20,7 +20,8 @@
 
 * Guides
     * [Importing](guides/importing.md)
-    * [Build arguments and secrets](guides/build-args.md)
+    * [Build arguments and variables](guides/build-args.md)
+    * [Secrets](guides/secrets.md)
     * [Functions](guides/functions.md)
     * [Using Docker in Earthly](guides/docker-in-earthly.md)
     * [Multi-platform builds](guides/multi-platform.md)
@@ -65,15 +66,15 @@
 * [Pull-Through Cache](ci-integration/pull-through-cache.md)
 * [Remote BuildKit](ci-integration/remote-buildkit.md)
 * Vendor-Specific Guides
-    * [Jenkins](ci-integration/guides/jenkins.md)
-    * [Circle CI](ci-integration/guides/circle-integration.md)
     * [GitHub Actions](ci-integration/guides/gh-actions-integration.md)
-    * [AWS CodeBuild](ci-integration/guides/codebuild-integration.md)
-    * [Kubernetes](ci-integration/guides/kubernetes.md)
-    * [Google Cloud Build](ci-integration/guides/google-cloud-build.md)
+    * [Circle CI](ci-integration/guides/circle-integration.md)
     * [GitLab CI/CD](ci-integration/guides/gitlab-integration.md)
-    * [Woodpecker CI](ci-integration/guides/woodpecker-integration.md)
+    * [Jenkins](ci-integration/guides/jenkins.md)
+    * [AWS CodeBuild](ci-integration/guides/codebuild-integration.md)
+    * [Google Cloud Build](ci-integration/guides/google-cloud-build.md)
     * [Bitbucket Pipelines](ci-integration/guides/bitbucket-pipelines-integration.md)
+    * [Woodpecker CI](ci-integration/guides/woodpecker-integration.md)
+    * [Kubernetes](ci-integration/guides/kubernetes.md)
 
 ## ☁️ Earthly Cloud
 
@@ -83,3 +84,4 @@
 * [Earthly Satellites](cloud/satellites.md)
     * [Managing Satellites](cloud/satellites/managing.md)
     * [Using Satellites](cloud/satellites/using.md)
+    * [Best Practices](cloud/satellites/best-practices.md)

@@ -30,16 +30,16 @@
   cd release
   env -i HOME="$HOME" PATH="$PATH" SSH_AUTH_SOCK="$SSH_AUTH_SOCK" RELEASE_TAG="$RELEASE_TAG" USER="$USER" PRERELEASE="$PRERELEASE" ./release.sh
   ```
-* Wait for the [Merge main to docs-0.7 on New Earthly Release](../.github/workflows/release-merge-docs.yml) workflow to complete; this workflow automatically merges `main` into `docs-0.7`. You can watch for it here: [![Merge main to docs-0.7 on New Earthly Release](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml/badge.svg)](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml)  
+* Wait for the [Merge main to docs-0.8 on New Earthly Release](../.github/workflows/release-merge-docs.yml) workflow to complete; this workflow automatically merges `main` into `docs-0.8`. You can watch for it here: [![Merge main to docs-0.8 on New Earthly Release](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml/badge.svg)](https://github.com/earthly/earthly/actions/workflows/release-merge-docs.yml)
 In case the workflow fails the manual process is:
   ```shell
-    git checkout docs-0.7 && git pull && git merge main && git push
+    git checkout docs-0.8 && git pull && git merge main && git push
     ```
 * Updating the Earthly version in our docs:
-  [Renovate](https://www.mend.io/renovate/) will open a PR targeting `docs-0.7` branch to update all docs as soon as a new release is available in this repo which you should then review & merge (An example PR can be found [here](https://github.com/earthly/earthly/pull/3285/files)).
-* Merge `docs-0.7` into `main`.
+  [Renovate](https://www.mend.io/renovate/) will open a PR targeting `docs-0.8` branch to update all docs as soon as a new release is available in this repo which you should then review & merge (An example PR can be found [here](https://github.com/earthly/earthly/pull/3285/files)).
+* Merge `docs-0.8` into `main`.
   ```shell
-    git checkout main && git merge docs-0.7 && git push
+    git checkout main && git merge docs-0.8 && git push
     ```
   * Note: If you don't have permissions to push directly to `main` branch, do the following:
     * `git checkout -b soon-to-be-main && git push origin soon-to-be-main`
@@ -123,11 +123,11 @@ Intellij pulls its syntax highlighting from the [same repo used by VSCODE + Gith
 
 1. Go to the [repo](https://github.com/earthly/earthfile-grammar)
 1. Make relevant changes to the branches + test in this order:
-    1. py 
+    1. py
     1. go
     1. main
 1. Sign + release the changes from each branch in this order:
-    1. py 
+    1. py
     1. go
     1. main
 

@@ -18,7 +18,7 @@ This guide will cover both approaches to constructing your image.
 This is the recommended approach when adopting Earthly into your containerized CI. Start by basing your custom image on ours:
 
 ```docker
-FROM earthly/earthly:v0.7.22
+FROM earthly/earthly:v0.8.0
 RUN ... # Add your agent, certificates, tools...
 ```
 

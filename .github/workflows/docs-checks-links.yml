@@ -2,9 +2,9 @@ name: Check Docs for Broken Links
 
 on:
   push:
-    branches: [docs-0.7]
+    branches: [docs-0.8]
   pull_request:
-    branches: [docs-0.7]
+    branches: [docs-0.8]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -23,7 +23,7 @@ jobs:
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
@@ -68,4 +68,5 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: earthly/actions-setup@main
       - name: Check Broken Links
-        run: earthly --ci +check-broken-links --VERBOSE=true
+        run: earthly --ci +check-broken-links-pr --VERBOSE=true
+

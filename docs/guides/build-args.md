@@ -1,25 +1,24 @@
-# Build Arguments and Secrets
+# Build Arguments and Variables
 
 ## Introduction
 
-One of the core features of Earthly is support for build arguments. Build arguments
+One of the core features of Earthly is support for build arguments. Build arguments are declared with `ARG` and
 can be used to dynamically set environment variables inside the context of [RUN commands](../earthfile/earthfile.md#run).
 
 Build arguments can be passed between targets or from the command line. They encourage
 writing generic Earthfiles and ultimately promote greater code-reuse.
 
-Additionally, Earthly defines secrets which are similar to build arguments, but are exposed as environment
-variables when explicitly allowed.
+Another closely related primitive that Earthly offers is the variable (declared with `LET`). Variables are similar to build arguments, except that they cannot be used as parameters.
 
 ## A Quick Example
 
-Arguments are declared with the [ARG](../earthfile/earthfile.md#arg) keyword.
+Arguments are declared either with the [ARG](../earthfile/earthfile.md#arg) keyword.
 
 Let's consider a "hello world" example that allows us to change who is being greeted (e.g. hello banana, hello eggplant etc).
 We will create a hello target that accepts the `name` argument:
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM alpine:latest
 
 hello:
@@ -39,7 +38,7 @@ This will output
     buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
 alpine:latest | --> Load metadata linux/arm64
          +foo | --> FROM alpine:latest
-         +foo | [██████████] 100% resolve docker.io/library/alpine:latest@sha256:21a3deaa0d32a8057914f36584b5288d2e5ecc984380bc0118285c70fa8c9300
+         +foo | 100% resolve docker.io/library/alpine:latest@sha256:21a3deaa0d32a8057914f36584b5288d2e5ecc984380bc0118285c70fa8c9300
          +foo | name=world
          +foo | --> RUN echo "hello $name"
          +foo | hello world
@@ -66,7 +65,7 @@ hello:
 ```
 alpine:latest | --> Load metadata linux/arm64
         +base | --> FROM alpine:latest
-        +base | [██████████] 100% resolve docker.io/library/alpine:latest@sha256:21a3deaa0d32a8057914f36584b5288d2e5ecc984380bc0118285c70fa8c9300
+        +base | 100% resolve docker.io/library/alpine:latest@sha256:21a3deaa0d32a8057914f36584b5288d2e5ecc984380bc0118285c70fa8c9300
        +hello | --> ARG time = RUN $(date +%H:%M)
        +hello | --> RUN echo "hello $name, it is $time"
        +hello | hello John, it is 23:21
@@ -125,8 +124,44 @@ Argument values can be set multiple ways:
 
 ## Passing Argument values to targets
 
-Build arguments can also be set when calling build targets. If multiple build arguments values are defined for the same argument name,
-Earthly will build the target for each value; this makes it easy to configure a "build matrix" within Earthly.
+Build arguments can also be set when calling build targets.
+
+```Dockerfile
+greeting:
+   BUILD +hello --name=world
+
+hello:
+    ARG name
+    RUN echo "hello $name"
+```
+
+Arg overrides within the same Earthfile are passed automatically to each other. In the example below, if you are calling `earthly +greeting --name=world`, the `--name=world` override will be passed to `+hello` as well.
+
+```Dockerfile
+greeting:
+   BUILD +hello
+
+hello:
+   ARG name
+   RUN echo "hello $name"
+```
+
+This behavior does not apply to references to other Earthfiles. In order to pass arguments to other Earthfiles, you must either explicitly pass the argument. For example:
+
+```Dockerfile
+ARG name
+BUILD +hello --name=$name
+```
+
+Or you can use the `--pass-args` flag to pass all arguments to the target:
+
+```Dockerfile
+BUILD --pass-args +hello
+```
+
+### Matrix builds
+
+If multiple build arguments values are defined for the same argument name, Earthly will build the target for each value; this makes it easy to configure a "build matrix" within Earthly.
 
 For example, we can create a new `greetings` target which calls `+hello` multiple times:
 
@@ -144,7 +179,7 @@ Then when we call `earthly +greetings`, earthly will call `+hello` three times:
      buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
  alpine:latest | --> Load metadata linux/amd64
          +base | --> FROM alpine:latest
-         +base | [██████████] resolve docker.io/library/alpine:latest@sha256:69e70a79f2d41ab5d637de98c1e0b055206ba40a8145e7bddb55ccc04e13cf8f ... 100%
+         +base | resolve docker.io/library/alpine:latest@sha256:69e70a79f2d41ab5d637de98c1e0b055206ba40a8145e7bddb55ccc04e13cf8f ... 100%
         +hello | name=banana
         +hello | --> RUN echo "hello $name"
         +hello | name=eggplant
@@ -174,108 +209,20 @@ Another way to pass build args is by specifying a dynamic value, delimited by `$
 BUILD +hello --name=$(echo world)
 ```
 
-## Passing secrets to RUN commands
+## Variables
 
-Secrets are similar to build arguments; however, they are *not* defined in targets, but instead are explicitly defined for each `RUN` command that is permitted to access them.
+Variables are similar to build arguments, except that they cannot be used as parameters. You can think of variables as "private" build arguments (or local variables). To declare a variable, you can use the `LET` command.
 
-Here's an example Earthfile that accesses a secret stored under `passwd` and exposes it under the environment variable `mypassword`:
+Variables can also be mutated via the `SET` command. For example:
 
-```dockerfile
-FROM alpine:latest
-hush:
-    RUN --secret mypassword=passwd echo "my password is $mypassword"
+```Dockerfile
+hello:
+   LET name = "world"
+   RUN echo "hello $name"
+   SET name = "banana"
+   RUN echo "hello $name"
 ```
 
-If the environment variable name is identical to the secret ID. For example to accesses a secret stored under `passwd` and exposes it under the environment variable `passwd`  you can use the shorthand :
+This can be useful when you would like to decide on the value of a variable based on an `IF` condition, or if you would like to construct the value of the variable via a `FOR` loop.
 
-```dockerfile
-FROM alpine:latest
-hush:
-    RUN --secret passwd echo "my password is $passwd"
-```
-
-{% hint style='info' %}
-It's also possible to temporarily mount a secret as a file:
-
-```dockerfile
-RUN --mount type=secret,target=/root/mypassword,id=passwd echo "my password is $(cat /root/mypassword)"
-```
-
-The file will not be saved to the image snapshot.
-{% endhint %}
-
-## Setting secret values
-
-The value for `passwd` in examples above must then be supplied when earthly is invoked.
-
-This is possible in a few ways:
-
-
-1. Directly, on the command line:
-
-   ```bash
-   earthly --secret passwd=itsasecret +hush
-   ```
-
-2. Via an environment variable:
-
-   ```bash
-   export passwd=itsasecret
-   earthly --secret passwd +hush
-   ```
-
-   If the value of the secret is omitted on the command line Earthly will lookup the environment variable with that name.
-
-3. Via the environment variable `EARTHLY_SECRETS`
-
-   ```bash
-   export EARTHLY_SECRETS="passwd=itsasecret"
-   earthly +hush
-   ```
-
-   Multiple secrets can be specified by separating them with a comma.
-
-4. Via the `.secret` file.
-
-   Create a `.secret` file in the same directory where you plan to run `earthly` from. Its contents should be:
-   
-   ```
-   passwd=itsasecret
-   ```
-   
-   Then simply run earthly:
-   
-   ```bash
-   earthly +hello
-   ```
-
-5. Via cloud-based secrets. This option helps share secrets within a wider team. To read more about this see the [cloud-based secrets guide](../cloud/cloud-secrets.md).
-
-Regardless of the approach chosen from above, once earthly is invoked, in our example, it will output:
-
-```
-+hush | --> RUN echo "my password is $mypassword"
-+hush | my password is itsasecret
-```
-
-{% hint style='info' %}
-### How Arguments and Secrets affect caching
-
-Commands in earthly must be re-evaluated when the command itself changes (e.g. `echo "hello $name"` is changed to `echo "greetings $name"`), or when
-one of its inputs has changed (e.g. `--name=world` is changed to `--name=banana`). Earthly creates a hash based on both the contents
-of the command and the contents of all defined arguments of the target build context.
-
-However, in the case of secrets, the contents of the secret *is not* included in the hash; therefore, if the contents of a secret changes, Earthly is unable to
-detect such a change, and thus the command will not be re-evaluated.
-{% endhint %}
-
-## Storage of local secrets
-
-Earthly stores the contents of command-line-supplied secrets in memory on the localhost. When a `RUN` command that requires a secret is evaluated by BuildKit, the BuildKit
-daemon will request the secret from the earthly command-line process and will temporarily mount the secret inside the runc container that is evaluating the `RUN` command.
-Once the command finishes the secret is unmounted. It will not persist as an environment variable within the saved container snapshot. Secrets will be kept in-memory
-until the earthly command exits.
-
-Earthly also supports cloud-based shared secrets which can be stored in the cloud. Secrets are never stored in the cloud unless a user creates an earthly account and
-explicitly calls the `earthly secrets set ...` command to transmit the secret to the earthly cloud-based secrets server.
-For more information about cloud-based secrets, check out our [cloud-based secrets management guide](../cloud/cloud-secrets.md).
+For more information on `LET` see the [`LET` Earthfile reference](../earthfile/earthfile.md#let).

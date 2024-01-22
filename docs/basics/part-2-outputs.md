@@ -161,7 +161,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part2/pa
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
@@ -202,7 +202,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part2/
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
@@ -270,7 +270,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM python:3
 WORKDIR /code
 

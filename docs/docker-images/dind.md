@@ -25,7 +25,7 @@ to help backwards-breaking changes.
 To ease this transition, one can make use of an `IF` command that depends on the `EARTHLY_VERSION` builtin argument:
 
 ```
-VERSION 0.7
+VERSION 0.8
 
 dind:
   FROM earthly/dind:alpine
