@@ -4,6 +4,17 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.1 - 2024-01-23
+
+### Added
+
+- Added a new `--disable-remote-registry-proxy` cli flag, which can be used to disable the remote registry proxy, which is used by earthly when performing a `SAVE IMAGE`
+  command with a satellite / remote buildkit instance. This will cause earthly to use the slower tar-based loading of docker images. [#3736](https://github.com/earthly/earthly/issues/3736)
+- A new warning if Earthly is configured with a cache size less than 10GB; running with a small cache size may lead to unexpected cache misses.
+
+### Additional Info
+- This release has no changes to buildkit
+
 ## v0.8.0 - 2024-01-22
 
 This version promotes a number of features that have been previously in Experimental and Beta status. To make use of
