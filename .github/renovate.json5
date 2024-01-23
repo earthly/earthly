@@ -6,7 +6,7 @@
   ],
   baseBranches: [
     'main',
-    'docs-0.7',
+    'docs-0.8',
   ],
   configMigration: true,
   prHourlyLimit: 1,
@@ -84,10 +84,10 @@
       automerge: true,
     },
     {
-     // Point earthly/earthly updates in docs to docs-0.7 branch by:
-     // 1. disable all PRs targeting docs-0.7 for all packages except earthly/earthly
+     // Point earthly/earthly updates in docs to docs-0.8 branch by:
+     // 1. disable all PRs targeting docs-0.8 for all packages except earthly/earthly
       matchBaseBranches: [
-        'docs-0.7',
+        'docs-0.8',
       ],
       excludePackagePatterns: [
         'earthly/earthly',
