@@ -4,6 +4,11 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+
+- Changed the default buildkit cache size to be adaptively set to 20GB, which is then clamped between the range of 10%-55% of the disk size.
+  This logic can expressed as `min(55%, max(10%, 20GB))`.
+
 ## v0.8.1 - 2024-01-23
 
 ### Added

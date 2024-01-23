@@ -186,6 +186,19 @@ if [ "$CACHE_SIZE_MB" -gt "0" ]; then
     CATCH_ALL_KEEP_BYTES="$(echo "$CACHE_SIZE_MB * 1024 * 1024" | bc)"
     export CATCH_ALL_KEEP_BYTES
     CACHE_SETTINGS="$(envsubst </etc/buildkitd.cache.template)"
+else
+    # no config value was set by the user; buildkit would set this to 10% by default:
+    #   https://github.com/moby/buildkit/blob/54b8ff2fc8648c86b1b8c35e5cd07517b56ac2d5/cmd/buildkitd/config/gcpolicy_unix.go#L16
+    # however, we will be aggresive and set it to min(55%, max(10%, 20GB))
+    CACHE_MB_10PCT="$(stat -c "10 * %b * %S / 100 / 1024 / 1024" -f "$EARTHLY_TMP_DIR" | bc)"
+    CACHE_MB_55PCT="$(stat -c "55 * %b * %S / 100 / 1024 / 1024" -f "$EARTHLY_TMP_DIR" | bc)"
+    CACHE_SIZE_MB="20480" # first start with 20GB
+    if [ "$CACHE_MB_10PCT" -gt "$CACHE_SIZE_MB" ]; then
+        CACHE_SIZE_MB="$CACHE_MB_10PCT" # increase it to 10% of the disk if bigger
+    elif [ "$CACHE_MB_55PCT" -lt "$CACHE_SIZE_MB" ]; then
+        CACHE_SIZE_MB="$CACHE_MB_55PCT" # otherwise, prevent it from being bigger than 55% of the disk
+    fi
+    echo "cache size set automatically to $CACHE_SIZE_MB MB; this can be changed via the cache_size_mb or cache_size_pct config options"
 fi
 export CACHE_SETTINGS
 
