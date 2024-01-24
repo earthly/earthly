@@ -211,13 +211,11 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER,
 				err.Error())
 			if !app.BaseCLI.Flags().InteractiveDebugging && len(args) > 0 {
-				args[0] = args[0] + " -i"
+				args = append([]string{args[0], "-i"}, args[1:]...)
+				args = redactSecretsFromArgs(args)
+				args = stringutil.FilterElementsFromList(args, "--ci")
 				msg := "To debug your build, you can use the --interactive (-i) flag to drop into a shell of the failing RUN step"
-				if areSecretsUsed(args) {
-					app.BaseCLI.Console().HelpPrintf(msg)
-				} else {
-					app.BaseCLI.Console().HelpPrintf("%s: %q\n", msg, strings.Join(args, " "))
-				}
+				app.BaseCLI.Console().HelpPrintf("%s: %q\n", msg, strings.Join(args, " "))
 			}
 			return 1
 		case strings.Contains(err.Error(), "security.insecure is not allowed"):
@@ -406,11 +404,22 @@ func getHintErr(err error, grpcError *status.Status) (*hint.Error, bool) {
 	return nil, false
 }
 
-func areSecretsUsed(args []string) bool {
+func redactSecretsFromArgs(args []string) []string {
+	redacted := []string{}
+	isSecret := false
 	for _, arg := range args {
-		if arg == "-s" || arg == "--secret" {
-			return true
+		if isSecret {
+			isSecret = false
+			parts := strings.SplitN(arg, "=", 2)
+			if len(parts) > 1 {
+				redacted = append(redacted, fmt.Sprintf("%s=XXXXX", parts[0]))
+				continue
+			}
 		}
+		if arg == "-s" || arg == "--secret" {
+			isSecret = true
+		}
+		redacted = append(redacted, arg)
 	}
-	return false
+	return redacted
 }
