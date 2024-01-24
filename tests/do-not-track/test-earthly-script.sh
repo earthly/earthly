@@ -2,6 +2,9 @@
 set -e
 test -n "$earthly_config"
 
+# the stub server is sometimes failing with a "OSError: [Errno 98] Address in use", let's try to see if anything else is listening.
+netstat -nltp
+
 # Start the stub server; it will create a file under /server-got-a-connection if any connections are received.
 # If this file is created, we know that earthly attempted to connect to the server (which means the DO_NOT_TRACK setting was ignored).
 /bin/api-earthly-stub-server
