@@ -6,7 +6,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Added
 
-- Added a `--force` flag to the `satellite update` command, which forces a satellite to sleep before starting the update process.
+- Added a `--force` flag to the `satellite update` command, which forces a satellite to sleep before starting the update process. This may forcibly kill ongoing builds currently running on the satellite.
 
 ## v0.8.1 - 2024-01-23
 
