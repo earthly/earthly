@@ -102,7 +102,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 			return nil, errors.Wrap(err, "connect provided buildkit")
 		}
 		remoteConsole.Printf("...Done")
-		printBuildkitInfo(remoteConsole, info, workerInfo, earthlyVersion, isLocal)
+		printBuildkitInfo(remoteConsole, info, workerInfo, earthlyVersion, isLocal, settings.HasConfiguredCacheSize())
 
 		bkClient, err := client.New(ctx, settings.BuildkitAddress, opts...)
 		if err != nil {
@@ -120,7 +120,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 	if err != nil {
 		return nil, errors.Wrap(err, "maybe start buildkitd")
 	}
-	printBuildkitInfo(bkCons, info, workerInfo, earthlyVersion, isLocal)
+	printBuildkitInfo(bkCons, info, workerInfo, earthlyVersion, isLocal, settings.HasConfiguredCacheSize())
 	bkClient, err := client.New(ctx, settings.BuildkitAddress, opts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "new buildkit client")
@@ -852,7 +852,7 @@ func isDockerAvailable(ctx context.Context, fe containerutil.ContainerFrontend) 
 	return fe.IsAvailable(ctx)
 }
 
-func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, workerInfo *client.WorkerInfo, earthlyVersion string, isLocal bool) {
+func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, workerInfo *client.WorkerInfo, earthlyVersion string, isLocal, hasConfiguredCacheSize bool) {
 	// Print most of this stuff only for remote buildkits / satellites.
 	printFun := bkCons.Printf
 	if isLocal {
@@ -938,10 +938,12 @@ func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, work
 		}
 	}
 
-	if size, ok := getGCPolicySize(workerInfo); ok && size < minRecommendedCacheSize {
-		bkCons.Warnf("Configured cache size of %s is smaller than the minimum recommended size of %s",
-			units.HumanSize(float64(size)), units.HumanSize(minRecommendedCacheSize))
-		bkCons.Warnf("Please consider increasing the cache size: https://docs.earthly.dev/docs/caching/managing-cache")
+	if isLocal && !hasConfiguredCacheSize {
+		if size, ok := getGCPolicySize(workerInfo); ok && size < minRecommendedCacheSize {
+			bkCons.Warnf("Configured cache size of %s is smaller than the minimum recommended size of %s",
+				units.HumanSize(float64(size)), units.HumanSize(minRecommendedCacheSize))
+			bkCons.Warnf("Please consider increasing the cache size: https://docs.earthly.dev/docs/caching/managing-cache")
+		}
 	}
 }
 
@@ -1006,7 +1008,7 @@ func PrintSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, 
 	if err != nil {
 		return errors.Wrap(err, "connect provided buildkit")
 	}
-	printBuildkitInfo(console, info, workerInfo, earthlyVersion, false)
+	printBuildkitInfo(console, info, workerInfo, earthlyVersion, false, false)
 	return nil
 }
 
