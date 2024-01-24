@@ -2,7 +2,6 @@ package containerutil
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +19,7 @@ func Test_parseContainerList(t *testing.T) {
 	r.Equal("earthly-darwin-proxy-T58UvV", ret[0].Name)
 	r.Equal("Up 5 hours", ret[0].Status)
 	r.Equal("alpine/socat:1.7.4.4", ret[0].Image)
-	r.Equal(time.Time(time.Date(2024, time.January, 23, 12, 53, 32, 0, time.Local)), ret[0].Created)
+	r.Equal(int64(1706043212), ret[0].Created.Unix())
 }
 
 func Test_parseContainerList_whitespace(t *testing.T) {
