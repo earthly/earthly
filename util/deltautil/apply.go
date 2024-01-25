@@ -124,6 +124,9 @@ func setManifestFields(dm *pb.DeltaManifest, ret *pb.RunManifest) {
 		if t2.GetLocalPath() != "" {
 			t.LocalPath = t2.GetLocalPath()
 		}
+		if len(t2.GetDependsOn()) > 0 {
+			t.DependsOn = append(t.DependsOn, t2.GetDependsOn()...)
+		}
 	}
 	for commandID, c2 := range f.GetCommands() {
 		c := ensureCommandExists(ret, commandID)

@@ -144,6 +144,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		v, _ := opt.OverridingVars.Get(k)
 		ovVars = append(ovVars, fmt.Sprintf("%s=%s", k, v))
 	}
+
 	logbusTarget, err := opt.Logbus.Run().NewTarget(
 		sts.ID,
 		target,
@@ -154,6 +155,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	if err != nil {
 		return nil, errors.Wrap(err, "new logbus target")
 	}
+
 	logbusTarget.SetStart(time.Now())
 
 	c := &Converter{
@@ -779,7 +781,7 @@ func (c *Converter) runCommand(ctx context.Context, outputFileName string, isExp
 }
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
-func (c *Converter) SaveArtifact(ctx context.Context, saveFrom string, saveTo string, saveAsLocalTo string, keepTs bool, keepOwn bool, ifExists, symlinkNoFollow, force bool, isPush bool) error {
+func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLocalTo string, keepTs, keepOwn, ifExists, symlinkNoFollow, force, isPush bool) error {
 	err := c.checkAllowed(saveArtifactCmd)
 	if err != nil {
 		return err
@@ -1681,7 +1683,11 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged, passArgs bool, scopeName string, buildArgs []string) error {
 	topArgs := buildArgs
 	if c.ftrs.ArgScopeSet {
-		topArgs = c.varCollection.TopOverriding().BuildArgs()
+		tmpScope, err := variables.ParseArgs(buildArgs, nil, nil)
+		if err != nil {
+			return err
+		}
+		topArgs = variables.CombineScopes(tmpScope, c.varCollection.TopOverriding()).BuildArgs()
 	}
 
 	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.platr.Current(), allowPrivileged, passArgs, topArgs, true, enterScopeDoCmd)
@@ -1698,7 +1704,7 @@ func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, ba
 		return err
 	}
 	if passArgs {
-		overriding = variables.CombineScopes(overriding, c.varCollection.Overriding())
+		overriding = variables.CombineScopesInactive(overriding, c.varCollection.Overriding(), c.varCollection.Args(), c.varCollection.Globals())
 	}
 	c.varCollection.EnterFrame(
 		scopeName, command, overriding, baseMts.Final.VarCollection.Globals(),
@@ -1822,7 +1828,9 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	}
 	// Don't allow transitive overriding variables to cross project boundaries (unless --pass-args is used).
 	propagateBuildArgs := !relTarget.IsExternal()
-	if passArgs || propagateBuildArgs {
+	if passArgs {
+		overriding = variables.CombineScopes(overriding, c.varCollection.Overriding(), c.varCollection.Args(), c.varCollection.Globals())
+	} else if propagateBuildArgs {
 		overriding = variables.CombineScopes(overriding, c.varCollection.Overriding())
 	}
 
@@ -1834,13 +1842,14 @@ func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, 
 	opt.PlatformResolver = c.platr.SubResolver(platform)
 	opt.HasDangling = isDangling
 	opt.AllowPrivileged = allowPrivileged
+	opt.ParentTargetID = c.mts.Final.ID
 
 	if cmdT == buildCmd {
-		// only BUILD commands get propigated
+		// only BUILD commands get propagated
 		opt.waitBlock = c.waitBlock()
 	} else {
 		// FROM/COPY commands will return a llb state, which will cause a wait to occur
-		// if the wait block was passed here, calling SetDoSaves would get propigated
+		// if the wait block was passed here, calling SetDoSaves would get propagated
 		opt.waitBlock = nil
 	}
 

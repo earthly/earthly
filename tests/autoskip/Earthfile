@@ -1,6 +1,6 @@
 VERSION --pass-args --use-function-keyword 0.7
 
-FROM --pass-args ../..+earthly-integration-test-base
+FROM --pass-args ..+base
 
 IMPORT .. AS tests
 
@@ -143,6 +143,12 @@ test-copy-target-args:
     DO --pass-args +RUN_EARTHLY_ARGS --target=+copy-target-args --output_contains="+copy-target-args | changed"
     DO --pass-args +RUN_EARTHLY_ARGS --target=+copy-target-args --output_contains="Target .* has already been run. Skipping."
 
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+copy-target-dynamic --output_contains="+copy-target-dynamic | goodbye"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+copy-target-dynamic --output_contains="Target .* has already been run. Skipping."
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+copy-target-dynamic-2 --output_contains="+copy-target-dynamic-2 | foobar"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+copy-target-dynamic-2 --output_contains="Target .* has already been run. Skipping."
+
 test-copy-target-args-quoted:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+copy-target-args-quoted --output_contains="hello world"
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-args.earth --target=+copy-target-args-quoted --output_contains="Target .* has already been run. Skipping."
@@ -241,18 +247,6 @@ test-import:
 
 RUN_EARTHLY_ARGS:
     FUNCTION
-    ARG earthfile
-    ARG target
-    ARG should_fail=false
-    ARG output_contains
-    ARG output_does_not_contain
-    ARG post_command
     ARG extra_args
     DO --pass-args tests+RUN_EARTHLY \
-        --earthfile=$earthfile \
-        --target=$target \
-        --should_fail=$should_fail \
-        --output_contains=$output_contains \
-        --output_does_not_contain=$output_does_not_contain \
-        --extra_args="--auto-skip --auto-skip-db-path=test.db $extra_args" \
-        --post_command=$post_command
+        --extra_args="--auto-skip --auto-skip-db-path=test.db $extra_args"

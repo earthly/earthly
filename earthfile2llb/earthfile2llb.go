@@ -183,6 +183,10 @@ type ConvertOpt struct {
 	// FilesWithCommandRenameWarning keeps track of the files for which the COMMAND => FUNCTION warning was displayed
 	// this can be removed in VERSION 0.8
 	FilesWithCommandRenameWarning map[string]bool
+
+	// ParentTargetID is the Logbus target ID of the parent target, if any. It
+	// is used to link together targets.
+	ParentTargetID string
 }
 
 // TargetDetails contains details about the target being built.
@@ -265,6 +269,13 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if err != nil {
 		return nil, err
 	}
+
+	if opt.ParentTargetID != "" {
+		if parentTarget, ok := opt.Logbus.Run().Target(opt.ParentTargetID); ok {
+			parentTarget.AddDependsOn(sts.ID)
+		}
+	}
+
 	tiHash, err := sts.TargetInput().Hash()
 	if err != nil {
 		return nil, err
@@ -314,6 +325,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		}
 		opt.MainTargetDetailsFunc = nil
 	}
+	opt.Console.VerbosePrintf("earthfile2llb building %s with OverridingVars=%v", targetWithMetadata.StringCanonical(), opt.OverridingVars.Map())
 	converter, err := NewConverter(ctx, targetWithMetadata, bc, sts, opt)
 	if err != nil {
 		return nil, err

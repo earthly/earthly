@@ -7,7 +7,7 @@ This page will help you use Earthly if you are using Rust.
 To get started, import the rust library as shown below. Note that the `--global-cache` flag is currently required to allow for adequate caching of the Rust toolchain. This flag will be implied in a future release.
 
 ```Dockerfile
-VERSION --global-cache 0.7
+VERSION 0.8
 
 IMPORT github.com/earthly/lib/rust:2.2.11 AS rust
 ```

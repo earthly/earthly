@@ -3,13 +3,13 @@ package subcmd
 import (
 	"fmt"
 	"os"
-	"strings"
 	"text/tabwriter"
+
+	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
 
 	"github.com/earthly/earthly/cmd/earthly/common"
 	"github.com/earthly/earthly/cmd/earthly/helper"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
 )
 
 const dateFormat = "2006-01-02"
@@ -180,8 +180,7 @@ func (a *Project) actionRemove(cliCtx *cli.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "failed requesting user input")
 		}
-		answer = strings.TrimSpace(strings.ToLower(answer))
-		if answer != "y" && answer != "yes" {
+		if !isResponseYes(answer) {
 			a.cli.Console().Printf("Operation aborted.")
 			return nil
 		}

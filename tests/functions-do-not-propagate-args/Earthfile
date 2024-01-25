@@ -1,0 +1,20 @@
+VERSION 0.8
+FROM --pass-args ..+base
+
+test-all:
+    BUILD +test-v07
+    BUILD +test-v08
+
+test-v07:
+    COPY propagate.earth Earthfile
+    RUN sed -i "s/VERSION_STRING_TO_REPLACE/VERSION --use-function-keyword 0.7/g" Earthfile
+    DO --pass-args +RUN_EARTHLY --target=+test --contains-output="A was not propagated"
+
+test-v08:
+    COPY propagate.earth Earthfile
+    RUN sed -i "s/VERSION_STRING_TO_REPLACE/VERSION 0.8/g" Earthfile
+    DO --pass-args +RUN_EARTHLY --target=+test --contains-output="A was not propagated"
+
+RUN_EARTHLY:
+    FUNCTION
+    DO --pass-args ..+RUN_EARTHLY

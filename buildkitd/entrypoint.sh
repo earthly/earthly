@@ -177,16 +177,35 @@ if [ "$CACHE_SIZE_PCT" -gt "0" ]; then
     fi
 fi
 
-# Remains unset if neither percent nor size were specified.  It would be simpler to just process whether it was
+# EFFECTIVE_CACHE_SIZE_MB remains unset if neither percent nor size were specified.  It would be simpler to just process whether it was
 # set (or not), but we'll continue setting to "0" in case anyone has become dependent on that behavior.
 CACHE_SIZE_MB="${EFFECTIVE_CACHE_SIZE_MB:-0}"
-if [ "$CACHE_SIZE_MB" -gt "0" ]; then
-    SOURCE_FILE_KEEP_BYTES="$(echo "($CACHE_SIZE_MB * 1024 * 1024 * 0.5) / 1" | bc)" # Note /1 division truncates to int
-    export SOURCE_FILE_KEEP_BYTES
-    CATCH_ALL_KEEP_BYTES="$(echo "$CACHE_SIZE_MB * 1024 * 1024" | bc)"
-    export CATCH_ALL_KEEP_BYTES
-    CACHE_SETTINGS="$(envsubst </etc/buildkitd.cache.template)"
+
+if [ "$CACHE_SIZE_MB" -eq "0" ]; then
+    # no config value was set by the user; buildkit would set this to 10% by default:
+    #   https://github.com/moby/buildkit/blob/54b8ff2fc8648c86b1b8c35e5cd07517b56ac2d5/cmd/buildkitd/config/gcpolicy_unix.go#L16
+    # however, we will be aggresive and set it to min(55%, max(10%, 20GB))
+    CACHE_MB_10PCT="$(stat -c "10 * %b * %S / 100 / 1024 / 1024" -f "$EARTHLY_TMP_DIR" | bc)"
+    CACHE_MB_55PCT="$(stat -c "55 * %b * %S / 100 / 1024 / 1024" -f "$EARTHLY_TMP_DIR" | bc)"
+    CACHE_SIZE_MB="20480" # first start with 20GB
+    if [ "$CACHE_MB_10PCT" -gt "$CACHE_SIZE_MB" ]; then
+        CACHE_SIZE_MB="$CACHE_MB_10PCT" # increase it to 10% of the disk if bigger
+    elif [ "$CACHE_MB_55PCT" -lt "$CACHE_SIZE_MB" ]; then
+        CACHE_SIZE_MB="$CACHE_MB_55PCT" # otherwise, prevent it from being bigger than 55% of the disk
+    fi
+    echo "cache size set automatically to $CACHE_SIZE_MB MB; this can be changed via the cache_size_mb or cache_size_pct config options"
 fi
+
+# Calculate the cache for source files to be 10% of the overall cache
+SOURCE_FILE_KEEP_BYTES="$(echo "($CACHE_SIZE_MB * 1024 * 1024 * 0.5) / 1" | bc)" # Note /1 division truncates to int
+export SOURCE_FILE_KEEP_BYTES
+
+# convert the cache size into bytes
+CATCH_ALL_KEEP_BYTES="$(echo "$CACHE_SIZE_MB * 1024 * 1024" | bc)"
+export CATCH_ALL_KEEP_BYTES
+
+# finally populate the cache section of the buildkit toml config
+CACHE_SETTINGS="$(envsubst </etc/buildkitd.cache.template)"
 export CACHE_SETTINGS
 
 # Set up TCP feature flag, and  also profiling (which has TCP as prerequisite)

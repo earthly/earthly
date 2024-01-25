@@ -1,0 +1,21 @@
+VERSION_STRING_TO_REPLACE
+FROM alpine:3.18
+ARG a="set in base"
+ARG --global g="$(echo $a | base64)"
+
+test:
+    RUN echo "under test, the global is $g"
+    DO +FUNC1 --some_arg="val1" --a="set when calling FUNC1"
+    BUILD +target --a="set when calling target"
+
+FUNC1:
+    FUNCTION
+    RUN echo "under FUNC1, the global is $g"
+    DO +FUNC2 --a="set when calling FUNC2"
+
+FUNC2:
+    FUNCTION
+    RUN echo "under FUNC2, the global is $g"
+
+target:
+    RUN echo "under target, the global is $g"

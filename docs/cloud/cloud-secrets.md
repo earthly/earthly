@@ -63,7 +63,7 @@ earthly secret get /user/my_private_key
 When secrets need to be referenced in an Earthfile, you need to declare the project the secrets belong to at the top of the Earthfile, after the `VERSION` declaration.
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 PROJECT <org-name>/<project-name>
 ```
 
@@ -130,7 +130,7 @@ earthly secret --project <project-name> ls
 To update your Earthfile to use the new secrets, you need to add the `PROJECT` declaration at the top of any Earthfile that needs secret access.
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 PROJECT <org-name>/<project-name>
 ```
 

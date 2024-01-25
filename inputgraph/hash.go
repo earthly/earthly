@@ -19,13 +19,18 @@ type HashOpt struct {
 }
 
 // HashTarget produces a hash from an Earthly target.
-func HashTarget(ctx context.Context, opt HashOpt) (hash []byte, err error) {
+func HashTarget(ctx context.Context, opt HashOpt) ([]byte, Stats, error) {
 	l := newLoader(ctx, opt)
 
-	err = l.load(ctx)
+	b, err := l.load(ctx)
 	if err != nil {
-		return nil, err
+		return nil, Stats{}, err
 	}
 
-	return l.hasher.GetHash(), nil
+	stats := Stats{}
+	if l.stats != nil {
+		stats = *l.stats
+	}
+
+	return b, stats, nil
 }

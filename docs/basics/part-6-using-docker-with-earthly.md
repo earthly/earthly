@@ -118,7 +118,7 @@ func TestIntegration(t *testing.T) {
 ```
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM golang:1.15-alpine3.13
 WORKDIR /go-workdir
 
@@ -299,7 +299,7 @@ The `Earthfile` is at the root of the directory.
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
@@ -376,7 +376,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part6/
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
@@ -549,7 +549,7 @@ networks:
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM python:3
 WORKDIR /code
 

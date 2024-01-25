@@ -4,9 +4,10 @@ import (
 	"context"
 	"strings"
 
-	"github.com/earthly/earthly/cloud"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+
+	"github.com/earthly/earthly/cloud"
 )
 
 type orgLister interface {
@@ -97,4 +98,9 @@ func getOrgAndProject(ctx context.Context, orgFlag, projectFlag string, client o
 	}
 
 	return
+}
+
+func isResponseYes(s string) bool {
+	s = strings.TrimSpace(strings.ToLower(s))
+	return s == "yes" || s == "y"
 }

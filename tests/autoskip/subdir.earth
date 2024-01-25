@@ -24,4 +24,3 @@ all:
 allpipe:
   PIPELINE
   BUILD +all
-

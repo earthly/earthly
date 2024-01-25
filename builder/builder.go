@@ -85,6 +85,7 @@ type Opt struct {
 	DarwinProxyImage                      string
 	DarwinProxyWait                       time.Duration
 	LocalRegistryAddr                     string
+	DisableRemoteRegistryProxy            bool
 	FeatureFlagOverrides                  string
 	ContainerFrontend                     containerutil.ContainerFrontend
 	InternalSecretStore                   *secretprovider.MutableMapStore
@@ -165,6 +166,11 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 
 func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (func(), bool) {
 	cons := b.opt.Console.WithPrefix("registry-proxy")
+
+	if b.opt.DisableRemoteRegistryProxy {
+		cons.VerbosePrintf("Registry proxy disabled via --disable-remote-registry-proxy")
+		return nil, false
+	}
 
 	if err := caps.Supports(pb.CapEarthlyRegistryProxy); err != nil {
 		cons.Printf(err.Error())
@@ -302,6 +308,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		// WARNING: the code below is deprecated, and will eventually be removed, in favour of wait_block.go
 		// This code is only used when dealing with VERSION 0.5 and 0.6; once these reach end-of-life, we can
 		// delete the code below.
+
+		// NOTE: this code is still required to support remote caching; it can't be removed until
+		// https://github.com/earthly/earthly/issues/2178 is fixed.
 
 		// *** DO NOT ADD CODE TO THE bf BELOW ***
 

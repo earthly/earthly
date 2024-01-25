@@ -1,0 +1,23 @@
+VERSION 0.8
+
+FROM alpine
+
+no-cache-hits:
+    BUILD +a --FOO=bar
+    BUILD +a --FOO=baz
+
+cache-hits:
+    BUILD +a --FOO=bar
+    BUILD +a --FOO=bar
+    BUILD +a --FOO=bar
+    BUILD +b --FOO=foo
+    BUILD +b --FOO=foo
+    BUILD +b --FOO=foo
+
+a:
+    ARG FOO
+    RUN echo $FOO
+
+b:
+    ARG FOO
+    RUN echo $FOO
