@@ -23,6 +23,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Fixed a case where a suggested command would incorrectly contain both `--interative` and `--ci`. [3746](https://github.com/earthly/earthly/issues/3746)
 - Disabled the registry proxy server when Earthly is run from within a container. [3736](https://github.com/earthly/earthly/issues/3736)
 
+### Additional Info
+- This release has no changes to buildkit
+
 ## v0.8.1 - 2024-01-23
 
 ### Added
