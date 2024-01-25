@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Fixed
+
+- `EARTHLY_GIT_REFS` was incorrectly returning all references which contained the commit rather than pointed to the current commit. This also increases performance of looking up the branches. [#3752](https://github.com/earthly/earthly/issues/3752)
+
 ## v0.8.2 - 2024-01-25
 
 ### Added
