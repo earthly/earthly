@@ -4,10 +4,27 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.2 - 2024-01-25
+
+### Added
+
+- Added a `--force` flag to the `satellite update` command, which forces a satellite to sleep before starting the update process. This may forcibly kill ongoing builds currently running on the satellite.
+
 ### Changed
 
 - Changed the default buildkit cache size to be adaptively set to 20GB, which is then clamped between the range of 10%-55% of the disk size.
   This logic can expressed as `min(55%, max(10%, 20GB))`.
+- Satellites are now put to sleep before updating via `earthly sat update <satellite-name>`.
+
+### Fixed
+
+- Fixed an intermittent issue with the registry proxy support container failing immediately on Mac. [3740](https://github.com/earthly/earthly/issues/3740)
+- Fixed a problem with parsing empty results when cleaning up old registry proxy support containers on Mac.
+- Fixed a case where a suggested command would incorrectly contain both `--interative` and `--ci`. [3746](https://github.com/earthly/earthly/issues/3746)
+- Disabled the registry proxy server when Earthly is run from within a container. [3736](https://github.com/earthly/earthly/issues/3736)
+
+### Additional Info
+- This release has no changes to buildkit
 
 ## v0.8.1 - 2024-01-23
 
