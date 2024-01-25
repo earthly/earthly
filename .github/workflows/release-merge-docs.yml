@@ -1,4 +1,4 @@
-name: Merge main to docs-0.7 on New Earthly Release
+name: Merge main to docs-0.8 on New Earthly Release
 
 on:
   push:
@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   main-to-docs:
-    name: merge main to docs-0.7
+    name: merge main to docs-0.8
     runs-on: "ubuntu-latest"
     env:
       FORCE_COLOR: 1
