@@ -23,7 +23,10 @@ ready_pipe_r, ready_pipe_w = os.pipe()
 
 # first fork
 pid = os.fork()
-if pid > 0:
+if pid < 0:
+    print(f'first fork failed', file=sys.stderr)
+    sys.exit(1)
+elif pid > 0:
     os.close(ready_pipe_w)
     fcntl.fcntl(ready_pipe_r, fcntl.F_SETFL, os.O_NONBLOCK)
     num_attemps_remaining = 10
@@ -55,11 +58,11 @@ try:
 
     # second fork
     pid = os.fork()
-    if pid > 0:
-        sys.exit(0)
     if pid < 0:
-        print(f'failed to fork', file=sys.stderr)
+        print(f'second fork failed', file=sys.stderr)
         sys.exit(1)
+    elif pid > 0:
+        sys.exit(0)
 
     # redirect stdio
     sys.stdout.flush()
