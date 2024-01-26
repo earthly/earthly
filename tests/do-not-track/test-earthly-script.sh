@@ -36,5 +36,7 @@ echo "== api-earthly-stub-server log =="
 cat /var/log/do-not-track-server.log
 echo ""
 
+ls -la /tmp
+
 # check test result
 acbtest "$exit_code" = "0"

@@ -86,6 +86,10 @@ try:
     with suppress(FileNotFoundError):
         os.remove(server_got_a_connection_path)
 
+    import uuid
+    with open(f'/tmp/i-was-here-{uuid.uuid4()}', 'w') as f:
+        f.write(f'hello from {os. getpid()}')
+
     print(f'creating socket', file=sys.stderr)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         print(f'binding socket to {host}:{port}', file=sys.stderr)
