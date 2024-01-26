@@ -57,6 +57,9 @@ try:
     pid = os.fork()
     if pid > 0:
         sys.exit(0)
+    if pid < 0:
+        print(f'failed to fork', file=sys.stderr)
+        sys.exit(1)
 
     # redirect stdio
     sys.stdout.flush()
