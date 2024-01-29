@@ -38,8 +38,7 @@ earthly account login --token "$USER2_TOKEN" 2>&1 | acbgrep 'Logged in as "other
 
 echo "== same as above but first ensure we're logged out =="
 earthly account logout
-
-rm -v ~/.earthly/auth.*
+rm -vf ~/.earthly/auth.*
 earthly account login --token "$USER2_TOKEN" 2>&1 | acbgrep 'Logged in as "other-service.earthly-user2@earthly.dev" using token auth'
 
 echo "== ensure auth files are recreated =="
