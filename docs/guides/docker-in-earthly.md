@@ -68,7 +68,7 @@ Using the `--compose` flag has the added benefit that any images needed by the c
 
 ## Performance
 
-It's recommended to use the `earthly/dind:alpine-3.18-docker-23.0.6-r4` image for running docker-in-docker. See the best-practices' section on using [with docker](./best-practices.md#use-earthlydind) for more details.
+It's recommended to use the `earthly/dind:alpine-3.18-docker-23.0.6-r4` image for running docker-in-docker. See the best-practices' section on using [with docker](./best-practices.md#use-earthly-dind) for more details.
 
 In cases when using `earthly/dind` is not possible, Earthly will attempt to install Docker in the image you have chosen. This has the drawback of not being able to use cache efficiently and is not recommended for performance reasons.
 
