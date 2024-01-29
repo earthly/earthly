@@ -609,7 +609,7 @@ func (a *Account) actionLogin(cliCtx *cli.Context) error {
 		return nil
 	}
 
-	if c := errors.Cause(err); c != nil && c != cloud.ErrUnauthorized && c != cloud.ErrAuthTokenExpired {
+	if err != nil && !errors.Is(err, cloud.ErrUnauthorized) && !errors.Is(err, cloud.ErrAuthTokenExpired) {
 		return errors.Wrap(err, "failed to login")
 	}
 
