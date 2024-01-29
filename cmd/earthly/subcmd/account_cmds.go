@@ -602,12 +602,14 @@ func (a *Account) actionLogin(cliCtx *cli.Context) error {
 	}
 
 	loggedInEmail, authType, _, err := cloudClient.WhoAmI(cliCtx.Context)
-	if err == nil {
+
+	if err == nil && authType == cloud.AuthMethodCachedJWT {
 		// already logged in, don't re-attempt a login
 		a.cli.Console().Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
 		return nil
 	}
-	if errors.Cause(err) != cloud.ErrUnauthorized && errors.Cause(err) != cloud.ErrAuthTokenExpired {
+
+	if c := errors.Cause(err); c != nil && c != cloud.ErrUnauthorized && c != cloud.ErrAuthTokenExpired {
 		return errors.Wrap(err, "failed to login")
 	}
 
