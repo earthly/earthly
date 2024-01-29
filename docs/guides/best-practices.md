@@ -33,7 +33,7 @@ Below we list some of the best practices that we have found to be useful in desi
     * [Repository structure: Place build logic as close to the relevant code as possible](#repository-structure-place-build-logic-as-close-to-the-relevant-code-as-possible)
     * [Repository structure: Do not place all Earthfiles in a dedicated directory](#repository-structure-do-not-place-all-earthfiles-in-a-dedicated-directory)
     * [Pattern: Pass-through artifacts or images](#pattern-pass-through-artifacts-or-images)
-    * [Use `earthly/dind`](#use-earthly-dind)
+    * [Use `earthly/dind`](#use-earthlydind)
     * [Pattern: Saving artifacts resulting from a `WITH DOCKER`](#pattern-saving-artifacts-resulting-from-a-with-docker)
 * [Usage-specific](#usage-specific)
     * [Use `--ci` when running in CI](#use-ci-when-running-in-ci)
