@@ -1191,10 +1191,11 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 		}
 		platformsSlice = append(platformsSlice, platform)
 	}
-	if async && !(isSafeAsyncBuildArgsKVStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
+	asyncSafeArgs := isSafeAsyncBuildArgsKVStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])
+	if async && (!asyncSafeArgs || opts.AutoSkip) {
 		return errCannotAsync
 	}
-	if i.local && !(isSafeAsyncBuildArgsKVStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
+	if i.local && !asyncSafeArgs {
 		return i.errorf(cmd.SourceLocation, "BUILD args do not currently support shelling-out in combination with LOCALLY")
 	}
 	expandedBuildArgs, err := i.expandArgsSlice(ctx, opts.BuildArgs, true, async)

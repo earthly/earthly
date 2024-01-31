@@ -1857,7 +1857,7 @@ func (c *Converter) checkAutoSkip(ctx context.Context, fullTargetName string, al
 	exists, err := skipDB.Exists(ctx, targetHash)
 	if err != nil {
 		console.Warnf("Unable to check if target %s (hash %x) has already been run: %s", target.String(), targetHash, err.Error())
-		return false, nil, nil
+		return false, func() {}, nil
 	}
 
 	if exists {
