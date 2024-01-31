@@ -200,9 +200,10 @@ as well as run builds in native architectures independent of where the Earthly c
 					Action: a.actionWake,
 				},
 				{
-					Name:        "sleep",
-					Usage:       "Manually force an Earthly Satellite to sleep from an operational state",
-					Description: "Manually force an Earthly Satellite to sleep from an operational state.",
+					Name:  "sleep",
+					Usage: "Manually force an Earthly Satellite to sleep from an operational state",
+					Description: "Manually force an Earthly Satellite to sleep from an operational state.\n" +
+						"Note that this may interrupt ongoing builds.",
 					UsageText: "earthly satellite sleep <satellite-name>\n" +
 						"	earthly satellite [--org <organization-name>] sleep <satellite-name>",
 					Action: a.actionSleep,
