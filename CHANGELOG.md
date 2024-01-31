@@ -4,9 +4,15 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.3 - 2024-01-31
+
 ### Fixed
 
 - `EARTHLY_GIT_REFS` was incorrectly returning all references which contained the commit rather than pointed to the current commit. This also increases performance of looking up the branches. [#3752](https://github.com/earthly/earthly/issues/3752)
+- Fixes an issue where `earthly account login --token` was leading to partially created auth config files. [3761](https://github.com/earthly/earthly/issues/3761)
+
+### Additional Info
+- This release includes changes to buildkit
 
 ## v0.8.2 - 2024-01-25
 
