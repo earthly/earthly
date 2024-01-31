@@ -12,8 +12,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Fixes an issue where `earthly account login --token` was leading to partially created auth config files. [3761](https://github.com/earthly/earthly/issues/3761)
 
 ### Additional Info
-
-- This release contains changes to buildkit
+- This release includes changes to buildkit
 
 ## v0.8.2 - 2024-01-25
 
