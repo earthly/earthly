@@ -196,3 +196,36 @@ func ParseParams(str string) (string, []string, error) {
 	}
 	return parts[0], parts[1:], nil
 }
+
+// ParseLoad splits a --load value into the image, target, & extra args.
+// Example: --load my-image=(+target --arg1 foo --arg2=bar)
+func ParseLoad(loadStr string) (image string, target string, extraArgs []string, err error) {
+	words := strings.SplitN(loadStr, " ", 2)
+	if len(words) == 0 {
+		return "", "", nil, nil
+	}
+	firstWord := words[0]
+	splitFirstWord := strings.SplitN(firstWord, "=", 2)
+	if len(splitFirstWord) < 2 {
+		// <target-name>
+		// (will infer image name from SAVE IMAGE of that target)
+		image = ""
+		target = loadStr
+	} else {
+		// <image-name>=<target-name>
+		image = splitFirstWord[0]
+		if len(words) == 1 {
+			target = splitFirstWord[1]
+		} else {
+			words[0] = splitFirstWord[1]
+			target = strings.Join(words, " ")
+		}
+	}
+	if IsInParamsForm(target) {
+		target, extraArgs, err = ParseParams(target)
+		if err != nil {
+			return "", "", nil, err
+		}
+	}
+	return image, target, extraArgs, nil
+}

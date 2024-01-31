@@ -11,6 +11,7 @@ import (
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/buildkitskipper"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
@@ -187,6 +188,9 @@ type ConvertOpt struct {
 	// ParentTargetID is the Logbus target ID of the parent target, if any. It
 	// is used to link together targets.
 	ParentTargetID string
+
+	AutoSkipClient  buildkitskipper.ASKVClient
+	AutoSkipLocalDB string
 }
 
 // TargetDetails contains details about the target being built.

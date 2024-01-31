@@ -554,6 +554,8 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		GitLFSInclude:                         a.cli.Flags().GitLFSPullInclude,
 		GitLogLevel:                           a.gitLogLevel(),
 		DisableRemoteRegistryProxy:            a.cli.Flags().DisableRemoteRegistryProxy,
+		AutoSkipClient:                        cloudClient,
+		AutoSkipLocalDB:                       a.cli.Flags().LocalSkipDB,
 	}
 
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
@@ -845,12 +847,11 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 	orgName := a.cli.Flags().OrgName
 
 	targetHash, stats, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
-		Target:          target,
-		Console:         a.cli.Console(),
-		CI:              a.cli.Flags().CI,
-		BuiltinArgs:     variables.DefaultArgs{EarthlyVersion: a.cli.Version(), EarthlyBuildSha: a.cli.GitSHA()},
-		OverridingVars:  overridingVars,
-		EarthlyCIRunner: a.cli.Flags().EarthlyCIRunner,
+		Target:         target,
+		Console:        a.cli.Console(),
+		CI:             a.cli.Flags().CI,
+		BuiltinArgs:    variables.DefaultArgs{EarthlyVersion: a.cli.Version(), EarthlyBuildSha: a.cli.GitSHA()},
+		OverridingVars: overridingVars,
 	})
 	if err != nil {
 		return nil, nil, false, errors.Wrapf(err, "auto-skip is unable to calculate hash for %s", target)

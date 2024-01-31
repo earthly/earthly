@@ -10,12 +10,11 @@ import (
 
 // HashOpt contains all of the options available to the hasher.
 type HashOpt struct {
-	Target          domain.Target
-	Console         conslogging.ConsoleLogger
-	CI              bool
-	BuiltinArgs     variables.DefaultArgs
-	OverridingVars  *variables.Scope
-	EarthlyCIRunner bool
+	Target         domain.Target
+	Console        conslogging.ConsoleLogger
+	CI             bool
+	BuiltinArgs    variables.DefaultArgs
+	OverridingVars *variables.Scope
 }
 
 // HashTarget produces a hash from an Earthly target.

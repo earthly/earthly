@@ -924,3 +924,7 @@ BUILD_AND_FROM:
     ARG --required TARGET
     FROM --pass-args +$TARGET
     BUILD --pass-args +$TARGET
+
+fun:
+    BUILD +license
+    BUILD --auto-skip +lint

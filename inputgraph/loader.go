@@ -18,7 +18,6 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/buildkitskipper/hasher"
 	"github.com/earthly/earthly/util/flagutil"
@@ -55,7 +54,6 @@ type loader struct {
 	ci               bool
 	builtinArgs      variables.DefaultArgs
 	overridingVars   *variables.Scope
-	earthlyCIRunner  bool
 	globalImports    map[string]domain.ImportTrackerVal
 }
 
@@ -64,19 +62,18 @@ func newLoader(ctx context.Context, opt HashOpt) *loader {
 	h.HashJSONMarshalled(opt.BuiltinArgs)
 	// Other important values are set by load().
 	return &loader{
-		conslog:         opt.Console,
-		target:          opt.Target,
-		visited:         map[string]struct{}{},
-		hasher:          h,
-		isBaseTarget:    opt.Target.Target == "base",
-		ci:              opt.CI,
-		builtinArgs:     opt.BuiltinArgs,
-		overridingVars:  opt.OverridingVars,
-		earthlyCIRunner: opt.EarthlyCIRunner,
-		globalImports:   map[string]domain.ImportTrackerVal{},
-		hashCache:       map[string][]byte{},
-		stats:           &Stats{StartTime: time.Now()},
-		primaryTarget:   true,
+		conslog:        opt.Console,
+		target:         opt.Target,
+		visited:        map[string]struct{}{},
+		hasher:         h,
+		isBaseTarget:   opt.Target.Target == "base",
+		ci:             opt.CI,
+		builtinArgs:    opt.BuiltinArgs,
+		overridingVars: opt.OverridingVars,
+		globalImports:  map[string]domain.ImportTrackerVal{},
+		hashCache:      map[string][]byte{},
+		stats:          &Stats{StartTime: time.Now()},
+		primaryTarget:  true,
 	}
 }
 
@@ -486,7 +483,7 @@ func (l *loader) handleWithDocker(ctx context.Context, cmd spec.Command) error {
 	}
 
 	for _, load := range opts.Loads {
-		_, target, extraArgs, err := earthfile2llb.ParseLoad(load)
+		_, target, extraArgs, err := flagutil.ParseLoad(load)
 		if err != nil {
 			return wrapError(err, cmd.SourceLocation, "failed to parse --load value")
 		}
@@ -819,18 +816,17 @@ func (l *loader) forTarget(ctx context.Context, target domain.Target, args []str
 	}
 
 	ret := &loader{
-		conslog:         l.conslog,
-		target:          target,
-		visited:         visited,
-		hasher:          hasher.New(),
-		isBaseTarget:    target.Target == "base",
-		ci:              l.ci,
-		builtinArgs:     l.builtinArgs,
-		overridingVars:  overriding,
-		earthlyCIRunner: l.earthlyCIRunner,
-		hashCache:       l.hashCache,
-		stats:           l.stats,
-		primaryTarget:   false,
+		conslog:        l.conslog,
+		target:         target,
+		visited:        visited,
+		hasher:         hasher.New(),
+		isBaseTarget:   target.Target == "base",
+		ci:             l.ci,
+		builtinArgs:    l.builtinArgs,
+		overridingVars: overriding,
+		hashCache:      l.hashCache,
+		stats:          l.stats,
+		primaryTarget:  false,
 	}
 
 	if target.IsLocalInternal() {
@@ -937,15 +933,14 @@ func (l *loader) load(ctx context.Context) ([]byte, error) {
 	l.features = buildCtx.Features
 
 	collOpt := variables.NewCollectionOpt{
-		Console:         l.conslog,
-		Target:          l.target,
-		CI:              l.ci,
-		BuiltinArgs:     l.builtinArgs,
-		OverridingVars:  l.overridingVars,
-		EarthlyCIRunner: l.earthlyCIRunner,
-		GitMeta:         buildCtx.GitMetadata,
-		Features:        l.features,
-		GlobalImports:   l.globalImports,
+		Console:        l.conslog,
+		Target:         l.target,
+		CI:             l.ci,
+		BuiltinArgs:    l.builtinArgs,
+		OverridingVars: l.overridingVars,
+		GitMeta:        buildCtx.GitMetadata,
+		Features:       l.features,
+		GlobalImports:  l.globalImports,
 	}
 	l.varCollection = variables.NewCollection(collOpt)
 
