@@ -636,7 +636,7 @@ func (a *Satellite) actionRemove(cliCtx *cli.Context) error {
 	}
 
 	isOffline := sat.State == cloud.SatelliteStatusSleep || sat.State == cloud.SatelliteStatusOffline
-	if !a.force && isOffline {
+	if !a.force && !isOffline {
 		a.cli.Console().Printf("")
 		a.cli.Console().Printf("Cannot destroy a running satellite.")
 		a.cli.Console().Printf("Please sleep the satellite first, or use the --force flag.")
