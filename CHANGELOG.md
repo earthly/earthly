@@ -4,6 +4,49 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.3 - 2024-01-31
+
+### Fixed
+
+- `EARTHLY_GIT_REFS` was incorrectly returning all references which contained the commit rather than pointed to the current commit. This also increases performance of looking up the branches. [#3752](https://github.com/earthly/earthly/issues/3752)
+- Fixes an issue where `earthly account login --token` was leading to partially created auth config files. [3761](https://github.com/earthly/earthly/issues/3761)
+
+### Additional Info
+- This release includes changes to buildkit
+
+## v0.8.2 - 2024-01-25
+
+### Added
+
+- Added a `--force` flag to the `satellite update` command, which forces a satellite to sleep before starting the update process. This may forcibly kill ongoing builds currently running on the satellite.
+
+### Changed
+
+- Changed the default buildkit cache size to be adaptively set to 20GB, which is then clamped between the range of 10%-55% of the disk size.
+  This logic can expressed as `min(55%, max(10%, 20GB))`.
+- Satellites are now put to sleep before updating via `earthly sat update <satellite-name>`.
+
+### Fixed
+
+- Fixed an intermittent issue with the registry proxy support container failing immediately on Mac. [3740](https://github.com/earthly/earthly/issues/3740)
+- Fixed a problem with parsing empty results when cleaning up old registry proxy support containers on Mac.
+- Fixed a case where a suggested command would incorrectly contain both `--interative` and `--ci`. [3746](https://github.com/earthly/earthly/issues/3746)
+- Disabled the registry proxy server when Earthly is run from within a container. [3736](https://github.com/earthly/earthly/issues/3736)
+
+### Additional Info
+- This release has no changes to buildkit
+
+## v0.8.1 - 2024-01-23
+
+### Added
+
+- Added a new `--disable-remote-registry-proxy` cli flag, which can be used to disable the remote registry proxy, which is used by earthly when performing a `SAVE IMAGE`
+  command with a satellite / remote buildkit instance. This will cause earthly to use the slower tar-based loading of docker images. [#3736](https://github.com/earthly/earthly/issues/3736)
+- A new warning if Earthly is configured with a cache size less than 10GB; running with a small cache size may lead to unexpected cache misses.
+
+### Additional Info
+- This release has no changes to buildkit
+
 ## v0.8.0 - 2024-01-22
 
 This version promotes a number of features that have been previously in Experimental and Beta status. To make use of

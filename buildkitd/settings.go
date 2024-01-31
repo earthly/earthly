@@ -65,3 +65,8 @@ func (s Settings) VerifyHash(hash string) (bool, error) {
 
 	return oldHash == newHash, nil
 }
+
+// HasConfiguredCacheSize returns if the buildkitd cache size was configured
+func (s Settings) HasConfiguredCacheSize() bool {
+	return s.CacheSizeMb > 0 || s.CacheSizePct > 0
+}

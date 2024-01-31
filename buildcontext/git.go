@@ -268,7 +268,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 					"git log -1 --format=%at >/dest/git-author-ts || touch /dest/git-author-ts ; " +
 					"git log -1 --format=%ae >/dest/git-author || touch /dest/git-author ; " +
 					"git log -1 --format=%b >/dest/git-body || touch /dest/git-body ; " +
-					"git for-each-ref --contains HEAD --format '%(refname:lstrip=-1)' >/dest/git-refs || touch /dest/git-refs ; " +
+					"git for-each-ref --points-at HEAD --format '%(refname:lstrip=-1)' >/dest/git-refs || touch /dest/git-refs ; " +
 					"find -type f -name Earthfile > /dest/Earthfile-paths || touch /dest/Earthfile-paths ; " +
 					"",
 			}),

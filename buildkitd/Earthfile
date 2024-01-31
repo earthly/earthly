@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 
 FROM alpine:3.18
 
@@ -12,7 +12,7 @@ buildkitd:
             ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
         END
     ELSE
-        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:086f60eecf5a2261bbd53299614f88b3def12746+build
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:a5526551beaabeeab147a115dc1a4638fb13c00d+build
     END
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"

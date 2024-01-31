@@ -292,7 +292,7 @@ func detectGitTags(ctx context.Context, dir string) ([]string, error) {
 }
 
 func detectGitRefs(ctx context.Context, dir string) ([]string, error) {
-	cmd := exec.CommandContext(ctx, "git", "for-each-ref", "--contains", "HEAD", "--format", "'%(refname:lstrip=-1)'")
+	cmd := exec.CommandContext(ctx, "git", "for-each-ref", "--points-at", "HEAD", "--format", "'%(refname:lstrip=-1)'")
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {

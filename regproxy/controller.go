@@ -45,6 +45,7 @@ func NewController(
 		containerFrontend: containerFrontend,
 		darwinProxy:       darwinProxy,
 		darwinProxyImage:  darwinProxyImage,
+		darwinProxyWait:   darwinProxyWait,
 		cons:              cons,
 	}
 }
@@ -153,7 +154,7 @@ func (c *Controller) startDarwinProxy(ctx context.Context, containerName string,
 		return 0, errors.Wrap(err, "failed to start support container")
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, c.darwinProxyWait)
+	childCtx, cancel := context.WithTimeout(ctx, c.darwinProxyWait)
 	defer cancel()
 
 	// Wait for the proxy chain to resolve to the BK registry. The /v2/ path
@@ -167,8 +168,8 @@ func (c *Controller) startDarwinProxy(ctx context.Context, containerName string,
 			break
 		}
 		select {
-		case <-ctx.Done():
-			return 0, ctx.Err()
+		case <-childCtx.Done():
+			return 0, childCtx.Err()
 		case <-time.After(time.Second):
 			continue
 		}

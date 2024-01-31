@@ -85,6 +85,7 @@ type Opt struct {
 	DarwinProxyImage                      string
 	DarwinProxyWait                       time.Duration
 	LocalRegistryAddr                     string
+	DisableRemoteRegistryProxy            bool
 	FeatureFlagOverrides                  string
 	ContainerFrontend                     containerutil.ContainerFrontend
 	InternalSecretStore                   *secretprovider.MutableMapStore
@@ -165,6 +166,11 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 
 func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (func(), bool) {
 	cons := b.opt.Console.WithPrefix("registry-proxy")
+
+	if b.opt.DisableRemoteRegistryProxy {
+		cons.VerbosePrintf("Registry proxy disabled via --disable-remote-registry-proxy")
+		return nil, false
+	}
 
 	if err := caps.Supports(pb.CapEarthlyRegistryProxy); err != nil {
 		cons.Printf(err.Error())

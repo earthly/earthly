@@ -33,6 +33,7 @@ type Satellite struct {
 	maintenanceWindow      string
 	maintenaceWeekendsOnly bool
 	version                string
+	forceUpdate            bool
 	printJSON              bool
 	listAll                bool
 	dropCache              bool
@@ -254,6 +255,13 @@ as well as run builds in native architectures independent of where the Earthly c
 							Required:    false,
 							Hidden:      true,
 							Destination: &a.version,
+						},
+						&cli.BoolFlag{
+							Name:        "force",
+							Aliases:     []string{"f"},
+							Usage:       "Forces the satellite to sleep (if necessary) before starting the updating",
+							Required:    false,
+							Destination: &a.forceUpdate,
 						},
 					},
 				},
@@ -965,9 +973,9 @@ func (a *Satellite) actionUpdate(cliCtx *cli.Context) error {
 		return err
 	}
 
-	satName, err := base.GetSatelliteName(cliCtx.Context, orgName, a.cli.Flags().SatelliteName, cloudClient)
+	sat, err := cloudClient.GetSatellite(cliCtx.Context, a.cli.Flags().SatelliteName, orgName)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed getting satellite")
 	}
 
 	if window != "" {
@@ -987,8 +995,24 @@ func (a *Satellite) actionUpdate(cliCtx *cli.Context) error {
 		return errors.Errorf("not a valid platform: %q", platform)
 	}
 
+	if sat.State != cloud.SatelliteStatusSleep {
+		if !a.forceUpdate {
+			a.cli.Console().Printf("")
+			a.cli.Console().Printf("The satellite must be asleep to start the update.")
+			a.cli.Console().Printf("You can re-run this command with the `--force` flag to force the satellite asleep and start the update now.")
+			a.cli.Console().Printf("Note that Putting the satellite to sleep will interrupt any running builds.")
+			a.cli.Console().Printf("")
+			return errors.New("update aborted: satellite is not asleep.")
+		}
+		out := cloudClient.SleepSatellite(cliCtx.Context, sat.Name, orgName)
+		err = showSatelliteStopping(a.cli.Console(), a.cli.Flags().SatelliteName, out)
+		if err != nil {
+			return errors.Wrap(err, "failed waiting for satellite to sleep")
+		}
+	}
+
 	err = cloudClient.UpdateSatellite(cliCtx.Context, cloud.UpdateSatelliteOpt{
-		Name:                    satName,
+		Name:                    sat.Name,
 		OrgName:                 orgName,
 		PinnedVersion:           version,
 		MaintenanceWindowStart:  window,

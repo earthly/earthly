@@ -1,4 +1,4 @@
-VERSION --pass-args --no-network --arg-scope-and-set --use-function-keyword 0.7
+VERSION 0.8
 PROJECT earthly-technologies/core
 
 # TODO update to 3.18; however currently "podman login" (used under not-a-unit-test.sh) will error with
@@ -447,6 +447,11 @@ earthly-docker:
     FROM ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT" --TAG="$TAG"
     RUN apk add --update --no-cache docker-cli libcap-ng-utils git
     ENV EARTHLY_IMAGE=true
+    # When Earthly is run from a container, the registry proxy networking setup
+    # will fail as the registry is meant to be run on a dynamic localhost port
+    # (which won't be exposed by the container). Let's fall back to tar-based
+    # image transfer until this can be addressed further.
+    ENV EARTHLY_DISABLE_REMOTE_REGISTRY_PROXY=true
     COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
     ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
     WORKDIR /workspace
@@ -851,12 +856,12 @@ npm-update-all:
         SAVE ARTIFACT --if-exists $nodepath/package-lock.json AS LOCAL $nodepath/package-lock.json
     END
 
-# merge-main-to-docs merges the main branch into docs-0.7
+# merge-main-to-docs merges the main branch into docs-0.8
 merge-main-to-docs:
     FROM alpine/git
     ARG git_repo="earthly/earthly"
     ARG git_url="git@github.com:$git_repo"
-    ARG to_branch="docs-0.7"
+    ARG to_branch="docs-0.8"
     ARG from_branch="main"
     ARG earthly_lib_version=2.2.2
     DO github.com/earthly/lib/ssh:$earthly_lib_version+ADD_KNOWN_HOSTS --target_file=~/.ssh/known_hosts

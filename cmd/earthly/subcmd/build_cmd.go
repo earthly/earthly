@@ -553,6 +553,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		GitImage:                              a.cli.Cfg().Global.GitImage,
 		GitLFSInclude:                         a.cli.Flags().GitLFSPullInclude,
 		GitLogLevel:                           a.gitLogLevel(),
+		DisableRemoteRegistryProxy:            a.cli.Flags().DisableRemoteRegistryProxy,
 	}
 
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
