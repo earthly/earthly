@@ -635,8 +635,8 @@ func (a *Satellite) actionRemove(cliCtx *cli.Context) error {
 		return fmt.Errorf("could not find %q for deletion", a.cli.Flags().SatelliteName)
 	}
 
-	isOffline := sat.State == cloud.SatelliteStatusOperational || sat.State == cloud.SatelliteStatusOffline
-	if !a.force && !isOffline {
+	isOffline := sat.State == cloud.SatelliteStatusSleep || sat.State == cloud.SatelliteStatusOffline
+	if !a.force && isOffline {
 		a.cli.Console().Printf("")
 		a.cli.Console().Printf("Cannot destroy a running satellite.")
 		a.cli.Console().Printf("Please sleep the satellite first, or use the --force flag.")
