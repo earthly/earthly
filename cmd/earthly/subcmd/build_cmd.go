@@ -603,11 +603,16 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	buildOpts.MainTargetDetailsFunc = func(d earthfile2llb.TargetDetails) error {
 		a.cli.Console().VerbosePrintf("Logbus: setting organization %q and project %q at %s", d.EarthlyOrgName, d.EarthlyProjectName, time.Now().Format(time.RFC3339Nano))
 		analytics.AddEarthfileProject(d.EarthlyOrgName, d.EarthlyProjectName)
-		if a.cli.Flags().Logstream {
-			a.cli.LogbusSetup().SetOrgAndProject(d.EarthlyOrgName, d.EarthlyProjectName)
-			if doLogstreamUpload {
-				a.cli.LogbusSetup().StartLogStreamer(cliCtx.Context, cloudClient)
-			}
+		if !a.cli.Flags().Logstream {
+			return nil
+		}
+		setup := a.cli.LogbusSetup()
+		setup.SetOrgAndProject(d.EarthlyOrgName, d.EarthlyProjectName)
+		setup.SetGitAuthor(gitCommitAuthor, gitConfigEmail)
+		_, isCI := analytics.DetectCI(a.cli.Flags().EarthlyCIRunner)
+		setup.SetCI(isCI)
+		if doLogstreamUpload {
+			setup.StartLogStreamer(cliCtx.Context, cloudClient)
 		}
 		return nil
 	}
