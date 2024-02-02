@@ -8,6 +8,9 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
+
+	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/cleanup"
@@ -22,7 +25,6 @@ import (
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/syncutil/synccache"
 	"github.com/earthly/earthly/util/vertexmeta"
-	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
 
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
@@ -72,11 +74,20 @@ func (gr *gitResolver) expandWildcard(ctx context.Context, gwClient gwclient.Cli
 		return nil, errors.Errorf("unexpected local reference %s", target.String())
 	}
 
-	rgp, _, subDir, err := gr.resolveGitProject(ctx, gwClient, platr, target)
-	if err != nil {
-		return nil, err
+	var err error
+	var rgp *resolvedGitProject
+	var subDir string
+	for _, i := range []int{1, 2, 3} {
+		rgp, _, subDir, err = gr.resolveGitProject(ctx, gwClient, platr, target)
+		if err == nil {
+			break
+		}
+		gr.console.DebugPrintf("retrying resolveGitProject [attempt %d]", i)
+		time.Sleep(time.Second)
 	}
-
+	if err != nil {
+		return nil, errors.Wrap(err, "error resolving git project")
+	}
 	fullPattern := filepath.Join(subDir, pattern)
 	if !strings.HasPrefix(fullPattern, ".") {
 		fullPattern = "./" + fullPattern
@@ -104,9 +115,20 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 	if !ref.IsRemote() {
 		return nil, errors.Errorf("unexpected local reference %s", ref.String())
 	}
-	rgp, gitURL, subDir, err := gr.resolveGitProject(ctx, gwClient, platr, ref)
+	var err error
+	var rgp *resolvedGitProject
+	var gitURL string
+	var subDir string
+	for _, i := range []int{1, 2, 3} {
+		rgp, gitURL, subDir, err = gr.resolveGitProject(ctx, gwClient, platr, ref)
+		if err == nil {
+			break
+		}
+		gr.console.DebugPrintf("retrying resolveGitProject [attempt %d]", i)
+		time.Sleep(time.Second)
+	}
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error resolving git project")
 	}
 
 	var buildContextFactory llbfactory.Factory
@@ -259,8 +281,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		gitHashOpts := []llb.RunOption{
 			llb.Args([]string{
 				"/bin/sh", "-c",
-				"git rev-parse HEAD >/dest/git-hash ; " +
-					"git rev-parse --short=8 HEAD >/dest/git-short-hash ; " +
+				"git rev-parse HEAD >/dest/git-hash || touch /dest/git-hash ; " +
+					"git rev-parse --short=8 HEAD >/dest/git-short-hash || touch git-short-hash ; " +
 					"git rev-parse --abbrev-ref HEAD >/dest/git-branch  || touch /dest/git-branch ; " +
 					"ls .git/refs/heads/ | head -n 1 >/dest/git-default-branch  || touch /dest/git-default-branch ; " +
 					"git describe --exact-match --tags >/dest/git-tags || touch /dest/git-tags ; " +
@@ -298,6 +320,9 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		})
 		if err != nil {
 			return nil, errors.Wrap(err, "read git-short-hash")
+		}
+		if len(gitHashBytes) == 0 || len(gitShortHashBytes) == 0 {
+			return nil, errors.New("empty git metadata")
 		}
 		gitBranch, err := gr.readGitBranch(ctx, gitMetaRef)
 		if err != nil {
