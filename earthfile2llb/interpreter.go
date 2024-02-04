@@ -1247,7 +1247,6 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
 				}
-				saveHashFn()
 				continue
 			}
 			err := i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgs)
