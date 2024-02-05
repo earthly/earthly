@@ -35,7 +35,7 @@ type LocalBuildkitSkipper struct {
 	db *bolt.DB
 }
 
-func (lbks *LocalBuildkitSkipper) Add(ctx context.Context, data []byte) error {
+func (lbks *LocalBuildkitSkipper) Add(ctx context.Context, org, target string, data []byte) error {
 	if len(data) != sha1.Size {
 		return errInvalidHash
 	}
@@ -49,7 +49,7 @@ func (lbks *LocalBuildkitSkipper) Add(ctx context.Context, data []byte) error {
 	})
 }
 
-func (lbks *LocalBuildkitSkipper) Exists(ctx context.Context, data []byte) (bool, error) {
+func (lbks *LocalBuildkitSkipper) Exists(ctx context.Context, org string, data []byte) (bool, error) {
 	if len(data) != sha1.Size {
 		return false, errInvalidHash
 	}

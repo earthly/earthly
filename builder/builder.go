@@ -14,6 +14,7 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
+	"github.com/earthly/earthly/cmd/earthly/bk"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
@@ -22,7 +23,6 @@ import (
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/regproxy"
 	"github.com/earthly/earthly/states"
-	"github.com/earthly/earthly/util/buildkitskipper"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/dockerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
@@ -95,8 +95,7 @@ type Opt struct {
 	GitImage                              string
 	GitLFSInclude                         string
 	GitLogLevel                           buildkitgitutil.GitLogLevel
-	AutoSkipClient                        buildkitskipper.ASKVClient
-	AutoSkipLocalDB                       string
+	BuildkitSkipper                       bk.BuildkitSkipper
 }
 
 type ProjectAdder interface {
@@ -293,8 +292,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				Runner:                               opt.Runner,
 				ProjectAdder:                         opt.ProjectAdder,
 				FilesWithCommandRenameWarning:        make(map[string]bool),
-				AutoSkipClient:                       b.opt.AutoSkipClient,
-				AutoSkipLocalDB:                      b.opt.AutoSkipLocalDB,
+				BuildkitSkipper:                      b.opt.BuildkitSkipper,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {

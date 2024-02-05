@@ -318,7 +318,12 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return err
 	}
 
-	skipDB, targetHash, doSkip, err := a.initAutoSkip(cliCtx.Context, target, overridingVars, cloudClient)
+	skipDB, err := bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, cloudClient)
+	if err != nil {
+		return err
+	}
+
+	addHashFn, doSkip, err := a.initAutoSkip(cliCtx.Context, skipDB, target, overridingVars)
 	if err != nil {
 		a.cli.Console().PrintFailure("auto-skip")
 		return err
@@ -554,8 +559,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		GitLFSInclude:                         a.cli.Flags().GitLFSPullInclude,
 		GitLogLevel:                           a.gitLogLevel(),
 		DisableRemoteRegistryProxy:            a.cli.Flags().DisableRemoteRegistryProxy,
-		AutoSkipClient:                        cloudClient,
-		AutoSkipLocalDB:                       a.cli.Flags().LocalSkipDB,
+		BuildkitSkipper:                       skipDB,
 	}
 
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
@@ -630,11 +634,8 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return errors.Wrap(err, "build target")
 	}
 
-	if a.cli.Flags().SkipBuildkit && targetHash != nil {
-		err := skipDB.Add(cliCtx.Context, targetHash)
-		if err != nil {
-			a.cli.Console().WithPrefix(autoSkipPrefix).Warnf("failed to record %s (hash %x) as completed: %s", target.String(), target, err)
-		}
+	if a.cli.Flags().SkipBuildkit && addHashFn != nil {
+		addHashFn()
 	}
 
 	return nil
@@ -831,17 +832,21 @@ func (a *Build) platformResolver(ctx context.Context, bkClient *bkclient.Client,
 	return platr, nil
 }
 
-func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridingVars *variables.Scope, client *cloud.Client) (bk.BuildkitSkipper, []byte, bool, error) {
+func (a *Build) initAutoSkip(ctx context.Context, skipDB bk.BuildkitSkipper, target domain.Target, overridingVars *variables.Scope) (func(), bool, error) {
 
 	if !a.cli.Flags().SkipBuildkit {
-		return nil, nil, false, nil
+		return nil, false, nil
+	}
+
+	if skipDB == nil {
+		return nil, false, nil
 	}
 
 	console := a.cli.Console().WithPrefix(autoSkipPrefix)
 	consoleNoPrefix := a.cli.Console()
 
 	if a.cli.Flags().NoCache {
-		return nil, nil, false, errors.New("--no-cache cannot be used with --auto-skip")
+		return nil, false, errors.New("--no-cache cannot be used with --auto-skip")
 	}
 
 	orgName := a.cli.Flags().OrgName
@@ -854,7 +859,7 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		OverridingVars: overridingVars,
 	})
 	if err != nil {
-		return nil, nil, false, errors.Wrapf(err, "auto-skip is unable to calculate hash for %s", target)
+		return nil, false, errors.Wrapf(err, "auto-skip is unable to calculate hash for %s", target)
 	}
 
 	console.VerbosePrintf("targets visited: %d; targets hashed: %d; target cache hits: %d", stats.TargetsVisited, stats.TargetsHashed, stats.TargetCacheHits)
@@ -863,7 +868,7 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 	if a.cli.Flags().LocalSkipDB == "" && orgName == "" {
 		orgName, _, err = inputgraph.ParseProjectCommand(ctx, target, console)
 		if err != nil {
-			return nil, nil, false, errors.New("organization not found in Earthfile, command flag or environmental variables")
+			return nil, false, errors.New("organization not found in Earthfile, command flag or environmental variables")
 		}
 	}
 
@@ -876,26 +881,29 @@ func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridi
 		target.Tag = ""
 	}
 
-	skipDB, err := bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, orgName, target, client)
-	if err != nil {
-		return nil, nil, false, err
-	}
-
 	targetConsole := a.cli.Console().WithPrefix(target.String())
 	targetStr := targetConsole.PrefixColor().Sprintf("%s", target.StringCanonical())
-	exists, err := skipDB.Exists(ctx, targetHash)
+
+	exists, err := skipDB.Exists(ctx, orgName, targetHash)
 	if err != nil {
 		console.Warnf("Unable to check if target %s (hash %x) has already been run: %s", targetStr, targetHash, err.Error())
-		return nil, nil, false, nil
+		return nil, false, nil
 	}
 
 	if exists {
 		console.Printf("Target %s (hash %x) has already been run. Skipping.", targetStr, targetHash)
 		consoleNoPrefix.PrintSuccess()
-		return nil, nil, true, nil
+		return nil, true, nil
 	}
 
-	return skipDB, targetHash, false, nil
+	addHashFn := func() {
+		err := skipDB.Add(ctx, orgName, target.StringCanonical(), targetHash)
+		if err != nil {
+			a.cli.Console().WithPrefix(autoSkipPrefix).Warnf("failed to record %s (hash %x) as completed: %s", target.String(), target, err)
+		}
+	}
+
+	return addHashFn, false, nil
 }
 
 func (a *Build) logShareLink(ctx context.Context, cloudClient *cloud.Client, target domain.Target, clean *cleanup.Collection) (string, bool, func()) {

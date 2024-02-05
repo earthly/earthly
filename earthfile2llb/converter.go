@@ -26,7 +26,6 @@ import (
 	"github.com/earthly/earthly/ast/commandflag"
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
-	"github.com/earthly/earthly/cmd/earthly/bk"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
@@ -1825,6 +1824,14 @@ func (c *Converter) absolutizeTarget(fullTargetName string, allowPrivileged bool
 }
 
 func (c *Converter) checkAutoSkip(ctx context.Context, fullTargetName string, allowPrivileged, passArgs bool, buildArgs []string) (bool, func(), error) {
+	console := c.opt.Console.WithPrefix("auto-skip")
+
+	nopFn := func() {}
+
+	if c.opt.BuildkitSkipper == nil {
+		console.Warnf("--auto-skip flags are disabled due to client initialization failure")
+		return false, nopFn, nil
+	}
 
 	target, relTarget, _, err := c.absolutizeTarget(fullTargetName, allowPrivileged)
 	if err != nil {
@@ -1847,17 +1854,12 @@ func (c *Converter) checkAutoSkip(ctx context.Context, fullTargetName string, al
 		return false, nil, errors.Wrapf(err, "auto-skip is unable to calculate hash for %s", target)
 	}
 
-	skipDB, err := bk.NewBuildkitSkipper(c.opt.AutoSkipLocalDB, c.varCollection.Org(), target, c.opt.AutoSkipClient)
-	if err != nil {
-		return false, nil, err
-	}
+	orgName := c.varCollection.Org()
 
-	console := c.opt.Console.WithPrefix("auto-skip")
-
-	exists, err := skipDB.Exists(ctx, targetHash)
+	exists, err := c.opt.BuildkitSkipper.Exists(ctx, orgName, targetHash)
 	if err != nil {
 		console.Warnf("Unable to check if target %s (hash %x) has already been run: %s", target.String(), targetHash, err.Error())
-		return false, func() {}, nil
+		return false, nopFn, nil
 	}
 
 	if exists {
@@ -1866,7 +1868,7 @@ func (c *Converter) checkAutoSkip(ctx context.Context, fullTargetName string, al
 	}
 
 	return exists, func() {
-		err := skipDB.Add(ctx, targetHash)
+		err := c.opt.BuildkitSkipper.Add(ctx, orgName, target.StringCanonical(), targetHash)
 		if err != nil {
 			console.Warnf("Failed to add target %s (hash %x) to the auto-skip DB.", target.String(), targetHash)
 		}

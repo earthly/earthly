@@ -6,12 +6,12 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
+	"github.com/earthly/earthly/cmd/earthly/bk"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/states"
-	"github.com/earthly/earthly/util/buildkitskipper"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
@@ -189,8 +189,8 @@ type ConvertOpt struct {
 	// is used to link together targets.
 	ParentTargetID string
 
-	AutoSkipClient  buildkitskipper.ASKVClient
-	AutoSkipLocalDB string
+	// BuildkitSkipper allows for additions and existence checks for auto-skip hash values.
+	BuildkitSkipper bk.BuildkitSkipper
 }
 
 // TargetDetails contains details about the target being built.
