@@ -1,5 +1,5 @@
 VERSION 0.8
-FROM earthly/dind:alpine-3.18-docker-23.0.6-r7
+FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
 
 all:
     BUILD +test-single

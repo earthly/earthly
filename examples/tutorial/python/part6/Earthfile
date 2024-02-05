@@ -12,7 +12,7 @@ build:
     SAVE ARTIFACT src /src
 
 integration-tests:
-	FROM earthly/dind:alpine-3.18
+	FROM earthly/dind:alpine-3.19
 	COPY ./docker-compose.yml .
 	COPY ./tests ./tests
 	RUN apk update
