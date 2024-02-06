@@ -4,6 +4,8 @@ See the ["use-earthly-dind" best-practice](https://docs.earthly.dev/best-practic
 
 ## Tags
 
+* `alpine-3.16-docker-20.10.20-r0`
+* `alpine-3.18-docker-23.0.6-r7`
 * `alpine-3.19-docker-25.0.2-r0`
 * `ubuntu-20.04-docker-24.0.5-1`
 * `ubuntu-23.04-docker-24.0.5-1`
