@@ -71,6 +71,7 @@ type Features struct {
 	// unreleased
 	TryFinally     bool `long:"try" description:"allow the use of the TRY/FINALLY commands"`
 	WildcardBuilds bool `long:"wildcard-builds" description:"allow for the expansion of wildcard (glob) paths for BUILD commands"`
+	BuildAutoSkip  bool `long:"build-auto-skip" description:"allow for --auto-skip to be used on individual BUILD commands"`
 
 	Major int
 	Minor int

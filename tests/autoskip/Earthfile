@@ -30,6 +30,9 @@ test-all:
     BUILD +test-from-dockerfile
     BUILD +test-import
     BUILD +test-copy-target-args-quoted
+    BUILD +test-build-flag
+    BUILD +test-flag-conflict
+    BUILD +test-init-failure
 
 test-files:
     RUN echo hello > my-file
@@ -244,6 +247,35 @@ test-import:
 
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=import.earth --target=+global
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=import.earth --target=+global --output_contains="Target .* has already been run. Skipping."
+
+test-build-flag:
+    DO --pass-args tests+RUN_EARTHLY --extra_args="--auto-skip-db-path=test.db" --earthfile=build-flag.earth --target=+basic
+    RUN cat earthly.output | acbgrep 'hello from a'
+    RUN cat earthly.output | acbgrep 'hello from b'
+
+    DO --pass-args tests+RUN_EARTHLY --extra_args="--auto-skip-db-path=test.db" --earthfile=build-flag.earth --target=+basic
+    RUN cat earthly.output | acbgrep 'hello from a'
+    RUN cat earthly.output | acbgrep -v 'hello from b'
+    RUN cat earthly.output | acbgrep 'Target +b .* has already been run'
+
+    DO --pass-args tests+RUN_EARTHLY --extra_args="--auto-skip-db-path=test.db" --earthfile=build-flag.earth --target=+remote
+    RUN cat earthly.output | acbgrep 'Hello World'
+    RUN cat earthly.output | acbgrep 'hello from b'
+
+    DO --pass-args tests+RUN_EARTHLY --extra_args="--auto-skip-db-path=test.db" --earthfile=build-flag.earth --target=+remote
+    RUN cat earthly.output | acbgrep -v 'Hello World'
+    RUN cat earthly.output | acbgrep 'Target github.com/earthly/test-remote:6accddaba346aeda062ab47bae62e65dcdcc513f+basic .* has already been run'
+    RUN cat earthly.output | acbgrep 'hello from b'
+
+test-flag-conflict:
+    DO --pass-args tests+RUN_EARTHLY --extra_args="--auto-skip-db-path=test.db --auto-skip --no-auto-skip" \
+                                     --earthfile=build-flag.earth --target=+basic --should_fail=true \
+                                     --output_contains="\-\-no-auto-skip cannot be used with \-\-auto-skip"
+
+test-init-failure:
+    DO --pass-args tests+RUN_EARTHLY --extra_args="--auto-skip-db-path=/tmp --auto-skip" \
+                                     --earthfile=build-flag.earth --target=+basic \
+                                     --output_contains="Failed to initialize auto-skip database"
 
 RUN_EARTHLY_ARGS:
     FUNCTION

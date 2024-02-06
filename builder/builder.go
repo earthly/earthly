@@ -14,6 +14,7 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
+	"github.com/earthly/earthly/cmd/earthly/bk"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
@@ -94,6 +95,8 @@ type Opt struct {
 	GitImage                              string
 	GitLFSInclude                         string
 	GitLogLevel                           buildkitgitutil.GitLogLevel
+	BuildkitSkipper                       bk.BuildkitSkipper
+	NoAutoSkip                            bool
 }
 
 type ProjectAdder interface {
@@ -290,6 +293,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				Runner:                               opt.Runner,
 				ProjectAdder:                         opt.ProjectAdder,
 				FilesWithCommandRenameWarning:        make(map[string]bool),
+				BuildkitSkipper:                      b.opt.BuildkitSkipper,
+				NoAutoSkip:                           b.opt.NoAutoSkip,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {

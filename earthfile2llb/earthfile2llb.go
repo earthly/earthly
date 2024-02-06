@@ -6,6 +6,7 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
+	"github.com/earthly/earthly/cmd/earthly/bk"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
@@ -187,6 +188,12 @@ type ConvertOpt struct {
 	// ParentTargetID is the Logbus target ID of the parent target, if any. It
 	// is used to link together targets.
 	ParentTargetID string
+
+	// BuildkitSkipper allows for additions and existence checks for auto-skip hash values.
+	BuildkitSkipper bk.BuildkitSkipper
+
+	// NoAutoSkip disables auto-skip usages.
+	NoAutoSkip bool
 }
 
 // TargetDetails contains details about the target being built.
