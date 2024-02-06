@@ -96,6 +96,7 @@ type Opt struct {
 	GitLFSInclude                         string
 	GitLogLevel                           buildkitgitutil.GitLogLevel
 	BuildkitSkipper                       bk.BuildkitSkipper
+	NoAutoSkip                            bool
 }
 
 type ProjectAdder interface {
@@ -293,6 +294,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				ProjectAdder:                         opt.ProjectAdder,
 				FilesWithCommandRenameWarning:        make(map[string]bool),
 				BuildkitSkipper:                      b.opt.BuildkitSkipper,
+				NoAutoSkip:                           b.opt.NoAutoSkip,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {

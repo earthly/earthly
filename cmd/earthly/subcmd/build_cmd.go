@@ -320,7 +320,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 
 	skipDB, err := bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, cloudClient)
 	if err != nil {
-		return err
+		a.cli.Console().WithPrefix(autoSkipPrefix).Warnf("Failed to initialize auto-skip database: %v", err)
 	}
 
 	addHashFn, doSkip, err := a.initAutoSkip(cliCtx.Context, skipDB, target, overridingVars)
@@ -560,6 +560,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		GitLogLevel:                           a.gitLogLevel(),
 		DisableRemoteRegistryProxy:            a.cli.Flags().DisableRemoteRegistryProxy,
 		BuildkitSkipper:                       skipDB,
+		NoAutoSkip:                            a.cli.Flags().NoAutoSkip,
 	}
 
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
@@ -838,15 +839,20 @@ func (a *Build) initAutoSkip(ctx context.Context, skipDB bk.BuildkitSkipper, tar
 		return nil, false, nil
 	}
 
+	console := a.cli.Console().WithPrefix(autoSkipPrefix)
+
 	if skipDB == nil {
 		return nil, false, nil
 	}
 
-	console := a.cli.Console().WithPrefix(autoSkipPrefix)
 	consoleNoPrefix := a.cli.Console()
 
 	if a.cli.Flags().NoCache {
 		return nil, false, errors.New("--no-cache cannot be used with --auto-skip")
+	}
+
+	if a.cli.Flags().NoAutoSkip {
+		return nil, false, errors.New("--no-auto-skip cannot be used with --auto-skip")
 	}
 
 	orgName := a.cli.Flags().OrgName

@@ -191,6 +191,9 @@ type ConvertOpt struct {
 
 	// BuildkitSkipper allows for additions and existence checks for auto-skip hash values.
 	BuildkitSkipper bk.BuildkitSkipper
+
+	// NoAutoSkip disables auto-skip usages.
+	NoAutoSkip bool
 }
 
 // TargetDetails contains details about the target being built.

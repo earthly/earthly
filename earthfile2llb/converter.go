@@ -1828,8 +1828,17 @@ func (c *Converter) checkAutoSkip(ctx context.Context, fullTargetName string, al
 
 	nopFn := func() {}
 
+	if !c.opt.Features.BuildAutoSkip {
+		return false, nopFn, nil
+	}
+
 	if c.opt.BuildkitSkipper == nil {
-		console.Warnf("--auto-skip flags are disabled due to client initialization failure")
+		console.Warnf("BUILD --auto-skip option disabled due to client initialization failure")
+		return false, nopFn, nil
+	}
+
+	if c.opt.NoAutoSkip {
+		console.VerbosePrintf("BUILD --auto-skip ignored due to --no-auto-skip flag")
 		return false, nopFn, nil
 	}
 
