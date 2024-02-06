@@ -4,7 +4,7 @@ See the ["use-earthly-dind" best-practice](https://docs.earthly.dev/best-practic
 
 ## Tags
 
-* `alpine-3.18-docker-23.0.6-r7`
+* `alpine-3.19-docker-25.0.2-r0`
 * `ubuntu-20.04-docker-24.0.5-1`
 * `ubuntu-23.04-docker-24.0.5-1`
 
@@ -32,8 +32,8 @@ dind:
   ARG EARTHLY_VERSION
   ARG SMALLEST_VERSION="$(echo -e "$EARTHLY_VERSION\nv0.7.14" | sort -V | head -n 1)"
   IF [ "$SMALLEST_VERSION" = "v0.7.14" ]
-    # earthly is at v0.7.14 or newer, and must use the more recent dind:alpine-3.18-docker-23.0.6-r7 image
-    FROM earthly/dind:alpine-3.18-docker-23.0.6-r7
+    # earthly is at v0.7.14 or newer, and must use the more recent dind:alpine-3.19-docker-25.0.2-r0 image
+    FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
   END
 
 test:
