@@ -72,6 +72,8 @@ jobs:
       - name: lsmod
         run: |-
           lsmod | grep tables
+          modprobe -r x_tables
+          lsmod | grep tables
       - name: Run a with docker test
         run: $(which earthly) -P ./tests/with-docker+docker-load-shellout-test
 
