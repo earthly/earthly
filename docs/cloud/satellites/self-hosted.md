@@ -46,7 +46,7 @@ The `--privileged` flag is currently required. Privileged mode is used by some f
 
 ### Auto-discovery of Host _\*experimental\*_
 
-When `SATELLITE_HOST` is left unset, the satellite will attempt to auto-discover its host address. This feature may not always work, and currently only supports environments using cloud-init (such as EC2).
+When `SATELLITE_HOST` is left unset, the satellite will attempt to auto-discover its host address. Auto-discovery may not always work, and currently only supports environments using cloud-init (such as EC2).
 
 ## Connecting to a Self-Hosted Satellite
 
