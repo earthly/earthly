@@ -194,7 +194,7 @@ Starting your satellite with `SATELLITE_HOST` set to `earthly.local` should allo
 
 ## Debugging
 
-If you are having problems using or deploying your self-hosted satellite, please refer to the following tips or reach out to us through our community Slack channel.
+If you are having problems using or deploying your self-hosted satellite, please refer to the following tips or reach out to us through our community [Slack channel](https://earthly.dev/slack).
 
 **Problem:** Satellite is not listed in the output of earthly satellite ls
 
