@@ -1,6 +1,6 @@
 # Self-Hosted Satellites
 
-Self-hosted satellites _\*Beta\*_ are a good alternative to Earthly Cloud’s [managed satellites](../satellites.md) when CI/CD is required to run in your own environment. Self-hosted satellites provide most of the benefits of Earthly Cloud while ensuring that build-related data never leaves your network.
+Self-hosted satellites **Beta** are a good alternative to Earthly Cloud’s [managed satellites](../satellites.md) when CI/CD is required to run in your own environment. Self-hosted satellites provide most of the benefits of Earthly Cloud while ensuring that your code and build-related data never leaves your network.
 
 In addition, Self-Hosted Satellites have the following features:
 * Lightning-fast caching
