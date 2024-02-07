@@ -111,13 +111,13 @@ spec:
         - name: EARTHLY_TOKEN
           value: u4a*************l92
         - name: SATELLITE_NAME
-           valueFrom:
-       fieldRef:
-         fieldPath: metadata.name
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
         - name: SATELLITE_HOST
-           valueFrom:
-       fieldRef:
-         fieldPath: status.podIP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
 ```
 
 Note that this example uses the Pod’s IP address (via [Downward API](https://kubernetes.io/docs/concepts/workloads/pods/downward-api/)) as the `SATELLITE_HOST` value. The Earthly CLI must be able to reach the IP on its network.
@@ -196,14 +196,20 @@ Starting your satellite with `SATELLITE_HOST` set to `earthly.local` should allo
 
 If you are having problems using or deploying your self-hosted satellite, please refer to the following tips or reach out to us through our community Slack channel.
 
-*Problem:* Satellite is not listed in the output of earthly satellite ls
-*Resolution:* Check the logs from the satellite’s Docker container. There may be a message containing the phrase "SATELLITE IS NOT REGISTERED". This usually means there was a problem with the values supplied to the satellite’s run command. Check the error for additional context. Ensure the values provided for account token, earthly org, etc are correct.
+**Problem:** Satellite is not listed in the output of earthly satellite ls
 
-*Problem:* Satellite is not starting
-*Resolution:* There may be some required environment variables missing or they may contain invalid values. Ensure all values are entered correctly. Check the container logs for more information.
+**Resolution:** Check the logs from the satellite’s Docker container. There may be a message containing the phrase "SATELLITE IS NOT REGISTERED". This usually means there was a problem with the values supplied to the satellite’s run command. Check the error for additional context. Ensure the values provided for account token, earthly org, etc are correct.
 
-*Problem:* Earthly client is unable to connect to the satellite. 
-*Resolution:* Check the address of the satellite. This is printed at the start of the build during the "Init" phase, or can be found via the satellite inspect command. Ensure the value here is as expected, and that the earthly client can reach the address on its network. If the port has been remapped from 8372, you may also need to change this via the `SATELLITE_PORT` environment variable.
 
-*Problem:* The satellite log says that it is running on port 9372
-*Resolution:* The log message `"running server on [::]:9372"` can be misleading, however, the exposed port on the container is still 8372. Multiple processes are running inside the satellite container, including an earthly/buildkit process. This log message comes from the buildkit process, however, a separate process on port 8372 handles the incoming gRPC requests to the container.
+**Problem:** Satellite is not starting
+
+**Resolution:** There may be some required environment variables missing or they may contain invalid values. Ensure all values are entered correctly. Check the container logs for more information.
+
+**Problem:** Earthly client is unable to connect to the satellite.
+
+**Resolution:** Check the address of the satellite. This is printed at the start of the build during the "Init" phase, or can be found via the satellite inspect command. Ensure the value here is as expected, and that the earthly client can reach the address on its network. If the port has been remapped from 8372, you may also need to change this via the `SATELLITE_PORT` environment variable.
+
+
+**Problem:** The satellite log says that it is running on port 9372
+
+**Resolution:** The log message `"running server on [::]:9372"` can be misleading, however, the exposed port on the container is still 8372. Multiple processes are running inside the satellite container, including an earthly/buildkit process. This log message comes from the buildkit process, however, a separate process on port 8372 handles the incoming gRPC requests to the container.
