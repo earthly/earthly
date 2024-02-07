@@ -44,6 +44,11 @@ jobs:
     name: show me the tables
     runs-on: "ubuntu-20.04"
     steps:
+      - name: lsmod
+        run: |-
+          lsmod | grep tables
+          modprobe -rf x_tables
+          lsmod | grep tables
       - uses: earthly/actions-setup@main
       - uses: actions/checkout@v4
         with:
@@ -69,11 +74,6 @@ jobs:
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Docker Login
         run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
-      - name: lsmod
-        run: |-
-          lsmod | grep tables
-          modprobe -r x_tables
-          lsmod | grep tables
       - name: Run a with docker test
         run: $(which earthly) -P ./tests/with-docker+docker-load-shellout-test
 
