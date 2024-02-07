@@ -2,7 +2,7 @@
 
 {% hint style='info' %}
 ##### Note
-This guide is related to self-hosting Buildkit, however, Self-Hosted Satellites **beta** are now available with more features and better security. Check out the [Self-Hosted Satellites Guide](../../cloud/satellites/self-hosted.md) for more details and instructions to deploy in Kubernetes or in AWS EC2.
+This guide is related to self-hosting a remote Buildkit, however, Self-Hosted Satellites **beta** are now available. Self-Hosted Satellites provide more features, have better security, and are easier to deploy than remote Buildkit. Check out the [Self-Hosted Satellites Guide](../../cloud/satellites/self-hosted.md) for more details and instructions to deploy in Kubernetes or AWS EC2.
 {% endhint %}
 
 

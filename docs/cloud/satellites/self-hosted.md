@@ -1,14 +1,14 @@
 # Self-Hosted Satellites
 
-Self-hosted satellites **Beta** are a good alternative to Earthly Cloud’s [managed satellites](../satellites.md) when CI/CD is required to run in your own environment. Self-hosted satellites provide most of the benefits of Earthly Cloud while ensuring that your code and build-related data never leaves your network.
+Self-hosted satellites **Beta** are a good alternative to Earthly Cloud’s [managed satellites](../satellites.md) when CI/CD is required to run in your own environment. Self-hosted satellites provide most of the benefits of Earthly Cloud while ensuring that your code and build-related data never leave your network.
 
-In addition, Self-Hosted Satellites have the following features:
-* Lightning-fast caching
+Self-Hosted Satellites have the following features:
+* Automatic and instantly available build cache that makes builds faster
 * Cloud-enabled control plane
 * Encrypted connections by default using mTLS
 * Ready to run builds with just a single command
 
-On the other hand, they may have the following drawbacks when compared to managed satellites offered in Earthly Cloud:
+On the other hand, they may have the following drawbacks when compared to Cloud Satellites offered in Earthly Cloud:
 * No automatic updates
 * Does not automatically sleep to save costs while idle
 * Requires more knowledge and tuning to achieve good performance
@@ -41,7 +41,7 @@ The self-hosted satellite will not accept localhost as an address. For instructi
 
 {% hint style='info' %}
 ##### Security Advisory
-The `--privileged` flag is currently required. Privileged mode is used by some features of earthly, including the `WITH DOCKER` command in Earthfiles. If using privileged mode is a concern, running satellites in a dedicated VM or separate Kubernetes cluster can provide better isolation compared to running the container directly in your production environment.
+The `--privileged` flag is currently required. Privileged mode is used by some features of Earthly, including the `WITH DOCKER` command in Earthfiles. If using privileged mode is a concern, running satellites in a dedicated VM or separate Kubernetes cluster can provide better isolation compared to running the container directly in your production environment.
 {% endhint %}
 
 ### Auto-discovery of Host _\*experimental\*_
@@ -57,7 +57,7 @@ For example, to select the satellite for use in subsequent builds:
 earthly sat select my-satellite
 ```
 
-Or, to invoke a build once on the satellite, without persistently selecting it:
+Or, to invoke a build once on the satellite, without having it persistently selecting:
 
 ```
 earthly --sat my-satellite +my-target
@@ -120,7 +120,7 @@ spec:
               fieldPath: status.podIP
 ```
 
-Note that this example uses the Pod’s IP address (via [Downward API](https://kubernetes.io/docs/concepts/workloads/pods/downward-api/)) as the `SATELLITE_HOST` value. The Earthly CLI must be able to reach the IP on its network.
+Note that this example uses the pod’s IP address (via [Downward API](https://kubernetes.io/docs/concepts/workloads/pods/downward-api/)) as the `SATELLITE_HOST` value. The Earthly CLI must be able to reach the IP on its network.
 
 If the Earthly CLI should connect via a different address, such as DNS, then this value should be provided as the `SATELLITE_HOST` instead.
 
