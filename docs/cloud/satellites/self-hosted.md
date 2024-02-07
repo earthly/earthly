@@ -198,7 +198,7 @@ If you are having problems using or deploying your self-hosted satellite, please
 
 **Problem:** Satellite is not listed in the output of earthly satellite ls
 
-**Resolution:** Check the logs from the satellite’s Docker container. There may be a message containing the phrase "SATELLITE IS NOT REGISTERED". This usually means there was a problem with the values supplied to the satellite’s run command. Check the error for additional context. Ensure the values provided for account token, earthly org, etc are correct.
+**Resolution:** Check the logs from the satellite’s Docker container. There may be a message containing the phrase `SATELLITE IS NOT REGISTERED`. This usually means there was a problem with the values supplied to the satellite’s run command. Check the error for additional context. Ensure the values provided for account token, earthly org, etc are correct.
 
 
 **Problem:** Satellite is not starting
