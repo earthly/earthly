@@ -1,6 +1,6 @@
-# Self-Hosted Satellites _*Beta*_
+# Self-Hosted Satellites
 
-Self-hosted satellites are a good alternative to Earthly Cloud’s managed satellites when CI/CD is required to run in your own environment. Self-hosted satellites provide most of the benefits of Earthly Cloud while ensuring that build-related data never leaves your network.
+Self-hosted satellites _\*Beta\*_ are a good alternative to Earthly Cloud’s [managed satellites](../satellites.md) when CI/CD is required to run in your own environment. Self-hosted satellites provide most of the benefits of Earthly Cloud while ensuring that build-related data never leaves your network.
 
 In addition, Self-Hosted Satellites have the following features:
 * Lightning-fast caching
@@ -25,7 +25,7 @@ docker run --privileged \
     -e EARTHLY_ORG=my-org \
     -e SATELLITE_NAME=my-satellite \
     -e SATELLITE_HOST=153.65.8.0 \
-  earthly/satellite:v0.8.2
+  earthly/satellite:v0.8.3
 ```
 
 The following environment variables are required:
@@ -41,10 +41,10 @@ The self-hosted satellite will not accept localhost as an address. For instructi
 
 {% hint style='info' %}
 ##### Security Advisory
-The `--privileged` flag is currently required. Privileged mode is used by some features of earthly, including the `WITH DOCKER` command in Earthfiles. If using privileged mode is a concern, running satellites in a dedicated VMs or Kubernetes clusters can provide better isolation compared to running the container directly in your production environment.
+The `--privileged` flag is currently required. Privileged mode is used by some features of earthly, including the `WITH DOCKER` command in Earthfiles. If using privileged mode is a concern, running satellites in a dedicated VM or Kubernetes cluster can provide better isolation compared to running the container directly in your production environment.
 {% endhint %}
 
-### Auto-discovery of Host _*experimental*_ 
+### Auto-discovery of Host _\*experimental\*_
 
 When `SATELLITE_HOST` is left unset, the satellite will attempt to auto-discover its host address. This feature may not always work, and currently only supports environments using cloud-init (such as EC2).
 
@@ -72,7 +72,7 @@ A list of satellites in your org be viewed via the satellite ls command. For exa
 ```
 > earthly sat ls
 NAME          PLATFORM     SIZE         VERSION  STATE
-my-satellite  linux/amd64  self-hosted  v0.8.2   operational
+my-satellite  linux/amd64  self-hosted  v0.8.3   operational
 ...
 ```
 
@@ -162,7 +162,7 @@ Here’s an example of how to attach the volume using the Docker command line:
 ```
 docker run -v earthly-cache:/tmp/earthly:rw \
   ...
-  earthly/satellite:v0.8.2
+  earthly/satellite:v0.8.3
 ```
 
 ## Additional Environment Variables

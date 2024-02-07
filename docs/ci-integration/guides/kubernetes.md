@@ -2,7 +2,7 @@
 
 {% hint style='info' %}
 ##### Note
-This guide is related to self-hosting Buildkit, however, Self-Hosted Satellites _*beta*_ are now available with more features and better security. Check out the [Self-Hosted Satellites Guide](../../cloud/satellites/self-hosted.md) for more details and instructions to deploy in Kubernetes.
+This guide is related to self-hosting Buildkit, however, Self-Hosted Satellites _\*beta\*_ are now available with more features and better security. Check out the [Self-Hosted Satellites Guide](../../cloud/satellites/self-hosted.md) for more details and instructions to deploy in Kubernetes.
 {% endhint %}
 
 

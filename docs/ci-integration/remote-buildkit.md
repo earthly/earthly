@@ -2,7 +2,7 @@
 
 {% hint style='info' %}
 ##### Note
-[Self-Hosted Satellites _*beta*_](../cloud/satellites/self-hosted.md) are now available. Satellites provide more features, better security, and are easier to deploy. If your use case cannot tolerate any cloud integration, however, then running Buildkit directly is still supported.
+[Self-Hosted Satellites _\*beta\*_](../cloud/satellites/self-hosted.md) are now available. Satellites provide more features, better security, and are easier to deploy. If your use case cannot tolerate any cloud integration, however, then running Buildkit directly is still supported.
 {% endhint %}
 
 ## Introduction
