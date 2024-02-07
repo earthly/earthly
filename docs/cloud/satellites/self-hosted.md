@@ -14,7 +14,7 @@ On the other hand, they may have the following drawbacks when compared to manage
 * Requires more knowledge and tuning to achieve good performance
 
 ## Getting Started
-Launching a self-hosted satellite is as easy as running the public Docker image. A few environment variables are needed to link the satellite with your Earthly account. The satellite will use these values to automatically register with Earthly Cloud servers once it starts. Note that Earthly Cloud will never connect to your satellite directly.
+Launching a self-hosted satellite is as easy as running the public Docker image. A few environment variables are needed to link the satellite with your Earthly account. The satellite will use these values to automatically register with Earthly Cloud servers once it starts. Note that Earthly Cloud will never connect to your satellite directly. The host and port of your satellite can thus be private to your internal corporate network or VPC, if you wish.
 
 Here is a minimal command to start a self-managed satellite using Docker:
 
