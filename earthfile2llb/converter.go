@@ -29,6 +29,7 @@ import (
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
+	"github.com/earthly/earthly/inputgraph"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
@@ -1799,39 +1800,129 @@ func (c *Converter) ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word
 	})
 }
 
-func (c *Converter) prepBuildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, isDangling bool, cmdT cmdType) (domain.Target, ConvertOpt, bool, error) {
+func (c *Converter) absolutizeTarget(fullTargetName string, allowPrivileged bool) (domain.Target, domain.Target, bool, error) {
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
-		return domain.Target{}, ConvertOpt{}, false, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
+		return domain.Target{}, domain.Target{}, false, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
 	}
+
 	derefedTarget, allowPrivilegedImport, isImport, err := c.varCollection.Imports().Deref(relTarget)
 	if err != nil {
-		return domain.Target{}, ConvertOpt{}, false, err
+		return domain.Target{}, domain.Target{}, false, err
 	}
+
 	if isImport {
 		allowPrivileged = allowPrivileged && allowPrivilegedImport
 	}
+
 	targetRef, err := c.joinRefs(derefedTarget)
 	if err != nil {
-		return domain.Target{}, ConvertOpt{}, false, errors.Wrap(err, "join targets")
-	}
-	target := targetRef.(domain.Target)
-
-	var pncvf variables.ProcessNonConstantVariableFunc
-	if !c.opt.Features.ShellOutAnywhere {
-		pncvf = c.processNonConstantBuildArgFunc(ctx)
+		return domain.Target{}, domain.Target{}, false, errors.Wrap(err, "join targets")
 	}
 
-	overriding, err := variables.ParseArgs(buildArgs, pncvf, c.varCollection)
+	return targetRef.(domain.Target), relTarget, allowPrivileged, nil
+}
+
+func (c *Converter) checkAutoSkip(ctx context.Context, fullTargetName string, allowPrivileged, passArgs bool, buildArgs []string) (bool, func(), error) {
+	console := c.opt.Console.WithPrefix("auto-skip")
+
+	nopFn := func() {}
+
+	if !c.opt.Features.BuildAutoSkip {
+		return false, nopFn, nil
+	}
+
+	if c.opt.BuildkitSkipper == nil {
+		console.Warnf("BUILD --auto-skip option disabled due to client initialization failure")
+		return false, nopFn, nil
+	}
+
+	if c.opt.NoAutoSkip {
+		console.VerbosePrintf("BUILD --auto-skip ignored due to --no-auto-skip flag")
+		return false, nopFn, nil
+	}
+
+	target, relTarget, _, err := c.absolutizeTarget(fullTargetName, allowPrivileged)
 	if err != nil {
-		return domain.Target{}, ConvertOpt{}, false, errors.Wrap(err, "parse build args")
+		return false, nil, err
 	}
+
+	overriding, _, err := c.prepOverridingVars(ctx, relTarget, passArgs, buildArgs)
+	if err != nil {
+		return false, nil, err
+	}
+
+	targetHash, _, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
+		Target:         target,
+		Console:        c.opt.Console,
+		CI:             c.opt.IsCI,
+		BuiltinArgs:    c.opt.BuiltinArgs,
+		OverridingVars: overriding,
+	})
+	if err != nil {
+		return false, nil, errors.Wrapf(err, "auto-skip is unable to calculate hash for %s", target)
+	}
+
+	orgName := c.varCollection.Org()
+
+	exists, err := c.opt.BuildkitSkipper.Exists(ctx, orgName, targetHash)
+	if err != nil {
+		console.Warnf("Unable to check if target %s (hash %x) has already been run: %s", target.String(), targetHash, err.Error())
+		return false, nopFn, nil
+	}
+
+	if exists {
+		console.Printf("Target %s (hash %x) has already been run. Skipping.", target.String(), targetHash)
+		return true, nil, nil
+	}
+
+	return exists, func() {
+		err := c.opt.BuildkitSkipper.Add(ctx, orgName, target.StringCanonical(), targetHash)
+		if err != nil {
+			console.Warnf("Failed to add target %s (hash %x) to the auto-skip DB.", target.String(), targetHash)
+		}
+	}, nil
+}
+
+func (c *Converter) prepOverridingVars(ctx context.Context, relTarget domain.Target, passArgs bool, buildArgs []string) (*variables.Scope, bool, error) {
+	var buildArgFunc variables.ProcessNonConstantVariableFunc
+	if !c.opt.Features.ShellOutAnywhere {
+		buildArgFunc = c.processNonConstantBuildArgFunc(ctx)
+	}
+
+	overriding, err := variables.ParseArgs(buildArgs, buildArgFunc, c.varCollection)
+	if err != nil {
+		return nil, false, errors.Wrap(err, "parse build args")
+	}
+
 	// Don't allow transitive overriding variables to cross project boundaries (unless --pass-args is used).
 	propagateBuildArgs := !relTarget.IsExternal()
 	if passArgs {
 		overriding = variables.CombineScopes(overriding, c.varCollection.Overriding(), c.varCollection.Args(), c.varCollection.Globals())
 	} else if propagateBuildArgs {
 		overriding = variables.CombineScopes(overriding, c.varCollection.Overriding())
+	}
+
+	return overriding, propagateBuildArgs, nil
+}
+
+func (c *Converter) prepBuildTarget(
+	ctx context.Context,
+	fullTargetName string,
+	platform platutil.Platform,
+	allowPrivileged, passArgs bool,
+	buildArgs []string,
+	isDangling bool,
+	cmdT cmdType,
+) (domain.Target, ConvertOpt, bool, error) {
+	target, relTarget, allowPrivileged, err := c.absolutizeTarget(fullTargetName, allowPrivileged)
+	if err != nil {
+		return domain.Target{}, ConvertOpt{}, false, err
+	}
+
+	overriding, propagateBuildArgs, err := c.prepOverridingVars(ctx, relTarget, passArgs, buildArgs)
+	if err != nil {
+		return domain.Target{}, ConvertOpt{}, false, err
 	}
 
 	// Recursion.

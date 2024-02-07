@@ -7,9 +7,9 @@ For other available tags, please check out https://hub.docker.com/r/earthly/eart
 
 ## Quickstart
 
-Want to just get started? Here are a couple sample `docker run` commands that cover the most common use-cases:
+Want to get started? Here are a couple sample `docker run` commands that cover the most common use-cases:
 
-### Simple Usage with Docker Socket
+### Usage with Docker Socket
 
 This example shows how to use the Earthly container in conjunction with a Docker socket that Earthly can use to start up the Buildkit daemon.
 
@@ -25,7 +25,7 @@ Here's a quick breakdown:
 - `-e NO_BUILDKIT=1` tells the Earthly container not to start en embedded buildkit. A Buildkit daemon will instead be started via the Docker socket provided.
 - `+for-linux` is the target to be invoked. All arguments specified after the image tag will be passed to `earthly`.
 
-### Simple Usage with Embedded Buildkit
+### Usage with Embedded Buildkit
 
 This example shows how the Earthly image can start a Buildkit daemon within the same container. A Docker socket is not needed in this case, however the container will need to be run with the `--privileged` flag.
 
