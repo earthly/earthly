@@ -14,6 +14,7 @@ all:
     BUILD +one-target-many-names
     BUILD +if-after
     BUILD +cgroup-v2-test-all
+    BUILD +pre-script-test
 
 empty-test:
     WITH DOCKER
@@ -171,4 +172,10 @@ cgroup-v2-test:
     ARG ubuntu_img_tag=23.04
     WITH DOCKER --pull ubuntu:$ubuntu_img_tag
         RUN ./test-cgroup-v2.sh
+    END
+
+pre-script-test:
+    COPY pre-script.sh /usr/share/earthly/dockerd-wrapper-pre-script
+    WITH DOCKER
+        RUN test -f /the-prescript-was-run
     END

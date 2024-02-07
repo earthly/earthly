@@ -108,6 +108,14 @@
             ],
             "name": "BUILD"
           }
+        },
+        {
+          "command": {
+            "args": [
+              "+pre-script-test"
+            ],
+            "name": "BUILD"
+          }
         }
       ]
     },
@@ -987,6 +995,40 @@
                 "--pull",
                 "ubuntu:$ubuntu_img_tag"
               ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "pre-script-test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "pre-script.sh",
+              "/usr/share/earthly/dockerd-wrapper-pre-script"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "test",
+                    "-f",
+                    "/the-prescript-was-run"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [],
               "name": "DOCKER"
             }
           }

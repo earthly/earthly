@@ -314,6 +314,11 @@ if [ -n "$EARTHLY_DOCKER_WRAPPER_DEBUG_CMD" ]; then
     exit 1
 fi
 
+EARTHLY_DOCKER_WRAPPER_PRE_SCRIPT=${EARTHLY_DOCKER_WRAPPER_PRE_SCRIPT:-"/usr/share/earthly/dockerd-wrapper-pre-script"}
+if [ -f "$EARTHLY_DOCKER_WRAPPER_PRE_SCRIPT" ]; then
+    "$EARTHLY_DOCKER_WRAPPER_PRE_SCRIPT"
+fi
+
 case "$1" in
     get-compose-config)
         write_compose_config
