@@ -63,7 +63,7 @@ Or, to invoke a build once on the satellite, without persistently selecting it:
 earthly --sat my-satellite +my-target
 ```
 
-Note that `earthly-v0.8.0` or later is required to connect to a self-hosted satellite.
+Note that `earthly` `v0.8.0` or later is required to connect to a self-hosted satellite.
 
 ## Managing Self-Hosted Satellites
 
