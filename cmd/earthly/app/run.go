@@ -41,6 +41,7 @@ var (
 	qemuExitCodeRegex  = regexp.MustCompile(`process "/dev/.buildkit_qemu_emulator.*?did not complete successfully: exit code: 255$`)
 	buildMinutesRegex  = regexp.MustCompile(`(?P<msg>used \d+ of \d+ allowed minutes in current plan) {reqID: .*?}`)
 	maxSatellitesRegex = regexp.MustCompile(`(?P<msg>plan only allows \d+ satellites in use at one time) {reqID: .*?}`)
+	maxExecTimeRegex   = regexp.MustCompile(`max execution time of .+ exceeded`)
 	requestIDRegex     = regexp.MustCompile(`(?P<msg>.*?) {reqID: .*?}`)
 )
 
@@ -308,6 +309,10 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 			app.BaseCLI.Console().VerboseWarnf(err.Error())
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, msg)
 			return 1
+		case grpcErrOK && grpcErr.Code() == codes.Unknown && maxExecTimeRegex.MatchString(grpcErr.Message()):
+			app.BaseCLI.Console().VerboseWarnf(errorWithPrefix(err.Error()))
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, grpcErr.Message())
+			app.BaseCLI.Console().HelpPrintf("Unverified accounts have a limit on the duration of RUN commands. Verify your account to lift this restriction.")
 		case grpcErrOK && grpcErr.Code() != codes.Canceled:
 			app.BaseCLI.Console().VerboseWarnf(errorWithPrefix(err.Error()))
 			if !strings.Contains(grpcErr.Message(), "transport is closing") {
