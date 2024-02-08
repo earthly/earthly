@@ -182,33 +182,37 @@ func (a *Build) gitLogLevel() buildkitgitutil.GitLogLevel {
 	return buildkitgitutil.GitLogLevelDefault
 }
 
-func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []string) error {
-	var target domain.Target
-	var artifact domain.Artifact
-	destPath := "./"
-	if a.cli.Flags().ImageMode {
+func (a *Build) parseTarget(cliCtx *cli.Context, nonFlagArgs []string) (domain.Target, domain.Artifact, string, error) {
+	var (
+		target   domain.Target
+		artifact domain.Artifact
+		destPath = "./"
+	)
+
+	switch {
+	case a.cli.Flags().ImageMode:
 		if len(nonFlagArgs) == 0 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return params.Errorf(
+			return target, artifact, "", params.Errorf(
 				"no image reference provided. Try %s --image +<target-name>", cliCtx.App.Name)
 		} else if len(nonFlagArgs) != 1 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return params.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
+			return target, artifact, "", params.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
 		targetName := nonFlagArgs[0]
 		var err error
 		target, err = domain.ParseTarget(targetName)
 		if err != nil {
-			return params.Wrapf(err, "invalid target name %s", targetName)
+			return target, artifact, "", params.Wrapf(err, "invalid target name %s", targetName)
 		}
-	} else if a.cli.Flags().ArtifactMode {
+	case a.cli.Flags().ArtifactMode:
 		if len(nonFlagArgs) == 0 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return params.Errorf(
+			return target, artifact, "", params.Errorf(
 				"no artifact reference provided. Try %s --artifact +<target-name>/<artifact-name>", cliCtx.App.Name)
 		} else if len(nonFlagArgs) > 2 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return params.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
+			return target, artifact, "", params.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
 		artifactName := nonFlagArgs[0]
 		if len(nonFlagArgs) == 2 {
@@ -217,25 +221,36 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		var err error
 		artifact, err = domain.ParseArtifact(artifactName)
 		if err != nil {
-			return params.Wrapf(err, "invalid artifact name %s", artifactName)
+			return target, artifact, "", params.Wrapf(err, "invalid artifact name %s", artifactName)
 		}
 		target = artifact.Target
-	} else {
+	default:
 		if len(nonFlagArgs) == 0 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return params.Errorf(
+			return target, artifact, "", params.Errorf(
 				"no target reference provided. Try %s +<target-name>", cliCtx.App.Name)
 		} else if len(nonFlagArgs) != 1 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return params.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
+			return target, artifact, "", params.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
 		targetName := nonFlagArgs[0]
 		var err error
 		target, err = domain.ParseTarget(targetName)
 		if err != nil {
-			return params.Errorf("invalid target %s", targetName)
+			return target, artifact, "", params.Errorf("invalid target %s", targetName)
 		}
 	}
+
+	return target, artifact, destPath, nil
+}
+
+func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []string) error {
+
+	target, artifact, destPath, err := a.parseTarget(cliCtx, nonFlagArgs)
+	if err != nil {
+		return err
+	}
+
 	a.cli.SetAnaMetaTarget(target)
 
 	var (
