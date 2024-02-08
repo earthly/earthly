@@ -4,6 +4,11 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- The internal `dockerd-wrapper.sh` script, which is used to implement `WITH DOCKER`, will execute `/usr/share/earthly/dockerd-wrapper-pre-script`, if present, prior to starting the
+  inner dockerd process. This can be used to configure options that depend on the host's kernel at run-time.
+
 ## v0.8.3 - 2024-01-31
 
 ### Fixed
