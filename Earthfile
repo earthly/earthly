@@ -561,6 +561,8 @@ dind:
         # in order to display the upstream-version, e.g. "24.0.5-1".
         SET DOCKER_VERSION_TAG="$(echo $DOCKER_VERSION | sed 's/^[0-9]*:\([^~]*\).*$/\1/')"
         RUN if echo $DOCKER_VERSION_TAG | grep "[^0-9.-]"; then echo "DOCKER_VERSION_TAG looks bad; got $DOCKER_VERSION_TAG" && exit 1; fi
+    ELSE IF [ "$OS_IMAGE" = "alpine" ]
+        RUN apk add iptables-legacy # required for older kernels
     END
     LET TAG=$OS_IMAGE-$OS_VERSION-docker-$DOCKER_VERSION_TAG
     ARG INCLUDE_TARGET_TAG_DOCKER=true
