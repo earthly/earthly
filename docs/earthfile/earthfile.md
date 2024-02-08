@@ -602,6 +602,13 @@ A global `ARG` is an arg that is made available to all targets in the Earthfile.
 
 Global args may only be declared in base targets.
 
+{% hint style='danger' %}
+##### Important
+Avoid using `ARG --global` for args that change frequently (e.g. git sha, branch name, PR number, etc). Any change to the value of this arg would typically cause all targets in the Earthfile to re-execute with no cache.
+
+It's always best to declare args as deep and late as possible within the specific target where they are needed, to get the most performance, even if this may require more verbose passing of args from one target to another.
+{% endhint %}
+
 ## SAVE ARTIFACT
 
 #### Synopsis
