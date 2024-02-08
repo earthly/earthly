@@ -44,12 +44,7 @@ jobs:
     name: show me the tables
     runs-on: "ubuntu-20.04"
     steps:
-      - name: lsmod
-        run: |-
-          lsmod | grep tables
-          modprobe -rf x_tables
-          lsmod | grep tables
-      - uses: earthly/actions-setup@main
+      - uses: earthly/actions-setup@v1
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
