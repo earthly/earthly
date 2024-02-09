@@ -84,6 +84,36 @@ You can run `satellite rm` on a self-hosted satellite when it is in an offline s
 
 ## Platform-Specific Guides
 
+### AWS EC2 (Recommended)
+
+Deploying Satellites in a dedicated VM is the most secure method, since it isolates the satellite process for sensitive infrastructure.
+
+When launching on EC2, we recommend using the latest version of Amazon Linux 2023. The following cloud-init script can be configured when launching a new EC2 instance so that it automatically starts the satellite on boot.
+
+```yaml
+#cloud-config
+runcmd:
+  - sudo dnf update
+  - sudo dnf install -y docker
+  - sudo systemctl start docker.service
+  - sudo systemctl enable docker.service
+  - |-
+      sudo docker run -d --privileged \
+        --restart always \
+        --name satellite \
+        -p 8372:8372 \
+        -v /earthly-cache:/tmp/earthly:rw \
+        -e EARTHLY_TOKEN=GuFna*****nve7e \
+        -e EARTHLY_ORG=my-org \
+        -e SATELLITE_NAME=my-satellite \
+        earthly/satellite:v0.8.3
+```
+
+Note that the `SATELLITE_HOST` variable is unset in this example so that the host is auto-discovered by the satellite when it starts. This should result in the instance’s private DNS being used as the host.
+
+If the Earthly CLI will be unable to connect to the satellite via the EC2’s private DNS, then `SATELLITE_HOST` should be provided in the `docker run` command with an alternate value.
+
+
 ### Kubernetes
 
 Below is a basic example of how to start a self-hosted satellite as a Kubernetes Pod:
@@ -120,36 +150,11 @@ spec:
               fieldPath: status.podIP
 ```
 
-Note that this example uses the pod’s IP address (via [Downward API](https://kubernetes.io/docs/concepts/workloads/pods/downward-api/)) as the `SATELLITE_HOST` value. The Earthly CLI must be able to reach the IP on its network.
+This example uses the pod’s IP address (via [Downward API](https://kubernetes.io/docs/concepts/workloads/pods/downward-api/)) as the `SATELLITE_HOST` value. The Earthly CLI must be able to reach the IP on its network.
 
 If the Earthly CLI should connect via a different address, such as DNS, then this value should be provided as the `SATELLITE_HOST` instead.
 
-
-### AWS EC2
-When launching on EC2, we recommend using the latest version of Amazon Linux 2023. The following cloud-init script can be configured when launching a new EC2 instance so that it automatically starts the satellite on boot.
-
-```yaml
-#cloud-config
-runcmd:
-  - sudo dnf update
-  - sudo dnf install -y docker
-  - sudo systemctl start docker.service
-  - sudo systemctl enable docker.service
-  - |-
-      sudo docker run -d --privileged \
-        --restart always \
-        --name satellite \
-        -p 8372:8372 \
-        -v /earthly-cache:/tmp/earthly:rw \
-        -e EARTHLY_TOKEN=GuFna*****nve7e \
-        -e EARTHLY_ORG=my-org \
-        -e SATELLITE_NAME=my-satellite \
-        earthly/satellite:v0.8.3
-```
-
-Note that the `SATELLITE_HOST` variable is unset in this example so that the host is auto-discovered by the satellite when it starts. This should result in the instance’s private DNS being used as the host. 
-
-If the Earthly CLI will be unable to connect to the satellite via the EC2’s private DNS, then `SATELLITE_HOST` should be provided in the `docker run` command with an alternate value.
+Note: for best security, deploy satellites in a Kubernetes cluster that is separate from production.
 
 ## Advanced Configuration
 
@@ -196,20 +201,20 @@ Starting your satellite with `SATELLITE_HOST` set to `earthly.local` should allo
 
 If you are having problems using or deploying your self-hosted satellite, please refer to the following tips or reach out to us through our community [Slack channel](https://earthly.dev/slack).
 
-**Problem:** Satellite is not listed in the output of earthly satellite ls
+### Problem: Satellite is not listed in the output of `earthly satellite ls`
 
 **Resolution:** Check the logs from the satellite’s Docker container. There may be a message containing the phrase `SATELLITE IS NOT REGISTERED`. This usually means there was a problem with the values supplied to the satellite’s run command. Check the error for additional context. Ensure the values provided for account token, earthly org, etc are correct.
 
 
-**Problem:** Satellite is not starting
+### Problem: Satellite is not starting
 
 **Resolution:** There may be some required environment variables missing or they may contain invalid values. Ensure all values are entered correctly. Check the container logs for more information.
 
-**Problem:** Earthly client is unable to connect to the satellite.
+### Problem: Earthly client is unable to connect to the satellite
 
 **Resolution:** Check the address of the satellite. This is printed at the start of the build during the "Init" phase, or can be found via the satellite inspect command. Ensure the value here is as expected, and that the earthly client can reach the address on its network. If the port has been remapped from 8372, you may also need to change this via the `SATELLITE_PORT` environment variable.
 
 
-**Problem:** The satellite log says that it is running on port 9372
+### Problem: The satellite log says that it is running on port 9372
 
 **Resolution:** The log message `"running server on [::]:9372"` can be misleading, however, the exposed port on the container is still 8372. Multiple processes are running inside the satellite container, including an earthly/buildkit process. This log message comes from the buildkit process, however, a separate process on port 8372 handles the incoming gRPC requests to the container.
