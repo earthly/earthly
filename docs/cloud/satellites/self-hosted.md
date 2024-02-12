@@ -87,7 +87,7 @@ You can run `satellite rm` on a self-hosted satellite when it is in an offline s
 
 ### AWS EC2 (Recommended)
 
-Deploying Satellites in a dedicated VM is the most secure method, since it isolates the satellite process for sensitive infrastructure.
+Deploying Satellites in a dedicated VM is the most secure method, since it isolates the satellite process from the rest of your infrastructure.
 
 When launching on EC2, we recommend using the latest version of Amazon Linux 2023. The following cloud-init script can be configured when launching a new EC2 instance so that it automatically starts the satellite on boot.
 
