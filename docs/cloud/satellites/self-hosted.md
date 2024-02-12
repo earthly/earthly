@@ -20,6 +20,7 @@ Here is a minimal command to start a self-managed satellite using Docker:
 
 ```
 docker run --privileged \
+    -v earthly-cache:/tmp/earthly:rw \
     -p 8372:8372 \
     -e EARTHLY_TOKEN=GuFna*****nve7e \ 
     -e EARTHLY_ORG=my-org \
@@ -125,6 +126,9 @@ metadata:
   name: my-satellite
   namespace: earthly-satellites
 spec:
+  volumes:
+  - name: earthly-cache
+    emptyDir: {} # or other volume type
   containers:
    - name:
    valueFrom:
@@ -134,20 +138,23 @@ spec:
       securityContext:
         privileged: true
       ports:
-        - containerPort: 8372
+      - containerPort: 8372
+      volumeMounts:
+      - mountPath: /tmp/earthly
+        name: earthly-cache
        env:
-        - name: EARTHLY_ORG
-          value: my-org
-        - name: EARTHLY_TOKEN
-          value: u4a*************l92
-        - name: SATELLITE_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: SATELLITE_HOST
-          valueFrom:
-            fieldRef:
-              fieldPath: status.podIP
+       - name: EARTHLY_ORG
+         value: my-org
+       - name: EARTHLY_TOKEN
+         value: u4a*************l92
+       - name: SATELLITE_NAME
+         valueFrom:
+           fieldRef:
+             fieldPath: metadata.name
+       - name: SATELLITE_HOST
+         valueFrom:
+           fieldRef:
+             fieldPath: status.podIP
 ```
 
 This example uses the pod’s IP address (via [Downward API](https://kubernetes.io/docs/concepts/workloads/pods/downward-api/)) as the `SATELLITE_HOST` value. The Earthly CLI must be able to reach the IP on its network.
