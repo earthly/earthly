@@ -30,6 +30,8 @@ To get started with self-hosted runners, see the [Self-Hosted Satellites Guide](
 
 If your use case cannot tolerate any cloud integration, then self-hosting a remote Buildkit is the best approach. Remote Buildkit has less features, is less secure, and is more difficult to deploy than Self-Hosted Satellites (see diagram below for comparison). To get started self-hosting Buildkit, see the [remote buildkit page](ci-integration/remote-buildkit.md).
 
+### Types of Remote Runners
+
 Below is a comparison of the different features available with each kind of remote runner.
 
 | Type | Runner Location | Cloud Control-Plane | TLS Encryption By Default | Auto-Sleep | Auto-Updates |
