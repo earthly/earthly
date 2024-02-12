@@ -2,7 +2,7 @@
 
 {% hint style='info' %}
 ##### Note
-This guide is related to self-hosting a remote Buildkit, however, Self-Hosted Satellites **beta** are now available. Self-Hosted Satellites provide more features, have better security, and are easier to deploy than remote Buildkit. Check out the [Self-Hosted Satellites Guide](../cloud/satellites/self-hosted.md) for more details. If your use case cannot tolerate any cloud integration, however, then self-hosting a remote Buildkit is still supported.
+This guide is related to self-hosting a remote Buildkit, however, Self-Hosted Satellites **beta** are now available. Self-Hosted Satellites provide more features, have better security, and are easier to deploy than remote Buildkit. Check out the [Self-Hosted Satellites Guide](../cloud/satellites/self-hosted.md) for more details. If your use case cannot tolerate a cloud-based control plane, however, then self-hosting a remote Buildkit is still supported.
 {% endhint %}
 
 ## Introduction
