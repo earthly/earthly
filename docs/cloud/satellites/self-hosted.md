@@ -42,7 +42,7 @@ The self-hosted satellite will not accept localhost as an address. For instructi
 
 {% hint style='info' %}
 ##### Security Advisory
-The `--privileged` flag is currently required. Privileged mode is used by some features of Earthly, including the `WITH DOCKER` command in Earthfiles. If using privileged mode is a concern, running satellites in a dedicated VM or separate Kubernetes cluster can provide better isolation compared to running the container directly in your production environment.
+The `--privileged` flag is currently required. Privileged mode is used by some features of Earthly, including the `WITH DOCKER` command in Earthfiles. If using privileged mode is a concern, running satellites in a dedicated VM or separate Kubernetes cluster can provide better isolation compared to running the container directly in your production environment. A rootless version will be available in the future.
 {% endhint %}
 
 ### Auto-discovery of Host _\*experimental\*_
