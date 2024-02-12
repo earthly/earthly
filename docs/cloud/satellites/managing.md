@@ -80,9 +80,9 @@ Currently selected: No
 
 ## Clearing cache
 
-There are two ways to clear the cache on satellite. One may be faster than the other, depending on the size of the cache.
+There are two ways to clear the cache on a satellite. One may be faster than the other, depending on the size of the cache.
 
-### Recreating the Underlying Satellite Instance
+### Recreating the Underlying Satellite Instance (often faster)
 
 Running the `update` command with `--drop-cache` will relaunch the instance with an empty cache volume.
 Note that this operation can take a while, and the satellite may also receive any available updates during the process.
@@ -105,7 +105,7 @@ earthly prune -a
 
 ## Updating a satellite
 
-The steps below apply only to Earthly Cloud satellites. For [Self-Hosted Satellites](self-hosted.md), you must upgrade the version in used in your deployment manually.
+The steps below apply only to Earthly Cloud satellites. For [Self-Hosted Satellites](self-hosted.md), you must upgrade the version being used in your deployment manually.
 
 Earthly Cloud Satellites receive automatic version updates by default, unless they are pinned to a specific version (by using the `--version` launch flag).
 Pinned versions will still receive minor patches, such as security updates.
@@ -242,4 +242,4 @@ Once a user has been invited, you can forward them a link to the page [Using Sat
 
 ## Satellite IP address
 
-The source IP address of an Earthly CLoud satellite for all internet traffic is `35.160.176.56`. This can be used for granting access to private resources or to production environments.
+The source IP address of an Earthly Cloud satellite for all internet traffic is `35.160.176.56`. This can be used for granting access to private resources or to production environments.
