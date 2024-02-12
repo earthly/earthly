@@ -68,7 +68,7 @@ Note that `earthly` `v0.8.0` or later is required to connect to a self-hosted sa
 
 ## Managing Self-Hosted Satellites
 
-A list of satellites in your org be viewed via the satellite ls command. For example:
+A list of satellites in your org can be viewed via the satellite ls command. For example:
 
 ```
 > earthly sat ls
@@ -112,7 +112,7 @@ runcmd:
 
 Note that the `SATELLITE_HOST` variable is unset in this example so that the host is auto-discovered by the satellite when it starts. This should result in the instance’s private DNS being used as the host.
 
-If the Earthly CLI will be unable to connect to the satellite via the EC2’s private DNS, then `SATELLITE_HOST` should be provided in the `docker run` command with an alternate value.
+If the Earthly CLI is unable to connect to the satellite via the EC2’s private DNS, then `SATELLITE_HOST` should be provided in the `docker run` command with an alternate value.
 
 
 ### Kubernetes

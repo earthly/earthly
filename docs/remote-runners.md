@@ -28,7 +28,7 @@ To get started with free remote runners managed by Earthly, check out [Earthly S
 
 To get started with self-hosted runners, see the [Self-Hosted Satellites Guide](cloud/satellites/self-hosted.md).
 
-If your use case cannot tolerate any cloud integration, then self-hosting a remote Buildkit is the best approach. Remote Buildkit has less features, is less secure, and is more difficult to deploy than Self-Hosted Satellites (see diagram below for comparison). To get started self-hosting Buildkit, see the [remote buildkit page](ci-integration/remote-buildkit.md).
+If your use case cannot tolerate a cloud-based control plane, then self-hosting a remote Buildkit is the best approach. Remote Buildkit has less features, is less secure, and is more difficult to deploy than Self-Hosted Satellites (see diagram below for comparison). To get started self-hosting Buildkit, see the [remote buildkit page](ci-integration/remote-buildkit.md).
 
 ### Types of Remote Runners
 
