@@ -37,5 +37,5 @@ Below is a comparison of the different features available with each kind of remo
 | Type | Runner Location | Cloud Control-Plane | TLS Encryption By Default | Auto-Sleep | Auto-Updates |
 | --- | --- | --- | --- | --- | --- |
 | Cloud Satellites | Earthly Cloud | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes |
-| Self-Hosted Satellites | Your Infrastructure | ✅ Yes | ❌ No | ❌ No | ❌ No |
+| Self-Hosted Satellites | Your Infrastructure | ✅ Yes | ✅ Yes | ❌ No | ❌ No |
 | Remote Buildkit | Your Infrastructure | ❌ No Control Plane | ❌ Requires manual configuration | ❌ No | ❌ No |
