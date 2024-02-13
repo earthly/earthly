@@ -34,8 +34,11 @@ If your use case cannot tolerate a cloud-based control plane, then self-hosting 
 
 Below is a comparison of the different features available with each kind of remote runner.
 
-| Type | Runner Location | Cloud Control-Plane | TLS Encryption By Default | Auto-Sleep | Auto-Updates |
-| --- | --- | --- | --- | --- | --- |
-| Cloud Satellites | Earthly Cloud | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes |
-| Self-Hosted Satellites | Your Infrastructure | ✅ Yes | ✅ Yes | ❌ No | ❌ No |
-| Remote Buildkit | Your Infrastructure | ❌ No Control Plane | ❌ Requires manual configuration | ❌ No | ❌ No |
+| Feature | Cloud Satellites | Self-Hosted Satellites | Remote Buildkit |
+| --- | --- | --- | --- |
+| Managed By | Earthly | You | You |
+| Cache Persistence | ✅ Yes | 🟡 Needs configuration | 🟡 Needs configuration |
+| Cloud Control-Plane | ✅ Yes | ✅ Yes | ❌ No |
+| Managed TLS Certificates |  ✅ Yes | ✅ Yes | ❌ No |
+| Auto-Sleep | ✅ Yes | ❌ No | ❌ No | 
+| Auto-Updates | ✅ Yes | ❌ No | ❌ No |
