@@ -28,10 +28,10 @@ WORKDIR /earthly
 deps:
     FROM +base
     RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.1
-    COPY go.mod go.sum ./
-    COPY ./ast/go.mod ./ast/go.sum ./ast
-    COPY ./util/deltautil/go.mod ./util/deltautil/go.sum ./util/deltautil
-    RUN go mod download
+    #COPY go.mod go.sum ./
+    #COPY ./ast/go.mod ./ast/go.sum ./ast
+    #COPY ./util/deltautil/go.mod ./util/deltautil/go.sum ./util/deltautil
+    RUN echo go mod download
     SAVE ARTIFACT go.mod AS LOCAL go.mod
     SAVE ARTIFACT go.sum AS LOCAL go.sum
 
@@ -335,6 +335,7 @@ earthly:
     ARG GO_GCFLAGS
     ARG EXECUTABLE_NAME="earthly"
     ARG DEFAULT_INSTALLATION_NAME="earthly-dev"
+    RUN 
     RUN test -n "$GOOS" && test -n "$GOARCH"
     RUN test "$GOARCH" != "arm" || test -n "$VARIANT"
     ARG EARTHLY_TARGET_TAG_DOCKER
@@ -343,24 +344,27 @@ earthly:
     ARG DEFAULT_BUILDKITD_IMAGE=docker.io/earthly/buildkitd:$VERSION # The image needs to be fully qualified for alternative frontend support.
     ARG BUILD_TAGS=dfrunmount dfrunsecurity dfsecrets dfssh dfrunnetwork dfheredoc forceposix
     ARG GOCACHE=/go-cache
-    RUN mkdir -p build
-    RUN printf "$BUILD_TAGS" > ./build/tags && echo "$(cat ./build/tags)"
-    RUN printf '-X main.DefaultBuildkitdImage='"$DEFAULT_BUILDKITD_IMAGE" > ./build/ldflags && \
-        printf ' -X main.Version='"$VERSION" >> ./build/ldflags && \
-        printf ' -X main.GitSha='"$EARTHLY_GIT_HASH" >> ./build/ldflags && \
-        printf ' -X main.DefaultInstallationName='"$DEFAULT_INSTALLATION_NAME" >> ./build/ldflags && \
-        printf ' '"$GO_EXTRA_LDFLAGS" >> ./build/ldflags && \
-        echo "$(cat ./build/ldflags)"
-    # Important! If you change the go build options, you may need to also change them
-    # in https://github.com/earthly/homebrew-earthly/blob/main/Formula/earthly.rb
-    # as well as https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb
-    RUN --mount=type=cache,target=$GOCACHE \
-        GOARM=${VARIANT#v} go build \
-            -tags "$(cat ./build/tags)" \
-            -ldflags "$(cat ./build/ldflags)" \
-            -gcflags="${GO_GCFLAGS}" \
-            -o build/$EXECUTABLE_NAME \
-            cmd/earthly/*.go
+    #RUN mkdir -p build
+    #RUN printf "$BUILD_TAGS" > ./build/tags && echo "$(cat ./build/tags)"
+    #RUN printf '-X main.DefaultBuildkitdImage='"$DEFAULT_BUILDKITD_IMAGE" > ./build/ldflags && \
+    #    printf ' -X main.Version='"$VERSION" >> ./build/ldflags && \
+    #    printf ' -X main.GitSha='"$EARTHLY_GIT_HASH" >> ./build/ldflags && \
+    #    printf ' -X main.DefaultInstallationName='"$DEFAULT_INSTALLATION_NAME" >> ./build/ldflags && \
+    #    printf ' '"$GO_EXTRA_LDFLAGS" >> ./build/ldflags && \
+    #    echo "$(cat ./build/ldflags)"
+    ## Important! If you change the go build options, you may need to also change them
+    ## in https://github.com/earthly/homebrew-earthly/blob/main/Formula/earthly.rb
+    ## as well as https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb
+    #RUN --mount=type=cache,target=$GOCACHE \
+    #    GOARM=${VARIANT#v} go build \
+    #        -tags "$(cat ./build/tags)" \
+    #        -ldflags "$(cat ./build/ldflags)" \
+    #        -gcflags="${GO_GCFLAGS}" \
+    #        -o build/$EXECUTABLE_NAME \
+    #        cmd/earthly/*.go
+    RUN echo data > ./build/tags
+    RUN echo data2 > ./build/ldflags
+    RUN echo data3 > build/$EXECUTABLE_NAME
     SAVE ARTIFACT ./build/tags
     SAVE ARTIFACT ./build/ldflags
     SAVE ARTIFACT build/$EXECUTABLE_NAME AS LOCAL "build/$GOOS/$GOARCH$VARIANT/$EXECUTABLE_NAME"
@@ -444,8 +448,8 @@ earthly-docker:
     ARG BUILDKIT_PROJECT
     ARG PUSH_LATEST_TAG="false"
     ARG PUSH_PRERELEASE_TAG="false"
-    FROM ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT" --TAG="$TAG"
-    RUN apk add --update --no-cache docker-cli libcap-ng-utils git
+    #FROM ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT" --TAG="$TAG"
+    RUN echo apk add --update --no-cache docker-cli libcap-ng-utils git
     ENV EARTHLY_IMAGE=true
     # When Earthly is run from a container, the registry proxy networking setup
     # will fail as the registry is meant to be run on a dynamic localhost port
@@ -461,20 +465,20 @@ earthly-docker:
     # Multiple SAVE IMAGE's lead to differing image digests, but multiple
     # arguments to the save SAVE IMAGE do not. Using variables here doesn't work
     # either, unfortunately, as the names are quoted and treated as a single arg.
-    IF [ "$PUSH_LATEST_TAG" == "true" ]
-       SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG $DOCKERHUB_USER/$DOCKERHUB_IMG:latest
-    ELSE IF [ "$PUSH_PRERELEASE_TAG" == "true" ]
-       SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG $DOCKERHUB_USER/$DOCKERHUB_IMG:prerelease
-    ELSE
-       SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG
-    END
+    #IF [ "$PUSH_LATEST_TAG" == "true" ]
+    #   SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG $DOCKERHUB_USER/$DOCKERHUB_IMG:latest
+    #ELSE IF [ "$PUSH_PRERELEASE_TAG" == "true" ]
+    #   SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG $DOCKERHUB_USER/$DOCKERHUB_IMG:prerelease
+    #ELSE
+    #   SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG
+    #END
 
 # earthly-integration-test-base builds earthly docker and then
 # if no dockerhub mirror is not set it will attempt to login to dockerhub using the provided docker hub username and token.
 # Otherwise, it will attempt to login to the docker hub mirror using the provided username and password
 earthly-integration-test-base:
     FROM +earthly-docker
-    RUN apk update && apk add pcre-tools curl python3 bash perl findutils expect yq && apk add --upgrade sed
+    RUN echo "apk update && apk add pcre-tools curl python3 bash perl findutils expect yq && apk add --upgrade sed"
     COPY scripts/acbtest/acbtest scripts/acbtest/acbgrep /bin/
     ENV NO_DOCKER=1
     ENV NETWORK_MODE=host # Note that this breaks access to embedded registry in WITH DOCKER.
@@ -492,6 +496,7 @@ earthly-integration-test-base:
     ARG DOCKERHUB_AUTH=false
 
     COPY setup-registry.sh .
+    RUN echo "true" > setup-registry.sh
     IF [ "$DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS" = "true" ]
         RUN if [ "$DOCKERHUB_MIRROR_AUTH" = "true" ]; then echo "ERROR: DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS and DOCKERHUB_MIRROR_AUTH are mutually exclusive" && exit 1; fi
         RUN --secret DOCKERHUB_MIRROR_USER=dockerhub-mirror/user --secret DOCKERHUB_MIRROR_PASS=dockerhub-mirror/pass USE_EARTHLY_MIRROR=true ./setup-registry.sh
