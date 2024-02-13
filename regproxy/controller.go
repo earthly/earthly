@@ -175,8 +175,6 @@ func (c *Controller) startDarwinProxy(ctx context.Context, containerName string,
 		}
 	}
 
-	fmt.Println("proxy resolved ok on port", containerPort)
-
 	return containerPort, nil
 }
 
