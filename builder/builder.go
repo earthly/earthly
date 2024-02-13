@@ -188,7 +188,7 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 
 	useProxy, err := useSecondaryProxy()
 	if err != nil {
-		cons.Printf("Failed to check for registry proxy support.")
+		cons.Printf("Failed to check for registry proxy support: %v", err)
 		return nil, false
 	}
 
