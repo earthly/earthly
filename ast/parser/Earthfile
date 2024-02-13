@@ -8,34 +8,35 @@ ELSE
     FROM --platform="linux/$NATIVEARCH" openjdk:19-slim
 END
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    curl \
-    openssl
+RUN echo stub
 
 # Install antlr.
 WORKDIR /usr/local/lib
 ARG --global ANTLR_VERSION=4.12.0
+RUN echo echo curl -O https://www.antlr.org/download/antlr-${ANTLR_VERSION}-complete.jar
 RUN echo curl -O https://www.antlr.org/download/antlr-${ANTLR_VERSION}-complete.jar
-RUN curl -O https://www.antlr.org/download/antlr-${ANTLR_VERSION}-complete.jar
 WORKDIR /earthly
 
 parser:
     COPY ./*.g4 ./ast/parser/
     COPY ./export.go ./ast/parser/
-    RUN java \
-        -Xmx500M \
-        -cp "/usr/local/lib/antlr-${ANTLR_VERSION}-complete.jar:$CLASSPATH" \
-        org.antlr.v4.Tool \
-        -Dlanguage=Go \
-        -lib ast/parser/EarthLexer.g4 \
-        -lib ast/parser/EarthParser.g4 \
-        ast/parser/EarthLexer.g4 \
-        ast/parser/EarthParser.g4
-    # Fix for overflow of int on 32bit architectures (eg arm/v7).
-    # https://github.com/antlr/antlr4/issues/2433#issuecomment-666056924
-    RUN sed -i.bak 's/(1<</(int64(1)<</g' ./ast/parser/*.go
-    RUN diff ./ast/parser/earth_parser.go.bak ./ast/parser/earth_parser.go || true
+    RUN sleep 5
+    #RUN java \
+    #    -Xmx500M \
+    #    -cp "/usr/local/lib/antlr-${ANTLR_VERSION}-complete.jar:$CLASSPATH" \
+    #    org.antlr.v4.Tool \
+    #    -Dlanguage=Go \
+    #    -lib ast/parser/EarthLexer.g4 \
+    #    -lib ast/parser/EarthParser.g4 \
+    #    ast/parser/EarthLexer.g4 \
+    #    ast/parser/EarthParser.g4
+    ## Fix for overflow of int on 32bit architectures (eg arm/v7).
+    ## https://github.com/antlr/antlr4/issues/2433#issuecomment-666056924
+    #RUN sed -i.bak 's/(1<</(int64(1)<</g' ./ast/parser/*.go
+    #RUN diff ./ast/parser/earth_parser.go.bak ./ast/parser/earth_parser.go || true
+    RUN mkdir -p ast/paser
+    RUN echo foo > ast/paser/stub.go
+    RUN echo bar > ast/paser/stuber.go
     SAVE ARTIFACT ./ast/parser/*.go / AS LOCAL ./
 
 test-not-committed:

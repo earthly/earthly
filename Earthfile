@@ -335,7 +335,6 @@ earthly:
     ARG GO_GCFLAGS
     ARG EXECUTABLE_NAME="earthly"
     ARG DEFAULT_INSTALLATION_NAME="earthly-dev"
-    RUN 
     RUN test -n "$GOOS" && test -n "$GOARCH"
     RUN test "$GOARCH" != "arm" || test -n "$VARIANT"
     ARG EARTHLY_TARGET_TAG_DOCKER
@@ -344,6 +343,7 @@ earthly:
     ARG DEFAULT_BUILDKITD_IMAGE=docker.io/earthly/buildkitd:$VERSION # The image needs to be fully qualified for alternative frontend support.
     ARG BUILD_TAGS=dfrunmount dfrunsecurity dfsecrets dfssh dfrunnetwork dfheredoc forceposix
     ARG GOCACHE=/go-cache
+    RUN sleep 4
     #RUN mkdir -p build
     #RUN printf "$BUILD_TAGS" > ./build/tags && echo "$(cat ./build/tags)"
     #RUN printf '-X main.DefaultBuildkitdImage='"$DEFAULT_BUILDKITD_IMAGE" > ./build/ldflags && \
@@ -362,6 +362,7 @@ earthly:
     #        -gcflags="${GO_GCFLAGS}" \
     #        -o build/$EXECUTABLE_NAME \
     #        cmd/earthly/*.go
+    RUN mkdir build
     RUN echo data > ./build/tags
     RUN echo data2 > ./build/ldflags
     RUN echo data3 > build/$EXECUTABLE_NAME
