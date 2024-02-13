@@ -1,0 +1,21 @@
+VERSION 0.8
+
+IMPORT github.com/earthly/earthly-command-example:main
+IMPORT github.com/earthly/earthly-command-example:import AS command-import
+IMPORT github.com/earthly/hello-world:main AS hello-dolly
+
+all:
+    BUILD +test-command
+    BUILD +test-target
+    BUILD +test-command-import
+
+test-command:
+    FROM alpine:3.18
+    DO earthly-command-example+TOUCH --file=foo
+    RUN test -f ./foo
+
+test-target:
+    FROM hello-dolly+hello
+
+test-command-import:
+    DO command-import+FROM_HELLO_WORLD

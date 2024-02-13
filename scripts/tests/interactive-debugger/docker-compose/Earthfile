@@ -1,0 +1,10 @@
+VERSION 0.7
+FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+
+fail-with-docker-compose:
+    WORKDIR /test
+    RUN echo ZTg4Y2MyYjgtYzE3OS00ZWQ3LThlYWUtMjA3YTBlZjc1NDZj > /data.txt
+    COPY docker-compose.yml ./
+    WITH DOCKER --compose=docker-compose.yml
+        RUN false
+    END

@@ -1,0 +1,5 @@
+VERSION 0.8
+FROM alpine:3.18
+
+hello:
+    RUN echo "Z3JlZXRpbmdzCg==" | base64 -d

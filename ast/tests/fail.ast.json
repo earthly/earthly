@@ -1,0 +1,77 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"fail 7b72e024-5e21-4e1b-96e4-655c39876107\"",
+              "|",
+              "base64;",
+              "false"
+            ],
+            "docs": "intentionally cause a failure (this test is to ensure failures are caught)\nThe following needs to be on line number 10.\n",
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-copy",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "./does-not-exist",
+              "./"
+            ],
+            "docs": "The following needs to be on line number 14.\n",
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"Should not be reached\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-push",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--push",
+              "ls",
+              "/this-too-will-fail"
+            ],
+            "docs": "intentionally cause a failure (this test is to ensure failures are caught)\n",
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

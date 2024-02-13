@@ -1,0 +1,224 @@
+VERSION 0.8
+
+FROM alpine:3.18
+WORKDIR /test
+
+all:
+    BUILD +copy-no-exist
+    BUILD +copy-trailing-slash
+    BUILD +copy-existing
+    BUILD +copy-multi-no-exist
+    BUILD +copy-multi-trailing-slash
+    BUILD +copy-multi-existing
+    BUILD +copy-art-no-exist
+    BUILD +copy-art-trailing-slash
+    BUILD +copy-art-existing
+    BUILD +copy-art-multi-no-exist
+    BUILD +copy-art-multi-trailing-slash
+    BUILD +copy-art-multi-existing
+    BUILD +copy-invalid-symlink
+    BUILD +copy-dir-containing-invalid-symlink
+    BUILD +copy-chmod
+
+artifact:
+    COPY --dir in in
+    SAVE ARTIFACT in
+
+copy-no-exist:
+    COPY --dir in copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/root
+copied/sub
+copied/sub/1
+copied/sub/1/file
+copied/sub/2
+copied/sub/2/file
+copied/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-trailing-slash:
+    COPY --dir in copied/
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/in
+copied/in/root
+copied/in/sub
+copied/in/sub/1
+copied/in/sub/1/file
+copied/in/sub/2
+copied/in/sub/2/file
+copied/in/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-existing:
+    RUN mkdir copied
+    COPY --dir in copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/in
+copied/in/root
+copied/in/sub
+copied/in/sub/1
+copied/in/sub/1/file
+copied/in/sub/2
+copied/in/sub/2/file
+copied/in/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-multi-no-exist:
+    COPY --dir in/sub/1 in/sub/2 copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-multi-trailing-slash:
+    COPY --dir in/sub/1 in/sub/2 copied/
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-multi-existing:
+    RUN mkdir copied
+    COPY --dir in/sub/1 in/sub/2 copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art-no-exist:
+    COPY --dir +artifact/in copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/root
+copied/sub
+copied/sub/1
+copied/sub/1/file
+copied/sub/2
+copied/sub/2/file
+copied/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art-trailing-slash:
+    COPY --dir +artifact/in copied/
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/in
+copied/in/root
+copied/in/sub
+copied/in/sub/1
+copied/in/sub/1/file
+copied/in/sub/2
+copied/in/sub/2/file
+copied/in/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art-existing:
+    RUN mkdir copied
+    COPY --dir +artifact/in copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/in
+copied/in/root
+copied/in/sub
+copied/in/sub/1
+copied/in/sub/1/file
+copied/in/sub/2
+copied/in/sub/2/file
+copied/in/sub/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art-multi-no-exist:
+    COPY --dir +artifact/in/sub/1 +artifact/in/sub/2 copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art-multi-trailing-slash:
+    COPY --dir +artifact/in/sub/1 +artifact/in/sub/2 copied/
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-art-multi-existing:
+    RUN mkdir copied
+    COPY --dir +artifact/in/sub/1 +artifact/in/sub/2 copied
+    RUN find copied | sort | tee ./actual
+    RUN echo "copied
+copied/1
+copied/1/file
+copied/2
+copied/2/file" >./expected
+    RUN diff -b ./actual ./expected
+
+copy-invalid-symlink-base:
+    RUN ln -s nonexistenttarget symlink
+    SAVE ARTIFACT --symlink-no-follow symlink
+
+copy-invalid-symlink:
+    COPY --symlink-no-follow +copy-invalid-symlink-base/symlink .
+    RUN ls -la symlink | grep nonexistenttarget
+    RUN ls symlink 2>&1 | grep 'No such file or directory'
+
+copy-dir-containing-invalid-symlink-base:
+    RUN mkdir -p /symlinks
+    RUN mkdir -p /data
+    RUN echo hello > /data/hello.txt
+    RUN ln -s /data/hello.txt /symlinks/symlink
+    SAVE ARTIFACT /symlinks/ /symlinks/
+
+copy-dir-containing-invalid-symlink:
+    COPY --symlink-no-follow +copy-dir-containing-invalid-symlink-base/* /
+    RUN ls -la /symlinks/symlink | grep hello.txt
+    RUN ls /symlinks/symlink 2>&1 | grep 'No such file or directory'
+    RUN mkdir /data
+    RUN echo hi > /data/hello.txt
+    RUN cat /symlinks/symlink | grep -w hi
+
+copy-chmod:
+    RUN echo "no chmod - -rw-r-r-"
+    COPY in/root .
+    RUN echo "./root file-mode=$(stat -c %a ./root)"
+    RUN test "$(stat -c %a ./root)" = "644"
+
+    RUN echo "777 - everyone can RWX"
+    COPY --chmod=777 in/root .
+    RUN echo "./root file-mode=$(stat -c %a ./root)"
+    RUN test "$(stat -c %a ./root)" = "777"
+
+    RUN echo "600 - user can RW"
+    COPY --chmod=600 in/root .
+    RUN echo "./root file-mode=$(stat -c %a ./root)"
+    RUN test "$(stat -c %a ./root)" = "600"
+
+    RUN echo "666 - everyone can RW"
+    COPY --chmod=666 in/root .
+    RUN echo "./root file-mode=$(stat -c %a ./root)"
+    RUN test "$(stat -c %a ./root)" = "666"
+
+copy-empty-src:
+    ARG SRC=""
+    COPY $SRC $SRC
+
+copy-empty-src-if-exists:
+    ARG SRC=""
+    COPY --if-exists $SRC $SRC

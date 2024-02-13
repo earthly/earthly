@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -e
+
+if [ "$1" = "remove" ]; then
+    UNABLE_TO_REMOVE="unable to remove earthly-related docker resources"
+
+    rm -f /usr/share/bash-completion/completions/earthly
+    rm -f /usr/local/share/zsh/site-functions/_earthly
+
+    frontend="${frontend:-$(which docker || which podman || true)}"
+    if [ -z "$frontend" ]; then
+        echo "neither docker nor podman was found; $UNABLE_TO_REMOVE"
+        exit
+    fi
+
+    if ! "$frontend" info 2>/dev/null >/dev/null
+    then
+        echo "unable to query docker/podman daemon; $UNABLE_TO_REMOVE"
+        exit
+    fi
+
+    echo "removing earthly-buildkitd docker/podman container"
+    "$frontend" rm --force earthly-buildkitd
+
+    echo "removing earthly-cache docker/podman volume"
+    "$frontend" volume rm --force earthly-cache
+fi

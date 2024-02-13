@@ -1,0 +1,20 @@
+VERSION 0.8
+IMPORT ./some/subdir AS imported-name
+
+test:
+    FROM alpine
+    RUN ! test -f /this-file-exists-locally
+    DO imported-name+FUNCTION_THAT_SAVES_FILE_LOCALLY
+    RUN test "$(cat data)" = "I am running in /the-test"
+    RUN test -f /this-file-exists-locally
+
+test-other:
+    BUILD ./other/path+test
+
+test-both:
+    BUILD +test
+    BUILD ./other/path+test
+
+test-fails:
+    FROM alpine
+    DO imported-name+FUNCTION_THAT_SAVES_FILE_LOCALLY

@@ -1,0 +1,53 @@
+VERSION 0.8
+FROM alpine:3.18
+WORKDIR /test
+
+all:
+    BUILD +test-env-quoting
+    BUILD +test-env-quoted-backslash
+    BUILD +test-env-unquoted-backslash
+    BUILD +test-multi-line-run-quotes
+    BUILD +test-multi-line-env-quotes
+
+
+test-env-quoting:
+    ENV HI "hello \"world\""
+    RUN test "$HI" = "hello \"world\""
+
+    # validate parsing logic against a precalculated hash
+    RUN echo -n $HI | md5sum - > /actual.md5
+    RUN echo "b25ea0182bf88bf6c47daaf2e4da5cac  -" > /expected.md5
+    RUN diff /actual.md5 /expected.md5
+
+
+test-env-quoted-backslash:
+    ENV BACKSLASH "\\"
+    RUN test "$(echo -n $BACKSLASH | base64)" = "XA=="
+
+
+test-env-unquoted-backslash:
+    ENV BACKSLASH \\
+    RUN test "$(echo -n $BACKSLASH | base64)" = "XA=="
+
+
+test-multi-line-run-quotes:
+    RUN echo -n "a
+b
+c" > /data
+
+    RUN echo "a" > /expected-data
+    RUN echo "b" >> /expected-data
+    RUN echo -n "c" >> /expected-data
+    RUN diff /data /expected-data
+
+
+test-multi-line-env-quotes:
+    ENV ABC="a
+b
+c"
+    RUN echo -n "$ABC" > /data
+
+    RUN echo "a" > /expected-data
+    RUN echo "b" >> /expected-data
+    RUN echo -n "c" >> /expected-data
+    RUN diff /data /expected-data

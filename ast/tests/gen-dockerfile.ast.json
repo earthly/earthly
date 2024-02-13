@@ -1,0 +1,257 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "/test"
+        ],
+        "name": "WORKDIR"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "all",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+test"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-f"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "gen-dockerfile",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"some build context\"",
+              ">",
+              "bc.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"FROM alpine:3.18\"",
+              ">",
+              "Dockerfile"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"COPY bc.txt ./\"",
+              ">>",
+              "Dockerfile"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"RUN cat bc.txt\"",
+              ">>",
+              "Dockerfile"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "'ENTRYPOINT [\"echo\", \"hello world\"]'",
+              ">>",
+              "Dockerfile"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./*"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+gen-dockerfile/"
+            ],
+            "name": "FROM DOCKERFILE"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--entrypoint"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test-gen-dockerfile:latest"
+            ],
+            "name": "SAVE IMAGE"
+          }
+        }
+      ]
+    },
+    {
+      "name": "gen-dockerfile-f",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"FROM alpine:3.18\"",
+              ">",
+              "other.Dockerfile"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"COPY bc.txt ./\"",
+              ">>",
+              "other.Dockerfile"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"RUN cat bc.txt\"",
+              ">>",
+              "other.Dockerfile"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "'ENTRYPOINT [\"echo\", \"hello world\"]'",
+              ">>",
+              "other.Dockerfile"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./other.Dockerfile"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "gen-build-context-f",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"some build context\"",
+              ">",
+              "bc.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./bc.txt"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-f",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "-f",
+              "+gen-dockerfile-f/other.Dockerfile",
+              "+gen-build-context-f/"
+            ],
+            "name": "FROM DOCKERFILE"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--entrypoint"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test-gen-dockerfile:latest"
+            ],
+            "name": "SAVE IMAGE"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

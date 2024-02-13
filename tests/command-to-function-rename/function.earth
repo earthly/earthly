@@ -1,0 +1,9 @@
+VERSION --use-function-keyword 0.7
+
+FUNCTION_THAT_SUCCEEDS:
+    FUNCTION
+    RUN echo hello world
+
+COMMAND_THAT_FAILS:
+    COMMAND
+    RUN echo this should never be printed

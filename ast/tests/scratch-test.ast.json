@@ -1,0 +1,40 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "scratch"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "/"
+            ],
+            "name": "WORKDIR"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "bare"
+            ],
+            "name": "SAVE IMAGE"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

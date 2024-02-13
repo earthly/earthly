@@ -1,0 +1,8 @@
+VERSION 0.6 # do not change to 0.7; this test is for old functionality
+
+test:
+    FROM alpine:3.18
+    ARG key1="apple"
+    ARG key2 = $(invalid-command) # this will fail with --shell-out-anywhere
+    RUN env | grep '^key1=apple$'
+    RUN env | grep '^key2=$'

@@ -1,0 +1,48 @@
+{
+  "baseRecipe": null,
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "alpine:3.18"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)",
+              ">>",
+              "file.txt",
+              "&&",
+              "cat",
+              "file.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "file.txt",
+              "AS",
+              "LOCAL",
+              "file.txt"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

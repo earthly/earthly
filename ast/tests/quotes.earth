@@ -1,0 +1,13 @@
+VERSION 0.8
+FROM "alpine":"3.13"
+
+a:
+    RUN "who""ami"
+
+b:
+    RUN ["echo","hello","world"]
+
+all:
+    BUILD "+""a"
+    BUILD "+"\
+"b"

@@ -1,0 +1,9 @@
+VERSION 0.8
+FROM alpine:3.18
+test:
+    BUILD +intermediate
+    BUILD +intermediate --SOMEARG=abc
+intermediate:
+    BUILD ./subdir+arg-target
+direct:
+    BUILD ./subdir+arg-target --SOMEARG=direct

@@ -1,0 +1,36 @@
+VERSION 0.8
+FROM alpine:3.18
+WORKDIR /test
+
+ARG --global global1=abc
+ARG --global global2=def
+ARG local=ghi
+RUN test "$local" = "ghi"
+
+test-success:
+    BUILD +test-global1
+    BUILD +test-global2
+    BUILD +test-global3
+
+dummy:
+    FROM alpine:3.18
+
+test-global1:
+    RUN test "$global1" == "abc"
+    RUN test "$global2" == "def"
+    RUN test "$local"   == ""
+
+test-global2:
+    FROM alpine:latest
+    RUN test "$global1" == "abc"
+    RUN test "$global2" == "def"
+    RUN test "$local"   == ""
+
+test-global3:
+    FROM +dummy
+    RUN test "$global1" == "abc"
+    RUN test "$global2" == "def"
+    RUN test "$local"   == ""
+
+test-failure:
+    ARG --global global1=123

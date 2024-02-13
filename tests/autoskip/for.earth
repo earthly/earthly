@@ -1,0 +1,20 @@
+VERSION 0.7
+
+PROJECT earthly-technologies/core
+
+FROM alpine
+
+test:
+    FOR idx IN "1 2 3"
+        RUN echo "hello $idx"
+    END
+
+test-vars:
+    ARG vals = \
+        foo \
+        bar \
+        baz \
+        bim
+    FOR idx IN $vals
+        RUN echo "hello $idx"
+    END

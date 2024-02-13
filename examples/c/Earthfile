@@ -1,0 +1,32 @@
+VERSION 0.8
+FROM alpine
+WORKDIR /c-example
+
+deps:
+    RUN apk --update add build-base cmake
+
+build:
+    FROM +deps
+    COPY src src
+    RUN cmake src
+    RUN make
+    SAVE ARTIFACT c-example AS LOCAL c-example
+
+docker:
+    COPY +build/c-example .
+    ENTRYPOINT ["/c-example/c-example"]
+    SAVE IMAGE --push earthly/examples:c
+
+unit-test:
+    FROM +deps
+    RUN apk add cunit-dev
+    COPY src src
+    COPY test test
+    RUN cmake test
+    RUN make
+    RUN ./unit-test
+
+all:
+    BUILD +build
+    BUILD +unit-test
+    BUILD +docker

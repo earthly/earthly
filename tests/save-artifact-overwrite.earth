@@ -1,0 +1,10 @@
+VERSION 0.8
+FROM alpine:3.18
+
+RUN mkdir -p /data/sub
+RUN echo 88716877-039f-4dea-8ec3-84eb64f326c5 > /data/base
+RUN echo ff42c40d-034a-4855-8db7-febfa7322576 > /data/sub/data1
+RUN echo 2b4a653d-cdf6-4574-ac5e-f02bb6993365 > /data/sub/data2
+
+overwrite-root:
+    SAVE ARTIFACT --force /data AS LOCAL /root

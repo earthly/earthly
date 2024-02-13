@@ -1,0 +1,14 @@
+VERSION 0.8
+
+FROM maven:3.8.4-openjdk-17
+WORKDIR /app
+
+package:
+    CACHE /root/.m2
+    COPY --dir src pom.xml .
+    RUN mvn package
+
+docker:
+    FROM +package
+    ENTRYPOINT ["java", "-cp", "target/my-app-1.0-SNAPSHOT.jar", "com.mycompany.app.App"]
+    SAVE IMAGE cache-example-mvn:latest 

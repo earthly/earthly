@@ -1,0 +1,14 @@
+VERSION 0.8
+
+base-image:
+    FROM busybox:1.32.0
+
+get-file:
+    FROM +base-image
+    COPY ./file.txt ./
+    SAVE ARTIFACT ./file.txt file.txt
+
+PRINT:
+    FUNCTION
+    ARG text
+    RUN echo $text

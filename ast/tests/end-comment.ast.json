@@ -1,0 +1,33 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "busybox:1.32.0"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "'Hello, world!'"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+VERSION 0.8
+# This is a smoke test for parsing. We don't actually check that the config was
+# set correctly.
+FROM alpine:3.18
+test:
+    LABEL a=b c=d "e    eee = ee"=fff
+    LABEL x=y
+    LABEL abc.def.ghi=jkl
+    EXPOSE 8080 123/tcp
+    EXPOSE 8081
+    ENTRYPOINT xyz abc
+    ENTRYPOINT ["x1", "x2"]
+    WORKDIR /abc
+    CMD ["/bin/bash", "abc", "def"]
+    CMD /bin/bash abc def
+    VOLUME ["/tmp/earthly", "/another/volume"]
+    VOLUME /tmp/earthly2 /another/volume2
+    HEALTHCHECK NONE
+    HEALTHCHECK CMD true
+    HEALTHCHECK --interval 15s --retries 2 --timeout 45s --start-period 10s --start-interval 3s CMD echo one two three
+    USER jack

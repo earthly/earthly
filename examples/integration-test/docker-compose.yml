@@ -1,0 +1,25 @@
+version: "3"
+
+services:
+
+  postgres:
+    container_name: local-postgres
+    image: aa8y/postgres-dataset:iso3166
+    ports:
+      - 127.0.0.1:5432:5432
+    hostname: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  # http://localhost:8080/?pgsql=postgres&username=postgres&db=postgres&ns=public
+  postgres-ui:
+    container_name: local-postgres-ui
+    image: adminer:latest
+    depends_on:
+      - postgres
+    ports:
+      - 127.0.0.1:8080:8080
+    hostname: postgres-ui
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres

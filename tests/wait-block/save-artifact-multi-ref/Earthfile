@@ -1,0 +1,22 @@
+VERSION 0.8
+
+produce-file:
+    FROM alpine:3.18
+    RUN echo -n 162948536bc2 > data
+    SAVE ARTIFACT data AS LOCAL data
+
+check-file-locally:
+    LOCALLY
+    RUN md5sum data | grep 916bdc548e2b088e8358632b8114a173
+
+test:
+    WAIT
+        FROM +produce-file
+        IF --no-cache sleep 3
+            RUN echo this forces the converter to wait
+        END
+        WAIT
+            BUILD +produce-file # now actually force the local output
+        END
+        BUILD +check-file-locally
+    END

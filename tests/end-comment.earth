@@ -1,0 +1,6 @@
+VERSION 0.8
+FROM busybox:1.32.0
+
+test:
+    RUN echo 'Hello, world!'
+    # problematic comment

@@ -1,0 +1,23 @@
+VERSION 0.8
+FROM golang:1.21-alpine3.18
+RUN apk --update --no-cache add git curl
+WORKDIR /go-example
+
+all:
+  BUILD +lint
+  BUILD +docker
+
+build:
+  COPY main.go .
+  RUN go build -o build/go-example main.go
+  SAVE ARTIFACT build/go-example AS LOCAL build/go-example
+
+lint:
+  RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.1
+  COPY main.go .
+  RUN golangci-lint run main.go
+
+docker:
+  COPY +build/go-example .
+  ENTRYPOINT ["/go-example/go-example"]
+  SAVE IMAGE go-example:latest

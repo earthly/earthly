@@ -1,0 +1,6 @@
+VERSION 0.8
+FROM alpine:3.18
+
+test:
+    RUN printf "test" >file.txt
+    SAVE ARTIFACT file.txt

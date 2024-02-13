@@ -1,0 +1,18 @@
+VERSION 0.8
+
+test-default:
+    FROM ubuntu:22.10
+    RUN --mount=type=cache,sharing=shared,target=/cache-folder \
+    stat -c '%A %n' /cache-folder
+
+test-chmod:
+    FROM ubuntu:22.10
+    ARG mode
+    RUN --mount=type=cache,sharing=shared,chmod=$mode,target=/cache-folder \
+    stat -c '%A %n' /cache-folder
+
+test-mode:
+    FROM ubuntu:22.10
+    ARG mode
+    RUN --mount=type=cache,sharing=shared,mode=$mode,target=/cache-folder \
+    stat -c '%A %n' /cache-folder

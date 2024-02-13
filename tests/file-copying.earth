@@ -1,0 +1,128 @@
+VERSION 0.8
+FROM alpine:3.18
+WORKDIR base
+
+all:
+    BUILD +test-glob
+    BUILD +test-dot
+    BUILD +test-dot-slash
+    BUILD +test-sub
+    BUILD +test-sub-glob
+    BUILD +test-dot-single
+    BUILD +test-rel-single
+    BUILD +test-src-dest-file-rename
+    BUILD +test-src-dest-dir-rename
+
+setup:
+    RUN mkdir sub sub/1 sub/2
+    RUN echo base > base-file && \
+        echo sub > sub/sub-file && \
+        echo 1 > sub/1/1-file && \
+        echo 2 > sub/2/2-file
+    SAVE ARTIFACT ./*
+
+setup-scratch:
+    FROM scratch
+    COPY +setup/* ./
+
+test-dot-scratch:
+    # Note: This is a negative test (should fail).
+    FROM +setup-scratch
+    SAVE ARTIFACT . AS LOCAL out-dot-scratch/
+
+test-glob:
+    FROM +setup
+    SAVE ARTIFACT ./* AS LOCAL out-glob/
+    RUN echo "
+        base-file
+        sub
+        sub/1
+        sub/1/1-file
+        sub/2
+        sub/2/2-file
+        sub/sub-file" > expected
+    SAVE ARTIFACT ./expected AS LOCAL expected-glob
+
+test-dot:
+    FROM +setup
+    SAVE ARTIFACT . AS LOCAL out-dot/
+    RUN echo "
+        base
+        base/base-file
+        base/sub
+        base/sub/1
+        base/sub/1/1-file
+        base/sub/2
+        base/sub/2/2-file
+        base/sub/sub-file" > expected
+    SAVE ARTIFACT ./expected AS LOCAL expected-dot
+
+test-dot-slash:
+    FROM +setup
+    SAVE ARTIFACT ./ AS LOCAL out-dot-slash/
+    RUN echo "
+        base
+        base/base-file
+        base/sub
+        base/sub/1
+        base/sub/1/1-file
+        base/sub/2
+        base/sub/2/2-file
+        base/sub/sub-file" > expected
+    SAVE ARTIFACT ./expected AS LOCAL expected-dot-slash
+
+test-sub:
+    FROM +setup
+    SAVE ARTIFACT ./sub AS LOCAL out-sub/
+    RUN echo "
+        sub
+        sub/1
+        sub/1/1-file
+        sub/2
+        sub/2/2-file
+        sub/sub-file" > expected
+    SAVE ARTIFACT ./expected AS LOCAL expected-sub
+
+test-sub-glob:
+    FROM +setup
+    SAVE ARTIFACT ./sub/* AS LOCAL out-sub-glob/
+    RUN echo "
+        1
+        1/1-file
+        2
+        2/2-file
+        sub-file" > expected
+    SAVE ARTIFACT ./expected AS LOCAL expected-sub-glob
+
+test-dot-single:
+    FROM +setup
+    SAVE ARTIFACT ./sub/sub-file AS LOCAL out-dot-single/
+        RUN echo "
+        sub-file" > expected
+    SAVE ARTIFACT ./expected AS LOCAL expected-dot-single
+
+test-rel-single:
+    FROM +setup
+    SAVE ARTIFACT sub/sub-file AS LOCAL out-rel-single/
+    RUN echo "
+        sub-file" > expected
+    SAVE ARTIFACT ./expected AS LOCAL expected-rel-single
+
+test-src-dest-file-rename:
+    FROM +setup
+    SAVE ARTIFACT sub/sub-file my-dir/my-file AS LOCAL out-src-dest-file-rename/
+    RUN echo "
+        my-file" > expected
+    SAVE ARTIFACT ./expected AS LOCAL expected-src-dest-file-rename
+
+test-src-dest-dir-rename:
+    FROM +setup
+    SAVE ARTIFACT sub my-dir AS LOCAL out-src-dest-dir-rename/
+    RUN echo "
+        my-dir
+        my-dir/1
+        my-dir/1/1-file
+        my-dir/2
+        my-dir/2/2-file
+        my-dir/sub-file" > expected
+    SAVE ARTIFACT ./expected AS LOCAL expected-src-dest-dir-rename

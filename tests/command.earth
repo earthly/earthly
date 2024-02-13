@@ -1,0 +1,121 @@
+VERSION 0.7 # Do not update this to 0.8 (function.earth is used for testing 0.8)
+
+FROM alpine:3.18
+WORKDIR /test
+
+ARG --global global_var=default
+
+all-positive:
+    BUILD +test-basic
+    BUILD +test-remote-no-context
+    BUILD +test-nested
+    BUILD +test-args
+    BUILD +test-recursive
+    BUILD +test-remote-touch
+    BUILD +test-scope
+    BUILD +test-builtin
+    BUILD +test-global-default
+    BUILD +test-global-override
+
+test-basic:
+    DO +TOUCH
+    RUN test -f a.txt
+
+test-remote-no-context:
+    DO github.com/earthly/earthly-command-example:main+COPY_CAT
+    RUN test -f message.txt
+
+test-nested:
+    DO +COMMANDCEPTION
+    RUN test -f a.txt
+
+test-args:
+    DO +COMMAND_ARGS --arg1=foo
+    RUN test -f ./foo
+    RUN ! test -f ./default
+    DO +COMMAND_ARGS
+    RUN test -f ./default
+
+test-recursive:
+    DO +RECURSIVE
+    RUN test -f ./5
+    RUN test -f ./4
+    RUN test -f ./3
+    RUN test -f ./2
+    RUN test -f ./1
+    RUN ! test -f ./0
+
+test-remote-touch:
+    DO github.com/earthly/earthly-command-example:main+TOUCH --file=something
+    RUN test -f ./something
+    RUN ! test -f ./touched
+    DO github.com/earthly/earthly-command-example:main+TOUCH
+    RUN test -f ./touched
+
+test-scope:
+    ARG notincommand=true
+    ENV envincommand=true
+    RUN test "$notincommand" = "true"
+    RUN test "$envincommand" = "true"
+    DO +TEST_SCOPE
+
+test-builtin:
+    DO +TEST_BUILTIN
+
+test-global-default:
+    DO +TOUCH_GLOBAL
+    RUN test -f ./default
+
+test-global-override:
+    DO +TOUCH_GLOBAL --global_var=override
+    RUN test -f ./override
+
+test-function-fails:
+    DO +TEST_FUNCTION_FAILS
+
+TOUCH:
+    COMMAND
+    RUN touch a.txt
+
+COMMANDCEPTION:
+    COMMAND
+    DO +ANOTHER_COMMAND
+
+ANOTHER_COMMAND:
+    COMMAND
+    DO +TOUCH
+
+COMMAND_ARGS:
+    COMMAND
+    ARG arg1=default
+    RUN touch "./$arg1"
+
+RECURSIVE:
+    COMMAND
+    ARG level=5
+    IF [ "$level" -gt "0" ]
+        RUN touch $level
+        ARG newlevel="$(echo $((level-1)))"
+        DO +RECURSIVE --level=$newlevel
+    END
+
+TEST_SCOPE:
+    COMMAND
+    ARG incommand=true
+    RUN test "$incommand" = "true"
+    RUN ! test "$notincommand" = "true"
+    RUN test "$envincommand" = "true"
+
+TEST_BUILTIN:
+    COMMAND
+    ARG EARTHLY_TARGET_NAME
+    RUN test "$EARTHLY_TARGET_NAME" = "test-builtin"
+
+TOUCH_GLOBAL:
+    COMMAND
+    RUN test "$global_var" != ""
+    RUN touch $global_var
+
+TEST_FUNCTION_FAILS:
+    FUNCTION
+    RUN echo this should not be printed

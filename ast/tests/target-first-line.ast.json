@@ -1,0 +1,32 @@
+{
+  "baseRecipe": null,
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "alpine:3.18"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "$MYPATH"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

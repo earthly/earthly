@@ -1,0 +1,57 @@
+VERSION 0.8
+FROM node:13.10.1-alpine3.11
+WORKDIR /js-example
+
+app-deps:
+    COPY ./app/package.json ./
+    COPY ./app/package-lock.json ./
+    RUN npm install
+    # Output these back in case npm install changes them.
+    SAVE ARTIFACT package.json AS LOCAL ./app/package.json
+    SAVE ARTIFACT package-lock.json AS LOCAL ./app/package-lock.json
+
+build-app:
+    FROM +app-deps
+    COPY ./app/src ./app/src
+    RUN mkdir -p ./app/dist && cp ./app/src/index.html ./app/dist/
+    RUN cd ./app && npx webpack
+    SAVE ARTIFACT ./app/dist /dist AS LOCAL ./app/dist
+
+app-docker:
+    FROM +app-deps
+    ARG tag='latest'
+    COPY +build-app/dist ./app/dist
+    EXPOSE 8080
+    ENTRYPOINT ["/js-example/node_modules/http-server/bin/http-server", "./app/dist"]
+    SAVE IMAGE js-example:$tag
+
+api-deps:
+    COPY ./api/package.json ./
+    COPY ./api/package-lock.json ./
+    RUN npm install
+    # Output these back in case npm install changes them.
+    SAVE ARTIFACT package.json AS LOCAL ./api/package.json
+    SAVE ARTIFACT package-lock.json AS LOCAL ./api/package-lock.json
+
+api-docker:
+    FROM +api-deps
+    ARG tag='latest'
+    COPY ./api/server.js .
+    RUN pwd
+    RUN ls
+    EXPOSE 3080
+    ENTRYPOINT ["node", "server.js"]
+    SAVE IMAGE js-api:$tag
+
+integration-tests:
+    FROM earthly/dind:alpine-3.19
+    RUN apk add curl
+    WITH DOCKER \
+        --load app:latest=+app-docker \
+        --load api:latest=+api-docker
+        RUN docker run -d -p 3080:3080 api && \
+            docker run -d -p 8080:8080 app  && \
+            sleep 5 && \
+            curl 0.0.0.0:8080 | grep 'Getting Started' && \
+            curl 0.0.0.0:3080/api/users | grep 'Earth'
+    END

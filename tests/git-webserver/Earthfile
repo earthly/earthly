@@ -1,0 +1,111 @@
+VERSION 0.8
+FROM --pass-args ..+base
+
+# This Earthfile creates a self-signed root CA, adds that CA as a trusted CA, creates a new https cert and signs it with the CA
+# then sets up an https-based git server using nginx; this repo can then be cloned by running
+# "git clone https://testuser:keepitsecret@selfsigned.example.com/repo.git"
+
+
+# certs generates a root CA and SSL cert for the host "selfsigned.example.com"
+certs:
+    RUN apk add --update --no-cache openssl
+
+    # create a selfsigned CA
+    RUN openssl genrsa -out /root/selfsigned-ca.key 2048
+    RUN openssl req -x509 -new -nodes -key /root/selfsigned-ca.key -days 9999 \
+        -out /usr/local/share/ca-certificates/SelfSigned_Root_CA.crt -subj "/CN=test-ca"
+    RUN update-ca-certificates
+
+    RUN echo "
+[req]
+req_extensions = v3_req
+distinguished_name = req_distinguished_name
+[req_distinguished_name]
+[ v3_req ]
+basicConstraints = CA:FALSE
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage = clientAuth, serverAuth
+" > /root/openssl.config
+
+    # create an ssl cert
+    RUN openssl genrsa -out /root/selfsigned-example-com.key 2048
+
+    RUN openssl req -new -key /root/selfsigned-example-com.key -out /root/selfsigned-example-com.csr \
+        -subj "/CN=selfsigned.example.com" -config /root/openssl.config
+
+    RUN openssl x509 -req -in /root/selfsigned-example-com.csr -CA /etc/ssl/certs/ca-cert-SelfSigned_Root_CA.pem \
+        -CAkey /root/selfsigned-ca.key -CAcreateserial -out /root/selfsigned-example-com.pem \
+        -days 9999 -extensions v3_req -extfile /root/openssl.config
+
+    SAVE ARTIFACT /etc/ssl/certs/ca-cert-SelfSigned_Root_CA.pem SelfSigned_Root_CA.pem
+    SAVE ARTIFACT /root/selfsigned-example-com.pem selfsigned-example-com.pem
+    SAVE ARTIFACT /root/selfsigned-example-com.key selfsigned-example-com.key
+
+# server creates a https-based git server using nginx; this repo can then be cloned by running
+# "git clone https://testuser:keepitsecret@selfsigned.example.com/repo.git"
+# the server must first be started by running "/bin/start-nginx-with-git" which will also
+# update the /etc/hosts with an entry for "selfsigned.example.com" pointing to 127.0.0.1
+server:
+    RUN apk add --update --no-cache nginx openssl curl git-daemon fcgiwrap spawn-fcgi
+
+    # import self-signed CA cert
+    COPY +certs/SelfSigned_Root_CA.pem /usr/local/share/ca-certificates/SelfSigned_Root_CA.crt
+    RUN update-ca-certificates
+
+    # import signed https cert and key
+    COPY +certs/selfsigned-example-com.pem /root/selfsigned-example-com.pem
+    COPY +certs/selfsigned-example-com.key /root/selfsigned-example-com.key
+
+    RUN mkdir -p /var/git/repos
+    RUN git init --bar /var/git/repos/repo.git
+    RUN chown -R nginx:nginx /var/git/repos
+
+    # setup basic http auth for user=testuser; password=keepitsecret; which will be used to support authenticating
+    # requests to https://testuser:keepitsecret@selfsigned.example.com
+
+    COPY nginx.conf /root/nginx.conf
+    ARG ENABLE_BASIC_AUTH="true"
+    IF [ "$ENABLE_BASIC_AUTH" = "true" ]
+        RUN echo "testuser:{SHA}16usTToGj2dhTan3gF5/aToe4Ro=" > /var/git/htpasswd
+    ELSE
+        RUN cat /root/nginx.conf | grep -v auth_basic > /root/nginx.conf.tmp && mv /root/nginx.conf.tmp /root/nginx.conf
+    END
+    RUN echo "set -e
+# Docker creates /etc/hosts as readonly; we must unmount it first
+# before we can update it; this change WILL not stick around between different RUNs
+# furthermore, we must execute this script with RUN --privileged
+cp /etc/hosts /tmp/hosts
+umount /etc/hosts
+cp /tmp/hosts /etc/hosts
+if ! grep selfsigned /etc/hosts 2>/dev/null; then
+    echo -e \"127.0.0.1\tselfsigned.example.com\" >> /etc/hosts
+fi
+
+spawn-fcgi -u nginx -s /var/run/fcgi.sock /usr/bin/fcgiwrap && \
+nginx -c /root/nginx.conf
+" > /bin/start-nginx-with-git && chmod +x /bin/start-nginx-with-git
+
+    RUN --privileged start-nginx-with-git && \ # starts in background
+        mkdir -p /test/repo && \
+        cd /test/repo && \
+        git init --initial-branch=main . && \
+        echo -e "VERSION 0.8\nFROM alpine:3.18\nhello:\n\tRUN echo -n 98e15fb5-197c-43bf-886e-3291e65d646e | base64" > Earthfile && \
+        git add Earthfile && \
+        git config --global user.email "onlyspammersemailthis@earthly.dev" && \
+        git config --global user.name "test name" && \
+        git commit -m "An Earthfile to test against" && \
+        if [ "$ENABLE_BASIC_AUTH" = "true" ]; then \
+            git remote add origin https://testuser:keepitsecret@selfsigned.example.com/repo.git; \
+        else \
+            git remote add origin https://selfsigned.example.com/repo.git; \
+        fi && \
+        git push --set-upstream origin main && \
+        cd .. && \
+        rm -rf repo # remove this repo dir now that it has been pushed to the server
+
+# server-with-user-directory is similar to server, but is cloned via
+# "git clone https://testuser:keepitsecret@selfsigned.example.com/testuser/repo.git"
+server-with-user-directory:
+    FROM +server
+    RUN mkdir /var/git/repos/testuser
+    RUN mv /var/git/repos/repo.git /var/git/repos/testuser/.

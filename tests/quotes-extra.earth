@@ -1,0 +1,17 @@
+VERSION 0.8
+
+FROM alpine
+
+test:
+    RUN echo '"' > data
+    RUN echo "'" >> data
+    RUN echo $(echo '"') >> data
+    RUN echo $(echo "'") >> data
+    RUN echo $(echo "\"") >> data
+    ARG a=$( echo $(echo '"'))
+    ARG b=$( echo $(echo "'"))
+    ARG c=$( echo $(echo "\""))
+    RUN env | grep ^a=.*$ >> data
+    RUN env | grep ^b=.*$ >> data
+    RUN env | grep ^c=.*$ >> data
+    SAVE ARTIFACT data AS LOCAL actual

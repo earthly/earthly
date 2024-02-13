@@ -1,0 +1,20 @@
+VERSION 0.8
+FROM openjdk:8-jdk-alpine
+RUN apk add --update --no-cache gradle
+WORKDIR /java-example
+
+build:
+    FROM ./services/service-one+deps
+    # Or, using the IMPORT above: FROM my-service+deps
+    COPY src src
+    RUN gradle build
+    RUN gradle install
+    SAVE ARTIFACT build/install/java-example/bin AS LOCAL build/bin
+    SAVE ARTIFACT build/install/java-example/lib AS LOCAL build/lib
+
+docker:
+    COPY +build/bin bin
+    COPY +build/lib lib
+    ARG tag='latest'
+    ENTRYPOINT ["/java-example/bin/java-example"]
+    SAVE IMAGE java-example:$tag

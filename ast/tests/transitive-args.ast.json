@@ -1,0 +1,90 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+intermediate"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+intermediate",
+              "--SOMEARG=abc"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "intermediate",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+arg-target"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "arg-target",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "SOMEARG",
+              "=",
+              "default"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"$SOMEARG\"",
+              ">file.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "file.txt",
+              "AS",
+              "LOCAL",
+              "\"$SOMEARG\""
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

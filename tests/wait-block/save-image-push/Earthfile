@@ -1,0 +1,28 @@
+VERSION 0.8
+
+myimg:
+    FROM alpine:3.18
+    RUN echo NWMyMTQ2YjctZGFlNS00YzQ5LWE1MTktNDM2Zjc4YzNkNzAwCg== > /special-data
+    RUN sleep 5 # increase the likelihood of +check-tag-exists to run in the event the WAIT/END code fails to block
+    ARG --required REGISTRY
+    ARG --required tag
+    SAVE IMAGE --push $REGISTRY/myuser/myimg:$tag
+
+deps:
+    FROM alpine:3.18
+    RUN apk add curl jq
+
+check-tag-exists:
+    FROM +deps
+    ARG --required REGISTRY
+    ARG --required tag
+    RUN curl -k "https://$REGISTRY/v2/myuser/myimg/manifests/$tag" > output && \
+        test "$(cat output | jq -r .tag)" = "$tag" && echo "verified $tag was pushed 🎉"
+
+test:
+    ARG --required REGISTRY
+    ARG --required tag
+    WAIT
+        BUILD +myimg --REGISTRY=$REGISTRY --tag=$tag
+    END
+    BUILD +check-tag-exists --REGISTRY=$REGISTRY --tag=$tag

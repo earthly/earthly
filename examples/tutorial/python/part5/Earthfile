@@ -1,0 +1,14 @@
+VERSION 0.8
+FROM python:3
+WORKDIR /code
+
+build:
+    FROM ./services/service-one+deps
+    COPY src src
+    SAVE ARTIFACT src /src
+
+docker:
+    FROM +build
+    ARG tag='latest'
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    SAVE IMAGE python-example:$tag

@@ -1,0 +1,5 @@
+global:
+    disable_analytics: true
+git:
+    example.com:
+        password: hunter2

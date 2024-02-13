@@ -1,0 +1,19 @@
+VERSION 0.8
+FROM alpine:3.18
+
+empty:
+
+test:
+    RUN true
+
+empty-with-comment:
+    # comment
+
+test2:
+    RUN true
+
+empty-tight:
+test3:
+    RUN true
+
+eof:

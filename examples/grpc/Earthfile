@@ -1,0 +1,49 @@
+VERSION 0.8
+FROM node:13.10.1-alpine3.11
+
+WORKDIR /example-grpc
+
+# This example shows how to use earthly to compile a protobuf grpc definition
+# into protobuf code for both a Go-based server, and a python-based client.
+#
+# This example spans 5 different git repositories, each containing an Earthfile:
+#
+# 1) https://github.com/earthly/earthly-example-proto
+# This repository contains the api.proto definition along with an Earthfile
+# which installs the various protoc tools required to generate the go, python,
+# and ruby code.
+#
+# 2) https://github.com/earthly/earthly-example-proto-server
+# This repository contains a server written in go along with an Earthfile
+# that pulls in the auto-generated go code from repo 1.
+#
+# 3) https://github.com/earthly/earthly-example-proto-python-client
+# This repository contains a client written in python along with an Earthfile
+# that pulls in the auto-generated python code from repo 1.
+#
+# 4) https://github.com/earthly/earthly-example-proto-ruby-client
+# This repository contains a client written in ruby along with an Earthfile
+# that pulls in the auto-generated python code from repo 1.
+
+# 5) finally, in this Earthfile, we pull in both the server and client docker
+# images, and perform a basic integration test where we:
+#   a) start up the server,
+#   b) store the value "salmon" under the key "fish"
+#   c) retrieve the stored value for "fish" and tests the returned value
+#      is "salmon",
+#   d) retrieves the stored value using the ruby client, and also tests
+#      the returned value is "salmon".
+
+test:
+    FROM earthly/dind:alpine-3.19
+    WITH DOCKER \
+        --load kvserver:latest=github.com/earthly/earthly-example-proto-server:main+kvserver-docker \
+        --load kv-py-client:latest=github.com/earthly/earthly-example-proto-python-client:main+kvclient-docker \
+        --load kv-rb-client:latest=github.com/earthly/earthly-example-proto-ruby-client:main+kv-ruby-client-docker \
+        --platform linux/amd64 # Ruby and Python(evidence suggests?) seem to have a hard time building in Docker on M1. https://github.com/grpc/grpc/issues/26664
+        RUN --mount=type=cache,target=/go/pkg \
+            docker run --name server --network=host -d kvserver:latest && \
+            docker run --name client1 --network=host kv-py-client:latest python3 client.py fish=salmon && \
+            docker run --name client2 --network=host kv-py-client:latest python3 client.py fish | grep salmon && \
+            docker run --name client3 --network=host kv-rb-client:latest ruby client.rb fish | grep salmon
+    END

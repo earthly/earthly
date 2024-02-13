@@ -1,0 +1,20 @@
+debug = ${BUILDKIT_DEBUG}
+root = "${BUILDKIT_ROOT_DIR}"
+insecure-entitlements = [ "security.insecure" ]
+
+${TCP_TRANSPORT}
+${PPROF_SETTINGS}
+${TLS_ENABLED}
+
+[worker.oci]
+  enabled = true
+  snapshotter = "auto"
+  max-parallelism = ${BUILDKIT_MAX_PARALLELISM}
+  gc = true
+  networkMode = "${NETWORK_MODE}"
+  cniBinaryPath = "/usr/libexec/cni"
+  cniConfigPath = "/etc/cni/cni-conf.json"
+  ${CACHE_DURATION_SETTINGS}
+  ${CACHE_SETTINGS}
+
+${EARTHLY_ADDITIONAL_BUILDKIT_CONFIG}

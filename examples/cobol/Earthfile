@@ -1,0 +1,23 @@
+VERSION 0.8
+FROM ubuntu:20.04
+
+## for apt to be noninteractive
+ENV DEBIAN_FRONTEND noninteractive
+ENV DEBCONF_NONINTERACTIVE_SEEN true
+
+RUN apt-get update && apt-get install -y gnucobol
+
+WORKDIR /code
+
+code:
+  COPY fibonacci.cob .
+
+build:
+  FROM +code
+  RUN cobc -x fibonacci.cob
+  SAVE ARTIFACT fibonacci AS LOCAL "fibonacci"
+
+docker:
+  COPY +build/fibonacci /bin/fibonacci
+  ENTRYPOINT ["/bin/fibonacci"]
+  SAVE IMAGE --push earthly/examples:cobol

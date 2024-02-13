@@ -1,0 +1,20 @@
+VERSION 0.7
+FROM alpine:latest
+
+generate-github-tasks:
+    LOCALLY # this was used since COPY ../../../.github/workflows/ci.yml didn't work (perhaps because it matches ".git")
+    RUN set -e; \
+        > /tmp/earthly-6b4acf13-2ef9-4008-9e64-a369b0eedc4a.steps; \
+        for f in $(ls -1 test-*.sh | sort -n); do \
+            echo "      - name: run $f" >> /tmp/earthly-6b4acf13-2ef9-4008-9e64-a369b0eedc4a.steps; \
+            echo "        run: env earthly=./build/linux/amd64/earthly scripts/tests/auth/$f" >> /tmp/earthly-6b4acf13-2ef9-4008-9e64-a369b0eedc4a.steps; \
+        done; \
+        ls -lah ../../../.github/workflows/ci.yml; \
+        START=$(grep -n '# auto-generated-entries start' ../../../.github/workflows/ci.yml | awk -F ':' '{print $1}'); \
+        END=$(grep -n '# auto-generated-entries end' ../../../.github/workflows/ci.yml | awk -F ':' '{print $1}'); \
+        test -n "$START"; \
+        test -n "$END"; \
+        head -n "$START" ../../../.github/workflows/ci.yml > /tmp/earthly-6b4acf13-2ef9-4008-9e64-a369b0eedc4a.ci; \
+        cat /tmp/earthly-6b4acf13-2ef9-4008-9e64-a369b0eedc4a.steps >> /tmp/earthly-6b4acf13-2ef9-4008-9e64-a369b0eedc4a.ci; \
+        tail -n "+$END" ../../../.github/workflows/ci.yml >> /tmp/earthly-6b4acf13-2ef9-4008-9e64-a369b0eedc4a.ci; \
+        mv /tmp/earthly-6b4acf13-2ef9-4008-9e64-a369b0eedc4a.ci ../../../.github/workflows/ci.yml

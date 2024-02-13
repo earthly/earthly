@@ -1,0 +1,11 @@
+VERSION 0.8
+FROM alpine:3.18
+push-test:
+    ARG EARTHLY_PUSH
+    RUN test "$EARTHLY_PUSH" = "true" || test "$EARTHLY_PUSH" = "false"
+    RUN (if [ "$EARTHLY_PUSH" = "true" ]; then echo UHVzaCBpdCByZWFsIGdvb2Q=; else echo U2hvb3Agc2hvb3AgYmEtZG9vcA==; fi) | base64 -d | tee chorus
+    SAVE ARTIFACT chorus
+
+indirect-test:
+    COPY +push-test/chorus .
+    RUN --no-cache cat chorus

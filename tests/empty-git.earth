@@ -1,0 +1,43 @@
+VERSION 0.8
+
+FROM alpine:3.18
+
+test-empty:
+    ARG EARTHLY_TARGET_PROJECT
+    ARG EARTHLY_TARGET
+    ARG EARTHLY_TARGET_NAME
+    ARG EARTHLY_TARGET_TAG
+    ARG EARTHLY_GIT_HASH
+    ARG EARTHLY_GIT_ORIGIN_URL
+    ARG EARTHLY_GIT_PROJECT_NAME
+    RUN echo "project=$EARTHLY_TARGET_PROJECT"
+    RUN echo "target=$EARTHLY_TARGET"
+    RUN echo "target name=$EARTHLY_TARGET_NAME"
+    RUN echo "target tag=$EARTHLY_TARGET_TAG"
+    RUN echo "git hash=$EARTHLY_GIT_HASH"
+    RUN echo "git origin url=$EARTHLY_GIT_ORIGIN_URL"
+    RUN echo "git project=$EARTHLY_GIT_PROJECT_NAME"
+    RUN test "$EARTHLY_TARGET" == "+test-empty"
+    RUN test "$EARTHLY_TARGET_NAME" == "test-empty"
+
+test-origin-no-hash:
+    ARG EARTHLY_TARGET_PROJECT
+    ARG EARTHLY_TARGET
+    ARG EARTHLY_TARGET_NAME
+    ARG EARTHLY_TARGET_TAG
+    ARG EARTHLY_GIT_HASH
+    ARG EARTHLY_GIT_ORIGIN_URL
+    ARG EARTHLY_GIT_PROJECT_NAME
+    RUN echo "project=$EARTHLY_TARGET_PROJECT"
+    RUN echo "target=$EARTHLY_TARGET"
+    RUN echo "target name=$EARTHLY_TARGET_NAME"
+    RUN echo "target tag=$EARTHLY_TARGET_TAG"
+    RUN echo "git hash=$EARTHLY_GIT_HASH"
+    RUN echo "git origin url=$EARTHLY_GIT_ORIGIN_URL"
+    RUN echo "git project=$EARTHLY_GIT_PROJECT_NAME"
+    RUN test "$EARTHLY_TARGET" == "github.com/earthly/earthly+test-origin-no-hash"
+    RUN test "$EARTHLY_TARGET_PROJECT" == "github.com/earthly/earthly"
+    RUN test "$EARTHLY_TARGET_NAME" == "test-origin-no-hash"
+    RUN test "$EARTHLY_GIT_ORIGIN_URL" == "https://github.com/earthly/earthly.git"
+    RUN test "$EARTHLY_GIT_PROJECT_NAME" == "earthly/earthly"
+    RUN test "$EARTHLY_GIT_HASH" == ""

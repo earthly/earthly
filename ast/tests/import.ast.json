@@ -1,0 +1,126 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "github.com/earthly/earthly-command-example:main"
+        ],
+        "name": "IMPORT"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "github.com/earthly/earthly-command-example:import",
+          "AS",
+          "command-import"
+        ],
+        "name": "IMPORT"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "github.com/earthly/hello-world:main",
+          "AS",
+          "hello-dolly"
+        ],
+        "name": "IMPORT"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "all",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+test-command"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-target"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-command-import"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-command",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "alpine:3.18"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "earthly-command-example+TOUCH",
+              "--file=foo"
+            ],
+            "name": "DO"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "./foo"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-target",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "hello-dolly+hello"
+            ],
+            "name": "FROM"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-command-import",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "command-import+FROM_HELLO_WORLD"
+            ],
+            "name": "DO"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

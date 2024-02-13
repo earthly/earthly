@@ -1,0 +1,10 @@
+VERSION 0.8
+
+ARG foo = bar
+
+# Declaring a global after a non-global is unsupported because we consider
+# non-global ARGs to have higher precedence. At least right now, this would have
+# very confusing results - so we explicitly error in this case.
+ARG --global foo = baz
+
+RUN echo $foo

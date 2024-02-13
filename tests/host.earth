@@ -1,0 +1,26 @@
+VERSION 0.8
+
+FROM alpine:3.18
+
+add-single-host:
+    HOST example.com 1.2.3.4
+    RUN cat /etc/hosts | grep "1.2.3.4\W*example.com"
+
+add-multiple-host:
+    HOST example.com 1.2.3.4
+    HOST taco.org 5.6.7.8
+    RUN cat /etc/hosts | grep "1.2.3.4\W*example.com"
+    RUN cat /etc/hosts | grep "5.6.7.8\W*taco.org"
+
+add-ipv6:
+    HOST cool.website dead:beef::cafe
+    RUN cat /etc/hosts | grep "dead:beef::cafe\W*cool.website"
+
+invalid-ip:
+    HOST example.com 1.2.3.4.5.6.7.8.9.10
+
+only-host:
+    HOST my.website
+
+only-ip:
+    HOST 42.42.42.42

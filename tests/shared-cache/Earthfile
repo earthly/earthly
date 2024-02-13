@@ -1,0 +1,8 @@
+VERSION 0.8
+FROM alpine:3.18
+
+test:
+    WAIT
+      RUN --secret content --mount=type=cache,target=/cache-test,id=cacheid echo "$content">/cache-test/test.txt
+    END
+    BUILD ./lib1+check

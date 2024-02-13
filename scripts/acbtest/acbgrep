@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -e
+if [ "$#" = "1" ]; then
+  inp="$(cat)"
+  set +e
+  echo "$inp" | grep "$@"
+  status=$?
+  set -e
+else
+  set +e
+  grep "$@"
+  status=$?
+  set -e
+fi
+if [ "$status" -ne 0 ]; then
+  if [ -n "$inp" ] && [ -z "$ACBGREP_NO_ECHO" ]; then
+    echo >&2 "$inp"
+  fi
+  echo >&2 -n 2>&1 "grep "
+  for var in "$@"; do
+    echo >&2 -n 2>&1 "${var@Q} "
+  done
+  echo >&2 "failed"
+fi
+exit $status

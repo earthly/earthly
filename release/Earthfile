@@ -1,0 +1,242 @@
+VERSION 0.8
+PROJECT earthly-technologies/core
+FROM alpine:3.18
+
+RUN apk add --update --no-cache \
+    curl python3 py3-requests
+
+release:
+    COPY ensure_gha_passing.py /bin/ensure_gha_passing
+    ARG EARTHLY_GIT_HASH
+    ARG --required RELEASE_TAG
+    ARG SKIP_GHA_CHECK
+    ARG PRERELEASE="false"
+    IF --no-cache test -n "$SKIP_GHA_CHECK" || ensure_gha_passing --sha $EARTHLY_GIT_HASH
+        BUILD +release-dockerhub --RELEASE_TAG="$RELEASE_TAG"
+        BUILD +release-github --RELEASE_TAG="$RELEASE_TAG" --PRERELEASE="$PRERELEASE"
+    ELSE
+        RUN echo "github status check failed; to force the release without performing this check, set --build-arg SKIP_GHA_CHECK=1"
+    END
+
+release-dind:
+    ARG DOCKERHUB_USER="earthly"
+    BUILD ../+all-dind \
+        --INCLUDE_TARGET_TAG_DOCKER=false \
+        --DOCKERHUB_USER="$DOCKERHUB_USER"
+
+release-dockerhub:
+    ARG --required RELEASE_TAG
+    ARG DOCKERHUB_USER="earthly"
+    ARG DOCKERHUB_IMG="earthly"
+    ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
+    ARG PUSH_LATEST_TAG="false"
+    ARG PUSH_PRERELEASE_TAG="false"
+    BUILD +perform-release-dockerhub \
+          --RELEASE_TAG="$RELEASE_TAG" \
+          --DOCKERHUB_USER="$DOCKERHUB_USER" \
+          --DOCKERHUB_IMG="$DOCKERHUB_IMG" \
+          --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG" \
+          --PUSH_LATEST_TAG="$PUSH_LATEST_TAG" \
+          --PUSH_PRERELEASE_TAG="$PUSH_PRERELEASE_TAG"
+
+perform-release-dockerhub:
+    ARG --required RELEASE_TAG
+    ARG PUSH_LATEST_TAG="false"
+    ARG PUSH_PRERELEASE_TAG="false"
+    ARG DOCKERHUB_USER="earthly"
+    ARG DOCKERHUB_IMG="earthly"
+    ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm64 \
+        ../+earthly-docker \
+        --TAG="$RELEASE_TAG" \
+        --DOCKERHUB_USER="$DOCKERHUB_USER" \
+        --DOCKERHUB_IMG="$DOCKERHUB_IMG" \
+        --PUSH_LATEST_TAG="$PUSH_LATEST_TAG" \
+        --PUSH_PRERELEASE_TAG="$PUSH_PRERELEASE_TAG"
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm64 \
+        ../buildkitd+buildkitd \
+        --TAG="$RELEASE_TAG" \
+        --DOCKERHUB_USER="$DOCKERHUB_USER" \
+        --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
+
+release-notes:
+    FROM ..+changelog-parser
+    ARG --required RELEASE_TAG
+    RUN changelogparser --changelog CHANGELOG.md --version "$RELEASE_TAG" > notes.txt
+    ARG SKIP_CHANGELOG_DATE_TEST="false"
+    IF [ "$SKIP_CHANGELOG_DATE_TEST" != "true" ]
+        RUN --no-cache test "$(changelogparser --changelog CHANGELOG.md --version "$RELEASE_TAG" --date)" = "$(date "+%Y-%m-%d")"
+    END
+    SAVE ARTIFACT notes.txt
+
+release-github:
+    FROM node:16.16.0-alpine3.15
+    RUN apk add file curl jq git gpg gpg-agent
+    RUN apk add --update --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing hub
+    RUN npm install -g github-release-cli@v1.3.1
+    WORKDIR /earthly
+    ARG --required RELEASE_TAG
+    ARG GITHUB_USER="earthly"
+    ARG EARTHLY_REPO="earthly"
+    ARG DOCKERHUB_HOST="docker.io"
+    ARG DOCKERHUB_USER="earthly"
+    ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
+    ARG PRERELEASE="false"
+    ARG EARTHLY_GIT_HASH
+    RUN test -n "$EARTHLY_GIT_HASH"
+    COPY +release-notes/notes.txt release-notes.txt
+    COPY (../+earthly-all/* \
+         --VERSION=$RELEASE_TAG \
+         --DEFAULT_BUILDKITD_IMAGE="$DOCKERHUB_HOST/$DOCKERHUB_USER/$DOCKERHUB_BUILDKIT_IMG:$RELEASE_TAG" \
+         --DEFAULT_INSTALLATION_NAME="earthly" \
+         ) ./release/
+    RUN ls ./release
+    RUN test -f ./release/earthly-linux-amd64 && \
+        test -f ./release/earthly-darwin-amd64 && \
+        test -f ./release/earthly-darwin-arm64 && \
+        test -f ./release/earthly-linux-arm64 && \
+        test -f ./release/earthly-windows-amd64.exe
+    RUN file ./release/earthly-linux-amd64 | grep "x86-64"
+    RUN file ./release/earthly-linux-amd64 | grep "ELF 64-bit"
+    RUN file ./release/earthly-darwin-amd64 | grep "Mach-O 64-bit x86_64"
+    RUN file ./release/earthly-darwin-arm64 | grep "Mach-O 64-bit arm64"
+    RUN file ./release/earthly-linux-arm64 | grep "aarch64"
+    RUN file ./release/earthly-linux-arm64 | grep "ELF 64-bit"
+    RUN file ./release/earthly-windows-amd64.exe | grep "PE32"
+
+    RUN \
+        --mount type=secret,id=release/keys/earthly-private.pgp,target=/release-key/earthly-private.pgp \
+        gpg --import /release-key/earthly-private.pgp && \
+        cd release && sha256sum earthly-* > checksum && \
+        cat checksum | gpg --default-key earthly-apt -abs --clearsign --no-emit-version > checksum.asc && rm checksum
+
+    # Defensive check against accidentally copying private key into release directory
+    RUN if grep -R "BEGIN PGP PRIVATE KEY BLOCK" *; then echo "private key was leaked" && exit 1; fi
+
+    # TODO: at this point, we should run (some of?) the binaries through
+    # end-to-end or acceptance tests. This would guarantee that the release
+    # binaries pass our tests. Right now, all we guarantee is that we built our
+    # release binaries from a commit that passed our tests, which has caused
+    # some bugs in the past.
+    #
+    # This may require work on the "variable types" proposal so that we can pass
+    # our artifacts to our test targets.
+    FOR release IN linux-amd64 linux-arm64 darwin-amd64 darwin-arm64 windows-amd64.exe
+        RUN grep "$DOCKERHUB_HOST/$DOCKERHUB_USER/$DOCKERHUB_BUILDKIT_IMG:$RELEASE_TAG" ./release/earthly-$release
+    END
+
+    ARG GITHUB_SECRET_PATH="littleredcorvette-github-token"
+    RUN --push \
+        --secret GITHUB_TOKEN="$GITHUB_SECRET_PATH" \
+        set -e; \
+        # test github token works
+        test -n "$GITHUB_TOKEN"; \
+        curl -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/user" | jq -r .login > /tmp/authenticated.github.user; \
+        if [ "$(cat /tmp/authenticated.github.user)" = "null" ]; then \
+          echo "failed to authenticate; check your git token"; \
+          exit 1; \
+        fi; \
+        # first delete any previously released files (needed in case the previous upload attempt failed)
+        PREV_RELEASE_ID=$(curl -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$GITHUB_USER/$EARTHLY_REPO/releases/tags/$RELEASE_TAG" | jq .id); \
+        if [ -n "$PREV_RELEASE_ID" ] && [ "$PREV_RELEASE_ID" != "null" ]; then \
+          echo "deleting previous release ID $PREV_RELEASE_ID"; \
+          curl -H "Authorization: token $GITHUB_TOKEN" --request DELETE "https://api.github.com/repos/$GITHUB_USER/$EARTHLY_REPO/releases/$PREV_RELEASE_ID"; \
+        fi; \
+        # next make sure any previous tag is deleted (otherwise github will create an untagged release name vX.Y.Z)
+        curl -H "Authorization: token $GITHUB_TOKEN" --request DELETE "https://api.github.com/repos/$GITHUB_USER/$EARTHLY_REPO/git/refs/tags/$RELEASE_TAG"; \
+        # next, upload binaries
+        github-release upload \
+        --owner "$GITHUB_USER" \
+        --repo "$EARTHLY_REPO" \
+        --prerelease "$PRERELEASE" \
+        --commitish "$EARTHLY_GIT_HASH" \
+        --tag "$RELEASE_TAG" \
+        --name "$RELEASE_TAG" \
+        --body "$(cat release-notes.txt)" \
+        ./release/* 2>&1 | tee /tmp/release.log && \
+        if grep -i "already_exists" /tmp/release.log > /dev/null; then \
+          echo "ERROR: github-release upload failed: file already exists -- you must delete if from github before proceeding" && exit 1; \
+        fi; \
+        if grep -i "tag_name is not a valid tag" /tmp/release.log > /dev/null; then \
+          echo "ERROR: github-release upload failed: tag_name is not a valid tag (it could be that the branch you are releasing does not exist on $GITHUB_USER/$EARTHLY_REPO)"; \
+          echo "you might need to do a git push $GITHUB_USER $EARTHLY_GIT_HASH:main (assuming you are not doing a prod release)"; \
+          exit 1; \
+        fi; \
+        if grep -i error /tmp/release.log > /dev/null; then \
+          echo "ERROR: github-release upload failed: check the above release.log output" && exit 1; \
+        fi
+
+
+release-homebrew:
+    RUN apk add --update --no-cache \
+        bash \
+        bash-completion \
+        binutils \
+        ca-certificates \
+        coreutils \
+        curl \
+        findutils \
+        g++ \
+        git \
+        grep \
+        less \
+        make \
+        openssl \
+        openssh \
+        util-linux
+    RUN apk add --update --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing hub
+
+    # Deps and preconditions.
+    ARG --required RELEASE_TAG
+    ARG GIT_USERNAME="littleredcorvette"
+    ARG GIT_NAME="littleredcorvette"
+    ARG GIT_EMAIL="littleredcorvette@users.noreply.github.com"
+    ARG --required GITHUB_USER
+    ARG --required BREW_REPO
+    ARG --required EARTHLY_REPO
+    ARG EARTHLY_GIT_HASH
+    WORKDIR /earthly/homebrew-earthly
+
+    RUN git config --global user.name "$GIT_NAME" && \
+        git config --global user.email "$GIT_EMAIL"
+
+    # load in github.com's public key (fetched by running: ssh-keyscan -H github.com)
+    # you can also get them from https://api.github.com/meta
+    RUN mkdir -p /root/.ssh
+    RUN echo "|1|M66Uwae8fx9M5JFDd+WyVi3dERM=|LKfAmECF1kHoZ6epHR5jtPhJgic= ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=" > /root/.ssh/known_hosts
+
+    RUN --mount type=secret,id=littleredcorvette-id_rsa,target=/root/id_rsa --no-cache \
+        eval $(ssh-agent) && \
+        cat /root/id_rsa | ssh-add - && \
+        git clone "git@github.com:$GITHUB_USER/$BREW_REPO.git" .
+    # Make the change in a new branch.
+    ARG RELEASE_BRANCH="release-$RELEASE_TAG"
+    RUN git switch -c "$RELEASE_BRANCH"
+
+    RUN sed -i \
+        -e 's^\(tag: \+\)"v[0-9.]\+"\(,\?\)$^\1"'$RELEASE_TAG'"\2^' \
+        -e 's^\(revision: \+\)"[0-9a-f]\+"\(,\?\)$^\1"'$EARTHLY_GIT_HASH'"\2^' \
+        ./Formula/earthly.rb
+    RUN echo "Diff:" && git diff
+    RUN version=${RELEASE_TAG#v} ;\
+        echo version=$version ;\
+        git commit -a --allow-empty -m "earthly $version"
+
+    RUN --mount type=secret,id=littleredcorvette-id_rsa,target=/root/id_rsa \
+        --secret SLACK_WEBHOOK_URL=slack-release-webhook \
+        --push \
+        eval $(ssh-agent) && \
+        cat /root/id_rsa | ssh-add - && \
+        git push --force --set-upstream origin "$RELEASE_BRANCH" && \
+        if [ "$BREW_REPO" = "homebrew-earthly" ] && [ "$GITHUB_USER" = "earthly" ]; then \
+            curl -s -X POST -H 'Content-type: application/json' --data '{"text":"Successfully pushed release branch: https://github.com/earthly/homebrew-earthly/tree/'$RELEASE_BRANCH' (this branch will be automatically deleted via GHA once GHA deploy task finishes)"}' "$SLACK_WEBHOOK_URL"; \
+        fi
+
+release-repo:
+    ARG --required RELEASE_TAG
+    BUILD ./apt-repo+build-and-release --RELEASE_TAG="$RELEASE_TAG"
+    BUILD ./yum-repo+build-and-release --RELEASE_TAG="$RELEASE_TAG"

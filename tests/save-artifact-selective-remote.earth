@@ -1,0 +1,32 @@
+VERSION 0.8
+
+savea:
+    FROM github.com/earthly/test-remote/output/versioned:main+savelocal
+    RUN echo apple > a
+    SAVE ARTIFACT a AS LOCAL a
+
+saveb:
+    FROM alpine:3.18
+    COPY github.com/earthly/test-remote/output/versioned:main+savelocal/data .
+    RUN echo bannan > b
+    SAVE ARTIFACT b AS LOCAL b
+
+savec:
+    FROM alpine:3.18
+    BUILD github.com/earthly/test-remote/output/versioned:main+savelocal
+    RUN echo cherry > c
+    SAVE ARTIFACT c AS LOCAL c
+
+test1:
+    BUILD +savea
+
+test2:
+    BUILD +saveb
+
+test3:
+    BUILD +savec
+
+all:
+    BUILD +test1
+    BUILD +test2
+    BUILD +test3

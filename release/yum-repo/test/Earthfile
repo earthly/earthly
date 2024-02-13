@@ -1,0 +1,31 @@
+VERSION 0.8
+
+test-fedora:
+    ARG version=34
+    FROM fedora:$version
+    RUN dnf -y install dnf-plugins-core
+    RUN --no-cache dnf config-manager \
+        --add-repo \
+        https://pkg.earthly.dev/earthly.repo
+    RUN --no-cache dnf -y install earthly
+    RUN --no-cache earthly --version
+
+test-centos:
+    ARG version=7
+    FROM centos:$version
+    RUN yum install -y yum-utils
+    RUN --no-cache yum-config-manager \
+        --add-repo \
+        https://pkg.earthly.dev/earthly.repo
+    RUN --no-cache yum -y install earthly
+    RUN --no-cache earthly --version
+
+test-all:
+    BUILD \
+        --build-arg version=34 \
+        --build-arg version=33 \
+        --build-arg version=32 \
+        +test-fedora
+    BUILD \
+        --build-arg version=7 \
+        +test-centos

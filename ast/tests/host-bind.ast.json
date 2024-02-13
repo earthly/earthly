@@ -1,0 +1,51 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--mount=type=bind-experimental,target=/bind,source=/bind-test",
+              "ls",
+              "-al",
+              "/bind",
+              "&&",
+              "test",
+              "-f",
+              "/bind/a.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--mount=type=bind-experimental,target=/bind,source=/bind-test",
+              "echo",
+              "\"hello b\"",
+              ">",
+              "/bind/b.txt"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

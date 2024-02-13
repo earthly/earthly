@@ -1,0 +1,20 @@
+VERSION 0.8
+FROM alpine:3.18
+
+all:
+    ARG USERPLATFORM
+    ARG USEROS
+    ARG USERARCH
+    ARG USERVARIANT
+    RUN test "$USERPLATFORM" = "linux/amd64"
+    RUN test "$USEROS" = "linux"
+    RUN test "$USERARCH" = "amd64"
+    RUN test "$USERVARIANT" = "" # only set on ARM
+    ARG NATIVEPLATFORM
+    ARG NATIVEOS
+    ARG NATIVEARCH
+    ARG NATIVEVARIANT
+    RUN test "$NATIVEPLATFORM" = "linux/amd64"
+    RUN test "$NATIVEOS" = "linux"
+    RUN test "$NATIVEARCH" = "amd64"
+    RUN test "$NATIVEVARIANT" = "" # only set on ARM

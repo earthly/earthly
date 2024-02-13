@@ -1,0 +1,16 @@
+VERSION 0.8
+
+FROM alpine:3.18
+WORKDIR /test
+
+test:
+    RUN addgroup -S testgroup
+    RUN adduser -S -G testgroup testuser
+    COPY --chown=testuser:testgroup ./a.txt ./
+    RUN ls -al
+    RUN test testuser == $(stat -c %U ./a.txt)
+    RUN test testgroup == $(stat -c %G ./a.txt)
+    USER testuser
+    RUN ls -al
+    RUN test -O ./a.txt
+    RUN test -G ./a.txt

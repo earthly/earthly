@@ -1,0 +1,118 @@
+VERSION 0.8
+
+FROM alpine:3.18
+
+buildkitd:
+    ARG BUILDKIT_PROJECT
+    IF [ "$BUILDKIT_PROJECT" != "" ]
+        IF case "$BUILDKIT_PROJECT" in ../*) true;; *) false;; esac
+            # Assuming this is coming from the main Earthly Earthfile.
+            ARG BUILDKIT_BASE_IMAGE=../$BUILDKIT_PROJECT+build
+        ELSE
+            ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
+        END
+    ELSE
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:d6e4d7a6888d420a54d3cb2e614c6ff986eff892+build
+    END
+    ARG EARTHLY_TARGET_TAG_DOCKER
+    ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
+
+    FROM $BUILDKIT_BASE_IMAGE --RELEASE_VERSION=$TAG
+    RUN echo "@edge-community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
+    RUN apk add --update --no-cache \
+        cni-plugins@edge-community \
+        gettext \
+        git-lfs \
+        iptables \
+        jq \
+        openssh-client \
+        pigz \
+        util-linux \
+        xz
+
+    # Add github and gitlab to known hosts.
+    RUN mkdir -p ~/.ssh
+
+    # github
+    RUN echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" >> ~/.ssh/known_hosts
+    RUN echo "github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=" >> ~/.ssh/known_hosts
+    RUN echo "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=" >> ~/.ssh/known_hosts
+
+    # gitlab
+    RUN echo "gitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9" >> ~/.ssh/known_hosts
+    RUN echo "gitlab.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFSMqzJeV9rUzU4kWitGjeR4PWSa29SPqJ1fVkhtj3Hw9xjLVXVYrU9QlYWrOLXBpQ6KWjbjTDTdDkoohFzgbEY=" >> ~/.ssh/known_hosts
+    RUN echo "gitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf" >> ~/.ssh/known_hosts
+
+    # bitbucket
+    RUN echo "bitbucket.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAubiN81eDcafrgMeLzaFPsw2kNvEcqTKl/VqLat/MaB33pZy0y3rJZtnqwR2qOOvbwKZYKiEO1O6VqNEBxKvJJelCq0dTXWT5pbO2gDXC6h6QDXCaHo6pOHGPUy+YBaGQRGuSusMEASYiWunYN0vCAI8QaXnWMXNMdFP3jHAJH0eDsoiGnLPBlBp4TNm6rYI74nMzgz3B9IikW4WVK+dc8KZJZWYjAuORU3jc1c/NPskD2ASinf8v3xnfXeukU0sJ5N6m5E8VLjObPEO+mN2t/FZTMZLiFqPWc/ALSqnMnnhwrNi2rbfg/rd/IpL8Le3pSBne8+seeFVBoGqzHM9yXw==" >> ~/.ssh/known_hosts
+
+    # Add the config templates and our own wrapper script.
+    COPY ./entrypoint.sh /usr/bin/entrypoint.sh
+    COPY ./buildkitd.toml.template /etc/buildkitd.toml.template
+    COPY ./buildkitd.cache.template /etc/buildkitd.cache.template
+    COPY ./buildkitd.cacheduration.template /etc/buildkitd.cacheduration.template
+    COPY ./buildkitd.tcp.template /etc/buildkitd.tcp.template
+    COPY ./buildkitd.pprof.template /etc/buildkitd.pprof.template
+    COPY ./buildkitd.tls.template /etc/buildkitd.tls.template
+    COPY ./cni-conf.json.template /etc/cni/cni-conf.json.template
+
+    # Scripts and binaries used for the builds.
+    COPY ../+debugger/earth_debugger /usr/bin/earth_debugger
+    COPY ./dockerd-wrapper.sh /var/earthly/dockerd-wrapper.sh
+    COPY ./docker-auto-install.sh /var/earthly/docker-auto-install.sh
+    COPY ./oom-adjust.sh.template /bin/oom-adjust.sh.template
+    COPY ./runc-ps /bin/runc-ps
+
+    ENV EARTHLY_RESET_TMP_DIR=false
+    ENV EARTHLY_TMP_DIR=/tmp/earthly
+    ENV BUILDKIT_DEBUG=false
+    ENV BUILDKIT_MAX_PARALLELISM=20
+    ENV BUILDKIT_LOCAL_REGISTRY_LISTEN_PORT=8371
+    ENV BUILDKIT_STEP_LOG_MAX_SIZE=8388608 # 8 MiB
+    ENV CACHE_SIZE_MB=0
+    ENV CACHE_SIZE_PCT=0
+    ENV NETWORK_MODE=cni
+    ARG EARTHLY_GIT_HASH
+    ENV EARTHLY_GIT_HASH=$EARTHLY_GIT_HASH
+    ENV BUILDKIT_BASE_IMAGE=$BUILDKIT_BASE_IMAGE
+    ENV EARTHLY_CACHE_VERSION="2" # whenever this value changes, a forced cache reset is performed
+    VOLUME /tmp/earthly
+    ENTRYPOINT ["/usr/bin/entrypoint.sh", "buildkitd", "--config=/etc/buildkitd.toml"]
+    ARG DOCKERHUB_USER="earthly"
+    ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
+    ARG IMAGE_REGISTRY="docker.io"
+
+    # Ensure that the image we save is a fully qualified name. Podman defaults to "localhost", while Docker defaults to
+    # "docker.io". This keeps it consistent across both frontends.
+    SAVE IMAGE --push --cache-from=$IMAGE_REGISTRY/earthly/buildkitd:main $IMAGE_REGISTRY/$DOCKERHUB_USER/$DOCKERHUB_BUILDKIT_IMG:$TAG
+
+buildkit-sha:
+    RUN apk add git
+    ARG BUILDKIT_GIT_SHA
+    ARG BUILDKIT_GIT_BRANCH=earthly-main
+    ARG --required BUILDKIT_GIT_ORG
+    RUN --no-cache set -e; \
+        if [ "$(echo -n $BUILDKIT_GIT_SHA | wc -c)" = 40 ]; then \
+            echo "pinning github.com/earthly/buildkit to reference git sha1: $BUILDKIT_GIT_SHA"; \
+            buildkit_sha1="$BUILDKIT_GIT_SHA"; \
+        else \
+            test -z "$BUILDKIT_GIT_SHA"; \
+            echo "looking up branch $BUILDKIT_GIT_BRANCH"; \
+            buildkit_sha1=$(git ls-remote --refs -q https://github.com/$BUILDKIT_GIT_ORG/buildkit.git "$BUILDKIT_GIT_BRANCH" | awk 'BEGIN { FS = "[ \t]+" } {print $1}'); \
+            echo "pinning github.com/earthly/buildkit@${BUILDKIT_BRANCH} to reference git sha1: $buildkit_sha1"; \
+        fi && \
+        test -n "$buildkit_sha1" && \
+        echo "$buildkit_sha1" > buildkit_sha
+    SAVE ARTIFACT buildkit_sha buildkit_sha
+
+update-buildkit-earthfile:
+    LOCALLY
+    ARG --required BUILDKIT_GIT_SHA
+    ARG --required BUILDKIT_GIT_ORG
+    # We run the Mac version on Darwin as it is not compatible with Linux sed
+    # The regular expressions are intentionally different, but should be functionally equivalent on the correct uname.
+    RUN if [ "$(uname)" = "Darwin" ]; then \
+            sed -E -i '' -e 's/(^[ \t]+ARG BUILDKIT_BASE_IMAGE).*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile; \
+        else \
+            sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE\)=github.com\/.*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile; \
+        fi

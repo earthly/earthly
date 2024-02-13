@@ -1,0 +1,193 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "all",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+test-build"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-copy"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-from"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-build",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+something-build",
+              "--arg1=foo"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-copy",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "(+something-copy/bar",
+              "--file=bar)",
+              "./"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "./bar"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-from",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+something-from",
+              "--file=bar"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "./bar"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "something-build",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "arg1",
+              "=",
+              "default"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$arg1\"",
+              "=",
+              "\"foo\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "something-copy",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "file",
+              "=",
+              "default"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "touch",
+              "$file"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "$file"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "something-from",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "file",
+              "=",
+              "default"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "touch",
+              "$file"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

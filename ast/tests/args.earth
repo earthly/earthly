@@ -1,0 +1,24 @@
+VERSION 0.8
+
+FROM +abc --def=ghi --jkl mno
+
+WITH DOCKER --load=(+something --foo=fooval --bar=barval)
+    RUN true
+END
+WITH DOCKER --load="(+something --foo=fooval --bar barval)"
+    RUN true
+END
+WITH DOCKER --load abc:latest=(+something --foo=fooval --bar barval)
+    RUN true
+END
+WITH DOCKER --load="abc:latest=(+something --foo=fooval --bar barval)"
+    RUN true
+END
+
+COPY (+some/artifact --foo=fooval --bar barval) /some/path
+COPY "(+some/artifact --foo=fooval --bar barval)" /some/path
+
+FROM DOCKERFILE +target --abc=def --ghi jkl
+FROM DOCKERFILE -f +dockerfile/foo +target --abc=def --ghi jkl
+FROM DOCKERFILE -f (+dockerfile/foo --bar=barval --foo fooval) +target --abc=def
+FROM DOCKERFILE -f "(+dockerfile/foo --bar=barval --foo fooval)" +target --abc=def

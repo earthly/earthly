@@ -1,0 +1,11 @@
+VERSION 0.8
+all:
+    FROM alpine:3.18
+    COPY file .
+
+    # Currently we have Modify time set to a static date (when earthly was initially released)
+    RUN stat file | grep '^Modify: 2020-04-16 12:00:00'
+
+    # However, if this ever changes, whatever date it is set to, it must be 1970 or later in order
+    # to prevent https://github.com/earthly/earthly/issues/1712 from reoccurring.
+    RUN test "$(stat file | grep '^Modify: .*$' | awk '{print $2}' | awk -F - '{print $1}')" -ge 1970

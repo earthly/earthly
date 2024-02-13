@@ -1,0 +1,12 @@
+VERSION 0.8
+FROM node:13.10.1-alpine3.11
+
+WORKDIR /example-multirepo
+
+docker:
+    RUN npm install -g http-server
+    COPY github.com/earthly/earthly-example-multirepo-static:main+html/* ./
+    COPY github.com/earthly/earthly-example-multirepo-js:main+build/* ./
+    EXPOSE 8080
+    ENTRYPOINT ["http-server", "."]
+    SAVE IMAGE --push earthly/examples:multirepo

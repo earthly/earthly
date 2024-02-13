@@ -1,0 +1,5 @@
+VERSION 0.8
+FROM busybox:1.32.1
+
+test-fail:
+    RUN false

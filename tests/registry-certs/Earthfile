@@ -1,0 +1,62 @@
+VERSION 0.8
+
+ARG --global REGISTRY
+ARG --global REGISTRY_IP
+ARG --global EARTHLY_BUILD_ARGS="REGISTRY"
+ARG --global REGISTRY_CONFIG="
+[registry.\"$REGISTRY\"]
+  insecure = true
+"
+
+certs:
+    FROM alpine:3.18
+    RUN apk add openssl
+    RUN openssl version
+    RUN mkdir -p certs
+    RUN (echo "[req]"; \
+            echo distinguished_name=req; \
+            echo "[san]"; \
+            echo subjectAltName=DNS:registry,IP:$REGISTRY_IP \
+            ) >./san.config
+    RUN openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+        -keyout certs/domain.key -out certs/domain.crt \
+        -extensions san -config ./san.config \
+        -subj "/CN=registry"
+    SAVE ARTIFACT certs AS LOCAL certs
+
+test-base:
+    FROM --pass-args ..+base
+    WORKDIR /test
+    COPY ./certs/domain.crt /etc/config/test.ca
+    COPY test.earth ./Earthfile
+
+all:
+    BUILD +test-push-pull
+    BUILD +test-connect
+
+test-push-pull:
+    FROM +test-base
+    # Running with tmpfs mount = no local cache.
+    DO --pass-args +DO_REMOTE_CACHE_EARTHLY --target=+test-push
+    DO --pass-args +DO_REMOTE_CACHE_EARTHLY --target=+test-pull
+
+test-connect:
+    FROM +test-base
+    COPY ./certs/domain.crt ./test.ca
+    DO --pass-args +DO_REMOTE_CACHE_EARTHLY --target=+test-connect
+
+# Work around the lack of variable overriding, since the base image already includes EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
+DO_REMOTE_CACHE_EARTHLY:
+    FUNCTION
+
+    ARG EARTHLY_ADDITIONAL_BUILDKIT_CONFIG
+    ARG REGISTRY_CONFIG
+    ARG target
+
+    RUN --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- \
+        EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG$REGISTRY_CONFIG \
+        /usr/bin/earthly-entrypoint.sh --ci --push \
+            --build-arg REGISTRY=$REGISTRY \
+            $target 2>&1 | tee ./output

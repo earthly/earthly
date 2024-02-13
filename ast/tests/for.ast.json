@@ -1,0 +1,422 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    },
+    {
+      "for": {
+        "args": [
+          "abc",
+          "IN",
+          "def",
+          "ghi",
+          "jkl"
+        ],
+        "body": null
+      }
+    },
+    {
+      "for": {
+        "args": [
+          "foo",
+          "IN",
+          "bar",
+          "buz"
+        ],
+        "body": [
+          {
+            "command": {
+              "args": [
+                "echo",
+                "xyz"
+              ],
+              "name": "RUN"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "for": {
+        "args": [
+          "rec",
+          "IN",
+          "rec1",
+          "rec2"
+        ],
+        "body": [
+          {
+            "for": {
+              "args": [
+                "rec-rec",
+                "IN",
+                "rec-rec1",
+                "rec-rec2",
+                "rec-rec3"
+              ],
+              "body": [
+                {
+                  "command": {
+                    "args": [
+                      "echo",
+                      "abc"
+                    ],
+                    "name": "RUN"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "for": {
+        "args": [
+          "recif",
+          "IN",
+          "recif1",
+          "recif2"
+        ],
+        "body": [
+          {
+            "for": {
+              "args": [
+                "recif-recif",
+                "IN",
+                "recif-recif1",
+                "recif-recif2",
+                "recif-recif3"
+              ],
+              "body": [
+                {
+                  "if": {
+                    "expression": [
+                      "[",
+                      "\"a\"",
+                      "=",
+                      "\"b\"",
+                      "]"
+                    ],
+                    "ifBody": [
+                      {
+                        "command": {
+                          "args": [
+                            "echo",
+                            "\"yes\""
+                          ],
+                          "name": "RUN"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "for": {
+        "args": [
+          "var",
+          "IN",
+          "\"$(in quotes)\""
+        ],
+        "body": [
+          {
+            "command": {
+              "args": [
+                "echo",
+                "quotes"
+              ],
+              "name": "RUN"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "for": {
+        "args": [
+          "another-var",
+          "IN",
+          "$(not in quotes)"
+        ],
+        "body": [
+          {
+            "command": {
+              "args": [
+                "echo",
+                "not",
+                "in",
+                "quotes"
+              ],
+              "name": "RUN"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "for": {
+        "args": [
+          "third-var",
+          "IN",
+          "\"quotes no exec\""
+        ],
+        "body": [
+          {
+            "command": {
+              "args": [
+                "echo",
+                "quotes",
+                "no",
+                "exec"
+              ],
+              "name": "RUN"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "for": {
+        "args": [
+          "--some-flag=123",
+          "third-var",
+          "IN",
+          "flag"
+        ],
+        "body": [
+          {
+            "command": {
+              "args": [
+                "echo",
+                "flag"
+              ],
+              "name": "RUN"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "build1",
+      "recipe": [
+        {
+          "for": {
+            "args": [
+              "abc",
+              "IN",
+              "def",
+              "ghi",
+              "jkl"
+            ],
+            "body": null
+          }
+        },
+        {
+          "for": {
+            "args": [
+              "foo",
+              "IN",
+              "bar",
+              "buz"
+            ],
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "echo",
+                    "xyz"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "for": {
+            "args": [
+              "rec",
+              "IN",
+              "rec1",
+              "rec2"
+            ],
+            "body": [
+              {
+                "for": {
+                  "args": [
+                    "rec-rec",
+                    "IN",
+                    "rec-rec1",
+                    "rec-rec2",
+                    "rec-rec3"
+                  ],
+                  "body": [
+                    {
+                      "command": {
+                        "args": [
+                          "echo",
+                          "abc"
+                        ],
+                        "name": "RUN"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "for": {
+            "args": [
+              "recif",
+              "IN",
+              "recif1",
+              "recif2"
+            ],
+            "body": [
+              {
+                "for": {
+                  "args": [
+                    "recif-recif",
+                    "IN",
+                    "recif-recif1",
+                    "recif-recif2",
+                    "recif-recif3"
+                  ],
+                  "body": [
+                    {
+                      "if": {
+                        "expression": [
+                          "[",
+                          "\"a\"",
+                          "=",
+                          "\"b\"",
+                          "]"
+                        ],
+                        "ifBody": [
+                          {
+                            "command": {
+                              "args": [
+                                "echo",
+                                "\"yes\""
+                              ],
+                              "name": "RUN"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "for": {
+            "args": [
+              "var",
+              "IN",
+              "\"$(in quotes)\""
+            ],
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "echo",
+                    "quotes"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "for": {
+            "args": [
+              "another-var",
+              "IN",
+              "$(not in quotes)"
+            ],
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "echo",
+                    "not",
+                    "in",
+                    "quotes"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "for": {
+            "args": [
+              "third-var",
+              "IN",
+              "\"quotes no exec\""
+            ],
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "echo",
+                    "quotes",
+                    "no",
+                    "exec"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "for": {
+            "args": [
+              "--some-flag=123",
+              "third-var",
+              "IN",
+              "flag"
+            ],
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "echo",
+                    "flag"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

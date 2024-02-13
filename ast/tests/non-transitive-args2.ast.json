@@ -1,0 +1,55 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "arg-target",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "SOMEARG",
+              "=",
+              "default"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "content",
+              ">file.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "file.txt",
+              "AS",
+              "LOCAL",
+              "\"$SOMEARG\""
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

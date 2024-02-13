@@ -1,0 +1,31 @@
+VERSION 0.8
+
+image:
+    FROM DOCKERFILE .
+    WORKDIR /app
+    RUN ls *.txt > output
+    SAVE ARTIFACT output AS LOCAL .
+
+create-files:
+    FROM alpine:3.18
+    ARG with_earthly_ignore="false"
+    ARG with_earth_ignore="false"
+    ARG with_docker_ignore="false"
+    WORKDIR /output
+    RUN touch a.txt b.txt c.txt
+    RUN echo "
+FROM alpine:3.18
+WORKDIR /app
+COPY *.txt* .
+ENTRYPOINT ls -1
+" > Dockerfile
+    IF [ "$with_docker_ignore" = "true" ]
+        RUN echo "a.txt" > .dockerignore
+    END
+    IF [ "$with_earthly_ignore" = "true" ]
+        RUN echo "b.txt" > .earthlyignore
+    END
+    IF [ "$with_earth_ignore" = "true" ]
+        RUN echo "c.txt" > .earthignore
+    END
+    SAVE ARTIFACT /output/* AS LOCAL .

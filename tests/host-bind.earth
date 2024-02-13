@@ -1,0 +1,8 @@
+VERSION 0.8
+FROM alpine:3.18
+
+test:
+    RUN --mount=type=bind-experimental,target=/bind,source=/bind-test \
+        ls -al /bind && test -f /bind/a.txt
+    RUN --mount=type=bind-experimental,target=/bind,source=/bind-test \
+        echo "hello b" > /bind/b.txt

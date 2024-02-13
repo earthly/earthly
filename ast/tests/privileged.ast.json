@@ -1,0 +1,60 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "apk",
+          "add",
+          "libcap"
+        ],
+        "name": "RUN"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "cat",
+              "/proc/self/status",
+              "|",
+              "grep",
+              "CapEff",
+              "|",
+              "grep",
+              "00000000a80425fb"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--privileged",
+              "capsh",
+              "--has-p=cap_sys_admin"
+            ],
+            "docs": "when running under podman CapEff is not always 0000003fffffffff; but might instead be 000001ffffffffff\nuse the capsh tool (which reads from /proc/self/status) to check if the sys_admin capability is permitted\n",
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+VERSION 0.8
+
+FROM alpine:3.18
+
+IMPORT ../ AS common
+
+build:
+    RUN echo building lib1
+    DO ../+INSTALL_WHLS --wheels="lib2"
+
+build-imported:
+    RUN echo building lib1 using IMPORT
+    DO common+INSTALL_WHLS --wheels="lib2"

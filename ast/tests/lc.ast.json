@@ -1,0 +1,385 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "/test"
+        ],
+        "name": "WORKDIR"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+test1"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test2"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test3"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test4"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test5"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test6"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test7"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test8"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test9"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test1",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "ab",
+              ">",
+              "out.txt",
+              ";",
+              "cat",
+              "out.txt",
+              ";",
+              "if",
+              "[",
+              "\"$(cat out.txt)\"",
+              "!=",
+              "\"ab\"",
+              "];",
+              "then",
+              "exit",
+              "1",
+              ";",
+              "fi"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test2",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "ab",
+              ">",
+              "out.txt",
+              ";",
+              "cat",
+              "out.txt",
+              ";",
+              "if",
+              "[",
+              "\"$(cat out.txt)\"",
+              "!=",
+              "\"ab\"",
+              "];",
+              "then",
+              "exit",
+              "1",
+              ";",
+              "fi"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test3",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "a",
+              "b",
+              ">",
+              "out.txt",
+              ";",
+              "cat",
+              "out.txt",
+              ";",
+              "if",
+              "[",
+              "\"$(cat out.txt)\"",
+              "!=",
+              "\"a b\"",
+              "];",
+              "then",
+              "exit",
+              "1",
+              ";",
+              "fi"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test4",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "ab",
+              ">",
+              "out.txt",
+              ";",
+              "cat",
+              "out.txt",
+              ";",
+              "if",
+              "[",
+              "\"$(cat out.txt)\"",
+              "!=",
+              "\"ab\"",
+              "];",
+              "then",
+              "exit",
+              "1",
+              ";",
+              "fi"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test5",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "ab",
+              ">",
+              "out.txt",
+              ";cat",
+              "out.txt",
+              ";if",
+              "[",
+              "\"$(cat out.txt)\"",
+              "!=",
+              "\"ab\"",
+              "];",
+              "then",
+              "exit",
+              "1",
+              ";fi"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test6",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              ">",
+              "output",
+              "a",
+              "b",
+              ";"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$(cat output)\"",
+              "=",
+              "\"a b\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test7",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "ab",
+              ">",
+              "out.txt",
+              ";",
+              "cat",
+              "out.txt",
+              ";",
+              "if",
+              "[",
+              "\"$(cat out.txt)\"",
+              "!=",
+              "\"ab\"",
+              "];",
+              "then",
+              "exit",
+              "1",
+              ";",
+              "fi"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test8",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "-n",
+              ">",
+              "output",
+              "\\\\"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "pass"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$(cat output | base64)\"",
+              "=",
+              "\"XA==\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test9",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "ab",
+              ">",
+              "out.txt",
+              ";",
+              "cat",
+              "out.txt",
+              ";",
+              "if",
+              "[",
+              "\"$(cat out.txt)\"",
+              "!=",
+              "\"ab\"",
+              "];",
+              "then",
+              "exit",
+              "1",
+              ";",
+              "fi"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

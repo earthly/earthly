@@ -1,0 +1,124 @@
+VERSION 0.8
+
+FROM alpine:3.18
+
+WORKDIR /test
+
+all:
+    BUILD +test-for-ls
+    BUILD +test-for-empty
+    BUILD +test-for-single
+    BUILD +test-for-comma
+    BUILD +test-for-comma-colon
+    BUILD +test-for-constant
+    BUILD +test-for-expand-arg
+    BUILD +test-for-ls-locally
+    BUILD +test-non-root-user
+
+test-for-ls:
+    RUN touch a b c d
+    RUN ls
+    RUN ls | tr '\n' ' '
+    RUN test "$(ls | tr '\n' ' ')" = "a b c d "
+    FOR variable IN $(ls)
+        RUN echo "variable=$variable"
+        RUN echo "$variable" >>./output.txt
+    END
+    RUN cat ./output.txt
+    RUN cat ./output.txt | tr '\n' ' '
+    RUN test "$(cat ./output.txt | tr '\n' ' ')" = "a b c d "
+
+test-for-empty:
+    FOR variable IN ""
+        RUN echo "fail! variable='$variable'"; false
+    END
+    FOR variable IN ''
+        RUN echo "fail! variable='$variable'"; false
+    END
+    ARG empty=""
+    FOR variable IN $empty
+        RUN echo "fail! variable='$variable'"; false
+    END
+    ARG empty2
+    FOR variable IN $empty2
+        RUN echo "fail! variable='$variable'"; false
+    END
+    FOR variable IN $(cat /dev/null)
+        RUN echo "fail! variable='$variable'"; false
+    END
+    FOR variable IN "$(cat /dev/null)"
+        RUN echo "fail! variable='$variable'"; false
+    END
+
+test-for-single:
+    FOR variable IN one
+        RUN test ! -f ./single
+        RUN touch ./single
+        RUN test "$variable" = "one"
+    END
+
+test-for-comma:
+    RUN echo "foo,bar:buz:zub,oof" >./input.txt
+    FOR --sep="," what IN $(cat ./input.txt)
+        RUN echo "what=$what"
+        RUN echo "$what" >>./output.txt
+    END
+    RUN cat ./output.txt
+    RUN cat ./output.txt | tr '\n' ' '
+    RUN test "$(cat ./output.txt | tr '\n' ' ')" = "foo bar:buz:zub oof "
+
+test-for-comma-colon:
+    RUN echo "foo,bar:buz:zub,oof" >./input.txt
+    FOR --sep=",:" what IN $(cat ./input.txt)
+        RUN echo "what=$what"
+        RUN echo "$what" >>./output.txt
+    END
+    RUN cat ./output.txt
+    RUN cat ./output.txt | tr '\n' ' '
+    RUN test "$(cat ./output.txt | tr '\n' ' ')" = "foo bar buz zub oof "
+
+test-for-constant:
+    FOR what IN "foo bar buz"
+        RUN echo "what=$what"
+        RUN echo "$what" >>./output.txt
+    END
+    RUN cat ./output.txt
+    RUN cat ./output.txt | tr '\n' ' '
+    RUN test "$(cat ./output.txt | tr '\n' ' ')" = "foo bar buz "
+
+test-for-expand-arg:
+    ARG data="foo bar buz"
+    FOR what IN "$data"
+        RUN echo "what=$what"
+        RUN echo "$what" >>./output.txt
+    END
+    RUN cat ./output.txt
+    RUN cat ./output.txt | tr '\n' ' '
+    RUN test "$(cat ./output.txt | tr '\n' ' ')" = "foo bar buz "
+
+test-for-ls-locally:
+    LOCALLY
+    WORKDIR test-locally
+    RUN touch a b c d
+    RUN ls
+    RUN ls | tr '\n' ' '
+    RUN test "$(ls | tr '\n' ' ')" = "a b c d "
+    FOR variable IN $(ls)
+        RUN echo "variable=$variable"
+        RUN echo "$variable" >>./output.txt
+    END
+    RUN cat ./output.txt
+    RUN cat ./output.txt | tr '\n' ' '
+    RUN test "$(cat ./output.txt | tr '\n' ' ')" = "a b c d "
+
+test-non-root-user:
+    RUN adduser --system weeheavy
+    USER weeheavy
+    WORKDIR /home/weeheavy
+    FOR variable IN $(seq 1 3)
+        RUN touch "$variable"
+    END
+    RUN ls -la
+    RUN test -f 1
+    RUN test -f 2
+    RUN test -f 3

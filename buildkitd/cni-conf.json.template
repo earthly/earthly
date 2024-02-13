@@ -1,0 +1,16 @@
+{
+	"cniVersion": "0.3.0",
+	"name": "buildkitbuild",
+	"type": "bridge",
+	"bridge": "cni0",
+	"isGateway": true,
+	"ipMasq": true,
+	"mtu": ${CNI_MTU},
+	"ipam": {
+		"type": "host-local",
+		"subnet": "172.30.0.0/16",
+		"routes": [
+			{ "dst": "0.0.0.0/0" }
+		]
+	}
+}

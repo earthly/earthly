@@ -1,0 +1,1044 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "earthly/dind:alpine-3.19-docker-25.0.2-r0"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "all",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+empty-test"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+docker-load-test"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+docker-load-shellout-test"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+docker-load-arg-test"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+docker-load-multi-test"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+docker-pull-test"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+docker-pull-test-long"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+docker-load-test-long"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+load-parallel-test"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+one-target-many-names"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+if-after"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+cgroup-v2-test-all"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+pre-script-test"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "empty-test",
+      "recipe": [
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "echo",
+                    "\"dummy\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "a-test-image",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "alpine:3.18"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "name",
+              "=",
+              "abc"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "var",
+              "=",
+              "def"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "mkdir",
+              "/$name"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "/$name"
+            ],
+            "name": "WORKDIR"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"hello $var\"",
+              ">def.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "cat",
+              "/$name/def.txt",
+              "&&",
+              "pwd"
+            ],
+            "name": "ENTRYPOINT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test-${name}-img:xyz"
+            ],
+            "name": "SAVE IMAGE"
+          }
+        }
+      ]
+    },
+    {
+      "name": "another-test-image",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "alpine:3.18"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "/work"
+            ],
+            "name": "WORKDIR"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "INDEX",
+              "=",
+              "0"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"hello another test img $INDEX\"",
+              ">file.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "cat",
+              "/work/file.txt"
+            ],
+            "name": "ENTRYPOINT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "another-test-img:i${INDEX}"
+            ],
+            "name": "SAVE IMAGE"
+          }
+        }
+      ]
+    },
+    {
+      "name": "a-test-image-with-shell-out",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "alpine:3.18"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "c2hlbGxvdXQ=",
+              ">",
+              "data"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "myver",
+              ">",
+              "version"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"you found me\""
+            ],
+            "name": "ENTRYPOINT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "\"test-img-with-$(cat data | base64 -d)\":\"$(cat version)\""
+            ],
+            "name": "SAVE IMAGE"
+          }
+        }
+      ]
+    },
+    {
+      "name": "docker-load-test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "INDEX",
+              "=",
+              "0"
+            ],
+            "docs": "Index is used to create parallel tests.\n",
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"$INDEX\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "test-abc-img:xyz",
+                    "&&",
+                    "docker",
+                    "run",
+                    "hello-world"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--pull",
+                "hello-world",
+                "--load",
+                "+a-test-image"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "docker-load-shellout-test",
+      "recipe": [
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "test-img-with-shellout:myver",
+                    "|",
+                    "grep",
+                    "\"you found me\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=+a-test-image-with-shell-out"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "docker-load-arg-test",
+      "recipe": [
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "test-foo-img:xyz",
+                    "|",
+                    "grep",
+                    "\"hello bar\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=(+a-test-image",
+                "--name=foo",
+                "--var",
+                "bar)"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "test-foo-img:xyz",
+                    "|",
+                    "grep",
+                    "\"hello bar\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=(+a-test-image",
+                "--name=foo",
+                "--var",
+                "bar)"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "test-bar-img:xyz",
+                    "|",
+                    "grep",
+                    "\"hello buz\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=\"(+a-test-image --name=bar --var buz)\""
+              ],
+              "name": "DOCKER"
+            }
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "other-name:latest",
+                    "|",
+                    "grep",
+                    "\"hello buz\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=other-name:latest=(+a-test-image",
+                "--name=foo",
+                "--var",
+                "buz)"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "other-name:latest",
+                    "|",
+                    "grep",
+                    "\"hello buz\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=other-name:latest=(+a-test-image",
+                "--name=foo",
+                "--var",
+                "buz)"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "other-name:latest",
+                    "|",
+                    "grep",
+                    "\"hello buz\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=\"other-name:latest=(+a-test-image --name=bar --var buz)\""
+              ],
+              "name": "DOCKER"
+            }
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "other-name:latest",
+                    "|",
+                    "grep",
+                    "\"hello buz\""
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=other-name:latest=\"(+a-test-image --name=bar --var buz)\""
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "docker-load-multi-test",
+      "recipe": [
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "--rm",
+                    "another-test-img:i1",
+                    "&&",
+                    "docker",
+                    "run",
+                    "--rm",
+                    "another-test-img:i2",
+                    "&&",
+                    "docker",
+                    "run",
+                    "--rm",
+                    "another-test-img:i3",
+                    "&&",
+                    "docker",
+                    "run",
+                    "--rm",
+                    "another-test-img:i4",
+                    "&&",
+                    "docker",
+                    "run",
+                    "--rm",
+                    "another-test-img:i5"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load=(+another-test-image",
+                "--INDEX=1)",
+                "--load=(+another-test-image",
+                "--INDEX=2)",
+                "--load=(+another-test-image",
+                "--INDEX=3)",
+                "--load=(+another-test-image",
+                "--INDEX=4)",
+                "--load=(+another-test-image",
+                "--INDEX=5)"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "docker-pull-test",
+      "recipe": [
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "images",
+                    "|",
+                    "grep",
+                    "hello-world",
+                    "&&",
+                    "docker",
+                    "run",
+                    "hello-world"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--pull",
+                "hello-world"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "docker-pull-test-long",
+      "recipe": [
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "images",
+                    "|",
+                    "grep",
+                    "earthly/earthly"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--platform=linux/amd64",
+                "--pull",
+                "earthly/earthly:v0.6.17"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "docker-load-test-long",
+      "recipe": [
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "images",
+                    "|",
+                    "grep",
+                    "foo.example.com/bar/buz",
+                    "|",
+                    "grep",
+                    "abc"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load",
+                "foo.example.com/bar/buz:abc=+a-test-image"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "load-parallel-test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+docker-load-test",
+              "--INDEX=1",
+              "--INDEX=2",
+              "--INDEX=3",
+              "--INDEX=4",
+              "--INDEX=5"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "multi-from-one",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "hello-world"
+            ],
+            "name": "FROM"
+          }
+        }
+      ]
+    },
+    {
+      "name": "multi-from-two",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "alpine:latest"
+            ],
+            "name": "FROM"
+          }
+        }
+      ]
+    },
+    {
+      "name": "one-target-many-names",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "earthly/dind:alpine-3.19-docker-25.0.2-r0"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "images",
+                    "&&",
+                    "docker",
+                    "run",
+                    "a:latest",
+                    "&&",
+                    "echo",
+                    "\"-----\"",
+                    "&&",
+                    "docker",
+                    "run",
+                    "b:latest",
+                    "&&",
+                    "echo",
+                    "\"-----\"",
+                    "&&",
+                    "docker",
+                    "run",
+                    "c:latest",
+                    "uname",
+                    "-a"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load",
+                "a:latest=+multi-from-one",
+                "--load",
+                "b:latest=+multi-from-one",
+                "--load",
+                "c:latest=+multi-from-two"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "if-after",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "earthly/dind:alpine-3.19-docker-25.0.2-r0"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "docker",
+                    "run",
+                    "a:latest"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--load",
+                "a:latest=+multi-from-one"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        },
+        {
+          "if": {
+            "expression": [
+              "[",
+              "\"true\"",
+              "=",
+              "\"true\"",
+              "]"
+            ],
+            "ifBody": [
+              {
+                "command": {
+                  "args": [
+                    "true"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "cgroup-v2-test-all",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+cgroup-v2-test",
+              "--DIND_IMG=earthly/dind:alpine-3.19-docker-25.0.2-r0",
+              "--DIND_IMG=earthly/dind:ubuntu-23.04-docker-24.0.5-1"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "cgroup-v2-test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--required",
+              "DIND_IMG"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "$DIND_IMG"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test-cgroup-v2.sh",
+              "test-cgroup-v2-inside-container.sh",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "ubuntu_img_tag",
+              "=",
+              "23.04"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "./test-cgroup-v2.sh"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--pull",
+                "ubuntu:$ubuntu_img_tag"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "pre-script-test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "pre-script.sh",
+              "/usr/share/earthly/dockerd-wrapper-pre-script"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "test",
+                    "-f",
+                    "/the-prescript-was-run"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

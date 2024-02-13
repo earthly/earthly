@@ -1,0 +1,18 @@
+version: "3.9"
+   
+services:
+  db:
+    image: postgres
+    container_name: db
+    hostname: postgres
+    environment:
+      - POSTGRES_DB=test_db
+      - POSTGRES_USER=earthly
+      - POSTGRES_PASSWORD=password
+    ports:
+      - 5432:5432
+    networks:
+      - python/part6_default
+
+networks:
+  python/part6_default:

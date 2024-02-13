@@ -1,0 +1,9 @@
+VERSION 0.8
+FROM alpine/git:v2.43.0
+test:
+    WORKDIR /test
+    GIT CLONE --branch main https://selfsigned.example.com/testuser/repo.git myrepo
+    WORKDIR /test/myrepo
+    RUN git status
+    RUN git branch
+    RUN grep $(echo OThlMTVmYjUtMTk3Yy00M2JmLTg4NmUtMzI5MWU2NWQ2NDZl | base64 -d) Earthfile

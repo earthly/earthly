@@ -1,0 +1,85 @@
+VERSION 0.8
+FROM alpine:3.18
+WORKDIR /test
+
+ARG notaglobal=this-only-exists-in-base
+
+ARG --global global1=abc
+ARG --global global2=def
+
+all:
+    BUILD +test1
+    BUILD +test2
+    BUILD +test3
+    BUILD +test4
+    BUILD +test5
+    BUILD +test-global1
+    BUILD +test-global2
+    BUILD +test-global3
+    BUILD +test-non-root
+    BUILD +test-not-a-global
+
+file-exists:
+    ARG VAR1=nope.txt
+    ARG VAR2=dummy
+    RUN touch "$VAR2"
+    RUN touch "existing-file.txt"
+    RUN test -f "$VAR1"
+
+test1:
+    BUILD +file-exists --VAR1=existing-file.txt
+    BUILD +file-exists --VAR1=dummy
+    BUILD +file-exists --VAR1=dummy2 --VAR2=dummy2
+    RUN touch dummy
+    BUILD +file-exists --VAR1=$(ls)
+    RUN rm dummy
+    RUN touch existing-file.txt
+    BUILD +file-exists --VAR1=$(ls)
+
+test2:
+    ARG ALPINE=3.11
+    FROM alpine:$ALPINE
+    RUN echo $ALPINE
+    RUN test "$ALPINE" == "3.11"
+
+dummy:
+    FROM alpine:3.18
+
+test3:
+    ARG VAR1="test"
+    FROM +dummy
+    RUN test "$VAR1" == "test"
+
+test4:
+    RUN touch dummy
+    ARG VAR1=$(ls)
+    RUN touch should-not-be-seen
+    RUN test "$VAR1" == "dummy"
+
+test5:
+    RUN printf '"text with quotes"' >./content
+    ARG VAR1=$(cat ./content)
+    RUN test "$VAR1" == '"text with quotes"'
+
+test-global1:
+    RUN test "$global1" == "abc"
+    RUN test "$global2" == "def"
+
+test-global2:
+    FROM alpine:latest
+    RUN test "$global1" == "abc"
+    RUN test "$global2" == "def"
+
+test-global3:
+    FROM +dummy
+    RUN test "$global1" == "abc"
+    RUN test "$global2" == "def"
+
+test-non-root:
+    RUN adduser --system weeheavy
+    USER weeheavy
+    ARG foo=$(echo bar)
+    RUN test "$foo" == "bar"
+
+test-not-a-global:
+    RUN env | grep -v notaglobal

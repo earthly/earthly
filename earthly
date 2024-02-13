@@ -1,0 +1,176 @@
+#!/bin/bash
+set -e
+
+export EARTHLY_GLOBAL_WAIT_END=true
+export EARTHLY_USE_REMOTE_REGISTRY=true
+
+bindir="$HOME/.earthly"
+if [ ! -d "$bindir" ]; then
+  mkdir -p "$bindir"
+fi
+
+bintag=${TAG:-prerelease}
+buildkitd_img=${BUILDKITD_IMAGE:-docker.io/earthly/buildkitd}
+
+# get_realpath implements "readlink -f" for both Linux and MacOX (MacOS does not support readlink -f)
+function get_realpath() {
+    TARGET_FILE="$1"
+    cd "$(dirname "$TARGET_FILE")"
+    TARGET_FILE=$(basename "$TARGET_FILE")
+    while [ -L "$TARGET_FILE" ]
+    do
+        TARGET_FILE=$(readlink "$TARGET_FILE")
+        cd "$(dirname "$TARGET_FILE")"
+        TARGET_FILE=$(basename "$TARGET_FILE")
+    done
+    PHYS_DIR="$(pwd -P)"
+    RESULT="$PHYS_DIR/$TARGET_FILE"
+    echo "$RESULT"
+}
+
+scriptname=$(basename "$0")
+scriptpath=$(get_realpath "$0")
+script_dir="$( cd "$( dirname "$scriptpath" )" &> /dev/null && pwd )"
+
+last_check_state_path="/tmp/last-earthly-${bintag}-check"
+last_flag_hash_path="/tmp/last-earthly-${bintag}-flag-hash"
+
+if ! which md5sum 2>/dev/null >&2; then
+  echo >&2 "the md5sum command is required; please install it."
+  exit 1
+fi
+
+detect_frontend() {
+  if which docker 2>/dev/null >&2 && docker info 2>/dev/null >&2; then
+    echo "docker"
+    return
+  elif which podman 2>/dev/null >&2 && podman info 2>/dev/null >&2; then
+    echo "podman"
+    return
+  fi
+
+  echo >&2 "failed to detect docker/podman frontend"
+  exit 1
+}
+
+# some tests run ./earthly when no front-end is present; when EARTHLY_DISABLE_FRONTEND_DETECTION=true, skip detection.
+if [ "$EARTHLY_DISABLE_FRONTEND_DETECTION" != "true" ]; then
+    frontend_bin=$(detect_frontend)
+fi
+
+get_latest_binary() {
+    "$frontend_bin" rm --force earthly_binary 2>/dev/null >&2 || true
+
+    "$frontend_bin" pull "docker.io/earthly/earthlybinaries:${bintag}" >&2
+    "$frontend_bin" create --name earthly_binary "docker.io/earthly/earthlybinaries:${bintag}" >&2
+
+    earth_bin_path=/earthly-linux-amd64
+    bk_platform=linux/amd64
+    if [ "$(uname)" == "Darwin" ]; then
+        if [ "$(uname -m)" == "arm64" ]; then
+            earth_bin_path=/earthly-darwin-arm64
+            bk_platform=linux/arm64
+        else
+            earth_bin_path=/earthly-darwin-amd64
+        fi
+    fi
+
+    dst="$bindir/earthly-${bintag}"
+    "$frontend_bin" pull --platform="$bk_platform" "${buildkitd_img}:${bintag}" >&2
+    "$frontend_bin" cp earthly_binary:"$earth_bin_path" "$dst" >&2
+    "$frontend_bin" rm earthly_binary >&2
+    echo "extracted $earth_bin_path to $dst" >&2
+}
+
+do_reset() {
+    rm -f "$last_check_state_path"
+    "$frontend_bin" stop earthly-buildkitd || true
+    "$frontend_bin" rm -f earthly-buildkitd || true
+    rm -f "$bindir/earthly-${bintag}"
+    "$frontend_bin" rm --force earthly_binary 2>/dev/null || true
+    "$frontend_bin" rmi -f "${buildkitd_img}:${bintag}" || true
+    "$frontend_bin" rmi -f "docker.io/earthly/earthlybinaries:${bintag}" || true
+}
+
+
+do_upgrade() {
+    do_reset
+    get_latest_binary
+}
+
+do_help() {
+    if ! command -v "$bindir/earthly-${bintag}"; then
+        get_latest_binary
+    fi
+
+    echo "------------------- earthly prerelease script help -------------------"
+    echo "NAME:"
+    echo "   $scriptname - A wrapper around the earthly binary that checks for updates once an hour"
+    echo ""
+    echo "COMMANDS:"
+    echo "   reset     Removes prerelease binary and associated docker containers"
+    echo "   upgrade   Forces a new check for the latest version"
+    echo ""
+    echo "VARIABLES:"
+    echo "   TAG       Sets the docker tag used to pull down binaries"
+    echo ""
+    echo "---------------------------- earthly help -----------------------------"
+    exec -a "$scriptname" "$bindir/earthly-${bintag}" --help
+}
+
+case "$1" in
+    reset)
+        do_reset
+        ;;
+
+    upgrade)
+        do_upgrade
+        ;;
+
+    -h)
+        do_help
+        ;; # using a ;& fallthrough won't work on macOS
+    --help)
+        do_help
+        ;;
+
+    *)
+        last=$(cat "$last_check_state_path" 2>/dev/null || echo 0)
+        now=$(date +%s)
+        since=$(( now - last ))
+
+        earthly_version_flag_overrides_path="$script_dir/.earthly_version_flag_overrides"
+
+        last_flag_hash=$(cat "$last_flag_hash_path" 2>/dev/null || echo null)
+        flagoverride_hash=$(md5sum "$earthly_version_flag_overrides_path" | awk '{print $1}')
+        if [ -z "$COMP_LINE" ]; then
+            update="false"
+            if [ ! -x "$bindir/earthly-${bintag}" ]; then
+                update="true"
+            elif [ "$last_flag_hash" != "$flagoverride_hash" ]; then
+                echo ".earthly_version_flag_overrides has changed since last run, checking for ${bintag} binaries. " \
+                     "If you see an \"unable to set <flag-name>: invalid flag\" error, you may have to wait for the" \
+                     "${bintag} binary to be built by GHA before re-attempting a ./earthly upgrade" | fold >&2
+                update="true"
+            elif [ "$since" -ge 3600 ]; then
+                echo "checking for latest earthly ${bintag} binaries" >&2
+                update="true"
+            fi
+
+            if [ "$update" = "true" ] && [ "$EARTHLY_DISABLE_AUTO_UPDATE" != "true" ]; then
+                get_latest_binary
+                echo "Updated ${bintag} binary. Version:" >&2
+                "$bindir/earthly-${bintag}" --version >&2
+                echo "$now" >"$last_check_state_path"
+                echo "$flagoverride_hash" >"$last_flag_hash_path"
+            fi
+        elif [ ! -x "$bindir/earthly-${bintag}" ]; then
+            # prerelease doesn't exist, exit silently to avoid displaying errors during tab-completion
+            exit 0
+        fi
+
+        EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < "$earthly_version_flag_overrides_path")"
+        export EARTHLY_VERSION_FLAG_OVERRIDES
+        exec -a "$scriptname" "$bindir/earthly-${bintag}" "$@"
+        ;;
+esac

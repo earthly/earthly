@@ -1,0 +1,6 @@
+[earthly-stable]
+name=Earthly Stable
+baseurl=https://pkg.earthly.dev/rpm/stable
+enabled=1
+gpgcheck=1
+gpgkey=https://pkg.earthly.dev/earthly.pgp

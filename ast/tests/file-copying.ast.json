@@ -1,0 +1,617 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "base"
+        ],
+        "name": "WORKDIR"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "all",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+test-glob"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-dot"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-dot-slash"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-sub"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-sub-glob"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-dot-single"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-rel-single"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-src-dest-file-rename"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-src-dest-dir-rename"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "setup",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "mkdir",
+              "sub",
+              "sub/1",
+              "sub/2"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "base",
+              ">",
+              "base-file",
+              "&&",
+              "echo",
+              "sub",
+              ">",
+              "sub/sub-file",
+              "&&",
+              "echo",
+              "1",
+              ">",
+              "sub/1/1-file",
+              "&&",
+              "echo",
+              "2",
+              ">",
+              "sub/2/2-file"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./*"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "setup-scratch",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "scratch"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+setup/*",
+              "./"
+            ],
+            "name": "COPY"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-dot-scratch",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+setup-scratch"
+            ],
+            "docs": "Note: This is a negative test (should fail).\n",
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              ".",
+              "AS",
+              "LOCAL",
+              "out-dot-scratch/"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-glob",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+setup"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./*",
+              "AS",
+              "LOCAL",
+              "out-glob/"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"\n        base-file\n        sub\n        sub/1\n        sub/1/1-file\n        sub/2\n        sub/2/2-file\n        sub/sub-file\"",
+              ">",
+              "expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./expected",
+              "AS",
+              "LOCAL",
+              "expected-glob"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-dot",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+setup"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              ".",
+              "AS",
+              "LOCAL",
+              "out-dot/"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"\n        base\n        base/base-file\n        base/sub\n        base/sub/1\n        base/sub/1/1-file\n        base/sub/2\n        base/sub/2/2-file\n        base/sub/sub-file\"",
+              ">",
+              "expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./expected",
+              "AS",
+              "LOCAL",
+              "expected-dot"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-dot-slash",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+setup"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./",
+              "AS",
+              "LOCAL",
+              "out-dot-slash/"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"\n        base\n        base/base-file\n        base/sub\n        base/sub/1\n        base/sub/1/1-file\n        base/sub/2\n        base/sub/2/2-file\n        base/sub/sub-file\"",
+              ">",
+              "expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./expected",
+              "AS",
+              "LOCAL",
+              "expected-dot-slash"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-sub",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+setup"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./sub",
+              "AS",
+              "LOCAL",
+              "out-sub/"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"\n        sub\n        sub/1\n        sub/1/1-file\n        sub/2\n        sub/2/2-file\n        sub/sub-file\"",
+              ">",
+              "expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./expected",
+              "AS",
+              "LOCAL",
+              "expected-sub"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-sub-glob",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+setup"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./sub/*",
+              "AS",
+              "LOCAL",
+              "out-sub-glob/"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"\n        1\n        1/1-file\n        2\n        2/2-file\n        sub-file\"",
+              ">",
+              "expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./expected",
+              "AS",
+              "LOCAL",
+              "expected-sub-glob"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-dot-single",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+setup"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./sub/sub-file",
+              "AS",
+              "LOCAL",
+              "out-dot-single/"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"\n        sub-file\"",
+              ">",
+              "expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./expected",
+              "AS",
+              "LOCAL",
+              "expected-dot-single"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-rel-single",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+setup"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "sub/sub-file",
+              "AS",
+              "LOCAL",
+              "out-rel-single/"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"\n        sub-file\"",
+              ">",
+              "expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./expected",
+              "AS",
+              "LOCAL",
+              "expected-rel-single"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-src-dest-file-rename",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+setup"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "sub/sub-file",
+              "my-dir/my-file",
+              "AS",
+              "LOCAL",
+              "out-src-dest-file-rename/"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"\n        my-file\"",
+              ">",
+              "expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./expected",
+              "AS",
+              "LOCAL",
+              "expected-src-dest-file-rename"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-src-dest-dir-rename",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+setup"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "sub",
+              "my-dir",
+              "AS",
+              "LOCAL",
+              "out-src-dest-dir-rename/"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"\n        my-dir\n        my-dir/1\n        my-dir/1/1-file\n        my-dir/2\n        my-dir/2/2-file\n        my-dir/sub-file\"",
+              ">",
+              "expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./expected",
+              "AS",
+              "LOCAL",
+              "expected-src-dest-dir-rename"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

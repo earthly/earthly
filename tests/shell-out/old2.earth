@@ -1,0 +1,13 @@
+VERSION 0.6 # do not change to 0.7; this test is for old functionality
+
+target:
+    FROM alpine
+    ARG foo
+    RUN test "$foo" = "value"
+
+test:
+    FROM alpine
+    ARG val="=value"
+    ARG a1="oo$val"
+    ARG buildthis="+target"
+    BUILD "$buildthis" "--f$a1"

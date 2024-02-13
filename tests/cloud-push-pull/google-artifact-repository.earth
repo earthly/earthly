@@ -1,0 +1,13 @@
+VERSION 0.8
+FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+
+push:
+    RUN date | md5sum | head -c 32 > motd
+    ENTRYPOINT cat motd
+
+    SAVE IMAGE --push us-west1-docker.pkg.dev/ci-cd-302220/integration-test/test:latest
+
+pull:
+    WITH DOCKER --pull us-west1-docker.pkg.dev/ci-cd-302220/integration-test/test:latest
+        RUN docker run us-west1-docker.pkg.dev/ci-cd-302220/integration-test/test:latest
+    END

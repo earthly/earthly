@@ -1,0 +1,29 @@
+VERSION 0.8
+FROM earthly/dind
+WORKDIR /test
+
+all:
+    BUILD +test \
+        --INDEX=1 \
+        --INDEX=2 \
+        --INDEX=3 \
+        --INDEX=4 \
+        --INDEX=5
+
+print-countries:
+    FROM jbergknoff/postgresql-client:latest
+    CMD ["-c", "SELECT * FROM country WHERE country_id = '76'"]
+    SAVE IMAGE print-countries:latest
+
+test:
+    RUN apk add postgresql-client
+    COPY docker-compose.yml .
+    # Index is used to create parallel tests.
+    ARG INDEX=0
+    WITH DOCKER \
+            --compose docker-compose.yml \
+            --service postgres \
+            --load +print-countries
+        RUN while ! pg_isready --host=localhost --port=5432 --dbname=iso3166 --username=postgres; do sleep 1; done ;\
+            docker-compose up --exit-code-from print-countries print-countries | grep Brazil
+    END

@@ -1,0 +1,8 @@
+VERSION 0.8
+FROM alpine:3.18
+test:
+    WORKDIR /test
+    COPY . .
+    RUN ls
+    RUN test -f do-not-exclude-me.txt
+    RUN test ! -f exclude-me.txt

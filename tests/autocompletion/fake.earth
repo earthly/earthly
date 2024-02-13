@@ -1,0 +1,19 @@
+VERSION 0.8
+FROM alpine:latest
+
+RUN apk add --update --no-cache bash
+
+mytarget:
+    RUN echo this wont be run by this test.
+
+othertarget:
+    RUN echo we are only testing the autocompletion can extract targets
+
+othertargetwithargs:
+    ARG city
+    ARG country
+    RUN echo "we will test that +othertargetwithargs --c<tab><tab> suggests --city and --country"
+
+targetwithrequiredarg:
+    ARG --required musthave
+    RUN echo "this is a $musthave feature"

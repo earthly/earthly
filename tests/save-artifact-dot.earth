@@ -1,0 +1,16 @@
+VERSION 0.8
+FROM alpine:3.18
+WORKDIR base
+
+all:
+    BUILD +save-local-as-dot
+
+save-local-file-as-dot:
+    RUN echo eeee5a95-1506-428f-8ef0-94bbad5bd22b > uuid
+    SAVE ARTIFACT uuid AS LOCAL .
+
+save-local-dir-as-dot:
+    RUN mkdir /the-data
+    RUN echo 7be91098-1823-41df-911b-2a8907fe5da7 > /the-data/file1
+    RUN echo b0359c17-d08b-411c-9db7-1333ef3673d0 > /the-data/file2
+    SAVE ARTIFACT /the-data AS LOCAL .

@@ -1,0 +1,12 @@
+VERSION --try 0.8
+
+test:
+    FROM alpine:3.18
+    ARG fail="false"
+    RUN echo foo > otherdata
+    TRY
+        RUN echo "there's no data to save" && test "$fail" = "false"
+    FINALLY
+        SAVE ARTIFACT --if-exists data AS LOCAL .testdata
+        SAVE ARTIFACT --if-exists otherdata AS LOCAL .otherdata
+    END

@@ -1,0 +1,41 @@
+VERSION 0.8
+FROM golang:1.21-alpine3.18
+WORKDIR /go-example
+
+deps:
+    COPY go.mod go.sum ./
+    RUN go mod download
+    SAVE ARTIFACT go.mod AS LOCAL go.mod
+    SAVE ARTIFACT go.sum AS LOCAL go.sum
+
+build:
+    FROM +deps
+    COPY main.go .
+    RUN go build -o build/go-example main.go
+    SAVE ARTIFACT build/go-example /go-example AS LOCAL build/go-example
+
+docker:
+    COPY +build/go-example .
+    ENTRYPOINT ["/go-example/go-example"]
+    SAVE IMAGE --push earthly/examples:go
+
+unit-test:
+    FROM +deps
+    COPY main.go .
+    COPY main_test.go .
+    RUN CGO_ENABLED=0 go test github.com/earthly/earthly/examples/go
+
+integration-test:
+    FROM +deps
+    COPY main.go .
+    COPY main_integration_test.go .
+    COPY docker-compose.yml ./
+    WITH DOCKER --compose docker-compose.yml
+        RUN CGO_ENABLED=0 go test github.com/earthly/earthly/examples/go
+    END
+
+all:
+  BUILD +build
+  BUILD +unit-test
+  BUILD +integration-test
+  BUILD +docker

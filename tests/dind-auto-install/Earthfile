@@ -1,0 +1,25 @@
+VERSION 0.8
+
+all:
+    BUILD +test \
+        --BASE_IMAGE=docker:20.10.14-dind \
+        --BASE_IMAGE=docker:20.10.15-dind \
+        --BASE_IMAGE=docker:dind \
+        --BASE_IMAGE=alpine:latest \
+        --BASE_IMAGE=debian:stable \
+        --BASE_IMAGE=debian:stable-slim \
+        --BASE_IMAGE=ubuntu:latest \
+        --BASE_IMAGE=amazonlinux:1 \
+        --BASE_IMAGE=amazonlinux:2 \
+        --BASE_IMAGE=../..+dind-alpine \
+        --BASE_IMAGE=../..+dind-ubuntu-20.04 \
+        --BASE_IMAGE=../..+dind-ubuntu-23.04
+
+test:
+    ARG --required BASE_IMAGE
+    FROM $BASE_IMAGE
+    WORKDIR /root
+    COPY ./docker-compose.yml ./
+    WITH DOCKER --compose docker-compose.yml
+        RUN true
+    END

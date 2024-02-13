@@ -1,0 +1,355 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "test-empty",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "EARTHLY_TARGET_PROJECT"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_TARGET"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_TARGET_NAME"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_TARGET_TAG"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_GIT_HASH"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_GIT_ORIGIN_URL"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_GIT_PROJECT_NAME"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"project=$EARTHLY_TARGET_PROJECT\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"target=$EARTHLY_TARGET\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"target name=$EARTHLY_TARGET_NAME\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"target tag=$EARTHLY_TARGET_TAG\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"git hash=$EARTHLY_GIT_HASH\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"git origin url=$EARTHLY_GIT_ORIGIN_URL\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"git project=$EARTHLY_GIT_PROJECT_NAME\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_TARGET\"",
+              "==",
+              "\"+test-empty\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_TARGET_NAME\"",
+              "==",
+              "\"test-empty\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-origin-no-hash",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "EARTHLY_TARGET_PROJECT"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_TARGET"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_TARGET_NAME"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_TARGET_TAG"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_GIT_HASH"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_GIT_ORIGIN_URL"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_GIT_PROJECT_NAME"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"project=$EARTHLY_TARGET_PROJECT\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"target=$EARTHLY_TARGET\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"target name=$EARTHLY_TARGET_NAME\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"target tag=$EARTHLY_TARGET_TAG\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"git hash=$EARTHLY_GIT_HASH\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"git origin url=$EARTHLY_GIT_ORIGIN_URL\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"git project=$EARTHLY_GIT_PROJECT_NAME\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_TARGET\"",
+              "==",
+              "\"github.com/earthly/earthly+test-origin-no-hash\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_TARGET_PROJECT\"",
+              "==",
+              "\"github.com/earthly/earthly\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_TARGET_NAME\"",
+              "==",
+              "\"test-origin-no-hash\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_GIT_ORIGIN_URL\"",
+              "==",
+              "\"https://github.com/earthly/earthly.git\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_GIT_PROJECT_NAME\"",
+              "==",
+              "\"earthly/earthly\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_GIT_HASH\"",
+              "==",
+              "\"\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

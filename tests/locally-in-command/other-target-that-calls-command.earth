@@ -1,0 +1,7 @@
+VERSION 0.8
+IMPORT ../../some/subdir AS imported-name
+
+test:
+    DO imported-name+UDC_THAT_SAVES_FILE_LOCALLY
+    RUN test "$(cat data)" = "I am running in /the-test/other/path"
+    RUN test -f /this-file-exists-locally

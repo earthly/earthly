@@ -1,0 +1,9 @@
+VERSION 0.8
+FROM alpine:3.18
+
+test-pass-file:
+    RUN --mount=type=cache,target=/cache-test test -f /cache-test/test.txt
+    RUN --mount=type=cache,target=/cache-test cat /cache-test/test.txt
+
+test-no-bust-on-change:
+    RUN --mount=type=cache,target=/cache-test echo second run >>/cache-test/test.txt

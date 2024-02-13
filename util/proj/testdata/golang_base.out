@@ -1,0 +1,95 @@
+VERSION --arg-scope-and-set 0.7
+
+LET go_version = 1.20
+LET distro = alpine3.18
+
+FROM golang:${go_version}-${distro}
+WORKDIR /go-workdir
+
+deps:
+    # These cache dirs will be used in later test and build targets
+    # to persist cached go packages.
+    #
+    # NOTE: cache only gets persisted on successful builds. A test
+    # failure will prevent the go cache from being persisted.
+    ENV GOCACHE = "/.go-cache"
+    ENV GOMODCACHE = "/.go-mod-cache"
+
+    # Copying only go.mod and go.sum means that the cache for this
+    # target will only be busted when go.mod/go.sum change. This
+    # means that we can cache the results of 'go mod download'.
+    COPY go.mod .
+    # Projects with no external dependencies do not have a go.sum.
+    COPY --if-exists go.sum .
+    RUN go mod download
+
+test-base:
+    FROM +deps
+
+    # gcc and g++ are required for -race.
+    RUN apk add --update gcc g++
+
+    # This copies the whole project. If you want better caching, try
+    # limiting this to _just_ files required by your go tests.
+    COPY . .
+
+# test-race runs 'go test -race'.
+test-race:
+    FROM +test-base
+
+    CACHE --sharing shared "$GOCACHE"
+    CACHE --sharing shared "$GOMODCACHE"
+
+    # package sets the package that tests will run against.
+    ARG package = ./...
+
+    RUN go test -race "$package"
+
+# test-integration runs 'go test -tags integration'.
+test-integration:
+    FROM +test-base
+
+    CACHE --sharing shared "$GOCACHE"
+    CACHE --sharing shared "$GOMODCACHE"
+
+    # package sets the package that tests will run against.
+    ARG package = ./...
+
+    RUN go test -tags integration "$package"
+
+# test runs all go test targets
+test:
+    BUILD +test-race
+    BUILD +test-integration
+
+proj-base:
+    FROM +deps
+
+    # This copies the whole project. If you want better caching, try
+    # limiting this to _just_ files required by your go project.
+    COPY . .
+
+# mod-tidy runs 'go mod tidy', saving go.mod and go.sum locally.
+mod-tidy:
+    FROM +proj-base
+
+    RUN go mod tidy
+    SAVE ARTIFACT go.mod AS LOCAL go.mod
+    SAVE ARTIFACT --if-exists go.sum AS LOCAL go.sum
+
+# build runs 'go build ./...', saving artifacts locally.
+build:
+    FROM +proj-base
+
+    CACHE --sharing shared "$GOCACHE"
+    CACHE --sharing shared "$GOMODCACHE"
+
+    ENV GOBIN = "/tmp/build"
+    RUN go install ./...
+
+    # outputDir sets the directory that build artifacts will be saved to.
+    ARG outputDir = "./build"
+
+    FOR bin IN $(ls -1 "/tmp/build")
+        SAVE ARTIFACT "/tmp/build/${bin}" AS LOCAL "${outputDir}/${bin}"
+    END

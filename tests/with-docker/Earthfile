@@ -1,0 +1,181 @@
+VERSION 0.8
+FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+
+all:
+    BUILD +empty-test
+    BUILD +docker-load-test
+    BUILD +docker-load-shellout-test
+    BUILD +docker-load-arg-test
+    BUILD +docker-load-multi-test
+    BUILD +docker-pull-test
+    BUILD +docker-pull-test-long
+    BUILD +docker-load-test-long
+    BUILD +load-parallel-test
+    BUILD +one-target-many-names
+    BUILD +if-after
+    BUILD +cgroup-v2-test-all
+    BUILD +pre-script-test
+
+empty-test:
+    WITH DOCKER
+        RUN echo "dummy"
+    END
+
+a-test-image:
+    FROM alpine:3.18
+    ARG name=abc
+    ARG var=def
+    RUN mkdir /$name
+    WORKDIR /$name
+    RUN echo "hello $var" >def.txt
+    ENTRYPOINT cat /$name/def.txt && pwd
+    SAVE IMAGE test-${name}-img:xyz
+
+another-test-image:
+    FROM alpine:3.18
+    WORKDIR /work
+    ARG INDEX=0
+    RUN echo "hello another test img $INDEX" >file.txt
+    ENTRYPOINT cat /work/file.txt
+    SAVE IMAGE another-test-img:i${INDEX}
+
+a-test-image-with-shell-out:
+    FROM alpine:3.18
+    RUN echo c2hlbGxvdXQ= > data # decodes into "shellout"
+    RUN echo myver > version
+    ENTRYPOINT echo "you found me"
+    SAVE IMAGE "test-img-with-$(cat data | base64 -d)":"$(cat version)"
+
+docker-load-test:
+    # Index is used to create parallel tests.
+    ARG INDEX=0
+    RUN echo "$INDEX"
+    WITH DOCKER \
+            --pull hello-world \
+            --load +a-test-image
+        RUN docker run test-abc-img:xyz && \
+            docker run hello-world
+    END
+
+docker-load-shellout-test:
+    WITH DOCKER --load=+a-test-image-with-shell-out
+        RUN docker run test-img-with-shellout:myver | grep "you found me"
+    END
+
+docker-load-arg-test:
+    WITH DOCKER --load=(+a-test-image --name=foo --var bar)
+        RUN docker run test-foo-img:xyz | grep "hello bar"
+    END
+    WITH DOCKER --load=(+a-test-image \
+            --name=foo \
+            --var \
+            bar)
+        RUN docker run test-foo-img:xyz | grep "hello bar"
+    END
+    WITH DOCKER --load="(+a-test-image --name=bar --var buz)"
+        RUN docker run test-bar-img:xyz | grep "hello buz"
+    END
+    WITH DOCKER --load=other-name:latest=(+a-test-image --name=foo --var buz)
+        RUN docker run other-name:latest | grep "hello buz"
+    END
+    WITH DOCKER --load=other-name:latest=(+a-test-image \
+            --name=foo \
+            --var \
+            buz)
+        RUN docker run other-name:latest | grep "hello buz"
+    END
+    WITH DOCKER --load="other-name:latest=(+a-test-image --name=bar --var buz)"
+        RUN docker run other-name:latest | grep "hello buz"
+    END
+    WITH DOCKER --load=other-name:latest="(+a-test-image --name=bar --var buz)"
+        RUN docker run other-name:latest | grep "hello buz"
+    END
+
+docker-load-multi-test:
+    WITH DOCKER \
+        --load=(+another-test-image --INDEX=1) \
+        --load=(+another-test-image --INDEX=2) \
+        --load=(+another-test-image --INDEX=3) \
+        --load=(+another-test-image --INDEX=4) \
+        --load=(+another-test-image --INDEX=5)
+        RUN docker run --rm another-test-img:i1 && \
+            docker run --rm another-test-img:i2 && \
+            docker run --rm another-test-img:i3 && \
+            docker run --rm another-test-img:i4 && \
+            docker run --rm another-test-img:i5
+    END
+
+docker-pull-test:
+    WITH DOCKER --pull hello-world
+        RUN docker images | grep hello-world && \
+            docker run hello-world
+    END
+
+docker-pull-test-long:
+    WITH DOCKER --platform=linux/amd64 --pull earthly/earthly:v0.6.17
+        RUN docker images | grep earthly/earthly
+    END
+
+docker-load-test-long:
+    WITH DOCKER --load foo.example.com/bar/buz:abc=+a-test-image
+        RUN docker images | grep foo.example.com/bar/buz | grep abc
+    END
+
+load-parallel-test:
+    BUILD \
+        +docker-load-test \
+        --INDEX=1 \
+        --INDEX=2 \
+        --INDEX=3 \
+        --INDEX=4 \
+        --INDEX=5
+
+multi-from-one:
+    FROM hello-world
+
+multi-from-two:
+    FROM alpine:latest
+
+one-target-many-names:
+    FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+    WITH DOCKER \
+            --load a:latest=+multi-from-one \  # Test that there can be multiple names assigned to an image from a single target
+            --load b:latest=+multi-from-one \
+            --load c:latest=+multi-from-two    # Test that nothing else broke, load from another target
+        RUN docker images && \
+            docker run a:latest && \
+            echo "-----" && \
+            docker run b:latest && \
+            echo "-----" && \
+            docker run c:latest uname -a
+    END
+
+if-after:
+    FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+    WITH DOCKER --load a:latest=+multi-from-one
+        RUN docker run a:latest
+    END
+
+    IF [ "true" = "true" ]
+        RUN true
+    END
+
+cgroup-v2-test-all:
+    BUILD +cgroup-v2-test \
+        --DIND_IMG=earthly/dind:alpine-3.19-docker-25.0.2-r0 \
+        --DIND_IMG=earthly/dind:ubuntu-23.04-docker-24.0.5-1
+
+cgroup-v2-test:
+    ARG --required DIND_IMG
+    FROM $DIND_IMG
+    COPY test-cgroup-v2.sh test-cgroup-v2-inside-container.sh .
+    ARG ubuntu_img_tag=23.04
+    WITH DOCKER --pull ubuntu:$ubuntu_img_tag
+        RUN ./test-cgroup-v2.sh
+    END
+
+pre-script-test:
+    COPY pre-script.sh /usr/share/earthly/dockerd-wrapper-pre-script
+    WITH DOCKER
+        RUN test -f /the-prescript-was-run
+    END

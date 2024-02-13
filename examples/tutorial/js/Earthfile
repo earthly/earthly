@@ -1,0 +1,28 @@
+
+VERSION 0.8
+FROM alpine:3.18
+WORKDIR /tutorial
+
+part1:
+    COPY --dir ./part1 ./
+    SAVE ARTIFACT ./part1
+
+part2:
+    COPY --dir ./part2 ./
+    SAVE ARTIFACT ./part2
+
+part3:
+    COPY --dir ./part3 ./
+    SAVE ARTIFACT ./part3
+
+part4:
+    COPY --dir ./part4 ./
+    SAVE ARTIFACT ./part4
+
+part5:
+    COPY --dir ./part5 ./
+    SAVE ARTIFACT ./part5
+
+part6:
+    COPY --dir ./part6 ./
+    SAVE ARTIFACT ./part6

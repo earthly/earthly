@@ -1,0 +1,12 @@
+VERSION 0.8
+FROM alpine:3.18
+
+reserved:
+    FROM +base
+    # this should be running alpine; however, this earthfile should fail to parse
+    # since it contains an invalid base target.
+    RUN ls /etc/alpine-release
+
+base:
+    FROM fedora:latest
+    RUN echo this target is invalid and should produce a parsing error

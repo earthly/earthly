@@ -1,0 +1,15 @@
+VERSION 0.8
+FROM golang:1.21-alpine3.18
+WORKDIR /go-workdir
+
+build:
+    FROM ./services/service-one+deps
+    COPY main.go .
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example AS LOCAL local-output/go-example
+
+docker:
+    ARG tag='latest'
+    COPY +build/example .
+    ENTRYPOINT ["/go-workdir/example"]
+    SAVE IMAGE go-example:$tag

@@ -1,0 +1,19 @@
+VERSION 0.8
+FROM sbtscala/scala-sbt:eclipse-temurin-jammy-17.0.5_8_1.8.2_2.13.10
+WORKDIR /scala-example
+
+deps:
+    COPY build.sbt ./
+    COPY project project
+    RUN sbt update
+
+build:
+    FROM +deps
+    COPY src src
+    RUN sbt assembly
+    SAVE ARTIFACT target/scala-2.13 bin AS LOCAL build/bin
+
+docker:
+    COPY +build/bin build/bin
+    ENTRYPOINT ["java","-cp","build/bin/scala-example-assembly-1.0.jar","Main"]
+    SAVE IMAGE --push earthly/examples:scala

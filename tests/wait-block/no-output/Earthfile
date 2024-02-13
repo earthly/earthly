@@ -1,0 +1,19 @@
+VERSION 0.8
+
+myimg:
+    FROM alpine:3.18
+    RUN echo foo > bar
+    SAVE ARTIFACT bar
+    SAVE IMAGE myimg:623cb5fb1b8c4cff8693281095724bb0
+
+copy:
+    WAIT
+        FROM alpine
+        COPY +myimg/bar .
+    END
+    RUN ls -la bar
+
+build:
+    WAIT
+        BUILD +myimg
+    END

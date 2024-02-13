@@ -1,0 +1,154 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "earthly/dind"
+        ],
+        "name": "FROM"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "/test"
+        ],
+        "name": "WORKDIR"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "all",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+test",
+              "--INDEX=1",
+              "--INDEX=2",
+              "--INDEX=3",
+              "--INDEX=4",
+              "--INDEX=5"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "print-countries",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "jbergknoff/postgresql-client:latest"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "-c",
+              "SELECT * FROM country WHERE country_id = '76'"
+            ],
+            "execMode": true,
+            "name": "CMD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "print-countries:latest"
+            ],
+            "name": "SAVE IMAGE"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "apk",
+              "add",
+              "postgresql-client"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "docker-compose.yml",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "INDEX",
+              "=",
+              "0"
+            ],
+            "docs": "Index is used to create parallel tests.\n",
+            "name": "ARG"
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "while",
+                    "!",
+                    "pg_isready",
+                    "--host=localhost",
+                    "--port=5432",
+                    "--dbname=iso3166",
+                    "--username=postgres;",
+                    "do",
+                    "sleep",
+                    "1;",
+                    "done",
+                    ";docker-compose",
+                    "up",
+                    "--exit-code-from",
+                    "print-countries",
+                    "print-countries",
+                    "|",
+                    "grep",
+                    "Brazil"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [
+                "--compose",
+                "docker-compose.yml",
+                "--service",
+                "postgres",
+                "--load",
+                "+print-countries"
+              ],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

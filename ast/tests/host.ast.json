@@ -1,0 +1,158 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "add-single-host",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "example.com",
+              "1.2.3.4"
+            ],
+            "name": "HOST"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "cat",
+              "/etc/hosts",
+              "|",
+              "grep",
+              "\"1.2.3.4\\W*example.com\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "add-multiple-host",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "example.com",
+              "1.2.3.4"
+            ],
+            "name": "HOST"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "taco.org",
+              "5.6.7.8"
+            ],
+            "name": "HOST"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "cat",
+              "/etc/hosts",
+              "|",
+              "grep",
+              "\"1.2.3.4\\W*example.com\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "cat",
+              "/etc/hosts",
+              "|",
+              "grep",
+              "\"5.6.7.8\\W*taco.org\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "add-ipv6",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "cool.website",
+              "dead:beef::cafe"
+            ],
+            "name": "HOST"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "cat",
+              "/etc/hosts",
+              "|",
+              "grep",
+              "\"dead:beef::cafe\\W*cool.website\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "invalid-ip",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "example.com",
+              "1.2.3.4.5.6.7.8.9.10"
+            ],
+            "name": "HOST"
+          }
+        }
+      ]
+    },
+    {
+      "name": "only-host",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "my.website"
+            ],
+            "name": "HOST"
+          }
+        }
+      ]
+    },
+    {
+      "name": "only-ip",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "42.42.42.42"
+            ],
+            "name": "HOST"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

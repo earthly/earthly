@@ -1,0 +1,6 @@
+# Please note the required indentation to fit in buildkit.toml.template accordingly.
+
+  [grpc.tls]
+    cert = "/etc/cert.pem"
+    key = "/etc/key.pem"
+    ca = "/etc/ca.pem"

@@ -1,0 +1,22 @@
+VERSION 0.8
+FROM golang:1.21-alpine3.18
+WORKDIR /proto-example
+
+proto:
+  FROM namely/protoc-all:1.29_4
+  COPY api.proto /defs
+  RUN --entrypoint -- -f api.proto -l go
+  SAVE ARTIFACT ./gen/pb-go /pb AS LOCAL pb
+
+build:
+  COPY go.mod go.sum .
+  RUN go mod download
+  COPY +proto/pb pb
+  COPY main.go ./
+  RUN go build -o build/proto-example main.go
+  SAVE ARTIFACT build/proto-example
+
+docker:
+  COPY +build/proto-example ./
+  ENTRYPOINT ["/proto-example/proto-example"]
+  SAVE IMAGE proto-example:latest

@@ -1,0 +1,110 @@
+VERSION 0.8
+FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+
+all:
+    BUILD +test-single
+    BUILD +test-single-udp
+    BUILD +test-host-port-is-ignored
+    BUILD +test-host-port-is-ignored-udp
+    BUILD +test-double
+    BUILD +test-ip
+    BUILD +test-range
+
+
+single:
+    FROM alpine:3.18
+    EXPOSE 1234
+
+single-udp:
+    FROM alpine:3.18
+    EXPOSE 1234/udp
+
+single-host-port:
+    FROM alpine:3.18
+    EXPOSE 1234:2345
+
+single-host-port-udp:
+    FROM alpine:3.18
+    EXPOSE 1234:2345/udp
+
+double:
+    FROM alpine:3.18
+    EXPOSE 1234 2345
+
+ip:
+    FROM alpine:3.18
+    EXPOSE 1.2.3.4:80:8080/tcp
+
+range:
+    FROM alpine:3.18
+    EXPOSE 1234-1239
+
+
+test-single:
+    RUN echo "{
+  \"1234/tcp\": {}
+}" > expected
+    WITH DOCKER --load=test:img=+single
+        RUN docker inspect test:img | jq '.[].Config.ExposedPorts' > actual && \
+            diff expected actual
+    END
+
+test-single-udp:
+    RUN echo "{
+  \"1234/udp\": {}
+}" > expected
+    WITH DOCKER --load=test:img=+single-udp
+        RUN docker inspect test:img | jq '.[].Config.ExposedPorts' > actual && \
+            diff expected actual
+    END
+
+test-host-port-is-ignored:
+    RUN echo "{
+  \"2345/tcp\": {}
+}" > expected
+    WITH DOCKER --load=test:img=+single-host-port
+        RUN docker inspect test:img | jq '.[].Config.ExposedPorts' > actual && \
+            diff expected actual
+    END
+
+test-host-port-is-ignored-udp:
+    RUN echo "{
+  \"2345/udp\": {}
+}" > expected
+    WITH DOCKER --load=test:img=+single-host-port-udp
+        RUN docker inspect test:img | jq '.[].Config.ExposedPorts' > actual && \
+            diff expected actual
+    END
+
+test-range:
+    RUN echo "{
+  \"1234/tcp\": {},
+  \"1235/tcp\": {},
+  \"1236/tcp\": {},
+  \"1237/tcp\": {},
+  \"1238/tcp\": {},
+  \"1239/tcp\": {}
+}" > expected
+    WITH DOCKER --load=test:img=+range
+        RUN docker inspect test:img | jq '.[].Config.ExposedPorts' > actual && \
+            diff expected actual
+    END
+
+test-double:
+    RUN echo "{
+  \"1234/tcp\": {},
+  \"2345/tcp\": {}
+}" > expected
+    WITH DOCKER --load=test:img=+double
+        RUN docker inspect test:img | jq '.[].Config.ExposedPorts' > actual && \
+            diff expected actual
+    END
+
+test-ip:
+    RUN echo "{
+  \"8080/tcp\": {}
+}" > expected
+    WITH DOCKER --load=test:img=+ip
+        RUN docker inspect test:img | jq '.[].Config.ExposedPorts' > actual && \
+            diff expected actual
+    END

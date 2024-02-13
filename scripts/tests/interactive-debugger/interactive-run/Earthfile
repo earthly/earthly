@@ -1,0 +1,5 @@
+VERSION 0.7
+FROM alpine:latest
+
+interactive-target:
+    RUN --interactive read -p "$(echo V2hhdCBleGl0IGNvZGUgZG8geW91IHdhbnQ/IA== | base64 -d)" -r && exit "$REPLY"

@@ -1,0 +1,13 @@
+VERSION 0.8
+FROM python:3
+WORKDIR /code
+
+build:
+     # In Python, there's nothing to build.
+    COPY src src
+    SAVE ARTIFACT src /src
+
+docker:
+    FROM +build
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    SAVE IMAGE --push python-example:latest

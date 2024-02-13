@@ -1,0 +1,17 @@
+VERSION 0.7
+
+PROJECT earthly-technologies/core
+
+FROM alpine
+
+foo:
+    RUN echo "not skipped"
+
+bar:
+    RUN echo bar > /tmp/x
+
+test:
+    WAIT
+        BUILD +foo
+        BUILD +bar
+    END

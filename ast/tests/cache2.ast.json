@@ -1,0 +1,62 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "test-pass-file",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--mount=type=cache,target=/cache-test",
+              "test",
+              "-f",
+              "/cache-test/test.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--mount=type=cache,target=/cache-test",
+              "cat",
+              "/cache-test/test.txt"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-no-bust-on-change",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--mount=type=cache,target=/cache-test",
+              "echo",
+              "second",
+              "run",
+              ">>/cache-test/test.txt"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

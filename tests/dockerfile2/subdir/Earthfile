@@ -1,0 +1,8 @@
+VERSION 0.8
+
+FROM alpine:3.18
+
+test:
+    FROM DOCKERFILE -f ../other.Dockerfile .
+    RUN --entrypoint
+    SAVE IMAGE test-dockerfile2:latest

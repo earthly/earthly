@@ -1,0 +1,36 @@
+VERSION 0.8
+FROM ruby:3.2.2
+WORKDIR /ruby-on-rails-example
+ENV BUNDLER_VERSION=2.4.12
+
+deps:
+    RUN curl -sL https://deb.nodesource.com/setup_12.x  | bash - && \
+      apt-get install -y nodejs
+    RUN gem install bundler:$BUNDLER_VERSION
+    COPY Gemfile Gemfile.lock ./
+    RUN bundle config build.nokogiri --use-system-libraries
+    RUN bundle check || bundle install
+    SAVE ARTIFACT Gemfile.lock AS LOCAL ./Gemfile.lock
+
+build:
+    FROM +deps
+    COPY . .
+    SAVE ARTIFACT . /.
+
+docker:
+    FROM +build
+    EXPOSE 3000
+    CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
+    SAVE IMAGE --push earthly/examples:ruby-on-rails
+
+migrate:
+    FROM +build
+    RUN --push bundle exec rails db:migrate
+
+test:
+    FROM +build
+    RUN bundle exec rails test
+
+console:
+    FROM +build
+    RUN bundle exec rails console

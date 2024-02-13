@@ -1,0 +1,13 @@
+VERSION 0.8
+FROM golang:1.21-alpine3.18
+WORKDIR /go-workdir
+
+build:
+    COPY main.go .
+    RUN go build -o output/example main.go
+    SAVE ARTIFACT output/example
+
+docker:
+    COPY +build/example .
+    ENTRYPOINT ["/go-workdir/example"]
+    SAVE IMAGE go-example:latest

@@ -1,0 +1,19 @@
+VERSION 0.8
+PROJECT earthly-technologies/core
+
+FROM --pass-args ..+base
+
+IMPORT .. AS tests
+
+WORKDIR /test
+
+test:
+    BUILD +test-login
+
+test-login:
+    COPY test-login.sh .
+    RUN \
+        --secret USER1_TOKEN=test-user1/token \
+        --secret USER2_TOKEN=test-user2/token \
+        --secret USER2_SSH_KEY=test-user2/ssh-key \
+        ./test-login.sh

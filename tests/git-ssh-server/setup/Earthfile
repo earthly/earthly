@@ -1,0 +1,96 @@
+VERSION 0.8
+
+FROM --pass-args ../..+base
+
+# server creates a ssh-based git server; this repo can then be cloned by running
+# "git clone git@selfsigned.example.com:testuser/repo.git"
+server:
+    RUN apk add --update --no-cache openssh git
+    RUN ssh-keygen -A
+
+    # generate user keys
+    RUN ssh-keygen -b 3072 -t rsa -f /root/self-hosted-rsa-key -q -N "" -C "rsa-testkey"
+    RUN ssh-keygen -t ed25519 -f /root/self-hosted-ed25519-key -q -N "" -C "ed25519-testkey"
+
+    # generate sshd keys
+    RUN mkdir /etc/sshd_keys
+    RUN ssh-keygen -b 3072 -t rsa -f /etc/sshd_keys/sshd_rsa_key -q -N "" -C "git.example.com"
+    RUN ssh-keygen -t ed25519 -f /etc/sshd_keys/sshd_ed25519_key -q -N "" -C "git.example.com"
+
+    ARG USER_RSA="true"
+    ARG USER_ED25519="true"
+
+    ARG SSH_PORT="22"
+
+    RUN adduser --disabled-password --gecos "" git && \
+        mkdir ~git/.ssh && \
+        > ~git/.ssh/authorized_keys && \
+        if [ "$USER_RSA" = "true" ]; then cat /root/self-hosted-rsa-key.pub >> ~git/.ssh/authorized_keys; fi && \
+        if [ "$USER_ED25519" = "true" ]; then cat /root/self-hosted-ed25519-key.pub >> ~git/.ssh/authorized_keys; fi && \
+        chmod 600 ~git/.ssh/authorized_keys && \
+        chown git:git ~git/.ssh/authorized_keys && \
+        cat /etc/passwd | grep git && \
+        sed -i 's/\(git:.*\):\/bin\/ash/\1:\/usr\/bin\/git-shell/g' /etc/passwd && \
+        cat /etc/passwd | grep git && \
+        passwd git -u
+    COPY no-interactive-login /home/git/git-shell-commands/no-interactive-login
+    RUN mkdir /home/git/testuser && \
+        git init --bare /home/git/testuser/repo.git && \
+        git -C /home/git/testuser/repo.git symbolic-ref HEAD refs/heads/main && \
+        chown -R git:git /home/git/testuser
+    RUN ln -s /home/git/testuser /testuser # hack to get around https://github.com/moby/buildkit/pull/4142
+    COPY sshd_config /etc/ssh/sshd_config
+
+    ARG SSHD_RSA="true"
+    ARG SSHD_ED25519="true"
+    RUN if [ "$SSHD_RSA" = "true" ]; then echo "HostKey /etc/sshd_keys/sshd_rsa_key" >> /etc/ssh/sshd_config; fi && \
+        if [ "$SSHD_ED25519" = "true" ]; then echo "HostKey /etc/sshd_keys/sshd_ed25519_key" >> /etc/ssh/sshd_config; fi
+
+    RUN if [ "$SSH_PORT" != "22" ]; then echo "Port $SSH_PORT" >> /etc/ssh/sshd_config; fi
+
+    RUN echo "Welcome to our self-hosted git ssh server" > /etc/motd
+
+    RUN echo "set -e
+# Docker creates /etc/hosts as readonly; we must unmount it first
+# before we can update it; this change will NOT stick around between different RUNs
+# due to the unmount command, we must use RUN --privileged.
+cp /etc/hosts /tmp/hosts
+umount /etc/hosts
+cp /tmp/hosts /etc/hosts
+if ! grep git.example.com /etc/hosts 2>/dev/null; then
+    echo -e \"127.0.0.1\tgit.example.com\" >> /etc/hosts
+fi
+/sbin/syslogd # required to have sshd log to /var/log/messages
+/usr/sbin/sshd
+" > /bin/start-sshd && chmod +x /bin/start-sshd
+
+    RUN --privileged start-sshd && \
+        mkdir -p ~/.ssh && \
+        timeout 5 sh -c 'until nc -z $0 $1; do sleep 1; done' git.example.com $SSH_PORT && \
+        ssh-keyscan -p $SSH_PORT -H git.example.com > ~/.ssh/known_hosts && \
+        echo done setup.
+
+    RUN --privileged start-sshd && \ # starts in background
+        eval `ssh-agent` && \
+        if [ "$USER_RSA" = "true" ]; then ssh-add /root/self-hosted-rsa-key; fi && \
+        if [ "$USER_ED25519" = "true" ]; then ssh-add /root/self-hosted-ed25519-key; fi && \
+        ssh-add -l && \
+        timeout 5 sh -c 'until nc -z $0 $1; do sleep 1; done' git.example.com $SSH_PORT && \
+        ssh-keyscan -p $SSH_PORT -H git.example.com && \
+        mkdir -p /test/repo && \
+        cd /test/repo && \
+        git init --initial-branch=main . && \
+        echo "51bdc359-98f8-4bc6-960e-2be69f722ca3" > i-really-like-this-uuid && \
+        echo -e "VERSION 0.8\nFROM alpine:3.18\nhello:\n\tRUN echo -n 1233c084-4cf5-4797-a4c5-eb65354ee7ee | base64" > Earthfile && \
+        git add Earthfile i-really-like-this-uuid && \
+        git config --global user.email "onlyspammersemailthis@earthly.dev" && \
+        git config --global user.name "test name" && \
+        git commit -m "An Earthfile to test against" && \
+        if [ "$SSH_PORT" = "22" ]; then \
+            git remote add origin git@git.example.com:testuser/repo.git; \
+        else \
+            git remote add origin ssh://git@git.example.com:$SSH_PORT/home/git/testuser/repo.git; \
+        fi && \
+        git push --set-upstream origin main && \
+        cd .. && \
+        rm -rf repo # remove this repo dir now that it has been pushed to the server

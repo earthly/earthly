@@ -1,0 +1,1222 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "/test"
+        ],
+        "name": "WORKDIR"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "all",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+copy-no-exist"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-trailing-slash"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-existing"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-multi-no-exist"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-multi-trailing-slash"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-multi-existing"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-art-no-exist"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-art-trailing-slash"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-art-existing"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-art-multi-no-exist"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-art-multi-trailing-slash"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-art-multi-existing"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-invalid-symlink"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-dir-containing-invalid-symlink"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+copy-chmod"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artifact",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--dir",
+              "in",
+              "in"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "in"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-no-exist",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--dir",
+              "in",
+              "copied"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "find",
+              "copied",
+              "|",
+              "sort",
+              "|",
+              "tee",
+              "./actual"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"copied\ncopied/root\ncopied/sub\ncopied/sub/1\ncopied/sub/1/file\ncopied/sub/2\ncopied/sub/2/file\ncopied/sub/file\"",
+              ">./expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "diff",
+              "-b",
+              "./actual",
+              "./expected"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-trailing-slash",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--dir",
+              "in",
+              "copied/"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "find",
+              "copied",
+              "|",
+              "sort",
+              "|",
+              "tee",
+              "./actual"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"copied\ncopied/in\ncopied/in/root\ncopied/in/sub\ncopied/in/sub/1\ncopied/in/sub/1/file\ncopied/in/sub/2\ncopied/in/sub/2/file\ncopied/in/sub/file\"",
+              ">./expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "diff",
+              "-b",
+              "./actual",
+              "./expected"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-existing",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "mkdir",
+              "copied"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--dir",
+              "in",
+              "copied"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "find",
+              "copied",
+              "|",
+              "sort",
+              "|",
+              "tee",
+              "./actual"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"copied\ncopied/in\ncopied/in/root\ncopied/in/sub\ncopied/in/sub/1\ncopied/in/sub/1/file\ncopied/in/sub/2\ncopied/in/sub/2/file\ncopied/in/sub/file\"",
+              ">./expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "diff",
+              "-b",
+              "./actual",
+              "./expected"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-multi-no-exist",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--dir",
+              "in/sub/1",
+              "in/sub/2",
+              "copied"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "find",
+              "copied",
+              "|",
+              "sort",
+              "|",
+              "tee",
+              "./actual"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"copied\ncopied/1\ncopied/1/file\ncopied/2\ncopied/2/file\"",
+              ">./expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "diff",
+              "-b",
+              "./actual",
+              "./expected"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-multi-trailing-slash",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--dir",
+              "in/sub/1",
+              "in/sub/2",
+              "copied/"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "find",
+              "copied",
+              "|",
+              "sort",
+              "|",
+              "tee",
+              "./actual"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"copied\ncopied/1\ncopied/1/file\ncopied/2\ncopied/2/file\"",
+              ">./expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "diff",
+              "-b",
+              "./actual",
+              "./expected"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-multi-existing",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "mkdir",
+              "copied"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--dir",
+              "in/sub/1",
+              "in/sub/2",
+              "copied"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "find",
+              "copied",
+              "|",
+              "sort",
+              "|",
+              "tee",
+              "./actual"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"copied\ncopied/1\ncopied/1/file\ncopied/2\ncopied/2/file\"",
+              ">./expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "diff",
+              "-b",
+              "./actual",
+              "./expected"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-art-no-exist",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--dir",
+              "+artifact/in",
+              "copied"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "find",
+              "copied",
+              "|",
+              "sort",
+              "|",
+              "tee",
+              "./actual"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"copied\ncopied/root\ncopied/sub\ncopied/sub/1\ncopied/sub/1/file\ncopied/sub/2\ncopied/sub/2/file\ncopied/sub/file\"",
+              ">./expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "diff",
+              "-b",
+              "./actual",
+              "./expected"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-art-trailing-slash",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--dir",
+              "+artifact/in",
+              "copied/"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "find",
+              "copied",
+              "|",
+              "sort",
+              "|",
+              "tee",
+              "./actual"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"copied\ncopied/in\ncopied/in/root\ncopied/in/sub\ncopied/in/sub/1\ncopied/in/sub/1/file\ncopied/in/sub/2\ncopied/in/sub/2/file\ncopied/in/sub/file\"",
+              ">./expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "diff",
+              "-b",
+              "./actual",
+              "./expected"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-art-existing",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "mkdir",
+              "copied"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--dir",
+              "+artifact/in",
+              "copied"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "find",
+              "copied",
+              "|",
+              "sort",
+              "|",
+              "tee",
+              "./actual"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"copied\ncopied/in\ncopied/in/root\ncopied/in/sub\ncopied/in/sub/1\ncopied/in/sub/1/file\ncopied/in/sub/2\ncopied/in/sub/2/file\ncopied/in/sub/file\"",
+              ">./expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "diff",
+              "-b",
+              "./actual",
+              "./expected"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-art-multi-no-exist",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--dir",
+              "+artifact/in/sub/1",
+              "+artifact/in/sub/2",
+              "copied"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "find",
+              "copied",
+              "|",
+              "sort",
+              "|",
+              "tee",
+              "./actual"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"copied\ncopied/1\ncopied/1/file\ncopied/2\ncopied/2/file\"",
+              ">./expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "diff",
+              "-b",
+              "./actual",
+              "./expected"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-art-multi-trailing-slash",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--dir",
+              "+artifact/in/sub/1",
+              "+artifact/in/sub/2",
+              "copied/"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "find",
+              "copied",
+              "|",
+              "sort",
+              "|",
+              "tee",
+              "./actual"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"copied\ncopied/1\ncopied/1/file\ncopied/2\ncopied/2/file\"",
+              ">./expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "diff",
+              "-b",
+              "./actual",
+              "./expected"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-art-multi-existing",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "mkdir",
+              "copied"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--dir",
+              "+artifact/in/sub/1",
+              "+artifact/in/sub/2",
+              "copied"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "find",
+              "copied",
+              "|",
+              "sort",
+              "|",
+              "tee",
+              "./actual"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"copied\ncopied/1\ncopied/1/file\ncopied/2\ncopied/2/file\"",
+              ">./expected"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "diff",
+              "-b",
+              "./actual",
+              "./expected"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-invalid-symlink-base",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "ln",
+              "-s",
+              "nonexistenttarget",
+              "symlink"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--symlink-no-follow",
+              "symlink"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-invalid-symlink",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--symlink-no-follow",
+              "+copy-invalid-symlink-base/symlink",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "ls",
+              "-la",
+              "symlink",
+              "|",
+              "grep",
+              "nonexistenttarget"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "ls",
+              "symlink",
+              "2>&1",
+              "|",
+              "grep",
+              "'No such file or directory'"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-dir-containing-invalid-symlink-base",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "mkdir",
+              "-p",
+              "/symlinks"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "mkdir",
+              "-p",
+              "/data"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "hello",
+              ">",
+              "/data/hello.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "ln",
+              "-s",
+              "/data/hello.txt",
+              "/symlinks/symlink"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "/symlinks/",
+              "/symlinks/"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-dir-containing-invalid-symlink",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--symlink-no-follow",
+              "+copy-dir-containing-invalid-symlink-base/*",
+              "/"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "ls",
+              "-la",
+              "/symlinks/symlink",
+              "|",
+              "grep",
+              "hello.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "ls",
+              "/symlinks/symlink",
+              "2>&1",
+              "|",
+              "grep",
+              "'No such file or directory'"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "mkdir",
+              "/data"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "hi",
+              ">",
+              "/data/hello.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "cat",
+              "/symlinks/symlink",
+              "|",
+              "grep",
+              "-w",
+              "hi"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-chmod",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"no chmod - -rw-r-r-\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "in/root",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"./root file-mode=$(stat -c %a ./root)\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$(stat -c %a ./root)\"",
+              "=",
+              "\"644\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"777 - everyone can RWX\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--chmod=777",
+              "in/root",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"./root file-mode=$(stat -c %a ./root)\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$(stat -c %a ./root)\"",
+              "=",
+              "\"777\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"600 - user can RW\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--chmod=600",
+              "in/root",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"./root file-mode=$(stat -c %a ./root)\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$(stat -c %a ./root)\"",
+              "=",
+              "\"600\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"666 - everyone can RW\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--chmod=666",
+              "in/root",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"./root file-mode=$(stat -c %a ./root)\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$(stat -c %a ./root)\"",
+              "=",
+              "\"666\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-empty-src",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "SRC",
+              "=",
+              "\"\""
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "$SRC",
+              "$SRC"
+            ],
+            "name": "COPY"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-empty-src-if-exists",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "SRC",
+              "=",
+              "\"\""
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "$SRC",
+              "$SRC"
+            ],
+            "name": "COPY"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

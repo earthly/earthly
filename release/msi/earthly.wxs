@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="Earthly" UpgradeCode="cd4e0b19-ef08-42b9-bf92-ca755f9bd931" Language="1033" Codepage="1252" Version="0.5.18" Manufacturer="Earthly Technologies, Inc.">
+    <Package InstallerVersion="200" Compressed="yes" Comments="Windows Installer Package" InstallScope="perMachine" Platform="x64"/>
+
+    <Property Id="PREVIOUSVERSIONSINSTALLED" Secure="yes"/>
+
+    <Upgrade Id="cd4e0b19-ef08-42b9-bf92-ca755f9bd931">
+      <UpgradeVersion Minimum="0.0.0" Property="PREVIOUSVERSIONSINSTALLED" IncludeMinimum="yes" IncludeMaximum="no"/>
+    </Upgrade>
+
+    <InstallExecuteSequence>
+      <RemoveExistingProducts Before="InstallInitialize"/>
+    </InstallExecuteSequence>
+
+    <Media Id="1" Cabinet="app.cab" EmbedCab="yes"/>
+
+    <Icon Id="icon.ico" SourceFile="./icon.ico"/>
+
+    <Property Id="ARPPRODUCTICON" Value="icon.ico"/>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLDIR" Name="Earthly">
+          <Component Id="earthly.exe" Guid="*">
+            <File Id="earthly.exe" Source="earthly.exe" Name="earthly.exe"/>
+          </Component>
+          <Component Id="icon.ico" Guid="*">
+            <File Id="icon.ico" Source="icon.ico" Name="icon.ico"/>
+          </Component>
+        </Directory>
+      </Directory>
+      <Component Id="Path" Guid="ae123563-e6ac-4ea6-bf58-156cc42db361">
+        <Environment Id="PATH" Name="PATH" Value="[INSTALLDIR]" Permanent="no" Part="last" Action="set" System="yes" />
+      </Component>
+    </Directory>
+
+    <Feature Id="App" Level="1">
+      <ComponentRef Id="earthly.exe"/>
+      <ComponentRef Id="icon.ico"/>
+      <ComponentRef Id="Path"/>
+    </Feature>
+  </Product>
+</Wix>

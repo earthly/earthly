@@ -1,0 +1,118 @@
+{
+  "baseRecipe": null,
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "alpine:3.18"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "date",
+              "|",
+              "md5sum",
+              "|",
+              "head",
+              "-c",
+              "32",
+              ">",
+              "motd1"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "motd1",
+              "AS",
+              "LOCAL",
+              "motd1"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--no-cache",
+              "echo",
+              "\"Hello!\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "date",
+              "|",
+              "md5sum",
+              "|",
+              "head",
+              "-c",
+              "32",
+              ">",
+              "motd2"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "motd2",
+              "AS",
+              "LOCAL",
+              "motd2"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-from",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "alpine:3.18"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test/motd1",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test/motd2",
+              "."
+            ],
+            "name": "COPY"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

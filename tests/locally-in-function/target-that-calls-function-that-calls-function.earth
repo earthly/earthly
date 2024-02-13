@@ -1,0 +1,7 @@
+VERSION 0.8
+IMPORT ./some/subdir/submarine
+
+test:
+    FROM alpine:3.18
+    DO submarine+FUNCTION_THAT_CALLS_OTHER_FUNCTION
+    RUN test "$(cat data)" = "I am running in /my/test"

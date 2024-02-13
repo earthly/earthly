@@ -1,0 +1,6 @@
+VERSION 0.8
+duplicate:
+    FROM alpine:3.18
+
+duplicate:
+    FROM alpine:3.18

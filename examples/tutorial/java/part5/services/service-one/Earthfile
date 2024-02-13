@@ -1,0 +1,8 @@
+VERSION 0.8
+FROM openjdk:8-jdk-alpine
+RUN apk add --update --no-cache gradle
+WORKDIR /java-example
+
+deps:
+    COPY build.gradle ./
+    RUN gradle build

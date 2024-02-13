@@ -1,0 +1,31 @@
+VERSION 0.8
+FROM alpine:3.18
+WORKDIR /test
+
+build:
+    ARG A=default
+    ARG B
+    RUN echo "A=$A" >./out
+    RUN echo "B=$B" >>./out
+    SAVE ARTIFACT ./out
+
+build-all-1:
+    COPY \
+        --build-arg A=other \
+        --build-arg B=1 \
+        +build/out ./out-other-1
+    COPY \
+        --build-arg B=1 \
+        +build/out ./out-default-1
+    SAVE ARTIFACT ./out-* AS LOCAL ./output/
+
+build-all-2:
+    # Same as above, but order of COPY's is reversed.
+    COPY \
+        --build-arg B=1 \
+        +build/out ./out-default-1
+    COPY \
+        --build-arg A=other \
+        --build-arg B=1 \
+        +build/out ./out-other-1
+    SAVE ARTIFACT ./out-* AS LOCAL ./output/

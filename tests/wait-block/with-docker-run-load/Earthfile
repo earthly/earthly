@@ -1,0 +1,38 @@
+VERSION 0.8
+
+deps:
+    FROM alpine:3.18
+    RUN apk add curl jq
+
+check-tag-does-not-exist-in-registry:
+    FROM +deps
+    ARG --required REGISTRY
+    ARG --required tag
+    RUN curl -k "https://$REGISTRY/v2/myuser/myimg/manifests/$tag" > output && \
+        test "$(cat output | jq -r .errors[0].code)" = "MANIFEST_UNKNOWN" && echo "verified $tag was not pushed"
+
+check-tag-does-not-exist-locally:
+    LOCALLY
+    ARG --required REGISTRY
+    ARG --required tag
+    RUN docker images "$REGISTRY/myuser/myimg:$tag" | grep -v "$tag"
+
+a-test-image:
+    FROM alpine
+    ARG --required REGISTRY
+    ARG --required tag
+    ARG --required value
+    RUN echo $value > /data
+    SAVE IMAGE $REGISTRY/myuser/myimg:$tag
+
+test:
+    FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+    ARG --required REGISTRY
+    ARG --required tag
+    WAIT
+        WITH DOCKER --load="(+a-test-image --REGISTRY=$REGISTRY --tag=$tag --value NThlMzkwNGFhZmE3Cg==)"
+            RUN docker images && docker run --pull=never --rm $REGISTRY/myuser/myimg:$tag /bin/sh -c 'cat /data | base64 -d' # | grep "58e3904aafa7"
+        END
+    END
+    BUILD +check-tag-does-not-exist-in-registry --REGISTRY=$REGISTRY --tag=$tag
+    BUILD +check-tag-does-not-exist-locally --REGISTRY=$REGISTRY --tag=$tag

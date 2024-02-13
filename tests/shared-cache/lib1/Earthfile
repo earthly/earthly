@@ -1,0 +1,7 @@
+VERSION 0.8
+FROM alpine:3.18
+
+check:
+    CACHE --id=cacheid /cache-test2
+    RUN ls -hl /cache-test2/test.txt
+    RUN cat /cache-test2/test.txt

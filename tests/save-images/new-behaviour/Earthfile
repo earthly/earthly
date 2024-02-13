@@ -1,0 +1,12 @@
+VERSION 0.8
+FROM alpine:3.18
+
+mysubimage:
+    WORKDIR /data
+    RUN echo mysubimage > mysubimage
+    SAVE IMAGE mysubimage:test
+
+myimage:
+    FROM +mysubimage
+    RUN echo myimage > myimage
+    SAVE IMAGE myimage:test

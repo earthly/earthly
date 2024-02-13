@@ -1,0 +1,200 @@
+VERSION 0.8
+FROM alpine:3.18
+
+WORKDIR /test
+
+IF [ "true" = "false" ]
+    # Fail
+    RUN false
+ELSE
+    RUN true
+END
+
+IF [ "true" = "true" ]
+    RUN true
+ELSE
+    # Fail
+    RUN false
+END
+
+IF [ "one" = "five" ]
+    RUN false
+ELSE IF [ "two" = "five" ]
+    RUN false
+ELSE IF [ "three" = "five" ]
+    RUN false
+ELSE IF [ "four" = "five" ]
+    RUN false
+ELSE IF [ "five" = "five" ]
+    RUN true
+ELSE IF [ "six" = "five" ]
+    RUN false
+ELSE IF [ "five" = "five" ]
+    RUN false
+ELSE
+    RUN false
+END
+
+all:
+    BUILD +test-build
+    BUILD +test-nested
+    BUILD +test-always
+    BUILD +test-never
+    BUILD +test-workdir
+    BUILD +test-build-arg
+    BUILD --build-arg locally=true +test-switch-locally
+    BUILD +test-locally
+    BUILD +test-empty
+    BUILD +test-complex
+    BUILD +test-else-if
+    BUILD +test-non-root-user
+
+test-build:
+    IF [ "true" = "false" ]
+        # Fail
+        BUILD +fail
+    ELSE
+        BUILD +succeed
+    END
+    IF [ "true" = "true" ]
+        BUILD +succeed
+    ELSE
+        # Fail
+        BUILD +fail
+    END
+
+test-nested:
+    IF [ "true" = "true" ]
+        IF [ "true" = "false" ]
+            # Fail
+            RUN false
+        ELSE
+            RUN true
+        END
+
+        IF [ "true" = "true" ]
+            RUN true
+        ELSE
+            # Fail
+            RUN false
+        END
+    END
+
+test-always:
+    IF [ "true" = "true" ]
+        RUN touch ./exists
+    END
+    RUN test -f ./exists
+
+test-never:
+    IF false
+        RUN false
+    END
+
+test-workdir:
+    IF true
+        WORKDIR /test/yes
+    ELSE
+        WORKDIR /test/no
+    END
+    RUN test $(pwd) = "/test/yes"
+
+test-build-arg:
+    COPY --build-arg switch=true +build-arg/main ./
+    RUN test -f ./main
+    RUN rm ./main
+    COPY --build-arg switch=false +build-arg/else ./
+    RUN test -f ./else
+
+build-arg:
+    ARG switch
+    IF "$switch"
+        RUN touch ./main
+        SAVE ARTIFACT ./main
+    ELSE
+        RUN touch ./else
+        SAVE ARTIFACT ./else
+    END
+
+test-switch-locally:
+    RUN touch ./does-not-exist-locally
+    ARG locally
+    IF "$locally"
+        LOCALLY
+    END
+    RUN ! test -f ./does-not-exist-locally
+    RUN test -f ./exists-locally
+
+test-locally:
+    RUN touch ./does-not-exist-locally
+    LOCALLY
+    RUN test -f ./exists-locally
+    IF [ "true" = "false" ]
+        RUN false
+    ELSE
+        RUN true
+        RUN ! test -f ./does-not-exist-locally
+        RUN test -f ./exists-locally
+    END
+    IF [ "true" = "true" ]
+        RUN true
+        RUN ! test -f ./does-not-exist-locally
+        RUN test -f ./exists-locally
+    ELSE
+        RUN false
+    END
+
+test-empty:
+    IF true
+    END
+    IF false
+    ELSE
+    END
+    RUN echo after
+
+test-complex:
+    RUN apk add curl jq
+    IF curl https://pokeapi.co/api/v2/pokemon/pikachu | jq -r '.abilities[].ability.name' | grep imposter
+        RUN false
+    ELSE
+        RUN true
+    END
+    IF curl https://pokeapi.co/api/v2/pokemon/ditto | jq -r '.abilities[].ability.name' | grep imposter
+        RUN true
+    ELSE
+        RUN false
+    END
+
+test-else-if:
+    IF [ "one" = "five" ]
+        RUN false
+    ELSE IF [ "two" = "five" ]
+        RUN false
+    ELSE IF [ "three" = "five" ]
+        RUN false
+    ELSE IF [ "four" = "five" ]
+        RUN false
+    ELSE IF [ "five" = "five" ]
+        RUN true
+    ELSE IF [ "six" = "five" ]
+        RUN false
+    ELSE IF [ "five" = "five" ]
+        RUN false
+    ELSE
+        RUN false
+    END
+
+test-non-root-user:
+    RUN adduser --system weeheavy
+    USER weeheavy
+    RUN ! test -f /tmp/exists
+    IF [ "true" = "true" ]
+        RUN touch /tmp/exists
+    END
+    RUN test -f /tmp/exists
+
+fail:
+    RUN false
+
+succeed:
+    RUN true

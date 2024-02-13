@@ -1,0 +1,70 @@
+VERSION 0.8
+FROM --pass-args ../../+base
+
+RUN adduser -h /home/bambi -D bambi
+RUN echo "#!/bin/sh
+set -ex
+earthly bootstrap --with-autocomplete --no-buildkit 2>&1 | tee out.txt
+" > /tmp/bootstrap-script && chmod +x /tmp/bootstrap-script
+
+test-bash-non-root-fallback-dir:
+    ARG path="/home/bambi/.local/share/bash-completion/completions"
+    RUN mkdir -p "$path"
+    USER bambi
+    DO --pass-args +RUN_EARTHLY
+    RUN grep '^complete' "$path/earthly" && \
+        grep -i 'successfully enabled bash-completion' out.txt
+
+# simplistic; can't account for installs to previous alternate locations
+test-bash-non-root-no-overwrite:
+    ARG path="/home/bambi/.local/share/bash-completion/completions"
+    RUN mkdir -p "$path" && \
+        echo "can't touch this" > "$path/earthly" && \
+        md5sum "$path/earthly" > /tmp/sum
+    USER bambi
+    DO --pass-args +RUN_EARTHLY
+    RUN md5sum /tmp/sum && \
+        grep -i 'bash-completion already present' out.txt
+
+test-bash-non-root-custom-dir:
+    # Adding XDG to cheat and do two tests in one... that custom is used, and trumps XDG
+    ENV XDG_DATA_HOME=/home/bambi/weird/xdg
+    ENV BASH_COMPLETION_USER_DIR=/home/bambi/custom
+    ARG path="$BASH_COMPLETION_USER_DIR/bash-completion/completions"
+    RUN mkdir -p "$path"
+    USER bambi
+    DO --pass-args +RUN_EARTHLY
+    RUN grep '^complete' "$path/earthly" && grep -i 'successfully enabled bash-completion' out.txt
+
+test-bash-non-root-xdg-dir:
+    ENV XDG_DATA_HOME=/home/bambi/weird/xdg
+    ARG path="$XDG_DATA_HOME/bash-completion/completions"
+    RUN mkdir -p "$path"
+    USER bambi
+    DO --pass-args +RUN_EARTHLY
+    RUN grep '^complete' "$path/earthly" && grep -i 'successfully enabled bash-completion' out.txt
+
+test-bash-root-no-home-entries:
+    # Adding XDG to cheat and do two tests in one... that custom is used, and trumps XDG
+    ENV XDG_DATA_HOME=/root/weird/xdg
+    ENV BASH_COMPLETION_USER_DIR=/root/custom
+    RUN mkdir -p "$XDG_DATA_HOME" && \
+        mkdir -p "$BASH_COMPLETION_USER_DIR" && \
+        mkdir -p /root/.local/share/bash-completion/completions
+    # for clarity
+    USER root
+    DO --pass-args +RUN_EARTHLY
+    RUN test -z "$(find /root -name earthly -type f)"
+
+test-all:
+    BUILD +test-bash-non-root-fallback-dir
+    BUILD +test-bash-non-root-custom-dir
+    BUILD +test-bash-non-root-xdg-dir
+    BUILD +test-bash-root-no-home-entries
+
+RUN_EARTHLY:
+    FUNCTION
+    ARG exec_cmd=/tmp/bootstrap-script
+    DO ../../+RUN_EARTHLY \
+        --should_fail=false \
+        --exec_cmd=$exec_cmd

@@ -1,0 +1,448 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "save",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"aaa\"",
+              ">",
+              "ok"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "mkdir",
+              "testdir"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"bbb\"",
+              ">",
+              "testdir/1"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"ccc\"",
+              ">",
+              "testdir/2"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "ok"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "not_ok"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "testdir/*"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "save-exist-local",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+save"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+save/ok",
+              "ok"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "+save/not_ok",
+              "not_ok"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+save/1",
+              "1"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+save/2",
+              "2"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "+save/3",
+              "3"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "ok",
+              "AS",
+              "LOCAL",
+              "ok"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "not_ok",
+              "AS",
+              "LOCAL",
+              "not_ok"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "1",
+              "AS",
+              "LOCAL",
+              "1"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "2",
+              "AS",
+              "LOCAL",
+              "2"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "3",
+              "AS",
+              "LOCAL",
+              "3"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "save-not-exist",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+save"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "not_ok",
+              "AS",
+              "LOCAL",
+              "not_ok"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-not-exist",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+save"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+save/not_ok",
+              "not_ok"
+            ],
+            "name": "COPY"
+          }
+        }
+      ]
+    },
+    {
+      "name": "bad-wildcard-copy",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+save"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+save/baddir/*",
+              "."
+            ],
+            "name": "COPY"
+          }
+        }
+      ]
+    },
+    {
+      "name": "bad-wildcard-save",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+save"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "baddir/*",
+              "AS",
+              "LOCAL",
+              "baddir"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "classic-copy-exists",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "./in/this-file-does-exist",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "so-does-this-one",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "this-file-does-exist"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "so-does-this-one"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "classic-copy-not-exist",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "./in/this-file-does-not-exist",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "!",
+              "-f",
+              "this-file-does-not-exist"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artifact-copy-exists",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "+save/ok",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "ok"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artifact-copy-not-exist",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "+save/not_ok",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "!",
+              "-f",
+              "not_ok"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artifact-copy-not-exist-wildcard",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "+save/*_ok",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "!",
+              "-f",
+              "not_ok"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

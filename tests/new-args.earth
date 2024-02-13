@@ -1,0 +1,32 @@
+VERSION 0.8
+
+FROM alpine:3.18
+
+all:
+    BUILD +test-build
+    BUILD +test-copy
+    BUILD +test-from
+
+test-build:
+    BUILD +something-build --arg1=foo
+
+test-copy:
+    COPY (+something-copy/bar --file=bar) ./
+    RUN test -f ./bar
+
+test-from:
+    FROM +something-from --file=bar
+    RUN test -f ./bar
+
+something-build:
+    ARG arg1=default
+    RUN test "$arg1" = "foo"
+
+something-copy:
+    ARG file=default
+    RUN touch $file
+    SAVE ARTIFACT $file
+
+something-from:
+    ARG file=default
+    RUN touch $file

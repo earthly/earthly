@@ -1,0 +1,51 @@
+VERSION 0.8
+
+produce-file:
+    FROM alpine:3.18
+    RUN sleep 3 # to allow wait/end bugs to more easily propagate
+    RUN echo -n foo > data
+    SAVE ARTIFACT data AS LOCAL data
+
+check-file-locally:
+    LOCALLY
+    RUN md5sum data | grep acbd18db4cc2f85cedef654fccc4a4d8
+
+change-file:
+    FROM alpine:3.18
+    COPY data .
+    RUN echo -n bar >> data
+    SAVE ARTIFACT data AS LOCAL data
+
+second-copy-should-fail:
+    FROM alpine:3.18
+    COPY data . # this is should fail, as we don't allow copying in a file (with the same path) after it's already been output
+    RUN test -f data && echo dGhpcyBtYWdpYyBzdHJpbmcgc2hvdWxkIG5ldmVyIGFwcGVhcgo= | base64 -d # we should never reach this point
+
+double-check-file-locally:
+    LOCALLY
+    RUN md5sum data && md5sum data | grep 3858f62230ac3c915f300c664312c63f # should be "foobar"
+
+test:
+    WAIT
+        WAIT
+            BUILD +produce-file
+        END
+        BUILD +check-file-locally
+    END
+
+test-fail:
+    WAIT
+        WAIT
+            BUILD +change-file
+        END
+        WAIT
+            WAIT
+            END
+        END
+    END
+    WAIT
+        BUILD +double-check-file-locally
+    END
+    WAIT
+        BUILD +second-copy-should-fail
+    END

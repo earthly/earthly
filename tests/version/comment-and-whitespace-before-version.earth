@@ -1,0 +1,19 @@
+
+
+
+
+# welcome to my
+
+# spacious
+
+
+
+# test
+VERSION 0.8
+
+
+
+
+test:
+    FROM alpine:3.18
+    RUN echo "pass"

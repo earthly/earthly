@@ -1,0 +1,176 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "+abc",
+          "--def=ghi",
+          "--jkl",
+          "mno"
+        ],
+        "name": "FROM"
+      }
+    },
+    {
+      "with": {
+        "body": [
+          {
+            "command": {
+              "args": [
+                "true"
+              ],
+              "name": "RUN"
+            }
+          }
+        ],
+        "command": {
+          "args": [
+            "--load=(+something",
+            "--foo=fooval",
+            "--bar=barval)"
+          ],
+          "name": "DOCKER"
+        }
+      }
+    },
+    {
+      "with": {
+        "body": [
+          {
+            "command": {
+              "args": [
+                "true"
+              ],
+              "name": "RUN"
+            }
+          }
+        ],
+        "command": {
+          "args": [
+            "--load=\"(+something --foo=fooval --bar barval)\""
+          ],
+          "name": "DOCKER"
+        }
+      }
+    },
+    {
+      "with": {
+        "body": [
+          {
+            "command": {
+              "args": [
+                "true"
+              ],
+              "name": "RUN"
+            }
+          }
+        ],
+        "command": {
+          "args": [
+            "--load",
+            "abc:latest=(+something",
+            "--foo=fooval",
+            "--bar",
+            "barval)"
+          ],
+          "name": "DOCKER"
+        }
+      }
+    },
+    {
+      "with": {
+        "body": [
+          {
+            "command": {
+              "args": [
+                "true"
+              ],
+              "name": "RUN"
+            }
+          }
+        ],
+        "command": {
+          "args": [
+            "--load=\"abc:latest=(+something --foo=fooval --bar barval)\""
+          ],
+          "name": "DOCKER"
+        }
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "(+some/artifact",
+          "--foo=fooval",
+          "--bar",
+          "barval)",
+          "/some/path"
+        ],
+        "name": "COPY"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "\"(+some/artifact --foo=fooval --bar barval)\"",
+          "/some/path"
+        ],
+        "name": "COPY"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "+target",
+          "--abc=def",
+          "--ghi",
+          "jkl"
+        ],
+        "name": "FROM DOCKERFILE"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "-f",
+          "+dockerfile/foo",
+          "+target",
+          "--abc=def",
+          "--ghi",
+          "jkl"
+        ],
+        "name": "FROM DOCKERFILE"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "-f",
+          "(+dockerfile/foo",
+          "--bar=barval",
+          "--foo",
+          "fooval)",
+          "+target",
+          "--abc=def"
+        ],
+        "name": "FROM DOCKERFILE"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "-f",
+          "\"(+dockerfile/foo --bar=barval --foo fooval)\"",
+          "+target",
+          "--abc=def"
+        ],
+        "name": "FROM DOCKERFILE"
+      }
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

@@ -1,0 +1,105 @@
+VERSION 0.8
+FROM --pass-args ..+base
+
+all:
+    BUILD +scrub-git-clone-credentials
+    BUILD +scrub-remote-credentials
+    BUILD +scrub-remote-credentials-on-failure
+
+
+scrub-git-clone-credentials:
+    FROM --pass-args ../git-webserver+server
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 selfsigned.example.com
+ping -c 1 buildkitsandbox
+
+earthly --config \$earthly_config config git \"{selfsigned.example.com: {auth: https, user: testuser, password: keepitsecret, pattern: 'selfsigned.example.com/([^/]+)'}}\"
+earthly --config \$earthly_config --verbose --debug +gitclone >output.txt 2>&1
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-nginx-with-git --earthfile=scrub-credentials.earth --exec_cmd=/tmp/test-earthly-script
+
+    RUN cat output.txt | grep -vw echo | grep 'gitclone done'
+    RUN cat output.txt && \
+        if grep "keepitsecret" output.txt >/dev/null; then \
+            echo "ERROR: password (keepitsecret) was leaked" && exit 1; \
+        else \
+            echo "OK: password was not leaked"; \
+        fi
+    RUN grep 'https://testuser:xxxxx@selfsigned.example.com' output.txt >/dev/null
+
+scrub-remote-credentials:
+    FROM --pass-args ../git-webserver+server
+    RUN --no-cache echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 selfsigned.example.com
+ping -c 1 buildkitsandbox
+
+earthly --config \$earthly_config config git \"{selfsigned.example.com: {auth: https, user: testuser, password: keepitsecret, pattern: 'selfsigned.example.com/([^/]+)'}}\"
+cat \$earthly_config
+earthly --config \$earthly_config --verbose --debug selfsigned.example.com/repo:main+hello >output.txt 2>&1
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-nginx-with-git --exec_cmd=/tmp/test-earthly-script
+
+    # make sure the password doesn't appear anywhere
+    RUN cat output.txt && \
+        if grep "keepitsecret" output.txt >/dev/null; then \
+            echo "ERROR: password (keepitsecret) was leaked" && exit 1; \
+        else \
+            echo "OK: password was not leaked"; \
+        fi
+    # make sure the scrubbed URL appears somewhere (usually under llb.customname under the debug-level gwclientlogger)
+    RUN grep 'https://testuser:xxxxx@selfsigned.example.com' output.txt >/dev/null
+    # make sure the (shortened) prefix was scrubbed:
+    RUN grep 'h://t:x@s/repo#m' output.txt >/dev/null
+    # echo -n 98e15fb5-197c-43bf-886e-3291e65d646e | base64
+    RUN grep 'OThlMTVmYjUtMTk3Yy00M2JmLTg4NmUtMzI5MWU2NWQ2NDZl' output.txt >/dev/null
+
+
+scrub-remote-credentials-on-failure:
+    # this test uses a non-existant user named "kallaxtheshelf"
+    # (and if someone decides to register that username on github, that's fine too, we'll never know the password)
+    RUN echo "#!/bin/sh
+set -ex
+earthly --config \$earthly_config config git \"{github.com: {auth: https, user: kallaxtheshelf, password: badpassword}}\"
+
+set +e
+earthly --config \$earthly_config --verbose --debug github.com/kallaxtheshelf/test-private:main+build >output.txt 2>&1
+exit_code=\$?
+if [ \$exit_code -eq 0 ]; then
+    echo ERROR: earthly should have failed but didn\'t.
+    exit 1
+fi
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+
+    DO --pass-args +RUN_EARTHLY_ARGS --exec_cmd=/tmp/test-earthly-script
+
+    RUN grep 'failed to fetch remote' output.txt
+    # test the failure message correctly scrubs the credentials
+    RUN grep 'https://kallaxtheshelf:xxxxx@github.com' output.txt >/dev/null
+    # make sure the (shortened) prefix was scrubbed:
+    RUN grep 'h://k:x@g/k/test-private#m' output.txt >/dev/null
+
+    # make sure the password doesn't appear anywhere
+    RUN cat output.txt && \
+        if grep "badpassword" output.txt >/dev/null; then \
+            echo "ERROR: password (badpassword) was leaked" && exit 1; \
+        else \
+            echo "OK: password was not leaked"; \
+        fi
+
+RUN_EARTHLY_ARGS:
+    FUNCTION
+    ARG earthfile
+    ARG pre_command
+    ARG exec_cmd
+    DO ..+RUN_EARTHLY \
+        --earthfile=$earthfile \
+        --pre_command=$pre_command \
+        --exec_cmd=$exec_cmd

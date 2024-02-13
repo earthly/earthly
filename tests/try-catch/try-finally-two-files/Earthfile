@@ -1,0 +1,11 @@
+VERSION --try 0.8
+
+test:
+    FROM alpine:3.18
+    ARG fail="false"
+    TRY
+        RUN echo garbanzo > bean && echo chick > pea && test "$fail" = "false"
+    FINALLY
+        SAVE ARTIFACT bean AS LOCAL .testbean
+        SAVE ARTIFACT pea AS LOCAL .testpea
+    END

@@ -1,0 +1,25 @@
+VERSION 0.8
+
+FROM alpine:3.18
+ARG --global FOO = bar
+ARG FOO = bacon
+
+test-working-global:
+    RUN test "$FOO" = "bar"
+
+test-working-global-override:
+    ARG FOO
+
+test-working-default-override:
+    ARG FOO = baz
+    RUN test "$FOO" = "baz"
+
+test-error-conflict:
+    ARG FOO
+    ARG FOO
+
+test-error-conflict-if:
+    ARG FOO
+    IF true
+       ARG FOO
+    END

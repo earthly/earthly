@@ -1,0 +1,1675 @@
+VERSION 0.8
+FROM --pass-args ./integration-base+test-base
+
+WORKDIR /test
+
+PROJECT earthly-technologies/core
+
+all:
+    BUILD +ga
+    BUILD +experimental
+
+ga:
+    BUILD +ga-no-qemu
+    BUILD +ga-qemu
+
+ga-qemu:
+    BUILD --pass-args ./platform+test
+    BUILD +test-platform-expansion
+
+ga-no-qemu-group1:
+    #BUILD --pass-args ./autocompletion+test-all
+    #BUILD --pass-args ./dockerfile+test
+    #BUILD --pass-args ./dockerfile2/subdir+test
+    #BUILD --pass-args ./locally-in-command+all
+    #BUILD --pass-args ./locally-in-function+all
+    #BUILD --pass-args ./command-to-function-rename+all
+    #BUILD --pass-args ./import+build
+    #BUILD --pass-args ./import+build-imported
+    #BUILD +privileged-test
+    #BUILD +copy-test
+    #BUILD +copy-test-verbose-output
+    #BUILD +copy-tilde-test
+    #BUILD +copy-keep-own-test
+    #BUILD +copy-test-empty-src
+    #BUILD +git-clone-test
+    #BUILD +builtin-args-invalid-default-test
+    #BUILD +builtin-args-invalid-pass-test
+    #BUILD +builtin-args-cli-tests
+    #BUILD +parser-smoke-test
+    #BUILD --pass-args ./invalid+test-all
+    #BUILD +excludes-test
+    #BUILD +secrets-test
+    #BUILD +secrets-optional-prefix-test
+    #BUILD +secrets-args-precedence-test
+    #BUILD +project-secrets-test
+    #BUILD +build-arg-test
+    #BUILD +build-arg-explicit-global-test
+    #BUILD +build-arg-dynamic-with-empty-base
+    #BUILD +lc-test
+    #BUILD +from-expose-test
+    #BUILD +scratch-test
+    BUILD +build-earthly-test
+    BUILD +host-bind-test
+    BUILD +transitive-args-test
+    BUILD +transitive-args-test2
+    BUILD +non-transitive-args-test
+    BUILD +star-test
+    #BUILD +dockerfile-test
+    #BUILD +fail-test
+    #BUILD +fail-push-test
+    #BUILD +allow-privileged-import-test
+    #BUILD +reject-privileged-import-test
+    #BUILD +required-arg-test
+    #BUILD +push-test
+    #BUILD +push-arg-test
+    #BUILD +ci-arg-test
+    #BUILD +gen-dockerfile-test
+    #BUILD +chown-test
+    #BUILD +env-test
+    #BUILD +env-home-test
+    #BUILD +stack-failure-test
+    #BUILD +multi-stack-failure-test
+    #BUILD +no-cache-local-artifact-test
+    #BUILD +empty-git-test
+    #BUILD +escape-test
+    #BUILD +escape-dir-test
+    #BUILD +fail-invalid-artifact-test
+    #BUILD +wildcard-build
+    #BUILD +wildcard-build-remote
+
+ga-no-qemu-group2:
+    BUILD +target-first-line
+    BUILD +absolute-reference-with-relative
+    BUILD +end-comment
+    BUILD +file-copying
+    BUILD +run-no-cache
+    BUILD +save-artifact-file-as-dot
+    BUILD +save-artifact-dir-as-dot
+    BUILD +save-artifact-force-overwrite
+    BUILD +save-remote-artifact-selective
+    BUILD +push-build
+    BUILD +build-arg-repeat
+    BUILD +arg-scope-requires-shellout-anywhere
+    BUILD +arg-set
+    BUILD +if
+    BUILD +for
+    BUILD +first-command
+    BUILD +platform-output
+    BUILD +command
+    BUILD +function
+    BUILD +function-nested-global
+    BUILD --pass-args ./functions-do-not-propagate-args+test-all
+    BUILD +duplicate
+    BUILD +reserved
+    BUILD +quotes-test
+    BUILD +quotes-test-extra
+    BUILD +new-args
+    BUILD +import
+    BUILD +from-dockerfile-arg
+    BUILD +true-false-flag
+    BUILD +true-false-flag-invalid
+    BUILD +dont-save-indirect-remote-artifact
+    BUILD +remote-earthfile-must-have-version
+    BUILD +version-flag-test
+    BUILD +implicit-ignores
+    BUILD +help
+    BUILD +ls
+    BUILD +ls-subdir
+    BUILD +host
+    BUILD +host-invalid
+    BUILD +mtime
+    BUILD +build-after-from
+    BUILD +pipelines
+    BUILD +doc
+    BUILD +doc-recipe-block
+    BUILD +no-network
+    BUILD +test-works-without-earthly-server
+    BUILD +test-init-unsupported
+    BUILD +test-init-golang
+    BUILD +pass-args-test
+    BUILD +pass-args-defaults-test
+    BUILD +test-reserved-label
+    BUILD +test-cache-mount-mode
+    BUILD +test-cache-mode
+    BUILD +test-shared-cache
+    BUILD +test-cache-persist
+    BUILD +test-visited-upfront-hash-collection
+    BUILD +test-exec-stats
+
+    # Forcing the implicit global wait/end block, causes some tests, which rely
+    # on the ability to have two different targets issue the same SAVE IMAGE tag name
+    # (with the last SAVE IMAGE command taking precedence)
+    # Earthly, when using the wait-end feature, will return an error for such cases.
+    # As a result, the following tests are incompatible with WAIT/END block.
+    # Once version 0.7 is released AND support for 0.6 has been dropped,
+    # these tests can be removed, along with deprecated code from the builder.go's bf.
+    ARG GLOBAL_WAIT_END="false"
+    IF [ "$GLOBAL_WAIT_END" = "false" ]
+        BUILD +save-artifact-after-push
+        BUILD --pass-args ./with-docker-via-command+test
+    END
+
+ga-no-qemu-group3:
+    BUILD +cache-test
+    BUILD --pass-args ./do-not-track+test-all
+    BUILD --pass-args ./scrub-https-credentials+all
+    BUILD --pass-args ./autocompletion/install+test-all
+    BUILD +cache-cmd
+    BUILD --pass-args ./config+test
+    BUILD +arg-redeclare-error
+    BUILD +ssh
+    BUILD +builtin-args-test
+    BUILD +remote-test
+    BUILD +save-artifact-dont-overwrite
+    BUILD --pass-args ./with-docker-expose+all
+
+ga-no-qemu-group4:
+    BUILD +cache-mount-arg
+    BUILD +infinite-recursion
+    BUILD +save-artifact-selective
+    BUILD --pass-args ./autoskip+test-all
+    BUILD +if-exists
+    BUILD +let-set
+    BUILD +let-scope
+    BUILD +save-artifact-selective-referencing-remote
+    BUILD --pass-args ./secret-provider-config+test-all
+    BUILD --pass-args ./shell-out+test-all
+    BUILD --pass-args ./with-docker-compose+all
+    BUILD +dotenv-test
+    BUILD +allow-privileged-test
+    BUILD --pass-args ./with-docker-registry+all
+    BUILD +test-ssh-command-config-via-remote-target
+    BUILD +test-ssh-command-config-via-git-clone-earthfile-command
+    BUILD --pass-args ./propagate-args-to-base+test-all
+    BUILD --pass-args ./pass-args-default+test
+    BUILD --pass-args ./pass-args-global+test
+    BUILD --pass-args ./pass-args-default-via-function+test
+    BUILD --pass-args ./pass-args-global-via-function+test
+    BUILD --pass-args ./pass-args-via-function-with-override+test
+
+ga-no-qemu-slow:
+    BUILD +server
+    BUILD --pass-args ./with-docker+all
+    # this has been moved to a seperate target until we get the flakey "tell me who you are" bug
+    # fixed; see https://github.com/earthly/earthly/issues/2567
+    #BUILD --pass-args ./git-metadata+test
+    BUILD --pass-args ./git-ssh-server+all
+    BUILD --pass-args ./private-https+all
+    BUILD --pass-args ./version+test-all
+
+ga-no-qemu-kind:
+    BUILD --pass-args ./with-docker-kind+all
+
+ga-no-qemu:
+    BUILD +ga-no-qemu-group1
+    BUILD +ga-no-qemu-group2
+    BUILD +ga-no-qemu-group3
+    BUILD +ga-no-qemu-group4
+    BUILD +ga-no-qemu-slow
+
+# Note that this target is split up under github action workflows
+# since they are flaky and having the ability to restart them individually
+# saves a lot of time
+tests-that-require-earthly-technologies-account-access:
+    BUILD --pass-args +test-earthly-mirror-was-setup
+    BUILD --pass-args ./account+test
+    BUILD --pass-args ./registry-command+test
+    BUILD --pass-args ./web+test
+
+# tests that only run on linux amd64
+# Note: this target is used to validate the USERPLATFORM user arg,
+# and should not be used to programmatically detect if this should be
+# run or not.
+ga-linux-amd64:
+    BUILD +user-arg-test
+
+experimental:
+    BUILD --pass-args ./dind-auto-install+all
+
+ast-test-input:
+    FROM alpine:3.18
+    COPY ./*.earth ./
+    COPY ./with-docker/Earthfile ./with-docker.earth
+    COPY ./with-docker-compose/Earthfile ./with-docker-compose.earth
+    SAVE ARTIFACT ./*.earth
+
+privileged-test:
+    DO +RUN_EARTHLY --earthfile=privileged.earth --extra_args="--allow-privileged" --target=+test
+
+copy-test:
+    RUN mkdir -p in/sub/1 in/sub/2 && \
+        echo "root" > in/root && \
+        echo "1" > in/sub/1/file && \
+        echo "2" > in/sub/2/file && \
+        echo "sub" > in/sub/file
+    DO +RUN_EARTHLY --earthfile=copy.earth --output_does_not_contain="which does not expand to a home directory"
+
+copy-test-empty-src:
+    # Regression tests for 'COPY --if-exists "" <dst>' (empty string)
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-empty-src
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-empty-src-if-exists
+
+copy-test-verbose-output:
+    RUN mkdir -p subdir/a.txt && \
+        echo -n "a" > a.txt && \
+        echo -n "alpha" > alpha.txt && \
+        echo -n "beta" > subdir/a.txt/beta.txt
+
+    # Setup a test that runs earthly twice; both instances of earthly must be run
+    # back to back as the file caching logic references the directories inode ID while constructing
+    # the shared cache key.
+    RUN echo "#!/bin/sh
+set -ex
+earthly --config \$earthly_config --verbose +copy 2>&1 | tee output.txt;
+earthly --config \$earthly_config --verbose +copy 2>&1 | tee output2.txt;
+" >/tmp/multiple-earthly-script && chmod +x /tmp/multiple-earthly-script
+
+    DO +RUN_EARTHLY --earthfile=copy-verbose.earth --exec_cmd=/tmp/multiple-earthly-script
+
+    # test that the first run sends a.txt and doesn't send any non-referenced files
+    RUN cat output.txt | acbgrep 'sent data for a.txt (1 B)'
+    RUN if grep "sent data for alpha.txt" output.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
+    RUN if grep "sent data for .*beta.txt" output.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
+
+    # test that the second run did not resend a.txt (or any other non-referenced files)
+    RUN if grep "sent data for a.txt" output2.txt >/dev/null; then echo "a.txt should not have been sent"; exit 1; fi
+    RUN if grep "sent data for alpha.txt" output2.txt >/dev/null; then echo "alpha.txt should not have been sent"; exit 1; fi
+    RUN if grep "sent data for .*beta.txt" output2.txt >/dev/null; then echo "beta.txt should not have been sent"; exit 1; fi
+
+    # test SAVE ARTIFACT AS LOCAL texts is output
+    DO +RUN_EARTHLY --earthfile=copy-verbose.earth --extra_args="--verbose" --target=+save --output_contains="received data for important-data .12 B."
+    RUN ls -la important-data
+
+copy-keep-own-test:
+    DO +RUN_EARTHLY --target=+test-known-user --earthfile=copy-keep-own.earth
+    DO +RUN_EARTHLY --target=+test-unknown-user --earthfile=copy-keep-own.earth
+
+copy-tilde-test:
+    RUN touch in
+    DO +RUN_EARTHLY --target=+copy-tilde-destination --earthfile=copy-tilde.earth --output_contains='destination path \"~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-in-destination --earthfile=copy-tilde.earth --output_contains='destination path \"/some/dir/~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-in-destination-prefix --earthfile=copy-tilde.earth --output_contains='destination path \"~some/dir.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-arg-in-destination --earthfile=copy-tilde.earth --output_contains='destination path \"/some/dir/~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-artifact --earthfile=copy-tilde.earth --output_contains='destination path \"/some/dir/~/.\" contains a \"~\" which does not expand to a home directory'
+    DO +RUN_EARTHLY --target=+copy-tilde-in-destination-not-prefix --earthfile=copy-tilde.earth --output_does_not_contain="which does not expand to a home directory"
+
+cache-test:
+    # Test that a file can be passed between runs through the mounted cache.
+    DO +RUN_EARTHLY --earthfile=cache1.earth --target=+test-pass-file --use_tmpfs=false
+    DO +RUN_EARTHLY --earthfile=cache2.earth --target=+test-pass-file --use_tmpfs=false
+    # Test that a change to the contents of the mount does not cause a cache bust if everything else
+    # is the same.
+    DO +RUN_EARTHLY --earthfile=cache1.earth --target=+test-no-bust-on-change --use_tmpfs=false
+    DO +RUN_EARTHLY --earthfile=cache2.earth --target=+test-no-bust-on-change --use_tmpfs=false  # make a change
+    DO +RUN_EARTHLY --earthfile=cache1.earth --target=+test-no-bust-on-change --use_tmpfs=false \
+        --post_command=">output.txt 2>&1" # check that all is still cached if re-running the prev version
+    RUN cat output.txt
+    RUN cat output.txt | acbgrep '\*cached\* --> RUN echo hey'
+
+git-clone-test:
+    DO +RUN_EARTHLY --earthfile=git-clone.earth --target=+test
+
+builtin-args-test:
+    ENV EARTHLY_CI_RUNNER=true
+    DO +RUN_EARTHLY --earthfile=builtin-args.earth --target=+builtin-args-test
+    RUN sed -i "1s/VERSION \(.*\)/VERSION --arg-scope-and-set \1/" Earthfile
+    DO +RUN_EARTHLY --target=+builtin-args-test
+    RUN sed -i "1s/VERSION \(.*\)/VERSION --earthly-ci-runner-arg \1/" Earthfile
+    DO +RUN_EARTHLY --target=+earthly-ci-runner-builtin-arg-test --extra_args="--build-arg EXPECTED_VALUE=true"
+    ENV EARTHLY_CI_RUNNER=""
+    DO +RUN_EARTHLY --target=+earthly-ci-runner-builtin-arg-test --extra_args="--build-arg EXPECTED_VALUE=false"
+    ENV EARTHLY_CI_RUNNER="false"
+    DO +RUN_EARTHLY --target=+earthly-ci-runner-builtin-arg-test --extra_args="--build-arg EXPECTED_VALUE=false"
+
+builtin-args-invalid-default-test:
+    DO +RUN_EARTHLY --earthfile=builtin-args-invalid-default.earth --should_fail=true --target=+test --output_contains="arg default value supplied for built-in ARG"
+    RUN sed -i "1s/VERSION \(.*\)/VERSION --arg-scope-and-set \1/" Earthfile
+    DO +RUN_EARTHLY --should_fail=true --target=+test --output_contains="arg default value supplied for built-in ARG"
+
+builtin-args-invalid-pass-test:
+    DO +RUN_EARTHLY --earthfile=builtin-args-invalid-pass.earth --should_fail=true --target=+test --output_contains="value cannot be specified for built-in build arg EARTHLY_VERSION"
+    RUN sed -i "1s/VERSION \(.*\)/VERSION --arg-scope-and-set \1/" Earthfile
+    DO +RUN_EARTHLY --should_fail=true --target=+test --output_contains="value cannot be specified for built-in build arg EARTHLY_VERSION"
+
+builtin-args-cli-tests:
+    DO +RUN_EARTHLY --earthfile=builtin-args.earth --should_fail=true --extra_args="--build-arg EARTHLY_VERSION=123" --target=+builtin-args-test \
+        --output_contains="cannot be passed on the command line"
+    RUN sed -i "1s/VERSION \(.*\)/VERSION --arg-scope-and-set \1/" Earthfile
+    DO +RUN_EARTHLY --should_fail=true --extra_args="--build-arg EARTHLY_VERSION=123" --target=+builtin-args-test \
+        --output_contains="cannot be passed on the command line"
+
+parser-smoke-test:
+    DO +RUN_EARTHLY --earthfile=parser-smoke.earth --target=+test
+
+excludes-test:
+    RUN touch exclude-me.txt
+    RUN touch do-not-exclude-me.txt
+    RUN echo 'exclude-me.txt' > .earthlyignore
+    DO +RUN_EARTHLY --earthfile=excludes.earth --target=+test
+
+secrets-optional-prefix-test:
+    ENV SECRET1=foo
+    ENV SECRET2=wrong
+    RUN echo -n "secretfilecontents" > /root/my-secret-file
+    DO +RUN_EARTHLY \
+        --earthfile=secrets.earth \
+        --extra_args="--secret SECRET1 --secret SECRET2=bar --secret-file SECRET3=~/my-secret-file --build-arg SECRET_ID=\"\" --build-arg SECRET_ID_2=\"\"" \
+        --target=+test
+
+secrets-test:
+    ENV SECRET1=foo
+    ENV SECRET2=wrong
+    RUN echo -n "secretfilecontents" > /root/my-secret-file
+    DO +RUN_EARTHLY \
+        --earthfile=secrets.earth \
+        --extra_args="--secret SECRET1 --secret SECRET2=bar --secret-file SECRET3=~/my-secret-file --build-arg SECRET_ID=\"\" --build-arg SECRET_ID_2=\"\"" \
+        --target=+test
+    DO +RUN_EARTHLY \
+        --earthfile=secrets.earth \
+        --extra_args="--secret SECRET1 --secret SECRET2=bar --build-arg SECRET_ID=\"\" --build-arg SECRET_ID_2=\"\"" \
+        --target=+test \
+        --should_fail=true \
+        --output_contains='unable to lookup secret \"SECRET3\": not found'
+
+project-secrets-test:
+    DO +RUN_EARTHLY \
+        --earthfile=project-secrets-without-flag.earth \
+        --target=+without-flag \
+        --should_fail=true \
+        --output_contains="must be enabled in order to use PROJECT"
+    DO +RUN_EARTHLY \
+        --earthfile=project-secrets.earth \
+        --target=+local-override \
+        --extra_args="--secret foo/bar=override" \
+        --output_contains="my secret is override"
+    DO +RUN_EARTHLY \
+        --earthfile=project-secrets.earth \
+        --target=+basic \
+        --extra_args="--secret SECRET1=foo --secret SECRET2=bar" \
+        --output_contains="my secrets are foo and bar"
+
+secrets-args-precedence-test:
+    DO +RUN_EARTHLY --earthfile=secrets-args-precedence.earth --target=+test --extra_args="--secret foo=eggs"
+
+build-arg-test:
+    DO +RUN_EARTHLY --earthfile=build-arg.earth
+
+build-arg-explicit-global-test:
+    DO +RUN_EARTHLY --earthfile=build-arg-explicit-global.earth --target=+test-success
+    DO +RUN_EARTHLY --should_fail=true --earthfile=build-arg-explicit-global.earth \
+        --target=+test-failure \
+        --output_contains="invalid ARG arguments.*: global ARG can only be set in the base target"
+
+build-arg-dynamic-with-empty-base:
+    DO +RUN_EARTHLY --earthfile=build-arg-dynamic-with-empty-base.earth --target=+test
+
+#this test only works under linux/amd64
+user-arg-test:
+    DO +RUN_EARTHLY --earthfile=user-arg.earth
+
+lc-test:
+    DO +RUN_EARTHLY --earthfile=lc.earth --target=+test
+
+from-expose-test:
+    DO +RUN_EARTHLY --earthfile=from-expose.earth --extra_args="--no-output" --target=+test
+
+scratch-test:
+    DO +RUN_EARTHLY --earthfile=scratch-test.earth --extra_args="--no-output" --target=+test
+
+build-earthly-test:
+    # Test that build.earth is supported.
+    COPY parser-smoke.earth ./build.earth
+    RUN echo --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +test
+
+host-bind-test:
+    RUN mkdir /bind-test
+    RUN echo "a" > /bind-test/a.txt
+    DO +RUN_EARTHLY --earthfile=host-bind.earth --target=+test
+    RUN echo test -f /bind-test/b.txt
+    RUN echo cat /bind-test/b.txt
+
+remote-test:
+    ENV GIT_URL_INSTEAD_OF="https://github.com/=git@github.com:"
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output github.com/earthly/hello-world:main+hello
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output github.com/earthly/test-remote/privileged:main+locally && \
+        ls /tmp/hostname.3d4b1831-c07e-4b2d-805e-2b8ce578bb50
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output github.com/earthly/test-remote/builtin-args:main+test
+
+transitive-args-test:
+    DO +RUN_EARTHLY --earthfile=transitive-args.earth --extra_args="--build-arg SOMEARG=xyz" --target=+test
+    RUN echo ls
+    RUN echo test -f ./abc
+    RUN echo test -f ./xyz
+    RUN echo test ! -f ./default
+    RUN echo cat ./abc | acbgrep abc
+    RUN echo cat ./xyz | acbgrep xyz
+
+transitive-args-test2:
+    DO +RUN_EARTHLY --earthfile=transitive-args.earth --target=+test
+    RUN echo ls
+    RUN echo test -f ./abc && test -f ./default
+    RUN echo cat ./abc | acbgrep abc
+    RUN echo cat ./default | acbgrep default
+
+non-transitive-args-test:
+    COPY non-transitive-args1.earth ./Earthfile
+    COPY non-transitive-args2.earth ./subdir/Earthfile
+    # Should not override if transitive and crossing project boundaries.
+    RUN echo --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --build-arg SOMEARG=def +test
+    RUN echo ls ./subdir
+    RUN echo test -f ./subdir/default && test ! -f ./subdir/def && test ! -f ./subdir/abc
+    RUN echo rm ./subdir/default
+    # Should override, if override is direct.
+    RUN echo --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --build-arg SOMEARG=xyz ./subdir+arg-target
+    RUN echo ls ./subdir
+    RUN echo test -f ./subdir/xyz && test ! -f ./subdir/default
+    RUN echo --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- +direct
+    RUN echo ls ./subdir
+    RUN echo test -f ./subdir/direct && test ! -f ./subdir/default
+
+star-test:
+    RUN touch a.txt b.txt c.nottxt
+    DO +RUN_EARTHLY --earthfile=star.earth --target=+test
+
+# TODO: This does not pass.
+star-test-todo:
+    RUN touch a.txt b.txt c.nottxt
+    DO +RUN_EARTHLY --earthfile=star.earth --target=+test --use_tmpfs=false
+    RUN echo "a change" > c.nottxt
+    DO +RUN_EARTHLY --earthfile=star.earth --target=+test --use_tmpfs=false \
+        --post_command=">output.txt"
+    RUN echo cat output.txt
+    RUN cached_lines=$(cat output.txt | grep cached | wc -l); \
+        echo "cached_lines=$cached_lines"; \
+        echo test "$cached_lines" == "6"
+
+dockerfile-test:
+    COPY dockerfile/* ./
+    RUN --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        -- --no-output +test
+
+fail-test:
+    DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --verbose=0 --target=+test --post_command="2>output.txt"
+    RUN cat output.txt
+    # The output of the failed command should have been printed twice.
+    RUN cat output.txt | grep 'ZmFpbCA3YjcyZTAyNC01ZTIxLTRlMWItOTZlNC02NTVjMzk4NzYxMDcK' | test "$(wc -l)" -eq 2
+    RUN cat output.txt | grep 'Repeating the failure error...'
+    RUN cat output.txt | grep 'ERROR Earthfile line 10:4'
+    RUN cat output.txt | grep 'RUN echo "fail 7b72e024-5e21-4e1b-96e4-655c39876107" | base64; false'
+    RUN cat output.txt | grep 'did not complete successfully. Exit code 1'
+    DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --verbose=0 --target=+test-copy --post_command="2>output.txt"
+    RUN cat output.txt
+    RUN cat output.txt | grep 'Repeating the failure error...'
+    RUN cat output.txt | grep 'ERROR Earthfile line 14:4'
+    RUN cat output.txt | grep 'COPY ./does-not-exist ./'
+    RUN cat output.txt | grep 'failed: "/does-not-exist": not found'
+    RUN cat output.txt | grep 'Should not be reached'; test "$?" -eq 1
+
+allow-privileged-test:
+    # test that privileged-tasks in remote repos dont run
+    DO +RUN_EARTHLY --earthfile=allow-privileged.earth --should_fail=true --extra_args="--allow-privileged" -target=+reject-privileged-in-remote-repo-triggered-by-from-locally
+    DO +RUN_EARTHLY --earthfile=allow-privileged.earth --should_fail=true --extra_args="--allow-privileged" -target=+reject-privileged-in-remote-repo-triggered-by-from-privileged
+    DO +RUN_EARTHLY --earthfile=allow-privileged.earth --should_fail=true --extra_args="--allow-privileged" -target=+reject-privileged-in-remote-repo-triggered-by-copy-locally
+    DO +RUN_EARTHLY --earthfile=allow-privileged.earth --should_fail=true --extra_args="--allow-privileged" -target=+reject-privileged-in-remote-repo-triggered-by-copy-privileged
+    DO +RUN_EARTHLY --earthfile=allow-privileged.earth --should_fail=true --extra_args="--allow-privileged" -target=+reject-privileged-in-remote-repo-triggered-by-build-locally
+    DO +RUN_EARTHLY --earthfile=allow-privileged.earth --should_fail=true --extra_args="--allow-privileged" -target=+reject-privileged-in-remote-repo-triggered-by-build-privileged
+    DO +RUN_EARTHLY --earthfile=allow-privileged.earth --should_fail=true --extra_args="--allow-privileged" -target=+reject-dedup
+    # test allowed-privileged tasks in remote repos work
+    DO +RUN_EARTHLY --earthfile=allow-privileged.earth --extra_args="--allow-privileged" --target=+allow-all
+
+allow-privileged-import-test:
+    RUN mkdir -p a/really/deep/subdir && echo "VERSION 0.8
+subdirprivileged:
+    FROM alpine:latest
+    RUN --privileged cat /proc/self/status | grep CapEff > output
+    SAVE ARTIFACT output proc-status
+" > a/really/deep/subdir/Earthfile
+    DO +RUN_EARTHLY --earthfile=allow-privileged-import.earth --extra_args="--allow-privileged" --target=+test
+
+reject-privileged-import-test:
+    DO +RUN_EARTHLY --earthfile=reject-privileged-import.earth --should_fail=true --extra_args="--allow-privileged" --target=+test-reject-copy
+    DO +RUN_EARTHLY --earthfile=reject-privileged-import.earth --should_fail=true --extra_args="--allow-privileged" --target=+test-reject-cmd
+
+pass-args-test:
+    COPY pass-args-sub-dir.earth subdir/Earthfile
+    COPY pass-args-root.earth Earthfile
+    DO +RUN_EARTHLY --target=./subdir+test-all --extra_args="--build-arg foo=bar"
+
+pass-args-defaults-test:
+    DO +RUN_EARTHLY --earthfile=pass-args-defaults.earth
+    # test arg can still be overridden from the cli
+    RUN sed -i 's/hello/hellofromcli/g' Earthfile
+    DO +RUN_EARTHLY --extra_args="--build-arg foo=hellofromcli"
+
+required-arg-test:
+    # test that build arg is required
+    DO +RUN_EARTHLY --earthfile=required-args.earth --should_fail=true --target=+test-accept-valid-required-arg
+    # test parser rejects required arg with default value
+    DO +RUN_EARTHLY --earthfile=required-args.earth --should_fail=true --target=+test-reject-default-val-required-arg
+    DO +RUN_EARTHLY --earthfile=required-args.earth --should_fail=true --extra_args="--build-arg req=val" --target=+test-reject-default-val-required-arg
+    # test valid required arg with build-arg provided
+    DO +RUN_EARTHLY --earthfile=required-args.earth --extra_args="--build-arg req=val" --target=+test-accept-valid-required-arg
+    DO +RUN_EARTHLY --earthfile=required-args.earth --target=+test-accept-valid-required-arg-build-arg-in-earthfile
+
+fail-push-test:
+    # test that an error code is correctly returned
+    DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --verbose=0 --extra_args="--push" --target=+test-push \
+        --output_contains="this-too-will-fail"
+
+fail-invalid-artifact-test:
+    # test that the artifact fails to be copied
+    DO +RUN_EARTHLY --earthfile=fail-invalid-artifact.earth --should_fail=true --target="--artifact +test/foo /tmp/stuff" \
+        --output_contains="cannot save artifact +test/foo, since it does not exist"
+
+wildcard-build:
+    COPY --dir wildcard-build .
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-build
+    RUN cat earthly.output | acbgrep 'hello world 1'
+    RUN cat earthly.output | acbgrep 'hello world 2'
+    RUN cat earthly.output | acbgrep 'hello world 3'
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-globstar --should_fail=true --output_contains="pattern not yet supported"
+
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-glob
+    RUN cat earthly.output | acbgrep 'hello world 2'
+    RUN cat earthly.output | acbgrep 'hello world 3'
+    RUN cat earthly.output | acbgrep -v 'hello world 1'
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+wildcard-build-remote:
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-remote
+    RUN cat earthly.output | acbgrep 'hello world 1'
+    RUN cat earthly.output | acbgrep 'hello world 2'
+    RUN cat earthly.output | acbgrep 'hello world 3'
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-remote-glob
+    RUN cat earthly.output | acbgrep 'hello world 2'
+    RUN cat earthly.output | acbgrep 'hello world 3'
+    RUN cat earthly.output | acbgrep -v 'hello world 1'
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+push-test:
+    DO +RUN_EARTHLY --earthfile=push.earth --target=+push-test \
+        --output_contains="\(disabled\)"
+    DO +RUN_EARTHLY --earthfile=push.earth --extra_args="--push" --target=+push-test \
+        --output_contains="hello world"
+
+push-arg-test:
+    DO +RUN_EARTHLY --earthfile=push-arg.earth --target=+push-test \
+        --output_contains="shoop"
+    DO +RUN_EARTHLY --earthfile=push-arg.earth --extra_args="--push" --target=+push-test \
+        --output_contains="real good"
+
+push-arg-indirect-test:
+    DO +RUN_EARTHLY --earthfile=push-arg.earth --target=+indirect-test \
+        --output_contains="shoop"
+    DO +RUN_EARTHLY --earthfile=push-arg.earth --extra_args="--push" --target=+indirect-test \
+        --output_contains="shoop"
+
+ci-arg-test:
+    DO +RUN_EARTHLY --earthfile=ci-arg.earth --target=+ci-test \
+        --output_contains="local environment"
+    DO +RUN_EARTHLY --earthfile=ci-arg.earth --extra_args="--ci" --target=+ci-test \
+        --output_contains="CI environment"
+
+private-image-test:
+    FROM earthly/private-test:latest
+    RUN --entrypoint echo hello world
+
+gen-dockerfile-test:
+    DO +RUN_EARTHLY --earthfile=gen-dockerfile.earth --extra_args="--no-output" --target=+all
+
+comments-test:
+    DO +RUN_EARTHLY --earthfile=comments.earth --extra_args="--no-output" --target=+test
+
+chown-test:
+    RUN echo "test" > ./a.txt
+    DO +RUN_EARTHLY --earthfile=chown.earth --target=+test
+
+dotenv-test:
+    RUN echo "TEST_IN_DOTENV=this-should-not-appear-as-a-build-arg" >.env
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-dotenv --output_contains="unexpected env .TEST_IN_DOTENV.: as of v0.7.0, --build-arg values must be defined in .arg"
+
+    RUN touch .arg
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-dotenv --output_does_not_contain="unexpected env .TEST_IN_DOTENV.: as of v0.7.0, --build-arg values must be defined in .arg"
+
+    RUN echo "TEST_ARG_1=abracadabra" >.arg
+    RUN echo "TEST_SEC_2=foo" >.secret
+    RUN echo "TEST_ARG_3=bar" >>.arg
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test
+
+    # test non-standard .arg paths can be used
+    RUN mv .arg .some-other-arg
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-dotenv
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-file-path .some-other-arg" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ARG_FILE_PATH=.some-other-arg" --target=+test
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-file-path .this-should-fail" --should_fail="true" --target=+test --output_contains="open .this-should-fail: no such file or directory"
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --pre_command="export EARTHLY_ARG_FILE_PATH=.this-too-should-fail" --should_fail="true" --target=+test --output_contains="open .this-too-should-fail: no such file or directory"
+
+    # --env-file takes precedence
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-file-path .some-other-arg" --pre_command="export EARTHLY_ARG_FILE_PATH=.this-should-be-ignored" --target=+test
+
+    # test .secret can be renamed
+    RUN mv .secret .some-other-secret
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --arg-file-path .some-other-arg --secret-file-path .some-other-secret" --target=+test
+
+    # test .env values still affect earthly cli
+    RUN echo EARTHLY_PUSH=1 > .env
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-with-push
+    RUN mv .env .some-other-env
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output" --target=+test-no-push
+    DO +RUN_EARTHLY --earthfile=dotenv.earth --extra_args="--no-output --env-file-path .some-other-env" --target=+test-with-push
+
+stack-failure-test:
+    RUN echo "TEST_ARG_1=abracadabra" >.arg
+    RUN echo "TEST_ARG_2=foo" >>.arg
+    RUN echo "THIS_IS_SECRET=dont-display-this" >>.secret
+    RUN echo "THIS_IS_ALSO_A_SECRET=dont-display-this-either" >>.env # test for user accidentally putting a secret in .env (carried over from a v0.6.0 .env file)
+
+    # test that only declared ARGs are displayed in output (and non-referenced .arg values which may actually be secrets aren't)
+    DO +RUN_EARTHLY --earthfile=stack-failure.earth --extra_args="--no-output" --output_contains="unknown flag .cause-interpreter-failure." --should_fail="true" --target=+fail
+    RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
+    RUN grep 'in.*+fail --TEST_ARG_1=abracadabra --TEST_ARG_2=foo' earthly.output
+
+    # test missing target doesn't leak secret
+    DO +RUN_EARTHLY --earthfile=stack-failure.earth --extra_args="--no-output" --output_contains="target this-does-not-exist not found" --should_fail="true" --target=+this-does-not-exist
+    RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
+
+multi-stack-failure-test:
+    RUN echo "FOO=foo" >.arg
+    RUN echo "THIS_IS_SECRET=dont-display-this" >>.secret
+    RUN echo "THIS_IS_ALSO_A_SECRET=dont-display-this-either" >>.env # test for user accidentally putting a secret in .env (carried over from a v0.6.0 .env file)
+
+    DO +RUN_EARTHLY --earthfile=multi-stack-failure.earth --extra_args="--no-output --build-arg BAR=bar" --output_contains="unknown flag .cause-interpreter-failure." --should_fail="true" --target=+fail
+    RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
+    RUN grep 'in.*+fail --BAR=bar --EMPTY= --FOO=foo' earthly.output
+
+    DO +RUN_EARTHLY --earthfile=multi-stack-failure.earth --extra_args="--no-output --build-arg BAR=bar --build-arg ANOTHER_ARG=another-value" --output_contains="unknown flag .cause-interpreter-failure." --should_fail="true" --target=+from-fail
+    RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
+    RUN grep 'in.*+fail --BAR=bar --EMPTY= --FOO=foo' earthly.output
+    RUN grep 'in.*+from-fail --ANOTHER_ARG=another-value' earthly.output
+
+env-test:
+    DO +RUN_EARTHLY --earthfile=env.earth --extra_args="--no-output" --target=+test
+
+env-home-test:
+    DO +RUN_EARTHLY --earthfile=env-home.earth --extra_args="--secret sshkey=not-actually-a-ssh-key --no-output" --target=+test
+
+no-cache-local-artifact-test:
+    DO +RUN_EARTHLY --earthfile=no-cache-local-artifact.earth --use_tmpfs=false --extra_args="--no-cache" --target=+test
+    RUN mv file.txt old.txt
+    DO +RUN_EARTHLY --earthfile=no-cache-local-artifact.earth --use_tmpfs=false --extra_args="--no-cache" --target=+test
+    RUN ! diff file.txt old.txt
+
+empty-git-test:
+    RUN git init
+    DO +RUN_EARTHLY --earthfile=empty-git.earth --extra_args="--no-output" --target=+test-empty
+    RUN git remote add origin https://github.com/earthly/earthly.git
+    DO +RUN_EARTHLY --earthfile=empty-git.earth --extra_args="--no-output" --target=+test-origin-no-hash
+
+escape-test:
+    RUN printf "content" >file-with-+.txt
+    RUN printf "content" >regular-file.txt
+    DO +RUN_EARTHLY --earthfile=escape.earth
+
+escape-dir-test:
+    RUN mkdir ./dir-with-+-in-it
+    COPY escape-dir2.earth ./dir-with-+-in-it/Earthfile
+    DO +RUN_EARTHLY --earthfile=escape-dir1.earth --extra_args="--no-output" --target=+test
+
+eine-test-base:
+    FROM docker:19.03.12-dind
+    RUN apk --update --no-cache add git
+    COPY ../..+earthly/earthly /usr/local/bin/
+    ENV EARTHLY_BUILDKIT_IMAGE=earthly/buildkitd:dind-test
+    WORKDIR /test
+
+eine-smoke-test:
+    FROM +eine-test-base
+    COPY parser-smoke.earth ./Earthfile
+    WITH DOCKER --load earthly/buildkitd:dind-test=../../buildkitd+buildkitd
+        RUN earthly +test
+    END
+
+eine-privileged-test:
+    FROM +eine-test-base
+    COPY privileged.earth ./Earthfile
+    WITH DOCKER --load earthly/buildkitd:dind-test=../../buildkitd+buildkitd
+        RUN earthly --allow-privileged +test
+    END
+
+target-first-line:
+    DO +RUN_EARTHLY --earthfile=target-first-line.earth --extra_args="--no-output" --target=+test
+
+absolute-reference-with-relative:
+    RUN mkdir -p /a/path/to/test/subdir
+    # create a base Earthfile which is referenced by target-absolute-reference.earth
+    RUN echo -e "VERSION 0.8\nFROM alpine:3.18\nRUN mkdir -p /dir/from/base" > /a/path/to/test/Earthfile
+    DO +RUN_EARTHLY --earthfile=absolute-reference-with-relative.earth --earthfile_dest=/a/path/to/test/subdir/Earthfile --extra_args="--no-output" --target=/a/path/to/test/subdir+test
+
+end-comment:
+    DO +RUN_EARTHLY --earthfile=end-comment.earth --target=+test
+
+if-exists:
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+save-exist-local
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --should_fail=true --target=+save-not-exist \
+      --output_contains="save-not-exist"
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --should_fail=true --target=+copy-not-exist \
+      --output_contains="copy-not-exist"
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --should_fail=true --target=+bad-wildcard-copy \
+      --output_contains="bad-wildcard-copy"
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --should_fail=true --target=+bad-wildcard-save \
+      --output_contains="bad-wildcard-save"
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+artifact-copy-exists
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+artifact-copy-not-exist
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+artifact-copy-not-exist-wildcard
+    RUN mkdir in && \
+        echo "this-file-does-exist" > ./in/this-file-does-exist && \
+        echo "so-does-this-one" > so-does-this-one
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+classic-copy-exists
+    DO +RUN_EARTHLY --earthfile=if-exists.earth --target=+classic-copy-not-exist
+
+file-copying:
+    DO +RUN_EARTHLY --earthfile=file-copying.earth
+
+    RUN find out-glob -printf '%P\n' | sort > result-glob
+    RUN ls -la out-glob
+    RUN diff -ws expected-glob result-glob
+
+    RUN find out-dot -printf '%P\n' | sort > result-dot
+    RUN ls -la out-dot
+    RUN diff -ws expected-dot result-dot
+
+    RUN find out-dot-slash -printf '%P\n' | sort > result-dot-slash
+    RUN ls -la out-dot-slash
+    RUN diff -ws expected-dot-slash result-dot-slash
+
+    RUN find out-sub -printf '%P\n' | sort > result-sub
+    RUN ls -la out-sub
+    RUN diff -ws expected-sub result-sub
+
+    RUN find out-sub-glob -printf '%P\n' | sort > result-sub-glob
+    RUN ls -la out-sub-glob
+    RUN diff -ws expected-sub-glob result-sub-glob
+
+    RUN find out-dot-single -printf '%P\n' | sort > result-dot-single
+    RUN ls -la out-dot-single
+    RUN diff -ws expected-dot-single result-dot-single
+
+    RUN find out-rel-single -printf '%P\n' | sort > result-rel-single
+    RUN ls -la out-rel-single
+    RUN diff -ws expected-rel-single result-rel-single
+
+    RUN find out-src-dest-file-rename -printf '%P\n' | sort > result-src-dest-file-rename
+    RUN ls -la out-src-dest-file-rename
+    RUN diff -ws expected-src-dest-file-rename result-src-dest-file-rename
+
+    RUN find out-src-dest-dir-rename -printf '%P\n' | sort > result-src-dest-dir-rename
+    RUN ls -la out-src-dest-dir-rename
+    RUN diff -ws expected-src-dest-dir-rename result-src-dest-dir-rename
+
+    # Saving the root dir is not allowed. This should fail.
+    DO +RUN_EARTHLY --earthfile=file-copying.earth --should_fail=true --target=+test-dot-scratch
+
+save-artifact-dont-overwrite:
+    RUN --no-cache echo hello > important-data
+
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
+        --target=+dont-overwrite-abs-ref --post_command="> /tmp/output 2>&1"
+    RUN cat /tmp/output | acbgrep 'Error.*path must be located under'
+
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
+        --target=+dont-overwrite-rel-ref --post_command="> /tmp/output 2>&1"
+    RUN cat /tmp/output | acbgrep 'Error.*path must be located under'
+
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
+        --target=+dont-overwrite-rel-other-ref --post_command="> /tmp/output 2>&1"
+    RUN cat /tmp/output | acbgrep 'Error.*path must be located under'
+
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
+        --target=+dont-overwrite-root --post_command="> /tmp/output 2>&1"
+    RUN cat /tmp/output | acbgrep 'Error.*path must be located under'
+
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
+        --target=+dont-overwrite-root2 --post_command="> /tmp/output 2>&1"
+    RUN cat /tmp/output | acbgrep 'Error.*path must be located under'
+
+    DO +RUN_EARTHLY --should_fail=true --earthfile=save-artifact-dont-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" \
+        --target=+dont-overwrite-root3 --post_command="> /tmp/output 2>&1"
+    RUN cat /tmp/output | acbgrep 'Error.*path must be located under'
+
+    RUN ls important-data
+
+save-artifact-force-overwrite:
+    RUN --no-cache echo hello > /root/important-data
+    DO +RUN_EARTHLY --earthfile=save-artifact-overwrite.earth --extra_args="--version-flag-overrides=require-force-for-unsafe-saves" --target=+overwrite-root
+    RUN cat /root/base | acbgrep 88716877-039f-4dea-8ec3-84eb64f326c5
+    RUN cat /root/sub/data1 | acbgrep ff42c40d-034a-4855-8db7-febfa7322576
+    RUN cat /root/sub/data2 | acbgrep 2b4a653d-cdf6-4574-ac5e-f02bb6993365
+    RUN ! ls /root/important-data
+
+save-artifact-file-as-dot:
+    DO +RUN_EARTHLY --earthfile=save-artifact-dot.earth --target=+save-local-file-as-dot
+    RUN cat uuid | acbgrep eeee5a95-1506-428f-8ef0-94bbad5bd22b
+
+save-artifact-dir-as-dot:
+    DO +RUN_EARTHLY --earthfile=save-artifact-dot.earth --target=+save-local-dir-as-dot
+    RUN cat the-data/file1 | acbgrep 7be91098-1823-41df-911b-2a8907fe5da7
+    RUN cat the-data/file2 | acbgrep b0359c17-d08b-411c-9db7-1333ef3673d0
+
+run-no-cache:
+    # Run twice to allow the second one to attempt to cache things
+    DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test
+    # Fail if we cached any of the motd2 lines, which are after the --no-cache
+    DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test \
+        --grep_flags="-v" --output_contains="\\\*cached\\\* --> .* motd2"
+
+    # Run twice to allow the second one to attempt to cache things
+    DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test-from
+    # Fail if we cached any of the COPY motd2 lines, which are after the --no-cache
+    DO +RUN_EARTHLY --earthfile=run-no-cache.earth --use_tmpfs=false --target=+test-from \
+        --grep_flags="-v" --output_contains="\\\*cached\\\* --> .*motd2 \\\.\\\//"
+
+save-artifact-after-push:
+    # test that save after push only outputs files before the RUN --push
+    DO +RUN_EARTHLY --earthfile=save-artifact-after-push.earth --target=+test
+    RUN test -f 1 && test "$(cat 1)" = "1"
+    RUN ! test -f 2
+    RUN ! test -f surprise
+
+    # test it is not possible to copy from a target containing a RUN --push
+    DO +RUN_EARTHLY --earthfile=save-artifact-after-push.earth --should_fail="true" --target=+copy-test \
+        --output_contains="not found"
+
+save-artifact-selective-test1:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective.earth --target=+test1
+    RUN test   -f a && \
+        test   -f b && \
+        test ! -f c && \
+        test ! -f d && \
+        test ! -f e
+
+save-artifact-selective-test2:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective.earth --target=+test2
+    RUN test ! -f a && \
+        test ! -f b && \
+        test   -f c && \
+        test ! -f d && \
+        test ! -f e
+
+save-artifact-selective-test3:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective.earth --target=+test3
+    RUN test ! -f a && \
+        test ! -f b && \
+        test ! -f c && \
+        test   -f d && \
+        test ! -f e
+
+save-artifact-selective-test4:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective.earth --target=+test4
+    RUN test ! -f a && \
+        test ! -f b && \
+        test ! -f c && \
+        test ! -f d && \
+        test   -f e
+
+save-artifact-selective-test5:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective.earth --target=+test5
+    RUN test ! -f a && \
+        test ! -f b && \
+        test ! -f c && \
+        test ! -f d && \
+        test ! -f e && \
+        test ! -f test5sub && \
+        test   -f test5
+
+save-artifact-selective:
+    # test that the `--referenced-save-only` feature only saves referenced artifacts
+    BUILD +save-artifact-selective-test1
+    BUILD +save-artifact-selective-test2
+    BUILD +save-artifact-selective-test3
+    BUILD +save-artifact-selective-test4
+    BUILD +save-artifact-selective-test5
+
+save-artifact-selective-referencing-remote-test1:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective-remote.earth --target=+test1
+    RUN test   -f a && \
+        test ! -f b && \
+        test ! -f c && \
+        test ! -d output && \
+        test ! -f output/testfile && \
+        test ! -f testfile
+
+save-artifact-selective-referencing-remote-test2:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective-remote.earth --target=+test2
+    RUN test ! -f a && \
+        test   -f b && \
+        test ! -f c && \
+        test ! -d output && \
+        test ! -f output/testfile && \
+        test ! -f testfile
+
+save-artifact-selective-referencing-remote-test3:
+    DO +RUN_EARTHLY --earthfile=save-artifact-selective-remote.earth --target=+test3
+    RUN test ! -f a && \
+        test ! -f b && \
+        test   -f c && \
+        test   -d output && \
+        test   -f output/testfile && \
+        test ! -f testfile
+
+save-artifact-selective-referencing-remote:
+    BUILD +save-artifact-selective-referencing-remote-test1
+    BUILD +save-artifact-selective-referencing-remote-test2
+    BUILD +save-artifact-selective-referencing-remote-test3
+
+save-remote-artifact-selective:
+    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/versioned:main+savelocal
+    RUN test -f ./output/testfile
+
+dont-save-indirect-remote-artifact:
+    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/versioned:main+copy-from-savelocal
+    RUN test ! -f ./output/testfile
+
+remote-earthfile-must-have-version:
+    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/no-version:main+copy-from-savelocal --should_fail=true --output_contains="No version specified in github.com/earthly/test-remote/output/no-version"
+    RUN test ! -f ./output/testfile
+
+push-build:
+    DO +RUN_EARTHLY --earthfile=push-build.earth --target=+test --extra_args="--push" --post_command="> output 2>&1"
+    RUN cat output
+    RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+test \| 0\n/;'
+    RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+run1 \| 1\n/;'
+    RUN cat output | perl -pe 'BEGIN {$status=1} END {exit $status} $status=0 if /\+run2 \| 2\n/;'
+
+test-earthly-mirror-was-setup:
+    DO +RUN_EARTHLY --verbose=false --earthfile=true.earth --target=+true --post_command="> /tmp/output 2>&1"
+    RUN acbgrep registry-1.docker.io.mirror.corp.earthly.dev /etc/buildkitd.toml
+
+build-arg-repeat:
+    DO +RUN_EARTHLY --earthfile=build-arg-repeat.earth --target=+build-all-1
+    RUN test -f ./output/out-other-1
+    RUN test -f ./output/out-default-1
+    RUN cat ./output/out-other-1 | grep "A=other"
+    RUN cat ./output/out-other-1 | grep "B=1"
+    RUN cat ./output/out-default-1 | grep "A=default"
+    RUN cat ./output/out-default-1 | grep "B=1"
+    DO +RUN_EARTHLY --earthfile=build-arg-repeat.earth --target=+build-all-2
+    RUN test -f ./output/out-other-1
+    RUN test -f ./output/out-default-1
+    RUN cat ./output/out-other-1 | grep "A=other"
+    RUN cat ./output/out-other-1 | grep "B=1"
+    RUN cat ./output/out-default-1 | grep "A=default"
+    RUN cat ./output/out-default-1 | grep "B=1"
+
+arg-redeclare-error:
+    DO +RUN_EARTHLY --earthfile=arg-redeclare-error.earth --target=+test-working-global
+    DO +RUN_EARTHLY --earthfile=arg-redeclare-error.earth --target=+test-working-global-override
+    DO +RUN_EARTHLY --earthfile=arg-redeclare-error.earth --target=+test-working-default-override
+    DO +RUN_EARTHLY --earthfile=arg-redeclare-error.earth --target=+test-error-conflict --should_fail=true
+    DO +RUN_EARTHLY --earthfile=arg-redeclare-error.earth --target=+test-error-conflict-if --should_fail=true
+    DO +RUN_EARTHLY --earthfile=arg-global-after-local.earth --target=+base --should_fail=true --output_contains="Hint: 'foo' was already declared as a non-global ARG in this scope - did you mean to add '--global' to the original declaration?"
+
+arg-scope-requires-shellout-anywhere:
+    DO +RUN_EARTHLY --earthfile=arg-scope-requires-shellout-anywhere.earth --target=+base --should_fail=true
+
+arg-set:
+    DO +RUN_EARTHLY --earthfile=arg-set.earth --target=+base --should_fail=true --output_contains="Hint: 'foo' is an ARG and cannot be used with SET - try declaring 'LET foo = \\\$foo' first"
+
+let-scope:
+    DO +RUN_EARTHLY --earthfile=let-scope.earth --target=+base
+    DO +RUN_EARTHLY --earthfile=let-scope.earth --target=+let-overrides-arg
+    DO +RUN_EARTHLY --earthfile=let-scope.earth --target=+let-overrides-global-arg
+    DO +RUN_EARTHLY --earthfile=let-scope.earth --target=+arg-after-let-errors --should_fail=true --output_contains="Hint: 'bar' was already declared with LET and cannot be redeclared as an ARG"
+
+let-set:
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target=+base
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target="+test --expected=bazinga"
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target="+test --bar=eggs --expected=eggsinga"
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target="+test-global --foo=banana --topExpected='banana car' --expected='banana phone'"
+
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target=+test-set-global-fails --should_fail=true --output_contains="Hint: 'foo' is an ARG and cannot be used with SET - try declaring 'LET foo = \\\$foo' first"
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target=+test-set-nonexistent-fails --should_fail=true --output_contains="Hint: 'nonexistent' needs to be declared with 'LET nonexistent = someValue' before it can be used with SET"
+    # Also ensure that we error when the variable exists in overrides.
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target="+test-set-nonexistent-fails --nonexistent=foo" --should_fail=true --output_contains="Hint: 'nonexistent' needs to be declared with 'LET nonexistent = someValue' before it can be used with SET"
+
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target="+test-if --expected='ifSwitch was true'"
+    DO +RUN_EARTHLY --earthfile=let-set.earth --target="+test-if --ifSwitch=false --expected='ifSwitch was false'"
+
+if:
+    RUN touch exists-locally
+    DO +RUN_EARTHLY --earthfile=if.earth
+
+for:
+    DO +RUN_EARTHLY --earthfile=for.earth
+
+first-command:
+    DO +RUN_EARTHLY --earthfile=first-command.earth --target=+all-positive
+    DO +RUN_EARTHLY --earthfile=first-command.earth --should_fail=true --target=+start-with-run
+    DO +RUN_EARTHLY --earthfile=first-command.earth --should_fail=true --target=+start-with-if
+    DO +RUN_EARTHLY --earthfile=first-command.earth --should_fail=true --target=+start-with-non-from-target
+
+platform-output:
+    DO +RUN_EARTHLY --earthfile=platform-output.earth
+    RUN test -f ./out-arm
+    RUN test -f ./out-arm64
+    RUN ! test -f ./out-amd64
+
+# command tests the 0.7 functionality of the COMMAND keyword, it is here for backward compatability
+command:
+    RUN echo "hello command" >./message.txt
+    DO +RUN_EARTHLY --earthfile=command.earth --target=+all-positive
+    DO +RUN_EARTHLY --earthfile=command.earth --should_fail=true --target=+test-function-fails
+
+command-explicit-global:
+    DO +RUN_EARTHLY --earthfile=command-explicit-global.earth
+
+function:
+    RUN echo "hello function" >./message.txt
+    DO +RUN_EARTHLY --earthfile=function.earth --target=+all-positive
+    DO +RUN_EARTHLY --earthfile=function.earth --should_fail=true --target=+test-command-fails
+
+function-nested-global:
+    DO +RUN_EARTHLY --earthfile=function-nested-global.earth --target="+test-overriding --foo=expected"
+
+duplicate:
+    DO +RUN_EARTHLY --earthfile=duplicate-target-names.earth --should_fail=true --target=+duplicate
+
+reserved:
+    DO +RUN_EARTHLY --earthfile=reserved-target-names.earth --should_fail=true --target=+reserved
+
+quotes-test:
+    DO +RUN_EARTHLY --earthfile=quotes.earth
+
+quotes-test-extra:
+    COPY expected-quotes.txt expected
+    DO +RUN_EARTHLY --earthfile=quotes-extra.earth --target=+test
+    RUN diff actual expected
+
+new-args:
+    DO +RUN_EARTHLY --earthfile=new-args.earth
+
+import:
+    DO +RUN_EARTHLY --earthfile=import.earth
+
+infinite-recursion:
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test1
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test2
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test3
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test4
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test5
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test6
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test7
+    DO +RUN_EARTHLY --earthfile=infinite-recursion.earth --should_fail=true --target=+test8
+
+from-dockerfile-arg:
+    DO +RUN_EARTHLY --earthfile=from-dockerfile-arg.earth --target=+all
+    RUN test "$(cat ./arg-value-default)" = "default"
+    RUN test "$(cat ./arg-value-foo)" = "foo"
+    RUN test "$(cat ./arg-value-bar)" = "bar"
+
+from-dockerfile-dockerignore:
+    # feature flag off
+    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target="+create-files --with_docker_ignore=\"true\""
+    DO +RUN_EARTHLY --earthfile=from-dockerfile-dockerignore.earth --target=+image
+    RUN test "$(cat output)" = "a.txt
+b.txt
+c.txt"
+    RUN rm -rf .*ignore output
+
+    # enable feature flag
+    RUN sed -i "1s/VERSION \(.*\)/VERSION --use-docker-ignore \1/" Earthfile
+
+    # no ignore files
+    DO +RUN_EARTHLY --target=+create-files
+    DO +RUN_EARTHLY --target=+image
+    RUN test "$(cat output)" = "a.txt
+b.txt
+c.txt"
+    RUN rm -rf .*ignore output
+
+    # with only .dockerignore present
+    DO +RUN_EARTHLY --target="+create-files --with_docker_ignore=\"true\""
+    DO +RUN_EARTHLY --target=+image
+    RUN test "$(cat output)" = "b.txt
+c.txt"
+    RUN rm -rf .*ignore output
+
+    # with .earthlyignore present
+    DO +RUN_EARTHLY --target="+create-files --with_docker_ignore=\"true\" --with_earthly_ignore=\"true\""
+    DO +RUN_EARTHLY --target=+image
+    RUN test "$(cat output)" = "a.txt
+c.txt"
+    RUN rm -rf .*ignore output
+
+    # with .earthignore present
+    DO +RUN_EARTHLY --target="+create-files --with_docker_ignore=\"true\" --with_earth_ignore=\"true\""
+    DO +RUN_EARTHLY --target=+image
+    RUN test "$(cat output)" = "a.txt
+b.txt"
+    RUN rm -rf .*ignore output
+
+cache-mount-arg:
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b-nomount --MYARG=123"
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b-nomount --MYARG=1234" --post_command="2>output-nomount.txt"
+    RUN cat output-nomount.txt
+    RUN cat output-nomount.txt | grep '\*cached\* --> RUN echo Doing something 1'
+    RUN cat output-nomount.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b --MYARG=abc"
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b --MYARG=abcd" --post_command="2>output.txt"
+    RUN cat output.txt
+    RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 1'
+    RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b-with-arg --MYARG=def"
+    DO +RUN_EARTHLY --earthfile=cache-mount-arg.earth --use_tmpfs=false --target="+b-with-arg --MYARG=defg" --post_command="2>output.txt"
+    RUN cat output.txt
+    RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 1'; test "$?" != 0
+    RUN cat output.txt | grep '\*cached\* --> RUN echo Doing something 2'; test "$?" != 0
+
+true-false-flag:
+    DO +RUN_EARTHLY --earthfile=true-false-flag.earth --extra_args="--allow-privileged" --post_command=">output.txt 2>&1"
+    RUN cat output.txt
+    # test that the two privileged commands were run
+    RUN test $( cat output.txt | grep -v echo | grep "I have the power" | wc -l) = "2"
+    # test a single non-privileged RUN was executed
+    RUN test $( cat output.txt | grep -v echo | grep "fight the power" | wc -l) = "1"
+
+true-false-flag-invalid:
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --verbose=0 --should_fail=true --target=+run-false --post_command="2>output.txt"
+    RUN cat output.txt
+    RUN cat output.txt | grep "did not complete successfully. Exit code 1"
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --verbose=0 --should_fail=true --target=+run-false-with-args --post_command="2>output2.txt"
+    RUN cat output2.txt
+    RUN cat output2.txt | grep "did not complete successfully. Exit code 1"
+    DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --verbose=0 --should_fail=true --target=+run-maybe --post_command="2>output3.txt"
+    RUN cat output3.txt
+    RUN cat output3.txt | grep 'invalid argument for flag .*--no-cache.*expected bool'
+
+version-flag-test:
+    # In addition to testing the --version flag works; this flag is critical for the homebrew deployment test, which
+    # performs an assert in https://github.com/earthly/homebrew-earthly/blob/main/Formula/earthly.rb
+    RUN earthly --version | grep '^earthly version'
+    RUN test "$(earthly --version | wc -l)" = "1"
+
+implicit-ignores:
+    RUN mkdir -p ignored notignored && \
+        echo "ignored/" > .earthlyignore && \
+        echo "test" > notignored/test && \
+        echo "test" > ignored/test
+    DO +RUN_EARTHLY --earthfile=no-implicit-ignore.earth
+
+help:
+    # tests the hidden `--buildkit-volume-name` flag is only displayed when EARTHLY_SHOW_HIDDEN is enabled
+    ENV EARTHLY_SHOW_HIDDEN=0
+    RUN earthly --help | grep -v 'buildkit-volume-name'
+    ENV EARTHLY_SHOW_HIDDEN=1
+    RUN earthly --help | grep 'buildkit-volume-name'
+
+doc:
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --post_command=">output.txt"
+    RUN pcregrep --multiline "TARGETS:
+  \+documented-target
+      documented-target is a target with documentation
+      that spans multiple lines.
+
+      It also has a separator between paragraphs." output.txt
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --grep_flags="-v" --output_contains="undocumented-target"
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="" --grep_flags="-v" --output_contains="incorrectly-documented-target"
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+documented-target" --post_command=">output.txt"
+    RUN pcregrep --multiline "\+documented-target
+    documented-target is a target with documentation
+    that spans multiple lines.
+
+    It also has a separator between paragraphs." output.txt
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+undocumented-target" --should_fail=true --output_contains="no doc comment found"
+    DO +RUN_EARTHLY --earthfile=target-docs.earth --extra_args="doc" --target="+incorrectly-documented-target" --should_fail=true --output_contains="no doc comment found"
+
+doc-recipe-block:
+    DO +RUN_EARTHLY --earthfile=doc-recipe-block.earth --extra_args="doc" --target="" --post_command=">output.txt"
+    RUN pcregrep --multiline "TARGETS:
+  \+foo --requiredArg \[--globalArg\] \[--withDefault=foo\] \[--withDocs\] \[--withoutDocs\]
+      foo is a target with documentation. Targets without documentation won't show
+      up in 'earthly doc' even if they have documented commands in their recipe." output.txt
+
+    DO +RUN_EARTHLY --earthfile=doc-recipe-block.earth --extra_args="doc" --target="+foo" --post_command=">output.txt"
+    RUN pcregrep --multiline "\+foo --requiredArg \[--globalArg\] \[--withDefault=foo\] \[--withDocs\] \[--withoutDocs\]
+    foo is a target with documentation. Targets without documentation won't show
+    up in 'earthly doc' even if they have documented commands in their recipe.
+  REQUIRED ARGS:
+    --requiredArg
+  OPTIONAL ARGS:
+    --globalArg
+      globalArg is a documented global arg. earthly doc does not distinguish between
+      global and non-global args, because they work the same to end users.
+    --withDefault=foo
+      withDefault is a documented argument with a default.
+    --withDocs
+      withDocs is a documented argument.
+    --withoutDocs
+  ARTIFACTS:
+    bar.txt
+      bar.txt is a documented artifact.
+    baz.txt
+  LOCAL ARTIFACTS:
+    baz.txt -> out/baz.txt
+      out/baz.txt is a documented artifact that is saved locally.
+    bacon.txt -> out/eggs.txt
+      bacon.txt is also a documented artifact that is saved locally.
+  IMAGES:
+    baz
+      baz is a documented image.
+    bar
+    bacon, eggs
+      eggs is just one of the image names, and yet it should still be recognized for this multiple-name SAVE IMAGE format." output.txt
+
+    DO +RUN_EARTHLY --earthfile=doc-recipe-block.earth --extra_args="doc --long" --target="" --post_command=">output.txt"
+    RUN pcregrep --multiline "TARGETS:
+  \+foo --requiredArg \[--globalArg\] \[--withDefault=foo\] \[--withDocs\] \[--withoutDocs\]
+      foo is a target with documentation. Targets without documentation won't show
+      up in 'earthly doc' even if they have documented commands in their recipe.
+    REQUIRED ARGS:
+      --requiredArg
+    OPTIONAL ARGS:
+      --globalArg
+        globalArg is a documented global arg. earthly doc does not distinguish between
+        global and non-global args, because they work the same to end users.
+      --withDefault=foo
+        withDefault is a documented argument with a default.
+      --withDocs
+        withDocs is a documented argument.
+      --withoutDocs
+    ARTIFACTS:
+      bar.txt
+        bar.txt is a documented artifact.
+      baz.txt
+    LOCAL ARTIFACTS:
+      baz.txt -> out/baz.txt
+        out/baz.txt is a documented artifact that is saved locally.
+      bacon.txt -> out/eggs.txt
+        bacon.txt is also a documented artifact that is saved locally.
+    IMAGES:
+      baz
+        baz is a documented image.
+      bar
+      bacon, eggs
+        eggs is just one of the image names, and yet it should still be recognized for this multiple-name SAVE IMAGE format." output.txt
+
+cache-cmd:
+    DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test
+    DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test-save-artifact
+    RUN test "$(cat ./artifacts1/1)" = "artifact 1"
+    RUN test -d ./artifacts1/2; test $? = 1
+    RUN test "$(cat ./artifacts2/1)" = "artifact 1"
+    RUN test "$(cat ./artifacts2/2)" = "artifact 2"
+    DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test-no-sharing
+    DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test-arg
+
+ls:
+    COPY ls.earth Earthfile
+    RUN earthly ls 2>/dev/null | tee actual
+    RUN echo -e "+alpha\n+base\n+bravo\n+charlie" > expected
+    RUN diff expected actual
+
+ls-subdir:
+    COPY ls.earth subdir/Earthfile
+    RUN earthly ls ./subdir 2>/dev/null | tee actual
+    RUN echo -e "+alpha\n+base\n+bravo\n+charlie" > expected
+    RUN diff expected actual
+
+no-network:
+    DO +RUN_EARTHLY --earthfile=no-network.earth --target=+test --should_fail=true --output_contains="wget: bad address .earthly.dev."
+
+ssh:
+    ARG FRONTEND=docker
+    COPY ssh.earth ./Earthfile
+    RUN ssh-keygen -b 3072 -t rsa -f /root/rsa-key -q -N '' -C 'rsa-key-from-earthly-tests'
+    RUN echo "#!/bin/sh
+set -e
+eval \"\$(ssh-agent)\"
+ssh-add /root/rsa-key
+earthly --config \$earthly_config +test
+earthly --config \$earthly_config -P +test-with-docker --FRONTEND=$FRONTEND
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    ENV EARTHLY_EXEC_CMD="/tmp/test-earthly-script"
+    RUN --privileged \
+    --entrypoint \
+    --mount=type=tmpfs,target=/tmp/earthly \
+    -- -P
+
+server:
+    HOST api.earthly.dev 127.0.0.1
+    ENV EARTHLY_DISABLE_ANALYTICS 1
+    RUN \
+        echo -e "#!/bin/sh\\ntouch /i-was-run" > /run-this && chmod +x /run-this && \
+        nc -l -p 443 -e /run-this & \
+        export webserverpid="$!" && \
+        earthly +this-will-fail || true && \
+        if [ -f /i-was-run ]; then echo "earthly should not have attempted a connection" && exit 1; fi && \
+        kill -9 $webserverpid || true
+
+host:
+    DO +RUN_EARTHLY --earthfile=host.earth --target=+add-single-host
+    DO +RUN_EARTHLY --earthfile=host.earth --target=+add-multiple-host
+    DO +RUN_EARTHLY --earthfile=host.earth --target=+add-ipv6
+
+host-invalid:
+    DO +RUN_EARTHLY --earthfile=host.earth --should_fail=true --target=+invalid-ip --output_contains="invalid HOST ip"
+    DO +RUN_EARTHLY --earthfile=host.earth --should_fail=true --target=+only-host --output_contains="invalid number of arguments for HOST"
+    DO +RUN_EARTHLY --earthfile=host.earth --should_fail=true --target=+only-ip --output_contains="invalid number of arguments for HOST"
+
+mtime:
+    RUN echo test > file
+    DO +RUN_EARTHLY --earthfile=mtime.earth
+
+build-after-from:
+    DO +RUN_EARTHLY --earthfile=build-after-from.earth --target=+all
+    RUN test -f ./hello.txt
+
+pipelines:
+    DO +RUN_EARTHLY \
+        --earthfile=pipelines-no-flag.earth \
+        --target=+test \
+        --should_fail=true \
+        --output_contains="must be enabled in order to use PIPELINE or TRIGGER"
+    DO +RUN_EARTHLY \
+        --earthfile=pipelines.earth \
+        --target=+test-invalid-order \
+        --should_fail=true \
+        --output_contains="PIPELINE must be the first command"
+    DO +RUN_EARTHLY \
+        --earthfile=pipelines.earth \
+        --target=+test-invalid-pipeline-arg \
+        --should_fail=true \
+        --output_contains="invalid PIPELINE arguments"
+    DO +RUN_EARTHLY \
+        --earthfile=pipelines.earth \
+        --target=+test-invalid-trigger-type \
+        --should_fail=true \
+        --output_contains="valid triggers include"
+
+test-works-without-earthly-server:
+    # first warm-up the cache
+    DO +RUN_EARTHLY --verbose=false --earthfile=true.earth --target=+true
+
+    RUN echo "#!/bin/sh
+    set -e
+    unset EARTHLY_DISABLE_ANALYTICS
+    for host in ci.earthly.dev api.earthly.dev; do
+      echo \"blocking \$host\"
+      for ip in \$(getent hosts \$host | awk '{ print \$1 }'); do
+        iptables -A OUTPUT -d \$ip -j DROP
+      done
+    done
+    date +%s > start-time
+    " > /tmp/precommand && chmod +x /tmp/precommand
+    DO +RUN_EARTHLY --verbose=false --pre_command=/tmp/precommand --post_command=" && date +%s > end-time" --earthfile=true.earth --target=+true
+    RUN if grep "failed sending analytics" earthly.output; then echo "analytics should have failed silently, but didnt" && exit 1; fi
+    RUN export duration=$(echo "$(cat end-time) - $(cat start-time)" | bc) && test "$duration" -lt 120 || (echo "it took $duration seconds to run +true, which is too long" && exit 1)
+
+test-init-unsupported:
+    COPY yaml-project yaml-project
+    WORKDIR ./yaml-project
+    DO +RUN_EARTHLY --extra_args "init" --should_fail=true --output_contains "no supported projects found"
+
+test-init-golang:
+    COPY go-project go-project
+    WORKDIR ./go-project
+    DO +RUN_EARTHLY --extra_args "init"
+    RUN if [ "$(tail -c 2 Earthfile)" == "$(printf '\n\n')" ]; then \
+        echo "Earthfile (from 'earthly init') has trailing newlines"; \
+        exit 1; \
+    fi
+    DO +RUN_EARTHLY --target "+build"
+    DO +RUN_EARTHLY --target "+test"
+
+test-reserved-label:
+   DO +RUN_EARTHLY \
+       --earthfile=reserved-label.earth \
+       --target=+test1 \
+       --should_fail=true \
+       --output_contains="LABEL keys starting with .dev.earthly.. are reserved"
+
+test-cache-mount-mode:
+  DO +RUN_EARTHLY \
+      --earthfile=cache-mount-mode.earth \
+      --target=+test-chmod \
+      --post_command="--mode=0004 " \
+      --output_contains="d------r-- /cache-folder"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-mount-mode.earth \
+      --target=+test-chmod \
+      --post_command="--mode=0777 " \
+      --output_contains="drwxrwxrwx /cache-folder"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-mount-mode.earth \
+      --target=+test-mode \
+      --post_command="--mode=0777 " \
+      --output_contains="drwxrwxrwx /cache-folder"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-mount-mode.earth \
+      --target=+test-default \
+      --output_contains="drw-r--r-- /cache-folder"
+
+test-cache-mode:
+  DO +RUN_EARTHLY \
+      --earthfile=cache-mode.earth \
+      --target=+test \
+      --post_command="--mode=0004 " \
+      --output_contains="d------r-- /cache-folder"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-mode.earth \
+      --target=+test \
+      --post_command="--mode=0777 " \
+      --output_contains="drwxrwxrwx /cache-folder"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-mode.earth \
+      --target=+test-default \
+      --output_contains="drw-r--r-- /cache-folder"
+
+test-shared-cache:
+  COPY --dir shared-cache/lib1 lib1
+  DO +RUN_EARTHLY \
+      --earthfile=shared-cache/Earthfile \
+      --target=+test \
+      --extra_args=" --secret=content=filecontents " \
+      --output_contains="filecontents"
+
+test-cache-persist:
+  DO +RUN_EARTHLY \
+      --earthfile=cache-persist.earth \
+      --target=+test-persisted \
+      --output_contains="| test persisted ok"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-persist.earth \
+      --target=+test-non-persisted \
+      --output_contains="| test non persisted ok"
+
+  DO +RUN_EARTHLY \
+      --earthfile=cache-persist-no-flag.earth \
+      --target=+test-persisted \
+      --output_contains="| test persisted ok"
+
+test-visited-upfront-hash-collection:
+  DO +RUN_EARTHLY \
+      --earthfile=visited-upfront-hash-collection.earth \
+      --target=+parallel
+  RUN order=$(cat earthly.output | grep -Eo "### [[:digit:]]+"  | cut -d' ' -f2- | tr '\n' ' ' | tr -d '[:space:]'); \
+      echo "order: $order"; \
+      # This regex matches successions of number trios like: 222111444333555, happening when the builds didn't run in parallel
+      match=$(echo $order | sed -nr '/^([[:digit:]])\1\1([[:digit:]])\2\2([[:digit:]])\3\3([[:digit:]])\4\4([[:digit:]])\5\5$/p'); \
+      if [[ $match ]]; then \
+        echo "no parallelization observed"; \
+        exit 1; \
+      else \
+         echo "parallelization checked"; \
+      fi
+
+test-exec-stats:
+  DO +RUN_EARTHLY \
+      --earthfile=stats.earth \
+      --target=+sleep \
+      --extra_args=" --exec-stats " \
+      --output_contains="total CPU:.*total memory:.*"
+
+test-platform-expansion:
+  DO +RUN_EARTHLY --earthfile=platform-expansion.earth
+
+# test-ssh-command-config-via-remote-target tests that we can set a custom ssh_command
+# The test intentionally sets a bad cipher type, then tests that buildkit fails, and the failure message
+# contains the underlying ssh failure due to attempting to use an invalid cipher
+test-ssh-command-config-via-remote-target:
+    RUN ssh-keygen -b 3072 -t rsa -f /root/dont-steal-my-key -q -N "" -C "rsa-testkey"
+    RUN echo "#!/bin/sh
+set -ex
+
+# needed to get past the \"no SSH key default forwarded from the client\" error
+eval \$(ssh-agent)
+ssh-add /root/dont-steal-my-key
+
+earthly --config \$earthly_config config git \"{github.com: {auth: ssh, user: git, strict_host_key_checking: false, ssh_command: ssh -c badcipher}}\"
+earthly --config \$earthly_config github.com/earthly/earthly+base 2>&1 | tee output.txt;
+" >/tmp/run-earthly-with-bad-ssh-cipher && chmod +x /tmp/run-earthly-with-bad-ssh-cipher
+    DO +RUN_EARTHLY --exec_cmd=/tmp/run-earthly-with-bad-ssh-cipher
+    RUN cat output.txt | acbgrep "Unknown cipher type 'badcipher'"
+
+test-ssh-command-config-via-git-clone-earthfile-command:
+    RUN ssh-keygen -b 3072 -t rsa -f /root/dont-steal-my-key -q -N "" -C "rsa-testkey"
+
+    RUN echo "VERSION 0.8
+test:
+    FROM alpine
+    GIT CLONE ssh://git@github.com/earthly/earthly.git ./earthly_repo # the command we are testing
+" > Earthfile
+
+    RUN echo "#!/bin/sh
+set -ex
+
+# needed to get past the \"no SSH key default forwarded from the client\" error
+eval \$(ssh-agent)
+ssh-add /root/dont-steal-my-key
+
+earthly --config \$earthly_config config git \"{github.com: {auth: ssh, user: git, strict_host_key_checking: false, ssh_command: ssh -c badcipher}}\"
+earthly --config \$earthly_config +test 2>&1 | tee output.txt;
+" >/tmp/run-earthly-with-bad-ssh-cipher && chmod +x /tmp/run-earthly-with-bad-ssh-cipher
+    DO +RUN_EARTHLY --exec_cmd=/tmp/run-earthly-with-bad-ssh-cipher
+    RUN cat output.txt | acbgrep "Unknown cipher type 'badcipher'"
+
+RUN_EARTHLY:
+    FUNCTION
+    ARG earthfile=
+    ARG earthfile_dest="./Earthfile"
+    ARG target=+all
+    ARG extra_args
+    ARG pre_command
+    ARG post_command
+    ARG should_fail=false
+    ARG use_tmpfs=true
+    ARG exec_cmd=
+    ARG output_contains=
+    ARG output_does_not_contain=
+    ARG grep_flags=
+    ARG verbose=1
+    IF [ ! -z "$earthfile" ]
+        COPY "$earthfile" "$earthfile_dest"
+    END
+    RUN echo "
+        set -ex
+        export EARTHLY_VERBOSE=$verbose
+        if $use_tmpfs; then
+            export EARTHLY_TMP_DIR=/tmp/earthly-tmpfs
+        fi
+        if [ -n \"$pre_command\" ]; then
+            eval \"$pre_command\"
+        fi
+        if [ -n \"$exec_cmd\" ]; then
+            if [ \"$exec_cmd\" = \"/tmp/earthly-script\" ]; then
+                echo \"exec_cmd cannot be /tmp/earthly-script\"
+                exit 1
+            fi
+            if [ \"$target\" != \"+all\" ]; then
+                echo \"target cannot be used with exec_cmd\"
+                exit 1
+            fi
+            export EARTHLY_EXEC_CMD=\"$exec_cmd\"
+            echo running earthly with EARTHLY_EXEC_CMD=\$EARTHLY_EXEC_CMD
+            set +e
+            (/bin/sh /usr/bin/earthly-entrypoint.sh; echo exit_code=\$?) 2>&1 | tee earthly.output
+            set -e
+        else
+            echo running earthly with $extra_args $target $post_command
+            set +e
+            (eval \"/usr/bin/earthly-entrypoint.sh $extra_args $target $post_command\"; echo exit_code=\$?) 2>&1 | tee earthly.output
+            set -e
+        fi
+
+        if ! tail -n 1 earthly.output | grep 'exit_code=[0-9]\+'; then
+            echo ERROR: failed to extract exit_code # something is wrong with the above sh script
+            exit 1
+        fi
+        exit_code=\$(tail -n 1 earthly.output | cut -d \"=\" -f2)
+
+        if [ \$exit_code -eq 6 ]; then
+            echo =================== Buildkit logs ===================
+            cat /var/log/buildkitd.log
+            echo ================= End Buildkit logs =================
+            exit \$exit_code
+        fi
+
+        if $should_fail; then
+            if [ \$exit_code -eq 0 ]; then
+                echo ERROR: earthly should have failed but didn\'t.
+                exit 1
+            fi
+        else
+            if [ \$exit_code -ne 0 ]; then
+                echo ERROR: earthly failed with exit code \$exit_code.
+                exit \$exit_code
+            fi
+        fi
+        if [ -n \"$output_contains\" ]; then
+            if ! grep $grep_flags \"$output_contains\" earthly.output >/dev/null; then
+                echo \"ERROR: earthly output did not contain \\\"$output_contains\\\"\"
+                exit 1
+            fi
+        fi
+        if [ -n \"$output_does_not_contain\" ]; then
+            if grep $grep_flags \"$output_does_not_contain\" earthly.output >/dev/null; then
+                echo \"ERROR: earthly output contains \\\"$output_does_not_contain\\\" (which is unexpected)\"
+                exit 1
+            fi
+        fi
+    " >/tmp/earthly-script
+    RUN echo --privileged \
+        --mount=type=tmpfs,target=/tmp/earthly-tmpfs \
+        /bin/sh /tmp/earthly-script

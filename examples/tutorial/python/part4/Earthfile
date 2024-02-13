@@ -1,0 +1,23 @@
+VERSION 0.8
+FROM python:3
+WORKDIR /code
+
+deps:
+    RUN pip install wheel
+    COPY requirements.txt ./
+    RUN pip wheel -r requirements.txt --wheel-dir=wheels
+    SAVE ARTIFACT wheels /wheels
+
+build:
+    FROM +deps
+    COPY src src
+    SAVE ARTIFACT src /src
+
+docker:
+    COPY +deps/wheels wheels
+    COPY +build/src src
+    COPY requirements.txt ./
+    ARG tag='latest'
+    RUN pip install --no-index --find-links=wheels -r requirements.txt
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    SAVE IMAGE python-example:$tag

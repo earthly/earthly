@@ -1,0 +1,37 @@
+VERSION 0.8
+
+FROM github.com/earthly/earthly+base
+
+# deps downloads and caches all dependencies for the ast package. When called
+# directly, go.mod and go.sum will be updated locally.
+deps:
+    COPY go.mod go.sum ./
+    RUN go mod download
+    SAVE ARTIFACT go.mod AS LOCAL go.mod
+    SAVE ARTIFACT go.sum AS LOCAL go.sum
+
+code:
+    FROM +deps
+    COPY . .
+
+# unit-test runs the unit tests in the ast package.
+unit-test:
+    FROM +code
+    ARG testname
+    RUN if [ -n "$testname" ]; then testarg="-run $testname"; fi && \
+        go test -race -count 1 $testarg ./...
+
+# generate (re-)generates generated code in this module.
+generate:
+    BUILD +mocks
+    BUILD ./parser+parser
+
+# mocks runs 'go generate' against this module and saves generated mock files
+# locally.
+mocks:
+    FROM +code
+    RUN go install git.sr.ht/~nelsam/hel/v4@latest && go install golang.org/x/tools/cmd/goimports@latest
+    RUN go generate ./...
+    FOR mockfile IN $(find . -name 'helheim*_test.go')
+        SAVE ARTIFACT $mockfile AS LOCAL $mockfile
+    END

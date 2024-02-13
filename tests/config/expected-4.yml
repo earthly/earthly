@@ -1,0 +1,9 @@
+global:
+    disable_analytics: true
+    buildkit_additional_args:
+        - userns
+        - --host
+    conversion_parallelism: 5
+git:
+    example.com:
+        password: hunter2

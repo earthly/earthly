@@ -1,0 +1,150 @@
+{
+  "baseRecipe": null,
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "alpine:3.18"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test"
+            ],
+            "name": "WORKDIR"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"1\"",
+              ">",
+              "1"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "1",
+              "AS",
+              "LOCAL",
+              "1"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--push",
+              "echo",
+              "\"2\"",
+              ">",
+              "2"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--push",
+              "echo",
+              "\"surprise\"",
+              ">",
+              "1"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_PUSH"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "if": {
+            "expression": [
+              "[",
+              "\"$EARTHLY_PUSH\"",
+              "=",
+              "\"true\"",
+              "]"
+            ],
+            "ifBody": [
+              {
+                "command": {
+                  "args": [
+                    "1",
+                    "AS",
+                    "LOCAL",
+                    "surprise"
+                  ],
+                  "name": "SAVE ARTIFACT"
+                }
+              },
+              {
+                "command": {
+                  "args": [
+                    "2",
+                    "AS",
+                    "LOCAL",
+                    "2"
+                  ],
+                  "name": "SAVE ARTIFACT"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "alpine:3.18"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test"
+            ],
+            "name": "WORKDIR"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test/2",
+              "."
+            ],
+            "name": "COPY"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

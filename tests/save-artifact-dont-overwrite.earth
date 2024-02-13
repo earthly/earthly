@@ -1,0 +1,25 @@
+VERSION 0.8
+FROM alpine:3.18
+
+RUN mkdir -p /data/sub
+RUN echo d9e31cbc-d4a5-43d3-a112-ff3eec8c964d > /data/base
+RUN echo 926acd99-3c24-4318-932a-4172ab536b92 > /data/sub/data1
+RUN echo 4053a56a-d329-4ca0-b597-6236d8bcca66 > /data/sub/data2
+
+dont-overwrite-abs-ref:
+    SAVE ARTIFACT /data AS LOCAL /test
+
+dont-overwrite-rel-ref:
+    SAVE ARTIFACT /data AS LOCAL ../test
+
+dont-overwrite-rel-other-ref:
+    SAVE ARTIFACT /data AS LOCAL ../other
+
+dont-overwrite-root:
+    SAVE ARTIFACT /data AS LOCAL /
+
+dont-overwrite-root2:
+    SAVE ARTIFACT /data AS LOCAL /.
+
+dont-overwrite-root3:
+    SAVE ARTIFACT /data AS LOCAL /tmp/..

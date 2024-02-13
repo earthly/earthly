@@ -1,0 +1,26 @@
+VERSION 0.8
+FROM node:13.10.1-alpine3.11
+WORKDIR /js-example
+
+deps:
+    COPY package.json ./
+    COPY package-lock.json ./
+    RUN npm install
+    # Output these back in case npm install changes them.
+    SAVE ARTIFACT package.json AS LOCAL ./package.json
+    SAVE ARTIFACT package-lock.json AS LOCAL ./package-lock.json
+
+build:
+    FROM +deps
+    COPY src src
+    RUN mkdir -p ./dist && cp ./src/index.html ./dist/
+    RUN npx webpack
+    SAVE ARTIFACT dist /dist AS LOCAL dist
+
+docker:
+    FROM +deps
+    ARG tag='latest'
+    COPY +build/dist ./dist
+    EXPOSE 8080
+    ENTRYPOINT ["/js-example/node_modules/http-server/bin/http-server", "./dist"]
+    SAVE IMAGE js-example:$tag

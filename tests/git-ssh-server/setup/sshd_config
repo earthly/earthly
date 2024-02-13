@@ -1,0 +1,12 @@
+AuthorizedKeysFile .ssh/authorized_keys
+AllowTcpForwarding no
+GatewayPorts no
+X11Forwarding no
+PasswordAuthentication no
+LogLevel DEBUG3
+
+# we need to allow ssh-rsa due to https://github.com/golang/go/issues/39885
+pubkeyacceptedkeytypes ssh-ed25519,rsa-sha2-512,rsa-sha2-256,ssh-rsa
+HostKeyAlgorithms ssh-ed25519,rsa-sha2-512,rsa-sha2-256,ssh-rsa
+
+Subsystem	sftp	/usr/lib/ssh/sftp-server

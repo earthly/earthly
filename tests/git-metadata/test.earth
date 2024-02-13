@@ -1,0 +1,31 @@
+VERSION 0.8
+
+# Note: this is tests both locally and remotely
+# the population of git metadata occurs in two **different** functions respectively:
+#   - gitutil/detectgit.go: Metadata            (locally-reference)
+#   - buildcontext/git.go: resolveGitProject    (remotely-referenced)
+
+test-git-metadata:
+    FROM alpine
+    ARG --required expected_sha
+    ARG --required expected_committer_timestamp
+    ARG --required expected_author_timestamp
+    ARG --required expected_branch
+    ARG --required expected_refs
+    ARG EARTHLY_GIT_SHORT_HASH
+    ARG EARTHLY_GIT_HASH
+    ARG EARTHLY_GIT_AUTHOR
+    ARG EARTHLY_GIT_CO_AUTHORS
+    ARG EARTHLY_GIT_COMMIT_TIMESTAMP
+    ARG EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP
+    ARG EARTHLY_GIT_BRANCH
+    ARG EARTHLY_GIT_REFS
+    RUN test "$EARTHLY_GIT_HASH" = "$expected_sha"
+    RUN test "$EARTHLY_GIT_COMMIT_TIMESTAMP" = "$expected_committer_timestamp"
+    RUN test "$EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP" = "$expected_author_timestamp"
+    RUN test "$EARTHLY_GIT_BRANCH" = "$expected_branch"
+    RUN test "$EARTHLY_GIT_REFS" = "$expected_refs"
+    RUN test -n "$EARTHLY_GIT_SHORT_HASH"
+    RUN echo "$EARTHLY_GIT_HASH" | grep "$EARTHLY_GIT_SHORT_HASH"
+    RUN test "$EARTHLY_GIT_AUTHOR" = "onlyspammersemailthis@earthly.dev"
+    RUN test "$EARTHLY_GIT_CO_AUTHORS" = "testy@earthly.dev cover@earthly.dev"

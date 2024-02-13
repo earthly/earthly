@@ -1,0 +1,36 @@
+VERSION 0.8
+
+test-ubuntu:
+    ARG version=20.10
+    FROM ubuntu:$version
+    RUN apt-get update && apt-get install -y dpkg-dev wget dpkg-sig curl
+    RUN --no-cache curl https://pkg.earthly.dev/earthly.pgp | apt-key add -
+    RUN --no-cache echo "deb [arch=amd64] https://pkg.earthly.dev/deb/ stable main" > /etc/apt/sources.list.d/earthly.list
+    RUN --no-cache apt-get update && apt-get install -y earthly
+    RUN --no-cache earthly --version
+
+test-debian:
+    ARG version=stretch
+    FROM debian:$version
+    RUN apt-get update && apt-get install -y \
+        apt-transport-https \
+        ca-certificates \
+        curl \
+        gnupg \
+        lsb-release
+
+    RUN --no-cache curl -fsSL https://pkg.earthly.dev/earthly.pgp | gpg --dearmor -o /usr/share/keyrings/earthly-archive-keyring.gpg
+    RUN --no-cache echo "deb [arch=amd64 signed-by=/usr/share/keyrings/earthly-archive-keyring.gpg] https://pkg.earthly.dev/deb/ stable main" > /etc/apt/sources.list.d/earthly.list
+    RUN --no-cache apt-get update && apt-get install -y earthly
+    RUN --no-cache earthly --version
+
+test-all:
+    BUILD \
+        --build-arg version=18.04 \
+        --build-arg version=20.10 \
+        --build-arg version=21.04 \
+        +test-ubuntu
+    BUILD \
+        --build-arg version=stretch \
+        --build-arg version=buster \
+        +test-debian

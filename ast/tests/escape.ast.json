@@ -1,0 +1,413 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "/test"
+        ],
+        "name": "WORKDIR"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "all",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+test-copy-build-context"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--build-arg",
+              "FILE=\"file-with-\\+.txt\"",
+              "--build-arg",
+              "FILE_IN_RUN=\"file-with-+.txt\"",
+              "+test-copy-build-arg"
+            ],
+            "docs": "TODO: FILE_IN_RUN shouldn't need to be different. This is a bug.\n",
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--build-arg",
+              "FILE=\"regular-file.txt\"",
+              "+test-copy-build-arg"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-copy-artifact1"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-copy-artifact2"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+test-copy-artifact3"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--build-arg",
+              "FILE=\"another-file-with-\\+.txt\"",
+              "--build-arg",
+              "FILE_IN_RUN=\"another-file-with-+.txt\"",
+              "+test-copy-artifact-with-plus-build-arg"
+            ],
+            "docs": "TODO: FILE_IN_RUN shouldn't need to be different. This is a bug.\n",
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--build-arg",
+              "FILE=\"file.txt\"",
+              "+test-copy-artifact-without-plus-build-arg"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-copy-build-context",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "file-with-\\+.txt",
+              "./"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"content\"",
+              "==",
+              "\"$(cat file-with-+.txt)\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-copy-build-arg",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "FILE"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "FILE_IN_RUN",
+              "=",
+              "$FILE"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "${FILE}",
+              "./"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"content\"",
+              "==",
+              "\"$(cat $FILE_IN_RUN)\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-copy-artifact1",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+artifact-with-plus1/another-file-with-\\+.txt",
+              "./"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"test\"",
+              "==",
+              "\"$(cat another-file-with-+.txt)\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-copy-artifact2",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+artifact-with-plus2/yet-another-file-with-\\+.txt",
+              "./"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"test\"",
+              "==",
+              "\"$(cat yet-another-file-with-+.txt)\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-copy-artifact3",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+artifact-with-plus3"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artifact-with-plus1",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "printf",
+              "\"test\"",
+              ">another-file-with-+.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./another-file-with-+.txt"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artifact-with-plus2",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "printf",
+              "\"test\"",
+              ">file.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./file.txt",
+              "./yet-another-file-with-+.txt"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artifact-with-plus3",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "printf",
+              "\"test\"",
+              ">file.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./file.txt",
+              "AS",
+              "LOCAL",
+              "./still-+.txt"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-copy-artifact-with-plus-build-arg",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "FILE"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "FILE_IN_RUN",
+              "=",
+              "$FILE"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+artifact-with-plus1/${FILE}",
+              "./"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"test\"",
+              "==",
+              "\"$(cat $FILE_IN_RUN)\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test-copy-artifact-without-plus-build-arg",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "FILE"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+artifact-without-plus/${FILE}",
+              "./"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"test\"",
+              "==",
+              "\"$(cat $FILE)\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "artifact-without-plus",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "printf",
+              "\"test\"",
+              ">file.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "./file.txt"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

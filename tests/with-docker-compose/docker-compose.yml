@@ -1,0 +1,20 @@
+version: "3"
+
+services:
+  print-countries:
+    image: print-countries:latest
+    depends_on:
+      - postgres
+    environment:
+      - PGHOST=postgres
+      - PGUSER=postgres
+      - PGPASSWORD=postgres
+      - PGDATABASE=iso3166
+
+  postgres:
+    image: aa8y/postgres-dataset:iso3166
+    ports:
+      - 127.0.0.1:5432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres

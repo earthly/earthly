@@ -1,0 +1,121 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "/test"
+        ],
+        "name": "WORKDIR"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "hello"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"hello #world\"",
+              ">",
+              "/should-exist"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "cat",
+              "/should-exist"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "/should-exist"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "!",
+              "test",
+              "-f",
+              "/should-not-exist"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$(cat /should-exist)\"",
+              "=",
+              "\"hello #world\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$(md5sum /should-exist)\"",
+              "=",
+              "\"64a72f8aac4bbabf28c23384c15e8a78  /should-exist\""
+            ],
+            "docs": "this test is to prevent a bug where the parser might extract \"#world\" from all cases of the earthfile\nwhich would cause the above test command to pass since it would have been removed from both sides of the equation\n",
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"a\"",
+              "&&",
+              "echo",
+              "\"b\"",
+              "&&",
+              "echo",
+              "\"Done.\""
+            ],
+            "docs": "Test that you can write a novel\n",
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

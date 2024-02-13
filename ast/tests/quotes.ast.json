@@ -1,0 +1,69 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "\"alpine\":\"3.13\""
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "a",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "\"who\"\"ami\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "b",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "echo",
+              "hello",
+              "world"
+            ],
+            "execMode": true,
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "all",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "\"+\"\"a\""
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "\"+\"\"b\""
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

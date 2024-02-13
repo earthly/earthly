@@ -1,0 +1,19 @@
+{
+  "name": "example-js",
+  "version": "0.0.1",
+  "description": "Hello world",
+  "private": true,
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "",
+  "license": "MPL-2.0",
+  "devDependencies": {
+    "jest": "^27.5.1",
+    "webpack": "^5.76.0",
+    "webpack-cli": "^5.0.1"
+  },
+  "dependencies": {
+    "http-server": "^0.12.1"
+  }
+}

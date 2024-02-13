@@ -1,0 +1,79 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "dep",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "touch",
+              "hello.txt"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "hello.txt"
+            ],
+            "name": "SAVE ARTIFACT"
+          }
+        }
+      ]
+    },
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "ubuntu"
+            ],
+            "name": "FROM"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+dep/hello.txt",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "8080"
+            ],
+            "name": "EXPOSE"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "hello-image"
+            ],
+            "name": "SAVE IMAGE"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

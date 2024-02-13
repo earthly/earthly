@@ -1,0 +1,77 @@
+VERSION 0.8
+FROM alpine:3.18
+RUN apk add libcap # for capsh
+
+reject-privileged-in-remote-repo-triggered-by-from-locally:
+    FROM github.com/earthly/test-remote/privileged:main+locally
+    RUN echo this should never run because the above FROM should fail
+
+reject-privileged-in-remote-repo-triggered-by-from-privileged:
+    FROM github.com/earthly/test-remote/privileged:main+privileged
+    RUN echo this should never run because the above FROM should fail
+
+reject-privileged-in-remote-repo-triggered-by-copy-locally:
+    COPY github.com/earthly/test-remote/privileged:main+locally/hostname .
+    RUN echo this should never run because the above COPY should fail
+
+reject-privileged-in-remote-repo-triggered-by-copy-privileged:
+    COPY github.com/earthly/test-remote/privileged:main+privileged/hostname .
+    RUN echo this should never run because the above COPY should fail
+
+reject-privileged-in-remote-repo-triggered-by-build-locally:
+    BUILD github.com/earthly/test-remote/privileged:main+locally
+    RUN echo this should never run because the above BUILD should fail
+
+reject-privileged-in-remote-repo-triggered-by-build-privileged:
+    BUILD github.com/earthly/test-remote/privileged:main+privileged
+    RUN echo this should never run because the above BUILD should fail
+
+reject-dedup:
+    # the first build will succeed
+    BUILD +allow-privileged-in-remote-repo-triggered-by-copy
+    # the second build then references the same repo that the first test referenced
+    # but without an --allow-privileged, this should fail even though it was
+    # successfully run (and cached) in the first step.
+    BUILD +reject-privileged-in-remote-repo-triggered-by-copy
+
+reject-privileged-in-remote-repo-triggered-by-docker-load-privileged:
+    WITH DOCKER --load shouldfail:latest=github.com/earthly/test-remote/privileged:main+privileged
+        RUN echo this should never run because the above --load should fail
+    END
+
+allow-privileged-in-remote-repo-triggered-by-from-locally:
+    FROM --allow-privileged github.com/earthly/test-remote/privileged:main+locally
+    RUN echo this command should work
+
+allow-privileged-in-remote-repo-triggered-by-copy-locally:
+    COPY --allow-privileged github.com/earthly/test-remote/privileged:main+locally/hostname .
+    RUN ls hostname
+
+allow-privileged-in-remote-repo-triggered-by-build-locally:
+    BUILD --allow-privileged github.com/earthly/test-remote/privileged:main+locally
+
+allow-privileged-in-remote-repo-triggered-by-from-privileged:
+    FROM --allow-privileged github.com/earthly/test-remote/privileged:main+privileged
+    RUN echo this command should work
+
+allow-privileged-in-remote-repo-triggered-by-copy-privileged:
+    COPY --allow-privileged github.com/earthly/test-remote/privileged:main+privileged/proc-status .
+    # checking for 0000003fffffffff might fail when running under podman, check the cap_sys_admin bit is set instead
+    RUN capsh --decode="$(cat proc-status | grep CapEff | awk '{print $2}')" | grep cap_sys_admin
+
+allow-privileged-in-remote-repo-triggered-by-build-privileged:
+    BUILD --allow-privileged github.com/earthly/test-remote/privileged:main+privileged
+
+allow-privileged-in-remote-repo-triggered-by-cmd-privileged:
+    DO --allow-privileged github.com/earthly/test-remote/privileged:main+PRIV
+
+
+allow-all:
+    # TODO there's a bug that's preventing using FROM in combination with locally
+    # BUILD +allow-privileged-in-remote-repo-triggered-by-from-locally
+    BUILD +allow-privileged-in-remote-repo-triggered-by-copy-locally
+    BUILD +allow-privileged-in-remote-repo-triggered-by-build-locally
+    BUILD +allow-privileged-in-remote-repo-triggered-by-from-privileged
+    BUILD +allow-privileged-in-remote-repo-triggered-by-copy-privileged
+    BUILD +allow-privileged-in-remote-repo-triggered-by-build-privileged
+    BUILD +allow-privileged-in-remote-repo-triggered-by-cmd-privileged

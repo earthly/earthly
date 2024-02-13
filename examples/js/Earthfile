@@ -1,0 +1,23 @@
+
+VERSION 0.8
+FROM node:15.12.0-alpine3.13
+WORKDIR /js-example
+
+deps:
+    COPY package.json npm-shrinkwrap.json ./
+    RUN npm install
+    SAVE ARTIFACT npm-shrinkwrap.json AS LOCAL ./npm-shrinkwrap.json
+
+build:
+    FROM +deps
+    COPY src src
+    COPY dist dist
+    RUN npx webpack
+    SAVE ARTIFACT dist /dist AS LOCAL dist
+
+docker:
+    FROM +deps
+    COPY +build/dist ./dist
+    EXPOSE 8080
+    ENTRYPOINT ["/js-example/node_modules/http-server/bin/http-server", "./dist"]
+    SAVE IMAGE --push earthly/examples:js

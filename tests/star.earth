@@ -1,0 +1,8 @@
+VERSION 0.8
+FROM alpine:3.18
+WORKDIR /test
+test:
+    COPY *.txt ./
+    RUN test -f a.txt
+    RUN test -f b.txt
+    RUN test ! -f c.nottxt

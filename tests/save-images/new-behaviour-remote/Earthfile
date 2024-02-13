@@ -1,0 +1,17 @@
+VERSION 0.8
+FROM alpine:3.18
+
+myimage-fromtest:
+    FROM github.com/earthly/test-remote/save-image:main+saveimage
+    RUN echo "a639c7fe-9981-4a14-baa0-319c6b0ee49b" > myimage
+    SAVE IMAGE myimage:fromtest
+
+myimage-copytest:
+    COPY github.com/earthly/test-remote/save-image-with-artifact:main+saveimageandartifact/saveimageandartifact-data .
+    RUN echo "740d027d-06f6-4dc8-a659-2cfa6e782edd" > myimage
+    SAVE IMAGE myimage:copytest
+
+myimage-buildtest:
+    BUILD github.com/earthly/test-remote/save-image:main+saveimage
+    RUN echo "0a59f9f3-8dc9-461b-971d-16800ba4884f" > myimage
+    SAVE IMAGE myimage:buildtest

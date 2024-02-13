@@ -1,0 +1,77 @@
+VERSION 0.8
+FROM alpine:3.18
+
+FOR abc IN def ghi jkl
+END
+
+FOR foo IN bar buz
+    RUN echo xyz
+END
+
+FOR rec IN rec1 rec2
+    FOR rec-rec IN rec-rec1 rec-rec2 rec-rec3
+        RUN echo abc
+    END
+END
+
+FOR recif IN recif1 recif2
+    FOR recif-recif IN recif-recif1 recif-recif2 recif-recif3
+        IF [ "a" = "b" ]
+            RUN echo "yes"
+        END
+    END
+END
+
+FOR var IN "$(in quotes)"
+    RUN echo quotes
+END
+
+FOR another-var IN $(not in quotes)
+    RUN echo not in quotes
+END
+
+FOR third-var IN "quotes no exec"
+    RUN echo quotes no exec
+END
+
+FOR --some-flag=123 third-var IN flag
+    RUN echo flag
+END
+
+build1:
+    FOR abc IN def ghi jkl
+    END
+
+    FOR foo IN bar buz
+        RUN echo xyz
+    END
+
+    FOR rec IN rec1 rec2
+        FOR rec-rec IN rec-rec1 rec-rec2 rec-rec3
+            RUN echo abc
+        END
+    END
+
+    FOR recif IN recif1 recif2
+        FOR recif-recif IN recif-recif1 recif-recif2 recif-recif3
+            IF [ "a" = "b" ]
+                RUN echo "yes"
+            END
+        END
+    END
+
+    FOR var IN "$(in quotes)"
+        RUN echo quotes
+    END
+
+    FOR another-var IN $(not in quotes)
+        RUN echo not in quotes
+    END
+
+    FOR third-var IN "quotes no exec"
+        RUN echo quotes no exec
+    END
+
+    FOR --some-flag=123 third-var IN flag
+        RUN echo flag
+    END

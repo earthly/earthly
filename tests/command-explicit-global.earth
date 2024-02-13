@@ -1,0 +1,25 @@
+VERSION 0.7 # leave this as 0.7; 0.8 no longer allows overriding defaults like this
+
+FROM alpine:3.18
+WORKDIR /test
+
+ARG --global global_var=default
+ARG local_var=default
+
+all:
+    BUILD +test-global-default
+    BUILD +test-global-override
+
+test-global-default:
+    DO +TOUCH_GLOBAL
+    RUN test -f ./default
+
+test-global-override:
+    DO +TOUCH_GLOBAL --global_var=override
+    RUN test -f ./override
+
+TOUCH_GLOBAL:
+    COMMAND
+    RUN test "$global_var" != ""
+    RUN test "$local_var" == ""
+    RUN touch $global_var

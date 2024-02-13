@@ -1,0 +1,58 @@
+VERSION 0.8
+FROM --pass-args ..+base
+
+IMPORT .. AS tests
+
+WORKDIR /test
+
+all:
+    BUILD +test-function-in-sub-dir
+    BUILD +test-function-that-calls-other-function
+
+test-function-in-sub-dir:
+    RUN mkdir -p /the-test/some/subdir
+    RUN mkdir -p /the-test/other/path
+    COPY function.earth /the-test/some/subdir/Earthfile
+    COPY target-that-calls-function.earth /the-test/Earthfile
+    COPY other-target-that-calls-function.earth /the-test/other/path/Earthfile
+    RUN touch /this-file-exists-locally
+    DO --pass-args +RUN_EARTHLY_ARGS --target=/the-test+test
+    RUN test "$(cat /the-test/data)" = "I am running in /the-test"
+    DO --pass-args +RUN_EARTHLY_ARGS --target=/the-test+test --should-fail=true
+
+    # cleanup
+    RUN rm /the-test/data
+    RUN find /the-test | grep -v data
+
+    # next test a target that calls the same function from a different location
+    DO --pass-args +RUN_EARTHLY_ARGS --target=/the-test+test-other
+    RUN ! test -f /the-test/data
+    RUN test "$(cat /the-test/other/path/data)" = "I am running in /the-test/other/path"
+
+    # cleanup
+    RUN rm /the-test/other/path/data
+    RUN find /the-test | grep -v data
+
+    # finally test both targets that call the same locally function result in both files being created
+    DO --pass-args +RUN_EARTHLY_ARGS --target=/the-test+test-both
+    RUN test "$(cat /the-test/data)" = "I am running in /the-test"
+    RUN test "$(cat /the-test/other/path/data)" = "I am running in /the-test/other/path"
+
+test-function-that-calls-other-function:
+    WORKDIR /my/test
+    RUN mkdir -p some/subdir/submarine
+    COPY function.earth some/subdir/Earthfile
+    COPY function-that-calls-function.earth some/subdir/submarine/Earthfile
+    COPY target-that-calls-function-that-calls-function.earth Earthfile
+    DO --pass-args +RUN_EARTHLY_ARGS --target=+test
+    RUN test "$(cat data)" = "I am running in /my/test"
+
+RUN_EARTHLY_ARGS:
+    FUNCTION
+    ARG earthfile
+    ARG target
+    ARG should_fail=false
+    DO --pass-args tests+RUN_EARTHLY \
+        --earthfile=$earthfile \
+        --target=$target \
+        --should_fail=$should_fail

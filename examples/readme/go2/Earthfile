@@ -1,0 +1,15 @@
+VERSION 0.8
+FROM golang:1.21-alpine3.18
+RUN apk --update --no-cache add git g++ make curl wget ca-certificates
+RUN echo "Some time-consuming operation" && sleep 10 && echo "...done"
+RUN echo "Another time-consuming operation" && sleep 10 && echo "...done"
+RUN echo "Yet another time-consuming operation" && sleep 10 && echo "...done"
+RUN echo "Doing work" && sleep 10 && echo "...done"
+RUN echo "Go grab a coffee" && sleep 10 && echo "...done"
+RUN echo "Almost there" && sleep 10 && echo "...done"
+WORKDIR /go-example
+
+build:
+  COPY main.go .
+  RUN go build -o build/go-example main.go
+  SAVE ARTIFACT build/go-example AS LOCAL build/go-example

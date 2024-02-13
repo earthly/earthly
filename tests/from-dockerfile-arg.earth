@@ -1,0 +1,30 @@
+VERSION 0.8
+
+all:
+  BUILD +default
+  BUILD +foo
+  BUILD +bar
+
+default:
+    FROM DOCKERFILE +create-dockerfile/
+    SAVE ARTIFACT /arg-value AS LOCAL arg-value-default
+
+foo:
+    FROM DOCKERFILE --build-arg my_arg=foo +create-dockerfile/
+    SAVE ARTIFACT /arg-value AS LOCAL arg-value-foo
+
+bar:
+    FROM DOCKERFILE --build-arg my_arg=bar +create-dockerfile/
+    SAVE ARTIFACT /arg-value AS LOCAL arg-value-bar
+
+create-dockerfile:
+    FROM alpine:3.18
+    RUN mkdir dist
+    RUN echo "
+FROM alpine:3.18
+ARG my_arg=default
+RUN echo \${my_arg}
+RUN echo \${my_arg} >/arg-value
+" > dist/Dockerfile
+    RUN cat dist/Dockerfile
+    SAVE ARTIFACT dist/*

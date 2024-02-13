@@ -1,0 +1,52 @@
+
+choco:
+    FROM mono:6.12
+    RUN apt-get update && apt-get -y install gettext-base
+    GIT CLONE --branch stable https://github.com/chocolatey/choco /choco
+
+    WORKDIR /choco
+    RUN ./build.sh
+
+    WORKDIR /usr/local/bin
+    RUN ln -s /choco/code_drop/chocolatey
+    RUN cp /choco/docker/choco_wrapper /usr/local/bin/choco
+
+    ENV ChocolateyInstall /usr/local/bin/chocolatey
+    RUN choco --help
+
+shell:
+    FROM +choco
+
+    WORKDIR /explore
+    RUN --interactive /bin/bash
+
+
+pack:
+    FROM +choco
+
+    ARG RELEASE_TAG
+    ARG EARTHLY_VERSION=$(echo "$RELEASE_TAG" | cut -c 2-)
+
+    WORKDIR package
+    COPY ./earthly.nuspec.template .
+    RUN envsubst <./earthly.nuspec.template >./earthly.nuspec
+
+
+    RUN mkdir tools
+    COPY ../..+license/LICENSE ./tools/LICENSE.txt
+    COPY ./VERIFICATION.txt ./tools/VERIFICATION.txt
+    RUN curl -L -o tools/earthly.exe https://github.com/earthly/earthly/releases/download/v${EARTHLY_VERSION}/earthly-windows-amd64.exe
+
+    RUN choco pack
+
+    SAVE ARTIFACT *.nupkg AS LOCAL ./
+
+push:
+    FROM +choco
+
+    WORKDIR push
+
+    COPY +pack/* .
+
+    RUN --secret API_KEY=+secrets/user/choco/api-key choco apikey --key $API_KEY --source https://push.chocolatey.org/
+    RUN --push choco push *.nupkg

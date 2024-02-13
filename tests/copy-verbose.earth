@@ -1,0 +1,10 @@
+VERSION 0.8
+FROM alpine:3.18
+
+copy:
+    COPY a.txt .
+    RUN cat a.txt | md5sum - | grep 0cc175b9c0f1b6a831c399e269772661
+
+save:
+    RUN echo -n "Gobbledygook" > important-data
+    SAVE ARTIFACT important-data AS LOCAL important-data

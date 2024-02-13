@@ -1,0 +1,44 @@
+VERSION 0.8
+FROM --pass-args ..+base
+
+all:
+    BUILD +git-clone-public-https-empty-netrc
+
+
+git-clone-public-https-base:
+    FROM --pass-args ../git-webserver+server-with-user-directory \
+        --ENABLE_BASIC_AUTH=false
+    RUN echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 selfsigned.example.com
+ping -c 1 buildkitsandbox
+
+# ensure we clone without a password
+curl https://selfsigned.example.com/testuser/repo.git/info/refs?service=git-upload-pack
+
+test -z \"\$SSH_AUTH_SOCK\"
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+
+
+git-clone-public-https-empty-netrc:
+    FROM +git-clone-public-https-base
+
+    RUN echo "
+> ~/.netrc
+
+earthly --config \$earthly_config --verbose -D +test
+earthly --config \$earthly_config --verbose -D selfsigned.example.com/testuser/repo:main+hello
+" >> /tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-nginx-with-git --earthfile=git-clone-public-https.earth --exec_cmd=/tmp/test-earthly-script
+
+RUN_EARTHLY_ARGS:
+    FUNCTION
+    ARG earthfile
+    ARG pre_command
+    ARG exec_cmd
+    DO ..+RUN_EARTHLY \
+        --earthfile=$earthfile \
+        --pre_command=$pre_command \
+        --exec_cmd=$exec_cmd

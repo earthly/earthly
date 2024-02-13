@@ -1,0 +1,43 @@
+VERSION 0.8
+FROM alpine:3.18
+
+ARG --global foo = bar
+
+ARG foo = sports
+LET foo = ${foo}
+SET foo = $foo car
+
+ARG topExpected = sports car
+RUN test "$foo" = "$topExpected"
+
+test:
+    ARG bar = baz
+    LET bar = ${bar}
+    SET bar = ${bar}inga
+    ARG --required expected
+    RUN test "$bar" = "$expected"
+
+test-global:
+    ARG --required expected
+    LET foo=$foo phone
+    RUN test "$foo" = "$expected"
+
+test-set-global-fails:
+    SET foo = toast
+    RUN echo $foo
+
+test-set-nonexistent-fails:
+    SET nonexistent = foo
+    RUN echo $nonexistent
+
+test-if:
+    ARG bar = foo
+    LET bar = $bar
+    ARG ifSwitch = true
+    IF $ifSwitch
+        SET bar = ifSwitch was true
+    ELSE
+        SET bar = ifSwitch was false
+    END
+    ARG --required expected
+    RUN test "$bar" = "$expected"

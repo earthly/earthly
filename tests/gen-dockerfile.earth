@@ -1,0 +1,37 @@
+VERSION 0.8
+
+FROM alpine:3.18
+WORKDIR /test
+
+all:
+    BUILD +test
+    BUILD +test-f
+
+gen-dockerfile:
+    RUN echo "some build context" > bc.txt
+    RUN echo "FROM alpine:3.18" > Dockerfile
+    RUN echo "COPY bc.txt ./" >> Dockerfile
+    RUN echo "RUN cat bc.txt" >> Dockerfile
+    RUN echo 'ENTRYPOINT ["echo", "hello world"]' >> Dockerfile
+    SAVE ARTIFACT ./*
+
+test:
+    FROM DOCKERFILE +gen-dockerfile/
+    RUN --entrypoint
+    SAVE IMAGE test-gen-dockerfile:latest
+
+gen-dockerfile-f:
+    RUN echo "FROM alpine:3.18" > other.Dockerfile
+    RUN echo "COPY bc.txt ./" >> other.Dockerfile
+    RUN echo "RUN cat bc.txt" >> other.Dockerfile
+    RUN echo 'ENTRYPOINT ["echo", "hello world"]' >> other.Dockerfile
+    SAVE ARTIFACT ./other.Dockerfile
+
+gen-build-context-f:
+    RUN echo "some build context" > bc.txt
+    SAVE ARTIFACT ./bc.txt
+
+test-f:
+    FROM DOCKERFILE -f +gen-dockerfile-f/other.Dockerfile +gen-build-context-f/
+    RUN --entrypoint
+    SAVE IMAGE test-gen-dockerfile:latest

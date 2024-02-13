@@ -1,0 +1,20 @@
+#!/bin/sh
+set -e
+
+total_procs=0
+for bundle in $(ps auxw | grep 'runc.*bundle' | grep -v grep | awk '{print $11}'); do
+  id="$(basename "$bundle")"
+  data="$(cat "$bundle/config.json")"
+  if [ -n "$data" ]; then
+    echo "=== $bundle ==="
+    echo "$data" | jq .process.args
+    statsdata="$(/usr/bin/buildkit-runc events --stats "$id")"
+    memory="$(echo "$statsdata" | jq .data.memory.usage.usage)"
+    cpu="$(echo "$statsdata" | jq .data.cpu.usage.total)"
+    echo "total cpu usage: $cpu"
+    echo "total memory usage: $memory"
+    total_procs=$((total_procs + 1))
+  fi
+done
+echo "=== summary ==="
+echo "runc-ps found $total_procs container(s)"

@@ -1,0 +1,37 @@
+
+VERSION 0.8
+
+all:
+    BUILD \
+        --platform=linux/amd64 \
+        --platform=linux/arm64 \
+        --platform=linux/arm/v7 \
+        --platform=linux/arm/v6 \
+        +docker
+
+# This target definition will produce images for different platforms,
+# depending on the --platform flag used in the call to BUILD.
+#
+# If you are using the Docker Desktop app (Mac and Windows), then you are ready
+# to try this example immediately.
+# On linux, you need to make sure that your system has QEMU set up. On Ubuntu you
+# can run the following:
+#
+#     sudo apt-get install qemu binfmt-support qemu-user-static
+#     docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+#     docker stop earthly-buildkitd || true
+#
+# Then try this example:
+#
+#     earthly +all
+#     docker run --rm earthly/examples:multiplatform
+#     docker run --rm earthly/examples:multiplatform_linux_amd64
+#     docker run --rm earthly/examples:multiplatform_linux_arm64
+#     docker run --rm earthly/examples:multiplatform_linux_arm_v7
+#     docker run --rm earthly/examples:multiplatform_linux_arm_v6
+#
+docker:
+    FROM alpine:3.18
+    RUN uname -m
+    CMD ["uname", "-m"]
+    SAVE IMAGE --push earthly/examples:multiplatform

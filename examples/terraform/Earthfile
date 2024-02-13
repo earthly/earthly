@@ -1,0 +1,40 @@
+VERSION 0.8
+
+prep: 
+    FROM hashicorp/terraform:light
+
+    COPY aws/ .
+    RUN terraform init
+
+localstack:
+    FROM +prep
+
+    ARG AWS_ACCESS_KEY_ID=mock-id
+    ARG AWS_SECRET_ACCESS_KEY=mock-key
+    ARG AWS_DEFAULT_REGION=us-east-1
+
+    WITH DOCKER --pull localstack/localstack:0.11.5
+        RUN docker run -d -p 4566:4566 -e SERVICES=s3 --name localstack --network="host" localstack/localstack:0.11.5 && \
+            terraform apply -auto-approve
+    END
+
+apply:
+    FROM +prep
+
+    ARG AWS_ACCESS_KEY_ID
+    ARG AWS_SECRET_ACCESS_KEY
+    ARG AWS_DEFAULT_REGION=us-east-1
+
+    RUN --push terraform apply -auto-approve
+
+    SAVE ARTIFACT terraform.tfstate AS LOCAL aws/terraform.tfstate
+    SAVE ARTIFACT terraform.tfstate.backup AS LOCAL aws/terraform.tfstate.backup
+
+plan:
+    FROM +prep
+
+    ARG AWS_ACCESS_KEY_ID
+    ARG AWS_SECRET_ACCESS_KEY
+    ARG AWS_DEFAULT_REGION=us-east-1
+
+    RUN terraform plan

@@ -1,0 +1,26 @@
+VERSION 0.8
+
+FROM alpine:3.18 #The image to use
+WORKDIR /test #the work dir
+
+test: #the target
+    RUN echo hello #world > /should-not-exist
+    RUN echo "hello #world" > /should-exist
+    RUN cat /should-exist
+    RUN test -f /should-exist
+    RUN ! test -f /should-not-exist
+    RUN test "$(cat /should-exist)" = "hello #world"
+
+    # this test is to prevent a bug where the parser might extract "#world" from all cases of the earthfile
+    # which would cause the above test command to pass since it would have been removed from both sides of the equation
+    RUN test "$(md5sum /should-exist)" = "64a72f8aac4bbabf28c23384c15e8a78  /should-exist"
+
+    # Test that you can write a novel
+    RUN \
+#Non-indented
+      #Indented
+      \ #After continuation
+            #Indented with false continuation \
+        echo "a" && \# Comment after LC
+        echo "b" && \ # Comment after LC, plus whitespace
+        echo "Done." # Comment after last line

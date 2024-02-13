@@ -1,0 +1,348 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "builtin-args-test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "EARTHLY_TARGET"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_TARGET_PROJECT"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_TARGET_NAME"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_TARGET_TAG"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_SOURCE_DATE_EPOCH"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_GIT_COMMIT_TIMESTAMP"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_GIT_BRANCH"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_GIT_REFS"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_VERSION"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_BUILD_SHA"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_LOCALLY"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EARTHLY_CI_RUNNER"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"$EARTHLY_TARGET\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"$EARTHLY_TARGET_PROJECT\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"$EARTHLY_TARGET_NAME\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"$EARTHLY_TARGET_TAG\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"$EARTHLY_VERSION\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "echo",
+              "\"$EARTHLY_BUILD_SHA\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_TARGET\"",
+              "==",
+              "\"+builtin-args-test\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-z",
+              "\"$EARTHLY_TARGET_PROJECT\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_TARGET_NAME\"",
+              "==",
+              "\"builtin-args-test\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-z",
+              "\"$EARTHLY_TARGET_TAG\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_SOURCE_DATE_EPOCH\"",
+              "=",
+              "\"0\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-z",
+              "\"$EARTHLY_GIT_COMMIT_TIMESTAMP\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-z",
+              "\"$EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-z",
+              "\"$EARTHLY_GIT_BRANCH\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-z",
+              "\"$EARTHLY_GIT_REFS\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-n",
+              "\"$EARTHLY_VERSION\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-n",
+              "\"$EARTHLY_BUILD_SHA\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_LOCALLY\"",
+              "=",
+              "\"false\""
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-z",
+              "\"$EARTHLY_CI_RUNNER\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "earthly-ci-runner-builtin-arg-test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "EARTHLY_CI_RUNNER"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "EXPECTED_VALUE"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "\"$EARTHLY_CI_RUNNER\"",
+              "=",
+              "\"$EXPECTED_VALUE\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

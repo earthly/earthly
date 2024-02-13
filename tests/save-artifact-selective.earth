@@ -1,0 +1,64 @@
+VERSION 0.8
+
+savea:
+    FROM alpine:3.18
+    RUN echo apple > a
+    SAVE ARTIFACT a AS LOCAL a
+
+saveb:
+    FROM alpine:3.18
+    RUN echo banana > b
+    SAVE ARTIFACT b AS LOCAL b
+
+savec:
+    FROM alpine:3.18
+    RUN echo cherry > c
+    SAVE ARTIFACT c AS LOCAL c
+
+saved:
+    FROM +savec
+    RUN echo durian > d
+    SAVE ARTIFACT d AS LOCAL d
+
+savee:
+    FROM +saved
+    RUN echo elderberry > e
+    SAVE ARTIFACT e AS LOCAL e
+
+test1:
+    BUILD +savea
+    BUILD +saveb
+
+test2:
+    BUILD +savec
+
+test3:
+    BUILD +saved
+
+test4sub:
+    BUILD +savee
+
+test4:
+    BUILD +test4sub
+
+test5sub:
+    FROM alpine:3.18
+    DO +SAVE_CMD --name test5sub
+
+test5:
+    FROM alpine:3.18
+    COPY +test5sub/data .
+    DO +SAVE_CMD --name test5
+
+SAVE_CMD:
+    FUNCTION
+    ARG name
+    RUN echo $name > data
+    SAVE ARTIFACT data AS LOCAL "$name"
+
+all:
+    BUILD +test1
+    BUILD +test2
+    BUILD +test3
+    BUILD +test4
+    BUILD +test5

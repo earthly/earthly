@@ -1,0 +1,11 @@
+VERSION 0.8
+FROM alpine:3.18
+
+test-pass-file:
+    RUN mkdir -p /cache-test
+    RUN --mount=type=cache,target=/cache-test echo "HELLO" > /cache-test/test.txt
+    RUN --mount=type=cache,target=/cache-test test -f /cache-test/test.txt
+
+test-no-bust-on-change:
+    RUN mkdir -p /cache-test
+    RUN --mount=type=cache,target=/cache-test echo hey >/cache-test/test.txt

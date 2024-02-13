@@ -1,0 +1,21 @@
+VERSION 0.8
+test:
+    FROM alpine:3.18
+    WORKDIR test
+
+    RUN echo "1" > 1
+    SAVE ARTIFACT 1 AS LOCAL 1
+
+    RUN --push echo "2" > 2
+    RUN --push  echo "surprise" > 1
+
+    ARG EARTHLY_PUSH
+    IF [ "$EARTHLY_PUSH" = "true" ]
+        SAVE ARTIFACT 1 AS LOCAL surprise
+        SAVE ARTIFACT 2 AS LOCAL 2
+    END
+
+copy-test:
+    FROM alpine:3.18
+    WORKDIR test
+    COPY +test/2 .

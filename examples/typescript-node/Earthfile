@@ -1,0 +1,44 @@
+VERSION 0.8
+FROM node:latest
+
+WORKDIR typescript-node-example
+
+deps:
+    COPY package.json package-lock.json ./
+    RUN npm install
+    COPY tsconfig.json ./
+    COPY src src
+
+build:
+    FROM +deps
+    RUN npx tsc
+    SAVE ARTIFACT dist /dist AS LOCAL dist
+
+docker:
+      FROM +build
+      EXPOSE 8080
+      ENTRYPOINT ["node", "/typescript-node-example/dist/index.js"]
+      SAVE IMAGE typescript-node-example:latest
+
+test-setup:
+    FROM +deps
+    COPY jest.config.ts jest.config.integration.ts ./
+    COPY integration integration
+
+unit-test:
+    FROM +test-setup
+    RUN npm run test
+
+integration-test:
+    FROM +test-setup
+    COPY +build/dist dist
+    WITH DOCKER --load typescript-node-example:latest=+docker
+        RUN docker run --rm -d -p 8080:8080 typescript-node-example:latest && npm run test:integration
+    END
+
+
+all:
+    BUILD +build
+    BUILD +docker
+    BUILD +unit-test
+    BUILD +integration-test

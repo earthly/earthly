@@ -1,0 +1,22 @@
+VERSION 0.8
+IMPORT github.com/earthly/lib/rust:2.2.10 AS rust
+
+FROM rust:slim-buster
+WORKDIR /rustexample
+
+# build creates the binary target/release/example-rust
+build:
+    # Cargo UDC adds caching to cargo runs.
+    # See https://github.com/earthly/lib/tree/main/rust
+    DO rust+INIT --keep_fingerprints=true
+    COPY --keep-ts --dir src Cargo.lock Cargo.toml .
+    DO rust+CARGO --args="build --release --bin example-rust" --output="release/[^/\.]+"
+    SAVE ARTIFACT target/release/example-rust example-rust
+
+# docker creates docker image earthly/examples:rust
+docker:
+    FROM debian:buster-slim
+    COPY +build/example-rust example-rust
+    EXPOSE 9091
+    ENTRYPOINT ["./example-rust"]
+    SAVE IMAGE --push earthly/examples:rust

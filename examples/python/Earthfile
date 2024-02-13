@@ -1,0 +1,22 @@
+VERSION 0.8
+FROM python:3
+WORKDIR /code
+
+deps:
+    RUN pip install wheel
+    COPY requirements.txt ./
+    RUN pip wheel -r requirements.txt --wheel-dir=wheels
+
+build:
+    FROM +deps
+    COPY src src
+    SAVE ARTIFACT src /src
+    SAVE ARTIFACT wheels /wheels
+
+docker:
+    COPY +build/src src
+    COPY +build/wheels wheels
+    COPY requirements.txt ./
+    RUN pip install --no-index --find-links=wheels -r requirements.txt
+    ENTRYPOINT ["python3", "./src/hello.py"]
+    SAVE IMAGE --push earthly/examples:python

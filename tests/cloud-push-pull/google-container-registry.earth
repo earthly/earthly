@@ -1,0 +1,13 @@
+VERSION 0.8
+FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+
+push:
+    RUN date | md5sum | head -c 32 > motd
+    ENTRYPOINT cat motd
+
+    SAVE IMAGE --push gcr.io/ci-cd-302220/test:latest
+
+pull:
+    WITH DOCKER --pull gcr.io/ci-cd-302220/test:latest
+        RUN docker run gcr.io/ci-cd-302220/test:latest
+    END

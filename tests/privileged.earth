@@ -1,0 +1,10 @@
+VERSION 0.8
+FROM alpine:3.18
+RUN apk add libcap # for capsh
+
+test:
+    RUN cat /proc/self/status | grep CapEff | grep 00000000a80425fb
+
+    # when running under podman CapEff is not always 0000003fffffffff; but might instead be 000001ffffffffff
+    # use the capsh tool (which reads from /proc/self/status) to check if the sys_admin capability is permitted
+    RUN --privileged capsh --has-p=cap_sys_admin

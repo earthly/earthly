@@ -1,0 +1,9 @@
+FROM alpine:3.18
+
+# some comment
+ENV PATH /thisisatest/bin:$PATH
+
+RUN mkdir -p /thisisatest/bin
+RUN echo echo hello > /thisisatest/bin/say-hi
+RUN chmod +x /thisisatest/bin/say-hi
+ENTRYPOINT say-hi

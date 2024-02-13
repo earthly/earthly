@@ -1,0 +1,17 @@
+VERSION 0.8
+FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+
+push:
+    ARG ACCT_ID
+
+    RUN date | md5sum | head -c 32 > motd
+    ENTRYPOINT cat motd
+
+    SAVE IMAGE --push ${ACCT_ID}.dkr.ecr.us-west-2.amazonaws.com/integration-test:latest
+
+pull:
+    ARG ACCT_ID
+
+    WITH DOCKER --pull ${ACCT_ID}.dkr.ecr.us-west-2.amazonaws.com/integration-test:latest
+        RUN docker run ${ACCT_ID}.dkr.ecr.us-west-2.amazonaws.com/integration-test:latest
+    END

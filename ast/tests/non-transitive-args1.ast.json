@@ -1,0 +1,68 @@
+{
+  "baseRecipe": [
+    {
+      "command": {
+        "args": [
+          "alpine:3.18"
+        ],
+        "name": "FROM"
+      }
+    }
+  ],
+  "targets": [
+    {
+      "name": "test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "+intermediate"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+intermediate",
+              "--SOMEARG=abc"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "intermediate",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "./subdir+arg-target"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    },
+    {
+      "name": "direct",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "./subdir+arg-target",
+              "--SOMEARG=direct"
+            ],
+            "name": "BUILD"
+          }
+        }
+      ]
+    }
+  ],
+  "version": {
+    "args": [
+      "0.8"
+    ]
+  }
+}

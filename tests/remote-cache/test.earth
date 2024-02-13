@@ -1,0 +1,39 @@
+VERSION 0.8
+ARG --global REGISTRY
+
+test1:
+    FROM alpine:3.18
+    RUN echo "execute-test1-run-before-copy"
+    COPY ./input ./
+    RUN echo "execute-test1-run-after-copy"
+    SAVE IMAGE --push --insecure $REGISTRY/test1:latest
+
+test2-base:
+    FROM node:13.10.1-alpine3.11
+    WORKDIR /js-example
+
+test2-deps:
+    FROM +test2-base
+    COPY test2/package.json test2/package-lock.json ./
+    RUN npm install
+    SAVE ARTIFACT package-lock.json
+
+test2-build:
+    FROM +test2-deps
+    COPY test2/src src
+    COPY test2/dist dist
+    RUN npx webpack
+    SAVE ARTIFACT dist
+
+test2:
+    FROM +test2-deps
+    COPY +test2-build/dist ./dist
+    EXPOSE 8080
+    ENTRYPOINT ["/js-example/node_modules/http-server/bin/http-server", "./dist"]
+    SAVE IMAGE --push --insecure $REGISTRY/test2:latest
+
+# Smoke test for --cache-hint.
+test3:
+    FROM alpine:3.18
+    RUN echo "content" >./file.txt
+    SAVE IMAGE --cache-hint

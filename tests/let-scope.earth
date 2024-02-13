@@ -1,0 +1,21 @@
+VERSION 0.8
+FROM alpine:3.18
+
+ARG --global foo = bar
+LET foo=baz
+
+RUN test "$foo" = "baz"
+
+let-overrides-arg:
+    ARG bar = baz
+    LET bar = foo
+    RUN test "$bar" = "foo"
+
+let-overrides-global-arg:
+    LET foo = bacon
+    RUN test "$foo" = "bacon"
+
+arg-after-let-errors:
+    LET bar = baz
+    ARG bar = bacon
+    RUN echo "this target should fail"

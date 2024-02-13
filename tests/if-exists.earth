@@ -1,0 +1,69 @@
+VERSION 0.8
+FROM alpine:3.18
+
+save:
+    RUN echo "aaa" > ok
+
+    RUN mkdir testdir
+    RUN echo "bbb" > testdir/1
+    RUN echo "ccc" > testdir/2
+
+    SAVE ARTIFACT ok
+    SAVE ARTIFACT --if-exists not_ok
+
+    SAVE ARTIFACT testdir/*
+
+save-exist-local:
+    FROM +save
+
+    COPY +save/ok ok
+    COPY --if-exists +save/not_ok not_ok
+
+    COPY +save/1 1
+    COPY +save/2 2
+    COPY --if-exists +save/3 3
+
+    SAVE ARTIFACT ok AS LOCAL ok
+    SAVE ARTIFACT --if-exists not_ok AS LOCAL not_ok
+
+    SAVE ARTIFACT 1 AS LOCAL 1
+    SAVE ARTIFACT 2 AS LOCAL 2
+    SAVE ARTIFACT --if-exists 3 AS LOCAL 3
+
+save-not-exist:
+    FROM +save
+    SAVE ARTIFACT not_ok AS LOCAL not_ok
+
+copy-not-exist:
+    FROM +save
+    COPY +save/not_ok not_ok
+
+bad-wildcard-copy:
+    FROM +save
+    COPY +save/baddir/* .
+
+bad-wildcard-save:
+    FROM +save
+    SAVE ARTIFACT baddir/* AS LOCAL baddir
+
+classic-copy-exists:
+    COPY --if-exists ./in/this-file-does-exist .
+    COPY --if-exists so-does-this-one .
+    RUN test -f this-file-does-exist
+    RUN test -f so-does-this-one
+
+classic-copy-not-exist:
+    COPY --if-exists ./in/this-file-does-not-exist .
+    RUN test ! -f this-file-does-not-exist
+
+artifact-copy-exists:
+    COPY --if-exists +save/ok .
+    RUN test -f ok
+
+artifact-copy-not-exist:
+    COPY --if-exists +save/not_ok .
+    RUN test ! -f not_ok
+
+artifact-copy-not-exist-wildcard:
+    COPY --if-exists +save/*_ok .
+    RUN test ! -f not_ok

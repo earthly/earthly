@@ -1,0 +1,106 @@
+VERSION 0.8
+
+test:
+    FROM --pass-args ../git-ssh-server/setup+server \
+        --SSHD_RSA=true \
+        --SSHD_ED25519=false \
+        --USER_RSA=true \
+        --USER_ED25519=false
+    COPY test.earth Earthfile
+    RUN echo "#!/bin/sh
+set -ex
+
+# first ensure these two /etc/hosts entries are working
+ping -c 1 git.example.com
+ping -c 1 buildkitsandbox
+
+# load in preauthorized key
+eval \$(ssh-agent)
+ssh-add /root/self-hosted-rsa-key
+ssh-add -l
+
+# next validate ssh is working
+ssh git@git.example.com | grep \"Hi git! You've successfully authenticated, but you get no shellz\"
+
+# setup git email and user (needed to commit)
+git config --global user.email \"onlyspammersemailthis@earthly.dev\"
+git config --global user.name \"test name\"
+
+# test this worked (seems to be flaky in some tests)
+cat \$HOME/.gitconfig
+git config --global user.name
+git config --global user.email
+test -n \"\$(git config --global user.name)\"
+test -n \"\$(git config --global user.email)\"
+
+# clone the repo and add a test Earthfile to it
+git clone git@git.example.com:testuser/repo.git
+mv Earthfile repo/
+git -C repo add Earthfile
+git -C repo commit -m \"test
+
+Co-authored-by: Testy McTest <testy@earthly.dev>
+Co-authored-by: Coverage McCover <cover@earthly.dev>\"
+sleep 1 # force the commit time to change
+test -n \"\$(git config --global user.name)\"
+test -n \"\$(git config --global user.email)\"
+git -C repo commit --amend --no-edit
+git -C repo push
+git -C repo branch demo HEAD
+git -C repo push origin demo
+export expected_sha=\$(git -C repo rev-parse HEAD)
+export expected_committer_timestamp=\$(git -C repo log -1 --format=\"%ct\")
+export expected_author_timestamp=\$(git -C repo log -1 --format=\"%at\")
+test \"\$expected_committer_timestamp\" -ne \"\$expected_author_timestamp\"
+export expected_branch=\"\$(git -C repo rev-parse --abbrev-ref HEAD)\"
+test -n \"\$expected_branch\"
+export expected_refs=\"\$(git -C repo for-each-ref --points-at HEAD --format '%(refname:lstrip=-1)' | grep -v 'HEAD' | awk '!a[\$0]++' | tr '\n' ' ' | sed 's/ *$//')\"
+test -n \"\$expected_refs\"
+
+# finally perform earthly tests
+earthly --config \$earthly_config --verbose -D \
+  --build-arg expected_sha \
+  --build-arg expected_committer_timestamp \
+  --build-arg expected_author_timestamp \
+  --build-arg expected_branch \
+  --build-arg expected_refs \
+  ./repo+test-git-metadata
+
+EARTHLY_GIT_BRANCH_OVERRIDE=branch-override earthly --config \$earthly_config --verbose -D \
+  --build-arg expected_sha \
+  --build-arg expected_committer_timestamp \
+  --build-arg expected_author_timestamp \
+  --build-arg expected_branch=branch-override \
+  --build-arg expected_refs \
+  ./repo+test-git-metadata
+
+rm -rf repo
+export expected_refs=\"main\"
+
+earthly --config \$earthly_config --verbose -D \
+  --build-arg expected_sha \
+  --build-arg expected_committer_timestamp \
+  --build-arg expected_author_timestamp \
+  --build-arg expected_branch \
+  --build-arg expected_refs \
+  git.example.com/testuser/repo:main+test-git-metadata
+
+EARTHLY_GIT_BRANCH_OVERRIDE=branch-override earthly --config \$earthly_config --verbose -D \
+  --build-arg expected_sha \
+  --build-arg expected_committer_timestamp \
+  --build-arg expected_author_timestamp \
+  --build-arg expected_branch=branch-override \
+  --build-arg expected_refs \
+  git.example.com/testuser/repo:main+test-git-metadata
+" >/tmp/test-earthly-script && chmod +x /tmp/test-earthly-script
+    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --exec_cmd=/tmp/test-earthly-script
+
+RUN_EARTHLY_ARGS:
+    FUNCTION
+    ARG earthfile
+    ARG pre_command
+    ARG exec_cmd
+    DO ..+RUN_EARTHLY \
+        --earthfile=$earthfile \
+        --pre_command=$pre_command \
+        --exec_cmd=$exec_cmd

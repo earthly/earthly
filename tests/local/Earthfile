@@ -1,0 +1,238 @@
+VERSION 0.8
+FROM alpine:3.18
+
+#################################################################################################################
+# tests for testing RUN commands are executed on the localhost
+
+test-local-with-arg:
+    LOCALLY
+    ARG FRONTEND=docker
+    ARG pattern
+    RUN set -e; \
+        if [ "$(uname -s)" = "Darwin" ]; then \
+            echo "locally must be working (since we cant run darwin via runc)"; \
+        elif [ "$(cat /proc/1/comm)" = "systemd" ]; then \
+            test "$(systemd-detect-virt --container)" = "none" || (echo "systemd-detect-virt --container returned $(systemd-detect-virt --container) instead" && exit 1); \
+        else \
+            echo "unable to deteremine if running locally or not; got init process of $(cat /proc/1/comm)" && exit 1; \
+        fi
+
+test-local:
+    LOCALLY
+    # If run inside a container, one would expect something like
+    # 12:cpuset:/docker/e4b6b1698e80c6a2d8ccdfcd689a1ce5828587ada1337ddcb0b9a80caf0087a4/buildkit/83zo724g6vr1ipssy0dic9kpa
+    RUN whoami
+    RUN set -e; \
+        if [ "$(uname -s)" = "Darwin" ]; then \
+            echo "locally must be working (since we cant run darwin via runc)"; \
+        elif [ "$(cat /proc/1/comm)" = "systemd" ]; then \
+            test "$(systemd-detect-virt --container)" = "none" || (echo "systemd-detect-virt --container returned $(systemd-detect-virt --container) instead" && exit 1); \
+        else \
+            echo "unable to deteremine if running locally or not; got init process of $(cat /proc/1/comm)" && exit 1; \
+        fi
+
+
+#################################################################################################################
+# tests for testing locally produced artifacts can be referenced by containerized targets
+
+create-local-file:
+    LOCALLY
+    RUN echo hello > /tmp/earthly-test-a266bf52-f5ea-477c-9416-2931720d1826
+    SAVE ARTIFACT /tmp/earthly-test-a266bf52-f5ea-477c-9416-2931720d1826 data
+
+test-copy-file-from-local:
+    COPY +create-local-file/data actual
+    RUN echo hello > expected
+    RUN diff expected actual
+
+create-local-dir:
+    LOCALLY
+    RUN rm -rf /tmp/earthly-test-bfbe3177-8683-4f8f-8c42-75053dc0e807
+    RUN mkdir /tmp/earthly-test-bfbe3177-8683-4f8f-8c42-75053dc0e807
+    RUN echo aaa > /tmp/earthly-test-bfbe3177-8683-4f8f-8c42-75053dc0e807/a.txt
+    RUN echo bbb > /tmp/earthly-test-bfbe3177-8683-4f8f-8c42-75053dc0e807/b.txt
+    SAVE ARTIFACT /tmp/earthly-test-bfbe3177-8683-4f8f-8c42-75053dc0e807 datadir
+
+test-copy-dir-from-local:
+    COPY +create-local-dir/datadir the-data
+    RUN echo aaa > expected_a.txt
+    RUN echo bbb > expected_b.txt
+    RUN diff the-data/a.txt expected_a.txt
+    RUN diff the-data/b.txt expected_b.txt
+
+save-unnamed-local-artifact:
+    LOCALLY
+    RUN rm -rf /tmp/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc
+    RUN mkdir /tmp/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc
+    RUN echo ccc > /tmp/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc/c.txt
+    SAVE ARTIFACT /tmp/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc
+
+test-save-unnamed-local-artifact:
+    COPY +save-unnamed-local-artifact/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc .
+    RUN cat c.txt | grep '^ccc$'
+
+test-save-unnamed-local-artifact-dir:
+    COPY --dir +save-unnamed-local-artifact/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc .
+    RUN cat earthly-test-c5009c71-d573-4562-be15-2c28dae333fc/c.txt | grep '^ccc$'
+
+test-save-unnamed-local-artifact-dir2:
+    COPY --dir +save-unnamed-local-artifact/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc /var/log/.
+    RUN cat /var/log/earthly-test-c5009c71-d573-4562-be15-2c28dae333fc/c.txt | grep '^ccc$'
+
+save-local-artifact-with-workdir:
+    LOCALLY
+    RUN rm -rf /tmp/earthly-b1682dd4-b3e3-41c8-8191-b8eeb0b56499
+    WORKDIR /tmp/earthly-b1682dd4-b3e3-41c8-8191-b8eeb0b56499
+    RUN echo ddd > 29998a72-a765-4d48-a395-c5252183934b
+    SAVE ARTIFACT 29998a72-a765-4d48-a395-c5252183934b data
+
+test-save-local-artifact-with-workdir:
+    COPY +save-local-artifact-with-workdir/data .
+    RUN cat data | grep '^ddd$'
+
+#################################################################################################################
+# tests for testing overwriting existing local files
+
+some-artifact:
+    RUN printf '4321' > four-bytes.txt
+    SAVE ARTIFACT four-bytes.txt
+
+test-local-overwrites:
+    LOCALLY
+    RUN rm -fr              /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda && \
+        mkdir -p            /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda && \
+        printf "12345678" > /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda/eight.txt && \
+        printf "1234"     > /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda/four.txt && \
+        printf "12"       > /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda/two.txt
+    # In previous releases this would result in "43215678"
+    COPY +some-artifact/four-bytes.txt /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda/eight.txt
+    # These always worked fine
+    COPY +some-artifact/four-bytes.txt /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda/four.txt
+    COPY +some-artifact/four-bytes.txt /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda/two.txt
+    RUN set -e; \
+        for i in eight four two; do \
+            cat /tmp/earthly-test-21f37581-de77-4f81-ac78-4a2a617f7eda/${i}.txt | grep '^4321$'; \
+        done
+
+
+#################################################################################################################
+# tests for testing containerized artifacts can be referenced by local targets
+
+busybox-artifact:
+    FROM busybox:1.32.1 # if this is changed the grep in test-copy-from-busybox-to-local must also be updated
+    RUN busybox > /data
+    SAVE ARTIFACT /data the-data
+
+test-copy-from-busybox-to-local:
+    LOCALLY
+    RUN rm -rf /tmp/4eb5dcb7-2245-4f35-ab41-252f78e7a451
+    COPY +busybox-artifact/the-data /tmp/4eb5dcb7-2245-4f35-ab41-252f78e7a451
+    RUN cat /tmp/4eb5dcb7-2245-4f35-ab41-252f78e7a451 | grep "BusyBox v1.32.1"
+
+test-copy-from-busybox-to-local-with-workdir:
+    LOCALLY
+    RUN rm -rf /tmp/earthly-test-5816ebd4-6b18-421e-a1b4-5991af91e11e
+    WORKDIR /tmp/earthly-test-5816ebd4-6b18-421e-a1b4-5991af91e11e
+    COPY +busybox-artifact/the-data 0b59ac77-91d7-4b84-9d1c-12f64fc6f48e
+    RUN cat /tmp/earthly-test-5816ebd4-6b18-421e-a1b4-5991af91e11e/0b59ac77-91d7-4b84-9d1c-12f64fc6f48e | grep "BusyBox v1.32.1"
+
+alpine-artifacts:
+    FROM alpine:3.18.3 # if this is changed, the grep in test-multi-copy-from-alpine-to-local must also be updated
+    SAVE ARTIFACT /etc/alpine-release alpine-release
+    SAVE ARTIFACT /etc/motd alpine-motd
+    SAVE ARTIFACT /etc/os-release alpine-os-release
+
+test-multi-copy-from-alpine-to-local:
+    LOCALLY
+    RUN rm -rf /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d
+    COPY +alpine-artifacts/alpine-release +alpine-artifacts/alpine-motd +alpine-artifacts/alpine-os-release /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d
+    RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-release | grep 3\\.18\\.3
+    RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-motd | grep alpinelinux.org
+    RUN cat /tmp/ac0887d7-fda7-4a1b-9873-054488c7e44d/alpine-os-release | grep "ID=alpine"
+
+busybox-dir-artifact:
+    FROM busybox:1.32.1
+    RUN mkdir /data-dir
+    RUN busybox > /data-dir/busybox
+    RUN hostname > /data-dir/hostname
+    SAVE ARTIFACT /data-dir the-data
+
+test-locally-can-copy-dir-contents:
+    LOCALLY
+    RUN rm -rf /tmp/f3fa2ae8-df5e-4b34-875d-c0919fae20d8
+    COPY +busybox-dir-artifact/the-data /tmp/f3fa2ae8-df5e-4b34-875d-c0919fae20d8
+    RUN cat /tmp/f3fa2ae8-df5e-4b34-875d-c0919fae20d8/busybox | grep "BusyBox v1.32.1"
+    RUN cat /tmp/f3fa2ae8-df5e-4b34-875d-c0919fae20d8/hostname | grep "buildkitsandbox"
+
+test-locally-can-copy-dir:
+    LOCALLY
+    RUN rm -rf /tmp/008f5069-567a-4aab-8024-1c974100a67f
+    COPY --dir +busybox-dir-artifact/the-data /tmp/008f5069-567a-4aab-8024-1c974100a67f
+    RUN cat /tmp/008f5069-567a-4aab-8024-1c974100a67f/the-data/busybox | grep "BusyBox v1.32.1"
+    RUN cat /tmp/008f5069-567a-4aab-8024-1c974100a67f/the-data/hostname | grep "buildkitsandbox"
+
+test-locally-workdir:
+    LOCALLY
+    WORKDIR /tmp/earthly-197ec076-b89d-4861-b8ca-33a34170712c
+    RUN set -e; \
+        if [ "$(uname -s)" = "Darwin" ]; then \
+            test "$(pwd)" = "/private/tmp/earthly-197ec076-b89d-4861-b8ca-33a34170712c"; \
+        else \
+            test "$(pwd)" = "/tmp/earthly-197ec076-b89d-4861-b8ca-33a34170712c"; \
+        fi
+
+#################################################################################################################
+# tests for building containers and loading and running them locally
+
+mycontainer:
+    FROM busybox:latest
+    CMD echo hello worldz
+
+mycontainer2:
+    FROM busybox:latest
+    CMD echo fizzbuzz
+
+test-with-docker:
+    LOCALLY
+    ARG FRONTEND=docker
+    RUN $FRONTEND images -q mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744 | xargs -n 1 -r $FRONTEND rmi -f
+    WITH DOCKER --load mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest=+mycontainer
+        RUN $FRONTEND run --rm mycontainer-e3d32183-604d-4dc3-b519-f9af56ecb744:latest | grep "hello world"
+    END
+
+test-with-two-dockers:
+    LOCALLY
+    ARG FRONTEND=docker
+    RUN $FRONTEND images -q mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75 | xargs -n 1 -r $FRONTEND rmi -f
+    WITH DOCKER \
+            --load mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:latest=+mycontainer \
+            --load mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:hyperlatest=+mycontainer2
+        RUN ($FRONTEND run --rm mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:latest | grep "hello world" ) && \
+            ($FRONTEND run --rm mycontainer-07cb0fb7-4574-45cc-97c8-2bc482cf1f75:hyperlatest | grep "fizzbuzz" )
+    END
+
+#################################################################################################################
+# tests for WITH DOCKER and compose
+
+all:
+    ARG FRONTEND=docker
+    ARG FRONTEND_COMPOSE="docker compose"
+    BUILD +test-copy-dir-from-local
+    BUILD +test-copy-file-from-local
+    BUILD +test-copy-from-busybox-to-local
+    BUILD +test-copy-from-busybox-to-local-with-workdir
+    BUILD +test-local
+    BUILD +test-local-with-arg --pattern=memory --FRONTEND=$FRONTEND
+    BUILD +test-locally-can-copy-dir
+    BUILD +test-locally-can-copy-dir-contents
+    BUILD +test-locally-workdir
+    BUILD +test-locally-workdir
+    BUILD +test-multi-copy-from-alpine-to-local
+    BUILD +test-save-unnamed-local-artifact
+    BUILD +test-save-unnamed-local-artifact-dir
+    BUILD +test-save-unnamed-local-artifact-dir2
+    BUILD +test-local-overwrites
+    BUILD +test-with-docker --FRONTEND=$FRONTEND
+    BUILD +test-with-two-dockers --FRONTEND=$FRONTEND
+    BUILD ./with-docker-compose-local+all --FRONTEND=$FRONTEND --FRONTEND_COMPOSE=$FRONTEND_COMPOSE
+    BUILD ./with-docker-compose-local-reg+all --FRONTEND=$FRONTEND --FRONTEND_COMPOSE=$FRONTEND_COMPOSE

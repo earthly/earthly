@@ -1,0 +1,6 @@
+VERSION \ # with a comment
+    0.8
+
+FROM alpine:3.18
+test:
+    RUN echo "pass"

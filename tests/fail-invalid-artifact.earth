@@ -1,0 +1,7 @@
+VERSION 0.8
+FROM alpine
+WORKDIR /usr/build
+
+test:
+    RUN touch hi
+    SAVE ARTIFACT hi

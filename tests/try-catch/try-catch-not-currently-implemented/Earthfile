@@ -1,0 +1,9 @@
+VERSION --try 0.8
+
+test:
+    FROM alpine:3.18
+    TRY
+        RUN echo this-shouldnt-work > data
+    CATCH
+        SAVE ARTIFACT data AS LOCAL .testdata
+    END

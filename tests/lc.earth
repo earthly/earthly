@@ -1,0 +1,86 @@
+VERSION 0.8
+FROM alpine:3.18
+WORKDIR /test
+
+test:
+    BUILD +test1
+    BUILD +test2
+    BUILD +test3
+    BUILD +test4
+    BUILD +test5
+    BUILD +test6
+    BUILD +test7
+    BUILD +test8
+    BUILD +test9
+
+test1:
+    RUN echo a\
+    b > out.txt ; \
+    cat out.txt ; \
+    if [ "$(cat out.txt)" != "ab" ]; then \
+        exit 1 ; \
+    fi
+
+test2:
+    RUN echo a\
+    \
+    b > out.txt ; \
+    cat out.txt ; \
+    if [ "$(cat out.txt)" != "ab" ]; then \
+        exit 1 ; \
+    fi
+
+test3:
+    RUN echo a \
+    \
+    b > out.txt ; \
+    cat out.txt ; \
+    if [ "$(cat out.txt)" != "a b" ]; then \
+        exit 1 ; \
+    fi
+
+test4:
+    RUN echo a\
+        b > out.txt ; \
+        cat out.txt ; \
+        if [ "$(cat out.txt)" != "ab" ]; then \
+            exit 1 ; \
+        fi
+
+test5:
+    RUN echo a\
+    b > out.txt ;\
+    cat out.txt ;\
+    if [ "$(cat out.txt)" != "ab" ]; then \
+        exit 1 ;\
+    fi
+
+test6:
+    RUN echo > output \
+            a \
+            # ignore this line
+            b \
+        ;
+    RUN test "$(cat output)" = "a b"
+
+test7:
+    RUN echo a\
+        # ignore this
+        b > out.txt ; \
+        cat out.txt ; \
+        if [ "$(cat out.txt)" != "ab" ]; then \
+            exit 1 ; \
+        fi
+
+test8:
+    RUN echo -n > output \\
+    RUN echo pass # ensure the echo and test line below don't get merged together
+    RUN test "$(cat output | base64)" = "XA=="
+
+test9:
+    RUN echo a\ # ignore this
+        b > out.txt ; \
+        cat out.txt ; \
+        if [ "$(cat out.txt)" != "ab" ]; then \
+            exit 1 ; \
+        fi

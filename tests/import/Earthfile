@@ -1,0 +1,15 @@
+VERSION 0.8
+
+build:
+    BUILD ./lib1+build
+
+build-imported:
+    BUILD ./lib1+build-imported
+
+INSTALL_WHLS:
+    FUNCTION
+    ARG wheels
+
+    FOR wheel IN $wheels
+      BUILD "./$wheel+build-lib"
+    END

@@ -1,0 +1,9 @@
+VERSION 0.8
+FROM alpine:3.18
+
+mytarget:
+    ARG EARTHLY_VERSION
+    RUN echo "$EARTHLY_VERSION"
+
+test:
+    BUILD +mytarget --EARTHLY_VERSION="this is not possible"

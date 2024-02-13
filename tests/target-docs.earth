@@ -1,0 +1,15 @@
+VERSION 0.8
+FROM alpine:3.18
+
+# documented-target is a target with documentation
+# that spans multiple lines.
+#
+# It also has a separator between paragraphs.
+documented-target:
+
+# undocumented-target does not have documentation.
+
+undocumented-target:
+
+# This is an incorrectly documented target.
+incorrectly-documented-target:

@@ -1,0 +1,44 @@
+VERSION 0.8
+
+all-positive:
+    BUILD +start-with-arg
+    BUILD +start-with-locally
+    BUILD +start-with-from-target
+    BUILD +start-with-from-scratch
+
+start-with-arg:
+    ARG result=true
+    FROM alpine:3.18
+    RUN $result
+
+start-with-locally:
+    LOCALLY
+    RUN true
+
+start-with-from-target:
+    FROM +from
+
+start-with-from-scratch:
+    FROM scratch
+    EXPOSE 8080
+
+from:
+    FROM alpine:3.18
+
+#
+# Negative tests:
+
+start-with-run:
+    RUN true
+
+start-with-if:
+    IF true
+        RUN true
+    END
+
+start-with-non-from-target:
+    FROM +non-from
+    RUN true
+
+non-from:
+    ARG nothing

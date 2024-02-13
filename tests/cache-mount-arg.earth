@@ -1,0 +1,28 @@
+VERSION 0.8
+a-nomount:
+    FROM alpine:3.18
+    RUN echo Doing something 1
+
+b-nomount:
+    FROM +a-nomount
+    ARG MYARG
+    RUN echo Doing something 2
+
+a:
+    FROM alpine:3.18
+    RUN --mount=type=cache,target=/cache echo Doing something 1
+
+b:
+    FROM +a
+    ARG MYARG
+    RUN echo Doing something 2
+
+a-with-arg:
+    FROM alpine:3.18
+    ARG MYARG
+    RUN --mount=type=cache,target=/cache echo Doing something 1
+
+b-with-arg:
+    FROM +a-with-arg
+    ARG MYARG
+    RUN echo Doing something 2

@@ -1,0 +1,70 @@
+VERSION 0.8
+FROM alpine:3.18
+
+IF [ "a" = "b" ]
+    RUN echo "hello"
+    COPY a b
+END
+
+
+IF [ "c" = "d" ]
+    RUN echo "hello 2"
+    COPY c d
+ELSE
+    RUN echo "else 2"
+END
+
+IF [ "z" = "z" ]
+    IF [ "x" = "x" ]
+        RUN echo "nested"
+    END
+    RUN echo "hello n"
+    COPY c d
+ELSE
+    IF [ "y" = "y" ]
+        RUN echo "else nested"
+    END
+    RUN echo "else n"
+END
+
+build3:
+    IF test "e" = "f"
+        RUN echo "hello 3"
+        COPY e f
+    END
+
+build4:
+    IF curl http://example.com | grep "examples"
+        RUN echo "hello 4"
+        COPY g h
+    ELSE
+        RUN echo "else 4"
+    END
+
+build-n:
+    IF [ "z" = "z" ]
+        IF [ "x" = "x" ]
+            RUN echo "nested"
+        END
+        RUN echo "hello n"
+        COPY c d
+    ELSE
+        IF [ "y" = "y" ]
+            RUN echo "else nested"
+        END
+        RUN echo "else n"
+    END
+
+build-else-if:
+    IF [ "e" = "e" ]
+        RUN echo "hello 1"
+        COPY e f
+    ELSE IF [ "f" = "f" ]
+        RUN echo "f"
+    ELSE IF [ "g" = "g" ]
+        RUN echo "g"
+    ELSE IF [ "h" = "h" ]
+        COPY h h
+    ELSE
+        RUN echo "else "
+    END

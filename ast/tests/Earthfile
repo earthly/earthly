@@ -1,0 +1,149 @@
+VERSION --pass-args --use-function-keyword 0.7
+FROM alpine:3.18
+RUN apk add jq
+WORKDIR /test
+
+COPY ../..+earthly/earthly /usr/local/bin/earthly
+
+# all runs all tests
+all:
+    BUILD +test \
+        --TEST=build-arg \
+        --TEST=builtin-args \
+        --TEST=cache1 \
+        --TEST=cache2 \
+        --TEST=chown \
+        --TEST=comments \
+        --TEST=parser-smoke \
+        --TEST=copy \
+        --TEST=dotenv \
+        --TEST=empty-git \
+        --TEST=end-comment \
+        --TEST=env \
+        --TEST=escape-dir1 \
+        --TEST=escape-dir2 \
+        --TEST=escape \
+        --TEST=excludes \
+        --TEST=fail \
+        --TEST=fail-invalid-artifact \
+        --TEST=file-copying \
+        --TEST=from-expose \
+        --TEST=gen-dockerfile \
+        --TEST=git-clone \
+        --TEST=host \
+        --TEST=host-bind \
+        --TEST=if-exists \
+        --TEST=lc \
+        --TEST=new-args \
+        --TEST=no-cache-local-artifact \
+        --TEST=non-transitive-args1 \
+        --TEST=non-transitive-args2 \
+        --TEST=privileged \
+        --TEST=push-build \
+        --TEST=push \
+        --TEST=run-no-cache \
+        --TEST=save-artifact-after-push \
+        --TEST=scratch-test \
+        --TEST=secrets \
+        --TEST=star \
+        --TEST=target-first-line \
+        --TEST=transitive-args \
+        --TEST=with-docker \
+        --TEST=with-docker-compose \
+        --TEST=command \
+        --TEST=import
+    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=args
+    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=if
+    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=for
+    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=empty-targets
+    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=quotes
+    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=documentation
+
+# update-all updates all the expected values of the tests
+update-all:
+    BUILD +update-expected \
+        --TEST=build-arg \
+        --TEST=builtin-args \
+        --TEST=cache1 \
+        --TEST=cache2 \
+        --TEST=chown \
+        --TEST=comments \
+        --TEST=parser-smoke \
+        --TEST=copy \
+        --TEST=dotenv \
+        --TEST=empty-git \
+        --TEST=end-comment \
+        --TEST=env \
+        --TEST=escape-dir1 \
+        --TEST=escape-dir2 \
+        --TEST=escape \
+        --TEST=excludes \
+        --TEST=fail \
+        --TEST=fail-invalid-artifact \
+        --TEST=file-copying \
+        --TEST=from-expose \
+        --TEST=gen-dockerfile \
+        --TEST=git-clone \
+        --TEST=host \
+        --TEST=host-bind \
+        --TEST=if-exists \
+        --TEST=lc \
+        --TEST=new-args \
+        --TEST=no-cache-local-artifact \
+        --TEST=non-transitive-args1 \
+        --TEST=non-transitive-args2 \
+        --TEST=privileged \
+        --TEST=push-build \
+        --TEST=push \
+        --TEST=run-no-cache \
+        --TEST=save-artifact-after-push \
+        --TEST=scratch-test \
+        --TEST=secrets \
+        --TEST=star \
+        --TEST=target-first-line \
+        --TEST=transitive-args \
+        --TEST=with-docker \
+        --TEST=with-docker-compose \
+        --TEST=command \
+        --TEST=import
+    BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=args
+    BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=if
+    BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=for
+    BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=empty-targets
+    BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=quotes
+    BUILD +update-expected --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=documentation
+
+# Note: If this test fails for expected reasons (eg format of AST has changed), you can
+#       update the expectations via +update-all. Please review the resulting diff
+#       carefully when committing to git.
+test:
+    ARG --required TEST
+    ARG INPUT_FROM_DIR=../../tests
+    ARG INPUT_FROM_TARGET=ast-test-input
+    DO --pass-args +INPUT_COPY --TEST=$TEST --INPUT_FROM_DIR=$INPUT_FROM_DIR --INPUT_FROM_TARGET=$INPUT_FROM_TARGET
+    COPY ${TEST}.ast.json ./expected.json
+    RUN jq -S . ./expected.json >./expected.pretty.json
+    RUN earthly debug ast ${TEST}.earth >./actual.json
+    RUN jq -S . ./actual.json >./actual.pretty.json
+    RUN diff ./actual.pretty.json ./expected.pretty.json
+
+update-expected:
+    ARG --required TEST
+    ARG INPUT_FROM_DIR=../../tests
+    ARG INPUT_FROM_TARGET=ast-test-input
+    DO --pass-args +INPUT_COPY --TEST=$TEST --INPUT_FROM_DIR=$INPUT_FROM_DIR --INPUT_FROM_TARGET=$INPUT_FROM_TARGET
+    RUN earthly debug ast ${TEST}.earth >./expected.json
+    RUN jq -S . ./expected.json >./expected.pretty.json
+    SAVE ARTIFACT ./expected.pretty.json AS LOCAL ./${TEST}.ast.json
+
+INPUT_COPY:
+    FUNCTION
+    ARG TEST
+    ARG INPUT_FROM_DIR
+    ARG INPUT_FROM_TARGET
+
+    IF [[ -z $INPUT_FROM_TARGET ]]
+        COPY ${INPUT_FROM_DIR}${TEST}.earth ./
+    ELSE
+        COPY --pass-args ${INPUT_FROM_DIR}+${INPUT_FROM_TARGET}/${TEST}.earth .
+    END

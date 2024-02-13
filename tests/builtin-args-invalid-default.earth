@@ -1,0 +1,6 @@
+VERSION 0.8
+FROM alpine:3.18
+
+test:
+    ARG EARTHLY_VERSION="this is not possible"
+    RUN echo "$EARTHLY_VERSION"

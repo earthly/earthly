@@ -1,0 +1,19 @@
+VERSION 0.8
+FROM ruby:3.2.2
+WORKDIR /ruby-example
+
+deps:
+    COPY Gemfile Gemfile.lock ./
+    RUN  bundle install
+    SAVE ARTIFACT Gemfile.lock AS LOCAL ./Gemfile.lock
+
+build:
+    FROM +deps
+    COPY src src
+    SAVE ARTIFACT src /src
+
+docker:
+    FROM +deps
+    COPY +build/src src
+    ENTRYPOINT ["ruby", "./src/hello.rb"]
+    SAVE IMAGE --push earthly/examples:ruby

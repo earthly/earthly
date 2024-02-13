@@ -1,0 +1,12 @@
+VERSION 0.8
+FROM alpine:3.18
+
+IMPORT github.com/earthly/test-remote/privileged:main
+
+test-reject-copy:
+    COPY test-remote/privileged+privileged/proc-status .
+    RUN echo the above COPY should fail since it was not imported with the --allow-privileged flag.
+
+test-reject-cmd:
+    DO test-remote/privileged+PRIV
+    RUN echo the above DO should fail since it was not imported with the --allow-privileged flag.

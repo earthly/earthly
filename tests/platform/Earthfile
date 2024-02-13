@@ -1,0 +1,136 @@
+VERSION 0.8
+
+FROM alpine:3.18
+WORKDIR /work
+
+test:
+    FROM +run-all
+    ARG nativeUname=$(uname -m)
+    ARG tests="regular/linux/arm/v7 regular/linux/arm64 regular/linux/amd64
+        native default
+        override/linux/arm64 override/linux/amd64
+        default_override/linux/arm64 default_override/linux/amd64
+        copy_override/linux/arm64 copy_override/linux/amd64
+        copy_other_set/linux/arm64 copy_other_set/linux/amd64
+        copy/linux/arm64 copy/linux/amd64
+        copy_native1 copy_native2"
+    FOR plat IN $tests
+        RUN /bin/sh -c "set -exo pipefail ; \
+            outdir=./out/$plat ; \
+            test -d \$outdir && \
+            cat \$outdir/uname-m && \
+            echo plat=$plat && \
+            um=\$(cat \$outdir/uname-m) && \
+            p=\$(cat \$outdir/platform) && \
+            case \$plat in \
+                regular/linux/arm/v7) \
+                    test \$um = armv7l && \
+                    test \$p = linux/arm/v7 ;; \
+                copy_override/linux/arm64|copy_other_set/linux/arm64|copy/linux/arm64|override/linux/arm64|default_override/linux/arm64|regular/linux/arm64) \
+                    test \$um = aarch64 && \
+                    test \$p = linux/arm64 ;; \
+                copy_override/linux/amd64|copy_other_set/linux/amd64|copy/linux/amd64|override/linux/amd64|default_override/linux/amd64|regular/linux/amd64) \
+                    test \$um = x86_64 && \
+                    test \$p = linux/amd64 ;; \
+                native|default|copy_native1|copy_native2) \
+                    test \$um = \$nativeUname && \
+                    case $nativeUname in \
+                        aarch64) test \$p = linux/arm64 -o \$p = linux/arm64/v8 ;; \
+                        armv7l) test \$p = linux/arm/v7 ;; \
+                        x86_64) test \$p = linux/amd64 ;; \
+                        *) exit 1 ;; \
+                    esac ;; \
+                *) exit 1 ;; \
+            esac && \
+            np=\$(cat \$outdir/nativeplatform) && \
+            case $nativeUname in \
+                aarch64) test \$np = linux/arm64 -o \$np = linux/arm64/v8 ;; \
+                armv7l) test \$np = linux/arm/v7 ;; \
+                x86_64) test \$np = linux/amd64 ;; \
+                *) exit 1 ;; \
+            esac && \
+            up=\$(cat \$outdir/userplatform) && \
+            case $nativeUname in \
+                aarch64) \
+                    test \$up = linux/arm64 -o \
+                        \$up = linux/arm64/v8 -o \
+                        \$up = darwin/arm64 -o \
+                        \$up = darwin/arm64/v8 ;; \
+                armv7l) \
+                    test \$up = linux/arm/v7 ;; \
+                x86_64) \
+                    test \$up = linux/amd64 -o \
+                        \$up = darwin/amd64 ;; \
+                *) exit 1 ;; \
+            esac"
+    END
+
+run-all:
+    # Regular cases.
+    COPY --platform=linux/amd64 +run/* ./out/regular/linux/amd64/
+    COPY --platform=linux/arm64 +run/* ./out/regular/linux/arm64/
+    COPY --platform=linux/arm/v7 +run/* ./out/regular/linux/arm/v7/
+    COPY --platform=native +run/* ./out/native/
+    COPY +run/* ./out/default/
+
+    # Start as one platform and end up as another.
+    COPY --platform=linux/amd64 (+run/* --override_platform=linux/arm64) ./out/override/linux/arm64/
+    COPY --platform=linux/arm64 (+run/* --override_platform=linux/amd64) ./out/override/linux/amd64/
+    COPY (+run/* --override_platform=linux/arm64) ./out/default_override/linux/arm64/
+    COPY (+run/* --override_platform=linux/amd64) ./out/default_override/linux/amd64/
+
+    # Copy tests.
+    COPY (+run-copy/* --copy_platform=linux/amd64) ./out/copy/linux/amd64/
+    COPY (+run-copy/* --copy_platform=linux/arm64) ./out/copy/linux/arm64/
+    COPY --platform=linux/amd64 (+run-copy/* --copy_platform=linux/arm64) ./out/copy_other_set/linux/arm64/
+    COPY --platform=linux/arm64 (+run-copy/* --copy_platform=linux/amd64) ./out/copy_other_set/linux/amd64/
+    COPY (+run-copy/* --copy_platform=linux/arm64 --copy_override_platform=linux/amd64) ./out/copy_override/linux/amd64/
+    COPY (+run-copy/* --copy_platform=linux/amd64 --copy_override_platform=linux/arm64) ./out/copy_override/linux/arm64/
+    COPY (+run-copy/* --copy_platform=linux/arm64 --copy_override_platform=native) ./out/copy_native1/
+    COPY (+run-copy/* --copy_platform=linux/amd64 --copy_override_platform=native) ./out/copy_native2/
+
+run:
+    ARG override_platform
+    IF [ -n "$override_platform" ]
+        FROM --platform=$override_platform alpine:3.18
+    ELSE
+        FROM alpine:3.18
+    END
+    WORKDIR /work
+    ARG USERPLATFORM
+    ARG NATIVEPLATFORM
+    ARG TARGETPLATFORM
+    RUN uname -m >./uname-m
+    RUN echo "$USERPLATFORM" >./userplatform
+    RUN echo "$NATIVEPLATFORM" >./nativeplatform
+    RUN echo "$TARGETPLATFORM" >./platform
+    SAVE ARTIFACT ./*
+
+run-copy:
+    FROM alpine:3.18
+    WORKDIR /work
+    ARG copy_platform
+    IF [ -n "$copy_platform" ]
+        COPY --platform=$copy_platform +copy-target/* ./
+    ELSE
+        COPY +copy-target/* ./
+    END
+    SAVE ARTIFACT ./*
+
+copy-target:
+    ARG copy_override_platform
+    IF [ -n "$copy_override_platform" ]
+        FROM --platform=$copy_override_platform alpine:3.18
+    ELSE
+        FROM alpine:3.18
+    END
+    WORKDIR /work
+    ARG USERPLATFORM
+    ARG NATIVEPLATFORM
+    ARG TARGETPLATFORM
+    ARG name=$TARGETPLATFORM
+    RUN uname -m >./uname-m
+    RUN echo "$USERPLATFORM" >./userplatform
+    RUN echo "$NATIVEPLATFORM" >./nativeplatform
+    RUN echo "$TARGETPLATFORM" >./platform
+    SAVE ARTIFACT ./*

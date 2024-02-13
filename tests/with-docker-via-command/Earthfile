@@ -1,0 +1,16 @@
+VERSION 0.8
+my-image:
+    FROM alpine
+    SAVE IMAGE my/image:test
+
+MY_COMMAND_WITH_DOCKER:
+    FUNCTION
+    ARG MY_ARG="default"
+    WITH DOCKER --load +my-image
+        RUN echo "got $MY_ARG"
+    END
+
+test:
+    FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+    DO +MY_COMMAND_WITH_DOCKER --MY_ARG="myvalue"
+    DO +MY_COMMAND_WITH_DOCKER

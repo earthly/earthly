@@ -1,0 +1,18 @@
+VERSION 0.8
+
+FROM node:17-alpine3.14
+WORKDIR /app
+
+deps:
+    CACHE ./node_modules
+    COPY package*.json .
+    RUN npm install
+
+code:
+    FROM +deps
+    COPY index.js .
+
+docker:
+    FROM +code
+    ENTRYPOINT ["npm", "start"]
+    SAVE IMAGE cache-example-npm:latest

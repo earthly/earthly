@@ -1,0 +1,26 @@
+VERSION 0.7
+PROJECT testorg/testproj
+
+deps:
+  FROM alpine:3.18
+  COPY my-file .
+
+mytarget:
+  FROM +deps
+  RUN echo SSB3YXMgcnVuCg== | base64 -d
+
+mypipeline:
+  PIPELINE
+  BUILD +mytarget
+
+no-cache:
+  FROM alpine
+  RUN --no-cache echo "hello"
+
+simple:
+  FROM alpine
+  RUN echo "hello"
+
+copy-if-exists:
+  FROM alpine
+  COPY --if-exists my-file .
