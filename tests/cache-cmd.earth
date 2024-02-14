@@ -63,8 +63,8 @@ id-expand-args:
 
 test-id-expand-args:
     WAIT
-        BUILD +id-expand-args
+        BUILD +id-expand-args --ID_1=test
     END
-    ARG --required ID_2
+    ARG ID_2=test
     CACHE --id $ID_2 /id-test
     RUN test "$(cat /id-test/hello)" = "hello"
