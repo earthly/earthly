@@ -8,12 +8,9 @@ earthly:
     RUN echo data3 > build/earthly
     SAVE ARTIFACT build/earthly
 
-dummy:
-    FROM alpine
-    COPY +earthly/earthly /usr/bin/earthly
-
 breakit:
-   FROM +dummy
+   FROM alpine
+   COPY +earthly/earthly /usr/bin/earthly
    IF false
      RUN echo false
    ELSE
