@@ -474,47 +474,17 @@ earthly-docker:
     #   SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG
     #END
 
+dummy:
+    FROM alpine
+    RUN for i in a b c; do echo $i > $i.files; done
+    SAVE ARTIFACT *.files
+
 # earthly-integration-test-base builds earthly docker and then
 # if no dockerhub mirror is not set it will attempt to login to dockerhub using the provided docker hub username and token.
 # Otherwise, it will attempt to login to the docker hub mirror using the provided username and password
 earthly-integration-test-base:
     FROM +earthly-docker
-    RUN echo "apk update && apk add pcre-tools curl python3 bash perl findutils expect yq && apk add --upgrade sed"
-    COPY scripts/acbtest/acbtest scripts/acbtest/acbgrep /bin/
-    ENV NO_DOCKER=1
-    ENV NETWORK_MODE=host # Note that this breaks access to embedded registry in WITH DOCKER.
-    ENV EARTHLY_VERSION_FLAG_OVERRIDES=no-use-registry-for-with-docker # Use tar-based due to above.
-    WORKDIR /test
-
-    # The inner buildkit requires Docker hub creds to prevent rate-limiting issues.
-    ARG DOCKERHUB_MIRROR
-    ARG DOCKERHUB_MIRROR_INSECURE=false
-    ARG DOCKERHUB_MIRROR_HTTP=false
-    ARG DOCKERHUB_MIRROR_AUTH=false
-    ARG DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS=false
-
-    # DOCKERHUB_AUTH will login to docker hub (and pull from docker hub rather than a mirror)
-    ARG DOCKERHUB_AUTH=false
-
-    COPY setup-registry.sh .
-    RUN echo "true" > setup-registry.sh
-    IF [ "$DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS" = "true" ]
-        RUN if [ "$DOCKERHUB_MIRROR_AUTH" = "true" ]; then echo "ERROR: DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS and DOCKERHUB_MIRROR_AUTH are mutually exclusive" && exit 1; fi
-        RUN --secret DOCKERHUB_MIRROR_USER=dockerhub-mirror/user --secret DOCKERHUB_MIRROR_PASS=dockerhub-mirror/pass USE_EARTHLY_MIRROR=true ./setup-registry.sh
-    ELSE IF [ "$DOCKERHUB_MIRROR_AUTH" = "true" ]
-        RUN --secret DOCKERHUB_MIRROR_USER --secret DOCKERHUB_MIRROR_PASS ./setup-registry.sh
-    ELSE IF [ "$DOCKERHUB_AUTH" = "true" ]
-        RUN --secret DOCKERHUB_USER --secret DOCKERHUB_PASS ./setup-registry.sh
-    ELSE
-        RUN ./setup-registry.sh
-    END
-    RUN rm ./setup-registry.sh
-
-    # pull out buildkit_additional_config from the earthly config, for the special case of earthly-in-earthly testing
-    # which runs earthly-entrypoint.sh, which calls buildkitd/entrypoint, which requires EARTHLY_VERSION_FLAG_OVERRIDES to be set
-    # NOTE: yq will print out `null` if the key does not exist, this will cause a literal null to be inserted into /etc/buildkit.toml, which will
-    # cause buildkit to crash -- this is why we first assign it to a tmp variable, followed by an if.
-    ENV EARTHLY_ADDITIONAL_BUILDKIT_CONFIG="$(export tmp=$(cat /etc/.earthly/config.yml | yq .global.buildkit_additional_config); if [ "$tmp" != "null" ]; then echo "$tmp"; fi)"
+    RUN echo lalala
 
 # prerelease builds and pushes the prerelease version of earthly.
 # Tagged as prerelease
