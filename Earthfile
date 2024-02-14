@@ -8,7 +8,6 @@ code:
     IF false
         RUN false
     END
-    COPY ./ast/parser+parser/*.go ./ast/parser/
     COPY --dir analytics autocomplete billing buildcontext builder logbus cleanup cloud cmd config conslogging debugger \
         dockertar docker2earthly domain features internal outmon slog states util variables regproxy ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
