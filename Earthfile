@@ -322,13 +322,8 @@ earthly:
     FROM +code
     RUN sleep 4
     RUN mkdir build
-    RUN echo data > ./build/tags
-    RUN echo data2 > ./build/ldflags
     RUN echo data3 > build/earthly
-    SAVE ARTIFACT ./build/tags
-    SAVE ARTIFACT ./build/ldflags
     SAVE ARTIFACT build/earthly
-    SAVE IMAGE --cache-from=earthly/earthly:main
 
 # earthly-linux-amd64 builds the earthly artifact  for linux amd64
 earthly-linux-amd64:
@@ -429,7 +424,6 @@ earthly-docker:
 
 dummy:
     FROM alpine
-    COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
     COPY +earthly/earthly /usr/bin/earthly
 
 multi:
