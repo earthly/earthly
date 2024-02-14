@@ -471,8 +471,6 @@ earthly-docker:
 dummy:
     FROM alpine
     COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
-    ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
-    WORKDIR /workspace
     COPY +earthly/earthly /usr/bin/earthly
 
 multi:
