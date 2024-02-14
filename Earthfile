@@ -320,55 +320,14 @@ debugger:
 # earthly builds the earthly CLI and docker image.
 earthly:
     FROM +code
-    ENV CGO_ENABLED=0
-    ARG GOOS=linux
-    ARG TARGETARCH
-    ARG TARGETVARIANT
-    ARG GOARCH=$TARGETARCH
-    ARG VARIANT=$TARGETVARIANT
-    ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
-    # GO_GCFLAGS may be used to set the -gcflags parameter to 'go build'. This
-    # is particularly useful for disabling optimizations to make the binary work
-    # with delve. To disable optimizations:
-    #
-    #     --GO_GCFLAGS='all=-N -l'
-    ARG GO_GCFLAGS
-    ARG EXECUTABLE_NAME="earthly"
-    ARG DEFAULT_INSTALLATION_NAME="earthly-dev"
-    RUN test -n "$GOOS" && test -n "$GOARCH"
-    RUN test "$GOARCH" != "arm" || test -n "$VARIANT"
-    ARG EARTHLY_TARGET_TAG_DOCKER
-    ARG VERSION="dev-$EARTHLY_TARGET_TAG_DOCKER"
-    ARG EARTHLY_GIT_HASH
-    ARG DEFAULT_BUILDKITD_IMAGE=docker.io/earthly/buildkitd:$VERSION # The image needs to be fully qualified for alternative frontend support.
-    ARG BUILD_TAGS=dfrunmount dfrunsecurity dfsecrets dfssh dfrunnetwork dfheredoc forceposix
-    ARG GOCACHE=/go-cache
     RUN sleep 4
-    #RUN mkdir -p build
-    #RUN printf "$BUILD_TAGS" > ./build/tags && echo "$(cat ./build/tags)"
-    #RUN printf '-X main.DefaultBuildkitdImage='"$DEFAULT_BUILDKITD_IMAGE" > ./build/ldflags && \
-    #    printf ' -X main.Version='"$VERSION" >> ./build/ldflags && \
-    #    printf ' -X main.GitSha='"$EARTHLY_GIT_HASH" >> ./build/ldflags && \
-    #    printf ' -X main.DefaultInstallationName='"$DEFAULT_INSTALLATION_NAME" >> ./build/ldflags && \
-    #    printf ' '"$GO_EXTRA_LDFLAGS" >> ./build/ldflags && \
-    #    echo "$(cat ./build/ldflags)"
-    ## Important! If you change the go build options, you may need to also change them
-    ## in https://github.com/earthly/homebrew-earthly/blob/main/Formula/earthly.rb
-    ## as well as https://github.com/Homebrew/homebrew-core/blob/master/Formula/earthly.rb
-    #RUN --mount=type=cache,target=$GOCACHE \
-    #    GOARM=${VARIANT#v} go build \
-    #        -tags "$(cat ./build/tags)" \
-    #        -ldflags "$(cat ./build/ldflags)" \
-    #        -gcflags="${GO_GCFLAGS}" \
-    #        -o build/$EXECUTABLE_NAME \
-    #        cmd/earthly/*.go
     RUN mkdir build
     RUN echo data > ./build/tags
     RUN echo data2 > ./build/ldflags
-    RUN echo data3 > build/$EXECUTABLE_NAME
+    RUN echo data3 > build/earthly
     SAVE ARTIFACT ./build/tags
     SAVE ARTIFACT ./build/ldflags
-    SAVE ARTIFACT build/$EXECUTABLE_NAME AS LOCAL "build/$GOOS/$GOARCH$VARIANT/$EXECUTABLE_NAME"
+    SAVE ARTIFACT build/earthly
     SAVE IMAGE --cache-from=earthly/earthly:main
 
 # earthly-linux-amd64 builds the earthly artifact  for linux amd64
