@@ -186,12 +186,16 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 		return nil, false
 	}
 
-	isDarwin := runtime.GOOS == "darwin"
+	useProxy, err := useSecondaryProxy()
+	if err != nil {
+		cons.Printf("Failed to check for registry proxy support: %v", err)
+		return nil, false
+	}
 
 	controller := regproxy.NewController(
 		b.s.bkClient.RegistryClient(),
 		b.opt.ContainerFrontend,
-		isDarwin,
+		useProxy,
 		b.opt.DarwinProxyImage,
 		b.opt.DarwinProxyWait,
 		cons,
@@ -205,6 +209,32 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 	b.opt.LocalRegistryAddr = addr
 
 	return closeFn, true
+}
+
+// useSecondaryProxy detects if we're on Mac (Darwin) or running on Windows in WSL2 or otherwise.
+func useSecondaryProxy() (bool, error) {
+	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+		return true, nil
+	}
+	versionFile := "/proc/version"
+	_, err := os.Stat(versionFile)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, errors.Wrapf(err, "failed to stat %s", versionFile)
+	}
+	f, err := os.Open(versionFile)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to open %s", versionFile)
+	}
+	defer f.Close()
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to read %s", versionFile)
+	}
+	s := string(data)
+	return strings.Contains(s, "WSL2"), nil
 }
 
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {

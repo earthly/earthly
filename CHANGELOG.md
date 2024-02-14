@@ -9,6 +9,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - The internal `dockerd-wrapper.sh` script, which is used to implement `WITH DOCKER`, will execute `/usr/share/earthly/dockerd-wrapper-pre-script`, if present, prior to starting the
   inner dockerd process. This can be used to configure options that depend on the host's kernel at run-time.
 
+### Fixed
+
+- Fixes an issue with the registry proxy (used for faster image & artifact exporting) on Docker Desktop for Windows/WSL. [#3769](https://github.com/earthly/earthly/issues/3769)
+
 ## v0.8.3 - 2024-01-31
 
 ### Fixed
