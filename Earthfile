@@ -462,13 +462,21 @@ earthly-docker:
     WORKDIR /workspace
     COPY (+earthly/earthly --VERSION=$TAG --DEFAULT_INSTALLATION_NAME="earthly") /usr/bin/earthly
 
+#mkfile:
+#    FROM busybox
+#    ARG count
+#    RUN dd if=/dev/random of=/the-data bs=1024 count=$count
+#    SAVE ARTIFACT /the-data
+
 dummy:
     FROM alpine
-    RUN for i in a b c; do echo $i > $i.files; done
-    SAVE ARTIFACT *.files
+    COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
+    ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
+    WORKDIR /workspace
+    COPY +earthly/earthly /usr/bin/earthly
 
 multi:
-   FROM +earthly-docker
+   FROM +dummy
    ARG i
    IF [ "$i" -gt 2 ]
      RUN echo $i is big
