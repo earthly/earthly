@@ -461,23 +461,23 @@ earthly-docker:
     ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
     WORKDIR /workspace
     COPY (+earthly/earthly --VERSION=$TAG --DEFAULT_INSTALLATION_NAME="earthly") /usr/bin/earthly
-    ARG DOCKERHUB_USER="earthly"
-    ARG DOCKERHUB_IMG="earthly"
-    # Multiple SAVE IMAGE's lead to differing image digests, but multiple
-    # arguments to the save SAVE IMAGE do not. Using variables here doesn't work
-    # either, unfortunately, as the names are quoted and treated as a single arg.
-    #IF [ "$PUSH_LATEST_TAG" == "true" ]
-    #   SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG $DOCKERHUB_USER/$DOCKERHUB_IMG:latest
-    #ELSE IF [ "$PUSH_PRERELEASE_TAG" == "true" ]
-    #   SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG $DOCKERHUB_USER/$DOCKERHUB_IMG:prerelease
-    #ELSE
-    #   SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG
-    #END
 
 dummy:
     FROM alpine
     RUN for i in a b c; do echo $i > $i.files; done
     SAVE ARTIFACT *.files
+
+multi:
+   FROM +earthly-docker
+   ARG i
+   IF [ "$i" -gt 2 ]
+     RUN echo $i is big
+   ELSE
+     RUN echo $i is small
+   END
+
+breakit:
+   BUILD +multi --i=0 --i=1 --i=2 --i=3 --i=4
 
 # earthly-integration-test-base builds earthly docker and then
 # if no dockerhub mirror is not set it will attempt to login to dockerhub using the provided docker hub username and token.
