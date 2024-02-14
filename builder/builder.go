@@ -225,6 +225,9 @@ func useSecondaryProxy() (bool, error) {
 		return false, errors.Wrapf(err, "failed to stat %s", versionFile)
 	}
 	f, err := os.Open(versionFile)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to open %s", versionFile)
+	}
 	defer f.Close()
 	data, err := io.ReadAll(f)
 	if err != nil {
