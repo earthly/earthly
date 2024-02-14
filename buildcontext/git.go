@@ -74,7 +74,8 @@ func (gr *gitResolver) expandWildcard(ctx context.Context, gwClient gwclient.Cli
 
 	rgp, _, subDir, err := gr.resolveGitProject(ctx, gwClient, platr, target)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed resolving git project [platform: %s/%s]",
+			platr.LLBNative().OS, platr.LLBNative().Architecture)
 	}
 
 	fullPattern := filepath.Join(subDir, pattern)
@@ -106,7 +107,8 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 	}
 	rgp, gitURL, subDir, err := gr.resolveGitProject(ctx, gwClient, platr, ref)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed resolving git project [platform: %s/%s]",
+			platr.LLBNative().OS, platr.LLBNative().Architecture)
 	}
 
 	var buildContextFactory llbfactory.Factory
