@@ -1987,6 +1987,12 @@ func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
 	if !path.IsAbs(dir) {
 		dir = path.Clean(path.Join("/", i.converter.mts.Final.MainImage.Config.WorkingDir, dir))
 	}
+	if opts.ID != "" {
+		opts.ID, err = i.expandArgs(ctx, opts.ID, false, false)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand CACHE id %s", opts.ID)
+		}
+	}
 	if err := i.converter.Cache(ctx, dir, opts); err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply CACHE")
 	}
