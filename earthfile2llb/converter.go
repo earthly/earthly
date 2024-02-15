@@ -2535,7 +2535,7 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 	}
 }
 
-func (c *Converter) vertexPrefix(ctx context.Context, cmdID int, local bool, interactive bool, internal bool, secrets []string) string {
+func (c *Converter) vertexPrefix(ctx context.Context, cmdID int, local, interactive, internal bool, secrets []string) string {
 	activeOverriding := make(map[string]string)
 	for _, arg := range c.varCollection.SortedOverridingVariables() {
 		v, ok := c.varCollection.Get(arg, variables.WithActive())
