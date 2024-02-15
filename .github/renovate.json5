@@ -50,6 +50,7 @@
         '(:|\\s+)earthly/earthly:(?<currentValue>.+?)[\\s\\n/]+',
         'the `latest` tag is `(?<currentValue>.+?)`',
         'earthly/compare/(?<currentValue>.+?)\\.\\.\\.main',
+        'earthly/satellite:(?<currentValue>.+?)\\n',
       ],
       depNameTemplate: 'earthly/earthly',
       datasourceTemplate: 'github-releases',

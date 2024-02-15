@@ -4,7 +4,7 @@ This page describes how to manage [Earthly Satellites](../satellites.md).
 
 ## Launching and removing satellites
 
-To launch a new satellite, run:
+To launch a new satellite on Earthly Cloud, run:
 
 ```bash
 earthly sat launch <satellite-name>
@@ -25,6 +25,8 @@ To remove a satellite, you can run:
 ```bash
 earthly sat rm <satellite-name>
 ```
+
+Note that [Self-Hosted Satellites](self-hosted.md) are created by running the satellite process directly, instead of using the `launch` command.
 
 ## Listing satellites
 
@@ -78,7 +80,7 @@ Currently selected: No
 
 ## Clearing cache
 
-There are two ways to clear the cache on satellite.
+There are two ways to clear the cache on a satellite. One may be faster than the other, depending on the size of the cache.
 
 ### Recreating the Underlying Satellite Instance (often faster)
 
@@ -88,7 +90,10 @@ Note that this operation can take a while, and the satellite may also receive an
 ```bash
 earthly satellite update --drop-cache my-satellite
 ```
-### Using the prune command (slower)
+
+Note: the `update` comamnd only works with Earthly Cloud satellites.
+
+### Using the prune command
 
 The `earthly prune` command also works on satellites.
 It usually takes longer than running `satellite update`; however, it does not trigger a relaunch.
@@ -100,7 +105,9 @@ earthly prune -a
 
 ## Updating a satellite
 
-Satellites receive version updates by default, unless they are pinned to a specific version (by using the `--version` launch flag).
+The steps below apply only to Earthly Cloud satellites. For [Self-Hosted Satellites](self-hosted.md), you must upgrade the version being used in your deployment manually.
+
+Earthly Cloud Satellites receive automatic version updates by default, unless they are pinned to a specific version (by using the `--version` launch flag).
 Pinned versions will still receive minor patches, such as security updates.
 
 ### Auto-Update Maintenance Windows
@@ -205,7 +212,7 @@ You can view your current satellite version and revision number using the `earth
 
 ## Managing instance state
 
-To save costs, satellites automatically enter a **sleep** state after 30 min of inactivity. While a satellite is asleep, you are not billed for any compute minutes.
+To save costs, Earthly Cloud satellites automatically enter a **sleep** state after 30 min of inactivity. While a satellite is asleep, you are not billed for any compute minutes.
 
 The satellite will automatically **wake up** when a new build is started while it's in a sleep state. This is visible during the `Init` phase of the Earthly log.
 
@@ -235,4 +242,4 @@ Once a user has been invited, you can forward them a link to the page [Using Sat
 
 ## Satellite IP address
 
-The source IP address of the satellite for all internet traffic is `35.160.176.56`. This can be used for granting access to private resources or to production environments.
+The source IP address of an Earthly Cloud satellite for all internet traffic is `35.160.176.56`. This can be used for granting access to private resources or to production environments.
