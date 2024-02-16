@@ -2,7 +2,11 @@
 
 This page describes how to manage [Earthly Satellites](../satellites.md).
 
-## Launching and removing satellites
+## Launching a new satellite
+
+Satellites are launched in one of the following two ways, depending on which kind of satellite you intend on creating.
+
+### Earthly Cloud
 
 To launch a new satellite on Earthly Cloud, run:
 
@@ -20,13 +24,29 @@ earthly sat launch <satellite-name>
 
 Once the satellite is created it will be automatically selected for use as part of your builds. The selection takes place by Earthly adding some information in your Earthly config file (usually located under `~/.earthly/config.yml`).
 
-To remove a satellite, you can run:
+### Self-Hosted
+
+Self-Hosted Satellites are created by running the satellite container directly. See the [self-hosted guide](self-hosted.md) for instructions.
+
+## Removing a satellite
+
+Satellites are removed in one of the following two ways, depending on where they are deployed.
+
+### Earthly Cloud
+
+To remove a satellite from Earthly Cloud, you can run:
 
 ```bash
 earthly sat rm <satellite-name>
 ```
 
-Note that [Self-Hosted Satellites](self-hosted.md) are created by running the satellite process directly, instead of using the `launch` command.
+Note that it is best to remove a satellite while it is asleep, to prevent accidentally cancelling an ongoing build.
+
+### Self-Hosted
+
+Self-Hosted Satellites are typically removed by gracefully terminating the satellite container directly. Once the satellite has terminated, it will continue listing in an `offline` state in the output of `satellite ls`. This record is for historical or debugging purposes, however, it can be permanently removed by running `satellite rm <name>`.
+
+See the [self-hosted guide](self-hosted.md) for more details.
 
 ## Listing satellites
 

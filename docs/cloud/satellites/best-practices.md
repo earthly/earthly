@@ -92,3 +92,9 @@ On top of the metrics mentioned above, these other symptoms may indicate an over
 * Unexpected build failures or crashes during a build
 
 If you are unsure that your satellite is overloaded, please reach out via [email](mailto:support@earthly.dev) or our [Community Slack channel](https://earthly.dev/slack). An Earthly team member will be happy to investigate your instance and provide advice.
+
+## Limiting Unnecessary Outputs
+
+By default, Earthly outputs artifacts or images locally at the end of the build. When running in CI, however, these artifacts may not actually be needed locally. For example, when your earthly build pushes an image to an external registry, but you do not actually need a copy of that image to be downloaded back to your CI runner.
+
+Using the [`--ci` flag](../../../guides/best-practices.md#use-ci-when-running-in-ci) can result in better performance, especially when using satellites, since the output will run over the network.
