@@ -2,7 +2,6 @@ package earthfile2llb
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
@@ -186,22 +185,19 @@ type ConvertOpt struct {
 	// this can be removed in VERSION 0.8
 	FilesWithCommandRenameWarning map[string]bool
 
-	// ParentTargetID is the Logbus target ID of the parent target, if any. It
+	// parentTargetID is the Logbus target ID of the parent target, if any. It
 	// is used to link together targets.
-	ParentTargetID string
+	parentTargetID string
 
-	// ParentCommandID is the Logbus command ID of whichever command initiated
+	// parentCommandID is the Logbus command ID of whichever command initiated
 	// the convert operation. It's used to link commands to their referenced targets.
-	ParentCommandID string
+	parentCommandID string
 
 	// BuildkitSkipper allows for additions and existence checks for auto-skip hash values.
 	BuildkitSkipper bk.BuildkitSkipper
 
 	// NoAutoSkip disables auto-skip usages.
 	NoAutoSkip bool
-
-	// BuildCommand reflects whether the convert was initialized by a BUILD.
-	BuildCommand bool
 }
 
 // TargetDetails contains details about the target being built.
@@ -285,17 +281,15 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		return nil, err
 	}
 
-	if opt.ParentTargetID != "" {
-		if parentTarget, ok := opt.Logbus.Run().Target(opt.ParentTargetID); ok {
+	if opt.parentTargetID != "" {
+		if parentTarget, ok := opt.Logbus.Run().Target(opt.parentTargetID); ok {
 			parentTarget.AddDependsOn(sts.ID)
 		}
 	}
 
-	if opt.ParentCommandID != "" {
-		fmt.Println("Parent command ID", opt.ParentCommandID)
-		if _, ok := opt.Logbus.Run().Command(opt.ParentCommandID); ok {
-			fmt.Printf("Linking target to %q\n", opt.ParentCommandID)
-			//parentCmd.AddDependsOn(sts.ID)
+	if opt.parentCommandID != "" {
+		if parentCmd, ok := opt.Logbus.Run().Command(opt.parentCommandID); ok {
+			parentCmd.AddDependsOn(sts.ID, target.GetName())
 		}
 	}
 

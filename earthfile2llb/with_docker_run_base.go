@@ -71,7 +71,7 @@ func (w *withDockerRunBase) installDeps(ctx context.Context, opt WithDockerOpt) 
 			dockerAutoInstallScriptPath),
 	}
 	vm := w.c.vertexMeta(ctx, w.c.newCmdID(), false, false, false, opt.Secrets)
-	err := w.c.newLogbusCommand(ctx, vm)
+	err := w.c.newLogbusCommandFromVertex(ctx, vm)
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func (w *withDockerRunBase) getComposeConfig(ctx context.Context, opt WithDocker
 			dockerdWrapperPath),
 	}
 	vm := w.c.vertexMeta(ctx, w.c.newCmdID(), false, false, false, opt.Secrets)
-	err := w.c.newLogbusCommand(ctx, vm)
+	err := w.c.newLogbusCommandFromVertex(ctx, vm)
 	if err != nil {
 		return nil, err
 	}

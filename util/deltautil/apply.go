@@ -183,6 +183,9 @@ func setManifestFields(dm *pb.DeltaManifest, ret *pb.RunManifest) {
 		if c2.GetHasSourceLocation() {
 			c.SourceLocation = c2.GetSourceLocation()
 		}
+		if len(c2.GetDependsOn()) > 0 {
+			c.DependsOn = append(c.DependsOn, c2.GetDependsOn()...)
+		}
 	}
 }
 

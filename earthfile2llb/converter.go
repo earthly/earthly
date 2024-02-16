@@ -115,7 +115,6 @@ type Converter struct {
 	waitBlockStack      []*waitBlock
 	isPipeline          bool
 	logbusTarget        *logbus.Target
-	logbusCommand       *logbus.Command
 	nextCmdID           int
 }
 
@@ -162,35 +161,6 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 
 	logbusTarget.SetStart(time.Now())
 
-	var logbusCommand *logbus.Command
-
-	if opt.BuildCommand {
-		cmdID := fmt.Sprintf("target-command-%s", sts.ID)
-		var gitURL, gitHash, fileRelToRepo string
-		if gitMeta := bc.GitMetadata; gitMeta != nil {
-			gitURL = gitMeta.RemoteURL
-			gitHash = gitMeta.Hash
-			fileRelToRepo = path.Join(gitMeta.RelDir, "Earthfile")
-		}
-		logbusCommand, err = run.NewCommand(
-			cmdID,
-			"build",
-			sts.ID,
-			target.String(),
-			opt.PlatformResolver.Materialize(opt.PlatformResolver.Current()).String(),
-			false, // cached
-			false, // local
-			false, // interactive
-			SourceLocationFromContext(ctx),
-			gitURL,
-			gitHash,
-			fileRelToRepo,
-		)
-		if err != nil {
-			return nil, errors.Wrap(err, "new logbus command")
-		}
-	}
-
 	c := &Converter{
 		target:              target,
 		gitMeta:             bc.GitMetadata,
@@ -206,7 +176,6 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		containerFrontend:   opt.ContainerFrontend,
 		waitBlockStack:      []*waitBlock{opt.waitBlock},
 		logbusTarget:        logbusTarget,
-		logbusCommand:       logbusCommand,
 	}
 
 	if c.opt.GlobalWaitBlockFtr {
@@ -254,7 +223,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 		internal = false
 	}
 	vm := c.vertexMeta(ctx, c.newCmdID(), local, false, internal, nil)
-	err := c.newLogbusCommand(ctx, vm)
+	err := c.newLogbusCommandFromVertex(ctx, vm)
 	if err != nil {
 		return err
 	}
@@ -271,24 +240,42 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	return nil
 }
 
-func (c *Converter) fromTarget(ctx context.Context, targetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string) error {
+func (c *Converter) fromTarget(ctx context.Context, targetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string) (retErr error) {
+	cmdID, cmd, err := c.newLogbusCommand(ctx, fmt.Sprintf("FROM %s", targetName))
+	if err != nil {
+		return errors.Wrap(err, "failed to create command")
+	}
+
+	defer func() {
+		if retErr != nil {
+			cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_FAILURE, retErr.Error())
+			return
+		}
+		cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS, "")
+	}()
+
 	depTarget, err := domain.ParseTarget(targetName)
 	if err != nil {
 		return errors.Wrapf(err, "parse target name %s", targetName)
 	}
-	mts, err := c.buildTarget(ctx, depTarget.String(), platform, allowPrivileged, passArgs, buildArgs, false, fromCmd, "")
+
+	mts, err := c.buildTarget(ctx, depTarget.String(), platform, allowPrivileged, passArgs, buildArgs, false, fromCmd, cmdID)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
+
 	if mts.Final.RanInteractive {
 		return errors.New("cannot FROM a target ending with an --interactive")
 	}
+
 	if depTarget.IsLocalInternal() {
 		depTarget.LocalPath = c.mts.Final.Target.LocalPath
 	}
+
 	// Look for the built state in the dep states, after we've built it.
 	relevantDepState := mts.Final
 	saveImage := relevantDepState.LastSaveImage()
+
 	// Pass on dep state over to this state.
 	c.mts.Final.MainState = relevantDepState.MainState
 	c.varCollection.ResetEnvVars(mts.Final.VarCollection.EnvVars())
@@ -296,11 +283,12 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	c.mts.Final.RanFromLike = mts.Final.RanFromLike
 	c.mts.Final.RanInteractive = mts.Final.RanInteractive
 	c.platr.UpdatePlatform(mts.Final.PlatformResolver.Current())
+
 	return nil
 }
 
 // FromDockerfile applies the earthly FROM DOCKERFILE command.
-func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform platutil.Platform, buildArgs []string) error {
+func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform platutil.Platform, buildArgs []string) (retErr error) {
 	var err error
 	ctx, err = c.ftrs.WithContext(ctx)
 	if err != nil {
@@ -317,12 +305,23 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	platform = c.setPlatform(platform)
 	plat := c.platr.ToLLBPlatform(platform)
 	c.nonSaveCommand()
+	cmdID, cmd, err := c.newLogbusCommand(ctx, fmt.Sprintf("FROM DOCKERFILE %s", dfPath))
+	if err != nil {
+		return errors.Wrap(err, "failed to create command")
+	}
+	defer func() {
+		if retErr != nil {
+			cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_FAILURE, retErr.Error())
+			return
+		}
+		cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS, "")
+	}()
 	var dfData []byte
 	if dfPath != "" {
 		dfArtifact, parseErr := domain.ParseArtifact(dfPath)
 		if parseErr == nil {
 			// The Dockerfile is from a target's artifact.
-			mts, err := c.buildTarget(ctx, dfArtifact.Target.String(), platform, false, false, buildArgs, false, fromDockerfileCmd, "")
+			mts, err := c.buildTarget(ctx, dfArtifact.Target.String(), platform, false, false, buildArgs, false, fromDockerfileCmd, cmdID)
 			if err != nil {
 				return err
 			}
@@ -357,7 +356,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	if parseErr == nil {
 		cmdID := c.newCmdID()
 		vm := c.vertexMeta(ctx, cmdID, false, false, true, nil)
-		err = c.newLogbusCommand(ctx, vm)
+		err = c.newLogbusCommandFromVertex(ctx, vm)
 		if err != nil {
 			return err
 		}
@@ -509,7 +508,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 	}
 	cmdID := c.newCmdID()
 	vm := c.vertexMeta(ctx, cmdID, false, false, false, nil)
-	err = c.newLogbusCommand(ctx, vm)
+	err = c.newLogbusCommandFromVertex(ctx, vm)
 	if err != nil {
 		return err
 	}
@@ -565,7 +564,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	}
 	cmdID := c.newCmdID()
 	vm := c.vertexMeta(ctx, cmdID, false, false, false, nil)
-	err = c.newLogbusCommand(ctx, vm)
+	err = c.newLogbusCommandFromVertex(ctx, vm)
 	if err != nil {
 		return err
 	}
@@ -620,7 +619,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 
 	c.nonSaveCommand()
 	vm := c.vertexMeta(ctx, c.newCmdID(), false, false, false, nil)
-	err = c.newLogbusCommand(ctx, vm)
+	err = c.newLogbusCommandFromVertex(ctx, vm)
 	if err != nil {
 		return err
 	}
@@ -706,7 +705,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 	} else {
 		exitCodeFile = "/tmp/earthly_if_statement_exit_code"
 		vm := c.vertexMeta(ctx, c.newCmdID(), false, false, true, nil)
-		err = c.newLogbusCommand(ctx, vm)
+		err = c.newLogbusCommandFromVertex(ctx, vm)
 		if err != nil {
 			return 0, err
 		}
@@ -803,7 +802,7 @@ func (c *Converter) runCommand(ctx context.Context, outputFileName string, isExp
 	} else {
 		srcBuildArgDir := "/run/buildargs"
 		vm := c.vertexMeta(ctx, c.newCmdID(), false, false, true, nil)
-		err = c.newLogbusCommand(ctx, vm)
+		err = c.newLogbusCommandFromVertex(ctx, vm)
 		if err != nil {
 			return "", err
 		}
@@ -894,7 +893,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLo
 	pcState := c.persistCache(c.mts.Final.MainState)
 
 	vm := c.vertexMeta(ctx, c.newCmdID(), false, false, false, nil)
-	err = c.newLogbusCommand(ctx, vm)
+	err = c.newLogbusCommandFromVertex(ctx, vm)
 	if err != nil {
 		return err
 	}
@@ -918,7 +917,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLo
 		if isPush {
 			pushState := c.persistCache(c.mts.Final.RunPush.State)
 			vm := c.vertexMeta(ctx, c.newCmdID(), false, false, false, nil)
-			err = c.newLogbusCommand(ctx, vm)
+			err = c.newLogbusCommandFromVertex(ctx, vm)
 			if err != nil {
 				return err
 			}
@@ -939,7 +938,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLo
 			}
 		} else {
 			vm := c.vertexMeta(ctx, c.newCmdID(), false, false, false, nil)
-			err = c.newLogbusCommand(ctx, vm)
+			err = c.newLogbusCommandFromVertex(ctx, vm)
 			if err != nil {
 				return err
 			}
@@ -1051,7 +1050,7 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 
 	// first load the files into a snapshot
 	vm := c.vertexMeta(ctx, c.newCmdID(), true, false, true, nil)
-	err = c.newLogbusCommand(ctx, vm)
+	err = c.newLogbusCommandFromVertex(ctx, vm)
 	if err != nil {
 		return err
 	}
@@ -1222,9 +1221,23 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform p
 	if err != nil {
 		return err
 	}
+
 	c.nonSaveCommand()
-	_, err = c.buildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, true, buildCmd, "")
-	return err
+
+	cmdID, cmd, err := c.newLogbusCommand(ctx, fmt.Sprintf("BUILD %s", fullTargetName))
+	if err != nil {
+		return errors.Wrap(err, "failed to create command")
+	}
+
+	_, err = c.buildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, true, buildCmd, cmdID)
+	if err != nil {
+		cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_FAILURE, err.Error())
+		return err
+	}
+
+	cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS, "")
+
+	return nil
 }
 
 type afterParallelFunc func(context.Context, *states.MultiTarget) error
@@ -1290,7 +1303,7 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 			mkdirOpts = append(mkdirOpts, llb.WithUser(c.mts.Final.MainImage.Config.User))
 		}
 		vm := c.vertexMeta(ctx, c.newCmdID(), false, false, false, nil)
-		err = c.newLogbusCommand(ctx, vm)
+		err = c.newLogbusCommandFromVertex(ctx, vm)
 		if err != nil {
 			return err
 		}
@@ -1521,7 +1534,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, sshCommand stri
 	}
 	gitState := pllb.Git(gitURL, branch, gitOpts...)
 	vm := c.vertexMeta(ctx, c.newCmdID(), false, false, false, nil)
-	err = c.newLogbusCommand(ctx, vm)
+	err = c.newLogbusCommandFromVertex(ctx, vm)
 	if err != nil {
 		return err
 	}
@@ -1870,9 +1883,6 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		now := time.Now()
 		st := logstream.RunStatus_RUN_STATUS_SUCCESS
 		c.logbusTarget.SetEnd(now, st, c.platr.Current().String())
-		if c.logbusCommand != nil {
-			c.logbusCommand.SetEnd(now, st, "")
-		}
 		return nil
 	})
 	return c.mts, nil
@@ -1889,9 +1899,6 @@ func (c *Converter) RecordTargetFailure(ctx context.Context, err error) {
 	}
 	now := time.Now()
 	c.logbusTarget.SetEnd(now, st, c.platr.Current().String())
-	if c.logbusCommand != nil {
-		c.logbusCommand.SetEnd(now, st, err.Error())
-	}
 }
 
 var errShellOutNotPermitted = errors.New("shell-out not permitted")
@@ -2044,9 +2051,8 @@ func (c *Converter) prepBuildTarget(
 	opt.PlatformResolver = c.platr.SubResolver(platform)
 	opt.HasDangling = isDangling
 	opt.AllowPrivileged = allowPrivileged
-	opt.ParentTargetID = c.mts.Final.ID
-	opt.ParentCommandID = parentCmdID
-	opt.BuildCommand = cmdT == buildCmd
+	opt.parentTargetID = c.mts.Final.ID
+	opt.parentCommandID = parentCmdID
 
 	if cmdT == buildCmd {
 		// only BUILD commands get propagated
@@ -2216,7 +2222,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		strIf(opts.InteractiveKeep, "--interactive-keep "),
 		strings.Join(opts.Args, " "))
 	vm := c.vertexMeta(ctx, c.newCmdID(), opts.Locally, isInteractive, false, opts.Secrets)
-	err = c.newLogbusCommand(ctx, vm)
+	err = c.newLogbusCommandFromVertex(ctx, vm)
 	if err != nil {
 		return pllb.State{}, err
 	}
@@ -2653,7 +2659,43 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 	}
 }
 
-func (c *Converter) newLogbusCommand(ctx context.Context, vm *vertexmeta.VertexMeta) error {
+func (c *Converter) newLogbusCommand(ctx context.Context, name string) (string, *logbus.Command, error) {
+
+	cmdID := fmt.Sprintf("%s/%d", c.mts.Final.ID, c.newCmdID())
+
+	var gitURL, gitHash, fileRelToRepo string
+	if c.gitMeta != nil {
+		gitURL = c.gitMeta.RemoteURL
+		gitHash = c.gitMeta.Hash
+		fileRelToRepo = path.Join(c.gitMeta.RelDir, "Earthfile")
+	}
+
+	platform := c.platr.Materialize(c.platr.Current())
+
+	cmd, err := c.opt.Logbus.Run().NewCommand(
+		cmdID,
+		name,
+		c.mts.Final.ID,
+		c.mts.Final.Target.String(),
+		platform.String(),
+		false, // cached
+		false, // local
+		false, // interactive
+		SourceLocationFromContext(ctx),
+		gitURL,
+		gitHash,
+		fileRelToRepo,
+	)
+	if err != nil {
+		return "", nil, err
+	}
+
+	cmd.SetStart(time.Now())
+
+	return cmdID, cmd, nil
+}
+
+func (c *Converter) newLogbusCommandFromVertex(ctx context.Context, vm *vertexmeta.VertexMeta) error {
 	_, err := c.opt.Logbus.Run().NewCommand(
 		vm.CommandID,
 		"unknown",

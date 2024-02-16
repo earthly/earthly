@@ -3,7 +3,9 @@ package earthfile2llb
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
@@ -29,19 +31,32 @@ func newWithDockerRunLocalReg(c *Converter, enableParallel bool) *withDockerRunL
 	}
 }
 
-func (w *withDockerRunLocalReg) Run(ctx context.Context, args []string, opt WithDockerOpt) error {
+func (w *withDockerRunLocalReg) Run(ctx context.Context, args []string, opt WithDockerOpt) (retErr error) {
 	err := w.c.checkAllowed(runCmd)
 	if err != nil {
 		return err
 	}
 	w.c.nonSaveCommand()
 
+	cmdID, cmd, err := w.c.newLogbusCommand(ctx, "WITH DOCKER RUN")
+	if err != nil {
+		return errors.Wrap(err, "failed to create command")
+	}
+
+	defer func() {
+		if retErr != nil {
+			cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_FAILURE, retErr.Error())
+			return
+		}
+		cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS, "")
+	}()
+
 	var imagesToBuild []*states.ImageDef
 
 	// Build and solve images to be loaded.
 	imageDefChans := make([]chan *states.ImageDef, 0, len(opt.Loads))
 	for _, loadOpt := range opt.Loads {
-		imageDefChan, err := w.load(ctx, loadOpt)
+		imageDefChan, err := w.load(ctx, cmdID, loadOpt)
 		if err != nil {
 			return errors.Wrap(err, "load")
 		}
@@ -118,7 +133,7 @@ func (w *withDockerRunLocalReg) Run(ctx context.Context, args []string, opt With
 	return w.c.forceExecution(ctx, w.c.mts.Final.MainState, w.c.platr)
 }
 
-func (w *withDockerRunLocalReg) load(ctx context.Context, opt DockerLoadOpt) (chan *states.ImageDef, error) {
+func (w *withDockerRunLocalReg) load(ctx context.Context, cmdID string, opt DockerLoadOpt) (chan *states.ImageDef, error) {
 	imageDefChan := make(chan *states.ImageDef, 1)
 
 	depTarget, err := domain.ParseTarget(opt.Target)

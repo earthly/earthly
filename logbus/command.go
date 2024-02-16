@@ -28,6 +28,7 @@ type Command struct {
 	mu           sync.Mutex
 	started      atomic.Bool
 	lastProgress atomic.Int32
+	dependsOn    map[string]struct{}
 }
 
 func newCommand(b *Bus, commandID string, targetID string) *Command {
@@ -40,6 +41,7 @@ func newCommand(b *Bus, commandID string, targetID string) *Command {
 		commandID:  commandID,
 		targetID:   targetID,
 		tailOutput: to,
+		dependsOn:  map[string]struct{}{},
 	}
 }
 
@@ -80,6 +82,28 @@ func (c *Command) SetStart(start time.Time) {
 	c.commandDelta(&logstream.DeltaCommandManifest{
 		StartedAtUnixNanos: c.b.TsUnixNanos(start),
 		Status:             logstream.RunStatus_RUN_STATUS_IN_PROGRESS,
+	})
+}
+
+// AddDependsOn creates a delta that will be used to merge the specified target
+// ID & name into the command's list of targets on which it depends.
+func (t *Command) AddDependsOn(targetID, refName string) {
+	// Only add the dependency link once to avoid sending duplicates to Logstream.
+	t.mu.Lock()
+	if _, ok := t.dependsOn[targetID]; ok {
+		defer t.mu.Unlock()
+		return
+	}
+	t.dependsOn[targetID] = struct{}{}
+	t.mu.Unlock()
+
+	t.commandDelta(&logstream.DeltaCommandManifest{
+		DependsOn: []*logstream.CommandTarget{
+			{
+				TargetId:       targetID,
+				ReferencedName: refName,
+			},
+		},
 	})
 }
 
