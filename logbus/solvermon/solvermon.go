@@ -74,11 +74,13 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 	for _, vertex := range status.Vertexes {
 		meta, operation := vertexmeta.ParseFromVertexPrefix(vertex.Name)
 		var cmdID string
+		createCmd := true
 		switch {
 		case meta.TargetName == "context":
 			cmdID = operation
 		case meta.CommandID != "":
-			cmdID = fmt.Sprintf("%s/%s", meta.TargetID, meta.CommandID)
+			cmdID = meta.CommandID
+			createCmd = false
 		default:
 			cmdID = vertex.Digest.String()
 		}
@@ -86,17 +88,30 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 		if exists {
 			sm.digests[vertex.Digest] = cmdID
 		} else {
-			// TODO(vladaionescu): Should logbus commands be created in the converter instead?
 			category := meta.TargetName
 			if meta.Internal {
 				category = fmt.Sprintf("internal %s", category)
 			}
-			cp, err := bp.NewCommand(
-				cmdID, operation, meta.TargetID, category, meta.Platform,
-				vertex.Cached, meta.Local, meta.Interactive, meta.SourceLocation,
-				meta.RepoGitURL, meta.RepoGitHash, meta.RepoFileRelToRepo)
-			if err != nil {
-				return err
+			var cp *logbus.Command
+			// Operations initiated from Earthly have created Logbus commands
+			// ahead-of-time. Others may originate from BuildKit, so we'll have
+			// to create a command at this point.
+			if createCmd {
+				var err error
+				cp, err = bp.NewCommand(
+					cmdID, operation, meta.TargetID, category, meta.Platform,
+					vertex.Cached, meta.Local, meta.Interactive, meta.SourceLocation,
+					meta.RepoGitURL, meta.RepoGitHash, meta.RepoFileRelToRepo)
+				if err != nil {
+					return err
+				}
+			} else {
+				var ok bool
+				cp, ok = bp.Command(cmdID)
+				if !ok {
+					return errors.Errorf("expected command not found: %s", cmdID)
+				}
+				cp.SetName(operation) // Command created prior may not have a full name.
 			}
 			vm = &vertexMonitor{
 				vertex:    vertex,

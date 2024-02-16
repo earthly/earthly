@@ -115,6 +115,7 @@ type Converter struct {
 	waitBlockStack      []*waitBlock
 	isPipeline          bool
 	logbusTarget        *logbus.Target
+	logbusCommand       *logbus.Command
 	nextCmdID           int
 }
 
@@ -146,7 +147,9 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		ovVars = append(ovVars, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	logbusTarget, err := opt.Logbus.Run().NewTarget(
+	run := opt.Logbus.Run()
+
+	logbusTarget, err := run.NewTarget(
 		sts.ID,
 		target,
 		ovVars,
@@ -158,6 +161,35 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 	}
 
 	logbusTarget.SetStart(time.Now())
+
+	var logbusCommand *logbus.Command
+
+	if opt.BuildCommand {
+		cmdID := fmt.Sprintf("target-command-%s", sts.ID)
+		var gitURL, gitHash, fileRelToRepo string
+		if gitMeta := bc.GitMetadata; gitMeta != nil {
+			gitURL = gitMeta.RemoteURL
+			gitHash = gitMeta.Hash
+			fileRelToRepo = path.Join(gitMeta.RelDir, "Earthfile")
+		}
+		logbusCommand, err = run.NewCommand(
+			cmdID,
+			"build",
+			sts.ID,
+			target.String(),
+			opt.PlatformResolver.Materialize(opt.PlatformResolver.Current()).String(),
+			false, // cached
+			false, // local
+			false, // interactive
+			SourceLocationFromContext(ctx),
+			gitURL,
+			gitHash,
+			fileRelToRepo,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "new logbus command")
+		}
+	}
 
 	c := &Converter{
 		target:              target,
@@ -174,6 +206,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		containerFrontend:   opt.ContainerFrontend,
 		waitBlockStack:      []*waitBlock{opt.waitBlock},
 		logbusTarget:        logbusTarget,
+		logbusCommand:       logbusCommand,
 	}
 
 	if c.opt.GlobalWaitBlockFtr {
@@ -220,9 +253,14 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	} else {
 		internal = false
 	}
+	vm := c.vertexMeta(ctx, c.newCmdID(), local, false, internal, nil)
+	err := c.newLogbusCommand(ctx, vm)
+	if err != nil {
+		return err
+	}
 	state, img, envVars, err := c.internalFromClassical(
 		ctx, imageName, platform,
-		llb.WithCustomNamef("%sFROM %s", c.vertexPrefix(ctx, c.newCmdID(), local, false, internal, nil), imageName))
+		llb.WithCustomNamef("%sFROM %s", vm.ToVertexPrefix(), imageName))
 	if err != nil {
 		return err
 	}
@@ -238,7 +276,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	if err != nil {
 		return errors.Wrapf(err, "parse target name %s", targetName)
 	}
-	mts, err := c.buildTarget(ctx, depTarget.String(), platform, allowPrivileged, passArgs, buildArgs, false, fromCmd)
+	mts, err := c.buildTarget(ctx, depTarget.String(), platform, allowPrivileged, passArgs, buildArgs, false, fromCmd, "")
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", depTarget.String())
 	}
@@ -284,7 +322,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		dfArtifact, parseErr := domain.ParseArtifact(dfPath)
 		if parseErr == nil {
 			// The Dockerfile is from a target's artifact.
-			mts, err := c.buildTarget(ctx, dfArtifact.Target.String(), platform, false, false, buildArgs, false, fromDockerfileCmd)
+			mts, err := c.buildTarget(ctx, dfArtifact.Target.String(), platform, false, false, buildArgs, false, fromDockerfileCmd, "")
 			if err != nil {
 				return err
 			}
@@ -317,10 +355,16 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	var BuildContextFactory llbfactory.Factory
 	contextArtifact, parseErr := domain.ParseArtifact(contextPath)
 	if parseErr == nil {
+		cmdID := c.newCmdID()
+		vm := c.vertexMeta(ctx, cmdID, false, false, true, nil)
+		err = c.newLogbusCommand(ctx, vm)
+		if err != nil {
+			return err
+		}
 		// The build context is from a target's artifact.
 		// TODO: The build args are used for both the artifact and the Dockerfile. This could be
 		//       confusing to the user.
-		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), platform, false, false, buildArgs, false, fromDockerfileCmd)
+		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), platform, false, false, buildArgs, false, fromDockerfileCmd, vm.CommandID)
 		if err != nil {
 			return err
 		}
@@ -339,7 +383,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 			c.ftrs.UseCopyLink,
 			llb.WithCustomNamef(
 				"%sFROM DOCKERFILE (copy build context from) %s%s",
-				c.vertexPrefix(ctx, c.newCmdID(), false, false, true, nil),
+				vm.ToVertexPrefix(),
 				joinWrap(buildArgs, "(", " ", ") "), contextArtifact.String()))
 		if err != nil {
 			return errors.Wrapf(err, "copyOp FROM DOCKERFILE")
@@ -463,7 +507,13 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, allowPrivileged, passArgs, buildArgs, false, copyCmd)
+	cmdID := c.newCmdID()
+	vm := c.vertexMeta(ctx, cmdID, false, false, false, nil)
+	err = c.newLogbusCommand(ctx, vm)
+	if err != nil {
+		return err
+	}
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, allowPrivileged, passArgs, buildArgs, false, copyCmd, vm.CommandID)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
 	}
@@ -485,7 +535,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 		pllb.AddMount("/"+localhost.SendFileMagicStr, relevantDepState.ArtifactsState, llb.Readonly),
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s %s",
-			c.vertexPrefix(ctx, c.newCmdID(), false, false, false, nil),
+			vm.ToVertexPrefix(),
 			strIf(isDir, "--dir "),
 			joinWrap(buildArgs, "(", " ", ") "),
 			artifact.String(),
@@ -513,7 +563,13 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, allowPrivileged, passArgs, buildArgs, false, copyCmd)
+	cmdID := c.newCmdID()
+	vm := c.vertexMeta(ctx, cmdID, false, false, false, nil)
+	err = c.newLogbusCommand(ctx, vm)
+	if err != nil {
+		return err
+	}
+	mts, err := c.buildTarget(ctx, artifact.Target.String(), platform, allowPrivileged, passArgs, buildArgs, false, copyCmd, vm.CommandID)
 	if err != nil {
 		return errors.Wrapf(err, "apply build %s", artifact.Target.String())
 	}
@@ -529,7 +585,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s%s%s %s",
-			c.vertexPrefix(ctx, c.newCmdID(), false, false, false, nil),
+			vm.ToVertexPrefix(),
 			strIf(isDir, "--dir "),
 			strIf(ifExists, "--if-exists "),
 			strIf(symlinkNoFollow, "--symlink-no-follow "),
@@ -563,6 +619,11 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	}
 
 	c.nonSaveCommand()
+	vm := c.vertexMeta(ctx, c.newCmdID(), false, false, false, nil)
+	err = c.newLogbusCommand(ctx, vm)
+	if err != nil {
+		return err
+	}
 	c.mts.Final.MainState, err = llbutil.CopyOp(ctx,
 		srcState,
 		srcs,
@@ -570,7 +631,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
 			"%sCOPY %s%s%s %s",
-			c.vertexPrefix(ctx, c.newCmdID(), false, false, false, nil),
+			vm.ToVertexPrefix(),
 			strIf(isDir, "--dir "),
 			strIf(ifExists, "--if-exists "),
 			strings.Join(srcs, " "),
@@ -644,12 +705,17 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 		})
 	} else {
 		exitCodeFile = "/tmp/earthly_if_statement_exit_code"
+		vm := c.vertexMeta(ctx, c.newCmdID(), false, false, true, nil)
+		err = c.newLogbusCommand(ctx, vm)
+		if err != nil {
+			return 0, err
+		}
 		opts.statePrep = func(ctx context.Context, state pllb.State) (pllb.State, error) {
 			return state.File(
 				pllb.Mkdir("/run", 0755, llb.WithParents(true)),
 				llb.WithCustomNamef(
 					"%smkdir %s",
-					c.vertexPrefix(ctx, c.newCmdID(), false, false, true, nil), "/run"),
+					vm.ToVertexPrefix(), "/run"),
 			), nil
 		}
 	}
@@ -736,13 +802,18 @@ func (c *Converter) runCommand(ctx context.Context, outputFileName string, isExp
 		})
 	} else {
 		srcBuildArgDir := "/run/buildargs"
+		vm := c.vertexMeta(ctx, c.newCmdID(), false, false, true, nil)
+		err = c.newLogbusCommand(ctx, vm)
+		if err != nil {
+			return "", err
+		}
 		outputFile = path.Join(srcBuildArgDir, outputFileName)
 		opts.statePrep = func(ctx context.Context, state pllb.State) (pllb.State, error) {
 			return state.File(
 				pllb.Mkdir(srcBuildArgDir, 0777, llb.WithParents(true)), // Mkdir is performed as root even when USER is set; we must use 0777
 				llb.WithCustomNamef(
 					"%smkdir %s",
-					c.vertexPrefix(ctx, c.newCmdID(), false, false, true, nil), srcBuildArgDir),
+					vm.ToVertexPrefix(), srcBuildArgDir),
 			), nil
 		}
 	}
@@ -822,13 +893,19 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLo
 	// accessed within the CopyOps below.
 	pcState := c.persistCache(c.mts.Final.MainState)
 
+	vm := c.vertexMeta(ctx, c.newCmdID(), false, false, false, nil)
+	err = c.newLogbusCommand(ctx, vm)
+	if err != nil {
+		return err
+	}
+
 	c.mts.Final.ArtifactsState, err = llbutil.CopyOp(ctx,
 		pcState, []string{saveFrom}, c.mts.Final.ArtifactsState,
 		saveToAdjusted, true, true, keepTs, own, nil, ifExists, symlinkNoFollow,
 		c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
 			"%sSAVE ARTIFACT %s%s%s %s",
-			c.vertexPrefix(ctx, c.newCmdID(), false, false, false, nil),
+			vm.ToVertexPrefix(),
 			strIf(ifExists, "--if-exists "),
 			strIf(symlinkNoFollow, "--symlink-no-follow "),
 			saveFrom,
@@ -840,13 +917,18 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLo
 		separateArtifactsState := c.platr.Scratch()
 		if isPush {
 			pushState := c.persistCache(c.mts.Final.RunPush.State)
+			vm := c.vertexMeta(ctx, c.newCmdID(), false, false, false, nil)
+			err = c.newLogbusCommand(ctx, vm)
+			if err != nil {
+				return err
+			}
 			separateArtifactsState, err = llbutil.CopyOp(ctx,
 				pushState, []string{saveFrom}, separateArtifactsState,
 				saveToAdjusted, true, true, keepTs, "root:root", nil, ifExists, symlinkNoFollow,
 				c.ftrs.UseCopyLink,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
-					c.vertexPrefix(ctx, c.newCmdID(), false, false, false, nil),
+					vm.ToVertexPrefix(),
 					strIf(ifExists, "--if-exists "),
 					strIf(symlinkNoFollow, "--symlink-no-follow "),
 					saveFrom,
@@ -856,13 +938,18 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLo
 				return errors.Wrapf(err, "copyOp save artifact as local")
 			}
 		} else {
+			vm := c.vertexMeta(ctx, c.newCmdID(), false, false, false, nil)
+			err = c.newLogbusCommand(ctx, vm)
+			if err != nil {
+				return err
+			}
 			separateArtifactsState, err = llbutil.CopyOp(ctx,
 				pcState, []string{saveFrom}, separateArtifactsState,
 				saveToAdjusted, true, true, keepTs, "root:root", nil, ifExists, symlinkNoFollow,
 				c.ftrs.UseCopyLink,
 				llb.WithCustomNamef(
 					"%sSAVE ARTIFACT %s%s%s %s AS LOCAL %s",
-					c.vertexPrefix(ctx, c.newCmdID(), false, false, false, nil),
+					vm.ToVertexPrefix(),
 					strIf(ifExists, "--if-exists "),
 					strIf(symlinkNoFollow, "--symlink-no-follow "),
 					saveFrom,
@@ -963,12 +1050,17 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 	}
 
 	// first load the files into a snapshot
+	vm := c.vertexMeta(ctx, c.newCmdID(), true, false, true, nil)
+	err = c.newLogbusCommand(ctx, vm)
+	if err != nil {
+		return err
+	}
 	opts := []llb.RunOption{
 		llb.Args([]string{localhost.CopyFileMagicStr, saveFrom, saveTo}),
 		llb.IgnoreCache,
 		llb.WithCustomNamef(
 			"%sCopyFileMagicStr %s %s",
-			c.vertexPrefix(ctx, c.newCmdID(), true, false, true, nil), saveFrom, saveTo),
+			vm.ToVertexPrefix(), saveFrom, saveTo),
 	}
 	c.mts.Final.MainState = c.mts.Final.MainState.Run(opts...).Root()
 
@@ -1131,7 +1223,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform p
 		return err
 	}
 	c.nonSaveCommand()
-	_, err = c.buildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, true, buildCmd)
+	_, err = c.buildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, true, buildCmd, "")
 	return err
 }
 
@@ -1139,7 +1231,7 @@ type afterParallelFunc func(context.Context, *states.MultiTarget) error
 
 // BuildAsync applies the earthly BUILD command asynchronously.
 func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, cmdT cmdType, apf afterParallelFunc, sem semutil.Semaphore) error {
-	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, true, cmdT)
+	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, true, cmdT, "")
 	if err != nil {
 		return err
 	}
@@ -1197,8 +1289,13 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 		if c.mts.Final.MainImage.Config.User != "" {
 			mkdirOpts = append(mkdirOpts, llb.WithUser(c.mts.Final.MainImage.Config.User))
 		}
+		vm := c.vertexMeta(ctx, c.newCmdID(), false, false, false, nil)
+		err = c.newLogbusCommand(ctx, vm)
+		if err != nil {
+			return err
+		}
 		opts := []llb.ConstraintsOpt{
-			llb.WithCustomNamef("%sWORKDIR %s", c.vertexPrefix(ctx, c.newCmdID(), false, false, false, nil), workdirPath),
+			llb.WithCustomNamef("%sWORKDIR %s", vm.ToVertexPrefix(), workdirPath),
 		}
 		c.mts.Final.MainState = c.mts.Final.MainState.File(
 			pllb.Mkdir(workdirAbs, 0755, mkdirOpts...), opts...)
@@ -1416,18 +1513,23 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, sshCommand stri
 	gitURLScrubbed := stringutil.ScrubCredentials(gitURL)
 	gitOpts := []llb.GitOption{
 		llb.WithCustomNamef(
-			"%sGIT CLONE (--branch %s) %s", c.vertexPrefixWithURL(gitURLScrubbed), branch, gitURLScrubbed),
+			"%sGIT CLONE (--branch %s) %s", c.vertexMetaWithURL(gitURLScrubbed), branch, gitURLScrubbed),
 		llb.KeepGitDir(),
 	}
 	if sshCommand != "" {
 		gitOpts = append(gitOpts, llb.SSHCommand(sshCommand))
 	}
 	gitState := pllb.Git(gitURL, branch, gitOpts...)
+	vm := c.vertexMeta(ctx, c.newCmdID(), false, false, false, nil)
+	err = c.newLogbusCommand(ctx, vm)
+	if err != nil {
+		return err
+	}
 	c.mts.Final.MainState, err = llbutil.CopyOp(ctx,
 		gitState, []string{"."}, c.mts.Final.MainState, dest, false, false, keepTs,
 		c.mts.Final.MainImage.Config.User, nil, false, false, c.ftrs.UseCopyLink,
 		llb.WithCustomNamef(
-			"%sCOPY GIT CLONE (--branch %s) %s TO %s", c.vertexPrefix(ctx, c.newCmdID(), false, false, false, nil),
+			"%sCOPY GIT CLONE (--branch %s) %s TO %s", vm.ToVertexPrefix(),
 			branch, gitURLScrubbed, dest))
 	if err != nil {
 		return errors.Wrapf(err, "copyOp git clone")
@@ -1691,7 +1793,7 @@ func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, ba
 		topArgs = variables.CombineScopes(tmpScope, c.varCollection.TopOverriding()).BuildArgs()
 	}
 
-	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.platr.Current(), allowPrivileged, passArgs, topArgs, true, enterScopeDoCmd)
+	baseMts, err := c.buildTarget(ctx, baseTarget.String(), c.platr.Current(), allowPrivileged, passArgs, topArgs, true, enterScopeDoCmd, "")
 	if err != nil {
 		return err
 	}
@@ -1765,8 +1867,12 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 				return errors.Wrapf(err, "async force execution for %s", c.mts.FinalTarget().String())
 			}
 		}
-		c.logbusTarget.SetEnd(
-			time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS, c.platr.Current().String())
+		now := time.Now()
+		st := logstream.RunStatus_RUN_STATUS_SUCCESS
+		c.logbusTarget.SetEnd(now, st, c.platr.Current().String())
+		if c.logbusCommand != nil {
+			c.logbusCommand.SetEnd(now, st, "")
+		}
 		return nil
 	})
 	return c.mts, nil
@@ -1781,7 +1887,11 @@ func (c *Converter) RecordTargetFailure(ctx context.Context, err error) {
 	default:
 		st = logstream.RunStatus_RUN_STATUS_FAILURE
 	}
-	c.logbusTarget.SetEnd(time.Now(), st, c.platr.Current().String())
+	now := time.Now()
+	c.logbusTarget.SetEnd(now, st, c.platr.Current().String())
+	if c.logbusCommand != nil {
+		c.logbusCommand.SetEnd(now, st, err.Error())
+	}
 }
 
 var errShellOutNotPermitted = errors.New("shell-out not permitted")
@@ -1914,6 +2024,7 @@ func (c *Converter) prepBuildTarget(
 	buildArgs []string,
 	isDangling bool,
 	cmdT cmdType,
+	parentCmdID string,
 ) (domain.Target, ConvertOpt, bool, error) {
 	target, relTarget, allowPrivileged, err := c.absolutizeTarget(fullTargetName, allowPrivileged)
 	if err != nil {
@@ -1934,6 +2045,8 @@ func (c *Converter) prepBuildTarget(
 	opt.HasDangling = isDangling
 	opt.AllowPrivileged = allowPrivileged
 	opt.ParentTargetID = c.mts.Final.ID
+	opt.ParentCommandID = parentCmdID
+	opt.BuildCommand = cmdT == buildCmd
 
 	if cmdT == buildCmd {
 		// only BUILD commands get propagated
@@ -1956,8 +2069,8 @@ func (c *Converter) prepBuildTarget(
 	return target, opt, propagateBuildArgs, nil
 }
 
-func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, isDangling bool, cmdT cmdType) (*states.MultiTarget, error) {
-	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, isDangling, cmdT)
+func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, isDangling bool, cmdT cmdType, parentCmdID string) (*states.MultiTarget, error) {
+	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, isDangling, cmdT, parentCmdID)
 	if err != nil {
 		return nil, err
 	}
@@ -2102,7 +2215,12 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		strIf(opts.Interactive, "--interactive "),
 		strIf(opts.InteractiveKeep, "--interactive-keep "),
 		strings.Join(opts.Args, " "))
-	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", c.vertexPrefix(ctx, c.newCmdID(), opts.Locally, isInteractive, false, opts.Secrets), commandStr))
+	vm := c.vertexMeta(ctx, c.newCmdID(), opts.Locally, isInteractive, false, opts.Secrets)
+	err = c.newLogbusCommand(ctx, vm)
+	if err != nil {
+		return pllb.State{}, err
+	}
+	runOpts = append(runOpts, llb.WithCustomNamef("%s%s", vm.ToVertexPrefix(), commandStr))
 
 	var extraEnvVars []string
 
@@ -2535,7 +2653,25 @@ func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variable
 	}
 }
 
-func (c *Converter) vertexPrefix(ctx context.Context, cmdID int, local, interactive, internal bool, secrets []string) string {
+func (c *Converter) newLogbusCommand(ctx context.Context, vm *vertexmeta.VertexMeta) error {
+	_, err := c.opt.Logbus.Run().NewCommand(
+		vm.CommandID,
+		"unknown",
+		c.mts.Final.ID,
+		c.mts.Final.Target.String(),
+		vm.Platform,
+		false, // cached
+		vm.Local,
+		vm.Interactive,
+		SourceLocationFromContext(ctx),
+		vm.RepoGitURL,
+		vm.RepoGitHash,
+		vm.RepoFileRelToRepo,
+	)
+	return err
+}
+
+func (c *Converter) vertexMeta(ctx context.Context, cmdID int, local, interactive, internal bool, secrets []string) *vertexmeta.VertexMeta {
 	activeOverriding := make(map[string]string)
 	for _, arg := range c.varCollection.SortedOverridingVariables() {
 		v, ok := c.varCollection.Get(arg, variables.WithActive())
@@ -2543,21 +2679,24 @@ func (c *Converter) vertexPrefix(ctx context.Context, cmdID int, local, interact
 			activeOverriding[arg] = v
 		}
 	}
+
 	platform := c.platr.Materialize(c.platr.Current())
 	platformStr := platform.String()
 	isNativePlatform := c.platr.PlatformEquals(platform, platutil.NativePlatform)
+
 	var gitURL, gitHash, fileRelToRepo string
 	if c.gitMeta != nil {
 		gitURL = c.gitMeta.RemoteURL
 		gitHash = c.gitMeta.Hash
 		fileRelToRepo = path.Join(c.gitMeta.RelDir, "Earthfile")
 	}
+
 	vm := &vertexmeta.VertexMeta{
 		SourceLocation:      SourceLocationFromContext(ctx),
 		RepoGitURL:          gitURL,
 		RepoGitHash:         gitHash,
 		RepoFileRelToRepo:   fileRelToRepo,
-		CommandID:           fmt.Sprintf("%d", cmdID),
+		CommandID:           fmt.Sprintf("%s/%d", c.mts.Final.ID, cmdID),
 		TargetID:            c.mts.Final.ID,
 		TargetName:          c.mts.Final.Target.String(),
 		CanonicalTargetName: c.mts.Final.Target.StringCanonical(),
@@ -2570,7 +2709,8 @@ func (c *Converter) vertexPrefix(ctx context.Context, cmdID int, local, interact
 		Internal:            internal,
 		Runner:              c.opt.Runner,
 	}
-	return vm.ToVertexPrefix()
+
+	return vm
 }
 
 func (c *Converter) imageVertexPrefix(id string, platform platutil.Platform) string {
@@ -2584,7 +2724,7 @@ func (c *Converter) imageVertexPrefix(id string, platform platutil.Platform) str
 	return vm.ToVertexPrefix()
 }
 
-func (c *Converter) vertexPrefixWithURL(url string) string {
+func (c *Converter) vertexMetaWithURL(url string) string {
 	return fmt.Sprintf("[%s(%s)] ", c.mts.Final.Target.String(), url)
 }
 

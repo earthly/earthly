@@ -113,6 +113,13 @@ func (c *Command) SetEnd(end time.Time, status logstream.RunStatus, errorStr str
 	})
 }
 
+// SetName sets the name of the command.
+func (c *Command) SetName(name string) {
+	c.commandDelta(&logstream.DeltaCommandManifest{
+		Name: name,
+	})
+}
+
 func (c *Command) commandDelta(dcm *logstream.DeltaCommandManifest) {
 	c.b.WriteDeltaManifest(&logstream.DeltaManifest{
 		DeltaManifestOneof: &logstream.DeltaManifest_Fields{
