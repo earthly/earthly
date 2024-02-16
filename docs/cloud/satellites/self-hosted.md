@@ -227,4 +227,4 @@ If you are having problems using or deploying your self-hosted satellite, please
 
 ### Problem: Satellite shows an `operational` state even though it is no longer running
 
-**Reolution:** It is possible that the satellite did not terminate gracefully, and hence did not automatically deregister as it shutdown. You can run `earthly sat rm --force` to force-remove the satellite from the list, or wait some time for the satellite to automatically be removed. Earthly Cloud will automatically drop the satellite from the list if it detects no heartbeat messages for a while.
+**Resolution:** It is possible that the satellite did not terminate gracefully, and hence did not automatically deregister as it shutdown. You can run `earthly sat rm --force` to force-remove the satellite from the list, or wait some time for the satellite to automatically be removed. Earthly Cloud will automatically drop the satellite from the list if it detects no heartbeat messages for a while.
