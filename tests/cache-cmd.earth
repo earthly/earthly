@@ -67,4 +67,4 @@ test-id-expand-args:
     END
     ARG ID_2=test
     CACHE --id $ID_2 /id-test
-    RUN test "$(cat /id-test/hello)" = "hello"
+    RUN test "$(cat /id-test/hello)" = "hi"
