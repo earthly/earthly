@@ -109,7 +109,11 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 				var ok bool
 				cp, ok = bp.Command(cmdID)
 				if !ok {
-					return errors.Errorf("expected command not found: %s", cmdID)
+					// Note: if we receive a vertex with a full command ID that
+					// does not exist in this process, it may have originated
+					// from another Earthly process. It should be safe to
+					// ignore, in this case.
+					continue
 				}
 				cp.SetName(operation) // Command created prior may not have a full name.
 			}
