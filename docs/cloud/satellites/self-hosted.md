@@ -185,7 +185,7 @@ The following environment variables can also be set to tweak the performance of 
 * `CACHE_SIZE_PCT` - The amount of disk to use for long-term cache storage. An integer from 1-100. Note that in-progress builds may consume additional disk space, so this value can result in "no space left on device" errors if set too high.
 * `BUILDKIT_MAX_PARALLELISM` - The number of concurrent processes the satellite can run at once. Consider the number of cores available to the satellite when configuring this.
 * `BUILDKIT_SESSION_TIMEOUT` - The max duration a single build can run for before timing out. Set to 24h by default.
-* `CACHE_KEEP_DURATION` - How long idle cache will be retained on disk before being pruned.
+* `CACHE_KEEP_DURATION` - How long idle cache will be retained on disk before being pruned (in seconds).
 * `RUNNER_DISABLE_TLS` - Disable TLS on the satellite. Requires Earthly CLI to also disable TLS. Not recommended in most cases.
 * `LOG_LEVEL` - The log level of the internal "runner" process within the satellite. Set to INFO by default.
 * `BUILDKIT_DEBUG` - Enable buildkit debug-level logs. False by default.
@@ -221,7 +221,10 @@ If you are having problems using or deploying your self-hosted satellite, please
 
 **Resolution:** Check the address of the satellite. This is printed at the start of the build during the "Init" phase, or can be found via the satellite inspect command. Ensure the value here is as expected, and that the earthly client can reach the address on its network. If the port has been remapped from 8372, you may also need to change this via the `SATELLITE_PORT` environment variable.
 
-
 ### Problem: The satellite log says that it is running on port 9372
 
 **Resolution:** The log message `"running server on [::]:9372"` can be misleading, however, the exposed port on the container is still 8372. Multiple processes are running inside the satellite container, including an earthly/buildkit process. This log message comes from the buildkit process, however, a separate process on port 8372 handles the incoming gRPC requests to the container.
+
+### Problem: Satellite shows an `operational` state even though it is no longer running
+
+**Reolution:** It is possible that the satellite did not terminate gracefully, and hence did not automatically deregister as it shutdown. You can run `earthly sat rm --force` to force-remove the satellite from the list, or wait some time for the satellite to automatically be removed. Earthly Cloud will automatically drop the satellite from the list if it detects no heartbeat messages for a while.
