@@ -1,6 +1,6 @@
 # Earthly Satellites
 
-Earthly Satellites are [remote runners](../remote-runners.md) that work seamlessly with Earthly to improve build times through use of persistent caching. 
+Earthly Satellites are [remote runners](../remote-runners.md) that work seamlessly with Earthly, using persistent cache to improve build times.
 Satellites can be either [fully managed](https://earthly.dev/earthly-satellites) by Earthly Cloud or [self-hosted](./satellites/self-hosted.md) in your own environment.
 
 ## Get started with Earthly Cloud Satellites for free!
