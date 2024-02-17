@@ -340,7 +340,7 @@ func (w *withDockerRunTar) solveImage(ctx context.Context, mts *states.MultiTarg
 		sha256SessionIDKey := sha256.Sum256([]byte(sessionIDKey))
 		sessionID := hex.EncodeToString(sha256SessionIDKey[:])
 
-		vm := w.c.vertexMeta(ctx, w.c.newCmdID(), false, false, true, nil)
+		prefix, _, err := w.c.newVertexMeta(ctx, false, false, true, nil)
 		if err != nil {
 			return pllb.State{}, err
 		}
@@ -348,7 +348,7 @@ func (w *withDockerRunTar) solveImage(ctx context.Context, mts *states.MultiTarg
 			string(solveID),
 			llb.SessionID(sessionID),
 			llb.Platform(w.c.platr.LLBNative()),
-			llb.WithCustomNamef("%sdocker tar context %s %s", vm.ToVertexPrefix(), opName, sessionID),
+			llb.WithCustomNamef("%sdocker tar context %s %s", prefix, opName, sessionID),
 		)
 		// Add directly to build context so that if a later statement forces execution, the images are available.
 		w.c.opt.BuildContextProvider.AddDir(string(solveID), outDir)

@@ -46,7 +46,7 @@ func (t *Target) AddDependsOn(targetID string) {
 	// Only add the dependency link once to avoid sending duplicates to Logstream.
 	t.mu.Lock()
 	if _, ok := t.dependsOn[targetID]; ok {
-		defer t.mu.Unlock()
+		t.mu.Unlock()
 		return
 	}
 	t.dependsOn[targetID] = struct{}{}

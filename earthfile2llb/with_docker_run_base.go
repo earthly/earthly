@@ -70,8 +70,7 @@ func (w *withDockerRunBase) installDeps(ctx context.Context, opt WithDockerOpt) 
 			strings.Join(params, " "),
 			dockerAutoInstallScriptPath),
 	}
-	vm := w.c.vertexMeta(ctx, w.c.newCmdID(), false, false, false, opt.Secrets)
-	err := w.c.newLogbusCommandFromVertex(ctx, vm)
+	prefix, _, err := w.c.newVertexMeta(ctx, false, false, false, opt.Secrets)
 	if err != nil {
 		return err
 	}
@@ -79,7 +78,7 @@ func (w *withDockerRunBase) installDeps(ctx context.Context, opt WithDockerOpt) 
 		llb.AddMount(
 			dockerAutoInstallScriptPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerAutoInstallScriptPath)),
 		llb.Args(args),
-		llb.WithCustomNamef("%sWITH DOCKER (install deps)", vm.ToVertexPrefix()),
+		llb.WithCustomNamef("%sWITH DOCKER (install deps)", prefix),
 	}
 	w.c.mts.Final.MainState = w.c.mts.Final.MainState.Run(runOpts...).Root()
 	return nil
@@ -156,8 +155,7 @@ func (w *withDockerRunBase) getComposeConfig(ctx context.Context, opt WithDocker
 			strings.Join(params, " "),
 			dockerdWrapperPath),
 	}
-	vm := w.c.vertexMeta(ctx, w.c.newCmdID(), false, false, false, opt.Secrets)
-	err := w.c.newLogbusCommandFromVertex(ctx, vm)
+	prefix, _, err := w.c.newVertexMeta(ctx, false, false, false, opt.Secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +163,7 @@ func (w *withDockerRunBase) getComposeConfig(ctx context.Context, opt WithDocker
 		llb.AddMount(
 			dockerdWrapperPath, llb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)),
 		llb.Args(args),
-		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", vm.ToVertexPrefix()),
+		llb.WithCustomNamef("%sWITH DOCKER (docker-compose config)", prefix),
 	}
 	state := w.c.mts.Final.MainState.Run(runOpts...).Root()
 	ref, err := llbutil.StateToRef(
