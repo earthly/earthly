@@ -137,6 +137,27 @@ func (c *Command) SetEnd(end time.Time, status logstream.RunStatus, errorStr str
 	})
 }
 
+// SetEndError is a helper that allows for setting expected end metadata on
+// a command based on whether there was an error. Note, this method assumes the
+// status values.
+func (c *Command) SetEndError(err error) {
+	now := time.Now()
+
+	if err != nil {
+		c.commandDelta(&logstream.DeltaCommandManifest{
+			Status:           logstream.RunStatus_RUN_STATUS_FAILURE,
+			ErrorMessage:     err.Error(),
+			EndedAtUnixNanos: c.b.TsUnixNanos(now),
+		})
+		return
+	}
+
+	c.commandDelta(&logstream.DeltaCommandManifest{
+		Status:           logstream.RunStatus_RUN_STATUS_SUCCESS,
+		EndedAtUnixNanos: c.b.TsUnixNanos(now),
+	})
+}
+
 // SetName sets the name of the command.
 func (c *Command) SetName(name string) {
 	c.commandDelta(&logstream.DeltaCommandManifest{

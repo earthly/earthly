@@ -3,9 +3,7 @@ package earthfile2llb
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
@@ -44,11 +42,7 @@ func (w *withDockerRunLocalReg) Run(ctx context.Context, args []string, opt With
 	}
 
 	defer func() {
-		if retErr != nil {
-			cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_FAILURE, retErr.Error())
-			return
-		}
-		cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS, "")
+		cmd.SetEndError(retErr)
 	}()
 
 	var imagesToBuild []*states.ImageDef

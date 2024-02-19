@@ -14,7 +14,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -223,7 +222,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	} else {
 		internal = false
 	}
-	prefix, _, err := c.newVertexMeta(ctx, local, false, internal, nil)
+	prefix, _, err := c.newVertexMeta(ctx, local, false, internal, nil, true)
 	if err != nil {
 		return err
 	}
@@ -247,11 +246,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 	}
 
 	defer func() {
-		if retErr != nil {
-			cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_FAILURE, retErr.Error())
-			return
-		}
-		cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS, "")
+		cmd.SetEndError(retErr)
 	}()
 
 	depTarget, err := domain.ParseTarget(targetName)
@@ -310,11 +305,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		return errors.Wrap(err, "failed to create command")
 	}
 	defer func() {
-		if retErr != nil {
-			cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_FAILURE, retErr.Error())
-			return
-		}
-		cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS, "")
+		cmd.SetEndError(retErr)
 	}()
 	var dfData []byte
 	if dfPath != "" {
@@ -354,7 +345,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	var BuildContextFactory llbfactory.Factory
 	contextArtifact, parseErr := domain.ParseArtifact(contextPath)
 	if parseErr == nil {
-		prefix, cmdID, err := c.newVertexMeta(ctx, false, false, true, nil)
+		prefix, cmdID, err := c.newVertexMeta(ctx, false, false, true, nil, true)
 		if err != nil {
 			return err
 		}
@@ -504,7 +495,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	prefix, cmdID, err := c.newVertexMeta(ctx, false, false, false, nil)
+	prefix, cmdID, err := c.newVertexMeta(ctx, false, false, false, nil, true)
 	if err != nil {
 		return err
 	}
@@ -558,7 +549,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	prefix, cmdID, err := c.newVertexMeta(ctx, false, false, false, nil)
+	prefix, cmdID, err := c.newVertexMeta(ctx, false, false, false, nil, true)
 	if err != nil {
 		return err
 	}
@@ -612,7 +603,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	}
 
 	c.nonSaveCommand()
-	prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil)
+	prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil, true)
 	if err != nil {
 		return err
 	}
@@ -697,7 +688,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 		})
 	} else {
 		exitCodeFile = "/tmp/earthly_if_statement_exit_code"
-		prefix, _, err := c.newVertexMeta(ctx, false, false, true, nil)
+		prefix, _, err := c.newVertexMeta(ctx, false, false, true, nil, true)
 		if err != nil {
 			return 0, err
 		}
@@ -793,7 +784,7 @@ func (c *Converter) runCommand(ctx context.Context, outputFileName string, isExp
 		})
 	} else {
 		srcBuildArgDir := "/run/buildargs"
-		prefix, _, err := c.newVertexMeta(ctx, false, false, true, nil)
+		prefix, _, err := c.newVertexMeta(ctx, false, false, true, nil, true)
 		if err != nil {
 			return "", err
 		}
@@ -843,7 +834,7 @@ func (c *Converter) runCommand(ctx context.Context, outputFileName string, isExp
 }
 
 // SaveArtifact applies the earthly SAVE ARTIFACT command.
-func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLocalTo string, keepTs, keepOwn, ifExists, symlinkNoFollow, force, isPush bool) error {
+func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLocalTo string, keepTs, keepOwn, ifExists, symlinkNoFollow, force, isPush bool) (retErr error) {
 	err := c.checkAllowed(saveArtifactCmd)
 	if err != nil {
 		return err
@@ -883,10 +874,21 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLo
 	// accessed within the CopyOps below.
 	pcState := c.persistCache(c.mts.Final.MainState)
 
-	prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil)
+	prefix, cmdID, err := c.newVertexMeta(ctx, false, false, false, nil, true)
 	if err != nil {
 		return err
 	}
+
+	cmd, ok := c.opt.Logbus.Run().Command(cmdID)
+	if !ok {
+		return errors.New("command not found")
+	}
+
+	cmd.SetName("SAVE ARTIFACT")
+
+	defer func() {
+		cmd.SetEndError(retErr)
+	}()
 
 	c.mts.Final.ArtifactsState, err = llbutil.CopyOp(ctx,
 		pcState, []string{saveFrom}, c.mts.Final.ArtifactsState,
@@ -906,7 +908,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLo
 		separateArtifactsState := c.platr.Scratch()
 		if isPush {
 			pushState := c.persistCache(c.mts.Final.RunPush.State)
-			prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil)
+			prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil, false)
 			if err != nil {
 				return err
 			}
@@ -926,7 +928,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLo
 				return errors.Wrapf(err, "copyOp save artifact as local")
 			}
 		} else {
-			prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil)
+			prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil, false)
 			if err != nil {
 				return err
 			}
@@ -1037,7 +1039,7 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 	}
 
 	// first load the files into a snapshot
-	prefix, _, err := c.newVertexMeta(ctx, true, false, true, nil)
+	prefix, _, err := c.newVertexMeta(ctx, true, false, true, nil, true)
 	if err != nil {
 		return err
 	}
@@ -1217,12 +1219,8 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform p
 	}
 
 	_, err = c.buildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, true, buildCmd, cmdID)
-	if err != nil {
-		cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_FAILURE, err.Error())
-		return err
-	}
 
-	cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS, "")
+	cmd.SetEndError(err)
 
 	return nil
 }
@@ -1289,7 +1287,7 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 		if c.mts.Final.MainImage.Config.User != "" {
 			mkdirOpts = append(mkdirOpts, llb.WithUser(c.mts.Final.MainImage.Config.User))
 		}
-		prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil)
+		prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil, true)
 		if err != nil {
 			return err
 		}
@@ -1519,7 +1517,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, sshCommand stri
 		gitOpts = append(gitOpts, llb.SSHCommand(sshCommand))
 	}
 	gitState := pllb.Git(gitURL, branch, gitOpts...)
-	prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil)
+	prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil, true)
 	if err != nil {
 		return err
 	}
@@ -2207,7 +2205,8 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		strIf(opts.InteractiveKeep, "--interactive-keep "),
 		strings.Join(opts.Args, " "))
 
-	prefix, _, err := c.newVertexMeta(ctx, opts.Locally, isInteractive, false, opts.Secrets)
+	ctx = context.WithValue(ctx, "internal", true)
+	prefix, _, err := c.newVertexMeta(ctx, opts.Locally, isInteractive, false, opts.Secrets, false)
 	if err != nil {
 		return pllb.State{}, err
 	}
@@ -2680,7 +2679,7 @@ func (c *Converter) newLogbusCommand(ctx context.Context, name string) (string, 
 	return cmdID, cmd, nil
 }
 
-func (c *Converter) newVertexMeta(ctx context.Context, local, interactive, internal bool, secrets []string) (string, string, error) {
+func (c *Converter) newVertexMeta(ctx context.Context, local, interactive, internal bool, secrets []string, createCmd bool) (string, string, error) {
 	activeOverriding := make(map[string]string)
 	for _, arg := range c.varCollection.SortedOverridingVariables() {
 		v, ok := c.varCollection.Get(arg, variables.WithActive())
@@ -2700,32 +2699,34 @@ func (c *Converter) newVertexMeta(ctx context.Context, local, interactive, inter
 		fileRelToRepo = path.Join(c.gitMeta.RelDir, "Earthfile")
 	}
 
-	cmdID := c.newCmdID()
-	fullID := fmt.Sprintf("%s/%d", c.mts.Final.ID, cmdID)
+	fullID := ""
 	srcLoc := SourceLocationFromContext(ctx)
 
-	pc, _, _, ok := runtime.Caller(1)
-	details := runtime.FuncForPC(pc)
-	if ok && details != nil {
-		fmt.Println("unknown created for", fullID, details.Name())
-	}
+	// Some commands (internal, etc.) should not have Logbus commands created
+	// ahead of time. These commands sometimes differ WRT the specified command
+	// versus the underlying command that BuildKit ultimately runs. An example
+	// is SAVE ARTIFACT.
+	if createCmd {
+		cmdID := c.newCmdID()
+		fullID = fmt.Sprintf("%s/%d", c.mts.Final.ID, cmdID)
 
-	_, err := c.opt.Logbus.Run().NewCommand(
-		fullID,
-		"unknown",
-		c.mts.Final.ID,
-		c.mts.Final.Target.String(),
-		platformStr,
-		false, // cached
-		local,
-		interactive,
-		srcLoc,
-		gitURL,
-		gitHash,
-		fileRelToRepo,
-	)
-	if err != nil {
-		return "", "", err
+		_, err := c.opt.Logbus.Run().NewCommand(
+			fullID,
+			"unknown",
+			c.mts.Final.ID,
+			c.mts.Final.Target.String(),
+			platformStr,
+			false, // cached
+			local,
+			interactive,
+			srcLoc,
+			gitURL,
+			gitHash,
+			fileRelToRepo,
+		)
+		if err != nil {
+			return "", "", err
+		}
 	}
 
 	vm := &vertexmeta.VertexMeta{

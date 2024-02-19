@@ -163,6 +163,7 @@ ga-no-qemu-group3:
     BUILD +remote-test
     BUILD +save-artifact-dont-overwrite
     BUILD --pass-args ./with-docker-expose+all
+    BUILD --pass-args ./logbus+test-all
 
 ga-no-qemu-group4:
     BUILD +cache-mount-arg
