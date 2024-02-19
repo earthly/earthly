@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -2205,6 +2206,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		strIf(opts.Interactive, "--interactive "),
 		strIf(opts.InteractiveKeep, "--interactive-keep "),
 		strings.Join(opts.Args, " "))
+
 	prefix, _, err := c.newVertexMeta(ctx, opts.Locally, isInteractive, false, opts.Secrets)
 	if err != nil {
 		return pllb.State{}, err
@@ -2701,6 +2703,12 @@ func (c *Converter) newVertexMeta(ctx context.Context, local, interactive, inter
 	cmdID := c.newCmdID()
 	fullID := fmt.Sprintf("%s/%d", c.mts.Final.ID, cmdID)
 	srcLoc := SourceLocationFromContext(ctx)
+
+	pc, _, _, ok := runtime.Caller(1)
+	details := runtime.FuncForPC(pc)
+	if ok && details != nil {
+		fmt.Println("unknown created for", fullID, details.Name())
+	}
 
 	_, err := c.opt.Logbus.Run().NewCommand(
 		fullID,

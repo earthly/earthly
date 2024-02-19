@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/util/statsstreamparser"
@@ -73,12 +74,17 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 	bp := sm.b.Run()
 	for _, vertex := range status.Vertexes {
 		meta, operation := vertexmeta.ParseFromVertexPrefix(vertex.Name)
+
+		spew.Dump(operation, meta)
+
 		var cmdID string
 		createCmd := true
 		switch {
 		case meta.TargetName == "context":
 			cmdID = operation
 		case meta.CommandID != "":
+			// If the command ID is set, the Logbus command is guaranteed to
+			// have been created by Earthly in the converter ahead of time.
 			cmdID = meta.CommandID
 			createCmd = false
 		default:
