@@ -20,7 +20,7 @@ Here is a minimal command to start a self-managed satellite using Docker:
 
 ```
 docker run --privileged \
-    -v earthly-cache:/tmp/earthly:rw \
+    -v satellite-cache:/tmp/earthly:rw \
     -p 8372:8372 \
     -e EARTHLY_TOKEN=GuFna*****nve7e \ 
     -e EARTHLY_ORG=my-org \
