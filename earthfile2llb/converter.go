@@ -884,7 +884,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLo
 		return errors.New("command not found")
 	}
 
-	cmd.SetName("SAVE ARTIFACT")
+	cmd.SetName(fmt.Sprintf("SAVE ARTIFACT %s %s", saveFrom, artifact))
 
 	defer func() {
 		cmd.SetEndError(retErr)
@@ -1222,7 +1222,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform p
 
 	cmd.SetEndError(err)
 
-	return nil
+	return err
 }
 
 type afterParallelFunc func(context.Context, *states.MultiTarget) error
