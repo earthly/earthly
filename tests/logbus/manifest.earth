@@ -3,9 +3,9 @@ VERSION 0.8
 FROM alpine
 
 all:
-    BUILD +foo
     COPY +src/x .
     RUN cat x
+    BUILD +foo
 
 src:
     RUN echo foo > x
@@ -13,3 +13,4 @@ src:
 
 foo:
     RUN echo foo > x
+    SAVE IMAGE foo

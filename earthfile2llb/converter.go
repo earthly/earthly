@@ -1116,7 +1116,7 @@ func (c *Converter) PopWaitBlock(ctx context.Context) error {
 }
 
 // SaveImage applies the earthly SAVE IMAGE command.
-func (c *Converter) SaveImage(ctx context.Context, imageNames []string, hasPushFlag bool, insecurePush bool, cacheHint bool, cacheFrom []string, noManifestList bool) error {
+func (c *Converter) SaveImage(ctx context.Context, imageNames []string, hasPushFlag bool, insecurePush bool, cacheHint bool, cacheFrom []string, noManifestList bool) (retErr error) {
 	err := c.checkAllowed(saveImageCmd)
 	if err != nil {
 		return err
@@ -1124,6 +1124,13 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, hasPushF
 	if noManifestList && !c.ftrs.UseNoManifestList {
 		return fmt.Errorf("SAVE IMAGE --no-manifest-list is not supported in this version")
 	}
+	_, cmd, err := c.newLogbusCommand(ctx, fmt.Sprintf("SAVE IMAGE %s", strings.Join(imageNames, " ")))
+	if err != nil {
+		return errors.Wrap(err, "failed to create command")
+	}
+	defer func() {
+		cmd.SetEndError(retErr)
+	}()
 	for _, cf := range cacheFrom {
 		c.opt.CacheImports.Add(cf)
 	}
