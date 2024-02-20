@@ -2205,7 +2205,6 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		strIf(opts.InteractiveKeep, "--interactive-keep "),
 		strings.Join(opts.Args, " "))
 
-	ctx = context.WithValue(ctx, "internal", true)
 	prefix, _, err := c.newVertexMeta(ctx, opts.Locally, isInteractive, false, opts.Secrets, false)
 	if err != nil {
 		return pllb.State{}, err
