@@ -1,0 +1,16 @@
+VERSION 0.8
+
+FROM alpine
+
+all:
+    COPY +src/x .
+    RUN cat x
+    BUILD +foo
+
+src:
+    RUN echo foo > x
+    SAVE ARTIFACT x
+
+foo:
+    RUN echo foo > x
+    SAVE IMAGE foo
