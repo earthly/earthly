@@ -41,7 +41,7 @@ jobs:
     steps:
     - uses: earthly/actions/setup-earthly@v1
       with:
-        version: v0.8.3
+        version: v0.8.4
     - uses: actions/checkout@v2
     - name: Docker Login
       run: docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
@@ -51,7 +51,7 @@ jobs:
 
 Here is an explanation of the steps above:
 
-* The action `earthly/actions/setup-earthly@v1` downloads and installs Earthly. Running this action is similar to running the Earthly installation one-liner `sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.8.3/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'`
+* The action `earthly/actions/setup-earthly@v1` downloads and installs Earthly. Running this action is similar to running the Earthly installation one-liner `sudo /bin/sh -c 'wget https://github.com/earthly/earthly/releases/download/v0.8.4/earthly-linux-amd64 -O /usr/local/bin/earthly && chmod +x /usr/local/bin/earthly'`
 * The command `docker login` performs a login to the DockerHub registry. This is required, to prevent rate-limiting issues when using popular base images.
 * The command `earthly --org ... --sat ... --ci --push +build` executes the build. The `--ci` flag is used here, in order to force the use of `--strict` mode. In `--strict` mode, Earthly prevents the use of features that make the build less repeatable and also disables local outputs -- because artifacts and images resulting from the build are not needed within the CI environment. Any outputs should be pushed via `RUN --push` or `SAVE IMAGE --push` commands. The flags `--org` and `--sat` allow you to select the organization and satellite to use for the build. If no satellite is specified, the build will be executed in the CI environment itself, with limited caching.
 
