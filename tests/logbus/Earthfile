@@ -10,9 +10,9 @@ test-all:
 
 test-manifest:
     DO tests+RUN_EARTHLY --earthfile=manifest.earth --extra_args="--no-output --logstream-debug-manifest-file man.json"
-    RUN cat man.json | jq '.commands | length' | acbgrep 15
+    RUN cat man.json | jq '.commands | length' | acbgrep 16
     RUN cat man.json | jq '.commands[]' | jq 'select(.name | contains("COPY"))' | jq '.dependsOn[0].referencedName' | acbgrep 'src'
-    RUN cat man.json | jq '.commands[]' | jq 'select(.name | contains("COPY"))' | jq '.dependsOn | length'
+    RUN cat man.json | jq '.commands[]' | jq 'select(.name | contains("COPY"))' | jq '.dependsOn | length' | acbgrep 1
     RUN cat man.json | jq '.commands[]' | jq 'select(.name | contains("BUILD +foo"))' | jq '.dependsOn[0].referencedName' | acbgrep 'foo'
     RUN cat man.json | jq '.commands[]' | jq 'select(.name | contains("BUILD +foo"))' | jq '.' | acbgrep RUN_STATUS_SUCCESS
     RUN cat man.json | jq '.commands[]' | jq 'select(.name | contains("SAVE IMAGE foo"))' | jq '.' | acbgrep RUN_STATUS_SUCCESS
