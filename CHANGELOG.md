@@ -19,6 +19,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Fixed
 
 - Fixes an issue with the registry proxy (used for faster image & artifact exporting) on Docker Desktop for Windows/WSL. [#3769](https://github.com/earthly/earthly/issues/3769)
+- Fixes a problem with cache IDs not being expanded. For example: `CACHE --id $MY_ARG` was not using the assigned value of `$MY_ARG`.
 
 ### Additional Info
 - This release includes changes to buildkit
