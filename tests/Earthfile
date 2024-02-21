@@ -163,6 +163,7 @@ ga-no-qemu-group3:
     BUILD +remote-test
     BUILD +save-artifact-dont-overwrite
     BUILD --pass-args ./with-docker-expose+all
+    BUILD --pass-args ./logbus+test-all
 
 ga-no-qemu-group4:
     BUILD +cache-mount-arg
@@ -1328,6 +1329,7 @@ cache-cmd:
     RUN test "$(cat ./artifacts2/2)" = "artifact 2"
     DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test-no-sharing
     DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test-arg
+    DO +RUN_EARTHLY --earthfile=cache-cmd.earth --target=+test-id-expand-args
 
 ls:
     COPY ls.earth Earthfile

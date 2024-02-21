@@ -130,7 +130,7 @@ lint-scripts:
 earthly-script-no-stdout:
     # This validates the ./earthly script doesn't print anything to stdout (it should print to stderr)
     # This is to ensure commands such as: MYSECRET="$(./earthly secrets get -n /user/my-secret)" work
-    FROM earthly/dind:alpine-3.18-docker-23.0.6-r7
+    FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
     RUN apk add --no-cache --update bash
     COPY earthly .earthly_version_flag_overrides .
 
@@ -561,6 +561,8 @@ dind:
         # in order to display the upstream-version, e.g. "24.0.5-1".
         SET DOCKER_VERSION_TAG="$(echo $DOCKER_VERSION | sed 's/^[0-9]*:\([^~]*\).*$/\1/')"
         RUN if echo $DOCKER_VERSION_TAG | grep "[^0-9.-]"; then echo "DOCKER_VERSION_TAG looks bad; got $DOCKER_VERSION_TAG" && exit 1; fi
+    ELSE IF [ "$OS_IMAGE" = "alpine" ]
+        RUN apk add iptables-legacy # required for older kernels
     END
     LET TAG=$OS_IMAGE-$OS_VERSION-docker-$DOCKER_VERSION_TAG
     ARG INCLUDE_TARGET_TAG_DOCKER=true
@@ -647,7 +649,7 @@ all-buildkitd:
         ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
 dind-alpine:
-    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=alpine --OS_VERSION=3.18 --DOCKER_VERSION=23.0.6-r7
+    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=alpine --OS_VERSION=3.19 --DOCKER_VERSION=25.0.3-r0
 
 dind-ubuntu-20.04:
     DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal

@@ -53,6 +53,7 @@ func NewProvider(cfg *configfile.ConfigFile, cloudClient *cloud.Client, console 
 	retryClient := retryablehttp.NewClient()
 	retryClient.RetryMax = maxAuthRetries
 	retryClient.CheckRetry = checkRetryFunc
+	retryClient.Logger = nil
 	return &authProvider{
 		authConfigCache: map[string]*authConfig{},
 		config:          cfg,
@@ -60,7 +61,7 @@ func NewProvider(cfg *configfile.ConfigFile, cloudClient *cloud.Client, console 
 		loggerCache:     map[string]struct{}{},
 		cloudClient:     cloudClient,
 		seenOrgProjects: map[string]struct{}{},
-		console:         console,
+		console:         console.WithPrefix("registry auth"),
 		httpClient:      retryClient.StandardClient(),
 	}
 }

@@ -55,3 +55,16 @@ test-no-sharing:
     COPY +test-no-sharing-prev/nothing . # Only to make sure +test-no-sharing-prev runs first
     CACHE --persist /no-sharing
     RUN ! test -f /no-sharing/should-not-see-me
+
+id-expand-args:
+    ARG --required ID_1
+    CACHE --id $ID_1 /id-test
+    RUN echo "hi" > /id-test/hello
+
+test-id-expand-args:
+    WAIT
+        BUILD +id-expand-args --ID_1=test
+    END
+    ARG ID_2=test
+    CACHE --id $ID_2 /id-test
+    RUN test "$(cat /id-test/hello)" = "hi"

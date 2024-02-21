@@ -89,6 +89,7 @@ type BuildOpts struct {
 	BuildArgs       []string `long:"build-arg" description:"A build arg override passed on to a referenced Earthly target"`
 	AllowPrivileged bool     `long:"allow-privileged" description:"Allow targets to assume privileged mode"`
 	PassArgs        bool     `long:"pass-args" description:"Pass arguments to external targets"`
+	AutoSkip        bool     `long:"auto-skip" description:"Use auto-skip to bypass the target if nothing has changed"`
 }
 
 type GitCloneOpts struct {
