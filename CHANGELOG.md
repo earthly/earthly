@@ -4,21 +4,32 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.4 - 2024-02-21
+
 ### Added
 
 - The internal `dockerd-wrapper.sh` script, which is used to implement `WITH DOCKER`, will execute `/usr/share/earthly/dockerd-wrapper-pre-script`, if present, prior to starting the
   inner dockerd process. This can be used to configure options that depend on the host's kernel at run-time.
+- Auto-skip can now be used directly on `BUILD` commands with `BUILD --auto-skip`. [#3581](https://github.com/earthly/earthly/issues/3581)
+
+### Changed
+
+- Satellite `rm` requires a `--force` flag if it's running. This should help protect users from accidental deletes.
 
 ### Fixed
 
 - Fixes an issue with the registry proxy (used for faster image & artifact exporting) on Docker Desktop for Windows/WSL. [#3769](https://github.com/earthly/earthly/issues/3769)
+- Fixes a problem with cache IDs not being expanded. For example: `CACHE --id $MY_ARG` was not using the assigned value of `$MY_ARG`.
+
+### Additional Info
+- This release includes changes to buildkit
 
 ## v0.8.3 - 2024-01-31
 
 ### Fixed
 
 - `EARTHLY_GIT_REFS` was incorrectly returning all references which contained the commit rather than pointed to the current commit. This also increases performance of looking up the branches. [#3752](https://github.com/earthly/earthly/issues/3752)
-- Fixes an issue where `earthly account login --token` was leading to partially created auth config files. [3761](https://github.com/earthly/earthly/issues/3761)
+- Fixes an issue where `earthly account login --token` was leading to partially created auth config files. [#3761](https://github.com/earthly/earthly/issues/3761)
 
 ### Additional Info
 - This release includes changes to buildkit
@@ -37,10 +48,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Fixed
 
-- Fixed an intermittent issue with the registry proxy support container failing immediately on Mac. [3740](https://github.com/earthly/earthly/issues/3740)
+- Fixed an intermittent issue with the registry proxy support container failing immediately on Mac. [#3740](https://github.com/earthly/earthly/issues/3740)
 - Fixed a problem with parsing empty results when cleaning up old registry proxy support containers on Mac.
-- Fixed a case where a suggested command would incorrectly contain both `--interative` and `--ci`. [3746](https://github.com/earthly/earthly/issues/3746)
-- Disabled the registry proxy server when Earthly is run from within a container. [3736](https://github.com/earthly/earthly/issues/3736)
+- Fixed a case where a suggested command would incorrectly contain both `--interative` and `--ci`. [#3746](https://github.com/earthly/earthly/issues/3746)
+- Disabled the registry proxy server when Earthly is run from within a container. [#3736](https://github.com/earthly/earthly/issues/3736)
 
 ### Additional Info
 - This release has no changes to buildkit
