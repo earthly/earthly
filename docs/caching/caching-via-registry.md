@@ -49,8 +49,8 @@ Not all registries support the needed manifest formats to allow the usage of eac
 
 | Registry                  | Supports Inline Cache | Supports Explicit Cache | Notes                                                                               |
 |---------------------------|:---------------------:|:-----------------------:|-------------------------------------------------------------------------------------|
-| AWS ECR                   |           ✅           |            ❌            | https://github.com/aws/containers-roadmap/issues/876                                |
 | Google GCR                |           ✅           |            ❌            |                                                                                     |
+| AWS ECR                   |           ✅           |            ✅            |                                                                                     |
 | Google Artifact Registry  |           ✅           |            ✅            |                                                                                     |
 | Azure ACR                 |           ✅           |            ✅            |                                                                                     |
 | Docker Hub                |           ✅           |            ✅            |                                                                                     |

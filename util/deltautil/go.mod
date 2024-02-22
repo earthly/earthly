@@ -3,7 +3,7 @@ module github.com/earthly/earthly/util/deltautil
 go 1.21
 
 require (
-	github.com/earthly/cloud-api v1.0.1-0.20240109224637-d374ffd93463
+	github.com/earthly/cloud-api v1.0.1-0.20240216175649-9c937bc41efb
 	google.golang.org/protobuf v1.30.0
 )
 

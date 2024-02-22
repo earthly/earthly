@@ -145,7 +145,7 @@ func (c *Client) GetSatellite(ctx context.Context, name, orgName string) (*Satel
 	}, nil
 }
 
-func (c *Client) DeleteSatellite(ctx context.Context, name, orgName string) error {
+func (c *Client) DeleteSatellite(ctx context.Context, name, orgName string, force bool) error {
 	orgID, err := c.GetOrgID(ctx, orgName)
 	if err != nil {
 		return errors.Wrap(err, "failed deleting satellite")
@@ -153,6 +153,7 @@ func (c *Client) DeleteSatellite(ctx context.Context, name, orgName string) erro
 	_, err = c.compute.DeleteSatellite(c.withAuth(ctx), &pb.DeleteSatelliteRequest{
 		OrgId: orgID,
 		Name:  name,
+		Force: force,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed deleting satellite")

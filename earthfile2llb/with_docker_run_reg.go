@@ -38,7 +38,7 @@ func newWithDockerRunRegistry(c *Converter, enableParallel bool) *withDockerRunR
 	}
 }
 
-func (w *withDockerRunRegistry) prepareImages(ctx context.Context, opt *WithDockerOpt) ([]*states.ImageDef, error) {
+func (w *withDockerRunRegistry) prepareImages(ctx context.Context, cmdID string, opt *WithDockerOpt) ([]*states.ImageDef, error) {
 	// Grab relevant images from compose file(s).
 	composePulls, err := w.getComposePulls(ctx, *opt)
 	if err != nil {
@@ -65,7 +65,7 @@ func (w *withDockerRunRegistry) prepareImages(ctx context.Context, opt *WithDock
 	imageDefChans := make([]chan *states.ImageDef, 0, len(opt.Loads))
 	for _, loadOpt := range opt.Loads {
 		loadOpt.Platform = w.c.platr.SubPlatform(loadOpt.Platform)
-		imageDefChan, err := w.load(ctx, loadOpt)
+		imageDefChan, err := w.load(ctx, cmdID, loadOpt)
 		if err != nil {
 			return nil, errors.Wrap(err, "load")
 		}
@@ -112,7 +112,7 @@ func (w *withDockerRunRegistry) prepareImages(ctx context.Context, opt *WithDock
 	return imagesToBuild, nil
 }
 
-func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt WithDockerOpt) error {
+func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt WithDockerOpt) (retErr error) {
 	err := w.c.checkAllowed(runCmd)
 	if err != nil {
 		return err
@@ -120,12 +120,21 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 
 	w.c.nonSaveCommand()
 
+	cmdID, cmd, err := w.c.newLogbusCommand(ctx, "WITH DOCKER RUN")
+	if err != nil {
+		return errors.Wrap(err, "failed to create command")
+	}
+
+	defer func() {
+		cmd.SetEndError(retErr)
+	}()
+
 	err = w.installDeps(ctx, opt)
 	if err != nil {
 		return err
 	}
 
-	imagesToBuild, err := w.prepareImages(ctx, &opt)
+	imagesToBuild, err := w.prepareImages(ctx, cmdID, &opt)
 	if err != nil {
 		return err
 	}
@@ -273,7 +282,7 @@ func (w *withDockerRunRegistry) pull(ctx context.Context, opt DockerPullOpt) (*s
 
 var errNoImageTag = errors.New("no docker image tag specified in load and it cannot be inferred from the SAVE IMAGE statement")
 
-func (w *withDockerRunRegistry) load(ctx context.Context, opt DockerLoadOpt) (chan *states.ImageDef, error) {
+func (w *withDockerRunRegistry) load(ctx context.Context, cmdID string, opt DockerLoadOpt) (chan *states.ImageDef, error) {
 	imageDefChan := make(chan *states.ImageDef, 1)
 
 	depTarget, err := domain.ParseTarget(opt.Target)
@@ -309,7 +318,7 @@ func (w *withDockerRunRegistry) load(ctx context.Context, opt DockerLoadOpt) (ch
 			return nil, err
 		}
 	} else {
-		mts, err := w.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.PassArgs, opt.BuildArgs, false, loadCmd)
+		mts, err := w.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.PassArgs, opt.BuildArgs, false, loadCmd, cmdID)
 		if err != nil {
 			return nil, err
 		}

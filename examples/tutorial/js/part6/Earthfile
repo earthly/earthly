@@ -44,7 +44,7 @@ api-docker:
     SAVE IMAGE js-api:$tag
 
 integration-tests:
-    FROM earthly/dind:alpine-3.18
+    FROM earthly/dind:alpine-3.19
     RUN apk add curl
     WITH DOCKER \
         --load app:latest=+app-docker \

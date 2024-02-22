@@ -1191,10 +1191,11 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 		}
 		platformsSlice = append(platformsSlice, platform)
 	}
-	if async && !(isSafeAsyncBuildArgsKVStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
+	asyncSafeArgs := isSafeAsyncBuildArgsKVStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])
+	if async && (!asyncSafeArgs || opts.AutoSkip) {
 		return errCannotAsync
 	}
-	if i.local && !(isSafeAsyncBuildArgsKVStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])) {
+	if i.local && !asyncSafeArgs {
 		return i.errorf(cmd.SourceLocation, "BUILD args do not currently support shelling-out in combination with LOCALLY")
 	}
 	expandedBuildArgs, err := i.expandArgsSlice(ctx, opts.BuildArgs, true, async)
@@ -1228,19 +1229,31 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 		return i.errorf(cmd.SourceLocation, "the BUILD --pass-args flag must be enabled with the VERSION --pass-args feature flag.")
 	}
 
-	for _, bas := range crossProductBuildArgs {
+	for _, buildArgs := range crossProductBuildArgs {
+		saveHashFn := func() {}
+		if opts.AutoSkip {
+			skip, fn, err := i.converter.checkAutoSkip(ctx, fullTargetName, allowPrivileged, opts.PassArgs, buildArgs)
+			if err != nil {
+				return i.wrapError(err, cmd.SourceLocation, "failed to determine whether target can be skipped")
+			}
+			if skip {
+				continue
+			}
+			saveHashFn = fn
+		}
 		for _, platform := range platformsSlice {
 			if async {
-				err := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, bas, buildCmd, nil, nil)
+				err := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgs, buildCmd, nil, nil)
 				if err != nil {
 					return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
 				}
 				continue
 			}
-			err := i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, bas)
+			err := i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgs)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
 			}
+			saveHashFn()
 		}
 	}
 	return nil
@@ -1708,7 +1721,7 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 		})
 	}
 	for _, loadStr := range opts.Loads {
-		loadImg, loadTarget, flagArgs, err := ParseLoad(loadStr)
+		loadImg, loadTarget, flagArgs, err := flagutil.ParseLoad(loadStr)
 		if err != nil {
 			return i.wrapError(err, cmd.SourceLocation, "parse load")
 		}
@@ -1974,6 +1987,12 @@ func (i *Interpreter) handleCache(ctx context.Context, cmd spec.Command) error {
 	if !path.IsAbs(dir) {
 		dir = path.Clean(path.Join("/", i.converter.mts.Final.MainImage.Config.WorkingDir, dir))
 	}
+	if opts.ID != "" {
+		opts.ID, err = i.expandArgs(ctx, opts.ID, false, false)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand CACHE id %s", opts.ID)
+		}
+	}
 	if err := i.converter.Cache(ctx, dir, opts); err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply CACHE")
 	}
@@ -2111,39 +2130,6 @@ func escapeSlashPlus(str string) string {
 func unescapeSlashPlus(str string) string {
 	// TODO: This is not entirely correct in a string like "\\\\+".
 	return strings.ReplaceAll(str, "\\+", "+")
-}
-
-// ParseLoad splits a --load value into the image, target, & extra args.
-// Example: --load my-image=(+target --arg1 foo --arg2=bar)
-func ParseLoad(loadStr string) (image string, target string, extraArgs []string, err error) {
-	words := strings.SplitN(loadStr, " ", 2)
-	if len(words) == 0 {
-		return "", "", nil, nil
-	}
-	firstWord := words[0]
-	splitFirstWord := strings.SplitN(firstWord, "=", 2)
-	if len(splitFirstWord) < 2 {
-		// <target-name>
-		// (will infer image name from SAVE IMAGE of that target)
-		image = ""
-		target = loadStr
-	} else {
-		// <image-name>=<target-name>
-		image = splitFirstWord[0]
-		if len(words) == 1 {
-			target = splitFirstWord[1]
-		} else {
-			words[0] = splitFirstWord[1]
-			target = strings.Join(words, " ")
-		}
-	}
-	if flagutil.IsInParamsForm(target) {
-		target, extraArgs, err = flagutil.ParseParams(target)
-		if err != nil {
-			return "", "", nil, err
-		}
-	}
-	return image, target, extraArgs, nil
 }
 
 // requiresShellOutOrCmdInvalid returns true if

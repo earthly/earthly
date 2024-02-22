@@ -82,6 +82,15 @@ func setManifestFields(dm *pb.DeltaManifest, ret *pb.RunManifest) {
 	if f.GetMainTargetId() != "" {
 		ret.MainTargetId = f.GetMainTargetId()
 	}
+	if f.GetIsCi() {
+		ret.IsCi = true
+	}
+	if f.GetGitAuthor() != "" {
+		ret.GitAuthor = f.GetGitAuthor()
+	}
+	if f.GetGitConfigEmail() != "" {
+		ret.GitConfigEmail = f.GetGitConfigEmail()
+	}
 	for targetID, t2 := range f.GetTargets() {
 		t := ensureTargetExists(ret, targetID)
 
@@ -173,6 +182,9 @@ func setManifestFields(dm *pb.DeltaManifest, ret *pb.RunManifest) {
 		}
 		if c2.GetHasSourceLocation() {
 			c.SourceLocation = c2.GetSourceLocation()
+		}
+		if len(c2.GetDependsOn()) > 0 {
+			c.DependsOn = append(c.DependsOn, c2.GetDependsOn()...)
 		}
 	}
 }
