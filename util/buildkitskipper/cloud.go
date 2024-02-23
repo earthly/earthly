@@ -2,33 +2,40 @@ package buildkitskipper
 
 import (
 	"context"
+	"errors"
+	"strings"
 )
 
+// ASKVClient provides methods which allow for adding & checking the existence
+// of an auto-skip hash. The current implementations are a local BoltDB & a
+// remote gRPC service.
 type ASKVClient interface {
-	AutoSkipExists(ctx context.Context, org, project, pipeline string, hash []byte) (bool, error)
-	AutoSkipAdd(ctx context.Context, org, project, pipeline string, hash []byte) error
+	AutoSkipExists(ctx context.Context, org string, hash []byte) (bool, error)
+	AutoSkipAdd(ctx context.Context, org, path, target string, hash []byte) error
 }
 
-func NewCloud(org, project, pipeline string, client ASKVClient) (*CloudClient, error) {
+// NewCloud creates and returns a new Cloud API implementation.
+func NewCloud(client ASKVClient) (*CloudClient, error) {
 	return &CloudClient{
-		org:      org,
-		project:  project,
-		pipeline: pipeline,
-		c:        client,
+		client: client,
 	}, nil
 }
 
+// CloudClient implements the Cloud API version of the ASKVClient.
 type CloudClient struct {
-	org      string
-	project  string
-	pipeline string
-	c        ASKVClient
+	client ASKVClient
 }
 
-func (cc *CloudClient) Add(ctx context.Context, data []byte) error {
-	return cc.c.AutoSkipAdd(ctx, cc.org, cc.project, cc.pipeline, data)
+// Add a new hash to the Cloud DB.
+func (c *CloudClient) Add(ctx context.Context, org, target string, data []byte) error {
+	parts := strings.Split(target, "+")
+	if len(parts) < 2 {
+		return errors.New("invalid target format")
+	}
+	return c.client.AutoSkipAdd(ctx, org, parts[0], parts[1], data)
 }
 
-func (cc *CloudClient) Exists(ctx context.Context, data []byte) (bool, error) {
-	return cc.c.AutoSkipExists(ctx, cc.org, cc.project, cc.pipeline, data)
+// Exists checks if an auto-skip hash exists.
+func (c *CloudClient) Exists(ctx context.Context, org string, data []byte) (bool, error) {
+	return c.client.AutoSkipExists(ctx, org, data)
 }

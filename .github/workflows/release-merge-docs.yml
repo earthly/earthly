@@ -1,4 +1,4 @@
-name: Merge main to docs-0.7 on New Earthly Release
+name: Merge main to docs-0.8 on New Earthly Release
 
 on:
   push:
@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   main-to-docs:
-    name: merge main to docs-0.7
+    name: merge main to docs-0.8
     runs-on: "ubuntu-latest"
     env:
       FORCE_COLOR: 1
@@ -27,6 +27,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: earthly/actions-setup@main
       - name: Execute merge
-        # currently this is just in dry-run mode Add --push to the earthly command
-        # to get it out of dry run mode
         run: earthly --push --ci +merge-main-to-docs

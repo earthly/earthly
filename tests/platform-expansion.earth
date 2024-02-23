@@ -1,0 +1,52 @@
+VERSION 0.8
+
+all:
+    BUILD +test-from
+    BUILD +test-copy
+    BUILD +test-build
+
+######################
+# targets to test FROM
+
+test-from:
+    BUILD +test-from-target --MY_ARCH=amd64 --EXPECTED_VAL=x86_64
+    BUILD +test-from-target --MY_ARCH=arm64 --EXPECTED_VAL=aarch64
+
+test-from-target:
+    ARG --required MY_ARCH
+    LET MY_OS="linux"
+    FROM --platform="$MY_OS/$MY_ARCH" alpine:3.18
+    ARG EXPECTED_VAL
+    RUN test "$(uname -m)" = "$EXPECTED_VAL"
+
+######################
+# targets to test COPY
+
+uname:
+    ARG --required MY_ARCH
+    LET MY_OS="linux"
+    FROM --platform="$MY_OS/$MY_ARCH" alpine:3.18
+    RUN uname -m > val
+    SAVE ARTIFACT val
+
+test-copy:
+    FROM alpine:3.18
+
+    COPY (+uname/val --MY_ARCH=amd64) val_x86_64
+    RUN test "$(cat val_x86_64)" = "x86_64"
+
+    COPY (+uname/val --MY_ARCH=arm64) val_aarch64
+    RUN test "$(cat val_aarch64)" = "aarch64"
+
+#######################
+# targets to test BUILD
+
+test-build:
+    FROM alpine:3.18
+    BUILD --platform="$(echo bGludXgvYW1kNjQ= | base64 -d)" +test-build-target --EXPECTED_VAL=x86_64
+    BUILD --platform="$(echo bGludXgvYXJtNjQ= | base64 -d)" +test-build-target --EXPECTED_VAL=aarch64
+
+test-build-target:
+    FROM alpine:3.18
+    ARG EXPECTED_VAL
+    RUN test "$(uname -m)" = "$EXPECTED_VAL"

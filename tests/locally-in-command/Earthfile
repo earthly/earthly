@@ -1,5 +1,5 @@
-VERSION --pass-args 0.7
-FROM --pass-args ../..+earthly-integration-test-base
+VERSION 0.8
+FROM --pass-args ..+base
 
 IMPORT .. AS tests
 
@@ -48,7 +48,7 @@ test-udc-that-calls-other-udc:
     RUN test "$(cat data)" = "I am running in /my/test"
 
 RUN_EARTHLY_ARGS:
-    COMMAND
+    FUNCTION
     ARG earthfile
     ARG target
     ARG should_fail=false

@@ -10,9 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/earthly/earthly/util/cliutil"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
+
+	"github.com/earthly/earthly/util/cliutil"
 )
 
 const (
@@ -113,6 +114,7 @@ type GitConfig struct {
 	Password              string `yaml:"password"                     help:"The https password to use when auth is set to https. This setting is ignored when auth is ssh."`
 	ServerKey             string `yaml:"serverkey"                    help:"SSH fingerprints, like you would add in your known hosts file, or get from ssh-keyscan."`
 	StrictHostKeyChecking *bool  `yaml:"strict_host_key_checking"     help:"Allow ssh access to hosts with unknown server keys (e.g. no entries in known_hosts), defaults to true."`
+	SSHCommand            string `yaml:"ssh_command"                  help:"Set a value for the core.sshCommand git config option, which allows you to provide custom SSH configuration."`
 }
 
 // Satellite contains satellite config values

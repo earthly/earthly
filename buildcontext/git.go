@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	defaultGitImage = "alpine/git:v2.40.1"
+	defaultGitImage = "alpine/git:v2.43.0"
 )
 
 type gitResolver struct {
@@ -63,7 +63,42 @@ type resolvedGitProject struct {
 	// refs is the git refs
 	refs []string
 	// state is the state holding the git files.
-	state pllb.State
+	state          pllb.State
+	earthfilePaths []string
+}
+
+func (gr *gitResolver) expandWildcard(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, target domain.Target, pattern string) ([]string, error) {
+	if !target.IsRemote() {
+		return nil, errors.Errorf("unexpected local reference %s", target.String())
+	}
+
+	rgp, _, subDir, err := gr.resolveGitProject(ctx, gwClient, platr, target)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed resolving git project [platform: %s/%s]",
+			platr.LLBNative().OS, platr.LLBNative().Architecture)
+	}
+
+	fullPattern := filepath.Join(subDir, pattern)
+	if !strings.HasPrefix(fullPattern, ".") {
+		fullPattern = "./" + fullPattern
+	}
+
+	var matches []string
+
+	for _, path := range rgp.earthfilePaths {
+		path = strings.TrimSuffix(path, "/Earthfile")
+		ok, err := filepath.Match(fullPattern, path)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			// Ensure we return paths that are relative to the sub-directory.
+			path = strings.TrimPrefix(path, fmt.Sprintf("./%s/", subDir))
+			matches = append(matches, path)
+		}
+	}
+
+	return matches, nil
 }
 
 func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, ref domain.Reference, featureFlagOverrides string) (*Data, error) {
@@ -72,7 +107,8 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 	}
 	rgp, gitURL, subDir, err := gr.resolveGitProject(ctx, gwClient, platr, ref)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed resolving git project [platform: %s/%s]",
+			platr.LLBNative().OS, platr.LLBNative().Architecture)
 	}
 
 	var buildContextFactory llbfactory.Factory
@@ -179,7 +215,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 
 	var err error
 	var keyScans []string
-	gitURL, subDir, keyScans, err = gr.gitLookup.GetCloneURL(ref.GetGitURL())
+	var sshCommand string
+	gitURL, subDir, keyScans, sshCommand, err = gr.gitLookup.GetCloneURL(ref.GetGitURL())
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "failed to get url for cloning")
 	}
@@ -207,6 +244,9 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			// However this makes it really difficult for an Earthfile which first has an ARG EARTHLY_GIT_HASH, then a RUN, then a COPY
 			gitOpts = append(gitOpts, llb.LFSInclude(gr.lfsInclude))
 		}
+		if sshCommand != "" {
+			gitOpts = append(gitOpts, llb.SSHCommand(sshCommand))
+		}
 
 		gitState := llb.Git(gitURL, gitRef, gitOpts...)
 		gitImage := gr.gitImage
@@ -230,7 +270,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 					"git log -1 --format=%at >/dest/git-author-ts || touch /dest/git-author-ts ; " +
 					"git log -1 --format=%ae >/dest/git-author || touch /dest/git-author ; " +
 					"git log -1 --format=%b >/dest/git-body || touch /dest/git-body ; " +
-					"git for-each-ref --contains HEAD --format '%(refname:lstrip=-1)' >/dest/git-refs || touch /dest/git-refs ; " +
+					"git for-each-ref --points-at HEAD --format '%(refname:lstrip=-1)' >/dest/git-refs || touch /dest/git-refs ; " +
+					"find -type f -name Earthfile > /dest/Earthfile-paths || touch /dest/Earthfile-paths ; " +
 					"",
 			}),
 			llb.Dir("/git-src"),
@@ -306,6 +347,12 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		if err != nil {
 			return nil, errors.Wrap(err, "read git-refs")
 		}
+		earthfilePathsRaw, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: "Earthfile-paths",
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "read Earthfile-paths")
+		}
 
 		gitHash := strings.SplitN(string(gitHashBytes), "\n", 2)[0]
 		gitShortHash := strings.SplitN(string(gitShortHashBytes), "\n", 2)[0]
@@ -360,15 +407,16 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		}
 
 		rgp := &resolvedGitProject{
-			hash:        gitHash,
-			shortHash:   gitShortHash,
-			branches:    gitBranches2,
-			tags:        gitTags2,
-			committerTs: gitCommiterTs,
-			authorTs:    gitAuthorTs,
-			author:      gitAuthor,
-			coAuthors:   gitCoAuthors,
-			refs:        gitRefs2,
+			hash:           gitHash,
+			shortHash:      gitShortHash,
+			branches:       gitBranches2,
+			tags:           gitTags2,
+			committerTs:    gitCommiterTs,
+			authorTs:       gitAuthorTs,
+			author:         gitAuthor,
+			coAuthors:      gitCoAuthors,
+			refs:           gitRefs2,
+			earthfilePaths: strings.Split(strings.TrimSpace(string(earthfilePathsRaw)), "\n"),
 			state: pllb.Git(
 				gitURL,
 				gitHash,

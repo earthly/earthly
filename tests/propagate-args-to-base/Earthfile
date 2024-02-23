@@ -1,0 +1,29 @@
+VERSION 0.8
+FROM --pass-args ..+base
+
+test-all:
+    BUILD +test-v07
+    BUILD +test-v08
+
+test-v07:
+    COPY propagate.earth Earthfile
+    RUN sed -i "s/VERSION_STRING_TO_REPLACE/VERSION --use-function-keyword 0.7/g" Earthfile
+    DO --pass-args +RUN_EARTHLY --target=+test
+    DO +CHECK_OUTPUT
+
+test-v08:
+    COPY propagate.earth Earthfile
+    RUN sed -i "s/VERSION_STRING_TO_REPLACE/VERSION --use-function-keyword --arg-scope-and-set 0.7/g" Earthfile
+    DO --pass-args +RUN_EARTHLY --target=+test
+    DO +CHECK_OUTPUT
+
+CHECK_OUTPUT:
+    FUNCTION
+    RUN acbgrep "under test, the global is $(echo "set in base" | base64)" earthly.output
+    RUN acbgrep "under FUNC1, the global is $(echo "set when calling FUNC1" | base64)" earthly.output
+    RUN acbgrep "under FUNC2, the global is $(echo "set when calling FUNC2" | base64)" earthly.output
+    RUN acbgrep "under target, the global is $(echo "set when calling target" | base64)" earthly.output
+
+RUN_EARTHLY:
+    FUNCTION
+    DO --pass-args ..+RUN_EARTHLY

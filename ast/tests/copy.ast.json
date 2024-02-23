@@ -867,11 +867,7 @@
               "2>&1",
               "|",
               "grep",
-              "'No",
-              "such",
-              "file",
-              "or",
-              "directory'"
+              "'No such file or directory'"
             ],
             "name": "RUN"
           }
@@ -968,11 +964,7 @@
               "2>&1",
               "|",
               "grep",
-              "'No",
-              "such",
-              "file",
-              "or",
-              "directory'"
+              "'No such file or directory'"
             ],
             "name": "RUN"
           }
@@ -1171,11 +1163,60 @@
           }
         }
       ]
+    },
+    {
+      "name": "copy-empty-src",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "SRC",
+              "=",
+              "\"\""
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "$SRC",
+              "$SRC"
+            ],
+            "name": "COPY"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-empty-src-if-exists",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "SRC",
+              "=",
+              "\"\""
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "$SRC",
+              "$SRC"
+            ],
+            "name": "COPY"
+          }
+        }
+      ]
     }
   ],
   "version": {
     "args": [
-      "0.7"
+      "0.8"
     ]
   }
 }

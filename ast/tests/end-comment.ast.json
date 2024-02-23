@@ -17,8 +17,7 @@
           "command": {
             "args": [
               "echo",
-              "'Hello,",
-              "world!'"
+              "'Hello, world!'"
             ],
             "name": "RUN"
           }
@@ -28,7 +27,7 @@
   ],
   "version": {
     "args": [
-      "0.7"
+      "0.8"
     ]
   }
 }

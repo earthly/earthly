@@ -2,7 +2,13 @@
 
 Caching is at the heart of how Earthly works. This page will walk you through the key concepts of caching in Earthfiles.
 
-## Layer caching
+There are three main ways in which Earthly performs caching of builds:
+
+1. **Layer-based caching**. If an Earthfile command is run again, and the inputs to that command are the same, then the cache layer is reused. This allows Earthly to skip re-executing parts of the build that have not changed.
+2. **Cache mounts**. Earthly allows you to mount directories into the build environment - either via [`RUN --mount type=cache`](../earthfile/earthfile.md#run), or via the [`CACHE`](../earthfile/earthfile.md#cache) command. These directories are persisted between runs, and can be used to store intermediate build files for incremental compilers, or dependencies that are downloaded from the internet.
+3. **Auto-skip**. Earthly allows you to skip large parts of a build in certain situations via `earthly --auto-skip` or `BUILD --auto-skip`. This is especially useful in monorepo setups, where you are building multiple projects at once, and only one of them has changed.
+
+## 1. Layer-based caching
 
 Most commands in an Earthfile create a cache layer as part of the way they execute. You can think of a target in an Earthfile as a cake with multiple layers. If a layer's ingredients change, you need to redo the affected layer, plus any layer on top. Similarly, in an Earthfile target, if the input to a command is different (different ARG values, different source files being COPY'd, or the command itself is different), then Earthly can reuse the layers from a previous run up to that command, but it would have to re-execute that command and what follows after it.
 
@@ -46,7 +52,7 @@ RUN go build ...
 
 In general, including the smallest set of input files as possible at every step will result in the best cache performance.
 
-## Cache mounts
+## 2. Cache mounts
 
 Sometimes layer caching is not enough to properly express the best way to cache something. Cache mounts help complement layer caching, by allowing the contents of a directory to be reused across multiple builds. Cache mounts can be helpful in cases where the tool you're using to build within Earthly is able to leverage incremental caching on its own. Some package managers are able to do that for downloaded dependencies.
 
@@ -81,11 +87,105 @@ Another limitation is that cache mounts are not great for passing files from one
 
 Finally, another important limitation is the fact that cache mounts can grow in size indefinitely. While Earthly does garbage-collect layers and cache mounts on a least-recently-used basis, a cache mount that is used frequently could grow more than expected. In such situations, you should consider managing the lifecycle of the cache contents yourself, by removing unused files from it every few runs. A good place for such cleanup operations is within the same layer (same `RUN` command) that uses the contents, at the end.
 
+## 3. Auto-skip
+
+Auto-skip is a feature that allows Earthly to skip large parts of a build in certain situations. This is especially useful in monorepo setups, where you are building multiple projects at once, and only one of them has changed.
+
+Unlike layer caching and cache mounts (which store cache local to the runner), auto-skip is a global cache stored in a cloud database. In order to use auto-skip, you will need an [Earthly Cloud](../cloud/overview.md) account.
+
+Auto-skip can be enabled for either an entire run, via `earthly --auto-skip` (*experimental*), or for a specific target, via `BUILD --auto-skip` (*coming soon*).
+
+Unlike layer caching, auto-skip is an all-or-nothing type of cache. Either the entire target is skipped, or none of it is. This is because Earthly does not know which parts of the target are affected by the change. If auto-skip does not deem the run to be skipped, then Earthly will fallback to the other forms of caching to run the build as efficiently as possible.
+
+### When auto-skip is not supported
+
+As auto-skip relies on statically analyzing the structure of the build upfront, including the inter-dependencies between targets across multiple Earthfiles, it is not always possible to use it. If a target being involved has a dynamic name that would only be known at run-time, then auto-skip would have no way of knowing it upfront. In such cases, the build fails with an error message when `--auto-skip` is enabled.
+
+#### Static inference of ARG values
+
+For basic `ARG` operations, auto-skip is able to infer the value of the `ARG` statically, and therefore, it is able to support it. Here is a practical example.
+
+```
+# Supported
+ARG MY_ARG=foo
+BUILD $MY_ARG
+
+# Not supported
+ARG MY_ARG=$(cat ./file)
+BUILD $MY_ARG
+```
+
+In the first case, the value of `MY_ARG` is known statically as its value can be propagated by the auto-skip algorithm. In the second case, the value of `MY_ARG` is not known statically as it depends on a file in the build environment. In such a case, auto-skip is not supported. Note that defining such dynamic `ARG`s is generally allowed, however, as long as the value of the `ARG` is not used in a way that would prevent auto-skip from working.
+
+Similarly, the auto-skip algorithm is able to propagate `ARG`s across targets, as long as the value of the `ARG` is known statically. Here is a practical example:
+
+```
+# Supported
+ARG MY_ARG=foo
+BUILD +target --arg=$MY_ARG
+
+# Might not be supported (depending on how the target uses the arg)
+ARG MY_ARG=$(cat ./file)
+BUILD +target --arg=$MY_ARG
+```
+
+#### Static inference of conditions
+
+`IF` statements are generally supported by auto-skip, however there is a difference in behavior, depending on whether the outcome of the condition can be inferred statically. If the outcome of the condition can be inferred statically, then auto-skip uses the correct `IF` or `ELSE` block for analysis. If the outcome of the condition cannot be inferred statically, then the auto-skip algorithm will analyze both `IF` and `ELSE` blocks, and will only skip the target if both blocks are skipped.
+
+Here is a practical example:
+
+```
+# Supported and efficient (only +target2 is analyzed)
+ARG MY_ARG=bar
+IF [ $MY_ARG = "foo" ]
+  BUILD +target1
+ELSE
+  BUILD +target2
+END
+
+# Supported but inefficient (both +target1 and +target2 are analyzed)
+ARG MY_ARG=$(cat ./file)
+IF [ $MY_ARG = "foo" ]
+  BUILD +target1
+ELSE
+  BUILD +target2
+END
+
+# Supported but inefficient (both +target1 and +target2 are analyzed)
+IF grep ./file -e "foo" 
+  BUILD +target1
+ELSE
+  BUILD +target2
+END
+```
+
+#### Unsupported Earthfile features in auto-skip
+
+Here is a list of unsupported features when `--auto-skip` is enabled:
+
+* Dynamic target names, such as `BUILD $MY_TARGET`, `FROM $MY_TARGET`, or `BUILD $(...)`, unless the target name can be inferred statically.
+* Dynamic `COPY` commands, such as `COPY $MY_FILE .`, or `COPY $(...) .`, unless the source can be inferred statically.
+* Remote references (such as `BUILD github.com/foo/bar+my-target`), unless the remote reference is pinned to a specific SHA, or to an explicit tag expressed as a `tags/...` git reference. For example, `BUILD github.com/foo/bar:tags/v1.0.0+my-target` is supported, but `BUILD github.com/foo/bar:v1.0.0+my-target` is not.
+* Remote imports, unless the remote reference is pinned to a specific SHA, or to an explicit tag expressed as a `tags/...` git reference. For example, `IMPORT github.com/foo/bar:tags/v1.0.0` is supported, but `IMPORT github.com/foo/bar:v1.0.0` is not.
+* `GIT CLONE`, unless the remote reference is pinned to a specific SHA, or to an explicit tag expressed as a `tags/...` git reference.
+* `FOR` loops, unless the list being iterated can be inferred statically.
+
+### Auto-skipping `RUN --no-cache` and `RUN --push`
+
+Unlike layer caching, auto-skip may also skip `RUN --no-cache` and `RUN --push` commands. This can be useful in situations when you would like to skip a deployment, if nothing has changed. Please note that rollbacks may be unintentionally skipped, if attempting to deploy on older version of the codebase that had been previously deployed. In such cases, you can either (a) remove the `--auto-skip` flag to force the deployment to occur, (b) [clear the auto-skip cache](./managing-cache.md#auto-skip-cache), or (c) use roll-forward practices (reverting problematic code changes, and re-deploying as a net-new version).
+
 ## Disabling caching
 
-In certain situations, you might want to disable caching either for a specific command, or for the entire build. This can be done by using the `--no-cache` flag. For example, `RUN --no-cache echo "Hello"` will always execute the `echo` command, even if the `RUN` command was executed before with the same arguments. To disable caching for an entire run, you can use `earthly --no-cache +my-target`.
+In certain situations, you might want to disable caching either for a specific command, or for the entire build.
 
-Another way to disable caching is to use the `RUN --push` flag. This flag is useful when you want to perform an operation with external effects (e.g. deploying to production). By default Earthly does not run `--push` commands unless the `--push` flag is also specified when invoking Earthly itself (`earthly --push +my-target`). `RUN --push` commands are never cached.
+To disable layer caching, you can use the `--no-cache` flag. For example, `RUN --no-cache echo "Hello"` will always execute the `echo` command, even if the `RUN` command was executed before with the same arguments. Note that this does not disable cache mounts, or auto-skip. A `RUN --no-cache` command can still be skipped by auto-skip.
+
+To disable layer caching and mount caching for an entire run, you can use `earthly --no-cache +my-target`.
+
+Another way to disable layer caching is to use the `RUN --push` flag. This flag is useful when you want to perform an operation with external effects (e.g. deploying to production). By default Earthly does not run `--push` commands unless the `--push` flag is also specified when invoking Earthly itself (`earthly --push +my-target`). `RUN --push` commands are never cached.
+
+To disable auto-skip, simply remove the `--auto-skip` flag.
 
 ## Troubleshooting and gotchas
 
@@ -113,7 +213,7 @@ Please note that remote caching via registry tends to be very difficult to get r
 
 ### Force a build step to always cache
 
-If you have already optimized your cache by maximizing its size, declaring arguments as late as possible, and implementing the other recommendations provided here, but you still encounter performance bottlenecks due to computationally intensive tasks being evicted from the cache, consider employing `SAVE IMAGE` commands at strategic points. These images can serve as manual caches and can improve efficiency at the cost of simplicity. For additional details, refer to the [Best Practices](best-practices/best-practices.md#use-save-image-to-always-cache) section.
+If you have already optimized your cache by maximizing its size, declaring arguments as late as possible, and implementing the other recommendations provided here, but you still encounter performance bottlenecks due to computationally intensive tasks being evicted from the cache, consider employing `SAVE IMAGE` commands at strategic points. These images can serve as manual caches and can improve efficiency at the cost of simplicity. For additional details, refer to the [Best Practices](../guides/best-practices.md#use-save-image-to-always-cache) section.
 
 ### Debugging tips
 

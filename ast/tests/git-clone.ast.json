@@ -3,7 +3,7 @@
     {
       "command": {
         "args": [
-          "alpine/git:v2.40.1"
+          "alpine/git:v2.43.0"
         ],
         "name": "FROM"
       }
@@ -207,7 +207,7 @@
   ],
   "version": {
     "args": [
-      "0.7"
+      "0.8"
     ]
   }
 }

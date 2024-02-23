@@ -25,6 +25,7 @@ import (
 	"github.com/moby/buildkit/session/socketforward/socketprovider"
 	"github.com/moby/buildkit/session/sshforward/sshprovider"
 	"github.com/moby/buildkit/util/entitlements"
+	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
@@ -62,7 +63,6 @@ import (
 	"github.com/earthly/earthly/util/syncutil/semutil"
 	"github.com/earthly/earthly/util/termutil"
 	"github.com/earthly/earthly/variables"
-	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
 )
 
 const autoSkipPrefix = "auto-skip"
@@ -182,33 +182,37 @@ func (a *Build) gitLogLevel() buildkitgitutil.GitLogLevel {
 	return buildkitgitutil.GitLogLevelDefault
 }
 
-func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []string) error {
-	var target domain.Target
-	var artifact domain.Artifact
-	destPath := "./"
-	if a.cli.Flags().ImageMode {
+func (a *Build) parseTarget(cliCtx *cli.Context, nonFlagArgs []string) (domain.Target, domain.Artifact, string, error) {
+	var (
+		target   domain.Target
+		artifact domain.Artifact
+		destPath = "./"
+	)
+
+	switch {
+	case a.cli.Flags().ImageMode:
 		if len(nonFlagArgs) == 0 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return params.Errorf(
+			return target, artifact, "", params.Errorf(
 				"no image reference provided. Try %s --image +<target-name>", cliCtx.App.Name)
 		} else if len(nonFlagArgs) != 1 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return params.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
+			return target, artifact, "", params.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
 		targetName := nonFlagArgs[0]
 		var err error
 		target, err = domain.ParseTarget(targetName)
 		if err != nil {
-			return params.Wrapf(err, "invalid target name %s", targetName)
+			return target, artifact, "", params.Wrapf(err, "invalid target name %s", targetName)
 		}
-	} else if a.cli.Flags().ArtifactMode {
+	case a.cli.Flags().ArtifactMode:
 		if len(nonFlagArgs) == 0 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return params.Errorf(
+			return target, artifact, "", params.Errorf(
 				"no artifact reference provided. Try %s --artifact +<target-name>/<artifact-name>", cliCtx.App.Name)
 		} else if len(nonFlagArgs) > 2 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return params.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
+			return target, artifact, "", params.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
 		artifactName := nonFlagArgs[0]
 		if len(nonFlagArgs) == 2 {
@@ -217,25 +221,36 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		var err error
 		artifact, err = domain.ParseArtifact(artifactName)
 		if err != nil {
-			return params.Wrapf(err, "invalid artifact name %s", artifactName)
+			return target, artifact, "", params.Wrapf(err, "invalid artifact name %s", artifactName)
 		}
 		target = artifact.Target
-	} else {
+	default:
 		if len(nonFlagArgs) == 0 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return params.Errorf(
+			return target, artifact, "", params.Errorf(
 				"no target reference provided. Try %s +<target-name>", cliCtx.App.Name)
 		} else if len(nonFlagArgs) != 1 {
 			_ = cli.ShowAppHelp(cliCtx)
-			return params.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
+			return target, artifact, "", params.Errorf("invalid arguments %s", strings.Join(nonFlagArgs, " "))
 		}
 		targetName := nonFlagArgs[0]
 		var err error
 		target, err = domain.ParseTarget(targetName)
 		if err != nil {
-			return params.Errorf("invalid target %s", targetName)
+			return target, artifact, "", params.Errorf("invalid target %s", targetName)
 		}
 	}
+
+	return target, artifact, destPath, nil
+}
+
+func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []string) error {
+
+	target, artifact, destPath, err := a.parseTarget(cliCtx, nonFlagArgs)
+	if err != nil {
+		return err
+	}
+
 	a.cli.SetAnaMetaTarget(target)
 
 	var (
@@ -243,7 +258,8 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		gitConfigEmail  string
 	)
 	if !target.IsRemote() {
-		if meta, err := gitutil.Metadata(cliCtx.Context, target.GetLocalPath(), a.cli.Flags().GitBranchOverride); err == nil {
+		meta, _ := gitutil.Metadata(cliCtx.Context, target.GetLocalPath(), a.cli.Flags().GitBranchOverride)
+		if meta != nil {
 			// Git commit detection here is best effort
 			gitCommitAuthor = meta.Author
 		}
@@ -251,7 +267,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 			gitConfigEmail = email
 		}
 	}
-
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
@@ -318,8 +333,14 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return err
 	}
 
-	skipDB, targetHash, doSkip, err := a.initAutoSkip(cliCtx.Context, target, overridingVars, cloudClient)
+	skipDB, err := bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, cloudClient)
 	if err != nil {
+		a.cli.Console().WithPrefix(autoSkipPrefix).Warnf("Failed to initialize auto-skip database: %v", err)
+	}
+
+	addHashFn, doSkip, err := a.initAutoSkip(cliCtx.Context, skipDB, target, overridingVars)
+	if err != nil {
+		a.cli.Console().PrintFailure("auto-skip")
 		return err
 	}
 	if doSkip {
@@ -334,14 +355,15 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return errors.Wrapf(err, "could not init frontend")
 	}
 
+	cleanupTLS, err := a.cli.ConfigureSatellite(cliCtx, cloudClient, gitCommitAuthor, gitConfigEmail)
+	if err != nil {
+		return errors.Wrapf(err, "could not configure satellite")
+	}
+	defer cleanupTLS()
+
 	// Collect info to help with printing a richer message in the beginning of the build or on failure to reserve satellite due to missing build minutes.
 	if err = a.cli.CollectBillingInfo(cliCtx.Context, cloudClient, a.cli.OrgName()); err != nil {
 		a.cli.Console().DebugPrintf("failed to get billing plan info, error is %v\n", err)
-	}
-
-	err = a.cli.ConfigureSatellite(cliCtx, cloudClient, gitCommitAuthor, gitConfigEmail)
-	if err != nil {
-		return errors.Wrapf(err, "could not configure satellite")
 	}
 
 	// After configuring frontend and satellites, buildkit address should not be empty.
@@ -541,7 +563,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		ParallelConversion:                    (a.cli.Cfg().Global.ConversionParallelism != 0),
 		Parallelism:                           parallelism,
 		LocalRegistryAddr:                     localRegistryAddr,
-		UseRemoteRegistry:                     a.cli.Flags().UseRemoteRegistry,
 		DarwinProxyImage:                      a.cli.Cfg().Global.DarwinProxyImage,
 		DarwinProxyWait:                       a.cli.Cfg().Global.DarwinProxyWait,
 		FeatureFlagOverrides:                  a.cli.Flags().FeatureFlagOverrides,
@@ -552,6 +573,9 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		GitImage:                              a.cli.Cfg().Global.GitImage,
 		GitLFSInclude:                         a.cli.Flags().GitLFSPullInclude,
 		GitLogLevel:                           a.gitLogLevel(),
+		DisableRemoteRegistryProxy:            a.cli.Flags().DisableRemoteRegistryProxy,
+		BuildkitSkipper:                       skipDB,
+		NoAutoSkip:                            a.cli.Flags().NoAutoSkip,
 	}
 
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)
@@ -601,11 +625,16 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	buildOpts.MainTargetDetailsFunc = func(d earthfile2llb.TargetDetails) error {
 		a.cli.Console().VerbosePrintf("Logbus: setting organization %q and project %q at %s", d.EarthlyOrgName, d.EarthlyProjectName, time.Now().Format(time.RFC3339Nano))
 		analytics.AddEarthfileProject(d.EarthlyOrgName, d.EarthlyProjectName)
-		if a.cli.Flags().Logstream {
-			a.cli.LogbusSetup().SetOrgAndProject(d.EarthlyOrgName, d.EarthlyProjectName)
-			if doLogstreamUpload {
-				a.cli.LogbusSetup().StartLogStreamer(cliCtx.Context, cloudClient)
-			}
+		if !a.cli.Flags().Logstream {
+			return nil
+		}
+		setup := a.cli.LogbusSetup()
+		setup.SetOrgAndProject(d.EarthlyOrgName, d.EarthlyProjectName)
+		setup.SetGitAuthor(gitCommitAuthor, gitConfigEmail)
+		_, isCI := analytics.DetectCI(a.cli.Flags().EarthlyCIRunner)
+		setup.SetCI(isCI)
+		if doLogstreamUpload {
+			setup.StartLogStreamer(cliCtx.Context, cloudClient)
 		}
 		return nil
 	}
@@ -614,18 +643,15 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		a.cli.Console().ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
 	}
 
-	a.maybePrintBuildMinutesInfo(a.cli.OrgName())
+	a.maybePrintBuildMinutesInfo(cliCtx)
 
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
 	if err != nil {
 		return errors.Wrap(err, "build target")
 	}
 
-	if a.cli.Flags().SkipBuildkit && targetHash != nil {
-		err := skipDB.Add(cliCtx.Context, targetHash)
-		if err != nil {
-			a.cli.Console().WithPrefix(autoSkipPrefix).Warnf("failed to record %s (hash %x) as completed: %s", target.String(), target, err)
-		}
+	if a.cli.Flags().SkipBuildkit && addHashFn != nil {
+		addHashFn()
 	}
 
 	return nil
@@ -669,7 +695,7 @@ func (a *Build) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) error {
 		if suffix == "" {
 			suffix = ".git"
 		}
-		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, v.Prefix, suffix, auth, v.ServerKey, common.IfNilBoolDefault(v.StrictHostKeyChecking, true), v.Port)
+		err := gitLookup.AddMatcher(k, pattern, v.Substitute, v.User, v.Password, v.Prefix, suffix, auth, v.ServerKey, common.IfNilBoolDefault(v.StrictHostKeyChecking, true), v.Port, v.SSHCommand)
 		if err != nil {
 			return errors.Wrap(err, "gitlookup")
 		}
@@ -822,60 +848,83 @@ func (a *Build) platformResolver(ctx context.Context, bkClient *bkclient.Client,
 	return platr, nil
 }
 
-func (a *Build) initAutoSkip(ctx context.Context, target domain.Target, overridingVars *variables.Scope, client *cloud.Client) (bk.BuildkitSkipper, []byte, bool, error) {
+func (a *Build) initAutoSkip(ctx context.Context, skipDB bk.BuildkitSkipper, target domain.Target, overridingVars *variables.Scope) (func(), bool, error) {
 
 	if !a.cli.Flags().SkipBuildkit {
-		return nil, nil, false, nil
+		return nil, false, nil
 	}
 
 	console := a.cli.Console().WithPrefix(autoSkipPrefix)
+
+	if skipDB == nil {
+		return nil, false, nil
+	}
+
 	consoleNoPrefix := a.cli.Console()
 
-	if a.cli.Flags().Push {
-		return nil, nil, false, errors.New("--push cannot be used with --auto-skip")
-	}
-
 	if a.cli.Flags().NoCache {
-		return nil, nil, false, errors.New("--no-cache cannot be used with --auto-skip")
+		return nil, false, errors.New("--no-cache cannot be used with --auto-skip")
 	}
 
-	var (
-		skipDB      bk.BuildkitSkipper
-		targetHash  []byte
-		orgName     string
-		projectName string
-	)
+	if a.cli.Flags().NoAutoSkip {
+		return nil, false, errors.New("--no-auto-skip cannot be used with --auto-skip")
+	}
 
-	orgName, projectName, targetHash, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
-		Target:           target,
-		Console:          a.cli.Console(),
-		CI:               a.cli.Flags().CI,
-		BuiltinArgs:      variables.DefaultArgs{EarthlyVersion: a.cli.Version(), EarthlyBuildSha: a.cli.GitSHA()},
-		OverridingVars:   overridingVars,
-		EarthlyCIRunner:  a.cli.Flags().EarthlyCIRunner,
-		SkipProjectCheck: a.cli.Flags().LocalSkipDB != "",
+	orgName := a.cli.Flags().OrgName
+
+	targetHash, stats, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
+		Target:         target,
+		Console:        a.cli.Console(),
+		CI:             a.cli.Flags().CI,
+		BuiltinArgs:    variables.DefaultArgs{EarthlyVersion: a.cli.Version(), EarthlyBuildSha: a.cli.GitSHA()},
+		OverridingVars: overridingVars,
 	})
 	if err != nil {
-		return nil, nil, false, errors.Wrapf(err, "unable to calculate hash for %s", target)
+		return nil, false, errors.Wrapf(err, "auto-skip is unable to calculate hash for %s", target)
 	}
 
-	skipDB, err = bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, orgName, projectName, target.GetName(), client)
-	if err != nil {
-		return nil, nil, false, err
+	console.VerbosePrintf("targets visited: %d; targets hashed: %d; target cache hits: %d", stats.TargetsVisited, stats.TargetsHashed, stats.TargetCacheHits)
+	console.VerbosePrintf("hash calculation took %s", stats.Duration)
+
+	if a.cli.Flags().LocalSkipDB == "" && orgName == "" {
+		orgName, _, err = inputgraph.ParseProjectCommand(ctx, target, console)
+		if err != nil {
+			return nil, false, errors.New("organization not found in Earthfile, command flag or environmental variables")
+		}
 	}
 
-	exists, err := skipDB.Exists(ctx, targetHash)
+	if !target.IsRemote() {
+		meta, err := gitutil.Metadata(ctx, target.GetLocalPath(), a.cli.Flags().GitBranchOverride)
+		if err != nil {
+			console.VerboseWarnf("unable to detect all git metadata: %v", err.Error())
+		}
+		target = gitutil.ReferenceWithGitMeta(target, meta).(domain.Target)
+		target.Tag = ""
+	}
+
+	targetConsole := a.cli.Console().WithPrefix(target.String())
+	targetStr := targetConsole.PrefixColor().Sprintf("%s", target.StringCanonical())
+
+	exists, err := skipDB.Exists(ctx, orgName, targetHash)
 	if err != nil {
-		console.Warnf("unable to check if target %s (hash %x) has already been run: %s", target.String(), targetHash, err.Error())
-		return nil, nil, false, nil
+		console.Warnf("Unable to check if target %s (hash %x) has already been run: %s", targetStr, targetHash, err.Error())
+		return nil, false, nil
 	}
 
 	if exists {
-		consoleNoPrefix.Printf("target %s (hash %x) has already been run; exiting", target.String(), targetHash)
-		return nil, nil, true, nil
+		console.Printf("Target %s (hash %x) has already been run. Skipping.", targetStr, targetHash)
+		consoleNoPrefix.PrintSuccess()
+		return nil, true, nil
 	}
 
-	return skipDB, targetHash, false, nil
+	addHashFn := func() {
+		err := skipDB.Add(ctx, orgName, target.StringCanonical(), targetHash)
+		if err != nil {
+			a.cli.Console().WithPrefix(autoSkipPrefix).Warnf("failed to record %s (hash %x) as completed: %s", target.String(), target, err)
+		}
+	}
+
+	return addHashFn, false, nil
 }
 
 func (a *Build) logShareLink(ctx context.Context, cloudClient *cloud.Client, target domain.Target, clean *cleanup.Collection) (string, bool, func()) {
@@ -926,7 +975,13 @@ func (a *Build) logShareLink(ctx context.Context, cloudClient *cloud.Client, tar
 	return logstreamURL, true, printLinkFn
 }
 
-func (a *Build) maybePrintBuildMinutesInfo(orgName string) {
+func (a *Build) maybePrintBuildMinutesInfo(cliCtx *cli.Context) {
+	orgName := a.cli.OrgName()
+	settings := a.cli.Flags().BuildkitdSettings
+	if !a.cli.IsUsingSatellite(cliCtx) || !settings.SatelliteIsManaged {
+		return
+	}
+
 	plan := billing.Plan()
 	if plan.GetMaxBuildMinutes() == 0 {
 		return

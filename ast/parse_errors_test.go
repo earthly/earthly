@@ -1,48 +1,24 @@
 package ast_test
 
 import (
-	"bytes"
 	"context"
 	"strings"
 	"testing"
 
 	"github.com/earthly/earthly/ast"
-	"github.com/poy/onpar"
-	"github.com/poy/onpar/expect"
+	"github.com/stretchr/testify/require"
 )
 
-type namedReader struct {
-	*bytes.Reader
+func TestParserErrors(t *testing.T) {
 
-	name string
-}
-
-func (b namedReader) Name() string {
-	return b.name
-}
-
-func TestParserErrors(topT *testing.T) {
-	type testCtx struct {
-		t      *testing.T
-		expect expect.Expectation
-	}
-
-	o := onpar.BeforeEach(onpar.New(topT), func(t *testing.T) testCtx {
-		return testCtx{
-			t:      t,
-			expect: expect.New(t),
-		}
-	})
-	defer o.Run()
-
-	for _, tt := range []struct {
+	tests := []struct {
 		name         string
-		body         string
+		earthfile    string
 		expectedHint string
 	}{
 		{
 			name: "missing newline token",
-			body: `
+			earthfile: `
 VERSION 0.7
 
 test:
@@ -57,7 +33,7 @@ test:
 		},
 		{
 			name: "key-value with missing EQUALS",
-			body: `
+			earthfile: `
 VERSION 0.7
 
 test:
@@ -68,16 +44,17 @@ test:
   Hint: I got lost looking for '=' - did you define a key/value pair without a value?
 `,
 		},
-	} {
-		tt := tt
-		o.Spec(tt.name, func(tc testCtx) {
-			b := namedReader{
-				Reader: bytes.NewReader([]byte(tt.body)),
-				name:   strings.Replace(tt.name, " ", "_", -1) + ".earth",
-			}
-			_, err := ast.ParseOpts(context.Background(), ast.FromReader(b))
-			tc.expect(err).To(haveOccurred())
-			tc.expect(err.Error()).To(endWith(tt.expectedHint))
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			namedReader := namedStringReader{strings.NewReader(test.earthfile)}
+			_, err := ast.ParseOpts(context.Background(), ast.FromReader(&namedReader))
+			r := require.New(t)
+			r.Error(err)
+			r.ErrorContains(err, test.expectedHint)
 		})
 	}
 }

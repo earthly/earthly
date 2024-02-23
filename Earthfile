@@ -1,4 +1,4 @@
-VERSION --pass-args --no-network --arg-scope-and-set --use-function-keyword 0.7
+VERSION 0.8
 PROJECT earthly-technologies/core
 
 # TODO update to 3.18; however currently "podman login" (used under not-a-unit-test.sh) will error with
@@ -75,9 +75,10 @@ update-buildkit:
     ARG BUILDKIT_GIT_SHA
     ARG BUILDKIT_GIT_BRANCH=earthly-main
     ARG BUILDKIT_GIT_ORG=earthly
+    ARG BUILDKIT_GIT_REPO=buildkit
     COPY (./buildkitd+buildkit-sha/buildkit_sha --BUILDKIT_GIT_ORG="$BUILDKIT_GIT_ORG" --BUILDKIT_GIT_SHA="$BUILDKIT_GIT_SHA" --BUILDKIT_GIT_BRANCH="$BUILDKIT_GIT_BRANCH") buildkit_sha
-    BUILD  ./buildkitd+update-buildkit-earthfile --BUILDKIT_GIT_ORG="$BUILDKIT_GIT_ORG" --BUILDKIT_GIT_SHA="$(cat buildkit_sha)"
-    RUN --no-cache go mod edit -replace "github.com/moby/buildkit=github.com/$BUILDKIT_GIT_ORG/buildkit@$(cat buildkit_sha)"
+    BUILD  ./buildkitd+update-buildkit-earthfile --BUILDKIT_GIT_ORG="$BUILDKIT_GIT_ORG" --BUILDKIT_GIT_SHA="$(cat buildkit_sha)" --BUILDKIT_GIT_REPO="$BUILDKIT_GIT_REPO"
+    RUN --no-cache go mod edit -replace "github.com/moby/buildkit=github.com/$BUILDKIT_GIT_ORG/$BUILDKIT_GIT_REPO@$(cat buildkit_sha)"
     RUN --no-cache go mod tidy
     SAVE ARTIFACT go.mod AS LOCAL go.mod
     SAVE ARTIFACT go.sum AS LOCAL go.sum
@@ -130,7 +131,7 @@ lint-scripts:
 earthly-script-no-stdout:
     # This validates the ./earthly script doesn't print anything to stdout (it should print to stderr)
     # This is to ensure commands such as: MYSECRET="$(./earthly secrets get -n /user/my-secret)" work
-    FROM earthly/dind:alpine-3.18-docker-23.0.6-r7
+    FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
     RUN apk add --no-cache --update bash
     COPY earthly .earthly_version_flag_overrides .
 
@@ -155,7 +156,7 @@ lint-newline-ending:
     # test that line endings are unix-style
     RUN set -e; \
         code=0; \
-        for f in $(find . -not -path "./.git/*" -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' -o -iname '*.md' -o -iname '*.json'\) | grep -v "ast/tests/empty-targets.earth" ); do \
+        for f in $(find . -not -path "./.git/*" -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' -o -iname '*.md' -o -iname '*.json' \) | grep -v "ast/tests/empty-targets.earth" ); do \
             if ! dos2unix < "$f" | cmp - "$f"; then \
                 echo "$f contains windows-style newlines and must be converted to unix-style (use dos2unix to fix)"; \
                 code=1; \
@@ -165,21 +166,22 @@ lint-newline-ending:
     # test file ends with a single newline
     RUN set -e; \
         code=0; \
-        for f in $(find . -not -path "./.git/*" -type f \( -iname '*.yml' -o -iname '*.go' -o -iname '*.sh' -o -iname '*.template' -o -iname 'Earthfile' -o -iname '*.earth' -o -iname '*.md' -o -iname '*.json' \) | grep -v "ast/tests/empty-targets.earth" | grep -v "tests/version/version-only.earth" ); do \
+        for f in $(find . -not -path "./.git/*" -type f \( -iname '*.yml' -o -iname '*.go' -o -iname '*.sh' -o -iname '*.template' -o -iname 'Earthfile' -o -iname '*.earth' -o -iname '*.md' -o -iname '*.json' \) | grep -v "ast/tests/empty-targets.earth" | grep -v "tests/version/version-only.earth" | grep -v "examples/mkdocs" ); do \
             if [ "$(tail -c 1 $f)" != "$(printf '\n')" ]; then \
                 echo "$f does not end with a newline"; \
                 code=1; \
             fi; \
         done; \
         exit $code
-    RUN if [ "$(tail -c 1 ast/tests/empty-targets.earth)" = "$(printf '\n')" ]; then \
+    RUN export f=ast/tests/empty-targets.earth && \
+    if [ "$(tail -c 1 $f)" = "$(printf '\n')" ]; then \
             echo "$f is a special-case test which must not end with a newline."; \
             exit 1; \
         fi
     # check for files with trailing newlines
     RUN set -e; \
         code=0; \
-        for f in $(find . -not -path "./.git/*" -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' -o -iname '*.md' -o -iname '*.json'\) | grep -v "ast/tests/empty-targets.earth" | grep -v "ast/parser/earth_parser.go" | grep -v "ast/parser/earth_lexer.go" ); do \
+        for f in $(find . -not -path "./.git/*" -type f \( -iname '*.go' -o -iname 'Earthfile' -o -iname '*.earth' -o -iname '*.md' -o -iname '*.json' \) | grep -v "ast/tests/empty-targets.earth" | grep -v "ast/parser/earth_parser.go" | grep -v "ast/parser/earth_lexer.go" ); do \
             if [ "$(tail -c 2 $f)" == "$(printf '\n\n')" ]; then \
                 echo "$f has trailing newlines"; \
                 code=1; \
@@ -262,16 +264,6 @@ unit-test:
     BUILD ./ast+unit-test
     BUILD ./util/deltautil+unit-test
 
-# chaos-test runs tests that use chaos and load in order to exercise components
-# of earthly. These tests may be more resource-intensive or flaky than typical
-# unit or integration tests.
-#
-# Since the race detector (-race) sets a goroutine limit, these tests are run
-# without -race.
-chaos-test:
-    FROM +code
-    RUN go test -tags chaos ./...
-
 # offline-test runs offline tests with network set to none
 offline-test:
     FROM +code
@@ -340,7 +332,7 @@ earthly:
     # is particularly useful for disabling optimizations to make the binary work
     # with delve. To disable optimizations:
     #
-    #     -GO_GCFLAGS='all=-N -l'
+    #     --GO_GCFLAGS='all=-N -l'
     ARG GO_GCFLAGS
     ARG EXECUTABLE_NAME="earthly"
     ARG DEFAULT_INSTALLATION_NAME="earthly-dev"
@@ -451,16 +443,32 @@ earthly-docker:
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
     ARG BUILDKIT_PROJECT
+    ARG PUSH_LATEST_TAG="false"
+    ARG PUSH_PRERELEASE_TAG="false"
     FROM ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT" --TAG="$TAG"
     RUN apk add --update --no-cache docker-cli libcap-ng-utils git
     ENV EARTHLY_IMAGE=true
+    # When Earthly is run from a container, the registry proxy networking setup
+    # will fail as the registry is meant to be run on a dynamic localhost port
+    # (which won't be exposed by the container). Let's fall back to tar-based
+    # image transfer until this can be addressed further.
+    ENV EARTHLY_DISABLE_REMOTE_REGISTRY_PROXY=true
     COPY earthly-entrypoint.sh /usr/bin/earthly-entrypoint.sh
     ENTRYPOINT ["/usr/bin/earthly-entrypoint.sh"]
     WORKDIR /workspace
     COPY (+earthly/earthly --VERSION=$TAG --DEFAULT_INSTALLATION_NAME="earthly") /usr/bin/earthly
     ARG DOCKERHUB_USER="earthly"
     ARG DOCKERHUB_IMG="earthly"
-    SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG
+    # Multiple SAVE IMAGE's lead to differing image digests, but multiple
+    # arguments to the save SAVE IMAGE do not. Using variables here doesn't work
+    # either, unfortunately, as the names are quoted and treated as a single arg.
+    IF [ "$PUSH_LATEST_TAG" == "true" ]
+       SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG $DOCKERHUB_USER/$DOCKERHUB_IMG:latest
+    ELSE IF [ "$PUSH_PRERELEASE_TAG" == "true" ]
+       SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG $DOCKERHUB_USER/$DOCKERHUB_IMG:prerelease
+    ELSE
+       SAVE IMAGE --push --cache-from=earthly/earthly:main $DOCKERHUB_USER/$DOCKERHUB_IMG:$TAG
+    END
 
 # earthly-integration-test-base builds earthly docker and then
 # if no dockerhub mirror is not set it will attempt to login to dockerhub using the provided docker hub username and token.
@@ -495,6 +503,7 @@ earthly-integration-test-base:
     ELSE
         RUN ./setup-registry.sh
     END
+    RUN rm ./setup-registry.sh
 
     # pull out buildkit_additional_config from the earthly config, for the special case of earthly-in-earthly testing
     # which runs earthly-entrypoint.sh, which calls buildkitd/entrypoint, which requires EARTHLY_VERSION_FLAG_OVERRIDES to be set
@@ -553,6 +562,8 @@ dind:
         # in order to display the upstream-version, e.g. "24.0.5-1".
         SET DOCKER_VERSION_TAG="$(echo $DOCKER_VERSION | sed 's/^[0-9]*:\([^~]*\).*$/\1/')"
         RUN if echo $DOCKER_VERSION_TAG | grep "[^0-9.-]"; then echo "DOCKER_VERSION_TAG looks bad; got $DOCKER_VERSION_TAG" && exit 1; fi
+    ELSE IF [ "$OS_IMAGE" = "alpine" ]
+        RUN apk add iptables-legacy # required for older kernels
     END
     LET TAG=$OS_IMAGE-$OS_VERSION-docker-$DOCKER_VERSION_TAG
     ARG INCLUDE_TARGET_TAG_DOCKER=true
@@ -587,7 +598,7 @@ for-linux:
     ARG GO_GCFLAGS
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     BUILD ./ast/parser+parser
-    COPY (+earthly-linux-amd64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
+    COPY (+earthly-linux-amd64/earthly --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/linux/amd64/earthly
 
 # for-linux-arm64 builds earthly-buildkitd and the earthly CLI for the a linux arm64 system
@@ -597,7 +608,7 @@ for-linux-arm64:
     ARG GO_GCFLAGS
     BUILD --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     BUILD ./ast/parser+parser
-    COPY (+earthly-linux-arm64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
+    COPY (+earthly-linux-arm64/earthly --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/linux/arm64/earthly
 
 # for-darwin builds earthly-buildkitd and the earthly CLI for the a darwin amd64 system
@@ -608,7 +619,7 @@ for-darwin:
     ARG GO_GCFLAGS
     BUILD --platform=linux/amd64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     BUILD ./ast/parser+parser
-    COPY (+earthly-darwin-amd64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
+    COPY (+earthly-darwin-amd64/earthly --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/amd64/earthly
 
 # for-darwin-m1 builds earthly-buildkitd and the earthly CLI for the a darwin m1 system
@@ -618,7 +629,7 @@ for-darwin-m1:
     ARG GO_GCFLAGS
     BUILD --platform=linux/arm64 ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
     BUILD ./ast/parser+parser
-    COPY (+earthly-darwin-arm64/earthly -GO_GCFLAGS="${GO_GCFLAGS}") ./
+    COPY (+earthly-darwin-arm64/earthly --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly AS LOCAL ./build/darwin/arm64/earthly
 
 # for-windows builds earthly-buildkitd and the earthly CLI for the a windows system
@@ -627,7 +638,7 @@ for-windows:
     ARG GO_GCFLAGS
     # BUILD --platform=linux/amd64 ./buildkitd+buildkitd
     BUILD ./ast/parser+parser
-    COPY (+earthly-windows-amd64/earthly.exe -GO_GCFLAGS="${GO_GCFLAGS}") ./
+    COPY (+earthly-windows-amd64/earthly.exe --GO_GCFLAGS="${GO_GCFLAGS}") ./
     SAVE ARTIFACT ./earthly.exe AS LOCAL ./build/windows/amd64/earthly.exe
 
 # all-buildkitd builds buildkitd for both linux amd64 and linux arm64
@@ -639,7 +650,7 @@ all-buildkitd:
         ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
 dind-alpine:
-    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=alpine --OS_VERSION=3.18 --DOCKER_VERSION=23.0.6-r7
+    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=alpine --OS_VERSION=3.19 --DOCKER_VERSION=25.0.3-r0
 
 dind-ubuntu-20.04:
     DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal
@@ -703,10 +714,9 @@ test-no-qemu:
     BUILD --pass-args +test-no-qemu-group4
     BUILD --pass-args +test-no-qemu-slow
 
-# test-quick runs the unit, chaos, offline, and go tests and ensures the earthly script does not write to stdout
+# test-quick runs the unit, offline, and go tests and ensures the earthly script does not write to stdout
 test-quick:
     BUILD +unit-test
-    BUILD +chaos-test
     BUILD +offline-test
     BUILD +earthly-script-no-stdout
     BUILD --pass-args ./ast/tests+all
@@ -751,6 +761,11 @@ test-qemu:
 test:
     BUILD --pass-args +test-no-qemu
     BUILD --pass-args +test-qemu
+
+# smoke-test is used by circleci, and aims to be a medium-weight test which covers some WITH DOCKER and multi-platform tests
+smoke-test:
+    BUILD ./tests/with-docker-kind+alpine-kind
+    BUILD ./tests/platform+test
 
 # test runs examples, no-qemu, qemu, and experimental tests
 test-all:
@@ -844,12 +859,12 @@ npm-update-all:
         SAVE ARTIFACT --if-exists $nodepath/package-lock.json AS LOCAL $nodepath/package-lock.json
     END
 
-# merge-main-to-docs merges the main branch into docs-0.7
+# merge-main-to-docs merges the main branch into docs-0.8
 merge-main-to-docs:
     FROM alpine/git
     ARG git_repo="earthly/earthly"
     ARG git_url="git@github.com:$git_repo"
-    ARG to_branch="docs-0.7"
+    ARG to_branch="docs-0.8"
     ARG from_branch="main"
     ARG earthly_lib_version=2.2.2
     DO github.com/earthly/lib/ssh:$earthly_lib_version+ADD_KNOWN_HOSTS --target_file=~/.ssh/known_hosts
@@ -920,6 +935,20 @@ open-pr-for-fork:
         git push origin && \
         ./bin/gh pr create --title "Run tests for PR $pr_number" --draft \
         --body "Running tests for https://github.com/$git_repo/pull/$pr_number"
+
+check-broken-links-pr:
+    FROM alpine/git
+    WORKDIR /tmp
+    RUN apk add github-cli
+    ARG BRANCH
+    ARG EARTHLY_GIT_BRANCH
+    LET branch=$BRANCH
+    IF [ -z $branch ]
+        SET branch=$EARTHLY_GIT_BRANCH
+    END
+    RUN --secret GH_TOKEN=littleredcorvette-github-token gh pr checks $branch --repo earthly/earthly | grep GitBook|awk '{print $4}' > url
+    ARG VERBOSE
+    BUILD --pass-args +check-broken-links --ADDRESS=$(cat url)
 
 # BUILD_AND_FROM will issue a FROM and a BUILD commands for the provided target
 BUILD_AND_FROM:

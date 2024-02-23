@@ -4,17 +4,303 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.4 - 2024-02-21
+
 ### Added
+
+- The internal `dockerd-wrapper.sh` script, which is used to implement `WITH DOCKER`, will execute `/usr/share/earthly/dockerd-wrapper-pre-script`, if present, prior to starting the
+  inner dockerd process. This can be used to configure options that depend on the host's kernel at run-time.
+- Auto-skip can now be used directly on `BUILD` commands with `BUILD --auto-skip`. [#3581](https://github.com/earthly/earthly/issues/3581)
+
+### Changed
+
+- Satellite `rm` requires a `--force` flag if it's running. This should help protect users from accidental deletes.
+
+### Fixed
+
+- Fixes an issue with the registry proxy (used for faster image & artifact exporting) on Docker Desktop for Windows/WSL. [#3769](https://github.com/earthly/earthly/issues/3769)
+- Fixes a problem with cache IDs not being expanded. For example: `CACHE --id $MY_ARG` was not using the assigned value of `$MY_ARG`.
+
+### Additional Info
+- This release includes changes to buildkit
+
+## v0.8.3 - 2024-01-31
+
+### Fixed
+
+- `EARTHLY_GIT_REFS` was incorrectly returning all references which contained the commit rather than pointed to the current commit. This also increases performance of looking up the branches. [#3752](https://github.com/earthly/earthly/issues/3752)
+- Fixes an issue where `earthly account login --token` was leading to partially created auth config files. [#3761](https://github.com/earthly/earthly/issues/3761)
+
+### Additional Info
+- This release includes changes to buildkit
+
+## v0.8.2 - 2024-01-25
+
+### Added
+
+- Added a `--force` flag to the `satellite update` command, which forces a satellite to sleep before starting the update process. This may forcibly kill ongoing builds currently running on the satellite.
+
+### Changed
+
+- Changed the default buildkit cache size to be adaptively set to 20GB, which is then clamped between the range of 10%-55% of the disk size.
+  This logic can expressed as `min(55%, max(10%, 20GB))`.
+- Satellites are now put to sleep before updating via `earthly sat update <satellite-name>`.
+
+### Fixed
+
+- Fixed an intermittent issue with the registry proxy support container failing immediately on Mac. [#3740](https://github.com/earthly/earthly/issues/3740)
+- Fixed a problem with parsing empty results when cleaning up old registry proxy support containers on Mac.
+- Fixed a case where a suggested command would incorrectly contain both `--interative` and `--ci`. [#3746](https://github.com/earthly/earthly/issues/3746)
+- Disabled the registry proxy server when Earthly is run from within a container. [#3736](https://github.com/earthly/earthly/issues/3736)
+
+### Additional Info
+- This release has no changes to buildkit
+
+## v0.8.1 - 2024-01-23
+
+### Added
+
+- Added a new `--disable-remote-registry-proxy` cli flag, which can be used to disable the remote registry proxy, which is used by earthly when performing a `SAVE IMAGE`
+  command with a satellite / remote buildkit instance. This will cause earthly to use the slower tar-based loading of docker images. [#3736](https://github.com/earthly/earthly/issues/3736)
+- A new warning if Earthly is configured with a cache size less than 10GB; running with a small cache size may lead to unexpected cache misses.
+
+### Additional Info
+- This release has no changes to buildkit
+
+## v0.8.0 - 2024-01-22
+
+This version promotes a number of features that have been previously in Experimental and Beta status. To make use of
+the features in this version you need to declare `VERSION 0.8` at the top of your Earthfile.
+
+**Migrating from 0.7**
+
+If you are using Earthly 0.7, follow the following steps to migrate:
+
+1. If you are still using `VERSION 0.5`, upgrade those Earthfiles to `VERSION 0.6` or `VERSION 0.7`.
+2. Upgrade your Earthly binary to 0.8 in CI and across your team. The Earthly 0.8 binary can run both `VERSION 0.6` and `VERSION 0.7` Earthfiles (but `VERSION 0.5` support has been dropped).
+3. Once everyone is using the Earthly 0.8 binary, upgrade your Earthfiles one by one to `VERSION 0.8`. It is ok to have a mix of `VERSION 0.6`, `VERSION 0.7` and `VERSION 0.8` Earthfiles in the same project. Earthly handles that gracefully. See changes below for information on backwards incompatible changes when migrating from `VERSION 0.7` to `VERSION 0.8`.
+
+This process helps manage the backward breaking changes with minimal disruption.
+
+**Summary**
+
+Declaring `VERSION 0.8` is equivalent to
+
+```
+VERSION \
+  --arg-scope-and-set \
+  --cache-persist-option \
+  --git-refs \
+  --global-cache \
+  --no-network \
+  --pass-args \
+  --use-docker-ignore \
+  --use-function-keyword \
+  --use-visited-upfront-hash-collection \
+  0.7
+```
+
+For more information on the individual Earthfile feature flags see the [Earthfile version-specific features page](https://docs.earthly.dev/docs/earthfile/features).
+
+It should be noted that some of these features break backwards compatibility. See below.
+
+### Changed
+
+- Redeclaring an `ARG` in the same scope as a previous declaration is now an error.
+- `ARG`s inside of targets will no longer have their default value overridden by global `ARG`s.
+- Declaring a `CACHE ...` in a target will no longer be copied to children targets when referenced via a `FROM +...`; to persist the contents of the cache, it is now required to use the `CACHE --persist ...` flag.
+- The `COMMAND` keyword has been renamed to `FUNCTION`.
+
+### Added
+
+- `LET` - Allows declaring a local variable. This command works similarly to `ARG` except that it cannot be overridden from the CLI. `LET` variables are allowed to shadow `ARG` variables, which allows you to promote an `ARG` to a local variable so that it may be used with `SET`.
+- `SET` - a new command that allows changing the value of variables declared with `LET`.
+- Outputting images from a remote runner has improved performance as it no longer transfers layers that are already present locally.
+- [Auto-skip](https://docs.earthly.dev/v/earthly-0.8/docs/caching/caching-in-earthfiles#3.-auto-skip) has been promoted to *beta* status.
+- `RUN --network=none` allows running a command without network access.
+- `.dockerignore` files are now used in `FROM DOCKERFILE` targets.
+- `DO --pass-args`, `BUILD --pass-args` etc allow passing all build arguments to external Earthfiles.
+- `CACHE --id=...` and `RUN --mount type=cache,id=...` allows setting a custom cache mount ID, thus allowing sharing cache mounts globally across different targets.
+- New satellite sizes: 2xlarge, 3xlarge, 4xlarge
+- New experimental wildcard-based builds, e.g. `BUILD ./services/*+test` which would call `./services/foo+test`, and `./services/bar+test` (assuming two services foo and bar, both having a `test` target in their respective Earthfile) [#3582](https://github.com/earthly/earthly/issues/3582).
+
+### Removed
+
+- `VERSION 0.5` is now obsolete. Declaring `VERSION 0.5` is no longer supported, and will now raise an error.
+
+### Fixed
+
+- Parallelism is improved when running the same target with different arguments in certain cases (e.g. the target uses `WITH DOCKER`).
+- Fixed a log sharing upload-resumption bug
+- Fixed multiple issues with the lexer failing to parse certain characters in shell command substitution (`$()`) and single quoted strings.
+  - Some escaped characters, like `\#`, were failing to parse when used inside shell expressions. Example: `$(echo "a#b#c" | cut -f2 -d\#)` [#3475](https://github.com/earthly/earthly/issues/3475)
+  - Some characters, like `#`, were failing to parse when used inside single-quoted strings: Example: `'this is a # string'` [#1280](https://github.com/earthly/earthly/issues/1280)
+- Fixed an issue where some escaped `ARG` shell expressions were being incorrectly preprocessed. Example: `$(echo "\"")` became `$(echo """)` [#3131](https://github.com/earthly/earthly/issues/3131)
+- The `--pass-args` feature was not passing active arguments which were set via a default value.
+- `SAVE ARTIFACT --if-exists` was not saving files based on a wildcard glob pattern. [#1679](https://github.com/earthly/earthly/issues/1679)
+- `BUILD` was not expanding `--platform` argument values.
+
+### Additional Info
+- This release includes changes to buildkit
+
+## v0.8.0-rc2 - 2024-01-09
+
+This version promotes a number of features that have been previously in Experimental and Beta status. To make use of
+the features in this version you need to declare `VERSION 0.8` at the top of your Earthfile.
+
+**Migrating from 0.7**
+
+If you are using Earthly 0.7, follow the following steps to migrate:
+
+1. If you are still using `VERSION 0.5`, upgrade those Earthfiles to `VERSION 0.6` or `VERSION 0.7`.
+2. Upgrade your Earthly binary to 0.8 in CI and across your team. The Earthly 0.8 binary can run both `VERSION 0.6` and `VERSION 0.7` Earthfiles (but `VERSION 0.5` support has been dropped).
+3. Once everyone is using the Earthly 0.8 binary, upgrade your Earthfiles one by one to `VERSION 0.8`. It is ok to have a mix of `VERSION 0.6`, `VERSION 0.7` and `VERSION 0.8` Earthfiles in the same project. Earthly handles that gracefully. See changes below for information on backwards incompatible changes when migrating from `VERSION 0.7` to `VERSION 0.8`.
+
+This process helps manage the backward breaking changes with minimal disruption.
+
+**Summary**
+
+Declaring `VERSION 0.8` is equivalent to
+
+```
+VERSION \
+  --arg-scope-and-set \
+  --cache-persist-option \
+  --git-refs \
+  --global-cache \
+  --no-network \
+  --pass-args \
+  --use-docker-ignore \
+  --use-function-keyword \
+  --use-visited-upfront-hash-collection \
+  0.7
+```
+
+For more information on the individual Earthfile feature flags see the [Earthfile version-specific features page](https://docs.earthly.dev/docs/earthfile/features).
+
+It should be noted that some of these features break backwards compatibility. See below.
+
+### Changed
+
+- Redeclaring an `ARG` in the same scope as a previous declaration is now an error.
+- `ARG`s inside of targets will no longer have their default value overridden by global `ARG`s.
+- It is no longer possible to override a global ARG when calling a target.
+- Declaring a `CACHE ...` in a target will no longer be copied to children targets when referenced via a `FROM +...`; to persist the contents of the cache, it is now required to use the `CACHE --persist ...` flag.
+- The `COMMAND` keyword has been renamed to `FUNCTION`.
+
+### Added
+
+- `LET` - Allows declaring a local variable. This command works similarly to `ARG` except that it cannot be overridden from the CLI. `LET` variables are allowed to shadow `ARG` variables, which allows you to promote an `ARG` to a local variable so that it may be used with `SET`.
+- `SET` - a new command that allows changing the value of variables declared with `LET`.
+- Outputting images from a remote runner has improved performance as it no longer transfers layers that are already present locally.
+- [Auto-skip](https://docs.earthly.dev/v/earthly-0.8/docs/caching/caching-in-earthfiles#3.-auto-skip) has been promoted to *beta* status.
+- `RUN --network=none` allows running a command without network access.
+- `.dockerignore` files are now used in `FROM DOCKERFILE` targets.
+- `DO --pass-args`, `BUILD --pass-args` etc allow passing all build arguments to external Earthfiles.
+- `CACHE --id=...` and `RUN --mount type=cache,id=...` allows setting a custom cache mount ID, thus allowing sharing cache mounts globally across different targets.
+- New satellite sizes: 2xlarge, 3xlarge, 4xlarge
+- New experimental wildcard-based builds, e.g. `BUILD ./services/*+test` which would call `./services/foo+test`, and `./services/bar+test` (assuming two services foo and bar, both having a `test` target in their respective Earthfile) [#3582](https://github.com/earthly/earthly/issues/3582).
+
+### Removed
+
+- `VERSION 0.5` is now obsolete. Declaring `VERSION 0.5` is no longer supported, and will now raise an error.
+
+### Fixed
+
+- Parallelism is improved when running the same target with different arguments in certain cases (e.g. the target uses `WITH DOCKER`).
+- Fixed a log sharing upload-resumption bug
+
+### Additional Info
+- This release includes changes to buildkit
+
+## v0.8.0-rc1 - 2024-01-03
+
+This version promotes a number of features that have been previously in Experimental and Beta status. To make use of
+the features in this version you need to declare `VERSION 0.8` at the top of your Earthfile.
+
+**Migrating from 0.7**
+
+If you are using Earthly 0.7, follow the following steps to migrate:
+
+1. If you are still using `VERSION 0.5`, upgrade those Earthfiles to `VERSION 0.6` or `VERSION 0.7`.
+2. Upgrade your Earthly binary to 0.8 in CI and across your team. The Earthly 0.8 binary can run both `VERSION 0.6` and `VERSION 0.7` Earthfiles (but `VERSION 0.5` support has been dropped).
+3. Once everyone is using the Earthly 0.8 binary, upgrade your Earthfiles one by one to `VERSION 0.8`. It is ok to have a mix of `VERSION 0.6`, `VERSION 0.7` and `VERSION 0.8` Earthfiles in the same project. Earthly handles that gracefully. See changes below for information on backwards incompatible changes when migrating from `VERSION 0.7` to `VERSION 0.8`.
+
+This process helps manage the backward breaking changes with minimal disruption.
+
+**Summary**
+
+Declaring `VERSION 0.8` is equivalent to
+
+```
+VERSION \
+  --arg-scope-and-set \
+  --cache-persist-option \
+  --git-refs \
+  --global-cache \
+  --no-network \
+  --pass-args \
+  --use-docker-ignore \
+  --use-function-keyword \
+  --use-visited-upfront-hash-collection \
+  0.7
+```
+
+For more information on the individual Earthfile feature flags see the [Earthfile version-specific features page](https://docs.earthly.dev/docs/earthfile/features).
+
+It should be noted that some of these features break backwards compatibility. See below.
+
+### Changed
+
+- Redeclaring an `ARG` in the same scope as a previous declaration is now an error.
+- `ARG`s inside of targets will no longer have their default value overridden by global `ARG`s.
+- It is no longer possible to override a global ARG when calling a target.
+- Declaring a `CACHE ...` in a target will no longer be copied to children targets when referenced via a `FROM +...`; to persist the contents of the cache, it is now required to use the `CACHE --persist ...` flag.
+- The `COMMAND` keyword has been renamed to `FUNCTION`.
+
+### Added
+
+- `LET` - Allows declaring a local variable. This command works similarly to `ARG` except that it cannot be overridden from the CLI. `LET` variables are allowed to shadow `ARG` variables, which allows you to promote an `ARG` to a local variable so that it may be used with `SET`.
+- `SET` - a new command that allows changing the value of variables declared with `LET`.
+- Outputting images from a remote runner has improved performance as it no longer transfers layers that are already present locally.
+- [Auto-skip](https://docs.earthly.dev/v/earthly-0.8/docs/caching/caching-in-earthfiles#3.-auto-skip) has been promoted to *beta* status.
+- `RUN --network=none` allows running a command without network access.
+- `.dockerignore` files are now used in `FROM DOCKERFILE` targets.
+- `DO --pass-args`, `BUILD --pass-args` etc allow passing all build arguments to external Earthfiles.
+- `CACHE --id=...` and `RUN --mount type=cache,id=...` allows setting a custom cache mount ID, thus allowing sharing cache mounts globally across different targets.
+
+### Removed
+
+- `VERSION 0.5` is now obsolete. Declaring `VERSION 0.5` is no longer supported, and will now raise an error.
+
+### Fixed
+
+- Parallelism is improved when running the same target with different arguments in certain cases (e.g. the target uses `WITH DOCKER`).
+
+### Additional Info
+- This release includes changes to buildkit
+
+## v0.7.23 - 2023-12-18
+
+### Added
+- Auto-skip (*experimental*) - a feature that allows you to skip large parts of a build in certain situations, especially suited for monorepos. For more information see [the auto-skip section from Caching in Earthfiles](https://docs.earthly.dev/docs/caching/caching-in-earthfiles#auto-skip).
 - A warning when a `COPY` destination includes a tilde (~). Related to [#1789](https://github.com/earthly/earthly/issues/1789).
 - A hint message to suggest the usage of `-i` flag to debug the build when a RUN command fails.
 - `start-interval` flag to `HEALTHCHECK` command for dockerfile parity [#3409](https://github.com/earthly/earthly/issues/3409).
+- A verbose message indicating which authentication providers are used during a build.
+- `ssh_command` config option which can be used to override the ssh command that is used by `git` when connecting to an ssh-based repository. Thanks to [@weaversam8](https://github.com/weaversam8) for the contribution!
 
 ### Fixed
 - Limit the number of deprecation warnings when using `COMMAND` instead of `FUNCTION` keyword.
+- Fixed an error which stated `VERSION 0.0` is a valid Earthfile version.
 
 ### Changed
 - Changed the color used to print metadata values (such as ARGs values) in the build log to Faint Blue.
 - Updated default alpine/git image to v2.40.1.
+- When creating an auth token, an existing token will no longer be overwritten by default. To overwrite, the `--overwrite` flag should be used.
+
+### Additional Info
+- This release includes changes to buildkit
 
 ## v0.7.22 - 2023-11-27
 
@@ -462,7 +748,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - Setting a `VERSION` feature flag boolean to false (or any other value) will now raise an error; previously it was syntactically valid but had no effect.
 - `SAVE ARTIFACT <path> AS LOCAL ...` when used under a `TRY` / `FINALLY` can fail to be fully transferred to the host when the `TRY` command fails (resulting in an partially transferred file); an underflow can still occur, and is now detected and will not export the partial file. [2452](https://github.com/earthly/earthly/issues/2452)
 - The `--keep-own` flag for `SAVE ARTIFACT` is now applied by default; note that `COPY --keep-own` must still be used in order to keep ownership
-- Values from the `.env` file will no longer be propigated to Earthfile `ARG`s or `RUN --secret=...` commands; instead values must be placed in `.arg` or `.secret` files respectively. Note that this is a backwards incompatible change and will apply to all Earthfiles (regardless of the defined `VERSION` value). [#1736](https://github.com/earthly/earthly/issues/1736)
+- Values from the `.env` file will no longer be propagated to Earthfile `ARG`s or `RUN --secret=...` commands; instead values must be placed in `.arg` or `.secret` files respectively. Note that this is a backwards incompatible change and will apply to all Earthfiles (regardless of the defined `VERSION` value). [#1736](https://github.com/earthly/earthly/issues/1736)
 - Some particularly obtuse syntax errors now have hints added to help clarify what the expected syntax might be. [#2656](https://github.com/earthly/earthly/issues/2656)
 - The default size when launching a new satellite is now medium instead of large.
 - Satellites can be launched with a weekend-only mode for receiving auto-updates.
@@ -615,7 +901,7 @@ For more information on the individual Earthfile feature flags see the [Earthfil
 - Setting a `VERSION` feature flag boolean to false (or any other value) will now raise an error; previously it was syntactically valid but had no effect.
 - `SAVE ARTIFACT <path> AS LOCAL ...` when used under a `TRY` / `FINALLY` can fail to be fully transferred to the host when the `TRY` command fails (resulting in an partially transferred file); an underflow can still occur, and is now detected and will not export the partial file. [2452](https://github.com/earthly/earthly/issues/2452)
 - The `--keep-own` flag for `SAVE ARTIFACT` is now applied by default; note that `COPY --keep-own` must still be used in order to keep ownership
-- Values from the `.env` file will no longer be propigated to Earthfile `ARG`s or `RUN --secret=...` commands; instead values must be placed in `.arg` or `.secret` files respectively. Note that this is a backwards incompatible change and will apply to all Earthfiles (regardless of the defined `VERSION` value). [#1736](https://github.com/earthly/earthly/issues/1736)
+- Values from the `.env` file will no longer be propagated to Earthfile `ARG`s or `RUN --secret=...` commands; instead values must be placed in `.arg` or `.secret` files respectively. Note that this is a backwards incompatible change and will apply to all Earthfiles (regardless of the defined `VERSION` value). [#1736](https://github.com/earthly/earthly/issues/1736)
 - Some particularly obtuse syntax errors now have hints added to help clarify what the expected syntax might be. [#2656](https://github.com/earthly/earthly/issues/2656)
 
 

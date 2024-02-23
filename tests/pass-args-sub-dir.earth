@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION 0.8
 
 test-all:
   BUILD +test-empty-via-from

@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 FROM node:13.10.1-alpine3.11
 
 WORKDIR /example-grpc
@@ -35,7 +35,7 @@ WORKDIR /example-grpc
 #      the returned value is "salmon".
 
 test:
-    FROM earthly/dind:alpine-3.18
+    FROM earthly/dind:alpine-3.19
     WITH DOCKER \
         --load kvserver:latest=github.com/earthly/earthly-example-proto-server:main+kvserver-docker \
         --load kv-py-client:latest=github.com/earthly/earthly-example-proto-python-client:main+kvclient-docker \

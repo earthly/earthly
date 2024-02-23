@@ -28,6 +28,7 @@ type Command struct {
 	mu           sync.Mutex
 	started      atomic.Bool
 	lastProgress atomic.Int32
+	dependsOn    map[string]struct{}
 }
 
 func newCommand(b *Bus, commandID string, targetID string) *Command {
@@ -40,6 +41,7 @@ func newCommand(b *Bus, commandID string, targetID string) *Command {
 		commandID:  commandID,
 		targetID:   targetID,
 		tailOutput: to,
+		dependsOn:  map[string]struct{}{},
 	}
 }
 
@@ -83,6 +85,28 @@ func (c *Command) SetStart(start time.Time) {
 	})
 }
 
+// AddDependsOn creates a delta that will be used to merge the specified target
+// ID & name into the command's list of targets on which it depends.
+func (t *Command) AddDependsOn(targetID, refName string) {
+	// Only add the dependency link once to avoid sending duplicates to Logstream.
+	t.mu.Lock()
+	if _, ok := t.dependsOn[targetID]; ok {
+		t.mu.Unlock()
+		return
+	}
+	t.dependsOn[targetID] = struct{}{}
+	t.mu.Unlock()
+
+	t.commandDelta(&logstream.DeltaCommandManifest{
+		DependsOn: []*logstream.CommandTarget{
+			{
+				TargetId:       targetID,
+				ReferencedName: refName,
+			},
+		},
+	})
+}
+
 // SetProgress sets the progress of the command.
 func (c *Command) SetProgress(progress int32) {
 	if c.lastProgress.Load() == progress {
@@ -110,6 +134,34 @@ func (c *Command) SetEnd(end time.Time, status logstream.RunStatus, errorStr str
 		Status:           status,
 		ErrorMessage:     errorStr,
 		EndedAtUnixNanos: c.b.TsUnixNanos(end),
+	})
+}
+
+// SetEndError is a helper that allows for setting expected end metadata on
+// a command based on whether there was an error. Note, this method assumes the
+// status values.
+func (c *Command) SetEndError(err error) {
+	now := time.Now()
+
+	if err != nil {
+		c.commandDelta(&logstream.DeltaCommandManifest{
+			Status:           logstream.RunStatus_RUN_STATUS_FAILURE,
+			ErrorMessage:     err.Error(),
+			EndedAtUnixNanos: c.b.TsUnixNanos(now),
+		})
+		return
+	}
+
+	c.commandDelta(&logstream.DeltaCommandManifest{
+		Status:           logstream.RunStatus_RUN_STATUS_SUCCESS,
+		EndedAtUnixNanos: c.b.TsUnixNanos(now),
+	})
+}
+
+// SetName sets the name of the command.
+func (c *Command) SetName(name string) {
+	c.commandDelta(&logstream.DeltaCommandManifest{
+		Name: name,
 	})
 }
 

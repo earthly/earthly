@@ -26,6 +26,19 @@ When using remote runners, even though the build executes remotely, the followin
 
 To get started with free remote runners managed by Earthly, check out [Earthly Satellites](cloud/satellites.md).
 
-To get started with self-managed remote runners, see
-* The [remote buildkit page](ci-integration/remote-buildkit.md)
-* The [Kubernetes setup page](ci-integration/guides/kubernetes.md)
+To get started with self-hosted runners, see the [Self-Hosted Satellites Guide](cloud/satellites/self-hosted.md).
+
+If your use case cannot tolerate a cloud-based control plane, then self-hosting a remote Buildkit is the best approach. Remote Buildkit has less features, is less secure, and is more difficult to deploy than Self-Hosted Satellites (see diagram below for comparison). To get started self-hosting Buildkit, see the [remote buildkit page](ci-integration/remote-buildkit.md).
+
+### Types of Remote Runners
+
+Below is a comparison of the different features available with each kind of remote runner.
+
+| Feature | Cloud Satellites | Self-Hosted Satellites | Remote Buildkit |
+| --- | --- | --- | --- |
+| Managed By | Earthly | You | You |
+| Cache Persistence | ✅ Yes | 🟡 Needs configuration | 🟡 Needs configuration |
+| Cloud Control-Plane | ✅ Yes | ✅ Yes | ❌ No |
+| Managed TLS Certificates |  ✅ Yes | ✅ Yes | ❌ No |
+| Auto-Sleep | ✅ Yes | ❌ No | ❌ No | 
+| Auto-Updates | ✅ Yes | ❌ No | ❌ No |

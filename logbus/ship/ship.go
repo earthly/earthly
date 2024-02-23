@@ -43,8 +43,7 @@ func NewLogShipper(cl streamer, man *pb.RunManifest, verbose bool) *LogShipper {
 
 func (l *LogShipper) Write(delta *pb.Delta) {
 	if l.closed.Load() {
-		logMsg := string(delta.GetDeltaFormattedLog().GetData())
-		fmt.Fprintf(os.Stderr, "WARNING: Message sent to closed log stream: %s", logMsg)
+		fmt.Fprintf(os.Stderr, "WARNING: Message sent to closed log stream: %s\n", delta.String())
 		return
 	}
 	l.ch <- delta
@@ -53,7 +52,7 @@ func (l *LogShipper) Write(delta *pb.Delta) {
 // Start the log streaming process and begin writing logs to the server.
 func (l *LogShipper) Start(ctx context.Context) {
 	go func() {
-		ctx, l.cancel = context.WithCancel(ctx)
+		ctx, l.cancel = context.WithCancel(context.Background())
 		defer l.cancel()
 		out := bufferedDeltaChan(ctx, l.ch)
 		errCh := l.cl.StreamLogs(ctx, l.man, out)

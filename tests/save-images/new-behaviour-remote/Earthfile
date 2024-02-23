@@ -1,4 +1,4 @@
-VERSION  --referenced-save-only 0.5
+VERSION 0.8
 FROM alpine:3.18
 
 myimage-fromtest:

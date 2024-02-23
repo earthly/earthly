@@ -1,0 +1,21 @@
+VERSION 0.8
+
+# test-base exists as a way to prevent passing all args to the root earthly-integration-test-base target
+test-base:
+  ARG DOCKERHUB_MIRROR
+  ARG DOCKERHUB_MIRROR_INSECURE=false
+  ARG DOCKERHUB_MIRROR_HTTP=false
+  ARG DOCKERHUB_MIRROR_AUTH=false
+  ARG DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS=false
+  ARG DOCKERHUB_AUTH=false
+
+  FROM ../..+earthly-integration-test-base \
+    --DOCKERHUB_MIRROR=$DOCKERHUB_MIRROR \
+    --DOCKERHUB_MIRROR_INSECURE=$DOCKERHUB_MIRROR_INSECURE \
+    --DOCKERHUB_MIRROR_HTTP=$DOCKERHUB_MIRROR_HTTP \
+    --DOCKERHUB_MIRROR_AUTH=$DOCKERHUB_MIRROR_AUTH \
+    --DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS=$DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS \
+    --DOCKERHUB_AUTH=$DOCKERHUB_AUTH
+
+  # uncomment this to debug dockerhub rate-limiting issues
+  #RUN if !grep "registry-1.docker.io.mirror.corp.earthly.dev" /root/.docker/config.json >/dev/null; then echo "The earthly mirror was not setup correctly" && exit 1; fi

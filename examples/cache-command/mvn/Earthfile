@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 
 FROM maven:3.8.4-openjdk-17
 WORKDIR /app

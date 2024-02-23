@@ -1,4 +1,4 @@
-VERSION --git-refs 0.7
+VERSION 0.8
 
 # Note: this is tests both locally and remotely
 # the population of git metadata occurs in two **different** functions respectively:

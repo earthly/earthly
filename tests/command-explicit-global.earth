@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.7 # leave this as 0.7; 0.8 no longer allows overriding defaults like this
 
 FROM alpine:3.18
 WORKDIR /test

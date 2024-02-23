@@ -4,7 +4,7 @@
 ##### Important
 **Remote caching is an advanced feature that requires significant experimentation to get right**. Remote caching is generally not recommended unless remote runners are not possible in your setup. Remote caching does not cache everything in your build, and is very difficult to debug when it doesn't work. Remote caching also does not allow concurrent writes, and can be tricky to use in a mix of main vs PR CI builds.
 
-[Remote runners](./remote-runners.md) (either self-managed, or [Earthly Satellites](cloud/satellites.md)) are faster, and easier to set up because the cache does not need any transferring between runs (allowing for the entire build to be cached efficiently), cache mounts are correctly persisted, and concurrent access is built-in.
+[Remote runners](../remote-runners.md) (either self-managed, or [Earthly Satellites](../cloud/satellites.md)) are faster, and easier to set up because the cache does not need any transferring between runs (allowing for the entire build to be cached efficiently), cache mounts are correctly persisted, and concurrent access is built-in.
 
 For a comparison between remote runners and remote caching, see the [Caching page](./caching.md).
 {% endhint %}
@@ -49,8 +49,8 @@ Not all registries support the needed manifest formats to allow the usage of eac
 
 | Registry                  | Supports Inline Cache | Supports Explicit Cache | Notes                                                                               |
 |---------------------------|:---------------------:|:-----------------------:|-------------------------------------------------------------------------------------|
-| AWS ECR                   |           ✅           |            ❌            | https://github.com/aws/containers-roadmap/issues/876                                |
 | Google GCR                |           ✅           |            ❌            |                                                                                     |
+| AWS ECR                   |           ✅           |            ✅            |                                                                                     |
 | Google Artifact Registry  |           ✅           |            ✅            |                                                                                     |
 | Azure ACR                 |           ✅           |            ✅            |                                                                                     |
 | Docker Hub                |           ✅           |            ✅            |                                                                                     |
@@ -81,11 +81,11 @@ Use a read-write inline cache (typically in master/main branch builds):
 earthly --use-inline-cache --save-inline-cache --push +some-target
 ```
 
-The options mentioned above are also available as environment variables. See [Earthly command reference](earthly-command/earthly-command.md) for more information.
+The options mentioned above are also available as environment variables. See [Earthly command reference](../earthly-command/earthly-command.md) for more information.
 
 The way this works underneath is that Earthly uses `SAVE IMAGE --push` declarations as source and destination for any inline cache.
 
-In case different Docker tags are used in branch or PR builds, it is possible to use additional cache sources via [`SAVE IMAGE --cache-from=...`](earthfile/earthfile.md#save-image). This may be useful so that PR builds are able to use the main branch cache. Here is a simple example:
+In case different Docker tags are used in branch or PR builds, it is possible to use additional cache sources via [`SAVE IMAGE --cache-from=...`](../earthfile/earthfile.md#save-image). This may be useful so that PR builds are able to use the main branch cache. Here is a simple example:
 
 ```Dockerfile
 FROM ...
@@ -154,7 +154,7 @@ On developer's computer (optional):
 earthly --remote-cache=mycompany/myimage:cache +some-target
 ```
 
-The options mentioned above are also available as environment variables. See [Earthly command reference](earthly-command/earthly-command.md) for more information.
+The options mentioned above are also available as environment variables. See [Earthly command reference](../earthly-command/earthly-command.md) for more information.
 
 {% hint style='info' %}
 ##### Note

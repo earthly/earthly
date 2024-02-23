@@ -96,7 +96,7 @@ Here are some examples:
 
 * `+build`
 * `./js+deps`
-* `github.com/earthly/earthly:v0.7.22+earthly`
+* `github.com/earthly/earthly:v0.8.4+earthly`
 * `my-import+build`
 
 ## Artifact reference
@@ -110,7 +110,7 @@ Here are some examples:
 * `+build/my-artifact`
 * `+build/some/artifact/deep/in/a/dir`
 * `./js+build/dist`
-* `github.com/earthly/earthly:v0.7.22+earthly/earthly`
+* `github.com/earthly/earthly:v0.8.4+earthly/earthly`
 * `my-import+build/my-artifact`
 
 ## Image reference
@@ -131,7 +131,7 @@ Here are some examples:
 
 * `+COMPILE`
 * `./js+NPM_INSTALL`
-* `github.com/earthly/earthly:v0.7.22+DOWNLOAD_DIND`
+* `github.com/earthly/earthly:v0.8.4+DOWNLOAD_DIND`
 * `my-import+COMPILE`
 
 For more information on functions, see the [Functions Guide](./functions.md).
@@ -170,7 +170,7 @@ Another form of a Earthfile reference is the remote form. In this form, the reci
 |----|----|----|----|
 | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<target-name>` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<target-name>/<artifact-path>` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<function-name>` |
 | `github.com/earthly/earthly/buildkitd` | `github.com/earthly/earthly/buildkitd+build` | `github.com/earthly/earthly/buildkitd+build/out.bin` | `github.com/earthly/earthly/buildkitd+COMPILE` |
-| `github.com/earthly/earthly:v0.7.22` | `github.com/earthly/earthly:v0.7.22+build` | `github.com/earthly/earthly:v0.7.22+build/out.bin` | `github.com/earthly/earthly:v0.7.22+COMPILE` |
+| `github.com/earthly/earthly:v0.8.4` | `github.com/earthly/earthly:v0.8.4+build` | `github.com/earthly/earthly:v0.8.4+build/out.bin` | `github.com/earthly/earthly:v0.8.4+COMPILE` |
 
 ### Import reference
 
@@ -180,7 +180,7 @@ Finally, the last form of Earthfile referencing is an import reference. Import r
 |----|----|----|----|----|
 | `IMPORT <full-earthfile-ref> AS <import-alias>` | `<import-alias>` | `<import-alias>+<target-name>` | `<import-alias>+<target-name>/<artifact-path>` | `<import-alias>+<function-name>` |
 | `IMPORT github.com/earthly/earthly/buildkitd` | `buildkitd` | `buildkitd+build` | `buildkitd+build/out.bin` | `buildkitd+COMPILE` |
-| `IMPORT github.com/earthly/earthly:v0.7.22` | `earthly` | `earthly+build` | `earthly+build/out.bin` | `earthly+COMPILE` |
+| `IMPORT github.com/earthly/earthly:v0.8.4` | `earthly` | `earthly+build` | `earthly+build/out.bin` | `earthly+COMPILE` |
 
 Here is an example in an Earthfile:
 

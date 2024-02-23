@@ -1,4 +1,4 @@
-VERSION --pass-args --use-function-keyword 0.7
+VERSION 0.8
 FROM --pass-args ../../+base
 
 RUN adduser -h /home/bambi -D bambi
@@ -65,6 +65,6 @@ test-all:
 RUN_EARTHLY:
     FUNCTION
     ARG exec_cmd=/tmp/bootstrap-script
-    DO --pass-args ../../+RUN_EARTHLY \
+    DO ../../+RUN_EARTHLY \
         --should_fail=false \
         --exec_cmd=$exec_cmd

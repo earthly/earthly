@@ -1,5 +1,5 @@
-VERSION --pass-args --use-function-keyword 0.7
-FROM --pass-args ../..+earthly-integration-test-base
+VERSION 0.8
+FROM --pass-args ..+base
 
 ENV EARTHLY_SHOW_HIDDEN=0
 
@@ -15,6 +15,7 @@ ls
 org 
 project 
 prune 
+prune-auto-skip 
 registry 
 satellite 
 secret 
@@ -37,6 +38,7 @@ ls
 org 
 project 
 prune 
+prune-auto-skip 
 registry 
 satellite 
 secret 

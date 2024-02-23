@@ -106,17 +106,18 @@ Running this build will use the [`cloudbuild.yaml`](https://github.com/earthly/c
 
 ```yaml
   - id: 'build'
-    name: 'earthly/earthly:v0.7.22'
+    name: 'earthly/earthly:v0.8.4'
     args:
-      - --allow-privileged
-      - +docker
+      - --ci
+      - --push
+      - +build
 ```
 
 [The second step](https://github.com/earthly/ci-example-project/blob/ea44992b020b52cb5a46920d5d11d4b8389ce19d/cloudbuild.yaml#L8-L13) runs a sample, Google Cloud Build only example to show how you would use an external service account to do things that normally requires credentials.
 
 ```yaml
   - id: 'gcp-test'
-    name: 'earthly/earthly:v0.7.22'
+    name: 'earthly/earthly:v0.8.4'
     args:
       - +gcp-cloudbuild
     secretEnv:

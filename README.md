@@ -7,7 +7,7 @@
 </div>
 <br/>
 
-[![GitHub Actions CI](https://github.com/earthly/earthly/workflows/GitHub%20Actions%20CI/badge.svg)](https://github.com/earthly/earthly/actions?query=workflow%3A%22GitHub+Actions+CI%22+branch%3Amain)
+[![GitHub Actions CI](https://github.com/earthly/earthly/workflows/staging%20release/badge.svg)](https://github.com/earthly/earthly/actions?query=workflow%3A%22staging%20release%22+branch%3Amain)
 [![Join the chat on Slack](https://img.shields.io/badge/slack-join%20chat-red.svg)](https://earthly.dev/slack)
 [![Docs](https://img.shields.io/badge/docs-git%20book-blue)](https://docs.earthly.dev)
 [![Website](https://img.shields.io/badge/website-earthly.dev-blue)](https://earthly.dev)
@@ -153,7 +153,7 @@ Reference pages
 
 ```earthly
 # Earthfile
-VERSION 0.7
+VERSION 0.8
 FROM golang:1.15-alpine3.13
 RUN apk --update --no-cache add git
 WORKDIR /go-example
@@ -215,7 +215,7 @@ Cut down build times in CI through [shared remote caching](https://docs.earthly.
 Build for multiple platforms in parallel.
 
 ```earthly
-VERSION 0.7
+VERSION 0.8
 all:
     BUILD \
         --platform=linux/amd64 \
@@ -235,7 +235,7 @@ build:
 No need to ask your team to install `protoc`, a specific version of Python, Java 1.6, or the .NET Core ecosystem. Install once in your Earthfile, and it works for everyone. Or even better, you can just make use of the rich Docker Hub ecosystem.
 
 ```earthly
-VERSION 0.7
+VERSION 0.8
 FROM golang:1.15-alpine3.13
 WORKDIR /proto-example
 

@@ -5,6 +5,7 @@ WORKDIR /test
 
 COPY ../..+earthly/earthly /usr/local/bin/earthly
 
+# all runs all tests
 all:
     BUILD +test \
         --TEST=build-arg \
@@ -13,7 +14,7 @@ all:
         --TEST=cache2 \
         --TEST=chown \
         --TEST=comments \
-        --TEST=smoke \
+        --TEST=parser-smoke \
         --TEST=copy \
         --TEST=dotenv \
         --TEST=empty-git \
@@ -58,6 +59,7 @@ all:
     BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=quotes
     BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=documentation
 
+# update-all updates all the expected values of the tests
 update-all:
     BUILD +update-expected \
         --TEST=build-arg \
@@ -66,7 +68,7 @@ update-all:
         --TEST=cache2 \
         --TEST=chown \
         --TEST=comments \
-        --TEST=smoke \
+        --TEST=parser-smoke \
         --TEST=copy \
         --TEST=dotenv \
         --TEST=empty-git \

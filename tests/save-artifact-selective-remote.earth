@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 
 savea:
     FROM github.com/earthly/test-remote/output/versioned:main+savelocal

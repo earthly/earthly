@@ -1,4 +1,4 @@
-VERSION --use-function-keyword 0.7
+VERSION 0.8
 
 base-image:
     FROM busybox:1.32.0

@@ -55,6 +55,24 @@ copy-target:
     RUN echo $foo > x
     SAVE ARTIFACT x
 
+copy-target-2:
+    RUN echo "foobar" > x
+    SAVE ARTIFACT x
+
 copy-target-args:
     COPY (+copy-target/x --foo=hello) .
+    RUN cat x
+
+copy-target-args-quoted:
+    COPY (+copy-target/x --foo="hello world") .
+    RUN cat x
+
+copy-target-dynamic:
+    ARG name="+copy-target"
+    COPY ($name/x --foo=goodbye) .
+    RUN cat x
+
+copy-target-dynamic-2:
+    ARG name="+copy-target-2"
+    COPY $name/x .
     RUN cat x

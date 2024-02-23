@@ -11,6 +11,7 @@ import (
 
 var errInvalidHash = fmt.Errorf("invalid sha1 hash")
 
+// NewLocal creates and returns a BoltDB implementation of the auto-skip client.
 func NewLocal(path string) (*LocalBuildkitSkipper, error) {
 	db, err := bolt.Open(path, 0600, nil)
 	if err != nil {
@@ -31,15 +32,17 @@ func NewLocal(path string) (*LocalBuildkitSkipper, error) {
 	}, nil
 }
 
+// LocalBuildkitSkipper uses BoltDB to store & retrieve auto-skip hashes.
 type LocalBuildkitSkipper struct {
 	db *bolt.DB
 }
 
-func (lbks *LocalBuildkitSkipper) Add(ctx context.Context, data []byte) error {
+// Add a new hash value (org & target are ignored in this implementation).
+func (l *LocalBuildkitSkipper) Add(ctx context.Context, org, target string, data []byte) error {
 	if len(data) != sha1.Size {
 		return errInvalidHash
 	}
-	return lbks.db.Update(func(tx *bolt.Tx) error {
+	return l.db.Update(func(tx *bolt.Tx) error {
 		payload := []byte(time.Now().String()) // could be serialized into a structure; however LocalBuildkitSkipper is only meant for dev/testing
 		err := tx.Bucket([]byte("builds")).Put(data, payload)
 		if err != nil {
@@ -49,12 +52,13 @@ func (lbks *LocalBuildkitSkipper) Add(ctx context.Context, data []byte) error {
 	})
 }
 
-func (lbks *LocalBuildkitSkipper) Exists(ctx context.Context, data []byte) (bool, error) {
+// Exists checks if the hash exists.
+func (l *LocalBuildkitSkipper) Exists(ctx context.Context, org string, data []byte) (bool, error) {
 	if len(data) != sha1.Size {
 		return false, errInvalidHash
 	}
 	var found bool
-	err := lbks.db.View(func(tx *bolt.Tx) error {
+	err := l.db.View(func(tx *bolt.Tx) error {
 		payload := tx.Bucket([]byte("builds")).Get(data)
 		if payload != nil {
 			found = true

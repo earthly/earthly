@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"sort"
+	"strings"
 	"time"
 
 	pb "github.com/earthly/cloud-api/compute"
@@ -13,6 +15,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
+
+	"github.com/earthly/earthly/internal/version"
 )
 
 const (
@@ -39,11 +43,14 @@ const (
 )
 
 const (
-	SatelliteSizeXSmall = "xsmall"
-	SatelliteSizeSmall  = "small"
-	SatelliteSizeMedium = "medium"
-	SatelliteSizeLarge  = "large"
-	SatelliteSizeXLarge = "xlarge"
+	SatelliteSizeXSmall  = "xsmall"
+	SatelliteSizeSmall   = "small"
+	SatelliteSizeMedium  = "medium"
+	SatelliteSizeLarge   = "large"
+	SatelliteSizeXLarge  = "xlarge"
+	SatelliteSize2XLarge = "2xlarge"
+	SatelliteSize3XLarge = "3xlarge"
+	SatelliteSize4XLarge = "4xlarge"
 )
 
 const (
@@ -70,6 +77,9 @@ type SatelliteInstance struct {
 	Hidden                  bool
 	LastUsed                time.Time
 	CacheRetention          time.Duration
+	Address                 string
+	IsManaged               bool
+	Certificate             *pb.TLSCertificate
 }
 
 func (c *Client) ListSatellites(ctx context.Context, orgName string, includeHidden bool) ([]SatelliteInstance, error) {
@@ -129,10 +139,13 @@ func (c *Client) GetSatellite(ctx context.Context, name, orgName string) (*Satel
 		Hidden:                  resp.Hidden,
 		LastUsed:                resp.LastUsed.AsTime(),
 		CacheRetention:          resp.CacheRetention.AsDuration(),
+		IsManaged:               resp.IsManaged,
+		Address:                 resp.PrivateDns,
+		Certificate:             resp.Certificate,
 	}, nil
 }
 
-func (c *Client) DeleteSatellite(ctx context.Context, name, orgName string) error {
+func (c *Client) DeleteSatellite(ctx context.Context, name, orgName string, force bool) error {
 	orgID, err := c.GetOrgID(ctx, orgName)
 	if err != nil {
 		return errors.Wrap(err, "failed deleting satellite")
@@ -140,6 +153,7 @@ func (c *Client) DeleteSatellite(ctx context.Context, name, orgName string) erro
 	_, err = c.compute.DeleteSatellite(c.withAuth(ctx), &pb.DeleteSatelliteRequest{
 		OrgId: orgID,
 		Name:  name,
+		Force: force,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed deleting satellite")
@@ -210,6 +224,10 @@ func (c *Client) ReserveSatellite(ctx context.Context, name, orgName, gitAuthor,
 				CommitEmail:    gitAuthor,
 				GitConfigEmail: gitConfigEmail,
 				IsCi:           isCI,
+				Metadata: &pb.ReserveSatelliteRequest_Metadata{
+					EnvEntryNames: getEnvEntriesNames(),
+					CliVersion:    version.Version,
+				},
 			})
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "retrying connection [attempt %d/%d]\n", i, numRetries)
@@ -431,11 +449,14 @@ func satelliteStatus(status pb.SatelliteStatus) string {
 }
 
 var validSizes = map[string]bool{
-	SatelliteSizeXSmall: true,
-	SatelliteSizeSmall:  true,
-	SatelliteSizeMedium: true,
-	SatelliteSizeLarge:  true,
-	SatelliteSizeXLarge: true,
+	SatelliteSizeXSmall:  true,
+	SatelliteSizeSmall:   true,
+	SatelliteSizeMedium:  true,
+	SatelliteSizeLarge:   true,
+	SatelliteSizeXLarge:  true,
+	SatelliteSize2XLarge: true,
+	SatelliteSize3XLarge: true,
+	SatelliteSize4XLarge: true,
 }
 
 func ValidSatelliteSize(size string) bool {
@@ -449,4 +470,14 @@ var validPlatforms = map[string]bool{
 
 func ValidSatellitePlatform(size string) bool {
 	return validPlatforms[size]
+}
+
+func getEnvEntriesNames() []string {
+	environ := os.Environ()
+	ret := make([]string, len(environ))
+	for i := 0; i < len(environ); i++ {
+		ret[i] = strings.SplitN(environ[i], "=", 2)[0]
+	}
+	sort.Strings(ret)
+	return ret
 }

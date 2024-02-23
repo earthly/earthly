@@ -118,7 +118,13 @@ func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first []
 		}
 	})
 
+	// If an error occurs, we can't assume that the last delta was correctly
+	// sent. Let's return it for subsequent attempts. Note that writing log
+	// entries is idempotent on the server side.
+	var last *pb.Delta
+
 	sendSingle := func(delta *pb.Delta) error {
+		last = delta
 		msg := &pb.StreamLogRequest{
 			BuildId: buildID,
 			Deltas:  []*pb.Delta{delta},
@@ -130,10 +136,6 @@ func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first []
 		return nil
 	}
 
-	// If an error occurs, we can't assume that the last delta was correctly
-	// sent. Let's return it for subsequent attempts. Note that writing log
-	// entries is idempotent on the server side.
-	var last *pb.Delta
 	var count int
 
 	eg.Go(func() (err error) {
@@ -157,8 +159,8 @@ func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first []
 				err = ctx.Err()
 				return
 			case delta, ok := <-ch:
-				last = delta // Thread-safe: only accessed by 1 thread.
 				if !ok {
+					last = nil // Clear the last sent delta so it's not sent again.
 					finished.Store(true)
 					msg := &pb.StreamLogRequest{
 						BuildId: buildID,
@@ -171,7 +173,6 @@ func (c *Client) streamLogsAttempt(ctx context.Context, buildID string, first []
 					}
 					return nil
 				}
-				last = delta
 				err = sendSingle(delta)
 				if err != nil {
 					return

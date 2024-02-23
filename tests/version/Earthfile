@@ -1,6 +1,5 @@
-VERSION --pass-args --use-function-keyword 0.7
-
-FROM --pass-args ../..+earthly-integration-test-base
+VERSION 0.8
+FROM --pass-args ..+base
 
 IMPORT .. AS tests
 
@@ -44,7 +43,7 @@ test-no-feature-flag-overrides:
 
 test-version-only-import:
     RUN mkdir subdir
-    RUN echo "VERSION 0.7" > subdir/Earthfile
+    RUN echo "VERSION 0.8" > subdir/Earthfile
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=version-only-import.earth --target=+test
 
 # test-version-only-without-newline tests that earthly will still work with non-POSIX text files
@@ -60,10 +59,10 @@ test-whitespace-then-version:
 
 test-invalid-versions:
     DO --pass-args +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-major-version.earth --target=+base
-    RUN acbgrep 'Earthfile version is invalid, supported versions are 0.5, 0.6, or 0.7' earthly.output
+    RUN acbgrep 'Earthfile version is invalid, supported versions are 0.6, 0.7, or 0.8' earthly.output
 
     DO --pass-args +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-minor-version.earth --target=+base
-    RUN acbgrep 'Earthfile version is invalid, supported versions are 0.5, 0.6, or 0.7' earthly.output
+    RUN acbgrep 'Earthfile version is invalid, supported versions are 0.6, 0.7, or 0.8' earthly.output
 
     DO --pass-args +RUN_EARTHLY_ARGS --should_fail=true --earthfile=invalid-patch-version.earth --target=+base
     RUN acbgrep 'unexpected VERSION arguments; should be VERSION \[flags\] <major-version>.<minor-version>' earthly.output

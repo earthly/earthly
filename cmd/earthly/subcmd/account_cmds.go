@@ -38,6 +38,7 @@ type Account struct {
 	registrationPublicKey  string
 	writePermission        bool
 	expiry                 string
+	overWrite              bool
 }
 
 func NewAccount(cli CLI) *Account {
@@ -181,6 +182,11 @@ func (a *Account) Cmds() []*cli.Command {
 							Name:        "expiry",
 							Usage:       "Set token expiry date in the form YYYY-MM-DD or never (default never)",
 							Destination: &a.expiry,
+						},
+						&cli.BoolFlag{
+							Name:        "overwrite",
+							Usage:       "Overwrite the token if it already exists",
+							Destination: &a.overWrite,
 						},
 					},
 				},
@@ -548,7 +554,7 @@ func (a *Account) actionCreateToken(cliCtx *cli.Context) error {
 		return err
 	}
 	name := cliCtx.Args().First()
-	token, err := cloudClient.CreateToken(cliCtx.Context, name, a.writePermission, expiry)
+	token, err := cloudClient.CreateToken(cliCtx.Context, name, a.writePermission, expiry, a.overWrite)
 	if err != nil {
 		return errors.Wrap(err, "failed to create token")
 	}
@@ -585,18 +591,25 @@ func (a *Account) actionLogin(cliCtx *cli.Context) error {
 	token := a.token
 	pass := a.password
 
-	cloudClient, err := helper.NewCloudClient(a.cli)
+	opts := []cloud.ClientOpt{}
+	if token != "" {
+		opts = append(opts, cloud.WithAuthToken(token))
+	}
+
+	cloudClient, err := helper.NewCloudClient(a.cli, opts...)
 	if err != nil {
 		return err
 	}
 
 	loggedInEmail, authType, _, err := cloudClient.WhoAmI(cliCtx.Context)
-	if err == nil {
+
+	if err == nil && authType == cloud.AuthMethodCachedJWT {
 		// already logged in, don't re-attempt a login
 		a.cli.Console().Printf("Logged in as %q using %s auth\n", loggedInEmail, authType)
 		return nil
 	}
-	if errors.Cause(err) != cloud.ErrUnauthorized && errors.Cause(err) != cloud.ErrAuthTokenExpired {
+
+	if err != nil && !errors.Is(err, cloud.ErrUnauthorized) && !errors.Is(err, cloud.ErrAuthTokenExpired) {
 		return errors.Wrap(err, "failed to login")
 	}
 

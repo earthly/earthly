@@ -14,7 +14,7 @@ The project needs to be [trusted](https://woodpecker-ci.org/docs/usage/project-s
 #.woodpecker.yml
 pipeline:
   earthly:
-    image: earthly/earthly:v0.7.22
+    image: earthly/earthly:v0.8.4
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
@@ -23,8 +23,7 @@ pipeline:
     secrets: [REGISTRY, REGISTRY_USER, REGISTRY_PASSWORD]
     commands:
      - docker login -u $${REGISTRY_USER} -p $${REGISTRY_PASSWORD} $${REGISTRY}
-     - earthly bootstrap
-     - earthly --ci --push -P +build
+     - earthly --ci --push +build
 ```
 
 For a complete guide on CI integration see the [CI integration guide](../overview.md).

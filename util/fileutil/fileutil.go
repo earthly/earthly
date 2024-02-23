@@ -65,3 +65,24 @@ func EnsureUserOwned(dir string, owner *user.User) error {
 		return os.Chown(path, uid, gid)
 	})
 }
+
+// GlobDirs will return any sub-directories which match the provided glob
+// pattern. Example: "/tmp/*" will return all sub-directories under "/tmp/".
+func GlobDirs(pattern string) ([]string, error) {
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to expand glob path %q", pattern)
+	}
+	var ret []string
+	for _, match := range matches {
+		st, err := os.Stat(match)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to stat expanded path %q", match)
+		}
+		if !st.IsDir() {
+			continue
+		}
+		ret = append(ret, match)
+	}
+	return ret, nil
+}

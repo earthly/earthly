@@ -1,7 +1,7 @@
-VERSION --pass-args 0.7
+VERSION 0.8
 PROJECT earthly-technologies/core
 
-FROM --pass-args ../..+earthly-integration-test-base
+FROM --pass-args ..+base
 
 IMPORT .. AS tests
 

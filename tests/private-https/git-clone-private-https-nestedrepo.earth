@@ -1,0 +1,22 @@
+VERSION 0.7
+FROM alpine/git:v2.43.0
+test:
+    WORKDIR /test
+
+    # TODO: it is not possible to clone this repo using the user/password that's configured in the earthly config
+    # GIT CLONE --branch main https://selfsigned.example.com/testuser/testproject/testsubproject/nestedrepo.git myrepo
+
+    # Nor, is it possible to reference the repo via ssh, like this
+    # GIT CLONE --branch main git@selfsigned.example.com:testuser/testproject/testsubproject/nestedrepo.git myrepo
+
+    # instead it's required to include the username/password here
+    GIT CLONE --branch main https://testuser:keepitsecret@selfsigned.example.com/testuser/testproject/testsubproject/nestedrepo.git myrepo
+
+    # however the substitute/pattern is working when calling earthly from the cli
+    # e.g. earthly --config \$earthly_config --verbose -D selfsigned.example.com/testuser/testproject/testsubproject/nestedrepo:main+hello (which is done immediately after by the Earthfile that calls this test)
+    # which implies this earthfile could do a BUILD selfsigned.example.com/testuser/testproject/testsubproject/nestedrepo+hello
+
+    WORKDIR /test/myrepo
+    RUN git status
+    RUN git branch
+    RUN grep $(echo OThlMTVmYjUtMTk3Yy00M2JmLTg4NmUtMzI5MWU2NWQ2NDZl | base64 -d) Earthfile

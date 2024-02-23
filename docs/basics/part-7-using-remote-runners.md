@@ -66,4 +66,4 @@ When running remote builds, some operations might require access to secrets. For
 
 Any secret that is available locally, including Docker/Podman credentials, will be passed to the remote runner whenever needed by the build.
 
-For more information about secrets, see the [Args and secrets page](../guides/build-args.md) and the [authenticating Git and image registries page](../guides/auth.md).
+For more information about secrets, see the [Secrets guide](../guides/secrets.md) and the [authenticating Git and image registries page](../guides/auth.md).

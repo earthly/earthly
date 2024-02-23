@@ -14,6 +14,7 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
+	"github.com/earthly/earthly/cmd/earthly/bk"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
@@ -82,10 +83,10 @@ type Opt struct {
 	DisableNoOutputUpdates                bool
 	ParallelConversion                    bool
 	Parallelism                           semutil.Semaphore
-	UseRemoteRegistry                     bool
 	DarwinProxyImage                      string
 	DarwinProxyWait                       time.Duration
 	LocalRegistryAddr                     string
+	DisableRemoteRegistryProxy            bool
 	FeatureFlagOverrides                  string
 	ContainerFrontend                     containerutil.ContainerFrontend
 	InternalSecretStore                   *secretprovider.MutableMapStore
@@ -94,6 +95,8 @@ type Opt struct {
 	GitImage                              string
 	GitLFSInclude                         string
 	GitLogLevel                           buildkitgitutil.GitLogLevel
+	BuildkitSkipper                       bk.BuildkitSkipper
+	NoAutoSkip                            bool
 }
 
 type ProjectAdder interface {
@@ -167,8 +170,8 @@ func (b *Builder) BuildTarget(ctx context.Context, target domain.Target, opt Bui
 func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (func(), bool) {
 	cons := b.opt.Console.WithPrefix("registry-proxy")
 
-	if !b.opt.UseRemoteRegistry {
-		cons.VerbosePrintf("Registry proxy not enabled")
+	if b.opt.DisableRemoteRegistryProxy {
+		cons.VerbosePrintf("Registry proxy disabled via --disable-remote-registry-proxy")
 		return nil, false
 	}
 
@@ -183,12 +186,16 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 		return nil, false
 	}
 
-	isDarwin := runtime.GOOS == "darwin"
+	useProxy, err := useSecondaryProxy()
+	if err != nil {
+		cons.Printf("Failed to check for registry proxy support: %v", err)
+		return nil, false
+	}
 
 	controller := regproxy.NewController(
 		b.s.bkClient.RegistryClient(),
 		b.opt.ContainerFrontend,
-		isDarwin,
+		useProxy,
 		b.opt.DarwinProxyImage,
 		b.opt.DarwinProxyWait,
 		cons,
@@ -204,6 +211,32 @@ func (b *Builder) startRegistryProxy(ctx context.Context, caps apicaps.CapSet) (
 	return closeFn, true
 }
 
+// useSecondaryProxy detects if we're on Mac (Darwin) or running on Windows in WSL2 or otherwise.
+func useSecondaryProxy() (bool, error) {
+	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+		return true, nil
+	}
+	versionFile := "/proc/version"
+	_, err := os.Stat(versionFile)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, errors.Wrapf(err, "failed to stat %s", versionFile)
+	}
+	f, err := os.Open(versionFile)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to open %s", versionFile)
+	}
+	defer f.Close()
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to read %s", versionFile)
+	}
+	s := string(data)
+	return strings.Contains(s, "WSL2"), nil
+}
+
 func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt BuildOpt) (*states.MultiTarget, error) {
 	var (
 		sharedLocalStateCache = earthfile2llb.NewSharedLocalStateCache()
@@ -217,11 +250,21 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		// to accomodate parallelism in the WAIT/END PopWaitBlock handling
 		dirIDs = map[int]string{}
 	)
+
 	var (
 		depIndex   = 0
 		imageIndex = 0
 		dirIndex   = 0
 	)
+
+	// Delay closing the registry proxy server until after the build function
+	// returns. This can be deferred within the build function once global wait
+	// block support is enabled.
+	stopRegistryProxyFunc := func() {}
+	defer func() {
+		stopRegistryProxyFunc()
+	}()
+
 	var mts *states.MultiTarget
 	buildFunc := func(childCtx context.Context, gwClient gwclient.Client) (*gwclient.Result, error) {
 		if opt.EnableGatewayClientLogging {
@@ -231,7 +274,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		caps := gwClient.BuildOpts().LLBCaps
 
 		if stopProxy, ok := b.startRegistryProxy(ctx, caps); ok {
-			defer stopProxy()
+			stopRegistryProxyFunc = stopProxy
 		}
 
 		if !b.builtMain {
@@ -280,6 +323,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				Runner:                               opt.Runner,
 				ProjectAdder:                         opt.ProjectAdder,
 				FilesWithCommandRenameWarning:        make(map[string]bool),
+				BuildkitSkipper:                      b.opt.BuildkitSkipper,
+				NoAutoSkip:                           b.opt.NoAutoSkip,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {
@@ -298,6 +343,9 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		// WARNING: the code below is deprecated, and will eventually be removed, in favour of wait_block.go
 		// This code is only used when dealing with VERSION 0.5 and 0.6; once these reach end-of-life, we can
 		// delete the code below.
+
+		// NOTE: this code is still required to support remote caching; it can't be removed until
+		// https://github.com/earthly/earthly/issues/2178 is fixed.
 
 		// *** DO NOT ADD CODE TO THE bf BELOW ***
 

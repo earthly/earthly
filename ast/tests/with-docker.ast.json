@@ -3,7 +3,7 @@
     {
       "command": {
         "args": [
-          "earthly/dind:alpine-3.18-docker-23.0.6-r7"
+          "earthly/dind:alpine-3.19-docker-25.0.2-r0"
         ],
         "name": "FROM"
       }
@@ -105,6 +105,14 @@
           "command": {
             "args": [
               "+cgroup-v2-test-all"
+            ],
+            "name": "BUILD"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "+pre-script-test"
             ],
             "name": "BUILD"
           }
@@ -805,7 +813,7 @@
         {
           "command": {
             "args": [
-              "earthly/dind:alpine-3.18-docker-23.0.6-r7"
+              "earthly/dind:alpine-3.19-docker-25.0.2-r0"
             ],
             "name": "FROM"
           }
@@ -864,7 +872,7 @@
         {
           "command": {
             "args": [
-              "earthly/dind:alpine-3.18-docker-23.0.6-r7"
+              "earthly/dind:alpine-3.19-docker-25.0.2-r0"
             ],
             "name": "FROM"
           }
@@ -922,7 +930,7 @@
           "command": {
             "args": [
               "+cgroup-v2-test",
-              "--DIND_IMG=earthly/dind:alpine-3.18-docker-23.0.6-r7",
+              "--DIND_IMG=earthly/dind:alpine-3.19-docker-25.0.2-r0",
               "--DIND_IMG=earthly/dind:ubuntu-23.04-docker-24.0.5-1"
             ],
             "name": "BUILD"
@@ -992,11 +1000,45 @@
           }
         }
       ]
+    },
+    {
+      "name": "pre-script-test",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "pre-script.sh",
+              "/usr/share/earthly/dockerd-wrapper-pre-script"
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "with": {
+            "body": [
+              {
+                "command": {
+                  "args": [
+                    "test",
+                    "-f",
+                    "/the-prescript-was-run"
+                  ],
+                  "name": "RUN"
+                }
+              }
+            ],
+            "command": {
+              "args": [],
+              "name": "DOCKER"
+            }
+          }
+        }
+      ]
     }
   ],
   "version": {
     "args": [
-      "0.7"
+      "0.8"
     ]
   }
 }

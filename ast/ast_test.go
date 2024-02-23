@@ -2,80 +2,80 @@ package ast_test
 
 import (
 	"context"
-	"io"
+	"strings"
 	"testing"
 
-	"git.sr.ht/~nelsam/hel/pkg/pers"
 	"github.com/earthly/earthly/ast"
-	"github.com/poy/onpar"
-	"github.com/poy/onpar/expect"
+	"github.com/earthly/earthly/ast/spec"
+	"github.com/stretchr/testify/require"
 )
 
-func TestParse(topT *testing.T) {
-	type testCtx struct {
-		t      *testing.T
-		expect expect.Expectation
-		reader *mockNamedReader
-	}
+type namedStringReader struct {
+	*strings.Reader
+}
 
-	o := onpar.BeforeEach(onpar.New(topT), func(t *testing.T) testCtx {
-		return testCtx{
-			t:      t,
-			expect: expect.New(t),
-			reader: newMockNamedReader(t, timeout),
-		}
-	})
-	defer o.Run()
+func (n *namedStringReader) Name() string {
+	return "Earthfile"
+}
 
-	o.Spec("it parses SET commands", func(tt testCtx) {
-		mockEarthfile(tt.t, tt.reader, []byte(`
+var _ ast.NamedReader = &namedStringReader{}
+
+func TestParse(t *testing.T) {
+
+	tests := []struct {
+		note      string
+		earthfile string
+		check     func(*require.Assertions, spec.Earthfile, error)
+	}{
+		{
+			note: "it parses SET commands",
+			earthfile: `
 VERSION 0.7
 
 foo:
     LET foo = bar
     SET foo = baz
-`))
-		f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-		tt.expect(err).To(not(haveOccurred()))
-
-		tt.expect(f.Targets).To(haveLen(1))
-		foo := f.Targets[0]
-		tt.expect(foo.Recipe).To(haveLen(2))
-		set := foo.Recipe[1]
-		tt.expect(set.Command).To(not(beNil()))
-		tt.expect(set.Command.Name).To(equal("SET"))
-		tt.expect(set.Command.Args).To(equal([]string{"foo", "=", "baz"}))
-	})
-
-	o.Spec("it parses LET commands", func(tt testCtx) {
-		mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				foo := s.Targets[0]
+				r.Len(foo.Recipe, 2)
+				set := foo.Recipe[1]
+				r.NotNil(set.Command)
+				r.Equal("SET", set.Command.Name)
+				r.Equal([]string{"foo", "=", "baz"}, set.Command.Args)
+			},
+		},
+		{
+			note: "it parses LET commands",
+			earthfile: `
 VERSION 0.7
 
 LET foo = bar
 
 foo:
     LET bacon = eggs
-`))
-		f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-		tt.expect(err).To(not(haveOccurred()))
-
-		tt.expect(f.BaseRecipe).To(haveLen(1))
-		global := f.BaseRecipe[0]
-		tt.expect(global.Command).To(not(beNil()))
-		tt.expect(global.Command.Name).To(equal("LET"))
-		tt.expect(global.Command.Args).To(equal([]string{"foo", "=", "bar"}))
-
-		tt.expect(f.Targets).To(haveLen(1))
-		foo := f.Targets[0]
-		tt.expect(foo.Recipe).To(haveLen(1))
-		let := foo.Recipe[0]
-		tt.expect(let.Command).To(not(beNil()))
-		tt.expect(let.Command.Name).To(equal("LET"))
-		tt.expect(let.Command.Args).To(equal([]string{"bacon", "=", "eggs"}))
-	})
-
-	o.Spec("it safely ignores comments outside of documentation", func(tt testCtx) {
-		mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.BaseRecipe, 1)
+				global := s.BaseRecipe[0]
+				r.NotNil(global.Command)
+				r.Equal("LET", global.Command.Name)
+				r.Equal([]string{"foo", "=", "bar"}, global.Command.Args)
+				r.Len(s.Targets, 1)
+				foo := s.Targets[0]
+				r.Len(foo.Recipe, 1)
+				let := foo.Recipe[0]
+				r.NotNil(let.Command)
+				r.Equal("LET", let.Command.Name)
+				r.Equal([]string{"bacon", "=", "eggs"}, let.Command.Args)
+			},
+		},
+		{
+			note: "it safely ignores comments outside of documentation",
+			earthfile: `
 # this is an early comment.
 
 # VERSION does not get documentation.
@@ -105,186 +105,176 @@ foo: # inline  comments do not consume newlines
     # Lonely comment blocks in
     # targets should be ignored.
 
-    # Even if they don't have a trailing newline.`))
-		f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-		tt.expect(err).To(not(haveOccurred()))
-
-		tt.expect(f.Targets).To(haveLen(3))
-		foo := f.Targets[2]
-		tt.expect(foo.Name).To(equal("foo"))
-		tt.expect(foo.Docs).To(equal(""))
-	})
-
-	o.Spec("targets with leading whitespace cause errors", func(tt testCtx) {
-		mockEarthfile(tt.t, tt.reader, []byte(`
+    # Even if they don't have a trailing newline.`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 3)
+				foo := s.Targets[2]
+				r.Equal("foo", foo.Name)
+				r.Equal("", foo.Docs)
+			},
+		},
+		{
+			note: "targets with leading whitespace cause errors",
+			earthfile: `
 VERSION 0.6
 
   foo:
     RUN echo foo
-`))
-		_, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-		tt.expect(err).To(haveOccurred())
-		tt.expect(err.Error()).To(containSubstring("no viable alternative at input '  '"))
-	})
-
-	o.Spec("it parses a basic target", func(tt testCtx) {
-		mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.Error(err)
+				r.ErrorContains(err, "no viable alternative at input '  '")
+			},
+		},
+		{
+			note: "it parses a basic target",
+			earthfile: `
 VERSION 0.6
 
 foo:
     RUN echo foo
-`))
-		f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-		tt.expect(err).To(not(haveOccurred()))
-
-		tt.expect(f.Version.Args).To(haveLen(1))
-		tt.expect(f.Version.Args[0]).To(equal("0.6"))
-
-		tt.expect(f.Targets).To(haveLen(1))
-		tgt := f.Targets[0]
-		tt.expect(tgt.Name).To(equal("foo"))
-		tt.expect(tgt.Recipe).To(haveLen(1))
-		rcp := tgt.Recipe[0]
-		tt.expect(rcp.Command).To(not(beNil()))
-		tt.expect(rcp.Command.Name).To(equal("RUN"))
-		tt.expect(rcp.Command.Args).To(equal([]string{"echo", "foo"}))
-	})
-
-	o.Spec("nested quotes inside of shellouts do not break parent quotes", func(tt testCtx) {
-		mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Version.Args, 1)
+				r.Equal("0.6", s.Version.Args[0])
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Equal("foo", target.Name)
+				r.Len(target.Recipe, 1)
+				recipe := target.Recipe[0]
+				r.NotNil(recipe.Command)
+				r.Equal("RUN", recipe.Command.Name)
+				r.Equal([]string{"echo", "foo"}, recipe.Command.Args)
+			},
+		},
+		{
+			note: "nested quotes inside of shellouts do not break parent quotes",
+			earthfile: `
 VERSION 0.6
 
 foo:
     RUN echo "$(echo "foo     bar")"
     ENV FOO="$(echo "foo     bar")"
-`))
-		f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-		tt.expect(err).To(not(haveOccurred()))
-
-		tt.expect(f.Targets).To(haveLen(1))
-		tgt := f.Targets[0]
-		tt.expect(tgt.Name).To(equal("foo"))
-		tt.expect(tgt.Recipe).To(haveLen(2))
-
-		run := tgt.Recipe[0]
-		tt.expect(run.Command).To(not(beNil()))
-		tt.expect(run.Command.Name).To(equal("RUN"))
-		tt.expect(run.Command.Args).To(equal([]string{"echo", `"$(echo "foo     bar")"`}))
-
-		env := tgt.Recipe[1]
-		tt.expect(env.Command).To(not(beNil()))
-		tt.expect(env.Command.Name).To(equal("ENV"))
-		tt.expect(env.Command.Args).To(equal([]string{"FOO", "=", `"$(echo "foo     bar")"`}))
-	})
-
-	o.Spec("nested shellouts inside of shellouts do not break parent shellouts", func(tt testCtx) {
-		mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Equal("foo", target.Name)
+				r.Len(target.Recipe, 2)
+				run := target.Recipe[0]
+				r.NotNil(run.Command)
+				r.Equal("RUN", run.Command.Name)
+				r.Equal([]string{"echo", `"$(echo "foo     bar")"`}, run.Command.Args)
+				env := target.Recipe[1]
+				r.Equal("ENV", env.Command.Name)
+				r.Equal([]string{"FOO", "=", `"$(echo "foo     bar")"`}, env.Command.Args)
+			},
+		},
+		{
+			note: "nested shellouts inside of shellouts do not break parent shellouts",
+			earthfile: `
 VERSION 0.6
 
 foo:
     RUN echo $(echo $(echo -n foo) $(echo -n bar))
     ENV FOO=$(echo $(echo -n foo) $(echo -n bar))
-`))
-		f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-		tt.expect(err).To(not(haveOccurred()))
-
-		tt.expect(f.Targets).To(haveLen(1))
-		tgt := f.Targets[0]
-		tt.expect(tgt.Name).To(equal("foo"))
-		tt.expect(tgt.Recipe).To(haveLen(2))
-
-		run := tgt.Recipe[0]
-		tt.expect(run.Command).To(not(beNil()))
-		tt.expect(run.Command.Name).To(equal("RUN"))
-		tt.expect(run.Command.Args).To(equal([]string{"echo", "$(echo $(echo -n foo) $(echo -n bar))"}))
-
-		env := tgt.Recipe[1]
-		tt.expect(env.Command).To(not(beNil()))
-		tt.expect(env.Command.Name).To(equal("ENV"))
-		tt.expect(env.Command.Args).To(equal([]string{"FOO", "=", "$(echo $(echo -n foo) $(echo -n bar))"}))
-	})
-
-	o.Spec("nested parens inside of quotes do not break parent shellouts", func(tt testCtx) {
-		mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Equal("foo", target.Name)
+				r.Len(target.Recipe, 2)
+				run := target.Recipe[0]
+				r.NotNil(run.Command)
+				r.Equal("RUN", run.Command.Name)
+				r.Equal([]string{"echo", "$(echo $(echo -n foo) $(echo -n bar))"}, run.Command.Args)
+				env := target.Recipe[1]
+				r.Equal("ENV", env.Command.Name)
+				r.Equal([]string{"FOO", "=", "$(echo $(echo -n foo) $(echo -n bar))"}, env.Command.Args)
+			},
+		},
+		{
+			note: "nested parens inside of quotes do not break parent shellouts",
+			earthfile: `
 VERSION 0.6
 
 foo:
     ARG foo = "$(echo "()")"
-`))
-		f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-		tt.expect(err).To(not(haveOccurred()))
-
-		tt.expect(f.Targets).To(haveLen(1))
-		tgt := f.Targets[0]
-		tt.expect(tgt.Name).To(equal("foo"))
-		tt.expect(tgt.Recipe).To(haveLen(1))
-
-		run := tgt.Recipe[0]
-		tt.expect(run.Command).To(not(beNil()))
-		tt.expect(run.Command.Name).To(equal("ARG"))
-		tt.expect(run.Command.Args).To(equal([]string{"foo", "=", `"$(echo "()")"`}))
-	})
-
-	o.Spec("ENV and ARG values retain inner whitespace", func(tt testCtx) {
-		mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Equal("foo", target.Name)
+				r.Len(target.Recipe, 1)
+				run := target.Recipe[0]
+				r.NotNil(run.Command)
+				r.Equal("ARG", run.Command.Name)
+				r.Equal([]string{"foo", "=", `"$(echo "()")"`}, run.Command.Args)
+			},
+		},
+		{
+			note: "ENV and ARG values retain inner whitespace",
+			earthfile: `
 VERSION 0.6
 
 foo:
     ARG foo = $ ( foo )
     ENV foo = $ ( foo )
-`))
-		f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-		tt.expect(err).To(not(haveOccurred()))
-
-		tt.expect(f.Targets).To(haveLen(1))
-		tgt := f.Targets[0]
-		tt.expect(tgt.Name).To(equal("foo"))
-		tt.expect(tgt.Recipe).To(haveLen(2))
-
-		arg := tgt.Recipe[0]
-		tt.expect(arg.Command).To(not(beNil()))
-		tt.expect(arg.Command.Name).To(equal("ARG"))
-		tt.expect(arg.Command.Args).To(equal([]string{"foo", "=", "$ ( foo )"}))
-
-		env := tgt.Recipe[1]
-		tt.expect(env.Command).To(not(beNil()))
-		tt.expect(env.Command.Name).To(equal("ENV"))
-		tt.expect(env.Command.Args).To(equal([]string{"foo", "=", "$ ( foo )"}))
-	})
-
-	o.Spec("it successfully parses unindented comments mid-recipe", func(tt testCtx) {
-		mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Equal("foo", target.Name)
+				r.Len(target.Recipe, 2)
+				arg := target.Recipe[0]
+				r.NotNil(arg.Command)
+				r.Equal("ARG", arg.Command.Name)
+				r.Equal([]string{"foo", "=", "$ ( foo )"}, arg.Command.Args)
+				env := target.Recipe[1]
+				r.Equal("ENV", env.Command.Name)
+				r.Equal([]string{"foo", "=", "$ ( foo )"}, env.Command.Args)
+			},
+		},
+		{
+			note: "it successfully parses unindented comments mid-recipe",
+			earthfile: `
 VERSION 0.7
 
 foo:
     RUN some_command
 # Comment regarding something
     SAVE ARTIFACT /stuff
-`))
-		_, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-		tt.expect(err).To(not(haveOccurred()))
-	})
-
-	o.Group("target docs", func() {
-		o.Spec("it parses target documentation", func(tt testCtx) {
-			mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+			},
+		},
+		{
+			note: "it parses target documentation",
+			earthfile: `
 VERSION 0.6
 
 # foo echoes 'foo'
 foo:
     RUN echo foo
-`))
-			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-			tt.expect(err).To(not(haveOccurred()))
-
-			tt.expect(f.Targets).To(haveLen(1))
-			tgt := f.Targets[0]
-			tt.expect(tgt.Name).To(equal("foo"))
-			tt.expect(tgt.Docs).To(equal("foo echoes 'foo'\n"))
-		})
-
-		o.Spec("it respects leading whitespace in documentation", func(tt testCtx) {
-			mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Equal("foo", target.Name)
+				r.Equal("foo echoes 'foo'\n", target.Docs)
+			},
+		},
+		{
+			note: "it respects leading whitespace in documentation",
+			earthfile: `
 VERSION 0.7
 
 # foo outputs formatted JSON
@@ -299,14 +289,13 @@ VERSION 0.7
 foo:
     ARG json
     RUN echo $json | jq .
-`))
-			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-			tt.expect(err).To(not(haveOccurred()))
-
-			tt.expect(f.Targets).To(haveLen(1))
-			tgt := f.Targets[0]
-			tt.expect(tgt.Name).To(equal("foo"))
-			tt.expect(tgt.Docs).To(equal(`foo outputs formatted JSON
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Equal("foo", target.Name)
+				r.Equal(`foo outputs formatted JSON
 
 Sample output:
 
@@ -315,11 +304,12 @@ Sample output:
         "a": "b",
         "c": "d"
     }
-`))
-		})
-
-		o.Spec("it parses documentation on later targets", func(tt testCtx) {
-			mockEarthfile(tt.t, tt.reader, []byte(`
+`, target.Docs)
+			},
+		},
+		{
+			note: "it parses documentation on later targets",
+			earthfile: `
 VERSION 0.6
 
 bar:
@@ -328,18 +318,18 @@ bar:
 # foo echoes 'foo'
 foo:
     RUN echo foo
-`))
-			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-			tt.expect(err).To(not(haveOccurred()))
-
-			tt.expect(f.Targets).To(haveLen(2))
-			tgt := f.Targets[1]
-			tt.expect(tgt.Name).To(equal("foo"))
-			tt.expect(tgt.Docs).To(equal("foo echoes 'foo'\n"))
-		})
-
-		o.Spec("it parses multiline documentation", func(tt testCtx) {
-			mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 2)
+				target := s.Targets[1]
+				r.Equal("foo", target.Name)
+				r.Equal("foo echoes 'foo'\n", target.Docs)
+			},
+		},
+		{
+			note: "it parses multiline documentation",
+			earthfile: `
 VERSION 0.6
 
 # foo echoes 'foo'
@@ -347,56 +337,53 @@ VERSION 0.6
 # and that's all.
 foo:
     RUN echo foo
-`))
-			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-			tt.expect(err).To(not(haveOccurred()))
-
-			tt.expect(f.Targets).To(haveLen(1))
-			tgt := f.Targets[0]
-			tt.expect(tgt.Name).To(equal("foo"))
-			tt.expect(tgt.Docs).To(equal("foo echoes 'foo'\n\nand that's all.\n"))
-		})
-
-		o.Spec("it does not parse comments with empty lines after them as documentation", func(tt testCtx) {
-			mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Equal("foo", target.Name)
+				r.Equal("foo echoes 'foo'\n\nand that's all.\n", target.Docs)
+			},
+		},
+		{
+			note: "it does not parse comments with empty lines after them as documentation",
+			earthfile: `
 VERSION 0.6
 
 # foo echoes 'foo'
 
 foo:
     RUN echo foo
-`))
-			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-			tt.expect(err).To(not(haveOccurred()))
-
-			tt.expect(f.Targets).To(haveLen(1))
-			tgt := f.Targets[0]
-			tt.expect(tgt.Name).To(equal("foo"))
-			tt.expect(tgt.Docs).To(equal(""))
-		})
-
-		o.Spec("it does not check the comment against the target name", func(tt testCtx) {
-			// It felt cleaner to check the doc comment's first word against the
-			// target's name at a higher level where we can display hints to the
-			// user about why the comments are not considered documentation.
-			mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Equal("foo", target.Name)
+				r.Equal("", target.Docs)
+			},
+		},
+		{
+			note: "it does not check the comment against the target name",
+			earthfile: `
 VERSION 0.6
 
 # echoes 'foo'
 foo:
     RUN echo foo
-`))
-			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-			tt.expect(err).To(not(haveOccurred()))
-
-			tt.expect(f.Targets).To(haveLen(1))
-			tgt := f.Targets[0]
-			tt.expect(tgt.Name).To(equal("foo"))
-			tt.expect(tgt.Docs).To(equal("echoes 'foo'\n"))
-		})
-
-		o.Spec("it skips comments that have different indentation", func(tt testCtx) {
-			mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Equal("foo", target.Name)
+				r.Equal("echoes 'foo'\n", target.Docs)
+			},
+		},
+		{
+			note: "it skips comments that have different indentation",
+			earthfile: `
 VERSION 0.6
 
 foo:
@@ -405,18 +392,18 @@ foo:
 # bar is a documented target
 bar:
     RUN echo bar
-`))
-			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-			tt.expect(err).To(not(haveOccurred()))
-
-			tt.expect(f.Targets).To(haveLen(2))
-			tgt := f.Targets[1]
-			tt.expect(tgt.Name).To(equal("bar"))
-			tt.expect(tgt.Docs).To(equal("bar is a documented target\n"))
-		})
-
-		o.Spec("it does not treat comments in otherwise-empty targets as documentation for the next target", func(tt testCtx) {
-			mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 2)
+				target := s.Targets[1]
+				r.Equal("bar", target.Name)
+				r.Equal("bar is a documented target\n", target.Docs)
+			},
+		},
+		{
+			note: "it does not treat comments in otherwise-empty targets as documentation for the next target",
+			earthfile: `
 VERSION 0.7
 
 
@@ -425,148 +412,244 @@ foo:
 
 bar:
     RUN echo bar
-`))
-			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-			tt.expect(err).To(not(haveOccurred()))
-
-			tt.expect(f.Targets).To(haveLen(2))
-			tgt := f.Targets[1]
-			tt.expect(tgt.Name).To(equal("bar"))
-			tt.expect(tgt.Docs).To(equal(""))
-		})
-
-		o.Spec("it parses documentation on ARGs", func(tt testCtx) {
-			mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 2)
+				target := s.Targets[1]
+				r.Equal("bar", target.Name)
+				r.Equal("", target.Docs)
+			},
+		},
+		{
+			note: "it parses documentation on ARGs",
+			earthfile: `
 VERSION 0.6
 
 foo:
     # foo is the argument that will be echoed
     ARG foo = bar
     RUN echo $foo
-`))
-			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-			tt.expect(err).To(not(haveOccurred()))
-
-			tt.expect(f.Targets).To(haveLen(1))
-			tgt := f.Targets[0]
-			tt.expect(tgt.Recipe).To(haveLen(2))
-			arg := tgt.Recipe[0]
-			tt.expect(arg.Command).To(not(beNil()))
-			tt.expect(arg.Command.Name).To(equal("ARG"))
-			tt.expect(arg.Command.Docs).To(equal("foo is the argument that will be echoed\n"))
-		})
-
-		o.Spec("it parses multiline documentation on global ARGs", func(tt testCtx) {
-			mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 2)
+				arg := target.Recipe[0]
+				r.NotNil(arg.Command)
+				r.Equal("ARG", arg.Command.Name)
+				r.Equal("foo is the argument that will be echoed\n", arg.Command.Docs)
+			},
+		},
+		{
+			note: "it parses multiline documentation on global ARGs",
+			earthfile: `
 VERSION 0.7
 FROM alpine:3.18
 
 # globalArg is a documented global arg
 # with multiple lines.
 ARG --global globalArg
-`))
-			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-			tt.expect(err).To(not(haveOccurred()))
-
-			tt.expect(f.BaseRecipe).To(haveLen(2))
-			arg := f.BaseRecipe[1]
-			tt.expect(arg.Command).To(not(beNil()))
-			tt.expect(arg.Command.Name).To(equal("ARG"))
-			tt.expect(arg.Command.Docs).To(equal("globalArg is a documented global arg\nwith multiple lines.\n"))
-		})
-
-		o.Spec("it parses documentation on SAVE ARTIFACT", func(tt testCtx) {
-			mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.BaseRecipe, 2)
+				arg := s.BaseRecipe[1]
+				r.NotNil(arg.Command)
+				r.Equal("ARG", arg.Command.Name)
+				r.Equal("globalArg is a documented global arg\nwith multiple lines.\n", arg.Command.Docs)
+			},
+		},
+		{
+			note: "it parses documentation on SAVE ARTIFACT",
+			earthfile: `
 VERSION 0.6
 
 foo:
     RUN echo foo > bar.txt
     # bar.txt will contain the output of this target
     SAVE ARTIFACT bar.txt
-`))
-			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-			tt.expect(err).To(not(haveOccurred()))
-
-			tt.expect(f.Targets).To(haveLen(1))
-			tgt := f.Targets[0]
-			tt.expect(tgt.Recipe).To(haveLen(2))
-			arg := tgt.Recipe[1]
-			tt.expect(arg.Command).To(not(beNil()))
-			tt.expect(arg.Command.Name).To(equal("SAVE ARTIFACT"))
-			tt.expect(arg.Command.Docs).To(equal("bar.txt will contain the output of this target\n"))
-		})
-
-		o.Spec("it parses documentation on SAVE IMAGE", func(tt testCtx) {
-			mockEarthfile(tt.t, tt.reader, []byte(`
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 2)
+				arg := target.Recipe[1]
+				r.NotNil(arg.Command)
+				r.Equal("SAVE ARTIFACT", arg.Command.Name)
+				r.Equal("bar.txt will contain the output of this target\n", arg.Command.Docs)
+			},
+		},
+		{
+			note: "it parses documentation on SAVE IMAGE",
+			earthfile: `
 VERSION 0.6
 
 foo:
     RUN echo foo > bar.txt
     # foo is an image that contains a bar.txt file
     SAVE IMAGE foo
-`))
-			f, err := ast.ParseOpts(context.Background(), ast.FromReader(tt.reader))
-			tt.expect(err).To(not(haveOccurred()))
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 2)
+				arg := target.Recipe[1]
+				r.NotNil(arg.Command)
+				r.Equal("SAVE IMAGE", arg.Command.Name)
+				r.Equal("foo is an image that contains a bar.txt file\n", arg.Command.Docs)
+			},
+		},
+		{
+			note: "complex character sequences in single quotes",
+			earthfile: `VERSION 0.8
 
-			tt.expect(f.Targets).To(haveLen(1))
-			tgt := f.Targets[0]
-			tt.expect(tgt.Recipe).To(haveLen(2))
-			arg := tgt.Recipe[1]
-			tt.expect(arg.Command).To(not(beNil()))
-			tt.expect(arg.Command.Name).To(equal("SAVE IMAGE"))
-			tt.expect(arg.Command.Docs).To(equal("foo is an image that contains a bar.txt file\n"))
+target:
+  RUN find . -type f -iname '*.md' | xargs -n 1 sed -i 's/{[^}]*}//g'
+  RUN find . -type f -iname '*.md' | xargs vale --config /etc/vale/vale.ini --output line --minAlertLevel error
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				r.Len(s.Targets[0].Recipe, 2)
+			},
+		},
+		{
+			note: "regression test for single-quoted #",
+			earthfile: `VERSION 0.8
+
+test:
+    FROM debian:9
+    RUN set -x \
+     && sed -i \
+            -e 's, universe multiverse, universe # multiverse,' \
+            /etc/apt/sources.list
+    SAVE IMAGE --push blah`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 3)
+				// Confirm that the single-quoted string is intact
+				r.Contains(target.Recipe[1].Command.Args, `'s, universe multiverse, universe # multiverse,'`)
+			},
+		},
+		{
+			note: "regression test for escaped # in $()",
+			earthfile: `VERSION 0.8
+
+thebug:
+    FROM alpine
+    ARG myarg=$(echo "a#b#c" | cut -f2 -d\#)
+    RUN touch /some-file
+    RUN echo "myarg is \"$myarg\""
+    RUN test -f /some-file`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 5)
+				// Confirm that the escaped expression is intact
+				r.Contains(target.Recipe[1].Command.Args, `$(echo "a#b#c" | cut -f2 -d\#)`)
+			},
+		},
+		{
+			note: "regression test for single-quoted string in shell expression",
+			earthfile: `VERSION 0.8
+FROM alpine
+
+arg-plain:
+    ARG val=$(echo run | tr -d '"')
+    RUN echo $val`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 2)
+				// Confirm that the single-quoted string is intact
+				r.Contains(target.Recipe[0].Command.Args, `$(echo run | tr -d '"')`)
+			},
+		},
+		{
+			note: "regression test for single-quoted string in RUN",
+			earthfile: `VERSION 0.8
+FROM alpine
+
+run-plain:
+    RUN echo run | tr -d '"'`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 1)
+			},
+		},
+		{
+			note: "regression test for escaped double-quoted strings in shell expression",
+			earthfile: `VERSION 0.8
+FROM alpine
+
+arg-esc:
+    ARG val=$(echo single | tr -d "\"")
+    RUN echo $val`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 2)
+				// Confirm that the single-quoted string is intact
+				r.Contains(target.Recipe[0].Command.Args, `$(echo single | tr -d "\"")`)
+			},
+		},
+		{
+			note: "regression test for escaped \\ & double-quotes in shell expression",
+			earthfile: `VERSION 0.8
+FROM alpine
+
+arg-esc:
+    ARG val=$(echo single | tr -d "\\\"")
+    RUN echo $val`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 2)
+				// Confirm that the single-quoted string is intact
+				r.Contains(target.Recipe[0].Command.Args, `$(echo single | tr -d "\\\"")`)
+			},
+		},
+		{
+			note: "regression test for single-quoted commands",
+			earthfile: `VERSION 0.8
+
+FROM alpine
+
+test:
+  RUN 'echo "message'
+  RUN 'echo "message"'`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Len(target.Recipe, 2)
+				// Confirm that the single-quoted strings are intact
+				r.Contains(target.Recipe[0].Command.Args, `'echo "message'`)
+				r.Contains(target.Recipe[1].Command.Args, `'echo "message"'`)
+			},
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.note, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			r := namedStringReader{strings.NewReader(test.earthfile)}
+			s, err := ast.ParseOpts(ctx, ast.FromReader(&r))
+			test.check(require.New(t), s, err)
 		})
-	})
-}
-
-// mockEarthfile mocks out an Earthfile for testing purposes.
-func mockEarthfile(t *testing.T, reader *mockNamedReader, earthfileBody []byte) {
-	t.Helper()
-
-	pers.ConsistentlyReturn(t, reader.NameOutput, "Earthfile")
-	handleMockFile(t, reader, earthfileBody)
-}
-
-// handleMockFile helps us perform slightly more black-box testing by handling a
-// mockNamedReader as if it were a file-like io.ReadSeeker. This way, we don't
-// need to know in the test how many times the file is seeked back to zero and
-// re-read.
-//
-// This cannot handle non-zero seeks and will fail if it receives a non-zero
-// seek call.
-func handleMockFile(t *testing.T, r *mockNamedReader, body []byte) {
-	t.Helper()
-
-	idx := 0
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-	go func() {
-		for {
-			select {
-			case <-r.ReadCalled:
-				buff := <-r.ReadInput.Buff
-				cpyEnd := idx + len(buff)
-				if cpyEnd > len(body) {
-					cpy := body[idx:]
-					copy(buff, cpy)
-					idx = len(body)
-					pers.Return(r.ReadOutput, len(cpy), io.EOF)
-					continue
-				}
-				copy(buff, body[idx:cpyEnd])
-				idx = cpyEnd
-				pers.Return(r.ReadOutput, len(buff), nil)
-			case <-r.SeekCalled:
-				offset := <-r.SeekInput.Offset
-				whence := <-r.SeekInput.Whence
-				if offset != 0 || whence != 0 {
-					t.Fatalf("ast: handleMockFile cannot handle non-zero offset or whence values in calls to Seek(); got offset=%d, whence=%d", offset, whence)
-				}
-				idx = 0
-				pers.Return(r.SeekOutput, 0, nil)
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
+	}
 }

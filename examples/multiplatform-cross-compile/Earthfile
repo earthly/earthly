@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 
 # An example where multi-platform images are possible without the need of any emulation.
 # The build takes place on linux/amd64, however multiple image variants are produced in the end.

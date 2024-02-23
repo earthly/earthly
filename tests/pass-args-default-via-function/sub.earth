@@ -1,0 +1,8 @@
+VERSION 0.8
+
+# This file doesn't define *any* ARGs, and is here to ensure all ARGs
+# passed from the caller get re-passed to the final build target
+
+FUNC2:
+  FUNCTION
+  BUILD --pass-args ./submarine+test

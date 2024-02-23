@@ -412,11 +412,37 @@
           }
         }
       ]
+    },
+    {
+      "name": "artifact-copy-not-exist-wildcard",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "+save/*_ok",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "!",
+              "-f",
+              "not_ok"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
     }
   ],
   "version": {
     "args": [
-      "0.7"
+      "0.8"
     ]
   }
 }

@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION 0.8
 
 FROM --pass-args ../..+base
 
@@ -81,7 +81,7 @@ fi
         cd /test/repo && \
         git init --initial-branch=main . && \
         echo "51bdc359-98f8-4bc6-960e-2be69f722ca3" > i-really-like-this-uuid && \
-        echo -e "VERSION 0.7\nFROM alpine:3.18\nhello:\n\tRUN echo -n 1233c084-4cf5-4797-a4c5-eb65354ee7ee | base64" > Earthfile && \
+        echo -e "VERSION 0.8\nFROM alpine:3.18\nhello:\n\tRUN echo -n 1233c084-4cf5-4797-a4c5-eb65354ee7ee | base64" > Earthfile && \
         git add Earthfile i-really-like-this-uuid && \
         git config --global user.email "onlyspammersemailthis@earthly.dev" && \
         git config --global user.name "test name" && \

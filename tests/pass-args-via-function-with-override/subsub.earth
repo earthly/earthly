@@ -1,0 +1,8 @@
+VERSION 0.8
+
+test:
+  FROM alpine:3.18
+  ARG --required MY_ARG
+  ARG --required EXTRA_ARG
+  RUN test "$MY_ARG" = "defaultvalue"
+  RUN test "$EXTRA_ARG" = "super extra yes please"

@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 
 FROM alpine:3.18
 WORKDIR /test
@@ -214,3 +214,11 @@ copy-chmod:
     COPY --chmod=666 in/root .
     RUN echo "./root file-mode=$(stat -c %a ./root)"
     RUN test "$(stat -c %a ./root)" = "666"
+
+copy-empty-src:
+    ARG SRC=""
+    COPY $SRC $SRC
+
+copy-empty-src-if-exists:
+    ARG SRC=""
+    COPY --if-exists $SRC $SRC

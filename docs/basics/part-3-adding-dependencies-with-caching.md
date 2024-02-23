@@ -43,7 +43,7 @@ Now we can update our Earthfile to copy in the `go.mod` and `go.sum`.
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM golang:1.15-alpine3.13
 WORKDIR /go-workdir
 
@@ -67,7 +67,7 @@ If, however, we could first download the dependencies and only afterwards copy a
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM golang:1.15-alpine3.13
 WORKDIR /go-workdir
 
@@ -95,7 +95,7 @@ In some cases, the dependencies might be used in more than one build target. For
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM golang:1.15-alpine3.13
 WORKDIR /go-workdir
 
@@ -134,7 +134,7 @@ Note that in our case, only the JavaScript version has an example where `FROM +d
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
@@ -176,7 +176,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part3/
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
@@ -215,7 +215,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM python:3
 WORKDIR /code
 

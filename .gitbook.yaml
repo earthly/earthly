@@ -44,6 +44,7 @@ redirects:
     alt-installation: alt-installation/alt-installation.md
     guides/basics: basics/basics.md
     basics: basics/basics.md
+    best-practices: guides/best-practices.md
     guides/ci-integration: ci-integration/overview.md
     docs/ci-integration: ci-integration/overview.md
     ci-examples/ci-examples: ci-integration/overview.md

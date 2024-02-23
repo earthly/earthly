@@ -33,6 +33,7 @@ type Satellite struct {
 	maintenanceWindow      string
 	maintenaceWeekendsOnly bool
 	version                string
+	force                  bool
 	printJSON              bool
 	listAll                bool
 	dropCache              bool
@@ -87,7 +88,7 @@ as well as run builds in native architectures independent of where the Earthly c
 						&cli.StringFlag{
 							Name: "size",
 							Usage: `The size of the satellite. See https://earthly.dev/pricing for details on each size
-					Supported values: xsmall, small, medium, large, xlarge`,
+					Supported values: xsmall, small, medium, large, xlarge, 2xlarge, 3xlarge, 4xlarge`,
 							Required:    false,
 							Destination: &a.size,
 						},
@@ -132,6 +133,15 @@ as well as run builds in native architectures independent of where the Earthly c
 					UsageText: "earthly satellite rm <satellite-name>\n" +
 						"	earthly satellite [--org <organization-name>] rm <satellite-name>",
 					Action: a.actionRemove,
+					Flags: []cli.Flag{
+						&cli.BoolFlag{
+							Name:        "force",
+							Aliases:     []string{"f"},
+							Usage:       "Forces the removal of the satellite, even if it's running",
+							Required:    false,
+							Destination: &a.force,
+						},
+					},
 				},
 				{
 					Name:        "ls",
@@ -190,9 +200,10 @@ as well as run builds in native architectures independent of where the Earthly c
 					Action: a.actionWake,
 				},
 				{
-					Name:        "sleep",
-					Usage:       "Manually force an Earthly Satellite to sleep from an operational state",
-					Description: "Manually force an Earthly Satellite to sleep from an operational state.",
+					Name:  "sleep",
+					Usage: "Manually force an Earthly Satellite to sleep from an operational state",
+					Description: "Manually force an Earthly Satellite to sleep from an operational state.\n" +
+						"Note that this may interrupt ongoing builds.",
 					UsageText: "earthly satellite sleep <satellite-name>\n" +
 						"	earthly satellite [--org <organization-name>] sleep <satellite-name>",
 					Action: a.actionSleep,
@@ -216,7 +227,7 @@ as well as run builds in native architectures independent of where the Earthly c
 						&cli.StringFlag{
 							Name: "size",
 							Usage: `Change the size of the satellite. See https://earthly.dev/pricing for details on each size.
-					Supported values: xsmall, small, medium, large, xlarge`,
+					Supported values: xsmall, small, medium, large, xlarge, 2xlarge, 3xlarge, 4xlarge`,
 							Required:    false,
 							Destination: &a.size,
 						},
@@ -254,6 +265,13 @@ as well as run builds in native architectures independent of where the Earthly c
 							Required:    false,
 							Hidden:      true,
 							Destination: &a.version,
+						},
+						&cli.BoolFlag{
+							Name:        "force",
+							Aliases:     []string{"f"},
+							Usage:       "Forces the satellite to sleep (if necessary) before starting the updating",
+							Required:    false,
+							Destination: &a.force,
 						},
 					},
 				},
@@ -604,21 +622,31 @@ func (a *Satellite) actionRemove(cliCtx *cli.Context) error {
 		return err
 	}
 
-	found := false
+	var sat *cloud.SatelliteInstance
 	for _, s := range satellites {
 		if a.cli.Flags().SatelliteName == s.Name {
-			found = true
+			sat = &s
 			if s.Hidden {
 				return errors.New("cannot delete hidden satellites")
 			}
 		}
 	}
-	if !found {
+	if sat == nil {
 		return fmt.Errorf("could not find %q for deletion", a.cli.Flags().SatelliteName)
 	}
 
+	isOffline := sat.State == cloud.SatelliteStatusSleep || sat.State == cloud.SatelliteStatusOffline
+	if !a.force && !isOffline {
+		a.cli.Console().Printf("")
+		a.cli.Console().Printf("Cannot destroy a running satellite.")
+		a.cli.Console().Printf("Please sleep the satellite first, or use the --force flag.")
+		a.cli.Console().Printf("Note that force removing a satellite may interrupt ongoing builds.")
+		a.cli.Console().Printf("")
+		return errors.New("satellite is running")
+	}
+
 	a.cli.Console().Printf("Destroying Satellite %q. This may take a few minutes...\n", a.cli.Flags().SatelliteName)
-	err = cloudClient.DeleteSatellite(cliCtx.Context, a.cli.Flags().SatelliteName, orgName)
+	err = cloudClient.DeleteSatellite(cliCtx.Context, a.cli.Flags().SatelliteName, orgName, a.force)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			a.cli.Console().Printf("Operation interrupted. Satellite should finish destroying in background (if server received request).\n")
@@ -681,9 +709,13 @@ func (a *Satellite) actionInspect(cliCtx *cli.Context) error {
 	a.cli.Flags().BuildkitdSettings.Timeout = 30 * time.Second
 	a.cli.Flags().BuildkitdSettings.SatelliteToken = token
 	a.cli.Flags().BuildkitdSettings.SatelliteName = satelliteToInspectName
+	a.cli.Flags().BuildkitdSettings.SatelliteIsManaged = satellite.IsManaged
 	a.cli.Flags().BuildkitdSettings.SatelliteDisplayName = satelliteToInspect
 	a.cli.Flags().BuildkitdSettings.SatelliteOrgID = orgID // must be the ID and not name, due to satellite-proxy requirements
-	if a.cli.Flags().SatelliteAddress != "" {
+
+	if !satellite.IsManaged {
+		a.cli.Flags().BuildkitdSettings.BuildkitAddress = fmt.Sprintf("tcp://%s", satellite.Address)
+	} else if a.cli.Flags().SatelliteAddress != "" {
 		a.cli.Flags().BuildkitdSettings.BuildkitAddress = a.cli.Flags().SatelliteAddress
 	} else {
 		a.cli.Flags().BuildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
@@ -694,9 +726,15 @@ func (a *Satellite) actionInspect(cliCtx *cli.Context) error {
 		selected = "Yes"
 	}
 
+	size := satellite.Size
+	if !satellite.IsManaged {
+		size = "self-hosted"
+		a.cli.Console().Printf("Address: %s", satellite.Address)
+	}
+
 	a.cli.Console().Printf("State: %s", satellite.State)
 	a.cli.Console().Printf("Platform: %s", satellite.Platform)
-	a.cli.Console().Printf("Size: %s", satellite.Size)
+	a.cli.Console().Printf("Size: %s", size)
 	a.cli.Console().Printf("Last Used: %s", satellite.LastUsed.In(time.Local))
 	a.cli.Console().Printf("Cache Duration: %s", durationWithDaysPart(satellite.CacheRetention))
 	pinned := ""
@@ -730,6 +768,13 @@ func (a *Satellite) actionInspect(cliCtx *cli.Context) error {
 	a.cli.Console().Printf("")
 
 	if satellite.State == cloud.SatelliteStatusOperational {
+		if !satellite.IsManaged {
+			cleanup, err := buildkitd.ConfigureSatelliteTLS(&a.cli.Flags().BuildkitdSettings, satellite)
+			if err != nil {
+				return errors.Wrap(err, "failed configuring satellite tls")
+			}
+			defer cleanup()
+		}
 		err = buildkitd.PrintSatelliteInfo(cliCtx.Context, a.cli.Console(), a.cli.App().Version, a.cli.Flags().BuildkitdSettings, a.cli.Flags().InstallationName)
 		if err != nil {
 			return errors.Wrap(err, "failed checking buildkit info")
@@ -948,9 +993,9 @@ func (a *Satellite) actionUpdate(cliCtx *cli.Context) error {
 		return err
 	}
 
-	satName, err := base.GetSatelliteName(cliCtx.Context, orgName, a.cli.Flags().SatelliteName, cloudClient)
+	sat, err := cloudClient.GetSatellite(cliCtx.Context, a.cli.Flags().SatelliteName, orgName)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed getting satellite")
 	}
 
 	if window != "" {
@@ -970,8 +1015,24 @@ func (a *Satellite) actionUpdate(cliCtx *cli.Context) error {
 		return errors.Errorf("not a valid platform: %q", platform)
 	}
 
+	if sat.State != cloud.SatelliteStatusSleep {
+		if !a.force {
+			a.cli.Console().Printf("")
+			a.cli.Console().Printf("The satellite must be asleep to start the update.")
+			a.cli.Console().Printf("You can re-run this command with the `--force` flag to force the satellite asleep and start the update now.")
+			a.cli.Console().Printf("Note that Putting the satellite to sleep will interrupt any running builds.")
+			a.cli.Console().Printf("")
+			return errors.New("update aborted: satellite is not asleep.")
+		}
+		out := cloudClient.SleepSatellite(cliCtx.Context, sat.Name, orgName)
+		err = showSatelliteStopping(a.cli.Console(), a.cli.Flags().SatelliteName, out)
+		if err != nil {
+			return errors.Wrap(err, "failed waiting for satellite to sleep")
+		}
+	}
+
 	err = cloudClient.UpdateSatellite(cliCtx.Context, cloud.UpdateSatelliteOpt{
-		Name:                    satName,
+		Name:                    sat.Name,
 		OrgName:                 orgName,
 		PinnedVersion:           version,
 		MaintenanceWindowStart:  window,

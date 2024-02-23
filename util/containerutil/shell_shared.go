@@ -68,11 +68,18 @@ func (sf *shellFrontend) ContainerList(ctx context.Context) ([]*ContainerInfo, e
 	if err != nil {
 		return nil, err
 	}
+	return parseContainerList(output.stdout.String())
+}
+
+func parseContainerList(output string) ([]*ContainerInfo, error) {
 	ret := []*ContainerInfo{}
 	// The Docker & Podman JSON output format differs, so we parse the standard output here.
-	lines := strings.Split(strings.Trim(output.stdout.String(), "\n"), "\n")
+	lines := strings.Split(strings.TrimSpace(output), "\n")
 	for _, line := range lines {
 		parts := strings.Split(line, ",")
+		if len(parts) != 5 {
+			continue
+		}
 		createdAt, err := time.Parse(containerDateFormat, parts[4])
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to parse container date")
