@@ -16,9 +16,10 @@ earthly sat launch <satellite-name>
 
 The Satellite name can be any arbitrary string.
 
-If you are part of multiple Earthly organizations, you may have to specify the org name under which you would like to launch the satellite:
+If you are part of multiple Earthly organizations, you may want to first select the org under which you would like to launch the satellite:
 
 ```bash
+earthly org select <org-name>
 earthly sat launch <satellite-name>
 ```
 
