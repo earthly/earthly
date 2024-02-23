@@ -48,6 +48,16 @@ func TestShellParserMandatoryEnvVars(t *testing.T) {
 	require.Contains(t, err.Error(), "message herex")
 }
 
+func TestProcessWordEscapedDoubleQuote(t *testing.T) {
+	shlex := NewLex('\\')
+	shlex.ShellOut = func(cmd string) (string, error) {
+		return cmd, nil
+	}
+	ret, err := shlex.ProcessWord(`$(echo single | tr -d "\"")`, []string{}, nil)
+	require.NoError(t, err)
+	require.Equal(t, `echo single | tr -d "\""`, ret)
+}
+
 func TestShellParserReplace(t *testing.T) {
 	cases := []struct {
 		envs map[string]string

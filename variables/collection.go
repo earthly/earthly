@@ -145,6 +145,11 @@ func (c *Collection) EnvVars() *Scope {
 	return c.envs.Clone()
 }
 
+// Args returns a copy of the args.
+func (c *Collection) Args() *Scope {
+	return c.args().Clone()
+}
+
 // Globals returns a copy of the globals.
 func (c *Collection) Globals() *Scope {
 	return c.globals().Clone()
@@ -481,6 +486,5 @@ func (c *Collection) effective() *Scope {
 	if c.effectiveCache == nil {
 		c.effectiveCache = CombineScopes(c.vars(), c.overriding(), c.builtin, c.args(), c.envs, c.globals())
 	}
-
 	return c.effectiveCache
 }

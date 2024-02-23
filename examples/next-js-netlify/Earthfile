@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 FROM --platform=linux/amd64 node:latest
 WORKDIR /app
 

@@ -1,4 +1,4 @@
-VERSION --this-flag-does-not-exist 0.7
+VERSION --this-flag-does-not-exist 0.8
 
 test:
     FROM alpine

@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 IMPORT ./some/local/path AS lib
 IMPORT github.com/earthly/hello-world:main  # if alias is not provided, defaults to last element in path (in this case, hello-world)
 

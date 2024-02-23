@@ -4,7 +4,7 @@
 # 3) ReRun `earthly +run`
 # Result: `build` will rerun, but `link` and `run` will be served from the cache as main.o is unchanged
 
-VERSION 0.7
+VERSION 0.8
 FROM alpine
 WORKDIR /code
 RUN apk add --update --no-cache build-base

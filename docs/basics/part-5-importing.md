@@ -11,7 +11,7 @@ Examples in [Python](#more-examples), [JavaScript](#more-examples) and [Java](#m
 So far we've seen how the `FROM` command in Earthly has the ability to reference another target's image as its base image, like in the case below where the `+build` target uses the image from the `+deps` target.
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM golang:1.15-alpine3.13
 WORKDIR /go-workdir
 
@@ -49,7 +49,7 @@ We can use a target in the Earthfile in `/services/service-one` from inside the 
 
 ```Dockerfile
 
-VERSION 0.7
+VERSION 0.8
 FROM golang:1.15-alpine3.13
 WORKDIR /go-workdir
 
@@ -86,7 +86,7 @@ build:
 In addition to importing single targets from other files, we can also import an entire Earthfile with the `IMPORT` command. This is helpful if there are several targets in a separate Earthfile that you want access to in your current file. It also allows you to create an alias.
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 IMPORT ./services/service-one AS my_service
 FROM golang:1.15-alpine3.13
 WORKDIR /go-workdir
@@ -115,7 +115,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part5/pa
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
@@ -150,7 +150,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part5/
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
@@ -185,7 +185,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM python:3
 WORKDIR /code
 

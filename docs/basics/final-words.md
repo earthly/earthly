@@ -11,7 +11,7 @@ Learning Earthly does not stop here. Discover more of what Earthly can do by exp
 * [Guides](https://tinyurl.com/2p8cpnxv) <!-- should be ../earthfile/guides but gitbook produces a 404 link for this -->
 
 * [Examples using Earthly](../examples/examples.md)
-* [Best practices](../best-practices/best-practices.md)
+* [Best practices](../guides/best-practices.md)
 
 * [Earthly Cloud](https://cloud.earthly.dev/)
 

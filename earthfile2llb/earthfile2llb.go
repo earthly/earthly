@@ -6,6 +6,7 @@ import (
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
+	"github.com/earthly/earthly/cmd/earthly/bk"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
@@ -183,6 +184,20 @@ type ConvertOpt struct {
 	// FilesWithCommandRenameWarning keeps track of the files for which the COMMAND => FUNCTION warning was displayed
 	// this can be removed in VERSION 0.8
 	FilesWithCommandRenameWarning map[string]bool
+
+	// parentTargetID is the Logbus target ID of the parent target, if any. It
+	// is used to link together targets.
+	parentTargetID string
+
+	// parentCommandID is the Logbus command ID of whichever command initiated
+	// the convert operation. It's used to link commands to their referenced targets.
+	parentCommandID string
+
+	// BuildkitSkipper allows for additions and existence checks for auto-skip hash values.
+	BuildkitSkipper bk.BuildkitSkipper
+
+	// NoAutoSkip disables auto-skip usages.
+	NoAutoSkip bool
 }
 
 // TargetDetails contains details about the target being built.
@@ -265,6 +280,19 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 	if err != nil {
 		return nil, err
 	}
+
+	if opt.parentTargetID != "" {
+		if parentTarget, ok := opt.Logbus.Run().Target(opt.parentTargetID); ok {
+			parentTarget.AddDependsOn(sts.ID)
+		}
+	}
+
+	if opt.parentCommandID != "" {
+		if parentCmd, ok := opt.Logbus.Run().Command(opt.parentCommandID); ok {
+			parentCmd.AddDependsOn(sts.ID, target.GetName())
+		}
+	}
+
 	tiHash, err := sts.TargetInput().Hash()
 	if err != nil {
 		return nil, err
@@ -314,6 +342,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		}
 		opt.MainTargetDetailsFunc = nil
 	}
+	opt.Console.VerbosePrintf("earthfile2llb building %s with OverridingVars=%v", targetWithMetadata.StringCanonical(), opt.OverridingVars.Map())
 	converter, err := NewConverter(ctx, targetWithMetadata, bc, sts, opt)
 	if err != nil {
 		return nil, err

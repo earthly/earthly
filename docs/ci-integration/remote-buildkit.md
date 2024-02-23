@@ -1,5 +1,10 @@
 # Remote BuildKit 
 
+{% hint style='info' %}
+##### Note
+This guide is related to self-hosting a remote Buildkit, however, Self-Hosted Satellites **beta** are now available. Self-Hosted Satellites provide more features, have better security, and are easier to deploy than remote Buildkit. Check out the [Self-Hosted Satellites Guide](../cloud/satellites/self-hosted.md) for more details. If your use case cannot tolerate a cloud-based control plane, however, then self-hosting a remote Buildkit is still supported.
+{% endhint %}
+
 ## Introduction
 
 In some cases, you may want to run a remote instance of [`earthly/buildkitd`](https://hub.docker.com/r/earthly/buildkitd). This guide is intended to help you identify if you might benefit from this configuration, and to help you set it up correctly.

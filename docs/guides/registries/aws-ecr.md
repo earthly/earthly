@@ -96,7 +96,7 @@ Loaded image: <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with
 Using this credential helper; you can also pull images without any special handling in an Earthfile:
 
 ```
-FROM earthly/dind:alpine-3.18-docker-23.0.6-r4
+FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
 
 run:
     WITH DOCKER --pull <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with-love
@@ -109,12 +109,12 @@ And here is how you would run it:
 ```
 ❯ earthly -P +run
            buildkitd | Found buildkit daemon as docker container (earthly-buildkitd)
- earthly/dind:alpine-3.18-docker-23.0.6-r4 | --> Load metadata linux/amd64
+ earthly/dind:alpine-3.19-docker-25.0.2-r0 | --> Load metadata linux/amd64
 4/hello-earthly:with-love | --> Load metadata linux/amd64
 4/hello-earthly:with-love | --> DOCKER PULL <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with-love
 4/hello-earthly:with-love | [██████████] resolve <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with-love@sha256:9ab4df74dafa2a71d71e39e1af133d110186698c78554ab000159cfa92081de4 ... 100%
-               +base | --> FROM earthly/dind:alpine-3.18-docker-23.0.6-r4
-               +base | [██████████] resolve docker.io/earthly/dind:alpine-3.18-docker-23.0.6-r4@sha256:2cef4089960efe028de40721749e3ec6eba9f471562bf10681de729287bd78fb ... 100%
+               +base | --> FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+               +base | [██████████] resolve docker.io/earthly/dind:alpine-3.19-docker-25.0.2-r0@sha256:2cef4089960efe028de40721749e3ec6eba9f471562bf10681de729287bd78fb ... 100%
                 +run | *cached* --> WITH DOCKER (install deps)
                 +run | *cached* --> WITH DOCKER RUN docker run <aws_account_id>.dkr.ecr.<region>.amazonaws.com/hello-earthly:with-love
               output | --> exporting outputs

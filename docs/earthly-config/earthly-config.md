@@ -260,7 +260,6 @@ The `strict_host_key_checking` option can be used to control access to ssh-based
 Strict host key checking is enabled by default, setting it to `false` disables host key checking.
 This setting is only used when auth is `ssh`.
 
-
 {% hint style='info' %}
 ##### Tip
 Disabling strict host key checking is a bad security practice (as it makes a man-in-the-middle attack possible).
@@ -270,6 +269,11 @@ Instead, it's recommended to record the host's ssh key to `~/.ssh/known_hosts`; 
 ssh-keyscan <hostname> >> ~/.ssh/known_hosts
 ```
 {% endhint %}
+
+#### ssh_command
+
+The `ssh_command` option can be used to override the ssh command that is used by `git` when connecting to an ssh-based repository.
+For example, if you need to connect to an outdated sshd-server which only supports the insecure RSA signature algorithm, you could set the `ssh_command` to `ssh -o 'PubKeyAcceptedKeyTypes +ssh-rsa'`.
 
 #### port
 

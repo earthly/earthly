@@ -1,0 +1,6 @@
+VERSION 0.8
+
+FUNC2:
+  FUNCTION
+  ARG MY_ARG=nor-this-one
+  BUILD --pass-args ./submarine+test

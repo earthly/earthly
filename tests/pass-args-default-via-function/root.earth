@@ -1,0 +1,13 @@
+VERSION 0.8
+
+ARG --global MY_ARG=this-should-be-ignored
+
+test:
+  FROM alpine:3.18
+  ARG MY_ARG=defaultvalue
+  DO --pass-args +FUNC1
+
+FUNC1:
+  FUNCTION
+  ARG MY_ARG=wrongdefaultvalue
+  DO --pass-args ./sub+FUNC2

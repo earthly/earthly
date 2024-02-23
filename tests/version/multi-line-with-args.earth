@@ -1,6 +1,6 @@
 VERSION \ #with a comment that doesn't have a space after the hash.
-    --referenced-save-only \
-    0.5
+    --try \
+    0.8
 
 FROM alpine:3.18
 test:

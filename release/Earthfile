@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 PROJECT earthly-technologies/core
 FROM alpine:3.18
 
@@ -31,16 +31,18 @@ release-dockerhub:
     ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
     ARG PUSH_LATEST_TAG="false"
     ARG PUSH_PRERELEASE_TAG="false"
-    BUILD +perform-release-dockerhub --RELEASE_TAG="$RELEASE_TAG" --DOCKERHUB_USER="$DOCKERHUB_USER" --DOCKERHUB_IMG="$DOCKERHUB_IMG" --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
-    IF [ "$PUSH_LATEST_TAG" = "true" ]
-      BUILD +perform-release-dockerhub --RELEASE_TAG="latest" --DOCKERHUB_USER="$DOCKERHUB_USER" --DOCKERHUB_IMG="$DOCKERHUB_IMG" --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
-    END
-    IF [ "$PUSH_PRERELEASE_TAG" = "true" ]
-      BUILD +perform-release-dockerhub --RELEASE_TAG="prerelease" --DOCKERHUB_USER="$DOCKERHUB_USER" --DOCKERHUB_IMG="$DOCKERHUB_IMG" --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
-    END
+    BUILD +perform-release-dockerhub \
+          --RELEASE_TAG="$RELEASE_TAG" \
+          --DOCKERHUB_USER="$DOCKERHUB_USER" \
+          --DOCKERHUB_IMG="$DOCKERHUB_IMG" \
+          --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG" \
+          --PUSH_LATEST_TAG="$PUSH_LATEST_TAG" \
+          --PUSH_PRERELEASE_TAG="$PUSH_PRERELEASE_TAG"
 
 perform-release-dockerhub:
     ARG --required RELEASE_TAG
+    ARG PUSH_LATEST_TAG="false"
+    ARG PUSH_PRERELEASE_TAG="false"
     ARG DOCKERHUB_USER="earthly"
     ARG DOCKERHUB_IMG="earthly"
     ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
@@ -50,7 +52,9 @@ perform-release-dockerhub:
         ../+earthly-docker \
         --TAG="$RELEASE_TAG" \
         --DOCKERHUB_USER="$DOCKERHUB_USER" \
-        --DOCKERHUB_IMG="$DOCKERHUB_IMG"
+        --DOCKERHUB_IMG="$DOCKERHUB_IMG" \
+        --PUSH_LATEST_TAG="$PUSH_LATEST_TAG" \
+        --PUSH_PRERELEASE_TAG="$PUSH_PRERELEASE_TAG"
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm64 \

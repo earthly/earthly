@@ -328,9 +328,7 @@ func (sw *shellWord) processDoubleQuoteIgnoringDollar() (string, error) {
 		default:
 			ch := sw.scanner.Next()
 			if ch == sw.escapeToken {
-				if sw.rawEscapes {
-					result.WriteRune(ch)
-				}
+				result.WriteRune(ch)
 
 				switch sw.scanner.Peek() {
 				case scanner.EOF:

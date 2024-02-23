@@ -1,0 +1,17 @@
+VERSION 0.8
+FROM alpine
+
+a:
+  ARG foo=alpha
+  BUILD --pass-args +b
+
+b:
+  ARG foo=beta
+  RUN test "$foo" = "hello"
+
+test1:
+  ARG foo=hello
+  BUILD --pass-args +a
+
+all:
+  BUILD +test1

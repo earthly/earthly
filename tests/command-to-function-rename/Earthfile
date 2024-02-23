@@ -1,5 +1,5 @@
 VERSION --pass-args 0.7
-FROM --pass-args ../..+earthly-integration-test-base
+FROM --pass-args ..+base
 
 IMPORT .. AS tests
 

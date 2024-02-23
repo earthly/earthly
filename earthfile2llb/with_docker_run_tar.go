@@ -294,7 +294,7 @@ func (w *withDockerRunTar) load(ctx context.Context, opt DockerLoadOpt) (chan Do
 			return nil, err
 		}
 	} else {
-		mts, err := w.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.PassArgs, opt.BuildArgs, false, loadCmd)
+		mts, err := w.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.PassArgs, opt.BuildArgs, false, loadCmd, "")
 		if err != nil {
 			return nil, err
 		}
@@ -340,11 +340,15 @@ func (w *withDockerRunTar) solveImage(ctx context.Context, mts *states.MultiTarg
 		sha256SessionIDKey := sha256.Sum256([]byte(sessionIDKey))
 		sessionID := hex.EncodeToString(sha256SessionIDKey[:])
 
+		prefix, _, err := w.c.newVertexMeta(ctx, false, false, true, nil)
+		if err != nil {
+			return pllb.State{}, err
+		}
 		tarContext := pllb.Local(
 			string(solveID),
 			llb.SessionID(sessionID),
 			llb.Platform(w.c.platr.LLBNative()),
-			llb.WithCustomNamef("%sdocker tar context %s %s", w.c.vertexPrefix(ctx, w.c.newCmdID(), false, false, true, nil), opName, sessionID),
+			llb.WithCustomNamef("%sdocker tar context %s %s", prefix, opName, sessionID),
 		)
 		// Add directly to build context so that if a later statement forces execution, the images are available.
 		w.c.opt.BuildContextProvider.AddDir(string(solveID), outDir)

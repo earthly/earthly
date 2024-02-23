@@ -1,19 +1,19 @@
-VERSION 0.7
+VERSION 0.8
 
 FROM alpine:3.18
-CACHE /base/persistent
+CACHE --persist /base/persistent
 RUN echo "hello" >> /base/persistent/hello
 
 test-prev-prev:
     WORKDIR /test
-    CACHE ./my/data
+    CACHE --persist ./my/data
     RUN echo "hello" >> ./my/data/hello
 
 test-prev:
     FROM +test-prev-prev
-    CACHE ./my/other
-    CACHE ./my/other # Should not affect results
-    CACHE ./your/other
+    CACHE --persist ./my/other
+    CACHE --persist ./my/other # Should not affect results
+    CACHE --persist ./your/other
     RUN echo "hello again" >> ./my/other/hello
     RUN echo "hello to you!" >> ./your/other/hello
     RUN echo "$(cat ./my/data/hello) world" > ./my/data/hello
@@ -32,20 +32,20 @@ test:
     RUN test -d /earthly-tmp-a8cb9b0e-f285-4851-b00e-cd5b1ac6a499; test $? = 1
 
 test-save-artifact:
-    CACHE ./my/artifacts
+    CACHE --persist ./my/artifacts
     RUN echo "artifact 1" >> ./my/artifacts/1
     SAVE ARTIFACT ./my/artifacts AS LOCAL ./artifacts1
     RUN echo "artifact 2" >> ./my/artifacts/2
     SAVE ARTIFACT ./my/artifacts AS LOCAL ./artifacts2
 
 test-arg:
-    CACHE /foo
+    CACHE --persist /foo
     RUN touch /foo/bar
     ARG contents=$(ls /foo)
     RUN test "$contents" = "bar"
 
 test-no-sharing-prev:
-    CACHE /no-sharing
+    CACHE --persist /no-sharing
     RUN touch /no-sharing/should-not-see-me
     # A hack to let +test-no-sharing have something to copy.
     RUN touch nothing
@@ -53,5 +53,18 @@ test-no-sharing-prev:
 
 test-no-sharing:
     COPY +test-no-sharing-prev/nothing . # Only to make sure +test-no-sharing-prev runs first
-    CACHE /no-sharing
+    CACHE --persist /no-sharing
     RUN ! test -f /no-sharing/should-not-see-me
+
+id-expand-args:
+    ARG --required ID_1
+    CACHE --id $ID_1 /id-test
+    RUN echo "hi" > /id-test/hello
+
+test-id-expand-args:
+    WAIT
+        BUILD +id-expand-args --ID_1=test
+    END
+    ARG ID_2=test
+    CACHE --id $ID_2 /id-test
+    RUN test "$(cat /id-test/hello)" = "hi"

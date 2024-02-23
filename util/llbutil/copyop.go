@@ -16,7 +16,7 @@ import (
 )
 
 // CopyOp is a simplified llb copy operation.
-func CopyOp(ctx context.Context, srcState pllb.State, srcs []string, destState pllb.State, dest string, allowWildcard bool, isDir bool, keepTs bool, chown string, chmod *fs.FileMode, ifExists, symlinkNoFollow, merge bool, opts ...llb.ConstraintsOpt) (pllb.State, error) {
+func CopyOp(ctx context.Context, srcState pllb.State, srcs []string, destState pllb.State, dest string, allowWildcard, isDir, keepTs bool, chown string, chmod *fs.FileMode, ifExists, symlinkNoFollow, merge bool, opts ...llb.ConstraintsOpt) (pllb.State, error) {
 	destAdjusted := dest
 	if dest == "." || dest == "" || len(srcs) > 1 {
 		destAdjusted += string("/") // TODO: needs to be the containers platform, not the earthly hosts platform. For now, this is always Linux.
@@ -30,16 +30,17 @@ func CopyOp(ctx context.Context, srcState pllb.State, srcs []string, destState p
 		baseCopyOpts = append(baseCopyOpts, llb.WithCreatedTime(*defaultTs()))
 	}
 	for _, src := range srcs {
-		if ifExists {
-			// If the copy came in as optional (ifExists), then we need to trigger the
-			// underlying wildcard matching and allow empty wildcards. The matching uses
-			// the filepath.Match syntax, so by simply creating a wildcard where the
-			// first letter needs to match the current first letter gets us the single
-			// match; and no error if it is missing.
-
-			//Normalize path by dropping './'
+		// If the copy came in as optional (ifExists), then we need to trigger
+		// the underlying wildcard matching and allow empty wildcards. The
+		// matching uses the filepath match syntax. So by simply creating a
+		// wildcard where the first letter needs to match the current first
+		// letter gets us the single match; and no error if it is missing. Paths
+		// with wildcards will be automatically ignored when no match is present.
+		if ifExists && len(src) != 0 && !strings.Contains(src, "*") {
+			// Normalize path by dropping './'
 			src = strings.TrimPrefix(src, "./")
-			// A target source will always have a leading '/' and never match, so strip that as well
+			// A target source will always have a leading '/' and never match,
+			// so strip that as well.
 			src = strings.TrimPrefix(src, "/")
 			src = fmt.Sprintf("[%s]%s", string(src[0]), string(src[1:]))
 		}

@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 FROM alpine:3.18
 test:
     RUN --mount=type=secret,target=$HOME/.ssh/id_rsa,id=+secrets/sshkey test -f $HOME/.ssh/id_rsa && test "$(cat ~/.ssh/id_rsa)" = "not-actually-a-ssh-key"

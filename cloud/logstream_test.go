@@ -35,59 +35,56 @@ func (s *streamNops) SendMsg(m interface{}) error  { return nil }
 func (s *streamNops) RecvMsg(m interface{}) error  { return nil }
 
 type flakyStream struct {
-	mu        sync.Mutex
-	fail      chan struct{}
-	err       error
-	calls     map[string]int
-	sent      []*pb.Delta
-	attempted []*pb.Delta
-	recv      chan *pb.StreamLogResponse
+	mu         sync.Mutex
+	sent       []*pb.Delta
+	attempted  []*pb.Delta
+	sendCalls  int
+	recv       chan *pb.StreamLogResponse
+	done       chan struct{}
+	failsAfter int
 	streamNops
 }
 
 func (f *flakyStream) Send(r *pb.StreamLogRequest) error {
+	f.sendCalls++
+
 	f.attempted = append(f.attempted, r.GetDeltas()...)
 
-	select {
-	case <-f.fail:
-		return f.err
-	default:
+	if f.failsAfter > -1 && len(f.sent) > f.failsAfter {
+		close(f.done)
+		return status.Error(codes.Unavailable, "unavailable")
 	}
 
 	f.mu.Lock()
-	f.calls["Send"]++
 	f.sent = append(f.sent, r.GetDeltas()...)
 	f.mu.Unlock()
 
 	if r.GetEof() {
 		f.recv <- &pb.StreamLogResponse{EofAck: true}
 	}
+
 	return nil
 }
 
 func (f *flakyStream) Recv() (*pb.StreamLogResponse, error) {
-	f.mu.Lock()
-	f.calls["Recv"]++
-	f.mu.Unlock()
-
 	select {
 	case r := <-f.recv:
 		return r, nil
-	case <-f.fail:
-		return nil, f.err
+	case <-f.done:
+		return nil, status.Error(codes.Unknown, "unknown")
 	}
 }
 
-func newFlakyStream() *flakyStream {
+func newFlakyStream(failsAfter int) *flakyStream {
 	return &flakyStream{
-		calls: map[string]int{},
-		recv:  make(chan *pb.StreamLogResponse),
-		fail:  make(chan struct{}),
+		failsAfter: failsAfter,
+		recv:       make(chan *pb.StreamLogResponse),
+		done:       make(chan struct{}),
 	}
 }
 
 func TestStreamLogs(t *testing.T) {
-	stream := newFlakyStream()
+	stream := newFlakyStream(-1) // -1 means never fail
 
 	testClient := &testClient{
 		stream: func() pb.LogStream_StreamLogsClient {
@@ -123,18 +120,19 @@ func TestStreamLogs(t *testing.T) {
 	}
 
 	require.Empty(t, errs)
-	require.Equal(t, 12, stream.calls["Send"], "expected 10 Sends plus first manifest & EOF (12)")
-	require.Equal(t, 1, stream.calls["Recv"], "expected 1 Recv")
+	require.Equal(t, stream.sendCalls, 12, "expected 10 Sends plus first manifest & EOF (12)")
 	require.Len(t, stream.sent, 11, "expected 10 deltas sent and 1 manifest (11)")
 }
 
 func TestStreamLogsResume(t *testing.T) {
-	stream := newFlakyStream()
-	streams := []*flakyStream{stream}
-
+	streams := []*flakyStream{newFlakyStream(4), newFlakyStream(0), newFlakyStream(-1)}
+	idx := 0
 	testClient := &testClient{
 		stream: func() pb.LogStream_StreamLogsClient {
-			return stream
+			defer func() {
+				idx++
+			}()
+			return streams[idx]
 		},
 	}
 
@@ -155,12 +153,6 @@ func TestStreamLogsResume(t *testing.T) {
 	go func() {
 		for i := 0; i < 15; i++ {
 			ch <- logDelta(fmt.Sprintf("log %d", i))
-			if i == 5 { // Simulate a failure.
-				stream.err = status.Error(codes.Unavailable, "unavailable")
-				close(stream.fail)
-				stream = newFlakyStream()
-				streams = append(streams, stream)
-			}
 		}
 		close(ch)
 	}()
@@ -172,12 +164,12 @@ func TestStreamLogsResume(t *testing.T) {
 		errs = append(errs, err)
 	}
 
-	require.Len(t, errs, 1)
+	require.Len(t, errs, 2)
 
 	// This is the second stream.
-	require.True(t, stream.calls["Send"] > 1)
-	require.Equal(t, 1, stream.calls["Recv"], "expected 1 Recv")
-	require.NotNil(t, stream.sent[0].GetDeltaManifest().GetResume())
+	last := streams[len(streams)-1]
+	require.Greater(t, last.sendCalls, 1)
+	require.NotNil(t, last.sent[0].GetDeltaManifest().GetResume())
 
 	// There should be a duplicate in the "attempted" set as 1 will have failed once.
 	counts := map[string]int{}
@@ -189,9 +181,11 @@ func TestStreamLogsResume(t *testing.T) {
 			}
 		}
 	}
+
+	// There ought to exist a log delta that was attempted 3 times.
 	var found bool
-	for _, v := range counts {
-		if v == 2 {
+	for _, attempts := range counts {
+		if attempts == 3 {
 			found = true
 			break
 		}

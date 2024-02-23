@@ -26,6 +26,7 @@ import (
 	"github.com/earthly/earthly/cmd/earthly/subcmd"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/envutil"
+	"github.com/earthly/earthly/util/syncutil"
 )
 
 // These vars are set by ldflags
@@ -63,16 +64,16 @@ func main() {
 		signal.Stop(sigChan)
 		cancel()
 	}()
-	var lastSignal os.Signal
+	lastSignal := &syncutil.Signal{}
 	go func() {
 		for sig := range sigChan {
-			cancel()
-			if lastSignal != nil {
+			if lastSignal.Get() != nil {
 				// This is the second time we have received a signal. Quit immediately.
 				fmt.Printf("Received second signal %s. Forcing exit.\n", sig.String())
 				os.Exit(9)
 			}
-			lastSignal = sig
+			lastSignal.Set(sig)
+			cancel()
 			fmt.Printf("Received signal %s. Cleaning up before exiting...\n", sig.String())
 			go func() {
 				// Wait for 30 seconds before forcing an exit.

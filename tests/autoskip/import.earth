@@ -1,13 +1,13 @@
 VERSION 0.7
 
 IMPORT ./imported AS foo
-IMPORT github.com/earthly/earthly:tags/v0.7.21 AS remote
+IMPORT github.com/earthly/test-remote:tags/v0.2 AS remote
 
 basic:
     BUILD foo+test
 
 remote:
-    BUILD remote+license
+    BUILD remote+basic
 
 other:
     BUILD foo+test

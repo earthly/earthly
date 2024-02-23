@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/containerd/containerd/platforms"
+	"github.com/docker/go-units"
 	"github.com/dustin/go-humanize"
 	"github.com/gofrs/flock"
 	"github.com/moby/buildkit/client"
@@ -29,6 +30,8 @@ import (
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/semverutil"
 )
+
+const minRecommendedCacheSize = 10 << 30 // 10 GiB
 
 var (
 	// ErrBuildkitCrashed is an error returned when buildkit has terminated unexpectedly.
@@ -84,7 +87,11 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 		remoteConsole := console
 		if settings.SatelliteName != "" {
 			remoteConsole = console.WithPrefix("satellite")
-			remoteConsole.Printf("Connecting to %s...", settings.SatelliteDisplayName)
+			if settings.SatelliteIsManaged {
+				remoteConsole.Printf("Connecting to %s...", settings.SatelliteDisplayName)
+			} else {
+				remoteConsole.Printf("Connecting to %s (hosted at: %s)...", settings.SatelliteDisplayName, settings.BuildkitAddress)
+			}
 		} else {
 			remoteConsole = console.WithPrefix("buildkitd")
 			remoteConsole.Printf("Connecting to %s...", settings.BuildkitAddress)
@@ -95,7 +102,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 			return nil, errors.Wrap(err, "connect provided buildkit")
 		}
 		remoteConsole.Printf("...Done")
-		printBuildkitInfo(remoteConsole, info, workerInfo, earthlyVersion, isLocal)
+		printBuildkitInfo(remoteConsole, info, workerInfo, earthlyVersion, isLocal, settings.HasConfiguredCacheSize())
 
 		bkClient, err := client.New(ctx, settings.BuildkitAddress, opts...)
 		if err != nil {
@@ -113,7 +120,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 	if err != nil {
 		return nil, errors.Wrap(err, "maybe start buildkitd")
 	}
-	printBuildkitInfo(bkCons, info, workerInfo, earthlyVersion, isLocal)
+	printBuildkitInfo(bkCons, info, workerInfo, earthlyVersion, isLocal, settings.HasConfiguredCacheSize())
 	bkClient, err := client.New(ctx, settings.BuildkitAddress, opts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "new buildkit client")
@@ -845,7 +852,7 @@ func isDockerAvailable(ctx context.Context, fe containerutil.ContainerFrontend) 
 	return fe.IsAvailable(ctx)
 }
 
-func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, workerInfo *client.WorkerInfo, earthlyVersion string, isLocal bool) {
+func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, workerInfo *client.WorkerInfo, earthlyVersion string, isLocal, hasConfiguredCacheSize bool) {
 	// Print most of this stuff only for remote buildkits / satellites.
 	printFun := bkCons.Printf
 	if isLocal {
@@ -930,6 +937,23 @@ func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, work
 		default:
 		}
 	}
+
+	if isLocal && !hasConfiguredCacheSize {
+		if size, ok := getGCPolicySize(workerInfo); ok && size < minRecommendedCacheSize {
+			bkCons.Warnf("Configured cache size of %s is smaller than the minimum recommended size of %s",
+				units.HumanSize(float64(size)), units.HumanSize(minRecommendedCacheSize))
+			bkCons.Warnf("Please consider increasing the cache size: https://docs.earthly.dev/docs/caching/managing-cache")
+		}
+	}
+}
+
+func getGCPolicySize(workerInfo *client.WorkerInfo) (int64, bool) {
+	for _, p := range workerInfo.GCPolicy {
+		if p.All {
+			return p.KeepBytes, true
+		}
+	}
+	return 0, false
 }
 
 // getCacheSize returns the size of the earthly cache in bytes.
@@ -984,7 +1008,7 @@ func PrintSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, 
 	if err != nil {
 		return errors.Wrap(err, "connect provided buildkit")
 	}
-	printBuildkitInfo(console, info, workerInfo, earthlyVersion, false)
+	printBuildkitInfo(console, info, workerInfo, earthlyVersion, false, false)
 	return nil
 }
 

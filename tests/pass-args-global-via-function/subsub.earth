@@ -1,0 +1,8 @@
+VERSION 0.8
+
+ARG --global MY_ARG=aint-this-one
+
+test:
+  FROM alpine:3.18
+  ARG MY_ARG=not-even-close
+  RUN test "$MY_ARG" = "this-is-the-one"

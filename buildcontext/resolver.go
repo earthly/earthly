@@ -11,6 +11,7 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
+	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/platutil"
@@ -81,6 +82,27 @@ func NewResolver(cleanCollection *cleanup.Collection, gitLookup *GitLookup, cons
 		console:              console,
 		featureFlagOverrides: featureFlagOverrides,
 	}
+}
+
+// ExpandWildcard will expand a wildcard BUILD target in a local path or remote
+// Git repository. The pattern is the path relative to the target path and
+// should be in the form 'my/path/*'
+func (r *Resolver) ExpandWildcard(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, target domain.Target, pattern string) ([]string, error) {
+	var (
+		matches []string
+		err     error
+	)
+
+	if target.IsRemote() {
+		matches, err = r.gr.expandWildcard(ctx, gwClient, platr, target, pattern)
+	} else {
+		matches, err = fileutil.GlobDirs(target.GetLocalPath())
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to expand BUILD target path")
+	}
+
+	return matches, nil
 }
 
 // Resolve returns resolved context data for a given Earthly reference. If the reference is a target,

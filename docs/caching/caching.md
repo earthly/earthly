@@ -41,11 +41,11 @@ The sections below go into more detail about how you are able to get faster buil
 
 Main article: [Caching in Earthfiles](./caching-in-earthfiles.md)
 
-Earthfiles rely on a layer-based caching system. If an Earthfile command is run again, and the inputs to that command are the same, then the cache layer is reused. This allows Earthly to skip re-executing parts of the build that have not changed.
+There are three main ways in which Earthly performs caching of builds:
 
-Earthfiles also allow you to use cache mounts - either via [`RUN --mount type=cache`](../earthfile/earthfile.md#run), or via the [`CACHE`](../earthfile/earthfile.md#cache) command. These are directories that are persisted between runs and can be used to store intermediate build files for incremental compilers, or dependencies that are downloaded from the internet.
-
-And finally, Earthly allows you to ignore cache in certain cases, which is useful when performing deployments. This is possible via `RUN --no-cache`, or `RUN --push`. For more information see the [`RUN` command reference](../earthfile/earthfile.md#run).
+1. **Layer-based caching**. If an Earthfile command is run again, and the inputs to that command are the same, then the cache layer is reused. This allows Earthly to skip re-executing parts of the build that have not changed.
+2. **Cache mounts**. Earthly allows you to mount directories into the build environment - either via [`RUN --mount type=cache`](../earthfile/earthfile.md#run), or via the [`CACHE`](../earthfile/earthfile.md#cache) command. These directories are persisted between runs, and can be used to store intermediate build files for incremental compilers, or dependencies that are downloaded from the internet.
+3. **Auto-skip**. Earthly allows you to skip large parts of a build in certain situations via `earthly --auto-skip` (*experimental*) or `BUILD --auto-skip` (*coming-soon*). This is especially useful in monorepo setups, where you are building multiple projects at once, and only one of them has changed.
 
 ## Sharing Cache
 
@@ -71,4 +71,4 @@ To read more, check out the [remote runners page](../remote-runners.md), and the
 
 ## Managing Cache
 
-For information on how to manage cache either locally, or on a remote runner, like a satellite, see the [Managing Cache guide](./guides/managing-cache.md).
+For information on how to manage cache either locally, or on a remote runner, like a satellite, see the [Managing Cache guide](./managing-cache.md).

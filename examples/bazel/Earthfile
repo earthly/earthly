@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 
 FROM ubuntu:22.04
 WORKDIR /workspace
@@ -28,7 +28,7 @@ build:
     # Save Bazel's cache as a cache directory. This directory will be reused
     # between runs.
     ARG bazel_cache = "/root/.cache/bazel"
-    CACHE "$bazel_cache"
+    CACHE --persist "$bazel_cache"
     RUN bazel build --@io_bazel_rules_docker//transitions:enable=false //:ProjectRunner
     ARG bazel_out = "$(readlink -f ./bazel-out)"
     ARG bazel_bin = "$(readlink -f ./bazel-bin)"
@@ -42,7 +42,7 @@ run:
 image:
     FROM +code
     ARG bazel_cache = "/root/.cache/bazel"
-    CACHE "$bazel_cache"
+    CACHE --persist "$bazel_cache"
     RUN bazel build --@io_bazel_rules_docker//transitions:enable=false //:ProjectRunnerImage
     ARG bazel_out_tar = $(bazel cquery --@io_bazel_rules_docker//transitions:enable=false ProjectRunnerImage-layer.tar --output starlark --starlark:expr=target.files.to_list\\(\\)[0].path)
     # TODO: Earthly has no way of loading an image from a tar currently.

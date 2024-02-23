@@ -15,7 +15,7 @@ server_got_a_connection_path = '/server-got-a-connection'
 pidfile='/do-not-track-tracker.pid'
 stdin='/dev/null'
 stdout='/dev/null'
-stderr='/dev/null'
+stderr='/var/log/do-not-track-server.log'
 
 ready_pipe_r, ready_pipe_w = os.pipe()
 
@@ -78,14 +78,22 @@ try:
     with suppress(FileNotFoundError):
         os.remove(server_got_a_connection_path)
 
+    print(f'creating socket', file=sys.stderr)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        print(f'binding socket to {host}:{port}', file=sys.stderr)
         s.bind((host, port))
+        print(f'listening on socket', file=sys.stderr)
         s.listen()
         conn, addr = s.accept()
+        print(f'received connection from {addr}', file=sys.stderr)
         with conn:
             with open(server_got_a_connection_path, 'w') as f:
                 f.write('this should not have happened')
 except Exception as e:
+    # log to stderr
+    print(f'unexpected exception {e}', file=sys.stderr)
+
+    # send the exception back over the ready_pipe (so the initial process can display the error if it is still running)
     os.write(ready_pipe_w, f'unexpected exception while starting server: {e}'.encode('utf8'))
     os.close(ready_pipe_w)
     raise

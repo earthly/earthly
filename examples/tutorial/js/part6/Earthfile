@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
@@ -44,7 +44,7 @@ api-docker:
     SAVE IMAGE js-api:$tag
 
 integration-tests:
-    FROM earthly/dind:alpine-3.18
+    FROM earthly/dind:alpine-3.19
     RUN apk add curl
     WITH DOCKER \
         --load app:latest=+app-docker \

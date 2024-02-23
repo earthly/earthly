@@ -24,12 +24,14 @@ import (
 	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/earthfile2llb"
+	"github.com/earthly/earthly/inputgraph"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/errutil"
 	"github.com/earthly/earthly/util/hint"
 	"github.com/earthly/earthly/util/params"
 	"github.com/earthly/earthly/util/reflectutil"
 	"github.com/earthly/earthly/util/stringutil"
+	"github.com/earthly/earthly/util/syncutil"
 	"google.golang.org/grpc/status"
 )
 
@@ -39,10 +41,11 @@ var (
 	qemuExitCodeRegex  = regexp.MustCompile(`process "/dev/.buildkit_qemu_emulator.*?did not complete successfully: exit code: 255$`)
 	buildMinutesRegex  = regexp.MustCompile(`(?P<msg>used \d+ of \d+ allowed minutes in current plan) {reqID: .*?}`)
 	maxSatellitesRegex = regexp.MustCompile(`(?P<msg>plan only allows \d+ satellites in use at one time) {reqID: .*?}`)
+	maxExecTimeRegex   = regexp.MustCompile(`max execution time of .+ exceeded`)
 	requestIDRegex     = regexp.MustCompile(`(?P<msg>.*?) {reqID: .*?}`)
 )
 
-func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogger, startTime time.Time, lastSignal os.Signal) int {
+func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogger, startTime time.Time, lastSignal *syncutil.Signal) int {
 	err := app.unhideFlags(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error un-hiding flags %v", err)
@@ -50,7 +53,7 @@ func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogge
 	}
 	helper.AutoComplete(ctx, app.BaseCLI)
 
-	exitCode := app.run(ctx, os.Args)
+	exitCode := app.run(ctx, os.Args, lastSignal)
 
 	// app.Cfg will be nil when a user runs `earthly --version`;
 	// however in all other regular commands app.Cfg will be set in app.Before
@@ -86,9 +89,6 @@ func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogge
 				app.BaseCLI.Flags().InstallationName,
 			)
 		}
-	}
-	if lastSignal != nil {
-		app.BaseCLI.Console().PrintBar(color.New(color.FgHiYellow), fmt.Sprintf("WARNING: exiting due to received %s signal", lastSignal.String()), "")
 	}
 
 	return exitCode
@@ -131,7 +131,7 @@ func unhideFlagsCommands(ctx context.Context, cmds []*cli.Command) {
 	}
 }
 
-func (app *EarthlyApp) run(ctx context.Context, args []string) int {
+func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncutil.Signal) int {
 	defer func() {
 		if app.BaseCLI.LogbusSetup() != nil {
 			err := app.BaseCLI.LogbusSetup().Close()
@@ -181,10 +181,14 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 		grpcErr, grpcErrOK := grpcerrors.AsGRPCStatus(err)
 		hintErr, hintErrOK := getHintErr(err, grpcErr)
 		var paramsErr *params.Error
+		var autoSkipErr *inputgraph.Error
 		switch {
 		case hintErrOK:
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, hintErr.Message())
 			app.BaseCLI.Console().HelpPrintf(hintErr.Hint())
+			return 1
+		case errors.As(err, &autoSkipErr):
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_AUTO_SKIP, inputgraph.FormatError(err))
 			return 1
 		case errors.As(err, &paramsErr):
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_INVALID_PARAM, paramsErr.ParentError())
@@ -208,13 +212,11 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER,
 				err.Error())
 			if !app.BaseCLI.Flags().InteractiveDebugging && len(args) > 0 {
-				args[0] = args[0] + " -i"
+				args = append([]string{args[0], "-i"}, args[1:]...)
+				args = redactSecretsFromArgs(args)
+				args = stringutil.FilterElementsFromList(args, "--ci")
 				msg := "To debug your build, you can use the --interactive (-i) flag to drop into a shell of the failing RUN step"
-				if areSecretsUsed(args) {
-					app.BaseCLI.Console().HelpPrintf(msg)
-				} else {
-					app.BaseCLI.Console().HelpPrintf("%s: %q\n", msg, strings.Join(args, " "))
-				}
+				app.BaseCLI.Console().HelpPrintf("%s: %q\n", msg, strings.Join(args, " "))
 			}
 			return 1
 		case strings.Contains(err.Error(), "security.insecure is not allowed"):
@@ -307,6 +309,10 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			app.BaseCLI.Console().VerboseWarnf(err.Error())
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, msg)
 			return 1
+		case grpcErrOK && grpcErr.Code() == codes.Unknown && maxExecTimeRegex.MatchString(grpcErr.Message()):
+			app.BaseCLI.Console().VerboseWarnf(errorWithPrefix(err.Error()))
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, grpcErr.Message())
+			app.BaseCLI.Console().HelpPrintf("Unverified accounts have a limit on the duration of RUN commands. Verify your account to lift this restriction.")
 		case grpcErrOK && grpcErr.Code() != codes.Canceled:
 			app.BaseCLI.Console().VerboseWarnf(errorWithPrefix(err.Error()))
 			if !strings.Contains(grpcErr.Message(), "transport is closing") {
@@ -346,7 +352,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string) int {
 			} else {
 				app.BaseCLI.Console().Warnf("Canceled\n")
 			}
-			if containerutil.IsLocal(app.BaseCLI.Flags().BuildkitdSettings.BuildkitAddress) {
+			if containerutil.IsLocal(app.BaseCLI.Flags().BuildkitdSettings.BuildkitAddress) && lastSignal.Get() == nil {
 				app.printCrashLogs(ctx)
 			}
 			return 2
@@ -403,11 +409,22 @@ func getHintErr(err error, grpcError *status.Status) (*hint.Error, bool) {
 	return nil, false
 }
 
-func areSecretsUsed(args []string) bool {
+func redactSecretsFromArgs(args []string) []string {
+	redacted := []string{}
+	isSecret := false
 	for _, arg := range args {
-		if arg == "-s" || arg == "--secret" {
-			return true
+		if isSecret {
+			isSecret = false
+			parts := strings.SplitN(arg, "=", 2)
+			if len(parts) > 1 {
+				redacted = append(redacted, fmt.Sprintf("%s=XXXXX", parts[0]))
+				continue
+			}
 		}
+		if arg == "-s" || arg == "--secret" {
+			isSecret = true
+		}
+		redacted = append(redacted, arg)
 	}
-	return false
+	return redacted
 }

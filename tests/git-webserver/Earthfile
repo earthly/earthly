@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION 0.8
 FROM --pass-args ..+base
 
 # This Earthfile creates a self-signed root CA, adds that CA as a trusted CA, creates a new https cert and signs it with the CA
@@ -89,7 +89,7 @@ nginx -c /root/nginx.conf
         mkdir -p /test/repo && \
         cd /test/repo && \
         git init --initial-branch=main . && \
-        echo -e "VERSION 0.7\nFROM alpine:3.18\nhello:\n\tRUN echo -n 98e15fb5-197c-43bf-886e-3291e65d646e | base64" > Earthfile && \
+        echo -e "VERSION 0.8\nFROM alpine:3.18\nhello:\n\tRUN echo -n 98e15fb5-197c-43bf-886e-3291e65d646e | base64" > Earthfile && \
         git add Earthfile && \
         git config --global user.email "onlyspammersemailthis@earthly.dev" && \
         git config --global user.name "test name" && \

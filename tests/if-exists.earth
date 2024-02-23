@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 FROM alpine:3.18
 
 save:
@@ -62,4 +62,8 @@ artifact-copy-exists:
 
 artifact-copy-not-exist:
     COPY --if-exists +save/not_ok .
+    RUN test ! -f not_ok
+
+artifact-copy-not-exist-wildcard:
+    COPY --if-exists +save/*_ok .
     RUN test ! -f not_ok

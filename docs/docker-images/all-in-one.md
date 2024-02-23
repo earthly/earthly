@@ -2,19 +2,19 @@ This image contains `earthly`, `buildkit`, and some extra configuration to enabl
 
 ## Tags
 
-Currently, the `latest` tag is `v0.7.22`.  
+Currently, the `latest` tag is `v0.8.4`.  
 For other available tags, please check out https://hub.docker.com/r/earthly/earthly/tags
 
 ## Quickstart
 
-Want to just get started? Here are a couple sample `docker run` commands that cover the most common use-cases:
+Want to get started? Here are a couple sample `docker run` commands that cover the most common use-cases:
 
-### Simple Usage with Docker Socket
+### Usage with Docker Socket
 
 This example shows how to use the Earthly container in conjunction with a Docker socket that Earthly can use to start up the Buildkit daemon.
 
 ```bash
-docker run -t -v $(pwd):/workspace -v /var/run/docker.sock:/var/run/docker.sock -e NO_BUILDKIT=1 earthly/earthly:v0.7.22 +for-linux
+docker run -t -v $(pwd):/workspace -v /var/run/docker.sock:/var/run/docker.sock -e NO_BUILDKIT=1 earthly/earthly:v0.8.4 +for-linux
 ```
 
 Here's a quick breakdown:
@@ -25,12 +25,12 @@ Here's a quick breakdown:
 - `-e NO_BUILDKIT=1` tells the Earthly container not to start en embedded buildkit. A Buildkit daemon will instead be started via the Docker socket provided.
 - `+for-linux` is the target to be invoked. All arguments specified after the image tag will be passed to `earthly`.
 
-### Simple Usage with Embedded Buildkit
+### Usage with Embedded Buildkit
 
 This example shows how the Earthly image can start a Buildkit daemon within the same container. A Docker socket is not needed in this case, however the container will need to be run with the `--privileged` flag.
 
 ```bash
-docker run --privileged -t -v $(pwd):/workspace -v earthly-tmp:/tmp/earthly:rw earthly/earthly:v0.7.22 +for-linux
+docker run --privileged -t -v $(pwd):/workspace -v earthly-tmp:/tmp/earthly:rw earthly/earthly:v0.8.4 +for-linux
 ```
 
 Here's a quick breakdown:
@@ -46,7 +46,7 @@ Here's a quick breakdown:
 This example utilizes an [Earthly Satellite](https://docs.earthly.dev/earthly-cloud/satellites) to perform builds. The code to be built is downloaded directly from GitHub.
 
 ```bash
-docker run -t -e NO_BUILDKIT=1 -e EARTHLY_TOKEN=<my-token> earthly/earthly:v0.7.22 --ci --org <my-org> --sat <my-sat> github.com/earthly/earthly+for-linux
+docker run -t -e NO_BUILDKIT=1 -e EARTHLY_TOKEN=<my-token> earthly/earthly:v0.8.4 --ci --org <my-org> --sat <my-sat> github.com/earthly/earthly+for-linux
 ```
 
 Here's what this does:
@@ -61,11 +61,11 @@ Here's what this does:
 This example shows how to use the Earthly container to run non-build commands. This is useful for running commands like `earthly account`, or `earthly secret`.
 
 ```bash
-docker run -t -e NO_BUILDKIT=1 -e EARTHLY_TOKEN=<my-token> earthly/earthly:v0.7.22 account list-tokens
+docker run -t -e NO_BUILDKIT=1 -e EARTHLY_TOKEN=<my-token> earthly/earthly:v0.8.4 account list-tokens
 ```
 
 ```bash
-docker run -t -e NO_BUILDKIT=1 -e EARTHLY_TOKEN=<my-token> earthly/earthly:v0.7.22 secret get foo
+docker run -t -e NO_BUILDKIT=1 -e EARTHLY_TOKEN=<my-token> earthly/earthly:v0.8.4 secret get foo
 ```
 
 ## Using This Image

@@ -1,9 +1,9 @@
-VERSION 0.7
-FROM earthly/dind:alpine-3.18
+VERSION 0.8
+FROM earthly/dind:alpine-3.19
 WORKDIR /scala-example
 RUN apk add openjdk11 bash wget postgresql-client
 
-sbt: 
+sbt:
     #Scala
     # Defaults if not specified
     ARG sbt_version=1.3.2
@@ -39,7 +39,7 @@ unit-test:
 integration-test:
     FROM +project-files
     COPY src src
-    COPY docker-compose.yml ./ 
+    COPY docker-compose.yml ./
     WITH DOCKER --compose docker-compose.yml
         RUN while ! pg_isready --host=localhost --port=5432 --dbname=iso3166 --username=postgres; do sleep 1; done ;\
             sbt it:test
@@ -60,7 +60,7 @@ smoke-test:
         RUN while ! pg_isready --host=localhost --port=5432 --dbname=iso3166 --username=postgres; do sleep 1; done ;\
             ./smoketest.sh
     END
-    
+
 all:
   BUILD +build
   BUILD +unit-test

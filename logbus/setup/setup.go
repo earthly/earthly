@@ -74,6 +74,17 @@ func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
 	bs.InitialManifest.ProjectName = projectName
 }
 
+// SetGitAuthor records the Git author information on the initial manifest.
+func (bs *BusSetup) SetGitAuthor(gitAuthor, gitCommitEmail string) {
+	bs.InitialManifest.GitAuthor = gitAuthor
+	bs.InitialManifest.GitConfigEmail = gitCommitEmail
+}
+
+// SetCI tracks whether this build is being run in a CI environment.
+func (bs *BusSetup) SetCI(isCI bool) {
+	bs.InitialManifest.IsCi = isCI
+}
+
 // LogStreamerStarted returns true if the log streamer has been started.
 func (bs *BusSetup) LogStreamerStarted() bool {
 	if bs == nil {

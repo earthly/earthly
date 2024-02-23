@@ -1,0 +1,4 @@
+VERSION 0.8
+
+no-project:
+    RUN echo "hi"

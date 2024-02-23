@@ -1,0 +1,12 @@
+VERSION 0.8
+
+ARG --global MY_ARG=this-is-the-one
+
+test:
+  FROM alpine:3.18
+  DO --pass-args +FUNC1
+
+FUNC1:
+  FUNCTION
+  ARG MY_ARG=not-this-one
+  DO --pass-args ./sub+FUNC2

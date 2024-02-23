@@ -14,6 +14,8 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh/agent"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/earthly/earthly/util/hint"
 )
 
 type AuthMethod string
@@ -88,10 +90,11 @@ func (c *Client) RemovePublicKey(ctx context.Context, key string) error {
 	return nil
 }
 
-func (c *Client) CreateToken(ctx context.Context, name string, write bool, expiry *time.Time) (string, error) {
+func (c *Client) CreateToken(ctx context.Context, name string, write bool, expiry *time.Time, overWrite bool) (string, error) {
 	name = url.QueryEscape(name)
 	authToken := secretsapi.AuthToken{
-		Write: write,
+		Write:        write,
+		KeepExisting: !overWrite,
 	}
 	if expiry != nil {
 		authToken.Expiry = timestamppb.New(expiry.UTC())
@@ -104,6 +107,9 @@ func (c *Client) CreateToken(ctx context.Context, name string, write bool, expir
 		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
 			return "", errors.Wrap(err, fmt.Sprintf("failed to decode response body (status code: %d)", status))
+		}
+		if status == http.StatusConflict {
+			return "", hint.Wrap(errors.New(msg), "To overwrite the existing token, use the --overwrite flag")
 		}
 		return "", errors.Errorf("failed to create new token: %s", msg)
 	}

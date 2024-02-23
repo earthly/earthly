@@ -90,9 +90,7 @@
           "command": {
             "args": [
               "echo",
-              "'ENTRYPOINT",
-              "[\"echo\",",
-              "\"hello world\"]'",
+              "'ENTRYPOINT [\"echo\", \"hello world\"]'",
               ">>",
               "Dockerfile"
             ],
@@ -178,9 +176,7 @@
           "command": {
             "args": [
               "echo",
-              "'ENTRYPOINT",
-              "[\"echo\",",
-              "\"hello world\"]'",
+              "'ENTRYPOINT [\"echo\", \"hello world\"]'",
               ">>",
               "other.Dockerfile"
             ],
@@ -255,7 +251,7 @@
   ],
   "version": {
     "args": [
-      "0.7"
+      "0.8"
     ]
   }
 }

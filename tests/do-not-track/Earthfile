@@ -1,6 +1,5 @@
-VERSION --pass-args --use-function-keyword 0.7
-
-FROM --pass-args ../..+earthly-integration-test-base
+VERSION 0.8
+FROM --pass-args ..+base
 
 IMPORT .. AS tests
 
@@ -14,24 +13,19 @@ test-do-not-track:
     ENV DO_NOT_TRACK 1
     COPY api-earthly-stub-server.py /bin/api-earthly-stub-server
     COPY api-earthly-stub-server-shutdown.py /bin/api-earthly-stub-server-shutdown
+    COPY true.earth Earthfile
+    COPY test-earthly-script.sh /tmp/test-earthly-script
+    DO +RUN_EARTHLY_ARGS --exec_cmd=/tmp/test-earthly-script
 
-    # prevent earthly auto-login
-    RUN /bin/api-earthly-stub-server && earthly account logout && api-earthly-stub-server-shutdown
-
-    DO --pass-args +RUN_EARTHLY_ARGS --pre_command=/bin/api-earthly-stub-server --post_command=" && api-earthly-stub-server-shutdown" --earthfile=true.earth --target=+true
 
 RUN_EARTHLY_ARGS:
     FUNCTION
-    ARG earthfile
-    ARG target
     ARG should_fail=false
     ARG output_contains
     ARG output_does_not_contain
     ARG pre_command
     ARG post_command
     DO --pass-args tests+RUN_EARTHLY \
-        --earthfile=$earthfile \
-        --target=$target \
         --should_fail=$should_fail \
         --output_contains=$output_contains \
         --output_does_not_contain=$output_does_not_contain \

@@ -1,5 +1,5 @@
 VERSION \ #with a comment that doesn't have a space after the hash.
-    0.5
+    0.8
 
 FROM alpine:3.18
 test:

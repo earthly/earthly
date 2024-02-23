@@ -1,7 +1,7 @@
 Below you'll find a simple example of an Earthfile. All the magic of Earthly happens in the Earthfile, which you may notice is very similar to a Dockerfile. This is an intentional design decision. Existing Dockerfiles can easily be ported to Earthly by copying them to an Earthfile and tweaking them slightly.
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM golang:1.15-alpine3.13
 WORKDIR /go-workdir
 
@@ -34,7 +34,7 @@ We'll slowly build up to the Earthfile we have above. Let's start with these fir
 
 `./tutorial/Earthfile`
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM golang:1.15-alpine3.13
 WORKDIR /go-workdir
 ```
@@ -97,7 +97,7 @@ Lastly, we save the current state as a docker image, which will have the docker 
 Notice how we already had Go installed for both our `+build` and `+docker` targets. This is because  targets inherit from the base target which for us was the `FROM golang:1.15-alpine3.13` that we set up at the top of the file. But it's worth noting that targets can define their own environments. For example:
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM golang:1.15-alpine3.13
 WORKDIR /go-workdir
 
@@ -161,7 +161,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/js:main+part1/pa
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM node:13.10.1-alpine3.11
 WORKDIR /js-example
 
@@ -202,7 +202,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/java:main+part1/
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
@@ -270,7 +270,7 @@ earthly --artifact github.com/earthly/earthly/examples/tutorial/python:main+part
 `./Earthfile`
 
 ```Dockerfile
-VERSION 0.7
+VERSION 0.8
 FROM python:3
 WORKDIR /code
 

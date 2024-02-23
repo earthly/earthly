@@ -4,10 +4,16 @@ services:
   fetch:
     image: fetch:latest
     depends_on:
-      - webserver
+      webserver:
+        condition: service_healthy
     environment:
       - WEBHOST=webserver
       - WEBPORT=80
 
   webserver:
     image: nginxdemos/hello
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://webserver:80"]
+      interval: 2s
+      timeout: 2s
+      retries: 5

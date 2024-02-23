@@ -1,4 +1,4 @@
-VERSION --pass-args --use-function-keyword 0.7
+VERSION 0.8
 
 FROM --pass-args ..+base
 
@@ -64,7 +64,7 @@ RUN_EARTHLY_ARGS:
     ARG earthfile
     ARG pre_command
     ARG exec_cmd
-    DO --pass-args ..+RUN_EARTHLY \
+    DO ..+RUN_EARTHLY \
         --earthfile=$earthfile \
         --pre_command=$pre_command \
         --exec_cmd=$exec_cmd

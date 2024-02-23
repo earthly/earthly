@@ -1,5 +1,5 @@
-VERSION 0.7
-FROM earthly/dind:alpine-3.18-docker-23.0.6-r7
+VERSION 0.8
+FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
 
 all:
     BUILD +empty-test
@@ -14,6 +14,7 @@ all:
     BUILD +one-target-many-names
     BUILD +if-after
     BUILD +cgroup-v2-test-all
+    BUILD +pre-script-test
 
 empty-test:
     WITH DOCKER
@@ -136,7 +137,7 @@ multi-from-two:
     FROM alpine:latest
 
 one-target-many-names:
-    FROM earthly/dind:alpine-3.18-docker-23.0.6-r7
+    FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
     WITH DOCKER \
             --load a:latest=+multi-from-one \  # Test that there can be multiple names assigned to an image from a single target
             --load b:latest=+multi-from-one \
@@ -150,7 +151,7 @@ one-target-many-names:
     END
 
 if-after:
-    FROM earthly/dind:alpine-3.18-docker-23.0.6-r7
+    FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
     WITH DOCKER --load a:latest=+multi-from-one
         RUN docker run a:latest
     END
@@ -161,7 +162,7 @@ if-after:
 
 cgroup-v2-test-all:
     BUILD +cgroup-v2-test \
-        --DIND_IMG=earthly/dind:alpine-3.18-docker-23.0.6-r7 \
+        --DIND_IMG=earthly/dind:alpine-3.19-docker-25.0.2-r0 \
         --DIND_IMG=earthly/dind:ubuntu-23.04-docker-24.0.5-1
 
 cgroup-v2-test:
@@ -171,4 +172,10 @@ cgroup-v2-test:
     ARG ubuntu_img_tag=23.04
     WITH DOCKER --pull ubuntu:$ubuntu_img_tag
         RUN ./test-cgroup-v2.sh
+    END
+
+pre-script-test:
+    COPY pre-script.sh /usr/share/earthly/dockerd-wrapper-pre-script
+    WITH DOCKER
+        RUN test -f /the-prescript-was-run
     END

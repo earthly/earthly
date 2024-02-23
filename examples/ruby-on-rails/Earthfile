@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 FROM ruby:3.2.2
 WORKDIR /ruby-on-rails-example
 ENV BUNDLER_VERSION=2.4.12

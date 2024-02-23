@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 a-nomount:
     FROM alpine:3.18
     RUN echo Doing something 1

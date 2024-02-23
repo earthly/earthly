@@ -10,7 +10,7 @@ Earthly cache is persisted in a docker (or podman) volume called `earthly-cache`
 
 ### Specifying the local cache size limit
 
-The default cache size is adaptable depending on available space on your system. It defaults to 10% or 10 GB, whichever is greater. If you would like to change the cache size, you can specify a different limit by modifying the `cache_size_mb` and/or `cache_size_pct` settings in the [configuration](../earthly-config/earthly-config.md). For example:
+The default cache size is adaptable depending on available space on your system. It defaults to `min(55%, max(10%, 20GB))`. If you would like to change the cache size, you can specify a different limit by modifying the `cache_size_mb` and/or `cache_size_pct` settings in the [configuration](../earthly-config/earthly-config.md). For example:
 
 ```yaml
 global:
@@ -62,3 +62,15 @@ If you are using a self-hosted remote runner, you can configure the cache policy
 The command `earthly prune` will work on remote runners too, albeit without the `--reset` flag, which is not supported in a remote setting.
 
 To cause a satellite to restart with a fresh cache, you can use the command `earthly sat update --drop-cache`.
+
+## Auto-skip cache
+
+The auto-skip cache is a cache that is used to skip large parts of a build in certain situations. It is used by the `earthly --auto-skip` and `BUILD --auto-skip` commands.
+
+Unlike the layer cache and the cache mounts, the auto-skip cache is global and is stored in a cloud database.
+
+To clear the entire auto-skip cache for your Earthly org, you can use the command `earthly prune-auto-skip`.
+
+To clear the auto-skip cache for an entire repository, you can use the command `earthly prune-auto-skip --path github.com/foo/bar --deep`.
+
+To clear the auto-skip cache for a specific target, you can use the command `earthly prune-auto-skip --path github.com/foo/bar --target +my-target`.

@@ -1,4 +1,4 @@
-VERSION --pass-args 0.7
+VERSION 0.8
 
 test:
     FROM --pass-args ../git-ssh-server/setup+server \
@@ -54,7 +54,7 @@ export expected_author_timestamp=\$(git -C repo log -1 --format=\"%at\")
 test \"\$expected_committer_timestamp\" -ne \"\$expected_author_timestamp\"
 export expected_branch=\"\$(git -C repo rev-parse --abbrev-ref HEAD)\"
 test -n \"\$expected_branch\"
-export expected_refs=\"\$(git -C repo for-each-ref --contains HEAD --format '%(refname:lstrip=-1)' | grep -v 'HEAD' | awk '!a[\$0]++' | tr '\n' ' ' | sed 's/ *$//')\"
+export expected_refs=\"\$(git -C repo for-each-ref --points-at HEAD --format '%(refname:lstrip=-1)' | grep -v 'HEAD' | awk '!a[\$0]++' | tr '\n' ' ' | sed 's/ *$//')\"
 test -n \"\$expected_refs\"
 
 # finally perform earthly tests
@@ -96,11 +96,11 @@ EARTHLY_GIT_BRANCH_OVERRIDE=branch-override earthly --config \$earthly_config --
     DO --pass-args +RUN_EARTHLY_ARGS --pre_command=start-sshd --exec_cmd=/tmp/test-earthly-script
 
 RUN_EARTHLY_ARGS:
-    COMMAND
+    FUNCTION
     ARG earthfile
     ARG pre_command
     ARG exec_cmd
-    DO --pass-args ..+RUN_EARTHLY \
+    DO ..+RUN_EARTHLY \
         --earthfile=$earthfile \
         --pre_command=$pre_command \
         --exec_cmd=$exec_cmd

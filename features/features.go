@@ -57,8 +57,7 @@ type Features struct {
 	UseProjectSecrets        bool `long:"use-project-secrets" description:"enable project-based secret resolution"`
 	WaitBlock                bool `long:"wait-block" description:"enable WITH/END feature, also allows RUN --push mixed with non-push commands"`
 
-	// unreleased
-	TryFinally                      bool `long:"try" description:"allow the use of the TRY/FINALLY commands"`
+	// VERSION 0.8
 	NoNetwork                       bool `long:"no-network" description:"allow the use of RUN --network=none commands"`
 	ArgScopeSet                     bool `long:"arg-scope-and-set" description:"enable SET to reassign ARGs and prevent ARGs from being redeclared in the same scope"`
 	UseDockerIgnore                 bool `long:"use-docker-ignore" description:"fallback to .dockerignore incase .earthlyignore or .earthignore do not exist in a local \"FROM DOCKERFILE\" target"`
@@ -68,6 +67,11 @@ type Features struct {
 	GitRefs                         bool `long:"git-refs" description:"includes EARTHLY_GIT_REFS ARG"`
 	UseVisitedUpfrontHashCollection bool `long:"use-visited-upfront-hash-collection" description:"Uses a new target visitor implementation that computes upfront the hash of the visited targets and adds support for running all targets with the same name but different args in parallel"`
 	UseFunctionKeyword              bool `long:"use-function-keyword" description:"Use the FUNCTION key word instead of COMMAND"`
+
+	// unreleased
+	TryFinally     bool `long:"try" description:"allow the use of the TRY/FINALLY commands"`
+	WildcardBuilds bool `long:"wildcard-builds" description:"allow for the expansion of wildcard (glob) paths for BUILD commands"`
+	BuildAutoSkip  bool `long:"build-auto-skip" description:"allow for --auto-skip to be used on individual BUILD commands"`
 
 	Major int
 	Minor int
@@ -250,6 +254,17 @@ func Get(version *spec.Version) (*Features, bool, error) {
 		ftrs.UsePipelines = true
 		ftrs.UseProjectSecrets = true
 		ftrs.WaitBlock = true
+	}
+	if versionAtLeast(ftrs, 0, 8) {
+		ftrs.NoNetwork = true
+		ftrs.ArgScopeSet = true
+		ftrs.UseDockerIgnore = true
+		ftrs.PassArgs = true
+		ftrs.GlobalCache = true
+		ftrs.CachePersistOption = true
+		ftrs.GitRefs = true
+		ftrs.UseVisitedUpfrontHashCollection = true
+		ftrs.UseFunctionKeyword = true
 	}
 	processNegativeFlags(&ftrs)
 

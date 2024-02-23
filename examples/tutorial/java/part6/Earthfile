@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 FROM openjdk:8-jdk-alpine
 RUN apk add --update --no-cache gradle
 WORKDIR /java-example
@@ -23,7 +23,7 @@ docker:
     SAVE IMAGE java-example:$tag
 
 integration-tests:
-    FROM earthly/dind:alpine-3.18
+    FROM earthly/dind:alpine-3.19
 	COPY ./docker-compose.yml .
 	RUN apk update
 	RUN apk add postgresql-client

@@ -14,9 +14,9 @@ import (
 // consumable from other packages.
 var validEarthfileVersions = []string{
 	"0.0", // Meant only for testing/debugging. Disables all feature flags.
-	"0.5",
 	"0.6",
 	"0.7",
+	"0.8",
 }
 
 var errUnexpectedVersionArgs = fmt.Errorf("unexpected VERSION arguments; should be VERSION [flags] <major-version>.<minor-version>")

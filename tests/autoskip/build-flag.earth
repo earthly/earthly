@@ -1,0 +1,17 @@
+VERSION --build-auto-skip 0.8
+
+FROM alpine
+
+a:
+    RUN echo "hello from a"
+
+b:
+    RUN echo "hello from b"
+
+basic:
+    BUILD +a
+    BUILD --auto-skip +b
+
+remote:
+    BUILD --auto-skip github.com/earthly/test-remote:6accddaba346aeda062ab47bae62e65dcdcc513f+basic
+    BUILD +b

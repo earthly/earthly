@@ -13,13 +13,15 @@
     * [Part 7: Using remote runners](basics/part-7-using-remote-runners.md)
     * [Part 8a: Using Earthly in your current CI](basics/part-8a-using-earthly-in-your-current-ci.md)
     * [Final words](basics/final-words.md)
-* [✅ Best practices](best-practices/best-practices.md)
+* [⭐ Featured guides](lang-guides/featured-guides.md)
+    * [Rust](lang-guides/rust.md)
 
 ## 📖 Docs
 
 * Guides
     * [Importing](guides/importing.md)
-    * [Build arguments and secrets](guides/build-args.md)
+    * [Build arguments and variables](guides/build-args.md)
+    * [Secrets](guides/secrets.md)
     * [Functions](guides/functions.md)
     * [Using Docker in Earthly](guides/docker-in-earthly.md)
     * [Multi-platform builds](guides/multi-platform.md)
@@ -35,6 +37,7 @@
     * Using the Earthly Docker Images
         * [earthly/earthly](docker-images/all-in-one.md)
         * [earthly/buildkitd](docker-images/buildkit-standalone.md)
+    * [Best practices](guides/best-practices.md)
 * [Caching](./caching/caching.md)
     * [Caching in Earthfiles](./caching/caching-in-earthfiles.md)
     * [Managing cache](./caching/managing-cache.md)
@@ -46,6 +49,7 @@
     * [Excluding patterns](earthfile/earthlyignore.md)
     * [Version-specific features](earthfile/features.md)
 * [The `earthly` command](earthly-command/earthly-command.md)
+* [Earthly lib](earthly-lib/earthly-lib.md)
 * [Configuration reference](earthly-config/earthly-config.md)
 * [Examples](examples/examples.md)
 * Misc
@@ -62,15 +66,15 @@
 * [Pull-Through Cache](ci-integration/pull-through-cache.md)
 * [Remote BuildKit](ci-integration/remote-buildkit.md)
 * Vendor-Specific Guides
-    * [Jenkins](ci-integration/guides/jenkins.md)
-    * [Circle CI](ci-integration/guides/circle-integration.md)
     * [GitHub Actions](ci-integration/guides/gh-actions-integration.md)
-    * [AWS CodeBuild](ci-integration/guides/codebuild-integration.md)
-    * [Kubernetes](ci-integration/guides/kubernetes.md)
-    * [Google Cloud Build](ci-integration/guides/google-cloud-build.md)
+    * [Circle CI](ci-integration/guides/circle-integration.md)
     * [GitLab CI/CD](ci-integration/guides/gitlab-integration.md)
-    * [Woodpecker CI](ci-integration/guides/woodpecker-integration.md)
+    * [Jenkins](ci-integration/guides/jenkins.md)
+    * [AWS CodeBuild](ci-integration/guides/codebuild-integration.md)
+    * [Google Cloud Build](ci-integration/guides/google-cloud-build.md)
     * [Bitbucket Pipelines](ci-integration/guides/bitbucket-pipelines-integration.md)
+    * [Woodpecker CI](ci-integration/guides/woodpecker-integration.md)
+    * [Kubernetes](ci-integration/guides/kubernetes.md)
 
 ## ☁️ Earthly Cloud
 
@@ -80,3 +84,5 @@
 * [Earthly Satellites](cloud/satellites.md)
     * [Managing Satellites](cloud/satellites/managing.md)
     * [Using Satellites](cloud/satellites/using.md)
+    * [Self-Hosted Satellites](cloud/satellites/self-hosted.md)
+    * [Best Practices](cloud/satellites/best-practices.md)

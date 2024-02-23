@@ -7,7 +7,7 @@ You can however, run Earthly builds on Bitbucket pipelines via [remote runners](
 ```yml
 # ./bitbucket-pipelines.yml
 
-image: earthly/earthly:v0.7.22
+image: earthly/earthly:v0.8.4
 
 pipelines:
   default:
@@ -15,8 +15,6 @@ pipelines:
         name: "Set Earthly token"
         script:
           - export EARTHLY_TOKEN=$EARTHLY_TOKEN
-          # See https://docs.earthly.dev/docs/earthly-command#earthly-account-create-token to obtain a token.
-          - earthly --version
     - step:
         name: "Docker login"
         script:
@@ -24,7 +22,7 @@ pipelines:
     - step:
         name: "Build"
         script:
-          - earthly --push --sat $EARTHLY_SAT --org $EARTHLY_ORG +build
+          - earthly --ci --push --sat $EARTHLY_SAT --org $EARTHLY_ORG +build
 ```
 
 For a complete guide on CI integration see the [CI integration guide](../overview.md).
