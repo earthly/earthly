@@ -9,7 +9,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
@@ -619,17 +618,27 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		buildOpts.OnlyArtifactDestPath = destPath
 	}
 
-	// Kick off logstream upload only when we've passed the necessary
+	// Kick off log streaming upload only when we've passed the necessary
 	// information to logbusSetup. This function will be called right at the
 	// beginning of the build within earthfile2llb.
 	buildOpts.MainTargetDetailsFunc = func(d earthfile2llb.TargetDetails) error {
-		a.cli.Console().VerbosePrintf("Logbus: setting organization %q and project %q at %s", d.EarthlyOrgName, d.EarthlyProjectName, time.Now().Format(time.RFC3339Nano))
-		analytics.AddEarthfileProject(d.EarthlyOrgName, d.EarthlyProjectName)
+		// Use the flag/env values for org & project if specified, but fallback to
+		// the PROJECT command if provided.
+		orgName := d.EarthlyOrgName
+		if a.cli.Flags().OrgName != "" {
+			orgName = a.cli.Flags().OrgName
+		}
+		projectName := d.EarthlyProjectName
+		if a.cli.Flags().ProjectName != "" {
+			projectName = a.cli.Flags().ProjectName
+		}
+		a.cli.Console().WithPrefix("logbus").Printf("Setting organization %q and project %q", orgName, projectName)
+		analytics.AddEarthfileProject(orgName, projectName)
 		if !a.cli.Flags().Logstream {
 			return nil
 		}
 		setup := a.cli.LogbusSetup()
-		setup.SetOrgAndProject(d.EarthlyOrgName, d.EarthlyProjectName)
+		setup.SetOrgAndProject(orgName, projectName)
 		setup.SetGitAuthor(gitCommitAuthor, gitConfigEmail)
 		_, isCI := analytics.DetectCI(a.cli.Flags().EarthlyCIRunner)
 		setup.SetCI(isCI)
