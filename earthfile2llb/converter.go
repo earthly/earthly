@@ -283,7 +283,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 }
 
 // FromDockerfile applies the earthly FROM DOCKERFILE command.
-func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform platutil.Platform, buildArgs []string) (retErr error) {
+func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform platutil.Platform, allowPrivileged bool, buildArgs []string) (retErr error) {
 	var err error
 	ctx, err = c.ftrs.WithContext(ctx)
 	if err != nil {
@@ -312,7 +312,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		dfArtifact, parseErr := domain.ParseArtifact(dfPath)
 		if parseErr == nil {
 			// The Dockerfile is from a target's artifact.
-			mts, err := c.buildTarget(ctx, dfArtifact.Target.String(), platform, false, false, buildArgs, false, fromDockerfileCmd, cmdID)
+			mts, err := c.buildTarget(ctx, dfArtifact.Target.String(), platform, allowPrivileged, false, buildArgs, false, fromDockerfileCmd, cmdID)
 			if err != nil {
 				return err
 			}
@@ -352,7 +352,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		// The build context is from a target's artifact.
 		// TODO: The build args are used for both the artifact and the Dockerfile. This could be
 		//       confusing to the user.
-		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), platform, false, false, buildArgs, false, fromDockerfileCmd, cmdID)
+		mts, err := c.buildTarget(ctx, contextArtifact.Target.String(), platform, allowPrivileged, false, buildArgs, false, fromDockerfileCmd, cmdID)
 		if err != nil {
 			return err
 		}

@@ -848,7 +848,7 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand target %s", opts.Target)
 	}
 	i.local = false
-	err = i.converter.FromDockerfile(ctx, path, expandedPath, expandedTarget, platform, expandedBuildArgs)
+	err = i.converter.FromDockerfile(ctx, path, expandedPath, expandedTarget, platform, opts.AllowPrivileged && i.allowPrivileged, expandedBuildArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "from dockerfile")
 	}
