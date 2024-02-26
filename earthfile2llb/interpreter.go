@@ -806,6 +806,12 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 	if len(args) < 1 {
 		return i.errorf(cmd.SourceLocation, "invalid number of arguments for FROM DOCKERFILE")
 	}
+
+	if !i.converter.ftrs.AllowPrivilegedFromDockerfile && opts.AllowPrivileged {
+		return i.errorf(cmd.SourceLocation, "the FROM DOCKERFILE --allow-privileged flag must be enabled with the VERSION --allow-privileged-from-dockerfile feature flag.")
+	}
+	allowPrivileged := opts.AllowPrivileged && i.allowPrivileged
+
 	path, err := i.expandArgs(ctx, args[0], false, false)
 	if err != nil {
 		return i.errorf(cmd.SourceLocation, "failed to expand FROM DOCKERFILE path arg %s", args[0])
@@ -848,7 +854,7 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand target %s", opts.Target)
 	}
 	i.local = false
-	err = i.converter.FromDockerfile(ctx, path, expandedPath, expandedTarget, platform, opts.AllowPrivileged && i.allowPrivileged, expandedBuildArgs)
+	err = i.converter.FromDockerfile(ctx, path, expandedPath, expandedTarget, platform, allowPrivileged, expandedBuildArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "from dockerfile")
 	}
