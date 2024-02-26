@@ -625,8 +625,8 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		// Use the flag/env values for org & project if specified, but fallback to
 		// the PROJECT command if provided.
 		orgName := d.EarthlyOrgName
-		if a.cli.Flags().OrgName != "" {
-			orgName = a.cli.Flags().OrgName
+		if a.cli.OrgName() != "" {
+			orgName = a.cli.OrgName()
 		}
 		projectName := d.EarthlyProjectName
 		if a.cli.Flags().ProjectName != "" {
