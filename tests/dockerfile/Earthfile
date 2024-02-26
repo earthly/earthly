@@ -1,7 +1,20 @@
-VERSION 0.8
+VERSION --allow-privileged-from-dockerfile 0.8
 FROM alpine:3.18
+
+privileged-context:
+    RUN --privileged echo "hello dockerfile from privileged context" > a.txt
+    SAVE ARTIFACT a.txt
+
+test-all:
+    BUILD +test
+    BUILD +test-allow-privileged-with-privileged-context
 
 test:
     FROM DOCKERFILE .
     RUN --entrypoint
     SAVE IMAGE test-dockerfile:latest
+
+test-allow-privileged-with-privileged-context:
+    FROM DOCKERFILE --allow-privileged -f ./Dockerfile +privileged-context/*
+    RUN --entrypoint
+    SAVE IMAGE test-allow-privileged-with-privileged-context:latest
