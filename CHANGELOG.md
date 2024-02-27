@@ -4,7 +4,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
-## Fixed
+### Fixed
 
 - Fixes an issue where wildcard `BUILD`'s are invoked from a relative directory (e.g., `earthly ./my-dir/*+target`). [#3840](https://github.com/earthly/earthly/issues/3840)
 
