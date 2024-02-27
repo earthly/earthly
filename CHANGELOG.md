@@ -6,7 +6,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Fixed
 
-- Fixes an issue where wildcard `BUILD`'s are invoked from a relative directory (e.g., `earthly ./my-dir/*+target`). [#3840](https://github.com/earthly/earthly/issues/3840)
+- Fixes an issue where wildcard `BUILD`'s are invoked from a relative directory (e.g., an `Earthfile` containing `BUILD ./*+test` invoked with `earthly ./rel-dir+target`). [#3840](https://github.com/earthly/earthly/issues/3840)
 
 ## v0.8.4 - 2024-02-21
 
