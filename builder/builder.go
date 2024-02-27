@@ -325,6 +325,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				FilesWithCommandRenameWarning:        make(map[string]bool),
 				BuildkitSkipper:                      b.opt.BuildkitSkipper,
 				NoAutoSkip:                           b.opt.NoAutoSkip,
+				RootTarget:                           target,
 			}
 			mts, err = earthfile2llb.Earthfile2LLB(childCtx, target, opt, true)
 			if err != nil {

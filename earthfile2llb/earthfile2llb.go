@@ -198,6 +198,9 @@ type ConvertOpt struct {
 
 	// NoAutoSkip disables auto-skip usages.
 	NoAutoSkip bool
+
+	// RootTarget tracks the topmost target used to invoke the build.
+	RootTarget domain.Target
 }
 
 // TargetDetails contains details about the target being built.

@@ -1721,14 +1721,14 @@ func (c *Converter) ExpandWildcard(ctx context.Context, fullTargetName string, c
 		target = parsedTarget
 	}
 
-	matches, err := c.opt.Resolver.ExpandWildcard(ctx, c.opt.GwClient, c.platr, target, parsedTarget.GetLocalPath())
+	matches, err := c.opt.Resolver.ExpandWildcard(ctx, c.opt.GwClient, c.platr, c.opt.RootTarget, target, parsedTarget.GetLocalPath())
 	if err != nil {
 		return nil, err
 	}
 
 	children := []spec.Command{}
 	for _, match := range matches {
-		childTargetName := fmt.Sprintf("./%s+%s", match, parsedTarget.GetName())
+		childTargetName := fmt.Sprintf("%s+%s", match, parsedTarget.GetName())
 
 		childTarget, err := domain.ParseTarget(childTargetName)
 		if err != nil {
