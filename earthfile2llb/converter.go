@@ -643,6 +643,7 @@ type ConvertRunOpts struct {
 	Interactive          bool
 	InteractiveKeep      bool
 	InteractiveSaveFiles []debuggercommon.SaveFilesSettings
+	WithAWSCredentials   bool
 
 	// Internal.
 	shellWrap    shellWrapFun
@@ -2234,6 +2235,23 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 			runOpts = append(runOpts, llb.AddSecret(secretPath, secretOpts...))
 			// TODO: The use of cat here might not be portable.
 			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", envVar, secretPath))
+		}
+	}
+	// AWS credential import.
+	if opts.WithAWSCredentials {
+		// TODO: determine whether to load from credentials file or envs.
+		secretNames := []string{
+			"AWS_ACCESS_KEY_ID",
+			"AWS_SECRET_ACCESS_KEY",
+			"AWS_SESSION_TOKEN",
+		}
+		for _, secretName := range secretNames {
+			secretPath := path.Join("/run/secrets", secretName)
+			secretOpts := []llb.SecretOption{
+				llb.SecretID(c.secretID(secretName)),
+				llb.SecretAsEnv(true),
+			}
+			runOpts = append(runOpts, llb.AddSecret(secretPath, secretOpts...))
 		}
 	}
 	if !opts.Locally {
