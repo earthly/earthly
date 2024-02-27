@@ -1,6 +1,6 @@
 VERSION 0.8
 
-earthly:
+medium:
     FROM alpine
     COPY medium-file a-file
     RUN sleep 1
@@ -8,7 +8,7 @@ earthly:
 
 breakit:
    FROM alpine
-   COPY +earthly/a-file /a/file
+   COPY +medium/a-file /a/file
    IF false
      RUN echo false
    END
