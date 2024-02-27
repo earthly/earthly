@@ -512,7 +512,7 @@ dockerfile-test:
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output +test
+        -- --no-output +test-all
 
     DO +RUN_EARTHLY --earthfile=dockerfile/privileged.earth --extra_args="--allow-privileged --no-output" --target=+test-allow-privileged-with-privileged-run-command
 
