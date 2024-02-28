@@ -19,6 +19,7 @@ RUN apk add --update --no-cache \
     less \
     make \
     openssl \
+    openssh \
     util-linux
 
 WORKDIR /earthly
@@ -905,6 +906,37 @@ check-broken-links:
         RUN --no-cache echo -e "${GREEN}No Broken Links were found${NOCOLOR}"
     END
 
+# open-pr-for-fork creates a new PR based on the given pr_number
+open-pr-for-fork:
+    ARG git_repo="earthly/earthly"
+    ARG git_url="git@github.com:$git_repo"
+    ARG earthly_lib_version=2.2.2
+    DO github.com/earthly/lib/ssh:$earthly_lib_version+ADD_KNOWN_HOSTS --target_file=~/.ssh/known_hosts
+    RUN git config --global user.name "littleredcorvette" && \
+        git config --global user.email "littleredcorvette@users.noreply.github.com"
+    GIT CLONE "$git_url" earthly
+    WORKDIR earthly
+    ARG git_hash=$(git rev-parse HEAD)
+    RUN --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
+        git fetch --unshallow
+    ARG TARGETARCH
+    # renovate: datasource=github-releases depName=cli/cli
+    ARG gh_version=v2.44.1
+    RUN curl -Lo ghlinux.tar.gz \
+      https://github.com/cli/cli/releases/download/$gh_version/gh_${gh_version#v}_linux_${TARGETARCH}.tar.gz \
+      && tar --strip-components=1 -xf ghlinux.tar.gz \
+      && rm ghlinux.tar.gz
+    ARG --required pr_number
+    RUN git remote set-url origin git@github.com:$git_repo.git
+    RUN --no-cache --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
+        --secret GH_TOKEN=littleredcorvette-github-token \
+        ./bin/gh pr checkout $pr_number --branch "test-pr-$pr_number" --repo $git_repo && \
+        git merge origin/main && \
+        git commit --allow-empty -m "please run the test" && \
+        git push origin HEAD && \
+        ./bin/gh pr create --title "Run tests for PR $pr_number" --draft \
+        --body "Running tests for https://github.com/$git_repo/pull/$pr_number" --repo $git_repo
+
 check-broken-links-pr:
     FROM alpine/git
     WORKDIR /tmp
@@ -918,7 +950,6 @@ check-broken-links-pr:
     RUN --secret GH_TOKEN=littleredcorvette-github-token gh pr checks $branch --repo earthly/earthly | grep GitBook|awk '{print $4}' > url
     ARG VERBOSE
     BUILD --pass-args +check-broken-links --ADDRESS=$(cat url)
-
 
 # BUILD_AND_FROM will issue a FROM and a BUILD commands for the provided target
 BUILD_AND_FROM:
