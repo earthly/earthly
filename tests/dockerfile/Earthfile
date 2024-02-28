@@ -8,6 +8,7 @@ privileged-context:
 test-all:
     BUILD +test
     BUILD +test-allow-privileged-with-privileged-context
+    BUILD +test-allow-privileged-with-privileged-run-command
 
 test:
     FROM DOCKERFILE .
@@ -18,3 +19,8 @@ test-allow-privileged-with-privileged-context:
     FROM DOCKERFILE --allow-privileged -f ./Dockerfile +privileged-context/*
     RUN --entrypoint
     SAVE IMAGE test-allow-privileged-with-privileged-context:latest
+
+test-allow-privileged-with-privileged-run-command:
+    FROM DOCKERFILE --allow-privileged -f ./Dockerfile +privileged-context/*
+    RUN --privileged ip link add dummy0 type dummy && ip link delete dummy0
+    SAVE IMAGE test-allow-privileged-with-privileged-run-command:latest
