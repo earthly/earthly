@@ -921,7 +921,7 @@ open-pr-for-fork:
         git fetch --unshallow
     ARG TARGETARCH
     # renovate: datasource=github-releases depName=cli/cli
-    ARG gh_version=v2.40.1
+    ARG gh_version=v2.44.1
     RUN curl -Lo ghlinux.tar.gz \
       https://github.com/cli/cli/releases/download/$gh_version/gh_${gh_version#v}_linux_${TARGETARCH}.tar.gz \
       && tar --strip-components=1 -xf ghlinux.tar.gz \
