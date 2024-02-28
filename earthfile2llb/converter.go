@@ -2239,20 +2239,12 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 	// AWS credential import.
 	if opts.WithAWSCredentials {
-		// TODO: determine whether to load from credentials file or envs.
-		secretNames := []string{
-			"AWS_ACCESS_KEY_ID",
-			"AWS_SECRET_ACCESS_KEY",
-			"AWS_SESSION_TOKEN",
+		awsRunOpts, awsEnvs, err := c.detectAWSCredentials(ctx)
+		if err != nil {
+			return pllb.State{}, err
 		}
-		for _, secretName := range secretNames {
-			secretPath := path.Join("/run/secrets", secretName)
-			secretOpts := []llb.SecretOption{
-				llb.SecretID(c.secretID(secretName)),
-				llb.SecretAsEnv(true),
-			}
-			runOpts = append(runOpts, llb.AddSecret(secretPath, secretOpts...))
-		}
+		runOpts = append(runOpts, awsRunOpts...)
+		extraEnvVars = append(extraEnvVars, awsEnvs...)
 	}
 	if !opts.Locally {
 		// Debugger.
@@ -2432,6 +2424,32 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 
 		return c.mts.Final.MainState, nil
 	}
+}
+
+// detectAWSCredentials determines whether AWS envs are set and/or ~/.aws
+// exists. These are then used when fetching the secrets during a build.
+func (c *Converter) detectAWSCredentials(ctx context.Context) ([]llb.RunOption, []string, error) {
+
+	secretNames := []string{
+		"AWS_SECRET_ACCESS_KEY",
+		"AWS_ACCESS_KEY_ID",
+		"AWS_SESSION_TOKEN",
+	}
+
+	runOpts := []llb.RunOption{}
+	extraEnvs := []string{}
+
+	for _, secretName := range secretNames {
+		secretPath := path.Join("/run/secrets", secretName)
+		secretOpts := []llb.SecretOption{
+			llb.SecretID(c.secretID(secretName)),
+			llb.SecretFileOpt(0, 0, 0444),
+		}
+		runOpts = append(runOpts, llb.AddSecret(secretPath, secretOpts...))
+		extraEnvs = append(extraEnvs, fmt.Sprintf("%s=\"$(cat %s)\"", secretName, secretPath))
+	}
+
+	return runOpts, extraEnvs, nil
 }
 
 // secretID returns query parameter style string that contains the secret
