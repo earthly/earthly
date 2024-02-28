@@ -1,15 +1,13 @@
-name: Check Docs for Broken Links
+name: create pr for fork
 
 on:
-  pull_request:
-    branches: [docs-0.8]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  pull_request_target:
+    types: [ labeled ]
+    branches: [ "main" ]
 
 jobs:
-  check-broken-links:
+  create-pr:
+    if: ${{ github.event.label.name == 'approved-for-tests' && github.event.pull_request.head.repo.full_name != github.repository }}
     runs-on: "ubuntu-latest"
     env:
       FORCE_COLOR: 1
@@ -19,11 +17,11 @@ jobs:
       DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
       # Used in our github action as the token - TODO: look to change it into an input
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PR_NUMBER: ${{ github.event.number }}
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          ref: ${{ github.head_ref }}
       - uses: earthly/actions-setup@main
-      - name: Check Broken Links
-        run: earthly --ci +check-broken-links-pr --VERBOSE=true
+      - name: Create a draft PR based on PR $PR_NUMBER
+        run: earthly --ci +open-pr-for-fork --pr_number=$PR_NUMBER
