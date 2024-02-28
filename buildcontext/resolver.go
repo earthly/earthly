@@ -91,7 +91,7 @@ func NewResolver(cleanCollection *cleanup.Collection, gitLookup *GitLookup, cons
 // relative to the parent target for resolution by the caller.
 func (r *Resolver) ExpandWildcard(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, parentTarget, target domain.Target) ([]string, error) {
 
-	if target.IsRemote() {
+	if parentTarget.IsRemote() {
 		matches, err := r.gr.expandWildcard(ctx, gwClient, platr, parentTarget, target.GetLocalPath())
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to expand remote BUILD target path")
