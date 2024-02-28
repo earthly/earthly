@@ -862,21 +862,21 @@ npm-update-all:
 # merge-main-to-docs merges the main branch into docs-0.8
 merge-main-to-docs:
     FROM alpine/git
-    ARG git_repo="earthly/earthly"
-    ARG git_url="git@github.com:$git_repo"
-    ARG to_branch="docs-0.8"
-    ARG from_branch="main"
-    ARG earthly_lib_version=2.2.2
-    DO github.com/earthly/lib/ssh:$earthly_lib_version+ADD_KNOWN_HOSTS --target_file=~/.ssh/known_hosts
+
     RUN git config --global user.name "littleredcorvette" && \
         git config --global user.email "littleredcorvette@users.noreply.github.com" && \
         git config --global url."git@github.com:".insteadOf "https://github.com/"
-    GIT CLONE "$git_url" earthly
-    WORKDIR earthly
-    ARG git_hash=$(git rev-parse HEAD)
-    RUN --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
-        git fetch --unshallow
-    RUN --push --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
+
+    ARG git_repo="earthly/earthly"
+    ARG git_url="git@github.com:$git_repo"
+    ARG earthly_lib_version=3.0.1
+    ARG SECRET_PATH=littleredcorvette-id_rsa
+    DO --pass-args github.com/earthly/lib/utils/git:$earthly_lib_version+DEEP_CLONE \
+        --GIT_URL=$git_url --SECRET_PATH=$SECRET_PATH
+
+    ARG to_branch="docs-0.8"
+    ARG from_branch="main"
+    RUN --push --mount=type=secret,id=$SECRET_PATH,mode=0400,target=/root/.ssh/id_rsa \
         git checkout $to_branch && \
         git merge $from_branch && \
         git push
@@ -909,27 +909,28 @@ check-broken-links:
 
 # open-pr-for-fork creates a new PR based on the given pr_number
 open-pr-for-fork:
-    ARG earthly_lib_version=2.2.2
-    DO github.com/earthly/lib/ssh:$earthly_lib_version+ADD_KNOWN_HOSTS --target_file=~/.ssh/known_hosts
     RUN git config --global user.name "littleredcorvette" && \
         git config --global user.email "littleredcorvette@users.noreply.github.com" && \
         git config --global url."git@github.com:".insteadOf "https://github.com/"
+
     ARG TARGETARCH
+
     # renovate: datasource=github-releases depName=cli/cli
     ARG gh_version=v2.44.1
     RUN curl -Lo ghlinux.tar.gz \
       https://github.com/cli/cli/releases/download/$gh_version/gh_${gh_version#v}_linux_${TARGETARCH}.tar.gz \
       && tar --strip-components=1 -xf ghlinux.tar.gz \
       && rm ghlinux.tar.gz && mv ./bin/gh /usr/local/bin/gh
+
+    ARG earthly_lib_version=3.0.1
+    ARG SECRET_PATH=littleredcorvette-id_rsa
     ARG git_repo="earthly/earthly"
-    ARG git_url="git@github.com:$git_repo"
-    GIT CLONE "$git_url" earthly
-    WORKDIR earthly
-    ARG git_hash=$(git rev-parse HEAD)
-    RUN --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
-        git fetch --unshallow
+    LET git_url="git@github.com:$git_repo"
+    DO --pass-args github.com/earthly/lib/utils/git:$earthly_lib_version+DEEP_CLONE \
+        --GIT_URL=$git_url --SECRET_PATH=$SECRET_PATH
+
     ARG --required pr_number
-    RUN --no-cache --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
+    RUN --no-cache --mount=type=secret,id=$SECRET_PATH,mode=0400,target=/root/.ssh/id_rsa \
         --secret GH_TOKEN=littleredcorvette-github-token \
         gh pr checkout $pr_number --branch "test-pr-$pr_number" --repo $git_repo && \
         git merge origin/main && \
