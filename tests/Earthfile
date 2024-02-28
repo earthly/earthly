@@ -77,6 +77,7 @@ ga-no-qemu-group1:
     BUILD +fail-invalid-artifact-test
     BUILD +wildcard-build
     BUILD +wildcard-build-remote
+    BUILD +wildcard-build-pwd
 
 ga-no-qemu-group2:
     BUILD +target-first-line
@@ -599,6 +600,14 @@ wildcard-build:
     RUN cat earthly.output | acbgrep 'hello world 2'
     RUN cat earthly.output | acbgrep 'hello world 3'
     RUN cat earthly.output | acbgrep -v 'hello world 1'
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+wildcard-build-pwd:
+    COPY wildcard-build .
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-build-pwd
+    RUN cat earthly.output | acbgrep 'hello world 1'
+    RUN cat earthly.output | acbgrep 'hello world 2'
+    RUN cat earthly.output | acbgrep 'hello world 3'
     RUN cat earthly.output | acbgrep -v 'not-test run'
 
 wildcard-build-remote:
