@@ -886,21 +886,20 @@ merge-main-to-docs:
     LET temp_pr_branch="soon-to-be-$to_branch"
     RUN --push --secret GH_TOKEN=littleredcorvette-github-token --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
         # 1. checkout the docs branch and merge changes from main
-         git checkout $to_branch && \
+         git checkout $to_branch && git pull origin $to_branch &&\
          git merge $from_branch && \
         # 2. create a new temp branch to for a PR (can't push directly to protected branch)
         git checkout -b $temp_pr_branch && git push -f origin $temp_pr_branch && \
-        # 3. create a new PR, approve it, and wait till checks complete (if checks fail, close the PR)
-        gh pr create --title "Temp PR to merge $from_branch to $to_branch" -B $to_branch \
+        # 3. create a new PR and wait till checks complete (if checks fail, close the PR)
+        gh pr create --title "Temp PR to merge $from_branch to $to_branch" --draft -B $to_branch \
         --body "Opened by +merge-main-to-docs" --repo $git_repo && \
-        gh pr review $temp_pr_branch --approve && \
         sleep 5 && \
         ( \
             timeout --signal=SIGINT 300 gh pr checks $temp_pr_branch --watch --fail-fast || \
             (gh pr close $temp_pr_branch --delete-branch && exit 1) \
         ) && \
         # 4. try to push the branch now that the PR checks have passed
-        git checkout $to_branch && git push
+        git checkout $to_branch && (git push || (gh pr close $temp_pr_branch --delete-branch && exit 1))
 
 # check-broken-links checks for broken links in our docs website
 check-broken-links:
