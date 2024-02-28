@@ -2239,6 +2239,9 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 	// AWS credential import.
 	if opts.WithAWSCredentials {
+		if !c.ftrs.RunWithAWS {
+			return pllb.State{}, errors.New("RUN --aws requires the --run-with-aws feature flag")
+		}
 		awsRunOpts, awsEnvs, err := c.detectAWSCredentials(ctx)
 		if err != nil {
 			return pllb.State{}, err
@@ -2430,14 +2433,47 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 // exists. These are then used when fetching the secrets during a build.
 func (c *Converter) detectAWSCredentials(ctx context.Context) ([]llb.RunOption, []string, error) {
 
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to determine user home directory")
+	}
+
+	credsPath := fmt.Sprintf("%s/.aws/credentials", homeDir)
+
+	credsFileExists := true
+	_, err = os.Stat(credsPath)
+	switch {
+	case errors.Is(err, os.ErrExist):
+		credsFileExists = false
+	case err != nil:
+		return nil, nil, errors.Wrapf(err, "failed to stat %s", credsPath)
+	}
+
 	secretNames := []string{
 		"AWS_SECRET_ACCESS_KEY",
 		"AWS_ACCESS_KEY_ID",
-		"AWS_SESSION_TOKEN",
 	}
 
-	runOpts := []llb.RunOption{}
-	extraEnvs := []string{}
+	allEnvsSet := true
+
+	for _, name := range secretNames {
+		if _, ok := os.LookupEnv(name); !ok {
+			allEnvsSet = false
+			break
+		}
+	}
+
+	if !credsFileExists && !allEnvsSet {
+		return nil, nil, errors.New("AWS credentials not found in environment or ~/.aws")
+	}
+
+	var (
+		runOpts   = []llb.RunOption{}
+		extraEnvs = []string{}
+	)
+
+	// These may not be set in the environment.
+	secretNames = append(secretNames, []string{"AWS_SESSION_TOKEN", "AWS_DEFAULT_REGION"}...)
 
 	for _, secretName := range secretNames {
 		secretPath := path.Join("/run/secrets", secretName)

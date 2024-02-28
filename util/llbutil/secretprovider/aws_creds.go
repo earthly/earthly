@@ -5,24 +5,33 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sync"
 
-	"github.com/BurntSushi/toml"
 	"github.com/moby/buildkit/session/secrets"
 	"github.com/pkg/errors"
+	"gopkg.in/ini.v1"
 )
 
-type AWSCredentialProvider struct{}
+// AWSCredentialProvider can load AWS settings from the environment.
+type AWSCredentialProvider struct {
+	mu          sync.Mutex
+	config      *ini.File
+	credsConfig *ini.File
+}
 
+// NewAWSCredentialProvider creates and returns a credential provider for AWS.
 func NewAWSCredentialProvider() *AWSCredentialProvider {
 	return &AWSCredentialProvider{}
 }
 
+// GetSecret attempts to find an AWS secret from either the environment or a local config file.
 func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]byte, error) {
 
 	names := map[string]int{
 		"AWS_ACCESS_KEY_ID":     0,
 		"AWS_SECRET_ACCESS_KEY": 0,
 		"AWS_SESSION_TOKEN":     0,
+		"AWS_DEFAULT_REGION":    0,
 	}
 
 	q, err := url.ParseQuery(name)
@@ -55,40 +64,53 @@ func (c *AWSCredentialProvider) loadFromEnv(ctx context.Context, name string) (s
 }
 
 func (c *AWSCredentialProvider) loadFromConfig(ctx context.Context, name string) (string, bool, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", false, errors.Wrap(err, "failed to determine user home directory")
-	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	credPath := filepath.Join(homeDir, ".aws", "credentials")
-
-	f, err := os.Open(credPath)
-	if err != nil {
-		return "", false, errors.Wrapf(err, "could not open %s", credPath)
-	}
-
-	defer func() {
-		_ = f.Close()
-	}()
-
-	config := struct {
-		Default struct {
-			AWSAccessKeyID     string `toml:"aws_access_key_id"`
-			AWSSecretAccessKey string `toml:"aws_secret_access_key"`
+	if c.config == nil || c.credsConfig == nil {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return "", false, errors.Wrap(err, "failed to determine user home directory")
 		}
-	}{}
 
-	_, err = toml.NewDecoder(f).Decode(&config)
-	if err != nil {
-		return "", false, errors.Wrap(err, "failed to decode credentials file")
+		configFile := filepath.Join(homeDir, ".aws", "config")
+		c.config, err = ini.Load(configFile)
+		if err != nil {
+			return "", false, errors.Wrapf(err, "failed to load %s", configFile)
+		}
+
+		credsFile := filepath.Join(homeDir, ".aws", "credentials")
+		c.credsConfig, err = ini.Load(credsFile)
+		if err != nil {
+			return "", false, errors.Wrap(err, "failed to decode credentials file")
+		}
 	}
 
 	switch name {
 	case "AWS_ACCESS_KEY_ID":
-		return config.Default.AWSAccessKeyID, true, nil
+		v, ok := iniKey(c.credsConfig, "default", "aws_access_key_id")
+		return v, ok, nil
 	case "AWS_SECRET_ACCESS_KEY":
-		return config.Default.AWSAccessKeyID, true, nil
+		v, ok := iniKey(c.credsConfig, "default", "aws_secret_access_key")
+		return v, ok, nil
+	case "AWS_DEFAULT_REGION":
+		v, ok := iniKey(c.config, "default", "region")
+		return v, ok, nil
 	default:
 		return "", false, nil
 	}
+}
+
+func iniKey(f *ini.File, section, name string) (string, bool) {
+	if !f.HasSection(section) {
+		return "", false
+	}
+
+	s := f.Section(section)
+
+	if !s.HasKey(name) {
+		return "", false
+	}
+
+	return s.Key(name).Value(), true
 }
