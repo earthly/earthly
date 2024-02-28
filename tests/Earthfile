@@ -19,7 +19,7 @@ ga-qemu:
 
 ga-no-qemu-group1:
     BUILD --pass-args ./autocompletion+test-all
-    BUILD --pass-args ./dockerfile+test
+    BUILD --pass-args ./dockerfile+test-all
     BUILD --pass-args ./dockerfile2/subdir+test
     BUILD --pass-args ./locally-in-command+all
     BUILD --pass-args ./locally-in-function+all
@@ -512,7 +512,7 @@ dockerfile-test:
     RUN --privileged \
         --entrypoint \
         --mount=type=tmpfs,target=/tmp/earthly \
-        -- --no-output +test
+        -- --allow-privileged --no-output +test-all
 
 fail-test:
     DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --verbose=0 --target=+test --post_command="2>output.txt"

@@ -47,10 +47,11 @@ type FromOpts struct {
 }
 
 type FromDockerfileOpts struct {
-	BuildArgs []string `long:"build-arg" description:"A build arg override passed on to a referenced Earthly target and also to the Dockerfile build"`
-	Platform  string   `long:"platform" description:"The platform to use"`
-	Target    string   `long:"target" description:"The Dockerfile target to inherit from"`
-	Path      string   `short:"f" description:"The Dockerfile location on the host, relative to the current Earthfile, or as an artifact reference"`
+	AllowPrivileged bool     `long:"allow-privileged" description:"Allow command to assume privileged mode"`
+	BuildArgs       []string `long:"build-arg" description:"A build arg override passed on to a referenced Earthly target and also to the Dockerfile build"`
+	Platform        string   `long:"platform" description:"The platform to use"`
+	Target          string   `long:"target" description:"The Dockerfile target to inherit from"`
+	Path            string   `short:"f" description:"The Dockerfile location on the host, relative to the current Earthfile, or as an artifact reference"`
 }
 
 type CopyOpts struct {
