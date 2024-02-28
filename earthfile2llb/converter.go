@@ -1718,17 +1718,34 @@ func (c *Converter) ExpandWildcard(ctx context.Context, fullTargetName string, c
 	if c.target.IsRemote() {
 		target = c.target
 	} else {
-		target = parsedTarget
+		// For local targets, we need to determine the full path relative to the
+		// working directory of Earthly in order to glob for matching paths.
+		ref, err := domain.JoinReferences(c.target, parsedTarget)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to join references")
+		}
+		target = ref.(domain.Target)
 	}
 
-	matches, err := c.opt.Resolver.ExpandWildcard(ctx, c.opt.GwClient, c.platr, c.opt.RootTarget, target, parsedTarget.GetLocalPath())
+	matches, err := c.opt.Resolver.ExpandWildcard(ctx, c.opt.GwClient, c.platr, target, parsedTarget.GetLocalPath())
 	if err != nil {
 		return nil, err
 	}
 
 	children := []spec.Command{}
 	for _, match := range matches {
-		childTargetName := fmt.Sprintf("%s+%s", match, parsedTarget.GetName())
+		if !c.target.IsRemote() {
+			// Here, the relative path is reconstructed from the glob results
+			// and the parent target's path. This is done because the below
+			// ResolveReference call requires a relative target path.
+			rel, err := filepath.Rel(c.target.GetLocalPath(), match)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to resolve relative path")
+			}
+			match = rel
+		}
+
+		childTargetName := fmt.Sprintf("./%s+%s", match, parsedTarget.GetName())
 
 		childTarget, err := domain.ParseTarget(childTargetName)
 		if err != nil {
@@ -1762,7 +1779,7 @@ func (c *Converter) ExpandWildcard(ctx context.Context, fullTargetName string, c
 	}
 
 	if len(children) == 0 {
-		return nil, errors.Wrapf(err, "no matching targets found for pattern %q", parsedTarget.GetLocalPath())
+		return nil, errors.Errorf("no matching targets found for pattern %q", parsedTarget.GetLocalPath())
 	}
 
 	return children, nil
