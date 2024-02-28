@@ -1704,7 +1704,6 @@ func (c *Converter) Pipeline(ctx context.Context) error {
 }
 
 func (c *Converter) ExpandWildcard(ctx context.Context, fullTargetName string, cmd spec.Command) ([]spec.Command, error) {
-
 	parsedTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return nil, err
@@ -1714,14 +1713,7 @@ func (c *Converter) ExpandWildcard(ctx context.Context, fullTargetName string, c
 		return nil, errors.New("globstar (**) pattern not yet supported")
 	}
 
-	var target domain.Target
-	if c.target.IsRemote() {
-		target = c.target
-	} else {
-		target = parsedTarget
-	}
-
-	matches, err := c.opt.Resolver.ExpandWildcard(ctx, c.opt.GwClient, c.platr, target, parsedTarget.GetLocalPath())
+	matches, err := c.opt.Resolver.ExpandWildcard(ctx, c.opt.GwClient, c.platr, c.target, parsedTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -1762,7 +1754,7 @@ func (c *Converter) ExpandWildcard(ctx context.Context, fullTargetName string, c
 	}
 
 	if len(children) == 0 {
-		return nil, errors.Wrapf(err, "no matching targets found for pattern %q", parsedTarget.GetLocalPath())
+		return nil, errors.Errorf("no matching targets found for pattern %q", parsedTarget.GetLocalPath())
 	}
 
 	return children, nil
