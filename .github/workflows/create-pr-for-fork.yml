@@ -1,0 +1,27 @@
+name: create pr for fork
+
+on:
+  pull_request_target:
+    types: [ labeled ]
+    branches: [ "main" ]
+
+jobs:
+  create-pr:
+    if: ${{ github.event.label.name == 'approved-for-tests' && github.event.pull_request.head.repo.full_name != github.repository }}
+    runs-on: "ubuntu-latest"
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+      DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
+      DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+      # Used in our github action as the token - TODO: look to change it into an input
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PR_NUMBER: ${{ github.event.number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: earthly/actions-setup@main
+      - name: Create a draft PR based on PR $PR_NUMBER
+        run: earthly --ci +open-pr-for-fork --pr_number=$PR_NUMBER

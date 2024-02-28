@@ -17,3 +17,7 @@ wildcard-remote:
 
 wildcard-remote-glob:
     BUILD github.com/earthly/test-remote/wildcard-build:fb0ebe1c6181bdfc5a7d92165f3317e85e199794+wildcard-glob
+
+wildcard-build-pwd:
+    FROM alpine
+    BUILD ./*+test
