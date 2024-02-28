@@ -85,24 +85,49 @@ func NewResolver(cleanCollection *cleanup.Collection, gitLookup *GitLookup, cons
 }
 
 // ExpandWildcard will expand a wildcard BUILD target in a local path or remote
-// Git repository. The pattern is the path relative to the target path and
-// should be in the form 'my/path/*'
-func (r *Resolver) ExpandWildcard(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, target domain.Target, pattern string) ([]string, error) {
-	var (
-		matches []string
-		err     error
-	)
+// Git repository. Local and remote targets are treated differently. For local
+// targets, we need to join the two targets in order to derive the full relative
+// path. This is then used when globbing for matches. The paths are then made
+// relative to the parent target for resolution by the caller.
+func (r *Resolver) ExpandWildcard(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, parentTarget, target domain.Target) ([]string, error) {
 
-	if target.IsRemote() {
-		matches, err = r.gr.expandWildcard(ctx, gwClient, platr, target, pattern)
-	} else {
-		matches, err = fileutil.GlobDirs(target.GetLocalPath())
+	if parentTarget.IsRemote() {
+		matches, err := r.gr.expandWildcard(ctx, gwClient, platr, parentTarget, target.GetLocalPath())
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to expand remote BUILD target path")
+		}
+		return matches, nil
 	}
+
+	// For local targets, we need to determine the full path relative to the
+	// working directory of Earthly in order to glob for matching paths. We can
+	// get this path by joining the targets. The child target will likely still
+	// include *'s (expanded below), but that shouldn't be a problem.
+	ref, err := domain.JoinReferences(parentTarget, target)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to join references")
+	}
+
+	target = ref.(domain.Target)
+
+	matches, err := fileutil.GlobDirs(target.GetLocalPath())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to expand BUILD target path")
 	}
 
-	return matches, nil
+	// Here, the relative path is reconstructed from the glob results and the
+	// parent target's path. This is done because the Earthfile resolution
+	// requires a relative target path.
+	var ret []string
+	for _, match := range matches {
+		rel, err := filepath.Rel(parentTarget.GetLocalPath(), match)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to resolve relative path")
+		}
+		ret = append(ret, rel)
+	}
+
+	return ret, nil
 }
 
 // Resolve returns resolved context data for a given Earthly reference. If the reference is a target,

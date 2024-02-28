@@ -21,3 +21,7 @@ wildcard-remote-glob:
 wildcard-build-pwd:
     FROM alpine
     BUILD ./*+test
+
+wildcard-build-rel-dir:
+    FROM alpine
+    BUILD ../../tmp/other-dir/*+test

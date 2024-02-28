@@ -610,6 +610,26 @@ wildcard-build-pwd:
     RUN cat earthly.output | acbgrep 'hello world 3'
     RUN cat earthly.output | acbgrep -v 'not-test run'
 
+wildcard-build-pwd-rel:
+    COPY wildcard-build subdir
+    COPY wildcard-build.earth subdir/Earthfile
+    DO +RUN_EARTHLY --target=./subdir+wildcard-build-pwd
+    RUN cat earthly.output | acbgrep 'hello world 1'
+    RUN cat earthly.output | acbgrep 'hello world 2'
+    RUN cat earthly.output | acbgrep 'hello world 3'
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+wildcard-build-rel-dir:
+    WORKDIR /root/some-dir
+    RUN mkdir -p /tmp/other-dir
+    COPY wildcard-build /tmp/other-dir
+
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-build-rel-dir
+    RUN cat earthly.output | acbgrep 'hello world 1'
+    RUN cat earthly.output | acbgrep 'hello world 2'
+    RUN cat earthly.output | acbgrep 'hello world 3'
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
 wildcard-build-remote:
     DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-remote
     RUN cat earthly.output | acbgrep 'hello world 1'
