@@ -869,7 +869,8 @@ merge-main-to-docs:
     ARG earthly_lib_version=2.2.2
     DO github.com/earthly/lib/ssh:$earthly_lib_version+ADD_KNOWN_HOSTS --target_file=~/.ssh/known_hosts
     RUN git config --global user.name "littleredcorvette" && \
-        git config --global user.email "littleredcorvette@users.noreply.github.com"
+        git config --global user.email "littleredcorvette@users.noreply.github.com" && \
+        git config --global url."git@github.com:".insteadOf "https://github.com/"
     GIT CLONE "$git_url" earthly
     WORKDIR earthly
     ARG git_hash=$(git rev-parse HEAD)
@@ -908,34 +909,41 @@ check-broken-links:
 
 # open-pr-for-fork creates a new PR based on the given pr_number
 open-pr-for-fork:
-    ARG git_repo="earthly/earthly"
-    ARG git_url="git@github.com:$git_repo"
     ARG earthly_lib_version=2.2.2
     DO github.com/earthly/lib/ssh:$earthly_lib_version+ADD_KNOWN_HOSTS --target_file=~/.ssh/known_hosts
     RUN git config --global user.name "littleredcorvette" && \
-        git config --global user.email "littleredcorvette@users.noreply.github.com"
-    GIT CLONE "$git_url" earthly
-    WORKDIR earthly
-    ARG git_hash=$(git rev-parse HEAD)
-    RUN --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
-        git fetch --unshallow
+        git config --global user.email "littleredcorvette@users.noreply.github.com" && \
+        git config --global url."git@github.com:".insteadOf "https://github.com/"
     ARG TARGETARCH
     # renovate: datasource=github-releases depName=cli/cli
     ARG gh_version=v2.44.1
     RUN curl -Lo ghlinux.tar.gz \
       https://github.com/cli/cli/releases/download/$gh_version/gh_${gh_version#v}_linux_${TARGETARCH}.tar.gz \
       && tar --strip-components=1 -xf ghlinux.tar.gz \
-      && rm ghlinux.tar.gz
+      && rm ghlinux.tar.gz && mv ./bin/gh /usr/local/bin/gh
+    ARG git_repo="earthly/earthly"
+    ARG git_url="git@github.com:$git_repo"
+    GIT CLONE "$git_url" earthly
+    WORKDIR earthly
+    ARG git_hash=$(git rev-parse HEAD)
+    RUN --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
+        git fetch --unshallow
     ARG --required pr_number
-    RUN git remote set-url origin git@github.com:$git_repo.git
     RUN --no-cache --mount=type=secret,id=littleredcorvette-id_rsa,mode=0400,target=/root/.ssh/id_rsa \
         --secret GH_TOKEN=littleredcorvette-github-token \
-        ./bin/gh pr checkout $pr_number --branch "test-pr-$pr_number" --repo $git_repo && \
+        gh pr checkout $pr_number --branch "test-pr-$pr_number" --repo $git_repo && \
         git merge origin/main && \
         git commit --allow-empty -m "please run the test" && \
-        git push origin HEAD && \
-        ./bin/gh pr create --title "Run tests for PR $pr_number" --draft \
-        --body "Running tests for https://github.com/$git_repo/pull/$pr_number" --repo $git_repo
+        git push -f origin HEAD
+    RUN --no-cache --secret GH_TOKEN=littleredcorvette-github-token echo $(gh pr list -H test-pr-$pr_number -B main --json number --jq '.[]|.number'|| "") > /tmp/result
+    LET test_pr=$(cat /tmp/result)
+    IF [[ -z $test_pr ]]
+        RUN --no-cache --secret GH_TOKEN=littleredcorvette-github-token \
+            gh pr create --title "Run tests for PR $pr_number" --draft \
+            --body "Running tests for https://github.com/$git_repo/pull/$pr_number" --repo $git_repo
+    ELSE
+        RUN --no-cache echo A matching test PR for PR $pr_number already exists - $test_pr
+    END
 
 check-broken-links-pr:
     FROM alpine/git
