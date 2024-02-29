@@ -92,7 +92,7 @@ GEM
     puma (6.4.2)
       nio4r (~> 2.0)
     racc (1.7.3)
-    rack (2.2.6.4)
+    rack (2.2.8.1)
     rack-test (1.1.0)
       rack (>= 1.0, < 3)
     rails (5.1.7)
