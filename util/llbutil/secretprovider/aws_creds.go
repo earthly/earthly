@@ -13,6 +13,38 @@ import (
 	"gopkg.in/ini.v1"
 )
 
+// Internal reserved credentials names used to acquire the equivalent values
+// from the environment.
+const (
+	awsAccessKey    = "aws:access_key"
+	awsSecretKey    = "aws:secret_key"
+	awsSessionToken = "aws:session_token"
+	awsRegion       = "aws:region"
+)
+
+// AWSCredentials contains the basic set of credentials that users will need to
+// use AWS tools.
+var AWSCredentials = []string{
+	awsAccessKey,
+	awsSecretKey,
+	awsSessionToken,
+	awsRegion,
+}
+
+var awsEnvNames = map[string]string{
+	awsAccessKey:    "AWS_ACCESS_KEY_ID",
+	awsSecretKey:    "AWS_SECRET_ACCESS_KEY",
+	awsSessionToken: "AWS_SESSION_TOKEN",
+	awsRegion:       "AWS_DEFAULT_REGION",
+}
+
+// AWSEnvName converts and internal AWS secret name to the equivalent official
+// environmental variable.
+func AWSEnvName(name string) (string, bool) {
+	envName, ok := awsEnvNames[name]
+	return envName, ok
+}
+
 // AWSCredentialProvider can load AWS settings from the environment.
 type AWSCredentialProvider struct {
 	mu          sync.Mutex
@@ -29,10 +61,10 @@ func NewAWSCredentialProvider() *AWSCredentialProvider {
 func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]byte, error) {
 
 	names := map[string]struct{}{
-		"AWS_ACCESS_KEY_ID":     {},
-		"AWS_SECRET_ACCESS_KEY": {},
-		"AWS_SESSION_TOKEN":     {},
-		"AWS_DEFAULT_REGION":    {},
+		awsAccessKey:    {},
+		awsSecretKey:    {},
+		awsSessionToken: {},
+		awsRegion:       {},
 	}
 
 	q, err := url.ParseQuery(name)
@@ -61,7 +93,11 @@ func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]b
 }
 
 func (c *AWSCredentialProvider) loadFromEnv(ctx context.Context, name string) (string, bool) {
-	return os.LookupEnv(name)
+	envName, ok := awsEnvNames[name]
+	if !ok {
+		return "", false
+	}
+	return os.LookupEnv(envName)
 }
 
 func (c *AWSCredentialProvider) loadFromConfig(ctx context.Context, name string) (string, bool, error) {
@@ -87,13 +123,13 @@ func (c *AWSCredentialProvider) loadFromConfig(ctx context.Context, name string)
 	}
 
 	switch name {
-	case "AWS_ACCESS_KEY_ID":
+	case awsAccessKey:
 		v, ok := iniKey(c.credsConfig, "default", "aws_access_key_id")
 		return v, ok, nil
-	case "AWS_SECRET_ACCESS_KEY":
+	case awsSecretKey:
 		v, ok := iniKey(c.credsConfig, "default", "aws_secret_access_key")
 		return v, ok, nil
-	case "AWS_DEFAULT_REGION":
+	case awsRegion:
 		v, ok := iniKey(c.config, "default", "region")
 		return v, ok, nil
 	default:

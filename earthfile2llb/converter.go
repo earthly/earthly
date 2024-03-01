@@ -34,6 +34,7 @@ import (
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
+	"github.com/earthly/earthly/util/awsutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/gitutil"
@@ -41,6 +42,7 @@ import (
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
 	"github.com/earthly/earthly/util/stringutil"
@@ -2430,33 +2432,12 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 // exists. These are then used when fetching the secrets during a build.
 func (c *Converter) detectAWSCredentials(ctx context.Context) ([]llb.RunOption, []string, error) {
 
-	homeDir, _ := fileutil.HomeDir()
-	credsPath := fmt.Sprintf("%s/.aws/credentials", homeDir)
-
-	credsFileExists := true
-	_, err := os.Stat(credsPath)
-	switch {
-	case errors.Is(err, os.ErrExist):
-		credsFileExists = false
-	case err != nil:
-		return nil, nil, errors.Wrapf(err, "failed to stat %s", credsPath)
+	credsAvail, err := awsutil.CredsAvailable()
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to check for AWS credentials")
 	}
 
-	secretNames := []string{
-		"AWS_SECRET_ACCESS_KEY",
-		"AWS_ACCESS_KEY_ID",
-	}
-
-	allEnvsSet := true
-
-	for _, name := range secretNames {
-		if _, ok := os.LookupEnv(name); !ok {
-			allEnvsSet = false
-			break
-		}
-	}
-
-	if !credsFileExists && !allEnvsSet {
+	if !credsAvail {
 		return nil, nil, errors.New("AWS credentials not found in environment or ~/.aws")
 	}
 
@@ -2465,17 +2446,18 @@ func (c *Converter) detectAWSCredentials(ctx context.Context) ([]llb.RunOption, 
 		extraEnvs = []string{}
 	)
 
-	// These may not be set in the environment.
-	secretNames = append(secretNames, []string{"AWS_SESSION_TOKEN", "AWS_DEFAULT_REGION"}...)
-
-	for _, secretName := range secretNames {
+	// Add LLB secrets for each of the typical secrets which will then be
+	// sourced from the environment during lookup.
+	for _, secretName := range secretprovider.AWSCredentials {
 		secretPath := path.Join("/run/secrets", secretName)
 		secretOpts := []llb.SecretOption{
 			llb.SecretID(c.secretID(secretName)),
 			llb.SecretFileOpt(0, 0, 0444),
 		}
 		runOpts = append(runOpts, llb.AddSecret(secretPath, secretOpts...))
-		extraEnvs = append(extraEnvs, fmt.Sprintf("%s=\"$(cat %s)\"", secretName, secretPath))
+		if envName, ok := secretprovider.AWSEnvName(secretName); ok {
+			extraEnvs = append(extraEnvs, fmt.Sprintf("%s=\"$(cat %s)\"", envName, secretPath))
+		}
 	}
 
 	return runOpts, extraEnvs, nil
