@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/earthly/earthly/util/fileutil"
 	"github.com/moby/buildkit/session/secrets"
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
@@ -68,10 +69,9 @@ func (c *AWSCredentialProvider) loadFromConfig(ctx context.Context, name string)
 	defer c.mu.Unlock()
 
 	if c.config == nil || c.credsConfig == nil {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return "", false, errors.Wrap(err, "failed to determine user home directory")
-		}
+		homeDir, _ := fileutil.HomeDir()
+
+		var err error
 
 		configFile := filepath.Join(homeDir, ".aws", "config")
 		c.config, err = ini.Load(configFile)

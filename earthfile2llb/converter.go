@@ -2433,15 +2433,11 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 // exists. These are then used when fetching the secrets during a build.
 func (c *Converter) detectAWSCredentials(ctx context.Context) ([]llb.RunOption, []string, error) {
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to determine user home directory")
-	}
-
+	homeDir, _ := fileutil.HomeDir()
 	credsPath := fmt.Sprintf("%s/.aws/credentials", homeDir)
 
 	credsFileExists := true
-	_, err = os.Stat(credsPath)
+	_, err := os.Stat(credsPath)
 	switch {
 	case errors.Is(err, os.ErrExist):
 		credsFileExists = false
