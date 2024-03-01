@@ -27,11 +27,11 @@ func NewAWSCredentialProvider() *AWSCredentialProvider {
 // GetSecret attempts to find an AWS secret from either the environment or a local config file.
 func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]byte, error) {
 
-	names := map[string]int{
-		"AWS_ACCESS_KEY_ID":     0,
-		"AWS_SECRET_ACCESS_KEY": 0,
-		"AWS_SESSION_TOKEN":     0,
-		"AWS_DEFAULT_REGION":    0,
+	names := map[string]struct{}{
+		"AWS_ACCESS_KEY_ID":     {},
+		"AWS_SECRET_ACCESS_KEY": {},
+		"AWS_SESSION_TOKEN":     {},
+		"AWS_DEFAULT_REGION":    {},
 	}
 
 	q, err := url.ParseQuery(name)
