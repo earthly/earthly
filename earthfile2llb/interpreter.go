@@ -725,6 +725,10 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		noNetwork = true
 	}
 
+	if opts.WithAWS && !i.converter.opt.Features.RunWithAWS {
+		return i.errorf(cmd.SourceLocation, "RUN --aws requires the --run-with-aws feature flag")
+	}
+
 	if i.withDocker == nil {
 		if opts.WithDocker {
 			return i.errorf(cmd.SourceLocation, "--with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")

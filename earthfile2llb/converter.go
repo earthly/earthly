@@ -2239,9 +2239,6 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 	// AWS credential import.
 	if opts.WithAWSCredentials {
-		if !c.ftrs.RunWithAWS {
-			return pllb.State{}, errors.New("RUN --aws requires the --run-with-aws feature flag")
-		}
 		awsRunOpts, awsEnvs, err := c.detectAWSCredentials(ctx)
 		if err != nil {
 			return pllb.State{}, err
