@@ -78,6 +78,7 @@ ga-no-qemu-group1:
     BUILD +wildcard-build
     BUILD +wildcard-build-remote
     BUILD +wildcard-build-pwd
+    BUILD +wildcard-build-auto-skip
 
 ga-no-qemu-group2:
     BUILD +target-first-line
@@ -609,6 +610,10 @@ wildcard-build-pwd:
     RUN cat earthly.output | acbgrep 'hello world 2'
     RUN cat earthly.output | acbgrep 'hello world 3'
     RUN cat earthly.output | acbgrep -v 'not-test run'
+
+wildcard-build-auto-skip:
+    COPY wildcard-build .
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-build-auto-skip
 
 wildcard-build-pwd-rel:
     COPY wildcard-build subdir

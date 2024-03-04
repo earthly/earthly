@@ -1749,7 +1749,7 @@ func (c *Converter) ExpandWildcard(ctx context.Context, fullTargetName string, c
 		}
 
 		cloned := cmd.Clone()
-		cloned.Args[0] = childTargetName
+		cloned.Args[len(cloned.Args)-1] = childTargetName
 		children = append(children, cloned)
 	}
 
