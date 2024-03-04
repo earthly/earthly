@@ -23,7 +23,7 @@ func CredsAvailable() (bool, error) {
 	credsFileExists := true
 	_, err := os.Stat(credsPath)
 	switch {
-	case errors.Is(err, os.ErrExist):
+	case os.IsNotExist(err):
 		credsFileExists = false
 	case err != nil:
 		return false, errors.Wrapf(err, "failed to stat %s", credsPath)

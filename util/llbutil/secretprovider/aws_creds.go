@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/earthly/earthly/util/fileutil"
@@ -35,7 +36,7 @@ var awsEnvNames = map[string]string{
 	awsAccessKey:    "AWS_ACCESS_KEY_ID",
 	awsSecretKey:    "AWS_SECRET_ACCESS_KEY",
 	awsSessionToken: "AWS_SESSION_TOKEN",
-	awsRegion:       "AWS_DEFAULT_REGION",
+	awsRegion:       "AWS_REGION",
 }
 
 // AWSEnvName converts and internal AWS secret name to the equivalent official
@@ -74,6 +75,11 @@ func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]b
 
 	secretName := q.Get("name")
 
+	// This provider only deals with secrets prefixed with "aws:".
+	if !strings.HasPrefix(secretName, "aws:") {
+		return nil, secrets.ErrNotFound
+	}
+
 	if _, ok := names[secretName]; ok {
 		if val, ok := c.loadFromEnv(ctx, secretName); ok {
 			return []byte(val), nil
@@ -89,7 +95,8 @@ func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]b
 		}
 	}
 
-	return nil, secrets.ErrNotFound
+	// Use a custom error here as not to fall back on other secret providers.
+	return nil, errors.Errorf("missing AWS credential: %s", secretName)
 }
 
 func (c *AWSCredentialProvider) loadFromEnv(ctx context.Context, name string) (string, bool) {
@@ -111,14 +118,14 @@ func (c *AWSCredentialProvider) loadFromConfig(ctx context.Context, name string)
 
 		configFile := filepath.Join(homeDir, ".aws", "config")
 		c.config, err = ini.Load(configFile)
-		if err != nil {
+		if err != nil && !os.IsNotExist(err) {
 			return "", false, errors.Wrapf(err, "failed to load %s", configFile)
 		}
 
 		credsFile := filepath.Join(homeDir, ".aws", "credentials")
 		c.credsConfig, err = ini.Load(credsFile)
-		if err != nil {
-			return "", false, errors.Wrap(err, "failed to decode credentials file")
+		if err != nil && !os.IsNotExist(err) {
+			return "", false, errors.Wrapf(err, "failed to load %s", credsFile)
 		}
 	}
 
@@ -129,6 +136,9 @@ func (c *AWSCredentialProvider) loadFromConfig(ctx context.Context, name string)
 	case awsSecretKey:
 		v, ok := iniKey(c.credsConfig, "default", "aws_secret_access_key")
 		return v, ok, nil
+	case awsSessionToken:
+		v, ok := iniKey(c.credsConfig, "default", "aws_session_token")
+		return v, ok, nil
 	case awsRegion:
 		v, ok := iniKey(c.config, "default", "region")
 		return v, ok, nil
@@ -138,6 +148,10 @@ func (c *AWSCredentialProvider) loadFromConfig(ctx context.Context, name string)
 }
 
 func iniKey(f *ini.File, section, name string) (string, bool) {
+	if f == nil {
+		return "", false
+	}
+
 	if !f.HasSection(section) {
 		return "", false
 	}

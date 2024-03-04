@@ -137,6 +137,8 @@ ga-no-qemu-group2:
     BUILD +test-cache-persist
     BUILD +test-visited-upfront-hash-collection
     BUILD +test-exec-stats
+    BUILD +test-aws-flag-envs
+    BUILD +test-aws-flag-configs
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -1477,6 +1479,31 @@ test-init-golang:
     fi
     DO +RUN_EARTHLY --target "+build"
     DO +RUN_EARTHLY --target "+test"
+
+test-aws-flag-envs:
+   ENV AWS_ACCESS_KEY_ID=aws-access-key
+   ENV AWS_SECRET_ACCESS_KEY=aws-secret-key
+   ENV AWS_SESSION_TOKEN=aws-token
+   ENV AWS_REGION=us-west-1
+   DO +RUN_EARTHLY --earthfile=aws-flag.earth --target=+basic
+   RUN cat earthly.output | acbgrep "AWS_SESSION_TOKEN=aws-token"
+   RUN cat earthly.output | acbgrep "AWS_ACCESS_KEY_ID=aws-access-key"
+   RUN cat earthly.output | acbgrep "AWS_REGION=us-west-1"
+   RUN cat earthly.output | acbgrep "AWS_SECRET_ACCESS_KEY=aws-secret-key"
+
+test-aws-flag-configs:
+   RUN mkdir -p /root/.aws
+   RUN echo "[default]
+aws_access_key_id = aws-access-key
+aws_secret_access_key = aws-secret-key
+aws_session_token = aws-token" > /root/.aws/credentials
+   RUN echo "[default]
+region = us-west-1" > /root/.aws/config
+   DO +RUN_EARTHLY --earthfile=aws-flag.earth --target=+basic
+   RUN cat earthly.output | acbgrep "AWS_SESSION_TOKEN=aws-token"
+   RUN cat earthly.output | acbgrep "AWS_ACCESS_KEY_ID=aws-access-key"
+   RUN cat earthly.output | acbgrep "AWS_REGION=us-west-1"
+   RUN cat earthly.output | acbgrep "AWS_SECRET_ACCESS_KEY=aws-secret-key"
 
 test-reserved-label:
    DO +RUN_EARTHLY \
