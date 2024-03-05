@@ -166,6 +166,8 @@ func newCacheExportOpt(ref string, max bool) client.CacheOptionsEntry {
 	registryCacheOptAttrs["ref"] = ref
 	if max {
 		registryCacheOptAttrs["mode"] = "max"
+		registryCacheOptAttrs["image-manifest"] = "true"
+		registryCacheOptAttrs["oci-mediatypes"] = "true"
 	}
 	return client.CacheOptionsEntry{
 		Type:  "registry",
