@@ -34,7 +34,6 @@ import (
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
-	"github.com/earthly/earthly/util/awsutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/gitutil"
@@ -2431,15 +2430,6 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 // detectAWSCredentials determines whether AWS envs are set and/or ~/.aws
 // exists. These are then used when fetching the secrets during a build.
 func (c *Converter) detectAWSCredentials(ctx context.Context) ([]llb.RunOption, []string, error) {
-
-	credsAvail, err := awsutil.CredsAvailable()
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to check for AWS credentials")
-	}
-
-	if !credsAvail {
-		return nil, nil, errors.New("AWS credentials not found in environment or ~/.aws")
-	}
 
 	var (
 		runOpts   = []llb.RunOption{}
