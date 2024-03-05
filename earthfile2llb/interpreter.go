@@ -1235,6 +1235,10 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 		return i.errorf(cmd.SourceLocation, "the BUILD --pass-args flag must be enabled with the VERSION --pass-args feature flag.")
 	}
 
+	if !i.converter.ftrs.BuildAutoSkip && opts.AutoSkip {
+		return i.errorf(cmd.SourceLocation, "the BUILD --auto-skip flag must be enabled with the VERSION --build-auto-skip feature flag.")
+	}
+
 	for _, buildArgs := range crossProductBuildArgs {
 		saveHashFn := func() {}
 		if opts.AutoSkip {
