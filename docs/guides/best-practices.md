@@ -232,6 +232,13 @@ WORKDIR my-proj
 RUN ls
 ```
 
+Alternatively, an optimal deep clone can be achieved by calling the `FUNCTION` [DEEP_CLONE](https://github.com/earthly/lib/blob/3.0.1/utils/git/Earthfile#L4):
+```Dockerfile
+ARG git_url="git@github.com/my-co/my-proj"
+DO github.com/earthly/lib/utils/git:3.0.1+DEEP_CLONE --GIT_URL=$git_url
+RUN ls
+```
+
 {% hint style='info' %}
 ##### Note
 The final "if you have no choice" example contains an `ARG` shell-out, which will be set to the latest git sha; this is done so that if the git repository doesn't
