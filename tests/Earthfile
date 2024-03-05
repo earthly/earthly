@@ -139,6 +139,7 @@ ga-no-qemu-group2:
     BUILD +test-exec-stats
     BUILD +test-aws-flag-envs
     BUILD +test-aws-flag-configs
+    BUILD +test-aws-flag-none
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -1504,6 +1505,9 @@ region = us-west-1" > /root/.aws/config
    RUN cat earthly.output | acbgrep "AWS_ACCESS_KEY_ID=aws-access-key"
    RUN cat earthly.output | acbgrep "AWS_REGION=us-west-1"
    RUN cat earthly.output | acbgrep "AWS_SECRET_ACCESS_KEY=aws-secret-key"
+
+test-aws-flag-none:
+   DO +RUN_EARTHLY --earthfile=aws-flag.earth --target=+basic --should_fail=true --output_contains="failed to load AWS credentials"
 
 test-reserved-label:
    DO +RUN_EARTHLY \

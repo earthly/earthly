@@ -4,14 +4,12 @@ import (
 	"context"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
-	"sync"
 
-	"github.com/earthly/earthly/util/fileutil"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/moby/buildkit/session/secrets"
 	"github.com/pkg/errors"
-	"gopkg.in/ini.v1"
 )
 
 // Internal reserved credentials names used to acquire the equivalent values
@@ -47,11 +45,7 @@ func AWSEnvName(name string) (string, bool) {
 }
 
 // AWSCredentialProvider can load AWS settings from the environment.
-type AWSCredentialProvider struct {
-	mu          sync.Mutex
-	config      *ini.File
-	credsConfig *ini.File
-}
+type AWSCredentialProvider struct{}
 
 // NewAWSCredentialProvider creates and returns a credential provider for AWS.
 func NewAWSCredentialProvider() *AWSCredentialProvider {
@@ -60,13 +54,6 @@ func NewAWSCredentialProvider() *AWSCredentialProvider {
 
 // GetSecret attempts to find an AWS secret from either the environment or a local config file.
 func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]byte, error) {
-
-	names := map[string]struct{}{
-		awsAccessKey:    {},
-		awsSecretKey:    {},
-		awsSessionToken: {},
-		awsRegion:       {},
-	}
 
 	q, err := url.ParseQuery(name)
 	if err != nil {
@@ -80,87 +67,45 @@ func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]b
 		return nil, secrets.ErrNotFound
 	}
 
-	if _, ok := names[secretName]; ok {
-		if val, ok := c.loadFromEnv(ctx, secretName); ok {
-			return []byte(val), nil
-		}
+	// By default, the AWS config loader will attempt to query for EC2 instance
+	// metadata which can be used to store some config details. Unfortunately
+	// this can only be set as an environmental variable.
+	os.Setenv("AWS_EC2_METADATA_DISABLED", "true")
 
-		val, ok, err := c.loadFromConfig(ctx, secretName)
-		if err != nil {
-			return nil, err
-		}
-
-		if ok {
-			return []byte(val), nil
-		}
+	// Note: results of this call are cached.
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithDefaultsMode(aws.DefaultsModeStandard))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load AWS config")
 	}
 
-	// Use a custom error here as not to fall back on other secret providers.
-	return nil, errors.Errorf("AWS setting %s not found in environmental variables or ~/.aws", secretName)
-}
-
-func (c *AWSCredentialProvider) loadFromEnv(ctx context.Context, name string) (string, bool) {
-	envName, ok := awsEnvNames[name]
-	if !ok {
-		return "", false
-	}
-	return os.LookupEnv(envName)
-}
-
-func (c *AWSCredentialProvider) loadFromConfig(ctx context.Context, name string) (string, bool, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.config == nil || c.credsConfig == nil {
-		homeDir, _ := fileutil.HomeDir()
-
-		var err error
-
-		configFile := filepath.Join(homeDir, ".aws", "config")
-		c.config, err = ini.Load(configFile)
-		if err != nil && !os.IsNotExist(err) {
-			return "", false, errors.Wrapf(err, "failed to load %s", configFile)
+	creds, err := cfg.Credentials.Retrieve(ctx)
+	if err != nil {
+		// Suppress verbose warning about the EC2 metadata feature being disabled.
+		if strings.Contains(err.Error(), "AWS_EC2_METADATA_DISABLED") {
+			return nil, errors.New("failed to load AWS credentials from environment")
 		}
-
-		credsFile := filepath.Join(homeDir, ".aws", "credentials")
-		c.credsConfig, err = ini.Load(credsFile)
-		if err != nil && !os.IsNotExist(err) {
-			return "", false, errors.Wrapf(err, "failed to load %s", credsFile)
-		}
+		return nil, errors.Wrap(err, "failed to load AWS credentials")
 	}
 
-	switch name {
+	var val string
+
+	switch secretName {
 	case awsAccessKey:
-		v, ok := iniKey(c.credsConfig, "default", "aws_access_key_id")
-		return v, ok, nil
+		val = creds.AccessKeyID
 	case awsSecretKey:
-		v, ok := iniKey(c.credsConfig, "default", "aws_secret_access_key")
-		return v, ok, nil
+		val = creds.SecretAccessKey
 	case awsSessionToken:
-		v, ok := iniKey(c.credsConfig, "default", "aws_session_token")
-		return v, ok, nil
+		val = creds.SessionToken
 	case awsRegion:
-		v, ok := iniKey(c.config, "default", "region")
-		return v, ok, nil
+		val = cfg.Region
 	default:
-		return "", false, nil
-	}
-}
-
-func iniKey(f *ini.File, section, name string) (string, bool) {
-	if f == nil {
-		return "", false
+		return nil, errors.Errorf("unexpected secret: %s", secretName)
 	}
 
-	if !f.HasSection(section) {
-		return "", false
+	if val == "" {
+		// Use a custom error here as not to fall back on other secret providers.
+		return nil, errors.Errorf("AWS setting %s not found in environmental variables or ~/.aws", secretName)
 	}
 
-	s := f.Section(section)
-
-	if !s.HasKey(name) {
-		return "", false
-	}
-
-	return s.Key(name).Value(), true
+	return []byte(val), nil
 }
