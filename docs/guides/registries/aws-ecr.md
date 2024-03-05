@@ -69,7 +69,7 @@ Additional [examples](https://docs.aws.amazon.com/AmazonECR/latest/userguide/rep
 
 ## Run the Target
 
-With the helper installed, no special commands or flags are required. To build and push an image, simply execute the build target. **Don't forget the `--push` flag**!
+With the helper installed, no special commands or flags are required. To build and push an image, simply execute the build target with the `--push` flag.
 
 ```
 ❯ earthly --push +build
