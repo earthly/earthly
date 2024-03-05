@@ -2240,7 +2240,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 	// AWS credential import.
 	if opts.WithAWSCredentials {
-		awsRunOpts, awsEnvs, err := c.detectAWSCredentials(ctx)
+		awsRunOpts, awsEnvs, err := c.awsSecrets(ctx)
 		if err != nil {
 			return pllb.State{}, err
 		}
@@ -2427,9 +2427,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 }
 
-// detectAWSCredentials determines whether AWS envs are set and/or ~/.aws
-// exists. These are then used when fetching the secrets during a build.
-func (c *Converter) detectAWSCredentials(ctx context.Context) ([]llb.RunOption, []string, error) {
+func (c *Converter) awsSecrets(ctx context.Context) ([]llb.RunOption, []string, error) {
 
 	var (
 		runOpts   = []llb.RunOption{}

@@ -20,7 +20,6 @@ import (
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/internal/version"
-	"github.com/earthly/earthly/util/awsutil"
 	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
@@ -726,19 +725,8 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		noNetwork = true
 	}
 
-	if opts.WithAWS {
-		if !i.converter.opt.Features.RunWithAWS {
-			return i.errorf(cmd.SourceLocation, "RUN --aws requires the --run-with-aws feature flag")
-		}
-
-		credsAvail, err := awsutil.CredsAvailable()
-		if err != nil {
-			return i.wrapError(err, cmd.SourceLocation, "failed to check for AWS credentials")
-		}
-
-		if !credsAvail {
-			return i.wrapError(err, cmd.SourceLocation, "AWS credentials not found in environment or ~/.aws")
-		}
+	if opts.WithAWS && !i.converter.opt.Features.RunWithAWS {
+		return i.errorf(cmd.SourceLocation, "RUN --aws requires the --run-with-aws feature flag")
 	}
 
 	if i.withDocker == nil {

@@ -96,7 +96,7 @@ func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]b
 	}
 
 	// Use a custom error here as not to fall back on other secret providers.
-	return nil, errors.Errorf("missing AWS credential: %s", secretName)
+	return nil, errors.Errorf("AWS setting %s not found in environmental variables or ~/.aws", secretName)
 }
 
 func (c *AWSCredentialProvider) loadFromEnv(ctx context.Context, name string) (string, bool) {
