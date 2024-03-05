@@ -3,7 +3,6 @@ package secretprovider
 import (
 	"context"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -67,11 +66,6 @@ func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]b
 		return nil, secrets.ErrNotFound
 	}
 
-	// By default, the AWS config loader will attempt to query for EC2 instance
-	// metadata which can be used to store some config details. Unfortunately
-	// this can only be set as an environmental variable.
-	os.Setenv("AWS_EC2_METADATA_DISABLED", "true")
-
 	// Note: results of this call are cached.
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithDefaultsMode(aws.DefaultsModeStandard))
 	if err != nil {
@@ -80,10 +74,6 @@ func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]b
 
 	creds, err := cfg.Credentials.Retrieve(ctx)
 	if err != nil {
-		// Suppress verbose warning about the EC2 metadata feature being disabled.
-		if strings.Contains(err.Error(), "AWS_EC2_METADATA_DISABLED") {
-			return nil, errors.New("failed to load AWS credentials from environment")
-		}
 		return nil, errors.Wrap(err, "failed to load AWS credentials")
 	}
 
@@ -104,7 +94,7 @@ func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]b
 
 	if val == "" {
 		// Use a custom error here as not to fall back on other secret providers.
-		return nil, errors.Errorf("AWS setting %s not found in environmental variables or ~/.aws", secretName)
+		return nil, errors.Errorf("AWS setting %s not found in environment", secretName)
 	}
 
 	return []byte(val), nil
