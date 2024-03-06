@@ -189,6 +189,7 @@ ga-no-qemu-group4:
     BUILD +test-ssh-command-config-via-git-clone-earthfile-command
     BUILD --pass-args ./propagate-args-to-base+test-all
     BUILD --pass-args ./pass-args-default+test
+    BUILD --pass-args ./pass-args-no-builtins+test
     BUILD --pass-args ./pass-args-global+test
     BUILD --pass-args ./pass-args-default-via-function+test
     BUILD --pass-args ./pass-args-global-via-function+test
