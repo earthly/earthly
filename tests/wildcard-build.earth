@@ -1,4 +1,4 @@
-VERSION --wildcard-builds 0.8
+VERSION --wildcard-builds --build-auto-skip 0.8
 
 FROM alpine
 
