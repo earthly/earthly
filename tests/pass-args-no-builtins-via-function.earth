@@ -1,0 +1,14 @@
+VERSION 0.8
+ARG --global EARTHLY_VERSION
+
+MY_FUNC:
+    FUNCTION
+    RUN test -n "$EARTHLY_VERSION" && echo TVlfRlVOQyBJUyBPSwo= | base64 -d
+
+intermediate:
+    FROM alpine:3.18
+    DO --pass-args +MY_FUNC
+
+test:
+    FROM alpine:3.18
+    BUILD --pass-args +intermediate
