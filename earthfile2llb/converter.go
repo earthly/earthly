@@ -41,6 +41,7 @@ import (
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/llbutil/pllb"
+	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
 	"github.com/earthly/earthly/util/stringutil"
@@ -643,6 +644,7 @@ type ConvertRunOpts struct {
 	Interactive          bool
 	InteractiveKeep      bool
 	InteractiveSaveFiles []debuggercommon.SaveFilesSettings
+	WithAWSCredentials   bool
 
 	// Internal.
 	shellWrap    shellWrapFun
@@ -2236,6 +2238,15 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 			extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=\"$(cat %s)\"", envVar, secretPath))
 		}
 	}
+	// AWS credential import.
+	if opts.WithAWSCredentials {
+		awsRunOpts, awsEnvs, err := c.awsSecrets(ctx)
+		if err != nil {
+			return pllb.State{}, err
+		}
+		runOpts = append(runOpts, awsRunOpts...)
+		extraEnvVars = append(extraEnvVars, awsEnvs...)
+	}
 	if !opts.Locally {
 		// Debugger.
 		err := c.opt.LLBCaps.Supports(solverpb.CapExecMountSock)
@@ -2414,6 +2425,30 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 
 		return c.mts.Final.MainState, nil
 	}
+}
+
+func (c *Converter) awsSecrets(ctx context.Context) ([]llb.RunOption, []string, error) {
+
+	var (
+		runOpts   = []llb.RunOption{}
+		extraEnvs = []string{}
+	)
+
+	// Add LLB secrets for each of the typical secrets which will then be
+	// sourced from the environment during lookup.
+	for _, secretName := range secretprovider.AWSCredentials {
+		secretPath := path.Join("/run/secrets", secretName)
+		secretOpts := []llb.SecretOption{
+			llb.SecretID(c.secretID(secretName)),
+			llb.SecretFileOpt(0, 0, 0444),
+		}
+		runOpts = append(runOpts, llb.AddSecret(secretPath, secretOpts...))
+		if envName, ok := secretprovider.AWSEnvName(secretName); ok {
+			extraEnvs = append(extraEnvs, fmt.Sprintf("%s=\"$(cat %s)\"", envName, secretPath))
+		}
+	}
+
+	return runOpts, extraEnvs, nil
 }
 
 // secretID returns query parameter style string that contains the secret

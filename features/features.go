@@ -73,6 +73,7 @@ type Features struct {
 	WildcardBuilds                bool `long:"wildcard-builds" description:"allow for the expansion of wildcard (glob) paths for BUILD commands"`
 	BuildAutoSkip                 bool `long:"build-auto-skip" description:"allow for --auto-skip to be used on individual BUILD commands"`
 	AllowPrivilegedFromDockerfile bool `long:"allow-privileged-from-dockerfile" description:"Allow the use of the --allow-privileged flag in the FROM DOCKERFILE command"`
+	RunWithAWS                    bool `long:"run-with-aws" description:"make AWS credentials in the environment or ~/.aws available to RUN commands"`
 
 	Major int
 	Minor int
