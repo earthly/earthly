@@ -1805,6 +1805,7 @@ func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, ba
 	}
 	if passArgs {
 		overriding = variables.CombineScopesInactive(overriding, c.varCollection.Overriding(), c.varCollection.Args(), c.varCollection.Globals())
+		overriding = variables.RemoveReservedArgsFromScope(overriding)
 	}
 	c.varCollection.EnterFrame(
 		scopeName, command, overriding, baseMts.Final.VarCollection.Globals(),
@@ -2000,6 +2001,7 @@ func (c *Converter) prepOverridingVars(ctx context.Context, relTarget domain.Tar
 	propagateBuildArgs := !relTarget.IsExternal()
 	if passArgs {
 		overriding = variables.CombineScopes(overriding, c.varCollection.Overriding(), c.varCollection.Args(), c.varCollection.Globals())
+		overriding = variables.RemoveReservedArgsFromScope(overriding)
 	} else if propagateBuildArgs {
 		overriding = variables.CombineScopes(overriding, c.varCollection.Overriding())
 	}
