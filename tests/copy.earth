@@ -226,5 +226,13 @@ copy-empty-src-if-exists:
 copy-if-exists-wildcard:
     COPY --if-exists non_existing_folder/* /
 
+copy-if-exists-wildcard-exists-empty:
+    COPY --if-exists existing_folder/* .
+    RUN ! test -f foo
+
+copy-if-exists-wildcard-exists:
+    COPY --if-exists existing_folder/* .
+    RUN test -f foo
+
 copy-wildcard:
     COPY --if-exists prefix-* /
