@@ -30,13 +30,13 @@ func CopyOp(ctx context.Context, srcState pllb.State, srcs []string, destState p
 		baseCopyOpts = append(baseCopyOpts, llb.WithCreatedTime(*defaultTs()))
 	}
 	for _, src := range srcs {
-		// HACK: For COPY --if-exists, we can use a glob expression (e.g., '[f]oo') to
-		// prevent errors caused by non-existing files. This approach also works
-		// with additional wildcards (e.g., '[f]oo/*').
 		if ifExists && len(src) != 0 {
 			// Strip ./ and / prefixes as to make paths relative to top-level.
 			src = strings.TrimPrefix(src, "./")
 			src = strings.TrimPrefix(src, "/")
+			// HACK: For COPY --if-exists, we can use a glob expression (e.g., '[f]oo') to
+			// prevent errors caused by non-existing files. This approach also works
+			// with additional wildcards (e.g., '[f]oo/*').
 			src = fmt.Sprintf("[%s]%s", string(src[0]), string(src[1:]))
 		}
 		copyOpts := append([]llb.CopyOption{
