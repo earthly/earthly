@@ -261,7 +261,7 @@ copy-test-wildcard:
     DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-wildcard
 
 copy-test-if-exists-wildcard:
-    #DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-if-exists-wildcard
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-if-exists-wildcard
 
     RUN mkdir existing_folder
     DO +RUN_EARTHLY --earthfile=copy.earth --target="+copy-if-exists-wildcard-exists-empty"
