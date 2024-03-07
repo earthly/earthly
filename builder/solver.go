@@ -2,7 +2,9 @@ package builder
 
 import (
 	"context"
+	"golang.org/x/exp/maps"
 	"io"
+	"strings"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
@@ -163,11 +165,11 @@ func newCacheImportOpt(ref string) client.CacheOptionsEntry {
 
 func newCacheExportOpt(ref string, max bool) client.CacheOptionsEntry {
 	registryCacheOptAttrs := make(map[string]string)
-	registryCacheOptAttrs["ref"] = ref
+	imageName, attrs, _ := parseImageNameAndAttrs(ref)
+	registryCacheOptAttrs["ref"] = imageName
+	maps.Copy(registryCacheOptAttrs, attrs)
 	if max {
 		registryCacheOptAttrs["mode"] = "max"
-		registryCacheOptAttrs["image-manifest"] = "true"
-		registryCacheOptAttrs["oci-mediatypes"] = "true"
 	}
 	return client.CacheOptionsEntry{
 		Type:  "registry",
@@ -179,4 +181,19 @@ func newInlineCacheOpt() client.CacheOptionsEntry {
 	return client.CacheOptionsEntry{
 		Type: "inline",
 	}
+}
+
+func parseImageNameAndAttrs(s string) (string, map[string]string, error) {
+	entries := strings.Split(s, ",")
+	imageName := entries[0]
+	attrs := make(map[string]string)
+	var err error
+	for _, entry := range entries[1:] {
+		pair := strings.Split(strings.TrimSpace(entry), "=")
+		if len(pair) != 2 {
+			err = errors.New("Export attributes couldn't be parsed")
+		}
+		attrs[pair[0]] = pair[1]
+	}
+	return imageName, attrs, err
 }
