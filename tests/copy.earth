@@ -222,3 +222,9 @@ copy-empty-src:
 copy-empty-src-if-exists:
     ARG SRC=""
     COPY --if-exists $SRC $SRC
+
+copy-if-exists-wildcard:
+    COPY --if-exists non_existing_folder/* /
+
+copy-wildcard:
+    COPY --if-exists prefix-* /

@@ -32,6 +32,7 @@ ga-no-qemu-group1:
     BUILD +copy-tilde-test
     BUILD +copy-keep-own-test
     BUILD +copy-test-empty-src
+    BUILD +copy-test-if-exists-wildcard
     BUILD +git-clone-test
     BUILD +builtin-args-invalid-default-test
     BUILD +builtin-args-invalid-pass-test
@@ -255,6 +256,19 @@ copy-test-empty-src:
     # Regression tests for 'COPY --if-exists "" <dst>' (empty string)
     DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-empty-src
     DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-empty-src-if-exists
+
+copy-test-wildcard:
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-wildcard
+
+copy-test-if-exists-wildcard:
+    # Regression test for 'COPY --if-exists non_existent_folder/* /'
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-if-exists-wildcard
+
+    RUN mkdir non_existent_folder
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-if-exists-wildcard
+
+    RUN touch non_existent_folder/foo
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-if-exists-wildcard
 
 copy-test-verbose-output:
     RUN mkdir -p subdir/a.txt && \
