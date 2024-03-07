@@ -7,6 +7,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Fixed
 
 - Fixes an issue where wildcard `BUILD`'s are invoked from a relative directory (e.g., an `Earthfile` containing `BUILD ./*+test` invoked with `earthly ./rel-dir+target`). [#3840](https://github.com/earthly/earthly/issues/3840)
+- `--pass-args` will no longer pass builtin args, which would result in `value cannot be specified for built-in build arge errors. [#3775](https://github.com/earthly/earthly/issues/3775)
 
 ## v0.8.4 - 2024-02-21
 
