@@ -2,8 +2,8 @@ package builder
 
 import (
 	"context"
-	"golang.org/x/exp/maps"
 	"io"
+	"maps"
 	"strings"
 
 	"github.com/earthly/earthly/conslogging"
