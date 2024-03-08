@@ -133,6 +133,7 @@ ga-no-qemu-group2:
     BUILD +test-init-golang
     BUILD +pass-args-test
     BUILD +pass-args-defaults-test
+    BUILD +pass-args-no-builtins-via-function-test
     BUILD +test-reserved-label
     BUILD +test-cache-mount-mode
     BUILD +test-cache-mode
@@ -191,6 +192,7 @@ ga-no-qemu-group4:
     BUILD +test-ssh-command-config-via-git-clone-earthfile-command
     BUILD --pass-args ./propagate-args-to-base+test-all
     BUILD --pass-args ./pass-args-default+test
+    BUILD --pass-args ./pass-args-no-builtins+test
     BUILD --pass-args ./pass-args-global+test
     BUILD --pass-args ./pass-args-default-via-function+test
     BUILD --pass-args ./pass-args-global-via-function+test
@@ -583,6 +585,9 @@ pass-args-defaults-test:
     # test arg can still be overridden from the cli
     RUN sed -i 's/hello/hellofromcli/g' Earthfile
     DO +RUN_EARTHLY --extra_args="--build-arg foo=hellofromcli"
+
+pass-args-no-builtins-via-function-test:
+    DO +RUN_EARTHLY --earthfile=pass-args-no-builtins-via-function.earth --target=+test --output_contains="MY_FUNC IS OK"
 
 required-arg-test:
     # test that build arg is required
