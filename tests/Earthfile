@@ -32,6 +32,8 @@ ga-no-qemu-group1:
     BUILD +copy-tilde-test
     BUILD +copy-keep-own-test
     BUILD +copy-test-empty-src
+    BUILD +copy-test-if-exists-wildcard
+    BUILD +copy-test-wildcard
     BUILD +git-clone-test
     BUILD +builtin-args-invalid-default-test
     BUILD +builtin-args-invalid-pass-test
@@ -252,9 +254,20 @@ copy-test:
     DO +RUN_EARTHLY --earthfile=copy.earth --output_does_not_contain="which does not expand to a home directory"
 
 copy-test-empty-src:
-    # Regression tests for 'COPY --if-exists "" <dst>' (empty string)
     DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-empty-src
     DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-empty-src-if-exists
+
+copy-test-wildcard:
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-wildcard
+
+copy-test-if-exists-wildcard:
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-if-exists-wildcard
+
+    RUN mkdir existing_folder
+    DO +RUN_EARTHLY --earthfile=copy.earth --target="+copy-if-exists-wildcard-exists-empty"
+
+    RUN touch existing_folder/foo
+    DO +RUN_EARTHLY --earthfile=copy.earth --target="+copy-if-exists-wildcard-exists"
 
 copy-test-verbose-output:
     RUN mkdir -p subdir/a.txt && \
