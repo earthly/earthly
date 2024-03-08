@@ -19,7 +19,6 @@
     'buildcontext/**',
     'tests/**',
     'ast/tests/**',
-    'Earthfile',
   ],
   ignorePaths: [
     "**/node_modules/**",
@@ -71,18 +70,9 @@
     },
     {
       customType: 'regex',
-      fileMatch: [
-        'Earthfile',
-      ],
-      matchStrings: [
-        'datasource=(?<datasource>.*?) depName=(?<depName>.*?)[\\s\\n]+ARG .*?_version=(?<currentValue>.*)[\\n\\s]+',
-      ]
-    },
-    {
-      customType: 'regex',
       fileMatch: ['^Earthfile$'],
       matchStrings: [
-        '\\s*#\\s*renovate:\\s*datasource=(?<datasource>.*?)\\s+depName=(?<depName>.*?)[\\s\\n]+(versioning=(?<versioning>.*?)\\s+)?ARG\\s+.*?(_VERSION|_VER)=(?<currentValue>.*)($|\\s|\\n)',
+        '\\s*#\\s*renovate:\\s*datasource=(?<datasource>.*?)\\s+depName=(?<depName>.*?)[\\s\\n]+(versioning=(?<versioning>.*?)\\s+)?ARG\\s+.*?(_VERSION|_VER|version)=(?<currentValue>.*?)($|\\s|\\n)',
       ],
     },
     {
