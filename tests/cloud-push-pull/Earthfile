@@ -74,18 +74,8 @@ azure-container-registry:
     --mount=type=tmpfs,target=/tmp/earthly \
     -- -P +pull
 
-aws-ecr-get-login-password:
-    FROM amazon/aws-cli:2.15.26
-    ARG --required AWS_REGION
-    RUN --secret AWS_ACCESS_KEY_ID=aws/ci-cd-access-key \
-        --secret AWS_SECRET_ACCESS_KEY=aws/ci-cd-access-secret \
-        --secret ACCT_ID=aws/account-id \
-        --no-cache \
-        aws ecr get-login-password > aws-ecr-password
-    SAVE ARTIFACT aws-ecr-password
-
 amazon-elastic-container-registry:
-    RUN apk add go
+    RUN apk add go aws-cli
     RUN go install github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login@latest
 
     COPY amazon-elastic-container-registry.earth ./Earthfile
@@ -98,13 +88,12 @@ amazon-elastic-container-registry:
     #    echo "{\"credHelpers\":{\"$ACCT_ID.dkr.ecr.us-west-2.amazonaws.com\": \"ecr-login\"}}" > /root/.docker/config.json
 
 
-    COPY (+aws-ecr-get-login-password/aws-ecr-password --AWS_REGION=$AWS_REGION) /root/aws-ecr-password
     # Do a manual login, since the credential helper doesn't work with a pull-through cache.
     RUN --secret AWS_ACCESS_KEY_ID=aws/ci-cd-access-key \
         --secret AWS_SECRET_ACCESS_KEY=aws/ci-cd-access-secret \
         --secret ACCT_ID=aws/account-id \
         --privileged \
-        cat /root/aws-ecr-password | docker login --username AWS --password-stdin 404851345508.dkr.ecr.us-west-2.amazonaws.com
+        aws ecr get-login-password | docker login --username AWS --password-stdin 404851345508.dkr.ecr.us-west-2.amazonaws.com
 
     # Pass through Account ID this way to avoid checking it into GitHub;
     # its not strictly secret this way but its secret enough
