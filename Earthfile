@@ -650,7 +650,11 @@ all-buildkitd:
         ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
 dind-alpine:
-    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=alpine --OS_VERSION=3.19 --DOCKER_VERSION=25.0.3-r1
+    # renovate: datasource=repology depName=alpine_3_19/docker versioning=loose
+    ARG DOCKER_VERSION=25.0.3-r1
+    # renovate: datasource=docker depName=alpine
+    ARG OS_VERSION=3.19
+    BUILD +dind --OS_IMAGE=alpine --OS_VERSION=$OS_VERSION --DOCKER_VERSION=$DOCKER_VERSION
 
 dind-ubuntu-20.04:
     DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal
