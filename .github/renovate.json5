@@ -109,6 +109,8 @@
       automerge: true,
     },
     {
+     // Point earthly/earthly updates in docs to docs-0.8 branch by:
+     // 1. disable all PRs targeting docs-0.8 for all packages except earthly/earthly
       matchBaseBranches: [
         'docs-0.8',
       ],
@@ -118,6 +120,7 @@
       enabled: false,
     },
     {
+      // 2. disable PRs targeting main for earthly/earthly
       matchBaseBranches: [
         'main',
       ],
@@ -126,6 +129,7 @@
       ],
       enabled: false,
     },
+    // group all alpine/git updates across the repo to one PR and schedule it to once a month
     {
       groupName: 'alpine/git',
       matchPackageNames: [
@@ -135,6 +139,7 @@
         'every month',
       ],
     },
+    // disable any docker dependencies that are not alpine/git (temporary until we add other dependencies)
     {
       matchManagers: [
         'dockerfile',
@@ -144,6 +149,7 @@
       ],
       enabled: false,
     },
+    // set the group name for alpine dind dependencies in the root Earthfile
     {
       groupName: '{{{depName}}}-for-alpine-dind-image',
       matchPackagePatterns: [
