@@ -74,42 +74,10 @@ azure-container-registry:
     --mount=type=tmpfs,target=/tmp/earthly \
     -- -P +pull
 
-amazon-base:
-    ENV GLIBC_VER=2.31-r0
-
-    # install glibc compatibility for alpine
-    RUN apk --no-cache add \
-        binutils \
-        curl \
-    && curl -sL https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub -o /etc/apk/keys/sgerrand.rsa.pub \
-    && curl -sLO https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VER}/glibc-${GLIBC_VER}.apk \
-    && curl -sLO https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VER}/glibc-bin-${GLIBC_VER}.apk \
-    && apk add --no-cache --force-overwrite \
-        glibc-${GLIBC_VER}.apk \
-        glibc-bin-${GLIBC_VER}.apk \
-    && curl -sL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip \
-    && unzip awscliv2.zip \
-    && aws/install \
-    && rm -rf \
-        awscliv2.zip \
-        aws \
-        /usr/local/aws-cli/v2/*/dist/aws_completer \
-        /usr/local/aws-cli/v2/*/dist/awscli/data/ac.index \
-        /usr/local/aws-cli/v2/*/dist/awscli/examples \
-    && apk --no-cache del \
-        binutils \
-        curl \
-    && rm glibc-${GLIBC_VER}.apk \
-    && rm glibc-bin-${GLIBC_VER}.apk \
-    && rm -rf /var/cache/apk/*
-
-    RUN apk add go
+amazon-elastic-container-registry:
+    RUN apk add go aws-cli
     RUN go install github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login@latest
 
-    ENV PATH $PATH:/root/go/bin
-
-amazon-elastic-container-registry:
-    FROM +amazon-base
     COPY amazon-elastic-container-registry.earth ./Earthfile
 
     ENV AWS_REGION us-west-2
@@ -125,7 +93,7 @@ amazon-elastic-container-registry:
         --secret AWS_SECRET_ACCESS_KEY=aws/ci-cd-access-secret \
         --secret ACCT_ID=aws/account-id \
         --privileged \
-        -- aws ecr get-login-password | docker login --username AWS --password-stdin 404851345508.dkr.ecr.us-west-2.amazonaws.com
+        aws ecr get-login-password | docker login --username AWS --password-stdin 404851345508.dkr.ecr.us-west-2.amazonaws.com
 
     # Pass through Account ID this way to avoid checking it into GitHub;
     # its not strictly secret this way but its secret enough
