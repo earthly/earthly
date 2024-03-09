@@ -500,21 +500,28 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	}
 
 	cacheImports := make([]string, 0)
+	var cacheImportImageName string
 	if a.cli.Flags().RemoteCache != "" {
-		cacheImports = append(cacheImports, a.cli.Flags().RemoteCache)
+		cacheImportImageName, _, err = a.parseImageNameAndAttrs(a.cli.Flags().RemoteCache)
+		cacheImports = append(cacheImports, cacheImportImageName)
 	}
 	if len(a.cacheFrom.Value()) > 0 {
 		cacheImports = append(cacheImports, a.cacheFrom.Value()...)
 	}
 	var cacheExport string
 	var maxCacheExport string
+	var cacheExportAttrs map[string]string
 	if a.cli.Flags().RemoteCache != "" && a.cli.Flags().Push {
 		if a.cli.Flags().MaxRemoteCache {
-			maxCacheExport = a.cli.Flags().RemoteCache
+			maxCacheExport, cacheExportAttrs, err = a.parseImageNameAndAttrs(a.cli.Flags().RemoteCache)
 		} else {
-			cacheExport = a.cli.Flags().RemoteCache
+			cacheExport, cacheExportAttrs, err = a.parseImageNameAndAttrs(a.cli.Flags().RemoteCache)
 		}
 	}
+	if err != nil {
+		return errors.Wrap(err, "parsing error")
+	}
+
 	if a.cli.Cfg().Global.ConversionParallelism <= 0 {
 		return fmt.Errorf("configuration error: \"conversion_parallelism\" must be larger than zero")
 	}
@@ -548,6 +555,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		CacheImports:                          states.NewCacheImports(cacheImports),
 		CacheExport:                           cacheExport,
 		MaxCacheExport:                        maxCacheExport,
+		CacheExportAttributes:                 cacheExportAttrs,
 		UseInlineCache:                        a.cli.Flags().UseInlineCache,
 		SaveInlineCache:                       a.cli.Flags().SaveInlineCache,
 		ImageResolveMode:                      imageResolveMode,
@@ -1076,4 +1084,19 @@ func (a *Build) actionDockerBuild(cliCtx *cli.Context) error {
 
 	nonFlagArgs = []string{tempDir + "+build"}
 	return a.ActionBuildImp(cliCtx, flagArgs, nonFlagArgs)
+}
+
+func (a *Build) parseImageNameAndAttrs(s string) (string, map[string]string, error) {
+	entries := strings.Split(s, ",")
+	imageName := entries[0]
+	attrs := make(map[string]string)
+	var err error
+	for _, entry := range entries[1:] {
+		pair := strings.Split(strings.TrimSpace(entry), "=")
+		if len(pair) != 2 {
+			return "", attrs, errors.Errorf("failed to parse export attribute: expected a key=value pair while parsing %q", entry)
+		}
+		attrs[strings.TrimSpace(pair[0])] = strings.TrimSpace(pair[1])
+	}
+	return imageName, attrs, err
 }

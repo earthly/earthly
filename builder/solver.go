@@ -3,7 +3,7 @@ package builder
 import (
 	"context"
 	"io"
-	"strings"
+	"maps"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
@@ -32,16 +32,17 @@ type onArtifactFunc func(context.Context, string, domain.Artifact, string, strin
 type onFinalArtifactFunc func(context.Context) (string, error)
 
 type solver struct {
-	sm              *outmon.SolverMonitor
-	logbusSM        *solvermon.SolverMonitor
-	useLogstream    bool
-	bkClient        *client.Client
-	attachables     []session.Attachable
-	enttlmnts       []entitlements.Entitlement
-	cacheImports    *states.CacheImports
-	cacheExport     string
-	maxCacheExport  string
-	saveInlineCache bool
+	sm               *outmon.SolverMonitor
+	logbusSM         *solvermon.SolverMonitor
+	useLogstream     bool
+	bkClient         *client.Client
+	attachables      []session.Attachable
+	enttlmnts        []entitlements.Entitlement
+	cacheImports     *states.CacheImports
+	cacheExport      string
+	maxCacheExport   string
+	cacheExportAttrs map[string]string
+	saveInlineCache  bool
 }
 
 func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback pullping.PullCallback, phaseText string, console conslogging.ConsoleLogger) error {
@@ -95,26 +96,14 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback pullping.PullCallback, console conslogging.ConsoleLogger) (*client.SolveOpt, error) {
 	var cacheImports []client.CacheOptionsEntry
 	for _, ci := range s.cacheImports.AsSlice() {
-		cacheImportName, _, err := parseImageNameAndAttrs(ci)
-		if err != nil {
-			return nil, errors.Wrapf(err, "parse cache import %s", ci)
-		}
-		cacheImports = append(cacheImports, newCacheImportOpt(cacheImportName))
+		cacheImports = append(cacheImports, newCacheImportOpt(ci))
 	}
 	var cacheExports []client.CacheOptionsEntry
 	if s.cacheExport != "" {
-		cacheExportName, attrs, err := parseImageNameAndAttrs(s.cacheExport)
-		if err != nil {
-			return nil, errors.Wrapf(err, "parse cache export %s", s.cacheExport)
-		}
-		cacheExports = append(cacheExports, newCacheExportOpt(cacheExportName, attrs, false))
+		cacheExports = append(cacheExports, newCacheExportOpt(s.cacheExport, s.cacheExportAttrs, false))
 	}
 	if s.maxCacheExport != "" {
-		maxCacheExportName, attrs, err := parseImageNameAndAttrs(s.maxCacheExport)
-		if err != nil {
-			return nil, errors.Wrapf(err, "parse max cache export %s", s.maxCacheExport)
-		}
-		cacheExports = append(cacheExports, newCacheExportOpt(maxCacheExportName, attrs, true))
+		cacheExports = append(cacheExports, newCacheExportOpt(s.maxCacheExport, s.cacheExportAttrs, true))
 	}
 	if s.saveInlineCache {
 		cacheExports = append(cacheExports, newInlineCacheOpt())
@@ -174,8 +163,10 @@ func newCacheImportOpt(ref string) client.CacheOptionsEntry {
 	}
 }
 
-func newCacheExportOpt(ref string, registryCacheOptAttrs map[string]string, max bool) client.CacheOptionsEntry {
+func newCacheExportOpt(ref string, attrs map[string]string, max bool) client.CacheOptionsEntry {
+	registryCacheOptAttrs := make(map[string]string)
 	registryCacheOptAttrs["ref"] = ref
+	maps.Copy(registryCacheOptAttrs, attrs)
 	if max {
 		registryCacheOptAttrs["mode"] = "max"
 	}
@@ -189,19 +180,4 @@ func newInlineCacheOpt() client.CacheOptionsEntry {
 	return client.CacheOptionsEntry{
 		Type: "inline",
 	}
-}
-
-func parseImageNameAndAttrs(s string) (string, map[string]string, error) {
-	entries := strings.Split(s, ",")
-	imageName := entries[0]
-	attrs := make(map[string]string)
-	var err error
-	for _, entry := range entries[1:] {
-		pair := strings.Split(strings.TrimSpace(entry), "=")
-		if len(pair) != 2 {
-			return "", attrs, errors.Errorf("failed to parse export attribute: expected a key=value pair while parsing %q", entry)
-		}
-		attrs[strings.TrimSpace(pair[0])] = strings.TrimSpace(pair[1])
-	}
-	return imageName, attrs, err
 }
