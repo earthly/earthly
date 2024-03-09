@@ -3,7 +3,6 @@ package builder
 import (
 	"context"
 	"io"
-	"maps"
 	"strings"
 
 	"github.com/earthly/earthly/conslogging"
@@ -100,10 +99,18 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 	}
 	var cacheExports []client.CacheOptionsEntry
 	if s.cacheExport != "" {
-		cacheExports = append(cacheExports, newCacheExportOpt(s.cacheExport, false))
+		cacheExportName, attrs, err := parseImageNameAndAttrs(s.cacheExport)
+		if err != nil {
+			return nil, errors.Wrapf(err, "parse cache export %s", s.cacheExport)
+		}
+		cacheExports = append(cacheExports, newCacheExportOpt(cacheExportName, attrs, false))
 	}
 	if s.maxCacheExport != "" {
-		cacheExports = append(cacheExports, newCacheExportOpt(s.maxCacheExport, true))
+		maxCacheExportName, attrs, err := parseImageNameAndAttrs(s.cacheExport)
+		if err != nil {
+			return nil, errors.Wrapf(err, "parse max cache export %s", s.maxCacheExport)
+		}
+		cacheExports = append(cacheExports, newCacheExportOpt(maxCacheExportName, attrs, true))
 	}
 	if s.saveInlineCache {
 		cacheExports = append(cacheExports, newInlineCacheOpt())
@@ -163,17 +170,14 @@ func newCacheImportOpt(ref string) client.CacheOptionsEntry {
 	}
 }
 
-func newCacheExportOpt(ref string, max bool) client.CacheOptionsEntry {
-	registryCacheOptAttrs := make(map[string]string)
-	imageName, attrs, _ := parseImageNameAndAttrs(ref)
-	registryCacheOptAttrs["ref"] = imageName
-	maps.Copy(registryCacheOptAttrs, attrs)
+func newCacheExportOpt(ref string, attrs map[string]string, max bool) client.CacheOptionsEntry {
+	attrs["ref"] = ref
 	if max {
-		registryCacheOptAttrs["mode"] = "max"
+		attrs["mode"] = "max"
 	}
 	return client.CacheOptionsEntry{
 		Type:  "registry",
-		Attrs: registryCacheOptAttrs,
+		Attrs: attrs,
 	}
 }
 
@@ -193,7 +197,7 @@ func parseImageNameAndAttrs(s string) (string, map[string]string, error) {
 		if len(pair) != 2 {
 			return "", attrs, errors.Errorf("failed to parse export attribute: expected a key=value pair while parsing %q", entry)
 		}
-		attrs[pair[0]] = pair[1]
+		attrs[strings.TrimSpace(pair[0])] = strings.TrimSpace(pair[1])
 	}
 	return imageName, attrs, err
 }
