@@ -52,7 +52,11 @@ func (s *tarImageSolver) newSolveOpt(img *image.Image, dockerTag string, w io.Wr
 	}
 	var cacheImports []client.CacheOptionsEntry
 	for _, ci := range s.cacheImports.AsSlice() {
-		cacheImports = append(cacheImports, newCacheImportOpt(ci))
+		cacheImportName, _, err := parseImageNameAndAttrs(ci)
+		if err != nil {
+			return nil, errors.Wrapf(err, "parse cache import %s", ci)
+		}
+		cacheImports = append(cacheImports, newCacheImportOpt(cacheImportName))
 	}
 	return &client.SolveOpt{
 		Exports: []client.ExportEntry{
@@ -308,7 +312,11 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 
 	var cacheImports []client.CacheOptionsEntry
 	for _, ci := range m.cacheImports.AsSlice() {
-		cacheImports = append(cacheImports, newCacheImportOpt(ci))
+		cacheImportName, _, err := parseImageNameAndAttrs(ci)
+		if err != nil {
+			return nil, errors.Wrapf(err, "parse cache import %s", ci)
+		}
+		cacheImports = append(cacheImports, newCacheImportOpt(cacheImportName))
 	}
 
 	solveOpt := &client.SolveOpt{
