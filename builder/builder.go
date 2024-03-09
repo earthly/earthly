@@ -279,18 +279,16 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 
 		if !b.builtMain {
 			opt := earthfile2llb.ConvertOpt{
-				GwClient:             gwClient,
-				Resolver:             b.resolver,
-				ImageResolveMode:     b.opt.ImageResolveMode,
-				CleanCollection:      b.opt.CleanCollection,
-				PlatformResolver:     opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
-				DockerImageSolverTar: newTarImageSolver(b.opt, b.s.sm),
-				MultiImageSolver:     newMultiImageSolver(b.opt, b.s.sm),
-				OverridingVars:       b.opt.OverridingVars,
-				BuildContextProvider: b.opt.BuildContextProvider,
-				// !!!!
-				CacheImports: b.opt.CacheImports,
-				// !!!!
+				GwClient:                             gwClient,
+				Resolver:                             b.resolver,
+				ImageResolveMode:                     b.opt.ImageResolveMode,
+				CleanCollection:                      b.opt.CleanCollection,
+				PlatformResolver:                     opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
+				DockerImageSolverTar:                 newTarImageSolver(b.opt, b.s.sm),
+				MultiImageSolver:                     newMultiImageSolver(b.opt, b.s.sm),
+				OverridingVars:                       b.opt.OverridingVars,
+				BuildContextProvider:                 b.opt.BuildContextProvider,
+				CacheImports:                         b.opt.CacheImports,
 				UseInlineCache:                       b.opt.UseInlineCache,
 				UseFakeDep:                           b.opt.UseFakeDep,
 				AllowLocally:                         !b.opt.Strict,
