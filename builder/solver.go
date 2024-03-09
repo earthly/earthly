@@ -174,14 +174,14 @@ func newCacheImportOpt(ref string) client.CacheOptionsEntry {
 	}
 }
 
-func newCacheExportOpt(ref string, attrs map[string]string, max bool) client.CacheOptionsEntry {
-	attrs["ref"] = ref
+func newCacheExportOpt(ref string, registryCacheOptAttrs map[string]string, max bool) client.CacheOptionsEntry {
+	registryCacheOptAttrs["ref"] = ref
 	if max {
-		attrs["mode"] = "max"
+		registryCacheOptAttrs["mode"] = "max"
 	}
 	return client.CacheOptionsEntry{
 		Type:  "registry",
-		Attrs: attrs,
+		Attrs: registryCacheOptAttrs,
 	}
 }
 
