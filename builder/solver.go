@@ -106,7 +106,7 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 		cacheExports = append(cacheExports, newCacheExportOpt(cacheExportName, attrs, false))
 	}
 	if s.maxCacheExport != "" {
-		maxCacheExportName, attrs, err := parseImageNameAndAttrs(s.cacheExport)
+		maxCacheExportName, attrs, err := parseImageNameAndAttrs(s.maxCacheExport)
 		if err != nil {
 			return nil, errors.Wrapf(err, "parse max cache export %s", s.maxCacheExport)
 		}
