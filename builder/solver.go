@@ -95,7 +95,11 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback pullping.PullCallback, console conslogging.ConsoleLogger) (*client.SolveOpt, error) {
 	var cacheImports []client.CacheOptionsEntry
 	for _, ci := range s.cacheImports.AsSlice() {
-		cacheImports = append(cacheImports, newCacheImportOpt(ci))
+		cacheImportName, _, err := parseImageNameAndAttrs(ci)
+		if err != nil {
+			return nil, errors.Wrapf(err, "parse cache import %s", ci)
+		}
+		cacheImports = append(cacheImports, newCacheImportOpt(cacheImportName))
 	}
 	var cacheExports []client.CacheOptionsEntry
 	if s.cacheExport != "" {
