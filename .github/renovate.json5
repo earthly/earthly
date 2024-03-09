@@ -21,10 +21,10 @@
     'ast/tests/**',
   ],
   ignorePaths: [
-    "**/node_modules/**",
-    "**/bower_components/**",
-    "**/vendor/**",
-    "**/__fixtures__/**"
+    '**/node_modules/**',
+    '**/bower_components/**',
+    '**/vendor/**',
+    '**/__fixtures__/**',
   ],
   enabledManagers: [
     'custom.regex',
@@ -34,7 +34,7 @@
   dockerfile: {
     fileMatch: [
       'Earthfile',
-      '.*\\.earth$'
+      '.*\\.earth$',
     ],
   },
   customManagers: [
@@ -70,21 +70,27 @@
     },
     {
       customType: 'regex',
-      fileMatch: ['^Earthfile$'],
+      fileMatch: [
+        '^Earthfile$',
+      ],
       matchStrings: [
         '\\s*#\\s*renovate:\\s*datasource=(?<datasource>.*?)\\s+depName=(?<depName>.*?)[\\s\\n]+(versioning=(?<versioning>.*?)\\s+)?ARG\\s+.*?(_VERSION|_VER|version)=(?<currentValue>.*?)($|\\s|\\n)',
       ],
     },
     {
       customType: 'regex',
-      fileMatch: ['^Earthfile$'],
-      matchStrings: ["# renovate: datasource=repology depName=alpine_(?<currentValue>\\d+_\\d+)"],
+      fileMatch: [
+        '^Earthfile$',
+      ],
+      matchStrings: [
+        '# renovate: datasource=repology depName=alpine_(?<currentValue>\\d+_\\d+)',
+      ],
       currentValueTemplate: "{{{ replace '_' '.' currentValue }}}",
-      datasourceTemplate: "docker",
-      depNameTemplate: "alpine",
-      versioningTemplate: "regex:^(?<major>\\d+)[._](?<minor>\\d+)$",
-      autoReplaceStringTemplate: "# renovate: datasource=repology depName=alpine_{{{newMajor}}}_{{{newMinor}}}"
-    }
+      datasourceTemplate: 'docker',
+      depNameTemplate: 'alpine',
+      versioningTemplate: 'regex:^(?<major>\\d+)[._](?<minor>\\d+)$',
+      autoReplaceStringTemplate: '# renovate: datasource=repology depName=alpine_{{{newMajor}}}_{{{newMinor}}}',
+    },
   ],
   labels: [
     'renovate',
@@ -103,8 +109,6 @@
       automerge: true,
     },
     {
-     // Point earthly/earthly updates in docs to docs-0.8 branch by:
-     // 1. disable all PRs targeting docs-0.8 for all packages except earthly/earthly
       matchBaseBranches: [
         'docs-0.8',
       ],
@@ -114,7 +118,6 @@
       enabled: false,
     },
     {
-      // 2. disable PRs targeting main for earthly/earthly
       matchBaseBranches: [
         'main',
       ],
@@ -123,7 +126,6 @@
       ],
       enabled: false,
     },
-    // group all alpine/git updates across the repo to one PR and schedule it to once a month
     {
       groupName: 'alpine/git',
       matchPackageNames: [
@@ -133,27 +135,31 @@
         'every month',
       ],
     },
-    // disable any docker dependencies that are not alpine/git (temporary until we add other dependencies)
     {
       matchManagers: [
         'dockerfile',
       ],
-      excludePackagePatterns: ['alpine/git'],
+      excludePackagePatterns: [
+        'alpine/git',
+      ],
       enabled: false,
     },
-    // set the group name for alpine dind dependencies in the root Earthfile
     {
       groupName: '{{{depName}}}-for-alpine-dind-image',
       matchPackagePatterns: [
-        'alpine', 'alpine.*?/docker'
+        'alpine',
+        'alpine.*?/docker',
       ],
       matchManagers: [
-        'regex',
+        'custom.regex',
       ],
       matchDatasources: [
-        'docker', 'repology'
+        'docker',
+        'repology',
       ],
-      matchFileNames: ["Earthfile"],
-    }
+      matchFileNames: [
+        'Earthfile',
+      ],
+    },
   ],
 }
