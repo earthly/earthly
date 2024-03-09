@@ -191,7 +191,7 @@ func parseImageNameAndAttrs(s string) (string, map[string]string, error) {
 	for _, entry := range entries[1:] {
 		pair := strings.Split(strings.TrimSpace(entry), "=")
 		if len(pair) != 2 {
-			return "", "", errors.Errorf("failed to parse export attribute: expected a key=value pair while parsing %q", entry)
+			return "", attrs, errors.Errorf("failed to parse export attribute: expected a key=value pair while parsing %q", entry)
 		}
 		attrs[pair[0]] = pair[1]
 	}
