@@ -1349,7 +1349,7 @@ One or more of experimental features to enable on a new Earthly Satellite.
 
 Sets a maintenance window for satellite auto-updates.
 						
-If there is a a new satellite version available, the satellite will update within 2 hrs of the time specified. Format must be in HH:MM (24 hr) and will be automatically converted from your current local time to UTC. Default value is 02:00 in your local time.
+If there is a new satellite version available, the satellite will update within 2 hrs of the time specified. Format must be in HH:MM (24 hr) and will be automatically converted from your current local time to UTC. Default value is 02:00 in your local time.
 
 ##### `--maintenance-weekends-only`
 

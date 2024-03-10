@@ -30,7 +30,7 @@ func ApplyDelta(m *pb.RunManifest, d *pb.Delta) error {
 	return nil
 }
 
-// WithDeltaManifest takes a delta and and a manifest and returns the result of
+// WithDeltaManifest takes a delta and a manifest and returns the result of
 // applying the delta to the manifest. The original passed-in manifest is not
 // changed. If the delta would not have any effect on the manifest, the original
 // manifest is returned.

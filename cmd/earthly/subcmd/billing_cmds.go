@@ -36,7 +36,7 @@ func (a *Billing) Cmds() []*cli.Command {
 				&cli.StringFlag{
 					Name:        "org",
 					EnvVars:     []string{"EARTHLY_ORG"},
-					Usage:       "The name of the Earthly organization to to view billing info for",
+					Usage:       "The name of the Earthly organization to view billing info for",
 					Required:    false,
 					Destination: &a.cli.Flags().OrgName,
 				},

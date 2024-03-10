@@ -183,7 +183,7 @@ Earthly is built against a fork of [buildkit](https://github.com/earthly/buildki
 
 To work with changes to this fork, you can use `earthly +for-linux --BUILDKIT_PROJECT=../buildkit`. This will use the local directory `../buildkit` for the buildkit code, when using buildkit in both `go.mod` and when building the buildkitd image.
 
-For contributions that require updates to these forks, a PR must be opened in in the earthly-fork of the repository, and a corresponding PR should
+For contributions that require updates to these forks, a PR must be opened in the earthly-fork of the repository, and a corresponding PR should
 be opened in the earthly repository -- please link the two PRs together, in order to show that earthly's tests will continue to pass with the changes to buildkit or fsutil.
 
 The linked-PRs should be merged at the same time, in order to prevent earthly's main branch from pointing to a non-main branch of buildkit.
