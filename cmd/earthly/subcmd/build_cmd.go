@@ -518,8 +518,9 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 			cacheExport, cacheExportAttrs, err = a.parseImageNameAndAttrs(a.cli.Flags().RemoteCache)
 		}
 	}
+	// The same error for import, export and maxExport because it parses by same func
 	if err != nil {
-		return errors.Wrap(err, "parsing error")
+		return errors.Wrapf(err, "parse remote cache error: %s", a.cli.Flags().RemoteCache)
 	}
 
 	if a.cli.Cfg().Global.ConversionParallelism <= 0 {
