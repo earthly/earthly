@@ -508,7 +508,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	if err != nil {
 		return errors.Wrapf(err, "parse remote cache error: %s", a.cli.Flags().RemoteCache)
 	}
-	//
 	if len(a.cacheFrom.Value()) > 0 {
 		cacheImports = append(cacheImports, a.cacheFrom.Value()...)
 	}
