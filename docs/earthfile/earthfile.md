@@ -356,6 +356,15 @@ build:
     RUN --interactive-keep bash
 ```
 
+##### `--aws` (experimental)
+
+{% hint style='info' %}
+##### Note
+The `--aws` flag has experimental status. To use this feature, it must be enabled via `VERSION --run-with-aws 0.8`.
+{% endhint %}
+
+Makes AWS credentials available to the executed command via the host's environment variables or ~/.aws directory. 
+
 ## COPY
 
 #### Synopsis
@@ -1055,6 +1064,15 @@ In a multi-stage Dockerfile, sets the target to be used for the build. This opti
 Specifies the platform to build on.
 
 For more information see the [multi-platform guide](../guides/multi-platform.md).
+
+#### `--allow-privileged` (experimental)
+
+{% hint style='info' %}
+##### Note
+The `--allow-privileged` flag has experimental status. To use this feature, it must be enabled via `VERSION --allow-privileged-from-dockerfile 0.8`.
+{% endhint %}
+
+When the Dockerfile build context points to an earthly artifact reference (e.g. +some-other-build-context/*), the `allow-privileged` flag will allow `RUN` commands under the referenced earthly target to make use of the `RUN --privileged` option.
 
 ## WITH DOCKER
 

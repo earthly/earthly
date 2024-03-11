@@ -4,10 +4,25 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.5 - 2024-03-11
+
+### Added
+
+- Added `--aws` flag to `RUN` command which makes AWS environment variables or ~/.aws available. [#3803](https://github.com/earthly/earthly/issues/3803)
+- Added `--allow-privileged` flag to `FROM DOCKERFILE` command. Enable with the `VERSION --allow-privileged-from-dockerfile` feature flag. Thanks to [@dustyhorizon](https://github.com/dustyhorizon) for the contribution! [#3706](https://github.com/earthly/earthly/issues/3706)
+
 ### Fixed
 
 - Fixes an issue where wildcard `BUILD`'s are invoked from a relative directory (e.g., an `Earthfile` containing `BUILD ./*+test` invoked with `earthly ./rel-dir+target`). [#3840](https://github.com/earthly/earthly/issues/3840)
 - `--pass-args` will no longer pass builtin args, which would result in `value cannot be specified for built-in build arge errors. [#3775](https://github.com/earthly/earthly/issues/3775)
+- Fixes an issue where `BUILD --auto-skip` is invoked with wildcard builds. [#3862](https://github.com/earthly/earthly/issues/3862)
+- `BUILD --auto-skip` was silently ignored when the feature flag (`VERSION --build-auto-skip`) was missing [#3870](https://github.com/earthly/earthly/issues/3870)
+- Fix an issue where `COPY --if-exists` would fail if the non-existing directory includes a wildcard. [#3875](https://github.com/earthly/earthly/issues/3875)
+- Fixes an issue passing the correct org value to Logstream which resulted in missing logs in the builds view.
+- Rename `UDC` to `FUNCTION` in hint when a secret is not found.
+
+### Additional Info
+- This release includes changes to buildkit
 
 ## v0.8.4 - 2024-02-21
 
