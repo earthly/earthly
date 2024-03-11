@@ -51,41 +51,45 @@ VERSION [<flags>...] <version-number>
 
 ## Feature flags
 
-| Feature flag                        | Status       | Description                                                                                                        |
-|-------------------------------------|--------------|--------------------------------------------------------------------------------------------------------------------|
-| `--use-registry-for-with-docker`    | 0.5          | Makes use of the embedded BuildKit Docker registry (instead of tar files) for `WITH DOCKER` loads and pulls        |
-| `--use-copy-include-patterns`       | 0.6          | Speeds up COPY transfers                                                                                           |
-| `--referenced-save-only`            | 0.6          | Changes the behavior of SAVE commands in a significant way                                                         |
-| `--for-in`                          | 0.6          | Enables support for `FOR ... IN ...` commands                                                                      |
-| `--require-force-for-unsafe-saves`  | 0.6          | Requires `--force` for saving artifacts locally outside the Earthfile's directory                                  |
-| `--no-implicit-ignore`              | 0.6          | Eliminates implicit `.earthlyignore` entries, such as `Earthfile` and `.tmp-earthly-out`                           |
-| `--earthly-version-arg`             | 0.7          | Enables builtin ARGs: `EARTHLY_VERSION` and `EARTHLY_BUILD_SHA`                                                    |
-| `--shell-out-anywhere`              | 0.7          | Allows shelling-out in any earthly command (including in the middle of `ARG`)                                      |
-| `--explicit-global`                 | 0.7          | Base target args must have a `--global` flag in order to be considered global args                                 |
-| `--check-duplicate-images`          | 0.7          | Check for duplicate images during output                                                                           |
-| `--use-cache-command`               | 0.7          | Allow use of `CACHE` command in Earthfiles                                                                         |
-| `--use-host-command`                | 0.7          | Allow use of `HOST` command in Earthfiles                                                                          |
-| `--use-copy-link`                   | 0.7          | Use the equivalent of `COPY --link` for all copy-like operations                                                   |
-| `--new-platform`                    | 0.7          | Enable new platform behavior                                                                                       |
-| `--no-tar-build-output`             | 0.7          | Do not print output when creating a tarball to load into `WITH DOCKER`                                             |
-| `--use-no-manifest-list`            | 0.7          | Enable the `SAVE IMAGE --no-manifest-list` option                                                                  |
-| `--use-chmod`                       | 0.7          | Enable the `COPY --chmod` option                                                                                   |
-| `--earthly-locally-arg`             | 0.7          | Enable the `EARTHLY_LOCALLY` arg                                                                                   |
-| `--use-project-secrets`             | 0.7          | Enable project-based secret resolution                                                                             |
-| `--use-pipelines`                   | 0.7          | Enable the `PIPELINE` and `TRIGGER` commands                                                                       |
-| `--earthly-git-author-args`         | 0.7          | Enable the `EARTHLY_GIT_AUTHOR` and `EARTHLY_GIT_CO_AUTHORS` args                                                  |
-| `--wait-block`                      | 0.7          | Enable the `WAIT` / `END` block commands                                                                           |
-| `--no-network`                      | 0.8 | Allow the use of `RUN --network=none` commands                                                                     |
-| `--arg-scope-and-set`               | 0.8 | Enable the `LET` / `SET` commands and nested `ARG` scoping                                                         |
-| `--use-docker-ignore`               | 0.8 | Enable the use of `.dockerignore` files in `FROM DOCKERFILE` targets                                               |
-| `--pass-args`                       | 0.8 | Enable the optional `--pass-args` flag for the `BUILD`, `FROM`, `COPY`, `WITH DOCKER --load` commands              |
-| `--global-cache`                    | 0.8 | Enable global caches (shared across different Earthfiles), for cache mounts and `CACHE` commands having an ID      |
-| `--cache-persist-option`            | 0.8 | Adds `CACHE --persist` option to persist cache content in images, Changes default `CACHE` behaviour to not persist |
-| `--use-function-keyword`            | 0.8 | Enable using `FUNCTION` instead of `COMMAND` when declaring a function |
-| `--use-visited-upfront-hash-collection` | 0.8 | Switches to a newer target parallelization algorithm |
-| `--no-use-registry-for-with-docker` | Experimental | Disable `use-registry-for-with-docker`                                                                             |
-| `--try`                             | Experimental | Enable the `TRY` / `FINALLY` / `END` block commands                                                                |
-| `--earthly-ci-runner-arg`           | Experimental | Enable the `EARTHLY_CI_RUNNER` builtin ARG                                                                         |
+| Feature flag                            | Status                                                                          | Description                                                                                                        |
+|-----------------------------------------|---------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| `--use-registry-for-with-docker`        | 0.5                                                                             | Makes use of the embedded BuildKit Docker registry (instead of tar files) for `WITH DOCKER` loads and pulls        |
+| `--use-copy-include-patterns`           | 0.6                                                                             | Speeds up COPY transfers                                                                                           |
+| `--referenced-save-only`                | 0.6                                                                             | Changes the behavior of SAVE commands in a significant way                                                         |
+| `--for-in`                              | 0.6                                                                             | Enables support for `FOR ... IN ...` commands                                                                      |
+| `--require-force-for-unsafe-saves`      | 0.6                                                                             | Requires `--force` for saving artifacts locally outside the Earthfile's directory                                  |
+| `--no-implicit-ignore`                  | 0.6                                                                             | Eliminates implicit `.earthlyignore` entries, such as `Earthfile` and `.tmp-earthly-out`                           |
+| `--earthly-version-arg`                 | 0.7                                                                             | Enables builtin ARGs: `EARTHLY_VERSION` and `EARTHLY_BUILD_SHA`                                                    |
+| `--shell-out-anywhere`                  | 0.7                                                                             | Allows shelling-out in any earthly command (including in the middle of `ARG`)                                      |
+| `--explicit-global`                     | 0.7                                                                             | Base target args must have a `--global` flag in order to be considered global args                                 |
+| `--check-duplicate-images`              | 0.7                                                                             | Check for duplicate images during output                                                                           |
+| `--use-cache-command`                   | 0.7                                                                             | Allow use of `CACHE` command in Earthfiles                                                                         |
+| `--use-host-command`                    | 0.7                                                                             | Allow use of `HOST` command in Earthfiles                                                                          |
+| `--use-copy-link`                       | 0.7                                                                             | Use the equivalent of `COPY --link` for all copy-like operations                                                   |
+| `--new-platform`                        | 0.7                                                                             | Enable new platform behavior                                                                                       |
+| `--no-tar-build-output`                 | 0.7                                                                             | Do not print output when creating a tarball to load into `WITH DOCKER`                                             |
+| `--use-no-manifest-list`                | 0.7                                                                             | Enable the `SAVE IMAGE --no-manifest-list` option                                                                  |
+| `--use-chmod`                           | 0.7                                                                             | Enable the `COPY --chmod` option                                                                                   |
+| `--earthly-locally-arg`                 | 0.7                                                                             | Enable the `EARTHLY_LOCALLY` arg                                                                                   |
+| `--use-project-secrets`                 | 0.7                                                                             | Enable project-based secret resolution                                                                             |
+| `--use-pipelines`                       | 0.7                                                                             | Enable the `PIPELINE` and `TRIGGER` commands                                                                       |
+| `--earthly-git-author-args`             | 0.7                                                                             | Enable the `EARTHLY_GIT_AUTHOR` and `EARTHLY_GIT_CO_AUTHORS` args                                                  |
+| `--wait-block`                          | 0.7                                                                             | Enable the `WAIT` / `END` block commands                                                                           |
+| `--no-network`                          | 0.8                                                                             | Allow the use of `RUN --network=none` commands                                                                     |
+| `--arg-scope-and-set`                   | 0.8                                                                             | Enable the `LET` / `SET` commands and nested `ARG` scoping                                                         |
+| `--use-docker-ignore`                   | 0.8                                                                             | Enable the use of `.dockerignore` files in `FROM DOCKERFILE` targets                                               |
+| `--pass-args`                           | 0.8                                                                             | Enable the optional `--pass-args` flag for the `BUILD`, `FROM`, `COPY`, `WITH DOCKER --load` commands              |
+| `--global-cache`                        | 0.8                                                                             | Enable global caches (shared across different Earthfiles), for cache mounts and `CACHE` commands having an ID      |
+| `--cache-persist-option`                | 0.8                                                                             | Adds `CACHE --persist` option to persist cache content in images, Changes default `CACHE` behaviour to not persist |
+| `--use-function-keyword`                | 0.8                                                                             | Enable using `FUNCTION` instead of `COMMAND` when declaring a function                                             |
+| `--use-visited-upfront-hash-collection` | 0.8                                                                             | Switches to a newer target parallelization algorithm                                                               |
+| `--no-use-registry-for-with-docker`     | Experimental                                                                    | Disable `use-registry-for-with-docker`                                                                             |
+| `--try`                                 | Experimental                                                                    | Enable the `TRY` / `FINALLY` / `END` block commands                                                                |
+| `--earthly-ci-runner-arg`               | Experimental                                                                    | Enable the `EARTHLY_CI_RUNNER` builtin ARG                                                                         |
+| `--wildcard-builds`                     | Experimental                                                                    | Alow for the expansion of wildcard (glob) paths for BUILD commands                                                 |
+| `--build-auto-skip`                     | Experimental                                                                    | Allow for `--auto-skip` to be used on individual BUILD commands                                                      |
+| `--allow-privileged-from-dockerfile`    | Experimental                                                                    | Allow the use of the `--allow-privileged` flag in the `FROM DOCKERFILE` command |
+| `--run-with-aws`                        | Experimental                                                                    | Make AWS credentials in the environment or ~/.aws available to `RUN` commands     |
 
 Note that the features flags are disabled by default in Earthly versions lower than the version listed in the "status" column above.
 
