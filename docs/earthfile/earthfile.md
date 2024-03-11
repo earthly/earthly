@@ -1073,6 +1073,7 @@ The `--allow-privileged` flag has experimental status. To use this feature, it m
 {% endhint %}
 
 When the Dockerfile build context points to an earthly artifact reference (e.g. `+mybuildcontext/mydata/*`), the `allow-privileged` flag will allow `RUN` commands under the referenced earthly target to make use of the `RUN --privileged` option.
+This does not apply to Dockerfile's [RUN --security](https://docs.docker.com/reference/dockerfile/#run---security) flag.
 
 ## WITH DOCKER
 
