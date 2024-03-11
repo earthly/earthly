@@ -15,7 +15,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 - Fixes an issue where wildcard `BUILD`'s are invoked from a relative directory (e.g., an `Earthfile` containing `BUILD ./*+test` invoked with `earthly ./rel-dir+target`). [#3840](https://github.com/earthly/earthly/issues/3840)
 - `--pass-args` will no longer pass builtin args, which would result in `value cannot be specified for built-in build arge errors. [#3775](https://github.com/earthly/earthly/issues/3775)
-- Fixes an issue where `BUILD --auto-skip` is invoked with wildcard builds. [#3862](https://github.com/earthly/earthly/issues/3862)
+- Fixes a parsing issue with `BUILD` flag arguments and wildcard targets [#3862](https://github.com/earthly/earthly/issues/3862)
 - `BUILD --auto-skip` was silently ignored when the feature flag (`VERSION --build-auto-skip`) was missing [#3870](https://github.com/earthly/earthly/issues/3870)
 - Fix an issue where `COPY --if-exists` would fail if the non-existing directory includes a wildcard. [#3875](https://github.com/earthly/earthly/issues/3875)
 - Fixes an issue with passing the correct org value to Logstream which resulted in missing logs in the web builds view (https://cloud.earthly.dev/your-org/builds).
