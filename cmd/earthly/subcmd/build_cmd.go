@@ -505,6 +505,10 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		cacheImportImageName, _, err = a.parseImageNameAndAttrs(a.cli.Flags().RemoteCache)
 		cacheImports = append(cacheImports, cacheImportImageName)
 	}
+	if err != nil {
+		return errors.Wrapf(err, "parse remote cache error: %s", a.cli.Flags().RemoteCache)
+	}
+	//
 	if len(a.cacheFrom.Value()) > 0 {
 		cacheImports = append(cacheImports, a.cacheFrom.Value()...)
 	}
@@ -519,7 +523,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 			cacheExport, cacheExportAttrs, err = a.parseImageNameAndAttrs(a.cli.Flags().RemoteCache)
 		}
 	}
-	// The error occurs for import, export, and maxExport operations because they are all parsed by the same function.
 	if err != nil {
 		return errors.Wrapf(err, "parse remote cache error: %s", a.cli.Flags().RemoteCache)
 	}
