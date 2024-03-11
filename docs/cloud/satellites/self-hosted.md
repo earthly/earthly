@@ -26,7 +26,7 @@ docker run --privileged \
     -e EARTHLY_ORG=my-org \
     -e SATELLITE_NAME=my-satellite \
     -e SATELLITE_HOST=153.65.8.0 \
-  earthly/satellite:v0.8.4
+  earthly/satellite:v0.8.5
 ```
 
 The following environment variables are required:
@@ -107,7 +107,7 @@ runcmd:
         -e EARTHLY_TOKEN=GuFna*****nve7e \
         -e EARTHLY_ORG=my-org \
         -e SATELLITE_NAME=my-satellite \
-        earthly/satellite:v0.8.4
+        earthly/satellite:v0.8.5
 ```
 
 Note that the `SATELLITE_HOST` variable is unset in this example so that the host is auto-discovered by the satellite when it starts. This should result in the instance’s private DNS being used as the host.
@@ -134,7 +134,7 @@ spec:
    valueFrom:
      fieldRef:
        fieldPath: metadata.name
-      image: earthly/satellite:v0.8.4
+      image: earthly/satellite:v0.8.5
       securityContext:
         privileged: true
       ports:
@@ -174,7 +174,7 @@ Here’s an example of how to attach the volume using the Docker command line:
 ```
 docker run -v earthly-cache:/tmp/earthly:rw \
   ...
-  earthly/satellite:v0.8.4
+  earthly/satellite:v0.8.5
 ```
 
 ## Additional Environment Variables

@@ -18,7 +18,7 @@ This guide will cover both approaches to constructing your image.
 This is the recommended approach when adopting Earthly into your containerized CI. Start by basing your custom image on ours:
 
 ```docker
-FROM earthly/earthly:v0.8.4
+FROM earthly/earthly:v0.8.5
 RUN ... # Add your agent, certificates, tools...
 ```
 
@@ -50,7 +50,7 @@ In this setup, Earthly will be allowed to manage an instance of its `earthly/bui
 To enable this, simply follow the installation instructions within your Dockerfile/Earthfile as you would on any other host. An example of installing this can be found below.
 
 ```docker
-RUN wget https://github.com/earthly/earthly/releases/download/v0.8.4/earthly-linux-amd64 -O /usr/local/bin/earthly && \
+RUN wget https://github.com/earthly/earthly/releases/download/v0.8.5/earthly-linux-amd64 -O /usr/local/bin/earthly && \
     chmod +x /usr/local/bin/earthly && \
     /usr/local/bin/earthly bootstrap
 ```
