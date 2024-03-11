@@ -771,7 +771,7 @@ COPY --dir dir-1 dir-2 dir-3 ./
 
 To keep production images small, it is advisable to start from a new base image and to install only production-required dependencies and then to copy in only the final built binaries or packages. This technique may vary from language to language, depending on the ecosystem-specific tooling.
 
-An an example, for Go, you might have a development image, that contains the entire Go development tools, including the `go` binary. After the application binary has been built via `go build`, there is no longer a need for the `go` binary. So the production image should not contain it. Here is an example:
+An example, for Go, you might have a development image, that contains the entire Go development tools, including the `go` binary. After the application binary has been built via `go build`, there is no longer a need for the `go` binary. So the production image should not contain it. Here is an example:
 
 ```Dockerfile
 # Avoid: production image is bloated

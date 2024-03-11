@@ -558,7 +558,7 @@ dind:
     RUN docker-auto-install.sh
     LET DOCKER_VERSION_TAG=$DOCKER_VERSION
     IF [ "$OS_IMAGE" = "ubuntu" ]
-        # the docker ce repo contains packages such as "5:24.0.4-1~ubuntu.20.04~focal", we will remove the the epoch and debian-revision values,
+        # the docker ce repo contains packages such as "5:24.0.4-1~ubuntu.20.04~focal", we will remove the epoch and debian-revision values,
         # in order to display the upstream-version, e.g. "24.0.5-1".
         SET DOCKER_VERSION_TAG="$(echo $DOCKER_VERSION | sed 's/^[0-9]*:\([^~]*\).*$/\1/')"
         RUN if echo $DOCKER_VERSION_TAG | grep "[^0-9.-]"; then echo "DOCKER_VERSION_TAG looks bad; got $DOCKER_VERSION_TAG" && exit 1; fi
