@@ -8,7 +8,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ### Added
 
-- Added `--aws` flag to `RUN` command which makes AWS environment variables or ~/.aws available. [#3803](https://github.com/earthly/earthly/issues/3803)
+- Added `--aws` flag to `RUN` command which makes AWS environment variables or ~/.aws available. Enable with the `VERSION --run-with-aws` feature flag. [#3803](https://github.com/earthly/earthly/issues/3803)
 - Added `--allow-privileged` flag to `FROM DOCKERFILE` command. Enable with the `VERSION --allow-privileged-from-dockerfile` feature flag. Thanks to [@dustyhorizon](https://github.com/dustyhorizon) for the contribution! [#3706](https://github.com/earthly/earthly/issues/3706)
 
 ### Fixed
@@ -18,7 +18,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - Fixes an issue where `BUILD --auto-skip` is invoked with wildcard builds. [#3862](https://github.com/earthly/earthly/issues/3862)
 - `BUILD --auto-skip` was silently ignored when the feature flag (`VERSION --build-auto-skip`) was missing [#3870](https://github.com/earthly/earthly/issues/3870)
 - Fix an issue where `COPY --if-exists` would fail if the non-existing directory includes a wildcard. [#3875](https://github.com/earthly/earthly/issues/3875)
-- Fixes an issue passing the correct org value to Logstream which resulted in missing logs in the builds view.
+- Fixes an issue with passing the correct org value to Logstream which resulted in missing logs in the web builds view (https://cloud.earthly.dev/your-org/builds).
 - Rename `UDC` to `FUNCTION` in hint when a secret is not found.
 
 ### Additional Info
