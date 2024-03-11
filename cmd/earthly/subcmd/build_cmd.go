@@ -511,14 +511,15 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	var cacheExport string
 	var maxCacheExport string
 	var cacheExportAttrs map[string]string
+	var maxCacheExportAttrs map[string]string
 	if a.cli.Flags().RemoteCache != "" && a.cli.Flags().Push {
 		if a.cli.Flags().MaxRemoteCache {
-			maxCacheExport, cacheExportAttrs, err = a.parseImageNameAndAttrs(a.cli.Flags().RemoteCache)
+			maxCacheExport, maxCacheExportAttrs, err = a.parseImageNameAndAttrs(a.cli.Flags().RemoteCache)
 		} else {
 			cacheExport, cacheExportAttrs, err = a.parseImageNameAndAttrs(a.cli.Flags().RemoteCache)
 		}
 	}
-	// The same error for import, export and maxExport because it parses by same func
+	// The error occurs for import, export, and maxExport operations because they are all parsed by the same function.
 	if err != nil {
 		return errors.Wrapf(err, "parse remote cache error: %s", a.cli.Flags().RemoteCache)
 	}
@@ -555,8 +556,9 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		NoCache:                               a.cli.Flags().NoCache,
 		CacheImports:                          states.NewCacheImports(cacheImports),
 		CacheExport:                           cacheExport,
-		MaxCacheExport:                        maxCacheExport,
 		CacheExportAttributes:                 cacheExportAttrs,
+		MaxCacheExport:                        maxCacheExport,
+		MaxCacheExportAttributes:              maxCacheExportAttrs,
 		UseInlineCache:                        a.cli.Flags().UseInlineCache,
 		SaveInlineCache:                       a.cli.Flags().SaveInlineCache,
 		ImageResolveMode:                      imageResolveMode,

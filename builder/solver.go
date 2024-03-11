@@ -32,17 +32,18 @@ type onArtifactFunc func(context.Context, string, domain.Artifact, string, strin
 type onFinalArtifactFunc func(context.Context) (string, error)
 
 type solver struct {
-	sm               *outmon.SolverMonitor
-	logbusSM         *solvermon.SolverMonitor
-	useLogstream     bool
-	bkClient         *client.Client
-	attachables      []session.Attachable
-	enttlmnts        []entitlements.Entitlement
-	cacheImports     *states.CacheImports
-	cacheExport      string
-	maxCacheExport   string
-	cacheExportAttrs map[string]string
-	saveInlineCache  bool
+	sm                  *outmon.SolverMonitor
+	logbusSM            *solvermon.SolverMonitor
+	useLogstream        bool
+	bkClient            *client.Client
+	attachables         []session.Attachable
+	enttlmnts           []entitlements.Entitlement
+	cacheImports        *states.CacheImports
+	cacheExport         string
+	cacheExportAttrs    map[string]string
+	maxCacheExport      string
+	maxCacheExportAttrs map[string]string
+	saveInlineCache     bool
 }
 
 func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback pullping.PullCallback, phaseText string, console conslogging.ConsoleLogger) error {
@@ -103,7 +104,7 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 		cacheExports = append(cacheExports, newCacheExportOpt(s.cacheExport, s.cacheExportAttrs, false))
 	}
 	if s.maxCacheExport != "" {
-		cacheExports = append(cacheExports, newCacheExportOpt(s.maxCacheExport, s.cacheExportAttrs, true))
+		cacheExports = append(cacheExports, newCacheExportOpt(s.maxCacheExport, s.maxCacheExportAttrs, true))
 	}
 	if s.saveInlineCache {
 		cacheExports = append(cacheExports, newInlineCacheOpt())
