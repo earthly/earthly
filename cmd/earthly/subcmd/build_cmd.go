@@ -502,9 +502,15 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	}
 
 	cacheImports := make([]string, 0)
+	var cacheImportImageName string
 	if a.cli.Flags().RemoteCache != "" {
-		cacheImports = append(cacheImports, a.cli.Flags().RemoteCache)
+		cacheImportImageName, _, err = flagutil.ParseImageNameAndAttrs(a.cli.Flags().RemoteCache)
+		if err != nil {
+			return errors.Wrapf(err, "parse import cache error: %s", a.cli.Flags().RemoteCache)
+		}
+		cacheImports = append(cacheImports, cacheImportImageName)
 	}
+
 	if len(a.cacheFrom.Value()) > 0 {
 		cacheImports = append(cacheImports, a.cacheFrom.Value()...)
 	}

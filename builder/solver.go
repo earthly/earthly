@@ -3,6 +3,7 @@ package builder
 import (
 	"context"
 	"io"
+	"maps"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
@@ -10,6 +11,7 @@ import (
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/fsutilprogress"
 
 	"github.com/moby/buildkit/client"
@@ -98,10 +100,18 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 	}
 	var cacheExports []client.CacheOptionsEntry
 	if s.cacheExport != "" {
-		cacheExports = append(cacheExports, newCacheExportOpt(s.cacheExport, false))
+		cacheExportName, attrs, err := flagutil.ParseImageNameAndAttrs(s.cacheExport)
+		if err != nil {
+			return nil, errors.Wrapf(err, "parse export cache error: %s", s.cacheExport)
+		}
+		cacheExports = append(cacheExports, newCacheExportOpt(cacheExportName, attrs, false))
 	}
 	if s.maxCacheExport != "" {
-		cacheExports = append(cacheExports, newCacheExportOpt(s.maxCacheExport, true))
+		maxCacheExportName, attrs, err := flagutil.ParseImageNameAndAttrs(s.maxCacheExport)
+		if err != nil {
+			return nil, errors.Wrapf(err, "parse max export cache error: %s", s.maxCacheExport)
+		}
+		cacheExports = append(cacheExports, newCacheExportOpt(maxCacheExportName, attrs, true))
 	}
 	if s.saveInlineCache {
 		cacheExports = append(cacheExports, newInlineCacheOpt())
@@ -161,9 +171,10 @@ func newCacheImportOpt(ref string) client.CacheOptionsEntry {
 	}
 }
 
-func newCacheExportOpt(ref string, max bool) client.CacheOptionsEntry {
+func newCacheExportOpt(ref string, attrs map[string]string, max bool) client.CacheOptionsEntry {
 	registryCacheOptAttrs := make(map[string]string)
 	registryCacheOptAttrs["ref"] = ref
+	maps.Copy(registryCacheOptAttrs, attrs)
 	if max {
 		registryCacheOptAttrs["mode"] = "max"
 	}
