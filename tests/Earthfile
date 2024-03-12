@@ -32,6 +32,8 @@ ga-no-qemu-group1:
     BUILD +copy-tilde-test
     BUILD +copy-keep-own-test
     BUILD +copy-test-empty-src
+    BUILD +copy-test-if-exists-wildcard
+    BUILD +copy-test-wildcard
     BUILD +git-clone-test
     BUILD +builtin-args-invalid-default-test
     BUILD +builtin-args-invalid-pass-test
@@ -78,6 +80,7 @@ ga-no-qemu-group1:
     BUILD +wildcard-build
     BUILD +wildcard-build-remote
     BUILD +wildcard-build-pwd
+    BUILD +wildcard-build-auto-skip
 
 ga-no-qemu-group2:
     BUILD +target-first-line
@@ -130,6 +133,7 @@ ga-no-qemu-group2:
     BUILD +test-init-golang
     BUILD +pass-args-test
     BUILD +pass-args-defaults-test
+    BUILD +pass-args-no-builtins-via-function-test
     BUILD +test-reserved-label
     BUILD +test-cache-mount-mode
     BUILD +test-cache-mode
@@ -137,6 +141,9 @@ ga-no-qemu-group2:
     BUILD +test-cache-persist
     BUILD +test-visited-upfront-hash-collection
     BUILD +test-exec-stats
+    BUILD +test-aws-flag-envs
+    BUILD +test-aws-flag-configs
+    BUILD +test-aws-flag-none
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -185,6 +192,7 @@ ga-no-qemu-group4:
     BUILD +test-ssh-command-config-via-git-clone-earthfile-command
     BUILD --pass-args ./propagate-args-to-base+test-all
     BUILD --pass-args ./pass-args-default+test
+    BUILD --pass-args ./pass-args-no-builtins+test
     BUILD --pass-args ./pass-args-global+test
     BUILD --pass-args ./pass-args-default-via-function+test
     BUILD --pass-args ./pass-args-global-via-function+test
@@ -248,9 +256,20 @@ copy-test:
     DO +RUN_EARTHLY --earthfile=copy.earth --output_does_not_contain="which does not expand to a home directory"
 
 copy-test-empty-src:
-    # Regression tests for 'COPY --if-exists "" <dst>' (empty string)
     DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-empty-src
     DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-empty-src-if-exists
+
+copy-test-wildcard:
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-wildcard
+
+copy-test-if-exists-wildcard:
+    DO +RUN_EARTHLY --earthfile=copy.earth --target=+copy-if-exists-wildcard
+
+    RUN mkdir existing_folder
+    DO +RUN_EARTHLY --earthfile=copy.earth --target="+copy-if-exists-wildcard-exists-empty"
+
+    RUN touch existing_folder/foo
+    DO +RUN_EARTHLY --earthfile=copy.earth --target="+copy-if-exists-wildcard-exists"
 
 copy-test-verbose-output:
     RUN mkdir -p subdir/a.txt && \
@@ -567,6 +586,9 @@ pass-args-defaults-test:
     RUN sed -i 's/hello/hellofromcli/g' Earthfile
     DO +RUN_EARTHLY --extra_args="--build-arg foo=hellofromcli"
 
+pass-args-no-builtins-via-function-test:
+    DO +RUN_EARTHLY --earthfile=pass-args-no-builtins-via-function.earth --target=+test --output_contains="MY_FUNC IS OK"
+
 required-arg-test:
     # test that build arg is required
     DO +RUN_EARTHLY --earthfile=required-args.earth --should_fail=true --target=+test-accept-valid-required-arg
@@ -609,6 +631,10 @@ wildcard-build-pwd:
     RUN cat earthly.output | acbgrep 'hello world 2'
     RUN cat earthly.output | acbgrep 'hello world 3'
     RUN cat earthly.output | acbgrep -v 'not-test run'
+
+wildcard-build-auto-skip:
+    COPY wildcard-build .
+    DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-build-auto-skip
 
 wildcard-build-pwd-rel:
     COPY wildcard-build subdir
@@ -1477,6 +1503,34 @@ test-init-golang:
     fi
     DO +RUN_EARTHLY --target "+build"
     DO +RUN_EARTHLY --target "+test"
+
+test-aws-flag-envs:
+   ENV AWS_ACCESS_KEY_ID=aws-access-key
+   ENV AWS_SECRET_ACCESS_KEY=aws-secret-key
+   ENV AWS_SESSION_TOKEN=aws-token
+   ENV AWS_REGION=us-west-1
+   DO +RUN_EARTHLY --earthfile=aws-flag.earth --target=+basic
+   RUN cat earthly.output | acbgrep "AWS_SESSION_TOKEN=aws-token"
+   RUN cat earthly.output | acbgrep "AWS_ACCESS_KEY_ID=aws-access-key"
+   RUN cat earthly.output | acbgrep "AWS_REGION=us-west-1"
+   RUN cat earthly.output | acbgrep "AWS_SECRET_ACCESS_KEY=aws-secret-key"
+
+test-aws-flag-configs:
+   RUN mkdir -p /root/.aws
+   RUN echo "[default]
+aws_access_key_id = aws-access-key
+aws_secret_access_key = aws-secret-key
+aws_session_token = aws-token" > /root/.aws/credentials
+   RUN echo "[default]
+region = us-west-1" > /root/.aws/config
+   DO +RUN_EARTHLY --earthfile=aws-flag.earth --target=+basic
+   RUN cat earthly.output | acbgrep "AWS_SESSION_TOKEN=aws-token"
+   RUN cat earthly.output | acbgrep "AWS_ACCESS_KEY_ID=aws-access-key"
+   RUN cat earthly.output | acbgrep "AWS_REGION=us-west-1"
+   RUN cat earthly.output | acbgrep "AWS_SECRET_ACCESS_KEY=aws-secret-key"
+
+test-aws-flag-none:
+   DO +RUN_EARTHLY --earthfile=aws-flag.earth --target=+basic --should_fail=true --output_contains="failed to load AWS credentials"
 
 test-reserved-label:
    DO +RUN_EARTHLY \

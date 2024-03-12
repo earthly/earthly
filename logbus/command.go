@@ -1,6 +1,7 @@
 package logbus
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -8,6 +9,8 @@ import (
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/util/circbuf"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -144,8 +147,12 @@ func (c *Command) SetEndError(err error) {
 	now := time.Now()
 
 	if err != nil {
+		st := logstream.RunStatus_RUN_STATUS_FAILURE
+		if errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled {
+			st = logstream.RunStatus_RUN_STATUS_CANCELED
+		}
 		c.commandDelta(&logstream.DeltaCommandManifest{
-			Status:           logstream.RunStatus_RUN_STATUS_FAILURE,
+			Status:           st,
 			ErrorMessage:     err.Error(),
 			EndedAtUnixNanos: c.b.TsUnixNanos(now),
 		})

@@ -418,8 +418,10 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	if err != nil {
 		return errors.Wrap(err, "NewSecretProviderCmd")
 	}
+
 	secretProvider := secretprovider.New(
 		internalSecretStore,
+		secretprovider.NewAWSCredentialProvider(),
 		secretprovider.NewMapStore(secretsMap),
 		customSecretProviderCmd,
 		secretprovider.NewCloudStore(cloudClient),

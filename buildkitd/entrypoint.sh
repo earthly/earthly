@@ -107,6 +107,10 @@ if [ -z "$IP_TABLES" ]; then
 else
     echo "Manual iptables specified ($IP_TABLES), skipping autodetection."
 fi
+if [ ! -e "/sbin/$IP_TABLES" ]; then
+    echo "IP_TABLES is set to $IP_TABLES, but /sbin/$IP_TABLES does not exist"
+    exit 1
+fi
 ln -sf "/sbin/$IP_TABLES" /sbin/iptables
 
 # clear any leftovers in the dind dir

@@ -1,15 +1,14 @@
-VERSION --wildcard-builds 0.8
+VERSION --wildcard-builds --build-auto-skip 0.8
+
+FROM alpine
 
 wildcard-build:
-    FROM alpine
     BUILD ./wildcard-build/*+test
 
 wildcard-globstar:
-    FROM alpine
     BUILD ./wildcard-build/**/*+test
 
 wildcard-glob:
-    FROM alpine
     BUILD ./wildcard-build/b*[rz]+test
 
 wildcard-remote:
@@ -19,9 +18,10 @@ wildcard-remote-glob:
     BUILD github.com/earthly/test-remote/wildcard-build:fb0ebe1c6181bdfc5a7d92165f3317e85e199794+wildcard-glob
 
 wildcard-build-pwd:
-    FROM alpine
     BUILD ./*+test
 
 wildcard-build-rel-dir:
-    FROM alpine
     BUILD ../../tmp/other-dir/*+test
+
+wildcard-build-auto-skip:
+    BUILD --auto-skip ./*+test

@@ -1,0 +1,7 @@
+VERSION 0.8
+
+subtest:
+  FROM alpine:3.18
+  ARG EARTHLY_TARGET
+  RUN env | grep EARTH
+  RUN test "$EARTHLY_TARGET" = "./sub+subtest"

@@ -725,6 +725,10 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		noNetwork = true
 	}
 
+	if opts.WithAWS && !i.converter.opt.Features.RunWithAWS {
+		return i.errorf(cmd.SourceLocation, "RUN --aws requires the --run-with-aws feature flag")
+	}
+
 	if i.withDocker == nil {
 		if opts.WithDocker {
 			return i.errorf(cmd.SourceLocation, "--with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
@@ -745,6 +749,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			Interactive:          opts.Interactive,
 			InteractiveKeep:      opts.InteractiveKeep,
 			InteractiveSaveFiles: i.interactiveSaveFiles,
+			WithAWSCredentials:   opts.WithAWS,
 		}
 		err = i.converter.Run(ctx, opts)
 		if err != nil {
@@ -1233,6 +1238,10 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 
 	if !i.converter.ftrs.PassArgs && opts.PassArgs {
 		return i.errorf(cmd.SourceLocation, "the BUILD --pass-args flag must be enabled with the VERSION --pass-args feature flag.")
+	}
+
+	if !i.converter.ftrs.BuildAutoSkip && opts.AutoSkip {
+		return i.errorf(cmd.SourceLocation, "the BUILD --auto-skip flag must be enabled with the VERSION --build-auto-skip feature flag.")
 	}
 
 	for _, buildArgs := range crossProductBuildArgs {

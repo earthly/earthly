@@ -21,10 +21,10 @@
     'ast/tests/**',
   ],
   ignorePaths: [
-    "**/node_modules/**",
-    "**/bower_components/**",
-    "**/vendor/**",
-    "**/__fixtures__/**"
+    '**/node_modules/**',
+    '**/bower_components/**',
+    '**/vendor/**',
+    '**/__fixtures__/**',
   ],
   enabledManagers: [
     'custom.regex',
@@ -34,7 +34,7 @@
   dockerfile: {
     fileMatch: [
       'Earthfile',
-      '.*\\.earth$'
+      '.*\\.earth$',
     ],
   },
   customManagers: [
@@ -71,12 +71,26 @@
     {
       customType: 'regex',
       fileMatch: [
-        'Earthfile',
+        '^Earthfile$',
       ],
       matchStrings: [
-        'datasource=(?<datasource>.*?) depName=(?<depName>.*?)[\\s\\n]+ARG .*?_version=(?<currentValue>.*)[\\n\\s]+',
-      ]
-    }
+        '\\s*#\\s*renovate:\\s*datasource=(?<datasource>.*?)\\s+depName=(?<depName>.*?)[\\s\\n]+(versioning=(?<versioning>.*?)\\s+)?ARG\\s+.*?(_VERSION|_VER|version)=(?<currentValue>.*?)($|\\s|\\n)',
+      ],
+    },
+    {
+      customType: 'regex',
+      fileMatch: [
+        '^Earthfile$',
+      ],
+      matchStrings: [
+        '# renovate: datasource=repology depName=alpine_(?<currentValue>\\d+_\\d+)',
+      ],
+      currentValueTemplate: "{{{ replace '_' '.' currentValue }}}",
+      datasourceTemplate: 'docker',
+      depNameTemplate: 'alpine',
+      versioningTemplate: 'regex:^(?<major>\\d+)[._](?<minor>\\d+)$',
+      autoReplaceStringTemplate: '# renovate: datasource=repology depName=alpine_{{{newMajor}}}_{{{newMinor}}}',
+    },
   ],
   labels: [
     'renovate',
@@ -130,8 +144,28 @@
       matchManagers: [
         'dockerfile',
       ],
-      excludePackagePatterns: ['alpine/git'],
+      excludePackagePatterns: [
+        'alpine/git',
+      ],
       enabled: false,
-    }
+    },
+    // set the group name for alpine dind dependencies in the root Earthfile
+    {
+      groupName: '{{{depName}}}-for-alpine-dind-image',
+      matchPackagePatterns: [
+        'alpine',
+        'alpine.*?/docker',
+      ],
+      matchManagers: [
+        'custom.regex',
+      ],
+      matchDatasources: [
+        'docker',
+        'repology',
+      ],
+      matchFileNames: [
+        'Earthfile',
+      ],
+    },
   ],
 }

@@ -558,7 +558,7 @@ dind:
     RUN docker-auto-install.sh
     LET DOCKER_VERSION_TAG=$DOCKER_VERSION
     IF [ "$OS_IMAGE" = "ubuntu" ]
-        # the docker ce repo contains packages such as "5:24.0.4-1~ubuntu.20.04~focal", we will remove the the epoch and debian-revision values,
+        # the docker ce repo contains packages such as "5:24.0.4-1~ubuntu.20.04~focal", we will remove the epoch and debian-revision values,
         # in order to display the upstream-version, e.g. "24.0.5-1".
         SET DOCKER_VERSION_TAG="$(echo $DOCKER_VERSION | sed 's/^[0-9]*:\([^~]*\).*$/\1/')"
         RUN if echo $DOCKER_VERSION_TAG | grep "[^0-9.-]"; then echo "DOCKER_VERSION_TAG looks bad; got $DOCKER_VERSION_TAG" && exit 1; fi
@@ -650,7 +650,11 @@ all-buildkitd:
         ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
 dind-alpine:
-    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=alpine --OS_VERSION=3.19 --DOCKER_VERSION=25.0.3-r0
+    # renovate: datasource=repology depName=alpine_3_19/docker versioning=loose
+    ARG DOCKER_VERSION=25.0.3-r1
+    # renovate: datasource=docker depName=alpine
+    ARG OS_VERSION=3.19
+    BUILD +dind --OS_IMAGE=alpine --OS_VERSION=$OS_VERSION --DOCKER_VERSION=$DOCKER_VERSION
 
 dind-ubuntu-20.04:
     DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal
@@ -893,9 +897,10 @@ merge-main-to-docs:
         # 3. create a new PR and wait till checks complete (if checks fail, close the PR)
         gh pr create --title "Temp PR to merge $from_branch to $to_branch" --draft -B $to_branch \
         --body "Opened by +merge-main-to-docs" --repo $git_repo && \
-        sleep 5 && \
+        sleep 15 && \
         ( \
-            timeout --signal=SIGINT 300 gh pr checks $temp_pr_branch --watch --fail-fast || \
+            timeout --signal=SIGINT 300 \
+            gh run watch $(gh run list --commit $(git rev-parse HEAD) -w "Check Docs for Broken Links" --json "databaseId" --jq '.[]|.databaseId') --exit-status || \
             (gh pr close $temp_pr_branch --delete-branch && exit 1) \
         ) && \
         # 4. try to push the branch now that the PR checks have passed

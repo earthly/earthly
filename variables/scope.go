@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/earthly/earthly/variables/reserved"
 )
 
 // Scope represents a variable scope.
@@ -121,6 +123,21 @@ func (s *Scope) BuildArgs(opts ...ScopeOpt) []string {
 		args = append(args, fmt.Sprintf("%v=%v", v, val))
 	}
 	return args
+}
+
+// RemoveReservedArgsFromScope returns a new scope ommits any builtin arguments
+func RemoveReservedArgsFromScope(scope *Scope) *Scope {
+	s := NewScope()
+	for k, v := range scope.variables {
+		if reserved.IsBuiltIn(k) {
+			continue
+		}
+		s.variables[k] = v
+		if scope.activeVariables[k] {
+			s.activeVariables[k] = true
+		}
+	}
+	return s
 }
 
 // CombineScopes combines all the variables across all scopes, with the

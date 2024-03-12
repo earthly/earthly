@@ -1212,6 +1212,87 @@
           }
         }
       ]
+    },
+    {
+      "name": "copy-if-exists-wildcard",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "non_existing_folder/*",
+              "/"
+            ],
+            "name": "COPY"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-if-exists-wildcard-exists-empty",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "existing_folder/*",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "!",
+              "test",
+              "-f",
+              "foo"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-if-exists-wildcard-exists",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "existing_folder/*",
+              "."
+            ],
+            "name": "COPY"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "test",
+              "-f",
+              "foo"
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
+      "name": "copy-wildcard",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "--if-exists",
+              "prefix-*",
+              "/"
+            ],
+            "name": "COPY"
+          }
+        }
+      ]
     }
   ],
   "version": {

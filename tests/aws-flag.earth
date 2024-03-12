@@ -1,0 +1,6 @@
+VERSION --run-with-aws 0.8
+
+FROM alpine
+
+basic:
+    RUN --aws env | grep AWS

@@ -45,7 +45,7 @@ There are three main ways in which Earthly performs caching of builds:
 
 1. **Layer-based caching**. If an Earthfile command is run again, and the inputs to that command are the same, then the cache layer is reused. This allows Earthly to skip re-executing parts of the build that have not changed.
 2. **Cache mounts**. Earthly allows you to mount directories into the build environment - either via [`RUN --mount type=cache`](../earthfile/earthfile.md#run), or via the [`CACHE`](../earthfile/earthfile.md#cache) command. These directories are persisted between runs, and can be used to store intermediate build files for incremental compilers, or dependencies that are downloaded from the internet.
-3. **Auto-skip**. Earthly allows you to skip large parts of a build in certain situations via `earthly --auto-skip` (*experimental*) or `BUILD --auto-skip` (*coming-soon*). This is especially useful in monorepo setups, where you are building multiple projects at once, and only one of them has changed.
+3. **Auto-skip**. Earthly allows you to skip large parts of a build in certain situations via `earthly --auto-skip` (*beta*) or `BUILD --auto-skip` (*experimental*). This is especially useful in monorepo setups, where you are building multiple projects at once, and only one of them has changed.
 
 ## Sharing Cache
 
