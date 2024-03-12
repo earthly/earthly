@@ -11,6 +11,7 @@ import (
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
+	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/fsutilprogress"
 
 	"github.com/moby/buildkit/client"
@@ -32,18 +33,16 @@ type onArtifactFunc func(context.Context, string, domain.Artifact, string, strin
 type onFinalArtifactFunc func(context.Context) (string, error)
 
 type solver struct {
-	sm                  *outmon.SolverMonitor
-	logbusSM            *solvermon.SolverMonitor
-	useLogstream        bool
-	bkClient            *client.Client
-	attachables         []session.Attachable
-	enttlmnts           []entitlements.Entitlement
-	cacheImports        *states.CacheImports
-	cacheExport         string
-	cacheExportAttrs    map[string]string
-	maxCacheExport      string
-	maxCacheExportAttrs map[string]string
-	saveInlineCache     bool
+	sm              *outmon.SolverMonitor
+	logbusSM        *solvermon.SolverMonitor
+	useLogstream    bool
+	bkClient        *client.Client
+	attachables     []session.Attachable
+	enttlmnts       []entitlements.Entitlement
+	cacheImports    *states.CacheImports
+	cacheExport     string
+	maxCacheExport  string
+	saveInlineCache bool
 }
 
 func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onImage onImageFunc, onArtifact onArtifactFunc, onFinalArtifact onFinalArtifactFunc, onPullCallback pullping.PullCallback, phaseText string, console conslogging.ConsoleLogger) error {
@@ -101,10 +100,18 @@ func (s *solver) newSolveOptMulti(ctx context.Context, eg *errgroup.Group, onIma
 	}
 	var cacheExports []client.CacheOptionsEntry
 	if s.cacheExport != "" {
-		cacheExports = append(cacheExports, newCacheExportOpt(s.cacheExport, s.cacheExportAttrs, false))
+		cacheExportName, attrs, err := flagutil.ParseImageNameAndAttrs(s.cacheExport)
+		if err != nil {
+			return nil, errors.Wrapf(err, "parse export cache error: %s", s.cacheExport)
+		}
+		cacheExports = append(cacheExports, newCacheExportOpt(cacheExportName, attrs, false))
 	}
 	if s.maxCacheExport != "" {
-		cacheExports = append(cacheExports, newCacheExportOpt(s.maxCacheExport, s.maxCacheExportAttrs, true))
+		maxCacheExportName, attrs, err := flagutil.ParseImageNameAndAttrs(s.maxCacheExport)
+		if err != nil {
+			return nil, errors.Wrapf(err, "parse max export cache error: %s", s.maxCacheExport)
+		}
+		cacheExports = append(cacheExports, newCacheExportOpt(maxCacheExportName, attrs, true))
 	}
 	if s.saveInlineCache {
 		cacheExports = append(cacheExports, newInlineCacheOpt())

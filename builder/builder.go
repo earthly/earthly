@@ -69,9 +69,7 @@ type Opt struct {
 	NoCache                               bool
 	CacheImports                          *states.CacheImports
 	CacheExport                           string
-	CacheExportAttributes                 map[string]string
 	MaxCacheExport                        string
-	MaxCacheExportAttributes              map[string]string
 	UseInlineCache                        bool
 	SaveInlineCache                       bool
 	ImageResolveMode                      llb.ResolveMode
@@ -142,18 +140,16 @@ type Builder struct {
 func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 	b := &Builder{
 		s: &solver{
-			sm:                  outmon.NewSolverMonitor(opt.Console, opt.Verbose, opt.DisableNoOutputUpdates || opt.UseLogstream),
-			logbusSM:            opt.LogBusSolverMonitor,
-			useLogstream:        opt.UseLogstream,
-			bkClient:            opt.BkClient,
-			cacheImports:        opt.CacheImports,
-			cacheExport:         opt.CacheExport,
-			cacheExportAttrs:    opt.CacheExportAttributes,
-			maxCacheExport:      opt.MaxCacheExport,
-			maxCacheExportAttrs: opt.MaxCacheExportAttributes,
-			attachables:         opt.Attachables,
-			enttlmnts:           opt.Enttlmnts,
-			saveInlineCache:     opt.SaveInlineCache,
+			sm:              outmon.NewSolverMonitor(opt.Console, opt.Verbose, opt.DisableNoOutputUpdates || opt.UseLogstream),
+			logbusSM:        opt.LogBusSolverMonitor,
+			useLogstream:    opt.UseLogstream,
+			bkClient:        opt.BkClient,
+			cacheImports:    opt.CacheImports,
+			cacheExport:     opt.CacheExport,
+			maxCacheExport:  opt.MaxCacheExport,
+			attachables:     opt.Attachables,
+			enttlmnts:       opt.Enttlmnts,
+			saveInlineCache: opt.SaveInlineCache,
 		},
 		opt:      opt,
 		resolver: nil, // initialized below
