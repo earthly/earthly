@@ -716,6 +716,9 @@ test-no-qemu:
     BUILD --pass-args +test-no-qemu-group2
     BUILD --pass-args +test-no-qemu-group3
     BUILD --pass-args +test-no-qemu-group4
+    BUILD --pass-args +test-no-qemu-group5
+    BUILD --pass-args +test-no-qemu-group6
+    BUILD --pass-args +test-no-qemu-group7
     BUILD --pass-args +test-no-qemu-slow
 
 # test-quick runs the unit, offline, and go tests and ensures the earthly script does not write to stdout
@@ -743,6 +746,21 @@ test-no-qemu-group3:
 # test-no-qemu-group4 runs the tests from ./tests+ga-no-qemu-group4
 test-no-qemu-group4:
     BUILD --pass-args ./tests+ga-no-qemu-group4 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group5 runs the tests from ./tests+ga-no-qemu-group5
+test-no-qemu-group5:
+    BUILD --pass-args ./tests+ga-no-qemu-group5 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group6 runs the tests from ./tests+ga-no-qemu-group6
+test-no-qemu-group6:
+    BUILD --pass-args ./tests+ga-no-qemu-group6 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group7 runs the tests from ./tests+ga-no-qemu-group7
+test-no-qemu-group7:
+    BUILD --pass-args ./tests+ga-no-qemu-group7 \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
 # test-no-qemu-slow runs the tests from ./tests+ga-no-qemu-slow

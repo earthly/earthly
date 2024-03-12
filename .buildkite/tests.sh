@@ -53,6 +53,12 @@ if [ -n "$download_url" ]; then
     released_earthly=./earthly-released
 fi
 
+echo "docker login"
+set +x # dont echo secrets
+"$released_earthly" secret --org earthly-technologies --project core get -n dockerhub/token | \
+docker login --username "$("$released_earthly" secret --org earthly-technologies --project core get -n dockerhub/user || kill $$)" --password-stdin
+set -x
+
 echo "Prune cache for cross-version compatibility"
 "$released_earthly" prune --reset
 
@@ -72,6 +78,8 @@ do
     sleep $(( att_num++ ))
 done
 
+"$earthly" config global.buildkit_max_parallelism 10
+
 # Yes, there is a bug in the upstream YAML parser. Sorry about the jank here.
 # https://github.com/go-yaml/yaml/issues/423
 "$earthly" config global.buildkit_additional_config "'[registry.\"docker.io\"]
@@ -80,6 +88,8 @@ done
 
 # setup secrets
 set +x # dont echo secrets
+echo "DOCKERHUB_USER=$($earthly secret --org earthly-technologies --project core get -n dockerhub/user || kill $$)" > .secret
+echo "DOCKERHUB_PASS=$($earthly secret --org earthly-technologies --project core get -n dockerhub/pass || kill $$)" >> .secret
 echo "DOCKERHUB_MIRROR_USER=$($earthly secret --org earthly-technologies --project core get -n dockerhub-mirror/user || kill $$)" > .secret
 echo "DOCKERHUB_MIRROR_PASS=$($earthly secret --org earthly-technologies --project core get -n dockerhub-mirror/pass || kill $$)" >> .secret
 # setup args
@@ -88,7 +98,24 @@ echo "DOCKERHUB_MIRROR=registry-1.docker.io.mirror.corp.earthly.dev" >> .arg
 set -x
 
 echo "Execute tests"
-"$earthly" --ci -P +test
+for target in \
+        +test-qemu \
+        +test-quick \
+        +test-no-qemu-group1 \
+        +test-no-qemu-group2 \
+        +test-no-qemu-group3 \
+        +test-no-qemu-group4 \
+        +test-no-qemu-group5 \
+        +test-no-qemu-group6 \
+        +test-no-qemu-group7 \
+        +test-no-qemu-slow \
+        ; do
+    echo "=== running $target ==="
+    "$earthly" --ci -P --exec-stats-summary=- "$target" || ( echo "$target failed" && exit 1 )
+    # kill buildkitd to release memory (the macstadium machines have limited memory)
+    docker rm -f earthly-dev-buildkitd 2> /dev/null || true
+done
+
 
 echo "Execute fail test"
 bash -c "! $earthly --ci ./tests/fail+test-fail"
