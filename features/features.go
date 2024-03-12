@@ -223,60 +223,6 @@ func Get(version *spec.Version) (*Features, bool, error) {
 		analytics.Count("version", "missing")
 	}
 
-	// Enable version-specific features.
-	if versionAtLeast(ftrs, 0, 5) {
-		ftrs.ExecAfterParallel = true
-		ftrs.ParallelLoad = true
-		ftrs.UseRegistryForWithDocker = true
-	}
-	if versionAtLeast(ftrs, 0, 6) {
-		ftrs.ForIn = true
-		ftrs.NoImplicitIgnore = true
-		ftrs.ReferencedSaveOnly = true
-		ftrs.RequireForceForUnsafeSaves = true
-		ftrs.UseCopyIncludePatterns = true
-	}
-	if versionAtLeast(ftrs, 0, 7) {
-		ftrs.CheckDuplicateImages = true
-		ftrs.EarthlyCIArg = true
-		ftrs.EarthlyGitAuthorArgs = true
-		ftrs.EarthlyLocallyArg = true
-		ftrs.EarthlyVersionArg = true
-		ftrs.ExplicitGlobal = true
-		ftrs.GitCommitAuthorTimestamp = true
-		ftrs.NewPlatform = true
-		ftrs.NoTarBuildOutput = true
-		ftrs.SaveArtifactKeepOwn = true
-		ftrs.ShellOutAnywhere = true
-		ftrs.UseCacheCommand = true
-		ftrs.UseChmod = true
-		ftrs.UseCopyLink = true
-		ftrs.UseHostCommand = true
-		ftrs.UseNoManifestList = true
-		ftrs.UsePipelines = true
-		ftrs.UseProjectSecrets = true
-		ftrs.WaitBlock = true
-	}
-	if versionAtLeast(ftrs, 0, 8) {
-		ftrs.NoNetwork = true
-		ftrs.ArgScopeSet = true
-		ftrs.UseDockerIgnore = true
-		ftrs.PassArgs = true
-		ftrs.GlobalCache = true
-		ftrs.CachePersistOption = true
-		ftrs.GitRefs = true
-		ftrs.UseVisitedUpfrontHashCollection = true
-		ftrs.UseFunctionKeyword = true
-	}
-	processNegativeFlags(&ftrs)
-
-	if ftrs.ArgScopeSet && !ftrs.ShellOutAnywhere {
-		// ArgScopeSet uses new ARG declaration logic that requires
-		// ShellOutAnywhere. We're erroring here to ensure that users get that
-		// feedback as early as possible.
-		return nil, false, errors.New("--arg-scope-and-set requires --shell-out-anywhere")
-	}
-
 	return &ftrs, hasVersion, nil
 }
 
@@ -308,4 +254,69 @@ func FromContext(ctx context.Context) *Features {
 		return f
 	}
 	return nil
+}
+
+func (f *Features) Adjust() ([]string, error) {
+	warningStrs := make([]string, 0)
+	enableFunc := func(enabled *bool, str string) {
+		if *enabled {
+			warningStrs = append(warningStrs, str)
+		}
+		*enabled = true
+	}
+	// Enable version-specific features.
+	if versionAtLeast(*f, 0, 5) {
+		enableFunc(&f.ExecAfterParallel, "--exec-after-parallel")
+		enableFunc(&f.ParallelLoad, "--parallel-load")
+		enableFunc(&f.UseRegistryForWithDocker, "--use-registry-for-with-docker")
+	}
+	if versionAtLeast(*f, 0, 6) {
+		enableFunc(&f.ForIn, "--for-in")
+		enableFunc(&f.NoImplicitIgnore, "--no-implicit-ignore")
+		enableFunc(&f.ReferencedSaveOnly, "--referenced-save-only")
+		enableFunc(&f.RequireForceForUnsafeSaves, "--require-force-for-unsafe-saves")
+		enableFunc(&f.UseCopyIncludePatterns, "--use-copy-include-patterns")
+	}
+	if versionAtLeast(*f, 0, 7) {
+		enableFunc(&f.CheckDuplicateImages, "--check-duplicate-images")
+		enableFunc(&f.EarthlyCIArg, "--earthly-ci-arg")
+		enableFunc(&f.EarthlyGitAuthorArgs, "--earthly-git-author-args")
+		enableFunc(&f.EarthlyLocallyArg, "--earthly-locally-arg")
+		enableFunc(&f.EarthlyVersionArg, "--earthly-version-arg")
+		enableFunc(&f.ExplicitGlobal, "--explicit-global")
+		enableFunc(&f.GitCommitAuthorTimestamp, "--git-commit-author-timestamp")
+		enableFunc(&f.NewPlatform, "--new-platform")
+		enableFunc(&f.NoTarBuildOutput, "--no-tar-build-output")
+		enableFunc(&f.SaveArtifactKeepOwn, "--save-artifact-keep-own")
+		enableFunc(&f.ShellOutAnywhere, "--shell-out-anywhere")
+		enableFunc(&f.UseCacheCommand, "--use-cache-command")
+		enableFunc(&f.UseChmod, "--use-chmod")
+		enableFunc(&f.UseCopyLink, "--use-copy-link")
+		enableFunc(&f.UseHostCommand, "--use-host-command")
+		enableFunc(&f.UseNoManifestList, "--use-no-manifest-list")
+		enableFunc(&f.UsePipelines, "--use-pipelines")
+		enableFunc(&f.UseProjectSecrets, "--use-project-secrets")
+		enableFunc(&f.WaitBlock, "--wait-block")
+	}
+	if versionAtLeast(*f, 0, 8) {
+		enableFunc(&f.NoNetwork, "--no-network")
+		enableFunc(&f.ArgScopeSet, "--arg-scope-and-set")
+		enableFunc(&f.UseDockerIgnore, "--use-docker-ignore")
+		enableFunc(&f.PassArgs, "--pass-args")
+		enableFunc(&f.GlobalCache, "--global-cache")
+		enableFunc(&f.CachePersistOption, "--cache-persist-option")
+		enableFunc(&f.GitRefs, "--git-refs")
+		enableFunc(&f.UseVisitedUpfrontHashCollection, "--use-visited-upfront-hash-collection")
+		enableFunc(&f.UseFunctionKeyword, "--use-function-keyword")
+	}
+	processNegativeFlags(f)
+
+	if f.ArgScopeSet && !f.ShellOutAnywhere {
+		// ArgScopeSet uses new ARG declaration logic that requires
+		// ShellOutAnywhere. We're erroring here to ensure that users get that
+		// feedback as early as possible.
+		return nil, errors.New("--arg-scope-and-set requires --shell-out-anywhere")
+	}
+
+	return warningStrs, nil
 }
