@@ -897,9 +897,10 @@ merge-main-to-docs:
         # 3. create a new PR and wait till checks complete (if checks fail, close the PR)
         gh pr create --title "Temp PR to merge $from_branch to $to_branch" --draft -B $to_branch \
         --body "Opened by +merge-main-to-docs" --repo $git_repo && \
-        sleep 5 && \
+        sleep 15 && \
         ( \
-            timeout --signal=SIGINT 300 gh pr checks $temp_pr_branch --watch --fail-fast || \
+            timeout --signal=SIGINT 300 \
+            gh run watch $(gh run list --commit $(git rev-parse HEAD) -w "Check Docs for Broken Links" --json "databaseId" --jq '.[]|.databaseId') --exit-status || \
             (gh pr close $temp_pr_branch --delete-branch && exit 1) \
         ) && \
         # 4. try to push the branch now that the PR checks have passed
