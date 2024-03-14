@@ -41,21 +41,21 @@ type Stats struct {
 }
 
 type loader struct {
-	target           domain.Target
-	visited          map[string]struct{}
-	hasher           *hasher.Hasher
-	importsProcessed bool
-	hashCache        map[string][]byte
-	stats            *Stats
-	primaryTarget    bool
-	conslog          conslogging.ConsoleLogger
-	varCollection    *variables.Collection
-	features         *features.Features
-	isBaseTarget     bool
-	ci               bool
-	builtinArgs      variables.DefaultArgs
-	overridingVars   *variables.Scope
-	globalImports    map[string]domain.ImportTrackerVal
+	target         domain.Target
+	visited        map[string]struct{}
+	hasher         *hasher.Hasher
+	baseProcessed  bool
+	hashCache      map[string][]byte
+	stats          *Stats
+	primaryTarget  bool
+	conslog        conslogging.ConsoleLogger
+	varCollection  *variables.Collection
+	features       *features.Features
+	isBaseTarget   bool
+	ci             bool
+	builtinArgs    variables.DefaultArgs
+	overridingVars *variables.Scope
+	globalImports  map[string]domain.ImportTrackerVal
 }
 
 func newLoader(ctx context.Context, opt HashOpt) *loader {
@@ -831,7 +831,7 @@ func (l *loader) forTarget(ctx context.Context, target domain.Target, args []str
 	}
 
 	if target.IsLocalInternal() {
-		ret.importsProcessed = true
+		ret.baseProcessed = true
 		ret.globalImports = l.varCollection.Imports().Global()
 	}
 
@@ -957,23 +957,27 @@ func (l *loader) load(ctx context.Context) ([]byte, error) {
 		l.hashVersion(*ef.Version)
 	}
 
-	// Ensure all IMPORT commands are processed.
-	if !l.importsProcessed {
+	// Ensure all "base" target commands are processed once.
+	if !l.baseProcessed {
 		for _, stmt := range ef.BaseRecipe {
-			if stmt.Command != nil && stmt.Command.Name == command.Import {
-				if err := l.handleImport(ctx, *stmt.Command, true); err != nil {
-					return nil, err
-				}
+			var err error
+			switch {
+			case stmt.Command == nil:
+				break
+			case stmt.Command.Name == command.Import:
+				err = l.handleImport(ctx, *stmt.Command, true)
+			case stmt.Command.Name == command.Arg:
+				err = l.handleArg(ctx, *stmt.Command)
+			case stmt.Command.Name == command.From:
+				err = l.handleFrom(ctx, *stmt.Command)
+			}
+			if err != nil {
+				return nil, err
 			}
 		}
 	}
 
 	isBase := l.target.Target == "base"
-
-	// Process the "base" target in all cases since it contains important base settings.
-	if err := l.loadBlock(ctx, ef.BaseRecipe); err != nil {
-		return nil, err
-	}
 
 	// Since "base" is always processed above, there's not need to revisit it here.
 	if !isBase {
