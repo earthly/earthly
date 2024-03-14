@@ -968,26 +968,31 @@ func (l *loader) load(ctx context.Context) ([]byte, error) {
 		}
 	}
 
-	var block spec.Block
+	isBase := l.target.Target == "base"
 
-	if l.target.Target == "base" {
-		block = ef.BaseRecipe
-	} else {
+	// Process the "base" target in all cases since it contains important base settings.
+	if err := l.loadBlock(ctx, ef.BaseRecipe); err != nil {
+		return nil, err
+	}
+
+	// Since "base" is always processed above, there's not need to revisit it here.
+	if !isBase {
+		var block spec.Block
+
 		for _, t := range ef.Targets {
 			if t.Name == l.target.Target {
 				block = t.Recipe
 				break
 			}
 		}
-	}
 
-	if block == nil {
-		return nil, fmt.Errorf("target %q not found", l.target.Target)
-	}
+		if block == nil {
+			return nil, fmt.Errorf("target %q not found", l.target.Target)
+		}
 
-	err = l.loadBlock(ctx, block)
-	if err != nil {
-		return nil, err
+		if err := l.loadBlock(ctx, block); err != nil {
+			return nil, err
+		}
 	}
 
 	v := l.hasher.GetHash()

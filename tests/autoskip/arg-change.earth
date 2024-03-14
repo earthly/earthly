@@ -1,7 +1,12 @@
-VERSION 0.8
+VERSION --build-auto-skip 0.8
 
 ARG VERSION=3.18.6
+FROM alpine:$VERSION
+
+PROJECT earthly-technologies/cloud
+
+parent:
+    RUN cat /etc/os-release
 
 expand-args-from:
-    FROM alpine:$VERSION
-    RUN cat /etc/os-release
+    BUILD --auto-skip +parent
