@@ -33,6 +33,7 @@ test-all:
     BUILD +test-build-flag
     BUILD +test-flag-conflict
     BUILD +test-init-failure
+    BUILD +test-arg-change
 
 test-files:
     RUN echo hello > my-file
@@ -276,6 +277,14 @@ test-init-failure:
     DO --pass-args tests+RUN_EARTHLY --extra_args="--auto-skip-db-path=/tmp --auto-skip" \
                                      --earthfile=build-flag.earth --target=+basic \
                                      --output_contains="Failed to initialize auto-skip database"
+
+test-arg-change:
+    COPY arg-change.earth Earthfile
+    RUN cat Earthfile
+    DO --pass-args tests+RUN_EARTHLY --extra_args="--auto-skip-db-path=test.db" --target=+expand-args-from --output_contains="VERSION_ID=3.18.6"
+    RUN sed -i "s/3.18.6/3.19.1/g" Earthfile
+    RUN cat Earthfile
+    DO --pass-args tests+RUN_EARTHLY --extra_args="--auto-skip-db-path=test.db" --target=+expand-args-from --output_contains="VERSION_ID=3.19.1"
 
 RUN_EARTHLY_ARGS:
     FUNCTION
