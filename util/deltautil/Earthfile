@@ -1,6 +1,7 @@
 VERSION 0.8
 
-FROM github.com/earthly/earthly+base
+# Note: the tag below is needed for auto-skip.
+FROM github.com/earthly/earthly:tags/v0.8.5+base
 
 # deps downloads and caches all dependencies for the deltautil package. When
 # called directly, go.mod and go.sum will be updated locally.
