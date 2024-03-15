@@ -51,7 +51,6 @@ type loader struct {
 	conslog        conslogging.ConsoleLogger
 	varCollection  *variables.Collection
 	features       *features.Features
-	isBaseTarget   bool
 	ci             bool
 	builtinArgs    variables.DefaultArgs
 	overridingVars *variables.Scope
@@ -67,7 +66,6 @@ func newLoader(ctx context.Context, opt HashOpt) *loader {
 		target:         opt.Target,
 		visited:        map[string]struct{}{},
 		hasher:         h,
-		isBaseTarget:   opt.Target.Target == "base",
 		ci:             opt.CI,
 		builtinArgs:    opt.BuiltinArgs,
 		overridingVars: opt.OverridingVars,
@@ -375,7 +373,7 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 	case command.Copy:
 		return l.handleCopy(ctx, cmd)
 	case command.Arg:
-		return l.handleArg(ctx, cmd)
+		return l.handleArg(ctx, cmd, false)
 	case command.FromDockerfile:
 		return l.handleFromDockerfile(ctx, cmd)
 	case command.Import:
@@ -387,14 +385,14 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 	}
 }
 
-func (l *loader) handleImport(ctx context.Context, cmd spec.Command, global bool) error {
+func (l *loader) handleImport(ctx context.Context, cmd spec.Command, isBase bool) error {
 
 	var alias string
 	if len(cmd.Args) == 3 {
 		alias = cmd.Args[2]
 	}
 
-	err := l.varCollection.Imports().Add(cmd.Args[0], alias, global, false, false)
+	err := l.varCollection.Imports().Add(cmd.Args[0], alias, isBase, false, false)
 	if err != nil {
 		return wrapError(err, cmd.SourceLocation, "failed to add import")
 	}
@@ -421,8 +419,8 @@ func (l *loader) handleFromDockerfile(ctx context.Context, cmd spec.Command) err
 	return nil
 }
 
-func (l *loader) handleArg(ctx context.Context, cmd spec.Command) error {
-	opts, key, valueOrNil, err := flagutil.ParseArgArgs(ctx, cmd, l.isBaseTarget, l.features.ExplicitGlobal)
+func (l *loader) handleArg(ctx context.Context, cmd spec.Command, isBase bool) error {
+	opts, key, valueOrNil, err := flagutil.ParseArgArgs(ctx, cmd, isBase, l.features.ExplicitGlobal)
 	if err != nil {
 		return wrapError(err, cmd.SourceLocation, "failed to parse args")
 	}
@@ -821,7 +819,6 @@ func (l *loader) forTarget(ctx context.Context, target domain.Target, args []str
 		target:         target,
 		visited:        visited,
 		hasher:         hasher.New(),
-		isBaseTarget:   target.Target == "base",
 		ci:             l.ci,
 		builtinArgs:    l.builtinArgs,
 		overridingVars: overriding,
@@ -967,7 +964,7 @@ func (l *loader) load(ctx context.Context) ([]byte, error) {
 			case stmt.Command.Name == command.Import:
 				err = l.handleImport(ctx, *stmt.Command, true)
 			case stmt.Command.Name == command.Arg:
-				err = l.handleArg(ctx, *stmt.Command)
+				err = l.handleArg(ctx, *stmt.Command, true)
 			case stmt.Command.Name == command.From:
 				err = l.handleFrom(ctx, *stmt.Command)
 			}
