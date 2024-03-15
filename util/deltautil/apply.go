@@ -91,6 +91,9 @@ func setManifestFields(dm *pb.DeltaManifest, ret *pb.RunManifest) {
 	if f.GetGitConfigEmail() != "" {
 		ret.GitConfigEmail = f.GetGitConfigEmail()
 	}
+	if f.GetGitUsername() != "" {
+		ret.GitUsername = f.GetGitUsername()
+	}
 	for targetID, t2 := range f.GetTargets() {
 		t := ensureTargetExists(ret, targetID)
 
