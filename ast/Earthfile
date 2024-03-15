@@ -1,7 +1,6 @@
 VERSION 0.8
 
-# Note: the tag below is needed for auto-skip.
-FROM github.com/earthly/earthly:tags/v0.8.5+base
+FROM ../+base
 
 # deps downloads and caches all dependencies for the ast package. When called
 # directly, go.mod and go.sum will be updated locally.

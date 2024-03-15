@@ -279,10 +279,15 @@ test-init-failure:
                                      --output_contains="Failed to initialize auto-skip database"
 
 test-arg-change:
+    # Please don't update. These versions are pinned to ensure a version
+    # argument change triggers auto-skip cache-busting.
+    ARG V1="3.18.6"
+    ARG V2="3.19.1"
     COPY arg-change.earth Earthfile
-    DO --pass-args tests+RUN_EARTHLY --extra_args="--auto-skip-db-path=test.db" --target=+expand-args-from --output_contains="VERSION_ID=3.18.6"
-    RUN sed -i "s/3.18.6/3.19.1/g" Earthfile
-    DO --pass-args tests+RUN_EARTHLY --extra_args="--auto-skip-db-path=test.db" --target=+expand-args-from --output_contains="VERSION_ID=3.19.1"
+    RUN sed -i "s/<VERSION>/$V1/g" Earthfile
+    DO --pass-args tests+RUN_EARTHLY --extra_args="--auto-skip-db-path=test.db" --target=+expand-args-from --output_contains="VERSION_ID=$V1"
+    RUN sed -i "s/$V1/$V2/g" Earthfile
+    DO --pass-args tests+RUN_EARTHLY --extra_args="--auto-skip-db-path=test.db" --target=+expand-args-from --output_contains="VERSION_ID=$V2"
 
 RUN_EARTHLY_ARGS:
     FUNCTION
