@@ -255,6 +255,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	var (
 		gitCommitAuthor string
 		gitConfigEmail  string
+		gitUsername     string
 	)
 	if !target.IsRemote() {
 		meta, _ := gitutil.Metadata(cliCtx.Context, target.GetLocalPath(), a.cli.Flags().GitBranchOverride)
@@ -647,7 +648,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		}
 		setup := a.cli.LogbusSetup()
 		setup.SetOrgAndProject(orgName, projectName)
-		setup.SetGitAuthor(gitCommitAuthor, gitConfigEmail)
+		setup.SetGitAuthor(gitCommitAuthor, gitConfigEmail, gitUsername)
 		_, isCI := analytics.DetectCI(a.cli.Flags().EarthlyCIRunner)
 		setup.SetCI(isCI)
 		if doLogstreamUpload {

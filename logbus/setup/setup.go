@@ -75,9 +75,10 @@ func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
 }
 
 // SetGitAuthor records the Git author information on the initial manifest.
-func (bs *BusSetup) SetGitAuthor(gitAuthor, gitCommitEmail string) {
+func (bs *BusSetup) SetGitAuthor(gitAuthor, gitCommitEmail, gitUsername string) {
 	bs.InitialManifest.GitAuthor = gitAuthor
 	bs.InitialManifest.GitConfigEmail = gitCommitEmail
+	bs.InitialManifest.GitUsername = gitUsername
 }
 
 // SetCI tracks whether this build is being run in a CI environment.
