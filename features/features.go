@@ -258,57 +258,22 @@ func FromContext(ctx context.Context) *Features {
 
 func (f *Features) Adjust() ([]string, error) {
 	warningStrs := make([]string, 0)
-	enableFunc := func(enabled *bool, str string) {
-		if *enabled {
-			warningStrs = append(warningStrs, str)
+	
+	v := reflect.ValueOf(f).Elem()
+
+	for version, features := range supportedVersion2FeartureFieldIndex {
+		for _, featureIndex := range features {
+			field := v.Field(featureIndex)
+			if versionAtLeast(*f, version.major, version.minor) && field.Kind() == reflect.Bool {
+				if field.Bool() {
+					tagName := v.Type().Field(featureIndex).Tag.Get("long")
+					warningStrs = append(warningStrs, fmt.Sprintf("--%s", strings.ToLower(tagName)))
+				}
+				field.SetBool(true)
+			}
 		}
-		*enabled = true
 	}
-	// Enable version-specific features.
-	if versionAtLeast(*f, 0, 5) {
-		enableFunc(&f.ExecAfterParallel, "--exec-after-parallel")
-		enableFunc(&f.ParallelLoad, "--parallel-load")
-		enableFunc(&f.UseRegistryForWithDocker, "--use-registry-for-with-docker")
-	}
-	if versionAtLeast(*f, 0, 6) {
-		enableFunc(&f.ForIn, "--for-in")
-		enableFunc(&f.NoImplicitIgnore, "--no-implicit-ignore")
-		enableFunc(&f.ReferencedSaveOnly, "--referenced-save-only")
-		enableFunc(&f.RequireForceForUnsafeSaves, "--require-force-for-unsafe-saves")
-		enableFunc(&f.UseCopyIncludePatterns, "--use-copy-include-patterns")
-	}
-	if versionAtLeast(*f, 0, 7) {
-		enableFunc(&f.CheckDuplicateImages, "--check-duplicate-images")
-		enableFunc(&f.EarthlyCIArg, "--earthly-ci-arg")
-		enableFunc(&f.EarthlyGitAuthorArgs, "--earthly-git-author-args")
-		enableFunc(&f.EarthlyLocallyArg, "--earthly-locally-arg")
-		enableFunc(&f.EarthlyVersionArg, "--earthly-version-arg")
-		enableFunc(&f.ExplicitGlobal, "--explicit-global")
-		enableFunc(&f.GitCommitAuthorTimestamp, "--git-commit-author-timestamp")
-		enableFunc(&f.NewPlatform, "--new-platform")
-		enableFunc(&f.NoTarBuildOutput, "--no-tar-build-output")
-		enableFunc(&f.SaveArtifactKeepOwn, "--save-artifact-keep-own")
-		enableFunc(&f.ShellOutAnywhere, "--shell-out-anywhere")
-		enableFunc(&f.UseCacheCommand, "--use-cache-command")
-		enableFunc(&f.UseChmod, "--use-chmod")
-		enableFunc(&f.UseCopyLink, "--use-copy-link")
-		enableFunc(&f.UseHostCommand, "--use-host-command")
-		enableFunc(&f.UseNoManifestList, "--use-no-manifest-list")
-		enableFunc(&f.UsePipelines, "--use-pipelines")
-		enableFunc(&f.UseProjectSecrets, "--use-project-secrets")
-		enableFunc(&f.WaitBlock, "--wait-block")
-	}
-	if versionAtLeast(*f, 0, 8) {
-		enableFunc(&f.NoNetwork, "--no-network")
-		enableFunc(&f.ArgScopeSet, "--arg-scope-and-set")
-		enableFunc(&f.UseDockerIgnore, "--use-docker-ignore")
-		enableFunc(&f.PassArgs, "--pass-args")
-		enableFunc(&f.GlobalCache, "--global-cache")
-		enableFunc(&f.CachePersistOption, "--cache-persist-option")
-		enableFunc(&f.GitRefs, "--git-refs")
-		enableFunc(&f.UseVisitedUpfrontHashCollection, "--use-visited-upfront-hash-collection")
-		enableFunc(&f.UseFunctionKeyword, "--use-function-keyword")
-	}
+
 	processNegativeFlags(f)
 
 	if f.ArgScopeSet && !f.ShellOutAnywhere {
@@ -319,4 +284,19 @@ func (f *Features) Adjust() ([]string, error) {
 	}
 
 	return warningStrs, nil
+}
+
+type version struct {
+	major int
+	minor int
+}
+
+// supportedVersion is a map of supported minimum versions for each feature.
+var supportedVersion2FeartureFieldIndex = map[version][]int{
+	{0, 5}: {2, 3, 4},
+	{0, 6}: {5, 6, 7, 8, 9},
+	// 10 - 28
+	{0, 7}: {10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28},
+	// 29 - 37
+	{0, 8}: {29, 30, 31, 32, 33, 34, 35, 36, 37},
 }
