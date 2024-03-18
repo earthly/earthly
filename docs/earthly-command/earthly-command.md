@@ -267,11 +267,13 @@ Also available as an env var setting: `EARTHLY_SAVE_INLINE_CACHE=true`
 
 Enables embedding inline cache in any pushed images. This cache can be used on other systems, if enabled via `--use-inline-cache`. For more information see the [remote caching guide](../caching/caching-via-registry.md).
 
-##### `--remote-cache <image-tag>`
+##### `--remote-cache <image-tag>[,<attr1>=<val1>,<attr2>=<val2>,...]`
 
-Also available as an env var setting: `EARTHLY_REMOTE_CACHE=<image-tag>`
+Also available as an env var setting: `EARTHLY_REMOTE_CACHE=<image-tag>[,<attr1>=<val1>,<attr2>=<val2>,...]`
 
-Enables use of explicit cache. The provided `<image-tag>` is used for storing and retrieving the cache to/from a Docker registry. Storing explicit cache is only enabled if the option `--push` is also passed in. For more information see the [remote caching guide](../caching/caching-via-registry.md).
+Enables use of explicit cache. The provided `<image-tag>` is used for storing and retrieving the cache to/from a Docker registry. Storing explicit cache is only enabled if the option `--push` is also passed in.
+Additional attributes can be optionally set for certain registry providers to be supported.  
+For more information see the [remote caching guide](../caching/caching-via-registry.md).
 
 ##### `--max-remote-cache`
 
