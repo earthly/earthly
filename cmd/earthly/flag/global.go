@@ -515,7 +515,7 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 		&cli.StringFlag{
 			Name:        "remote-cache",
 			EnvVars:     []string{"EARTHLY_REMOTE_CACHE"},
-			Usage:       "A remote docker image tag use as explicit cache",
+			Usage:       "A remote docker image tag use as explicit cache and optionally additional attributes to set in the image (Format: \"<image-tag>[,<attr1>=<val1>,<attr2>=<val2>,...]\")",
 			Destination: &global.RemoteCache,
 		},
 		&cli.BoolFlag{
