@@ -154,6 +154,15 @@ On developer's computer (optional):
 earthly --remote-cache=mycompany/myimage:cache +some-target
 ```
 
+##### Additional Image Attributes
+
+Some Registry Providers require setting certain attributes so that they can be used for explicit caching.  
+These attributes can be set in the ``--remote-cache` flag, for example:
+
+```bash
+earthly --remote-cache=harbor.company.team/earthly-cache/test:cache,image-manifest=true,oci-mediatypes=true +example
+```
+
 The options mentioned above are also available as environment variables. See [Earthly command reference](../earthly-command/earthly-command.md) for more information.
 
 {% hint style='info' %}
