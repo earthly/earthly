@@ -19,55 +19,52 @@ import (
 // Features is used to denote which features to flip on or off; this is for use in maintaining
 // backwards compatibility
 type Features struct {
-
 	// Never enabled by default
 	NoUseRegistryForWithDocker bool `long:"no-use-registry-for-with-docker" description:"disable use-registry-for-with-docker"` // escape hatch for disabling WITH DOCKER registry, e.g. used by eine-based tests
 	EarthlyCIRunnerArg         bool `long:"earthly-ci-runner-arg" description:"includes EARTHLY_CI_RUNNER ARG"`                 // earthly CI was discontinued, no reason to enable this by default
-
 	// VERSION 0.5
-	ExecAfterParallel        bool `long:"exec-after-parallel" description:"force execution after parallel conversion"`
-	ParallelLoad             bool `long:"parallel-load" description:"perform parallel loading of images into WITH DOCKER"`
-	UseRegistryForWithDocker bool `long:"use-registry-for-with-docker" description:"use embedded Docker registry for WITH DOCKER load operations"`
+	ExecAfterParallel        bool `long:"exec-after-parallel" enabled_in_version:"0.5" description:"force execution after parallel conversion"`
+	ParallelLoad             bool `long:"parallel-load" enabled_in_version:"0.5" description:"perform parallel loading of images into WITH DOCKER"`
+	UseRegistryForWithDocker bool `long:"use-registry-for-with-docker" enabled_in_version:"0.5" description:"use embedded Docker registry for WITH DOCKER load operations"`
 
 	// VERSION 0.6
-	ForIn                      bool `long:"for-in" description:"allow the use of the FOR command"`
-	NoImplicitIgnore           bool `long:"no-implicit-ignore" description:"disable implicit ignore rules to exclude .tmp-earthly-out/, build.earth, Earthfile, .earthignore and .earthlyignore when resolving local context"`
-	ReferencedSaveOnly         bool `long:"referenced-save-only" description:"only save artifacts that are directly referenced"`
-	RequireForceForUnsafeSaves bool `long:"require-force-for-unsafe-saves" description:"require the --force flag when saving to path outside of current path"`
-	UseCopyIncludePatterns     bool `long:"use-copy-include-patterns" description:"specify an include pattern to buildkit when performing copies"`
+	ForIn                      bool `long:"for-in" enabled_in_version:"0.6" description:"allow the use of the FOR command"`
+	NoImplicitIgnore           bool `long:"no-implicit-ignore" enabled_in_version:"0.6" description:"disable implicit ignore rules to exclude .tmp-earthly-out/, build.earth, Earthfile, .earthignore and .earthlyignore when resolving local context"`
+	ReferencedSaveOnly         bool `long:"referenced-save-only" enabled_in_version:"0.6" description:"only save artifacts that are directly referenced"`
+	RequireForceForUnsafeSaves bool `long:"require-force-for-unsafe-saves" enabled_in_version:"0.6" description:"require the --force flag when saving to path outside of current path"`
+	UseCopyIncludePatterns     bool `long:"use-copy-include-patterns" enabled_in_version:"0.6" description:"specify an include pattern to buildkit when performing copies"`
 
 	// VERSION 0.7
-	CheckDuplicateImages     bool `long:"check-duplicate-images" description:"check for duplicate images during output"`
-	EarthlyCIArg             bool `long:"ci-arg" description:"include EARTHLY_CI arg"`
-	EarthlyGitAuthorArgs     bool `long:"earthly-git-author-args" description:"includes EARTHLY_GIT_AUTHOR and EARTHLY_GIT_CO_AUTHORS ARGs"`
-	EarthlyLocallyArg        bool `long:"earthly-locally-arg" description:"includes EARTHLY_LOCALLY ARG"`
-	EarthlyVersionArg        bool `long:"earthly-version-arg" description:"includes EARTHLY_VERSION and EARTHLY_BUILD_SHA ARGs"`
-	ExplicitGlobal           bool `long:"explicit-global" description:"require base target args to have explicit settings to be considered global args"`
-	GitCommitAuthorTimestamp bool `long:"git-commit-author-timestamp" description:"include EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP arg"`
-	NewPlatform              bool `long:"new-platform" description:"enable new platform behavior"`
-	NoTarBuildOutput         bool `long:"no-tar-build-output" description:"do not print output when creating a tarball to load into WITH DOCKER"`
-	SaveArtifactKeepOwn      bool `long:"save-artifact-keep-own" description:"always apply the --keep-own flag with SAVE ARTIFACT"`
-	ShellOutAnywhere         bool `long:"shell-out-anywhere" description:"allow shelling-out in the middle of ARGs, or any other command"`
-	UseCacheCommand          bool `long:"use-cache-command" description:"allow use of CACHE command in Earthfiles"`
-	UseChmod                 bool `long:"use-chmod" description:"enable the COPY --chmod option"`
-	UseCopyLink              bool `long:"use-copy-link" description:"use the equivalent of COPY --link for all copy-like operations"`
-	UseHostCommand           bool `long:"use-host-command" description:"allow use of HOST command in Earthfiles"`
-	UseNoManifestList        bool `long:"use-no-manifest-list" description:"enable the SAVE IMAGE --no-manifest-list option"`
-	UsePipelines             bool `long:"use-pipelines" description:"enable the PIPELINE and TRIGGER commands"`
-	UseProjectSecrets        bool `long:"use-project-secrets" description:"enable project-based secret resolution"`
-	WaitBlock                bool `long:"wait-block" description:"enable WITH/END feature, also allows RUN --push mixed with non-push commands"`
+	CheckDuplicateImages     bool `long:"check-duplicate-images" enabled_in_version:"0.7" description:"check for duplicate images during output"`
+	EarthlyCIArg             bool `long:"ci-arg" enabled_in_version:"0.7" description:"include EARTHLY_CI arg"`
+	EarthlyGitAuthorArgs     bool `long:"earthly-git-author-args" enabled_in_version:"0.7" description:"includes EARTHLY_GIT_AUTHOR and EARTHLY_GIT_CO_AUTHORS ARGs"`
+	EarthlyLocallyArg        bool `long:"earthly-locally-arg" enabled_in_version:"0.7" description:"includes EARTHLY_LOCALLY ARG"`
+	EarthlyVersionArg        bool `long:"earthly-version-arg" enabled_in_version:"0.7" description:"includes EARTHLY_VERSION and EARTHLY_BUILD_SHA ARGs"`
+	ExplicitGlobal           bool `long:"explicit-global" enabled_in_version:"0.7" description:"require base target args to have explicit settings to be considered global args"`
+	GitCommitAuthorTimestamp bool `long:"git-commit-author-timestamp" enabled_in_version:"0.7" description:"include EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP arg"`
+	NewPlatform              bool `long:"new-platform" enabled_in_version:"0.7" description:"enable new platform behavior"`
+	NoTarBuildOutput         bool `long:"no-tar-build-output" enabled_in_version:"0.7" description:"do not print output when creating a tarball to load into WITH DOCKER"`
+	SaveArtifactKeepOwn      bool `long:"save-artifact-keep-own" enabled_in_version:"0.7" description:"always apply the --keep-own flag with SAVE ARTIFACT"`
+	ShellOutAnywhere         bool `long:"shell-out-anywhere" enabled_in_version:"0.7" description:"allow shelling-out in the middle of ARGs, or any other command"`
+	UseCacheCommand          bool `long:"use-cache-command" enabled_in_version:"0.7" description:"allow use of CACHE command in Earthfiles"`
+	UseChmod                 bool `long:"use-chmod" enabled_in_version:"0.7" description:"enable the COPY --chmod option"`
+	UseCopyLink              bool `long:"use-copy-link" enabled_in_version:"0.7" description:"use the equivalent of COPY --link for all copy-like operations"`
+	UseHostCommand           bool `long:"use-host-command" enabled_in_version:"0.7" description:"allow use of HOST command in Earthfiles"`
+	UseNoManifestList        bool `long:"use-no-manifest-list" enabled_in_version:"0.7" description:"enable the SAVE IMAGE --no-manifest-list option"`
+	UsePipelines             bool `long:"use-pipelines" enabled_in_version:"0.7" description:"enable the PIPELINE and TRIGGER commands"`
+	UseProjectSecrets        bool `long:"use-project-secrets" enabled_in_version:"0.7" description:"enable project-based secret resolution"`
+	WaitBlock                bool `long:"wait-block" enabled_in_version:"0.7" description:"enable WITH/END feature, also allows RUN --push mixed with non-push commands"`
 
 	// VERSION 0.8
-	NoNetwork                       bool `long:"no-network" description:"allow the use of RUN --network=none commands"`
-	ArgScopeSet                     bool `long:"arg-scope-and-set" description:"enable SET to reassign ARGs and prevent ARGs from being redeclared in the same scope"`
-	UseDockerIgnore                 bool `long:"use-docker-ignore" description:"fallback to .dockerignore incase .earthlyignore or .earthignore do not exist in a local \"FROM DOCKERFILE\" target"`
-	PassArgs                        bool `long:"pass-args" description:"Allow the use of the --pass-arg flag in FROM, BUILD, COPY, WITH DOCKER, and DO commands"`
-	GlobalCache                     bool `long:"global-cache" description:"enable global caches (shared across different Earthfiles), for cache mounts and CACHEs having an ID"`
-	CachePersistOption              bool `long:"cache-persist-option" description:"Adds option to persist caches, Changes default CACHE behaviour to not persist"`
-	GitRefs                         bool `long:"git-refs" description:"includes EARTHLY_GIT_REFS ARG"`
-	UseVisitedUpfrontHashCollection bool `long:"use-visited-upfront-hash-collection" description:"Uses a new target visitor implementation that computes upfront the hash of the visited targets and adds support for running all targets with the same name but different args in parallel"`
-	UseFunctionKeyword              bool `long:"use-function-keyword" description:"Use the FUNCTION key word instead of COMMAND"`
-
+	NoNetwork                       bool `long:"no-network" enabled_in_version:"0.8" description:"allow the use of RUN --network=none commands"`
+	ArgScopeSet                     bool `long:"arg-scope-and-set" enabled_in_version:"0.8" description:"enable SET to reassign ARGs and prevent ARGs from being redeclared in the same scope"`
+	UseDockerIgnore                 bool `long:"use-docker-ignore" enabled_in_version:"0.8" description:"fallback to .dockerignore incase .earthlyignore or .earthlyignore do not exist in a local \"FROM DOCKERFILE\" target"`
+	PassArgs                        bool `long:"pass-args" enabled_in_version:"0.8" description:"Allow the use of the --pass-arg flag in FROM, BUILD, COPY, WITH DOCKER, and DO commands"`
+	GlobalCache                     bool `long:"global-cache" enabled_in_version:"0.8" description:"enable global caches (shared across different Earthfiles), for cache mounts and CACHEs having an ID"`
+	CachePersistOption              bool `long:"cache-persist-option" enabled_in_version:"0.8" description:"Adds option to persist caches, Changes default CACHE behaviour to not persist"`
+	GitRefs                         bool `long:"git-refs" enabled_in_version:"0.8" description:"includes EARTHLY_GIT_REFS ARG"`
+	UseVisitedUpfrontHashCollection bool `long:"use-visited-upfront-hash-collection" enabled_in_version:"0.8" description:"Uses a new target visitor implementation that computes upfront the hash of the visited targets and adds support for running all targets with the same name but different args in parallel"`
+	UseFunctionKeyword              bool `long:"use-function-keyword" enabled_in_version:"0.8" description:"Use the FUNCTION key word instead of COMMAND"`
 	// unreleased
 	TryFinally                    bool `long:"try" description:"allow the use of the TRY/FINALLY commands"`
 	WildcardBuilds                bool `long:"wildcard-builds" description:"allow for the expansion of wildcard (glob) paths for BUILD commands"`
@@ -260,17 +257,22 @@ func (f *Features) Adjust() ([]string, error) {
 	warningStrs := make([]string, 0)
 	
 	v := reflect.ValueOf(f).Elem()
+	t := v.Type()
 
-	for version, features := range supportedVersion2FeartureFieldIndex {
-		for _, featureIndex := range features {
-			field := v.Field(featureIndex)
-			if versionAtLeast(*f, version.major, version.minor) && field.Kind() == reflect.Bool {
-				if field.Bool() {
-					tagName := v.Type().Field(featureIndex).Tag.Get("long")
-					warningStrs = append(warningStrs, fmt.Sprintf("--%s", strings.ToLower(tagName)))
-				}
-				field.SetBool(true)
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		value := v.Field(i)
+		version := field.Tag.Get("enabled_in_version")
+		if len(version) == 0 {
+			continue
+		}
+		majorVersion, minorVersion := ParseVersion(field.Tag.Get("enabled_in_version"))
+		if versionAtLeast(*f, majorVersion, minorVersion) && value.Kind() == reflect.Bool {
+			if value.Bool() {
+				tagName := field.Tag.Get("long")
+				warningStrs = append(warningStrs, fmt.Sprintf("--%s", strings.ToLower(tagName)))
 			}
+		value.SetBool(true)
 		}
 	}
 
@@ -286,17 +288,21 @@ func (f *Features) Adjust() ([]string, error) {
 	return warningStrs, nil
 }
 
-type version struct {
-	major int
-	minor int
-}
+func ParseVersion(version string) (int, int) {
+	parts := strings.Split(version, ".")
+	if len(parts) != 2 {
+		panic(fmt.Sprintf("invalid version format: %s", version))
+	}
 
-// supportedVersion is a map of supported minimum versions for each feature.
-var supportedVersion2FeartureFieldIndex = map[version][]int{
-	{0, 5}: {2, 3, 4},
-	{0, 6}: {5, 6, 7, 8, 9},
-	// 10 - 28
-	{0, 7}: {10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28},
-	// 29 - 37
-	{0, 8}: {29, 30, 31, 32, 33, 34, 35, 36, 37},
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		panic(fmt.Sprintf("invalid major version: %s", parts[0]))
+	}
+
+	minor, err := strconv.Atoi(parts[1])
+	if err != nil {
+		panic(fmt.Sprintf("invalid minor version: %s", parts[1]))
+	}
+
+	return major, minor
 }
