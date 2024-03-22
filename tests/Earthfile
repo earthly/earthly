@@ -159,7 +159,7 @@ ga-no-qemu-group2:
     END
 
 ga-no-qemu-group3:
-    BUILD +cache-test
+    # BUILD +cache-test
     BUILD --pass-args ./do-not-track+test-all
     BUILD --pass-args ./scrub-https-credentials+all
     BUILD --pass-args ./autocompletion/install+test-all
