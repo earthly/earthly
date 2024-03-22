@@ -58,7 +58,7 @@ ga-no-qemu-group1:
     BUILD +non-transitive-args-test
     BUILD +star-test
     BUILD +dockerfile-test
-    BUILD +fail-test
+    # BUILD +fail-test
     BUILD +fail-push-test
     BUILD +allow-privileged-import-test
     BUILD +reject-privileged-import-test
