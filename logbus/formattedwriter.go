@@ -6,30 +6,34 @@ import (
 
 // FormattedWriter is a writer that produces DeltaFormattedLog messages.
 type FormattedWriter struct {
-	bus      *Bus
-	targetID string
+	bus       *Bus
+	targetID  string
+	commandID string
 }
 
 // NewFormattedWriter creates a new FormattedWriter.
-func NewFormattedWriter(bus *Bus, targetID string) *FormattedWriter {
+func NewFormattedWriter(bus *Bus, targetID, commandID string) *FormattedWriter {
 	return &FormattedWriter{
-		bus:      bus,
-		targetID: targetID,
+		bus:       bus,
+		targetID:  targetID,
+		commandID: commandID,
 	}
 }
 
 // Write writes the given bytes to the writer.
-func (fw *FormattedWriter) Write(dt []byte) (int, error) {
+func (w *FormattedWriter) Write(dt []byte) (int, error) {
 	// TODO (vladaionescu): Can the timestamp be passed along straight
 	// 						from buildkit?
-	now := fw.bus.NowUnixNanos()
-	fw.bus.WriteFormattedLog(&logstream.DeltaFormattedLog{
-		TargetId:           fw.targetID,
+	now := w.bus.NowUnixNanos()
+	w.bus.WriteFormattedLog(&logstream.DeltaFormattedLog{
+		TargetId:           w.targetID,
+		CommandId:          w.commandID,
 		TimestampUnixNanos: now,
 		Data:               dt,
 	})
-	fw.bus.WriteFormattedLog(&logstream.DeltaFormattedLog{
+	w.bus.WriteFormattedLog(&logstream.DeltaFormattedLog{
 		TargetId:           "_full",
+		CommandId:          w.commandID,
 		TimestampUnixNanos: now,
 		Data:               dt,
 	})
