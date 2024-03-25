@@ -1080,7 +1080,7 @@ This does not apply to Dockerfile's [RUN --security](https://docs.docker.com/ref
 #### Synopsis
 
 ```Dockerfile
-WITH DOCKER [--pull <image-name>] [--load <image-name>=<target-ref>] [--compose <compose-file>]
+WITH DOCKER [--pull <image-name>] [--load [<image-name>=]<target-ref>] [--compose <compose-file>]
             [--service <compose-service>] [--allow-privileged]
   <commands>
   ...
@@ -1143,9 +1143,9 @@ This option may be repeated in order to provide multiple images to be pulled.
 It is recommended that you avoid issuing `RUN docker pull ...` and use `WITH DOCKER --pull ...` instead. The classical `docker pull` command does not take into account Earthly caching and so it would redownload the image much more frequently than necessary.
 {% endhint %}
 
-##### `--load <image-name>=<target-ref>`
+##### `--load [<image-name>=]<target-ref>`
 
-Builds the image referenced by `<target-ref>` and then loads it into the temporary Docker daemon created by `WITH DOCKER`. The image can be referenced as `<image-name>` within `WITH DOCKER`.
+Builds the image referenced by `<target-ref>` and then loads it into the temporary Docker daemon created by `WITH DOCKER`. Within `WITH DOCKER`, the image can be referenced as `<image-name>`, if specified, or otherwise by the name of the image specified in the referenced target's `SAVE IMAGE` command.
 
 `<target-ref>` may be a simple target reference (`+some-target`), or a target reference with a build arg `(+some-target --SOME_BUILD_ARG=value)`.
 
