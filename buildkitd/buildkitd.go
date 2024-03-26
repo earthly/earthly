@@ -234,6 +234,22 @@ func maybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, c
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "wait until started")
 	}
+
+	// check arch is correct
+	runningContainerInfo, err := GetContainerInfo(ctx, containerName, fe)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "GetContainerInfo %s", containerName)
+	}
+	currentImageInfo, err := GetImageInfo(ctx, runningContainerInfo.Image, fe)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "GetImageInfo %s", runningContainerInfo.Image)
+	}
+	if currentImageInfo.Architecture != runtime.GOARCH {
+		console.
+			WithPrefix("buildkitd").
+			Warnf("Warning: %s was started using architecture %s, but host architecture is %s; is DOCKER_DEFAULT_PLATFORM accidentally set?\n", containerName, currentImageInfo.Architecture, runtime.GOARCH)
+	}
+
 	console.
 		WithPrefix("buildkitd").
 		Printf("...Done\n")
@@ -245,10 +261,20 @@ func maybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, c
 // the container is restarted.
 func maybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image, containerName, installationName string, fe containerutil.ContainerFrontend, settings Settings, opts ...client.ClientOpt) (*client.Info, *client.WorkerInfo, error) {
 	bkCons := console.WithPrefix("buildkitd")
-	containerImageID, err := GetContainerImageID(ctx, containerName, fe)
+	runningContainerInfo, err := GetContainerInfo(ctx, containerName, fe)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "could not get container image ID")
+		return nil, nil, errors.Wrap(err, "could not get container info")
 	}
+	currentImageInfo, err := GetImageInfo(ctx, runningContainerInfo.Image, fe)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "could not get image info")
+	}
+	if currentImageInfo.Architecture != runtime.GOARCH {
+		console.
+			WithPrefix("buildkitd").
+			Warnf("Warning: currently running %s under architecture %s, but host architecture is %s; is DOCKER_DEFAULT_PLATFORM accidentally set?\n", containerName, currentImageInfo.Architecture, runtime.GOARCH)
+	}
+	containerImageID := runningContainerInfo.ImageID
 	availableImageID, err := GetAvailableImageID(ctx, image, fe)
 	if err != nil {
 		// Could not get available image ID. This happens when a new image tag is given and that
@@ -811,19 +837,32 @@ func GetSettingsHash(ctx context.Context, containerName string, fe containerutil
 	return "", fmt.Errorf("settings hash for container %s was not found", containerName)
 }
 
-// GetContainerImageID fetches the ID of the image used for the running buildkitd container.
-func GetContainerImageID(ctx context.Context, containerName string, fe containerutil.ContainerFrontend) (string, error) {
+// GetContainerInfo inspects the running container (running under containerName)
+func GetContainerInfo(ctx context.Context, containerName string, fe containerutil.ContainerFrontend) (*containerutil.ContainerInfo, error) {
 	infos, err := fe.ContainerInfo(ctx, containerName)
 	if err != nil {
-		return "", errors.Wrap(err, "get container info for current container image ID")
+		return nil, errors.Wrap(err, "get container info for current container image ID")
 	}
 
 	if containerInfo, ok := infos[containerName]; ok {
-		return containerInfo.ImageID, nil
+		return containerInfo, nil
 	}
 
-	return "", fmt.Errorf("image id for container %s was not found", containerName)
+	return nil, fmt.Errorf("info for container %s was not found", containerName)
+}
 
+// GetImageInfo inspects an image
+func GetImageInfo(ctx context.Context, image string, fe containerutil.ContainerFrontend) (*containerutil.ImageInfo, error) {
+	infos, err := fe.ImageInfo(ctx, image)
+	if err != nil {
+		return nil, errors.Wrapf(err, "get image info %s", image)
+	}
+
+	if info, ok := infos[image]; ok {
+		return info, nil
+	}
+
+	return nil, fmt.Errorf("info for image %s was not found", image)
 }
 
 // GetAvailableImageID fetches the ID of the image buildkitd image available.
