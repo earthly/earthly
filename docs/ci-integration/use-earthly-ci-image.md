@@ -36,19 +36,19 @@ For more details on using remote execution, [see our guide on remote Buildkit](.
 The image expects the source code of the application you are building in the current working directory (by default `/workspace`). You will need to copy or mount the necessary files to that directory prior to invoking the entrypoint.
 
 ```bash
-docker run --privileged --rm -v "$PWD":/workspace earthly/earthly:v0.8.4 +my-target
+docker run --privileged --rm -v "$PWD":/workspace earthly/earthly:v0.8.6 +my-target
 ```
 
 Or, if you would like to use an alternative directory:
 
 ```bash
-docker run --privileged --rm -v "$PWD":/my-dir -w /my-dir earthly/earthly:v0.8.4 +my-target
+docker run --privileged --rm -v "$PWD":/my-dir -w /my-dir earthly/earthly:v0.8.6 +my-target
 ```
 
 Alternatively, you may rely on Earthly to perform a git clone, by using the remote target reference format. For example:
 
 ```bash
-docker run --privileged --rm earthly/earthly:v0.8.4 github.com/foo/bar:my-branch+target
+docker run --privileged --rm earthly/earthly:v0.8.6 github.com/foo/bar:my-branch+target
 ```
 
 #### `NO_BUILDKIT` Environment Variable
