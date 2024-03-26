@@ -2,7 +2,6 @@ package logbus
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -137,7 +136,7 @@ func (run *Run) SetStart(start time.Time) {
 }
 
 // SetFatalError sets a fatal error for the build.
-func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, failureType logstream.FailureType, errString string, args ...any) {
+func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, failureType logstream.FailureType, helpMsg, errorMsg string) {
 	run.mu.Lock()
 	defer run.mu.Unlock()
 	if run.ended {
@@ -160,14 +159,15 @@ func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, 
 			TargetId:     targetID,
 			CommandId:    commandID,
 			Output:       tailOutput,
-			ErrorMessage: fmt.Sprintf(errString, args...),
+			HelpMessage:  helpMsg,
+			ErrorMessage: errorMsg,
 		},
 	})
 }
 
 // SetGenericFatalError sets a fatal error for the build with an empty target id and a command id indicating not to prefix the error with target info.
-func (run *Run) SetGenericFatalError(end time.Time, failureType logstream.FailureType, errString string, args ...any) {
-	run.SetFatalError(end, "", GenericDefault, failureType, errString, args...)
+func (run *Run) SetGenericFatalError(end time.Time, failureType logstream.FailureType, helpMsg, errorMsg string) {
+	run.SetFatalError(end, "", GenericDefault, failureType, helpMsg, errorMsg)
 }
 
 // SetEnd sets the end time and status of the build.
