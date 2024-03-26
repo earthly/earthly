@@ -15,7 +15,15 @@ os="linux"
 if [ "$(uname)" == "Darwin" ]; then
     os="darwin"
 fi
-release_name="earth\\(ly\\)\\?-$os-amd64"
+
+arch="$(uname -m)"
+if [ "$arch" == "aarch64" ]; then
+    arch="arm64"
+elif [ "$arch" == "x86_64" ]; then
+    arch="amd64"
+fi
+
+release_name="earth\\(ly\\)\\?-$os-$arch"
 
 curl -s -L "https://api.github.com/repos/earthly/earthly/releases" > "/tmp/releases.1"
 
