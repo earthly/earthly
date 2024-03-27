@@ -34,7 +34,7 @@ func parseFeatures(buildFilePath string, featureFlagOverrides string, projectRef
 	}
 
 	if len(warningStrs) > 0 {
-		console.Printf("Note that the feature flag %s is not necessary for version %s, since the feature was enabled by default. You may remove this flag from your Earthfile.", strings.Join(warningStrs, ", "), ftrs.Version())
+		console.Printf("NOTE: The %s feature is enabled by default under VERSION %s, and can be safely removed from the VERSION command", strings.Join(warningStrs, ", "), ftrs.Version())
 	}
 
 	err = features.ApplyFlagOverrides(ftrs, featureFlagOverrides)
