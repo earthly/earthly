@@ -1862,6 +1862,7 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		if c.ftrs.ExecAfterParallel {
 			err = c.forceExecution(ctx, c.mts.Final.MainState, c.mts.Final.PlatformResolver)
 			if err != nil {
+				c.RecordTargetFailure(ctx, err)
 				return errors.Wrapf(err, "async force execution for %s", c.mts.FinalTarget().String())
 			}
 		}
