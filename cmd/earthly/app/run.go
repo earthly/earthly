@@ -134,7 +134,7 @@ func unhideFlagsCommands(ctx context.Context, cmds []*cli.Command) {
 func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncutil.Signal) int {
 	defer func() {
 		if app.BaseCLI.LogbusSetup() != nil {
-			err := app.BaseCLI.LogbusSetup().Close()
+			err := app.BaseCLI.LogbusSetup().Close(ctx)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error(s) in logbus: %v", err)
 			}
