@@ -272,7 +272,7 @@ func (f *Features) ProcessFlags() ([]string, error) {
 				tagName := field.Tag.Get("long")
 				warningStrs = append(warningStrs, fmt.Sprintf("--%s", strings.ToLower(tagName)))
 			}
-		value.SetBool(true)
+			value.SetBool(true)
 		}
 	}
 
