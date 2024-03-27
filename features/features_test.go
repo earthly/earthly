@@ -163,7 +163,7 @@ func TestContext(t *testing.T) {
 	})
 }
 
-func TestAdjust(t *testing.T) {
+func TestProcessFlags(t *testing.T) {
 	testCases := []struct {
 		name             string
 		f                *features.Features
@@ -384,7 +384,7 @@ func TestAdjust(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		warnings, err := tc.f.Adjust()
+		warnings, err := tc.f.ProcessFlags()
 		NoError(t, err, tc.name)
 
 		Equal(t, len(tc.expectedWarnings), len(warnings), tc.name)
@@ -394,7 +394,7 @@ func TestAdjust(t *testing.T) {
 	}
 }
 
-func TestParseVersion(t *testing.T) {
+func TestMustParseVersion(t *testing.T) {
 	testCases := []struct {
 		version  string
 		expected []int
@@ -411,7 +411,7 @@ func TestParseVersion(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.version, func(t *testing.T) {
-			major, minor := features.ParseVersion(tc.version)
+			major, minor := features.MustParseVersion(tc.version)
 			Equal(t, tc.expected[0], major)
 			Equal(t, tc.expected[1], minor)
 		})

@@ -15,7 +15,7 @@ type buildFile struct {
 }
 
 func parseFeatures(buildFilePath string, featureFlagOverrides string, projectRef string, console conslogging.ConsoleLogger) (*features.Features, error) {
-	version, err := ast.ParseVersion(buildFilePath, false)
+	version, err := ast.MustParseVersion(buildFilePath, false)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func parseFeatures(buildFilePath string, featureFlagOverrides string, projectRef
 		return nil, fmt.Errorf("No version specified in %s/Earthfile", projectRef)
 	}
 
-	warningStrs, err := ftrs.Adjust()
+	warningStrs, err := ftrs.ProcessFlags()
 	if err != nil {
 		return nil, err
 	}
