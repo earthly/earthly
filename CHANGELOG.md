@@ -4,6 +4,19 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.6 - 2024-03-18
+
+### Added
+
+- Ability to set arbitrary attributes which certain registries require to support explicit remote caching (via the `earthly --remote-cache` flag). [#3714](https://github.com/earthly/earthly/issues/3714) and [#3868](https://github.com/earthly/earthly/issues/3868)
+
+### Fixed
+
+- Fixed an issue in Auto-skip where a `+base` target's ARGs were not accounted for when calculating the cache. [#3895](https://github.com/earthly/earthly/issues/3895)
+
+### Additional Info
+- This release has no changes to buildkit
+
 ## v0.8.5 - 2024-03-11
 
 ### Added

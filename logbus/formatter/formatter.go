@@ -323,7 +323,7 @@ func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
 }
 
 func (f *Formatter) processOngoingTick(ctx context.Context) error {
-	c := f.console.WithWriter(f.bus.FormattedWriter("ongoing")).WithPrefix("ongoing")
+	c := f.console.WithWriter(f.bus.FormattedWriter("ongoing", "")).WithPrefix("ongoing")
 	c.VerbosePrintf("ongoing TODO\n")
 	// TODO(vladaionescu): Go through all the commands and find which one is ongoing.
 	// Print their targets on the console.
@@ -498,6 +498,6 @@ func (f *Formatter) targetConsole(targetID string, commandID string) (consloggin
 		writerTargetID = "_unknown"
 	}
 	return f.console.
-		WithWriter(f.bus.FormattedWriter(writerTargetID)).
+		WithWriter(f.bus.FormattedWriter(writerTargetID, commandID)).
 		WithPrefixAndSalt(targetName, writerTargetID), verboseOnly
 }

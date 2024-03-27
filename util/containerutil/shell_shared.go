@@ -276,8 +276,10 @@ func (sf *shellFrontend) ImageInfo(ctx context.Context, refs ...string) (map[str
 
 	// Anonymous struct to just pick out what we need
 	images := []struct {
-		ID   string   `json:"Id"`
-		Tags []string `json:"RepoTags"`
+		ID           string   `json:"Id"`
+		Architecture string   `json:"Architecture"`
+		OS           string   `json:"Os"`
+		Tags         []string `json:"RepoTags"`
 	}{}
 	err := json.Unmarshal([]byte(output.stdout.String()), &images)
 	if err != nil {
@@ -286,8 +288,10 @@ func (sf *shellFrontend) ImageInfo(ctx context.Context, refs ...string) (map[str
 
 	for i, image := range images {
 		infos[refs[i]] = &ImageInfo{
-			ID:   image.ID,
-			Tags: image.Tags,
+			ID:           image.ID,
+			Architecture: image.Architecture,
+			OS:           image.OS,
+			Tags:         image.Tags,
 		}
 	}
 

@@ -1,0 +1,11 @@
+VERSION --build-auto-skip 0.8
+
+# Note: '<VERSION>' is replaced in tests/autoskip/Earthfile.
+ARG VERSION=<VERSION>
+FROM alpine:$VERSION
+
+parent:
+    RUN cat /etc/os-release
+
+expand-args-from:
+    BUILD --auto-skip +parent

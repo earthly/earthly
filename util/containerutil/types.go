@@ -9,15 +9,16 @@ import (
 
 // ContainerInfo contains things we may care about from inspect output for a given container.
 type ContainerInfo struct {
-	ID      string
-	Name    string
-	Created time.Time
-	Status  string
-	IPs     map[string]string
-	Ports   []string
-	Image   string
-	ImageID string
-	Labels  map[string]string
+	ID       string
+	Name     string
+	Platform string
+	Created  time.Time
+	Status   string
+	IPs      map[string]string
+	Ports    []string
+	Image    string
+	ImageID  string
+	Labels   map[string]string
 }
 
 const (
@@ -66,8 +67,10 @@ type FrontendInfo struct {
 
 // ImageInfo contains information about a given image ref, including all relevant tags.
 type ImageInfo struct {
-	ID   string
-	Tags []string
+	ID           string
+	OS           string
+	Architecture string
+	Tags         []string
 }
 
 // VolumeInfo contains information about a given volume, including its name, where its mounted from, and the size of the volume.

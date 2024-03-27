@@ -1,6 +1,6 @@
 VERSION 0.8
 
-FROM github.com/earthly/earthly+base
+FROM ../+base
 
 # deps downloads and caches all dependencies for the ast package. When called
 # directly, go.mod and go.sum will be updated locally.
