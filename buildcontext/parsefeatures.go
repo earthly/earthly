@@ -15,7 +15,7 @@ type buildFile struct {
 }
 
 func parseFeatures(buildFilePath string, featureFlagOverrides string, projectRef string, console conslogging.ConsoleLogger) (*features.Features, error) {
-	version, err := ast.MustParseVersion(buildFilePath, false)
+	version, err := ast.ParseVersion(buildFilePath, false)
 	if err != nil {
 		return nil, err
 	}

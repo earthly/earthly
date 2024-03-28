@@ -255,7 +255,7 @@ func FromContext(ctx context.Context) *Features {
 
 func (f *Features) ProcessFlags() ([]string, error) {
 	warningStrs := make([]string, 0)
-	
+
 	v := reflect.ValueOf(f).Elem()
 	t := v.Type()
 
@@ -266,7 +266,7 @@ func (f *Features) ProcessFlags() ([]string, error) {
 		if len(version) == 0 {
 			continue
 		}
-		majorVersion, minorVersion := MustParseVersion(field.Tag.Get("enabled_in_version"))
+		majorVersion, minorVersion := mustParseVersion(field.Tag.Get("enabled_in_version"))
 		if versionAtLeast(*f, majorVersion, minorVersion) && value.Kind() == reflect.Bool {
 			if value.Bool() {
 				tagName := field.Tag.Get("long")
@@ -288,7 +288,7 @@ func (f *Features) ProcessFlags() ([]string, error) {
 	return warningStrs, nil
 }
 
-func MustParseVersion(version string) (int, int) {
+func mustParseVersion(version string) (int, int) {
 	parts := strings.Split(version, ".")
 	if len(parts) != 2 {
 		panic(fmt.Sprintf("invalid version format: %s", version))
