@@ -68,10 +68,10 @@ func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConv
 }
 
 // Run interprets the commands in the given Earthfile AST, for a specific target.
-func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
+func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (retErr error) {
 	defer func() {
-		if err != nil {
-			i.converter.RecordTargetFailure(ctx, err)
+		if retErr != nil {
+			i.converter.RecordTargetFailure(ctx, retErr)
 		}
 	}()
 	if i.target.Target == "base" {
@@ -88,7 +88,7 @@ func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
 	return i.errorf(ef.SourceLocation, "target %s not found", i.target.Target)
 }
 
-func (i *Interpreter) isPipelineTarget(ctx context.Context, t spec.Target) bool {
+func (i *Interpreter) isPipelineTarget(_ context.Context, t spec.Target) bool {
 	for _, stmt := range t.Recipe {
 		if stmt.Command != nil && stmt.Command.Name == "PIPELINE" {
 			return true
