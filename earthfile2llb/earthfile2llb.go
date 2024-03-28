@@ -342,12 +342,24 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		}
 		opt.MainTargetDetailsFunc = nil
 	}
-	opt.Console.VerbosePrintf("earthfile2llb building %s with OverridingVars=%v", targetWithMetadata.StringCanonical(), opt.OverridingVars.Map())
+
+	opt.Console.VerbosePrintf("earthfile2llb building %s with OverridingVars=%v",
+		targetWithMetadata.StringCanonical(), opt.OverridingVars.Map())
+
 	converter, err := NewConverter(ctx, targetWithMetadata, bc, sts, opt)
 	if err != nil {
 		return nil, err
 	}
-	interpreter := newInterpreter(converter, targetWithMetadata, opt.AllowPrivileged, opt.ParallelConversion, opt.Console, opt.GitLookup)
+
+	interpreter := newInterpreter(
+		converter,
+		targetWithMetadata,
+		opt.AllowPrivileged,
+		opt.ParallelConversion,
+		opt.Console,
+		opt.GitLookup,
+	)
+
 	err = interpreter.Run(ctx, bc.Earthfile)
 	if err != nil {
 		return nil, err
@@ -372,5 +384,6 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 			return nil, err
 		}
 	}
+
 	return mts, nil
 }
