@@ -116,3 +116,9 @@ update-buildkit-earthfile:
         else \
             sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE\)=github.com\/.*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile; \
         fi
+
+# export-docker-script is used to copy the dind install script remotely via another Earthly target
+export-docker-script:
+    FROM alpine
+    COPY docker-auto-install.sh .
+    SAVE ARTIFACT docker-auto-install.sh
