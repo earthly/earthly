@@ -915,9 +915,3 @@ check-broken-links-pr:
     ARG VERBOSE
     BUILD --pass-args +check-broken-links --ADDRESS=$(cat url)
 
-# BUILD_AND_FROM will issue a FROM and a BUILD commands for the provided target
-BUILD_AND_FROM:
-    FUNCTION
-    ARG --required TARGET
-    FROM --pass-args +$TARGET
-    BUILD --pass-args +$TARGET
