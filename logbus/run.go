@@ -2,12 +2,16 @@ package logbus
 
 import (
 	"errors"
+	"fmt"
+	"regexp"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/domain"
+	"github.com/moby/buildkit/util/sshutil"
 )
 
 // GenericDefault is the internal name used to identify messages unrelated to a specific target or command.
@@ -192,6 +196,15 @@ func (run *Run) buildDelta(fd *logstream.DeltaManifest_FieldsDelta) {
 	})
 }
 
+var sshUserRE = regexp.MustCompile("^([a-zA-Z0-9-_]+)@")
+
+func gitSSHToURL(repoURL string) string {
+	repoURL = sshUserRE.ReplaceAllString(repoURL, "")
+	repoURL = strings.TrimSuffix(repoURL, ".git")
+	parts := strings.Split(repoURL, ":")
+	return fmt.Sprintf("https://%s", strings.Join(parts, "/"))
+}
+
 func sourceLocationToProto(repoURL, repoHash, fileRelToRepo string, sl *spec.SourceLocation) *logstream.SourceLocation {
 	if sl == nil {
 		return nil
@@ -199,6 +212,11 @@ func sourceLocationToProto(repoURL, repoHash, fileRelToRepo string, sl *spec.Sou
 	file := fileRelToRepo
 	if fileRelToRepo == "" && repoURL == "" {
 		file = sl.File
+	}
+	// Some repository URLs are being provided in Git SSH form. Let's convert
+	// these to HTTP. Example: git@github.com:earthly/earthly.git
+	if sshutil.IsImplicitSSHTransport(repoURL) {
+		repoURL = gitSSHToURL(repoURL)
 	}
 	return &logstream.SourceLocation{
 		RepositoryUrl:  repoURL,
