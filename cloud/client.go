@@ -202,7 +202,8 @@ func newLogstreamClient(ctx context.Context, addr string, transportCreds credent
 		grpc.WithTransportCredentials(transportCreds),
 	}
 
-	conn, err := grpc.DialContext(ctx, addr, dialOpts...)
+	// Client context cancellation is managed by another process.
+	conn, err := grpc.DialContext(context.WithoutCancel(ctx), addr, dialOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "cloud: failed dialing logstream grpc")
 	}

@@ -41,6 +41,7 @@ type Global struct {
 	GitUsernameOverride        string
 	GitPasswordOverride        string
 	GitBranchOverride          string
+	ExecStatsSummary           string
 	SSHAuthSock                string
 	Verbose                    bool
 	Debug                      bool
@@ -182,6 +183,13 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			EnvVars:     []string{"EARTHLY_EXEC_STATS"},
 			Usage:       "Display container stats (e.g. cpu and memory usage)",
 			Destination: &global.DisplayExecStats,
+			Hidden:      true, // Experimental
+		},
+		&cli.StringFlag{
+			Name:        "exec-stats-summary",
+			EnvVars:     []string{"EARTHLY_EXEC_STATS_SUMMARY"},
+			Usage:       "Output summarized container stats (e.g. cpu and memory usage) to the specified file",
+			Destination: &global.ExecStatsSummary,
 			Hidden:      true, // Experimental
 		},
 		&cli.BoolFlag{

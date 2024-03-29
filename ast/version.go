@@ -11,7 +11,7 @@ import (
 )
 
 // ParseVersion reads the VERSION command for an Earthfile and returns spec.Version
-func ParseVersion(filePath string, enableSourceMap bool) (*spec.Version, error) {
+func MustParseVersion(filePath string, enableSourceMap bool) (*spec.Version, error) {
 	var opts []Opt
 	if enableSourceMap {
 		opts = append(opts, WithSourceMap())

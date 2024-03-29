@@ -16,6 +16,7 @@ import (
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/util/deltautil"
+	"github.com/earthly/earthly/util/execstatssummary"
 	"github.com/earthly/earthly/util/progressbar"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mattn/go-isatty"
@@ -59,15 +60,16 @@ type command struct {
 
 // Formatter is a delta to console logger.
 type Formatter struct {
-	bus             *logbus.Bus
-	console         conslogging.ConsoleLogger
-	verbose         bool
-	displayStats    bool
-	ongoingTick     time.Duration
-	ongoingTicker   *time.Ticker
-	startTime       time.Time
-	closedCh        chan struct{}
-	defaultPlatform string
+	bus              *logbus.Bus
+	console          conslogging.ConsoleLogger
+	verbose          bool
+	displayStats     bool
+	execStatsTracker *execstatssummary.Tracker
+	ongoingTick      time.Duration
+	ongoingTicker    *time.Ticker
+	startTime        time.Time
+	closedCh         chan struct{}
+	defaultPlatform  string
 
 	mu                         sync.Mutex
 	interactives               map[string]struct{} // set of command IDs
@@ -81,7 +83,7 @@ type Formatter struct {
 }
 
 // New creates a new Formatter.
-func New(ctx context.Context, b *logbus.Bus, debug, verbose, displayStats, forceColor, noColor bool, disableOngoingUpdates bool) *Formatter {
+func New(ctx context.Context, b *logbus.Bus, debug, verbose, displayStats, forceColor, noColor, disableOngoingUpdates bool, execStatsTracker *execstatssummary.Tracker) *Formatter {
 	ongoingTick := durationBetweenOngoingUpdatesNoAnsi
 	if ansiSupported {
 		ongoingTick = durationBetweenOngoingUpdates
@@ -107,18 +109,19 @@ func New(ctx context.Context, b *logbus.Bus, debug, verbose, displayStats, force
 		colorMode = conslogging.AutoColor
 	}
 	f := &Formatter{
-		bus:           b,
-		console:       conslogging.New(nil, nil, colorMode, conslogging.DefaultPadding, logLevel),
-		verbose:       verbose,
-		displayStats:  displayStats,
-		timingTable:   make(map[string]time.Duration),
-		startTime:     time.Now(),
-		closedCh:      make(chan struct{}),
-		ongoingTicker: ongoingTicker,
-		ongoingTick:   ongoingTick,
-		manifest:      &logstream.RunManifest{},
-		commands:      make(map[string]*command),
-		interactives:  make(map[string]struct{}),
+		bus:              b,
+		console:          conslogging.New(nil, nil, colorMode, conslogging.DefaultPadding, logLevel),
+		verbose:          verbose,
+		displayStats:     displayStats,
+		execStatsTracker: execStatsTracker,
+		timingTable:      make(map[string]time.Duration),
+		startTime:        time.Now(),
+		closedCh:         make(chan struct{}),
+		ongoingTicker:    ongoingTicker,
+		ongoingTick:      ongoingTick,
+		manifest:         &logstream.RunManifest{},
+		commands:         make(map[string]*command),
+		interactives:     make(map[string]struct{}),
 	}
 	if !disableOngoingUpdates {
 		go f.ongoingTickLoop(ctx)
@@ -258,9 +261,6 @@ func (f *Formatter) getCommand(commandID string) *command {
 }
 
 func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
-	if dl.Stream == BuildkitStatsStream && !f.displayStats {
-		return nil
-	}
 	c, verboseOnly := f.targetConsole(dl.GetTargetId(), dl.GetCommandId())
 	if verboseOnly && !f.verbose {
 		return nil
@@ -282,6 +282,12 @@ func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
 		totalCPU := time.Duration(stats.Cpu.Usage.Total) // Total is reported in nanoseconds
 		totalMem := stats.Memory.Usage.Usage             // in bytes
 		output = []byte(fmt.Sprintf("[stats] total CPU: %s; total memory: %s\n", totalCPU, humanize.Bytes(totalMem)))
+		if f.execStatsTracker != nil {
+			f.execStatsTracker.Observe(f.targetName(dl.GetTargetId()), f.commandName(dl.GetCommandId()), totalMem, totalCPU)
+		}
+		if !f.displayStats {
+			return nil
+		}
 	}
 
 	printOutput := make([]byte, 0, len(cmd.openLine)+len(output)+10)
@@ -323,7 +329,7 @@ func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
 }
 
 func (f *Formatter) processOngoingTick(ctx context.Context) error {
-	c := f.console.WithWriter(f.bus.FormattedWriter("ongoing")).WithPrefix("ongoing")
+	c := f.console.WithWriter(f.bus.FormattedWriter("ongoing", "")).WithPrefix("ongoing")
 	c.VerbosePrintf("ongoing TODO\n")
 	// TODO(vladaionescu): Go through all the commands and find which one is ongoing.
 	// Print their targets on the console.
@@ -451,6 +457,20 @@ func (f *Formatter) printBuildFailure() {
 	f.lastCommandOutput = nil
 }
 
+func (f *Formatter) targetName(targetID string) string {
+	if tm, ok := f.manifest.GetTargets()[targetID]; ok {
+		return tm.GetName()
+	}
+	return "unknown"
+}
+
+func (f *Formatter) commandName(commandID string) string {
+	if cm, ok := f.manifest.GetCommands()[commandID]; ok {
+		return cm.GetName()
+	}
+	return "unknown"
+}
+
 func (f *Formatter) targetConsole(targetID string, commandID string) (conslogging.ConsoleLogger, bool) {
 	var targetName string
 	var writerTargetID string
@@ -498,6 +518,6 @@ func (f *Formatter) targetConsole(targetID string, commandID string) (consloggin
 		writerTargetID = "_unknown"
 	}
 	return f.console.
-		WithWriter(f.bus.FormattedWriter(writerTargetID)).
+		WithWriter(f.bus.FormattedWriter(writerTargetID, commandID)).
 		WithPrefixAndSalt(targetName, writerTargetID), verboseOnly
 }

@@ -171,6 +171,6 @@ func (b *Bus) WriteFormattedLog(dfl *logstream.DeltaFormattedLog) {
 }
 
 // FormattedWriter returns a writer that writes formatted deltas to the bus.
-func (b *Bus) FormattedWriter(targetID string) *FormattedWriter {
-	return NewFormattedWriter(b, targetID)
+func (b *Bus) FormattedWriter(targetID, commandID string) *FormattedWriter {
+	return NewFormattedWriter(b, targetID, commandID)
 }

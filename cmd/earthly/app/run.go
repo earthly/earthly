@@ -134,7 +134,7 @@ func unhideFlagsCommands(ctx context.Context, cmds []*cli.Command) {
 func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncutil.Signal) int {
 	defer func() {
 		if app.BaseCLI.LogbusSetup() != nil {
-			err := app.BaseCLI.LogbusSetup().Close()
+			err := app.BaseCLI.LogbusSetup().Close(ctx)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error(s) in logbus: %v", err)
 			}
@@ -152,8 +152,11 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 	defer func() {
 		// Just in case this is forgotten somewhere else.
 		app.BaseCLI.Logbus().Run().SetGenericFatalError(
-			time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER,
-			"Error: No SetFatalError called appropriately. This should never happen.")
+			time.Now(),
+			logstream.FailureType_FAILURE_TYPE_OTHER,
+			"",
+			"Error: No SetFatalError called appropriately. This should never happen.",
+		)
 	}()
 
 	err := app.BaseCLI.App().RunContext(ctx, args)
@@ -184,57 +187,95 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 		var autoSkipErr *inputgraph.Error
 		switch {
 		case hintErrOK:
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, hintErr.Message())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(
+				time.Now(),
+				logstream.FailureType_FAILURE_TYPE_OTHER,
+				hintErr.Hint(),
+				hintErr.Message(),
+			)
 			app.BaseCLI.Console().HelpPrintf(hintErr.Hint())
 			return 1
 		case errors.As(err, &autoSkipErr):
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_AUTO_SKIP, inputgraph.FormatError(err))
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(
+				time.Now(),
+				logstream.FailureType_FAILURE_TYPE_AUTO_SKIP,
+				"",
+				inputgraph.FormatError(err),
+			)
 			return 1
 		case errors.As(err, &paramsErr):
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_INVALID_PARAM, paramsErr.ParentError())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(
+				time.Now(),
+				logstream.FailureType_FAILURE_TYPE_INVALID_PARAM,
+				"",
+				paramsErr.ParentError(),
+			)
 			if paramsErr.Error() != paramsErr.ParentError() {
 				app.BaseCLI.Console().VerboseWarnf(errorWithPrefix(paramsErr.Error()))
 			}
 			return 1
 		case qemuExitCodeRegex.MatchString(err.Error()):
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
+			var helpMsg string
 			if app.BaseCLI.AnaMetaIsSat() {
 				app.BaseCLI.Console().DebugPrintf("Are you using --platform to target a different architecture? Please note that \"disable-emulation\" flag is set in your satellite.\n")
 			} else {
-				app.BaseCLI.Console().HelpPrintf(
-					"Are you using --platform to target a different architecture? You may have to manually install QEMU.\n" +
-						"For more information see https://docs.earthly.dev/guides/multi-platform\n")
+				helpMsg = "Are you using --platform to target a different architecture? You may have to manually install QEMU.\n" +
+					"For more information see https://docs.earthly.dev/guides/multi-platform\n"
+				app.BaseCLI.Console().HelpPrintf(helpMsg)
 			}
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(
+				time.Now(),
+				logstream.FailureType_FAILURE_TYPE_OTHER,
+				helpMsg,
+				err.Error(),
+			)
 			return 255
 		case runExitCodeRegex.MatchString(err.Error()):
-			// This error would have been displayed earlier from the SolverMonitor.
-			// This SetFatalError is a catch-all just in case that hasn't happened.
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER,
-				err.Error())
+			var helpMsg string
 			if !app.BaseCLI.Flags().InteractiveDebugging && len(args) > 0 {
 				args = append([]string{args[0], "-i"}, args[1:]...)
 				args = redactSecretsFromArgs(args)
 				args = stringutil.FilterElementsFromList(args, "--ci")
 				msg := "To debug your build, you can use the --interactive (-i) flag to drop into a shell of the failing RUN step"
-				app.BaseCLI.Console().HelpPrintf("%s: %q\n", msg, strings.Join(args, " "))
+				helpMsg = fmt.Sprintf("%s: %q\n", msg, strings.Join(args, " "))
+				app.BaseCLI.Console().HelpPrintf(helpMsg)
 			}
+			// This error would have been displayed earlier from the SolverMonitor.
+			// This SetGenericFatalError is a catch-all just in case that hasn't happened.
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(
+				time.Now(),
+				logstream.FailureType_FAILURE_TYPE_OTHER,
+				helpMsg,
+				err.Error(),
+			)
 			return 1
 		case strings.Contains(err.Error(), "security.insecure is not allowed"):
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_NEEDS_PRIVILEGED, err.Error())
-			app.BaseCLI.Console().HelpPrintf("earthly --allow-privileged (earthly -P) flag is required\n")
+			helpMsg := "earthly --allow-privileged (earthly -P) flag is required\n"
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(
+				time.Now(),
+				logstream.FailureType_FAILURE_TYPE_NEEDS_PRIVILEGED,
+				helpMsg,
+				err.Error(),
+			)
+			app.BaseCLI.Console().HelpPrintf(helpMsg)
 			return 9
 		case strings.Contains(err.Error(), errutil.EarthlyGitStdErrMagicString):
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_GIT, err.Error())
+			helpMsg := "Check your git auth settings.\n" +
+				"Did you ssh-add today? Need to configure ~/.earthly/config.yml?\n" +
+				"For more information see https://docs.earthly.dev/guides/auth\n"
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(
+				time.Now(),
+				logstream.FailureType_FAILURE_TYPE_GIT,
+				helpMsg,
+				err.Error(),
+			)
 			gitStdErr, shorterErr, ok := errutil.ExtractEarthlyGitStdErr(err.Error())
 			if ok {
 				app.BaseCLI.Console().VerboseWarnf("Error: %v\n\n%s\n", shorterErr, gitStdErr)
 			} else {
 				app.BaseCLI.Console().VerboseWarnf("Error: %v\n", err.Error())
 			}
-			app.BaseCLI.Console().HelpPrintf(
-				"Check your git auth settings.\n" +
-					"Did you ssh-add today? Need to configure ~/.earthly/config.yml?\n" +
-					"For more information see https://docs.earthly.dev/guides/auth\n")
+			app.BaseCLI.Console().HelpPrintf(helpMsg)
 			return 1
 		case strings.Contains(err.Error(), "failed to compute cache key") && strings.Contains(err.Error(), ": not found"):
 			var matches = notFoundRegex.FindStringSubmatch(err.Error())
@@ -244,82 +285,116 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 			} else {
 				msg = fmt.Sprintf("File not found: %s\n", err.Error())
 			}
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND, msg)
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(
+				time.Now(),
+				logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND,
+				"",
+				msg,
+			)
 			return 1
 		case strings.Contains(err.Error(), "429 Too Many Requests"):
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_RATE_LIMITED, err.Error())
-			var registryName string
-			var registryHost string
+			var registryName, registryHost string
 			if strings.Contains(err.Error(), "docker.com/increase-rate-limit") {
 				registryName = "DockerHub"
 			} else {
 				registryName = "The remote registry"
 				registryHost = " <server>" // keep the leading space
 			}
-			app.BaseCLI.Console().HelpPrintf("%s responded with a rate limit error. This is usually because you are not logged in.\n"+
+			helpMsg := fmt.Sprintf("%s responded with a rate limit error. This is usually because you are not logged in.\n"+
 				"You can login using the command:\n"+
 				"  docker login%s", registryName, registryHost)
+			app.BaseCLI.Console().HelpPrintf(helpMsg)
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(
+				time.Now(),
+				logstream.FailureType_FAILURE_TYPE_RATE_LIMITED,
+				helpMsg,
+				err.Error(),
+			)
 			return 1
 		case grpcErrOK && grpcErr.Code() == codes.PermissionDenied && buildMinutesRegex.MatchString(grpcErr.Message()):
-			msg := grpcErr.Message()
-			matches, _ := stringutil.NamedGroupMatches(msg, buildMinutesRegex)
+			errorMsg := grpcErr.Message()
+			matches, _ := stringutil.NamedGroupMatches(errorMsg, buildMinutesRegex)
 			if len(matches["msg"]) > 0 {
-				msg = matches["msg"][0]
+				errorMsg = matches["msg"][0]
 			}
 			tier := billing.Plan().GetTier()
-			msg = fmt.Sprintf("%s (%s)", msg, stringutil.Title(tier))
+			errorMsg = fmt.Sprintf("%s (%s)", errorMsg, stringutil.Title(tier))
 			app.BaseCLI.Console().VerboseWarnf(err.Error())
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, msg)
+			var helpMsg string
 			switch tier {
 			case billingpb.BillingPlan_TIER_UNKNOWN:
 				app.BaseCLI.Console().DebugPrintf("failed to get billing plan tier\n")
 			case billingpb.BillingPlan_TIER_LIMITED_FREE_TIER:
-				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to verify your account\nand get 6000 free build minutes per month: %s\n", billing.GetBillingURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
+				helpMsg = fmt.Sprintf("Visit your organization settings to verify your account\nand get 6000 free build minutes per month: %s\n", billing.GetBillingURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
 			case billingpb.BillingPlan_TIER_FREE_TIER:
-				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to upgrade your account: %s\n", billing.GetUpgradeURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
+				helpMsg = fmt.Sprintf("Visit your organization settings to upgrade your account: %s\n", billing.GetUpgradeURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
 			}
+			if helpMsg != "" {
+				app.BaseCLI.Console().HelpPrintf(helpMsg)
+			}
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(
+				time.Now(),
+				logstream.FailureType_FAILURE_TYPE_OTHER,
+				helpMsg,
+				errorMsg,
+			)
 			return 1
 		case grpcErrOK && grpcErr.Code() == codes.PermissionDenied && maxSatellitesRegex.MatchString(grpcErr.Message()):
-			msg := grpcErr.Message()
-			matches, _ := stringutil.NamedGroupMatches(msg, maxSatellitesRegex)
+			errorMsg := grpcErr.Message()
+			matches, _ := stringutil.NamedGroupMatches(errorMsg, maxSatellitesRegex)
 			if len(matches["msg"]) > 0 {
-				msg = matches["msg"][0]
+				errorMsg = matches["msg"][0]
 			}
 			tier := billing.Plan().GetTier()
-			msg = fmt.Sprintf("%s %s", stringutil.Title(tier), msg)
+			errorMsg = fmt.Sprintf("%s %s", stringutil.Title(tier), errorMsg)
 			app.BaseCLI.Console().VerboseWarnf(err.Error())
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, msg)
+			var helpMsg string
 			switch tier {
 			case billingpb.BillingPlan_TIER_UNKNOWN:
 				app.BaseCLI.Console().DebugPrintf("failed to get billing plan tier\n")
 			case billingpb.BillingPlan_TIER_LIMITED_FREE_TIER:
-				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to verify your account\nfor an option to launch more satellites: %s\nor consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)", billing.GetBillingURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
+				helpMsg = fmt.Sprintf("Visit your organization settings to verify your account\nfor an option to launch more satellites: %s\nor consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)", billing.GetBillingURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
 			case billingpb.BillingPlan_TIER_FREE_TIER:
-				app.BaseCLI.Console().HelpPrintf("Visit your organization settings to upgrade your account for an option to launch more satellites: %s.\nAlternatively consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)\nor contact support at support@earthly.dev to potentially increase your satellites' limit", billing.GetUpgradeURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
+				helpMsg = fmt.Sprintf("Visit your organization settings to upgrade your account for an option to launch more satellites: %s.\nAlternatively consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)\nor contact support at support@earthly.dev to potentially increase your satellites' limit", billing.GetUpgradeURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
 			default:
-				app.BaseCLI.Console().HelpPrintf("Consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)\nor contact support at support@earthly.dev to potentially increase your satellites' limit")
+				helpMsg = "Consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)\nor contact support at support@earthly.dev to potentially increase your satellites' limit"
 			}
+			if helpMsg != "" {
+				app.BaseCLI.Console().HelpPrintf(helpMsg)
+			}
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, helpMsg, errorMsg)
 			return 1
 		case grpcErrOK && grpcErr.Code() == codes.PermissionDenied && requestIDRegex.MatchString(grpcErr.Message()):
-			msg := grpcErr.Message()
-			matches, _ := stringutil.NamedGroupMatches(msg, requestIDRegex)
+			errorMsg := grpcErr.Message()
+			matches, _ := stringutil.NamedGroupMatches(errorMsg, requestIDRegex)
 			if len(matches["msg"]) > 0 {
-				msg = matches["msg"][0]
+				errorMsg = matches["msg"][0]
 			}
 			app.BaseCLI.Console().VerboseWarnf(err.Error())
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, msg)
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, "", errorMsg)
 			return 1
 		case grpcErrOK && grpcErr.Code() == codes.Unknown && maxExecTimeRegex.MatchString(grpcErr.Message()):
 			app.BaseCLI.Console().VerboseWarnf(errorWithPrefix(err.Error()))
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, grpcErr.Message())
-			app.BaseCLI.Console().HelpPrintf("Unverified accounts have a limit on the duration of RUN commands. Verify your account to lift this restriction.")
+			helpMsg := "Unverified accounts have a limit on the duration of RUN commands. Verify your account to lift this restriction."
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, helpMsg, grpcErr.Message())
+			app.BaseCLI.Console().HelpPrintf(helpMsg)
 		case grpcErrOK && grpcErr.Code() != codes.Canceled:
 			app.BaseCLI.Console().VerboseWarnf(errorWithPrefix(err.Error()))
 			if !strings.Contains(grpcErr.Message(), "transport is closing") {
-				app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, grpcErr.Message())
+				app.BaseCLI.Logbus().Run().SetGenericFatalError(
+					time.Now(),
+					logstream.FailureType_FAILURE_TYPE_OTHER,
+					"",
+					grpcErr.Message(),
+				)
 				return 1
 			}
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, grpcErr.Message())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(
+				time.Now(),
+				logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED,
+				"",
+				grpcErr.Message(),
+			)
 			app.BaseCLI.Console().Warnf(
 				"Error: It seems that buildkitd is shutting down or it has crashed. " +
 					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
@@ -328,7 +403,12 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 			}
 			return 7
 		case errors.Is(err, buildkitd.ErrBuildkitCrashed):
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED, err.Error())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(
+				time.Now(),
+				logstream.FailureType_FAILURE_TYPE_BUILDKIT_CRASHED,
+				"",
+				err.Error(),
+			)
 			app.BaseCLI.Console().Warnf(
 				"Error: It seems that buildkitd is shutting down or it has crashed. " +
 					"You can report crashes at https://github.com/earthly/earthly/issues/new.")
@@ -337,7 +417,12 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 			}
 			return 7
 		case errors.Is(err, buildkitd.ErrBuildkitConnectionFailure):
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_CONNECTION_FAILURE, err.Error())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(
+				time.Now(),
+				logstream.FailureType_FAILURE_TYPE_CONNECTION_FAILURE,
+				"",
+				err.Error(),
+			)
 			if containerutil.IsLocal(app.BaseCLI.Flags().BuildkitdSettings.BuildkitAddress) {
 				app.BaseCLI.Console().Warnf(
 					"Error: It seems that buildkitd had an issue. " +
@@ -358,13 +443,30 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 			return 2
 		case isInterpreterError:
 			if ie.TargetID == "" {
-				app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_SYNTAX, ie.Error())
-			} else {
-				app.BaseCLI.Logbus().Run().SetFatalError(time.Now(), ie.TargetID, "", logstream.FailureType_FAILURE_TYPE_SYNTAX, ie.Error())
+				app.BaseCLI.Logbus().Run().SetGenericFatalError(
+					time.Now(),
+					logstream.FailureType_FAILURE_TYPE_SYNTAX,
+					"",
+					ie.Error(),
+				)
+				return 1
 			}
+			app.BaseCLI.Logbus().Run().SetFatalError(
+				time.Now(),
+				ie.TargetID,
+				"",
+				logstream.FailureType_FAILURE_TYPE_SYNTAX,
+				"",
+				ie.Error(),
+			)
 			return 1
 		default:
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, err.Error())
+			app.BaseCLI.Logbus().Run().SetGenericFatalError(
+				time.Now(),
+				logstream.FailureType_FAILURE_TYPE_OTHER,
+				"",
+				err.Error(),
+			)
 			return 1
 		}
 	}

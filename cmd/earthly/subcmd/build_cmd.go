@@ -540,8 +540,8 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	var logbusSM *solvermon.SolverMonitor
 	if a.cli.Flags().Logstream {
 		logbusSM = a.cli.LogbusSetup().SolverMonitor
-	} else if a.cli.Flags().DisplayExecStats {
-		return fmt.Errorf("the --exec-stats feature is only available when --logstream is enabled")
+	} else if a.cli.Flags().DisplayExecStats || a.cli.Flags().ExecStatsSummary != "" {
+		return fmt.Errorf("the --exec-stats and --exec-stats-summary features are only available when --logstream is enabled")
 	}
 
 	builderOpts := builder.Opt{

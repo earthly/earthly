@@ -887,6 +887,7 @@ open-pr-for-fork:
     RUN --no-cache --mount=type=secret,id=$SECRET_PATH,mode=0400,target=/root/.ssh/id_rsa \
         --secret GH_TOKEN=littleredcorvette-github-token \
         gh pr checkout $pr_number --branch "test-pr-$pr_number" --repo $git_repo && \
+        echo "checked out $(git rev-parse HEAD)" && \
         git merge origin/main && \
         git commit --allow-empty -m "please run the test" && \
         git push -f origin HEAD
