@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/cloud"
@@ -98,9 +99,9 @@ func (bs *BusSetup) LogStreamerStarted() bool {
 
 // StartLogStreamer starts a LogStreamer for the given build. The
 // LogStreamer streams logs to the cloud.
-func (bs *BusSetup) StartLogStreamer(ctx context.Context, c *cloud.Client) {
+func (bs *BusSetup) StartLogStreamer(c *cloud.Client) {
 	bs.LogStreamer = ship.NewLogShipper(c, bs.InitialManifest, bs.verbose)
-	bs.LogStreamer.Start(ctx)
+	bs.LogStreamer.Start()
 	bs.Bus.AddSubscriber(bs.LogStreamer)
 	bs.logStreamerStarted = true
 }
@@ -164,6 +165,12 @@ func (bs *BusSetup) Close(ctx context.Context) error {
 	}
 
 	if bs.LogStreamer != nil {
+		// At the moment, it's very challenging to detect when all log writers
+		// are finished. Not all command & target writers are being reliably
+		// closed on cancellation. This short sleep gives all of the command &
+		// target writers a chance to finish sending messages. Perhaps this can
+		// be removed at some point in the future.
+		time.Sleep(20 * time.Millisecond)
 		bs.LogStreamer.Close()
 		if errs := bs.LogStreamer.Errs(); len(errs) > 0 {
 			multi := &multierror.Error{}

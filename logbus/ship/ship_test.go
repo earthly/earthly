@@ -48,9 +48,7 @@ func TestLogShipper(t *testing.T) {
 		done: make(chan struct{}),
 	}
 
-	ctx := context.Background()
-
-	s.Start(ctx)
+	s.Start()
 
 	n := 50
 	for i := 0; i < n; i++ {

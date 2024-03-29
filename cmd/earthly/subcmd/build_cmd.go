@@ -651,7 +651,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		_, isCI := analytics.DetectCI(a.cli.Flags().EarthlyCIRunner)
 		setup.SetCI(isCI)
 		if doLogstreamUpload {
-			setup.StartLogStreamer(cliCtx.Context, cloudClient)
+			setup.StartLogStreamer(cloudClient)
 		}
 		return nil
 	}
