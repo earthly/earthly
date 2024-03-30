@@ -2024,10 +2024,14 @@ func (i *Interpreter) handleHost(ctx context.Context, cmd spec.Command) error {
 	if i.local {
 		return i.errorf(cmd.SourceLocation, "HOST command not supported with LOCALLY")
 	}
-
-	host := cmd.Args[0]
-	ipStr := cmd.Args[1]
-
+	host, err := i.expandArgs(ctx, cmd.Args[0], true, false)
+	if err != nil {
+		return i.errorf(cmd.SourceLocation, "unable to expand host name for HOST: %s", cmd.Args)
+	}
+	ipStr, err := i.expandArgs(ctx, cmd.Args[1], true, false)
+	if err != nil {
+		return i.errorf(cmd.SourceLocation, "unable to expand IP addr for HOST: %s", cmd.Args)
+	}
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
 		return i.errorf(cmd.SourceLocation, "invalid HOST ip %s", ipStr)

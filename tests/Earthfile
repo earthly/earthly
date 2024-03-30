@@ -1433,6 +1433,7 @@ host:
     DO +RUN_EARTHLY --earthfile=host.earth --target=+add-single-host
     DO +RUN_EARTHLY --earthfile=host.earth --target=+add-multiple-host
     DO +RUN_EARTHLY --earthfile=host.earth --target=+add-ipv6
+    DO +RUN_EARTHLY --earthfile=host.earth --target=+expand-args
 
 host-invalid:
     DO +RUN_EARTHLY --earthfile=host.earth --should_fail=true --target=+invalid-ip --output_contains="invalid HOST ip"
