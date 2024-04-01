@@ -100,17 +100,6 @@
       depNameTemplate: 'earthly/dind',
       datasourceTemplate: 'docker',
     },
-    {
-      customType: 'regex',
-      fileMatch: [
-        'docs/docker-images/dind.md$',
-      ],
-      matchStrings: [
-        '\\*\\s+\\`(?<currentValue>.+?)\\`\\n',
-      ],
-      depNameTemplate: 'earthly/dind',
-      datasourceTemplate: 'docker',
-    }
   ],
   labels: [
     'renovate',
