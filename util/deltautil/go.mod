@@ -1,6 +1,6 @@
 module github.com/earthly/earthly/util/deltautil
 
-go 1.21
+go 1.22
 
 require (
 	github.com/earthly/cloud-api v1.0.1-0.20240216175649-9c937bc41efb
