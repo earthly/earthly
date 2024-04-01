@@ -3,7 +3,7 @@ PROJECT earthly-technologies/core
 
 # TODO update to 3.18; however currently "podman login" (used under not-a-unit-test.sh) will error with
 # "Error: default OCI runtime "crun" not found: invalid argument".
-FROM golang:1.21-alpine3.17
+FROM golang:1.22-alpine3.19
 
 RUN apk add --update --no-cache \
     bash \
@@ -305,7 +305,7 @@ lint-changelog:
 # debugger builds the earthly debugger and saves the artifact in build/earth_debugger
 debugger:
     FROM +code
-    ENV CGO_ENABLED=0
+    ENV CGO_ENABLED=1
     ARG GOCACHE=/go-cache
     ARG GO_EXTRA_LDFLAGS="-linkmode external -extldflags -static"
     ARG EARTHLY_TARGET_TAG
@@ -322,7 +322,7 @@ debugger:
 # earthly builds the earthly CLI and docker image.
 earthly:
     FROM +code
-    ENV CGO_ENABLED=0
+    ENV CGO_ENABLED=1
     ARG GOOS=linux
     ARG TARGETARCH
     ARG TARGETVARIANT
