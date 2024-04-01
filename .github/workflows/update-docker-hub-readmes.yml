@@ -33,11 +33,4 @@ jobs:
           repository: earthly/buildkitd
           readme-filepath: ./docs/docker-images/buildkit-standalone.md
           short-description: Standalone Earthly buildkitd image
-      - name: Update DockerHub description for earthly/dind
-        uses: peter-evans/dockerhub-description@v4.0.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: earthly/dind
-          readme-filepath: ./docs/docker-images/dind.md
-          short-description: Standalone Earthly buildkitd image
+
