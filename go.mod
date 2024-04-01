@@ -7,7 +7,7 @@ require (
 	github.com/adrg/xdg v0.4.0
 	github.com/alessio/shellescape v1.4.2
 	github.com/alexcb/binarystream v0.0.0-20231130184431-f2f7a7543c6d
-	github.com/aws/aws-sdk-go-v2 v1.23.5
+	github.com/aws/aws-sdk-go-v2 v1.26.1
 	github.com/aws/aws-sdk-go-v2/config v1.18.16
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20230227212328-9f4511cd144a
 	github.com/containerd/containerd v1.7.8
@@ -80,7 +80,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.12.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.6 // indirect
-	github.com/aws/smithy-go v1.18.1 // indirect
+	github.com/aws/smithy-go v1.20.2 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/containerd/continuity v0.4.2 // indirect
 	github.com/containerd/log v0.1.0 // indirect

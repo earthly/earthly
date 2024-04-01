@@ -69,8 +69,8 @@ github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230219212500-1f9a474cc2dc/g
 github.com/aws/aws-sdk-go-v2 v1.17.4/go.mod h1:uzbQtefpm44goOPmdKyAlXSNcwlRgF3ePWVW6EtJvvw=
 github.com/aws/aws-sdk-go-v2 v1.17.5/go.mod h1:uzbQtefpm44goOPmdKyAlXSNcwlRgF3ePWVW6EtJvvw=
 github.com/aws/aws-sdk-go-v2 v1.17.6/go.mod h1:uzbQtefpm44goOPmdKyAlXSNcwlRgF3ePWVW6EtJvvw=
-github.com/aws/aws-sdk-go-v2 v1.23.5 h1:xK6C4udTyDMd82RFvNkDQxtAd00xlzFUtX4fF2nMZyg=
-github.com/aws/aws-sdk-go-v2 v1.23.5/go.mod h1:t3szzKfP0NeRU27uBFczDivYJjsmSnqI8kIvKyWb9ds=
+github.com/aws/aws-sdk-go-v2 v1.26.1 h1:5554eUqIYVWpU0YmeeYZ0wU64H2VLBs8TlhRB2L+EkA=
+github.com/aws/aws-sdk-go-v2 v1.26.1/go.mod h1:ffIFB97e2yNsv4aTSGkqtHnppsIJzw7G7BReUZ3jCXM=
 github.com/aws/aws-sdk-go-v2/config v1.18.12/go.mod h1:J36fOhj1LQBr+O4hJCiT8FwVvieeoSGOtPuvhKlsNu8=
 github.com/aws/aws-sdk-go-v2/config v1.18.16 h1:4r7gsCu8Ekwl5iJGE/GmspA2UifqySCCkyyyPFeWs3w=
 github.com/aws/aws-sdk-go-v2/config v1.18.16/go.mod h1:XjM6lVbq7UgELp9NjXBrb1DQY/ownlWsvDhEQksemJc=
@@ -117,8 +117,8 @@ github.com/aws/aws-sdk-go-v2/service/sts v1.18.5/go.mod h1:1mKZHLLpDMHTNSYPJ7qrc
 github.com/aws/aws-sdk-go-v2/service/sts v1.18.6 h1:rIFn5J3yDoeuKCE9sESXqM5POTAhOP1du3bv/qTL+tE=
 github.com/aws/aws-sdk-go-v2/service/sts v1.18.6/go.mod h1:48WJ9l3dwP0GSHWGc5sFGGlCkuA82Mc2xnw+T6Q8aDw=
 github.com/aws/smithy-go v1.13.5/go.mod h1:Tg+OJXh4MB2R/uN61Ko2f6hTZwB/ZYGOtib8J3gBHzA=
-github.com/aws/smithy-go v1.18.1 h1:pOdBTUfXNazOlxLrgeYalVnuTpKreACHtc62xLwIB3c=
-github.com/aws/smithy-go v1.18.1/go.mod h1:NukqUGpCZIILqqiV0NIjeFh24kd/FAa4beRb6nbIUPE=
+github.com/aws/smithy-go v1.20.2 h1:tbp628ireGtzcHDDmLT/6ADHidqnwgF57XOXZe6tp4Q=
+github.com/aws/smithy-go v1.20.2/go.mod h1:krry+ya/rV9RDcV/Q16kpu6ypI4K2czasz0NC3qS14E=
 github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20230227212328-9f4511cd144a h1:98IhppLbHij6fCOBs/u3OKihpAslwAwzybsxWo7J3ZM=
 github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20230227212328-9f4511cd144a/go.mod h1:KhGA7lm/QNzcdQVG4wUm5Ncnpf5g7xKhnfrPLDpYo5A=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
