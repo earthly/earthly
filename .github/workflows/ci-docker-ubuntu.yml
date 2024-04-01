@@ -58,7 +58,7 @@ jobs:
     if: ${{ !failure() }}
     uses: ./.github/workflows/reusable-test.yml
     with:
-      TEST_TARGET: "+test-quick"
+      TEST_TARGET: "+test-misc"
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"
@@ -502,7 +502,7 @@ jobs:
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
-      TARGET_NAME: "+test-quick"
+      TARGET_NAME: "+test-misc"
       EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
@@ -608,7 +608,7 @@ jobs:
     uses: ./.github/workflows/reusable-race-test.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      TEST_TARGET: "+test-quick"
+      TEST_TARGET: "+test-misc"
       RUNS_ON: "ubuntu-latest"
       USE_QEMU: false
       BINARY: "docker"

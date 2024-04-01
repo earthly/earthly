@@ -50,9 +50,10 @@ func (l *LogShipper) Write(delta *pb.Delta) {
 }
 
 // Start the log streaming process and begin writing logs to the server.
-func (l *LogShipper) Start(ctx context.Context) {
+func (l *LogShipper) Start() {
 	go func() {
-		ctx, l.cancel = context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
+		l.cancel = cancel
 		defer l.cancel()
 		out := bufferedDeltaChan(ctx, l.ch)
 		errCh := l.cl.StreamLogs(ctx, l.man, out)

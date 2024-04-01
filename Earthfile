@@ -267,7 +267,8 @@ unit-test:
 # offline-test runs offline tests with network set to none
 offline-test:
     FROM +code
-    RUN --network=none go test -run TestOffline ./...
+    RUN --network=none (go test -run TestOffline ./cloud || kill $$) | tee test.log
+    RUN if grep 'no tests to run' test.log; then echo "error: no test found" && exit 1; fi
 
 # submodule-decouple-check checks that go submodules within earthly do not
 # depend on the core earthly project.
@@ -646,12 +647,25 @@ test-no-qemu:
     BUILD --pass-args +test-no-qemu-group2
     BUILD --pass-args +test-no-qemu-group3
     BUILD --pass-args +test-no-qemu-group4
+    BUILD --pass-args +test-no-qemu-group5
+    BUILD --pass-args +test-no-qemu-group6
+    BUILD --pass-args +test-no-qemu-group7
+    BUILD --pass-args +test-no-qemu-group8
     BUILD --pass-args +test-no-qemu-slow
 
-# test-quick runs the unit, offline, and go tests and ensures the earthly script does not write to stdout
-test-quick:
+# test-misc runs misc (non earthly-in-earthly) tests
+test-misc:
+    BUILD +test-misc-group1
+    BUILD +test-misc-group2
+    BUILD +test-misc-group3
+
+test-misc-group1:
     BUILD +unit-test
+
+test-misc-group2:
     BUILD +offline-test
+
+test-misc-group3:
     BUILD +earthly-script-no-stdout
     BUILD --pass-args ./ast/tests+all
 
@@ -673,6 +687,26 @@ test-no-qemu-group3:
 # test-no-qemu-group4 runs the tests from ./tests+ga-no-qemu-group4
 test-no-qemu-group4:
     BUILD --pass-args ./tests+ga-no-qemu-group4 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group5 runs the tests from ./tests+ga-no-qemu-group5
+test-no-qemu-group5:
+    BUILD --pass-args ./tests+ga-no-qemu-group5 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group6 runs the tests from ./tests+ga-no-qemu-group6
+test-no-qemu-group6:
+    BUILD --pass-args ./tests+ga-no-qemu-group6 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group7 runs the tests from ./tests+ga-no-qemu-group7
+test-no-qemu-group7:
+    BUILD --pass-args ./tests+ga-no-qemu-group7 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group8 runs the tests from ./tests+ga-no-qemu-group8
+test-no-qemu-group8:
+    BUILD --pass-args ./tests+ga-no-qemu-group8 \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
 # test-no-qemu-slow runs the tests from ./tests+ga-no-qemu-slow
