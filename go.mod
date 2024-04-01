@@ -12,7 +12,7 @@ require (
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20230227212328-9f4511cd144a
 	github.com/containerd/containerd v1.7.8
 	github.com/containerd/go-runc v1.1.0
-	github.com/creack/pty v1.1.18
+	github.com/creack/pty v1.1.21
 	github.com/docker/cli v24.0.5+incompatible
 	github.com/docker/distribution v2.8.2+incompatible
 	github.com/docker/go-connections v0.4.0
