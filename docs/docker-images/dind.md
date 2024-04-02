@@ -35,7 +35,7 @@ dind:
   ARG SMALLEST_VERSION="$(echo -e "$EARTHLY_VERSION\nv0.7.14" | sort -V | head -n 1)"
   IF [ "$SMALLEST_VERSION" = "v0.7.14" ]
     # earthly is at v0.7.14 or newer, and must use the more recent dind:alpine-3.19-docker-25.0.2-r0 image
-    FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+    FROM earthly/dind:alpine-3.19-docker-25.0.3-r1
   END
 
 test:
