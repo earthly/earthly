@@ -390,7 +390,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			EnvVars:     []string{"EARTHLY_AUTO_SKIP"},
 			Usage:       "Skip buildkit if target has already been built",
 			Destination: &global.SkipBuildkit,
-			Hidden:      true,
 		},
 		&cli.BoolFlag{
 			Name:        "allow-privileged",
