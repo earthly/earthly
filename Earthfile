@@ -946,7 +946,7 @@ open-pr-for-fork:
             gh pr create --title "Run tests for PR $pr_number" --draft \
             --body "Running tests for https://github.com/$git_repo/pull/$pr_number" --repo $git_repo
     ELSE
-        RUN --no-cache echo A matching test PR for PR $pr_number already exists - $test_pr
+        RUN --no-cache echo A matching test PR for PR $pr_number already exists: https://github.com/$git_repo/pull/$test_pr
     END
 
 check-broken-links-pr:
