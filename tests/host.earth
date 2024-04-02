@@ -20,7 +20,7 @@ expand-args:
     ARG fake_host=example.com
     ARG target_ip=1.2
     HOST $fake_host $target_ip.3.4
-    RUN cat /etc/hosts | grep "1.2.3.4\W*example.com"
+    RUN cat /etc/hosts | acbgrep "1.2.3.4\W*example.com"
 
 invalid-ip:
     HOST example.com 1.2.3.4.5.6.7.8.9.10
