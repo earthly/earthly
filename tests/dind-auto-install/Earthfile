@@ -11,9 +11,9 @@ all:
         --BASE_IMAGE=ubuntu:latest \
         --BASE_IMAGE=amazonlinux:1 \
         --BASE_IMAGE=amazonlinux:2 \
-        --BASE_IMAGE=../..+dind-alpine \
-        --BASE_IMAGE=../..+dind-ubuntu-20.04 \
-        --BASE_IMAGE=../..+dind-ubuntu-23.04
+        --BASE_IMAGE=earthly/dind:alpine-3.19-docker-25.0.2-r0 \
+        --BASE_IMAGE=earthly/dind:ubuntu-20.04-docker-24.0.5-1 \
+        --BASE_IMAGE=earthly/dind:ubuntu-23.04-docker-24.0.5-1
 
 test:
     ARG --required BASE_IMAGE
