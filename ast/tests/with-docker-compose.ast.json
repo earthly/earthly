@@ -3,7 +3,17 @@
     {
       "command": {
         "args": [
-          "earthly/dind"
+          "DIND_IMAGE",
+          "=",
+          "earthly/dind:alpine-3.19-docker-25.0.2-r0"
+        ],
+        "name": "ARG"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "$DIND_IMAGE"
         ],
         "name": "FROM"
       }

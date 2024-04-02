@@ -1,5 +1,7 @@
 VERSION 0.8
-FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+
+ARG --global DIND_IMAGE=earthly/dind:alpine-3.19-docker-25.0.2-r0
+FROM $DIND_IMAGE
 
 all:
     BUILD +empty-test
@@ -137,7 +139,6 @@ multi-from-two:
     FROM alpine:latest
 
 one-target-many-names:
-    FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
     WITH DOCKER \
             --load a:latest=+multi-from-one \  # Test that there can be multiple names assigned to an image from a single target
             --load b:latest=+multi-from-one \
@@ -151,7 +152,6 @@ one-target-many-names:
     END
 
 if-after:
-    FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
     WITH DOCKER --load a:latest=+multi-from-one
         RUN docker run a:latest
     END
@@ -162,8 +162,8 @@ if-after:
 
 cgroup-v2-test-all:
     BUILD +cgroup-v2-test \
-        --DIND_IMG=earthly/dind:alpine-3.19-docker-25.0.2-r0 \
-        --DIND_IMG=earthly/dind:ubuntu-23.04-docker-24.0.5-1
+        --DIND_IMG=$DIND_IMAGE \
+        --DIND_IMG=earthly/dind:ubuntu-23.04-docker-24.0.9-1
 
 cgroup-v2-test:
     ARG --required DIND_IMG

@@ -3,7 +3,18 @@
     {
       "command": {
         "args": [
+          "--global",
+          "DIND_IMAGE",
+          "=",
           "earthly/dind:alpine-3.19-docker-25.0.2-r0"
+        ],
+        "name": "ARG"
+      }
+    },
+    {
+      "command": {
+        "args": [
+          "$DIND_IMAGE"
         ],
         "name": "FROM"
       }
@@ -811,14 +822,6 @@
       "name": "one-target-many-names",
       "recipe": [
         {
-          "command": {
-            "args": [
-              "earthly/dind:alpine-3.19-docker-25.0.2-r0"
-            ],
-            "name": "FROM"
-          }
-        },
-        {
           "with": {
             "body": [
               {
@@ -869,14 +872,6 @@
     {
       "name": "if-after",
       "recipe": [
-        {
-          "command": {
-            "args": [
-              "earthly/dind:alpine-3.19-docker-25.0.2-r0"
-            ],
-            "name": "FROM"
-          }
-        },
         {
           "with": {
             "body": [
@@ -930,8 +925,8 @@
           "command": {
             "args": [
               "+cgroup-v2-test",
-              "--DIND_IMG=earthly/dind:alpine-3.19-docker-25.0.2-r0",
-              "--DIND_IMG=earthly/dind:ubuntu-23.04-docker-24.0.5-1"
+              "--DIND_IMG=$DIND_IMAGE",
+              "--DIND_IMG=earthly/dind:ubuntu-23.04-docker-24.0.9-1"
             ],
             "name": "BUILD"
           }

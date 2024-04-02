@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- Warning log when resolving remote references using a git image that doesn't match Buildkit's architecture.
+
 ### Fixed
 
 - Warning logs during HTTP retries are only displayed in `--debug` mode.

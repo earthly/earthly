@@ -97,11 +97,7 @@ git push
 ### dind
 
 Docker-in-Docker (dind) images change less frequently than earthly, but take a long time to build.
-These images can be rebuilt by running:
-
-  ```bash
-  ./earthly --push ./release+release-dind
-  ```
+earthly/dind images and their releases are maintained in [project repo](https://github.com/earthly/dind).
 
 ### Syntax Highlighting Releases
 
