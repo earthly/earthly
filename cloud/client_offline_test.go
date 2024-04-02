@@ -15,7 +15,7 @@ func TestOffline(t *testing.T) {
 	defer o.Run()
 	o.Spec("ClientConnectionIsLazy", func(t *testing.T) {
 		expect := expect.New(t)
-		_, err := cloud.NewClient("https://this", "shouldnt.matter:443", false, "", "", "", "", "", nil, time.Second)
+		_, err := cloud.NewClient("https://this", "shouldnt.matter:443", false, "", "", "", "", "", nil, nil, time.Second)
 		expect(err).To(not(haveOccurred()))
 	})
 }
