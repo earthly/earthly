@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Fixed
+
+- Warning logs during HTTP retries are only displayed in `--debug` mode.
+
 ## v0.8.6 - 2024-03-18
 
 ### Added
