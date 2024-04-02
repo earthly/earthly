@@ -7,7 +7,7 @@ all:
     BUILD +ubuntu-kind
 
 alpine-kind:
-    ARG DIND_IMAGE=earthly/dind:alpine-3.19-docker-25.0.2-r0
+    ARG DIND_IMAGE=earthly/dind:alpine-3.19-docker-25.0.3-r1
     FROM $DIND_IMAGE
     RUN apk add curl
     RUN curl -Lo ./kind https://kind.sigs.k8s.io/dl/v$KIND_VERSION/kind-linux-amd64 && chmod +x kind
