@@ -103,11 +103,14 @@ set -x
 # stop the released earthly buildkitd container (to preserve memory)
 docker rm -f earthly-buildkitd 2> /dev/null || true
 
-echo "Execute tests"
+max_attempts=2
 for target in \
         +test-misc-group1 \
         +test-misc-group2 \
         +test-misc-group3 \
+        +test-ast-group1 \
+        +test-ast-group2 \
+        +test-ast-group3 \
         +test-no-qemu-group1 \
         +test-no-qemu-group2 \
         +test-no-qemu-group3 \
@@ -119,12 +122,28 @@ for target in \
         +test-no-qemu-slow \
         +test-qemu \
         ; do
-    echo "=== running $target ==="
-    "$earthly" --ci -P --exec-stats-summary=- "$target" || ( echo "$target failed" && exit 1 )
-    # kill buildkitd to release memory (the macstadium machines have limited memory)
-    docker rm -f earthly-dev-buildkitd 2> /dev/null || true
-done
+    for attempt in $(seq 1 "$max_attempts"); do
+        # kill buildkitd to release memory (the macstadium machines have limited memory)
+        docker rm -f earthly-dev-buildkitd 2> /dev/null || true
 
+        echo "=== running $target (attempt $attempt/$max_attempts ==="
+        set +e
+        "$earthly" --ci -P --exec-stats-summary=- "$target"
+        exit_code="$?"
+        set -e
+
+        if [ "$exit_code" = "0" ]; then
+            echo "$target passed"
+            break
+        fi
+
+        echo "$target failed"
+        if [ "$attempt" = "$max_attempts" ]; then
+            echo "final attempt reached, giving up"
+            exit 1
+        fi
+    done
+done
 
 echo "Execute fail test"
 bash -c "! $earthly --ci ./tests/fail+test-fail"

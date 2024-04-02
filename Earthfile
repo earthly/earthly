@@ -658,6 +658,7 @@ test-misc:
     BUILD +test-misc-group1
     BUILD +test-misc-group2
     BUILD +test-misc-group3
+    BUILD +test-ast
 
 test-misc-group1:
     BUILD +unit-test
@@ -667,7 +668,20 @@ test-misc-group2:
 
 test-misc-group3:
     BUILD +earthly-script-no-stdout
-    BUILD --pass-args ./ast/tests+all
+
+test-ast:
+    BUILD +test-ast-group1
+    BUILD +test-ast-group2
+    BUILD +test-ast-group3
+
+test-ast-group1:
+    BUILD --pass-args ./ast/tests+group1
+
+test-ast-group2:
+    BUILD --pass-args ./ast/tests+group2
+
+test-ast-group3:
+    BUILD --pass-args ./ast/tests+group3
 
 # test-no-qemu-group1 runs the tests from ./tests+ga-no-qemu-group1
 test-no-qemu-group1:
