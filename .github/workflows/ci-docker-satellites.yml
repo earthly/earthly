@@ -46,7 +46,7 @@ jobs:
       EARTHLY_ORG: "earthly-technologies"
     secrets: inherit
 
-  docker-tests-quick:
+  docker-test-misc:
     needs: build-earthly
     uses: ./.github/workflows/reusable-test.yml
     with:

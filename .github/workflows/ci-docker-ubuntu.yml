@@ -53,7 +53,7 @@ jobs:
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
-  docker-tests-quick:
+  docker-test-misc:
     needs: build-earthly
     if: ${{ !failure() }}
     uses: ./.github/workflows/reusable-test.yml
@@ -602,7 +602,7 @@ jobs:
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
-  race-tests-quick:
+  race-test-misc:
     needs: build-earthly
     if: ${{ !failure() }}
     uses: ./.github/workflows/reusable-race-test.yml
