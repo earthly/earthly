@@ -7,6 +7,11 @@ COPY ../..+earthly/earthly /usr/local/bin/earthly
 
 # all runs all tests
 all:
+    BUILD +group1
+    BUILD +group2
+    BUILD +group3
+
+group1:
     BUILD +test \
         --TEST=build-arg \
         --TEST=builtin-args \
@@ -29,7 +34,10 @@ all:
         --TEST=file-copying \
         --TEST=from-expose \
         --TEST=gen-dockerfile \
-        --TEST=git-clone \
+        --TEST=git-clone
+
+group2:
+    BUILD +test \
         --TEST=host \
         --TEST=host-bind \
         --TEST=if-exists \
@@ -52,12 +60,15 @@ all:
         --TEST=with-docker-compose \
         --TEST=command \
         --TEST=import
-    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=args
-    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=if
-    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=for
-    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=empty-targets
-    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=quotes
-    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" --TEST=documentation
+
+group3:
+    BUILD +test --INPUT_FROM_DIR=./ --INPUT_FROM_TARGET="" \
+        --TEST=args \
+        --TEST=if \
+        --TEST=for \
+        --TEST=empty-targets \
+        --TEST=quotes \
+        --TEST=documentation
 
 # update-all updates all the expected values of the tests
 update-all:
