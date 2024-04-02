@@ -131,7 +131,7 @@ lint-scripts:
 earthly-script-no-stdout:
     # This validates the ./earthly script doesn't print anything to stdout (it should print to stderr)
     # This is to ensure commands such as: MYSECRET="$(./earthly secrets get -n /user/my-secret)" work
-    FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+    FROM earthly/dind:alpine-3.19-docker-25.0.3-r1
     RUN apk add --no-cache --update bash
     COPY earthly .earthly_version_flag_overrides .
 
@@ -267,7 +267,8 @@ unit-test:
 # offline-test runs offline tests with network set to none
 offline-test:
     FROM +code
-    RUN --network=none go test -run TestOffline ./...
+    RUN --network=none (go test -run TestOffline ./cloud || kill $$) | tee test.log
+    RUN if grep 'no tests to run' test.log; then echo "error: no test found" && exit 1; fi
 
 # submodule-decouple-check checks that go submodules within earthly do not
 # depend on the core earthly project.
@@ -545,41 +546,6 @@ ci-release:
     COPY (+earthly/earthly --DEFAULT_BUILDKITD_IMAGE="docker.io/earthly/buildkitd-staging:${EARTHLY_GIT_HASH}-${TAG_SUFFIX}" --VERSION=${EARTHLY_GIT_HASH}-${TAG_SUFFIX} --DEFAULT_INSTALLATION_NAME=earthly) ./earthly-linux-amd64
     SAVE IMAGE --push earthly/earthlybinaries:${EARTHLY_GIT_HASH}-${TAG_SUFFIX}
 
-# dind builds both the alpine and ubuntu dind containers for earthly
-dind:
-    # OS_IMAGE is the base image to use, e.g. alpine, ubuntu
-    ARG --required OS_IMAGE
-    # OS_VERSION is the version of the base OS to use, e.g. 3.18.0, 23.04
-    ARG --required OS_VERSION
-    # DOCKER_VERSION is the version of docker to use, e.g. 20.10.14
-    ARG --required DOCKER_VERSION
-    FROM $OS_IMAGE:$OS_VERSION
-    COPY ./buildkitd/docker-auto-install.sh /usr/local/bin/docker-auto-install.sh
-    RUN docker-auto-install.sh
-    LET DOCKER_VERSION_TAG=$DOCKER_VERSION
-    IF [ "$OS_IMAGE" = "ubuntu" ]
-        # the docker ce repo contains packages such as "5:24.0.4-1~ubuntu.20.04~focal", we will remove the epoch and debian-revision values,
-        # in order to display the upstream-version, e.g. "24.0.5-1".
-        SET DOCKER_VERSION_TAG="$(echo $DOCKER_VERSION | sed 's/^[0-9]*:\([^~]*\).*$/\1/')"
-        RUN if echo $DOCKER_VERSION_TAG | grep "[^0-9.-]"; then echo "DOCKER_VERSION_TAG looks bad; got $DOCKER_VERSION_TAG" && exit 1; fi
-    ELSE IF [ "$OS_IMAGE" = "alpine" ]
-        RUN apk add iptables-legacy # required for older kernels
-    END
-    LET TAG=$OS_IMAGE-$OS_VERSION-docker-$DOCKER_VERSION_TAG
-    ARG INCLUDE_TARGET_TAG_DOCKER=true
-    IF [ "$INCLUDE_TARGET_TAG_DOCKER" = "true" ]
-      ARG EARTHLY_TARGET_TAG_DOCKER
-      SET TAG=$TAG-$EARTHLY_TARGET_TAG_DOCKER
-    END
-    ARG DOCKERHUB_USER=earthly
-    IF [ "$LATEST" = "true" ]
-      # latest means the version is ommitted (for historical reasons we initially just called it earthly/dind:alpine or earthly/dind:ubuntu)
-      SAVE IMAGE --push --cache-from=earthly/dind:$OS_IMAGE-main $DOCKERHUB_USER/dind:$OS_IMAGE
-    END
-    ARG DATETIME="$(date --utc +%Y%m%d%H%M%S)" # note this must be overriden when building a multi-platform image (otherwise the values wont match)
-    SAVE IMAGE --push --cache-from=earthly/dind:$OS_IMAGE-main $DOCKERHUB_USER/dind:$TAG "$DOCKERHUB_USER/dind:$TAG-$DATETIME"
-
-
 # for-own builds earthly-buildkitd and the earthly CLI for the current system
 # and saves the final CLI binary locally at ./build/own/earthly
 for-own:
@@ -649,51 +615,16 @@ all-buildkitd:
         --platform=linux/arm64 \
         ./buildkitd+buildkitd --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
-dind-alpine:
-    # renovate: datasource=repology depName=alpine_3_19/docker versioning=loose
-    ARG DOCKER_VERSION=25.0.3-r1
-    # renovate: datasource=docker depName=alpine
-    ARG OS_VERSION=3.19
-    BUILD +dind --OS_IMAGE=alpine --OS_VERSION=$OS_VERSION --DOCKER_VERSION=$DOCKER_VERSION
-
-dind-ubuntu-20.04:
-    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=20.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.20.04~focal
-
-dind-ubuntu-23.04:
-    DO --pass-args +BUILD_AND_FROM --TARGET=dind --OS_IMAGE=ubuntu --OS_VERSION=23.04 --DOCKER_VERSION=5:24.0.5-1~ubuntu.23.04~lunar
-
-# all-dind builds alpine and ubuntu dind containers for both linux amd64 and linux arm64
-all-dind:
-    RUN --no-cache date --utc +%Y%m%d%H%M%S > datetime
-    ARG DATETIME="$(cat datetime)"
-    BUILD \
-        --pass-args \
-        --platform=linux/amd64 \
-        --platform=linux/arm64 \
-        +dind-alpine --DATETIME=$DATETIME
-    BUILD \
-        --pass-args \
-        --platform=linux/amd64 \
-        --platform=linux/arm64 \
-        +dind-ubuntu-20.04 --DATETIME=$DATETIME
-    BUILD \
-        --pass-args \
-        --platform=linux/amd64 \
-        --platform=linux/arm64 \
-        +dind-ubuntu-23.04 --DATETIME=$DATETIME
-
 # all builds all of the following:
 # - Buildkitd for both linux amd64 and linux arm64
 # - Earthly for all supported environments linux amd64 and linux arm64, Darwin amd64 and arm64, and Windos amd64
 # - Earthly as a container image
 # - Prerelease version of earthly as a container image
-# - Dind alpine and ubuntu for both linux amd64 and linux arm64 as container images
 all:
     BUILD +all-buildkitd
     BUILD +earthly-all
     BUILD +earthly-docker
     BUILD +prerelease
-    BUILD +all-dind
 
 # lint-all runs all linting checks against the earthly project.
 lint-all:
@@ -716,12 +647,25 @@ test-no-qemu:
     BUILD --pass-args +test-no-qemu-group2
     BUILD --pass-args +test-no-qemu-group3
     BUILD --pass-args +test-no-qemu-group4
+    BUILD --pass-args +test-no-qemu-group5
+    BUILD --pass-args +test-no-qemu-group6
+    BUILD --pass-args +test-no-qemu-group7
+    BUILD --pass-args +test-no-qemu-group8
     BUILD --pass-args +test-no-qemu-slow
 
-# test-quick runs the unit, offline, and go tests and ensures the earthly script does not write to stdout
-test-quick:
+# test-misc runs misc (non earthly-in-earthly) tests
+test-misc:
+    BUILD +test-misc-group1
+    BUILD +test-misc-group2
+    BUILD +test-misc-group3
+
+test-misc-group1:
     BUILD +unit-test
+
+test-misc-group2:
     BUILD +offline-test
+
+test-misc-group3:
     BUILD +earthly-script-no-stdout
     BUILD --pass-args ./ast/tests+all
 
@@ -743,6 +687,26 @@ test-no-qemu-group3:
 # test-no-qemu-group4 runs the tests from ./tests+ga-no-qemu-group4
 test-no-qemu-group4:
     BUILD --pass-args ./tests+ga-no-qemu-group4 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group5 runs the tests from ./tests+ga-no-qemu-group5
+test-no-qemu-group5:
+    BUILD --pass-args ./tests+ga-no-qemu-group5 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group6 runs the tests from ./tests+ga-no-qemu-group6
+test-no-qemu-group6:
+    BUILD --pass-args ./tests+ga-no-qemu-group6 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group7 runs the tests from ./tests+ga-no-qemu-group7
+test-no-qemu-group7:
+    BUILD --pass-args ./tests+ga-no-qemu-group7 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group8 runs the tests from ./tests+ga-no-qemu-group8
+test-no-qemu-group8:
+    BUILD --pass-args ./tests+ga-no-qemu-group8 \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
 # test-no-qemu-slow runs the tests from ./tests+ga-no-qemu-slow
@@ -984,10 +948,3 @@ check-broken-links-pr:
     RUN --secret GH_TOKEN=littleredcorvette-github-token gh pr checks $branch --repo earthly/earthly | grep GitBook|awk '{print $5}' > url
     ARG VERBOSE
     BUILD --pass-args +check-broken-links --ADDRESS=$(cat url)
-
-# BUILD_AND_FROM will issue a FROM and a BUILD commands for the provided target
-BUILD_AND_FROM:
-    FUNCTION
-    ARG --required TARGET
-    FROM --pass-args +$TARGET
-    BUILD --pass-args +$TARGET

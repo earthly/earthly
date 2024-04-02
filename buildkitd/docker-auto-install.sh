@@ -187,11 +187,11 @@ install_dockerd_debian_like() {
     esac
     apt-get update # dont use apt_get_update since we must update the newly added apt repo
     if [ -n "$DOCKER_VERSION" ]; then
-        apt-get install -y docker-ce="$DOCKER_VERSION"
+        apt-get install -y docker-ce="$DOCKER_VERSION" docker-ce-cli="$DOCKER_VERSION"
     else
-        apt-get install -y docker-ce
+        apt-get install -y docker-ce docker-ce-cli
     fi
-    apt-get install -y docker-ce-cli containerd.io
+    apt-get install -y containerd.io
 }
 
 install_dockerd_amazon() {

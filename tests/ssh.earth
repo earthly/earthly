@@ -7,7 +7,7 @@ test:
     RUN --ssh test -n "$SSH_AUTH_SOCK" && ssh-add -l | grep 'rsa-key-from-earthly-tests'
 
 test-with-docker:
-    FROM earthly/dind:alpine-3.19-docker-25.0.2-r0-acb_dind-alpine-update
+    FROM earthly/dind:alpine-3.19-docker-25.0.3-r1
     RUN apk --update add openssh-client
     WITH DOCKER
         RUN --ssh test -n "$SSH_AUTH_SOCK" && ssh-add -l | grep 'rsa-key-from-earthly-tests'

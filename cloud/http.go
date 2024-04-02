@@ -116,7 +116,7 @@ func (c *Client) doCall(ctx context.Context, method, url string, opts ...request
 	reqID := c.getRequestID()
 	for attempt := 0; attempt < maxAttempt; attempt++ {
 		status, body, callErr = c.doCallImp(ctx, r, method, url, reqID, opts...)
-		retry, err := shouldRetry(status, body, callErr, c.warnFunc, reqID)
+		retry, err := shouldRetry(status, body, callErr, c.debugFunc, reqID)
 		if err != nil {
 			return status, body, err
 		}
@@ -150,16 +150,16 @@ func (c *Client) doCall(ctx context.Context, method, url string, opts ...request
 	return status, body, callErr
 }
 
-func shouldRetry(status int, body []byte, callErr error, warnFunc func(string, ...interface{}), reqID string) (bool, error) {
+func shouldRetry(status int, body []byte, callErr error, debugFunc func(string, ...interface{}), reqID string) (bool, error) {
 	if status == http.StatusUnauthorized {
 		return true, nil
 	}
 	if 500 <= status && status <= 599 {
 		msg, err := getMessageFromJSON(bytes.NewReader(body))
 		if err != nil {
-			warnFunc("retrying http request due to unexpected status code %v {reqID: %s}", status, reqID)
+			debugFunc("retrying http request due to unexpected status code %v {reqID: %s}", status, reqID)
 		} else {
-			warnFunc("retrying http request due to unexpected status code %v: %v {reqID: %s}", status, msg, reqID)
+			debugFunc("retrying http request due to unexpected status code %v: %v {reqID: %s}", status, msg, reqID)
 		}
 		return true, nil
 	}
@@ -177,7 +177,7 @@ func shouldRetry(status int, body []byte, callErr error, warnFunc func(string, .
 	case strings.Contains(callErr.Error(), "failed to connect to ssh-agent"):
 		return false, callErr
 	default:
-		warnFunc("retrying http request due to unexpected error %v {reqID: %s}", callErr, reqID)
+		debugFunc("retrying http request due to unexpected error %v {reqID: %s}", callErr, reqID)
 		return true, nil
 	}
 }
