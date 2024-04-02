@@ -1,5 +1,7 @@
 VERSION 0.8
-FROM earthly/dind
+
+ARG DIND_IMAGE=earthly/dind:alpine-3.19-docker-25.0.2-r0
+FROM $DIND_IMAGE
 WORKDIR /test
 
 all:
