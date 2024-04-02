@@ -110,6 +110,52 @@
       ]
     },
     {
+      "name": "expand-args",
+      "recipe": [
+        {
+          "command": {
+            "args": [
+              "fake_host",
+              "=",
+              "example.com"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "target_ip",
+              "=",
+              "1.2"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "$fake_host",
+              "$target_ip.3.4"
+            ],
+            "name": "HOST"
+          }
+        },
+        {
+          "command": {
+            "args": [
+              "cat",
+              "/etc/hosts",
+              "|",
+              "acbgrep",
+              "\"1.2.3.4\\W*example.com\""
+            ],
+            "name": "RUN"
+          }
+        }
+      ]
+    },
+    {
       "name": "invalid-ip",
       "recipe": [
         {
