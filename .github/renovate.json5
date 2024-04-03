@@ -95,7 +95,6 @@
         '("|\\`|\\s+)earthly/dind:(?<currentValue>.+?)("|\\`|\\s+\\|)',
         'FROM(\\s+|\\s+.*?\\s+)earthly/dind:(?<currentValue>.*?)($|\\s|\\n|\\`)',
         'docker.io/earthly/dind:(?<currentValue>.*?)@',
-
       ],
       depNameTemplate: 'earthly/dind',
       datasourceTemplate: 'docker',
@@ -145,7 +144,7 @@
         'docs-0.8',
       ],
       matchFileNames: [
-        '^Earthfile$',
+        'Earthfile',
         'earthfile2llb/**',
         'tests/**',
         'scripts/tests/interactive-debugger/**',
