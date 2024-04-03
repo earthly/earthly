@@ -642,7 +642,7 @@ lint-docs:
 # test-no-qemu runs tests without qemu virtualization by passing in dockerhub authentication and
 # using secure docker hub mirror configurations
 test-no-qemu:
-    BUILD --pass-args +test-quick
+    BUILD --pass-args +test-misc
     BUILD --pass-args +test-no-qemu-group1
     BUILD --pass-args +test-no-qemu-group2
     BUILD --pass-args +test-no-qemu-group3
