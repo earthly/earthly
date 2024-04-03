@@ -274,6 +274,8 @@ func ConfigureSatelliteTLS(settings *Settings, sat *cloud.SatelliteInstance) (cl
 
 	cleanupFn = func() { _ = os.RemoveAll(dir) }
 
+	// TODO consider using concurrent goroutines to speed this up.
+
 	if err = os.WriteFile(caRootPath, sat.Certificate.RootCa, 0444); err != nil {
 		return nil, errors.Wrap(err, "failed saving ca cert")
 	}
