@@ -52,6 +52,7 @@ type Client struct {
 	forceSSHKey              bool   // if true only use the above ssh key, don't attempt to guess others
 	sshAgent                 agent.ExtendedAgent
 	warnFunc                 func(string, ...interface{})
+	debugFunc                func(string, ...interface{})
 	email                    string
 	password                 string
 	authToken                string
@@ -97,13 +98,16 @@ func WithAuthToken(token string) ClientOpt {
 }
 
 // NewClient provides a new Earthly Cloud client
-func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride, authJWTOverride, installationName, requestID string, warnFunc func(string, ...interface{}), serverConnTimeout time.Duration, opts ...ClientOpt) (*Client, error) {
+func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authCredsOverride,
+	authJWTOverride, installationName, requestID string, warnFunc func(string, ...interface{}),
+	debugFunc func(string, ...interface{}), serverConnTimeout time.Duration, opts ...ClientOpt) (*Client, error) {
 	c := &Client{
 		httpAddr: httpAddr,
 		sshAgent: &lazySSHAgent{
 			sockPath: agentSockPath,
 		},
 		warnFunc:          warnFunc,
+		debugFunc:         debugFunc,
 		jum:               &protojson.UnmarshalOptions{DiscardUnknown: true},
 		installationName:  installationName,
 		requestID:         requestID,
@@ -202,7 +206,8 @@ func newLogstreamClient(ctx context.Context, addr string, transportCreds credent
 		grpc.WithTransportCredentials(transportCreds),
 	}
 
-	conn, err := grpc.DialContext(ctx, addr, dialOpts...)
+	// Client context cancellation is managed by another process.
+	conn, err := grpc.DialContext(context.WithoutCancel(ctx), addr, dialOpts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "cloud: failed dialing logstream grpc")
 	}

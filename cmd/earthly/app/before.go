@@ -15,6 +15,7 @@ import (
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/envutil"
+	"github.com/earthly/earthly/util/execstatssummary"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -50,13 +51,17 @@ func (app *EarthlyApp) before(cliCtx *cli.Context) error {
 		if app.BaseCLI.Flags().BuildID == "" {
 			app.BaseCLI.Flags().BuildID = uuid.NewString()
 		}
+		var execStatsTracker *execstatssummary.Tracker
+		if app.BaseCLI.Flags().ExecStatsSummary != "" {
+			execStatsTracker = execstatssummary.NewTracker(app.BaseCLI.Flags().ExecStatsSummary)
+		}
 		disableOngoingUpdates := !app.BaseCLI.Flags().Logstream || app.BaseCLI.Flags().InteractiveDebugging
 		forceColor := envutil.IsTrue("FORCE_COLOR")
 		noColor := envutil.IsTrue("NO_COLOR")
 		var err error
 		newSetup, err := logbussetup.New(
 			cliCtx.Context, app.BaseCLI.Logbus(), app.BaseCLI.Flags().Debug, app.BaseCLI.Flags().Verbose, app.BaseCLI.Flags().DisplayExecStats, forceColor, noColor,
-			disableOngoingUpdates, app.BaseCLI.Flags().LogstreamDebugFile, app.BaseCLI.Flags().BuildID)
+			disableOngoingUpdates, app.BaseCLI.Flags().LogstreamDebugFile, app.BaseCLI.Flags().BuildID, execStatsTracker)
 		app.BaseCLI.SetLogbusSetup(newSetup)
 		if err != nil {
 			return errors.Wrap(err, "logbus setup")

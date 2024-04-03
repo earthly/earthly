@@ -68,10 +68,10 @@ func newInterpreter(c *Converter, t domain.Target, allowPrivileged, parallelConv
 }
 
 // Run interprets the commands in the given Earthfile AST, for a specific target.
-func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
+func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (retErr error) {
 	defer func() {
-		if err != nil {
-			i.converter.RecordTargetFailure(ctx, err)
+		if retErr != nil {
+			i.converter.RecordTargetFailure(ctx, retErr)
 		}
 	}()
 	if i.target.Target == "base" {
@@ -88,7 +88,7 @@ func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (err error) {
 	return i.errorf(ef.SourceLocation, "target %s not found", i.target.Target)
 }
 
-func (i *Interpreter) isPipelineTarget(ctx context.Context, t spec.Target) bool {
+func (i *Interpreter) isPipelineTarget(_ context.Context, t spec.Target) bool {
 	for _, stmt := range t.Recipe {
 		if stmt.Command != nil && stmt.Command.Name == "PIPELINE" {
 			return true
@@ -2024,10 +2024,14 @@ func (i *Interpreter) handleHost(ctx context.Context, cmd spec.Command) error {
 	if i.local {
 		return i.errorf(cmd.SourceLocation, "HOST command not supported with LOCALLY")
 	}
-
-	host := cmd.Args[0]
-	ipStr := cmd.Args[1]
-
+	host, err := i.expandArgs(ctx, cmd.Args[0], true, false)
+	if err != nil {
+		return i.errorf(cmd.SourceLocation, "unable to expand host name for HOST: %s", cmd.Args)
+	}
+	ipStr, err := i.expandArgs(ctx, cmd.Args[1], true, false)
+	if err != nil {
+		return i.errorf(cmd.SourceLocation, "unable to expand IP addr for HOST: %s", cmd.Args)
+	}
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
 		return i.errorf(cmd.SourceLocation, "invalid HOST ip %s", ipStr)

@@ -2,6 +2,7 @@ package buildcontext
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/conslogging"
@@ -25,6 +26,15 @@ func parseFeatures(buildFilePath string, featureFlagOverrides string, projectRef
 	}
 	if !hasVersion {
 		return nil, fmt.Errorf("No version specified in %s/Earthfile", projectRef)
+	}
+
+	warningStrs, err := ftrs.ProcessFlags()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(warningStrs) > 0 {
+		console.Printf("NOTE: The %s feature is enabled by default under VERSION %s, and can be safely removed from the VERSION command", strings.Join(warningStrs, ", "), ftrs.Version())
 	}
 
 	err = features.ApplyFlagOverrides(ftrs, featureFlagOverrides)

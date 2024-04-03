@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/cloud"
@@ -13,6 +14,7 @@ import (
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/logbus/writersub"
 	"github.com/earthly/earthly/util/deltautil"
+	"github.com/earthly/earthly/util/execstatssummary"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -21,20 +23,21 @@ import (
 
 // BusSetup is a helper for setting up a logbus.Bus.
 type BusSetup struct {
-	Bus             *logbus.Bus
-	ConsoleWriter   *writersub.WriterSub
-	Formatter       *formatter.Formatter
-	SolverMonitor   *solvermon.SolverMonitor
-	BusDebugWriter  *writersub.RawWriterSub
-	LogStreamer     *ship.LogShipper
-	InitialManifest *logstream.RunManifest
+	Bus              *logbus.Bus
+	ConsoleWriter    *writersub.WriterSub
+	Formatter        *formatter.Formatter
+	SolverMonitor    *solvermon.SolverMonitor
+	BusDebugWriter   *writersub.RawWriterSub
+	LogStreamer      *ship.LogShipper
+	InitialManifest  *logstream.RunManifest
+	execStatsTracker *execstatssummary.Tracker
 
 	logStreamerStarted bool
 	verbose            bool
 }
 
 // New creates a new BusSetup.
-func New(ctx context.Context, bus *logbus.Bus, debug, verbose, displayStats, forceColor, noColor, disableOngoingUpdates bool, busDebugFile string, buildID string) (*BusSetup, error) {
+func New(ctx context.Context, bus *logbus.Bus, debug, verbose, displayStats, forceColor, noColor, disableOngoingUpdates bool, busDebugFile, buildID string, execStatsTracker *execstatssummary.Tracker) (*BusSetup, error) {
 	bs := &BusSetup{
 		Bus:           bus,
 		ConsoleWriter: writersub.New(os.Stderr, "_full"),
@@ -45,9 +48,10 @@ func New(ctx context.Context, bus *logbus.Bus, debug, verbose, displayStats, for
 			Version:            deltautil.Version,
 			CreatedAtUnixNanos: uint64(bus.CreatedAt().UnixNano()),
 		},
-		verbose: verbose,
+		execStatsTracker: execStatsTracker,
+		verbose:          verbose,
 	}
-	bs.Formatter = formatter.New(ctx, bs.Bus, debug, verbose, displayStats, forceColor, noColor, disableOngoingUpdates)
+	bs.Formatter = formatter.New(ctx, bs.Bus, debug, verbose, displayStats, forceColor, noColor, disableOngoingUpdates, execStatsTracker)
 	bs.Bus.AddRawSubscriber(bs.Formatter)
 	bs.Bus.AddFormattedSubscriber(bs.ConsoleWriter)
 	bs.SolverMonitor = solvermon.New(bs.Bus)
@@ -95,9 +99,9 @@ func (bs *BusSetup) LogStreamerStarted() bool {
 
 // StartLogStreamer starts a LogStreamer for the given build. The
 // LogStreamer streams logs to the cloud.
-func (bs *BusSetup) StartLogStreamer(ctx context.Context, c *cloud.Client) {
+func (bs *BusSetup) StartLogStreamer(c *cloud.Client) {
 	bs.LogStreamer = ship.NewLogShipper(c, bs.InitialManifest, bs.verbose)
-	bs.LogStreamer.Start(ctx)
+	bs.LogStreamer.Start()
 	bs.Bus.AddSubscriber(bs.LogStreamer)
 	bs.logStreamerStarted = true
 }
@@ -134,8 +138,15 @@ func (bs *BusSetup) DumpManifestToFile(path string) error {
 }
 
 // Close the bus setup & gather all errors.
-func (bs *BusSetup) Close() error {
+func (bs *BusSetup) Close(ctx context.Context) error {
 	var ret error
+
+	if bs.execStatsTracker != nil {
+		err := bs.execStatsTracker.Close(ctx)
+		if err != nil {
+			ret = multierror.Append(ret, errors.Wrap(err, "exec stats summary"))
+		}
+	}
 
 	if errs := bs.ConsoleWriter.Errors(); len(errs) > 0 {
 		multi := &multierror.Error{Errors: errs}
@@ -154,6 +165,12 @@ func (bs *BusSetup) Close() error {
 	}
 
 	if bs.LogStreamer != nil {
+		// At the moment, it's very challenging to detect when all log writers
+		// are finished. Not all command & target writers are being reliably
+		// closed on cancellation. This short sleep gives all of the command &
+		// target writers a chance to finish sending messages. Perhaps this can
+		// be removed at some point in the future.
+		time.Sleep(20 * time.Millisecond)
 		bs.LogStreamer.Close()
 		if errs := bs.LogStreamer.Errs(); len(errs) > 0 {
 			multi := &multierror.Error{}

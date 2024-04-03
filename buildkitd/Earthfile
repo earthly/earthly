@@ -12,7 +12,7 @@ buildkitd:
             ARG BUILDKIT_BASE_IMAGE=$BUILDKIT_PROJECT+build
         END
     ELSE
-        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:20d4e2ffaa096e0e7bab284f0d12fa1ec6b46f22+build
+        ARG BUILDKIT_BASE_IMAGE=github.com/earthly/buildkit:422af4977207d5a65ea59c25526a7a7782655df4+build
     END
     ARG EARTHLY_TARGET_TAG_DOCKER
     ARG TAG="dev-$EARTHLY_TARGET_TAG_DOCKER"
@@ -116,3 +116,9 @@ update-buildkit-earthfile:
         else \
             sed -i 's/\(^[ \t]\+ARG BUILDKIT_BASE_IMAGE\)=github.com\/.*\/buildkit.*/\1=github.com\/'$BUILDKIT_GIT_ORG'\/buildkit:'$BUILDKIT_GIT_SHA'+build/g' Earthfile; \
         fi
+
+# export-docker-script is used to copy the dind install script remotely via another Earthly target
+export-docker-script:
+    FROM alpine
+    COPY docker-auto-install.sh .
+    SAVE ARTIFACT docker-auto-install.sh

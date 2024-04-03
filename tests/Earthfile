@@ -27,6 +27,8 @@ ga-no-qemu-group1:
     BUILD --pass-args ./import+build
     BUILD --pass-args ./import+build-imported
     BUILD +privileged-test
+
+ga-no-qemu-group2:
     BUILD +copy-test
     BUILD +copy-test-verbose-output
     BUILD +copy-tilde-test
@@ -39,6 +41,8 @@ ga-no-qemu-group1:
     BUILD +builtin-args-invalid-pass-test
     BUILD +builtin-args-cli-tests
     BUILD +parser-smoke-test
+
+ga-no-qemu-group3:
     BUILD --pass-args ./invalid+test-all
     BUILD +excludes-test
     BUILD +secrets-test
@@ -56,6 +60,8 @@ ga-no-qemu-group1:
     BUILD +transitive-args-test
     BUILD +transitive-args-test2
     BUILD +non-transitive-args-test
+
+ga-no-qemu-group4:
     BUILD +star-test
     BUILD +dockerfile-test
     BUILD +fail-test
@@ -81,8 +87,6 @@ ga-no-qemu-group1:
     BUILD +wildcard-build-remote
     BUILD +wildcard-build-pwd
     BUILD +wildcard-build-auto-skip
-
-ga-no-qemu-group2:
     BUILD +target-first-line
     BUILD +absolute-reference-with-relative
     BUILD +end-comment
@@ -92,6 +96,8 @@ ga-no-qemu-group2:
     BUILD +save-artifact-dir-as-dot
     BUILD +save-artifact-force-overwrite
     BUILD +save-remote-artifact-selective
+
+ga-no-qemu-group5:
     BUILD +push-build
     BUILD +build-arg-repeat
     BUILD +arg-scope-requires-shellout-anywhere
@@ -158,7 +164,7 @@ ga-no-qemu-group2:
         BUILD --pass-args ./with-docker-via-command+test
     END
 
-ga-no-qemu-group3:
+ga-no-qemu-group6:
     BUILD +cache-test
     BUILD --pass-args ./do-not-track+test-all
     BUILD --pass-args ./scrub-https-credentials+all
@@ -173,7 +179,7 @@ ga-no-qemu-group3:
     BUILD --pass-args ./with-docker-expose+all
     BUILD --pass-args ./logbus+test-all
 
-ga-no-qemu-group4:
+ga-no-qemu-group7:
     BUILD +cache-mount-arg
     BUILD +infinite-recursion
     BUILD +save-artifact-selective
@@ -187,6 +193,8 @@ ga-no-qemu-group4:
     BUILD --pass-args ./with-docker-compose+all
     BUILD +dotenv-test
     BUILD +allow-privileged-test
+
+ga-no-qemu-group8:
     BUILD --pass-args ./with-docker-registry+all
     BUILD +test-ssh-command-config-via-remote-target
     BUILD +test-ssh-command-config-via-git-clone-earthfile-command
@@ -216,6 +224,10 @@ ga-no-qemu:
     BUILD +ga-no-qemu-group2
     BUILD +ga-no-qemu-group3
     BUILD +ga-no-qemu-group4
+    BUILD +ga-no-qemu-group5
+    BUILD +ga-no-qemu-group6
+    BUILD +ga-no-qemu-group7
+    BUILD +ga-no-qemu-group8
     BUILD +ga-no-qemu-slow
 
 # Note that this target is split up under github action workflows
@@ -1433,6 +1445,7 @@ host:
     DO +RUN_EARTHLY --earthfile=host.earth --target=+add-single-host
     DO +RUN_EARTHLY --earthfile=host.earth --target=+add-multiple-host
     DO +RUN_EARTHLY --earthfile=host.earth --target=+add-ipv6
+    DO +RUN_EARTHLY --earthfile=host.earth --target=+expand-args
 
 host-invalid:
     DO +RUN_EARTHLY --earthfile=host.earth --should_fail=true --target=+invalid-ip --output_contains="invalid HOST ip"

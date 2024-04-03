@@ -18,12 +18,6 @@ release:
         RUN echo "github status check failed; to force the release without performing this check, set --build-arg SKIP_GHA_CHECK=1"
     END
 
-release-dind:
-    ARG DOCKERHUB_USER="earthly"
-    BUILD ../+all-dind \
-        --INCLUDE_TARGET_TAG_DOCKER=false \
-        --DOCKERHUB_USER="$DOCKERHUB_USER"
-
 release-dockerhub:
     ARG --required RELEASE_TAG
     ARG DOCKERHUB_USER="earthly"

@@ -46,11 +46,11 @@ jobs:
       EARTHLY_ORG: "earthly-technologies"
     secrets: inherit
 
-  docker-tests-quick:
+  docker-test-misc:
     needs: build-earthly
     uses: ./.github/workflows/reusable-test.yml
     with:
-      TEST_TARGET: "+test-quick"
+      TEST_TARGET: "+test-misc"
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"

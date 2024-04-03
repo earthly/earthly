@@ -262,6 +262,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			llb.Args([]string{
 				"/bin/sh", "-c",
 				"git rev-parse HEAD >/dest/git-hash ; " +
+					"uname -m >/dest/uname-m ;" +
 					"git rev-parse --short=8 HEAD >/dest/git-short-hash ; " +
 					"git rev-parse --abbrev-ref HEAD >/dest/git-branch  || touch /dest/git-branch ; " +
 					"ls .git/refs/heads/ | head -n 1 >/dest/git-default-branch  || touch /dest/git-default-branch ; " +
@@ -288,6 +289,23 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			platr.SubResolver(platutil.NativePlatform), nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "state to ref git meta")
+		}
+		unameM, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: "uname-m",
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "read uname-m")
+		}
+		var imgArch string
+		switch string(unameM) {
+		case "aarch64", "arm64":
+			imgArch = "arm64"
+		case "x86", "x86_64", "x64", "amd64":
+			imgArch = "amd64"
+		}
+		if imgArch != "" && imgArch != platr.LLBNative().Architecture {
+			gr.console.Warnf("git image [%s] has architecture [%s] which does not match host architecture [%s]",
+				gitImage, string(unameM), platr.LLBNative().Architecture)
 		}
 		gitHashBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
 			Filename: "git-hash",

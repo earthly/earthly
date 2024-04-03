@@ -3,12 +3,15 @@ package logbus
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/domain"
+	"github.com/moby/buildkit/util/sshutil"
 )
 
 // GenericDefault is the internal name used to identify messages unrelated to a specific target or command.
@@ -137,7 +140,7 @@ func (run *Run) SetStart(start time.Time) {
 }
 
 // SetFatalError sets a fatal error for the build.
-func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, failureType logstream.FailureType, errString string, args ...any) {
+func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, failureType logstream.FailureType, helpMsg, errorMsg string) {
 	run.mu.Lock()
 	defer run.mu.Unlock()
 	if run.ended {
@@ -160,14 +163,15 @@ func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, 
 			TargetId:     targetID,
 			CommandId:    commandID,
 			Output:       tailOutput,
-			ErrorMessage: fmt.Sprintf(errString, args...),
+			HelpMessage:  helpMsg,
+			ErrorMessage: errorMsg,
 		},
 	})
 }
 
 // SetGenericFatalError sets a fatal error for the build with an empty target id and a command id indicating not to prefix the error with target info.
-func (run *Run) SetGenericFatalError(end time.Time, failureType logstream.FailureType, errString string, args ...any) {
-	run.SetFatalError(end, "", GenericDefault, failureType, errString, args...)
+func (run *Run) SetGenericFatalError(end time.Time, failureType logstream.FailureType, helpMsg, errorMsg string) {
+	run.SetFatalError(end, "", GenericDefault, failureType, helpMsg, errorMsg)
 }
 
 // SetEnd sets the end time and status of the build.
@@ -192,6 +196,15 @@ func (run *Run) buildDelta(fd *logstream.DeltaManifest_FieldsDelta) {
 	})
 }
 
+var sshUserRE = regexp.MustCompile("^([a-zA-Z0-9-_]+)@")
+
+func gitSSHToURL(repoURL string) string {
+	repoURL = sshUserRE.ReplaceAllString(repoURL, "")
+	repoURL = strings.TrimSuffix(repoURL, ".git")
+	parts := strings.Split(repoURL, ":")
+	return fmt.Sprintf("https://%s", strings.Join(parts, "/"))
+}
+
 func sourceLocationToProto(repoURL, repoHash, fileRelToRepo string, sl *spec.SourceLocation) *logstream.SourceLocation {
 	if sl == nil {
 		return nil
@@ -199,6 +212,11 @@ func sourceLocationToProto(repoURL, repoHash, fileRelToRepo string, sl *spec.Sou
 	file := fileRelToRepo
 	if fileRelToRepo == "" && repoURL == "" {
 		file = sl.File
+	}
+	// Some repository URLs are being provided in Git SSH form. Let's convert
+	// these to HTTP. Example: git@github.com:earthly/earthly.git
+	if sshutil.IsImplicitSSHTransport(repoURL) {
+		repoURL = gitSSHToURL(repoURL)
 	}
 	return &logstream.SourceLocation{
 		RepositoryUrl:  repoURL,

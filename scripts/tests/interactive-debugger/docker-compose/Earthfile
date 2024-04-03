@@ -1,5 +1,5 @@
 VERSION 0.7
-FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+FROM earthly/dind:alpine-3.19-docker-25.0.3-r1
 
 fail-with-docker-compose:
     WORKDIR /test

@@ -22,6 +22,8 @@ func TestCollection(topT *testing.T) {
 		expect := expect.New(t)
 		f, _, err := features.Get(&spec.Version{Args: []string{"0.7"}})
 		expect(err).To(not(haveOccurred()))
+		_, err = f.ProcessFlags()
+		expect(err).To(not(haveOccurred()))
 		return testCtx{
 			expect:   expect,
 			features: f,
