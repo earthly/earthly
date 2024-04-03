@@ -147,7 +147,7 @@
               "cat",
               "/etc/hosts",
               "|",
-              "acbgrep",
+              "grep",
               "\"1.2.3.4\\W*example.com\""
             ],
             "name": "RUN"
