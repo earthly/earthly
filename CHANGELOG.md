@@ -4,13 +4,23 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.7 - 2024-04-03
+
 ### Added
 
 - Warning log when resolving remote references using a git image that doesn't match Buildkit's architecture.
+- New experimental `--exec-stats-summary=<path>` cli flag, which will display a summary of memory and cpu stats when earthly exits.
+- A notice is now displayed when unnecessary feature flags are set (but already enabled by default by the VERSION number). [#3641](https://github.com/earthly/earthly/issues/3641)
+- A warning is displayed if the local buildkit image architecture does not match the host architecture. [#3937](https://github.com/earthly/earthly/issues/3937)
 
 ### Fixed
 
 - Warning logs during HTTP retries are only displayed in `--debug` mode.
+- The HOST command will now expand variables. [#1743](https://github.com/earthly/earthly/issues/1743)
+- runc has been updated to 1.1.12 in the buildkit fork
+
+### Additional Info
+- This release includes changes to buildkit
 
 ## v0.8.6 - 2024-03-18
 
