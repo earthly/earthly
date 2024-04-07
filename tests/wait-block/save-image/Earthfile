@@ -26,7 +26,7 @@ check-tag-exists-locally:
     RUN docker images "$REGISTRY/myuser/myimg:$tag" | grep "$tag"
 
 check-with-docker-pull-works:
-    FROM earthly/dind:alpine-3.19-docker-25.0.3-r1
+    FROM earthly/dind:alpine-3.19-docker-25.0.3-r2
     ARG --required REGISTRY
     ARG --required tag
     WITH DOCKER --pull $REGISTRY/myuser/myimg:$tag
@@ -34,7 +34,7 @@ check-with-docker-pull-works:
     END
 
 check-with-docker-load-works:
-    FROM earthly/dind:alpine-3.19-docker-25.0.3-r1
+    FROM earthly/dind:alpine-3.19-docker-25.0.3-r2
     WITH DOCKER --load mytestimg=+myimg
         RUN docker run mytestimg /bin/sh -c 'cat /special-data' | grep NWMyMTQ2Y
     END
