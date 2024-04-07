@@ -9,28 +9,28 @@ load-target:
     SAVE IMAGE saved:latest
 
 with-docker-load:
-    FROM earthly/dind:alpine-3.19-docker-25.0.3-r1
+    FROM earthly/dind:alpine-3.19-docker-25.0.3-r2
     WITH DOCKER --load saved:latest=+load-target
          RUN echo "loaded"
     END
 
 with-docker-load-no-alias:
     BUILD +load-target
-    FROM earthly/dind:alpine-3.19-docker-25.0.3-r1
+    FROM earthly/dind:alpine-3.19-docker-25.0.3-r2
     WITH DOCKER --load +load-target
          RUN echo "loaded"
     END
 
 with-docker-load-args:
     BUILD +load-target
-    FROM earthly/dind:alpine-3.19-docker-25.0.3-r1
+    FROM earthly/dind:alpine-3.19-docker-25.0.3-r2
     WITH DOCKER --load foo=(+load-target --foo=2)
          RUN echo "loaded"
     END
 
 with-docker-load-remote:
     BUILD +load-target
-    FROM earthly/dind:alpine-3.19-docker-25.0.3-r1
+    FROM earthly/dind:alpine-3.19-docker-25.0.3-r2
     WITH DOCKER --load foo=github.com/earthly/earthly:6610b73131f94cbe594dba3b90665748f21a9b8d+license
          RUN echo "loaded"
     END

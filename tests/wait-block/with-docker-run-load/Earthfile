@@ -26,7 +26,7 @@ a-test-image:
     SAVE IMAGE $REGISTRY/myuser/myimg:$tag
 
 test:
-    FROM earthly/dind:alpine-3.19-docker-25.0.3-r1
+    FROM earthly/dind:alpine-3.19-docker-25.0.3-r2
     ARG --required REGISTRY
     ARG --required tag
     WAIT
