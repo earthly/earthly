@@ -1,0 +1,101 @@
+VERSION --wildcard-copy 0.8
+
+FROM alpine
+
+wildcard-copy:
+    COPY ./wildcard/*+test/helloworld* .
+    DO +TEST --EXPECTED_COUNT=3
+
+wildcard-globstar:
+    COPY ./wildcard/**/*+test/* .
+
+wildcard-glob:
+    COPY ./wildcard/b*[rz]+test/helloworld* .
+    DO +TEST --EXPECTED_COUNT=2
+
+wildcard-copy-pwd:
+    COPY ./*+test/helloworld* .
+    DO +TEST --EXPECTED_COUNT=3
+
+wildcard-copy-rel-dir:
+    COPY ../../tmp/other-dir/*+test/helloworld* .
+    DO +TEST --EXPECTED_COUNT=3
+
+wildcard-remote:
+    BUILD github.com/earthly/test-remote/wildcard:ido-wildcard-copy+wildcard-copy
+
+wildcard-remote-glob:
+    BUILD github.com/earthly/test-remote/wildcard:ido-wildcard-copy+wildcard-copy-glob
+
+wildcard-multi:
+    COPY ./wildcard/b*[rz]+test/helloworld* ./wildcard/f*+test/helloworld* .
+    DO +TEST --EXPECTED_COUNT=3
+
+wildcard-multi-mix:
+    COPY ./wildcard/b*[rz]+test/helloworld* ./wildcard/foo+test/helloworld1 .
+    DO +TEST --EXPECTED_COUNT=3
+
+wildcard-multi-with-flags:
+    COPY --dir \
+        ./wildcard/b*[rz]+test/helloworld* \
+        ./wildcard/f*+testdir/somedir1 \
+        .
+    DO +TEST --EXPECTED_COUNT=2
+    RUN test -d somedir1
+    RUN test -f somedir1/somefile1
+
+wildcard-if-exists:
+    #COPY --if-exists ./wildcard/*+test/non-existing .
+    #DO +TEST --EXPECTED_COUNT=0
+    #RUN ! test -e non-existing
+    COPY --if-exists ./wildcard/f*+test/helloworld* .
+    DO +TEST --EXPECTED_COUNT=1
+
+wildcard-dir:
+    COPY --dir ./wildcard/*+testdir/* .
+    DO +TEST --EXPECTED_COUNT=3 --FILE_PATTERN="somedir" --CHECK_FILES=false
+
+wildcard-with-artifact-args:
+    ARG target="test"
+    ARG file_pattern="helloworld"
+    COPY ./wildcard/*+$target/${file_pattern}* .
+    DO +TEST --EXPECTED_COUNT=3
+
+wildcard-multi-with-artifact-args:
+    ARG target="test"
+    ARG file_pattern="helloworld"
+    COPY ./wildcard/b*[rz]+$target/$file_pattern* ./wildcard/f*+$target/$file_pattern* .
+    DO +TEST --EXPECTED_COUNT=3
+
+wildcard-with-args:
+    ARG FILE_NAME_PREFIX="goodbyeworld"
+    COPY (./wildcard/*+test/$FILE_NAME_PREFIX* --FILE_NAME_PREFIX=$FILE_NAME_PREFIX) .
+    DO +TEST --EXPECTED_COUNT=3 --FILE_PATTERN=$FILE_NAME_PREFIX
+
+wildcard-multi-with-args:
+    ARG FILE_NAME_PREFIX1="goodbyeworld"
+    ARG FILE_NAME_PREFIX2="farewelleworld"
+    COPY \
+        (./wildcard/*+test/$FILE_NAME_PREFIX1* --FILE_NAME_PREFIX=$FILE_NAME_PREFIX1) \
+        (./wildcard/*+test/$FILE_NAME_PREFIX2* --FILE_NAME_PREFIX=$FILE_NAME_PREFIX2) \
+         .
+    DO +TEST --EXPECTED_COUNT=3 --FILE_PATTERN=$FILE_NAME_PREFIX1
+    DO +TEST --EXPECTED_COUNT=3 --FILE_PATTERN=$FILE_NAME_PREFIX2
+
+TEST:
+    FUNCTION
+    ARG --required EXPECTED_COUNT
+    ARG FILE_PATTERN="helloworld"
+    ARG CHECK_FILES=true
+    RUN ls -l
+    LET files=$(ls -d ${FILE_PATTERN}* || echo -n "")
+    LET count=0
+    IF [ "$files" != "" ]
+        SET count=$(echo "$files"|wc -l)
+    END
+    RUN test $count -eq $EXPECTED_COUNT || (echo found $count files instead of $EXPECTED_COUNT && exit 1)
+    IF [ "$CHECK_FILES" = "true" ]
+        FOR f IN $files
+            RUN grep "hello world" $f
+        END
+    END
