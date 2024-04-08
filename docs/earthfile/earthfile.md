@@ -1163,7 +1163,7 @@ The `WITH DOCKER` clause only supports the command [`RUN`](#run). Other commands
 A typical example of a `WITH DOCKER` clause might be:
 
 ```Dockerfile
-FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+FROM earthly/dind:alpine-3.19-docker-25.0.3-r2
 WORKDIR /test
 COPY docker-compose.yml ./
 WITH DOCKER \
@@ -1185,7 +1185,7 @@ For information on using `WITH DOCKER` with podman see the [Podman guide](../gui
 ##### Note
 For performance reasons, it is recommended to use a Docker image that already contains `dockerd`. If `dockerd` is not found, Earthly will attempt to install it.
 
-Earthly provides officially supported images such as `earthly/dind:alpine-3.19-docker-25.0.2-r0` and `earthly/dind:ubuntu-23.04-docker-24.0.5-1` to be used together with `WITH DOCKER`.
+Earthly provides officially supported images such as `earthly/dind:alpine-3.19-docker-25.0.3-r2` and `earthly/dind:ubuntu-23.04-docker-24.0.5-1` to be used together with `WITH DOCKER`.
 {% endhint %}
 
 {% hint style='info' %}
