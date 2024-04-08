@@ -165,8 +165,7 @@ It is recommended that relative paths are used, for portability reasons: the wor
 {% hint style='info' %}
 ##### Note
 When using a `Target ref` in a `BUILD` command or an `Artifact ref` in a `COPY` command, the ref to the target
-may also include a globbing expression (e.g. `./parent/*+<target-name>`, `./parent/*+<target-name>/<artifact-path>`). Globbing in a target/artifact ref has experimental status. To use this feature, it must be enabled via `VERSION --wildcard-builds 0.8` (for `BUILD`) or `VERSION --wildcard-copy 0.8` (for `COPY`).
-Globbing is useful to reference multiple targets that exist in different Earthfiles in the filesystem, in a single command.
+may also include a glob expression (e.g. `./parent/*+<target-name>`, `./parent/*+<target-name>/<artifact-path>`). Globbing in a target/artifact ref has experimental status. To use this feature, it must be enabled via `VERSION --wildcard-builds 0.8` (for `BUILD`) or `VERSION --wildcard-copy 0.8` (for `COPY`).
 {% endhint %}
 
 ### Remote

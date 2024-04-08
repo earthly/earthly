@@ -398,18 +398,18 @@ services
 ```
 
 where a `+mocks` target is defined in services1/Earthfile, services2/Earthfile and services3/Earthfile.
- `COPY ./services/*+mocks .` is equivalent to:
+The command `COPY ./services/*+mocks .` is equivalent to:
 ```Earthfile
     COPY ./services/service1+mocks .
     COPY ./services/service2+mocks .
     COPY ./services/service3+mocks .
 ```
 
-A glob match occurs when an Earthfile in the glob expression path exists, and it defines the target.
+A glob match occurs when an Earthfile in the glob expression path exists, and the named target is defined in the Earthfile.
 At least one match must be found for the command to succeed.
 
 This feature has experimental status. To use it, it must be enabled via `VERSION --wildcard-copy 0.8`.
-(This is not to be confused with the usage of wildcards in the artifact name, which is fully supported (e.g. `COPY ./services/service1+mocks/* .`))
+(This is not to be confused with the usage of wildcards in the artifact name, which is fully supported, e.g. `COPY ./services/service1+mocks/* .`)
 
 {% endhint %}
 
@@ -840,14 +840,6 @@ If you are referencing a target via some other command, such as `COPY` and you w
 
 {% hint style='info' %}
 ##### Globbing
-may also include a globbing expression.
-This is useful in order to invoke multiple targets that may exist in different Earthfiles in the filesystem, in a single `BUILD command`.
-For example: `BUILD ./services/*+compile`
-This feature has experimental status. To use it, it must be enabled via `VERSION --wildcard-builds 0.8`.
-{% endhint %}
-
-{% hint style='info' %}
-##### Globbing
 A <target-ref> may also include a glob expression.
 This is useful in order to invoke multiple targets that may exist in different Earthfiles in the filesystem, in a single `BUILD` command.
 For example, consider the following filesystem:
@@ -863,14 +855,14 @@ services
 ```
 
 where a `+compile` target is defined in services1/Earthfile, services2/Earthfile and services3/Earthfile.
-`BUILD ./services/*+compile .` is equivalent to:
+The command `BUILD ./services/*+compile .` is equivalent to:
 ```Earthfile
-    BUILD ./services/service1+compile .
-    BUILD ./services/service2+compile .
-    BUILD ./services/service3+compile .
+    BUILD ./services/service1+compile
+    BUILD ./services/service2+compile
+    BUILD ./services/service3+compile
 ```
 
-A glob match occurs when an Earthfile in the glob expression path exists, and it defines the target.
+A glob match occurs when an Earthfile in the glob expression path exists, and the named target is defined in the Earthfile.
 At least one match must be found for the command to succeed.
 
 This feature has experimental status. To use it, it must be enabled via `VERSION --wildcard-builds 0.8`.
