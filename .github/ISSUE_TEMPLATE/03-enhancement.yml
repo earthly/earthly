@@ -1,6 +1,6 @@
 name: Small feature enhancement
 description: Propose a small change to an existing feature of earthly
-title: 'feature-request:'
+title: 'feature-improvement:'
 labels: ["type:enhancement"]
 assignees: []
 body:
