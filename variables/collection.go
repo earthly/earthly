@@ -387,7 +387,7 @@ func (c *Collection) DeclareEnv(name string, value string) {
 // value of the variable, regardless of where the value was previously defined.
 //
 // It returns ErrVarNotFound if the variable was not found.
-func (c *Collection) UpdateVar(name, value string, pncvf ProcessNonConstantVariableFunc, isBase bool) (retErr error) {
+func (c *Collection) UpdateVar(name, value string, pncvf ProcessNonConstantVariableFunc) (retErr error) {
 	defer func() {
 		if retErr == nil {
 			c.effectiveCache = nil

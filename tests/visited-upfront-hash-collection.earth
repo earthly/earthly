@@ -9,6 +9,31 @@ parallel:
   BUILD +test-executor --INDEX=4
   BUILD +test-executor --INDEX=5
 
+parallel-dynamic-arg:
+  ARG target=+test-executor
+  BUILD $target --INDEX=1
+  BUILD $target --INDEX=2
+  BUILD $target --INDEX=3
+  BUILD $target --INDEX=4
+  BUILD $target --INDEX=5
+
+parallel-dynamic-let:
+  LET target=+test-executor
+  BUILD $target --INDEX=1
+  BUILD $target --INDEX=2
+  BUILD $target --INDEX=3
+  BUILD $target --INDEX=4
+  BUILD $target --INDEX=5
+
+parallel-dynamic-set:
+  LET target=""
+  SET target=+test-executor
+  BUILD $target --INDEX=1
+  BUILD $target --INDEX=2
+  BUILD $target --INDEX=3
+  BUILD $target --INDEX=4
+  BUILD $target --INDEX=5
+
 test-executor:
   ARG INDEX
   RUN --no-cache for i in $(seq 1 3); do  \
