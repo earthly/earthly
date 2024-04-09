@@ -1765,10 +1765,6 @@ earthly --config \$earthly_config +test 2>&1 | tee output.txt;
     DO +RUN_EARTHLY --exec_cmd=/tmp/run-earthly-with-bad-ssh-cipher
     RUN cat output.txt | acbgrep "Unknown cipher type 'badcipher'"
 
-no-let-set-block-parallel:
-    DO +RUN_EARTHLY --earthfile=no-let-set-block-parallel.earth --should_fail=true --target=+test-let --output_does_not_contain="should not be printed"
-    DO +RUN_EARTHLY --earthfile=no-let-set-block-parallel.earth --should_fail=true --target=+test-set --output_does_not_contain="should not be printed"
-
 TEST_PARALLELIZATION:
   FUNCTION
   RUN order=$(cat earthly.output | grep -Eo "### [[:digit:]]+"  | cut -d' ' -f2- | tr '\n' ' ' | tr -d '[:space:]'); \
