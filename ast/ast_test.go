@@ -175,7 +175,7 @@ foo:
 			},
 		},
 		{
-			note: "multi key value pairs in ENV ",
+			note: "multi key value pairs assigned in ENV",
 			earthfile: `
 VERSION 0.6
 
