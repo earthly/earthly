@@ -113,9 +113,9 @@ func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
 }
 
 func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
-	prevWasArg := true // not exactly true, but makes the logic easier
+	prevWasArgLike := true // not exactly true, but makes the logic easier
 	for index, stmt := range b {
-		if i.parallelConversion && prevWasArg {
+		if i.parallelConversion && prevWasArgLike {
 			err := i.handleBlockParallel(ctx, b, index)
 			if err != nil {
 				return err
@@ -125,7 +125,7 @@ func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
 		if err != nil {
 			return err
 		}
-		prevWasArg = i.prevWasArg(stmt.Command)
+		prevWasArgLike = i.isArgLike(stmt.Command)
 
 	}
 	return nil
@@ -2149,7 +2149,8 @@ func (i *Interpreter) expandArgs(ctx context.Context, word string, keepPlusEscap
 	return unescapeSlashPlus(ret), nil
 }
 
-func (i *Interpreter) prevWasArg(cmd *spec.Command) bool {
+// isArgLike returns true if the command is ARG/LET/SET
+func (i *Interpreter) isArgLike(cmd *spec.Command) bool {
 	if cmd == nil {
 		return false
 	}
