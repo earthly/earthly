@@ -192,7 +192,7 @@ env:
 				target := s.Targets[0]
 				r.Equal("env", target.Name)
 				r.Len(target.Recipe, 1)
-				env := target.Recipe[1]
+				env := target.Recipe[0]
 				r.Equal("ENV", env.Command.Name)
 				panic(env.Command.Args)
 				r.Equal([]string{"GOLANG", "=", `1.22.2 \
