@@ -194,13 +194,11 @@ env:
 				r.Len(target.Recipe, 1)
 				env := target.Recipe[0]
 				r.Equal("ENV", env.Command.Name)
-				panic(env.Command.Args)
 				r.Equal([]string{"GOLANG", "=", `1.22.2 \
     GO_VERSION=1.22.2 \
 	GOOS=linux \
 	GOARCH=amd64 \
-    GO_DOWNLOAD_SHA256=5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17
-`}, env.Command.Args)
+    GO_DOWNLOAD_SHA256=5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17`}, env.Command.Args)
 			},
 		},
 		{
