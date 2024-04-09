@@ -1,20 +1,15 @@
 name: Documentation
 description: Report missing, unclear, or incorrect documentation
-title: 'doc:'
 labels: ["type:documentation"]
 assignees: []
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for taking the time to report documentation issues!
   - type: input
     id: existing-documentation
     attributes:
       label: Does existing documentation exist?
       description: Please link to the existing documentation if it exists.
     validations:
-      required: true
+      required: false
   - type: textarea
     id: request
     attributes:

@@ -1,13 +1,8 @@
 name: Bug report
 description: Report an unexpected problem
-title: 'bug: '
 labels: ["type:bug"]
 assignees: []
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for taking the time to fill out this bug report!
   - type: textarea
     id: what-went-wrong
     attributes:
@@ -23,10 +18,24 @@ body:
     validations:
       required: true
   - type: textarea
+    id: earthly-version
+    attributes:
+      label: What earthly version?
+      description: Please include the output of `earthly --version`
+    validations:
+      required: true
+  - type: textarea
+    id: buildkit-logs
+    attributes:
+      label: Buildkit Logs
+      description: If buildkit crashed, please include the output of `docker logs earthly-buildkitd`
+    validations:
+      required: false
+  - type: textarea
     id: other-helpful-information
     attributes:
       label: Other Helpful Information
       description: |
-        Please include any additional information you might have. This may include the logs from the `earthly-buildkitd` container, the output of the failing command, output of the failing command with `--verbose` enabled, stack trace, and in some rare circumstances: screenshots.
+        Please include any additional information you might have. e.g. the output when `--verbose` is enabled, any stack traces, or even screenshots (if text is rendered incorrectly).
     validations:
       required: false

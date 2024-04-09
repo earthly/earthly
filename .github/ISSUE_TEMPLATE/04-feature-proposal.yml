@@ -4,10 +4,6 @@ title: 'proposal: '
 labels: ["type:proposal"]
 assignees: []
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for taking the time to propose a new feature!
   - type: textarea
     id: use-case
     attributes:

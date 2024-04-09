@@ -1,0 +1,12 @@
+name: Question
+description: Ask a general question
+labels: ["type:question"]
+assignees: []
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Ask away.
+    validations:
+      required: true
