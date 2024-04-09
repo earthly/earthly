@@ -4,9 +4,13 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
-### Changed
+### Added
 
-- `LET`/`SET` command will block parallel commands such as `BUILD` until they are processed, similar to the behavior of `ARG`. Enable with the `VERSION --let-set-block-parallel` feature flag. [#3997](https://github.com/earthly/earthly/issues/3997)
+- New experimental wildcard-based copy, e.g. `COPY ./services/*+artifact/* .` which would invoke `COPY` for `./services/foo+artifact`, and `./services/bar+artifact` (assuming two services foo and bar, both having a `artifact` target in their respective Earthfile). Enable with the `VERSION --wildcard-copy` feature flag. [#3966](https://github.com/earthly/earthly/issues/3966).
+
+### Fixed
+
+- Make `LET`/`SET` commands block parallel commands such as `BUILD` until the former is processed, similar to the behavior of `ARG`. [#3997](https://github.com/earthly/earthly/issues/3997)
 
 ## v0.8.7 - 2024-04-03
 

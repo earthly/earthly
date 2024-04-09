@@ -71,7 +71,7 @@ type Features struct {
 	BuildAutoSkip                 bool `long:"build-auto-skip" description:"allow for --auto-skip to be used on individual BUILD commands"`
 	AllowPrivilegedFromDockerfile bool `long:"allow-privileged-from-dockerfile" description:"Allow the use of the --allow-privileged flag in the FROM DOCKERFILE command"`
 	RunWithAWS                    bool `long:"run-with-aws" description:"make AWS credentials in the environment or ~/.aws available to RUN commands"`
-	LetSetBlockParallel           bool `long:"let-set-block-parallel" description:"block parallel builds until LET/SET commands are processed, similarly to ARG"`
+	WildcardCopy                  bool `long:"wildcard-copy" description:"allow for the expansion of wildcard (glob) paths for COPY commands"`
 
 	Major int
 	Minor int
