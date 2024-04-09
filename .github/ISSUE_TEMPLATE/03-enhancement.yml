@@ -1,0 +1,19 @@
+name: Small feature enhancement
+description: Propose a small change to an existing feature of earthly
+labels: ["type:enhancement"]
+assignees: []
+body:
+  - type: textarea
+    id: existing-functionality
+    attributes:
+      label: What existing functionality needs improvement?
+      description: Please describe the reason that you need or want this change.
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: Please describe how you expect the change to work.
+    validations:
+      required: true
