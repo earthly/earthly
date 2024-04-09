@@ -13,8 +13,12 @@ body:
     attributes:
       label: What existing functionality needs improvement?
       description: Please describe the reason that you need or want this change.
+    validations:
+      required: true
   - type: textarea
     id: expected-behavior
     attributes:
       label: Expected Behavior
       description: Please describe how you expect the change to work.
+    validations:
+      required: true
