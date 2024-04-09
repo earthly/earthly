@@ -5,9 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/ast/spec"
-	"github.com/stretchr/testify/require"
 )
 
 type namedStringReader struct {
@@ -168,6 +169,30 @@ foo:
 				r.NotNil(run.Command)
 				r.Equal("RUN", run.Command.Name)
 				r.Equal([]string{"echo", `"$(echo "foo     bar")"`}, run.Command.Args)
+				env := target.Recipe[1]
+				r.Equal("ENV", env.Command.Name)
+				r.Equal([]string{"FOO", "=", `"$(echo "foo     bar")"`}, env.Command.Args)
+			},
+		},
+		{
+			note: "multi key value pairs in ENV ",
+			earthfile: `
+VERSION 0.6
+
+env:
+  FROM alpine
+  ENV GOLANG=1.22.2 \
+    GO_VERSION=1.22.2 \
+	GOOS=linux \
+	GOARCH=amd64 \
+    GO_DOWNLOAD_SHA256=5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17
+`,
+			check: func(r *require.Assertions, s spec.Earthfile, err error) {
+				r.NoError(err)
+				r.Len(s.Targets, 1)
+				target := s.Targets[0]
+				r.Equal("env", target.Name)
+				r.Len(target.Recipe, 1)
 				env := target.Recipe[1]
 				r.Equal("ENV", env.Command.Name)
 				r.Equal([]string{"FOO", "=", `"$(echo "foo     bar")"`}, env.Command.Args)
