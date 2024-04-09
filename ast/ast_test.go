@@ -180,7 +180,6 @@ foo:
 VERSION 0.6
 
 env:
-  FROM alpine
   ENV GOLANG=1.22.2 \
     GO_VERSION=1.22.2 \
 	GOOS=linux \
@@ -195,6 +194,7 @@ env:
 				r.Len(target.Recipe, 1)
 				env := target.Recipe[1]
 				r.Equal("ENV", env.Command.Name)
+				panic(env.Command.Args)
 				r.Equal([]string{"GOLANG", "=", `1.22.2 \
     GO_VERSION=1.22.2 \
 	GOOS=linux \
