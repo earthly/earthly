@@ -87,9 +87,10 @@ VERSION [<flags>...] <version-number>
 | `--try`                                 | Experimental                                                                    | Enable the `TRY` / `FINALLY` / `END` block commands                                                                |
 | `--earthly-ci-runner-arg`               | Experimental                                                                    | Enable the `EARTHLY_CI_RUNNER` builtin ARG                                                                         |
 | `--wildcard-builds`                     | Experimental                                                                    | Alow for the expansion of wildcard (glob) paths for BUILD commands                                                 |
-| `--build-auto-skip`                     | Experimental                                                                    | Allow for `--auto-skip` to be used on individual BUILD commands                                                      |
-| `--allow-privileged-from-dockerfile`    | Experimental                                                                    | Allow the use of the `--allow-privileged` flag in the `FROM DOCKERFILE` command |
-| `--run-with-aws`                        | Experimental                                                                    | Make AWS credentials in the environment or ~/.aws available to `RUN` commands     |
+| `--build-auto-skip`                     | Experimental                                                                    | Allow for `--auto-skip` to be used on individual BUILD commands                                                    |
+| `--allow-privileged-from-dockerfile`    | Experimental                                                                    | Allow the use of the `--allow-privileged` flag in the `FROM DOCKERFILE` command                                    |
+| `--run-with-aws`                        | Experimental                                                                    | Make AWS credentials in the environment or ~/.aws available to `RUN` commands                                      |
+| `--wildcard-copy`                       | Experimental                                                                    | Alow for the expansion of wildcard (glob) paths for COPY commands                                                  |
 
 Note that the features flags are disabled by default in Earthly versions lower than the version listed in the "status" column above.
 

@@ -381,6 +381,38 @@ The command may take a couple of possible forms. In the *classical form*, `COPY`
 
 The parameter `<src-artifact>` is an [artifact reference](../guides/importing.md#artifact-reference) and is generally of the form `<target-ref>/<artifact-path>`, where `<target-ref>` is the reference to the target which needs to be built in order to yield the artifact and `<artifact-path>` is the path within the artifact environment of the target, where the file or directory is located. The `<artifact-path>` may also be a wildcard.
 
+{% hint style='info' %}
+##### Globbing
+A target reference in a <src-artifact> may also include a glob expression.
+This is useful in order to invoke multiple targets that may exist in different Earthfiles in the filesystem, in a single `COPY` command.
+For example, consider the following filesystem:
+```bash
+services
+├── Earthfile
+├── service1
+│    └── Earthfile
+├── service2
+│   ├── Earthfile
+├── service3
+│   ├── Earthfile
+```
+
+where a `+mocks` target is defined in services1/Earthfile, services2/Earthfile and services3/Earthfile.
+The command `COPY ./services/*+mocks .` is equivalent to:
+```Earthfile
+    COPY ./services/service1+mocks .
+    COPY ./services/service2+mocks .
+    COPY ./services/service3+mocks .
+```
+
+A glob match occurs when an Earthfile in the glob expression path exists, and the named target is defined in the Earthfile.
+At least one match must be found for the command to succeed.
+
+This feature has experimental status. To use it, it must be enabled via `VERSION --wildcard-copy 0.8`.
+(This is not to be confused with the usage of wildcards in the artifact name, which is fully supported, e.g. `COPY ./services/service1+mocks/* .`)
+
+{% endhint %}
+
 The `COPY` command does not mark any saved images or artifacts of the referenced target for output, nor does it mark any push commands of the referenced target for pushing. For that, please use [`BUILD`](#build).
 
 Multiple `COPY` commands issued one after the other will build the referenced targets in parallel, if the targets don't depend on each other. The resulting artifacts will then be copied sequentially in the order in which the `COPY` commands were issued.
@@ -806,6 +838,37 @@ In Earthly v0.6+, what is being output and pushed is determined either by the ma
 
 If you are referencing a target via some other command, such as `COPY` and you would like for the outputs or pushes to be included, you can issue an equivalent `BUILD` command in addition to the `COPY`. For example
 
+{% hint style='info' %}
+##### Globbing
+A <target-ref> may also include a glob expression.
+This is useful in order to invoke multiple targets that may exist in different Earthfiles in the filesystem, in a single `BUILD` command.
+For example, consider the following filesystem:
+```bash
+services
+├── Earthfile
+├── service1
+│    └── Earthfile
+├── service2
+│   ├── Earthfile
+├── service3
+│   ├── Earthfile
+```
+
+where a `+compile` target is defined in services1/Earthfile, services2/Earthfile and services3/Earthfile.
+The command `BUILD ./services/*+compile .` is equivalent to:
+```Earthfile
+    BUILD ./services/service1+compile
+    BUILD ./services/service2+compile
+    BUILD ./services/service3+compile
+```
+
+A glob match occurs when an Earthfile in the glob expression path exists, and the named target is defined in the Earthfile.
+At least one match must be found for the command to succeed.
+
+This feature has experimental status. To use it, it must be enabled via `VERSION --wildcard-builds 0.8`.
+
+{% endhint %}
+
 ```Dockerfile
 my-target:
     COPY --platform=linux/amd64 (+some-target/some-file.txt --FOO=bar) ./
@@ -1100,7 +1163,7 @@ The `WITH DOCKER` clause only supports the command [`RUN`](#run). Other commands
 A typical example of a `WITH DOCKER` clause might be:
 
 ```Dockerfile
-FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+FROM earthly/dind:alpine-3.19-docker-25.0.3-r2
 WORKDIR /test
 COPY docker-compose.yml ./
 WITH DOCKER \
@@ -1122,7 +1185,7 @@ For information on using `WITH DOCKER` with podman see the [Podman guide](../gui
 ##### Note
 For performance reasons, it is recommended to use a Docker image that already contains `dockerd`. If `dockerd` is not found, Earthly will attempt to install it.
 
-Earthly provides officially supported images such as `earthly/dind:alpine-3.19-docker-25.0.2-r0` and `earthly/dind:ubuntu-23.04-docker-24.0.5-1` to be used together with `WITH DOCKER`.
+Earthly provides officially supported images such as `earthly/dind:alpine-3.19-docker-25.0.3-r2` and `earthly/dind:ubuntu-23.04-docker-24.0.5-1` to be used together with `WITH DOCKER`.
 {% endhint %}
 
 {% hint style='info' %}

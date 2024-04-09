@@ -83,10 +83,7 @@ ga-no-qemu-group4:
     BUILD +escape-test
     BUILD +escape-dir-test
     BUILD +fail-invalid-artifact-test
-    BUILD +wildcard-build
-    BUILD +wildcard-build-remote
-    BUILD +wildcard-build-pwd
-    BUILD +wildcard-build-auto-skip
+    BUILD +wildcard-all
     BUILD +target-first-line
     BUILD +absolute-reference-with-relative
     BUILD +end-comment
@@ -621,8 +618,26 @@ fail-invalid-artifact-test:
     DO +RUN_EARTHLY --earthfile=fail-invalid-artifact.earth --should_fail=true --target="--artifact +test/foo /tmp/stuff" \
         --output_contains="cannot save artifact +test/foo, since it does not exist"
 
+wildcard-all:
+    # wildcard BUILD tests
+    BUILD +wildcard-build
+    BUILD +wildcard-build-pwd
+    BUILD +wildcard-build-auto-skip
+    BUILD +wildcard-build-pwd-rel
+    BUILD +wildcard-build-rel-dir
+    BUILD +wildcard-build-remote
+    # wildcard COPY tests
+    BUILD +wildcard-copy
+    BUILD +wildcard-copy-pwd
+    BUILD +wildcard-copy-pwd-rel
+    BUILD +wildcard-copy-rel-dir
+    BUILD +wildcard-copy-remote
+    BUILD +wildcard-copy-with-flags
+    BUILD +wildcard-copy-multi
+    BUILD +wildcard-copy-with-args
+
 wildcard-build:
-    COPY --dir wildcard-build .
+    COPY --dir wildcard .
     DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-build
     RUN cat earthly.output | acbgrep 'hello world 1'
     RUN cat earthly.output | acbgrep 'hello world 2'
@@ -637,7 +652,7 @@ wildcard-build:
     RUN cat earthly.output | acbgrep -v 'not-test run'
 
 wildcard-build-pwd:
-    COPY wildcard-build .
+    COPY wildcard .
     DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-build-pwd
     RUN cat earthly.output | acbgrep 'hello world 1'
     RUN cat earthly.output | acbgrep 'hello world 2'
@@ -645,11 +660,11 @@ wildcard-build-pwd:
     RUN cat earthly.output | acbgrep -v 'not-test run'
 
 wildcard-build-auto-skip:
-    COPY wildcard-build .
+    COPY wildcard .
     DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-build-auto-skip
 
 wildcard-build-pwd-rel:
-    COPY wildcard-build subdir
+    COPY wildcard subdir
     COPY wildcard-build.earth subdir/Earthfile
     DO +RUN_EARTHLY --target=./subdir+wildcard-build-pwd
     RUN cat earthly.output | acbgrep 'hello world 1'
@@ -660,7 +675,7 @@ wildcard-build-pwd-rel:
 wildcard-build-rel-dir:
     WORKDIR /root/some-dir
     RUN mkdir -p /tmp/other-dir
-    COPY wildcard-build /tmp/other-dir
+    COPY wildcard /tmp/other-dir
 
     DO +RUN_EARTHLY --earthfile=wildcard-build.earth --target=+wildcard-build-rel-dir
     RUN cat earthly.output | acbgrep 'hello world 1'
@@ -679,6 +694,68 @@ wildcard-build-remote:
     RUN cat earthly.output | acbgrep 'hello world 2'
     RUN cat earthly.output | acbgrep 'hello world 3'
     RUN cat earthly.output | acbgrep -v 'hello world 1'
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+wildcard-copy:
+    COPY --dir wildcard .
+    DO +RUN_EARTHLY --earthfile=wildcard-copy.earth --target=+wildcard-copy
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+    DO +RUN_EARTHLY --earthfile=wildcard-copy.earth --target=+wildcard-globstar --should_fail=true --output_contains="pattern not yet supported"
+
+    DO +RUN_EARTHLY --earthfile=wildcard-copy.earth --target=+wildcard-glob
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+wildcard-copy-pwd:
+    COPY wildcard .
+    DO +RUN_EARTHLY --earthfile=wildcard-copy.earth --target=+wildcard-copy-pwd
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+wildcard-copy-pwd-rel:
+    COPY wildcard subdir
+    COPY wildcard-copy.earth subdir/Earthfile
+    DO +RUN_EARTHLY --target=./subdir+wildcard-copy-pwd
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+wildcard-copy-rel-dir:
+    WORKDIR /root/some-dir
+    RUN mkdir -p /tmp/other-dir
+    COPY wildcard /tmp/other-dir
+
+    DO +RUN_EARTHLY --earthfile=wildcard-copy.earth --target=+wildcard-copy-rel-dir
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+wildcard-copy-remote:
+    DO +RUN_EARTHLY --earthfile=wildcard-copy.earth --target=+wildcard-remote
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+    DO +RUN_EARTHLY --earthfile=wildcard-copy.earth --target=+wildcard-remote-glob
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+wildcard-copy-with-flags:
+    COPY --dir wildcard .
+    DO +RUN_EARTHLY --earthfile=wildcard-copy.earth --target=+wildcard-if-exists
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+    DO +RUN_EARTHLY --earthfile=wildcard-copy.earth --target=+wildcard-dir
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+    DO +RUN_EARTHLY --earthfile=wildcard-copy.earth --target=+wildcard-with-artifact-args
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+    DO +RUN_EARTHLY --earthfile=wildcard-copy.earth --target=+wildcard-multi-with-artifact-args
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+wildcard-copy-multi:
+    COPY --dir wildcard .
+    DO +RUN_EARTHLY --earthfile=wildcard-copy.earth --target=+wildcard-multi
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+    DO +RUN_EARTHLY --earthfile=wildcard-copy.earth --target=+wildcard-multi-mix
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+    DO +RUN_EARTHLY --earthfile=wildcard-copy.earth --target=+wildcard-multi-with-flags
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+
+wildcard-copy-with-args:
+    COPY --dir wildcard .
+    DO +RUN_EARTHLY --earthfile=wildcard-copy.earth --target=+wildcard-with-args
+    RUN cat earthly.output | acbgrep -v 'not-test run'
+    DO +RUN_EARTHLY --earthfile=wildcard-copy.earth --target=+wildcard-multi-with-args
     RUN cat earthly.output | acbgrep -v 'not-test run'
 
 push-test:

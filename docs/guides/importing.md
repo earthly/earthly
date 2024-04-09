@@ -51,7 +51,7 @@ my-target:
 
 In this example, the target `my-target` uses the import alias `hello-world` to reference a GitHub repository called `github.com/earthly/hello-world`, and the target `hello` within that repository. The `AS hello-world` part is optional, and is only needed if the import alias is different from the repository name.
 
-`BUILD` is used used to simply issue the build of the referenced target. Commands like `COPY` or `FROM` can be used to import artifacts or images, respectively.
+`BUILD` is used to simply issue the build of the referenced target. Commands like `COPY` or `FROM` can be used to import artifacts or images, respectively.
 
 ### Importing from other directories
 
@@ -96,7 +96,7 @@ Here are some examples:
 
 * `+build`
 * `./js+deps`
-* `github.com/earthly/earthly:v0.8.6+earthly`
+* `github.com/earthly/earthly:v0.8.7+earthly`
 * `my-import+build`
 
 ## Artifact reference
@@ -110,7 +110,7 @@ Here are some examples:
 * `+build/my-artifact`
 * `+build/some/artifact/deep/in/a/dir`
 * `./js+build/dist`
-* `github.com/earthly/earthly:v0.8.6+earthly/earthly`
+* `github.com/earthly/earthly:v0.8.7+earthly/earthly`
 * `my-import+build/my-artifact`
 
 ## Image reference
@@ -131,7 +131,7 @@ Here are some examples:
 
 * `+COMPILE`
 * `./js+NPM_INSTALL`
-* `github.com/earthly/earthly:v0.8.6+DOWNLOAD_DIND`
+* `github.com/earthly/earthly:v0.8.7+DOWNLOAD_DIND`
 * `my-import+COMPILE`
 
 For more information on functions, see the [Functions Guide](./functions.md).
@@ -162,6 +162,12 @@ Another form, is where a target, function or artifact is referenced from a diffe
 
 It is recommended that relative paths are used, for portability reasons: the working directory checked out by different users will be different, making absolute paths infeasible in most cases.
 
+{% hint style='info' %}
+##### Note
+When using a `Target ref` in a `BUILD` command or an `Artifact ref` in a `COPY` command, the ref to the target
+may also include a glob expression (e.g. `./parent/*+<target-name>`, `./parent/*+<target-name>/<artifact-path>`). Globbing in a target/artifact ref has experimental status. To use this feature, it must be enabled via `VERSION --wildcard-builds 0.8` (for `BUILD`) or `VERSION --wildcard-copy 0.8` (for `COPY`).
+{% endhint %}
+
 ### Remote
 
 Another form of a Earthfile reference is the remote form. In this form, the recipe and the build context are imported from a remote location. It has the following form:
@@ -170,7 +176,7 @@ Another form of a Earthfile reference is the remote form. In this form, the reci
 |----|----|----|----|
 | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<target-name>` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<target-name>/<artifact-path>` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<function-name>` |
 | `github.com/earthly/earthly/buildkitd` | `github.com/earthly/earthly/buildkitd+build` | `github.com/earthly/earthly/buildkitd+build/out.bin` | `github.com/earthly/earthly/buildkitd+COMPILE` |
-| `github.com/earthly/earthly:v0.8.6` | `github.com/earthly/earthly:v0.8.6+build` | `github.com/earthly/earthly:v0.8.6+build/out.bin` | `github.com/earthly/earthly:v0.8.6+COMPILE` |
+| `github.com/earthly/earthly:v0.8.7` | `github.com/earthly/earthly:v0.8.7+build` | `github.com/earthly/earthly:v0.8.7+build/out.bin` | `github.com/earthly/earthly:v0.8.7+COMPILE` |
 
 ### Import reference
 
@@ -180,7 +186,7 @@ Finally, the last form of Earthfile referencing is an import reference. Import r
 |----|----|----|----|----|
 | `IMPORT <full-earthfile-ref> AS <import-alias>` | `<import-alias>` | `<import-alias>+<target-name>` | `<import-alias>+<target-name>/<artifact-path>` | `<import-alias>+<function-name>` |
 | `IMPORT github.com/earthly/earthly/buildkitd` | `buildkitd` | `buildkitd+build` | `buildkitd+build/out.bin` | `buildkitd+COMPILE` |
-| `IMPORT github.com/earthly/earthly:v0.8.6` | `earthly` | `earthly+build` | `earthly+build/out.bin` | `earthly+COMPILE` |
+| `IMPORT github.com/earthly/earthly:v0.8.7` | `earthly` | `earthly+build` | `earthly+build/out.bin` | `earthly+COMPILE` |
 
 Here is an example in an Earthfile:
 
