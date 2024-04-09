@@ -80,6 +80,7 @@ type Global struct {
 	NoSatellite                bool
 	ProjectName                string
 	OrgName                    string
+	CloudName                  string
 	EarthlyCIRunner            bool
 	ArtifactMode               bool
 	ImageMode                  bool
