@@ -125,7 +125,8 @@ func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
 		if err != nil {
 			return err
 		}
-		prevWasArg = (stmt.Command != nil && stmt.Command.Name == "ARG")
+		prevWasArg = stmt.Command != nil && (stmt.Command.Name == "ARG" || (i.converter.ftrs.LetSetBlockParallel && (stmt.Command.Name == "LET" || stmt.Command.Name == "SET")))
+
 	}
 	return nil
 }
@@ -146,6 +147,13 @@ func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, sta
 				// executed to ensure that they don't impact the outcome. As such,
 				// commands following these cannot be executed preemptively.
 				return nil
+			case command.Let, command.Set:
+				if i.converter.ftrs.LetSetBlockParallel {
+					// treat LET/SET the same as ARG if the feature flag is on,
+					// otherwise fallthrough to handle the build
+					return nil
+				}
+				fallthrough
 			case command.Build:
 				err := i.handleBuild(ctx, *stmt.Command, true)
 				if err != nil {

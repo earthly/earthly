@@ -1467,7 +1467,7 @@ func (c *Converter) UpdateArg(ctx context.Context, argKey string, argValue strin
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
 
-	err := c.varCollection.UpdateVar(argKey, argValue, pncvf, isBase)
+	err := c.varCollection.UpdateVar(argKey, argValue, pncvf)
 	if err != nil {
 		return err
 	}

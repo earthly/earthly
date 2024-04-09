@@ -150,6 +150,7 @@ ga-no-qemu-group5:
     BUILD +test-aws-flag-envs
     BUILD +test-aws-flag-configs
     BUILD +test-aws-flag-none
+    BUILD +no-let-set-block-parallel
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -1622,16 +1623,20 @@ test-visited-upfront-hash-collection:
   DO +RUN_EARTHLY \
       --earthfile=visited-upfront-hash-collection.earth \
       --target=+parallel
-  RUN order=$(cat earthly.output | grep -Eo "### [[:digit:]]+"  | cut -d' ' -f2- | tr '\n' ' ' | tr -d '[:space:]'); \
-      echo "order: $order"; \
-      # This regex matches successions of number trios like: 222111444333555, happening when the builds didn't run in parallel
-      match=$(echo $order | sed -nr '/^([[:digit:]])\1\1([[:digit:]])\2\2([[:digit:]])\3\3([[:digit:]])\4\4([[:digit:]])\5\5$/p'); \
-      if [[ $match ]]; then \
-        echo "no parallelization observed"; \
-        exit 1; \
-      else \
-         echo "parallelization checked"; \
-      fi
+  DO +TEST_PARALLELIZATION
+  DO +RUN_EARTHLY \
+      --earthfile=visited-upfront-hash-collection.earth \
+      --target=+parallel-dynamic-arg
+  DO +TEST_PARALLELIZATION
+  DO +RUN_EARTHLY \
+      --earthfile=visited-upfront-hash-collection.earth \
+      --target=+parallel-dynamic-let
+  DO +TEST_PARALLELIZATION
+  DO +RUN_EARTHLY \
+      --earthfile=visited-upfront-hash-collection.earth \
+      --target=+parallel-dynamic-set
+  DO +TEST_PARALLELIZATION
+
 
 test-exec-stats:
   DO +RUN_EARTHLY \
@@ -1682,6 +1687,23 @@ earthly --config \$earthly_config +test 2>&1 | tee output.txt;
 " >/tmp/run-earthly-with-bad-ssh-cipher && chmod +x /tmp/run-earthly-with-bad-ssh-cipher
     DO +RUN_EARTHLY --exec_cmd=/tmp/run-earthly-with-bad-ssh-cipher
     RUN cat output.txt | acbgrep "Unknown cipher type 'badcipher'"
+
+no-let-set-block-parallel:
+    DO +RUN_EARTHLY --earthfile=no-let-set-block-parallel.earth --should_fail=true --target=+test-let --output_does_not_contain="should not be printed"
+    DO +RUN_EARTHLY --earthfile=no-let-set-block-parallel.earth --should_fail=true --target=+test-set --output_does_not_contain="should not be printed"
+
+TEST_PARALLELIZATION:
+  FUNCTION
+  RUN order=$(cat earthly.output | grep -Eo "### [[:digit:]]+"  | cut -d' ' -f2- | tr '\n' ' ' | tr -d '[:space:]'); \
+      echo "order: $order"; \
+      # This regex matches successions of number trios like: 222111444333555, happening when the builds didn't run in parallel
+      match=$(echo $order | sed -nr '/^([[:digit:]])\1\1([[:digit:]])\2\2([[:digit:]])\3\3([[:digit:]])\4\4([[:digit:]])\5\5$/p'); \
+      if [[ $match ]]; then \
+        echo "no parallelization observed"; \
+        exit 1; \
+      else \
+         echo "parallelization checked"; \
+      fi
 
 RUN_EARTHLY:
     FUNCTION

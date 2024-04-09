@@ -1,0 +1,19 @@
+VERSION 0.8
+
+FROM alpine
+
+test-let:
+    LET target=+foo
+    BUILD $target
+
+foo:
+    RUN echo should not be printed
+
+test-set:
+    WAIT
+        LET target=""
+    END
+    IF [ "$target" = "" ]
+        SET target=+foo
+        BUILD $target
+    END

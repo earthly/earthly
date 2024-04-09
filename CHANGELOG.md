@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Changed
+
+- `LET`/`SET` command will block parallel commands such as `BUILD` until they are processed, similar to the behavior of `ARG`. Enable with the `VERSION --let-set-block-parallel` feature flag. [#3997](https://github.com/earthly/earthly/issues/3997)
+
 ## v0.8.7 - 2024-04-03
 
 ### Added
