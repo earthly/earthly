@@ -1,0 +1,26 @@
+name: Bug report
+description: Report an unexpected problem
+title: 'bug: '
+labels: ["type:bug"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: textarea
+    id: what-went-wrong
+    attributes:
+      label: What went wrong?
+      description: Can you describe what happened? Can you reproduce it? If so, please list the steps to reproduce the issue. Do you have an Earthfile that you can share which showcases the problem? If so, please include it here.
+  - type: textarea
+    id: what-should-have-happened
+    attributes:
+      label: What should have happened?
+      description: Can you describe the expected outcome? Have you found any workarounds? Can you share them for any other users who might be experiencing the issue?
+  - type: textarea
+    id: other-helpful-information
+    attributes:
+      label: Other Helpful Information
+      description: |
+        Please include any additional information you might have. This may include the logs from the `earthly-buildkitd` container, the output of the failing command, output of the failing command with `--verbose` enabled, stack trace, and in some rare circumstances: screenshots.
