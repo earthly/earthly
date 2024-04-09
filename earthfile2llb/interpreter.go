@@ -125,7 +125,7 @@ func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
 		if err != nil {
 			return err
 		}
-		prevWasArg = stmt.Command != nil && (stmt.Command.Name == "ARG" || (i.converter.ftrs.LetSetBlockParallel && (stmt.Command.Name == "LET" || stmt.Command.Name == "SET")))
+		prevWasArg = i.prevWasArg(stmt.Command)
 
 	}
 	return nil
@@ -2147,6 +2147,21 @@ func (i *Interpreter) expandArgs(ctx context.Context, word string, keepPlusEscap
 		return ret, nil
 	}
 	return unescapeSlashPlus(ret), nil
+}
+
+func (i *Interpreter) prevWasArg(cmd *spec.Command) bool {
+	if cmd == nil {
+		return false
+	}
+
+	switch cmd.Name {
+	case command.Let, command.Set:
+		return i.converter.ftrs.LetSetBlockParallel
+	case command.Arg:
+		return true
+	}
+
+	return false
 }
 
 func escapeSlashPlus(str string) string {
