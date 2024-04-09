@@ -22,10 +22,10 @@ wildcard-copy-rel-dir:
     DO +TEST --EXPECTED_COUNT=3
 
 wildcard-remote:
-    BUILD github.com/earthly/test-remote/wildcard:ido-wildcard-copy+wildcard-copy
+    BUILD github.com/earthly/test-remote/wildcard:22403fe8cd4d3fcbc44160be4ee5928ecb1cb975+wildcard-copy
 
 wildcard-remote-glob:
-    BUILD github.com/earthly/test-remote/wildcard:ido-wildcard-copy+wildcard-copy-glob
+    BUILD github.com/earthly/test-remote/wildcard:22403fe8cd4d3fcbc44160be4ee5928ecb1cb975+wildcard-copy-glob
 
 wildcard-multi:
     COPY ./wildcard/b*[rz]+test/helloworld* ./wildcard/f*+test/helloworld* .

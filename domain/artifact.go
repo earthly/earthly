@@ -16,8 +16,7 @@ type Artifact struct {
 
 // Clone returns a copy of the Artifact
 func (a Artifact) Clone() Artifact {
-	newArtifact := a
-	return newArtifact
+	return a
 }
 
 // String returns a string representation of the Artifact.

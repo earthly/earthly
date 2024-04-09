@@ -12,10 +12,10 @@ wildcard-glob:
     BUILD ./wildcard/b*[rz]+test
 
 wildcard-remote:
-    BUILD github.com/earthly/test-remote/wildcard:ido-wildcard-copy+wildcard-build
+    BUILD github.com/earthly/test-remote/wildcard:22403fe8cd4d3fcbc44160be4ee5928ecb1cb975+wildcard-build
 
 wildcard-remote-glob:
-    BUILD github.com/earthly/test-remote/wildcard:ido-wildcard-copy+wildcard-glob
+    BUILD github.com/earthly/test-remote/wildcard:22403fe8cd4d3fcbc44160be4ee5928ecb1cb975+wildcard-glob
 
 wildcard-build-pwd:
     BUILD ./*+test
