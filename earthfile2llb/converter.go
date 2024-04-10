@@ -1467,7 +1467,7 @@ func (c *Converter) UpdateArg(ctx context.Context, argKey string, argValue strin
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
 
-	err := c.varCollection.UpdateVar(argKey, argValue, pncvf, isBase)
+	err := c.varCollection.UpdateVar(argKey, argValue, pncvf)
 	if err != nil {
 		return err
 	}
@@ -1705,61 +1705,31 @@ func (c *Converter) Pipeline(ctx context.Context) error {
 	return nil
 }
 
-func (c *Converter) ExpandWildcard(ctx context.Context, fullTargetName string, cmd spec.Command) ([]spec.Command, error) {
-	parsedTarget, err := domain.ParseTarget(fullTargetName)
+// ExpandWildcardCmds expands a glob expression in the specified fullTargetName and returns copies(clones) of the specified cmd for each match of the expression
+func (c *Converter) ExpandWildcardCmds(ctx context.Context, fullTargetName string, cmd spec.Command) ([]spec.Command, error) {
+	targets, err := c.expandWildcardTargets(ctx, fullTargetName)
 	if err != nil {
 		return nil, err
 	}
 
-	if strings.Contains(fullTargetName, "**") {
-		return nil, errors.New("globstar (**) pattern not yet supported")
-	}
+	return clonesWithExpandedTargets(targets, cmd, func(cmd *spec.Command, expandedTarget string) error {
+		for i := range cmd.Args {
+			cmd.Args[i] = strings.ReplaceAll(cmd.Args[i], fullTargetName, expandedTarget)
+		}
+		return nil
+	})
+}
 
-	matches, err := c.opt.Resolver.ExpandWildcard(ctx, c.opt.GwClient, c.platr, c.target, parsedTarget)
+// ExpandWildcardArtifacts expands a glob expression in the specified artifact's target and returns copies(clones) of the artifact for each match of the expression
+func (c *Converter) ExpandWildcardArtifacts(ctx context.Context, artifact domain.Artifact) ([]domain.Artifact, error) {
+	targets, err := c.expandWildcardTargets(ctx, artifact.Target.String())
 	if err != nil {
 		return nil, err
 	}
-
-	children := []spec.Command{}
-	for _, match := range matches {
-		childTargetName := fmt.Sprintf("./%s+%s", match, parsedTarget.GetName())
-
-		childTarget, err := domain.ParseTarget(childTargetName)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse target %q", childTargetName)
-		}
-
-		data, _, _, err := c.ResolveReference(ctx, childTarget)
-		if err != nil {
-			notExist := buildcontext.ErrEarthfileNotExist{}
-			if errors.As(err, &notExist) {
-				continue
-			}
-			return nil, errors.Wrapf(err, "unable to resolve target %q", childTargetName)
-		}
-
-		var found bool
-		for _, target := range data.Earthfile.Targets {
-			if target.Name == childTarget.GetName() {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			continue
-		}
-
-		cloned := cmd.Clone()
-		cloned.Args[len(cloned.Args)-1] = childTargetName
-		children = append(children, cloned)
-	}
-
-	if len(children) == 0 {
-		return nil, errors.Errorf("no matching targets found for pattern %q", parsedTarget.GetLocalPath())
-	}
-
-	return children, nil
+	return clonesWithExpandedTargets(targets, artifact, func(artifact *domain.Artifact, expandedTarget string) error {
+		artifact.Target, err = domain.ParseTarget(expandedTarget)
+		return err
+	})
 }
 
 // ResolveReference resolves a reference's build context given the current state: relativity to the Earthfile, imports etc.
@@ -2904,6 +2874,74 @@ func (c *Converter) newCmdID() int {
 	cmdID := c.nextCmdID
 	c.nextCmdID++
 	return cmdID
+}
+
+func (c *Converter) expandWildcardTargets(ctx context.Context, fullTargetName string) ([]string, error) {
+	parsedTarget, err := domain.ParseTarget(fullTargetName)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.Contains(fullTargetName, "**") {
+		return nil, errors.New("globstar (**) pattern not yet supported")
+	}
+
+	matches, err := c.opt.Resolver.ExpandWildcard(ctx, c.opt.GwClient, c.platr, c.target, parsedTarget)
+	if err != nil {
+		return nil, err
+	}
+
+	targets := make([]string, 0, len(matches))
+	for _, match := range matches {
+		childTargetName := fmt.Sprintf("./%s+%s", match, parsedTarget.GetName())
+
+		childTarget, err := domain.ParseTarget(childTargetName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to parse target %q", childTargetName)
+		}
+
+		data, _, _, err := c.ResolveReference(ctx, childTarget)
+		if err != nil {
+			notExist := buildcontext.ErrEarthfileNotExist{}
+			if errors.As(err, &notExist) {
+				continue
+			}
+			return nil, errors.Wrapf(err, "unable to resolve target %q", childTargetName)
+		}
+
+		var found bool
+		for _, target := range data.Earthfile.Targets {
+			if target.Name == childTarget.GetName() {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			continue
+		}
+
+		targets = append(targets, childTargetName)
+	}
+
+	if len(targets) == 0 {
+		return nil, errors.Errorf("no matching targets found for pattern %q", parsedTarget.GetLocalPath())
+	}
+
+	return targets, nil
+}
+
+func clonesWithExpandedTargets[T cloneable[T]](expandedTargets []string, c T, setTarget func(t *T, expandedTarget string) error) ([]T, error) {
+	clones := make([]T, 0, len(expandedTargets))
+	for _, expandedTarget := range expandedTargets {
+		cloned := c.Clone()
+		err := setTarget(&cloned, expandedTarget)
+		if err != nil {
+			return nil, err
+		}
+		clones = append(clones, cloned)
+	}
+	return clones, nil
 }
 
 func joinWrap(a []string, before string, sep string, after string) string {

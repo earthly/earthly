@@ -1,0 +1,19 @@
+name: Documentation
+description: Report missing, unclear, or incorrect documentation
+labels: ["type:documentation"]
+assignees: []
+body:
+  - type: input
+    id: existing-documentation
+    attributes:
+      label: Does existing documentation exist?
+      description: Please link to the existing documentation if it exists.
+    validations:
+      required: false
+  - type: textarea
+    id: request
+    attributes:
+      label: Request
+      description: Please describe what's missing, unclear, or incorrect in the documentation.
+    validations:
+      required: true

@@ -1,0 +1,15 @@
+VERSION 0.8
+
+FROM alpine
+
+test:
+  RUN echo "hello world 1"
+  ARG FILE_NAME_PREFIX="helloworld"
+  LET file_name="${FILE_NAME_PREFIX}1"
+  RUN echo "hello world 1" > $file_name
+  SAVE ARTIFACT $file_name
+
+testdir:
+    WORKDIR /somedir1
+    RUN echo "hello world in dir" > somefile1
+    SAVE ARTIFACT /somedir1
