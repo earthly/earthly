@@ -32,7 +32,8 @@ config
 debug 
 doc 
 docker-build 
-docker2earthly 
+docker2earthly
+github
 init 
 ls 
 org 
