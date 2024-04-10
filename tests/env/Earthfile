@@ -4,8 +4,6 @@ FROM alpine:3.12
 
 WORKDIR /test
 
-PROJECT earthly-technologies/core
-
 test-multiple-on-single-env:
     ENV GOLANG=1.22.2 \
         GO_VERSION=1.22.2 \
