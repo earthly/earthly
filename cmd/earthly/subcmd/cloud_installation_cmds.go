@@ -2,9 +2,12 @@ package subcmd
 
 import (
 	"fmt"
+	"os"
+	"text/tabwriter"
 
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/cmd/earthly/helper"
+	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -182,10 +185,7 @@ func (c *CloudInstallation) list(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "could not select cloud")
 	}
 
-	for _, i := range installs {
-		fmt.Printf("%+v\n", i) // TODO pretty print
-	}
-
+	c.printTable(installs)
 	return nil
 }
 
@@ -221,4 +221,21 @@ func (c *CloudInstallation) remove(cliCtx *cli.Context) error {
 
 	c.cli.Console().Printf("...Done\n")
 	return nil
+}
+
+func (c *CloudInstallation) printTable(installations []cloud.Installation) {
+	t := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
+	headerRow := []string{" ", "NAME", "SATELLITES", "STATUS"} // The leading space is for the selection marker, leave it alone
+	printRow(t, []color.Attribute{color.Reset}, headerRow)
+	for _, i := range installations {
+		selected := ""
+		if i.IsDefault {
+			selected = "*"
+		}
+		row := []string{selected, i.Name, string(i.NumSatellites), i.Status}
+		printRow(t, []color.Attribute{color.Reset}, row)
+		if err := t.Flush(); err != nil {
+			fmt.Printf("failed to print cloud installations: %s", err.Error())
+		}
+	}
 }
