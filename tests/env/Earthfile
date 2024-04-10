@@ -13,3 +13,4 @@ test-multiple-on-single-env:
 
     RUN env
     RUN echo GOLANG=$GOLANG
+    RUN echo GOOS=$GOOS
