@@ -147,7 +147,6 @@ ga-no-qemu-group5:
     BUILD +test-aws-flag-envs
     BUILD +test-aws-flag-configs
     BUILD +test-aws-flag-none
-    BUILD +no-let-set-block-parallel
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
