@@ -863,6 +863,9 @@ multi-stack-failure-test:
 env-test:
     DO +RUN_EARTHLY --earthfile=env.earth --extra_args="--no-output" --target=+test
 
+env-test-multiple-on-single-env:
+    DO +RUN_EARTHLY --earthfile=env.earth --target=+test-multiple-on-single-env
+
 env-home-test:
     DO +RUN_EARTHLY --earthfile=env-home.earth --extra_args="--secret sshkey=not-actually-a-ssh-key --no-output" --target=+test
 
