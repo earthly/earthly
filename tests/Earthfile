@@ -864,7 +864,17 @@ env-test:
     DO +RUN_EARTHLY --earthfile=env.earth --extra_args="--no-output" --target=+test
 
 env-test-multiple-on-single-env:
-    DO +RUN_EARTHLY --earthfile=env.earth --target=+test-multiple-on-single-env
+    #DO +RUN_EARTHLY --earthfile=env.earth --target=+test-multiple-on-single-env
+    FROM alpine:3.18
+    ENV GOLANG=1.22.2 \
+         GO_VERSION=1.22.2 \
+        GOOS=linux \
+        GOARCH=amd64 \
+         GO_DOWNLOAD_SHA256=5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17
+
+     RUN env
+     RUN echo GOLANG=$GOLANG
+
 
 env-home-test:
     DO +RUN_EARTHLY --earthfile=env-home.earth --extra_args="--secret sshkey=not-actually-a-ssh-key --no-output" --target=+test
