@@ -1,4 +1,4 @@
-VERSION --pass-args --use-function-keyword 0.7
+VERSION 0.8
 
 FROM --pass-args ..+base
 
@@ -34,6 +34,10 @@ test-all:
     BUILD +test-flag-conflict
     BUILD +test-init-failure
     BUILD +test-arg-change
+    BUILD +test-expand-let
+    BUILD +test-copy-target-let
+    BUILD +test-expand-set
+    BUILD +test-copy-target-set
 
 test-files:
     RUN echo hello > my-file
@@ -165,6 +169,42 @@ test-arg-matrix:
 
     DO --pass-args +RUN_EARTHLY_ARGS --target=+arg-matrix --output_contains="Hello Sam. From Todd"
     DO --pass-args +RUN_EARTHLY_ARGS --target=+arg-matrix --output_contains="Target .* has already been run. Skipping."
+
+test-expand-let:
+    COPY glob/hello.txt .
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-let.earth --target=+basic --output_contains="COPY hello.txt"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-let.earth --target=+basic --output_contains="Target .* has already been run. Skipping."
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-let.earth --target=+dynamic-build --output_contains="dynamic target ok"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-let.earth --target=+dynamic-build --output_contains="Target .* has already been run. Skipping."
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-let.earth --target=+dynamic-arg --output_contains="hello bar"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-let.earth --target=+dynamic-arg --output_contains="Target .* has already been run. Skipping."
+
+test-copy-target-let:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-let.earth --target=+copy-target-dynamic --output_contains="+copy-target-dynamic | goodbye"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-let.earth --target=+copy-target-dynamic --output_contains="Target .* has already been run. Skipping."
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-let.earth --target=+copy-target-dynamic-2 --output_contains="+copy-target-dynamic-2 | foobar"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-let.earth --target=+copy-target-dynamic-2 --output_contains="Target .* has already been run. Skipping."
+
+test-expand-set:
+    COPY glob/hello.txt .
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-set.earth --target=+basic --output_contains="COPY hello.txt"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-set.earth --target=+basic --output_contains="Target .* has already been run. Skipping."
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-set.earth --target=+dynamic-build --output_contains="dynamic target ok"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-set.earth --target=+dynamic-build --output_contains="Target .* has already been run. Skipping."
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-set.earth --target=+dynamic-arg --output_contains="hello bar"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-set.earth --target=+dynamic-arg --output_contains="Target .* has already been run. Skipping."
+
+test-copy-target-set:
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-set.earth --target=+copy-target-dynamic --output_contains="+copy-target-dynamic | goodbye"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-set.earth --target=+copy-target-dynamic --output_contains="Target .* has already been run. Skipping."
+
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-set.earth --target=+copy-target-dynamic-2 --output_contains="+copy-target-dynamic-2 | foobar"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=expand-set.earth --target=+copy-target-dynamic-2 --output_contains="Target .* has already been run. Skipping."
 
 test-try-catch:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=try-catch.earth --target=+basic --output_contains="Artifact +basic/hello.txt output as hello.txt"
