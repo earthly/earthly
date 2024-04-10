@@ -463,10 +463,11 @@ func (l *loader) handleLet(ctx context.Context, cmd spec.Command) error {
 	argsCpy := flagutil.GetArgsCopy(cmd)
 	args, err := flagutil.ParseArgsCleaned("LET", &opts, argsCpy)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse LET args")
+		return wrapError(err, cmd.SourceLocation, "failed to parse LET args")
 	}
+	// performing minimal validation to avoid index out of bound (full validation occurs in the interpreter)
 	if len(args) != 3 {
-		return errors.New("failed to parse LET args")
+		return newError(cmd.SourceLocation, "failed to parse LET args")
 	}
 	key := args[0]
 	baseVal := args[2]
@@ -479,10 +480,7 @@ func (l *loader) handleLet(ctx context.Context, cmd spec.Command) error {
 
 	_, _, err = l.varCollection.DeclareVar(key, variables.WithValue(val))
 	if err != nil {
-
-		if err != nil {
-			return wrapError(err, cmd.SourceLocation, "failed to declare variable")
-		}
+		return wrapError(err, cmd.SourceLocation, "failed to declare variable")
 	}
 	return nil
 }
@@ -490,19 +488,20 @@ func (l *loader) handleLet(ctx context.Context, cmd spec.Command) error {
 func (l *loader) handleSet(ctx context.Context, cmd spec.Command) error {
 	var opts commandflag.SetOpts
 	argsCpy := flagutil.GetArgsCopy(cmd)
-	args, err := flagutil.ParseArgsCleaned("LET", &opts, argsCpy)
+	args, err := flagutil.ParseArgsCleaned("SET", &opts, argsCpy)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse LET args")
+		return wrapError(err, cmd.SourceLocation, "failed to parse SET args")
 	}
+	// performing minimal validation to avoid index out of bound (full validation occurs in the interpreter)
 	if len(args) != 3 {
-		return errors.New("failed to parse LET args")
+		return newError(cmd.SourceLocation, "failed to parse SET args")
 	}
 
 	key := args[0]
 	baseVal := args[2]
 	val, err := l.expandArgs(ctx, baseVal)
 	if err != nil {
-		return wrapError(err, cmd.SourceLocation, "failed to expand LET value %q", baseVal)
+		return wrapError(err, cmd.SourceLocation, "failed to expand SET value %q", baseVal)
 	}
 
 	l.hasher.HashString(fmt.Sprintf("SET %s=%s", key, val))
