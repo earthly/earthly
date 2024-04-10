@@ -32,7 +32,6 @@ import (
 	solverpb "github.com/moby/buildkit/solver/pb"
 	"github.com/moby/buildkit/util/apicaps"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -1387,13 +1386,12 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) err
 	envMap, err := godotenv.Unmarshal(fmt.Sprintf("%s=%s", envKey, envValue))
 
 	if err != nil {
-		logrus.Errorf("Error adding env: due to %v", err)
-	} else {
-		for envKey, envValue := range envMap {
-			c.varCollection.DeclareEnv(envKey, envValue)
-			c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
-			c.mts.Final.MainImage.Config.Env = variables.AddEnv(c.mts.Final.MainImage.Config.Env, envKey, envValue)
-		}
+		return err
+	}
+	for envKey, envValue := range envMap {
+		c.varCollection.DeclareEnv(envKey, envValue)
+		c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
+		c.mts.Final.MainImage.Config.Env = variables.AddEnv(c.mts.Final.MainImage.Config.Env, envKey, envValue)
 	}
 
 	return nil
