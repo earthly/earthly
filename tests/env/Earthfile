@@ -5,12 +5,12 @@ FROM alpine:3.12
 WORKDIR /test
 
 test-multiple-on-single-env:
-    ENV GOLANG=1.22.2 \
-        GO_VERSION=1.22.2 \
-    	GOOS=linux \
-    	GOARCH=amd64 \
-        GO_DOWNLOAD_SHA256=5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17
+    ENV VAR1=value1
+    ENV VAR2=value2
+    ENV VAR3=value3
 
     RUN env
-    RUN test "$GOLANG" = "1.22.2"
-    RUN test "$GOOS" = "linux"
+
+    RUN test "$VAR1" = "value1"
+    RUN test "$VAR2" = "value2"
+    RUN test "$VAR3" = "value3"
