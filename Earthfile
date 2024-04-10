@@ -215,10 +215,17 @@ mocks:
         SAVE ARTIFACT $mockfile AS LOCAL $mockfile
     END
 
+unit-test-parser:
+    FROM +deps
+    COPY scripts/unit-test-parser/main.go .
+    RUN go build -o testparser main.go
+    SAVE ARTIFACT testparser
+
 # unit-test runs unit tests (and some integration tests).
 unit-test:
     FROM +code
     RUN apk add --no-cache --update podman fuse-overlayfs
+    COPY +unit-test-parser/testparser .
     COPY not-a-unit-test.sh .
 
     ARG testname # when specified, only run specific unit-test, otherwise run all.
