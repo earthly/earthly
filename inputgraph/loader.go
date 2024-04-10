@@ -374,6 +374,10 @@ func (l *loader) handleCommand(ctx context.Context, cmd spec.Command) error {
 		return l.handleCopy(ctx, cmd)
 	case command.Arg:
 		return l.handleArg(ctx, cmd, false)
+	case command.Let:
+		return l.handleLet(ctx, cmd)
+	case command.Set:
+		return l.handleSet(ctx, cmd)
 	case command.FromDockerfile:
 		return l.handleFromDockerfile(ctx, cmd)
 	case command.Import:
@@ -451,6 +455,64 @@ func (l *loader) handleArg(ctx context.Context, cmd spec.Command, isBase bool) e
 		return wrapError(err, cmd.SourceLocation, "failed to declare variable")
 	}
 
+	return nil
+}
+
+func (l *loader) handleLet(ctx context.Context, cmd spec.Command) error {
+	var opts commandflag.LetOpts
+	argsCpy := flagutil.GetArgsCopy(cmd)
+	args, err := flagutil.ParseArgsCleaned("LET", &opts, argsCpy)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse LET args")
+	}
+	if len(args) != 3 {
+		return errors.New("failed to parse LET args")
+	}
+	key := args[0]
+	baseVal := args[2]
+	val, err := l.expandArgs(ctx, baseVal)
+	if err != nil {
+		return wrapError(err, cmd.SourceLocation, "failed to expand LET value %q", baseVal)
+	}
+
+	l.hasher.HashString(fmt.Sprintf("LET %s=%s", key, val))
+
+	_, _, err = l.varCollection.DeclareVar(key, variables.WithValue(val))
+	if err != nil {
+
+		if err != nil {
+			return wrapError(err, cmd.SourceLocation, "failed to declare variable")
+		}
+	}
+	return nil
+}
+
+func (l *loader) handleSet(ctx context.Context, cmd spec.Command) error {
+	var opts commandflag.SetOpts
+	argsCpy := flagutil.GetArgsCopy(cmd)
+	args, err := flagutil.ParseArgsCleaned("LET", &opts, argsCpy)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse LET args")
+	}
+	if len(args) != 3 {
+		return errors.New("failed to parse LET args")
+	}
+
+	key := args[0]
+	baseVal := args[2]
+	val, err := l.expandArgs(ctx, baseVal)
+	if err != nil {
+		return wrapError(err, cmd.SourceLocation, "failed to expand LET value %q", baseVal)
+	}
+
+	l.hasher.HashString(fmt.Sprintf("SET %s=%s", key, val))
+
+	err = l.varCollection.UpdateVar(key, val, nil)
+	if err != nil {
+		if err != nil {
+			return wrapError(err, cmd.SourceLocation, "failed to declare variable")
+		}
+	}
 	return nil
 }
 
