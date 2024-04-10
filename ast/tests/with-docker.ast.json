@@ -926,7 +926,7 @@
             "args": [
               "+cgroup-v2-test",
               "--DIND_IMG=$DIND_IMAGE",
-              "--DIND_IMG=earthly/dind:ubuntu-23.04-docker-24.0.9-1"
+              "--DIND_IMG=earthly/dind:ubuntu-23.04-docker-25.0.1-1"
             ],
             "name": "BUILD"
           }
