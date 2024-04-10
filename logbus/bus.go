@@ -125,7 +125,7 @@ func (b *Bus) Run() *Run {
 	return b.run
 }
 
-// WriteLog write a raw delta log to the bus.
+// WriteDeltaManifest write a raw delta log to the bus.
 func (b *Bus) WriteDeltaManifest(dm *logstream.DeltaManifest) {
 	delta := &logstream.Delta{
 		DeltaTypeOneof: &logstream.Delta_DeltaManifest{
