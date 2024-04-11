@@ -52,7 +52,7 @@ The provided token must have enough permissions to register webhook and to creat
 						},
 						&cli.StringFlag{
 							Name:        "token",
-							Usage:       "GitHub token.",
+							Usage:       "The GitHub token used for the integration",
 							Destination: &a.Token,
 						},
 					},
