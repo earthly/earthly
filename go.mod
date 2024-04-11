@@ -140,11 +140,3 @@ require (
 	gotest.tools/v3 v3.4.0 // indirect
 	howett.net/plist v0.0.0-20181124034731-591f970eefbb // indirect
 )
-
-replace (
-	github.com/jdxcode/netrc => github.com/mikejholly/netrc v0.0.0-20221121193719-a154cb29ec2a
-	github.com/jessevdk/go-flags => github.com/alexcb/go-flags v0.0.0-20210722203016-f11d7ecb5ee5
-
-	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.0-20240319224128-422af4977207
-	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20231030221755-644b08355b65
-)
