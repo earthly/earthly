@@ -24,6 +24,7 @@ web " > expected
 
 test-hidden-root-commands:
     ENV EARTHLY_SHOW_HIDDEN=1
+    RUN echo "no-cache"
     RUN echo "account 
 billing 
 bootstrap 
@@ -45,7 +46,6 @@ satellite
 secret 
 web " > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly "
-
 
 test-build-flags:
     RUN COMP_LINE="earthly --" COMP_POINT=10 earthly | grep -- "--allow-privileged"
