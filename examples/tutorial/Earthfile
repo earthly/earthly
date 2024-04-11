@@ -82,7 +82,7 @@ test-part:
         RUN curl "$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' js-example)":8080/main.js | grep "hello world"
         RUN docker stop js-example
     ELSE IF [ "${part}" != "part6" ]
-        RUN docker run --rm ${lang}-example:latest 2>&1 | grep "hello world"
+        RUN docker run --rm ${lang}-example:latest 2>&1 | tee /dev/stderr | grep "hello world"
     END
     WORKDIR ..
     RUN rm -rf ./test-${part}
