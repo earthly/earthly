@@ -47,7 +47,7 @@ The provided token must have enough permissions to register webhook and to creat
 						},
 						&cli.StringFlag{
 							Name:        "repo",
-							Usage:       "GitHub repo.",
+							Usage:       "The name of the GitHub repository to set an integration with",
 							Destination: &a.GHRepo,
 						},
 						&cli.StringFlag{
