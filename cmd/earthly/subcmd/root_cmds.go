@@ -37,6 +37,7 @@ func (a *Root) Cmds() []*cli.Command {
 		NewSecret(a.cli).Cmds(),
 		NewWeb(a.cli).Cmds(),
 		NewBilling(a.cli).Cmds(),
+		NewGithub(a.cli).Cmds(),
 	})
 
 	return cmds

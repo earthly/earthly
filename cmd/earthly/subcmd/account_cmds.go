@@ -358,6 +358,7 @@ func promptHiddenText(hiddenTextPrompt string) (string, error) {
 	fmt.Println("")
 	return string(password), nil
 }
+
 func promptPassword() (string, error) {
 	return promptHiddenText("password")
 }
