@@ -72,6 +72,6 @@ func (a *Github) actionAdd(cliCtx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("error found running github add: %w", err)
 	}
-	fmt.Println("GitHub integration successfully created")
+	a.cli.Console().Printf("GitHub integration successfully created")
 	return nil
 }
