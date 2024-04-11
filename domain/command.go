@@ -16,7 +16,7 @@ var commandNameRegex = regexp.MustCompile(commandNamePattern)
 // Command is an earthly command identifier.
 type Command struct {
 	// Remote representation.
-	GitURL string `json:"gitUrl"` // e.g. "github.com/earthly/earthly/examples/go"
+	GitURL string `json:"gitUrl"` // e.g. "github.com/earthly/earthly/examples/tutorial/go/part3"
 	Tag    string `json:"tag"`    // e.g. "main"
 	// Local representation. E.g. in "./some/path+something" this is "./some/path".
 	LocalPath string `json:"localPath"`

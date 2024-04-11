@@ -19,8 +19,6 @@ require (
 	github.com/docker/go-units v0.5.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/earthly/cloud-api v1.0.1-0.20240326154259-86278fcedef8
-	github.com/earthly/earthly/ast v0.0.0-00010101000000-000000000000
-	github.com/earthly/earthly/util/deltautil v0.0.0-20231221211955-0fd4ae2cc257
 	github.com/elastic/go-sysinfo v1.9.0
 	github.com/fatih/color v1.16.0
 	github.com/gofrs/flock v0.8.1

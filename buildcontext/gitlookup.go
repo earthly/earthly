@@ -611,7 +611,7 @@ func parseGitProtocol(remote string) (string, int) {
 //
 //	"github.com/earthly/earthly"             ---> ("git@github.com/earthly/earthly.git", "")
 //	"github.com/earthly/earthly/examples"    ---> ("git@github.com/earthly/earthly.git", "examples")
-//	"github.com/earthly/earthly/examples/go" ---> ("git@github.com/earthly/earthly.git", "examples/go")
+//	"github.com/earthly/earthly/examples/tutorial/go/part3" ---> ("git@github.com/earthly/earthly.git", "examples/go")
 //
 // Additionally a ssh keyscan might be returned (or an empty string indicating none was configured)
 // Also, a custom "git ssh command" may be returned. This is part of this function since the user may

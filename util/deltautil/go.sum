@@ -1,5 +1,4 @@
-github.com/earthly/cloud-api v1.0.1-0.20240216175649-9c937bc41efb h1:lYdDcDqqEQ7QNNU3BPr8Pfs8M8caOfa8ctZvByNTc1Y=
-github.com/earthly/cloud-api v1.0.1-0.20240216175649-9c937bc41efb/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
+github.com/earthly/cloud-api v1.0.1-0.20240326154259-86278fcedef8 h1:N8MVG7rTzYQ7SYCCTuRzH5sXJgEK+zcvuBWSnLzK9Rc=
 github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=
 github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=

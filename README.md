@@ -262,7 +262,7 @@ Earthly can be used to reference and build targets from other directories or eve
 
 ```bash
 # Try it yourself! No need to clone.
-earthly github.com/earthly/earthly/examples/go:main+docker
+earthly github.com/earthly/earthly/examples/tutorial/go/part3:main+docker
 # Run the resulting image.
 docker run --rm earthly/examples:go
 ```

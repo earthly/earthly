@@ -1,4 +1,4 @@
-module github.com/earthly/earthly/examples/go
+module github.com/earthly/earthly/examples/tutorial/go/part5/services/service-one
 
 go 1.21
 

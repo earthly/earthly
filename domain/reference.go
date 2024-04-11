@@ -11,7 +11,7 @@ import (
 
 // Reference is a target or a command reference.
 type Reference interface {
-	// GetGitURL is the git URL part of the reference. E.g. "github.com/earthly/earthly/examples/go"
+	// GetGitURL is the git URL part of the reference. E.g. "github.com/earthly/earthly/examples/tutorial/go/part3"
 	GetGitURL() string
 	// GetTag is the git tag of the reference. E.g. "main"
 	GetTag() string
