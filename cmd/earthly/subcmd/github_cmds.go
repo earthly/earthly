@@ -41,7 +41,7 @@ The provided token must have enough permissions to register webhook and to creat
 					Flags: []cli.Flag{
 						&cli.StringFlag{
 							Name:        "org",
-							Usage:       "GitHub organization.",
+							Usage:       "The name of the GitHub organization to set an integration with",
 							Required:    true,
 							Destination: &a.GHOrg,
 						},
