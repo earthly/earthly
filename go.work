@@ -1,0 +1,17 @@
+go 1.22.0
+
+use (
+	.
+	./ast
+	./examples/go
+	./examples/go-monorepo/libs/hello
+	./examples/go-monorepo/services/one
+	./examples/go-monorepo/services/two
+	./examples/readme/proto
+	./examples/tutorial/go/part3
+	./examples/tutorial/go/part4
+	./examples/tutorial/go/part5/services/service-one
+	./examples/tutorial/go/part6
+	./tests/go-project
+	./util/deltautil
+)
