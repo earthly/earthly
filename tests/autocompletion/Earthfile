@@ -46,6 +46,7 @@ secret
 web " > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly "
 
+
 test-build-flags:
     RUN COMP_LINE="earthly --" COMP_POINT=10 earthly | grep -- "--allow-privileged"
 
