@@ -34,6 +34,7 @@ func (a *Root) Cmds() []*cli.Command {
 		NewAutoSkip(a.cli).Cmds(),
 		NewRegistry(a.cli).Cmds(),
 		NewSatellite(a.cli).Cmds(),
+		NewCloudInstallation(a.cli).Cmds(),
 		NewSecret(a.cli).Cmds(),
 		NewWeb(a.cli).Cmds(),
 		NewBilling(a.cli).Cmds(),

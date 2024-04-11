@@ -26,7 +26,7 @@ func (a *CloudInstallation) Cmds() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:        "cloud",
-			Aliases:     []string{"cloud"},
+			Aliases:     []string{"clouds"},
 			Usage:       "Configure Cloud Installations for BYOC plans",
 			UsageText:   "earthly cloud (install|use|ls|rm)",
 			Description: "Configure Cloud Installations for BYOC plans",
@@ -57,6 +57,7 @@ func (a *CloudInstallation) Cmds() []*cli.Command {
 				},
 				{
 					Name:        "ls",
+					Aliases:     []string{"list"},
 					Usage:       "List available Cloud Installation",
 					Description: "List available Cloud Installation.",
 					UsageText:   "earthly cloud ls",
@@ -64,6 +65,7 @@ func (a *CloudInstallation) Cmds() []*cli.Command {
 				},
 				{
 					Name:        "rm",
+					Aliases:     []string{"remove"},
 					Usage:       "Remove a previously installed Cloud Installation",
 					Description: "Remove a previously installed Cloud Installation.",
 					UsageText:   "earthly cloud rm",
@@ -232,7 +234,17 @@ func (c *CloudInstallation) printTable(installations []cloud.Installation) {
 		if i.IsDefault {
 			selected = "*"
 		}
-		row := []string{selected, i.Name, string(i.NumSatellites), i.Status}
+		var description string
+		switch i.Status {
+		case cloud.CloudStatusActive:
+			description = " - Ready to use"
+		case cloud.CloudStatusConnected:
+			description = " - Reachable, but not yet validated"
+		case cloud.CloudStatusProblem:
+			description = " - Please contact Earthly for support"
+		}
+		status := fmt.Sprintf("%s%s", i.Status, description)
+		row := []string{selected, i.Name, fmt.Sprintf("%d", i.NumSatellites), status}
 		printRow(t, []color.Attribute{color.Reset}, row)
 		if err := t.Flush(); err != nil {
 			fmt.Printf("failed to print cloud installations: %s", err.Error())
