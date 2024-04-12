@@ -43,7 +43,11 @@ else
     exit 1
 fi
 
+echo "Running under pid=$$"
 echo "The detected architecture of the runner is $(uname -m)"
+for k in BUILDKITE_AGENT_ID BUILDKITE_BUILD_ID BUILDKITE_CLUSTER_ID BUILDKITE_GROUP_ID BUILDKITE_JOB_ID BUILDKITE_REBUILT_FROM_BUILD_ID BUILDKITE_REBUILT_FROM_BUILD_NUMBER BUILDKITE_TRIGGERED_FROM_BUILD_ID; do
+    echo "$k=${!k}"
+done
 
 if ! git symbolic-ref -q HEAD >/dev/null; then
     echo "Add branch info back to git (Earthly uses it for tagging)"
