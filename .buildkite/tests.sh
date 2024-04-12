@@ -126,8 +126,10 @@ for target in \
         +test-qemu \
         ; do
     for attempt in $(seq 1 "$max_attempts"); do
-        # kill buildkitd to release memory (the macstadium machines have limited memory)
-        docker rm -f earthly-dev-buildkitd 2> /dev/null || true
+        # kill earthly-* containers to release memory (the macstadium machines have limited memory)
+        set +e
+        docker ps -a | grep earthly- | awk '{print $1}' | xargs -n 1 docker rm -f
+        set -e
 
         echo "=== running $target (attempt $attempt/$max_attempts ==="
         set +e
