@@ -7,7 +7,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Added
 
 - New experimental wildcard-based copy, e.g. `COPY ./services/*+artifact/* .` which would invoke `COPY` for `./services/foo+artifact`, and `./services/bar+artifact` (assuming two services foo and bar, both having a `artifact` target in their respective Earthfile). Enable with the `VERSION --wildcard-copy` feature flag. [#3966](https://github.com/earthly/earthly/issues/3966).
-- New built-in `ARG`s - `EARTHLY_GIT_AUTHOR_EMAIL` and `EARTHLY_GIT_AUTHOR_NAME` to will contain the author email and author name respectively. Enable with the `VERSION --git-author-email-name-args` feature flag.
+- New built-in `ARG`s - `EARTHLY_GIT_AUTHOR_EMAIL` and `EARTHLY_GIT_AUTHOR_NAME` will contain the author email and author name respectively. Enable with the `VERSION --git-author-email-name-args` feature flag.
 
 ### Fixed
 
