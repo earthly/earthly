@@ -51,6 +51,8 @@ func init() {
 		EarthlyGitCommitTimestamp:       {},
 		EarthlyGitCommitAuthorTimestamp: {},
 		EarthlyGitAuthor:                {},
+		EarthlyGitAuthorEmail:           {},
+		EarthlyGitAuthorName:            {},
 		EarthlyGitCoAuthors:             {},
 		EarthlyGitHash:                  {},
 		EarthlyGitOriginURL:             {},
