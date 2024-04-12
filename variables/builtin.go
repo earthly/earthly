@@ -87,9 +87,17 @@ func BuiltinArgs(target domain.Target, platr *platutil.Resolver, gitMeta *gituti
 			ret.Add(arg.EarthlySourceDateEpoch, gitMeta.CommitterTimestamp)
 		}
 		if ftrs.EarthlyGitAuthorArgs {
-			ret.Add(arg.EarthlyGitAuthor, gitMeta.Author)
+			ret.Add(arg.EarthlyGitAuthor, gitMeta.AuthorEmail)
 			ret.Add(arg.EarthlyGitCoAuthors, strings.Join(gitMeta.CoAuthors, " "))
 		}
+		if ftrs.GitAuthorEmailNameArgs {
+			if gitMeta.AuthorName != "" && gitMeta.AuthorEmail != "" {
+				ret.Add(arg.EarthlyGitAuthor, fmt.Sprintf("%s <%s>", gitMeta.AuthorName, gitMeta.AuthorEmail))
+			}
+			ret.Add(arg.EarthlyGitAuthorEmail, gitMeta.AuthorEmail)
+			ret.Add(arg.EarthlyGitAuthorName, gitMeta.AuthorName)
+		}
+
 		if ftrs.GitRefs {
 			ret.Add(arg.EarthlyGitRefs, strings.Join(gitMeta.Refs, " "))
 		}

@@ -2,6 +2,7 @@ package gitutil
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path"
@@ -45,7 +46,8 @@ type GitMetadata struct {
 	Tags                 []string
 	CommitterTimestamp   string
 	AuthorTimestamp      string
-	Author               string
+	AuthorEmail          string
+	AuthorName           string
 	CoAuthors            []string
 	Refs                 []string
 }
@@ -107,7 +109,12 @@ func Metadata(ctx context.Context, dir, gitBranchOverride string) (*GitMetadata,
 		retErr = err
 		// Keep going.
 	}
-	author, err := detectGitAuthor(ctx, dir)
+	authorEmail, err := detectGitAuthor(ctx, dir, "%ae")
+	if err != nil {
+		retErr = err
+		// Keep going.
+	}
+	authorName, err := detectGitAuthor(ctx, dir, "%an")
 	if err != nil {
 		retErr = err
 		// Keep going.
@@ -143,7 +150,8 @@ func Metadata(ctx context.Context, dir, gitBranchOverride string) (*GitMetadata,
 		Tags:                 tags,
 		CommitterTimestamp:   committerTimestamp,
 		AuthorTimestamp:      authorTimestamp,
-		Author:               author,
+		AuthorEmail:          authorEmail,
+		AuthorName:           authorName,
 		CoAuthors:            coAuthors,
 		Refs:                 refs,
 	}, retErr
@@ -163,7 +171,8 @@ func (gm *GitMetadata) Clone() *GitMetadata {
 		Tags:                 gm.Tags,
 		CommitterTimestamp:   gm.CommitterTimestamp,
 		AuthorTimestamp:      gm.AuthorTimestamp,
-		Author:               gm.Author,
+		AuthorEmail:          gm.AuthorEmail,
+		AuthorName:           gm.AuthorName,
 		CoAuthors:            gm.CoAuthors,
 		Refs:                 gm.Refs,
 	}
@@ -345,8 +354,8 @@ func detectGitTimestamp(ctx context.Context, dir string, tsType gitTimestampType
 	return strings.SplitN(outStr, "\n", 2)[0], nil
 }
 
-func detectGitAuthor(ctx context.Context, dir string) (string, error) {
-	cmd := exec.CommandContext(ctx, "git", "log", "-1", "--format=%ae")
+func detectGitAuthor(ctx context.Context, dir string, format string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", "log", "-1", fmt.Sprintf("--format=%s", format))
 	cmd.Dir = dir
 	cmd.Stderr = nil // force capture of stderr on errors
 	out, err := cmd.Output()

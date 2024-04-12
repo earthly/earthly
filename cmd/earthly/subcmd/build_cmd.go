@@ -253,14 +253,14 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	a.cli.SetAnaMetaTarget(target)
 
 	var (
-		gitCommitAuthor string
-		gitConfigEmail  string
+		gitCommitAuthorEmail string
+		gitConfigEmail       string
 	)
 	if !target.IsRemote() {
 		meta, _ := gitutil.Metadata(cliCtx.Context, target.GetLocalPath(), a.cli.Flags().GitBranchOverride)
 		if meta != nil {
 			// Git commit detection here is best effort
-			gitCommitAuthor = meta.Author
+			gitCommitAuthorEmail = meta.AuthorEmail
 		}
 		if email, err := gitutil.ConfigEmail(cliCtx.Context); err == nil {
 			gitConfigEmail = email
@@ -354,7 +354,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return errors.Wrapf(err, "could not init frontend")
 	}
 
-	cleanupTLS, err := a.cli.ConfigureSatellite(cliCtx, cloudClient, gitCommitAuthor, gitConfigEmail)
+	cleanupTLS, err := a.cli.ConfigureSatellite(cliCtx, cloudClient, gitCommitAuthorEmail, gitConfigEmail)
 	if err != nil {
 		return errors.Wrapf(err, "could not configure satellite")
 	}
@@ -647,7 +647,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		}
 		setup := a.cli.LogbusSetup()
 		setup.SetOrgAndProject(orgName, projectName)
-		setup.SetGitAuthor(gitCommitAuthor, gitConfigEmail)
+		setup.SetGitAuthor(gitCommitAuthorEmail, gitConfigEmail)
 		_, isCI := analytics.DetectCI(a.cli.Flags().EarthlyCIRunner)
 		setup.SetCI(isCI)
 		if doLogstreamUpload {
