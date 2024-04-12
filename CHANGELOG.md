@@ -7,11 +7,13 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Added
 
 - New experimental wildcard-based copy, e.g. `COPY ./services/*+artifact/* .` which would invoke `COPY` for `./services/foo+artifact`, and `./services/bar+artifact` (assuming two services foo and bar, both having a `artifact` target in their respective Earthfile). Enable with the `VERSION --wildcard-copy` feature flag. [#3966](https://github.com/earthly/earthly/issues/3966).
+- New built-in `ARG`s - `EARTHLY_GIT_AUTHOR_EMAIL` and `EARTHLY_GIT_AUTHOR_NAME` to will contain the author email and author name respectively. Enable with the `VERSION --git-author-email-name-args` feature flag.
 
 ### Fixed
 
 - Make `LET`/`SET` commands block parallel commands such as `BUILD` until the former are processed, similar to the behavior of `ARG`. [#3997](https://github.com/earthly/earthly/issues/3997)
 - `LET`/`SET` commands were not properly handled with the use of Auto-skip. [#3996](https://github.com/earthly/earthly/issues/3996)
+- `EARTHLY_GIT_AUTHOR` built-in `ARG` contains only the git author email address without the name. Enable with the `VERSION --git-author-email-name-args` feature flag (This fix is behind a feature flag to avoid a breaking change). [#3822](https://github.com/earthly/earthly/issues/3822)
 
 ## v0.8.7 - 2024-04-03
 
