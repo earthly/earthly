@@ -13,6 +13,9 @@ function cleanup() {
     if [ "$status" = "0" ]; then
       echo "buildkite-test passed"
     else
+      echo "=== buildkit logs ==="
+      docker logs earthly-dev-buildkit || true
+      echo "=== end of buildkit logs ==="
       echo "buildkite-test failed with $status"
     fi
 }
