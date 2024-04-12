@@ -471,7 +471,7 @@ func (f *Formatter) commandName(commandID string) string {
 	return "unknown"
 }
 
-func (f *Formatter) targetConsole(targetID string, commandID string) (conslogging.ConsoleLogger, bool) {
+func (f *Formatter) targetConsole(targetID string, commandID string, displayPrefix bool) (conslogging.ConsoleLogger, bool) {
 	var targetName string
 	var writerTargetID string
 	verboseOnly := false
@@ -518,6 +518,5 @@ func (f *Formatter) targetConsole(targetID string, commandID string) (consloggin
 		writerTargetID = "_unknown"
 	}
 	return f.console.
-		WithWriter(f.bus.FormattedWriter(writerTargetID, commandID)).
-		WithPrefixAndSalt(targetName, writerTargetID), verboseOnly
+		WithWriter(f.bus.FormattedWriter(writerTargetID, commandID)), verboseOnly
 }

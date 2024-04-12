@@ -5,10 +5,16 @@ WORKDIR /c-example
 deps:
     RUN apk --update add build-base cmake
 
+gha: 
+    RUN --no-cache echo "::group:: build something group 1"
+    RUN echo " group 1 messages"
+    RUN --no-cache echo "::endgroup::" 
+
 build:
     FROM +deps
     COPY src src
     RUN cmake src
+
     RUN make
     SAVE ARTIFACT c-example AS LOCAL c-example
 
