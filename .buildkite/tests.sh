@@ -3,13 +3,13 @@ set -xeu
 
 function cleanup() {
     status="$?"
-    jobs="$(jobs -p)"
-    if [ -n "$jobs" ]
-    then
-        # shellcheck disable=SC2086 # Intended splitting of
-        kill $jobs
-    fi
+    set +e
+    echo "killing background jobs"
+    jobs
+    jobs -p | xargs -r kill -9
+    set -e
     wait
+    echo "killing background jobs done"
     if [ "$status" = "0" ]; then
       echo "buildkite-test passed"
     else
@@ -43,11 +43,12 @@ else
     exit 1
 fi
 
-echo "Running under pid=$$"
-echo "The detected architecture of the runner is $(uname -m)"
-for k in BUILDKITE_AGENT_ID BUILDKITE_BUILD_ID BUILDKITE_CLUSTER_ID BUILDKITE_GROUP_ID BUILDKITE_JOB_ID BUILDKITE_REBUILT_FROM_BUILD_ID BUILDKITE_REBUILT_FROM_BUILD_NUMBER BUILDKITE_TRIGGERED_FROM_BUILD_ID; do
+set +xu
+echo "Running under pid=$$; arch=$(uname -m)"
+for k in BUILDKITE_AGENT_ID BUILDKITE_BUILD_ID BUILDKITE_JOB_ID; do
     echo "$k=${!k}"
 done
+set -xu
 
 if ! git symbolic-ref -q HEAD >/dev/null; then
     echo "Add branch info back to git (Earthly uses it for tagging)"
@@ -132,7 +133,7 @@ for target in \
     for attempt in $(seq 1 "$max_attempts"); do
         # kill earthly-* containers to release memory (the macstadium machines have limited memory)
         set +e
-        docker ps -a | grep earthly- | awk '{print $1}' | xargs -n 1 docker rm -f
+        docker ps -a | grep earthly- | awk '{print $1}' | xargs -r docker rm -f
         set -e
 
         echo "=== running $target (attempt $attempt/$max_attempts ==="
