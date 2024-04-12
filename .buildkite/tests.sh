@@ -1,22 +1,31 @@
 #!/bin/bash
 set -xeu
 
+received_interrupt=0
+function interrupt() {
+    echo "received interrupt"
+    received_interrupt=1
+}
+trap interrupt INT
+
 function cleanup() {
     status="$?"
-    set +e
-    echo "killing background jobs"
-    jobs
-    jobs -p | xargs -r kill -9
-    set -e
-    wait
-    echo "killing background jobs done"
-    if [ "$status" = "0" ]; then
-      echo "buildkite-test passed"
-    else
-      echo "=== buildkit logs ==="
-      docker logs earthly-dev-buildkitd || true
-      echo "=== end of buildkit logs ==="
-      echo "buildkite-test failed with $status"
+    if [ "$received_interrupt" = "0" ]; then
+        set +e
+        echo "killing background jobs"
+        jobs
+        jobs -p | xargs -r kill -9
+        set -e
+        wait
+        echo "killing background jobs done"
+        if [ "$status" = "0" ]; then
+          echo "buildkite-test passed"
+        else
+          echo "=== buildkit logs ==="
+          docker logs earthly-dev-buildkitd || true
+          echo "=== end of buildkit logs ==="
+          echo "buildkite-test failed with $status"
+        fi
     fi
 }
 trap cleanup EXIT
