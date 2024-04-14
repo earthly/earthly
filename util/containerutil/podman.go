@@ -166,7 +166,7 @@ func (psf *podmanShellFrontend) ImageLoadFromFileCommand(filename string) string
 func (psf *podmanShellFrontend) ImageLoad(ctx context.Context, images ...io.Reader) error {
 	var err error
 	for _, image := range images {
-		// Write the image to a temp file. This is needed to accomodate some Podman versions between 3.0 and 3.4. Because
+		// Write the image to a temp file. This is needed to accommodate some Podman versions between 3.0 and 3.4. Because
 		// buildkit creates weird hybrid docker/OCI images, Podman pulls it in as an OCI image and ends up neglecting the
 		// in-built image tag. We can get around this by "pulling" a tar file and specifying the format at the CLI. This
 		// is more or less what Podman will be doing going forward. For further context, see the linked issues and discussion

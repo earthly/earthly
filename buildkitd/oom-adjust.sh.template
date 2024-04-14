@@ -23,7 +23,7 @@ do
     PID_NAME=$(cat /proc/"$PID"/cmdline || echo "unknown")
 
     case "$PID_NAME" in
-        # This is the POSIX way to do a string-starts-with, and accomodates the one prefix we do not want. Order here is important.
+        # This is the POSIX way to do a string-starts-with, and accommodates the one prefix we do not want. Order here is important.
         "buildkit-runcinit"*) log "$PID was buildkit-runcinit, ignoring"; continue ;;
         "buildkit-runc"*)     log "$PID is runc parent($PID_NAME), proceeding" ;;
         *)                    log "$PID was $PID_NAME, ignoring"; continue ;;
