@@ -181,8 +181,6 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 			}
 		}
 
-		fmt.Printf("Error info: %T - %s\n", err, err)
-
 		grpcErr, grpcErrOK := grpcerrors.AsGRPCStatus(err)
 		hintErr, hintErrOK := getHintErr(err, grpcErr)
 		var paramsErr *params.Error
