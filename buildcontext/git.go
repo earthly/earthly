@@ -242,7 +242,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			gitOpts = append(gitOpts, llb.KnownSSHHosts(strings.Join(keyScans, "\n")))
 		}
 		if gr.lfsInclude != "" {
-			// TODO this should eventually be infered by the contents of a COPY command, which means the call to resolveGitProject will need to be lazy-evaluated
+			// TODO this should eventually be inferred by the contents of a COPY command, which means the call to resolveGitProject will need to be lazy-evaluated
 			// However this makes it really difficult for an Earthfile which first has an ARG EARTHLY_GIT_HASH, then a RUN, then a COPY
 			gitOpts = append(gitOpts, llb.LFSInclude(gr.lfsInclude))
 		}

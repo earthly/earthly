@@ -439,6 +439,6 @@ func IsLocal(addr string) bool {
 	return hostname == "127.0.0.1" || // The only IP v4 Loopback we honor. Because we need to include it in the TLS certificates.
 		hostname == net.IPv6loopback.String() ||
 		hostname == "localhost" || // Convention. Users hostname omitted; this is only really here for convenience.
-		parsed.Scheme == "docker-container" || // Accomodate feature flagging during transition. This will have omitted TLS?
+		parsed.Scheme == "docker-container" || // Accommodate feature flagging during transition. This will have omitted TLS?
 		parsed.Scheme == "podman-container"
 }
