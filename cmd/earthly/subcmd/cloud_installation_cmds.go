@@ -7,7 +7,6 @@ import (
 
 	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/cmd/earthly/helper"
-	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -227,27 +226,24 @@ func (c *CloudInstallation) remove(cliCtx *cli.Context) error {
 
 func (c *CloudInstallation) printTable(installations []cloud.Installation) {
 	t := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
-	headerRow := []string{" ", "NAME", "SATELLITES", "STATUS"} // The leading space is for the selection marker, leave it alone
-	printRow(t, []color.Attribute{color.Reset}, headerRow)
+	fmt.Fprintln(t, " \tNAME\tSATELLITES\tSTATUS\t")
 	for _, i := range installations {
-		selected := ""
+		selected := " "
 		if i.IsDefault {
 			selected = "*"
 		}
 		var description string
 		switch i.Status {
 		case cloud.CloudStatusActive:
-			description = " - Ready to use"
+			description = "Ready to use"
 		case cloud.CloudStatusConnected:
-			description = " - Reachable, but not yet validated"
+			description = "Reachable, but not yet validated"
 		case cloud.CloudStatusProblem:
-			description = " - Please contact Earthly for support"
+			description = "Please contact Earthly for support"
 		}
-		status := fmt.Sprintf("%s%s", i.Status, description)
-		row := []string{selected, i.Name, fmt.Sprintf("%d", i.NumSatellites), status}
-		printRow(t, []color.Attribute{color.Reset}, row)
-		if err := t.Flush(); err != nil {
-			fmt.Printf("failed to print cloud installations: %s", err.Error())
-		}
+		fmt.Fprintf(t, "%s\t%s\t%d\t%s: %s\t\n", selected, i.Name, i.NumSatellites, i.Status, description)
+	}
+	if err := t.Flush(); err != nil {
+		fmt.Printf("failed to print satellites: %s", err.Error())
 	}
 }

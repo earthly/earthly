@@ -38,7 +38,7 @@ func (c *Client) ConfigureCloud(ctx context.Context, orgID, cloudName string, se
 }
 
 func (c *Client) ListClouds(ctx context.Context, orgID string) ([]Installation, error) {
-	resp, err := c.compute.ListCloud(c.withAuth(ctx), &pb.ListCloudRequest{
+	resp, err := c.compute.ListClouds(c.withAuth(ctx), &pb.ListCloudsRequest{
 		OrgId: orgID,
 	})
 	if err != nil {
