@@ -180,7 +180,6 @@ ga-no-qemu-group7:
     BUILD +cache-mount-arg
     BUILD +infinite-recursion
     BUILD +save-artifact-selective
-    BUILD --pass-args ./autoskip+test-all
     BUILD +if-exists
     BUILD +let-set
     BUILD +let-scope
@@ -202,6 +201,13 @@ ga-no-qemu-group8:
     BUILD --pass-args ./pass-args-default-via-function+test
     BUILD --pass-args ./pass-args-global-via-function+test
     BUILD --pass-args ./pass-args-via-function-with-override+test
+
+ga-no-qemu-group9:
+    BUILD --pass-args ./autoskip+test-group1
+
+ga-no-qemu-group10:
+    BUILD --pass-args ./autoskip+test-group2
+
 
 ga-no-qemu-slow:
     BUILD +server
