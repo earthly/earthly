@@ -73,7 +73,6 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 	bp := sm.b.Run()
 	for _, vertex := range status.Vertexes {
 		meta, operation := vertexmeta.ParseFromVertexPrefix(vertex.Name)
-		meta.DisplayPrefix = false
 		var cmdID string
 		createCmd := true
 		switch {
@@ -109,8 +108,8 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 					return err
 				}
 			} else {
-				fmt.Printf("\nDisplay Prefix:%t\n", meta.DisplayPrefix)
-				print("2. handleBuildkitStatus")
+				fmt.Printf("Display Prefix:%t\n", meta.DisplayPrefix)
+				// print("2. handleBuildkitStatus")
 				var ok bool
 				cp, ok = bp.Command(cmdID)
 				if !ok {

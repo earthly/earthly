@@ -2176,8 +2176,9 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		strIf(opts.NoNetwork, "--network=none "),
 		strIf(opts.Interactive, "--interactive "),
 		strIf(opts.InteractiveKeep, "--interactive-keep "),
-		strIf(opts.RawOutput, "--raw-output"),
+		strIf(opts.RawOutput, "--raw-output "),
 		strings.Join(opts.Args, " "))
+	fmt.Printf("Rawoutput2:%t\n", opts.RawOutput)
 	prefix, _, err := c.newVertexMeta(ctx, opts.Locally, isInteractive, false, opts.Secrets, opts.RawOutput)
 	if err != nil {
 		return pllb.State{}, err
@@ -2747,7 +2748,6 @@ func (c *Converter) newVertexMeta(ctx context.Context, local, interactive, inter
 		Runner:              c.opt.Runner,
 		DisplayPrefix:       !rawOutput,
 	}
-
 	return vm.ToVertexPrefix(), cmdID, nil
 }
 
