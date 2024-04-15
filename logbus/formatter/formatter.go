@@ -261,7 +261,7 @@ func (f *Formatter) getCommand(commandID string) *command {
 }
 
 func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
-	c, verboseOnly := f.targetConsole(dl.GetTargetId(), dl.GetCommandId())
+	c, verboseOnly := f.targetConsole(dl.GetTargetId(), dl.GetCommandId(), false)
 	if verboseOnly && !f.verbose {
 		return nil
 	}
@@ -340,7 +340,7 @@ func (f *Formatter) processOngoingTick(ctx context.Context) error {
 }
 
 func (f *Formatter) printHeader(targetID string, commandID string, tm *logstream.TargetManifest, cm *logstream.CommandManifest, failure bool) {
-	c, verboseOnly := f.targetConsole(targetID, commandID)
+	c, verboseOnly := f.targetConsole(targetID, commandID, true)
 	if verboseOnly && !f.verbose {
 		return
 	}
@@ -371,7 +371,7 @@ func (f *Formatter) printHeader(targetID string, commandID string, tm *logstream
 }
 
 func (f *Formatter) printProgress(targetID string, commandID string, cm *logstream.CommandManifest) {
-	c, verboseOnly := f.targetConsole(targetID, commandID)
+	c, verboseOnly := f.targetConsole(targetID, commandID, true)
 	if verboseOnly && !f.verbose {
 		return
 	}
@@ -416,7 +416,7 @@ func (f *Formatter) shouldPrintProgress(targetID string, commandID string, cm *l
 }
 
 func (f *Formatter) printError(targetID string, commandID string, tm *logstream.TargetManifest, cm *logstream.CommandManifest) {
-	c, _ := f.targetConsole(targetID, commandID)
+	c, _ := f.targetConsole(targetID, commandID, true)
 	c.Printf("%s\n", cm.GetErrorMessage())
 	c.VerbosePrintf("Overriding args used: %s\n", strings.Join(tm.GetOverrideArgs(), " "))
 	f.lastOutputWasOngoingUpdate = false
@@ -437,7 +437,7 @@ func (f *Formatter) printBuildFailure() {
 	if failure.GetCommandId() != "" {
 		cm = f.manifest.GetCommands()[failure.GetCommandId()]
 	}
-	c, _ := f.targetConsole(failure.GetTargetId(), failure.GetCommandId())
+	c, _ := f.targetConsole(failure.GetTargetId(), failure.GetCommandId(), true)
 	c = c.WithFailed(true)
 	msgPrefix := "Error: " // print this prefix only when the command id is set
 	if failure.GetCommandId() != "" && failure.GetCommandId() != logbus.GenericDefault {
@@ -516,6 +516,11 @@ func (f *Formatter) targetConsole(targetID string, commandID string, displayPref
 	default:
 		targetName = "_unknown"
 		writerTargetID = "_unknown"
+	}
+	if displayPrefix {
+		return f.console.
+			WithWriter(f.bus.FormattedWriter(writerTargetID, commandID)).
+			WithPrefixAndSalt(targetName, writerTargetID), verboseOnly
 	}
 	return f.console.
 		WithWriter(f.bus.FormattedWriter(writerTargetID, commandID)), verboseOnly

@@ -1,0 +1,8 @@
+VERSION 0.8
+
+FROM alpine
+
+gha: 
+    RUN --raw-output echo "::group:: build something group 1"
+    RUN echo "should have prefix"
+    RUN --raw-output echo "::endgroup::" 
