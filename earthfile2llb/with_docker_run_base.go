@@ -70,7 +70,7 @@ func (w *withDockerRunBase) installDeps(ctx context.Context, opt WithDockerOpt) 
 			strings.Join(params, " "),
 			dockerAutoInstallScriptPath),
 	}
-	prefix, _, err := w.c.newVertexMeta(ctx, false, false, false, opt.Secrets)
+	prefix, _, err := w.c.newVertexMeta(ctx, false, false, false, opt.Secrets, false)
 	if err != nil {
 		return err
 	}
@@ -155,7 +155,7 @@ func (w *withDockerRunBase) getComposeConfig(ctx context.Context, opt WithDocker
 			strings.Join(params, " "),
 			dockerdWrapperPath),
 	}
-	prefix, _, err := w.c.newVertexMeta(ctx, false, false, false, opt.Secrets)
+	prefix, _, err := w.c.newVertexMeta(ctx, false, false, false, opt.Secrets, false)
 	if err != nil {
 		return nil, err
 	}

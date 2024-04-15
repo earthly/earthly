@@ -340,7 +340,7 @@ func (w *withDockerRunTar) solveImage(ctx context.Context, mts *states.MultiTarg
 		sha256SessionIDKey := sha256.Sum256([]byte(sessionIDKey))
 		sessionID := hex.EncodeToString(sha256SessionIDKey[:])
 
-		prefix, _, err := w.c.newVertexMeta(ctx, false, false, true, nil)
+		prefix, _, err := w.c.newVertexMeta(ctx, false, false, true, nil, false)
 		if err != nil {
 			return pllb.State{}, err
 		}

@@ -751,6 +751,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			InteractiveKeep:      opts.InteractiveKeep,
 			InteractiveSaveFiles: i.interactiveSaveFiles,
 			WithAWSCredentials:   opts.WithAWS,
+			RawOutput:            opts.RawOutput,
 		}
 		err = i.converter.Run(ctx, opts)
 		if err != nil {
