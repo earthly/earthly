@@ -34,14 +34,26 @@ if [ "$os" = "Darwin" ]; then
         download_url="https://github.com/earthly/earthly/releases/latest/download/earthly-darwin-amd64"
         earthly="./build/darwin/amd64/earthly"
     fi
+    vmstat="vm_stat"
 elif [ "$os" = "Linux" ]; then
     EARTHLY_OS="linux"
     download_url="https://github.com/earthly/earthly/releases/latest/download/earthly-linux-amd64"
     earthly="./build/linux/amd64/earthly"
+    vmstat="vmstat"
 else
     echo "failed to handle $os, $arch"
     exit 1
 fi
+
+
+monitor_memory(){
+  while true
+  do
+    "$vmstat"
+    sleep 15
+  done
+}
+monitor_memory &
 
 echo "The detected architecture of the runner is $(uname -m)"
 
