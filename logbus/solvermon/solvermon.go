@@ -71,6 +71,8 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	bp := sm.b.Run()
+	sm.b.formattedSubs
+	rawOutput := false
 	for _, vertex := range status.Vertexes {
 		meta, operation := vertexmeta.ParseFromVertexPrefix(vertex.Name)
 		var cmdID string
@@ -108,8 +110,8 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 					return err
 				}
 			} else {
-				fmt.Printf("Display Prefix:%t\n", meta.DisplayPrefix)
-				// print("2. handleBuildkitStatus")
+				fmt.Printf("RawOutput1:%t %s\n", meta.RawOutput, operation)
+				rawOutput = meta.RawOutput
 				var ok bool
 				cp, ok = bp.Command(cmdID)
 				if !ok {
@@ -187,7 +189,7 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 		}
 		vm := sm.vertices[cmdID]
 		logLine.Data = []byte(stringutil.ScrubCredentialsAll((string(logLine.Data))))
-		_, err := vm.Write(logLine.Data, logLine.Timestamp, logLine.Stream)
+		_, err := vm.Write(logLine.Data, logLine.Timestamp, logLine.Stream, rawOutput)
 		if err != nil {
 			return err
 		}

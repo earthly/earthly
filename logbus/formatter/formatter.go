@@ -261,7 +261,9 @@ func (f *Formatter) getCommand(commandID string) *command {
 }
 
 func (f *Formatter) handleDeltaLog(dl *logstream.DeltaLog) error {
-	c, verboseOnly := f.targetConsole(dl.GetTargetId(), dl.GetCommandId(), false)
+	commandID := dl.GetCommandId()
+	targetID := dl.GetTargetId()
+	c, verboseOnly := f.targetConsole(targetID, commandID, dl.RawOutput)
 	if verboseOnly && !f.verbose {
 		return nil
 	}
@@ -371,7 +373,7 @@ func (f *Formatter) printHeader(targetID string, commandID string, tm *logstream
 }
 
 func (f *Formatter) printProgress(targetID string, commandID string, cm *logstream.CommandManifest) {
-	c, verboseOnly := f.targetConsole(targetID, commandID, true)
+	c, verboseOnly := f.targetConsole(targetID, commandID, false)
 	if verboseOnly && !f.verbose {
 		return
 	}

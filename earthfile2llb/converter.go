@@ -2746,7 +2746,7 @@ func (c *Converter) newVertexMeta(ctx context.Context, local, interactive, inter
 		Secrets:             secrets,
 		Internal:            internal,
 		Runner:              c.opt.Runner,
-		DisplayPrefix:       !rawOutput,
+		RawOutput:           rawOutput,
 	}
 	return vm.ToVertexPrefix(), cmdID, nil
 }

@@ -6,9 +6,10 @@ deps:
     RUN apk --update add build-base cmake
 
 gha: 
-    RUN --raw-output echo "::group:: build something group 1"
     RUN echo "should have prefix"
-    RUN --raw-output echo "::endgroup::" 
+    RUN --raw-output --no-cache echo "::group:: build something group 1"
+    RUN echo "should have prefix"
+    RUN --raw-output --no-cache echo "::endgroup::" 
 
 build:
     FROM +deps

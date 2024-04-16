@@ -151,4 +151,5 @@ replace (
 
 	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.0-20240319224128-422af4977207
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20231030221755-644b08355b65
+	github.com/earthly/cloud-api => ../cloud-api
 )
