@@ -78,6 +78,7 @@ test-part:
         RUN docker rm -f js-example
         RUN docker run -d --rm --name js-example ${lang}-example:latest
         RUN sleep 5
+        RUN docker logs js-example
         RUN curl "$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' js-example)":8080 | grep "Getting Started"
         RUN curl "$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' js-example)":8080/main.js | grep "hello world"
         RUN docker stop js-example
