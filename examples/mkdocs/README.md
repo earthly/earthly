@@ -1,6 +1,6 @@
 # Material for MkDocs
 
-This example shows demonstrates [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) using Earthly, and includes a live reloading development enviorment with `mkdocs serve`.
+This example shows demonstrates [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) using Earthly, and includes a live reloading development environment with `mkdocs serve`.
 
 ## Usage
 

@@ -76,6 +76,7 @@ func readExcludes(dir string, noImplicitIgnore bool, useDockerIgnore bool) ([]st
 	if err != nil {
 		return nil, errors.Wrapf(err, "read %s", filePath)
 	}
+	defer f.Close()
 	excludes, err := ignorefile.ReadAll(f)
 	if err != nil {
 		return nil, errors.Wrapf(err, "parse %s", filePath)

@@ -72,7 +72,7 @@ func (bb *BundleBuilder) PrefixStatus(prefix, status string) {
 }
 
 // PrefixWriter gets an io.Writer for a given prefix(aka target). If its a prefix we have not seen before,
-// then generate a new writer to accomodate it.
+// then generate a new writer to accommodate it.
 func (bb *BundleBuilder) PrefixWriter(prefix string) io.Writer {
 	bb.mu.Lock()
 	defer bb.mu.Unlock()
