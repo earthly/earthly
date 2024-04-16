@@ -223,7 +223,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	} else {
 		internal = false
 	}
-	prefix, _, err := c.newVertexMeta(ctx, local, false, internal, nil, false)
+	prefix, _, err := c.newVertexMeta(ctx, local, false, internal, nil)
 	if err != nil {
 		return err
 	}
@@ -346,7 +346,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	var BuildContextFactory llbfactory.Factory
 	contextArtifact, parseErr := domain.ParseArtifact(contextPath)
 	if parseErr == nil {
-		prefix, cmdID, err := c.newVertexMeta(ctx, false, false, true, nil, false)
+		prefix, cmdID, err := c.newVertexMeta(ctx, false, false, true, nil)
 		if err != nil {
 			return err
 		}
@@ -496,7 +496,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	prefix, cmdID, err := c.newVertexMeta(ctx, false, false, false, nil, false)
+	prefix, cmdID, err := c.newVertexMeta(ctx, false, false, false, nil)
 	if err != nil {
 		return err
 	}
@@ -550,7 +550,7 @@ func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest 
 	if err != nil {
 		return errors.Wrapf(err, "parse artifact name %s", artifactName)
 	}
-	prefix, cmdID, err := c.newVertexMeta(ctx, false, false, false, nil, false)
+	prefix, cmdID, err := c.newVertexMeta(ctx, false, false, false, nil)
 	if err != nil {
 		return err
 	}
@@ -604,7 +604,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	}
 
 	c.nonSaveCommand()
-	prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil, false)
+	prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil)
 	if err != nil {
 		return err
 	}
@@ -691,7 +691,7 @@ func (c *Converter) RunExitCode(ctx context.Context, opts ConvertRunOpts) (int, 
 		})
 	} else {
 		exitCodeFile = "/tmp/earthly_if_statement_exit_code"
-		prefix, _, err := c.newVertexMeta(ctx, false, false, true, nil, false)
+		prefix, _, err := c.newVertexMeta(ctx, false, false, true, nil)
 		if err != nil {
 			return 0, err
 		}
@@ -787,7 +787,7 @@ func (c *Converter) runCommand(ctx context.Context, outputFileName string, isExp
 		})
 	} else {
 		srcBuildArgDir := "/run/buildargs"
-		prefix, _, err := c.newVertexMeta(ctx, false, false, true, nil, false)
+		prefix, _, err := c.newVertexMeta(ctx, false, false, true, nil)
 		if err != nil {
 			return "", err
 		}
@@ -877,7 +877,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLo
 	// accessed within the CopyOps below.
 	pcState := c.persistCache(c.mts.Final.MainState)
 
-	prefix, cmdID, err := c.newVertexMeta(ctx, false, false, false, nil, false)
+	prefix, cmdID, err := c.newVertexMeta(ctx, false, false, false, nil)
 	if err != nil {
 		return err
 	}
@@ -911,7 +911,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLo
 		separateArtifactsState := c.platr.Scratch()
 		if isPush {
 			pushState := c.persistCache(c.mts.Final.RunPush.State)
-			prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil, false)
+			prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil)
 			if err != nil {
 				return err
 			}
@@ -931,7 +931,7 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLo
 				return errors.Wrapf(err, "copyOp save artifact as local")
 			}
 		} else {
-			prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil, false)
+			prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil)
 			if err != nil {
 				return err
 			}
@@ -1042,7 +1042,7 @@ func (c *Converter) SaveArtifactFromLocal(ctx context.Context, saveFrom, saveTo 
 	}
 
 	// first load the files into a snapshot
-	prefix, _, err := c.newVertexMeta(ctx, true, false, true, nil, false)
+	prefix, _, err := c.newVertexMeta(ctx, true, false, true, nil)
 	if err != nil {
 		return err
 	}
@@ -1297,7 +1297,7 @@ func (c *Converter) Workdir(ctx context.Context, workdirPath string) error {
 		if c.mts.Final.MainImage.Config.User != "" {
 			mkdirOpts = append(mkdirOpts, llb.WithUser(c.mts.Final.MainImage.Config.User))
 		}
-		prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil, false)
+		prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil)
 		if err != nil {
 			return err
 		}
@@ -1527,7 +1527,7 @@ func (c *Converter) GitClone(ctx context.Context, gitURL string, sshCommand stri
 		gitOpts = append(gitOpts, llb.SSHCommand(sshCommand))
 	}
 	gitState := pllb.Git(gitURL, branch, gitOpts...)
-	prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil, false)
+	prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil)
 	if err != nil {
 		return err
 	}
@@ -2169,6 +2169,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	commandStr := fmt.Sprintf(
 		"%s %s%s%s%s%s%s%s%s%s",
 		opts.CommandName, // e.g. "RUN", "IF", "FOR", "ARG"
+		strIf(opts.RawOutput, "--raw-output "),
 		strIf(opts.Privileged, "--privileged "),
 		strIf(opts.Push, "--push "),
 		strIf(opts.WithSSH, "--ssh "),
@@ -2176,10 +2177,8 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		strIf(opts.NoNetwork, "--network=none "),
 		strIf(opts.Interactive, "--interactive "),
 		strIf(opts.InteractiveKeep, "--interactive-keep "),
-		strIf(opts.RawOutput, "--raw-output "),
 		strings.Join(opts.Args, " "))
-	fmt.Printf("Rawoutput2:%t\n", opts.RawOutput)
-	prefix, _, err := c.newVertexMeta(ctx, opts.Locally, isInteractive, false, opts.Secrets, opts.RawOutput)
+	prefix, _, err := c.newVertexMeta(ctx, opts.Locally, isInteractive, false, opts.Secrets)
 	if err != nil {
 		return pllb.State{}, err
 	}
@@ -2685,7 +2684,7 @@ func (c *Converter) newLogbusCommand(ctx context.Context, name string) (string, 
 	return cmdID, cmd, nil
 }
 
-func (c *Converter) newVertexMeta(ctx context.Context, local, interactive, internal bool, secrets []string, rawOutput bool) (string, string, error) {
+func (c *Converter) newVertexMeta(ctx context.Context, local, interactive, internal bool, secrets []string) (string, string, error) {
 	activeOverriding := make(map[string]string)
 	for _, arg := range c.varCollection.SortedOverridingVariables() {
 		v, ok := c.varCollection.Get(arg, variables.WithActive())
@@ -2746,7 +2745,6 @@ func (c *Converter) newVertexMeta(ctx context.Context, local, interactive, inter
 		Secrets:             secrets,
 		Internal:            internal,
 		Runner:              c.opt.Runner,
-		RawOutput:           rawOutput,
 	}
 	return vm.ToVertexPrefix(), cmdID, nil
 }

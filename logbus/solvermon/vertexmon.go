@@ -41,7 +41,7 @@ var reErrExitCode = regexp.MustCompile(`^(?:process ".*" did not complete succes
 var reErrNotFound = regexp.MustCompile(`^failed to calculate checksum of ref ([^ ]*): (.*)$`)
 var reHint = regexp.MustCompile(`^(?P<msg>.+?):Hint: .+`)
 
-func (vm *vertexMonitor) Write(dt []byte, ts time.Time, stream int, rawOutput bool) (int, error) {
+func (vm *vertexMonitor) Write(dt []byte, ts time.Time, stream int) (int, error) {
 	if stream == BuildkitStatsStream {
 		stats, err := vm.ssp.Parse(dt)
 		if err != nil {
@@ -52,14 +52,14 @@ func (vm *vertexMonitor) Write(dt []byte, ts time.Time, stream int, rawOutput bo
 			if err != nil {
 				return 0, errors.Wrap(err, "stats json encode failed")
 			}
-			_, err = vm.cp.Write(statsJSON, ts, int32(stream), rawOutput)
+			_, err = vm.cp.Write(statsJSON, ts, int32(stream))
 			if err != nil {
 				return 0, errors.Wrap(err, "write stats")
 			}
 		}
 		return len(dt), nil
 	}
-	_, err := vm.cp.Write(dt, ts, int32(stream), rawOutput)
+	_, err := vm.cp.Write(dt, ts, int32(stream))
 	if err != nil {
 		return 0, errors.Wrap(err, "write log line")
 	}

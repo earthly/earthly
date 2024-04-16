@@ -10,8 +10,3 @@ test-all:
     RUN if ! grep -q '^::group::' earthly.output; then echo "::group:: not found"; exit 1; fi
     RUN if grep -q '^should have prefix' earthly.output; then echo "Error: Line starts with 'should have prefix'"; exit 1; fi
     RUN if ! grep -q '^::endgroup::' earthly.output; then echo "::endgroup:: not found"; exit 1; fi
-
-gha: 
-    RUN --raw-output echo "::group:: build something group 1"
-    RUN echo "should have prefix"
-    RUN --raw-output echo "::endgroup::" 

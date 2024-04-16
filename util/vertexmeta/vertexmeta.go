@@ -31,7 +31,6 @@ type VertexMeta struct {
 	Secrets             []string             `json:"secrets,omitempty"`
 	Internal            bool                 `json:"itrnl,omitempty"`
 	Runner              string               `json:"runner,omitempty"`
-	RawOutput           bool                 `json:"rawoutput,omitempty"`
 }
 
 var vertexRegexp = regexp.MustCompile(`(?s)^\[([^\]]*)\] (.*)$`)

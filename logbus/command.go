@@ -49,7 +49,7 @@ func newCommand(b *Bus, commandID string, targetID string) *Command {
 }
 
 // Write prints a byte slice with a timestamp.
-func (c *Command) Write(dt []byte, ts time.Time, stream int32, rawOutput bool) (int, error) {
+func (c *Command) Write(dt []byte, ts time.Time, stream int32) (int, error) {
 	var err error
 	c.mu.Lock()
 	if stream == stdout || stream == stderr {
@@ -65,7 +65,6 @@ func (c *Command) Write(dt []byte, ts time.Time, stream int32, rawOutput bool) (
 		Stream:             stream,
 		TimestampUnixNanos: c.b.TsUnixNanos(ts),
 		Data:               dt,
-		RawOutput:          rawOutput,
 	})
 	return len(dt), nil
 }
