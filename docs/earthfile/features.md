@@ -91,6 +91,7 @@ VERSION [<flags>...] <version-number>
 | `--allow-privileged-from-dockerfile`    | Experimental                                                                    | Allow the use of the `--allow-privileged` flag in the `FROM DOCKERFILE` command                                    |
 | `--run-with-aws`                        | Experimental                                                                    | Make AWS credentials in the environment or ~/.aws available to `RUN` commands                                      |
 | `--wildcard-copy`                       | Experimental                                                                    | Alow for the expansion of wildcard (glob) paths for COPY commands                                                  |
+| `--raw-output`                       | Experimental                                                                    | Enable `--raw-output` for `RUN` output.                                                  |
 
 Note that the features flags are disabled by default in Earthly versions lower than the version listed in the "status" column above.
 
