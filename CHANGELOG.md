@@ -7,6 +7,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Added
 
 - New experimental wildcard-based copy, e.g. `COPY ./services/*+artifact/* .` which would invoke `COPY` for `./services/foo+artifact`, and `./services/bar+artifact` (assuming two services foo and bar, both having a `artifact` target in their respective Earthfile). Enable with the `VERSION --wildcard-copy` feature flag. [#3966](https://github.com/earthly/earthly/issues/3966).
+- New `--raw-output` flag available on `RUN` that outputs line without target name. Enable with `VERSION --raw-output`. [#3713](https://github.com/earthly/earthly/issues/3713)
 
 ### Fixed
 
