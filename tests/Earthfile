@@ -201,6 +201,7 @@ ga-no-qemu-group8:
     BUILD --pass-args ./pass-args-default-via-function+test
     BUILD --pass-args ./pass-args-global-via-function+test
     BUILD --pass-args ./pass-args-via-function-with-override+test
+    BUILD --pass-args ./raw-output+test-all
 
 ga-no-qemu-group9:
     BUILD --pass-args ./autoskip+test-group1

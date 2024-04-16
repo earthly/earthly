@@ -730,6 +730,10 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		return i.errorf(cmd.SourceLocation, "RUN --aws requires the --run-with-aws feature flag")
 	}
 
+	if opts.RawOutput && !i.converter.opt.Features.RawOutput {
+		return i.errorf(cmd.SourceLocation, "RUN --raw-output requires the --raw-output feature flag")
+	}
+
 	if i.withDocker == nil {
 		if opts.WithDocker {
 			return i.errorf(cmd.SourceLocation, "--with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
@@ -751,6 +755,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			InteractiveKeep:      opts.InteractiveKeep,
 			InteractiveSaveFiles: i.interactiveSaveFiles,
 			WithAWSCredentials:   opts.WithAWS,
+			RawOutput:            opts.RawOutput,
 		}
 		err = i.converter.Run(ctx, opts)
 		if err != nil {

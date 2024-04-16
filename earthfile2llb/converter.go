@@ -645,6 +645,7 @@ type ConvertRunOpts struct {
 	InteractiveKeep      bool
 	InteractiveSaveFiles []debuggercommon.SaveFilesSettings
 	WithAWSCredentials   bool
+	RawOutput            bool
 
 	// Internal.
 	shellWrap    shellWrapFun
@@ -2166,8 +2167,9 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 
 	runOpts = append(runOpts, mountRunOpts...)
 	commandStr := fmt.Sprintf(
-		"%s %s%s%s%s%s%s%s%s",
+		"%s %s%s%s%s%s%s%s%s%s",
 		opts.CommandName, // e.g. "RUN", "IF", "FOR", "ARG"
+		strIf(opts.RawOutput, "--raw-output "),
 		strIf(opts.Privileged, "--privileged "),
 		strIf(opts.Push, "--push "),
 		strIf(opts.WithSSH, "--ssh "),
@@ -2176,7 +2178,6 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 		strIf(opts.Interactive, "--interactive "),
 		strIf(opts.InteractiveKeep, "--interactive-keep "),
 		strings.Join(opts.Args, " "))
-
 	prefix, _, err := c.newVertexMeta(ctx, opts.Locally, isInteractive, false, opts.Secrets)
 	if err != nil {
 		return pllb.State{}, err
@@ -2745,7 +2746,6 @@ func (c *Converter) newVertexMeta(ctx context.Context, local, interactive, inter
 		Internal:            internal,
 		Runner:              c.opt.Runner,
 	}
-
 	return vm.ToVertexPrefix(), cmdID, nil
 }
 

@@ -38,6 +38,7 @@ type RunOpts struct {
 	Secrets         []string `long:"secret" description:"Make available a secret"`
 	Mounts          []string `long:"mount" description:"Mount a file or directory"`
 	Network         string   `long:"network" description:"Network to use; currently network=none is only supported"`
+	RawOutput       bool     `long:"raw-output" description:"Do not prefix output with target. Print Raw"`
 }
 
 type FromOpts struct {
