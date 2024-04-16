@@ -12,6 +12,7 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Changed
 
 - `EARTHLY_GIT_AUTHOR` built-in `ARG` will now contain both name and email, when enabled with the `VERSION --git-author-email-name-args` feature flag. Previously it only contained the email. [#3822](https://github.com/earthly/earthly/issues/3822)
+- New `--raw-output` flag available on `RUN` that outputs line without target name. Enable with `VERSION --raw-output`. [#3713](https://github.com/earthly/earthly/issues/3713)
 
 ### Fixed
 
