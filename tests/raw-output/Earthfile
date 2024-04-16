@@ -1,4 +1,4 @@
-VERSION 0.8
+VERSION 0.8 
 FROM --pass-args ..+base
 
 IMPORT .. AS tests
@@ -7,6 +7,6 @@ WORKDIR /test
 
 test-all:
     DO tests+RUN_EARTHLY --earthfile=manifest.earth --target=+gha
-    RUN if ! grep -q '^::group::' earthly.output; then echo "::group:: not found"; exit 1; fi
-    RUN if grep -q '^should have prefix' earthly.output; then echo "Error: Line starts with 'should have prefix'"; exit 1; fi
-    RUN if ! grep -q '^::endgroup::' earthly.output; then echo "::endgroup:: not found"; exit 1; fi
+    RUN acbgrep '^::group::' earthly.output
+    RUN acbgrep -v '^should have prefix' earthly.output
+    RUN acbgrep '^::endgroup::' earthly.output
