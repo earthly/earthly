@@ -136,6 +136,8 @@ for target in \
         +test-no-qemu-group6 \
         +test-no-qemu-group7 \
         +test-no-qemu-group8 \
+        +test-no-qemu-group9 \
+        +test-no-qemu-group10 \
         +test-no-qemu-slow \
         +test-qemu \
         ; do

@@ -9,6 +9,10 @@ PROJECT earthly-technologies/core
 WORKDIR /test
 
 test-all:
+    BUILD +test-group1
+    BUILD +test-group2
+
+test-group1:
     BUILD +test-files
     BUILD +test-with-subdir
     BUILD +test-requires-project
@@ -23,6 +27,8 @@ test-all:
     BUILD +test-arg-matrix
     BUILD +test-try-catch
     BUILD +test-push
+
+test-group2:
     BUILD +test-no-cache
     BUILD +test-shell-out
     BUILD +test-copy-if-exists
