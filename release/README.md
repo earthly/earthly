@@ -18,7 +18,7 @@
   git checkout main && git pull
   ```
 * Update the CHANGELOG.md with the corresponding release notes and open a PR
-  * Use a comparison such as https://github.com/earthly/earthly/compare/v0.8.7...main (replace the versions in the URL with the previously released version) or a tool such as `gitk` (aka `git-gui`) to see which PRs will go into this release.
+  * Use a comparison such as https://github.com/earthly/earthly/compare/v0.8.8...main (replace the versions in the URL with the previously released version) or a tool such as `gitk` (aka `git-gui`) to see which PRs will go into this release.
 * Make sure that main build is green for all platforms (check build status for the latest commit on GitHub).
 * Make sure the following build status are green:
   | Platform      | Status        |
