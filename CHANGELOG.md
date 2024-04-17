@@ -4,19 +4,39 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.8 - 2024-04-17
+
+### Added
+
+- New experimental wildcard-based copy, e.g. `COPY ./services/*+artifact/* .` which would invoke `COPY` for `./services/foo+artifact`, and `./services/bar+artifact` (assuming two services foo and bar, both having a `artifact` target in their respective Earthfile). Enable with the `VERSION --wildcard-copy` feature flag. [#3966](https://github.com/earthly/earthly/issues/3966).
+- New built-in `ARG`s - `EARTHLY_GIT_AUTHOR_EMAIL` and `EARTHLY_GIT_AUTHOR_NAME` will contain the author email and author name respectively. Enable with the `VERSION --git-author-email-name-args` feature flag.
+
+### Changed
+
+- `EARTHLY_GIT_AUTHOR` built-in `ARG` will now contain both name and email, when enabled with the `VERSION --git-author-email-name-args` feature flag. Previously it only contained the email. [#3822](https://github.com/earthly/earthly/issues/3822)
+- New `--raw-output` flag available on `RUN` that outputs line without target name. Enable with `VERSION --raw-output`. [#3713](https://github.com/earthly/earthly/issues/3713)
+
+### Fixed
+
+- Make `LET`/`SET` commands block parallel commands such as `BUILD` until the former are processed, similar to the behavior of `ARG`. [#3997](https://github.com/earthly/earthly/issues/3997)
+- `LET`/`SET` commands were not properly handled with the use of Auto-skip. [#3996](https://github.com/earthly/earthly/issues/3996)
+
+### Additional Info
+- This release has no changes to buildkit
+
 ## v0.8.7 - 2024-04-03
 
 ### Added
 
 - Warning log when resolving remote references using a git image that doesn't match Buildkit's architecture.
 - New experimental `--exec-stats-summary=<path>` cli flag, which will display a summary of memory and cpu stats when earthly exits.
-- A notice is now displayed when unnecessary feature flags are set (but already enabled by default by the VERSION number). [#3641](https://github.com/earthly/earthly/issues/3641)
+- A notice is now displayed when unnecessary feature flags are set (but already enabled by default by the VERSION number). Thanks to [@danqixu](https://github.com/danqixu) for the contribution! [#3641](https://github.com/earthly/earthly/issues/3641)
 - A warning is displayed if the local buildkit image architecture does not match the host architecture. [#3937](https://github.com/earthly/earthly/issues/3937)
 
 ### Fixed
 
 - Warning logs during HTTP retries are only displayed in `--debug` mode.
-- The HOST command will now expand variables. [#1743](https://github.com/earthly/earthly/issues/1743)
+- The HOST command will now expand variables. Thanks to [@pbecotte](https://github.com/pbecotte) for the contribution! [#1743](https://github.com/earthly/earthly/issues/1743)
 - runc has been updated to 1.1.12 in the buildkit fork
 
 ### Additional Info

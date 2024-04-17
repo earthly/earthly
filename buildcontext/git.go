@@ -57,9 +57,10 @@ type resolvedGitProject struct {
 	// committerTs is the git committer timestamp.
 	committerTs string
 	// authorTs is the git author timestamp.
-	authorTs  string
-	author    string
-	coAuthors []string
+	authorTs    string
+	authorEmail string
+	authorName  string
+	coAuthors   []string
 	// refs is the git refs
 	refs []string
 	// state is the state holding the git files.
@@ -202,7 +203,8 @@ func (gr *gitResolver) resolveEarthProject(ctx context.Context, gwClient gwclien
 			Tags:                 rgp.tags,
 			CommitterTimestamp:   rgp.committerTs,
 			AuthorTimestamp:      rgp.authorTs,
-			Author:               rgp.author,
+			AuthorEmail:          rgp.authorEmail,
+			AuthorName:           rgp.authorName,
 			CoAuthors:            rgp.coAuthors,
 			Refs:                 rgp.refs,
 		},
@@ -240,7 +242,7 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			gitOpts = append(gitOpts, llb.KnownSSHHosts(strings.Join(keyScans, "\n")))
 		}
 		if gr.lfsInclude != "" {
-			// TODO this should eventually be infered by the contents of a COPY command, which means the call to resolveGitProject will need to be lazy-evaluated
+			// TODO this should eventually be inferred by the contents of a COPY command, which means the call to resolveGitProject will need to be lazy-evaluated
 			// However this makes it really difficult for an Earthfile which first has an ARG EARTHLY_GIT_HASH, then a RUN, then a COPY
 			gitOpts = append(gitOpts, llb.LFSInclude(gr.lfsInclude))
 		}
@@ -269,7 +271,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 					"git describe --exact-match --tags >/dest/git-tags || touch /dest/git-tags ; " +
 					"git log -1 --format=%ct >/dest/git-committer-ts || touch /dest/git-committer-ts ; " +
 					"git log -1 --format=%at >/dest/git-author-ts || touch /dest/git-author-ts ; " +
-					"git log -1 --format=%ae >/dest/git-author || touch /dest/git-author ; " +
+					"git log -1 --format=%ae >/dest/git-author-email || touch /dest/git-author-email ; " +
+					"git log -1 --format=%an >/dest/git-author-name || touch /dest/git-author-name ; " +
 					"git log -1 --format=%b >/dest/git-body || touch /dest/git-body ; " +
 					"git for-each-ref --points-at HEAD --format '%(refname:lstrip=-1)' >/dest/git-refs || touch /dest/git-refs ; " +
 					"find -type f -name Earthfile > /dest/Earthfile-paths || touch /dest/Earthfile-paths ; " +
@@ -347,11 +350,17 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		if err != nil {
 			return nil, errors.Wrap(err, "read git-author-ts")
 		}
-		gitAuthorBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
-			Filename: "git-author",
+		gitAuthorEmailBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: "git-author-email",
 		})
 		if err != nil {
-			return nil, errors.Wrap(err, "read git-author")
+			return nil, errors.Wrap(err, "read git-author-email")
+		}
+		gitAuthorNameBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: "git-author-name",
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "read git-author-name")
 		}
 		gitBodyBytes, err := gitMetaRef.ReadFile(ctx, gwclient.ReadRequest{
 			Filename: "git-body",
@@ -375,7 +384,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 		gitHash := strings.SplitN(string(gitHashBytes), "\n", 2)[0]
 		gitShortHash := strings.SplitN(string(gitShortHashBytes), "\n", 2)[0]
 		gitBranches := strings.SplitN(gitBranch, "\n", 2)
-		gitAuthor := strings.SplitN(string(gitAuthorBytes), "\n", 2)[0]
+		gitAuthorEmail := strings.SplitN(string(gitAuthorEmailBytes), "\n", 2)[0]
+		gitAuthorName := strings.SplitN(string(gitAuthorNameBytes), "\n", 2)[0]
 		gitCoAuthors := gitutil.ParseCoAuthorsFromBody(string(gitBodyBytes))
 		var gitBranches2 []string
 		for _, gitBranch := range gitBranches {
@@ -431,7 +441,8 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 			tags:           gitTags2,
 			committerTs:    gitCommiterTs,
 			authorTs:       gitAuthorTs,
-			author:         gitAuthor,
+			authorEmail:    gitAuthorEmail,
+			authorName:     gitAuthorName,
 			coAuthors:      gitCoAuthors,
 			refs:           gitRefs2,
 			earthfilePaths: strings.Split(strings.TrimSpace(string(earthfilePathsRaw)), "\n"),

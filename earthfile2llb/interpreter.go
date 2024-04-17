@@ -113,9 +113,9 @@ func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
 }
 
 func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
-	prevWasArg := true // not exactly true, but makes the logic easier
+	prevWasArgLike := true // not exactly true, but makes the logic easier
 	for index, stmt := range b {
-		if i.parallelConversion && prevWasArg {
+		if i.parallelConversion && prevWasArgLike {
 			err := i.handleBlockParallel(ctx, b, index)
 			if err != nil {
 				return err
@@ -125,7 +125,8 @@ func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
 		if err != nil {
 			return err
 		}
-		prevWasArg = (stmt.Command != nil && stmt.Command.Name == "ARG")
+		prevWasArgLike = i.isArgLike(stmt.Command)
+
 	}
 	return nil
 }
@@ -141,7 +142,7 @@ func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, sta
 		stmt := b[index]
 		if stmt.Command != nil {
 			switch stmt.Command.Name {
-			case command.Arg, command.Locally, command.From, command.FromDockerfile:
+			case command.Arg, command.Locally, command.From, command.FromDockerfile, command.Let, command.Set:
 				// Cannot do any further parallel builds - these commands need to be
 				// executed to ensure that they don't impact the outcome. As such,
 				// commands following these cannot be executed preemptively.
@@ -729,6 +730,10 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		return i.errorf(cmd.SourceLocation, "RUN --aws requires the --run-with-aws feature flag")
 	}
 
+	if opts.RawOutput && !i.converter.opt.Features.RawOutput {
+		return i.errorf(cmd.SourceLocation, "RUN --raw-output requires the --raw-output feature flag")
+	}
+
 	if i.withDocker == nil {
 		if opts.WithDocker {
 			return i.errorf(cmd.SourceLocation, "--with-docker is obsolete. Please use WITH DOCKER ... RUN ... END instead")
@@ -750,6 +755,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			InteractiveKeep:      opts.InteractiveKeep,
 			InteractiveSaveFiles: i.interactiveSaveFiles,
 			WithAWSCredentials:   opts.WithAWS,
+			RawOutput:            opts.RawOutput,
 		}
 		err = i.converter.Run(ctx, opts)
 		if err != nil {
@@ -899,6 +905,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 		return i.errorf(cmd.SourceLocation, "COPY --from not implemented. Use COPY artifacts form instead")
 	}
 	srcs := args[:len(args)-1]
+	srcArtifacts := make([]domain.Artifact, len(srcs))
 	srcFlagArgs := make([][]string, len(srcs))
 	dest, err := i.expandArgs(ctx, args[len(args)-1], false, false)
 	if err != nil {
@@ -964,6 +971,7 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 		// If it parses as an artifact, treat as artifact.
 		if parseErr == nil {
 			srcs[index] = artifactSrc.String()
+			srcArtifacts[index] = artifactSrc
 			allClassical = false
 		} else {
 			expandedSrc, err := i.expandArgs(ctx, src, false, false)
@@ -1010,16 +1018,31 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			if !i.converter.ftrs.PassArgs && opts.PassArgs {
 				return i.errorf(cmd.SourceLocation, "the COPY --pass-args flag must be enabled with the VERSION --pass-args feature flag.")
 			}
-
-			if i.local {
-				err = i.converter.CopyArtifactLocal(ctx, src, dest, platform, allowPrivileged, opts.PassArgs, srcBuildArgs, opts.IsDirCopy)
-				if err != nil {
-					return i.wrapError(err, cmd.SourceLocation, "copy artifact locally")
+			expandedSrcs := []string{src}
+			if strings.Contains(srcArtifacts[index].Target.String(), "*") {
+				if !i.converter.ftrs.WildcardCopy {
+					return i.errorf(cmd.SourceLocation, "wildcard COPY commands are not enabled")
 				}
-			} else {
-				err = i.converter.CopyArtifact(ctx, src, dest, platform, allowPrivileged, opts.PassArgs, srcBuildArgs, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, expandedChown, fileModeParsed, opts.IfExists, opts.SymlinkNoFollow)
+				expandedArtifacts, err := i.converter.ExpandWildcardArtifacts(ctx, srcArtifacts[index])
 				if err != nil {
-					return i.wrapError(err, cmd.SourceLocation, "copy artifact")
+					return i.wrapError(err, cmd.SourceLocation, "failed to expand wildcard COPY %q", srcArtifacts[index].Target.String())
+				}
+				expandedSrcs = make([]string, 0, len(expandedArtifacts))
+				for _, artifact := range expandedArtifacts {
+					expandedSrcs = append(expandedSrcs, artifact.String())
+				}
+			}
+			for _, expandedSrc := range expandedSrcs {
+				if i.local {
+					err = i.converter.CopyArtifactLocal(ctx, expandedSrc, dest, platform, allowPrivileged, opts.PassArgs, srcBuildArgs, opts.IsDirCopy)
+					if err != nil {
+						return i.wrapError(err, cmd.SourceLocation, "copy artifact locally")
+					}
+				} else {
+					err = i.converter.CopyArtifact(ctx, expandedSrc, dest, platform, allowPrivileged, opts.PassArgs, srcBuildArgs, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, expandedChown, fileModeParsed, opts.IfExists, opts.SymlinkNoFollow)
+					if err != nil {
+						return i.wrapError(err, cmd.SourceLocation, "copy artifact")
+					}
 				}
 			}
 		}
@@ -1276,7 +1299,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 
 func (i *Interpreter) handleWildcardBuilds(ctx context.Context, fullTargetName string, cmd spec.Command, async bool) error {
 
-	children, err := i.converter.ExpandWildcard(ctx, fullTargetName, cmd)
+	children, err := i.converter.ExpandWildcardCmds(ctx, fullTargetName, cmd)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand wildcard BUILD %q", fullTargetName)
 	}
@@ -2139,6 +2162,20 @@ func (i *Interpreter) expandArgs(ctx context.Context, word string, keepPlusEscap
 		return ret, nil
 	}
 	return unescapeSlashPlus(ret), nil
+}
+
+// isArgLike returns true if the command is ARG/LET/SET
+func (i *Interpreter) isArgLike(cmd *spec.Command) bool {
+	if cmd == nil {
+		return false
+	}
+
+	switch cmd.Name {
+	case command.Arg, command.Let, command.Set:
+		return true
+	}
+
+	return false
 }
 
 func escapeSlashPlus(str string) string {

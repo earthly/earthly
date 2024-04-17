@@ -1,6 +1,6 @@
 VERSION 0.8
 
-ARG --global DIND_IMAGE=earthly/dind:alpine-3.19-docker-25.0.3-r1
+ARG --global DIND_IMAGE=earthly/dind:alpine-3.19-docker-25.0.5-r0
 FROM $DIND_IMAGE
 
 all:
@@ -163,7 +163,7 @@ if-after:
 cgroup-v2-test-all:
     BUILD +cgroup-v2-test \
         --DIND_IMG=$DIND_IMAGE \
-        --DIND_IMG=earthly/dind:ubuntu-23.04-docker-24.0.9-1
+        --DIND_IMG=earthly/dind:ubuntu-23.04-docker-25.0.1-1
 
 cgroup-v2-test:
     ARG --required DIND_IMG

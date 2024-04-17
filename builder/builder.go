@@ -247,7 +247,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		exportCoordinator     = gatewaycrafter.NewExportCoordinator()
 
 		// dirIDs maps a dirIndex to a dirID; the "dir-id" field was introduced
-		// to accomodate parallelism in the WAIT/END PopWaitBlock handling
+		// to accommodate parallelism in the WAIT/END PopWaitBlock handling
 		dirIDs = map[int]string{}
 	)
 

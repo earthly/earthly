@@ -6,7 +6,7 @@
           "--global",
           "DIND_IMAGE",
           "=",
-          "earthly/dind:alpine-3.19-docker-25.0.3-r1"
+          "earthly/dind:alpine-3.19-docker-25.0.5-r0"
         ],
         "name": "ARG"
       }
@@ -926,7 +926,7 @@
             "args": [
               "+cgroup-v2-test",
               "--DIND_IMG=$DIND_IMAGE",
-              "--DIND_IMG=earthly/dind:ubuntu-23.04-docker-24.0.9-1"
+              "--DIND_IMG=earthly/dind:ubuntu-23.04-docker-25.0.1-1"
             ],
             "name": "BUILD"
           }

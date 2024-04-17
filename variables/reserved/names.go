@@ -10,6 +10,8 @@ const (
 	EarthlyGitOriginURLScrubbed     = "EARTHLY_GIT_ORIGIN_URL_SCRUBBED"
 	EarthlyGitProjectName           = "EARTHLY_GIT_PROJECT_NAME"
 	EarthlyGitAuthor                = "EARTHLY_GIT_AUTHOR"
+	EarthlyGitAuthorEmail           = "EARTHLY_GIT_AUTHOR_EMAIL"
+	EarthlyGitAuthorName            = "EARTHLY_GIT_AUTHOR_NAME"
 	EarthlyGitCoAuthors             = "EARTHLY_GIT_CO_AUTHORS"
 	EarthlyGitShortHash             = "EARTHLY_GIT_SHORT_HASH"
 	EarthlyGitTag                   = "EARTHLY_GIT_TAG"
@@ -49,6 +51,8 @@ func init() {
 		EarthlyGitCommitTimestamp:       {},
 		EarthlyGitCommitAuthorTimestamp: {},
 		EarthlyGitAuthor:                {},
+		EarthlyGitAuthorEmail:           {},
+		EarthlyGitAuthorName:            {},
 		EarthlyGitCoAuthors:             {},
 		EarthlyGitHash:                  {},
 		EarthlyGitOriginURL:             {},

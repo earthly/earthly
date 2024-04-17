@@ -71,6 +71,9 @@ type Features struct {
 	BuildAutoSkip                 bool `long:"build-auto-skip" description:"allow for --auto-skip to be used on individual BUILD commands"`
 	AllowPrivilegedFromDockerfile bool `long:"allow-privileged-from-dockerfile" description:"Allow the use of the --allow-privileged flag in the FROM DOCKERFILE command"`
 	RunWithAWS                    bool `long:"run-with-aws" description:"make AWS credentials in the environment or ~/.aws available to RUN commands"`
+	WildcardCopy                  bool `long:"wildcard-copy" description:"allow for the expansion of wildcard (glob) paths for COPY commands"`
+	RawOutput                     bool `long:"raw-output" description:"allow for --raw-output on RUN commands"`
+	GitAuthorEmailNameArgs        bool `long:"git-author-email-name-args" description:"includes EARTHLY_GIT_AUTHOR_EMAIL and EARTHLY_GIT_AUTHOR_NAME builtin ARGs"`
 
 	Major int
 	Minor int

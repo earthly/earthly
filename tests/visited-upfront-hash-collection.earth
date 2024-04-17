@@ -1,6 +1,6 @@
 VERSION 0.8
 
-FROM earthly/dind:alpine-3.19-docker-25.0.3-r1
+FROM earthly/dind:alpine-3.19-docker-25.0.5-r0
 
 parallel:
   BUILD +test-executor --INDEX=1
@@ -8,6 +8,31 @@ parallel:
   BUILD +test-executor --INDEX=3
   BUILD +test-executor --INDEX=4
   BUILD +test-executor --INDEX=5
+
+parallel-dynamic-arg:
+  ARG target=+test-executor
+  BUILD $target --INDEX=1
+  BUILD $target --INDEX=2
+  BUILD $target --INDEX=3
+  BUILD $target --INDEX=4
+  BUILD $target --INDEX=5
+
+parallel-dynamic-let:
+  LET target=+test-executor
+  BUILD $target --INDEX=1
+  BUILD $target --INDEX=2
+  BUILD $target --INDEX=3
+  BUILD $target --INDEX=4
+  BUILD $target --INDEX=5
+
+parallel-dynamic-set:
+  LET target=""
+  SET target=+test-executor
+  BUILD $target --INDEX=1
+  BUILD $target --INDEX=2
+  BUILD $target --INDEX=3
+  BUILD $target --INDEX=4
+  BUILD $target --INDEX=5
 
 test-executor:
   ARG INDEX

@@ -1,5 +1,0 @@
-VERSION 0.8
-
-test:
-  FROM alpine
-  RUN echo "hello world 2"

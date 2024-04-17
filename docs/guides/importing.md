@@ -51,7 +51,7 @@ my-target:
 
 In this example, the target `my-target` uses the import alias `hello-world` to reference a GitHub repository called `github.com/earthly/hello-world`, and the target `hello` within that repository. The `AS hello-world` part is optional, and is only needed if the import alias is different from the repository name.
 
-`BUILD` is used used to simply issue the build of the referenced target. Commands like `COPY` or `FROM` can be used to import artifacts or images, respectively.
+`BUILD` is used to simply issue the build of the referenced target. Commands like `COPY` or `FROM` can be used to import artifacts or images, respectively.
 
 ### Importing from other directories
 
@@ -161,6 +161,12 @@ Another form, is where a target, function or artifact is referenced from a diffe
 | `./js` | `./js+build` | `./js+build/out.bin` | `./js+COMPILE` |
 
 It is recommended that relative paths are used, for portability reasons: the working directory checked out by different users will be different, making absolute paths infeasible in most cases.
+
+{% hint style='info' %}
+##### Note
+When using a `Target ref` in a `BUILD` command or an `Artifact ref` in a `COPY` command, the ref to the target
+may also include a glob expression (e.g. `./parent/*+<target-name>`, `./parent/*+<target-name>/<artifact-path>`). Globbing in a target/artifact ref has experimental status. To use this feature, it must be enabled via `VERSION --wildcard-builds 0.8` (for `BUILD`) or `VERSION --wildcard-copy 0.8` (for `COPY`).
+{% endhint %}
 
 ### Remote
 

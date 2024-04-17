@@ -43,19 +43,21 @@ RUN echo "The current target is $EARTHLY_TARGET"
 
 ### Git-related args
 
-| Name | Description | Example value |
-| --- | --- | --- |
-| `EARTHLY_GIT_AUTHOR` | The git author detected within the build context directory. If no git directory is detected, then the value is an empty string. | `John Doe <john@example.com>` |
-| `EARTHLY_GIT_CO_AUTHORS` | The git co-authors detected within the build context directory, separated by space. If no git directory is detected, then the value is an empty string. | `Jane Doe <jane@example.com Jack Smith <jack@example.com>` |
-| `EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP` | The author timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is an empty string. | `1626881847` |
-| `EARTHLY_GIT_BRANCH` | The git branch of the git commit detected within the build context directory. If no git directory is detected, then the value is an empty string. | `main` |
-| `EARTHLY_GIT_COMMIT_TIMESTAMP` | The committer timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is an empty string. | `1626881847` |
-| `EARTHLY_GIT_HASH` | The git hash detected within the build context directory. If no git directory is detected, then the value is an empty string. Take care when using this arg, as the frequently changing git hash may be cause for not using the cache. | `41cb5666ade67b29e42bef121144456d3977a67a` |
-| `EARTHLY_GIT_ORIGIN_URL` | The git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. Please note that this may be inconsistent, depending on whether an HTTPS or SSH URL was used. | `git@github.com:bar/buz.git` or `https://github.com/bar/buz.git` |
-| `EARTHLY_GIT_PROJECT_NAME` | The git project name from within the git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. | `bar/buz` |
-| `EARTHLY_GIT_REFS` | The git references of the git commit detected within the build context directory, separated by space. If no git directory is detected, then the value is an empty string. | `issue-2735-git-ref main` |
-| `EARTHLY_GIT_SHORT_HASH` | The first 8 characters of the git hash detected within the build context directory. If no git directory is detected, then the value is an empty string. Take care when using this arg, as the frequently changing git hash may be cause for not using the cache. | `41cb5666` |
-| `EARTHLY_SOURCE_DATE_EPOCH` | The timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is `0` (the unix epoch) | `1626881847`, `0` |
+| Name | Description | Example value | Feature Flag                           |
+| --- | --- | --- |----------------------------------------|
+| `EARTHLY_GIT_AUTHOR` | The git author detected within the build context directory. If no git directory is detected, then the value is an empty string. This is currently the author's email address but the feature flag adds the name as well | `john@example.com` (or `John Doe <john@example.com>` with flag turned on) | `--earthly-git-author-individual-args` |
+| `EARTHLY_GIT_AUTHOR_EMAIL` | The git author email detected within the build context directory. If no git directory is detected, then the value is an empty string. | `john@example.com` | `--earthly-git-author-individual-args` |
+| `EARTHLY_GIT_AUTHOR_NAME` | The git author name detected within the build context directory. If no git directory is detected, then the value is an empty string. | `John Doe` | `--earthly-git-author-individual-args` |
+| `EARTHLY_GIT_CO_AUTHORS` | The git co-authors detected within the build context directory, separated by space. If no git directory is detected, then the value is an empty string. | `Jane Doe <jane@example.com Jack Smith <jack@example.com>` |                                        |
+| `EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP` | The author timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is an empty string. | `1626881847` |                                        |
+| `EARTHLY_GIT_BRANCH` | The git branch of the git commit detected within the build context directory. If no git directory is detected, then the value is an empty string. | `main` |                                        |
+| `EARTHLY_GIT_COMMIT_TIMESTAMP` | The committer timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is an empty string. | `1626881847` |                                        |
+| `EARTHLY_GIT_HASH` | The git hash detected within the build context directory. If no git directory is detected, then the value is an empty string. Take care when using this arg, as the frequently changing git hash may be cause for not using the cache. | `41cb5666ade67b29e42bef121144456d3977a67a` |                                        |
+| `EARTHLY_GIT_ORIGIN_URL` | The git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. Please note that this may be inconsistent, depending on whether an HTTPS or SSH URL was used. | `git@github.com:bar/buz.git` or `https://github.com/bar/buz.git` |                                        |
+| `EARTHLY_GIT_PROJECT_NAME` | The git project name from within the git URL detected within the build context directory. If no git directory is detected, then the value is an empty string. | `bar/buz` |                                        |
+| `EARTHLY_GIT_REFS` | The git references of the git commit detected within the build context directory, separated by space. If no git directory is detected, then the value is an empty string. | `issue-2735-git-ref main` |                                        |
+| `EARTHLY_GIT_SHORT_HASH` | The first 8 characters of the git hash detected within the build context directory. If no git directory is detected, then the value is an empty string. Take care when using this arg, as the frequently changing git hash may be cause for not using the cache. | `41cb5666` |                                        |
+| `EARTHLY_SOURCE_DATE_EPOCH` | The timestamp, as unix seconds, of the git commit detected within the build context directory. If no git directory is detected, then the value is `0` (the unix epoch) | `1626881847`, `0` |                                        |
 
 ### Platform-related args
 

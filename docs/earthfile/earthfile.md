@@ -365,6 +365,35 @@ The `--aws` flag has experimental status. To use this feature, it must be enable
 
 Makes AWS credentials available to the executed command via the host's environment variables or ~/.aws directory. 
 
+##### `--raw-output` (experimental)
+
+{% hint style='info' %}
+##### Note
+The `--raw-output` flag has experimental status. To use this feature, it must be enabled via `VERSION --raw-output `.
+{% endhint %}
+
+Outputs line without target name. 
+
+###### Examples:
+
+Given this target:
+```Dockerfile
+raw: 
+    RUN --raw-output echo "::group::"
+    RUN echo "should have prefix"
+    RUN --raw-output echo "::endgroup::" 
+```
+
+The following is output:
+```bash
+ ./+gha | --> RUN --raw-output echo "::group::"
+::group::
+ ./+gha | --> RUN echo "should have prefix"
+ ./+gha | should have prefix
+ ./+gha | --> RUN --raw-output echo "::endgroup::"
+::endgroup::
+```
+
 ## COPY
 
 #### Synopsis
@@ -380,6 +409,38 @@ The command `COPY` allows copying of files and directories between different con
 The command may take a couple of possible forms. In the *classical form*, `COPY` copies files and directories from the build context into the build environment - in this form, it works similarly to the [Dockerfile `COPY` command](https://docs.docker.com/engine/reference/builder/#copy). In the *artifact form*, `COPY` copies files or directories (also known as "artifacts" in this context) from the artifact environment of other build targets into the build environment of the current target. Either form allows the use of wildcards for the sources.
 
 The parameter `<src-artifact>` is an [artifact reference](../guides/importing.md#artifact-reference) and is generally of the form `<target-ref>/<artifact-path>`, where `<target-ref>` is the reference to the target which needs to be built in order to yield the artifact and `<artifact-path>` is the path within the artifact environment of the target, where the file or directory is located. The `<artifact-path>` may also be a wildcard.
+
+{% hint style='info' %}
+##### Globbing
+A target reference in a <src-artifact> may also include a glob expression.
+This is useful in order to invoke multiple targets that may exist in different Earthfiles in the filesystem, in a single `COPY` command.
+For example, consider the following filesystem:
+```bash
+services
+├── Earthfile
+├── service1
+│    └── Earthfile
+├── service2
+│   ├── Earthfile
+├── service3
+│   ├── Earthfile
+```
+
+where a `+mocks` target is defined in services1/Earthfile, services2/Earthfile and services3/Earthfile.
+The command `COPY ./services/*+mocks .` is equivalent to:
+```Earthfile
+    COPY ./services/service1+mocks .
+    COPY ./services/service2+mocks .
+    COPY ./services/service3+mocks .
+```
+
+A glob match occurs when an Earthfile in the glob expression path exists, and the named target is defined in the Earthfile.
+At least one match must be found for the command to succeed.
+
+This feature has experimental status. To use it, it must be enabled via `VERSION --wildcard-copy 0.8`.
+(This is not to be confused with the usage of wildcards in the artifact name, which is fully supported, e.g. `COPY ./services/service1+mocks/* .`)
+
+{% endhint %}
 
 The `COPY` command does not mark any saved images or artifacts of the referenced target for output, nor does it mark any push commands of the referenced target for pushing. For that, please use [`BUILD`](#build).
 
@@ -805,6 +866,37 @@ Multiple `BUILD` commands issued one after the other will be executed in paralle
 In Earthly v0.6+, what is being output and pushed is determined either by the main target being invoked on the command-line directly, or by targets directly connected to it via a chain of `BUILD` calls. Other ways to reference a target, such as `FROM`, `COPY`, `WITH DOCKER --load` etc, do not contribute to the final set of outputs or pushes.
 
 If you are referencing a target via some other command, such as `COPY` and you would like for the outputs or pushes to be included, you can issue an equivalent `BUILD` command in addition to the `COPY`. For example
+
+{% hint style='info' %}
+##### Globbing
+A <target-ref> may also include a glob expression.
+This is useful in order to invoke multiple targets that may exist in different Earthfiles in the filesystem, in a single `BUILD` command.
+For example, consider the following filesystem:
+```bash
+services
+├── Earthfile
+├── service1
+│    └── Earthfile
+├── service2
+│   ├── Earthfile
+├── service3
+│   ├── Earthfile
+```
+
+where a `+compile` target is defined in services1/Earthfile, services2/Earthfile and services3/Earthfile.
+The command `BUILD ./services/*+compile .` is equivalent to:
+```Earthfile
+    BUILD ./services/service1+compile
+    BUILD ./services/service2+compile
+    BUILD ./services/service3+compile
+```
+
+A glob match occurs when an Earthfile in the glob expression path exists, and the named target is defined in the Earthfile.
+At least one match must be found for the command to succeed.
+
+This feature has experimental status. To use it, it must be enabled via `VERSION --wildcard-builds 0.8`.
+
+{% endhint %}
 
 ```Dockerfile
 my-target:
