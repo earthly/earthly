@@ -11,6 +11,7 @@ WORKDIR /test
 test-all:
     BUILD +test-group1
     BUILD +test-group2
+    BUILD +test-group3
 
 test-group1:
     BUILD +test-files
@@ -23,18 +24,20 @@ test-group1:
     BUILD +test-expand-args
     BUILD +test-build-args
     BUILD +test-pass-args
+
+test-group2:
     BUILD +test-copy-target-args
     BUILD +test-arg-matrix
     BUILD +test-try-catch
     BUILD +test-push
-
-test-group2:
     BUILD +test-no-cache
     BUILD +test-shell-out
     BUILD +test-copy-if-exists
     BUILD +test-remote-targets
     BUILD +test-from-dockerfile
     BUILD +test-import
+
+test-group3:
     BUILD +test-copy-target-args-quoted
     BUILD +test-build-flag
     BUILD +test-flag-conflict

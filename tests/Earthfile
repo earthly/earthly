@@ -209,6 +209,9 @@ ga-no-qemu-group9:
 ga-no-qemu-group10:
     BUILD --pass-args ./autoskip+test-group2
 
+ga-no-qemu-group11:
+    BUILD --pass-args ./autoskip+test-group3
+
 
 ga-no-qemu-slow:
     BUILD +server

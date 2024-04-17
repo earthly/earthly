@@ -196,6 +196,19 @@ jobs:
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
 
+  podman-tests-no-qemu-group11:
+    needs: build-earthly
+    if: ${{ !failure() }}
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-group11"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "podman"
+      SUDO: "sudo -E"
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+    secrets: inherit
+
   podman-tests-no-qemu-slow:
     needs: build-earthly
     if: ${{ !failure() }}
