@@ -660,6 +660,7 @@ test-no-qemu:
     BUILD --pass-args +test-no-qemu-group8
     BUILD --pass-args +test-no-qemu-group9
     BUILD --pass-args +test-no-qemu-group10
+    BUILD --pass-args +test-no-qemu-group11
     BUILD --pass-args +test-no-qemu-slow
 
 # test-misc runs misc (non earthly-in-earthly) tests
