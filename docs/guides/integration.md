@@ -133,7 +133,7 @@ We start with a simple Earthfile that can build and create a docker image for ou
 We start from an appropriate docker image and set up a working directory. 
 ``` Dockerfile
 VERSION 0.8
-FROM earthly/dind:alpine-3.19-docker-25.0.3-r2
+FROM earthly/dind:alpine-3.19-docker-25.0.5-r0
 WORKDIR /scala-example
 RUN apk add openjdk11 bash wget postgresql-client
 ```
