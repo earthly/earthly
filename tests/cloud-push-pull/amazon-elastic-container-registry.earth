@@ -1,5 +1,5 @@
 VERSION 0.8
-FROM earthly/dind:alpine-3.19-docker-25.0.3-r2
+FROM earthly/dind:alpine-3.19-docker-25.0.5-r0
 
 push:
     ARG ACCT_ID
