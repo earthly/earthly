@@ -1304,12 +1304,48 @@ This option is deprecated. Please use `--load <image-name>=(<target-ref> --<buil
 
 The `IF` clause can perform varying commands depending on the outcome of one or more conditions. The expression passed as part of `<condition>` is evaluated by running it in the build environment. If the exit code of the expression is zero, then the block of that condition is executed. Otherwise, the control continues to the next `ELSE IF` condition (if any), or if no condition returns a non-zero exit code, the control continues to executing the `<else-block>`, if one is provided.
 
+#### Examples
+
 A very common pattern is to use the POSIX shell `[ ... ]` conditions. For example the following marks port `8080` as exposed if the file `./foo` exists.
 
 ```Dockerfile
 IF [ -f ./foo ]
   EXPOSE 8080
 END
+```
+
+It is also possible to call other commands, which can be useful for more comparisons such as semantic versioning. For example:
+
+```Dockerfile
+VERSION 0.8
+
+test:
+  FROM python:3
+  RUN pip3 install semver
+
+  # The following python script requires two arguments (v1 and v2)
+  # and will return an exit code of 0 when v1 is semantically greater than v2
+  # or an exit code of 1 in all other cases.
+  RUN echo "#!/usr/bin/env python3
+import sys
+import semver
+v1 = sys.argv[1]
+v2 = sys.argv[2]
+if semver.compare(v1, v2) > 0:
+  sys.exit(0)
+sys.exit(1)
+  " > ./semver-gt && chmod +x semver-gt
+
+  # Define two different versions
+  ARG A="0.3.2"
+  ARG B="0.10.1"
+
+  # and compare them
+  IF ./semver-gt "$A" "$B"
+    RUN echo "A ($A) is semantically greater than B ($B)"
+  ELSE
+    RUN echo "A ($A) is NOT semantically greater than B ($B)"
+  END
 ```
 
 {% hint style='info' %}
