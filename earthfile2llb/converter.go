@@ -22,6 +22,19 @@ import (
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/distribution/reference"
 	"github.com/earthly/cloud-api/logstream"
+	"github.com/joho/godotenv"
+	"github.com/moby/buildkit/client/llb"
+	dockerimage "github.com/moby/buildkit/exporter/containerimage/image"
+	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
+	"github.com/moby/buildkit/frontend/dockerui"
+	gwclient "github.com/moby/buildkit/frontend/gateway/client"
+	"github.com/moby/buildkit/session/localhost"
+	solverpb "github.com/moby/buildkit/solver/pb"
+	"github.com/moby/buildkit/util/apicaps"
+	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast/commandflag"
 	"github.com/earthly/earthly/ast/spec"
@@ -49,17 +62,6 @@ import (
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
-	"github.com/moby/buildkit/client/llb"
-	dockerimage "github.com/moby/buildkit/exporter/containerimage/image"
-	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
-	"github.com/moby/buildkit/frontend/dockerui"
-	gwclient "github.com/moby/buildkit/frontend/gateway/client"
-	"github.com/moby/buildkit/session/localhost"
-	solverpb "github.com/moby/buildkit/solver/pb"
-	"github.com/moby/buildkit/util/apicaps"
-	"github.com/pkg/errors"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type cmdType int
@@ -1381,10 +1383,18 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) err
 		return err
 	}
 	c.nonSaveCommand()
-	c.varCollection.DeclareEnv(envKey, envValue)
-	c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
-	c.mts.Final.MainImage.Config.Env = variables.AddEnv(
-		c.mts.Final.MainImage.Config.Env, envKey, envValue)
+
+	envMap, err := godotenv.Unmarshal(fmt.Sprintf("%s=%s", envKey, envValue))
+
+	if err != nil {
+		return err
+	}
+	for envKey, envValue := range envMap {
+		c.varCollection.DeclareEnv(envKey, envValue)
+		c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
+		c.mts.Final.MainImage.Config.Env = variables.AddEnv(c.mts.Final.MainImage.Config.Env, envKey, envValue)
+	}
+
 	return nil
 }
 

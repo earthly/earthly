@@ -10,3 +10,4 @@
 .idea
 .tmp-earthly-out*
 .DS_Store
+.run/
