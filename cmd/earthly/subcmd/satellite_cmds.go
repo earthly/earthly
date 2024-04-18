@@ -21,7 +21,6 @@ import (
 	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
-	"github.com/earthly/earthly/util/containerutil"
 )
 
 type Satellite struct {
@@ -712,14 +711,7 @@ func (a *Satellite) actionInspect(cliCtx *cli.Context) error {
 	a.cli.Flags().BuildkitdSettings.SatelliteIsManaged = satellite.IsManaged
 	a.cli.Flags().BuildkitdSettings.SatelliteDisplayName = satelliteToInspect
 	a.cli.Flags().BuildkitdSettings.SatelliteOrgID = orgID // must be the ID and not name, due to satellite-proxy requirements
-
-	if !satellite.IsManaged {
-		a.cli.Flags().BuildkitdSettings.BuildkitAddress = fmt.Sprintf("tcp://%s", satellite.Address)
-	} else if a.cli.Flags().SatelliteAddress != "" {
-		a.cli.Flags().BuildkitdSettings.BuildkitAddress = a.cli.Flags().SatelliteAddress
-	} else {
-		a.cli.Flags().BuildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
-	}
+	a.cli.Flags().BuildkitdSettings.BuildkitAddress = fmt.Sprintf("tcp://%s", satellite.Address)
 
 	selected := "No"
 	if selectedSatellite == satelliteToInspect {
@@ -729,9 +721,9 @@ func (a *Satellite) actionInspect(cliCtx *cli.Context) error {
 	size := satellite.Size
 	if !satellite.IsManaged {
 		size = "self-hosted"
-		a.cli.Console().Printf("Address: %s", satellite.Address)
 	}
 
+	a.cli.Console().Printf("Address: %s", satellite.Address)
 	a.cli.Console().Printf("State: %s", satellite.State)
 	a.cli.Console().Printf("Platform: %s", satellite.Platform)
 	a.cli.Console().Printf("Size: %s", size)
