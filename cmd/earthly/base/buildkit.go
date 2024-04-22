@@ -88,19 +88,15 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 	} else {
 		cli.Console().Warnf("TLS has been disabled; this should never be done when connecting to Earthly's production API\n")
 	}
-
-	cli.Flags().BuildkitdSettings.SatelliteIsManaged = sat.IsManaged
-	var satelliteAddress string
-	if !sat.IsManaged {
-		// A self-hosted satellite uses its own address
-		satelliteAddress = fmt.Sprintf("tcp://%s", sat.Address)
-	}
-	if cli.Flags().SatelliteAddress != "" {
-		satelliteAddress = cli.Flags().SatelliteAddress
-	}
 	cli.Flags().BuildkitdSettings.SatelliteName = satelliteName
 	cli.Flags().BuildkitdSettings.SatelliteDisplayName = cli.Flags().SatelliteName
 	cli.Flags().BuildkitdSettings.SatelliteOrgID = orgID
+	cli.Flags().BuildkitdSettings.SatelliteIsManaged = sat.IsManaged
+	satelliteAddress := cli.Flags().SatelliteAddress
+	if !sat.IsManaged && satelliteAddress == "" {
+		// A self-hosted satellite uses its own address
+		satelliteAddress = fmt.Sprintf("tcp://%s", sat.Address)
+	}
 	if satelliteAddress != "" {
 		cli.Flags().BuildkitdSettings.BuildkitAddress = satelliteAddress
 	} else {
