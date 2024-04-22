@@ -7,7 +7,7 @@ on:
 jobs:
   tests:
     name: +testing-gha-podman
-    runs-on: macos-13 # GitHub Actions the latest tag still uses macos-11, which does not have brew installed by default
+    runs-on: macos-14 # GitHub Actions the latest tag still uses macos-11, which does not have brew installed by default
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
