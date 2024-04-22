@@ -661,6 +661,7 @@ test-no-qemu:
     BUILD --pass-args +test-no-qemu-group9
     BUILD --pass-args +test-no-qemu-group10
     BUILD --pass-args +test-no-qemu-group11
+    BUILD --pass-args +test-no-qemu-group12
     BUILD --pass-args +test-no-qemu-slow
 
 # test-misc runs misc (non earthly-in-earthly) tests
@@ -746,6 +747,11 @@ test-no-qemu-group10:
 # test-no-qemu-group11 runs the tests from ./tests+ga-no-qemu-group11
 test-no-qemu-group11:
     BUILD --pass-args ./tests+ga-no-qemu-group11 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group12 runs the tests from ./tests+ga-no-qemu-group12
+test-no-qemu-group12:
+    BUILD --pass-args ./tests+ga-no-qemu-group12 \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
 # test-no-qemu-slow runs the tests from ./tests+ga-no-qemu-slow

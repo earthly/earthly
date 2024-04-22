@@ -212,6 +212,9 @@ ga-no-qemu-group10:
 ga-no-qemu-group11:
     BUILD --pass-args ./autoskip+test-group3
 
+ga-no-qemu-group12:
+    BUILD --pass-args ./warn-if-not-logged-in+test
+
 
 ga-no-qemu-slow:
     BUILD +server
@@ -235,6 +238,10 @@ ga-no-qemu:
     BUILD +ga-no-qemu-group6
     BUILD +ga-no-qemu-group7
     BUILD +ga-no-qemu-group8
+    BUILD +ga-no-qemu-group9
+    BUILD +ga-no-qemu-group10
+    BUILD +ga-no-qemu-group11
+    BUILD +ga-no-qemu-group12
     BUILD +ga-no-qemu-slow
 
 # Note that this target is split up under github action workflows

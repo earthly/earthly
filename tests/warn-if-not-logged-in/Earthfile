@@ -1,0 +1,26 @@
+VERSION 0.8
+FROM --pass-args ..+base
+
+# replace the earthly config.yml (which typically has buildkit_additional_config configured
+# to use the earthly docker hub registry); we want to intentionally use docker hub for thist test
+RUN echo "global:
+  disable_analytics: true" > /etc/.earthly/config.yml
+
+# clear out any docker auth
+RUN rm /root/.docker/config.json
+
+test:
+    RUN mkdir sub
+    COPY hello.earth Earthfile
+    DO --pass-args +RUN_EARTHLY_ARGS --target=+hello
+    RUN acbgrep 'Warning: you are not logged into registry-1.docker.io, you may experience rate-limitting when pulling images' earthly.output
+
+RUN_EARTHLY_ARGS:
+    FUNCTION
+    ARG earthfile
+    ARG target
+    ARG should_fail=false
+    DO --pass-args ..+RUN_EARTHLY \
+        --earthfile=$earthfile \
+        --target=$target \
+        --should_fail=$should_fail
