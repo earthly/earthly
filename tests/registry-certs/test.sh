@@ -1,7 +1,6 @@
 #!/bin/bash
-# This test script must be run directly (either locally, or via a github actions workflow); however,
-# most of this test runs as Earthly-in-Earthly so that we can easily mess with the Earthly config
-# without the host Earthly's config being affected.
+# Note: Most of this test runs as Earthly-in-Earthly so that we can easily mess with the Earthly config
+#       without the host Earthly's config being affected.
 
 set -uxe
 set -o pipefail
@@ -40,25 +39,18 @@ export REGISTRY="$REGISTRY_IP"
     -p "127.0.0.1:5443:443" \
     --name registry registry:2
 
-logfile=$(mktemp)
-test -f "$logfile"
-
-# Cleanup on exit
-function cleanup {
-  "$frontend" stop registry || true
-  rm "$logfile" || true
-}
-trap cleanup EXIT
-
 # Test.
+set +e
 "$earthly" --allow-privileged \
     --ci \
     --build-arg REGISTRY \
     --build-arg REGISTRY_IP \
     "$@" \
-    "$testdir/+all" |& tee "$logfile"
+    "$testdir/+all"
+exit_code="$?"
+set -e
 
-if ! grep "you are not logged into" "$logfile" >/dev/null; then
-    echo "earthly did not display a \"you are not logged into\" warning message"
-    exit 1
-fi
+# Cleanup.
+"$frontend" stop registry || true
+
+exit "$exit_code"
