@@ -90,10 +90,13 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 	}
 
 	cli.Flags().BuildkitdSettings.SatelliteIsManaged = sat.IsManaged
-	satelliteAddress := cli.Flags().SatelliteAddress
+	var satelliteAddress string
 	if !sat.IsManaged {
 		// A self-hosted satellite uses its own address
 		satelliteAddress = fmt.Sprintf("tcp://%s", sat.Address)
+	}
+	if cli.Flags().SatelliteAddress != "" {
+		satelliteAddress = cli.Flags().SatelliteAddress
 	}
 	cli.Flags().BuildkitdSettings.SatelliteName = satelliteName
 	cli.Flags().BuildkitdSettings.SatelliteDisplayName = cli.Flags().SatelliteName
