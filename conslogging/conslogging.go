@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -62,11 +63,12 @@ type ConsoleLogger struct {
 	isLocal bool
 	// salt is a salt used for color consistency
 	// (the same salt will get the same color).
-	salt      string
-	colorMode ColorMode
-	isCached  bool
-	isFailed  bool
-	logLevel  LogLevel
+	salt            string
+	colorMode       ColorMode
+	isCached        bool
+	isFailed        bool
+	isGitHubActions bool
+	logLevel        LogLevel
 
 	// The following are shared between instances and are protected by the mutex.
 	mu             *sync.Mutex
@@ -91,35 +93,37 @@ func New(w io.Writer, mu *sync.Mutex, colorMode ColorMode, prefixPadding int, lo
 		mu = &sync.Mutex{}
 	}
 	return ConsoleLogger{
-		consoleErrW:    w,
-		errW:           w,
-		colorMode:      colorMode,
-		saltColors:     make(map[string]*color.Color),
-		nextColorIndex: new(int),
-		prefixPadding:  prefixPadding,
-		mu:             mu,
-		logLevel:       logLevel,
+		consoleErrW:     w,
+		errW:            w,
+		colorMode:       colorMode,
+		saltColors:      make(map[string]*color.Color),
+		nextColorIndex:  new(int),
+		prefixPadding:   prefixPadding,
+		mu:              mu,
+		logLevel:        logLevel,
+		isGitHubActions: os.Getenv("GITHUB_ACTIONS") == "true",
 	}
 }
 
 func (cl ConsoleLogger) clone() ConsoleLogger {
 	return ConsoleLogger{
-		consoleErrW:    cl.consoleErrW,
-		errW:           cl.errW,
-		prefixWriter:   cl.prefixWriter,
-		prefix:         cl.prefix,
-		metadataMode:   cl.metadataMode,
-		isLocal:        cl.isLocal,
-		logLevel:       cl.logLevel,
-		salt:           cl.salt,
-		isCached:       cl.isCached,
-		isFailed:       cl.isFailed,
-		saltColors:     cl.saltColors,
-		colorMode:      cl.colorMode,
-		nextColorIndex: cl.nextColorIndex,
-		prefixPadding:  cl.prefixPadding,
-		mu:             cl.mu,
-		bb:             cl.bb,
+		consoleErrW:     cl.consoleErrW,
+		errW:            cl.errW,
+		prefixWriter:    cl.prefixWriter,
+		prefix:          cl.prefix,
+		metadataMode:    cl.metadataMode,
+		isLocal:         cl.isLocal,
+		logLevel:        cl.logLevel,
+		salt:            cl.salt,
+		isCached:        cl.isCached,
+		isFailed:        cl.isFailed,
+		isGitHubActions: cl.isGitHubActions,
+		saltColors:      cl.saltColors,
+		colorMode:       cl.colorMode,
+		nextColorIndex:  cl.nextColorIndex,
+		prefixPadding:   cl.prefixPadding,
+		mu:              cl.mu,
+		bb:              cl.bb,
 	}
 }
 
@@ -227,6 +231,11 @@ func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special st
 	if underlineLength < barWidth {
 		underlineLength = barWidth
 	}
+	if cl.isGitHubActions {
+		c.Fprintf(w, "::group:: %s", msg)
+		fmt.Fprintf(w, "\n")
+		return
+	}
 	c.Fprintf(w, " %s", msg)
 	fmt.Fprintf(w, "\n")
 	c.Fprintf(w, "%s", strings.Repeat("—", underlineLength))
@@ -242,6 +251,9 @@ func (cl ConsoleLogger) PrintPhaseFooter(phase string, disabled bool, special st
 		cl.mu.Unlock()
 	}()
 	c := cl.color(noColor)
+	if cl.isGitHubActions {
+		c.Fprintf(w, "::endgroup:: %s", phase)
+	}
 	c.Fprintf(w, "\n")
 }
 
