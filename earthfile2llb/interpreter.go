@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast/command"
@@ -1189,6 +1190,18 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 	return nil
 }
 
+func newOnExecutionSuccess(numSuccessRequired int, saveHashFn func()) func(context.Context) {
+	var mu sync.Mutex
+	return func(ctx context.Context) {
+		mu.Lock()
+		defer mu.Unlock()
+		numSuccessRequired -= 1
+		if numSuccessRequired == 0 {
+			saveHashFn()
+		}
+	}
+}
+
 func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async bool) error {
 	if i.pushOnlyAllowed {
 		return i.pushOnlyErr(cmd.SourceLocation)
@@ -1279,6 +1292,9 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 			}
 			saveHashFn = fn
 		}
+
+		onExecutionSuccess := newOnExecutionSuccess(len(platformsSlice), saveHashFn)
+
 		for _, platform := range platformsSlice {
 			if async {
 				err := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgs, buildCmd, nil, nil)
@@ -1287,11 +1303,10 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 				}
 				continue
 			}
-			err := i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgs)
+			err := i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgs, onExecutionSuccess)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
 			}
-			saveHashFn()
 		}
 	}
 	return nil

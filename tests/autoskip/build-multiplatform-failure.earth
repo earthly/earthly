@@ -1,0 +1,9 @@
+VERSION --build-auto-skip 0.8
+
+only-works-for-amd64:
+  FROM alpine
+  # intentionally cause a failure for arm64 builds
+  RUN test "$(uname -m)" = "x86_64"
+
+test:
+  BUILD --auto-skip --platform=linux/arm64 --platform=linux/amd64 +only-works-for-amd64
