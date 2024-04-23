@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -465,18 +465,23 @@ func (f *Formatter) printBuildFailure() {
 	}
 	c.Printf("%s%s\n", msgPrefix, failure.GetErrorMessage())
 
-	pattern := `ERROR (/.+) line (\d+):(\d+)\s+([\s\S]+)`
-	re := regexp.MustCompile(pattern)
-	matches := re.FindStringSubmatch(failure.GetErrorMessage())
-	if len(matches) == 5 {
-		file := matches[1]
-		line := matches[2]
-		col := matches[3]
-		message := strings.Join(strings.Fields(matches[4]), " ")
+	lines := strings.Split(failure.GetErrorMessage(), "\n")
+	var message string
+	if len(lines) > 1 {
+		message = strings.Join(strings.Fields(strings.Join(lines[1:], " ")), " ")
+	} else {
+		message = strings.Join(strings.Fields(lines[0]), " ")
+	}
+
+	if cm != nil && cm.SourceLocation != nil &&
+		cm.SourceLocation.File != "" && cm.SourceLocation.StartLine > 0 {
+		file := cm.SourceLocation.File
+		line := strconv.Itoa(int(cm.SourceLocation.StartLine))
+		col := strconv.Itoa(int(cm.SourceLocation.StartColumn))
 		c.PrintGHAError(message, file, line, col)
 	} else {
-		c.Printf("%s%s\n", msgPrefix, failure.GetErrorMessage())
-		c.PrintGHAError(failure.GetErrorMessage())
+		c.Printf("Error: %s\n", message)
+		c.PrintGHAError(message)
 	}
 
 	f.lastOutputWasOngoingUpdate = false
