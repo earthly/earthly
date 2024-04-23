@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -463,7 +464,21 @@ func (f *Formatter) printBuildFailure() {
 		}
 	}
 	c.Printf("%s%s\n", msgPrefix, failure.GetErrorMessage())
-	c.PrintGHAError(failure.GetErrorMessage())
+
+	pattern := `ERROR (/.+) line (\d+):(\d+)\s+([\s\S]+)`
+	re := regexp.MustCompile(pattern)
+	matches := re.FindStringSubmatch(failure.GetErrorMessage())
+	if len(matches) == 5 {
+		file := matches[1]
+		line := matches[2]
+		col := matches[3]
+		message := strings.Join(strings.Fields(matches[4]), " ")
+		c.PrintGHAError(message, file, line, col)
+	} else {
+		c.Printf("%s%s\n", msgPrefix, failure.GetErrorMessage())
+		c.PrintGHAError(failure.GetErrorMessage())
+	}
+
 	f.lastOutputWasOngoingUpdate = false
 	f.lastOutputWasProgress = false
 	f.lastCommandOutput = nil

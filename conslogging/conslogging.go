@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -273,32 +272,26 @@ func (cl ConsoleLogger) PrefixColor() *color.Color {
 	return cl.color(c)
 }
 
-// Print GHA control messages like ::group and ::error
-func (cl ConsoleLogger) PrintGHAError(msg string) {
+// PrintGHAError constructs a GitHub Actions error message.
+// The `file`, `line`, and `col` parameters are optional.
+func (cl *ConsoleLogger) PrintGHAError(message string, details ...string) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 
-	// Define the regex pattern to extract file, line, and column.
-	pattern := `ERROR (.+) line (\d+):(\d+)`
-	re := regexp.MustCompile(pattern)
-	matches := re.FindStringSubmatch(msg)
+	file := ""
+	line := ""
+	col := ""
 
-	if len(matches) != 4 {
-		// If the regex doesn't match, just print the original message
-		cl.printGithubActionsControl("::error::" + msg)
-		return
+	if len(details) >= 3 {
+		file, line, col = details[0], details[1], details[2]
 	}
 
-	// Extracted parts
-	file := matches[1]
-	line := matches[2]
-	col := matches[3]
-
-	// Construct the formatted message for GHA
-	formattedMsg := fmt.Sprintf("::error file=%s,line=%s,col=%s::%s", file, line, col, "ERROR")
-
-	// Print using the formatted message
-	cl.printGithubActionsControl(formattedMsg)
+	if file != "" && line != "" && col != "" {
+		formattedMsg := fmt.Sprintf("::error file=%s,line=%s,col=%s,title=Error::%s", file, line, col, message)
+		cl.printGithubActionsControl(formattedMsg)
+	} else {
+		cl.printGithubActionsControl(fmt.Sprintf("::error title=Error::%s", message))
+	}
 }
 
 // Print GHA control messages like ::group and ::error
