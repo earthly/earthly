@@ -32,6 +32,7 @@ type Satellite struct {
 	maintenanceWindow      string
 	maintenaceWeekendsOnly bool
 	version                string
+	cloudName              string
 	force                  bool
 	printJSON              bool
 	listAll                bool
@@ -120,8 +121,13 @@ as well as run builds in native architectures independent of where the Earthly c
 							Name:        "version",
 							Usage:       "Launch and pin a satellite at a specific version (disables auto-updates)",
 							Required:    false,
-							Hidden:      true,
 							Destination: &a.version,
+						},
+						&cli.StringFlag{
+							Name:        "cloud",
+							Usage:       "Launch the satellite within a configured cloud installation (only applies to accounts subscribed to the BYOC plan)",
+							Required:    false,
+							Destination: &a.cloudName,
 						},
 					},
 				},
@@ -368,17 +374,28 @@ func (a *Satellite) printSatellitesTable(satellites []satelliteWithPipelineInfo,
 	})
 
 	includeTypeColumn := false
+	includeCloudColumn := false
+	cloudNames := make(map[string]bool)
 	for _, s := range satellites {
 		if s.pipeline != nil {
 			includeTypeColumn = true
 			break
 		}
+		if n := s.satellite.CloudName; n != "" {
+			cloudNames[n] = true
+		}
+	}
+	if len(cloudNames) > 1 {
+		includeCloudColumn = true
 	}
 
 	t := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
 	headerRow := []string{" ", "NAME", "PLATFORM", "SIZE", "VERSION", "STATE"} // The leading space is for the selection marker, leave it alone
 	if includeTypeColumn {
 		headerRow = slices.Insert(headerRow, 2, "TYPE")
+	}
+	if includeCloudColumn {
+		headerRow = append(headerRow, "CLOUD")
 	}
 	if a.listAll {
 		headerRow = append(headerRow, "LAST USED", "CACHE")
@@ -398,6 +415,13 @@ func (a *Satellite) printSatellitesTable(satellites []satelliteWithPipelineInfo,
 		}
 		if includeTypeColumn {
 			row = slices.Insert(row, 2, s.satType())
+		}
+		if includeCloudColumn {
+			name := s.satellite.CloudName
+			if name == "" {
+				name = "-"
+			}
+			row = append(row, name)
 		}
 		if a.listAll {
 			row = append(row, humanize.Time(s.satellite.LastUsed), durationWithDaysPart(s.satellite.CacheRetention))
@@ -438,6 +462,7 @@ type satelliteJSON struct {
 	Pipeline       string `json:"pipeline"`
 	LastUsed       string `json:"last_used"`
 	CacheRetention string `json:"cache_retention"`
+	CloudName      string `json:"cloud_name"`
 }
 
 func (a *Satellite) printSatellitesJSON(satellites []satelliteWithPipelineInfo, isOrgSelected bool) {
@@ -454,6 +479,7 @@ func (a *Satellite) printSatellitesJSON(satellites []satelliteWithPipelineInfo, 
 			Type:           s.satType(),
 			LastUsed:       s.satellite.LastUsed.String(),
 			CacheRetention: s.satellite.CacheRetention.String(),
+			CloudName:      s.satellite.CloudName,
 		}
 		if s.pipeline != nil {
 			jsonSats[i].Project = s.pipeline.Project
@@ -532,6 +558,7 @@ func (a *Satellite) actionLaunch(cliCtx *cli.Context) error {
 		MaintenanceWindowStart:  window,
 		FeatureFlags:            ffs,
 		MaintenanceWeekendsOnly: a.maintenaceWeekendsOnly,
+		CloudName:               a.cloudName,
 	})
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
