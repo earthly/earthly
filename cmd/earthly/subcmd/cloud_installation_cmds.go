@@ -43,9 +43,8 @@ func (a *CloudInstallation) Cmds() []*cli.Command {
 					Name:        "install",
 					Usage:       "Configure a new Cloud Installation",
 					Description: "Configure a new Cloud Installation.",
-					UsageText: "earthly cloud install <cloud-name>\n" +
-						"	earthly cloud [--org <organization-name>] install <cloud-name>",
-					Action: a.install,
+					UsageText:   "earthly cloud install <cloud-name>",
+					Action:      a.install,
 				},
 				{
 					Name:        "use",
@@ -80,10 +79,10 @@ func (c *CloudInstallation) install(cliCtx *cli.Context) error {
 	ctx := cliCtx.Context
 
 	if cliCtx.NArg() == 0 {
-		return errors.New("satellite name is required")
+		return errors.New("cloud name is required")
 	}
 	if cliCtx.NArg() > 1 {
-		return errors.New("only a single satellite name is supported")
+		return errors.New("only a single cloud name is supported")
 	}
 
 	cloudName := cliCtx.Args().Get(0)
@@ -100,7 +99,6 @@ func (c *CloudInstallation) install(cliCtx *cli.Context) error {
 
 	c.cli.Console().Printf("Configuring new Cloud Installation: %s. Please wait...", cloudName)
 
-	// TODO should this set default or no?
 	install, err := cloudClient.ConfigureCloud(ctx, orgID, cloudName, false)
 	if err != nil {
 		return errors.Wrap(err, "could not install cloud")
@@ -116,7 +114,11 @@ func (c *CloudInstallation) install(cliCtx *cli.Context) error {
 	}
 
 	c.cli.Console().Printf("...Done\n")
-	c.cli.Console().Printf("Cloud Installation was successful. Current status is: %s", install.Status)
+	c.cli.Console().Printf("Cloud Installation was successful. Current status of cloud is: %s", install.Status)
+	c.cli.Console().Printf("")
+	c.cli.Console().Printf("To make your new cloud the default destination for future satellite launches, run the following:")
+	c.cli.Console().Printf("  earthly cloud use %s", cloudName)
+	c.cli.Console().Printf("")
 
 	return nil
 }
@@ -126,10 +128,10 @@ func (c *CloudInstallation) use(cliCtx *cli.Context) error {
 	ctx := cliCtx.Context
 
 	if cliCtx.NArg() == 0 {
-		return errors.New("satellite name is required")
+		return errors.New("cloud name is required")
 	}
 	if cliCtx.NArg() > 1 {
-		return errors.New("only a single satellite name is supported")
+		return errors.New("only a single cloud name is supported")
 	}
 
 	cloudName := cliCtx.Args().Get(0)
@@ -162,7 +164,7 @@ func (c *CloudInstallation) use(cliCtx *cli.Context) error {
 
 	c.cli.Console().Printf("...Done\n")
 	c.cli.Console().Printf("Current status is: %s", install.Status)
-	c.cli.Console().Printf("%s will be used as the cloud for all future satellite operations across %s.", cloudName, orgName)
+	c.cli.Console().Printf("The cloud '%s' will now be used as the default for all satellite launches within the org '%s'.", cloudName, orgName)
 
 	return nil
 }
@@ -195,10 +197,10 @@ func (c *CloudInstallation) remove(cliCtx *cli.Context) error {
 	ctx := cliCtx.Context
 
 	if cliCtx.NArg() == 0 {
-		return errors.New("satellite name is required")
+		return errors.New("cloud name is required")
 	}
 	if cliCtx.NArg() > 1 {
-		return errors.New("only a single satellite name is supported")
+		return errors.New("only a single cloud name is supported")
 	}
 
 	cloudName := cliCtx.Args().Get(0)
