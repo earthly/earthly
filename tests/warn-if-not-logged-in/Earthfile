@@ -12,7 +12,7 @@ RUN rm /root/.docker/config.json
 test:
     RUN mkdir sub
     COPY hello.earth Earthfile
-    DO --pass-args +RUN_EARTHLY_ARGS --target=+hello
+    DO --pass-args +RUN_EARTHLY_ARGS --target=+hello --should_fail=maybe # there's a chance we actually get rate limited
     RUN acbgrep 'Warning: you are not logged into registry-1.docker.io, you may experience rate-limitting when pulling images' earthly.output
 
 RUN_EARTHLY_ARGS:

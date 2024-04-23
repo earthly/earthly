@@ -1855,16 +1855,22 @@ RUN_EARTHLY:
             exit \$exit_code
         fi
 
-        if $should_fail; then
+        if [ \"$should_fail\" = maybe ]; then
+            # This is for times when we do not care about the exit code
+            echo \"INFO: earthly exited with exit_code=\$exit_code; maybe this is ok?\"
+        elif [ \"$should_fail\" = true ]; then
             if [ \$exit_code -eq 0 ]; then
                 echo ERROR: earthly should have failed but didn\'t.
                 exit 1
             fi
-        else
+        elif [ \"$should_fail\" = false ]; then
             if [ \$exit_code -ne 0 ]; then
                 echo ERROR: earthly failed with exit code \$exit_code.
                 exit \$exit_code
             fi
+        else
+            echo ERROR: unexpected value for should_fail: $should_fail
+            exit 1
         fi
         if [ -n \"$output_contains\" ]; then
             if ! grep $grep_flags \"$output_contains\" earthly.output >/dev/null; then
