@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -231,11 +232,7 @@ func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special st
 	if underlineLength < barWidth {
 		underlineLength = barWidth
 	}
-	if cl.isGitHubActions {
-		c.Fprintf(w, "::group:: %s", msg)
-		fmt.Fprintf(w, "\n")
-		return
-	}
+	cl.printGithubActionsControl("::group:: " + msg)
 	c.Fprintf(w, " %s", msg)
 	fmt.Fprintf(w, "\n")
 	c.Fprintf(w, "%s", strings.Repeat("—", underlineLength))
@@ -251,9 +248,7 @@ func (cl ConsoleLogger) PrintPhaseFooter(phase string, disabled bool, special st
 		cl.mu.Unlock()
 	}()
 	c := cl.color(noColor)
-	if cl.isGitHubActions {
-		c.Fprintf(w, "::endgroup:: %s", phase)
-	}
+	cl.printGithubActionsControl("::endgroup:: " + phase)
 	c.Fprintf(w, "\n")
 }
 
@@ -276,6 +271,47 @@ func (cl ConsoleLogger) PrefixColor() *color.Color {
 		*cl.nextColorIndex = (*cl.nextColorIndex + 1) % len(availablePrefixColors)
 	}
 	return cl.color(c)
+}
+
+// Print GHA control messages like ::group and ::error
+func (cl ConsoleLogger) PrintGHAError(msg string) {
+	cl.mu.Lock()
+	defer cl.mu.Unlock()
+
+	// Define the regex pattern to extract file, line, and column.
+	pattern := `ERROR (.+) line (\d+):(\d+)`
+	re := regexp.MustCompile(pattern)
+	matches := re.FindStringSubmatch(msg)
+
+	if len(matches) != 4 {
+		// If the regex doesn't match, just print the original message
+		cl.printGithubActionsControl("::error::" + msg)
+		return
+	}
+
+	// Extracted parts
+	file := matches[1]
+	line := matches[2]
+	col := matches[3]
+
+	// Construct the formatted message for GHA
+	formattedMsg := fmt.Sprintf("::error file=%s,line=%s,col=%s::%s", file, line, col, "ERROR")
+
+	// Print using the formatted message
+	cl.printGithubActionsControl(formattedMsg)
+}
+
+// Print GHA control messages like ::group and ::error
+func (cl ConsoleLogger) printGithubActionsControl(msg string) {
+	if !cl.isGitHubActions {
+		return
+	}
+	// Assumes mu locked.
+	w := new(bytes.Buffer)
+	defer func() {
+		_, _ = w.WriteTo(cl.errW)
+	}()
+	fmt.Fprintf(w, "%s\n", msg)
 }
 
 // PrintBar prints an earthly message bar.

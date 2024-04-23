@@ -463,6 +463,7 @@ func (f *Formatter) printBuildFailure() {
 		}
 	}
 	c.Printf("%s%s\n", msgPrefix, failure.GetErrorMessage())
+	c.PrintGHAError(failure.GetErrorMessage())
 	f.lastOutputWasOngoingUpdate = false
 	f.lastOutputWasProgress = false
 	f.lastCommandOutput = nil
