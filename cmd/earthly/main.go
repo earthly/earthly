@@ -153,8 +153,7 @@ func main() {
 	if envutil.IsTrue("EARTHLY_FULL_TARGET") {
 		padding = conslogging.NoPadding
 	}
-	isGitHubActions := envutil.IsTrue("GITHUB_ACTIONS") || cli.Flags().IsGitHubActions
-	logging := conslogging.Current(colorMode, padding, conslogging.Info, isGitHubActions)
+	logging := conslogging.Current(colorMode, padding, conslogging.Info, cli.Flags().IsGithubAnnotations)
 
 	cli.SetConsole(logging)
 	earthly := app.NewEarthlyApp(cli, rootApp, buildApp, ctx)

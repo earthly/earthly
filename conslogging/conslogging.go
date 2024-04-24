@@ -231,7 +231,7 @@ func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special st
 	if underlineLength < barWidth {
 		underlineLength = barWidth
 	}
-	cl.printGithubActionsControl(Group, msg)
+	cl.printGithubActionsControl(groupCommand, msg)
 	c.Fprintf(w, " %s", msg)
 	fmt.Fprintf(w, "\n")
 	c.Fprintf(w, "%s", strings.Repeat("—", underlineLength))
@@ -247,7 +247,7 @@ func (cl ConsoleLogger) PrintPhaseFooter(phase string, disabled bool, special st
 		cl.mu.Unlock()
 	}()
 	c := cl.color(noColor)
-	cl.printGithubActionsControl(EndGroup, phase)
+	cl.printGithubActionsControl(endGroupCommand, phase)
 	c.Fprintf(w, "\n")
 }
 
@@ -305,22 +305,22 @@ func (cl *ConsoleLogger) PrintGHAError(message string, details ...string) {
 	}
 
 	if file != "" && line != "" && col != "" {
-		cl.printGithubActionsControl(Error, "file=%s,line=%s,col=%s,title=Error::%s", file, line, col, message)
+		cl.printGithubActionsControl(errorCommand, "file=%s,line=%s,col=%s,title=Error::%s", file, line, col, message)
 	} else {
-		cl.printGithubActionsControl(Error, "title=Error::%s", message)
+		cl.printGithubActionsControl(errorCommand, "title=Error::%s", message)
 	}
 }
 
-type GHHeader string
+type ghHeader string
 
 const (
-	Error    GHHeader = "::error"
-	Group    GHHeader = "::group::"
-	EndGroup GHHeader = "::endgroup::"
+	errorCommand    ghHeader = "::error"
+	groupCommand    ghHeader = "::group::"
+	endGroupCommand ghHeader = "::endgroup::"
 )
 
 // Print GHA control messages like ::group and ::error
-func (cl ConsoleLogger) printGithubActionsControl(header GHHeader, format string, a ...any) {
+func (cl ConsoleLogger) printGithubActionsControl(header ghHeader, format string, a ...any) {
 	if !cl.isGitHubActions {
 		return
 	}
