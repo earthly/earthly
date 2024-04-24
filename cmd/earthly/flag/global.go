@@ -101,6 +101,7 @@ type Global struct {
 	LocalSkipDB                string
 	DisableRemoteRegistryProxy bool
 	NoAutoSkip                 bool
+	IsGitHubActions            bool
 }
 
 func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
@@ -537,6 +538,13 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			EnvVars:     []string{"EARTHLY_NO_AUTO_SKIP"},
 			Usage:       "Disable auto-skip functionality",
 			Destination: &global.NoAutoSkip,
+			Value:       false,
+		},
+		&cli.BoolFlag{
+			Name:        "github-actions",
+			EnvVars:     []string{"GITHUB_ACTIONS"},
+			Usage:       "Enable Git Hub Actions workflow specific output",
+			Destination: &global.IsGitHubActions,
 			Value:       false,
 		},
 	}

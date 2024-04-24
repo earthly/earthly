@@ -83,12 +83,12 @@ type ConsoleLogger struct {
 }
 
 // Current returns the current console.
-func Current(colorMode ColorMode, prefixPadding int, logLevel LogLevel) ConsoleLogger {
-	return New(getCompatibleStderr(), &currentConsoleMutex, colorMode, prefixPadding, logLevel)
+func Current(colorMode ColorMode, prefixPadding int, logLevel LogLevel, isGitHubActions bool) ConsoleLogger {
+	return New(getCompatibleStderr(), &currentConsoleMutex, colorMode, prefixPadding, logLevel, isGitHubActions)
 }
 
 // New returns a new ConsoleLogger with a predefined target writer.
-func New(w io.Writer, mu *sync.Mutex, colorMode ColorMode, prefixPadding int, logLevel LogLevel) ConsoleLogger {
+func New(w io.Writer, mu *sync.Mutex, colorMode ColorMode, prefixPadding int, logLevel LogLevel, isGitHubActions bool) ConsoleLogger {
 	if mu == nil {
 		mu = &sync.Mutex{}
 	}
@@ -101,7 +101,7 @@ func New(w io.Writer, mu *sync.Mutex, colorMode ColorMode, prefixPadding int, lo
 		prefixPadding:   prefixPadding,
 		mu:              mu,
 		logLevel:        logLevel,
-		isGitHubActions: os.Getenv("GITHUB_ACTIONS") == "true",
+		isGitHubActions: isGitHubActions,
 	}
 }
 
@@ -279,7 +279,7 @@ func (cl *ConsoleLogger) PrintGHASummary(message string) {
 	}
 
 	path := os.Getenv("GITHUB_STEP_SUMMARY")
-	if path == ""{
+	if path == "" {
 		return
 	}
 	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)

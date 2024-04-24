@@ -84,7 +84,7 @@ type Formatter struct {
 }
 
 // New creates a new Formatter.
-func New(ctx context.Context, b *logbus.Bus, debug, verbose, displayStats, forceColor, noColor, disableOngoingUpdates bool, execStatsTracker *execstatssummary.Tracker) *Formatter {
+func New(ctx context.Context, b *logbus.Bus, debug, verbose, displayStats, forceColor, noColor, disableOngoingUpdates bool, execStatsTracker *execstatssummary.Tracker, isGitHubActions bool) *Formatter {
 	ongoingTick := durationBetweenOngoingUpdatesNoAnsi
 	if ansiSupported {
 		ongoingTick = durationBetweenOngoingUpdates
@@ -111,7 +111,7 @@ func New(ctx context.Context, b *logbus.Bus, debug, verbose, displayStats, force
 	}
 	f := &Formatter{
 		bus:              b,
-		console:          conslogging.New(nil, nil, colorMode, conslogging.DefaultPadding, logLevel),
+		console:          conslogging.New(nil, nil, colorMode, conslogging.DefaultPadding, logLevel, isGitHubActions),
 		verbose:          verbose,
 		displayStats:     displayStats,
 		execStatsTracker: execStatsTracker,

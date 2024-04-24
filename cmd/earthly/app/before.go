@@ -58,10 +58,11 @@ func (app *EarthlyApp) before(cliCtx *cli.Context) error {
 		disableOngoingUpdates := !app.BaseCLI.Flags().Logstream || app.BaseCLI.Flags().InteractiveDebugging
 		forceColor := envutil.IsTrue("FORCE_COLOR")
 		noColor := envutil.IsTrue("NO_COLOR")
+		isGitHubActions := envutil.IsTrue("GITHUB_ACTIONS") || app.BaseCLI.Flags().IsGitHubActions
 		var err error
 		newSetup, err := logbussetup.New(
 			cliCtx.Context, app.BaseCLI.Logbus(), app.BaseCLI.Flags().Debug, app.BaseCLI.Flags().Verbose, app.BaseCLI.Flags().DisplayExecStats, forceColor, noColor,
-			disableOngoingUpdates, app.BaseCLI.Flags().LogstreamDebugFile, app.BaseCLI.Flags().BuildID, execStatsTracker)
+			disableOngoingUpdates, app.BaseCLI.Flags().LogstreamDebugFile, app.BaseCLI.Flags().BuildID, execStatsTracker, isGitHubActions)
 		app.BaseCLI.SetLogbusSetup(newSetup)
 		if err != nil {
 			return errors.Wrap(err, "logbus setup")
