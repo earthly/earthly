@@ -1,0 +1,5 @@
+VERSION 0.8
+
+hello:
+  FROM alpine
+  RUN echo hello
