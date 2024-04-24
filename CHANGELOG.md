@@ -4,17 +4,26 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.9 - 2024-04-24
+
+### Fixed
+
+- `BUILD --auto-skip` was recording failed steps as complete, which would lead to them being skipped on subsequent runs. [#4054](https://github.com/earthly/earthly/issues/4054)
+
+### Additional Info
+- This release has no changes to buildkit
+
 ## v0.8.8 - 2024-04-17
 
 ### Added
 
 - New experimental wildcard-based copy, e.g. `COPY ./services/*+artifact/* .` which would invoke `COPY` for `./services/foo+artifact`, and `./services/bar+artifact` (assuming two services foo and bar, both having a `artifact` target in their respective Earthfile). Enable with the `VERSION --wildcard-copy` feature flag. [#3966](https://github.com/earthly/earthly/issues/3966).
 - New built-in `ARG`s - `EARTHLY_GIT_AUTHOR_EMAIL` and `EARTHLY_GIT_AUTHOR_NAME` will contain the author email and author name respectively. Enable with the `VERSION --git-author-email-name-args` feature flag.
+- New `--raw-output` flag available on `RUN` that outputs line without target name. Enable with `VERSION --raw-output`. [#3713](https://github.com/earthly/earthly/issues/3713)
 
 ### Changed
 
 - `EARTHLY_GIT_AUTHOR` built-in `ARG` will now contain both name and email, when enabled with the `VERSION --git-author-email-name-args` feature flag. Previously it only contained the email. [#3822](https://github.com/earthly/earthly/issues/3822)
-- New `--raw-output` flag available on `RUN` that outputs line without target name. Enable with `VERSION --raw-output`. [#3713](https://github.com/earthly/earthly/issues/3713)
 
 ### Fixed
 

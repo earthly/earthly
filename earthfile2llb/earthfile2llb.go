@@ -198,6 +198,9 @@ type ConvertOpt struct {
 
 	// NoAutoSkip disables auto-skip usages.
 	NoAutoSkip bool
+
+	// OnExecutionSuccess is called after a forceExecution successfully runs; it is used to save auto-skip hashes
+	OnExecutionSuccess func(context.Context)
 }
 
 // TargetDetails contains details about the target being built.
