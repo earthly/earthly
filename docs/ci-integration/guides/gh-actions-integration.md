@@ -2,8 +2,8 @@
 # GitHub Actions integration
 
 {% hint style='info' %}
-##### Tip
-Check the new [Satellites-GHA integration](../cloud/satellites/github-actions-integration.md), for directly running GHA jobs in Earthly Satellites without the need of additional GitHub runners.
+##### News
+The recommended approach for GHA integration now is [using Satellites as GHA runners](../cloud/satellites/gha-runners.md).
 {% endhint %}
 
 Here is an example of a GitHub Actions build that uses the [earthly/actions-setup](https://github.com/earthly/actions-setup).

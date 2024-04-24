@@ -1,8 +1,8 @@
-# GitHub actions integration (**experimental**)
+# Satellites as GHA runners (**experimental**)
 
 This new feature allows triggering Earthly satellites directly from GHA (GitHub actions) without the need of an intermediate runner. 
 
-Earthly Satellites embed a GitHub self-hosted runner, so they can directly pull jobs from GHA. The runner comes with the Earthly CLI preinstalled, and it's configured to use the Satellite Buildkit instance, so GHA jobs will share the same Satellite cache than the traditional Satellite builds.
+Earthly Satellites embed now a GitHub self-hosted runner, so they can directly pull jobs from GHA. The runner comes with the Earthly CLI preinstalled, and it's configured to use the Satellite Buildkit instance, so GHA jobs will share the same Satellite cache than the traditional Satellite builds.
 
 Notice that this self-hosted runner can run any arbitrary GHA job, not necessarily an Earthly command, so given that it runs within the Satellite, it benefits from its persistent local storage (see ["Persistent Folders" section below](#persistent-folders)).
 
@@ -69,7 +69,7 @@ You should see a log message like this, when the GHA runner is enabled:
 ```
 
 ## GHA job definition
-Job configuration is performed through [runs-on](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idruns-on) labels. In particular:
+Job configuration is performed via [runs-on](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idruns-on) labels. In particular:
 
 ### Satellite name
 ```

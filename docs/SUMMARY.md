@@ -85,5 +85,5 @@
     * [Managing Satellites](cloud/satellites/managing.md)
     * [Using Satellites](cloud/satellites/using.md)
     * [Self-Hosted Satellites](cloud/satellites/self-hosted.md)
-    * [GitHub actions integration](cloud/satellites/github-actions-integration.md)
+    * [GitHub runners](cloud/satellites/gha-runners.md)
     * [Best Practices](cloud/satellites/best-practices.md)
