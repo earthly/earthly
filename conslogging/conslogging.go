@@ -330,7 +330,12 @@ func (cl ConsoleLogger) printGithubActionsControl(header ghHeader, format string
 		_, _ = w.WriteTo(cl.errW)
 	}()
 
-	fmt.Fprintf(w, string(header)+" "+format+"\n", a...)
+	if !strings.HasSuffix(format, "\n") {
+		format += "\n"
+	}
+	fullFormat := string(header) + " " + format
+
+	fmt.Fprintf(w, fullFormat, a...)
 }
 
 // PrintBar prints an earthly message bar.
