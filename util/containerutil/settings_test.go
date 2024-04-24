@@ -118,7 +118,7 @@ func TestBuildArgMatrix(t *testing.T) {
 		ctx := context.Background()
 
 		var logs strings.Builder
-		logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, conslogging.Info)
+		logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, conslogging.Info, false)
 		logger = logger.WithWriter(&logs)
 
 		frontend, err := NewStubFrontend(ctx, &FrontendConfig{
@@ -185,7 +185,7 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 		ctx := context.Background()
 
 		var logs strings.Builder
-		logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, conslogging.Info)
+		logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, conslogging.Info, false)
 		logger = logger.WithWriter(&logs)
 
 		frontend, err := NewStubFrontend(ctx, &FrontendConfig{
@@ -286,7 +286,7 @@ func TestBuildArgMatrixValidationNonIssues(t *testing.T) {
 		ctx := context.Background()
 
 		var logs strings.Builder
-		logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, conslogging.Info)
+		logger := conslogging.Current(conslogging.NoColor, conslogging.DefaultPadding, conslogging.Info, false)
 		logger = logger.WithWriter(&logs)
 
 		frontend, err := NewStubFrontend(ctx, &FrontendConfig{

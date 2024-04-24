@@ -72,7 +72,7 @@ func getApp() *cli.App {
 }
 
 func getPotentials(cmd string) ([]string, error) {
-	logger := conslogging.Current(conslogging.NoColor, 0, conslogging.Info)
+	logger := conslogging.Current(conslogging.NoColor, 0, conslogging.Info, false)
 	gitLookup := buildcontext.NewGitLookup(logger, "")
 	resolver := buildcontext.NewResolver(nil, gitLookup, logger, "", "", "", 0, "")
 	return GetPotentials(context.TODO(), resolver, nil, cmd, len(cmd), getApp(), nil)

@@ -541,7 +541,7 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			Value:       false,
 		},
 		&cli.BoolFlag{
-			Name:        "github-actions",
+			Name:        "github-annotations",
 			EnvVars:     []string{"GITHUB_ACTIONS"},
 			Usage:       "Enable Git Hub Actions workflow specific output",
 			Destination: &global.IsGitHubActions,
