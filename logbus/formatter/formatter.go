@@ -248,6 +248,7 @@ func (f *Formatter) handleDeltaManifest(dm *logstream.DeltaManifest) error {
 	}
 	if dm.GetFields().GetHasFailure() {
 		f.printBuildFailure()
+		f.printGHAFailure()
 	}
 	return nil
 }
@@ -464,7 +465,24 @@ func (f *Formatter) printBuildFailure() {
 		}
 	}
 	c.Printf("%s%s\n", msgPrefix, failure.GetErrorMessage())
+	f.lastOutputWasOngoingUpdate = false
+	f.lastOutputWasProgress = false
+	f.lastCommandOutput = nil
+}
 
+func (f *Formatter) printGHAFailure() {
+	failure := f.manifest.GetFailure()
+	if failure.GetErrorMessage() == "" {
+		return
+	}
+	var cm *logstream.CommandManifest
+	if failure.GetCommandId() != "" {
+		cm = f.manifest.GetCommands()[failure.GetCommandId()]
+	}
+	c, _ := f.targetConsole(failure.GetTargetId(), failure.GetCommandId(), false)
+	c = c.WithFailed(true)
+
+	// Extract the error from first line of the error message
 	lines := strings.Split(failure.GetErrorMessage(), "\n")
 	var message string
 	if len(lines) > 1 {
@@ -473,6 +491,7 @@ func (f *Formatter) printBuildFailure() {
 		message = strings.Join(strings.Fields(lines[0]), " ")
 	}
 
+	// Print GHA Error with line info if available
 	if cm != nil && cm.SourceLocation != nil &&
 		cm.SourceLocation.File != "" && cm.SourceLocation.StartLine > 0 {
 		file := cm.SourceLocation.File
@@ -480,13 +499,26 @@ func (f *Formatter) printBuildFailure() {
 		col := strconv.Itoa(int(cm.SourceLocation.StartColumn))
 		c.PrintGHAError(message, file, line, col)
 	} else {
-		c.Printf("Error: %s\n", message)
 		c.PrintGHAError(message)
 	}
 
-	f.lastOutputWasOngoingUpdate = false
-	f.lastOutputWasProgress = false
-	f.lastCommandOutput = nil
+	//GHA Summary markdown
+	markdown := fmt.Sprintf(`
+# ❌ Build Failure ❌
+
+### Error Message 
+
+~~~
+%s
+~~~
+
+### Command Output
+
+~~~
+%s
+~~~
+`, failure.GetErrorMessage(), string(failure.GetOutput()))
+	c.PrintGHASummary(markdown)
 }
 
 func (f *Formatter) targetName(targetID string) string {

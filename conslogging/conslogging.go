@@ -272,6 +272,24 @@ func (cl ConsoleLogger) PrefixColor() *color.Color {
 	return cl.color(c)
 }
 
+// Prints a GitHub Actions summary message to GITHUB_STEP_SUMMARY
+func (cl *ConsoleLogger) PrintGHASummary(message string) {
+	if !cl.isGitHubActions {
+		return
+	}
+
+	path := os.Getenv("GITHUB_STEP_SUMMARY")
+	if path == ""{
+		return
+	}
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return
+	}
+
+	_, _ = file.WriteString(message + "\n")
+}
+
 // PrintGHAError constructs a GitHub Actions error message.
 // The `file`, `line`, and `col` parameters are optional.
 func (cl *ConsoleLogger) PrintGHAError(message string, details ...string) {
