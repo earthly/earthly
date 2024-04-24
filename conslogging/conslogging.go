@@ -231,7 +231,7 @@ func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special st
 	if underlineLength < barWidth {
 		underlineLength = barWidth
 	}
-	cl.printGithubActionsControl("::group:: " + msg)
+	cl.printGithubActionsControl(Group, msg)
 	c.Fprintf(w, " %s", msg)
 	fmt.Fprintf(w, "\n")
 	c.Fprintf(w, "%s", strings.Repeat("—", underlineLength))
@@ -247,7 +247,7 @@ func (cl ConsoleLogger) PrintPhaseFooter(phase string, disabled bool, special st
 		cl.mu.Unlock()
 	}()
 	c := cl.color(noColor)
-	cl.printGithubActionsControl("::endgroup:: " + phase)
+	cl.printGithubActionsControl(EndGroup, phase)
 	c.Fprintf(w, "\n")
 }
 
@@ -286,7 +286,7 @@ func (cl *ConsoleLogger) PrintGHASummary(message string) {
 	if err != nil {
 		return
 	}
-
+	defer file.Close()
 	_, _ = file.WriteString(message + "\n")
 }
 
@@ -305,15 +305,22 @@ func (cl *ConsoleLogger) PrintGHAError(message string, details ...string) {
 	}
 
 	if file != "" && line != "" && col != "" {
-		formattedMsg := fmt.Sprintf("::error file=%s,line=%s,col=%s,title=Error::%s", file, line, col, message)
-		cl.printGithubActionsControl(formattedMsg)
+		cl.printGithubActionsControl(Error, "file=%s,line=%s,col=%s,title=Error::%s", file, line, col, message)
 	} else {
-		cl.printGithubActionsControl(fmt.Sprintf("::error title=Error::%s", message))
+		cl.printGithubActionsControl(Error, "title=Error::%s", message)
 	}
 }
 
+type GHHeader string
+
+const (
+	Error    GHHeader = "::error"
+	Group    GHHeader = "::group::"
+	EndGroup GHHeader = "::endgroup::"
+)
+
 // Print GHA control messages like ::group and ::error
-func (cl ConsoleLogger) printGithubActionsControl(msg string) {
+func (cl ConsoleLogger) printGithubActionsControl(header GHHeader, format string, a ...any) {
 	if !cl.isGitHubActions {
 		return
 	}
@@ -322,7 +329,8 @@ func (cl ConsoleLogger) printGithubActionsControl(msg string) {
 	defer func() {
 		_, _ = w.WriteTo(cl.errW)
 	}()
-	fmt.Fprintf(w, "%s\n", msg)
+
+	fmt.Fprintf(w, string(header)+" "+format+"\n", a...)
 }
 
 // PrintBar prints an earthly message bar.
