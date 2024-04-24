@@ -56,7 +56,11 @@ DO_REMOTE_CACHE_EARTHLY:
     RUN --privileged \
         --mount=type=tmpfs,target=/tmp/earthly \
         -- \
-        EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG$REGISTRY_CONFIG \
-        /usr/bin/earthly-entrypoint.sh --ci --push \
+        ( EARTHLY_ADDITIONAL_BUILDKIT_CONFIG=$EARTHLY_ADDITIONAL_BUILDKIT_CONFIG$REGISTRY_CONFIG \
+            /usr/bin/earthly-entrypoint.sh --ci --push \
             --build-arg REGISTRY=$REGISTRY \
-            $target 2>&1 | tee ./output
+            $target; echo exit_code=$? \
+        ) 2>&1 | tee ./output && \
+        if ! tail -n 1 output | grep 'exit_code=0'; then \
+            echo "ERROR: earthly failed (exit_code=0 not found)" && tail -n 1 output && exit 1; \
+        fi

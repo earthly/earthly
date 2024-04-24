@@ -7,6 +7,15 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ### Added
 - New Github Actions Workflow commands integration `--github-actions` flag or GITHUB_ACTIONS=true env. See [#4047](https://github.com/earthly/earthly/pull/4047)
 
+## v0.8.9 - 2024-04-24
+
+### Fixed
+
+- `BUILD --auto-skip` was recording failed steps as complete, which would lead to them being skipped on subsequent runs. [#4054](https://github.com/earthly/earthly/issues/4054)
+
+### Additional Info
+- This release has no changes to buildkit
+
 ## v0.8.8 - 2024-04-17
 
 ### Added

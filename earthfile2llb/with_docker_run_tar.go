@@ -294,7 +294,7 @@ func (w *withDockerRunTar) load(ctx context.Context, opt DockerLoadOpt) (chan Do
 			return nil, err
 		}
 	} else {
-		mts, err := w.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.PassArgs, opt.BuildArgs, false, loadCmd, "")
+		mts, err := w.c.buildTarget(ctx, depTarget.String(), opt.Platform, opt.AllowPrivileged, opt.PassArgs, opt.BuildArgs, false, loadCmd, "", nil)
 		if err != nil {
 			return nil, err
 		}

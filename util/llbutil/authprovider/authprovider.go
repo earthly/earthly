@@ -128,6 +128,9 @@ func (ap *MultiAuthProvider) FetchToken(ctx context.Context, req *auth.FetchToke
 			}
 			return nil, err
 		}
+		if a.Anonymous {
+			ap.console.Warnf("Warning: you are not logged into %s, you may experience rate-limitting when pulling images\n", req.Host)
+		}
 		ap.setAuthServer(req.Host, as)
 		return a, nil
 	}
