@@ -106,7 +106,7 @@ Running this build will use the [`cloudbuild.yaml`](https://github.com/earthly/c
 
 ```yaml
   - id: 'build'
-    name: 'earthly/earthly:v0.8.8'
+    name: 'earthly/earthly:v0.8.9'
     args:
       - --ci
       - --push
@@ -117,7 +117,7 @@ Running this build will use the [`cloudbuild.yaml`](https://github.com/earthly/c
 
 ```yaml
   - id: 'gcp-test'
-    name: 'earthly/earthly:v0.8.8'
+    name: 'earthly/earthly:v0.8.9'
     args:
       - +gcp-cloudbuild
     secretEnv:
