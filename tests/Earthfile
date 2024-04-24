@@ -147,7 +147,6 @@ ga-no-qemu-group5:
     BUILD +test-aws-flag-envs
     BUILD +test-aws-flag-configs
     BUILD +test-aws-flag-none
-    BUILD +no-let-set-block-parallel
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -181,7 +180,6 @@ ga-no-qemu-group7:
     BUILD +cache-mount-arg
     BUILD +infinite-recursion
     BUILD +save-artifact-selective
-    BUILD --pass-args ./autoskip+test-all
     BUILD +if-exists
     BUILD +let-set
     BUILD +let-scope
@@ -203,6 +201,17 @@ ga-no-qemu-group8:
     BUILD --pass-args ./pass-args-default-via-function+test
     BUILD --pass-args ./pass-args-global-via-function+test
     BUILD --pass-args ./pass-args-via-function-with-override+test
+    BUILD --pass-args ./raw-output+test-all
+
+ga-no-qemu-group9:
+    BUILD --pass-args ./autoskip+test-group1
+
+ga-no-qemu-group10:
+    BUILD --pass-args ./autoskip+test-group2
+
+ga-no-qemu-group11:
+    BUILD --pass-args ./autoskip+test-group3
+
 
 ga-no-qemu-slow:
     BUILD +server

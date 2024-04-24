@@ -1,0 +1,41 @@
+VERSION 0.8
+
+PROJECT earthly-technologies/core
+
+FROM alpine
+
+foo:
+    RUN echo "dynamic target ok"
+
+basic:
+    LET ext=txt
+    COPY hello.$ext /tmp
+    RUN ls -l /tmp
+
+dynamic-build:
+    LET target=+foo
+    BUILD $target
+
+dynamic-arg:
+    LET foo=bar
+    ARG baz=$foo
+    RUN echo "hello $baz"
+
+copy-target:
+    ARG foo
+    RUN echo $foo > x
+    SAVE ARTIFACT x
+
+copy-target-2:
+    RUN echo "foobar" > x
+    SAVE ARTIFACT x
+
+copy-target-dynamic:
+    LET name="+copy-target"
+    COPY ($name/x --foo=goodbye) .
+    RUN cat x
+
+copy-target-dynamic-2:
+    LET name="+copy-target-2"
+    COPY $name/x .
+    RUN cat x

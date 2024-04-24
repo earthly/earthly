@@ -365,6 +365,35 @@ The `--aws` flag has experimental status. To use this feature, it must be enable
 
 Makes AWS credentials available to the executed command via the host's environment variables or ~/.aws directory. 
 
+##### `--raw-output` (experimental)
+
+{% hint style='info' %}
+##### Note
+The `--raw-output` flag has experimental status. To use this feature, it must be enabled via `VERSION --raw-output `.
+{% endhint %}
+
+Outputs line without target name. 
+
+###### Examples:
+
+Given this target:
+```Dockerfile
+raw: 
+    RUN --raw-output echo "::group::"
+    RUN echo "should have prefix"
+    RUN --raw-output echo "::endgroup::" 
+```
+
+The following is output:
+```bash
+ ./+gha | --> RUN --raw-output echo "::group::"
+::group::
+ ./+gha | --> RUN echo "should have prefix"
+ ./+gha | should have prefix
+ ./+gha | --> RUN --raw-output echo "::endgroup::"
+::endgroup::
+```
+
 ## COPY
 
 #### Synopsis

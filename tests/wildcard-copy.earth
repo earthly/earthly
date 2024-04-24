@@ -45,9 +45,10 @@ wildcard-multi-with-flags:
     RUN test -f somedir1/somefile1
 
 wildcard-if-exists:
-    #COPY --if-exists ./wildcard/*+test/non-existing .
-    #DO +TEST --EXPECTED_COUNT=0
-    #RUN ! test -e non-existing
+    COPY --if-exists ./wildcard/*+test/non-existing .
+    DO +TEST --EXPECTED_COUNT=0
+    RUN ! test -e non-existing
+
     COPY --if-exists ./wildcard/f*+test/helloworld* .
     DO +TEST --EXPECTED_COUNT=1
 

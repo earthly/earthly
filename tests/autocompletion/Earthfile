@@ -24,6 +24,7 @@ web " > expected
 
 test-hidden-root-commands:
     ENV EARTHLY_SHOW_HIDDEN=1
+    RUN echo "no-cache"
     RUN echo "account 
 billing 
 bootstrap 
@@ -33,6 +34,7 @@ debug
 doc 
 docker-build 
 docker2earthly 
+github 
 init 
 ls 
 org 

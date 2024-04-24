@@ -1,4 +1,4 @@
-VERSION 0.8
+VERSION --git-author-email-name-args 0.8
 
 # Note: this is tests both locally and remotely
 # the population of git metadata occurs in two **different** functions respectively:
@@ -12,9 +12,21 @@ test-git-metadata:
     ARG --required expected_author_timestamp
     ARG --required expected_branch
     ARG --required expected_refs
+    ARG flag_on=true
+    LET expected_author="onlyspammersemailthis@earthly.dev"
+    LET expected_author_email=""
+    LET expected_author_name=""
+    IF [ "$flag_on" = "true" ]
+        SET expected_author="test name <onlyspammersemailthis@earthly.dev>"
+        SET expected_author_email="onlyspammersemailthis@earthly.dev"
+        SET expected_author_name="test name"
+    END
+
     ARG EARTHLY_GIT_SHORT_HASH
     ARG EARTHLY_GIT_HASH
     ARG EARTHLY_GIT_AUTHOR
+    ARG EARTHLY_GIT_AUTHOR_EMAIL
+    ARG EARTHLY_GIT_AUTHOR_NAME
     ARG EARTHLY_GIT_CO_AUTHORS
     ARG EARTHLY_GIT_COMMIT_TIMESTAMP
     ARG EARTHLY_GIT_COMMIT_AUTHOR_TIMESTAMP
@@ -27,5 +39,7 @@ test-git-metadata:
     RUN test "$EARTHLY_GIT_REFS" = "$expected_refs"
     RUN test -n "$EARTHLY_GIT_SHORT_HASH"
     RUN echo "$EARTHLY_GIT_HASH" | grep "$EARTHLY_GIT_SHORT_HASH"
-    RUN test "$EARTHLY_GIT_AUTHOR" = "onlyspammersemailthis@earthly.dev"
+    RUN test "$EARTHLY_GIT_AUTHOR" = "$expected_author"
+    RUN test "$EARTHLY_GIT_AUTHOR_EMAIL" = "$expected_author_email"
+    RUN test "$EARTHLY_GIT_AUTHOR_NAME" = "$expected_author_name"
     RUN test "$EARTHLY_GIT_CO_AUTHORS" = "testy@earthly.dev cover@earthly.dev"

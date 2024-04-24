@@ -131,7 +131,7 @@ lint-scripts:
 earthly-script-no-stdout:
     # This validates the ./earthly script doesn't print anything to stdout (it should print to stderr)
     # This is to ensure commands such as: MYSECRET="$(./earthly secrets get -n /user/my-secret)" work
-    FROM earthly/dind:alpine-3.19-docker-25.0.3-r2
+    FROM earthly/dind:alpine-3.19-docker-25.0.5-r0
     RUN apk add --no-cache --update bash
     COPY earthly .earthly_version_flag_overrides .
 
@@ -215,10 +215,17 @@ mocks:
         SAVE ARTIFACT $mockfile AS LOCAL $mockfile
     END
 
+unit-test-parser:
+    FROM +deps
+    COPY scripts/unit-test-parser/main.go .
+    RUN go build -o testparser main.go
+    SAVE ARTIFACT testparser
+
 # unit-test runs unit tests (and some integration tests).
 unit-test:
     FROM +code
     RUN apk add --no-cache --update podman fuse-overlayfs
+    COPY +unit-test-parser/testparser .
     COPY not-a-unit-test.sh .
 
     ARG testname # when specified, only run specific unit-test, otherwise run all.
@@ -651,6 +658,9 @@ test-no-qemu:
     BUILD --pass-args +test-no-qemu-group6
     BUILD --pass-args +test-no-qemu-group7
     BUILD --pass-args +test-no-qemu-group8
+    BUILD --pass-args +test-no-qemu-group9
+    BUILD --pass-args +test-no-qemu-group10
+    BUILD --pass-args +test-no-qemu-group11
     BUILD --pass-args +test-no-qemu-slow
 
 # test-misc runs misc (non earthly-in-earthly) tests
@@ -721,6 +731,21 @@ test-no-qemu-group7:
 # test-no-qemu-group8 runs the tests from ./tests+ga-no-qemu-group8
 test-no-qemu-group8:
     BUILD --pass-args ./tests+ga-no-qemu-group8 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group9 runs the tests from ./tests+ga-no-qemu-group9
+test-no-qemu-group9:
+    BUILD --pass-args ./tests+ga-no-qemu-group9 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group10 runs the tests from ./tests+ga-no-qemu-group10
+test-no-qemu-group10:
+    BUILD --pass-args ./tests+ga-no-qemu-group10 \
+        --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
+
+# test-no-qemu-group11 runs the tests from ./tests+ga-no-qemu-group11
+test-no-qemu-group11:
+    BUILD --pass-args ./tests+ga-no-qemu-group11 \
         --GLOBAL_WAIT_END="$GLOBAL_WAIT_END"
 
 # test-no-qemu-slow runs the tests from ./tests+ga-no-qemu-slow
@@ -849,7 +874,7 @@ merge-main-to-docs:
 
     ARG TARGETARCH
     # renovate: datasource=github-releases depName=cli/cli
-    ARG gh_version=v2.47.0
+    ARG gh_version=v2.48.0
     RUN curl -Lo ghlinux.tar.gz \
       https://github.com/cli/cli/releases/download/$gh_version/gh_${gh_version#v}_linux_${TARGETARCH}.tar.gz \
       && tar --strip-components=1 -xf ghlinux.tar.gz \
@@ -918,7 +943,7 @@ open-pr-for-fork:
 
     ARG TARGETARCH
     # renovate: datasource=github-releases depName=cli/cli
-    ARG gh_version=v2.47.0
+    ARG gh_version=v2.48.0
     RUN curl -Lo ghlinux.tar.gz \
       https://github.com/cli/cli/releases/download/$gh_version/gh_${gh_version#v}_linux_${TARGETARCH}.tar.gz \
       && tar --strip-components=1 -xf ghlinux.tar.gz \

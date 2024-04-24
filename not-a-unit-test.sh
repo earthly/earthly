@@ -75,4 +75,4 @@ if [ -n "$testname" ]
 then
     testarg="-run $testname"
 fi
-go test -timeout 20m $testarg $pkgname
+go test -timeout 20m -json $testarg $pkgname | ./testparser

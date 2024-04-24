@@ -1,19 +1,31 @@
 #!/bin/bash
 set -xeu
 
+received_interrupt=0
+function interrupt() {
+    echo "received interrupt"
+    received_interrupt=1
+}
+trap interrupt INT
+
 function cleanup() {
     status="$?"
-    jobs="$(jobs -p)"
-    if [ -n "$jobs" ]
-    then
-        # shellcheck disable=SC2086 # Intended splitting of
-        kill $jobs
-    fi
-    wait
-    if [ "$status" = "0" ]; then
-      echo "buildkite-test passed"
-    else
-      echo "buildkite-test failed with $status"
+    if [ "$received_interrupt" = "0" ]; then
+        set +e
+        echo "killing background jobs"
+        jobs
+        jobs -p | xargs -r kill -9
+        set -e
+        wait
+        echo "killing background jobs done"
+        if [ "$status" = "0" ]; then
+          echo "buildkite-test passed"
+        else
+          echo "=== buildkit logs ==="
+          docker logs earthly-dev-buildkitd || true
+          echo "=== end of buildkit logs ==="
+          echo "buildkite-test failed with $status"
+        fi
     fi
 }
 trap cleanup EXIT
@@ -40,7 +52,12 @@ else
     exit 1
 fi
 
-echo "The detected architecture of the runner is $(uname -m)"
+set +xu
+echo "Running under pid=$$; arch=$(uname -m)"
+for k in BUILDKITE_AGENT_ID BUILDKITE_BUILD_ID BUILDKITE_JOB_ID; do
+    echo "$k=${!k}"
+done
+set -xu
 
 if ! git symbolic-ref -q HEAD >/dev/null; then
     echo "Add branch info back to git (Earthly uses it for tagging)"
@@ -119,12 +136,17 @@ for target in \
         +test-no-qemu-group6 \
         +test-no-qemu-group7 \
         +test-no-qemu-group8 \
+        +test-no-qemu-group9 \
+        +test-no-qemu-group10 \
+        +test-no-qemu-group11 \
         +test-no-qemu-slow \
         +test-qemu \
         ; do
     for attempt in $(seq 1 "$max_attempts"); do
-        # kill buildkitd to release memory (the macstadium machines have limited memory)
-        docker rm -f earthly-dev-buildkitd 2> /dev/null || true
+        # kill earthly-* containers to release memory (the macstadium machines have limited memory)
+        set +e
+        docker ps -a | grep earthly- | awk '{print $1}' | xargs -r docker rm -f
+        set -e
 
         echo "=== running $target (attempt $attempt/$max_attempts ==="
         set +e
