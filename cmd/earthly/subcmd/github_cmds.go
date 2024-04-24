@@ -36,9 +36,9 @@ func (a *Github) Cmds() []*cli.Command {
 				{
 					Name:  "add",
 					Usage: "Add GHA integration",
-					Description: `This command sets the configuration to create a new Github-Earthly integration, to trigger satellite builds from GHA (GitHub Actions).
-From the Github side, integration can be done at two levels: organization-wide and per repository. 
-The provided token must have enough permissions to register webhooks and to create Github self hosted runners in those two scenarios.`,
+					Description: `This command sets the configuration to create a new GitHub-Earthly integration, to trigger satellite builds from GHA (GitHub Actions).
+From the GitHub side, integration can be done at two levels: organization-wide and per repository. 
+The provided token must have enough permissions to register webhooks and to create GitHub self hosted runners in those two scenarios.`,
 					UsageText: "earthly github add --org <org> [--repo <repo>] --token <token>",
 					Action:    a.actionAdd,
 					Flags: []cli.Flag{

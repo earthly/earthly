@@ -34,11 +34,12 @@ If your use case cannot tolerate a cloud-based control plane, then self-hosting 
 
 Below is a comparison of the different features available with each kind of remote runner.
 
-| Feature | Cloud Satellites | Self-Hosted Satellites | Remote Buildkit |
-| --- | --- | --- | --- |
-| Managed By | Earthly | You | You |
-| Cache Persistence | ✅ Yes | 🟡 Needs configuration | 🟡 Needs configuration |
-| Cloud Control-Plane | ✅ Yes | ✅ Yes | ❌ No |
-| Managed TLS Certificates |  ✅ Yes | ✅ Yes | ❌ No |
-| Auto-Sleep | ✅ Yes | ❌ No | ❌ No | 
-| Auto-Updates | ✅ Yes | ❌ No | ❌ No |
+| Feature                                                                      | Cloud Satellites | Self-Hosted Satellites | Remote Buildkit        |
+|------------------------------------------------------------------------------|------------------|------------------------|------------------------|
+| Managed By                                                                   | Earthly          | You                    | You                    |
+| Cache Persistence                                                            | ✅ Yes            | 🟡 Needs configuration | 🟡 Needs configuration |
+| Cloud Control-Plane                                                          | ✅ Yes            | ✅ Yes                  | ❌ No                   |
+| Managed TLS Certificates                                                     | ✅ Yes            | ✅ Yes                  | ❌ No                   |
+| Auto-Sleep                                                                   | ✅ Yes            | ❌ No                   | ❌ No                   | 
+| Auto-Updates                                                                 | ✅ Yes            | ❌ No                   | ❌ No                   |
+| [GitHub Actions integration](cloud/satellites/github-actions-integration.md) | ✅ Yes            | ✅ Yes                  | ❌ No                   |  

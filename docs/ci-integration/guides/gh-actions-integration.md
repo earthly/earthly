@@ -1,6 +1,11 @@
 
 # GitHub Actions integration
 
+{% hint style='info' %}
+##### Tip
+Check the new [Satellites-GHA integration](../cloud/satellites/github-actions-integration.md), for directly running GHA jobs in Earthly Satellites without the need of additional GitHub runners.
+{% endhint %}
+
 Here is an example of a GitHub Actions build that uses the [earthly/actions-setup](https://github.com/earthly/actions-setup).
 
 This example assumes an [Earthfile](../../earthfile/earthfile.md) exists with a `+build` target:
