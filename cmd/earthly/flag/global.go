@@ -101,7 +101,7 @@ type Global struct {
 	LocalSkipDB                string
 	DisableRemoteRegistryProxy bool
 	NoAutoSkip                 bool
-	IsGithubAnnotations        bool
+	GithubAnnotations          bool
 }
 
 func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
@@ -544,7 +544,7 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			Name:        "github-annotations",
 			EnvVars:     []string{"GITHUB_ACTIONS"},
 			Usage:       "Enable Git Hub Actions workflow specific output",
-			Destination: &global.IsGithubAnnotations,
+			Destination: &global.GithubAnnotations,
 			Value:       false,
 		},
 	}

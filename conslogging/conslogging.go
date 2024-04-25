@@ -63,12 +63,12 @@ type ConsoleLogger struct {
 	isLocal bool
 	// salt is a salt used for color consistency
 	// (the same salt will get the same color).
-	salt            string
-	colorMode       ColorMode
-	isCached        bool
-	isFailed        bool
-	isGitHubActions bool
-	logLevel        LogLevel
+	salt              string
+	colorMode         ColorMode
+	isCached          bool
+	isFailed          bool
+	githubAnnotations bool
+	logLevel          LogLevel
 
 	// The following are shared between instances and are protected by the mutex.
 	mu             *sync.Mutex
@@ -83,47 +83,47 @@ type ConsoleLogger struct {
 }
 
 // Current returns the current console.
-func Current(colorMode ColorMode, prefixPadding int, logLevel LogLevel, isGitHubActions bool) ConsoleLogger {
-	return New(getCompatibleStderr(), &currentConsoleMutex, colorMode, prefixPadding, logLevel, isGitHubActions)
+func Current(colorMode ColorMode, prefixPadding int, logLevel LogLevel, githubAnnotations bool) ConsoleLogger {
+	return New(getCompatibleStderr(), &currentConsoleMutex, colorMode, prefixPadding, logLevel, githubAnnotations)
 }
 
 // New returns a new ConsoleLogger with a predefined target writer.
-func New(w io.Writer, mu *sync.Mutex, colorMode ColorMode, prefixPadding int, logLevel LogLevel, isGitHubActions bool) ConsoleLogger {
+func New(w io.Writer, mu *sync.Mutex, colorMode ColorMode, prefixPadding int, logLevel LogLevel, githubAnnotations bool) ConsoleLogger {
 	if mu == nil {
 		mu = &sync.Mutex{}
 	}
 	return ConsoleLogger{
-		consoleErrW:     w,
-		errW:            w,
-		colorMode:       colorMode,
-		saltColors:      make(map[string]*color.Color),
-		nextColorIndex:  new(int),
-		prefixPadding:   prefixPadding,
-		mu:              mu,
-		logLevel:        logLevel,
-		isGitHubActions: isGitHubActions,
+		consoleErrW:       w,
+		errW:              w,
+		colorMode:         colorMode,
+		saltColors:        make(map[string]*color.Color),
+		nextColorIndex:    new(int),
+		prefixPadding:     prefixPadding,
+		mu:                mu,
+		logLevel:          logLevel,
+		githubAnnotations: githubAnnotations,
 	}
 }
 
 func (cl ConsoleLogger) clone() ConsoleLogger {
 	return ConsoleLogger{
-		consoleErrW:     cl.consoleErrW,
-		errW:            cl.errW,
-		prefixWriter:    cl.prefixWriter,
-		prefix:          cl.prefix,
-		metadataMode:    cl.metadataMode,
-		isLocal:         cl.isLocal,
-		logLevel:        cl.logLevel,
-		salt:            cl.salt,
-		isCached:        cl.isCached,
-		isFailed:        cl.isFailed,
-		isGitHubActions: cl.isGitHubActions,
-		saltColors:      cl.saltColors,
-		colorMode:       cl.colorMode,
-		nextColorIndex:  cl.nextColorIndex,
-		prefixPadding:   cl.prefixPadding,
-		mu:              cl.mu,
-		bb:              cl.bb,
+		consoleErrW:       cl.consoleErrW,
+		errW:              cl.errW,
+		prefixWriter:      cl.prefixWriter,
+		prefix:            cl.prefix,
+		metadataMode:      cl.metadataMode,
+		isLocal:           cl.isLocal,
+		logLevel:          cl.logLevel,
+		salt:              cl.salt,
+		isCached:          cl.isCached,
+		isFailed:          cl.isFailed,
+		githubAnnotations: cl.githubAnnotations,
+		saltColors:        cl.saltColors,
+		colorMode:         cl.colorMode,
+		nextColorIndex:    cl.nextColorIndex,
+		prefixPadding:     cl.prefixPadding,
+		mu:                cl.mu,
+		bb:                cl.bb,
 	}
 }
 
@@ -274,7 +274,7 @@ func (cl ConsoleLogger) PrefixColor() *color.Color {
 
 // Prints a GitHub Actions summary message to GITHUB_STEP_SUMMARY
 func (cl *ConsoleLogger) PrintGHASummary(message string) {
-	if !cl.isGitHubActions {
+	if !cl.githubAnnotations {
 		return
 	}
 
@@ -321,7 +321,7 @@ const (
 
 // Print GHA control messages like ::group and ::error
 func (cl ConsoleLogger) printGithubActionsControl(header ghHeader, format string, a ...any) {
-	if !cl.isGitHubActions {
+	if !cl.githubAnnotations {
 		return
 	}
 	// Assumes mu locked.
