@@ -738,7 +738,12 @@ func (a *Satellite) actionInspect(cliCtx *cli.Context) error {
 	a.cli.Flags().BuildkitdSettings.SatelliteIsManaged = satellite.IsManaged
 	a.cli.Flags().BuildkitdSettings.SatelliteDisplayName = satelliteToInspect
 	a.cli.Flags().BuildkitdSettings.SatelliteOrgID = orgID // must be the ID and not name, due to satellite-proxy requirements
-	a.cli.Flags().BuildkitdSettings.BuildkitAddress = fmt.Sprintf("tcp://%s", satellite.Address)
+	satelliteAddress := a.cli.Flags().SatelliteAddress
+	if satelliteAddress == "" {
+		// A self-hosted satellite uses its own address
+		satelliteAddress = fmt.Sprintf("tcp://%s", satellite.Address)
+	}
+	a.cli.Flags().BuildkitdSettings.BuildkitAddress = satelliteAddress
 
 	selected := "No"
 	if selectedSatellite == satelliteToInspect {
@@ -787,7 +792,7 @@ func (a *Satellite) actionInspect(cliCtx *cli.Context) error {
 	a.cli.Console().Printf("")
 
 	if satellite.State == cloud.SatelliteStatusOperational {
-		if !satellite.IsManaged {
+		if satellite.Certificate != nil {
 			cleanup, err := buildkitd.ConfigureSatelliteTLS(&a.cli.Flags().BuildkitdSettings, satellite)
 			if err != nil {
 				return errors.Wrap(err, "failed configuring satellite tls")

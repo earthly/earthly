@@ -233,7 +233,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        "satellite-address",
-			Value:       containerutil.SatelliteAddress,
 			EnvVars:     []string{"EARTHLY_SATELLITE_ADDRESS"},
 			Usage:       "Satellite address override for dev purposes",
 			Destination: &global.SatelliteAddress,
