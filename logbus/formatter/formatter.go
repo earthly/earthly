@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -494,10 +493,7 @@ func (f *Formatter) printGHAFailure() {
 	// Print GHA Error with line info if available
 	if cm != nil && cm.SourceLocation != nil &&
 		cm.SourceLocation.File != "" && cm.SourceLocation.StartLine > 0 {
-		file := cm.SourceLocation.File
-		line := strconv.Itoa(int(cm.SourceLocation.StartLine))
-		col := strconv.Itoa(int(cm.SourceLocation.StartColumn))
-		c.PrintGHAError(message, file, line, col)
+		c.PrintGHAError(message, conslogging.WithGHASourceLocation(cm.SourceLocation.File, cm.SourceLocation.StartLine, cm.SourceLocation.StartColumn))
 	} else {
 		c.PrintGHAError(message)
 	}

@@ -280,6 +280,11 @@ func (cl *ConsoleLogger) PrintGHASummary(message string) {
 
 	path := os.Getenv("GITHUB_STEP_SUMMARY")
 	if path == "" {
+		w := new(bytes.Buffer)
+		defer func() {
+			_, _ = w.WriteTo(cl.errW)
+		}()
+		fmt.Print(w, message)
 		return
 	}
 	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -290,24 +295,38 @@ func (cl *ConsoleLogger) PrintGHASummary(message string) {
 	_, _ = file.WriteString(message + "\n")
 }
 
+type GHAError struct {
+	message string
+	file    string
+	line    int32
+	col     int32
+}
+
+type GHAErrorOpt func(*GHAError)
+
+func WithGHASourceLocation(file string, line, col int32) GHAErrorOpt {
+	return func(cfg *GHAError) {
+		cfg.file = file
+		cfg.line = line
+		cfg.col = col
+	}
+}
+
 // PrintGHAError constructs a GitHub Actions error message.
-// The `file`, `line`, and `col` parameters are optional.
-func (cl *ConsoleLogger) PrintGHAError(message string, details ...string) {
+func (cl *ConsoleLogger) PrintGHAError(message string, fns ...GHAErrorOpt) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
-
-	file := ""
-	line := ""
-	col := ""
-
-	if len(details) >= 3 {
-		file, line, col = details[0], details[1], details[2]
+	cfg := GHAError{
+		message: message,
+	}
+	for _, fn := range fns {
+		fn(&cfg)
 	}
 
-	if file != "" && line != "" && col != "" {
-		cl.printGithubActionsControl(errorCommand, "file=%s,line=%s,col=%s,title=Error::%s", file, line, col, message)
+	if cfg.file != "" {
+		cl.printGithubActionsControl(errorCommand, "file=%s,line=%d,col=%s,title=Error::%s", cfg.file, cfg.line, cfg.col, cfg.message)
 	} else {
-		cl.printGithubActionsControl(errorCommand, "title=Error::%s", message)
+		cl.printGithubActionsControl(errorCommand, "title=Error::%s", cfg.message)
 	}
 }
 
