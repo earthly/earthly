@@ -302,6 +302,14 @@ type GHAError struct {
 	col     int32
 }
 
+func (e *GHAError) FormatedMessage() string {
+	if e.file != "" {
+		return fmt.Sprintf("file=%s,line=%d,col=%d,title=Error::%s", e.file, e.line, e.col, e.message)
+	} else {
+		return fmt.Sprintf("title=Error::%s", e.message)
+	}
+}
+
 type GHAErrorOpt func(*GHAError)
 
 func WithGHASourceLocation(file string, line, col int32) GHAErrorOpt {
@@ -316,18 +324,14 @@ func WithGHASourceLocation(file string, line, col int32) GHAErrorOpt {
 func (cl *ConsoleLogger) PrintGHAError(message string, fns ...GHAErrorOpt) {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
-	cfg := GHAError{
+	ge := GHAError{
 		message: message,
 	}
 	for _, fn := range fns {
-		fn(&cfg)
+		fn(&ge)
 	}
 
-	if cfg.file != "" {
-		cl.printGithubActionsControl(errorCommand, "file=%s,line=%d,col=%s,title=Error::%s", cfg.file, cfg.line, cfg.col, cfg.message)
-	} else {
-		cl.printGithubActionsControl(errorCommand, "title=Error::%s", cfg.message)
-	}
+	cl.printGithubActionsControl(errorCommand, ge.FormatedMessage())
 }
 
 type ghHeader string
