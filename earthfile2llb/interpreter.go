@@ -22,6 +22,7 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/internal/version"
 	"github.com/earthly/earthly/util/flagutil"
+	"github.com/earthly/earthly/util/oidcutil"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
 	"github.com/earthly/earthly/variables"
@@ -731,6 +732,11 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		return i.errorf(cmd.SourceLocation, "RUN --aws requires the --run-with-aws feature flag")
 	}
 
+	awsOIDCInfo, err := i.handleOIDC(ctx, &cmd, &opts)
+	if err != nil {
+		return err
+	}
+
 	if opts.RawOutput && !i.converter.opt.Features.RawOutput {
 		return i.errorf(cmd.SourceLocation, "RUN --raw-output requires the --raw-output feature flag")
 	}
@@ -756,6 +762,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			InteractiveKeep:      opts.InteractiveKeep,
 			InteractiveSaveFiles: i.interactiveSaveFiles,
 			WithAWSCredentials:   opts.WithAWS,
+			OIDCInfo:             awsOIDCInfo,
 			RawOutput:            opts.RawOutput,
 		}
 		err = i.converter.Run(ctx, opts)
@@ -804,6 +811,32 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		i.withDockerRan = true
 	}
 	return nil
+}
+
+// handleOIDC parse the oidc string value into a struct
+// Returns error if the value cannot be parsed of if the feature flag is not set
+func (i *Interpreter) handleOIDC(ctx context.Context, cmd *spec.Command, opts *commandflag.RunOpts) (*oidcutil.AWSOIDCInfo, error) {
+	if opts.OIDC == "" {
+		return nil, nil
+	}
+	if !i.converter.opt.Features.RunWithAWSOIDC {
+		return nil, i.errorf(cmd.SourceLocation, "RUN --aws-oidc requires the --run-with-aws-oidc feature flag")
+	}
+	if !opts.WithAWS {
+		return nil, i.errorf(cmd.SourceLocation, "RUN --oidc also requires the --aws RUN flag")
+	}
+	expanded, err := i.expandArgs(ctx, opts.OIDC, false, false)
+	if err != nil {
+		return nil, i.errorf(cmd.SourceLocation, "failed to expand oidc arg in RUN: %s", opts.OIDC)
+	}
+	opts.OIDC = expanded
+	// we currently only support oidc for AWS
+	awsInfo, err := oidcutil.ParseAWSOIDCInfo(opts.OIDC)
+	if err != nil {
+		return nil, i.errorf(cmd.SourceLocation, "invalid value for oidc flag: %v", err)
+	}
+
+	return awsInfo, nil
 }
 
 func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command) error {

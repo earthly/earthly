@@ -32,6 +32,7 @@ type RunOpts struct {
 	WithDocker      bool     `long:"with-docker" description:"Deprecated"`
 	WithSSH         bool     `long:"ssh" description:"Make available the SSH agent of the host"`
 	WithAWS         bool     `long:"aws" description:"Make any AWS credentials set in the environment available to RUN commands"`
+	OIDC            string   `long:"oidc" description:"make credentials from oidc provider (currently only works with AWS) available to RUN commands"`
 	NoCache         bool     `long:"no-cache" description:"Always run this specific item, ignoring cache"`
 	Interactive     bool     `long:"interactive" description:"Run this command with an interactive session, without saving changes"`
 	InteractiveKeep bool     `long:"interactive-keep" description:"Run this command with an interactive session, saving changes"`

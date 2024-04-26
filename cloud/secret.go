@@ -6,8 +6,12 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/earthly/cloud-api/secrets"
 
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 func (c *Client) Remove(ctx context.Context, path string) error {
@@ -83,4 +87,20 @@ func (c *Client) Set(ctx context.Context, path string, data []byte) error {
 		return errors.Errorf("failed to set secret: %s", msg)
 	}
 	return nil
+}
+
+func (c *Client) GetAWSCredentials(ctx context.Context, roleARN string, region string, sessionDuration *time.Duration) (*secrets.GetAWSCredentialsResponse, error) {
+	var duration *durationpb.Duration
+	if sessionDuration != nil {
+		duration = durationpb.New(*sessionDuration)
+	}
+	response, err := c.secrets.GetAWSCredentials(c.withAuth(ctx), &secrets.GetAWSCredentialsRequest{
+		RoleArn:         roleARN,
+		SessionDuration: duration,
+		Region:          region,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get aws credentials via oidc provider")
+	}
+	return response, nil
 }

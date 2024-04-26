@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+
+- Added `--oidc` flag to `RUN` command which allows authentication to AWS via oidc. Enable with the `VERSION --run-with-aws-oidc` feature flag. [#3804](https://github.com/earthly/earthly/issues/3804)
+
 ## v0.8.9 - 2024-04-24
 
 ### Fixed

@@ -18,7 +18,7 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.5.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/earthly/cloud-api v1.0.1-0.20240326154259-86278fcedef8
+	github.com/earthly/cloud-api v1.0.1-0.20240418022357-8999c82ab492
 	github.com/earthly/earthly/ast v0.0.0-00010101000000-000000000000
 	github.com/earthly/earthly/util/deltautil v0.0.0-20231221211955-0fd4ae2cc257
 	github.com/elastic/go-sysinfo v1.9.0
@@ -108,6 +108,7 @@ require (
 	github.com/klauspost/compress v1.17.2 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/locker v1.0.1 // indirect
 	github.com/moby/sys/signal v0.7.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect

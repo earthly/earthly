@@ -42,6 +42,7 @@ import (
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
+	"github.com/earthly/earthly/util/oidcutil"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
 	"github.com/earthly/earthly/util/stringutil"
@@ -645,6 +646,7 @@ type ConvertRunOpts struct {
 	InteractiveKeep      bool
 	InteractiveSaveFiles []debuggercommon.SaveFilesSettings
 	WithAWSCredentials   bool
+	OIDCInfo             *oidcutil.AWSOIDCInfo
 	RawOutput            bool
 
 	// Internal.
@@ -2217,7 +2219,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 	// AWS credential import.
 	if opts.WithAWSCredentials {
-		awsRunOpts, awsEnvs, err := c.awsSecrets(ctx)
+		awsRunOpts, awsEnvs, err := c.awsSecrets(ctx, opts.OIDCInfo)
 		if err != nil {
 			return pllb.State{}, err
 		}
@@ -2404,19 +2406,24 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	}
 }
 
-func (c *Converter) awsSecrets(ctx context.Context) ([]llb.RunOption, []string, error) {
+func (c *Converter) awsSecrets(ctx context.Context, oidcInfo *oidcutil.AWSOIDCInfo) ([]llb.RunOption, []string, error) {
 
 	var (
 		runOpts   = []llb.RunOption{}
 		extraEnvs = []string{}
 	)
 
+	//set additional params in case oidc is in play
+	var setOIDCInfo func(values url.Values) //no-op by default
+	if oidcInfo != nil {
+		setOIDCInfo = secretprovider.SetURLValuesFunc(oidcInfo)
+	}
 	// Add LLB secrets for each of the typical secrets which will then be
 	// sourced from the environment during lookup.
 	for _, secretName := range secretprovider.AWSCredentials {
 		secretPath := path.Join("/run/secrets", secretName)
 		secretOpts := []llb.SecretOption{
-			llb.SecretID(c.secretID(secretName)),
+			llb.SecretID(c.secretID(secretName, setOIDCInfo)),
 			llb.SecretFileOpt(0, 0, 0444),
 		}
 		runOpts = append(runOpts, llb.AddSecret(secretPath, secretOpts...))
@@ -2432,7 +2439,7 @@ func (c *Converter) awsSecrets(ctx context.Context) ([]llb.RunOption, []string, 
 // version, name, org, and project. The version value informs the secret
 // providers how to handle the secret name and whether to use the new
 // project-based secrets endpoints.
-func (c *Converter) secretID(name string) string {
+func (c *Converter) secretID(name string, opts ...func(values url.Values)) string {
 	v := url.Values{}
 	v.Set("name", name)
 	if c.ftrs.UseProjectSecrets {
@@ -2441,6 +2448,11 @@ func (c *Converter) secretID(name string) string {
 		v.Set("project", c.varCollection.Project())
 	} else {
 		v.Set("v", "0")
+	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(v)
+		}
 	}
 	return v.Encode()
 }
