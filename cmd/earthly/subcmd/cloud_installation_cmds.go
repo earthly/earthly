@@ -29,7 +29,7 @@ func (a *CloudInstallation) Cmds() []*cli.Command {
 			Aliases:     []string{"clouds"},
 			Usage:       "Configure Cloud Installations for BYOC plans",
 			UsageText:   "earthly cloud (install|use|ls|rm)",
-			Description: "Configure Cloud Installations for BYOC plans",
+			Description: "Configure Cloud Installations for BYOC plans.",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:        "org",
