@@ -80,6 +80,7 @@ type SatelliteInstance struct {
 	Address                 string
 	IsManaged               bool
 	Certificate             *pb.TLSCertificate
+	CloudName               string
 }
 
 func (c *Client) ListSatellites(ctx context.Context, orgName string, includeHidden bool) ([]SatelliteInstance, error) {
@@ -106,6 +107,7 @@ func (c *Client) ListSatellites(ctx context.Context, orgName string, includeHidd
 			Hidden:         s.Hidden,
 			LastUsed:       s.LastUsed.AsTime(),
 			CacheRetention: s.CacheRetention.AsDuration(),
+			CloudName:      s.CloudName,
 		}
 	}
 	return instances, nil
@@ -140,7 +142,7 @@ func (c *Client) GetSatellite(ctx context.Context, name, orgName string) (*Satel
 		LastUsed:                resp.LastUsed.AsTime(),
 		CacheRetention:          resp.CacheRetention.AsDuration(),
 		IsManaged:               resp.IsManaged,
-		Address:                 resp.PrivateDns,
+		Address:                 resp.SatelliteAddress,
 		Certificate:             resp.Certificate,
 	}, nil
 }
@@ -170,6 +172,7 @@ type LaunchSatelliteOpt struct {
 	MaintenanceWindowStart  string
 	MaintenanceWeekendsOnly bool
 	FeatureFlags            []string
+	CloudName               string
 }
 
 func (c *Client) LaunchSatellite(ctx context.Context, opt LaunchSatelliteOpt) error {
@@ -186,6 +189,7 @@ func (c *Client) LaunchSatellite(ctx context.Context, opt LaunchSatelliteOpt) er
 		Version:                 opt.PinnedVersion,
 		MaintenanceWindowStart:  opt.MaintenanceWindowStart,
 		MaintenanceWeekendsOnly: opt.MaintenanceWeekendsOnly,
+		CloudName:               opt.CloudName,
 	}
 	_, err = c.compute.LaunchSatellite(c.withAuth(ctx), req)
 	if err != nil {
