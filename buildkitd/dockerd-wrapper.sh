@@ -10,6 +10,9 @@ fi
 # This host is used to pull images from the embedded BuildKit Docker registry.
 buildkit_docker_registry='172.30.0.1:8371'
 
+# used to prefix images that are persisted to the WITH DOCKER cache
+earthly_cached_docker_image_prefix="earthly_cached_"
+
 detect_docker_compose_cmd() {
     if command -v docker-compose >/dev/null; then
         echo "docker-compose"
@@ -98,9 +101,9 @@ execute() {
     if [ "$EARTHLY_DOCKERD_CACHE_DATA" = "true" ]; then
         # rename existing tags, so we can track which ones get re-tagged
         for img in $(docker images -q); do
-            docker tag "$img" "earthly_cached_$img"
+            docker tag "$img" "${earthly_cached_docker_image_prefix}${img}"
         done
-        docker images -a | grep -v ^REPOSITORY | grep -v ^earthly_cached_ | awk '{print $1":"$2}' | xargs --no-run-if-empty docker rmi
+        docker images -a --format '{{.Repository}}:{{.Tag}}' | grep -v "^$earthly_cached_docker_image_prefix" | xargs --no-run-if-empty docker rmi
     fi
 
     load_file_images
@@ -108,7 +111,7 @@ execute() {
 
     # delete cached images (which weren't re-tagged via the pull)
     if [ "$EARTHLY_DOCKERD_CACHE_DATA" = "true" ]; then
-        docker images | grep ^earthly_cached_ | awk '{print $1":"$2}' | xargs --no-run-if-empty docker rmi
+        docker images -f reference=$earthly_cached_docker_image_prefix'*' --format '{{.Repository}}:{{.Tag}}' | xargs --no-run-if-empty docker rmi
         docker images -f "dangling=true" -q | xargs --no-run-if-empty docker rmi
     fi
 
