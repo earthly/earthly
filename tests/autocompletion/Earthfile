@@ -7,6 +7,7 @@ test-root-commands:
     RUN echo "account 
 billing 
 bootstrap 
+cloud 
 config 
 doc 
 docker-build 
@@ -29,6 +30,7 @@ test-hidden-root-commands:
 billing 
 bootstrap 
 build 
+cloud 
 config 
 debug 
 doc 
