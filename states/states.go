@@ -2,8 +2,9 @@ package states
 
 import (
 	"context"
-	"github.com/moby/buildkit/client/llb"
 	"sync"
+
+	"github.com/moby/buildkit/client/llb"
 
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states/dedup"
@@ -69,6 +70,8 @@ type SingleTarget struct {
 	RanFromLike bool
 	// RanInteractive represents whether we have encountered an --interactive command.
 	RanInteractive bool
+
+	Sboms []string
 
 	// doSavesMu is a mutex for doSave.
 	doSavesMu sync.Mutex

@@ -1,0 +1,21 @@
+VERSION 0.8
+
+mytarget:
+    FROM node:22-alpine3.18
+	WORKDIR /code
+    COPY package.json ./
+	COPY foo.js .
+	RUN echo '{ "main": "foo.js", "output": "sea-prep.blob" }' > sea-config.json 
+	RUN node --experimental-sea-config sea-config.json 
+	RUN cp /usr/local/bin/node hackhackhack
+	RUN npx postject hackhackhack NODE_SEA_BLOB sea-prep.blob \
+    --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2 
+	SAVE ARTIFACT hackhackhack
+
+test:
+	FROM ubuntu:23.04
+    COPY +mytarget/hackhackhack .
+	COPY ./uuidgen+uuid/generated-uuid .
+	RUN echo "this was generated via the uuid npm package: $(cat generated-uuid)"
+	RUN ldd hackhackhack
+	# unfortunately this does not work RUN  ./hackhackhack
