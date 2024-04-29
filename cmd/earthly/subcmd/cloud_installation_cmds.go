@@ -5,10 +5,11 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/earthly/earthly/cloud"
-	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+
+	"github.com/earthly/earthly/cloud"
+	"github.com/earthly/earthly/cmd/earthly/helper"
 )
 
 type CloudInstallation struct {
@@ -99,11 +100,7 @@ func (c *CloudInstallation) install(cliCtx *cli.Context) error {
 
 	c.cli.Console().Printf("Configuring new Cloud Installation: %s. Please wait...", cloudName)
 
-	install, err := cloudClient.ConfigureCloud(ctx, orgID, cloudName, false)
-	if err != nil {
-		return errors.Wrap(err, "could not install cloud")
-	}
-
+	install, err := cloudClient.ConfigureCloud(ctx, orgID, cloudName, false)g
 	if err != nil {
 		return errors.Wrap(err, "failed installing cloud")
 	}
