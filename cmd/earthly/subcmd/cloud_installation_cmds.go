@@ -100,7 +100,7 @@ func (c *CloudInstallation) install(cliCtx *cli.Context) error {
 
 	c.cli.Console().Printf("Configuring new Cloud Installation: %s. Please wait...", cloudName)
 
-	install, err := cloudClient.ConfigureCloud(ctx, orgID, cloudName, false)g
+	install, err := cloudClient.ConfigureCloud(ctx, orgID, cloudName, false)
 	if err != nil {
 		return errors.Wrap(err, "failed installing cloud")
 	}
