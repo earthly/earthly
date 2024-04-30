@@ -1,11 +1,14 @@
 package builder
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -55,6 +58,8 @@ const (
 	PhasePush = "Push Summary ⏫"
 	// PhaseOutput is the phase text for the output phase.
 	PhaseOutput = "Local Output Summary 🎁"
+	// PhaseSign is the phase text for the signing phase.
+	PhaseSign = "Image Signing 🔑"
 )
 
 // Opt represent builder options.
@@ -123,6 +128,9 @@ type BuildOpt struct {
 	Runner                     string
 	ProjectAdder               ProjectAdder
 	EarthlyCIRunner            bool
+	Cosign                     bool
+	CosignKeyFile              string
+	CosignKeyPass              string
 }
 
 // Builder executes Earthly builds.
@@ -820,9 +828,119 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 	if opt.PrintPhases {
 		b.opt.Console.PrintPhaseFooter(PhaseOutput, false, "")
+	}
+
+	if opt.Push && opt.Cosign {
+		signConsole := conslogging.NewBufferedLogger(&b.opt.Console)
+		if opt.PrintPhases {
+			b.opt.Console.PrintPhaseHeader(PhaseSign, false, "")
+		}
+
+		cosignAvail, err := cosignCheck(context.TODO())
+		if err != nil {
+			return nil, err
+		}
+		if !cosignAvail {
+			return nil, errors.New("cosign binary not found")
+		}
+		cosignPayload := []byte("ADD CONTENT HERE")
+		var cosignPushes []string
+		for _, pushEntry := range exportCoordinator.GetPushedImageSummary() {
+			push, err := cosign(pushEntry, opt.CosignKeyFile, opt.CosignKeyPass, cosignPayload)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to sign image %q", pushEntry.DockerTag)
+			}
+			cosignPushes = append(cosignPushes, push)
+		}
+
+		if opt.PrintPhases {
+			for _, push := range cosignPushes {
+				signConsole.Printf(push)
+			}
+			signConsole.Flush()
+			b.opt.Console.PrintPhaseFooter(PhaseSign, false, "")
+		}
+	}
+
+	if opt.PrintPhases {
 		b.opt.Console.PrintSuccess()
 	}
+
 	return mts, nil
+}
+
+func cosignCheck(ctx context.Context) (bool, error) {
+	cmd := exec.CommandContext(ctx, "which", "cosign")
+	err := cmd.Run()
+	if err != nil {
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) && exitError.ExitCode() == 1 {
+			return false, nil
+		}
+		return false, errors.Wrap(err, "failed to check for cosign binary")
+	}
+	return true, nil
+}
+
+var cosignOutputRE = regexp.MustCompile("(?m)^Pushing signature to:.*$")
+
+func cosign(pushEntry gatewaycrafter.PushedImageSummaryEntry, keyFile, keyPass string, payload []byte) (string, error) {
+
+	tmpFile, err := os.CreateTemp(os.TempDir(), "cosign-payload")
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create temp file")
+	}
+	defer func() {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	c, err := tmpFile.Write(payload)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to write to temp file")
+	}
+
+	if c != len(payload) {
+		return "", errors.Wrapf(err, "unexpected byte count: got %d, expected %d", c, len(payload))
+	}
+
+	if _, err := os.Stat(keyFile); os.IsNotExist(err) {
+		return "", errors.Wrap(err, "cosign key file not found")
+	}
+
+	args := []string{
+		"sign",
+		"-y", // Skip confirmation prompt.
+		"-r", // Recursive: sign each discrete image in multi-arch image
+		"--key",
+		keyFile,
+		"--payload",
+		tmpFile.Name(),
+		pushEntry.DockerTag,
+	}
+
+	cmd := exec.CommandContext(context.TODO(), "cosign", args...)
+
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, fmt.Sprintf("COSIGN_PASSWORD=%s", keyPass))
+
+	errBuf := bytes.Buffer{}
+	cmd.Stderr = &errBuf
+
+	if err := cmd.Run(); err != nil {
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) && exitError.ExitCode() == 1 {
+			return "", errors.New("failed to sign image")
+		}
+	}
+
+	match := cosignOutputRE.FindString(errBuf.String())
+
+	if match == "" {
+		return "", errors.New("unexpected cosign output")
+	}
+
+	return strings.TrimSpace(match), nil
 }
 
 func (b *Builder) targetPhaseState(sts *states.SingleTarget) pllb.State {
