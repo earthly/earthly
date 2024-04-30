@@ -102,6 +102,10 @@ type Opt struct {
 	GitLogLevel                           buildkitgitutil.GitLogLevel
 	BuildkitSkipper                       bk.BuildkitSkipper
 	NoAutoSkip                            bool
+	DumpManifestFunc                      func(string) error
+	Cosign                                bool
+	CosignKeyFile                         string
+	CosignKeyPass                         string
 }
 
 type ProjectAdder interface {
@@ -128,9 +132,6 @@ type BuildOpt struct {
 	Runner                     string
 	ProjectAdder               ProjectAdder
 	EarthlyCIRunner            bool
-	Cosign                     bool
-	CosignKeyFile              string
-	CosignKeyPass              string
 }
 
 // Builder executes Earthly builds.
@@ -830,7 +831,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		b.opt.Console.PrintPhaseFooter(PhaseOutput, false, "")
 	}
 
-	if opt.Push && opt.Cosign {
+	if opt.Push && b.opt.Cosign {
 		signConsole := conslogging.NewBufferedLogger(&b.opt.Console)
 		if opt.PrintPhases {
 			b.opt.Console.PrintPhaseHeader(PhaseSign, false, "")
@@ -840,13 +841,21 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		if err != nil {
 			return nil, err
 		}
+
 		if !cosignAvail {
 			return nil, errors.New("cosign binary not found")
 		}
-		cosignPayload := []byte("ADD CONTENT HERE")
+
+		// TODO: use a dynamic filename & remove it post hoc.
+		manifestFile := "/tmp/cosign-payload.json"
+		err = b.opt.DumpManifestFunc(manifestFile)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to write manifest")
+		}
+
 		var cosignPushes []string
 		for _, pushEntry := range exportCoordinator.GetPushedImageSummary() {
-			push, err := cosign(pushEntry, opt.CosignKeyFile, opt.CosignKeyPass, cosignPayload)
+			push, err := cosign(pushEntry, b.opt.CosignKeyFile, b.opt.CosignKeyPass, manifestFile)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to sign image %q", pushEntry.DockerTag)
 			}
@@ -884,24 +893,10 @@ func cosignCheck(ctx context.Context) (bool, error) {
 
 var cosignOutputRE = regexp.MustCompile("(?m)^Pushing signature to:.*$")
 
-func cosign(pushEntry gatewaycrafter.PushedImageSummaryEntry, keyFile, keyPass string, payload []byte) (string, error) {
+func cosign(pushEntry gatewaycrafter.PushedImageSummaryEntry, keyFile, keyPass, payloadFile string) (string, error) {
 
-	tmpFile, err := os.CreateTemp(os.TempDir(), "cosign-payload")
-	if err != nil {
-		return "", errors.Wrap(err, "failed to create temp file")
-	}
-	defer func() {
-		_ = tmpFile.Close()
-		_ = os.Remove(tmpFile.Name())
-	}()
-
-	c, err := tmpFile.Write(payload)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to write to temp file")
-	}
-
-	if c != len(payload) {
-		return "", errors.Wrapf(err, "unexpected byte count: got %d, expected %d", c, len(payload))
+	if _, err := os.Stat(payloadFile); os.IsNotExist(err) {
+		return "", errors.Wrap(err, "payload file not found")
 	}
 
 	if _, err := os.Stat(keyFile); os.IsNotExist(err) {
@@ -915,7 +910,7 @@ func cosign(pushEntry gatewaycrafter.PushedImageSummaryEntry, keyFile, keyPass s
 		"--key",
 		keyFile,
 		"--payload",
-		tmpFile.Name(),
+		payloadFile,
 		pushEntry.DockerTag,
 	}
 
