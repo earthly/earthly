@@ -36,7 +36,6 @@ import (
 	"github.com/earthly/earthly/states/dedup"
 	"github.com/earthly/earthly/states/image"
 	"github.com/earthly/earthly/util/containerutil"
-	"github.com/earthly/earthly/util/deltautil"
 	"github.com/earthly/earthly/util/fileutil"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/inodeutil"
@@ -640,7 +639,8 @@ npm audit | tee /npm-audit.log
 			return errors.Wrapf(err, "reading npm sbom failed")
 		}
 		c.mts.Final.Sboms = append(c.mts.Final.Sboms, string(b))
-		deltautil.AddSBOM(c.target.String(), string(b))
+		//cmd.AddSbom(sbom)
+		//deltautil.AddSBOM(c.target.String(), string(b))
 	}
 	// sbom hack end
 
@@ -1172,6 +1172,11 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, hasPushF
 	if err != nil {
 		return errors.Wrap(err, "failed to create command")
 	}
+	fmt.Printf("in SAVE IMAGE, with %d sboms\n", len(c.mts.Final.Sboms))
+	for _, sbom := range c.mts.Final.Sboms {
+		cmd.AddSbom(sbom)
+	}
+
 	defer func() {
 		cmd.SetEndError(retErr)
 	}()
@@ -1184,7 +1189,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, hasPushF
 		justCacheHint = true
 	}
 	for _, imageName := range imageNames {
-		deltautil.AddSBOMToSaveImage(imageName, c.mts.Final.Sboms)
+		//deltautil.AddSBOMToSaveImage(imageName, c.mts.Final.Sboms)
 		if c.mts.Final.RunPush.HasState {
 			if c.ftrs.WaitBlock {
 				panic("RunPush.HasState should never be true when --wait-block is used")

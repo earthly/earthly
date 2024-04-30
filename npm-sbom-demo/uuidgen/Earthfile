@@ -11,3 +11,9 @@ uuid:
 	COPY uuid.js .
 	RUN node uuid.js > generated-uuid
 	SAVE ARTIFACT generated-uuid
+
+saveimagetest:
+    FROM node:22-alpine3.18
+    COPY package.json ./
+    RUN npm install
+    SAVE IMAGE saveimagetest
