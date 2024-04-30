@@ -19,3 +19,4 @@ test:
 	RUN echo "this was generated via the uuid npm package: $(cat generated-uuid)"
 	RUN ldd hackhackhack
 	# unfortunately this does not work RUN  ./hackhackhack
+	SAVE IMAGE thisisneeded

@@ -75,7 +75,11 @@ func (sr *scoutResolver) ResolveImage(ctx context.Context, gwClient gwclient.Cli
 			Filename: outputFileName,
 		})
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read docker scout report for image %s", imageName)
+			//return nil, errors.Wrapf(err, "failed to read docker scout report for image %s", imageName)
+			rgp := &ResolvedScoutImage{
+				//Output: fmt.Sprintf("failed to do stuff %v", err), // don't commit
+			}
+			return rgp, nil
 		}
 
 		var jsonMap map[string]interface{}
