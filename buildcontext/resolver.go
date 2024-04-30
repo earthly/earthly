@@ -16,6 +16,8 @@ import (
 	"github.com/earthly/earthly/util/llbutil/llbfactory"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/syncutil/synccache"
+
+	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
 	"github.com/pkg/errors"
@@ -51,6 +53,7 @@ type Data struct {
 type Resolver struct {
 	gr *gitResolver
 	lr *localResolver
+	sr *scoutResolver
 
 	parseCache *synccache.SyncCache // local path -> AST
 	console    conslogging.ConsoleLogger
@@ -77,6 +80,10 @@ func NewResolver(cleanCollection *cleanup.Collection, gitLookup *GitLookup, cons
 			gitMetaCache:      synccache.New(),
 			gitBranchOverride: gitBranchOverride,
 			console:           console,
+		},
+		sr: &scoutResolver{
+			imageCache: synccache.New(),
+			console:    console,
 		},
 		parseCache:           synccache.New(),
 		console:              console,
@@ -171,6 +178,14 @@ func (r *Resolver) Resolve(ctx context.Context, gwClient gwclient.Client, platr 
 		d.EarthlyProjectName = project
 	}
 	return d, nil
+}
+
+func (r *Resolver) ResolveImage(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, imageName, digest string, opts ...llb.RunOption) (*ResolvedScoutImage, error) {
+	rsi, err := r.sr.ResolveImage(ctx, gwClient, platr, imageName, digest, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return rsi, nil
 }
 
 func (r *Resolver) parseEarthfile(ctx context.Context, path string) (spec.Earthfile, error) {

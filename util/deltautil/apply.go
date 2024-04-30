@@ -2,6 +2,7 @@ package deltautil
 
 import (
 	"fmt"
+	"slices"
 
 	pb "github.com/earthly/cloud-api/logstream"
 	"google.golang.org/protobuf/proto"
@@ -186,6 +187,20 @@ func setManifestFields(dm *pb.DeltaManifest, ret *pb.RunManifest) {
 		if len(c2.GetDependsOn()) > 0 {
 			c.DependsOn = append(c.DependsOn, c2.GetDependsOn()...)
 		}
+
+		for _, image := range c2.GetImages() {
+			i := ensureImageExists(ret, image.GetDigest())
+			i.ImageName = image.GetImageName()
+			if image.GetTag() != "" {
+				i.Tags = append(i.GetTags(), image.GetTag())
+				slices.Sort(i.Tags)
+				i.Tags = slices.Compact(i.Tags)
+			}
+			i.Platforms = append(i.GetPlatforms(), image.GetPlatform())
+			slices.Sort(i.Platforms)
+			i.Platforms = slices.Compact(i.Platforms)
+			i.Vulnerabilities = image.GetVulnerabilities()
+		}
 	}
 }
 
@@ -211,4 +226,18 @@ func ensureCommandExists(r *pb.RunManifest, commandID string) *pb.CommandManifes
 		r.Commands[commandID] = c
 	}
 	return c
+}
+
+func ensureImageExists(r *pb.RunManifest, digest string) *pb.ImageManifest {
+	if r.Images == nil {
+		r.Images = make(map[string]*pb.ImageManifest)
+	}
+	i, ok := r.Images[digest]
+	if !ok {
+		i = &pb.ImageManifest{
+			Digest: digest,
+		}
+		r.Images[digest] = i
+	}
+	return i
 }

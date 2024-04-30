@@ -49,7 +49,7 @@ type tarLoad struct {
 	state    pllb.State
 }
 
-func (w *withDockerRunTar) prepareImages(ctx context.Context, opt *WithDockerOpt) error {
+func (w *withDockerRunTar) prepareImages(ctx context.Context, cmdID string, opt *WithDockerOpt) error {
 	// Grab relevant images from compose file(s).
 	composePulls, err := w.getComposePulls(ctx, *opt)
 	if err != nil {
@@ -114,7 +114,7 @@ func (w *withDockerRunTar) prepareImages(ctx context.Context, opt *WithDockerOpt
 	// Pulls.
 	pullPromises := make([]chan struct{}, 0, len(opt.Pulls))
 	for _, pullImageName := range opt.Pulls {
-		pullPromise, err := w.pull(ctx, pullImageName)
+		pullPromise, err := w.pull(ctx, cmdID, pullImageName)
 		if err != nil {
 			return errors.Wrap(err, "pull")
 		}
@@ -139,12 +139,21 @@ func (w *withDockerRunTar) Run(ctx context.Context, args []string, opt WithDocke
 
 	w.c.nonSaveCommand()
 
+	cmdID, cmd, err := w.c.newLogbusCommand(ctx, "WITH DOCKER RUN")
+	if err != nil {
+		return errors.Wrap(err, "failed to create command")
+	}
+
+	defer func() {
+		cmd.SetEndError(err)
+	}()
+
 	err = w.installDeps(ctx, opt)
 	if err != nil {
 		return err
 	}
 
-	err = w.prepareImages(ctx, &opt)
+	err = w.prepareImages(ctx, cmdID, &opt)
 	if err != nil {
 		return err
 	}
@@ -207,10 +216,10 @@ func (w *withDockerRunTar) Run(ctx context.Context, args []string, opt WithDocke
 	return nil
 }
 
-func (w *withDockerRunTar) pull(ctx context.Context, opt DockerPullOpt) (chan struct{}, error) {
+func (w *withDockerRunTar) pull(ctx context.Context, cmdID string, opt DockerPullOpt) (chan struct{}, error) {
 	promise := make(chan struct{})
 	state, image, _, err := w.c.internalFromClassical(
-		ctx, opt.ImageName, opt.Platform,
+		ctx, cmdID, opt.ImageName, opt.Platform,
 		llb.WithCustomNamef("%sDOCKER PULL %s", w.c.imageVertexPrefix(opt.ImageName, opt.Platform), opt.ImageName),
 	)
 	if err != nil {

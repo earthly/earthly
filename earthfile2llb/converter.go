@@ -223,12 +223,12 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	} else {
 		internal = false
 	}
-	prefix, _, err := c.newVertexMeta(ctx, local, false, internal, nil)
+	prefix, cmdID, err := c.newVertexMeta(ctx, local, false, internal, nil)
 	if err != nil {
 		return err
 	}
 	state, img, envVars, err := c.internalFromClassical(
-		ctx, imageName, platform,
+		ctx, cmdID, imageName, platform,
 		llb.WithCustomNamef("%sFROM %s", prefix, imageName))
 	if err != nil {
 		return err
@@ -2539,7 +2539,7 @@ func (c *Converter) readArtifact(ctx context.Context, mts *states.MultiTarget, a
 	return artDt, nil
 }
 
-func (c *Converter) internalFromClassical(ctx context.Context, imageName string, platform platutil.Platform, opts ...llb.ImageOption) (pllb.State, *image.Image, *variables.Scope, error) {
+func (c *Converter) internalFromClassical(ctx context.Context, cmdID string, imageName string, platform platutil.Platform, opts ...llb.ImageOption) (pllb.State, *image.Image, *variables.Scope, error) {
 	llbPlatform := c.platr.ToLLBPlatform(platform)
 	if imageName == "scratch" {
 		// FROM scratch
@@ -2563,6 +2563,30 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 			ResolveMode: c.opt.ImageResolveMode.String(),
 			LogName:     logName,
 		})
+
+	if err != nil {
+		return pllb.State{}, nil, nil, errors.Wrapf(err, "resolve image config for %s", imageName)
+	}
+
+	sri, err := c.opt.Resolver.ResolveImage(ctx, c.opt.GwClient, c.platr, imageName, dgst.String(), c.dockerScoutSecrets()...)
+	if err != nil {
+		return pllb.State{}, nil, nil, errors.Wrapf(err, "failed to get vulnerabilities for %s", imageName)
+	}
+
+	var tag string
+	if taggedRef, ok := sourceRef.(reference.Tagged); ok {
+		tag = taggedRef.Tag()
+	}
+
+	if cmd, ok := c.opt.Logbus.Run().Command(cmdID); ok {
+		cmd.SetImage(
+			sourceRef.Name(),
+			tag,
+			dgst.String(),
+			platforms.Format(llbPlatform),
+			sri.Output,
+		)
+	}
 	if err != nil {
 		return pllb.State{}, nil, nil, errors.Wrapf(err, "resolve image config for %s", imageName)
 	}
@@ -2585,6 +2609,18 @@ func (c *Converter) internalFromClassical(ctx context.Context, imageName string,
 	state := pllb.Image(sourceRef.String(), allOpts...)
 	state, img2, envVars := c.applyFromImage(state, &img)
 	return state, img2, envVars, nil
+}
+
+func (c *Converter) dockerScoutSecrets() []llb.RunOption {
+	var runOpts []llb.RunOption
+	for secretName, envVar := range map[string]string{"dockerhub/user": "DOCKER_SCOUT_HUB_USER", "dockerhub/token": "DOCKER_SCOUT_HUB_PASSWORD"} {
+		secretOpts := []llb.SecretOption{
+			llb.SecretID(c.secretID(secretName)),
+			llb.SecretAsEnv(true),
+		}
+		runOpts = append(runOpts, llb.AddSecret(envVar, secretOpts...))
+	}
+	return runOpts
 }
 
 func (c *Converter) checkOldPlatformIncompatibility(platform platutil.Platform) error {

@@ -8,9 +8,11 @@ import (
 
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/util/circbuf"
+
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const (
@@ -169,6 +171,18 @@ func (c *Command) SetEndError(err error) {
 func (c *Command) SetName(name string) {
 	c.commandDelta(&logstream.DeltaCommandManifest{
 		Name: name,
+	})
+}
+
+func (c *Command) SetImage(imageName, tag, digest, platform string, vulnerabilities *structpb.Struct) {
+	c.commandDelta(&logstream.DeltaCommandManifest{
+		Images: []*logstream.CommandImage{{
+			ImageName:       imageName,
+			Tag:             tag,
+			Digest:          digest,
+			Platform:        platform,
+			Vulnerabilities: vulnerabilities,
+		}},
 	})
 }
 
