@@ -386,7 +386,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 					time.Now(),
 					logstream.FailureType_FAILURE_TYPE_OTHER,
 					"",
-					grpcErr.Message(),
+					messageWithSourceLink(grpcErr.Message()),
 				)
 				return 1
 			}
@@ -502,6 +502,12 @@ func (app *EarthlyApp) printCrashLogs(ctx context.Context) {
 
 func errorWithPrefix(err string) string {
 	return fmt.Sprintf("Error: %s", err)
+}
+
+func messageWithSourceLink(message string) string {
+	re := regexp.MustCompile(`(\S+) line (\d+):(\d+)`)
+	updatedMessage := re.ReplaceAllString(message, "$1:$2:$3")
+	return updatedMessage
 }
 
 func getHintErr(err error, grpcError *status.Status) (*hint.Error, bool) {
