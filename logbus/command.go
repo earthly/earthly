@@ -2,7 +2,6 @@ package logbus
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -177,7 +176,6 @@ func (c *Command) SetName(name string) {
 
 // AddSbom adds an sbom
 func (c *Command) AddSbom(sbom string) {
-	fmt.Printf("adding sbom of size %d bytes\n", len(sbom))
 	c.commandDelta(&logstream.DeltaCommandManifest{
 		Spdx: sbom,
 	})

@@ -622,7 +622,6 @@ npm sbom --sbom-format spdx | tee /sbom.spdx
 npm audit | tee /npm-audit.log
 `))
 
-		//hckState = hckState.Run(llb.Shlex("/bin/sh -c \"cd /root/ && npm install && npm sbom --sbom-format spdx > /sbom.spdx")).Root()
 		hckState = hckState.Run(llb.Shlex(fmt.Sprintf("/bin/sh -c \"echo %s | base64 -d > /script && chmod +x /script && /script > /sbom.log\"", scriptData))).Root()
 
 		hckRef, err := llbutil.StateToRef(
@@ -639,8 +638,6 @@ npm audit | tee /npm-audit.log
 			return errors.Wrapf(err, "reading npm sbom failed")
 		}
 		c.mts.Final.Sboms = append(c.mts.Final.Sboms, string(b))
-		//cmd.AddSbom(sbom)
-		//deltautil.AddSBOM(c.target.String(), string(b))
 	}
 	// sbom hack end
 
@@ -1189,7 +1186,6 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, hasPushF
 		justCacheHint = true
 	}
 	for _, imageName := range imageNames {
-		//deltautil.AddSBOMToSaveImage(imageName, c.mts.Final.Sboms)
 		if c.mts.Final.RunPush.HasState {
 			if c.ftrs.WaitBlock {
 				panic("RunPush.HasState should never be true when --wait-block is used")

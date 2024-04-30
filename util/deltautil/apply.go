@@ -200,9 +200,6 @@ func setManifestFields(dm *pb.DeltaManifest, ret *pb.RunManifest) {
 			slices.Sort(i.Platforms)
 			i.Platforms = slices.Compact(i.Platforms)
 			i.Vulnerabilities = image.GetVulnerabilities()
-			//sboms := GetSBOMSbyImageName(i.ImageName)
-			//i.Spdx = append(i.Spdx, sboms...)
-			//fmt.Printf("Added %d SPDXs to %s\n", len(sboms), i.ImageName)
 		}
 	}
 }

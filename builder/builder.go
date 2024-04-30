@@ -331,22 +331,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				return nil, err
 			}
 		}
-
-		//defer func() {
-		//	sboms := earthfile2llb.GetSBOMs()
-		//	sbomOutputPath := "earthly.sboms"
-		//	f, err := os.Create(sbomOutputPath)
-		//	if err != nil {
-		//		b.opt.Console.Warnf("Error: failed to open %s for sbom output", sbomOutputPath)
-		//		return
-		//	}
-		//	b.opt.Console.Printf("%d SBOM(s) were encountered during the build; contents have been writen to %s\n", len(sboms), sbomOutputPath)
-		//	defer f.Close()
-		//	for _, x := range sboms {
-		//		f.WriteString(fmt.Sprintf("=== %s ===\n%s", x.Target, x.SBOM))
-		//	}
-		//}()
-
 		if opt.GlobalWaitBlockFtr {
 			if opt.OnlyArtifact != nil || opt.OnlyFinalTargetImages {
 				b.opt.Console.Printf("builder.go bf code is still required for OnlyArtifact or OnlyFinalTargetImages modes (GlobalWaitBlockFtr has no effect)\n")
