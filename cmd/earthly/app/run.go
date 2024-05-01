@@ -378,6 +378,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 			helpMsg := "Unverified accounts have a limit on the duration of RUN commands. Verify your account to lift this restriction."
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, helpMsg, grpcErr.Message())
 			app.BaseCLI.Console().HelpPrintf(helpMsg)
+			return 1
 		case grpcErrOK && grpcErr.Code() != codes.Canceled:
 			app.BaseCLI.Console().VerboseWarnf(errorWithPrefix(err.Error()))
 			if !strings.Contains(grpcErr.Message(), "transport is closing") {
@@ -469,6 +470,8 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 			)
 			return 1
 		}
+		//  if this happens there is a missing "return" in the above switch statement.
+		panic("error was not caught by error-handling switch") // nolint:all
 	}
 	app.BaseCLI.Logbus().Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_SUCCESS)
 	return 0
