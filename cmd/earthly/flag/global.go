@@ -80,6 +80,7 @@ type Global struct {
 	NoSatellite                bool
 	ProjectName                string
 	OrgName                    string
+	CloudName                  string
 	EarthlyCIRunner            bool
 	ArtifactMode               bool
 	ImageMode                  bool
@@ -101,6 +102,7 @@ type Global struct {
 	LocalSkipDB                string
 	DisableRemoteRegistryProxy bool
 	NoAutoSkip                 bool
+	GithubAnnotations          bool
 }
 
 func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
@@ -232,7 +234,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        "satellite-address",
-			Value:       containerutil.SatelliteAddress,
 			EnvVars:     []string{"EARTHLY_SATELLITE_ADDRESS"},
 			Usage:       "Satellite address override for dev purposes",
 			Destination: &global.SatelliteAddress,
@@ -537,6 +538,13 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			EnvVars:     []string{"EARTHLY_NO_AUTO_SKIP"},
 			Usage:       "Disable auto-skip functionality",
 			Destination: &global.NoAutoSkip,
+			Value:       false,
+		},
+		&cli.BoolFlag{
+			Name:        "github-annotations",
+			EnvVars:     []string{"GITHUB_ACTIONS"},
+			Usage:       "Enable Git Hub Actions workflow specific output",
+			Destination: &global.GithubAnnotations,
 			Value:       false,
 		},
 	}

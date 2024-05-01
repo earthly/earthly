@@ -5,8 +5,8 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 ## Unreleased
 
 ### Added
-
-- Added `--oidc` flag to `RUN` command which allows authentication to AWS via oidc. Enable with the `VERSION --run-with-aws-oidc` feature flag. [#3804](https://github.com/earthly/earthly/issues/3804)
+- New Github Actions Workflow commands integration `--github-annotations` flag or GITHUB_ACTIONS=true env. [#2189](https://github.com/earthly/earthly/issues/2189)
+- Added a new `--oidc` flag to `RUN` command which allows authentication to AWS via OIDC. Enable with the `VERSION --run-with-aws-oidc` feature flag. [#3804](https://github.com/earthly/earthly/issues/3804)
 
 ## v0.8.9 - 2024-04-24
 

@@ -1,4 +1,3 @@
-
 VERSION 0.8
 FROM alpine:3.18
 WORKDIR /tutorial
