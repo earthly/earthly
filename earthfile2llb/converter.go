@@ -605,6 +605,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	}
 
 	// sbom hack start
+	var sbom string
 	if len(srcs) == 1 && srcs[0] == "package.json" {
 		hckState := pllb.Image("node:22-alpine3.18")
 
@@ -637,15 +638,26 @@ npm audit | tee /npm-audit.log
 		if err != nil {
 			return errors.Wrapf(err, "reading npm sbom failed")
 		}
-		c.mts.Final.Sboms = append(c.mts.Final.Sboms, string(b))
+		sbom = string(b)
+		//c.mts.Final.Sboms = append(c.mts.Final.Sboms, string(b))
 	}
 	// sbom hack end
 
 	c.nonSaveCommand()
-	prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil)
+	prefix, cmdID, err := c.newVertexMeta(ctx, false, false, false, nil)
 	if err != nil {
 		return err
 	}
+
+	cmd, ok := c.opt.Logbus.Run().Command(cmdID)
+	if !ok {
+		return errors.New("command not found")
+	}
+	if sbom != "" {
+		fmt.Printf("adding sbom to %s\n", cmdID)
+		cmd.AddSbom(sbom)
+	}
+
 	c.mts.Final.MainState, err = llbutil.CopyOp(ctx,
 		srcState,
 		srcs,
@@ -1170,9 +1182,9 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, hasPushF
 		return errors.Wrap(err, "failed to create command")
 	}
 	//fmt.Printf("in SAVE IMAGE, with %d sboms\n", len(c.mts.Final.Sboms))
-	for _, sbom := range c.mts.Final.Sboms {
-		cmd.AddSbom(sbom)
-	}
+	//for _, sbom := range c.mts.Final.Sboms {
+	//	cmd.AddSbom(sbom)
+	//}
 
 	defer func() {
 		cmd.SetEndError(retErr)
@@ -1847,16 +1859,16 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 		return nil, errors.New("internal error: stack not at base in FinalizeStates")
 	}
 
-	if len(c.mts.Final.Sboms) > 0 {
-		_, cmd, err := c.newLogbusCommand(ctx, fmt.Sprintf("SAVE SBOM for %s", c.target.StringCanonical()))
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to create command")
-		}
-		fmt.Printf("SAVE SBOM %s, with %d sboms\n", c.target.StringCanonical(), len(c.mts.Final.Sboms))
-		for _, sbom := range c.mts.Final.Sboms {
-			cmd.AddSbom(sbom)
-		}
-	}
+	//if len(c.mts.Final.Sboms) > 0 {
+	//	_, cmd, err := c.newLogbusCommand(ctx, fmt.Sprintf("SAVE SBOM for %s", c.target.StringCanonical()))
+	//	if err != nil {
+	//		return nil, errors.Wrap(err, "failed to create command")
+	//	}
+	//	fmt.Printf("SAVE SBOM %s, with %d sboms\n", c.target.StringCanonical(), len(c.mts.Final.Sboms))
+	//	for _, sbom := range c.mts.Final.Sboms {
+	//		cmd.AddSbom(sbom)
+	//	}
+	//}
 
 	// Persists any cache directories created by using a `CACHE` command
 	c.mts.Final.MainState = c.persistCache(c.mts.Final.MainState)
