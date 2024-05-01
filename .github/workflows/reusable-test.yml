@@ -79,7 +79,8 @@ jobs:
         run: |-
           ${{inputs.SUDO}} ${{ inputs.BUILT_EARTHLY_PATH }} ${{inputs.EXTRA_ARGS}} --ci -P ${{inputs.TEST_TARGET}}
       - name: Execute fail test
-        run: "! ${{inputs.SUDO}} ${{ inputs.BUILT_EARTHLY_PATH }} ${{inputs.EXTRA_ARGS}} --ci ./tests/fail+test-fail"
+        run: |
+          ! ${{inputs.SUDO}} GITHUB_ACTIONS="" ${{ inputs.BUILT_EARTHLY_PATH }} ${{inputs.EXTRA_ARGS}} --ci ./tests/fail+test-fail
       - name: Buildkit logs (runs on failure)
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd || true
         if: ${{ failure() && ! inputs.USE_SATELLITE }}
