@@ -81,6 +81,8 @@ func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]b
 	}
 
 	secretName := q.Get("name")
+	orgName := q.Get("org")
+	projectName := q.Get("project")
 
 	// This provider only deals with secrets prefixed with "aws:".
 	if !strings.HasPrefix(secretName, "aws:") {
@@ -89,13 +91,13 @@ func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]b
 
 	oidcInfo := oidcInfoFromValues(q)
 
-	cfg, err := getCFG(ctx, oidcInfo, c.client)
+	cfg, err := getCFG(ctx, orgName, projectName, oidcInfo, c.client)
 	if err != nil {
 		return nil, err
 	}
 	creds, err := cfg.Credentials.Retrieve(ctx)
 
-	if err = handleError(err, oidcInfo.RoleARN.String(), cfg.Region); err != nil {
+	if err = handleError(err, oidcInfo.RoleARN.String(), cfg.Region, orgName, projectName); err != nil {
 		return nil, err
 	}
 
@@ -146,10 +148,12 @@ func oidcInfoFromValues(values url.Values) *oidcutil.AWSOIDCInfo {
 }
 
 type oidcCredentialsProvider struct {
-	client   *cloud.Client
-	cache    *aws.Credentials
-	oidcInfo *oidcutil.AWSOIDCInfo
-	cacheMU  sync.Mutex
+	client      *cloud.Client
+	cache       *aws.Credentials
+	oidcInfo    *oidcutil.AWSOIDCInfo
+	orgName     string
+	projectName string
+	cacheMU     sync.Mutex
 }
 
 func (p *oidcCredentialsProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
@@ -161,7 +165,7 @@ func (p *oidcCredentialsProvider) Retrieve(ctx context.Context) (aws.Credentials
 	if p.cache != nil {
 		return *p.cache, nil
 	}
-	res, err := p.client.GetAWSCredentials(ctx, p.oidcInfo.RoleARN.String(), p.oidcInfo.Region, p.oidcInfo.SessionDuration)
+	res, err := p.client.GetAWSCredentials(ctx, p.oidcInfo.RoleARN.String(), p.orgName, p.projectName, p.oidcInfo.Region, p.oidcInfo.SessionDuration)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
@@ -179,7 +183,7 @@ func (p *oidcCredentialsProvider) Retrieve(ctx context.Context) (aws.Credentials
 // The cfg is either host environment based (e.g. ~/.aws) or oidc based.
 // When based on oidc, it would get a session token from the cloud and cache the result.
 // Caching is done so that next calls of GetSecret would get the rest of the matching credentials keys
-func getCFG(ctx context.Context, oidcInfo *oidcutil.AWSOIDCInfo, client *cloud.Client) (aws.Config, error) {
+func getCFG(ctx context.Context, orgName string, projectName string, oidcInfo *oidcutil.AWSOIDCInfo, client *cloud.Client) (aws.Config, error) {
 	if oidcInfo == nil {
 		// no oidc info implies getting the secrets from the host environment
 		// Note: results of this call are cached.
@@ -203,8 +207,10 @@ func getCFG(ctx context.Context, oidcInfo *oidcutil.AWSOIDCInfo, client *cloud.C
 	cfg := &aws.Config{
 		Region: oidcInfo.Region,
 		Credentials: &oidcCredentialsProvider{
-			client:   client,
-			oidcInfo: oidcInfo,
+			client:      client,
+			oidcInfo:    oidcInfo,
+			orgName:     orgName,
+			projectName: projectName,
 		},
 	}
 	oidcCredsProviderCache[key] = cfg
@@ -224,16 +230,19 @@ func SetURLValuesFunc(awsInfo *oidcutil.AWSOIDCInfo) func(values url.Values) {
 	}
 }
 
-func handleError(err error, arn string, region string) error {
+func handleError(err error, arn, region, orgName, projectName string) error {
 	if err == nil {
 		return nil
 	}
 	if grpcErr, ok := grpcerrors.AsGRPCStatus(err); ok {
 		switch grpcErr.Code() {
 		case codes.InvalidArgument:
+			if strings.Contains(grpcErr.Message(), "could not be found") {
+				return hint.Wrapf(err, `do the org "%s" and project "%s exist"`, orgName, projectName)
+			}
 			return hint.Wrapf(err, `is "%s" a valid AWS region?`, region)
 		case codes.PermissionDenied, codes.FailedPrecondition:
-			return hint.Wrapf(err, `make sure the role %s has a valid trusted policy configured in AWS`, arn)
+			return hint.Wrapf(err, `make sure the role %s has a valid trust policy configured in AWS`, arn)
 		}
 	}
 	return errors.Wrap(err, "failed to load AWS credentials")

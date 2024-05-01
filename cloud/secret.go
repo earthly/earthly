@@ -89,7 +89,13 @@ func (c *Client) Set(ctx context.Context, path string, data []byte) error {
 	return nil
 }
 
-func (c *Client) GetAWSCredentials(ctx context.Context, roleARN string, region string, sessionDuration *time.Duration) (*secrets.GetAWSCredentialsResponse, error) {
+func (c *Client) GetAWSCredentials(ctx context.Context, roleARN string, orgName string, projectName string, region string, sessionDuration *time.Duration) (*secrets.GetAWSCredentialsResponse, error) {
+	if orgName == "" {
+		return nil, errors.New("org must be set in order to use AWS OIDC")
+	}
+	if projectName == "" {
+		return nil, errors.New("project must be set in order to use AWS OIDC")
+	}
 	var duration *durationpb.Duration
 	if sessionDuration != nil {
 		duration = durationpb.New(*sessionDuration)
@@ -98,6 +104,8 @@ func (c *Client) GetAWSCredentials(ctx context.Context, roleARN string, region s
 		RoleArn:         roleARN,
 		SessionDuration: duration,
 		Region:          region,
+		OrgName:         orgName,
+		ProjectName:     projectName,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get aws credentials via oidc provider")
