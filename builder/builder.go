@@ -831,6 +831,16 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		b.opt.Console.PrintPhaseFooter(PhaseOutput, false, "")
 	}
 
+	if os.Getenv("PRE_DUMP_MANIFEST") == "yes" {
+		// TODO: use a dynamic filename & remove it post hoc.
+		manifestFile := "/tmp/pre-dump.json"
+		err = b.opt.DumpManifestFunc(manifestFile)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to write manifest")
+		}
+		fmt.Printf("dumped manifest to %s\n", manifestFile)
+	}
+
 	if opt.Push && b.opt.Cosign {
 		signConsole := conslogging.NewBufferedLogger(&b.opt.Console)
 		if opt.PrintPhases {

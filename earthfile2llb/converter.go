@@ -61,6 +61,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type cmdType int
@@ -605,6 +606,7 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 	}
 
 	// sbom hack start
+	var sbom string
 	if len(srcs) == 1 && srcs[0] == "package.json" {
 		hckState := pllb.Image("node:22-alpine3.18")
 
@@ -637,15 +639,33 @@ npm audit | tee /npm-audit.log
 		if err != nil {
 			return errors.Wrapf(err, "reading npm sbom failed")
 		}
-		c.mts.Final.Sboms = append(c.mts.Final.Sboms, string(b))
+		sbom = string(b)
 	}
 	// sbom hack end
 
 	c.nonSaveCommand()
-	prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil)
+	prefix, cmdID, err := c.newVertexMeta(ctx, false, false, false, nil)
 	if err != nil {
 		return err
 	}
+
+	cmd, ok := c.opt.Logbus.Run().Command(cmdID)
+	if !ok {
+		return errors.New("command not found")
+	}
+	if sbom != "" {
+		var jsonMap map[string]interface{}
+		err = json.Unmarshal([]byte(sbom), &jsonMap)
+		if err != nil {
+			return errors.Wrapf(err, "failed to unmarshal npm sbom")
+		}
+		st, err := structpb.NewStruct(jsonMap)
+		if err != nil {
+			return errors.Wrapf(err, "failed to serialize npm sbom report")
+		}
+		cmd.AddSbom(st)
+	}
+
 	c.mts.Final.MainState, err = llbutil.CopyOp(ctx,
 		srcState,
 		srcs,
@@ -1168,10 +1188,6 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, hasPushF
 	_, cmd, err := c.newLogbusCommand(ctx, fmt.Sprintf("SAVE IMAGE %s", strings.Join(imageNames, " ")))
 	if err != nil {
 		return errors.Wrap(err, "failed to create command")
-	}
-	fmt.Printf("in SAVE IMAGE, with %d sboms\n", len(c.mts.Final.Sboms))
-	for _, sbom := range c.mts.Final.Sboms {
-		cmd.AddSbom(sbom)
 	}
 
 	defer func() {

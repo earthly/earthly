@@ -1,4 +1,5 @@
 VERSION 0.8
+PROJECT earthly-technologies/core
 
 deps:
     FROM node:22-alpine3.18
