@@ -187,9 +187,8 @@ func setManifestFields(dm *pb.DeltaManifest, ret *pb.RunManifest) {
 		if len(c2.GetDependsOn()) > 0 {
 			c.DependsOn = append(c.DependsOn, c2.GetDependsOn()...)
 		}
-		if c2.GetSpdx() != "" {
-			fmt.Printf("%d bytes of sbom added to command %s\n", len(c2.GetSpdx()), commandID)
-			c.Spdx = append(c.Spdx, c2.GetSpdx())
+		if c2.GetSpdx() != nil {
+			c.Spdx = c2.GetSpdx()
 		}
 
 		for _, image := range c2.GetImages() {

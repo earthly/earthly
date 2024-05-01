@@ -175,7 +175,7 @@ func (c *Command) SetName(name string) {
 }
 
 // AddSbom adds an sbom
-func (c *Command) AddSbom(sbom string) {
+func (c *Command) AddSbom(sbom *structpb.Struct) {
 	c.commandDelta(&logstream.DeltaCommandManifest{
 		Spdx: sbom,
 	})

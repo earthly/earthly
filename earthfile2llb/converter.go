@@ -61,6 +61,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type cmdType int
@@ -654,8 +655,17 @@ npm audit | tee /npm-audit.log
 		return errors.New("command not found")
 	}
 	if sbom != "" {
-		fmt.Printf("adding sbom to %s\n", cmdID)
-		cmd.AddSbom(sbom)
+		var jsonMap map[string]interface{}
+		err = json.Unmarshal([]byte(sbom), &jsonMap)
+		if err != nil {
+			return errors.Wrapf(err, "failed to unmarshal npm sbom")
+		}
+		st, err := structpb.NewStruct(jsonMap)
+		if err != nil {
+			return errors.Wrapf(err, "failed to serialize npm sbom report")
+		}
+
+		cmd.AddSbom(st)
 	}
 
 	c.mts.Final.MainState, err = llbutil.CopyOp(ctx,
