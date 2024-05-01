@@ -174,6 +174,13 @@ func (c *Command) SetName(name string) {
 	})
 }
 
+// AddSbom adds an sbom
+func (c *Command) AddSbom(sbom string) {
+	c.commandDelta(&logstream.DeltaCommandManifest{
+		Spdx: sbom,
+	})
+}
+
 func (c *Command) SetImage(imageName, tag, digest, platform string, vulnerabilities *structpb.Struct) {
 	c.commandDelta(&logstream.DeltaCommandManifest{
 		Images: []*logstream.CommandImage{{

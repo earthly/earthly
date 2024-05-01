@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha1"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
@@ -603,6 +604,43 @@ func (c *Converter) CopyClassical(ctx context.Context, srcs []string, dest strin
 		srcState = c.buildContextFactory.Construct()
 	}
 
+	// sbom hack start
+	if len(srcs) == 1 && srcs[0] == "package.json" {
+		hckState := pllb.Image("node:22-alpine3.18")
+
+		hckState, err = llbutil.CopyOp(ctx,
+			srcState,
+			srcs,
+			hckState, "/root/package.json", true, isDir, keepTs, c.copyOwner(keepOwn, chown), chmod, ifExists, false,
+			c.ftrs.UseCopyLink,
+		)
+
+		scriptData := base64.StdEncoding.EncodeToString([]byte(`#!/bin/sh
+cd /root
+npm install
+npm sbom --sbom-format spdx | tee /sbom.spdx
+npm audit | tee /npm-audit.log
+`))
+
+		hckState = hckState.Run(llb.Shlex(fmt.Sprintf("/bin/sh -c \"echo %s | base64 -d > /script && chmod +x /script && /script > /sbom.log\"", scriptData))).Root()
+
+		hckRef, err := llbutil.StateToRef(
+			ctx, c.opt.GwClient, hckState, false,
+			c.platr.SubResolver(platutil.NativePlatform), nil)
+		if err != nil {
+			return errors.Wrapf(err, "npm sbom failed")
+		}
+
+		b, err := hckRef.ReadFile(ctx, gwclient.ReadRequest{
+			Filename: "/sbom.spdx",
+		})
+		if err != nil {
+			return errors.Wrapf(err, "reading npm sbom failed")
+		}
+		c.mts.Final.Sboms = append(c.mts.Final.Sboms, string(b))
+	}
+	// sbom hack end
+
 	c.nonSaveCommand()
 	prefix, _, err := c.newVertexMeta(ctx, false, false, false, nil)
 	if err != nil {
@@ -1131,6 +1169,11 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, hasPushF
 	if err != nil {
 		return errors.Wrap(err, "failed to create command")
 	}
+	fmt.Printf("in SAVE IMAGE, with %d sboms\n", len(c.mts.Final.Sboms))
+	for _, sbom := range c.mts.Final.Sboms {
+		cmd.AddSbom(sbom)
+	}
+
 	defer func() {
 		cmd.SetEndError(retErr)
 	}()

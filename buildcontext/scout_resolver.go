@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/llbutil"
@@ -75,6 +76,11 @@ func (sr *scoutResolver) ResolveImage(ctx context.Context, gwClient gwclient.Cli
 			Filename: outputFileName,
 		})
 		if err != nil {
+			if os.Getenv("IGNORE_SCOUT_ERROR") == "yes" {
+				// hack for cases where no scout auth is given and we want to ignore this error
+				rgp := &ResolvedScoutImage{}
+				return rgp, nil
+			}
 			return nil, errors.Wrapf(err, "failed to read docker scout report for image %s", imageName)
 		}
 
