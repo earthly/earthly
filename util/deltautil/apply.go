@@ -187,6 +187,10 @@ func setManifestFields(dm *pb.DeltaManifest, ret *pb.RunManifest) {
 		if len(c2.GetDependsOn()) > 0 {
 			c.DependsOn = append(c.DependsOn, c2.GetDependsOn()...)
 		}
+		if c2.GetSpdx() != "" {
+			c.Spdx = append(c.Spdx, c2.GetSpdx())
+			//panic(fmt.Sprintf("got %s\n", c2.GetSpdx()))
+		}
 
 		for _, image := range c2.GetImages() {
 			i := ensureImageExists(ret, image.GetDigest())

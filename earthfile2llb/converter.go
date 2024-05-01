@@ -1169,7 +1169,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, hasPushF
 	if err != nil {
 		return errors.Wrap(err, "failed to create command")
 	}
-	fmt.Printf("in SAVE IMAGE, with %d sboms\n", len(c.mts.Final.Sboms))
+	//fmt.Printf("in SAVE IMAGE, with %d sboms\n", len(c.mts.Final.Sboms))
 	for _, sbom := range c.mts.Final.Sboms {
 		cmd.AddSbom(sbom)
 	}
@@ -1845,6 +1845,17 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	if !c.varCollection.IsStackAtBase() {
 		// Should never happen.
 		return nil, errors.New("internal error: stack not at base in FinalizeStates")
+	}
+
+	if len(c.mts.Final.Sboms) > 0 {
+		_, cmd, err := c.newLogbusCommand(ctx, fmt.Sprintf("SAVE SBOM for %s", c.target.StringCanonical()))
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create command")
+		}
+		fmt.Printf("SAVE SBOM %s, with %d sboms\n", c.target.StringCanonical(), len(c.mts.Final.Sboms))
+		for _, sbom := range c.mts.Final.Sboms {
+			cmd.AddSbom(sbom)
+		}
 	}
 
 	// Persists any cache directories created by using a `CACHE` command

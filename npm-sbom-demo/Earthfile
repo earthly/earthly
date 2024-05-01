@@ -1,4 +1,5 @@
 VERSION 0.8
+PROJECT earthly-technologies/core
 
 mytarget:
     FROM node:22-alpine3.18
@@ -19,4 +20,4 @@ test:
 	RUN echo "this was generated via the uuid npm package: $(cat generated-uuid)"
 	RUN ldd hackhackhack
 	# unfortunately this does not work RUN  ./hackhackhack
-	SAVE IMAGE thisisneeded
+	SAVE IMAGE --push alexcb132/test:cosign
