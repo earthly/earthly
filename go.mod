@@ -37,6 +37,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mitchellh/hashstructure/v2 v2.0.2
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/moby/buildkit v0.8.2-0.20210129065303-6b9ea0c202cf
 	github.com/moby/patternmatcher v0.6.0
 	github.com/opencontainers/go-digest v1.0.0
@@ -108,7 +109,6 @@ require (
 	github.com/klauspost/compress v1.17.2 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/locker v1.0.1 // indirect
 	github.com/moby/sys/signal v0.7.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
