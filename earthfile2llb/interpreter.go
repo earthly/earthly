@@ -2112,7 +2112,7 @@ To start using the FUNCTION keyword now (experimental) please use VERSION --use-
 		return i.errorf(uc.Recipe[0].SourceLocation, "%s takes no arguments", cmdName)
 	}
 	scopeName := fmt.Sprintf(
-		"%s (%s line %d:%d)",
+		"%s (%s:%d:%d)",
 		command.StringCanonical(), do.SourceLocation.File, do.SourceLocation.StartLine, do.SourceLocation.StartColumn)
 	err := i.converter.EnterScopeDo(ctx, command, baseTarget(relCommand), allowPrivileged, passArgs, scopeName, buildArgs)
 	if err != nil {
