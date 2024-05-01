@@ -56,7 +56,7 @@ func (ie InterpreterError) Error() string {
 		return err.Error()
 	}
 	ret := fmt.Sprintf(
-		"%s line %d:%d %s",
+		"%s:%d:%d %s",
 		ie.SourceLocation.File, ie.SourceLocation.StartLine, ie.SourceLocation.StartColumn,
 		err.Error())
 	if ie.stack != "" {
