@@ -13,7 +13,7 @@ import (
 var _ error = &InterpreterError{}
 
 // note this regex should be updated in case the error format changes in Errorf
-var regex = regexp.MustCompile(`(?P<file_path>.*?) line (?P<line>\d+):(?P<column>\d+) (?P<error>.+?)($|\nin\t\t(?P<stack>.+?)$)`)
+var regex = regexp.MustCompile(`(?P<file_path>.*?):(?P<line>\d+):(?P<column>\d+) (?P<error>.+?)($|\nin\t\t(?P<stack>.+?)$)`)
 
 // InterpreterError is an error of the interpreter, which contains optional references to the original
 // source code location.
