@@ -183,14 +183,13 @@ func (c *Command) AddSbom(sbom *structpb.Struct) {
 
 func (c *Command) SetImage(imageName, tag, digest, platform string, vulnerabilities *structpb.Struct) {
 	c.commandDelta(&logstream.DeltaCommandManifest{
-		Images: []*logstream.CommandImage{{
+		Image: &logstream.CommandImage{
 			ImageName:       imageName,
 			Tag:             tag,
 			Digest:          digest,
 			Platform:        platform,
 			Vulnerabilities: vulnerabilities,
-		}},
-	})
+		}})
 }
 
 func (c *Command) commandDelta(dcm *logstream.DeltaCommandManifest) {

@@ -20,8 +20,9 @@ import (
 )
 
 const (
-	defaultScoutImage = "docker/scout-cli:1.8.0"
-	outputFileName    = "sbom.json"
+	defaultScoutImage  = "docker/scout-cli:1.8.0"
+	sbomOutputFileName = "sbom.json"
+	spdxOutputFileName = "spdx.json"
 )
 
 type scoutResolver struct {
@@ -30,7 +31,46 @@ type scoutResolver struct {
 }
 
 type ResolvedScoutImage struct {
-	Output *structpb.Struct
+	Vulnerabilities *structpb.Struct
+	Spdx            *structpb.Struct
+}
+
+func (sr *scoutResolver) getFile(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, imageName string, digest string, outputFile string, runOpts ...llb.RunOption) ([]byte, error) {
+	opImg := pllb.Image(
+		defaultScoutImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
+		llb.Platform(platr.LLBNative()))
+
+	scoutOp := opImg.Run(runOpts...)
+
+	scoutSt := scoutOp.Root()
+
+	scoutRef, err := llbutil.StateToRef(
+		ctx, gwClient, scoutSt, false,
+		platr.SubResolver(platutil.NativePlatform), nil)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to docker scout for %s", imageName)
+	}
+
+	b, err := scoutRef.ReadFile(ctx, gwclient.ReadRequest{
+		Filename: outputFile,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+func (sr *scoutResolver) strToStructPB(b []byte, imageName string) (*structpb.Struct, error) {
+	var jsonMap map[string]interface{}
+	err := json.Unmarshal(b, &jsonMap)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal docker scout report for image %s", imageName)
+	}
+	st, err := structpb.NewStruct(jsonMap)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to serialize docker scout report for image %s", imageName)
+	}
+	return st, nil
 }
 
 func (sr *scoutResolver) ResolveImage(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, imageName, digest string, opts ...llb.RunOption) (rsi *ResolvedScoutImage, finalErr error) {
@@ -41,61 +81,42 @@ func (sr *scoutResolver) ResolveImage(ctx context.Context, gwClient gwclient.Cli
 			Internal:   true,
 		}
 
-		scoutImage := defaultScoutImage
-
-		runOpts := []llb.RunOption{
-			llb.Args([]string{
-				"/docker-scout",
-				"cves",
-				"--format",
-				"sbom",
-				"--output",
-				outputFileName,
-				imageName,
-			}),
-			llb.WithCustomNamef("%s DOCKER SCOUT %s", vm.ToVertexPrefix(), digest),
-		}
-
-		runOpts = append(runOpts, opts...)
-		opImg := pllb.Image(
-			scoutImage, llb.MarkImageInternal, llb.ResolveModePreferLocal,
-			llb.Platform(platr.LLBNative()))
-
-		scoutOp := opImg.Run(runOpts...)
-
-		scoutSt := scoutOp.Root()
-
-		scoutRef, err := llbutil.StateToRef(
-			ctx, gwClient, scoutSt, false,
-			platr.SubResolver(platutil.NativePlatform), nil)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to docker scout for %s", imageName)
-		}
-
-		b, err := scoutRef.ReadFile(ctx, gwclient.ReadRequest{
-			Filename: outputFileName,
-		})
-		if err != nil {
-			if os.Getenv("IGNORE_SCOUT_ERROR") == "yes" {
-				// hack for cases where no scout auth is given and we want to ignore this error
-				rgp := &ResolvedScoutImage{}
-				return rgp, nil
+		results := make([]*structpb.Struct, 0, 2)
+		for format, outputFilePath := range map[string]string{"sbom": sbomOutputFileName, "spdx": spdxOutputFileName} {
+			runOpts := []llb.RunOption{
+				llb.Args([]string{
+					"/docker-scout",
+					"cves",
+					"--format",
+					format,
+					"--output",
+					outputFilePath,
+					imageName,
+				}),
+				llb.WithCustomNamef("%s DOCKER SCOUT %s", vm.ToVertexPrefix(), digest),
 			}
-			return nil, errors.Wrapf(err, "failed to read docker scout report for image %s", imageName)
-		}
 
-		var jsonMap map[string]interface{}
-		err = json.Unmarshal(b, &jsonMap)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to unmarshal docker scout report for image %s", imageName)
-		}
-		st, err := structpb.NewStruct(jsonMap)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to serialize docker scout report for image %s", imageName)
+			runOpts = append(runOpts, opts...)
+
+			b, err := sr.getFile(ctx, gwClient, platr, imageName, digest, outputFilePath, runOpts...)
+			if err != nil {
+				if os.Getenv("IGNORE_SCOUT_ERROR") == "yes" {
+					// hack for cases where no scout auth is given and we want to ignore this error
+					rgp := &ResolvedScoutImage{}
+					return rgp, nil
+				}
+				return nil, errors.Wrapf(err, "failed to read docker scout report for image %s", imageName)
+			}
+			st, err := sr.strToStructPB(b, imageName)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to serialize docker scout report for image %s", imageName)
+			}
+			results = append(results, st)
 		}
 
 		rgp := &ResolvedScoutImage{
-			Output: st,
+			Vulnerabilities: results[0],
+			Spdx:            results[1],
 		}
 		return rgp, nil
 	})

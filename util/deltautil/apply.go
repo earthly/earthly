@@ -191,18 +191,26 @@ func setManifestFields(dm *pb.DeltaManifest, ret *pb.RunManifest) {
 			c.Spdx = c2.GetSpdx()
 		}
 
-		for _, image := range c2.GetImages() {
-			i := ensureImageExists(ret, image.GetDigest())
-			i.ImageName = image.GetImageName()
-			if image.GetTag() != "" {
-				i.Tags = append(i.GetTags(), image.GetTag())
+		if c2.GetImage() != nil {
+			c.Image = &pb.ImageManifest{
+				ImageName:       c2.GetImage().GetImageName(),
+				Tags:            []string{c2.GetImage().GetTag()},
+				Digest:          c2.GetImage().GetDigest(),
+				Platforms:       []string{c2.GetImage().GetPlatform()},
+				Vulnerabilities: c2.GetImage().GetVulnerabilities(),
+			}
+
+			i := ensureImageExists(ret, c2.GetImage().GetDigest())
+			i.ImageName = c2.GetImage().GetImageName()
+			if c2.GetImage().GetTag() != "" {
+				i.Tags = append(i.GetTags(), c2.GetImage().GetTag())
 				slices.Sort(i.Tags)
 				i.Tags = slices.Compact(i.Tags)
 			}
-			i.Platforms = append(i.GetPlatforms(), image.GetPlatform())
+			i.Platforms = append(i.GetPlatforms(), c2.GetImage().GetPlatform())
 			slices.Sort(i.Platforms)
 			i.Platforms = slices.Compact(i.Platforms)
-			i.Vulnerabilities = image.GetVulnerabilities()
+			i.Vulnerabilities = c2.GetImage().GetVulnerabilities()
 		}
 	}
 }
