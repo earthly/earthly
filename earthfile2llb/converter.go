@@ -2836,7 +2836,7 @@ func (c *Converter) checkAllowed(command cmdType) error {
 		case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, letCmd, setCmd, importCmd, projectCmd, pipelineCmd:
 			return nil
 		default:
-			return hint.Wrap(errors.New("requires a FROM, FROM DOCKERFILE, or LOCALLY"), "This command needs to run in a shell. You should be able to solve this by adding 'FROM someImage' on the line before this one.")
+			return hint.Wrap(errors.New("requires a FROM, FROM DOCKERFILE, or LOCALLY"), "This command needs to run in a shell. You should be able to solve this by adding 'FROM <image>' on the line before this one.")
 		}
 	}
 
