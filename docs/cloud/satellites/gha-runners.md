@@ -4,24 +4,29 @@ Earthly Satellites embed now a GitHub self-hosted runner, so they can directly p
 
 This self-hosted runner comes with the Earthly CLI preinstalled, and it's configured to use the Satellite Buildkit instance, so GHA jobs will share the same Satellite cache than the traditional Satellite builds.
 
-Notice also that runner can run any arbitrary GHA job, not necessarily an Earthly command, so given that it runs within the Satellite, it benefits from its persistent local storage (see ["Persistent Folders" section below](#persistent-folders)) across builds.
+Also, notice that the self-hosted runner can run any arbitrary GHA job, not necessarily an Earthly command, and given that it runs within the Satellite, it benefits from its persistent local storage (see ["Persistent Folders" section below](#persistent-folders)) across builds.
 
 ## Early access
 This feature is in closed-beta at the moment. You can request early access through support@earthly.dev
 
 ## Configuration
-Once your organization is allowed to use this feature next step is to set your GitHub repository/organization integration.
+Once your organization is allowed to use this feature, next step is to set the integration. You have two possible options here:
 
-- A repository integration allows processing the builds of that repository in the Satellites of the integrated Earthly organization.
-- An organization-wide integration allows processing the builds of any repository of that GitHub organization in the Satellites of the integrated Earthly organization.
+- A GitHub repository integration, that allows processing the builds of that repository in the Satellites of the integrated Earthly organization.
+- A GitHub organization-wide integration, that allows processing the builds of any repository of that GitHub organization in the Satellites of the integrated Earthly organization.
 
-The configuration is set via the CLI, and you will need to provide us with a GitHub personal access token with enough permissions for us to perform the integration.   
+In both cases the configuration is done through the `earthly` CLI, and you will need to provide us with a GitHub personal access token to talk to the GitHub API on your behalf and perform the integration. 
+
+### Integration details
+
+The integration process registers a webhook in your GitHub repository/organization to receive events associated to GHA jobs and checks that the token has permissions to create self-hosted runners.
+Then it stores the encrypted token on our end (we will use it every time a new job event is processed).
 
 ### GitHub token
 Follow the [official docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) for detailed information on how to create a GitHub PAT.
 
 #### Expiration time
-The token provided will be used during the configuration process as well as every time a job event is received on our end, so make sure you set its expiration time accordingly.
+As mentioned, the token provided will be used during the configuration process as well as every time a job event is received on our end, so make sure you set its expiration time accordingly.
 
 #### Permissions
 ##### Organization-wide integration
@@ -55,7 +60,7 @@ NAME:
 earthly github add - Add GHA integration
 
 USAGE:
-earthly github add --org <org> --gh-org <github-organization> [--gh-repo <github-repo>] --gh-token <token>
+earthly github add --org <org> --gh-org <github_organization> [--gh-repo <github_-repo>] --gh-token <github_token>
 
 DESCRIPTION:
 This command sets the configuration to create a new GitHub-Earthly integration, to trigger satellite builds from GHA (GitHub Actions).
@@ -76,13 +81,10 @@ OPTIONS:
 This feature is currently disabled by default for satellites. It must be enabled in a per-satellite basis as follows:
 
 ### Managed (Earthly Cloud) Satellites
-This feature is enabled for managed satellites via the `enable-gha-runner` [feature-flag](https://docs.earthly.dev/earthly-cloud/satellites/managing#changing-feature-flags).
-
-#### Example
+Launch the satellite with the `enable-gha-runner` [feature-flag](https://docs.earthly.dev/earthly-cloud/satellites/managing#changing-feature-flags) enabled.
 ```
 earthly satellite --feature-flag enable-gha-runner <satellite-name>
 ``` 
-
 
 ### Self-hosted satellites
 To enable the GH runner for a self-hosted satellite, just set this environment entry when launching it, as well as giving the satellite container access to docker daemon in order to create containers for the GHA jobs:
