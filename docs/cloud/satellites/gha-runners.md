@@ -166,7 +166,3 @@ maven-job:
     - name: Run the Maven verify phase
       run: mvn --batch-mode --update-snapshots verify
 ```
-
-## Troubleshooting 
-### Webhook errors
-### Build errors
