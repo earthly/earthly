@@ -566,13 +566,13 @@ fail-test:
     # The output of the failed command should have been printed twice.
     RUN cat output.txt | grep 'ZmFpbCA3YjcyZTAyNC01ZTIxLTRlMWItOTZlNC02NTVjMzk4NzYxMDcK' | test "$(wc -l)" -eq 2
     RUN cat output.txt | grep 'Repeating the failure error...'
-    RUN cat output.txt | grep 'ERROR Earthfile line 10:4'
+    RUN cat output.txt | grep 'ERROR Earthfile:10:4'
     RUN cat output.txt | grep 'RUN echo "fail 7b72e024-5e21-4e1b-96e4-655c39876107" | base64; false'
     RUN cat output.txt | grep 'did not complete successfully. Exit code 1'
     DO +RUN_EARTHLY --earthfile=fail.earth --should_fail=true --verbose=0 --target=+test-copy --post_command="2>output.txt"
     RUN cat output.txt
     RUN cat output.txt | grep 'Repeating the failure error...'
-    RUN cat output.txt | grep 'ERROR Earthfile line 14:4'
+    RUN cat output.txt | grep 'ERROR Earthfile:14:4'
     RUN cat output.txt | grep 'COPY ./does-not-exist ./'
     RUN cat output.txt | grep 'failed: "/does-not-exist": not found'
     RUN cat output.txt | grep 'Should not be reached'; test "$?" -eq 1

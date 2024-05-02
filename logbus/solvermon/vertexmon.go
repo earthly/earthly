@@ -135,7 +135,7 @@ func (vm *vertexMonitor) parseError() {
 	slString := ""
 	if vm.meta.SourceLocation != nil {
 		slString = fmt.Sprintf(
-			"%s:%d:%d",
+			" %s:%d:%d",
 			vm.meta.SourceLocation.File, vm.meta.SourceLocation.StartLine,
 			vm.meta.SourceLocation.StartColumn)
 	}
