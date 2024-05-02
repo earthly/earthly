@@ -1,14 +1,50 @@
 # Satellites as GHA runners (**experimental**)
 
-This new feature allows triggering Earthly satellites directly from GHA (GitHub actions) without the need of an intermediate runner. 
+Earthly Satellites embed now a GitHub self-hosted runner, so they can directly pull jobs from GHA without the need of an intermediate runner.
 
-Earthly Satellites embed now a GitHub self-hosted runner, so they can directly pull jobs from GHA. The runner comes with the Earthly CLI preinstalled, and it's configured to use the Satellite Buildkit instance, so GHA jobs will share the same Satellite cache than the traditional Satellite builds.
+This self-hosted runner comes with the Earthly CLI preinstalled, and it's configured to use the Satellite Buildkit instance, so GHA jobs will share the same Satellite cache than the traditional Satellite builds.
 
-Notice that this self-hosted runner can run any arbitrary GHA job, not necessarily an Earthly command, so given that it runs within the Satellite, it benefits from its persistent local storage (see ["Persistent Folders" section below](#persistent-folders)).
+Notice also that runner can run any arbitrary GHA job, not necessarily an Earthly command, so given that it runs within the Satellite, it benefits from its persistent local storage (see ["Persistent Folders" section below](#persistent-folders)) across builds.
+
+## Early access
+This feature is in closed-beta at the moment. You can request early access through support@earthly.dev
 
 ## Configuration
+Once your organization is allowed to use this feature next step is to set your GitHub repository/organization integration.
+
+- A repository integration allows processing the builds of that repository in the Satellites of the integrated Earthly organization.
+- An organization-wide integration allows processing the builds of any repository of that GitHub organization in the Satellites of the integrated Earthly organization.
+
+The configuration is set via the CLI, and you will need to provide us with a GitHub personal access token with enough permissions for us to perform the integration.   
 
 ### GitHub token
+Follow the [official docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) for detailed information on how to create a GitHub PAT.
+
+#### Expiration time
+The token provided will be used during the configuration process as well as every time a job event is received on our end, so make sure you set its expiration time accordingly.
+
+#### Permissions
+##### Organization-wide integration
+For organization-wide integrations, the user must be an admin of that organization and the token must have the following scopes/permissions:
+
+Personal access tokens (classic) scopes:
+- `admin:org_hook`
+- `admin:org`
+
+Fine grained token permissions: 
+- `organization_hooks:write`
+- `organization_self_hosted_runners:write`
+
+##### Repository integration
+For repository integrations, the user must be an admin of that repository and the token must have the following scopes/permissions:
+
+Personal access tokens (classic) scopes:
+- `admin:repo_hook`
+- `repo`
+
+Fine grained token permissions:
+- `repository_hooks:write`
+- `administration:write`
 
 ### CLI
 
@@ -19,7 +55,7 @@ NAME:
 earthly github add - Add GHA integration
 
 USAGE:
-earthly github add --org <org> [--repo <repo>] --token <token>
+earthly github add --org <org> --gh-org <github-organization> [--gh-repo <github-repo>] --gh-token <token>
 
 DESCRIPTION:
 This command sets the configuration to create a new GitHub-Earthly integration, to trigger satellite builds from GHA (GitHub Actions).
@@ -30,24 +66,36 @@ OPTIONS:
 --org value       The name of the Earthly organization to set an integration with. Defaults to selected organization
 --gh-org value    The name of the GitHub organization to set an integration with
 --gh-repo value   The name of the GitHub repository to set an integration with
---gh-token value  The GitHub token used for the integration
+--gh-token value  The GitHub token used for the integration. Personal Access Token (classic) or fine grained tokens supported.
 --help, -h        show help
 ```
 
+
+
 ## Satellite configuration
-This feature is currently disabled by default. It is enabled in a per-satellite basis.
+This feature is currently disabled by default for satellites. It must be enabled in a per-satellite basis as follows:
 
 ### Managed (Earthly Cloud) Satellites
- You can request enabling it for any of your managed satellites by sending an email to support@earthly.dev.
+This feature is enabled for managed satellites via the `enable-gha-runner` [feature-flag](https://docs.earthly.dev/earthly-cloud/satellites/managing#changing-feature-flags).
+
+#### Example
+```
+earthly satellite --feature-flag enable-gha-runner <satellite-name>
+``` 
+
 
 ### Self-hosted satellites
-To enable the GH runner for a self-hosted satellite, just set this environment entry when launching it: 
+To enable the GH runner for a self-hosted satellite, just set this environment entry when launching it, as well as giving the satellite container access to docker daemon in order to create containers for the GHA jobs:
 ```
-RUNNER_GHA_ENABLED=true
+-v /var/run/docker.sock:/var/run/docker.sock \
+-e RUNNER_GHA_ENABLED=true
 ```
+also notice that satellite container must have access to docker daemon in order to run the GHA jobs in containers:
+
 #### Example
 ```shell
 docker run --privileged \
+    -v /var/run/docker.sock:/var/run/docker.sock \
     -v satellite-cache:/tmp/earthly:rw \
     -p 8372:8372 \
     -e EARTHLY_TOKEN=GuFna*****nve7e \ 
@@ -85,7 +133,7 @@ earthly-cache-folder#<absolute-path>
 These labels allow defining folders whose contents will be shared across multiple builds.
 This is specially useful for defining persistent caches for tools external to Earthly. 
 
-Notice that multiple labels starting with `earthly-cache-folder#` can be set for a given job. One per persistent folder.
+Notice that multiple labels starting with `earthly-cache-folder#` can be set for a given job, one per persistent folder.
 
 ### Examples
 #### Running an earthly job
@@ -116,5 +164,7 @@ maven-job:
     - name: Run the Maven verify phase
       run: mvn --batch-mode --update-snapshots verify
 ```
-## Early access
-This feature is in closed-beta at the moment. You can request early access through support@earthly.dev
+
+## Troubleshooting 
+### Webhook errors
+### Build errors
