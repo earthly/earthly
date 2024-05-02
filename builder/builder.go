@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
@@ -47,6 +48,8 @@ import (
 	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 const (
@@ -841,7 +844,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 		fmt.Printf("dumped manifest to %s\n", manifestFile)
 	}
 
-	if opt.Push && b.opt.Cosign {
+	pushEntries := exportCoordinator.GetPushedImageSummary()
+	if opt.Push && b.opt.Cosign && len(pushEntries) > 0 {
 		signConsole := conslogging.NewBufferedLogger(&b.opt.Console)
 		if opt.PrintPhases {
 			b.opt.Console.PrintPhaseHeader(PhaseSign, false, "")
@@ -863,20 +867,36 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			return nil, errors.Wrap(err, "failed to write manifest")
 		}
 
-		var cosignPushes []string
-		for _, pushEntry := range exportCoordinator.GetPushedImageSummary() {
-			push, err := cosign(pushEntry, b.opt.CosignKeyFile, b.opt.CosignKeyPass, manifestFile)
+		spdxContent, doAttest, err := findSPDX(manifestFile)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to find predicate")
+		}
+
+		var predicateFile string
+		if doAttest {
+			predicateFile, err = writeTempFile([]byte(spdxContent))
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to write predicate file")
+			}
+		}
+
+		for _, pushEntry := range pushEntries {
+			err := cosignSign(pushEntry, b.opt.CosignKeyFile, b.opt.CosignKeyPass, manifestFile)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to sign image %q", pushEntry.DockerTag)
 			}
-			cosignPushes = append(cosignPushes, push)
+			signConsole.Printf("Signed %s", pushEntry.DockerTag)
+			if doAttest {
+				err = cosignAttest(pushEntry, b.opt.CosignKeyFile, b.opt.CosignKeyPass, predicateFile)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to attest image %q", pushEntry.DockerTag)
+				}
+				signConsole.Printf("Added attestations %s", pushEntry.DockerTag)
+			}
 		}
 
+		signConsole.Flush()
 		if opt.PrintPhases {
-			for _, push := range cosignPushes {
-				signConsole.Printf(push)
-			}
-			signConsole.Flush()
 			b.opt.Console.PrintPhaseFooter(PhaseSign, false, "")
 		}
 	}
@@ -886,6 +906,66 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 
 	return mts, nil
+}
+
+func findSPDX(manifestFile string) (string, bool, error) {
+	// TODO: don't reload the data like this.
+	f, err := os.Open(manifestFile)
+	if err != nil {
+		return "", false, errors.Wrap(err, "failed to load manifest file")
+	}
+	defer f.Close()
+
+	manifestData, err := io.ReadAll(f)
+	if err != nil {
+		return "", false, errors.Wrap(err, "failed to read manifest")
+	}
+
+	manifest := &logstream.RunManifest{}
+	err = protojson.UnmarshalOptions{}.Unmarshal(manifestData, manifest)
+	if err != nil {
+		return "", false, errors.Wrap(err, "failed to unmarshal manifest")
+	}
+
+	// Hack: for now just find first SPDX field.
+	var val interface{}
+	for _, command := range manifest.Commands {
+		if command.Spdx != nil {
+			val = command.Spdx
+			break
+		}
+	}
+
+	if val == nil {
+		return "", false, nil
+	}
+
+	opts := protojson.MarshalOptions{
+		Multiline:       true,
+		Indent:          "  ",
+		UseProtoNames:   false,
+		EmitUnpopulated: true,
+	}
+
+	data, err := opts.Marshal(val.(protoreflect.ProtoMessage))
+	if err != nil {
+		return "", false, errors.Wrap(err, "failed to marshal predicate data")
+	}
+
+	return string(data), true, nil
+}
+
+func writeTempFile(data []byte) (string, error) {
+	f, err := os.CreateTemp(os.TempDir(), "")
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	_, err = f.Write(data)
+	if err != nil {
+		return "", err
+	}
+	return f.Name(), nil
 }
 
 func cosignCheck(ctx context.Context) (bool, error) {
@@ -903,14 +983,14 @@ func cosignCheck(ctx context.Context) (bool, error) {
 
 var cosignOutputRE = regexp.MustCompile("(?m)^Pushing signature to:.*$")
 
-func cosign(pushEntry gatewaycrafter.PushedImageSummaryEntry, keyFile, keyPass, payloadFile string) (string, error) {
+func cosignSign(pushEntry gatewaycrafter.PushedImageSummaryEntry, keyFile, keyPass, payloadFile string) error {
 
 	if _, err := os.Stat(payloadFile); os.IsNotExist(err) {
-		return "", errors.Wrap(err, "payload file not found")
+		return errors.Wrap(err, "payload file not found")
 	}
 
 	if _, err := os.Stat(keyFile); os.IsNotExist(err) {
-		return "", errors.Wrap(err, "cosign key file not found")
+		return errors.Wrap(err, "cosign key file not found")
 	}
 
 	args := []string{
@@ -935,17 +1015,58 @@ func cosign(pushEntry gatewaycrafter.PushedImageSummaryEntry, keyFile, keyPass, 
 	if err := cmd.Run(); err != nil {
 		var exitError *exec.ExitError
 		if errors.As(err, &exitError) && exitError.ExitCode() == 1 {
-			return "", errors.New("failed to sign image")
+			return errors.New("failed to sign image")
 		}
 	}
 
 	match := cosignOutputRE.FindString(errBuf.String())
 
 	if match == "" {
-		return "", errors.New("unexpected cosign output")
+		return errors.New("unexpected cosign output")
 	}
 
-	return strings.TrimSpace(match), nil
+	return nil
+}
+
+func cosignAttest(pushEntry gatewaycrafter.PushedImageSummaryEntry, keyFile, keyPass, predicateFile string) error {
+
+	if _, err := os.Stat(predicateFile); os.IsNotExist(err) {
+		return errors.Wrap(err, "payload file not found")
+	}
+
+	if _, err := os.Stat(keyFile); os.IsNotExist(err) {
+		return errors.Wrap(err, "cosign key file not found")
+	}
+
+	args := []string{
+		"attest",
+		"-y", // Skip confirmation prompt.
+		"--key",
+		keyFile,
+		"--predicate",
+		predicateFile,
+		"--type",
+		"https://spdx.dev/Document",
+		pushEntry.DockerTag,
+	}
+
+	cmd := exec.CommandContext(context.TODO(), "cosign", args...)
+
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, fmt.Sprintf("COSIGN_PASSWORD=%s", keyPass))
+	cmd.Env = append(cmd.Env, "COSIGN_EXPERIMENTAL=1")
+
+	errBuf := bytes.Buffer{}
+	cmd.Stderr = &errBuf
+
+	if err := cmd.Run(); err != nil {
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) && exitError.ExitCode() == 1 {
+			return errors.New("failed to attest image")
+		}
+	}
+
+	return nil
 }
 
 func (b *Builder) targetPhaseState(sts *states.SingleTarget) pllb.State {
