@@ -54,7 +54,7 @@ The following feature flags are recommended for use with Satellites and will be 
            satellite | Connecting to core-test...
            satellite | ...Done
            satellite | Version github.com/earthly/buildkit v0.6.21 7a6f9e1ab2a3a3ddec5f9e612ef390af218a32bd
-           satellite | Info: Buildkit version (v0.6.21) is different from Earthly version (prerelease)
+           satellite | Info: BuildKit version (v0.6.21) is different from Earthly version (prerelease)
            satellite | Platforms: linux/amd64 (native) linux/amd64/v2 linux/amd64/v3 linux/amd64/v4 linux/arm64 linux/riscv64 linux/ppc64le linux/s390x linux/386 linux/mips64le linux/mips64 linux/arm/v7 linux/arm/v6
            satellite | Utilization: 0 other builds, 0/12 op load
            satellite | GC stats: 9.0 GB cache, avg GC duration 275ms, all-time GC duration 2.754s, last GC duration 0s, last cleared 0 B

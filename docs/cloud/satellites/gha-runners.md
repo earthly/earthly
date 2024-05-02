@@ -2,7 +2,7 @@
 
 Earthly Satellites embed now a GitHub self-hosted runner, so they can directly pull jobs from GHA without the need of an intermediate runner.
 
-This self-hosted runner comes with the Earthly CLI preinstalled, and it's configured to use the Satellite Buildkit instance, so GHA jobs will share the same Satellite cache than the traditional Satellite builds.
+This self-hosted runner comes with the Earthly CLI preinstalled, and it's configured to use the Satellite BuildKit instance, so GHA jobs will share the same Satellite cache than the traditional Satellite builds.
 
 Also, notice that the self-hosted runner can run any arbitrary GHA job, not necessarily an Earthly command, and given that it runs within the Satellite, it benefits from its persistent local storage (see ["Persistent Folders" section below](#persistent-folders)) across builds.
 
@@ -139,7 +139,7 @@ Notice that multiple labels starting with `earthly-cache-folder#` can be set for
 
 ### Examples
 #### Running an earthly job
-The following example runs the +build target in the Satellite. Given that the GH runner is configured to use the Satellite Buildkit instance, the persistent satellite cache is implicitly used here.
+The following example runs the +build target in the Satellite. Given that the GH runner is configured to use the Satellite BuildKit instance, the persistent satellite cache is implicitly used here.
 ```yml
 earthly-job:
   runs-on: [earthly-satellite#my-gha-satellite]
