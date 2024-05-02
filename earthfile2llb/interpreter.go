@@ -1170,14 +1170,16 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 		return nil
 	}
 
-	labels := map[string]string{
-		"dev.earthly.version":  version.Version,
-		"dev.earthly.git-sha":  version.GitSha,
-		"dev.earthly.built-by": version.BuiltBy,
-	}
-	err = i.converter.Label(ctx, labels)
-	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "failed to create dev.earthly.* labels during SAVE IMAGE")
+	if !opts.DisableEarthlyLabels {
+		labels := map[string]string{
+			"dev.earthly.version":  version.Version,
+			"dev.earthly.git-sha":  version.GitSha,
+			"dev.earthly.built-by": version.BuiltBy,
+		}
+		err = i.converter.Label(ctx, labels)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to create dev.earthly.* labels during SAVE IMAGE")
+		}
 	}
 
 	err = i.converter.SaveImage(ctx, imageNames, opts.Push, opts.Insecure, opts.CacheHint, opts.CacheFrom, opts.NoManifestList)

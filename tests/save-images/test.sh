@@ -63,4 +63,27 @@ echo "=== ($LINENO): Test New Behaviour referencing remote via build ==="
 "$frontend" inspect myimage:buildtest >/dev/null
 "$frontend" inspect earthly-test-saveimage:test >/dev/null
 
+echo "=== ($LINENO): Test Disable Earthly Labels ==="
+
+"$frontend" rmi -f myimage:test
+"$frontend" rmi -f myimagewithlabels:test
+
+"$earthly" ./disable-earthly-labels+myimage
+"$frontend" inspect myimage:test >/dev/null
+labels=$("$frontend" inspect myimage:test | jq -r '.[].Config.Labels')
+
+if [ "${labels}" != "null" ] ; then
+    echo "ERROR ($LINENO): myimage: should not have labels."
+    exit 1
+fi
+
+"$earthly" ./disable-earthly-labels+myimagewithlabels
+"$frontend" inspect myimagewithlabels:test >/dev/null
+labels=$("$frontend" inspect myimagewithlabels:test | jq -r '.[].Config.Labels')
+
+if [ "${labels}" == "null" ] ; then
+    echo "ERROR ($LINENO): myimagewithlabels: should *have* labels."
+    exit 1
+fi
+
 echo "save-images test passed"

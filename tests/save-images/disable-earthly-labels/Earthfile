@@ -1,0 +1,12 @@
+VERSION  0.8 #--allow-disable-earthly-labels 0.8
+
+
+myimage:
+    FROM scratch
+    COPY file /
+    SAVE IMAGE --disable-earthly-labels myimage:test
+
+myimagewithlabels:
+    FROM scratch
+    COPY file /
+    SAVE IMAGE myimagewithlabels:test
