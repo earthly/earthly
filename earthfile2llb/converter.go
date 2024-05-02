@@ -2643,8 +2643,9 @@ func (c *Converter) internalFromClassical(ctx context.Context, cmdID string, ima
 			tag,
 			dgst.String(),
 			platforms.Format(llbPlatform),
-			sri.Output,
+			sri.Vulnerabilities,
 		)
+		cmd.AddSbom(sri.Spdx)
 	}
 	if err != nil {
 		return pllb.State{}, nil, nil, errors.Wrapf(err, "resolve image config for %s", imageName)

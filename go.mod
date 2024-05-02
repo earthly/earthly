@@ -18,7 +18,7 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.5.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/earthly/cloud-api v1.0.1-0.20240430024917-0872cb99b585
+	github.com/earthly/cloud-api v1.0.1-0.20240502220551-cbf62e0d0dc5
 	github.com/earthly/earthly/ast v0.0.0-00010101000000-000000000000
 	github.com/earthly/earthly/util/deltautil v0.0.0-20240426164654-23000c097b09
 	github.com/elastic/go-sysinfo v1.9.0
@@ -152,5 +152,3 @@ replace (
 	github.com/moby/buildkit => github.com/earthly/buildkit v0.0.0-20240419223558-594835b598b9
 	github.com/tonistiigi/fsutil => github.com/earthly/fsutil v0.0.0-20231030221755-644b08355b65
 )
-
-replace github.com/earthly/cloud-api => github.com/earthly/cloud-api v1.0.1-0.20240501183936-ae914d4662c3
