@@ -2,8 +2,9 @@ package states
 
 import (
 	"context"
-	"github.com/moby/buildkit/client/llb"
 	"sync"
+
+	"github.com/moby/buildkit/client/llb"
 
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states/dedup"

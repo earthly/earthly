@@ -583,6 +583,10 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		DisableRemoteRegistryProxy:            a.cli.Flags().DisableRemoteRegistryProxy,
 		BuildkitSkipper:                       skipDB,
 		NoAutoSkip:                            a.cli.Flags().NoAutoSkip,
+		DumpManifestFunc:                      a.cli.LogbusSetup().DumpManifestToFile,
+		Cosign:                                a.cli.Flags().Cosign,
+		CosignKeyFile:                         a.cli.Flags().CosignKeyFile,
+		CosignKeyPass:                         a.cli.Flags().CosignKeyPass,
 	}
 
 	b, err := builder.NewBuilder(cliCtx.Context, builderOpts)

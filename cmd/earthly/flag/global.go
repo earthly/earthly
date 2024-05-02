@@ -103,6 +103,9 @@ type Global struct {
 	DisableRemoteRegistryProxy bool
 	NoAutoSkip                 bool
 	GithubAnnotations          bool
+	Cosign                     bool
+	CosignKeyFile              string
+	CosignKeyPass              string
 }
 
 func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
@@ -546,6 +549,24 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			Usage:       "Enable Git Hub Actions workflow specific output",
 			Destination: &global.GithubAnnotations,
 			Value:       false,
+		},
+		&cli.StringFlag{
+			Name:        "cosign-key-file",
+			EnvVars:     []string{"EARTHLY_COSIGN_KEY_FILE"},
+			Usage:       "File path of cosign key generated with 'cosign generate-key-pair'",
+			Destination: &global.CosignKeyFile,
+		},
+		&cli.StringFlag{
+			Name:        "cosign-key-pass",
+			EnvVars:     []string{"EARTHLY_COSIGN_KEY_PASS"},
+			Usage:       "Password specified when generating key with 'cosign generate-key-pair'",
+			Destination: &global.CosignKeyPass,
+		},
+		&cli.BoolFlag{
+			Name:        "cosign",
+			EnvVars:     []string{"EARTHLY_COSIGN"},
+			Usage:       "Use cosign to sign images after push",
+			Destination: &global.Cosign,
 		},
 	}
 }

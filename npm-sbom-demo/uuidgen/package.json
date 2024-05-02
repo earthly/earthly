@@ -1,0 +1,16 @@
+{
+  "name": "print-uuid",
+  "version": "0.0.1",
+  "description": "prints a uuid",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack"
+  },
+  "author": "",
+  "license": "MPL-2.0",
+  "dependencies": {
+    "uuid": "^9.0.1"
+  }
+}
+

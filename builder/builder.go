@@ -1,16 +1,20 @@
 package builder
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/cleanup"
@@ -44,6 +48,8 @@ import (
 	buildkitgitutil "github.com/moby/buildkit/util/gitutil"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 const (
@@ -55,6 +61,8 @@ const (
 	PhasePush = "Push Summary ⏫"
 	// PhaseOutput is the phase text for the output phase.
 	PhaseOutput = "Local Output Summary 🎁"
+	// PhaseSign is the phase text for the signing phase.
+	PhaseSign = "Image Signing 🔑"
 )
 
 // Opt represent builder options.
@@ -97,6 +105,10 @@ type Opt struct {
 	GitLogLevel                           buildkitgitutil.GitLogLevel
 	BuildkitSkipper                       bk.BuildkitSkipper
 	NoAutoSkip                            bool
+	DumpManifestFunc                      func(string) error
+	Cosign                                bool
+	CosignKeyFile                         string
+	CosignKeyPass                         string
 }
 
 type ProjectAdder interface {
@@ -820,9 +832,241 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 	}
 	if opt.PrintPhases {
 		b.opt.Console.PrintPhaseFooter(PhaseOutput, false, "")
+	}
+
+	if os.Getenv("PRE_DUMP_MANIFEST") == "yes" {
+		// TODO: use a dynamic filename & remove it post hoc.
+		manifestFile := "/tmp/pre-dump.json"
+		err = b.opt.DumpManifestFunc(manifestFile)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to write manifest")
+		}
+		fmt.Printf("dumped manifest to %s\n", manifestFile)
+	}
+
+	pushEntries := exportCoordinator.GetPushedImageSummary()
+	if opt.Push && b.opt.Cosign && len(pushEntries) > 0 {
+		signConsole := conslogging.NewBufferedLogger(&b.opt.Console)
+		if opt.PrintPhases {
+			b.opt.Console.PrintPhaseHeader(PhaseSign, false, "")
+		}
+
+		cosignAvail, err := cosignCheck(context.TODO())
+		if err != nil {
+			return nil, err
+		}
+
+		if !cosignAvail {
+			return nil, errors.New("cosign binary not found")
+		}
+
+		// TODO: use a dynamic filename & remove it post hoc.
+		manifestFile := "/tmp/cosign-payload.json"
+		err = b.opt.DumpManifestFunc(manifestFile)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to write manifest")
+		}
+
+		spdxContent, doAttest, err := findSPDX(manifestFile)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to find predicate")
+		}
+
+		var predicateFile string
+		if doAttest {
+			predicateFile, err = writeTempFile([]byte(spdxContent))
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to write predicate file")
+			}
+		}
+
+		for _, pushEntry := range pushEntries {
+			err := cosignSign(pushEntry, b.opt.CosignKeyFile, b.opt.CosignKeyPass, manifestFile)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to sign image %q", pushEntry.DockerTag)
+			}
+			signConsole.Printf("Signed %s", pushEntry.DockerTag)
+			if doAttest {
+				err = cosignAttest(pushEntry, b.opt.CosignKeyFile, b.opt.CosignKeyPass, predicateFile)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to attest image %q", pushEntry.DockerTag)
+				}
+				signConsole.Printf("Added attestations %s", pushEntry.DockerTag)
+			}
+		}
+
+		signConsole.Flush()
+		if opt.PrintPhases {
+			b.opt.Console.PrintPhaseFooter(PhaseSign, false, "")
+		}
+	}
+
+	if opt.PrintPhases {
 		b.opt.Console.PrintSuccess()
 	}
+
 	return mts, nil
+}
+
+func findSPDX(manifestFile string) (string, bool, error) {
+	// TODO: don't reload the data like this.
+	f, err := os.Open(manifestFile)
+	if err != nil {
+		return "", false, errors.Wrap(err, "failed to load manifest file")
+	}
+	defer f.Close()
+
+	manifestData, err := io.ReadAll(f)
+	if err != nil {
+		return "", false, errors.Wrap(err, "failed to read manifest")
+	}
+
+	manifest := &logstream.RunManifest{}
+	err = protojson.UnmarshalOptions{}.Unmarshal(manifestData, manifest)
+	if err != nil {
+		return "", false, errors.Wrap(err, "failed to unmarshal manifest")
+	}
+
+	// Hack: for now just find first SPDX field.
+	var val interface{}
+	for _, command := range manifest.Commands {
+		if command.Spdx != nil {
+			val = command.Spdx
+			break
+		}
+	}
+
+	if val == nil {
+		return "", false, nil
+	}
+
+	opts := protojson.MarshalOptions{
+		Multiline:       true,
+		Indent:          "  ",
+		UseProtoNames:   false,
+		EmitUnpopulated: true,
+	}
+
+	data, err := opts.Marshal(val.(protoreflect.ProtoMessage))
+	if err != nil {
+		return "", false, errors.Wrap(err, "failed to marshal predicate data")
+	}
+
+	return string(data), true, nil
+}
+
+func writeTempFile(data []byte) (string, error) {
+	f, err := os.CreateTemp(os.TempDir(), "")
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	_, err = f.Write(data)
+	if err != nil {
+		return "", err
+	}
+	return f.Name(), nil
+}
+
+func cosignCheck(ctx context.Context) (bool, error) {
+	cmd := exec.CommandContext(ctx, "which", "cosign")
+	err := cmd.Run()
+	if err != nil {
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) && exitError.ExitCode() == 1 {
+			return false, nil
+		}
+		return false, errors.Wrap(err, "failed to check for cosign binary")
+	}
+	return true, nil
+}
+
+var cosignOutputRE = regexp.MustCompile("(?m)^Pushing signature to:.*$")
+
+func cosignSign(pushEntry gatewaycrafter.PushedImageSummaryEntry, keyFile, keyPass, payloadFile string) error {
+
+	if _, err := os.Stat(payloadFile); os.IsNotExist(err) {
+		return errors.Wrap(err, "payload file not found")
+	}
+
+	if _, err := os.Stat(keyFile); os.IsNotExist(err) {
+		return errors.Wrap(err, "cosign key file not found")
+	}
+
+	args := []string{
+		"sign",
+		"-y", // Skip confirmation prompt.
+		"-r", // Recursive: sign each discrete image in multi-arch image
+		"--key",
+		keyFile,
+		"--payload",
+		payloadFile,
+		pushEntry.DockerTag,
+	}
+
+	cmd := exec.CommandContext(context.TODO(), "cosign", args...)
+
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, fmt.Sprintf("COSIGN_PASSWORD=%s", keyPass))
+
+	errBuf := bytes.Buffer{}
+	cmd.Stderr = &errBuf
+
+	if err := cmd.Run(); err != nil {
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) && exitError.ExitCode() == 1 {
+			return errors.New("failed to sign image")
+		}
+	}
+
+	match := cosignOutputRE.FindString(errBuf.String())
+
+	if match == "" {
+		return errors.New("unexpected cosign output")
+	}
+
+	return nil
+}
+
+func cosignAttest(pushEntry gatewaycrafter.PushedImageSummaryEntry, keyFile, keyPass, predicateFile string) error {
+
+	if _, err := os.Stat(predicateFile); os.IsNotExist(err) {
+		return errors.Wrap(err, "payload file not found")
+	}
+
+	if _, err := os.Stat(keyFile); os.IsNotExist(err) {
+		return errors.Wrap(err, "cosign key file not found")
+	}
+
+	args := []string{
+		"attest",
+		"-y", // Skip confirmation prompt.
+		"--key",
+		keyFile,
+		"--predicate",
+		predicateFile,
+		"--type",
+		"https://spdx.dev/Document",
+		pushEntry.DockerTag,
+	}
+
+	cmd := exec.CommandContext(context.TODO(), "cosign", args...)
+
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, fmt.Sprintf("COSIGN_PASSWORD=%s", keyPass))
+	cmd.Env = append(cmd.Env, "COSIGN_EXPERIMENTAL=1")
+
+	errBuf := bytes.Buffer{}
+	cmd.Stderr = &errBuf
+
+	if err := cmd.Run(); err != nil {
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) && exitError.ExitCode() == 1 {
+			return errors.New("failed to attest image")
+		}
+	}
+
+	return nil
 }
 
 func (b *Builder) targetPhaseState(sts *states.SingleTarget) pllb.State {

@@ -102,7 +102,7 @@ func (w *withDockerRunRegistry) prepareImages(ctx context.Context, cmdID string,
 
 	// Pulls.
 	for _, pullOpt := range opt.Pulls {
-		imageDef, err := w.pull(ctx, pullOpt)
+		imageDef, err := w.pull(ctx, cmdID, pullOpt)
 		if err != nil {
 			return nil, errors.Wrap(err, "pull")
 		}
@@ -249,9 +249,9 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 	return w.c.forceExecution(ctx, w.c.mts.Final.MainState, w.c.platr)
 }
 
-func (w *withDockerRunRegistry) pull(ctx context.Context, opt DockerPullOpt) (*states.ImageDef, error) {
+func (w *withDockerRunRegistry) pull(ctx context.Context, cmdID string, opt DockerPullOpt) (*states.ImageDef, error) {
 	state, image, _, err := w.c.internalFromClassical(
-		ctx, opt.ImageName, opt.Platform,
+		ctx, cmdID, opt.ImageName, opt.Platform,
 		llb.WithCustomNamef("%sDOCKER PULL %s", w.c.imageVertexPrefix(opt.ImageName, opt.Platform), opt.ImageName),
 	)
 	if err != nil {
