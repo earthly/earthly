@@ -103,7 +103,7 @@ func (mclc *mockCloudListClient) ListSatellites(ctx context.Context, orgName str
 }
 
 func getPotentialsWithMockListClient(t *testing.T, cmd string) []string {
-	logger := conslogging.Current(conslogging.NoColor, 0, conslogging.Info)
+	logger := conslogging.Current(conslogging.NoColor, 0, conslogging.Info, false)
 	gitLookup := buildcontext.NewGitLookup(logger, "")
 	resolver := buildcontext.NewResolver(nil, gitLookup, logger, "", "", "", 0, "")
 	mclc := mockCloudListClient{}
@@ -131,7 +131,7 @@ func TestProjectCompletionForAbc(t *testing.T) {
 // TestProjectCompletionWorksWithNoCloudClient tests that autocompletion still works if the cloud client fails to be initialized
 // and instead a nil pointer is passed in
 func TestProjectCompletionWorksWithNoCloudClient(t *testing.T) {
-	logger := conslogging.Current(conslogging.NoColor, 0, conslogging.Info)
+	logger := conslogging.Current(conslogging.NoColor, 0, conslogging.Info, false)
 	gitLookup := buildcontext.NewGitLookup(logger, "")
 	resolver := buildcontext.NewResolver(nil, gitLookup, logger, "", "", "", 0, "")
 

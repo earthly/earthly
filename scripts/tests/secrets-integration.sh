@@ -29,7 +29,7 @@ rm -rf "$HOME/.earthly.integration/"
 "$earthly" account login
 
 # test logout has no effect when EARTHLY_TOKEN is set
-if NO_COLOR=0 "$earthly" account logout > output 2>&1; then
+if GITHUB_ACTIONS="" NO_COLOR=0 "$earthly" account logout > output 2>&1; then
     echo "earthly account logout should have failed"
     exit 1
 fi

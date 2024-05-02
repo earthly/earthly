@@ -12,7 +12,6 @@ import (
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
-	"github.com/earthly/earthly/util/containerutil"
 )
 
 func (cli *CLI) GetBuildkitClient(cliCtx *cli.Context, cloudClient *cloud.Client) (c *client.Client, cleanupTLS func(), err error) {
@@ -67,16 +66,8 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 		return nil, errors.New("self-hosted satellite is not operational")
 	}
 
-	cli.Flags().BuildkitdSettings.UseTCP = true
 	if cli.Cfg().Global.TLSEnabled {
-		if sat.IsManaged {
-			// satellites on earthly-cloud do not use custom certificates
-			cli.Flags().BuildkitdSettings.ClientTLSCert = ""
-			cli.Flags().BuildkitdSettings.ClientTLSKey = ""
-			cli.Flags().BuildkitdSettings.TLSCA = ""
-			cli.Flags().BuildkitdSettings.ServerTLSCert = ""
-			cli.Flags().BuildkitdSettings.ServerTLSKey = ""
-		} else if sat.Certificate != nil {
+		if sat.Certificate != nil {
 			t := time.Now()
 			cleanupTLS, err = buildkitd.ConfigureSatelliteTLS(&cli.Flags().BuildkitdSettings, sat)
 			if err != nil {
@@ -84,26 +75,31 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 			}
 			cli.Console().WithPrefix("satellite").
 				DebugPrintf("TLS certificates configured in: %s", time.Since(t).String())
+		} else {
+			cli.Flags().BuildkitdSettings.ClientTLSCert = ""
+			cli.Flags().BuildkitdSettings.ClientTLSKey = ""
+			cli.Flags().BuildkitdSettings.TLSCA = ""
+			cli.Flags().BuildkitdSettings.ServerTLSCert = ""
+			cli.Flags().BuildkitdSettings.ServerTLSKey = ""
 		}
 	} else {
 		cli.Console().Warnf("TLS has been disabled; this should never be done when connecting to Earthly's production API\n")
 	}
+
+	cli.Flags().BuildkitdSettings.UseTCP = true
 	cli.Flags().BuildkitdSettings.SatelliteName = satelliteName
 	cli.Flags().BuildkitdSettings.SatelliteDisplayName = cli.Flags().SatelliteName
 	cli.Flags().BuildkitdSettings.SatelliteOrgID = orgID
 	cli.Flags().BuildkitdSettings.SatelliteIsManaged = sat.IsManaged
 	satelliteAddress := cli.Flags().SatelliteAddress
-	if !sat.IsManaged && satelliteAddress == "" {
+	if satelliteAddress == "" {
 		// A self-hosted satellite uses its own address
 		satelliteAddress = fmt.Sprintf("tcp://%s", sat.Address)
 	}
-	if satelliteAddress != "" {
-		cli.Flags().BuildkitdSettings.BuildkitAddress = satelliteAddress
-	} else {
-		cli.Flags().BuildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
-	}
+	cli.Flags().BuildkitdSettings.BuildkitAddress = satelliteAddress
+
 	cli.SetAnaMetaIsSat(true)
-	cli.SetAnaMetaSatCurrentVersion("") // TODO
+	cli.SetAnaMetaSatCurrentVersion(sat.Version)
 
 	if cli.Flags().FeatureFlagOverrides != "" {
 		cli.Flags().FeatureFlagOverrides += ","

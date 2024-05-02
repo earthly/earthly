@@ -21,7 +21,6 @@ import (
 	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
-	"github.com/earthly/earthly/util/containerutil"
 )
 
 type Satellite struct {
@@ -33,6 +32,7 @@ type Satellite struct {
 	maintenanceWindow      string
 	maintenaceWeekendsOnly bool
 	version                string
+	cloudName              string
 	force                  bool
 	printJSON              bool
 	listAll                bool
@@ -121,8 +121,13 @@ as well as run builds in native architectures independent of where the Earthly c
 							Name:        "version",
 							Usage:       "Launch and pin a satellite at a specific version (disables auto-updates)",
 							Required:    false,
-							Hidden:      true,
 							Destination: &a.version,
+						},
+						&cli.StringFlag{
+							Name:        "cloud",
+							Usage:       "Launch the satellite within a configured cloud installation (only applies to accounts subscribed to the BYOC plan)",
+							Required:    false,
+							Destination: &a.cloudName,
 						},
 					},
 				},
@@ -369,17 +374,28 @@ func (a *Satellite) printSatellitesTable(satellites []satelliteWithPipelineInfo,
 	})
 
 	includeTypeColumn := false
+	includeCloudColumn := false
+	cloudNames := make(map[string]bool)
 	for _, s := range satellites {
 		if s.pipeline != nil {
 			includeTypeColumn = true
 			break
 		}
+		if n := s.satellite.CloudName; n != "" {
+			cloudNames[n] = true
+		}
+	}
+	if len(cloudNames) > 1 {
+		includeCloudColumn = true
 	}
 
 	t := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
 	headerRow := []string{" ", "NAME", "PLATFORM", "SIZE", "VERSION", "STATE"} // The leading space is for the selection marker, leave it alone
 	if includeTypeColumn {
 		headerRow = slices.Insert(headerRow, 2, "TYPE")
+	}
+	if includeCloudColumn {
+		headerRow = append(headerRow, "CLOUD")
 	}
 	if a.listAll {
 		headerRow = append(headerRow, "LAST USED", "CACHE")
@@ -399,6 +415,13 @@ func (a *Satellite) printSatellitesTable(satellites []satelliteWithPipelineInfo,
 		}
 		if includeTypeColumn {
 			row = slices.Insert(row, 2, s.satType())
+		}
+		if includeCloudColumn {
+			name := s.satellite.CloudName
+			if name == "" {
+				name = "-"
+			}
+			row = append(row, name)
 		}
 		if a.listAll {
 			row = append(row, humanize.Time(s.satellite.LastUsed), durationWithDaysPart(s.satellite.CacheRetention))
@@ -439,6 +462,7 @@ type satelliteJSON struct {
 	Pipeline       string `json:"pipeline"`
 	LastUsed       string `json:"last_used"`
 	CacheRetention string `json:"cache_retention"`
+	CloudName      string `json:"cloud_name"`
 }
 
 func (a *Satellite) printSatellitesJSON(satellites []satelliteWithPipelineInfo, isOrgSelected bool) {
@@ -455,6 +479,7 @@ func (a *Satellite) printSatellitesJSON(satellites []satelliteWithPipelineInfo, 
 			Type:           s.satType(),
 			LastUsed:       s.satellite.LastUsed.String(),
 			CacheRetention: s.satellite.CacheRetention.String(),
+			CloudName:      s.satellite.CloudName,
 		}
 		if s.pipeline != nil {
 			jsonSats[i].Project = s.pipeline.Project
@@ -533,6 +558,7 @@ func (a *Satellite) actionLaunch(cliCtx *cli.Context) error {
 		MaintenanceWindowStart:  window,
 		FeatureFlags:            ffs,
 		MaintenanceWeekendsOnly: a.maintenaceWeekendsOnly,
+		CloudName:               a.cloudName,
 	})
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
@@ -712,14 +738,12 @@ func (a *Satellite) actionInspect(cliCtx *cli.Context) error {
 	a.cli.Flags().BuildkitdSettings.SatelliteIsManaged = satellite.IsManaged
 	a.cli.Flags().BuildkitdSettings.SatelliteDisplayName = satelliteToInspect
 	a.cli.Flags().BuildkitdSettings.SatelliteOrgID = orgID // must be the ID and not name, due to satellite-proxy requirements
-
-	if !satellite.IsManaged {
-		a.cli.Flags().BuildkitdSettings.BuildkitAddress = fmt.Sprintf("tcp://%s", satellite.Address)
-	} else if a.cli.Flags().SatelliteAddress != "" {
-		a.cli.Flags().BuildkitdSettings.BuildkitAddress = a.cli.Flags().SatelliteAddress
-	} else {
-		a.cli.Flags().BuildkitdSettings.BuildkitAddress = containerutil.SatelliteAddress
+	satelliteAddress := a.cli.Flags().SatelliteAddress
+	if satelliteAddress == "" {
+		// A self-hosted satellite uses its own address
+		satelliteAddress = fmt.Sprintf("tcp://%s", satellite.Address)
 	}
+	a.cli.Flags().BuildkitdSettings.BuildkitAddress = satelliteAddress
 
 	selected := "No"
 	if selectedSatellite == satelliteToInspect {
@@ -729,9 +753,9 @@ func (a *Satellite) actionInspect(cliCtx *cli.Context) error {
 	size := satellite.Size
 	if !satellite.IsManaged {
 		size = "self-hosted"
-		a.cli.Console().Printf("Address: %s", satellite.Address)
 	}
 
+	a.cli.Console().Printf("Address: %s", satellite.Address)
 	a.cli.Console().Printf("State: %s", satellite.State)
 	a.cli.Console().Printf("Platform: %s", satellite.Platform)
 	a.cli.Console().Printf("Size: %s", size)
@@ -768,7 +792,7 @@ func (a *Satellite) actionInspect(cliCtx *cli.Context) error {
 	a.cli.Console().Printf("")
 
 	if satellite.State == cloud.SatelliteStatusOperational {
-		if !satellite.IsManaged {
+		if satellite.Certificate != nil {
 			cleanup, err := buildkitd.ConfigureSatelliteTLS(&a.cli.Flags().BuildkitdSettings, satellite)
 			if err != nil {
 				return errors.Wrap(err, "failed configuring satellite tls")

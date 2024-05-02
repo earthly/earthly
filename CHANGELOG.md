@@ -4,6 +4,9 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Added
+- New Github Actions Workflow commands integration `--github-annotations` flag or GITHUB_ACTIONS=true env. [#2189](https://github.com/earthly/earthly/issues/2189)
+
 ## v0.8.9 - 2024-04-24
 
 ### Fixed
