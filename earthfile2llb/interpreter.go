@@ -780,6 +780,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		i.withDocker.NoCache = opts.NoCache
 		i.withDocker.Interactive = opts.Interactive
 		i.withDocker.interactiveKeep = opts.InteractiveKeep
+
 		// TODO: Could this be allowed in the future, if dynamic build args
 		//       are expanded ahead of time?
 		allowParallel := true
@@ -1812,6 +1813,12 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 			AllowPrivileged: allowPrivileged,
 			PassArgs:        opts.PassArgs,
 		})
+	}
+	if opts.CacheID != "" {
+		if !i.converter.ftrs.PassArgs {
+			return i.errorf(cmd.SourceLocation, "the WITH DOCKER --cache-id flag must be enabled with the VERSION --docker-cache feature flag.")
+		}
+		i.withDocker.CacheID = opts.CacheID
 	}
 	return nil
 }

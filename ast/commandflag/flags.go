@@ -118,6 +118,7 @@ type WithDockerOpts struct {
 	Pulls           []string `long:"pull" description:"An image which is pulled and made available in the docker cache"`
 	AllowPrivileged bool     `long:"allow-privileged" description:"Allow targets referenced by load to assume privileged mode"`
 	PassArgs        bool     `long:"pass-args" description:"Pass arguments to external targets"`
+	CacheID         string   `long:"cache-id" description:"When specified, layer data will be persisted to specified cache"`
 }
 
 type DoOpts struct {

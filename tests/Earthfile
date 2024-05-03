@@ -220,6 +220,7 @@ ga-no-qemu-group12:
 ga-no-qemu-slow:
     BUILD +server
     BUILD --pass-args ./with-docker+all
+    BUILD --pass-args ./with-docker-cache+test
     # this has been moved to a seperate target until we get the flakey "tell me who you are" bug
     # fixed; see https://github.com/earthly/earthly/issues/2567
     #BUILD --pass-args ./git-metadata+test
