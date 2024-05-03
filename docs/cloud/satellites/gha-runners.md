@@ -92,7 +92,7 @@ To enable the GH runner for a self-hosted satellite, just set this environment e
 -v /var/run/docker.sock:/var/run/docker.sock \
 -e RUNNER_GHA_ENABLED=true
 ```
-also notice that satellite container must have access to docker daemon in order to run the GHA jobs in containers:
+also note that the satellite container must have access to the docker daemon in order to run the GHA jobs in containers:
 
 #### Example
 ```shell
