@@ -196,6 +196,8 @@ github.com/earthly/cloud-api v1.0.1-0.20240418022357-8999c82ab492 h1:o6xK+qJzT12
 github.com/earthly/cloud-api v1.0.1-0.20240418022357-8999c82ab492/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
 github.com/earthly/cloud-api v1.0.1-0.20240501163831-c433d3445e89 h1:Kux7DK4ebhXOLdjuEZ5eEiwFGHk+FN4K+h+X2PpZzcY=
 github.com/earthly/cloud-api v1.0.1-0.20240501163831-c433d3445e89/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
+github.com/earthly/cloud-api v1.0.1-0.20240503150138-22ad31c0a697 h1:8gxtqYLSG1zj+l2IVJzXYxKreOI+83ShMjRkZT7w5gE=
+github.com/earthly/cloud-api v1.0.1-0.20240503150138-22ad31c0a697/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
 github.com/earthly/fsutil v0.0.0-20231030221755-644b08355b65 h1:6oyWHoxHXwcTt4EqmMw6361scIV87uEAB1N42+VpIwk=
 github.com/earthly/fsutil v0.0.0-20231030221755-644b08355b65/go.mod h1:9kMVqMyQ/Sx2df5LtnGG+nbrmiZzCS7V6gjW3oGHsvI=
 github.com/elastic/go-sysinfo v1.9.0 h1:usICqY/Nw4Mpn9f4LdtpFrKxXroJDe81GaxxUlCckIo=

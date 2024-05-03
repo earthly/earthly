@@ -10,17 +10,17 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/earthly/earthly/util/parseutil"
-	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
 )
 
 type AWSOIDCInfo struct {
 	RoleARN         *arn.ARN       `mapstructure:"role-arn"`
+	SessionName     string         `mapstructure:"session-name"`
 	Region          string         `mapstructure:"region"`
 	SessionDuration *time.Duration `mapstructure:"session-duration"`
-	Uuid            string
 }
 
+var requiredFields = []string{"role-arn", "session-name"}
 var decodeCFGTemplate = mapstructure.DecoderConfig{
 	DecodeHook: mapstructure.ComposeDecodeHookFunc(
 		timeDurationValidationsHookFunc(func(input time.Duration) error {
@@ -53,7 +53,9 @@ func (oi *AWSOIDCInfo) String() string {
 		return ""
 	}
 	sb := strings.Builder{}
-	sb.WriteString(fmt.Sprintf("uuid=%s", oi.Uuid))
+	if oi.SessionName != "" {
+		sb.WriteString(fmt.Sprintf("session-name=%s", oi.SessionName))
+	}
 	if oi.RoleARN != nil {
 		sb.WriteString(fmt.Sprintf(",role-arn=%s", oi.RoleARN.String()))
 	}
@@ -63,7 +65,7 @@ func (oi *AWSOIDCInfo) String() string {
 	if oi.SessionDuration != nil {
 		sb.WriteString(fmt.Sprintf(",session-duration=%s", oi.SessionDuration.String()))
 	}
-	return sb.String()
+	return strings.TrimPrefix(sb.String(), ",")
 }
 
 // ParseAWSOIDCInfo takes a string that represents a list of oidc key/value pairs and returns it
@@ -73,15 +75,17 @@ func ParseAWSOIDCInfo(oidcInfo string) (*AWSOIDCInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("oidc info is invalid: %w", err)
 	}
-	info := &AWSOIDCInfo{Uuid: uuid.NewString()}
+	info := &AWSOIDCInfo{}
 	metadata := &mapstructure.Metadata{}
 	decodeCFG := newDecodeCFG(info, metadata, decodeCFGTemplate)
 	decoder, _ := mapstructure.NewDecoder(decodeCFG)
 	if err := decoder.Decode(m); err != nil {
 		return nil, err
 	}
-	if slices.Contains(metadata.Unset, "role-arn") {
-		return nil, &mapstructure.Error{Errors: []string{"role-arn must be specified"}}
+	for _, f := range requiredFields {
+		if slices.Contains(metadata.Unset, f) {
+			return nil, &mapstructure.Error{Errors: []string{fmt.Sprintf("%s must be specified", f)}}
+		}
 	}
 	if len(metadata.Unused) > 0 {
 		return nil, &mapstructure.Error{Errors: []string{fmt.Sprintf("key(s) [%s] are invalid", strings.Join(metadata.Unused, ","))}}

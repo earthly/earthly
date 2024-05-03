@@ -189,6 +189,12 @@ You can see examples of configuring Docker to use these, and working with Earthl
 * [Pushing and Pulling Images with GCP Artifact Registry](./registries/gcp-artifact-registry.md)
 * [Pushing and Pulling Images with Azure ACR](./registries/azure-acr.md)
 
+## Cloud Providers
+
+Currently Earthly provides a build-in way to easily authenticate to AWS during a build.
+
+* [Accessing AWS resources](./cloud-providers/aws.md)
+
 ## See also
 
 * The [earthly command reference](../earthly-command/earthly-command.md)

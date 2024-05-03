@@ -70,7 +70,7 @@ type Client struct {
 	analytics                analytics.AnalyticsClient
 	askv                     askv.AskvClient
 	billing                  billing.BillingClient
-	secrets                  secrets.SecretsClient
+	secrets                  secrets.SecretsServiceClient
 	requestID                string
 	installationName         string
 	logstreamAddressOverride string
@@ -163,7 +163,7 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	c.analytics = analytics.NewAnalyticsClient(conn)
 	c.askv = askv.NewAskvClient(conn)
 	c.billing = billing.NewBillingClient(conn)
-	c.secrets = secrets.NewSecretsClient(conn)
+	c.secrets = secrets.NewSecretsServiceClient(conn)
 
 	logstreamAddr := grpcAddr
 	if c.logstreamAddressOverride != "" {

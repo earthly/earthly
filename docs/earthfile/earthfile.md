@@ -378,11 +378,12 @@ The `<oidc-spec>` is defined as a series of comma-separated list of key-values. 
 
 | Key                | Description                                                                                                                                                                                                                                            | Example                                             |
 |--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------|
+| `session-name`     | The session name to identify in AWS's logs. If any `RUN ... --oidc` commands use the same `session-name`, they will share the same temporary token                                                                                                     | `session-name=my-session`                           |
 | `role-arn`         | The AWS arn of the role for which to get credentials.                                                                                                                                                                                                  | `role-arn=arn:aws:iam::123456789012:role/some-role` |
 | `region`           | The AWS region to connect to in order to get the credentials. This will also be the region used by the executed AWS command (though the region may be overridden in the command). If the region is not specified, the global AWS endpoint will be used | `region=us-east-1`                                  |
-| `session-duration` | The time the credentials will be valid for before they expire. Default (AWS minimum): 15 minutes.                                                                                                                                                      | `session-duration=20m`                               |
+| `session-duration` | The time the credentials will be valid for before they expire. Default (AWS minimum): 15 minutes.                                                                                                                                                      | `session-duration=20m`                              |
 
-Click [here]() for more information on how to configure AWS OIDC with Earthly.
+Click [here](../cloud/oidc.md#openid-connect-oidc-authentication) for more information on how to configure OIDC in AWS for Earthly.
 
 ##### `--raw-output` (experimental)
 

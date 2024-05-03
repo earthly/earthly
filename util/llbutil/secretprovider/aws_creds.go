@@ -31,7 +31,7 @@ const (
 	roleARNURLParam         = "role-arn"
 	regionURLParam          = "region"
 	sessionDurationURLParam = "session-duration"
-	uuidURLParam            = "uuid"
+	sessionNameURLParam     = "session-name"
 )
 
 // AWSCredentials contains the basic set of credentials that users will need to
@@ -143,7 +143,7 @@ func oidcInfoFromValues(values url.Values) *oidcutil.AWSOIDCInfo {
 		RoleARN:         &parsedARN,
 		Region:          region,
 		SessionDuration: duration,
-		Uuid:            values.Get(uuidURLParam),
+		SessionName:     values.Get(sessionNameURLParam),
 	}
 }
 
@@ -165,7 +165,7 @@ func (p *oidcCredentialsProvider) Retrieve(ctx context.Context) (aws.Credentials
 	if p.cache != nil {
 		return *p.cache, nil
 	}
-	res, err := p.client.GetAWSCredentials(ctx, p.oidcInfo.RoleARN.String(), p.orgName, p.projectName, p.oidcInfo.Region, p.oidcInfo.SessionDuration)
+	res, err := p.client.GetAWSCredentials(ctx, p.oidcInfo.SessionName, p.oidcInfo.RoleARN.String(), p.orgName, p.projectName, p.oidcInfo.Region, p.oidcInfo.SessionDuration)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
@@ -221,7 +221,7 @@ func getCFG(ctx context.Context, orgName string, projectName string, oidcInfo *o
 // This is used by SecretID() to be able to identify secrets from this provider
 func SetURLValuesFunc(awsInfo *oidcutil.AWSOIDCInfo) func(values url.Values) {
 	return func(values url.Values) {
-		values.Set(uuidURLParam, awsInfo.Uuid)
+		values.Set(sessionNameURLParam, awsInfo.SessionName)
 		values.Set(roleARNURLParam, awsInfo.RoleARN.String())
 		values.Set(regionURLParam, awsInfo.Region)
 		if awsInfo.SessionDuration != nil {

@@ -8,14 +8,11 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
-	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAWSOIDCInfoString(t *testing.T) {
-	uuidStr := uuid.NewString()
 	tests := map[string]struct {
 		subject  *AWSOIDCInfo
 		expected string
@@ -30,17 +27,17 @@ func TestAWSOIDCInfoString(t *testing.T) {
 				},
 				Region:          "us-west-2",
 				SessionDuration: aws.Duration(time.Second),
-				Uuid:            uuidStr,
+				SessionName:     "my-session",
 			},
-			expected: "uuid=" + uuidStr + ",role-arn=arn::iam:us-east-1::role/123,region=us-west-2,session-duration=1s",
+			expected: "session-name=my-session,role-arn=arn::iam:us-east-1::role/123,region=us-west-2,session-duration=1s",
 		},
 		"happy path - no role-arn": {
 			subject: &AWSOIDCInfo{
 				Region:          "us-west-2",
 				SessionDuration: aws.Duration(time.Second),
-				Uuid:            uuidStr,
+				SessionName:     "my-session",
 			},
-			expected: "uuid=" + uuidStr + ",region=us-west-2,session-duration=1s",
+			expected: "session-name=my-session,region=us-west-2,session-duration=1s",
 		},
 		"happy path - no region": {
 			subject: &AWSOIDCInfo{
@@ -50,9 +47,9 @@ func TestAWSOIDCInfoString(t *testing.T) {
 					Resource: "role/123",
 				},
 				SessionDuration: aws.Duration(time.Second),
-				Uuid:            uuidStr,
+				SessionName:     "my-session",
 			},
-			expected: "uuid=" + uuidStr + ",role-arn=arn::iam:us-east-1::role/123,session-duration=1s",
+			expected: "session-name=my-session,role-arn=arn::iam:us-east-1::role/123,session-duration=1s",
 		},
 		"happy path - no session duration": {
 			subject: &AWSOIDCInfo{
@@ -61,10 +58,22 @@ func TestAWSOIDCInfoString(t *testing.T) {
 					Region:   "us-east-1",
 					Resource: "role/123",
 				},
-				Region: "us-west-2",
-				Uuid:   uuidStr,
+				Region:      "us-west-2",
+				SessionName: "my-session",
 			},
-			expected: "uuid=" + uuidStr + ",role-arn=arn::iam:us-east-1::role/123,region=us-west-2",
+			expected: "session-name=my-session,role-arn=arn::iam:us-east-1::role/123,region=us-west-2",
+		},
+		"happy path - no session name": {
+			subject: &AWSOIDCInfo{
+				RoleARN: &arn.ARN{
+					Service:  "iam",
+					Region:   "us-east-1",
+					Resource: "role/123",
+				},
+				Region:          "us-west-2",
+				SessionDuration: aws.Duration(time.Second),
+			},
+			expected: "role-arn=arn::iam:us-east-1::role/123,region=us-west-2,session-duration=1s",
 		},
 	}
 
@@ -100,6 +109,10 @@ func TestParseAWSOIDCInfo(t *testing.T) {
 			input:       "role-arn=arn::iam::123:role/456,session-duration=43201s",
 			expectedErr: &mapstructure.Error{Errors: []string{`error decoding 'session-duration': duration must be between 900s and 43200s`}},
 		},
+		"error when session name is missing": {
+			input:       "role-arn=arn::iam::123:role/456,region=us-west-2,session-duration=900s",
+			expectedErr: &mapstructure.Error{Errors: []string{"session-name must be specified"}},
+		},
 		"error when role arn is missing": {
 			input:       "session-duration=902s",
 			expectedErr: &mapstructure.Error{Errors: []string{"role-arn must be specified"}},
@@ -117,11 +130,11 @@ func TestParseAWSOIDCInfo(t *testing.T) {
 			expectedErr: &mapstructure.Error{Errors: []string{`error decoding 'role-arn': resource ("user/123") must be an aws role"`}},
 		},
 		"error when using unrecognized keys": {
-			input:       "role-arn=arn::iam:us-east-1::role/123,foo=bar",
+			input:       "role-arn=arn::iam:us-east-1::role/123,session-name=my-session,foo=bar",
 			expectedErr: &mapstructure.Error{Errors: []string{"key(s) [foo] are invalid"}},
 		},
 		"happy path": {
-			input: "role-arn=arn::iam::123:role/456,region=us-west-2,session-duration=900s",
+			input: "role-arn=arn::iam::123:role/456,region=us-west-2,session-duration=900s,session-name=my-session",
 			expected: &AWSOIDCInfo{
 				RoleARN: &arn.ARN{
 					Service:   "iam",
@@ -130,11 +143,11 @@ func TestParseAWSOIDCInfo(t *testing.T) {
 				},
 				Region:          "us-west-2",
 				SessionDuration: aws.Duration(time.Second * 900),
-				Uuid:            uuid.NewString(),
+				SessionName:     "my-session",
 			},
 		},
 		"happy path - no region": {
-			input: "role-arn=arn::iam::123:role/456,session-duration=900s",
+			input: "role-arn=arn::iam::123:role/456,session-duration=900s,session-name=my-session",
 			expected: &AWSOIDCInfo{
 				RoleARN: &arn.ARN{
 					Service:   "iam",
@@ -142,19 +155,19 @@ func TestParseAWSOIDCInfo(t *testing.T) {
 					Resource:  "role/456",
 				},
 				SessionDuration: aws.Duration(time.Second * 900),
-				Uuid:            uuid.NewString(),
+				SessionName:     "my-session",
 			},
 		},
 		"happy path - no session duration": {
-			input: "role-arn=arn::iam::123:role/456,region=us-west-2",
+			input: "role-arn=arn::iam::123:role/456,region=us-west-2,session-name=my-session",
 			expected: &AWSOIDCInfo{
 				RoleARN: &arn.ARN{
 					Service:   "iam",
 					AccountID: "123",
 					Resource:  "role/456",
 				},
-				Region: "us-west-2",
-				Uuid:   uuid.NewString(),
+				Region:      "us-west-2",
+				SessionName: "my-session",
 			},
 		},
 	}
@@ -165,15 +178,7 @@ func TestParseAWSOIDCInfo(t *testing.T) {
 			t.Parallel()
 			res, err := ParseAWSOIDCInfo(tc.input)
 			assert.Equal(t, tc.expectedErr, err)
-			if tc.expected != nil {
-				require.NotNil(t, res)
-				assert.Equal(t, tc.expected.RoleARN, res.RoleARN)
-				assert.Equal(t, tc.expected.Region, res.Region)
-				assert.Equal(t, tc.expected.SessionDuration, res.SessionDuration)
-				assert.NoError(t, uuid.Validate(res.Uuid))
-			} else {
-				assert.Nil(t, res)
-			}
+			assert.Equal(t, tc.expected, res)
 		})
 	}
 }

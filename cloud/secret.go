@@ -89,7 +89,7 @@ func (c *Client) Set(ctx context.Context, path string, data []byte) error {
 	return nil
 }
 
-func (c *Client) GetAWSCredentials(ctx context.Context, roleARN string, orgName string, projectName string, region string, sessionDuration *time.Duration) (*secrets.GetAWSCredentialsResponse, error) {
+func (c *Client) GetAWSCredentials(ctx context.Context, sessionName string, roleARN string, orgName string, projectName string, region string, sessionDuration *time.Duration) (*secrets.GetAWSCredentialsResponse, error) {
 	if orgName == "" {
 		return nil, errors.New("org must be set in order to use AWS OIDC")
 	}
@@ -102,6 +102,7 @@ func (c *Client) GetAWSCredentials(ctx context.Context, roleARN string, orgName 
 	}
 	response, err := c.secrets.GetAWSCredentials(c.withAuth(ctx), &secrets.GetAWSCredentialsRequest{
 		RoleArn:         roleARN,
+		SessionName:     sessionName,
 		SessionDuration: duration,
 		Region:          region,
 		OrgName:         orgName,
