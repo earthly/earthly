@@ -72,8 +72,6 @@ OPTIONS:
 --help, -h        show help
 ```
 
-
-
 ## Satellite configuration
 This feature is currently disabled by default for satellites. It must be enabled in a per-satellite basis as follows:
 
@@ -84,12 +82,14 @@ earthly satellite --feature-flag enable-gha-runner <satellite-name>
 ``` 
 
 ### Self-hosted satellites
-To enable the GH runner for a self-hosted satellite, just set this environment entry when launching it, as well as giving the satellite container access to the docker daemon in order to create containers for the GHA jobs:
+To enable the GH runner for a self-hosted satellite, just set this environment entry when launching it:
 ```
--v /var/run/docker.sock:/var/run/docker.sock \
 -e RUNNER_GHA_ENABLED=true
 ```
 also note that the satellite container must have access to the docker daemon in order to run the GHA jobs in containers:
+```
+-v /var/run/docker.sock:/var/run/docker.sock
+```
 
 #### Example
 ```shell
@@ -106,7 +106,7 @@ docker run --privileged \
 ```
 {% hint style='info' %}
 ##### Required version
-Use at least earthly/satellite:v0.8.9
+Use at least `earthly/satellite:v0.8.9`
 {% endhint %}
 
 #### Logs
@@ -132,11 +132,11 @@ earthly-cache-folder#<absolute-path>
 These labels allow defining folders whose contents will be shared across multiple builds.
 This is specially useful for defining persistent caches for tools external to Earthly. 
 
-Notice that multiple labels starting with `earthly-cache-folder#` can be set for a given job, one per persistent folder.
+Note that multiple labels starting with `earthly-cache-folder#` can be set for a given job, one per persistent folder.
 
 ### Examples
 #### Running an earthly job
-The following example runs the +build target in the Satellite. Given that the GH runner is configured to use the Satellite BuildKit instance, the persistent satellite cache is implicitly used here.
+The following example runs the `+build` target in the Satellite. Given that the GH runner is configured to use the Satellite BuildKit instance, the persistent satellite cache is implicitly used here.
 ```yml
 earthly-job:
   runs-on: [earthly-satellite#my-gha-satellite]
@@ -153,7 +153,7 @@ Make sure to set your `EARTHLY_TOKEN` in the environment. Future versions will r
 {% endhint %}
 
 #### Caching non-Earthly jobs
-The following example runs maven externally to Earthly, but benefits from the satellite storage to mount a persistent local cache for the maven artifacts:  
+The following example runs maven externally to Earthly, but still benefits from the satellite storage to mount a persistent local cache for the maven artifacts:  
 ```yml
 maven-job:
   runs-on: [earthly-satellite#my-gha-satellite, earthly-cache-folder#/root/.m2]
