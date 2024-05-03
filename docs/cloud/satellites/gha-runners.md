@@ -142,11 +142,16 @@ earthly-job:
   runs-on: [earthly-satellite#my-gha-satellite]
   env:
     FORCE_COLOR: 1
+    EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
   steps:
     - uses: actions/checkout@v2
     - name: Earthly build
       run: earthly -ci +build
 ```
+{% hint style='warning' %}
+Make sure to set your `EARTHLY_TOKEN` in the environment. Future versions will remove this requirement.
+{% endhint %}
+
 #### Caching non-Earthly jobs
 The following example runs maven externally to Earthly, but benefits from the satellite storage to mount a persistent local cache for the maven artifacts:  
 ```yml
