@@ -74,7 +74,7 @@ type Features struct {
 	WildcardCopy                  bool `long:"wildcard-copy" description:"allow for the expansion of wildcard (glob) paths for COPY commands"`
 	RawOutput                     bool `long:"raw-output" description:"allow for --raw-output on RUN commands"`
 	GitAuthorEmailNameArgs        bool `long:"git-author-email-name-args" description:"includes EARTHLY_GIT_AUTHOR_EMAIL and EARTHLY_GIT_AUTHOR_NAME builtin ARGs"`
-	AllowDisableEarthlyLabels     bool `long:"allow-disable-earthly-labels" description:"Allow the usage of --disable-earthly-labels in SAVE IMAGE"`
+	AllowWithoutEarthlyLabels     bool `long:"allow-without-earthly-labels" description:"Allow the usage of --without-earthly-labels in SAVE IMAGE"`
 
 	Major int
 	Minor int

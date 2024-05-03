@@ -1170,7 +1170,12 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 		return nil
 	}
 
-	if !opts.DisableEarthlyLabels {
+	if opts.WithoutEarthlyLabels {
+		if !i.converter.ftrs.AllowWithoutEarthlyLabels {
+			return i.errorf(cmd.SourceLocation, "the SAVE IMAGE --disable-earthly-labels flag must be enabled with the VERSION --allow-without-earthly-labels feature flag.")
+		}
+		// deliberately don't add any labels (i.e. do nothing here)
+	} else {
 		labels := map[string]string{
 			"dev.earthly.version":  version.Version,
 			"dev.earthly.git-sha":  version.GitSha,

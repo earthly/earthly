@@ -85,7 +85,7 @@ type SaveImageOpts struct {
 	Insecure             bool     `long:"insecure" description:"Use unencrypted connection for the push"`
 	NoManifestList       bool     `long:"no-manifest-list" description:"Do not include a manifest list (specifying the platform) in the creation of the image"`
 	CacheFrom            []string `long:"cache-from" description:"Declare additional cache import as a Docker tag"`
-	DisableEarthlyLabels bool     `long:"disable-earthly-labels" description:"Disable build information dev.earthly labels to reduce the chance of changing images digsest."`
+	WithoutEarthlyLabels bool     `long:"without-earthly-labels" description:"Disable build information dev.earthly labels to reduce the chance of changing images digests."`
 }
 
 type BuildOpts struct {
