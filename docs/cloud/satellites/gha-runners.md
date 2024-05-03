@@ -41,7 +41,7 @@ Fine grained token permissions:
 - `organization_self_hosted_runners:write`
 
 ##### Repository integration
-For repository integrations, the user must be an admin of that repository and the token must have the following scopes/permissions:
+For repository integrations, the user must be an admin of the repository and the token must have the following scopes/permissions:
 
 Personal access tokens (classic) scopes:
 - `admin:repo_hook`
