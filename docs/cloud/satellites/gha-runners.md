@@ -2,7 +2,7 @@
 
 Earthly Satellites embed now a GitHub self-hosted runner, so they can directly pull jobs from GHA without the need of an intermediate runner.
 
-This self-hosted runner comes with the Earthly CLI preinstalled, and it's configured to use the Satellite BuildKit instance, so GHA jobs will share the same Satellite cache than the traditional Satellite builds.
+This self-hosted runner comes with the Earthly CLI preinstalled and configured to use the Satellite BuildKit instance, so GHA jobs will share the same Satellite cache than the traditional Satellite builds.
 
 Also, notice that the self-hosted runner can run any arbitrary GHA job, not necessarily an Earthly command, and given that it runs within the Satellite, it benefits from its persistent local storage (see ["Persistent Folders" section below](#persistent-folders)) across builds.
 
