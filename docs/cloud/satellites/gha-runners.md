@@ -27,7 +27,7 @@ Important: The token is used during the configuration process and _each time_ a 
 
 #### Permissions
 ##### Organization-wide integration
-For organization-wide integrations, the user must be an admin of that organization and the token must have the following scopes/permissions:
+For organization-wide integrations, the user must be an admin of the organization and the token must have the following scopes/permissions:
 
 Personal access tokens (classic) scopes:
 - `admin:org_hook`
