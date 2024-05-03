@@ -87,7 +87,7 @@ earthly satellite --feature-flag enable-gha-runner <satellite-name>
 ``` 
 
 ### Self-hosted satellites
-To enable the GH runner for a self-hosted satellite, just set this environment entry when launching it, as well as giving the satellite container access to docker daemon in order to create containers for the GHA jobs:
+To enable the GH runner for a self-hosted satellite, just set this environment entry when launching it, as well as giving the satellite container access to the docker daemon in order to create containers for the GHA jobs:
 ```
 -v /var/run/docker.sock:/var/run/docker.sock \
 -e RUNNER_GHA_ENABLED=true
