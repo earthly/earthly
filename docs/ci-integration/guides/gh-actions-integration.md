@@ -3,7 +3,7 @@
 
 {% hint style='info' %}
 ##### News
-The recommended approach for GHA integration now is [using Satellites as GHA runners](../cloud/satellites/gha-runners.md).
+It is recommended to use [Satellites as GHA runners](../cloud/satellites/gha-runners.md), since they don't require GitHub Actions workers.
 {% endhint %}
 
 Here is an example of a GitHub Actions build that uses the [earthly/actions-setup](https://github.com/earthly/actions-setup).
