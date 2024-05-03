@@ -15,7 +15,7 @@ Once your organization is allowed to use this feature, next step is to set the i
 - A GitHub repository integration, that allows processing the builds of that repository in the Satellites of the integrated Earthly organization.
 - A GitHub organization-wide integration, that allows processing the builds of any repository of that GitHub organization in the Satellites of the integrated Earthly organization.
 
-In both cases the configuration is done through the `earthly` CLI, and you will need to provide us with a GitHub personal access token to talk to the GitHub API on your behalf and perform the integration. 
+In either case the configuration is done through the `earthly` CLI, and you will need to provide us with a GitHub personal access token to talk to the GitHub API on your behalf and perform the integration. 
 
 ### Integration details
 
