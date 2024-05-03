@@ -33,6 +33,9 @@ At the moment the only AWS is supported.
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
+          "api.earthly.dev:aud": "sts.amazonaws.com"
+        },
+        "StringEquals": {
           "api.earthly.dev:sub": "<earthly-org>/<earthly-project>"
         }
       }
@@ -42,7 +45,7 @@ At the moment the only AWS is supported.
 ```
 
 where:
-* `<oidc-provider-name>` is the name of oidc provider's arn that was configured in step 1.
+* `<oidc-provider-name>` is the oidc provider's arn that was configured in step 1.
 * `<earthly-org>` the earthly org the user is a member of and is set in the Earthfile or as part of the earthly build execution (see more details below).
 * `<earthly-project>` the earthly project the user has access to [read secrets](./managing-permissions.md#earthly-project-access-levels) from, and is set in the Earthfile or as part of the earthly build execution (see more details below).
 
