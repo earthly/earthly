@@ -24,6 +24,7 @@ import (
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast/commandflag"
+	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/ast/spec"
 	"github.com/earthly/earthly/buildcontext"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
@@ -2835,7 +2836,7 @@ func (c *Converter) checkAllowed(command cmdType) error {
 		case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, letCmd, setCmd, importCmd, projectCmd, pipelineCmd:
 			return nil
 		default:
-			return errors.New("the first command has to be FROM, FROM DOCKERFILE, LOCALLY, ARG, BUILD or IMPORT")
+			return hint.Wrap(errors.New("requires a FROM, FROM DOCKERFILE, or LOCALLY"), "This command needs to run in a shell. You should be able to solve this by adding 'FROM <image>' on the line before this one.")
 		}
 	}
 
