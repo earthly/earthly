@@ -161,6 +161,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 
 	err := app.BaseCLI.App().RunContext(ctx, args)
 	if err != nil {
+		fmt.Printf("%v got a %v under run.go\n", time.Now(), err)
 		ie, isInterpreterError := earthfile2llb.GetInterpreterError(err)
 		if app.BaseCLI.Flags().Debug {
 			// Get the stack trace from the deepest error that has it and print it.
@@ -183,6 +184,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 
 		grpcErr, grpcErrOK := grpcerrors.AsGRPCStatus(err)
 		hintErr, hintErrOK := getHintErr(err, grpcErr)
+		fmt.Printf("grpcErr: %v; hintErr: %v\n", grpcErr, hintErr)
 		var paramsErr *params.Error
 		var autoSkipErr *inputgraph.Error
 		switch {
