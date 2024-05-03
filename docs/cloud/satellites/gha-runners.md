@@ -10,10 +10,7 @@ The self-hosted runner can run _any_ GHA job, not necessarily an Earthly command
 This feature is in closed-beta at the moment. You can request early access through support@earthly.dev
 
 ## Configuration
-Once your organization is allowed to use this feature, next step is to set the integration. You have two possible options here:
-
-- A GitHub repository integration, that allows processing the builds of that repository in the Satellites of the integrated Earthly organization.
-- A GitHub organization-wide integration, that allows processing the builds of any repository of that GitHub organization in the Satellites of the integrated Earthly organization.
+Once approved for the closed-beta, you can enable satellite-based GHA workers for specific GitHub repositories or for all repositories in your organization.
 
 In either case the configuration is done through the `earthly` CLI, and you will need to provide us with a GitHub personal access token to talk to the GitHub API on your behalf and perform the integration. 
 
@@ -23,7 +20,7 @@ The integration process registers a webhook in your GitHub repository/organizati
 Then it stores the encrypted token on our end (we will use it every time a new job event is processed).
 
 ### GitHub token
-Follow the [official docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) for detailed information on how to create a GitHub PAT.
+Follow the [official docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) for detailed information on how to create a GitHub token.
 
 #### Expiration time
 Important: The token is used during the configuration process and _each time_ a job event is received -- be sure to set the expiration time accordingly.
