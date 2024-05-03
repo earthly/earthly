@@ -26,7 +26,7 @@ Then it stores the encrypted token on our end (we will use it every time a new j
 Follow the [official docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) for detailed information on how to create a GitHub PAT.
 
 #### Expiration time
-As mentioned, the token provided will be used during the configuration process as well as every time a job event is received on our end, so make sure you set its expiration time accordingly.
+Important: The token is used during the configuration process and _each time_ a job event is received -- be sure to set the expiration time accordingly.
 
 #### Permissions
 ##### Organization-wide integration
