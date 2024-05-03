@@ -151,7 +151,7 @@ earthly-job:
       run: earthly -ci +build
 ```
 #### Caching non-Earthly jobs
-The following example runs maven externally to Earthly, but benefiting from the satellite storage to mount a persistent local cache for the maven artifacts:  
+The following example runs maven externally to Earthly, but benefits from the satellite storage to mount a persistent local cache for the maven artifacts:  
 ```yml
 maven-job:
   runs-on: [earthly-satellite#my-gha-satellite, earthly-cache-folder#/root/.m2]
