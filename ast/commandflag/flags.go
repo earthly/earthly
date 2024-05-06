@@ -80,11 +80,12 @@ type SaveArtifactOpts struct {
 }
 
 type SaveImageOpts struct {
-	Push           bool     `long:"push" description:"Push the image to the remote registry provided that the build succeeds and also that earthly is invoked in push mode"`
-	CacheHint      bool     `long:"cache-hint" description:"Instruct Earthly that the current target should be saved entirely as part of the remote cache"`
-	Insecure       bool     `long:"insecure" description:"Use unencrypted connection for the push"`
-	NoManifestList bool     `long:"no-manifest-list" description:"Do not include a manifest list (specifying the platform) in the creation of the image"`
-	CacheFrom      []string `long:"cache-from" description:"Declare additional cache import as a Docker tag"`
+	Push                 bool     `long:"push" description:"Push the image to the remote registry provided that the build succeeds and also that earthly is invoked in push mode"`
+	CacheHint            bool     `long:"cache-hint" description:"Instruct Earthly that the current target should be saved entirely as part of the remote cache"`
+	Insecure             bool     `long:"insecure" description:"Use unencrypted connection for the push"`
+	NoManifestList       bool     `long:"no-manifest-list" description:"Do not include a manifest list (specifying the platform) in the creation of the image"`
+	CacheFrom            []string `long:"cache-from" description:"Declare additional cache import as a Docker tag"`
+	WithoutEarthlyLabels bool     `long:"without-earthly-labels" description:"Disable build information dev.earthly labels to reduce the chance of changing images digests."`
 }
 
 type BuildOpts struct {
