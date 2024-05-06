@@ -1173,7 +1173,7 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 
 	if opts.WithoutEarthlyLabels {
 		if !i.converter.ftrs.AllowWithoutEarthlyLabels {
-			return i.errorf(cmd.SourceLocation, "the SAVE IMAGE --disable-earthly-labels flag must be enabled with the VERSION --allow-without-earthly-labels feature flag.")
+			return i.errorf(cmd.SourceLocation, "the SAVE IMAGE --without-earthly-labels flag must be enabled with the VERSION --allow-without-earthly-labels feature flag.")
 		}
 		// deliberately don't add any labels (i.e. do nothing here)
 	} else {
