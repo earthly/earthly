@@ -237,11 +237,11 @@ func handleError(err error, arn, region, orgName, projectName string) error {
 		switch grpcErr.Code() {
 		case codes.InvalidArgument:
 			if strings.Contains(grpcErr.Message(), "could not be found") {
-				return hint.Wrapf(err, `do the org "%s" and project "%s exist"`, orgName, projectName)
+				return hint.Wrapf(err, `do the org %q and project "%q exist`, orgName, projectName)
 			}
-			return hint.Wrapf(err, `is "%s" a valid AWS region?`, region)
+			return hint.Wrapf(err, `is %q a valid AWS region?`, region)
 		case codes.PermissionDenied, codes.FailedPrecondition:
-			return hint.Wrapf(err, `make sure the role %s has a valid trust policy configured in AWS`, arn)
+			return hint.Wrapf(err, `make sure the role %q has a valid trust policy configured in AWS`, arn)
 		}
 	}
 	return errors.Wrap(err, "failed to load AWS credentials")
