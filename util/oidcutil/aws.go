@@ -89,13 +89,13 @@ func ParseAWSOIDCInfo(oidcInfo string) (*AWSOIDCInfo, error) {
 	if err := decoder.Decode(m); err != nil {
 		return nil, err
 	}
+	if len(metadata.Unused) > 0 {
+		return nil, &mapstructure.Error{Errors: []string{fmt.Sprintf("key(s) [%s] are invalid", strings.Join(metadata.Unused, ","))}}
+	}
 	for _, f := range requiredFields {
 		if slices.Contains(metadata.Unset, f) {
 			return nil, &mapstructure.Error{Errors: []string{fmt.Sprintf("%s must be specified", f)}}
 		}
-	}
-	if len(metadata.Unused) > 0 {
-		return nil, &mapstructure.Error{Errors: []string{fmt.Sprintf("key(s) [%s] are invalid", strings.Join(metadata.Unused, ","))}}
 	}
 	return info, nil
 }
