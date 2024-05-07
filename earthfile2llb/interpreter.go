@@ -28,6 +28,7 @@ import (
 	"github.com/earthly/earthly/variables"
 
 	"github.com/docker/go-connections/nat"
+	"github.com/google/uuid"
 	"github.com/jessevdk/go-flags"
 	"github.com/pkg/errors"
 )
@@ -35,6 +36,9 @@ import (
 const maxCommandRenameWarnings = 3
 
 var errCannotAsync = errors.New("cannot run async operation")
+
+// use as default to differentiate between an un specified string flag and a specified flag with empty value
+var defaultZeroStringFlag = uuid.NewString()
 
 // Interpreter interprets Earthly AST's into calls to the converter.
 type Interpreter struct {
@@ -683,7 +687,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	if len(cmd.Args) < 1 {
 		return i.errorf(cmd.SourceLocation, "not enough arguments for RUN")
 	}
-	opts := commandflag.RunOpts{}
+	opts := commandflag.RunOpts{OIDC: defaultZeroStringFlag}
 	args, err := flagutil.ParseArgsWithValueModifierCleaned("RUN", &opts, flagutil.GetArgsCopy(cmd), i.flagValModifierFuncWithContext(ctx))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid RUN arguments %v", cmd.Args)
@@ -816,7 +820,9 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 // handleOIDC parse the oidc string value into a struct
 // Returns error if the value cannot be parsed of if the feature flag is not set
 func (i *Interpreter) handleOIDC(ctx context.Context, cmd *spec.Command, opts *commandflag.RunOpts) (*oidcutil.AWSOIDCInfo, error) {
-	if opts.OIDC == "" {
+	if opts.OIDC == defaultZeroStringFlag {
+		// oidc is not in use, set it to empty string just in case
+		opts.OIDC = ""
 		return nil, nil
 	}
 	if !i.converter.opt.Features.RunWithAWSOIDC {

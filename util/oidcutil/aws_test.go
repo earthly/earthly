@@ -87,6 +87,37 @@ func TestAWSOIDCInfoString(t *testing.T) {
 	}
 }
 
+func TestAWSOIDCInfoRoleARNString(t *testing.T) {
+	tests := map[string]struct {
+		subject  *AWSOIDCInfo
+		expected string
+	}{
+		"struct is nil": {},
+		"role arn is nil": {
+			subject: &AWSOIDCInfo{},
+		},
+		"role arn is not nil": {
+			subject: &AWSOIDCInfo{
+				RoleARN: &arn.ARN{
+					Service:  "iam",
+					Region:   "us-east-1",
+					Resource: "role/123",
+				},
+			},
+			expected: "arn::iam:us-east-1::role/123",
+		},
+	}
+
+	for name, tc := range tests {
+		name, tc := name, tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			res := tc.subject.RoleARNString()
+			assert.Equal(t, tc.expected, res)
+		})
+	}
+}
+
 func TestParseAWSOIDCInfo(t *testing.T) {
 	tests := map[string]struct {
 		input       string

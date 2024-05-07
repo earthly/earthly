@@ -68,6 +68,13 @@ func (oi *AWSOIDCInfo) String() string {
 	return strings.TrimPrefix(sb.String(), ",")
 }
 
+func (oi *AWSOIDCInfo) RoleARNString() string {
+	if oi != nil && oi.RoleARN != nil {
+		return oi.RoleARN.String()
+	}
+	return ""
+}
+
 // ParseAWSOIDCInfo takes a string that represents a list of oidc key/value pairs and returns it
 // in the form of a *AWSOIDCInfo. The function errors if the string is invalid, including unexpected keys and/or values.
 func ParseAWSOIDCInfo(oidcInfo string) (*AWSOIDCInfo, error) {

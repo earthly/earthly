@@ -90,14 +90,13 @@ func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]b
 	}
 
 	oidcInfo := oidcInfoFromValues(q)
-
 	cfg, err := getCFG(ctx, orgName, projectName, oidcInfo, c.client)
 	if err != nil {
 		return nil, err
 	}
 	creds, err := cfg.Credentials.Retrieve(ctx)
 
-	if err = handleError(err, oidcInfo.RoleARN.String(), cfg.Region, orgName, projectName); err != nil {
+	if err = handleError(err, oidcInfo.RoleARNString(), cfg.Region, orgName, projectName); err != nil {
 		return nil, err
 	}
 
