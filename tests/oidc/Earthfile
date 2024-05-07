@@ -1,0 +1,21 @@
+VERSION 0.8
+PROJECT earthly-technologies/core
+
+FROM --pass-args ..+base
+
+IMPORT .. AS tests
+
+WORKDIR /test
+
+test:
+    BUILD +test-aws
+
+test-aws:
+    COPY test-aws.sh .
+    COPY aws.earth Earthfile
+    ENV EARTHLY_EXEC_CMD=/test/test-aws.sh
+    RUN --secret OIDC_USER_TOKEN=test-oidc-user/token \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        --privileged \
+        --entrypoint \
+        --mount=type=tmpfs,target=/tmp/earthly

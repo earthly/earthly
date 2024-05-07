@@ -1,0 +1,14 @@
+VERSION --run-with-aws --run-with-aws-oidc 0.8
+
+PROJECT ido+testemail/my-project1
+
+oidc:
+    FROM amazon/aws-cli:2.15.44
+    # set baseline - expects no envs with AWS_ prefix
+    LET expected=0
+    RUN export result=$(env |grep AWS_ |wc -l); \
+    test $result -eq $expected || (echo "expected \$expected env vars for AWS but got $result" && exit 1)
+    SET expected=4
+    LET OIDC="role-arn=arn:aws:iam::404851345508:role/ido-oidc-test,session-name=earthly-ci-test-session,region=us-west-2"
+    RUN --aws --oidc=$OIDC export result=$(env |grep AWS_ |wc -l); \
+    test $result -eq $expected || (echo "expected $expected env vars for AWS but got $result" && exit 1)
