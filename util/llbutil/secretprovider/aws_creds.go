@@ -229,7 +229,7 @@ func SetURLValuesFunc(awsInfo *oidcutil.AWSOIDCInfo) func(values url.Values) {
 	}
 }
 
-func handleError(err error, arn, region, orgName, projectName string) error {
+func handleError(err error, roleARN, region, orgName, projectName string) error {
 	if err == nil {
 		return nil
 	}
@@ -241,7 +241,7 @@ func handleError(err error, arn, region, orgName, projectName string) error {
 			}
 			return hint.Wrapf(err, `is %q a valid AWS region?`, region)
 		case codes.PermissionDenied, codes.FailedPrecondition:
-			return hint.Wrapf(err, `make sure the role %q has a valid trust policy configured in AWS`, arn)
+			return hint.Wrapf(err, `make sure the role %q has a valid trust policy configured in AWS`, roleARN)
 		}
 	}
 	return errors.Wrap(err, "failed to load AWS credentials")

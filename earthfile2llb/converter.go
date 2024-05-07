@@ -2415,7 +2415,7 @@ func (c *Converter) awsSecrets(ctx context.Context, oidcInfo *oidcutil.AWSOIDCIn
 	)
 
 	//set additional params in case oidc is in play
-	var setOIDCInfo func(values url.Values) //no-op by default
+	var setOIDCInfo func(values url.Values) // no-op by default
 	if oidcInfo != nil {
 		setOIDCInfo = secretprovider.SetURLValuesFunc(oidcInfo)
 	}
