@@ -791,6 +791,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		i.withDocker.NoCache = opts.NoCache
 		i.withDocker.Interactive = opts.Interactive
 		i.withDocker.interactiveKeep = opts.InteractiveKeep
+
 		// TODO: Could this be allowed in the future, if dynamic build args
 		//       are expanded ahead of time?
 		allowParallel := true
@@ -1209,14 +1210,21 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 		return nil
 	}
 
-	labels := map[string]string{
-		"dev.earthly.version":  version.Version,
-		"dev.earthly.git-sha":  version.GitSha,
-		"dev.earthly.built-by": version.BuiltBy,
-	}
-	err = i.converter.Label(ctx, labels)
-	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "failed to create dev.earthly.* labels during SAVE IMAGE")
+	if opts.WithoutEarthlyLabels {
+		if !i.converter.ftrs.AllowWithoutEarthlyLabels {
+			return i.errorf(cmd.SourceLocation, "the SAVE IMAGE --without-earthly-labels flag must be enabled with the VERSION --allow-without-earthly-labels feature flag.")
+		}
+		// deliberately don't add any labels (i.e. do nothing here)
+	} else {
+		labels := map[string]string{
+			"dev.earthly.version":  version.Version,
+			"dev.earthly.git-sha":  version.GitSha,
+			"dev.earthly.built-by": version.BuiltBy,
+		}
+		err = i.converter.Label(ctx, labels)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to create dev.earthly.* labels during SAVE IMAGE")
+		}
 	}
 
 	err = i.converter.SaveImage(ctx, imageNames, opts.Push, opts.Insecure, opts.CacheHint, opts.CacheFrom, opts.NoManifestList)
@@ -1845,6 +1853,12 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 			PassArgs:        opts.PassArgs,
 		})
 	}
+	if opts.CacheID != "" {
+		if !i.converter.ftrs.PassArgs {
+			return i.errorf(cmd.SourceLocation, "the WITH DOCKER --cache-id flag must be enabled with the VERSION --docker-cache feature flag.")
+		}
+		i.withDocker.CacheID = opts.CacheID
+	}
 	return nil
 }
 
@@ -2144,7 +2158,7 @@ To start using the FUNCTION keyword now (experimental) please use VERSION --use-
 		return i.errorf(uc.Recipe[0].SourceLocation, "%s takes no arguments", cmdName)
 	}
 	scopeName := fmt.Sprintf(
-		"%s (%s line %d:%d)",
+		"%s (%s:%d:%d)",
 		command.StringCanonical(), do.SourceLocation.File, do.SourceLocation.StartLine, do.SourceLocation.StartColumn)
 	err := i.converter.EnterScopeDo(ctx, command, baseTarget(relCommand), allowPrivileged, passArgs, scopeName, buildArgs)
 	if err != nil {
