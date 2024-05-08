@@ -17,6 +17,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+
+  delete-cache:
+    steps:
+      - run: ls -l /tmp
   # this job will output a boolean value to check whether files that require these tests to run
   # since all jobs depend on `build-earthly` job, conditionally running it will either cause all jobs to run or skip,
   # depending on the output value of this job
