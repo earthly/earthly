@@ -192,8 +192,8 @@ github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkp
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/earthly/buildkit v0.0.0-20240509162157-aa44507aef68 h1:eSIgTzKy5UiHtN1TDYNVFa4bXTmrroc+Dp0l0bMieHU=
 github.com/earthly/buildkit v0.0.0-20240509162157-aa44507aef68/go.mod h1:1/yAC8A0Tu94Bdmv07gaG1pFBp+CetVwO7oB3qvZXUc=
-github.com/earthly/cloud-api v1.0.1-0.20240419182846-287b8dd9616f h1:nNXnxnK4+fB++j/aj8jMqPbA4uh4OEKZr1jq1Ub3adI=
-github.com/earthly/cloud-api v1.0.1-0.20240419182846-287b8dd9616f/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
+github.com/earthly/cloud-api v1.0.1-0.20240508215807-a958f373126f h1:8CXT0MQ7dQrtm/IwVIexffosImh4ht0WUiWQAt0UoeQ=
+github.com/earthly/cloud-api v1.0.1-0.20240508215807-a958f373126f/go.mod h1:rU/tYJ7GFBjdKAITV2heDbez++glpGSbtJaZcp73rNI=
 github.com/earthly/fsutil v0.0.0-20231030221755-644b08355b65 h1:6oyWHoxHXwcTt4EqmMw6361scIV87uEAB1N42+VpIwk=
 github.com/earthly/fsutil v0.0.0-20231030221755-644b08355b65/go.mod h1:9kMVqMyQ/Sx2df5LtnGG+nbrmiZzCS7V6gjW3oGHsvI=
 github.com/elastic/go-sysinfo v1.9.0 h1:usICqY/Nw4Mpn9f4LdtpFrKxXroJDe81GaxxUlCckIo=
@@ -354,6 +354,8 @@ github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/hashstructure/v2 v2.0.2 h1:vGKWl0YJqUNxE8d+h8f6NJLcCJrgbhC4NcD46KavDd4=
 github.com/mitchellh/hashstructure/v2 v2.0.2/go.mod h1:MG3aRVU/N29oo/V/IhBX8GR/zz4kQkprJgF2EVszyDE=
+github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
+github.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/moby/locker v1.0.1 h1:fOXqR41zeveg4fFODix+1Ch4mj/gT0NE1XJbp/epuBg=
 github.com/moby/locker v1.0.1/go.mod h1:S7SDdo5zpBK84bzzVlKr2V0hz+7x9hWbYC/kq7oQppc=
 github.com/moby/patternmatcher v0.6.0 h1:GmP9lR19aU5GqSSFko+5pRqHi+Ohk1O69aFiKkVGiPk=

@@ -113,8 +113,9 @@ if [ ! -e "/sbin/$IP_TABLES" ]; then
 fi
 ln -sf "/sbin/$IP_TABLES" /sbin/iptables
 
-# clear any leftovers in the dind dir
-rm -rf "$EARTHLY_TMP_DIR/dind"
+# clear any leftovers (that aren't explicitly cached) in the dind dir
+find /tmp/earthly/dind/ -maxdepth 1 -mindepth 1 | grep -v cache_ | xargs -r rm -rf
+
 mkdir -p "$EARTHLY_TMP_DIR/dind"
 
 # setup git credentials and config
