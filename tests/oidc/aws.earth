@@ -1,6 +1,6 @@
 VERSION --run-with-aws --run-with-aws-oidc 0.8
 
-PROJECT ido+testemail/my-project1
+PROJECT other-service+oidc-ci-test/my-project
 
 oidc:
     FROM alpine

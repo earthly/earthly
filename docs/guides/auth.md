@@ -191,7 +191,7 @@ You can see examples of configuring Docker to use these, and working with Earthl
 
 ## Cloud Providers
 
-Currently Earthly provides a build-in way to easily authenticate to AWS during a build.
+Currently Earthly provides a built-in way to easily authenticate to AWS during a build.
 
 * [Accessing AWS resources](./cloud-providers/aws.md)
 

@@ -22,8 +22,8 @@ test-aws-base:
 test-aws-success:
     FROM +test-aws-base
     # happy path
-    ARG ROLE_ARN="arn:aws:iam::404851345508:role/ido-oidc-test"
-    RUN --secret OIDC_USER_TOKEN=test-oidc-user/token \
+    ARG ROLE_ARN="arn:aws:iam::404851345508:role/oidc-ci-test"
+    RUN --no-cache --secret OIDC_USER_TOKEN=test-oidc-user/token \
         --mount=type=tmpfs,target=/tmp/earthly \
         --privileged \
         --entrypoint

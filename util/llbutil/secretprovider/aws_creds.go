@@ -237,7 +237,7 @@ func handleError(err error, roleARN, region, orgName, projectName string) error 
 		switch grpcErr.Code() {
 		case codes.InvalidArgument:
 			if strings.Contains(grpcErr.Message(), "could not be found") {
-				return hint.Wrapf(err, `do the org %q and project "%q exist`, orgName, projectName)
+				return hint.Wrapf(err, `do the org %q and project %q exist`, orgName, projectName)
 			}
 			return hint.Wrapf(err, `is %q a valid AWS region?`, region)
 		case codes.PermissionDenied, codes.FailedPrecondition:

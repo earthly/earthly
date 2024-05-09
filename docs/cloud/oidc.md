@@ -18,7 +18,7 @@ At the moment the only AWS is supported.
 1. Add the Earthly OIDC provider to AWS IAM - see the [AWS guide](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html).
    1. Set https://api.earthly.dev as the provider URL.
    2. Set `sts.amazonaws.com` as the audience. 
-2. Create a new IAM role (or configure an existing role you'd like to reuse) - see the [AWS guide](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp.html).
+2. Create a new IAM role (or configure an existing role you'd like to reuse) - see the [AWS guide](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html).
    1. Make sure to limit the permissions for the role (these are the actions the user can perform after assuming the role)
    2. Make sure to limit who can assume the role by specifying a trust policy such as:
 ```json
@@ -33,9 +33,7 @@ At the moment the only AWS is supported.
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "api.earthly.dev:aud": "sts.amazonaws.com"
-        },
-        "StringEquals": {
+          "api.earthly.dev:aud": "sts.amazonaws.com",
           "api.earthly.dev:sub": "<earthly-org>/<earthly-project>"
         }
       }

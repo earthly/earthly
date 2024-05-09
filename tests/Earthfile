@@ -147,7 +147,6 @@ ga-no-qemu-group5:
     BUILD +test-aws-flag-envs
     BUILD +test-aws-flag-configs
     BUILD +test-aws-flag-none
-    BUILD +test-aws-oidc
 
     # Forcing the implicit global wait/end block, causes some tests, which rely
     # on the ability to have two different targets issue the same SAVE IMAGE tag name
@@ -216,6 +215,7 @@ ga-no-qemu-group11:
 ga-no-qemu-group12:
     BUILD --pass-args ./warn-if-not-logged-in+test
     BUILD --pass-args ./with-docker-validate-labels+all
+    BUILD --pass-args +test-aws-oidc
 
 
 ga-no-qemu-slow:
