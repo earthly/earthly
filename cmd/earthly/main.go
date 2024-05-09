@@ -45,6 +45,8 @@ var (
 	// such as the ~/.earthly dir name, the buildkitd container name, the docker volume name, etc.
 	// This should be set to "earthly" for official releases.
 	DefaultInstallationName string
+
+	Foo string
 )
 
 func setExportableVars() {
