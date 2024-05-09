@@ -23,6 +23,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  delete-cache:
+    steps:
+      - run: ls -l /tmp
+
   build-earthly:
     uses: ./.github/workflows/build-earthly.yml
     with:
