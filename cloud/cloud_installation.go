@@ -17,23 +17,44 @@ type Installation struct {
 	Name          string
 	Org           string
 	Status        string
+	StatusMessage string
 	NumSatellites int
 	IsDefault     bool
 }
 
-func (c *Client) ConfigureCloud(ctx context.Context, orgID, cloudName string, setDefault bool) (*Installation, error) {
+type CloudConfigurationOpt struct {
+	Name               string
+	SetDefault         bool
+	SshKeyName         string
+	ComputeRoleArn     string
+	AccountId          string
+	AllowedSubnetIds   []string
+	SecurityGroupId    string
+	Region             string
+	InstanceProfileArn string
+}
+
+func (c *Client) ConfigureCloud(ctx context.Context, orgID string, configuration *CloudConfigurationOpt) (*Installation, error) {
 	resp, err := c.compute.ConfigureCloud(c.withAuth(ctx), &pb.ConfigureCloudRequest{
-		OrgId:      orgID,
-		Name:       cloudName,
-		SetDefault: setDefault,
+		OrgId:              orgID,
+		Name:               configuration.Name,
+		SetDefault:         configuration.SetDefault,
+		SshKeyName:         configuration.SshKeyName,
+		ComputeRoleArn:     configuration.ComputeRoleArn,
+		AccountId:          configuration.AccountId,
+		AllowedSubnetIds:   configuration.AllowedSubnetIds,
+		SecurityGroupId:    configuration.SecurityGroupId,
+		Region:             configuration.Region,
+		InstanceProfileArn: configuration.InstanceProfileArn,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "error from ConfigureCloud API")
 	}
 	return &Installation{
-		Name:   cloudName,
-		Org:    orgID,
-		Status: installationStatus(resp.Status),
+		Name:          configuration.Name,
+		Org:           orgID,
+		Status:        installationStatus(resp.Status),
+		StatusMessage: resp.Message,
 	}, nil
 }
 
