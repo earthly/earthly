@@ -22,11 +22,13 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/internal/version"
 	"github.com/earthly/earthly/util/flagutil"
+	"github.com/earthly/earthly/util/oidcutil"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
 	"github.com/earthly/earthly/variables"
 
 	"github.com/docker/go-connections/nat"
+	"github.com/google/uuid"
 	"github.com/jessevdk/go-flags"
 	"github.com/pkg/errors"
 )
@@ -34,6 +36,9 @@ import (
 const maxCommandRenameWarnings = 3
 
 var errCannotAsync = errors.New("cannot run async operation")
+
+// use as default to differentiate between an un specified string flag and a specified flag with empty value
+var defaultZeroStringFlag = uuid.NewString()
 
 // Interpreter interprets Earthly AST's into calls to the converter.
 type Interpreter struct {
@@ -682,7 +687,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 	if len(cmd.Args) < 1 {
 		return i.errorf(cmd.SourceLocation, "not enough arguments for RUN")
 	}
-	opts := commandflag.RunOpts{}
+	opts := commandflag.RunOpts{OIDC: defaultZeroStringFlag}
 	args, err := flagutil.ParseArgsWithValueModifierCleaned("RUN", &opts, flagutil.GetArgsCopy(cmd), i.flagValModifierFuncWithContext(ctx))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "invalid RUN arguments %v", cmd.Args)
@@ -731,6 +736,11 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		return i.errorf(cmd.SourceLocation, "RUN --aws requires the --run-with-aws feature flag")
 	}
 
+	awsOIDCInfo, err := i.handleOIDC(ctx, &cmd, &opts)
+	if err != nil {
+		return err
+	}
+
 	if opts.RawOutput && !i.converter.opt.Features.RawOutput {
 		return i.errorf(cmd.SourceLocation, "RUN --raw-output requires the --raw-output feature flag")
 	}
@@ -756,6 +766,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 			InteractiveKeep:      opts.InteractiveKeep,
 			InteractiveSaveFiles: i.interactiveSaveFiles,
 			WithAWSCredentials:   opts.WithAWS,
+			OIDCInfo:             awsOIDCInfo,
 			RawOutput:            opts.RawOutput,
 		}
 		err = i.converter.Run(ctx, opts)
@@ -780,6 +791,7 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		i.withDocker.NoCache = opts.NoCache
 		i.withDocker.Interactive = opts.Interactive
 		i.withDocker.interactiveKeep = opts.InteractiveKeep
+
 		// TODO: Could this be allowed in the future, if dynamic build args
 		//       are expanded ahead of time?
 		allowParallel := true
@@ -804,6 +816,34 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		i.withDockerRan = true
 	}
 	return nil
+}
+
+// handleOIDC parse the oidc string value into a struct
+// Returns error if the value cannot be parsed of if the feature flag is not set
+func (i *Interpreter) handleOIDC(ctx context.Context, cmd *spec.Command, opts *commandflag.RunOpts) (*oidcutil.AWSOIDCInfo, error) {
+	if opts.OIDC == defaultZeroStringFlag {
+		// oidc is not in use, set it to empty string just in case
+		opts.OIDC = ""
+		return nil, nil
+	}
+	if !i.converter.opt.Features.RunWithAWSOIDC {
+		return nil, i.errorf(cmd.SourceLocation, "RUN --aws-oidc requires the --run-with-aws-oidc feature flag")
+	}
+	if !opts.WithAWS {
+		return nil, i.errorf(cmd.SourceLocation, "RUN --oidc also requires the --aws RUN flag")
+	}
+	expanded, err := i.expandArgs(ctx, opts.OIDC, false, false)
+	if err != nil {
+		return nil, i.errorf(cmd.SourceLocation, "failed to expand oidc arg in RUN: %s", opts.OIDC)
+	}
+	opts.OIDC = expanded
+	// we currently only support oidc for AWS
+	awsInfo, err := oidcutil.ParseAWSOIDCInfo(opts.OIDC)
+	if err != nil {
+		return nil, i.errorf(cmd.SourceLocation, "invalid value for oidc flag: %v", err)
+	}
+
+	return awsInfo, nil
 }
 
 func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command) error {
@@ -1170,14 +1210,21 @@ func (i *Interpreter) handleSaveImage(ctx context.Context, cmd spec.Command) err
 		return nil
 	}
 
-	labels := map[string]string{
-		"dev.earthly.version":  version.Version,
-		"dev.earthly.git-sha":  version.GitSha,
-		"dev.earthly.built-by": version.BuiltBy,
-	}
-	err = i.converter.Label(ctx, labels)
-	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "failed to create dev.earthly.* labels during SAVE IMAGE")
+	if opts.WithoutEarthlyLabels {
+		if !i.converter.ftrs.AllowWithoutEarthlyLabels {
+			return i.errorf(cmd.SourceLocation, "the SAVE IMAGE --without-earthly-labels flag must be enabled with the VERSION --allow-without-earthly-labels feature flag.")
+		}
+		// deliberately don't add any labels (i.e. do nothing here)
+	} else {
+		labels := map[string]string{
+			"dev.earthly.version":  version.Version,
+			"dev.earthly.git-sha":  version.GitSha,
+			"dev.earthly.built-by": version.BuiltBy,
+		}
+		err = i.converter.Label(ctx, labels)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to create dev.earthly.* labels during SAVE IMAGE")
+		}
 	}
 
 	err = i.converter.SaveImage(ctx, imageNames, opts.Push, opts.Insecure, opts.CacheHint, opts.CacheFrom, opts.NoManifestList)
@@ -1806,6 +1853,12 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 			PassArgs:        opts.PassArgs,
 		})
 	}
+	if opts.CacheID != "" {
+		if !i.converter.ftrs.PassArgs {
+			return i.errorf(cmd.SourceLocation, "the WITH DOCKER --cache-id flag must be enabled with the VERSION --docker-cache feature flag.")
+		}
+		i.withDocker.CacheID = opts.CacheID
+	}
 	return nil
 }
 
@@ -2105,7 +2158,7 @@ To start using the FUNCTION keyword now (experimental) please use VERSION --use-
 		return i.errorf(uc.Recipe[0].SourceLocation, "%s takes no arguments", cmdName)
 	}
 	scopeName := fmt.Sprintf(
-		"%s (%s line %d:%d)",
+		"%s (%s:%d:%d)",
 		command.StringCanonical(), do.SourceLocation.File, do.SourceLocation.StartLine, do.SourceLocation.StartColumn)
 	err := i.converter.EnterScopeDo(ctx, command, baseTarget(relCommand), allowPrivileged, passArgs, scopeName, buildArgs)
 	if err != nil {
