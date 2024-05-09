@@ -1,0 +1,39 @@
+VERSION 0.8
+PROJECT earthly-technologies/core
+
+FROM --pass-args ..+base
+
+IMPORT .. AS tests
+
+WORKDIR /test
+
+test:
+    BUILD +test-aws
+
+test-aws:
+    BUILD +test-aws-success
+    BUILD +test-aws-failure
+
+test-aws-base:
+    COPY test-aws.sh .
+    COPY aws.earth Earthfile
+    ENV EARTHLY_EXEC_CMD=/test/test-aws.sh
+
+test-aws-success:
+    FROM +test-aws-base
+    # happy path
+    ARG ROLE_ARN="arn:aws:iam::404851345508:role/oidc-ci-test"
+    RUN --no-cache --secret OIDC_USER_TOKEN=test-oidc-user/token \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        --privileged \
+        --entrypoint
+
+test-aws-failure:
+    FROM +test-aws-base
+    # expect failure when arn role does not exist/not set
+    ARG ROLE_ARN="arn:aws:iam::123456789012:role/does-not-exist"
+    RUN --secret OIDC_USER_TOKEN=test-oidc-user/token \
+        --mount=type=tmpfs,target=/tmp/earthly \
+        --privileged \
+        --entrypoint \
+        2>&1 |grep "Help: make sure the role \"arn:aws:iam::123456789012:role/does-not-exist\" has a valid trust policy configured in AWS"

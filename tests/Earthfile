@@ -215,6 +215,7 @@ ga-no-qemu-group11:
 ga-no-qemu-group12:
     BUILD --pass-args ./warn-if-not-logged-in+test
     BUILD --pass-args ./with-docker-validate-labels+all
+    BUILD --pass-args +test-aws-oidc
 
 
 ga-no-qemu-slow:
@@ -254,6 +255,7 @@ tests-that-require-earthly-technologies-account-access:
     BUILD --pass-args ./account+test
     BUILD --pass-args ./registry-command+test
     BUILD --pass-args ./web+test
+    BUILD --pass-args ./oidc+test
 
 # tests that only run on linux amd64
 # Note: this target is used to validate the USERPLATFORM user arg,
@@ -1623,6 +1625,17 @@ test-aws-flag-envs:
    RUN cat earthly.output | acbgrep "AWS_ACCESS_KEY_ID=aws-access-key"
    RUN cat earthly.output | acbgrep "AWS_REGION=us-west-1"
    RUN cat earthly.output | acbgrep "AWS_SECRET_ACCESS_KEY=aws-secret-key"
+
+# test-aws-oidc tests expected errors for misusing of oidc flag
+# for happy path test go to <repo>/tests/oidc
+test-aws-oidc:
+   DO +RUN_EARTHLY --earthfile=aws-flag.earth --target=+oidc --should_fail=true --output_contains="RUN --aws-oidc requires the --run-with-aws-oidc feature flag"
+   # enable flag
+   RUN sed -i "1s/VERSION \(.*\)/VERSION --run-with-aws-oidc \1/" Earthfile
+   # empty oidc flag
+   DO +RUN_EARTHLY --target=+oidc --should_fail=true --output_contains="role-arn must be specified"
+   # invalid oidc flag
+   DO +RUN_EARTHLY --target=+oidc --extra_args="--build-arg OIDC=\"foo=bar\"" --should_fail=true --output_contains="invalid value for oidc flag: 1 error(s) decoding"
 
 test-aws-flag-configs:
    RUN mkdir -p /root/.aws
