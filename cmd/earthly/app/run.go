@@ -161,6 +161,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 
 	err := app.BaseCLI.App().RunContext(ctx, args)
 	if err != nil {
+		fmt.Printf("%v got a %v under run.go\n", time.Now(), err)
 		ie, isInterpreterError := earthfile2llb.GetInterpreterError(err)
 		if app.BaseCLI.Flags().Debug {
 			// Get the stack trace from the deepest error that has it and print it.
@@ -183,6 +184,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 
 		grpcErr, grpcErrOK := grpcerrors.AsGRPCStatus(err)
 		hintErr, hintErrOK := getHintErr(err, grpcErr)
+		fmt.Printf("err=%v; grpcErr=%v (%v); hintErr=%v (%v)\n", err, grpcErr, grpcErrOK, hintErr, hintErrOK)
 		var paramsErr *params.Error
 		var autoSkipErr *inputgraph.Error
 		switch {
@@ -431,16 +433,21 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 				app.printCrashLogs(ctx)
 			}
 			return 6
-		case errors.Is(err, context.Canceled), grpcErrOK && grpcErr.Code() == codes.Canceled:
-			app.BaseCLI.Logbus().Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
-			if app.BaseCLI.Flags().Verbose {
-				app.BaseCLI.Console().Warnf("Canceled: %v\n", err)
-			} else {
-				app.BaseCLI.Console().Warnf("Canceled\n")
-			}
+		case errors.Is(err, context.Canceled):
+			fmt.Printf("here err=%v\n", err)
+			panic("we dead")
+		case grpcErrOK && grpcErr.Code() == codes.Canceled:
+			fmt.Printf("here2\n")
+			//app.BaseCLI.Logbus().Run().SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_CANCELED)
+			//if app.BaseCLI.Flags().Verbose {
+			//	app.BaseCLI.Console().Warnf("Canceled: %v\n", err)
+			//} else {
+			//	app.BaseCLI.Console().Warnf("Canceled\n")
+			//}
 			if containerutil.IsLocal(app.BaseCLI.Flags().BuildkitdSettings.BuildkitAddress) && lastSignal.Get() == nil {
 				app.printCrashLogs(ctx)
 			}
+			panic("we dead2")
 			return 2
 		case isInterpreterError:
 			if ie.TargetID == "" {

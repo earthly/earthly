@@ -68,6 +68,7 @@ func (vm *vertexMonitor) Write(dt []byte, ts time.Time, stream int) (int, error)
 
 func (vm *vertexMonitor) parseError() {
 	errString := vm.vertex.Error
+	fmt.Printf("(logbus) got a %s at %v\n", errString, time.Now())
 	indentOp := strings.Join(strings.Split(vm.operation, "\n"), "\n          ")
 	internalStr := ""
 	if vm.meta.Internal {

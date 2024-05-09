@@ -137,6 +137,7 @@ func (sm *SolverMonitor) handleBuildkitStatus(ctx context.Context, status *clien
 			vm.cp.SetStart(*vertex.Started)
 		}
 		if vertex.Error != "" {
+			fmt.Printf("%v got a vertex error %v\n", time.Now(), vertex.Error)
 			vm.parseError()
 		}
 		if vertex.Completed != nil {

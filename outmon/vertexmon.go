@@ -189,6 +189,7 @@ var reErrNotFound = regexp.MustCompile(`^failed to calculate checksum of ref ([^
 func (vm *vertexMonitor) printError() bool {
 	isFatal := false
 	errString := vm.vertex.Error
+	fmt.Printf("(outmon) got a %s at %v\n", errString, time.Now())
 	indentOp := strings.Join(strings.Split(vm.operation, "\n"), "\n          ")
 	internalStr := ""
 	if vm.meta.Internal {

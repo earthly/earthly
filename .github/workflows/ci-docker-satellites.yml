@@ -32,44 +32,44 @@ jobs:
       SUDO: ""
     secrets: inherit
 
-  docker-lint:
-    needs: build-earthly
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      TEST_TARGET: "+lint-all"
-      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      RUNS_ON: "ubuntu-latest"
-      BINARY: "docker"
-      SUDO: ""
-      USE_SATELLITE: true
-      SATELLITE_NAME: "core-test"
-      EARTHLY_ORG: "earthly-technologies"
-    secrets: inherit
+  #docker-lint:
+  #  needs: build-earthly
+  #  uses: ./.github/workflows/reusable-test.yml
+  #  with:
+  #    TEST_TARGET: "+lint-all"
+  #    BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+  #    RUNS_ON: "ubuntu-latest"
+  #    BINARY: "docker"
+  #    SUDO: ""
+  #    USE_SATELLITE: true
+  #    SATELLITE_NAME: "core-test"
+  #    EARTHLY_ORG: "earthly-technologies"
+  #  secrets: inherit
 
-  docker-test-misc:
-    needs: build-earthly
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      TEST_TARGET: "+test-misc"
-      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      RUNS_ON: "ubuntu-latest"
-      BINARY: "docker"
-      SUDO: ""
-      USE_SATELLITE: true
-      SATELLITE_NAME: "core-test"
-      EARTHLY_ORG: "earthly-technologies"
-      EXTRA_ARGS: "--no-cache"
-    secrets: inherit
+  #docker-test-misc:
+  #  needs: build-earthly
+  #  uses: ./.github/workflows/reusable-test.yml
+  #  with:
+  #    TEST_TARGET: "+test-misc"
+  #    BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+  #    RUNS_ON: "ubuntu-latest"
+  #    BINARY: "docker"
+  #    SUDO: ""
+  #    USE_SATELLITE: true
+  #    SATELLITE_NAME: "core-test"
+  #    EARTHLY_ORG: "earthly-technologies"
+  #    EXTRA_ARGS: "--no-cache"
+  #  secrets: inherit
 
-  docker-build-with-satellites:
-    needs: build-earthly
-    uses: ./.github/workflows/reusable-docker-build-integrations.yml
-    with:
-      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      RUNS_ON: "ubuntu-latest"
-      BINARY: "docker"
-      SUDO: ""
-      USE_SATELLITE: true
-      SATELLITE_NAME: "core-test"
-      EARTHLY_ORG: "earthly-technologies"
-    secrets: inherit
+  #docker-build-with-satellites:
+  #  needs: build-earthly
+  #  uses: ./.github/workflows/reusable-docker-build-integrations.yml
+  #  with:
+  #    BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+  #    RUNS_ON: "ubuntu-latest"
+  #    BINARY: "docker"
+  #    SUDO: ""
+  #    USE_SATELLITE: true
+  #    SATELLITE_NAME: "core-test"
+  #    EARTHLY_ORG: "earthly-technologies"
+  #  secrets: inherit

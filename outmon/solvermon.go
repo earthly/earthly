@@ -145,6 +145,7 @@ func (sm *SolverMonitor) processStatus(ss *client.SolveStatus) error {
 			sm.noOutputTicker.Reset(sm.noOutputTick)
 		}
 		if vertex.Error != "" {
+			fmt.Printf("%v got a vertex error %v\n", time.Now(), vertex.Error)
 			if strings.Contains(vertex.Error, "context canceled") {
 				if !vm.meta.Internal {
 					vm.console.Printf("WARN: Canceled\n")
