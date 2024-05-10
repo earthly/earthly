@@ -55,6 +55,7 @@ type WithDockerOpt struct {
 	ComposeServices       []string
 	TryCatchSaveArtifacts []debuggercommon.SaveFilesSettings
 	extraRunOpts          []llb.RunOption
+	CacheID               string
 }
 
 type withDockerRunBase struct {
@@ -182,9 +183,11 @@ func (w *withDockerRunBase) getComposeConfig(ctx context.Context, opt WithDocker
 }
 
 func makeWithDockerdWrapFun(dindID string, tarPaths []string, imgsWithDigests []string, opt WithDockerOpt) shellWrapFun {
+	cacheDataRoot := strings.HasPrefix(dindID, "cache_")
 	dockerRoot := path.Join("/var/earthly/dind", dindID)
 	params := []string{
 		fmt.Sprintf("EARTHLY_DOCKERD_DATA_ROOT=\"%s\"", dockerRoot),
+		fmt.Sprintf("EARTHLY_DOCKERD_CACHE_DATA=\"%v\"", cacheDataRoot),
 		fmt.Sprintf("EARTHLY_DOCKER_LOAD_FILES=\"%s\"", strings.Join(tarPaths, " ")),
 		// This is not actually used, but it is needed in order to bust the cache
 		// in case an image is updated.

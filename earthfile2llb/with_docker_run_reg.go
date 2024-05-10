@@ -205,9 +205,15 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 		dockerdWrapperPath, pllb.Scratch(), llb.HostBind(), llb.SourcePath(dockerdWrapperPath)))
 	crOpts.extraRunOpts = append(crOpts.extraRunOpts, opt.extraRunOpts...)
 
-	dindID, err := w.c.mts.Final.TargetInput().Hash()
-	if err != nil {
-		return errors.Wrap(err, "make dind ID")
+	var dindID string
+	if opt.CacheID == "" {
+		dindID, err = w.c.mts.Final.TargetInput().Hash()
+		if err != nil {
+			return errors.Wrap(err, "make dind ID")
+		}
+	} else {
+		// Note that the "cache_" prefix here is used to prevent auto-cleanup
+		dindID = "cache_" + opt.CacheID
 	}
 	// We will pass along the variable EARTHLY_DOCKER_LOAD_REGISTRY via a secret
 	// to prevent busting the cache, as the intermediate image names are

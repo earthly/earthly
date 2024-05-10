@@ -6,6 +6,7 @@ Earthly Cloud is a collection of features that enrich the Earthly experience via
 * [Earthly Cloud Secrets](./cloud-secrets.md): A secret management system that allows you to store secrets in a cloud-based service and use them across builds.
 * [Auto-skip](../caching/caching-in-earthfiles.md#auto-skip): A feature that allows you to skip large parts of a build in certain situations.
 * **Log sharing**: The ability to share build logs with coworkers.
+* [OIDC Authentication](./oidc.md): The ability to authenticate to 3rd-party cloud services without storing long-term credentials.
 
 ## Sign up for Earthly Cloud for free!
 

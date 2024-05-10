@@ -18,9 +18,9 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.5.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/earthly/cloud-api v1.0.1-0.20240419182846-287b8dd9616f
+	github.com/earthly/cloud-api v1.0.1-0.20240508215807-a958f373126f
 	github.com/earthly/earthly/ast v0.0.0-00010101000000-000000000000
-	github.com/earthly/earthly/util/deltautil v0.0.0-20231221211955-0fd4ae2cc257
+	github.com/earthly/earthly/util/deltautil v0.0.0-20240507235053-335389ed3e2a
 	github.com/elastic/go-sysinfo v1.9.0
 	github.com/fatih/color v1.16.0
 	github.com/gofrs/flock v0.8.1
@@ -37,6 +37,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mitchellh/hashstructure/v2 v2.0.2
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/moby/buildkit v0.8.2-0.20210129065303-6b9ea0c202cf
 	github.com/moby/patternmatcher v0.6.0
 	github.com/opencontainers/go-digest v1.0.0
@@ -131,7 +132,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.14.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
 	golang.org/x/mod v0.16.0 // indirect
-	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.19.0 // indirect

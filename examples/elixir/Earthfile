@@ -1,7 +1,7 @@
 VERSION 0.8
 
 deps:
-    FROM elixir:1.10-alpine
+    FROM elixir:1.16-alpine
     COPY mix.exs .
     COPY mix.lock .
     RUN mix local.rebar --force \

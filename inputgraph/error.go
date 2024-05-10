@@ -33,7 +33,7 @@ func (e *Error) Error() string {
 func FormatError(err error) string {
 	e := &Error{}
 	if errors.As(err, &e) {
-		return fmt.Sprintf("%s line %d:%d: %s", e.srcLoc.File, e.srcLoc.StartLine, e.srcLoc.StartColumn, err)
+		return fmt.Sprintf("%s:%d:%d %s", e.srcLoc.File, e.srcLoc.StartLine, e.srcLoc.StartColumn, err)
 	}
 	return e.Error()
 }

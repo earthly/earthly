@@ -1,6 +1,12 @@
 VERSION --run-with-aws 0.8
 
+PROJECT earthly-technologies/core
+
 FROM alpine
 
 basic:
     RUN --aws env | grep AWS
+
+oidc:
+    ARG OIDC=""
+    RUN --aws --oidc=$OIDC echo this should not succeed
