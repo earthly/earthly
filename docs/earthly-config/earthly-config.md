@@ -57,7 +57,7 @@ earthly config global.cache_size_mb 20000
 ### cache_size_mb
 
 Specifies the total size of the BuildKit cache, in MB. The BuildKit daemon uses this setting to configure automatic garbage collection of old cache.
-Setting this to 0, either explicitly or by omission, will cause buildkit to use its internal default of 10% of the root filesystem.
+Setting this to 0, either explicitly or by omission, will cause BuildKit to use its internal default of 10% of the root filesystem.
 
 ### cache_size_pct
 
@@ -126,7 +126,7 @@ The number of concurrent converters for speeding up build targets that use block
 
 ### buildkit_max_parallelism
 
-The maximum parallelism configured for the buildkit daemon workers. The default is 20.
+The maximum parallelism configured for the BuildKit daemon workers. The default is 20.
 
 {% hint style='info' %}
 ##### Note
@@ -138,7 +138,7 @@ Set this configuration to a lower value if your machine is resource constrained 
 ### buildkit_additional_args
 
 This option allows you to pass additional options to Docker when starting up the Earthly BuildKit daemon. 
-Note that changes to these values will trigger earthly to restart buildkit on the next run.
+Note that changes to these values will trigger earthly to restart BuildKit on the next run.
 
 #### Bypass User Namespacing
 
@@ -151,7 +151,7 @@ global:
 
 #### Session Timeout
 
-By default, Buildkit will automatically cancel sessions (i.e. individual builds) after 24 hours.
+By default, BuildKit will automatically cancel sessions (i.e. individual builds) after 24 hours.
 This value can be overriden using the following option:
 
 ```yaml
@@ -165,12 +165,12 @@ This can be useful in cases where long-lived interactive sessions are used.
 ### buildkit_additional_config
 
 This option allows you to pass additional options to BuildKit.
-Note that changes to these values will trigger earthly to restart buildkit on the next run.
+Note that changes to these values will trigger earthly to restart BuildKit on the next run.
 
 
 #### Additional CA Certificates
 
-Additional CA certificates can be passed in to buildkit. This also requires a corresponding change in `buildkit_additional_args`.
+Additional CA certificates can be passed in to BuildKit. This also requires a corresponding change in `buildkit_additional_args`.
 
 ```yaml
 global:
