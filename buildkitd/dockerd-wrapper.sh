@@ -51,7 +51,9 @@ execute() {
     fi
     mkdir -p "$EARTHLY_DOCKERD_DATA_ROOT"
 
-    if [ -f "/sys/fs/cgroup/cgroup.controllers" ]; then
+    EARTHLY_FLOCK_AQUIRED=${EARTHLY_FLOCK_AQUIRED:-''}
+
+    if [ -f "/sys/fs/cgroup/cgroup.controllers" ] && [ -z "$EARTHLY_FLOCK_AQUIRED" ]; then
         if [ "$EARTHLY_DOCKER_WRAPPER_DEBUG" = "1" ]; then
             echo >&2 "detected cgroups v2"
         fi
@@ -73,6 +75,15 @@ execute() {
         if [ "$root_cgroup_type" != "domain" ]; then
             echo >&2 "WARNING: expected cgroup type of \"domain\", but got \"$root_cgroup_type\" instead"
         fi
+    fi
+
+    if [ "$EARTHLY_DOCKERD_CACHE_DATA" = "true" ] && [ -z "$EARTHLY_FLOCK_AQUIRED" ]; then
+        FLOCK_PATH="$EARTHLY_DOCKERD_DATA_ROOT/.earthly-docker-lock"
+        echo "aquiring flock for $FLOCK_PATH"
+        export EARTHLY_FLOCK_AQUIRED="true"
+        # dockerd-wrapper.sh will be recursively called once the lock is aquired
+        flock "$FLOCK_PATH" "$0" "$@"
+        exit 0
     fi
 
     # Sometimes, when dockerd starts containerd, it doesn't come up in time. This timeout is not configurable from
