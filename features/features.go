@@ -22,6 +22,7 @@ type Features struct {
 	// Never enabled by default
 	NoUseRegistryForWithDocker bool `long:"no-use-registry-for-with-docker" description:"disable use-registry-for-with-docker"` // escape hatch for disabling WITH DOCKER registry, e.g. used by eine-based tests
 	EarthlyCIRunnerArg         bool `long:"earthly-ci-runner-arg" description:"includes EARTHLY_CI_RUNNER ARG"`                 // earthly CI was discontinued, no reason to enable this by default
+
 	// VERSION 0.5
 	ExecAfterParallel        bool `long:"exec-after-parallel" enabled_in_version:"0.5" description:"force execution after parallel conversion"`
 	ParallelLoad             bool `long:"parallel-load" enabled_in_version:"0.5" description:"perform parallel loading of images into WITH DOCKER"`
@@ -65,6 +66,7 @@ type Features struct {
 	GitRefs                         bool `long:"git-refs" enabled_in_version:"0.8" description:"includes EARTHLY_GIT_REFS ARG"`
 	UseVisitedUpfrontHashCollection bool `long:"use-visited-upfront-hash-collection" enabled_in_version:"0.8" description:"Uses a new target visitor implementation that computes upfront the hash of the visited targets and adds support for running all targets with the same name but different args in parallel"`
 	UseFunctionKeyword              bool `long:"use-function-keyword" enabled_in_version:"0.8" description:"Use the FUNCTION key word instead of COMMAND"`
+
 	// unreleased
 	TryFinally                    bool `long:"try" description:"allow the use of the TRY/FINALLY commands"`
 	WildcardBuilds                bool `long:"wildcard-builds" description:"allow for the expansion of wildcard (glob) paths for BUILD commands"`
@@ -74,7 +76,11 @@ type Features struct {
 	WildcardCopy                  bool `long:"wildcard-copy" description:"allow for the expansion of wildcard (glob) paths for COPY commands"`
 	RawOutput                     bool `long:"raw-output" description:"allow for --raw-output on RUN commands"`
 	GitAuthorEmailNameArgs        bool `long:"git-author-email-name-args" description:"includes EARTHLY_GIT_AUTHOR_EMAIL and EARTHLY_GIT_AUTHOR_NAME builtin ARGs"`
+	AllowWithoutEarthlyLabels     bool `long:"allow-without-earthly-labels" description:"Allow the usage of --without-earthly-labels in SAVE IMAGE"`
+	DockerCache                   bool `long:"docker-cache" description:"enable the WITH DOCKER --cache-id option"`
+	RunWithAWSOIDC                bool `long:"run-with-aws-oidc" description:"make AWS credentials via OIDC provider available to RUN commands"`
 
+	// version numbers
 	Major int
 	Minor int
 }

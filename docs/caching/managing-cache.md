@@ -55,7 +55,7 @@ earthly prune --reset
 
 If you are using [Earthly Satellites](../cloud/satellites.md), you can simply launch a bigger satellite via the `--size` flag: `earthly sat launch --size ...`.
 
-If you are using a self-hosted remote runner, you can configure the cache policy by passing the appropriate [buildkit configuration](https://github.com/moby/buildkit/blob/master/docs/buildkitd.toml.md) to the [buildkit container](../ci-integration/remote-buildkit.md).
+If you are using a self-hosted remote runner, you can configure the cache policy by passing the appropriate [buildkit configuration](https://github.com/moby/buildkit/blob/master/docs/buildkitd.toml.md) to the [BuildKit container](../ci-integration/remote-buildkit.md).
 
 ### Resetting the cache on a remote runner
 

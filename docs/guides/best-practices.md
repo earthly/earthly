@@ -553,7 +553,7 @@ The `--load` instruction will inform Earthly that the two targets depend on each
 
 When referencing an external image in the body of a `WITH DOCKER` block, it is important to declare it via `WITH DOCKER --pull`, for a few reasons:
 
-* The image will be cached as part of buildkit, allowing for faster builds. This is especially important as `WITH DOCKER` wipes the state of the Docker daemon (including its cache) after every run.
+* The image will be cached as part of BuildKit, allowing for faster builds. This is especially important as `WITH DOCKER` wipes the state of the Docker daemon (including its cache) after every run.
 * The Daemon within `WITH DOCKER` is not logged into registries. Your local Docker login config is not propagated to the daemon. This means that you may run into issues when trying to pull images from private registries, but also, DockerHub rate limiting may prevent you from pulling images consistently from public repositories.
 
 ```Dockerfile
@@ -926,7 +926,7 @@ https://github.com/earthly/earthly/blob/main/Earthfile was changed to https://ti
 
 * [`ast/parser`](https://github.com/earthly/earthly/tree/main/ast/parser) - Earthfile contains the logic for generating Go source code based on an ANTLR grammar.
 * [`ast/parser/tests`](https://github.com/earthly/earthly/tree/main/ast/tests) - Earthfile contains logic for running AST-specific tests.
-* [`buildkitd`](https://github.com/earthly/earthly/tree/main/buildkitd) - Earthfile contains the logic for building the Earthly buildkit image.
+* [`buildkitd`](https://github.com/earthly/earthly/tree/main/buildkitd) - Earthfile contains the logic for building the Earthly BuildKit image.
 * [`tests`](https://github.com/earthly/earthly/tree/main/tests) - Earthfile contains logic for executing e2e tests.
 * [`release/**/`](https://github.com/earthly/earthly/tree/main/release) - Multiple Earthfiles contain logic used for the release of Earthly.
 * [The main Earthfile](https://tinyurl.com/yt3d3cx6) - ties everything together, referencing the various targets across the sub-directories.

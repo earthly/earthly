@@ -188,12 +188,12 @@ The following environment variables can also be set to tweak the performance of 
 * `CACHE_KEEP_DURATION` - How long idle cache will be retained on disk before being pruned (in seconds).
 * `RUNNER_DISABLE_TLS` - Disable TLS on the satellite. Requires Earthly CLI to also disable TLS. Not recommended in most cases.
 * `LOG_LEVEL` - The log level of the internal "runner" process within the satellite. Set to INFO by default.
-* `BUILDKIT_DEBUG` - Enable buildkit debug-level logs. False by default.
-* `EARTHLY_ADDITIONAL_BUILDKIT_CONFIG` - allows additional buildkit configs to be injected in TOML format.
+* `BUILDKIT_DEBUG` - Enable BuildKit debug-level logs. False by default.
+* `EARTHLY_ADDITIONAL_BUILDKIT_CONFIG` - allows additional BuildKit configs to be injected in TOML format.
 
 ## Running on Localhost
 
-For testing purposes, you may want to try your self-hosted satellite on localhost. Satellites currently do not support using `localhost` or `127.0.0.1` as an address when supplied to `SATELLITE_HOST`, in part because Earthly CLI has reserved this address for use as its own local Buildkit container.
+For testing purposes, you may want to try your self-hosted satellite on localhost. Satellites currently do not support using `localhost` or `127.0.0.1` as an address when supplied to `SATELLITE_HOST`, in part because Earthly CLI has reserved this address for use as its own local BuildKit container.
 
 It’s still possible to test self-hosted satellites locally, however, by using an alternate entry in your `/etc/hosts` file that maps to `localhost`. For example, you can try adding this entry:
 
@@ -223,7 +223,7 @@ If you are having problems using or deploying your self-hosted satellite, please
 
 ### Problem: The satellite log says that it is running on port 9372
 
-**Resolution:** The log message `"running server on [::]:9372"` can be misleading, however, the exposed port on the container is still 8372. Multiple processes are running inside the satellite container, including an earthly/buildkit process. This log message comes from the buildkit process, however, a separate process on port 8372 handles the incoming gRPC requests to the container.
+**Resolution:** The log message `"running server on [::]:9372"` can be misleading, however, the exposed port on the container is still 8372. Multiple processes are running inside the satellite container, including an Earthly/BuildKit process. This log message comes from the BuildKit process, however, a separate process on port 8372 handles the incoming gRPC requests to the container.
 
 ### Problem: Satellite shows an `operational` state even though it is no longer running
 

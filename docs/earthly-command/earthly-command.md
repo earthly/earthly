@@ -150,7 +150,7 @@ Overrides the earthly [configuration file](../earthly-config/earthly-config.md),
 
 Also available as an env var setting: `EARTHLY_INSTALLATION_NAME=<name>`.
 
-Overrides the Earthly installation name. The installation name is used for the Buildkit Daemon name, the cache volume name, the configuration directory (`~/.<installation-name>`) and for the ports used by Buildkit. Using multiple installation names on the same system allows Earthly to run as multiple isolated instances, each with its own configuration, cache and daemon. Defaults to `earthly`.
+Overrides the Earthly installation name. The installation name is used for the BuildKit Daemon name, the cache volume name, the configuration directory (`~/.<installation-name>`) and for the ports used by BuildKit. Using multiple installation names on the same system allows Earthly to run as multiple isolated instances, each with its own configuration, cache and daemon. Defaults to `earthly`.
 
 ##### `--ssh-auth-sock <path-to-sock>`
 

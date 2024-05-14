@@ -2,7 +2,7 @@
 
 {% hint style='info' %}
 ##### Note
-This guide is related to self-hosting a remote Buildkit, however, Self-Hosted Satellites **beta** are now available. Self-Hosted Satellites provide more features, have better security, and are easier to deploy than remote Buildkit. Check out the [Self-Hosted Satellites Guide](../../cloud/satellites/self-hosted.md) for more details and instructions to deploy in Kubernetes or AWS EC2.
+This guide is related to self-hosting a remote BuildKit, however, Self-Hosted Satellites **beta** are now available. Self-Hosted Satellites provide more features, have better security, and are easier to deploy than remote BuildKit. Check out the [Self-Hosted Satellites Guide](../../cloud/satellites/self-hosted.md) for more details and instructions to deploy in Kubernetes or AWS EC2.
 {% endhint %}
 
 
@@ -84,7 +84,7 @@ There are some caveats that come with this kind of a setup, though:
 To mitigate some of the issues, it is recommended to run in a "sticky" mode to keep builds pinned to a single instance for the duration. You can see how to do this in our example:
 
 ```yaml
-# Use session affinity to prevent "roaming" across multiple buildkit instances; if needed.
+# Use session affinity to prevent "roaming" across multiple BuildKit instances; if needed.
 sessionAffinity: ClientIP
 sessionAffinityConfig:
   clientIP:

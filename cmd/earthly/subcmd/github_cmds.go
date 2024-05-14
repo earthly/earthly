@@ -39,7 +39,7 @@ func (a *Github) Cmds() []*cli.Command {
 					Description: `This command sets the configuration to create a new Github-Earthly integration, to trigger satellite builds from GHA (GitHub Actions).
 From the Github side, integration can be done at two levels: organization-wide and per repository. 
 The provided token must have enough permissions to register webhooks and to create Github self hosted runners in those two scenarios.`,
-					UsageText: "earthly github add --org <org> [--repo <repo>] --token <token>",
+					UsageText: "earthly github add --org <earthly_org> --gh-org <github_org> [--gh-repo <github_repo>] --gh-token <github_token>",
 					Action:    a.actionAdd,
 					Flags: []cli.Flag{
 						&cli.StringFlag{
@@ -92,7 +92,7 @@ func (a *Github) actionAdd(cliCtx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	err = cloudClient.SetGithubToken(cliCtx.Context, a.cli.OrgName(), a.GHOrg, a.GHRepo, a.GHToken)
+	err = cloudClient.SetGithubToken(cliCtx.Context, a.Org, a.GHOrg, a.GHRepo, a.GHToken)
 	if err != nil {
 		return fmt.Errorf("error found running github add: %w", err)
 	}

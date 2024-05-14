@@ -10,6 +10,9 @@ fi
 # This host is used to pull images from the embedded BuildKit Docker registry.
 buildkit_docker_registry='172.30.0.1:8371'
 
+# used to prefix images that are persisted to the WITH DOCKER cache
+earthly_cached_docker_image_prefix="earthly_cached_"
+
 detect_docker_compose_cmd() {
     if command -v docker-compose >/dev/null; then
         echo "docker-compose"
@@ -48,7 +51,9 @@ execute() {
     fi
     mkdir -p "$EARTHLY_DOCKERD_DATA_ROOT"
 
-    if [ -f "/sys/fs/cgroup/cgroup.controllers" ]; then
+    EARTHLY_FLOCK_AQUIRED=${EARTHLY_FLOCK_AQUIRED:-''}
+
+    if [ -f "/sys/fs/cgroup/cgroup.controllers" ] && [ -z "$EARTHLY_FLOCK_AQUIRED" ]; then
         if [ "$EARTHLY_DOCKER_WRAPPER_DEBUG" = "1" ]; then
             echo >&2 "detected cgroups v2"
         fi
@@ -57,9 +62,9 @@ execute() {
         mkdir /sys/fs/cgroup/dockerd-wrapper
         echo $$ > /sys/fs/cgroup/dockerd-wrapper/cgroup.procs
 
-       # earthly wraps dockerd-wrapper.sh with a call via /bin/sh -c '....'
-       # so we also need to move the parent pid into this new group, which is weird
-       # TODO: we should unwrap this so $$ is all we need to move
+        # earthly wraps dockerd-wrapper.sh with a call via /bin/sh -c '....'
+        # so we also need to move the parent pid into this new group, which is weird
+        # TODO: we should unwrap this so $$ is all we need to move
         echo 1 > /sys/fs/cgroup/dockerd-wrapper/cgroup.procs
 
         if [ "$(wc -l < /sys/fs/cgroup/cgroup.procs)" != "0" ]; then
@@ -70,6 +75,15 @@ execute() {
         if [ "$root_cgroup_type" != "domain" ]; then
             echo >&2 "WARNING: expected cgroup type of \"domain\", but got \"$root_cgroup_type\" instead"
         fi
+    fi
+
+    if [ "$EARTHLY_DOCKERD_CACHE_DATA" = "true" ] && [ -z "$EARTHLY_FLOCK_AQUIRED" ]; then
+        FLOCK_PATH="$EARTHLY_DOCKERD_DATA_ROOT/.earthly-docker-lock"
+        echo "aquiring flock for $FLOCK_PATH"
+        export EARTHLY_FLOCK_AQUIRED="true"
+        # dockerd-wrapper.sh will be recursively called once the lock is aquired
+        flock "$FLOCK_PATH" "$0" "$@"
+        exit 0
     fi
 
     # Sometimes, when dockerd starts containerd, it doesn't come up in time. This timeout is not configurable from
@@ -95,8 +109,23 @@ execute() {
         fi
     done
 
+    if [ "$EARTHLY_DOCKERD_CACHE_DATA" = "true" ]; then
+        # rename existing tags, so we can track which ones get re-tagged
+        for img in $(docker images -q); do
+            docker tag "$img" "${earthly_cached_docker_image_prefix}${img}"
+        done
+        docker images -a --format '{{.Repository}}:{{.Tag}}' | grep -v "^$earthly_cached_docker_image_prefix" | xargs --no-run-if-empty docker rmi
+    fi
+
     load_file_images
     load_registry_images
+
+    # delete cached images (which weren't re-tagged via the pull)
+    if [ "$EARTHLY_DOCKERD_CACHE_DATA" = "true" ]; then
+        docker images -f reference=$earthly_cached_docker_image_prefix'*' --format '{{.Repository}}:{{.Tag}}' | xargs --no-run-if-empty docker rmi
+        docker images -f "dangling=true" -q | xargs --no-run-if-empty docker rmi
+    fi
+
     if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
         # shellcheck disable=SC2086
         docker_compose_cmd up -d $EARTHLY_COMPOSE_SERVICES
@@ -117,7 +146,11 @@ execute() {
 }
 
 start_dockerd() {
-    data_root=$(TMPDIR="$EARTHLY_DOCKERD_DATA_ROOT/" mktemp -d)
+    if [ "$EARTHLY_DOCKERD_CACHE_DATA" = "true" ]; then
+        data_root="$EARTHLY_DOCKERD_DATA_ROOT"
+    else
+        data_root=$(TMPDIR="$EARTHLY_DOCKERD_DATA_ROOT/" mktemp -d)
+    fi
     echo "Starting dockerd with data root $data_root"
 
     if uname -a | grep microsoft-standard-WSL >/dev/null; then
@@ -230,6 +263,9 @@ stop_dockerd() {
 }
 
 wipe_data_root() {
+    if [ "$EARTHLY_DOCKERD_CACHE_DATA" = "true" ]; then
+        return 0
+    fi
     if ! rm -rf "$1" 2>/dev/null >&2 && [ -n "$(ls -A "$1")" ]; then
         # We have some issues about failing to delete files.
         # If we fail, list the processes keeping it open for results.
@@ -262,12 +298,29 @@ load_file_images() {
     fi
 }
 
+get_current_time_ns() {
+    # Note: busybox does not support date +%s%N; instead we use stat to fetch nanosecond
+    f="$(mktemp)"
+    current_time="$(stat -t "$f" | awk '{print $13}')"
+    current_time_ns="$(stat "$f" | grep Modify | awk '{print $3}' | awk -F . '{print $2}' | grep -o '[1-9].*')"
+    rm "$f"
+
+    # Note that the current_time_ns must not start with a 0 (which is why there is a grep [1-9]); however
+    # there's an edge case where current_time_ns="00000000", which would turn into "", so we need to set it back to "0"
+    if [ "$current_time_ns" = "" ]; then current_time_ns=0; fi
+
+    test -n "$current_time" || (echo "current_time is empty" && exit 1)
+    test -n "$current_time_ns" || (echo "current_time_ns is empty" && exit 1)
+    current_time_combined="$((current_time*1000000000+current_time_ns))"
+    echo "$current_time_combined"
+}
+
 load_registry_images() {
     EARTHLY_DOCKER_LOAD_REGISTRY=${EARTHLY_DOCKER_LOAD_REGISTRY:-''}
     if [ -n "$EARTHLY_DOCKER_LOAD_REGISTRY" ]; then
         echo "Loading images from BuildKit via embedded registry..."
 
-        start_time=$(date +%s%N | cut -b1-13)
+        start_time="$(get_current_time_ns)"
         bg_processes=""  # Initialize the background processes variable
 
         for img in $EARTHLY_DOCKER_LOAD_REGISTRY; do
@@ -299,10 +352,10 @@ load_registry_images() {
                 exit 1
             }
         done
-        end_time=$(date +%s%N | cut -b1-13)
-
-        elapsed=$((end_time-start_time))
-        echo "Loading images done in ${elapsed} ms"
+        end_time="$(get_current_time_ns)"
+        elapsed_ns="$((end_time - start_time))"
+        elapsed_ms="$((elapsed_ns/1000000))"
+        echo "Loading images done in ${elapsed_ms} ms"
     fi
 }
 

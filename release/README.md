@@ -109,13 +109,13 @@ We currently have syntax highlighting for the following:
 1. [emacs](https://github.com/earthly/earthly-emacs)
 
 
-#### VSCode + Github
+#### VSCode + GitHub
 
 Release instructions can be found in the [project repo](https://github.com/earthly/earthfile-grammar#how-to-release).
 
 #### Intellij
 
-Intellij pulls its syntax highlighting from the [same repo used by VSCODE + Github](https://github.com/earthly/earthfile-grammar) and so should be released after to keep up to date.
+Intellij pulls its syntax highlighting from the [same repo used by VSCODE + GitHub](https://github.com/earthly/earthfile-grammar) and so should be released after to keep up to date.
 
 1. Go to the [repo](https://github.com/earthly/earthfile-grammar)
 1. Make relevant changes to the branches + test in this order:

@@ -180,7 +180,7 @@ global:
 
 The next time earthly is run, it will detect the configuration change and will restart the `earthly-buildkitd` container to reflect these settings.
 
-You can force these settings to be applied, and verify the mirror appears in the buildkit config by running:
+You can force these settings to be applied, and verify the mirror appears in the BuildKit config by running:
 
 ```bash
 earthly bootstrap && docker exec earthly-buildkitd cat /etc/buildkitd.toml

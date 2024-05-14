@@ -30,7 +30,7 @@ trap cleanup EXIT
 
 function run_test_cmd() {
   cmd=$1
-  if  eval NO_COLOR=0 "$cmd" > output 2>&1; then
+  if  eval GITHUB_ACTIONS="" NO_COLOR=0 "$cmd" > output 2>&1; then
       echo "earthly docker-build should have failed"
       exit 1
   fi

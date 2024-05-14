@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -62,11 +63,12 @@ type ConsoleLogger struct {
 	isLocal bool
 	// salt is a salt used for color consistency
 	// (the same salt will get the same color).
-	salt      string
-	colorMode ColorMode
-	isCached  bool
-	isFailed  bool
-	logLevel  LogLevel
+	salt              string
+	colorMode         ColorMode
+	isCached          bool
+	isFailed          bool
+	githubAnnotations bool
+	logLevel          LogLevel
 
 	// The following are shared between instances and are protected by the mutex.
 	mu             *sync.Mutex
@@ -81,45 +83,47 @@ type ConsoleLogger struct {
 }
 
 // Current returns the current console.
-func Current(colorMode ColorMode, prefixPadding int, logLevel LogLevel) ConsoleLogger {
-	return New(getCompatibleStderr(), &currentConsoleMutex, colorMode, prefixPadding, logLevel)
+func Current(colorMode ColorMode, prefixPadding int, logLevel LogLevel, githubAnnotations bool) ConsoleLogger {
+	return New(getCompatibleStderr(), &currentConsoleMutex, colorMode, prefixPadding, logLevel, githubAnnotations)
 }
 
 // New returns a new ConsoleLogger with a predefined target writer.
-func New(w io.Writer, mu *sync.Mutex, colorMode ColorMode, prefixPadding int, logLevel LogLevel) ConsoleLogger {
+func New(w io.Writer, mu *sync.Mutex, colorMode ColorMode, prefixPadding int, logLevel LogLevel, githubAnnotations bool) ConsoleLogger {
 	if mu == nil {
 		mu = &sync.Mutex{}
 	}
 	return ConsoleLogger{
-		consoleErrW:    w,
-		errW:           w,
-		colorMode:      colorMode,
-		saltColors:     make(map[string]*color.Color),
-		nextColorIndex: new(int),
-		prefixPadding:  prefixPadding,
-		mu:             mu,
-		logLevel:       logLevel,
+		consoleErrW:       w,
+		errW:              w,
+		colorMode:         colorMode,
+		saltColors:        make(map[string]*color.Color),
+		nextColorIndex:    new(int),
+		prefixPadding:     prefixPadding,
+		mu:                mu,
+		logLevel:          logLevel,
+		githubAnnotations: githubAnnotations,
 	}
 }
 
 func (cl ConsoleLogger) clone() ConsoleLogger {
 	return ConsoleLogger{
-		consoleErrW:    cl.consoleErrW,
-		errW:           cl.errW,
-		prefixWriter:   cl.prefixWriter,
-		prefix:         cl.prefix,
-		metadataMode:   cl.metadataMode,
-		isLocal:        cl.isLocal,
-		logLevel:       cl.logLevel,
-		salt:           cl.salt,
-		isCached:       cl.isCached,
-		isFailed:       cl.isFailed,
-		saltColors:     cl.saltColors,
-		colorMode:      cl.colorMode,
-		nextColorIndex: cl.nextColorIndex,
-		prefixPadding:  cl.prefixPadding,
-		mu:             cl.mu,
-		bb:             cl.bb,
+		consoleErrW:       cl.consoleErrW,
+		errW:              cl.errW,
+		prefixWriter:      cl.prefixWriter,
+		prefix:            cl.prefix,
+		metadataMode:      cl.metadataMode,
+		isLocal:           cl.isLocal,
+		logLevel:          cl.logLevel,
+		salt:              cl.salt,
+		isCached:          cl.isCached,
+		isFailed:          cl.isFailed,
+		githubAnnotations: cl.githubAnnotations,
+		saltColors:        cl.saltColors,
+		colorMode:         cl.colorMode,
+		nextColorIndex:    cl.nextColorIndex,
+		prefixPadding:     cl.prefixPadding,
+		mu:                cl.mu,
+		bb:                cl.bb,
 	}
 }
 
@@ -227,6 +231,7 @@ func (cl ConsoleLogger) PrintPhaseHeader(phase string, disabled bool, special st
 	if underlineLength < barWidth {
 		underlineLength = barWidth
 	}
+	cl.printGithubActionsControl(groupCommand, msg)
 	c.Fprintf(w, " %s", msg)
 	fmt.Fprintf(w, "\n")
 	c.Fprintf(w, "%s", strings.Repeat("—", underlineLength))
@@ -242,6 +247,7 @@ func (cl ConsoleLogger) PrintPhaseFooter(phase string, disabled bool, special st
 		cl.mu.Unlock()
 	}()
 	c := cl.color(noColor)
+	cl.printGithubActionsControl(endGroupCommand, phase)
 	c.Fprintf(w, "\n")
 }
 
@@ -264,6 +270,95 @@ func (cl ConsoleLogger) PrefixColor() *color.Color {
 		*cl.nextColorIndex = (*cl.nextColorIndex + 1) % len(availablePrefixColors)
 	}
 	return cl.color(c)
+}
+
+// Prints a GitHub Actions summary message to GITHUB_STEP_SUMMARY
+func (cl *ConsoleLogger) PrintGHASummary(message string) {
+	if !cl.githubAnnotations {
+		return
+	}
+
+	path := os.Getenv("GITHUB_STEP_SUMMARY")
+	if path == "" {
+		w := new(bytes.Buffer)
+		defer func() {
+			_, _ = w.WriteTo(cl.errW)
+		}()
+		fmt.Print(w, message)
+		return
+	}
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+	_, _ = file.WriteString(message + "\n")
+}
+
+type GHAError struct {
+	message string
+	file    string
+	line    int32
+	col     int32
+}
+
+func (e *GHAError) FormatedMessage() string {
+	if e.file != "" {
+		return fmt.Sprintf("file=%s,line=%d,col=%d,title=Error::%s", e.file, e.line, e.col, e.message)
+	} else {
+		return fmt.Sprintf("title=Error::%s", e.message)
+	}
+}
+
+type GHAErrorOpt func(*GHAError)
+
+func WithGHASourceLocation(file string, line, col int32) GHAErrorOpt {
+	return func(cfg *GHAError) {
+		cfg.file = file
+		cfg.line = line
+		cfg.col = col
+	}
+}
+
+// PrintGHAError constructs a GitHub Actions error message.
+func (cl *ConsoleLogger) PrintGHAError(message string, fns ...GHAErrorOpt) {
+	cl.mu.Lock()
+	defer cl.mu.Unlock()
+	ge := GHAError{
+		message: message,
+	}
+	for _, fn := range fns {
+		fn(&ge)
+	}
+
+	cl.printGithubActionsControl(errorCommand, ge.FormatedMessage())
+}
+
+type ghHeader string
+
+const (
+	errorCommand    ghHeader = "::error"
+	groupCommand    ghHeader = "::group::"
+	endGroupCommand ghHeader = "::endgroup::"
+)
+
+// Print GHA control messages like ::group and ::error
+func (cl ConsoleLogger) printGithubActionsControl(header ghHeader, format string, a ...any) {
+	if !cl.githubAnnotations {
+		return
+	}
+	// Assumes mu locked.
+	w := new(bytes.Buffer)
+	defer func() {
+		_, _ = w.WriteTo(cl.errW)
+	}()
+
+	if !strings.HasSuffix(format, "\n") {
+		format += "\n"
+	}
+	fullFormat := string(header) + " " + format
+
+	fmt.Fprintf(w, fullFormat, a...)
 }
 
 // PrintBar prints an earthly message bar.

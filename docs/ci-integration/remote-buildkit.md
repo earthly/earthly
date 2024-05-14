@@ -2,7 +2,7 @@
 
 {% hint style='info' %}
 ##### Note
-This guide is related to self-hosting a remote Buildkit, however, Self-Hosted Satellites **beta** are now available. Self-Hosted Satellites provide more features, have better security, and are easier to deploy than remote Buildkit. Check out the [Self-Hosted Satellites Guide](../cloud/satellites/self-hosted.md) for more details. If your use case cannot tolerate a cloud-based control plane, however, then self-hosting a remote Buildkit is still supported.
+This guide is related to self-hosting a remote BuildKit, however, Self-Hosted Satellites **beta** are now available. Self-Hosted Satellites provide more features, have better security, and are easier to deploy than remote BuildKit. Check out the [Self-Hosted Satellites Guide](../cloud/satellites/self-hosted.md) for more details. If your use case cannot tolerate a cloud-based control plane, however, then self-hosting a remote BuildKit is still supported.
 {% endhint %}
 
 ## Introduction
@@ -27,7 +27,7 @@ A remote daemon should be reachable by all clients intending to use it. Earthly 
 
 **`/tmp/earthly`**
 
-This path within the container is the location that Buildkit uses for storing the cache. Because this folder sees _a lot_ of traffic, its important that it remains fast.
+This path within the container is the location that BuildKit uses for storing the cache. Because this folder sees _a lot_ of traffic, its important that it remains fast.
 
 {% hint style='danger' %}
 ##### Important

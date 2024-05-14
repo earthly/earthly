@@ -333,6 +333,20 @@ jobs:
       EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
+  docker-tests-no-qemu-group12:
+    needs: build-earthly
+    if: ${{ !failure() }}
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-group12"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
+    secrets: inherit
+
   docker-tests-no-qemu-slow:
     needs: build-earthly
     if: ${{ !failure() }}
@@ -451,6 +465,20 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       TEST_TARGET: "./tests/web+test"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "ubuntu-latest"
+      BINARY: "docker"
+      SUDO: ""
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
+    secrets: inherit
+
+  docker-test-oidc-command:
+    if: ${{ !failure() && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    needs: build-earthly
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "./tests/oidc+test"
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
       RUNS_ON: "ubuntu-latest"
       BINARY: "docker"

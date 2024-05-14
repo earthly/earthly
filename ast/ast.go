@@ -76,7 +76,7 @@ func ParseOpts(ctx context.Context, from FromOpt, opts ...Opt) (spec.Earthfile, 
 	}
 	if errorStrategy.Err != nil {
 		err := errors.Wrapf(
-			errorStrategy.Err, "%s line %d:%d '%s'",
+			errorStrategy.Err, "%s:%d:%d '%s'",
 			prefs.reader.Name(),
 			errorStrategy.RE.GetOffendingToken().GetLine(),
 			errorStrategy.RE.GetOffendingToken().GetColumn(),

@@ -1,0 +1,36 @@
+VERSION --docker-cache 0.8
+
+img:
+  FROM alpine:3.18
+  RUN dd if=/dev/urandom of=large-file0 bs=16M count=2 # adjust as needed to test performance
+  SAVE IMAGE img
+
+debug-dind:
+  FROM earthly/dind:alpine-3.19-docker-25.0.5-r0
+  RUN mkdir /etc/docker && echo '{"debug": true}' > /etc/docker/daemon.json
+
+wd:
+  FROM +debug-dind
+  ARG --required CHECK_CACHED_TAG_EXISTS
+  ARG --required CACHE_BUSTER
+  RUN echo "CACHE_BUSTER=$CACHE_BUSTER"
+  WITH DOCKER --cache-id=yupyup --load myimg=+img
+    RUN \
+      if [ "$CHECK_CACHED_TAG_EXISTS" = "true" ]; then \
+        echo "performing check due to CHECK_CACHED_TAG_EXISTS=$CHECK_CACHED_TAG_EXISTS"; \
+        grep 'Calling POST.*earthly_cached_[0-9a-f]\+' /var/log/docker.log || (echo "no reference to earthly_cached_[0-9a-f]+; which indicates no docker image data exists in the cache" && exit 1); \
+        echo "found instance of earthly_cached_ tag; check passed"; \
+      else \
+        echo "skipping check due to CHECK_CACHED_TAG_EXISTS=$CHECK_CACHED_TAG_EXISTS"; \
+      fi
+  END
+
+test:
+  FROM alpine:3.18
+  RUN --no-cache date +%s > /cache-buster
+  WAIT
+    BUILD +wd --CHECK_CACHED_TAG_EXISTS=false --CACHE_BUSTER="$(cat /cache-buster)"
+  END
+  WAIT
+    BUILD +wd --CHECK_CACHED_TAG_EXISTS=true --CACHE_BUSTER="$(cat /cache-buster)"
+  END

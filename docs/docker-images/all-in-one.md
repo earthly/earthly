@@ -11,7 +11,7 @@ Want to get started? Here are a couple sample `docker run` commands that cover t
 
 ### Usage with Docker Socket
 
-This example shows how to use the Earthly container in conjunction with a Docker socket that Earthly can use to start up the Buildkit daemon.
+This example shows how to use the Earthly container in conjunction with a Docker socket that Earthly can use to start up the BuildKit daemon.
 
 ```bash
 docker run -t -v $(pwd):/workspace -v /var/run/docker.sock:/var/run/docker.sock -e NO_BUILDKIT=1 earthly/earthly:v0.8.9 +for-linux
@@ -21,13 +21,13 @@ Here's a quick breakdown:
 
 - `-t` tells Docker to emulate a TTY. This makes the `earthly` log output colorized.
 - `-v $(pwd):/workspace` mounts the source code into the conventional location within the docker container. Earthly is executed from this directory when starting the container. Any artifacts saved within this folder remain on your local machine.
-- `-v /var/run/docker.sock:/var/run/docker.sock` mounts the Docker socket such that Earthly can start Buildkit as a Docker container in the host's Docker.
-- `-e NO_BUILDKIT=1` tells the Earthly container not to start en embedded buildkit. A Buildkit daemon will instead be started via the Docker socket provided.
+- `-v /var/run/docker.sock:/var/run/docker.sock` mounts the Docker socket such that Earthly can start BuildKit as a Docker container in the host's Docker.
+- `-e NO_BUILDKIT=1` tells the Earthly container not to start en embedded BuildKit. A BuildKit daemon will instead be started via the Docker socket provided.
 - `+for-linux` is the target to be invoked. All arguments specified after the image tag will be passed to `earthly`.
 
-### Usage with Embedded Buildkit
+### Usage with Embedded BuildKit
 
-This example shows how the Earthly image can start a Buildkit daemon within the same container. A Docker socket is not needed in this case, however the container will need to be run with the `--privileged` flag.
+This example shows how the Earthly image can start a BuildKit daemon within the same container. A Docker socket is not needed in this case, however the container will need to be run with the `--privileged` flag.
 
 ```bash
 docker run --privileged -t -v $(pwd):/workspace -v earthly-tmp:/tmp/earthly:rw earthly/earthly:v0.8.9 +for-linux
@@ -110,7 +110,7 @@ This is the easiest way to ensure you get the nice, colorized output from `earth
 |-------------------------------------|--------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | GLOBAL_CONFIG                       |                                | Any valid YAML for the top-level `global` key in `config.yml`. Example: `{disable_analytics: true, local_registry_host: 'tcp://127.0.0.1:8371'}`                                                              |
 | GIT_CONFIG                          |                                | Any valid YAML for the top-level `git` key in `config.yml`. Example: `{example: {pattern: 'example.com/([^/]+)', substitute: 'ssh://git@example.com:2222/var/git/repos/$1.git', auth: ssh}}`                  |
-| NO_BUILDKIT                         |                                | Disables the embedded Buildkit daemon.                                                                                                                                                                        |
+| NO_BUILDKIT                         |                                | Disables the embedded BuildKit daemon.                                                                                                                                                                        |
 | DOCKER_HOST                         | `/var/run/docker.sock`         | From Docker's CLI.                                                                                                                                                                                            |
 | BUILDKIT_HOST                       | `tcp://<hostname>:8372`        | The address of your BuildKit host. Use this when you have a remote `buildkitd` you would like to connect to.                                                                                                  |
 | EARTHLY_ADDITIONAL_BUILDKIT_CONFIG  |                                | Additional `buildkitd` config to append to the generated configuration file.                                                                                                                                  |
