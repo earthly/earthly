@@ -4,9 +4,26 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.10 - 2024-05-14
+
 ### Added
 - New Github Actions Workflow commands integration `--github-annotations` flag or GITHUB_ACTIONS=true env. [#2189](https://github.com/earthly/earthly/issues/2189)
 - Added a new `--oidc` flag to `RUN` command which allows authentication to AWS via OIDC. Enable with the `VERSION --run-with-aws-oidc` feature flag. [#3804](https://github.com/earthly/earthly/issues/3804)
+- Experimental `WITH DOCKER --cache-id=<key>` feature, which will cache the contents of the docker data root, resulting in faster `--load` and `--pull` execution. Enabled with the `VERSION --docker-cache` feature flag. [#3399](https://github.com/earthly/earthly/issues/3399)
+- New `SAVE IMAGE --without-earthly-labels` feature, which will prevent any `dev.earthly.*` labels from being saved to the image. Enable with the `VERSION --allow-without-earthly-labels` feature flag. Thanks to [@3manuek](https://github.com/3manuek) for the contribution!
+
+### Fixed
+- `WITH DOCKER` load time calculation. [#3485](https://github.com/earthly/earthly/issues/3485)
+- The earthly cli was not correctly setting the exit status on failures when executing a `RUN` on a satellite which reached the max execution time limit.
+- Self-hosted satellite connection issue.
+
+### Changed
+- Earthly will now use source link format when displaying errors, e.g. `<path>:<line>:<col>` rather than `<path> line <line>:<col>`.
+- Improved error messages for cases where a shell is required to run a command such as `IF`, `FOR`, etc.
+- Earthly will now show a warning when earthly anonymously connects to a registry (which increases the chance of being rate-limited).
+
+### Additional Info
+- This release includes changes to buildkit
 
 ## v0.8.9 - 2024-04-24
 
