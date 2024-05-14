@@ -310,7 +310,7 @@ do
         wait "$execpid"
         code="$?"
         if [ "$code" != "0" ]; then
-            echo "Error: buildkit process has exited with code $code"
+            echo "Error: buildkit process has exited with code $code; this is bad"
         fi
         exit "$code"
     fi
