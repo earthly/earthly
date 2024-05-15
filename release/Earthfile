@@ -40,6 +40,16 @@ perform-release-dockerhub:
     ARG DOCKERHUB_USER="earthly"
     ARG DOCKERHUB_IMG="earthly"
     ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
+    BUILD +perform-release-earthly-dockerhub
+    BUILD +perform-release-buildkitd-dockerhub
+
+perform-release-earthly-dockerhub:
+    ARG --required RELEASE_TAG
+    ARG PUSH_LATEST_TAG="false"
+    ARG PUSH_PRERELEASE_TAG="false"
+    ARG DOCKERHUB_USER="earthly"
+    ARG DOCKERHUB_IMG="earthly"
+    ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
@@ -49,6 +59,14 @@ perform-release-dockerhub:
         --DOCKERHUB_IMG="$DOCKERHUB_IMG" \
         --PUSH_LATEST_TAG="$PUSH_LATEST_TAG" \
         --PUSH_PRERELEASE_TAG="$PUSH_PRERELEASE_TAG"
+
+perform-release-buildkitd-dockerhub:
+    ARG --required RELEASE_TAG
+    ARG PUSH_LATEST_TAG="false"
+    ARG PUSH_PRERELEASE_TAG="false"
+    ARG DOCKERHUB_USER="earthly"
+    ARG DOCKERHUB_IMG="earthly"
+    ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
