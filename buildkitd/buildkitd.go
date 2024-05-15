@@ -188,7 +188,7 @@ func maybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, c
 			}
 		}()
 		startLock := flock.New(settings.StartUpLockPath)
-		timeoutCtx, cancel := context.WithTimeout(ctx, opTimeout)
+		timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 		_, err := startLock.TryLockContext(timeoutCtx, 200*time.Millisecond)
 		tryLockDone.Store(true)
@@ -622,7 +622,7 @@ func waitForConnection(ctx context.Context, containerName, address string, opTim
 	if !containerutil.IsLocal(address) {
 		retryInterval = 1 * time.Second
 	}
-	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctxTimeout, cancel := context.WithTimeout(ctx, opTimeout)
 	defer cancel()
 	attemptTimeout := 500 * time.Millisecond
 	if !containerutil.IsLocal(address) {
