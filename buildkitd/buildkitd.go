@@ -188,7 +188,7 @@ func maybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, c
 			}
 		}()
 		startLock := flock.New(settings.StartUpLockPath)
-		timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		timeoutCtx, cancel := context.WithTimeout(ctx, opTimeout)
 		defer cancel()
 		_, err := startLock.TryLockContext(timeoutCtx, 200*time.Millisecond)
 		tryLockDone.Store(true)
