@@ -12,6 +12,8 @@ import (
 	"github.com/earthly/cloud-api/compute"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/cloud-api/pipelines"
+	"github.com/earthly/cloud-api/secrets"
+
 	"github.com/google/uuid"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/pkg/errors"
@@ -68,6 +70,7 @@ type Client struct {
 	analytics                analytics.AnalyticsClient
 	askv                     askv.AskvClient
 	billing                  billing.BillingClient
+	secrets                  secrets.SecretsServiceClient
 	requestID                string
 	installationName         string
 	logstreamAddressOverride string
@@ -160,6 +163,7 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	c.analytics = analytics.NewAnalyticsClient(conn)
 	c.askv = askv.NewAskvClient(conn)
 	c.billing = billing.NewBillingClient(conn)
+	c.secrets = secrets.NewSecretsServiceClient(conn)
 
 	logstreamAddr := grpcAddr
 	if c.logstreamAddressOverride != "" {

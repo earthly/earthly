@@ -622,7 +622,7 @@ func waitForConnection(ctx context.Context, containerName, address string, opTim
 	if !containerutil.IsLocal(address) {
 		retryInterval = 1 * time.Second
 	}
-	ctxTimeout, cancel := context.WithTimeout(ctx, opTimeout)
+	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	attemptTimeout := 500 * time.Millisecond
 	if !containerutil.IsLocal(address) {

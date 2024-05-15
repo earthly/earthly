@@ -6,7 +6,7 @@ This guide is intended to help you use the Earthly image for your containerized 
 
 ## Prerequisites
 
-The `earthly/earthly` image requires that it is run as `--privileged`, or alternatively, it is run without the embedded Buildkit daemon (`NO_BUILDKIT=1`).
+The `earthly/earthly` image requires that it is run as `--privileged`, or alternatively, it is run without the embedded BuildKit daemon (`NO_BUILDKIT=1`).
 
 ## Getting Started
 
@@ -29,7 +29,7 @@ An alternative option is to use the `earthly/earthly` image in conjunction with 
 
 You may also use the `earthly/earthly` image to run a build against an Earthly Satellite. To achieve this you can pass along an `EARTHLY_TOKEN` environment variable, along with the command-line flags `--sat` and `--org`, to point the build to a specific satellite.
 
-For more details on using remote execution, [see our guide on remote Buildkit](./remote-buildkit.md) or the [introduction to Satellites](../cloud/satellites.md).
+For more details on using remote execution, [see our guide on remote BuildKit](./remote-buildkit.md) or the [introduction to Satellites](../cloud/satellites.md).
 
 #### Mounting the source code
 
@@ -53,15 +53,15 @@ docker run --privileged --rm earthly/earthly:v0.8.6 github.com/foo/bar:my-branch
 
 #### `NO_BUILDKIT` Environment Variable
 
-As the embedded Buildkit daemon requires `--privileged`, for some operations you may be able to use the `NO_BUILDKIT=1` environment variable to disable the embedded Buildkit daemon. This is especially useful when running against a remote buildkit (like a Satellite), or when not performing a build as part of the command (like when using `earthly account`).
+As the embedded BuildKit daemon requires `--privileged`, for some operations you may be able to use the `NO_BUILDKIT=1` environment variable to disable the embedded BuildKit daemon. This is especially useful when running against a remote BuildKit (like a Satellite), or when not performing a build as part of the command (like when using `earthly account`).
 
 ## An important note about running the image
 
-When running the built image in your CI of choice, if you're not using a remote daemon, Earthly will start Buildkit within the same container. In this case, it is important to ensure that the directory used by Buildkit to cache the builds is mounted as a Docker volume. Failing to do so may result in excessive disk usage, slow builds, or Earthly not functioning properly.
+When running the built image in your CI of choice, if you're not using a remote daemon, Earthly will start BuildKit within the same container. In this case, it is important to ensure that the directory used by BuildKit to cache the builds is mounted as a Docker volume. Failing to do so may result in excessive disk usage, slow builds, or Earthly not functioning properly.
 
 {% hint style='danger' %}
 ##### Important
-We *strongly* recommend using a Docker volume for mounting `/tmp/earthly`. If you do not, Buildkit can consume excessive disk space, operate very slowly, or it might not function correctly.
+We *strongly* recommend using a Docker volume for mounting `/tmp/earthly`. If you do not, BuildKit can consume excessive disk space, operate very slowly, or it might not function correctly.
 {% endhint %}
 
 In some environments, not mounting `/tmp/earthly` as a Docker volume results in the following error:

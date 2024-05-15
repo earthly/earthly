@@ -28,17 +28,18 @@ To get started with free remote runners managed by Earthly, check out [Earthly S
 
 To get started with self-hosted runners, see the [Self-Hosted Satellites Guide](cloud/satellites/self-hosted.md).
 
-If your use case cannot tolerate a cloud-based control plane, then self-hosting a remote Buildkit is the best approach. Remote Buildkit has less features, is less secure, and is more difficult to deploy than Self-Hosted Satellites (see diagram below for comparison). To get started self-hosting Buildkit, see the [remote buildkit page](ci-integration/remote-buildkit.md).
+If your use case cannot tolerate a cloud-based control plane, then self-hosting a remote BuildKit is the best approach. Remote BuildKit has less features, is less secure, and is more difficult to deploy than Self-Hosted Satellites (see diagram below for comparison). To get started self-hosting BuildKit, see the [remote BuildKit page](ci-integration/remote-buildkit.md).
 
 ### Types of Remote Runners
 
 Below is a comparison of the different features available with each kind of remote runner.
 
-| Feature | Cloud Satellites | Self-Hosted Satellites | Remote Buildkit |
-| --- | --- | --- | --- |
-| Managed By | Earthly | You | You |
-| Cache Persistence | ✅ Yes | 🟡 Needs configuration | 🟡 Needs configuration |
-| Cloud Control-Plane | ✅ Yes | ✅ Yes | ❌ No |
-| Managed TLS Certificates |  ✅ Yes | ✅ Yes | ❌ No |
-| Auto-Sleep | ✅ Yes | ❌ No | ❌ No | 
-| Auto-Updates | ✅ Yes | ❌ No | ❌ No |
+| Feature                                                                      | Cloud Satellites | Self-Hosted Satellites | Remote BuildKit        |
+|------------------------------------------------------------------------------|------------------|------------------------|------------------------|
+| Managed By                                                                   | Earthly          | You                    | You                    |
+| Cache Persistence                                                            | ✅ Yes            | 🟡 Needs configuration | 🟡 Needs configuration |
+| Cloud Control-Plane                                                          | ✅ Yes            | ✅ Yes                  | ❌ No                   |
+| Managed TLS Certificates                                                     | ✅ Yes            | ✅ Yes                  | ❌ No                   |
+| Auto-Sleep                                                                   | ✅ Yes            | ❌ No                   | ❌ No                   | 
+| Auto-Updates                                                                 | ✅ Yes            | ❌ No                   | ❌ No                   |
+| [GitHub Actions integration](cloud/satellites/gha-runners.md) | ✅ Yes            | ✅ Yes                  | ❌ No                   |  
