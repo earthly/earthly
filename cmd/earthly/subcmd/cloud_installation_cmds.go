@@ -255,7 +255,7 @@ func (c *CloudInstallation) printTable(installations []cloud.Installation) {
 		}
 		suffix := ""
 		if i.StatusMessage != "" {
-			suffix = fmt.Sprintf(":%s", i.StatusMessage)
+			suffix = fmt.Sprintf(": %s", i.StatusMessage)
 		}
 		fullStatus := fmt.Sprintf("%s%s", coloredStatus, suffix)
 		fmt.Fprintf(t, "%s\t%s\t%d\t%s\t\n", selected, i.Name, i.NumSatellites, fullStatus)
