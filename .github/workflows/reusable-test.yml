@@ -79,6 +79,7 @@ jobs:
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Execute ${{ inputs.TEST_TARGET }} (Earthly Only)
         run: |-
+          unset SATELLITE_NAME
           ${{inputs.SUDO}} ${{ inputs.BUILT_EARTHLY_PATH }} ${{inputs.EXTRA_ARGS}} --ci -P ${{inputs.TEST_TARGET}}
       - name: Execute fail test
         run: |
