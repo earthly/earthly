@@ -281,7 +281,7 @@ func (c *CloudInstallation) getInstallationDataFromCloudFormation(ctx context.Co
 	}
 
 	if len(describeStacksOutput.Stacks) != 1 {
-		return nil, fmt.Errorf("unexpected number of stacks(%v) found for stack %s", len(describeStacksOutput.Stacks), stackName)
+		return nil, fmt.Errorf("unexpected number of stacks(%v) found with name %q", len(describeStacksOutput.Stacks), stackName)
 	}
 
 	stack := describeStacksOutput.Stacks[0]
