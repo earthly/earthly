@@ -15,7 +15,7 @@ Remote runners are especially useful in a few specific circumstances:
 There are two types of remote runners:
 
 * Earthly Satellites (managed by Earthly; free up to 6,000 minutes/month; get started now by visiting the [sign up](https://cloud.earthly.dev/login) page)
-* Remote Buildkit (free, self-hosted)
+* Remote BuildKit (free, self-hosted)
 
 ### Using Earthly Satellites
 
@@ -56,9 +56,9 @@ earthly --sat my-satellite +my-target
 
 For more information, check out the [Earthly Satellites](../cloud/satellites.md) page.
 
-### Using a Remote Buildkit
+### Using a Remote BuildKit
 
-To run your own remote Buildkit, you can follow the instructions on the [remote Buildkit page](../ci-integration/remote-buildkit.md).
+To run your own remote BuildKit, you can follow the instructions on the [remote BuildKit page](../ci-integration/remote-buildkit.md).
 
 ### Secrets and remote builds
 

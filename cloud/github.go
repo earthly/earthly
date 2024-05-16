@@ -19,7 +19,7 @@ func (c *Client) SetGithubToken(ctx context.Context, orgName string, ghOrg strin
 		GithubToken:    token,
 	})
 	if err != nil {
-		return fmt.Errorf("failed setting Github token: %w", err)
+		return fmt.Errorf("failed setting GitHub token: %w", err)
 	}
 	return nil
 }

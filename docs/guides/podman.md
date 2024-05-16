@@ -99,7 +99,7 @@ graphDriverName: overlay  # or something similar
 
 ### Mac: docker-credential-desktop: executable file not found in $PATH
 This error typically occurs when switching from docker desktop to podman without docker installed.
-There may be a lingering configuration file that will be read by the attachable used to authenticate calls to buildkit.
+There may be a lingering configuration file that will be read by the attachable used to authenticate calls to BuildKit.
 
 To fix this issue, try removing or renaming the `~/.docker/config.json` file.
 
