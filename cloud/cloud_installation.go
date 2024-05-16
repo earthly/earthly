@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	CloudStatusConnected = "Connected"
-	CloudStatusActive    = "Active"
-	CloudStatusProblem   = "Problem"
+	CloudStatusGreen   = "Green"
+	CloudStatusYellow  = "Yellow"
+	CloudStatusRed     = "Red"
+	CloudStatusUnknown = "Unknown"
 )
 
 type Installation struct {
@@ -58,6 +59,22 @@ func (c *Client) ConfigureCloud(ctx context.Context, orgID string, configuration
 	}, nil
 }
 
+func (c *Client) UseCloud(ctx context.Context, orgID string, configuration *CloudConfigurationOpt) (*Installation, error) {
+	resp, err := c.compute.UseCloud(c.withAuth(ctx), &pb.UseCloudRequest{
+		OrgId: orgID,
+		Name:  configuration.Name,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "error from UseCloud API")
+	}
+	return &Installation{
+		Name:          configuration.Name,
+		Org:           orgID,
+		Status:        installationStatus(resp.Status),
+		StatusMessage: resp.Message,
+	}, nil
+}
+
 func (c *Client) ListClouds(ctx context.Context, orgID string) ([]Installation, error) {
 	resp, err := c.compute.ListClouds(c.withAuth(ctx), &pb.ListCloudsRequest{
 		OrgId: orgID,
@@ -71,6 +88,7 @@ func (c *Client) ListClouds(ctx context.Context, orgID string) ([]Installation, 
 			Name:          i.CloudName,
 			Org:           orgID,
 			Status:        installationStatus(i.Status),
+			StatusMessage: i.StatusContext,
 			NumSatellites: int(i.NumSatellites),
 			IsDefault:     i.IsDefault,
 		})
@@ -92,12 +110,14 @@ func (c *Client) DeleteCloud(ctx context.Context, orgID, cloudName string) error
 func installationStatus(status pb.CloudStatus) string {
 	internalStatus := "UNKNOWN"
 	switch status {
-	case pb.CloudStatus_CLOUD_STATUS_ACCOUNT_ACTIVE:
-		internalStatus = CloudStatusActive
-	case pb.CloudStatus_CLOUD_STATUS_ACCOUNT_CONNECTED:
-		internalStatus = CloudStatusConnected
-	case pb.CloudStatus_CLOUD_STATUS_PROBLEM:
-		internalStatus = CloudStatusProblem
+	case pb.CloudStatus_CLOUD_STATUS_GREEN:
+		internalStatus = CloudStatusGreen
+	case pb.CloudStatus_CLOUD_STATUS_YELLOW:
+		internalStatus = CloudStatusYellow
+	case pb.CloudStatus_CLOUD_STATUS_RED:
+		internalStatus = CloudStatusRed
+	default:
+		internalStatus = CloudStatusUnknown
 	}
 	return internalStatus
 }

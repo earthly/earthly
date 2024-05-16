@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/fatih/color"
 	"os"
 	"text/tabwriter"
 
@@ -114,7 +115,7 @@ func (c *CloudInstallation) install(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "failed installing cloud")
 	}
 
-	if install.Status == cloud.CloudStatusProblem {
+	if install.Status == cloud.CloudStatusRed || install.Status == cloud.CloudStatusYellow {
 		c.cli.Console().Warnf("There is a problem with the cloud installation.")
 		c.cli.Console().Warnf(install.StatusMessage)
 		return errors.New("cloud installation failed validation")
@@ -155,7 +156,7 @@ func (c *CloudInstallation) use(cliCtx *cli.Context) error {
 
 	c.cli.Console().Printf("Validating Cloud Installation: %s. Please wait...", cloudName)
 
-	install, err := cloudClient.ConfigureCloud(ctx, orgID, &cloud.CloudConfigurationOpt{
+	install, err := cloudClient.UseCloud(ctx, orgID, &cloud.CloudConfigurationOpt{
 		Name:       cloudName,
 		SetDefault: true,
 	})
@@ -163,7 +164,7 @@ func (c *CloudInstallation) use(cliCtx *cli.Context) error {
 		return errors.Wrap(err, "could not select cloud")
 	}
 
-	if install.Status == cloud.CloudStatusProblem {
+	if install.Status == cloud.CloudStatusRed || install.Status == cloud.CloudStatusYellow {
 		c.cli.Console().Warnf("There is a problem with the cloud installation.")
 		c.cli.Console().Warnf(install.StatusMessage)
 		return errors.New("cloud Installation failed validation")
@@ -241,16 +242,23 @@ func (c *CloudInstallation) printTable(installations []cloud.Installation) {
 		if i.IsDefault {
 			selected = "*"
 		}
-		var description string
+		var coloredStatus string
 		switch i.Status {
-		case cloud.CloudStatusActive:
-			description = "Ready to use"
-		case cloud.CloudStatusConnected:
-			description = "Reachable, but not yet validated"
-		case cloud.CloudStatusProblem:
-			description = "Please contact Earthly for support"
+		case cloud.CloudStatusGreen:
+			coloredStatus = color.GreenString(i.Status)
+		case cloud.CloudStatusYellow:
+			coloredStatus = color.YellowString(i.Status)
+		case cloud.CloudStatusRed:
+			coloredStatus = color.RedString(i.Status)
+		default:
+			coloredStatus = color.HiRedString(i.Status)
 		}
-		fmt.Fprintf(t, "%s\t%s\t%d\t%s: %s\t\n", selected, i.Name, i.NumSatellites, i.Status, description)
+		suffix := ""
+		if i.StatusMessage != "" {
+			suffix = fmt.Sprintf(":%s", i.StatusMessage)
+		}
+		fullStatus := fmt.Sprintf("%s%s", coloredStatus, suffix)
+		fmt.Fprintf(t, "%s\t%s\t%d\t%s\t\n", selected, i.Name, i.NumSatellites, fullStatus)
 	}
 	if err := t.Flush(); err != nil {
 		fmt.Printf("failed to print satellites: %s", err.Error())
