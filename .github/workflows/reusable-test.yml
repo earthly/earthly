@@ -57,6 +57,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Clear default satellite
+        run: unset SATELLITE_NAME
       - uses: ./.github/actions/stage2-setup
         with:
           DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
