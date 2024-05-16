@@ -108,16 +108,14 @@ func (c *Client) DeleteCloud(ctx context.Context, orgID, cloudName string) error
 }
 
 func installationStatus(status pb.CloudStatus) string {
-	internalStatus := "UNKNOWN"
 	switch status {
 	case pb.CloudStatus_CLOUD_STATUS_GREEN:
-		internalStatus = CloudStatusGreen
+		return CloudStatusGreen
 	case pb.CloudStatus_CLOUD_STATUS_YELLOW:
-		internalStatus = CloudStatusYellow
+		return CloudStatusYellow
 	case pb.CloudStatus_CLOUD_STATUS_RED:
-		internalStatus = CloudStatusRed
+		return CloudStatusRed
 	default:
-		internalStatus = CloudStatusUnknown
+		return CloudStatusUnknown
 	}
-	return internalStatus
 }
