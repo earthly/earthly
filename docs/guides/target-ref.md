@@ -20,7 +20,7 @@ Here are some examples:
 
 * `+build`
 * `./js+deps`
-* `github.com/earthly/earthly:v0.8.10+earthly`
+* `github.com/earthly/earthly:v0.8.11+earthly`
 
 ## Artifact reference
 
@@ -33,7 +33,7 @@ Here are some examples:
 * `+build/my-artifact`
 * `+build/some/artifact/deep/in/a/dir`
 * `./js+build/dist`
-* `github.com/earthly/earthly:v0.8.10+earthly/earthly`
+* `github.com/earthly/earthly:v0.8.11+earthly/earthly`
 
 ## Image reference
 
@@ -53,7 +53,7 @@ Here are some examples:
 
 * `+COMPILE`
 * `./js+NPM_INSTALL`
-* `github.com/earthly/earthly:v0.8.10+DOWNLOAD_DIND`
+* `github.com/earthly/earthly:v0.8.11+DOWNLOAD_DIND`
 
 For more information on functions, see the [functions guide](./functions.md).
 
@@ -93,7 +93,7 @@ Another form of a project reference is the remote form. In this form, the recipe
 |----|----|----|----|
 | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<target-name>` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<target-name>/<artifact-path>` | `<vendor>/<namespace>/<project>/path/in/project[:some-tag]+<function-name>` |
 | `github.com/earthly/earthly/buildkitd` | `github.com/earthly/earthly/buildkitd+build` | `github.com/earthly/earthly/buildkitd+build/out.bin` | `github.com/earthly/earthly/buildkitd+COMPILE` |
-| `github.com/earthly/earthly:v0.8.10` | `github.com/earthly/earthly:v0.8.10+build` | `github.com/earthly/earthly:v0.8.10+build/out.bin` | `github.com/earthly/earthly:v0.8.10+COMPILE` |
+| `github.com/earthly/earthly:v0.8.11` | `github.com/earthly/earthly:v0.8.11+build` | `github.com/earthly/earthly:v0.8.11+build/out.bin` | `github.com/earthly/earthly:v0.8.11+COMPILE` |
 
 ### Import reference
 
@@ -103,7 +103,7 @@ Finally, the last form of project referencing is an import reference. Import ref
 |----|----|----|----|----|
 | `IMPORT <full-project-ref> AS <import-alias>` | `<import-alias>` | `<import-alias>+<target-name>` | `<import-alias>+<target-name>/<artifact-path>` | `<import-alias>+<function-name>` |
 | `IMPORT github.com/earthly/earthly/buildkitd` | `buildkitd` | `buildkitd+build` | `buildkitd+build/out.bin` | `buildkitd+COMPILE` |
-| `IMPORT github.com/earthly/earthly:v0.8.10` | `earthly` | `earthly+build` | `earthly+build/out.bin` | `earthly+COMPILE` |
+| `IMPORT github.com/earthly/earthly:v0.8.11` | `earthly` | `earthly+build` | `earthly+build/out.bin` | `earthly+COMPILE` |
 
 Here is an example in an Earthfile:
 
