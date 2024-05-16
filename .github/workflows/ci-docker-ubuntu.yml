@@ -248,62 +248,62 @@ jobs:
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
       EXTRA_ARGS: "--auto-skip"
     secrets: inherit
-#
-#  docker-tests-no-qemu-group7-no-logbus:
-#    needs: build-earthly
-#    if: ${{ !failure() }}
-#    uses: ./.github/workflows/reusable-test.yml
-#    with:
-#      TEST_TARGET: "+test-no-qemu-group7"
-#      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      RUNS_ON: "ubuntu-latest"
-#      BINARY: "docker"
-#      SUDO: ""
-#      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
-#      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
-#    secrets: inherit
-#
-#  docker-tests-no-qemu-group8:
-#    needs: build-earthly
-#    if: ${{ !failure() }}
-#    uses: ./.github/workflows/reusable-test.yml
-#    with:
-#      TEST_TARGET: "+test-no-qemu-group8"
-#      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      RUNS_ON: "ubuntu-latest"
-#      BINARY: "docker"
-#      SUDO: ""
-#      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
-#      EXTRA_ARGS: "--auto-skip"
-#    secrets: inherit
-#
-#  docker-tests-no-qemu-group8-no-logbus:
-#    needs: build-earthly
-#    if: ${{ !failure() }}
-#    uses: ./.github/workflows/reusable-test.yml
-#    with:
-#      TEST_TARGET: "+test-no-qemu-group8"
-#      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      RUNS_ON: "ubuntu-latest"
-#      BINARY: "docker"
-#      SUDO: ""
-#      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
-#      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
-#    secrets: inherit
-#
-#  docker-tests-no-qemu-group9:
-#    needs: build-earthly
-#    if: ${{ !failure() }}
-#    uses: ./.github/workflows/reusable-test.yml
-#    with:
-#      TEST_TARGET: "+test-no-qemu-group9"
-#      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      RUNS_ON: "ubuntu-latest"
-#      BINARY: "docker"
-#      SUDO: ""
-#      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
-#      EXTRA_ARGS: "--auto-skip"
-#    secrets: inherit
+
+  docker-tests-no-qemu-group7-no-logbus:
+    needs: build-earthly
+    if: ${{ !failure() }}
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-group7"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "earthly-satellite#gha-earthly-1"
+      BINARY: "docker"
+      SUDO: ""
+      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+    secrets: inherit
+
+  docker-tests-no-qemu-group8:
+    needs: build-earthly
+    if: ${{ !failure() }}
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-group8"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "earthly-satellite#gha-earthly-1"
+      BINARY: "docker"
+      SUDO: ""
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
+    secrets: inherit
+
+  docker-tests-no-qemu-group8-no-logbus:
+    needs: build-earthly
+    if: ${{ !failure() }}
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-group8"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "earthly-satellite#gha-earthly-1"
+      BINARY: "docker"
+      SUDO: ""
+      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+    secrets: inherit
+
+  docker-tests-no-qemu-group9:
+    needs: build-earthly
+    if: ${{ !failure() }}
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-group9"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "earthly-satellite#gha-earthly-1"
+      BINARY: "docker"
+      SUDO: ""
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
+    secrets: inherit
 #
 #  docker-tests-no-qemu-group10:
 #    needs: build-earthly
