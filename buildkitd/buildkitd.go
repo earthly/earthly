@@ -1012,10 +1012,12 @@ func addRequiredOpts(settings Settings, installationName string, isUsingPodman b
 	}
 
 	if settings.SatelliteName != "" {
-		opts = append(opts, client.WithAdditionalMetadataContext(
-			"satellite_name", settings.SatelliteName,
-			"satellite_org", settings.SatelliteOrgID,
-			"satellite_token", settings.SatelliteToken),
+		opts = append(opts,
+			client.WithDefaultGRPCDialer(),
+			client.WithAdditionalMetadataContext(
+				"satellite_name", settings.SatelliteName,
+				"satellite_org", settings.SatelliteOrgID,
+				"satellite_token", settings.SatelliteToken),
 		)
 	}
 
