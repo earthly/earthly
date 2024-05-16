@@ -34,7 +34,7 @@ jobs:
     uses: ./.github/workflows/build-earthly.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      RUNS_ON: "ubuntu-latest"
+      RUNS_ON: "earthly-satellite#gha-earthly-1"
       BINARY: "docker"
       SUDO: ""
 #      SKIP_JOB: ${{ needs.check-essential-files.outputs.essential-files == 'false' }}
