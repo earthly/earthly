@@ -67,7 +67,7 @@ runs:
       shell: bash
     - run: |-
         echo "Extracting earthly binary from stage1 of build"
-        BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-ubuntu-latest-${{inputs.BINARY}} ${{inputs.SUDO}} ./earthly upgrade
+        BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-gha-earthly-1-${{inputs.BINARY}} ${{inputs.SUDO}} ./earthly upgrade
         ${{inputs.SUDO}} chown -R $USER ~/.earthly # restore non-sudo user ownership
         test -n "${{inputs.BUILT_EARTHLY_PATH}}" || (echo "BUILT_EARTHLY_PATH is empty" && exit 1)
         mkdir -p $(dirname "${{inputs.BUILT_EARTHLY_PATH}}")
