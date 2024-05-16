@@ -52,34 +52,34 @@ jobs:
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
     secrets: inherit
-#
-#  docker-test-misc:
-#    needs: build-earthly
-#    if: ${{ !failure() }}
-#    uses: ./.github/workflows/reusable-test.yml
-#    with:
-#      TEST_TARGET: "+test-misc"
-#      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      RUNS_ON: "earthly-satellite#gha-earthly-1"
-#      BINARY: "docker"
-#      SUDO: ""
-#      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
-#      EXTRA_ARGS: "--auto-skip"
-#    secrets: inherit
-#
-#  docker-tests-no-qemu-group1:
-#    needs: build-earthly
-#    if: ${{ !failure() }}
-#    uses: ./.github/workflows/reusable-test.yml
-#    with:
-#      TEST_TARGET: "+test-no-qemu-group1"
-#      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      RUNS_ON: "earthly-satellite#gha-earthly-1"
-#      BINARY: "docker"
-#      SUDO: ""
-#      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
-#      EXTRA_ARGS: "--auto-skip"
-#    secrets: inherit
+
+  docker-test-misc:
+    needs: build-earthly
+    if: ${{ !failure() }}
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-misc"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "earthly-satellite#gha-earthly-1"
+      BINARY: "docker"
+      SUDO: ""
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
+    secrets: inherit
+
+  docker-tests-no-qemu-group1:
+    needs: build-earthly
+    if: ${{ !failure() }}
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      TEST_TARGET: "+test-no-qemu-group1"
+      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+      RUNS_ON: "earthly-satellite#gha-earthly-1"
+      BINARY: "docker"
+      SUDO: ""
+      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+      EXTRA_ARGS: "--auto-skip"
+    secrets: inherit
 #
 #  docker-tests-no-qemu-group2:
 #    needs: build-earthly
