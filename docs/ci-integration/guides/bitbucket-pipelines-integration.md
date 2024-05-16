@@ -7,7 +7,7 @@ You can however, run Earthly builds on Bitbucket pipelines via [remote runners](
 ```yml
 # ./bitbucket-pipelines.yml
 
-image: earthly/earthly:v0.8.10
+image: earthly/earthly:v0.8.11
 
 pipelines:
   default:
