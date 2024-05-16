@@ -80,6 +80,7 @@ jobs:
           set -euo pipefail
           EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
+          unset EARTHLY_SATELLITE
       - name: Build and push +ci-release using latest earthly build
         run: ${{inputs.SUDO}} ./build/linux/amd64/earthly --ci --push +ci-release --TAG_SUFFIX="${{inputs.RUNS_ON}}-${{inputs.BINARY}}"
       - name: Buildkit logs (runs on failure)
