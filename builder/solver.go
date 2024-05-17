@@ -9,7 +9,6 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/logbus/solvermon"
-	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/flagutil"
 	"github.com/earthly/earthly/util/fsutilprogress"
@@ -33,9 +32,7 @@ type onArtifactFunc func(context.Context, string, domain.Artifact, string, strin
 type onFinalArtifactFunc func(context.Context) (string, error)
 
 type solver struct {
-	sm              *outmon.SolverMonitor
 	logbusSM        *solvermon.SolverMonitor
-	useLogstream    bool
 	bkClient        *client.Client
 	attachables     []session.Attachable
 	enttlmnts       []entitlements.Entitlement
@@ -71,24 +68,15 @@ func (s *solver) buildMainMulti(ctx context.Context, bf gwclient.BuildFunc, onIm
 		}
 		return nil
 	})
-	var vertexFailureOutput string
-	if s.useLogstream {
-		eg.Go(func() error {
-			return s.logbusSM.MonitorProgress(ctx, ch)
-		})
-	} else {
-		eg.Go(func() error {
-			var err error
-			vertexFailureOutput, err = s.sm.MonitorProgress(ctx, ch, phaseText, false, s.bkClient)
-			return err
-		})
-	}
+	eg.Go(func() error {
+		return s.logbusSM.MonitorProgress(ctx, ch)
+	})
 	err = eg.Wait()
 	if buildErr != nil {
-		return NewBuildError(buildErr, vertexFailureOutput)
+		return buildErr
 	}
 	if err != nil {
-		return NewBuildError(err, vertexFailureOutput)
+		return err
 	}
 	return nil
 }
