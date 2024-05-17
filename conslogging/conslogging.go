@@ -9,7 +9,6 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"github.com/earthly/earthly/cleanup"
 	"github.com/fatih/color"
 )
 
@@ -79,7 +78,6 @@ type ConsoleLogger struct {
 	prefixWriter   PrefixWriter
 	trailingLine   bool
 	prefixPadding  int
-	bb             *BundleBuilder
 }
 
 // Current returns the current console.
@@ -123,7 +121,6 @@ func (cl ConsoleLogger) clone() ConsoleLogger {
 		nextColorIndex:    cl.nextColorIndex,
 		prefixPadding:     cl.prefixPadding,
 		mu:                cl.mu,
-		bb:                cl.bb,
 	}
 }
 
@@ -135,9 +132,6 @@ func (cl ConsoleLogger) WithPrefix(prefix string) ConsoleLogger {
 // WithPrefixAndSalt returns a ConsoleLogger with a prefix and a seed added.
 func (cl ConsoleLogger) WithPrefixAndSalt(prefix string, salt string) ConsoleLogger {
 	ret := cl.clone()
-	if cl.bb != nil {
-		ret.errW = io.MultiWriter(cl.consoleErrW, cl.bb.PrefixWriter(prefix))
-	}
 	ret.prefix = prefix
 	ret.salt = salt
 	if ret.prefixWriter != nil {
@@ -197,16 +191,6 @@ func (cl ConsoleLogger) WithPrefixWriter(w PrefixWriter) ConsoleLogger {
 	ret := cl.clone()
 	ret.prefixWriter = w
 	ret.errW = w
-	return ret
-}
-
-// WithLogBundleWriter returns a ConsoleLogger with a BundleWriter attached to capture output into a log bundle, for upload to log sharing.
-func (cl ConsoleLogger) WithLogBundleWriter(entrypoint string, collection *cleanup.Collection) ConsoleLogger {
-	ret := cl.clone()
-	ret.bb = NewBundleBuilder(entrypoint, collection)
-	fullW := ret.bb.PrefixWriter(fullLog)
-	ret.consoleErrW = io.MultiWriter(ret.consoleErrW, fullW)
-	ret.errW = ret.consoleErrW
 	return ret
 }
 
