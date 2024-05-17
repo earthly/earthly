@@ -54,7 +54,7 @@ func (app *EarthlyApp) before(cliCtx *cli.Context) error {
 	if flags.ExecStatsSummary != "" {
 		execStatsTracker = execstatssummary.NewTracker(flags.ExecStatsSummary)
 	}
-	newSetup, err := logbussetup.New(
+	busSetup, err := logbussetup.New(
 		cliCtx.Context,
 		app.BaseCLI.Logbus(),
 		flags.Debug,
@@ -68,10 +68,11 @@ func (app *EarthlyApp) before(cliCtx *cli.Context) error {
 		execStatsTracker,
 		flags.GithubAnnotations,
 	)
-	app.BaseCLI.SetLogbusSetup(newSetup)
 	if err != nil {
 		return errors.Wrap(err, "logbus setup")
 	}
+
+	app.BaseCLI.SetLogbusSetup(busSetup)
 
 	if cliCtx.IsSet("config") {
 		app.BaseCLI.Console().Printf("loading config values from %q\n", flags.ConfigPath)
