@@ -874,6 +874,41 @@ jobs:
       EXTRA_ARGS: "--auto-skip"
     secrets: inherit
 
+  backwards-compatability-test:
+    needs: build-earthly
+    name: Backwards Compatability
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+      # Used in our github action as the token - TODO: look to change it into an input
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker mirror login (Earthly Only)
+        run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Retrieve earthly from build-earthly job
+        run: |-
+          BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-ubuntu-latest-docker ./earthly upgrade
+          mkdir -p $(dirname "./build/earthly")
+          mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-ubuntu-latest-docker ./build/earthly
+      - name: Configure Earthly to use mirror (Earthly Only)
+        run: |-
+          ./build/earthly config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Download older version of earthly (v0.8.0)
+        run: |-
+          sudo wget https://github.com/earthly/earthly/releases/download/v0.8.0/earthly-linux-amd64 -O /usr/bin/earthly-v0.8.0
+          sudo chmod +x /usr/bin/earthly-v0.8.0
+          earthly-v0.8.0 --version
+      - name: execute backwards compatability script
+        run: earthly=./build/earthly scripts/tests/backwards-compatability.sh
+
   tutorial:
     needs: build-earthly
     name: Tutorial
