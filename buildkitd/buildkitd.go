@@ -289,13 +289,19 @@ func maybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image,
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "could not get settings hash")
 		}
-		ok, err := settings.VerifyHash(hash)
+		hashOK, err := settings.VerifyHash(hash)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "verify hash")
 		}
-		if ok {
-			// No need to replace: images are the same and settings are the same.
+		useExistingContainer := false
+		if hashOK {
 			bkCons.VerbosePrintf("Settings hashes match (%q), no restart required\n", hash)
+			useExistingContainer = true
+		} else if settings.NoUpdate {
+			bkCons.Warnf("Settings do not match; however restart was inhibited. This may cause unexpected issues, proceed with caution.\n")
+			useExistingContainer = true
+		}
+		if useExistingContainer {
 			info, workerInfo, err := checkConnection(ctx, settings.BuildkitAddress, 5*time.Second, opts...)
 			if err != nil {
 				return nil, nil, errors.Wrap(err, "could not connect to buildkitd to shut down container")
@@ -305,7 +311,7 @@ func maybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image,
 		bkCons.Printf("Settings do not match. Restarting buildkit daemon with updated settings...\n")
 	} else {
 		if settings.NoUpdate {
-			bkCons.Printf("Updated image available. But update was inhibited.\n")
+			bkCons.Printf("Updated image available; however update was inhibited.\n")
 			info, workerInfo, err := checkConnection(ctx, settings.BuildkitAddress, 5*time.Second, opts...)
 			if err != nil {
 				return nil, nil, errors.Wrap(err, "could not verify connection to buildkitd container")
@@ -556,6 +562,14 @@ func IsStarted(ctx context.Context, containerName string, fe containerutil.Conta
 
 // WaitUntilStarted waits until the buildkitd daemon has started and is healthy.
 func WaitUntilStarted(ctx context.Context, console conslogging.ConsoleLogger, containerName, volumeName, address string, opTimeout time.Duration, fe containerutil.ContainerFrontend, opts ...client.ClientOpt) (*client.Info, *client.WorkerInfo, error) {
+	// Check that containerName and address match when address connects over the docker-container:// scheme
+	if strings.HasPrefix(address, containerutil.DockerSchemePrefix) {
+		expectedAddress := containerutil.DockerSchemePrefix + containerName
+		if address != expectedAddress {
+			// This shouldn't happen unless there's a programming error
+			return nil, nil, errors.Errorf("expected address to be %s, but got %s", expectedAddress, address)
+		}
+	}
 	// First, wait for the container to be marked as started.
 	ctxTimeout, cancel := context.WithTimeout(ctx, opTimeout)
 	defer cancel()

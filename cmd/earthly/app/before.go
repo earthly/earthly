@@ -130,7 +130,7 @@ func (app *EarthlyApp) parseFrontend(cliCtx *cli.Context, cfg *config.Config) er
 		BuildkitHostCLIValue:       app.BaseCLI.Flags().BuildkitHost,
 		BuildkitHostFileValue:      app.BaseCLI.Cfg().Global.BuildkitHost,
 		LocalRegistryHostFileValue: app.BaseCLI.Cfg().Global.LocalRegistryHost,
-		InstallationName:           app.BaseCLI.Flags().InstallationName,
+		LocalContainerName:         app.BaseCLI.Flags().ContainerName,
 		DefaultPort:                8372 + config.PortOffset(app.BaseCLI.Flags().InstallationName),
 		Console:                    console,
 	}
