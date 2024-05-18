@@ -87,6 +87,7 @@ type Global struct {
 	Pull                       bool
 	Push                       bool
 	CI                         bool
+	UseTickTockBuildkitImage   bool
 	Output                     bool
 	NoOutput                   bool
 	NoCache                    bool
@@ -367,6 +368,13 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			EnvVars:     []string{"EARTHLY_CI"},
 			Usage:       common.Wrap("Execute in CI mode. ", "Implies --no-output --strict"),
 			Destination: &global.CI,
+		},
+		&cli.BoolFlag{
+			Name:        "ticktock",
+			EnvVars:     []string{"EARTHLY_TICKTOCK"},
+			Usage:       "Use earthly's experimental buildkit ticktock codebase",
+			Destination: &global.UseTickTockBuildkitImage,
+			Hidden:      true, // Experimental
 		},
 		&cli.BoolFlag{
 			Name:        "output",

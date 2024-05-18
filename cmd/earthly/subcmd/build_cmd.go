@@ -371,10 +371,18 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return errors.New("could not determine buildkit address - is Docker or Podman running?")
 	}
 
+	buildkitdImage := a.cli.Flags().BuildkitdImage
+	if a.cli.Flags().UseTickTockBuildkitImage {
+		if cliCtx.IsSet("buildkit-image") {
+			return fmt.Errorf("the --buildkit-image and --ticktock flags are mutually exclusive")
+		}
+		buildkitdImage += "-ticktock"
+	}
+
 	bkClient, err := buildkitd.NewClient(
 		cliCtx.Context,
 		a.cli.Console(),
-		a.cli.Flags().BuildkitdImage,
+		buildkitdImage,
 		a.cli.Flags().ContainerName,
 		a.cli.Flags().InstallationName,
 		a.cli.Flags().ContainerFrontend,
