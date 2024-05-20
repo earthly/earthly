@@ -1,25 +1,23 @@
 # Bring Your Own Cloud
 
-"Bring Your Own Cloud" (BYOC) satellites **Beta** are a hybrid between [self hosted](self-hosted.md) and [earthly-managed](../satellites.md) satellites. These satellites are managed by Earthly; just like our managed offering, but within your infrastructure. This blends the ease-of-use of managed satellites with the security benefits that self hosting can bring.
+"Bring Your Own Cloud" (BYOC) satellites **Experimental** are a hybrid between [self hosted](self-hosted.md) and [earthly-managed](../satellites.md) satellites. These satellites are managed by Earthly; just like our managed offering, but within your infrastructure. This blends the ease-of-use of managed satellites with the security benefits that self hosting can bring.
 
-Similarities to Earthly-managed satellites include:
-* The ability to use `earthly satellite` commands to provision and decommission satellites.
-* Earthly-provided monitoring and reliability.
-* Automatic updates.
+Here is how Earthly-managed satellites compare to BYOC: 
 
-Differences from Earthly-managed satellites include:
-* Networking must be user-provided. This includes:
-  * Ingress to the satellite
-  * Egress to other networks and/or the internet
-* Earthly cannot access the machines for debugging or troubleshooting.
+| Similarities                                                                               | Differences                                                           |
+|--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| ✅ The ability to use `earthly satellite` commands to provision and decommission satellites | ❌ Networking must be user-provided                                    |
+| ✅ Earthly-provided monitoring and reliability                                              | ❌ Earthly cannot access the machines for debugging or troubleshooting |
+| ✅ Automatic updates                                                                        |                                                                       |
+| ✅ Automatic sleep/wake                                                                     |                                                                       |
 
-Similarities to self-hosted satellites include:
-* The satellite lives in your infrastructure, next to your tools.
-* You pay for the usage the satellite incurs.
+Here is how Self-hosted satellites compare to BYOC:
 
-Differences to self-hosted satellites include:
-* You cannot manually provision satellites.
-* You must allow Earthly access to at least some portion of an AWS account you control.
+| Similarities                                                     | Differences                                                                            |
+|------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| ✅ The satellite lives in your infrastructure, next to your tools | ❌ You cannot manually provision satellites                                             |
+| ✅ You pay for the usage the satellite incurs                     | ❌ You must allow Earthly access to at least some portion of an AWS account you control |
+|                                                                  | ❌ You pay the cloud provider, not Earthly, for the compute usage                       |
 
 Right now, BYOC is only supported in AWS.
 
@@ -43,8 +41,8 @@ Before you begin to provision your BYOC configurations, there are a few requirem
 ### 1. Install AWS Components
 
 Begin by installing our CloudFormation Template:
-
-[<img src="img/cloudformation.png" alt="Launch Stack" title="Launch CloudFormation Stack quicklink" />](https://console.aws.amazon.com/cloudformation/home#/stacks/new?templateURL=https://production-byoc-installation.s3.us-west-2.amazonaws.com/cloudformation-byoc-installation.yaml)
+region=us-west-2#/stacks/create
+[<img src="img/cloudformation.png" alt="Launch Stack In us-west-2" title="Launch CloudFormation Stack Quick-Create link" />](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?templateURL=https://production-byoc-installation.s3.us-west-2.amazonaws.com/cloudformation-byoc-installation.yaml)
 
 If you need help installing a Cloudformation Template, you can reference [this guide from AWS](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/GettingStarted.Walkthrough.html). Once the installation is complete, continue to step 2.
 
