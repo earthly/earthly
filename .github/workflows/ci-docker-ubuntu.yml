@@ -67,7 +67,6 @@ jobs:
 #      EXTRA_ARGS: "--auto-skip"
 #    secrets: inherit
 
-
 #  docker-tests-no-qemu-group1:
 #    needs: build-earthly
 #    if: ${{ !failure() }}
