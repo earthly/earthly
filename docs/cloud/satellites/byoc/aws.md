@@ -72,3 +72,45 @@ If you try to install the template and get permissions errors, you can [contact 
 The CloudFormation template will install two IAM policies within the account. One is to allow Earthly the permissions it needs to access your account and manage your satellite instances, and the other allows Satellites themselves to log to CloudWatch Logs. These have derived names that are associated with the Stack Name specified. Check the box to move on.
 
 If organizational policy prevents you from creating IAM resources with custom names, you can create the needed resources manually, and use the [import functionality within CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resource-import.html) to install this stack.
+
+#### Finalize
+
+If all this looks good, click the "Next" button at the bottom of the page. Your stack will start creating. Click the refresh button in the top right to update the list of events. Proceed with the rest of the BYOC installation once the stack creation is `CREATE_COMPLETE`.
+
+<img src="img/cloudformation-stack-events.png" alt="The events monitoring page for the CloudFormation template you've begun installing. It has successful creation events for items within the stack, and the stack has been created successfully." title="Stack Events" />
+
+### Post-Installation Notes
+
+#### SSH
+The template creates an SSH key that can be used to access the Satellites for debugging, or other diagnostic purposes. While the fingerprint and public key are stored in the usual spot within EC2, the private key can take a little bit of digging. Here's how to find it:
+* Get the id of the key created by CloudFormation:
+  * Open EC2, and click on "Key Pairs", under the "Network & Security" section on the left. 
+  * Find the key named `<stack-name>-satellite-key`, where `<stack-name>` is the name you used when creating the CloudFormation Stack.
+  * Note the id column for this entry, and use it in the next step.
+    <img src="img/cloudformation-key-id.png" alt="A list of EC2 SSH Key Pairs. It has several columns, inclding ID." title="Key Pairs" />
+* Visit the [SSM Parameter Store](https://us-west-2.console.aws.amazon.com/systems-manager/parameters?region=us-west-2)
+  * Click on the name of the desired secret, it will be of the format `/ec2/keypair/<key-id>`, where `<key-id>` is the id you got from EC2.
+  * On the "Overview" tab, in the "Parameter details" box, there is a toggle labeled "Show decrypted value". Click it to reveal your SSH private key:
+    <img src="img/cloudformation-ssm-parameter-store.png" alt="The parameter details box for a given key id. It has a name, ARN, Tier, Type, and Value field. The Show decrypted value toggle is off." title="Parameter details" />
+
+If you prefer the CLI:
+* Run this to get the ID of your key:
+  ```shell
+  aws ec2 describe-key-pairs \
+    --filters 'Name=key-name,Values=<stack-name>-satellite-key' \
+    --query 'KeyPairs[*].KeyPairId' \
+    --output text
+  ```
+  Where `<stack-name>` is the name you gave the CloudFormation stack at creation time.
+* Next, run this to get your key, and save it in a file named `key.pem`:
+  ```shell
+  aws ssm get-parameter \
+  --name /ec2/keypair/<key-id> \
+  --with-decryption \
+  --query Parameter.Value \
+  --output text > key.pem
+  ```
+  Where `<key-id>` is the value obtained from the prior step.
+
+#### Customization
+If you need/want to make changes to your installation, please see AWS' guide for [resolving drift in a CloudFormation stack via import](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resource-import-resolve-drift.html).

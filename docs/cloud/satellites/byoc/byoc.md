@@ -21,17 +21,12 @@ Here is how Self-hosted satellites compare to BYOC:
 
 ## Installation
 
-### Step 1: Networking
-
-Configure your networking (usually a VPN) to ensure access to the satellites that will be created by Earthly. We have guides to enable BYOC on VPNs for the following VPN providers:
-* [Tailscale](./tailscale.md)
-
-### Step 2: Configure Your Cloud Provider
+### Step 1: Configure Your Cloud Provider
 
 Right now, BYOC Satellites are only supported in AWS. See our [AWS CloudFormation](./aws.md) instructions to provision the required AWS resources.
 
 
-### Step 3: Install In Earthly
+### Step 2: Install In Earthly
 
 After installing the required resources within your cloud provider; you must complete the installation by telling Earthly about your new configuration. Run:
 
@@ -41,6 +36,11 @@ earthly cloud install <name>
 
 Where `<name>` is the name of the Installation, as specified by your cloud provider. Assuming it reports the status as `Green`, you should be good to go!
 
+
+### Step 3: Networking
+
+To use a satellite created by BYOC, you'll need to configure your networking (usually a VPN) to ensure access. We have guides to enable BYOC on VPNs for the following VPN providers:
+* [Tailscale](./tailscale.md)
 
 ### Step 4. Test Drive
 
