@@ -82,7 +82,7 @@ func (i *Interpreter) Run(ctx context.Context, ef spec.Earthfile) (retErr error)
 	}()
 	if i.target.Target == "base" {
 		i.isBase = true
-		err := i.handleBlock(ctx, ef.BaseRecipe)
+		err := i.handleBlock(ctx, ef.BaseRecipe, false)
 		i.isBase = false
 		return err
 	}
@@ -115,16 +115,24 @@ func (i *Interpreter) handleTarget(ctx context.Context, t spec.Target) error {
 		return i.handlePipelineBlock(ctx, t.Name, t.Recipe)
 	}
 
-	return i.handleBlock(ctx, t.Recipe)
+	return i.handleBlock(ctx, t.Recipe, false)
 }
 
-func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
+func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block, async bool) error {
+	if async && i.local {
+		return errCannotAsync
+	}
 	prevWasArgLike := true // not exactly true, but makes the logic easier
 	for index, stmt := range b {
+		index := index
+		stmt := stmt
 		if i.parallelConversion && prevWasArgLike {
-			err := i.handleBlockParallel(ctx, b, index)
+			allHandledAsynchronously, err := i.handleBlockParallel(ctx, b, index)
 			if err != nil {
 				return err
+			}
+			if allHandledAsynchronously && async {
+				continue
 			}
 		}
 		err := i.handleStatement(ctx, stmt)
@@ -137,11 +145,13 @@ func (i *Interpreter) handleBlock(ctx context.Context, b spec.Block) error {
 	return nil
 }
 
-func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, startIndex int) error {
+// handleBlockParallel returns a bool indicating if all commands were handled asynchronously
+func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, startIndex int) (bool, error) {
 	if i.local {
 		// Don't do any preemptive execution for LOCALLY targets.
-		return nil
+		return false, nil
 	}
+	allAsync := true
 	// Look ahead of the execution and fire off asynchronous builds for mentioned targets,
 	// as long as they don't have variable args $(...).
 	for index := startIndex; index < len(b); index++ {
@@ -152,33 +162,35 @@ func (i *Interpreter) handleBlockParallel(ctx context.Context, b spec.Block, sta
 				// Cannot do any further parallel builds - these commands need to be
 				// executed to ensure that they don't impact the outcome. As such,
 				// commands following these cannot be executed preemptively.
-				return nil
+				return false, nil
 			case command.Build:
 				err := i.handleBuild(ctx, *stmt.Command, true)
 				if err != nil {
 					if errors.Is(err, errCannotAsync) {
 						continue // no biggie
 					}
-					return err
+					return false, err
 				}
 			case command.Copy:
 				// TODO
+				allAsync = false
 			}
 		} else if stmt.With != nil {
 			switch stmt.With.Command.Name {
 			case command.Docker:
 				// TODO
+				allAsync = false
 			}
 		} else if stmt.If != nil || stmt.For != nil || stmt.Wait != nil || stmt.Try != nil {
 			// Cannot do any further parallel builds - these commands need to be
 			// executed to ensure that they don't impact the outcome. As such,
 			// commands following these cannot be executed preemptively.
-			return nil
+			return false, nil
 		} else {
-			return i.errorf(stmt.SourceLocation, "unexpected statement type")
+			return false, i.errorf(stmt.SourceLocation, "unexpected statement type")
 		}
 	}
-	return nil
+	return allAsync, nil
 }
 
 func (i *Interpreter) handleStatement(ctx context.Context, stmt spec.Statement) error {
@@ -317,7 +329,7 @@ func (i *Interpreter) handleWith(ctx context.Context, with spec.WithStatement) e
 	if i.withDocker != nil && len(with.Body) > 1 {
 		return i.errorf(with.SourceLocation, "only one command is allowed in WITH DOCKER and it has to be RUN")
 	}
-	err = i.handleBlock(ctx, with.Body)
+	err = i.handleBlock(ctx, with.Body, false)
 	if err != nil {
 		return err
 	}
@@ -339,7 +351,7 @@ func (i *Interpreter) handleIf(ctx context.Context, ifStmt spec.IfStatement) err
 	}
 
 	if isZero {
-		return i.handleBlock(ctx, ifStmt.IfBody)
+		return i.handleBlock(ctx, ifStmt.IfBody, false)
 	}
 	for _, elseIf := range ifStmt.ElseIf {
 		isZero, err = i.handleIfExpression(ctx, elseIf.Expression, elseIf.ExecMode, elseIf.SourceLocation)
@@ -347,11 +359,11 @@ func (i *Interpreter) handleIf(ctx context.Context, ifStmt spec.IfStatement) err
 			return err
 		}
 		if isZero {
-			return i.handleBlock(ctx, elseIf.Body)
+			return i.handleBlock(ctx, elseIf.Body, false)
 		}
 	}
 	if ifStmt.ElseBody != nil {
-		return i.handleBlock(ctx, *ifStmt.ElseBody)
+		return i.handleBlock(ctx, *ifStmt.ElseBody, false)
 	}
 	return nil
 }
@@ -411,18 +423,24 @@ func (i *Interpreter) handleFor(ctx context.Context, forStmt spec.ForStatement) 
 	if err != nil {
 		return err
 	}
-	for _, instance := range instances {
-		err = i.converter.SetArg(ctx, variable, instance)
-		if err != nil {
-			return i.wrapError(err, forStmt.SourceLocation, "set %s=%s", variable, instance)
-		}
-		err = i.handleBlock(ctx, forStmt.Body)
-		if err != nil {
-			return err
-		}
-		err = i.converter.UnsetArg(ctx, variable)
-		if err != nil {
-			return i.wrapError(err, forStmt.SourceLocation, "unset %s", variable)
+outer:
+	for _, async := range []bool{true, false} {
+		for _, instance := range instances {
+			err = i.converter.SetArg(ctx, variable, instance)
+			if err != nil {
+				return i.wrapError(err, forStmt.SourceLocation, "set %s=%s", variable, instance)
+			}
+			err = i.handleBlock(ctx, forStmt.Body, async)
+			if err != nil {
+				if async && errors.Is(err, errCannotAsync) {
+					continue outer
+				}
+				return err
+			}
+			err = i.converter.UnsetArg(ctx, variable)
+			if err != nil {
+				return i.wrapError(err, forStmt.SourceLocation, "unset %s", variable)
+			}
 		}
 	}
 	return nil
@@ -481,7 +499,7 @@ func (i *Interpreter) handleWait(ctx context.Context, waitStmt spec.WaitStatemen
 		return err
 	}
 
-	err = i.handleBlock(ctx, waitStmt.Body)
+	err = i.handleBlock(ctx, waitStmt.Body, false)
 	if err != nil {
 		return err
 	}
@@ -2166,7 +2184,7 @@ To start using the FUNCTION keyword now (experimental) please use VERSION --use-
 	}
 	prevAllowPrivileged := i.allowPrivileged
 	i.allowPrivileged = allowPrivileged
-	err = i.handleBlock(ctx, uc.Recipe[1:])
+	err = i.handleBlock(ctx, uc.Recipe[1:], false)
 	if err != nil {
 		return err
 	}
