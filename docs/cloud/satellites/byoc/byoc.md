@@ -56,10 +56,15 @@ First, make sure you can see the cloud you just installed by running `earthly cl
 ```
 The `*` indicates the default cloud that will be used when launching satellites within your organization, unless otherwise specified.
 
-Note that the `earthly-cloud` installation is a special cloud present in all organizations. Satellites within this cloud are managed within Earthly's cloud, by Earthly.  
+
+{% hint style='info' %}
+Note that the `earthly-cloud` installation is a special cloud present in all organizations. Satellites within this cloud are managed within Earthly's cloud, by Earthly. You can change back to use Earthly-managed satellites at any time by running the `earthly cloud use earthly-cloud` installation.
+{% endhint %}
 
 To test-launch a new satellite within the cloud, run `earthly satellite launch --cloud <name> my-byoc-sat`. This will launch a new satellite using your cloud. Assuming that works, kick the tires by trying to run one of your builds on it!
 
-If everything looks good, you can run `earthly cloud use <name>` to set this cloud to be the default for your organization. You can change back to use Earthly-managed satellites at any time by running the `earthly cloud use earthly-cloud` installation.
+If everything looks good, you can run `earthly cloud use <name>` to set this cloud to be the default for your organization. 
 
-Note that this setting is global, for all users within the org. This prevents people from launching satellites in the wrong cloud, and accidentially disseminating information that shouldn't be.
+{% hint style='warning' %}
+This setting is global for all users within the org. This prevents people from launching satellites in the wrong cloud, and accidentially disseminating information that shouldn't be.
+{% endhint %}
