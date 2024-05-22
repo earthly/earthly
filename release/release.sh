@@ -154,7 +154,7 @@ fi
 echo "earthlynext is $earthlynext"
 
 "$earthly" --push --build-arg DOCKERHUB_USER --build-arg DOCKERHUB_IMG --build-arg DOCKERHUB_BUILDKIT_IMG +release-dockerhub --PUSH_PRERELEASE_TAG="$PRERELEASE" --PUSH_LATEST_TAG="$PUSH_LATEST_TAG" --RELEASE_TAG="$RELEASE_TAG"
-"$earthly" --push --build-arg DOCKERHUB_USER --build-arg DOCKERHUB_IMG --build-arg DOCKERHUB_BUILDKIT_IMG +perform-release-buildkitd-dockerhub --PUSH_PRERELEASE_TAG="$PRERELEASE" --PUSH_LATEST_TAG="false" --RELEASE_TAG="$RELEASE_TAG-ticktock" --BUILDKIT_PROJECT=github.com/earthly/buildkit:$earthlynext
+"$earthly" --push --build-arg DOCKERHUB_USER --build-arg DOCKERHUB_IMG --build-arg DOCKERHUB_BUILDKIT_IMG +perform-release-buildkitd-dockerhub --PUSH_PRERELEASE_TAG="false" --PUSH_LATEST_TAG="false" --RELEASE_TAG="$RELEASE_TAG-ticktock" --BUILDKIT_PROJECT=github.com/earthly/buildkit:$earthlynext
 "$earthly" --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg DOCKERHUB_BUILDKIT_IMG --build-arg RELEASE_TAG --build-arg SKIP_CHANGELOG_DATE_TEST $GITHUB_SECRET_PATH_BUILD_ARG +release-github --PRERELEASE="$GITHUB_PRERELEASE"
 
 if [ "$PRERELEASE" != "false" ]; then
