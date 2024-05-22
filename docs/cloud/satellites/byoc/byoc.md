@@ -2,7 +2,7 @@
 
 "Bring Your Own Cloud" (BYOC) satellites **Experimental** are a hybrid between [self hosted](../self-hosted.md) and [earthly-managed](../../satellites.md) satellites. These satellites are managed by Earthly; just like our managed offering, but within your infrastructure. This blends the ease-of-use of managed satellites with the security benefits that self hosting can bring.
 
-Here is how Earthly-managed satellites compare to BYOC: 
+### Earthly BYOC Satellites vs Earthly Cloud Satellites
 
 | Similarities                                                                               | Differences                                                           |
 |--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
