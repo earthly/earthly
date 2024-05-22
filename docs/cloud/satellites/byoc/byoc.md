@@ -18,6 +18,7 @@
 | ✅ The satellite lives in your infrastructure, next to your tools | ❌ You cannot manually provision satellites                                             |
 | ✅ You pay for the usage the satellite incurs                     | ❌ You must allow Earthly access to at least some portion of an AWS account you control |
 |                                                                  | ❌ You pay the cloud provider, not Earthly, for the compute usage                       |
+|                                                                  | ❌ You are responsible for the Satellites monitoring and reliability                    |
 
 ## Installation
 
@@ -56,15 +57,30 @@ First, make sure you can see the cloud you just installed by running `earthly cl
 ```
 The `*` indicates the default cloud that will be used when launching satellites within your organization, unless otherwise specified.
 
-
 {% hint style='info' %}
 Note that the `earthly-cloud` installation is a special cloud present in all organizations. Satellites within this cloud are managed within Earthly's cloud, by Earthly. You can change back to use Earthly-managed satellites at any time by running the `earthly cloud use earthly-cloud` installation.
 {% endhint %}
 
-To test-launch a new satellite within the cloud, run `earthly satellite launch --cloud <name> my-byoc-sat`. This will launch a new satellite using your cloud. Assuming that works, kick the tires by trying to run one of your builds on it!
+### Step 5. Launch A Satellite
 
-If everything looks good, you can run `earthly cloud use <name>` to set this cloud to be the default for your organization. 
+To test-launch a new satellite within the cloud, run:
+
+```shell
+earthly satellite launch --cloud <name> my-byoc-sat
+```
+This will launch a new satellite using your newly created cloud. Assuming that works, kick the tires by trying to run one of your builds on it!
+
+
+### Step 6. Use The Cloud
+
+If everything looks good, you're done! If you would like this new cloud to be the default, simply run:
+
+```shell
+earthly cloud use <name>
+```
+
+This makes the new cloud you created be the default for _the entire organization_.
 
 {% hint style='warning' %}
-This setting is global for all users within the org. This prevents people from launching satellites in the wrong cloud, and accidentially disseminating information that shouldn't be.
+This setting is global for all users within the org. This prevents people from launching satellites in the wrong cloud, and accidentally disseminating information that shouldn't be.
 {% endhint %}
