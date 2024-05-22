@@ -22,29 +22,30 @@ test1:
     DO --pass-args +DO_REMOTE_CACHE_EARTHLY --target=+test1
 
     # Not cached - before copy.
-    #RUN cat ./output && cat /var/log/buildkitd.log && exit 1
-    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && acbtest "$nl" -eq 2
+    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | grep -v "echo" | wc -l) && acbtest "$nl" -eq 1
 
     # Not cached - after copy.
-    RUN cat ./output
-    RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && acbtest "$nl" -eq 2
+    RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | grep -v "echo" | wc -l) && acbtest "$nl" -eq 1
 
     # No change & re-run - should only have 1 line output and not re-echo.
     DO --pass-args +DO_REMOTE_CACHE_EARTHLY --target=+test1
 
-    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | wc -l) && cat /var/log/buildkitd.log && acbtest "$nl" -eq 1
+    RUN nl=$(cat ./output | grep -F '*cached* --> RUN echo "execute-test1-run-before-copy"' | wc -l) && acbtest "$nl" -eq 1
+    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | grep -v "echo" | wc -l) && acbtest "$nl" -eq 0
 
     # Cached - should only have 1 line output and not re-echo.
-    RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | grep -v '\[.*\] [0-9]\+%' | wc -l) && acbtest "$nl" -eq 1
+    RUN nl=$(cat ./output | grep -F '*cached* --> RUN echo "execute-test1-run-after-copy"' | wc -l) && acbtest "$nl" -eq 1
+    RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | grep -v "echo" | wc -l) && acbtest "$nl" -eq 0
 
     RUN echo "other content" >./input
     DO --pass-args +DO_REMOTE_CACHE_EARTHLY --target=+test1
 
     # Cached.
-    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | grep -v '\[.*\] [0-9]\+%' | wc -l) && acbtest "$nl" -eq 1
+    RUN nl=$(cat ./output | grep -F '*cached* --> RUN echo "execute-test1-run-before-copy"' | wc -l) && acbtest "$nl" -eq 1
+    RUN nl=$(cat ./output | grep "execute-test1-run-before-copy" | grep -v "echo" | wc -l) && acbtest "$nl" -eq 0
 
     # Not cached.
-    RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | wc -l) && acbtest "$nl" -eq 2
+    RUN nl=$(cat ./output | grep "execute-test1-run-after-copy" | grep -v "echo" | wc -l) && acbtest "$nl" -eq 1
 
 test2:
     RUN echo "a"
