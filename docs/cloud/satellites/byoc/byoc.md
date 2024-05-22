@@ -11,7 +11,7 @@
 | ✅ Automatic updates                                                                        |                                                                       |
 | ✅ Automatic sleep/wake                                                                     |                                                                       |
 
-Here is how Self-hosted satellites compare to BYOC:
+### Earthly BYOC Satellites vs Earthly Self-Hosted Satellites
 
 | Similarities                                                     | Differences                                                                            |
 |------------------------------------------------------------------|----------------------------------------------------------------------------------------|
