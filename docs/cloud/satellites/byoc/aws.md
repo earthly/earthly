@@ -8,7 +8,7 @@ Before you begin to provision your BYOC configuration within AWS, there are a fe
 ### Networking
 Because every configuration is different, using BYOC within your organization will require you to configure your networking to match your use case. You'll need to ensure that:
 
-* Traffic from Earthly clients (build machines or otherwise) can reach the satellites directly. When installing the AWS CloudFormation template, a security group rule is created that should allow the correct ingress from the specified CIDR block.
+* Traffic from Earthly clients, including CI build runners and developer workstations, can reach the satellites directly. When installing the AWS CloudFormation template, a security group rule is created that should allow the correct ingress from the specified CIDR block.
 * Traffic to any required resources (e.g. private repositories, the internet, etc) are allowed. When installing the AWS CloudFormation template, the default egress rule allows any outbound traffic.
 * Internal AWS DNS names must resolve to an address reachable on the network. This is because invocations of Earthly that reference the BYOC satellite will use the AWS internal DNS address to try and reach the satellite. 
 
