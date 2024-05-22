@@ -71,6 +71,7 @@ export GITHUB_SECRET_PATH=$GITHUB_SECRET_PATH
 export PRERELEASE=${PRERELEASE:-true}
 export SKIP_CHANGELOG_DATE_TEST=${SKIP_CHANGELOG_DATE_TEST:-false}
 export S3_BUCKET=${S3_BUCKET:-production-pkg}
+export EARTHLY_STAGING=${EARTHLY_STAGING:-false}
 
 
 if [ "$PRERELEASE" != "false" ] && [ "$PRERELEASE" != "true" ]; then
@@ -133,12 +134,36 @@ if [ "$PRERELEASE" = "true" ] || [ "$PRODUCTION_RELEASE" != "true" ]; then
     PUSH_LATEST_TAG="false"
 fi
 
+GITHUB_PRERELEASE="$PRERELEASE"
+if [ "$EARTHLY_STAGING" = "true" ]; then
+    # special case to ensure https://github.com/earthly/earthly-staging/releases/latest/download/earthly-linux-amd64 is kept up to date
+    GITHUB_PRERELEASE="true"
+
+    # make sure we aren't accidentally doing a regular release
+    if [ "$PUSH_LATEST_TAG" = "true" ]; then
+        echo "something is wrong; PUSH_LATEST_TAG should be false"
+        exit 1
+    fi
+fi
+
+earthlynext="$(cat ../earthly-next)"
+if [[ ! "$earthlynext" =~ ^[a-zA-Z0-9]{40}$ ]]; then
+    echo "../earthly-next does not contain a valid git commit hash; got $earthlynext"
+    exit 1
+fi
+echo "earthlynext is $earthlynext"
+
 "$earthly" --push --build-arg DOCKERHUB_USER --build-arg DOCKERHUB_IMG --build-arg DOCKERHUB_BUILDKIT_IMG +release-dockerhub --PUSH_PRERELEASE_TAG="$PRERELEASE" --PUSH_LATEST_TAG="$PUSH_LATEST_TAG" --RELEASE_TAG="$RELEASE_TAG"
-"$earthly" --push --build-arg DOCKERHUB_USER --build-arg DOCKERHUB_IMG --build-arg DOCKERHUB_BUILDKIT_IMG +perform-release-buildkitd-dockerhub --PUSH_PRERELEASE_TAG="$PRERELEASE" --PUSH_LATEST_TAG="false" --RELEASE_TAG="$RELEASE_TAG-ticktock" --BUILDKIT_PROJECT=github.com/earthly/buildkit:earthly-next
-"$earthly" --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg DOCKERHUB_BUILDKIT_IMG --build-arg RELEASE_TAG --build-arg SKIP_CHANGELOG_DATE_TEST --build-arg PRERELEASE $GITHUB_SECRET_PATH_BUILD_ARG +release-github
+"$earthly" --push --build-arg DOCKERHUB_USER --build-arg DOCKERHUB_IMG --build-arg DOCKERHUB_BUILDKIT_IMG +perform-release-buildkitd-dockerhub --PUSH_PRERELEASE_TAG="$PRERELEASE" --PUSH_LATEST_TAG="false" --RELEASE_TAG="$RELEASE_TAG-ticktock" --BUILDKIT_PROJECT=github.com/earthly/buildkit:$earthlynext
+"$earthly" --push --build-arg GITHUB_USER --build-arg EARTHLY_REPO --build-arg BREW_REPO --build-arg DOCKERHUB_USER --build-arg DOCKERHUB_BUILDKIT_IMG --build-arg RELEASE_TAG --build-arg SKIP_CHANGELOG_DATE_TEST $GITHUB_SECRET_PATH_BUILD_ARG +release-github --PRERELEASE="$GITHUB_PRERELEASE"
 
 if [ "$PRERELEASE" != "false" ]; then
     echo "exiting due to PRERELEASE=$PRERELEASE"
+    exit 0
+fi
+
+if [ "$EARTHLY_STAGING" = "true" ]; then
+    echo "exiting due to EARTHLY_STAGING=$EARTHLY_STAGING"
     exit 0
 fi
 
