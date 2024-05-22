@@ -1,6 +1,6 @@
 # Installing BYOC in AWS
 
-This page documents the requirements and steps required to install BYOC Satellites in AWS.
+This page documents the requirements and steps required to install [BYOC Satellites](byoc.md) in AWS.
 
 ## Requirements
 Before you begin to provision your BYOC configuration within AWS, there are a few requirements you need to make sure you meet first:
@@ -12,13 +12,17 @@ Because every configuration is different, using BYOC within your organization wi
 * Traffic to any required resources (e.g. private repositories, the internet, etc) are allowed. When installing the AWS CloudFormation template, the default egress rule allows any outbound traffic.
 * Internal AWS DNS names must resolve to an address reachable on the network. This is because invocations of Earthly that reference the BYOC satellite will use the AWS internal DNS address to connect to the satellite. 
 
-These can all be accomplished with most VPN technologies. We recommend and have direct experience with Tailscale. If you need help configuring other networking scenarios, please reach out to us!
+These can all be accomplished with most VPN technologies. We recommend and have direct experience with Tailscale. If you need help configuring other networking scenarios, [please reach out to us](https://earthly.dev/slack)!
 
 ### Cloud
 Configuring BYOC in your AWS account is as simple as applying a CloudFormation template, and reading its outputs. You'll need:
 
-* An account with permissions to create a new CloudFormation stack in AWS.
-* An account with permissions to describe an existing CloudFormation stack in AWS.
+* An AWS account with permissions to:
+  * create a new CloudFormation stack, and
+  * describe the newly created CloudFormation stack after it has run.
+* Either:
+  * An AWS account with permissions to create all the resources specified in the CloudFormation template, or
+  * a role for CloudFormation to use that has the needed permissions.
 * A VPC, and chosen subnet that Earthly will place its satellites into. *Take note of the CIDR block, you will need it later.*
 
 Right now, BYOC is only supported in the `us-west-2` (Oregon) region.
