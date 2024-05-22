@@ -123,3 +123,4 @@ earthly-job:
 For Earthly-Cloud satellites make sure you have an [EARTHLY_TOKEN](https://docs.earthly.dev/docs/earthly-command#earthly-account-create-token) available in your [GitHub Actions secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) store, and add it to the job environment, as shown in the previous example. Future versions will remove this requirement.
 
 {% endhint %}
+
