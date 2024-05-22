@@ -137,7 +137,7 @@ fi
 GITHUB_PRERELEASE="$PRERELEASE"
 if [ "$EARTHLY_STAGING" = "true" ]; then
     # special case to ensure https://github.com/earthly/earthly-staging/releases/latest/download/earthly-linux-amd64 is kept up to date
-    GITHUB_PRERELEASE="true"
+    GITHUB_PRERELEASE="false"
 
     # make sure we aren't accidentally doing a regular release
     if [ "$PUSH_LATEST_TAG" = "true" ]; then
