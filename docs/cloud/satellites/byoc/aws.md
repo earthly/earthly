@@ -31,7 +31,7 @@ After installing the CloudFormation template, you'll need to finish the installa
 
 ## Installing the BYOC CloudFormation Template
 
-You can install our CloudFormation Template, by opening on this link in a new tab and following the prompts:
+You can install our CloudFormation Template, by opening this link in a new tab and following the prompts:
 
 [<img src="img/cloudformation.png" alt="Launch Stack In us-west-2" title="Launch CloudFormation Stack Quick-Create link" />](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?templateURL=https://production-byoc-installation.s3.us-west-2.amazonaws.com/cloudformation-byoc-installation.yaml)
 
