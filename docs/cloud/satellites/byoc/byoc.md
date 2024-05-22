@@ -23,7 +23,7 @@
 
 ### Step 1: Configure Your Cloud Provider
 
-Right now, BYOC Satellites are only supported in AWS. See our [AWS CloudFormation](./aws.md) instructions to provision the required AWS resources.
+Follow the instructions on the [AWS CloudFormation](./aws.md) page to provision the required AWS resources. Right now, BYOC Satellites are only supported in AWS.
 
 
 ### Step 2: Install In Earthly
