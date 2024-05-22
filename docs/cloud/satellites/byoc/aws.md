@@ -10,7 +10,7 @@ Because every configuration is different, using BYOC within your organization wi
 
 * Traffic from Earthly clients, including CI build runners and developer workstations, can reach the satellites directly. When installing the AWS CloudFormation template, a security group rule is created that should allow the correct ingress from the specified CIDR block.
 * Traffic to any required resources (e.g. private repositories, the internet, etc) are allowed. When installing the AWS CloudFormation template, the default egress rule allows any outbound traffic.
-* Internal AWS DNS names must resolve to an address reachable on the network. This is because invocations of Earthly that reference the BYOC satellite will use the AWS internal DNS address to try and reach the satellite. 
+* Internal AWS DNS names must resolve to an address reachable on the network. This is because invocations of Earthly that reference the BYOC satellite will use the AWS internal DNS address to connect to the satellite. 
 
 These can all be accomplished with most VPN technologies. We recommend and have direct experience with Tailscale. If you need help configuring other networking scenarios, please reach out to us!
 
