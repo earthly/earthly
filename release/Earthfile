@@ -67,13 +67,15 @@ perform-release-buildkitd-dockerhub:
     ARG DOCKERHUB_USER="earthly"
     ARG DOCKERHUB_IMG="earthly"
     ARG DOCKERHUB_BUILDKIT_IMG="buildkitd"
+    ARG BUILDKIT_PROJECT
     BUILD \
         --platform=linux/amd64 \
         --platform=linux/arm64 \
         ../buildkitd+buildkitd \
         --TAG="$RELEASE_TAG" \
         --DOCKERHUB_USER="$DOCKERHUB_USER" \
-        --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG"
+        --DOCKERHUB_BUILDKIT_IMG="$DOCKERHUB_BUILDKIT_IMG" \
+        --BUILDKIT_PROJECT="$BUILDKIT_PROJECT"
 
 release-notes:
     FROM ..+changelog-parser
