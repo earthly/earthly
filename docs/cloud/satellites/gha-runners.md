@@ -1,7 +1,11 @@
 # Satellites as GitHub Actions runners
 
 {% hint style='warning' %}
-This feature is experimental, not recommended for production usage yet. Feedback is welcome.
+This feature is experimental. 
+
+Not recommended for production usage since it might introduce breaking changes in the future. 
+
+Feedback is welcome and much appreciated!
 
 {% endhint %}
 
