@@ -1,4 +1,9 @@
-# Satellites as GitHub Actions runners (**experimental**)
+# Satellites as GitHub Actions runners
+
+{% hint style='warning' %}
+This feature is experimental, not recommended for production usage yet. Feedback is welcome.
+
+{% endhint %}
 
 Earthly satellites are now bundled with a GitHub Actions runner, so they can directly pull jobs from GitHub Actions without the need of an intermediate runner.
 
