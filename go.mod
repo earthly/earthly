@@ -9,6 +9,7 @@ require (
 	github.com/alexcb/binarystream v0.0.0-20231130184431-f2f7a7543c6d
 	github.com/aws/aws-sdk-go-v2 v1.26.1
 	github.com/aws/aws-sdk-go-v2/config v1.18.16
+	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.50.0
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20230227212328-9f4511cd144a
 	github.com/containerd/containerd v1.7.8
 	github.com/containerd/go-runc v1.1.0
@@ -18,7 +19,7 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.5.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/earthly/cloud-api v1.0.1-0.20240508215807-a958f373126f
+	github.com/earthly/cloud-api v1.0.1-0.20240516231256-26ec57717150
 	github.com/earthly/earthly/ast v0.0.0-00010101000000-000000000000
 	github.com/earthly/earthly/util/deltautil v0.0.0-20240507235053-335389ed3e2a
 	github.com/elastic/go-sysinfo v1.9.0
@@ -72,8 +73,8 @@ require (
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230219212500-1f9a474cc2dc // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.16 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.24 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.8 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.5.8 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.5 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.5 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.31 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.24.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.15.1 // indirect

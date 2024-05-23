@@ -72,6 +72,7 @@ jobs:
             export SHA_DEC="$(echo "ibase=16; $(git rev-parse --short HEAD | tr '[:lower:]' '[:upper:]')" | bc)"
             export RELEASE_TAG="v0.$(date +%s).$SHA_DEC"
             export SKIP_CHANGELOG_DATE_TEST=true
+            export EARTHLY_STAGING=true
             export S3_BUCKET="staging-pkg"
             export earthly="./build/linux/amd64/earthly"
             echo "attempting staging-release version: $RELEASE_TAG"

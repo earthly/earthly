@@ -8,32 +8,70 @@ import (
 )
 
 const (
-	CloudStatusConnected = "Connected"
-	CloudStatusActive    = "Active"
-	CloudStatusProblem   = "Problem"
+	CloudStatusGreen   = "Green"
+	CloudStatusYellow  = "Yellow"
+	CloudStatusRed     = "Red"
+	CloudStatusUnknown = "Unknown"
 )
 
 type Installation struct {
 	Name          string
 	Org           string
 	Status        string
+	StatusMessage string
 	NumSatellites int
 	IsDefault     bool
 }
 
-func (c *Client) ConfigureCloud(ctx context.Context, orgID, cloudName string, setDefault bool) (*Installation, error) {
+type CloudConfigurationOpt struct {
+	Name               string
+	SetDefault         bool
+	SshKeyName         string
+	ComputeRoleArn     string
+	AccountId          string
+	AllowedSubnetIds   []string
+	SecurityGroupId    string
+	Region             string
+	InstanceProfileArn string
+}
+
+func (c *Client) ConfigureCloud(ctx context.Context, orgID string, configuration *CloudConfigurationOpt) (*Installation, error) {
 	resp, err := c.compute.ConfigureCloud(c.withAuth(ctx), &pb.ConfigureCloudRequest{
-		OrgId:      orgID,
-		Name:       cloudName,
-		SetDefault: setDefault,
+		OrgId:              orgID,
+		Name:               configuration.Name,
+		SetDefault:         configuration.SetDefault,
+		SshKeyName:         configuration.SshKeyName,
+		ComputeRoleArn:     configuration.ComputeRoleArn,
+		AccountId:          configuration.AccountId,
+		AllowedSubnetIds:   configuration.AllowedSubnetIds,
+		SecurityGroupId:    configuration.SecurityGroupId,
+		Region:             configuration.Region,
+		InstanceProfileArn: configuration.InstanceProfileArn,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "error from ConfigureCloud API")
 	}
 	return &Installation{
-		Name:   cloudName,
-		Org:    orgID,
-		Status: installationStatus(resp.Status),
+		Name:          configuration.Name,
+		Org:           orgID,
+		Status:        installationStatus(resp.Status),
+		StatusMessage: resp.Message,
+	}, nil
+}
+
+func (c *Client) UseCloud(ctx context.Context, orgID string, configuration *CloudConfigurationOpt) (*Installation, error) {
+	resp, err := c.compute.UseCloud(c.withAuth(ctx), &pb.UseCloudRequest{
+		OrgId: orgID,
+		Name:  configuration.Name,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "error from UseCloud API")
+	}
+	return &Installation{
+		Name:          configuration.Name,
+		Org:           orgID,
+		Status:        installationStatus(resp.Status),
+		StatusMessage: resp.Message,
 	}, nil
 }
 
@@ -50,6 +88,7 @@ func (c *Client) ListClouds(ctx context.Context, orgID string) ([]Installation, 
 			Name:          i.CloudName,
 			Org:           orgID,
 			Status:        installationStatus(i.Status),
+			StatusMessage: i.StatusContext,
 			NumSatellites: int(i.NumSatellites),
 			IsDefault:     i.IsDefault,
 		})
@@ -69,14 +108,14 @@ func (c *Client) DeleteCloud(ctx context.Context, orgID, cloudName string) error
 }
 
 func installationStatus(status pb.CloudStatus) string {
-	internalStatus := "UNKNOWN"
 	switch status {
-	case pb.CloudStatus_CLOUD_STATUS_ACCOUNT_ACTIVE:
-		internalStatus = CloudStatusActive
-	case pb.CloudStatus_CLOUD_STATUS_ACCOUNT_CONNECTED:
-		internalStatus = CloudStatusConnected
-	case pb.CloudStatus_CLOUD_STATUS_PROBLEM:
-		internalStatus = CloudStatusProblem
+	case pb.CloudStatus_CLOUD_STATUS_GREEN:
+		return CloudStatusGreen
+	case pb.CloudStatus_CLOUD_STATUS_YELLOW:
+		return CloudStatusYellow
+	case pb.CloudStatus_CLOUD_STATUS_RED:
+		return CloudStatusRed
+	default:
+		return CloudStatusUnknown
 	}
-	return internalStatus
 }

@@ -44,8 +44,8 @@ type FrontendConfig struct {
 
 	LocalRegistryHostFileValue string
 
-	InstallationName string
-	DefaultPort      int
+	LocalContainerName string
+	DefaultPort        int
 
 	Console conslogging.ConsoleLogger
 }
