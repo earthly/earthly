@@ -14,47 +14,39 @@ The integration process requires you to provide us with a GitHub token, so we ca
 
 Follow the next steps to create such integrations:
 
-### 1. Request early access
-This feature is in closed-beta at the moment. You can request early access through support@earthly.dev
+### 1. Create a GitHub token
+Both GitHub classic and fine-grained tokens are supported, but depending on the type of installation (organization-wide or single-repository), the provided token requires different scopes: 
 
-### 2. Create a GitHub token
-Both GitHub classic and fine-grained tokens are supported, but depending on the type of installation (organization-wide or for a single repository), the provided token requires different scopes. 
-
-| Integration type  | User type          | Classic token scopes          | Fine-grained token permissions                                       | 
-|-------------------|--------------------|-------------------------------|----------------------------------------------------------------------|
-| Organization-wide | Organization admin | `admin:org_hook`, `admin:org` | `organization_hooks:write`, `organization_self_hosted_runners:write` |
-| Single repository | Repository admin   | `admin:repo_hook`, `repo`     | `repository_hooks:write`, `administration:write`                     |
+| Integration type | User type          | Classic token scopes          | Fine-grained token permissions                                       | 
+|------------------|--------------------|-------------------------------|----------------------------------------------------------------------|
+| Organization     | Organization admin | `admin:org_hook`, `admin:org` | `organization_hooks:write`, `organization_self_hosted_runners:write` |
+| Repository       | Repository admin   | `admin:repo_hook`, `repo`     | `repository_hooks:write`, `administration:write`                     |
 
 {% hint style='info' %}
 Follow the [official docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) for detailed information on how to create a GitHub token, and make sure to set an expiration long enough, since the integration won't work after the token expires. 
 {% endhint %}
 
-### 3. Register via CLI
+### 2. Register the integration via CLI
 Create the integration using the `earthly github add` CLI command, passing the token created in the previous step. 
 
-`$ earthly github add --help`
-
+#### Organization integration
 ``` 
-NAME:
-earthly github add - Add GitHub Actions integration
+earthly github add \
+  --org <earthly_organization> \
+  --gh-org <github_organization> \
+  --gh-token <github_token>
+``` 
 
-USAGE:
-earthly github add --org <org> --gh-org <github_organization> [--gh-repo <github_-repo>] --gh-token <github_token>
+#### Single repository integration
+``` 
+earthly github add \
+  --org <earthly_organization> \
+  --gh-org <github_organization> \
+  --gh-repo <github_-repo> \
+  --gh-token <github_token>
+``` 
 
-DESCRIPTION:
-This command sets the configuration to create a new GitHub-Earthly integration, to trigger satellite builds from GitHub Actions.
-From the GitHub side, integration can be done at two levels: organization-wide and per repository.
-The provided token must have enough permissions to register webhooks and to create GitHub self hosted runners in those two scenarios.
-
-OPTIONS:
---org value       The name of the Earthly organization to set an integration with. Defaults to selected organization
---gh-org value    The name of the GitHub organization to set an integration with
---gh-repo value   The name of the GitHub repository to set an integration with
---gh-token value  The GitHub token used for the integration. Personal Access Token (classic) or fine grained tokens supported.
---help, -h        show help
-```
-
-### 4. Configure a satellite 
+### 3. Configure your satellites 
 
 This feature needs to be enabled during satellite creation to be able to use it.
 
@@ -97,8 +89,8 @@ You should see a log message like this, when the GitHub Actions runner is enable
 {...,"msg":"starting GitHub Actions job polling loop",...}
 ```
 
-### 5. Configure your GitHub Actions jobs
-In order to make a GitHub Actions job run into the previously configure satellite, you'll need to set a [runs-on](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idruns-on) label as follows:
+### 4. Configure your GitHub Actions jobs
+In order to make a job run into the satellite, you'll need to set its [runs-on](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idruns-on) label as follows:
 
 ```
 runs-on: [earthly-satellite#<satellite-name>]
