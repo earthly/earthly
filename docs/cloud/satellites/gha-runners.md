@@ -65,7 +65,7 @@ earthly satellite --feature-flag enable-gha-runner <satellite-name>
 ``` 
 
 #### Self-hosted satellites
-To enable the GH runner for a self-hosted satellite, just set this environment entry when launching it:
+To enable the GH runner for a self-hosted satellite, set this environment entry when launching it:
 ```
 -e RUNNER_GHA_ENABLED=true
 ```
