@@ -56,8 +56,7 @@ OPTIONS:
 
 ### 4. Configure a satellite 
 
-This feature is both available for self-hosted and Earthly-Cloud satellites, but in both cases is disabled by default. 
-It must be enabled in a per-satellite basis as follows:
+This feature needs to be enabled during satellite creation to be able to use it.
 
 #### Earthly-Cloud satellites
 Launch the satellite with the `enable-gha-runner` [feature-flag](https://docs.earthly.dev/earthly-cloud/satellites/managing#changing-feature-flags) enabled.
