@@ -918,7 +918,7 @@ func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, work
 		if info.BuildkitVersion.Package != "github.com/earthly/buildkit" {
 			bkCons.Warnf("Using a non-Earthly version of Buildkit. This is not supported.")
 		} else {
-			if info.BuildkitVersion.Version != earthlyVersion {
+			if strings.TrimSuffix(info.BuildkitVersion.Version, "-ticktock") != earthlyVersion {
 				if isLocal {
 					// For local buildkits we expect perfect version match.
 					bkCons.Warnf(
