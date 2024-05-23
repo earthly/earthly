@@ -42,7 +42,7 @@ USAGE:
 earthly github add --org <org> --gh-org <github_organization> [--gh-repo <github_-repo>] --gh-token <github_token>
 
 DESCRIPTION:
-This command sets the configuration to create a new GitHub-Earthly integration, to trigger satellite builds from GitHub Actions (GitHub Actions).
+This command sets the configuration to create a new GitHub-Earthly integration, to trigger satellite builds from GitHub Actions.
 From the GitHub side, integration can be done at two levels: organization-wide and per repository.
 The provided token must have enough permissions to register webhooks and to create GitHub self hosted runners in those two scenarios.
 
