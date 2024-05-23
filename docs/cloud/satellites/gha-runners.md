@@ -53,7 +53,7 @@ This feature needs to be enabled during satellite creation to be able to use it.
 #### Earthly-Cloud satellites
 Launch the satellite with the `enable-gha-runner` [feature-flag](https://docs.earthly.dev/earthly-cloud/satellites/managing#changing-feature-flags) enabled.
 ```
-earthly satellite --feature-flag enable-gha-runner <satellite-name>
+earthly satellite launch --feature-flag enable-gha-runner <satellite-name>
 ``` 
 
 #### Self-hosted satellites
