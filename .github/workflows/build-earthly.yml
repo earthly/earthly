@@ -19,11 +19,15 @@ on:
         required: false
         type: boolean
         default: false
+      USE_NEXT:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
 
   build-earthly:
-    name: build (and push) earthly using ${{inputs.BINARY}}
+    name: build (and push) earthly using ${{inputs.BINARY}} and earthly-next=${{inputs.USE_NEXT}}
     if: ${{!inputs.SKIP_JOB}}
     runs-on: ${{inputs.RUNS_ON}}
     env:
@@ -71,6 +75,9 @@ jobs:
       - name: Podman Login
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} login docker.io --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
         if: inputs.BINARY == 'podman'
+      - name: Update Buildkit to earthly-next
+        if: inputs.USE_NEXT == 'true'
+        run: ${{inputs.SUDO}} $(which earthly) +update-buildkit --BUILDKIT_GIT_SHA=$(cat earthly-next)
       - name: Build latest earthly using released earthly
         run: ${{inputs.SUDO}} $(which earthly) --use-inline-cache +for-linux
       - name: Earthly bootstrap using latest earthly build
