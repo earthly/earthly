@@ -34,7 +34,7 @@ jobs:
     uses: ./.github/workflows/build-earthly.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      RUNS_ON: "earthly-satellite#gha-earthly-1"
+      RUNS_ON: "earthly-satellite#gha-test-1"
       BINARY: "docker"
       SUDO: ""
 #      SKIP_JOB: ${{ needs.check-essential-files.outputs.essential-files == 'false' }}
@@ -47,7 +47,7 @@ jobs:
 #    with:
 #      TEST_TARGET: "+lint-all"
 #      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      RUNS_ON: "earthly-satellite#gha-earthly-1"
+#      RUNS_ON: "earthly-satellite#gha-test-1"
 #      BINARY: "docker"
 #      SUDO: ""
 #      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
@@ -61,7 +61,7 @@ jobs:
     with:
       TEST_TARGET: "+test-misc"
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      RUNS_ON: "earthly-satellite#gha-earthly-1"
+      RUNS_ON: "earthly-satellite#gha-test-1"
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
@@ -75,7 +75,7 @@ jobs:
     with:
       TEST_TARGET: "+test-no-qemu-group1"
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      RUNS_ON: "earthly-satellite#gha-earthly-1"
+      RUNS_ON: "earthly-satellite#gha-test-1"
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
@@ -89,7 +89,7 @@ jobs:
 #    with:
 #      TEST_TARGET: "+test-no-qemu-group2"
 #      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      RUNS_ON: "earthly-satellite#gha-earthly-1"
+#      RUNS_ON: "earthly-satellite#gha-test-1"
 #      BINARY: "docker"
 #      SUDO: ""
 #      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
@@ -103,7 +103,7 @@ jobs:
 #    with:
 #      TEST_TARGET: "+test-no-qemu-group1"
 #      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      RUNS_ON: "earthly-satellite#gha-earthly-1"
+#      RUNS_ON: "earthly-satellite#gha-test-1"
 #      BINARY: "docker"
 #      SUDO: ""
 #      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
@@ -117,7 +117,7 @@ jobs:
 #    with:
 #      TEST_TARGET: "+test-no-qemu-group2"
 #      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      RUNS_ON: "earthly-satellite#gha-earthly-1"
+#      RUNS_ON: "earthly-satellite#gha-test-1"
 #      BINARY: "docker"
 #      SUDO: ""
 #      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
@@ -131,7 +131,7 @@ jobs:
 #    with:
 #      TEST_TARGET: "+test-no-qemu-group3"
 #      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      RUNS_ON: "earthly-satellite#gha-earthly-1"
+#      RUNS_ON: "earthly-satellite#gha-test-1"
 #      BINARY: "docker"
 #      SUDO: ""
 #      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
@@ -145,7 +145,7 @@ jobs:
 #    with:
 #      TEST_TARGET: "+test-no-qemu-group3"
 #      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      RUNS_ON: "earthly-satellite#gha-earthly-1"
+#      RUNS_ON: "earthly-satellite#gha-test-1"
 #      BINARY: "docker"
 #      SUDO: ""
 #      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
@@ -244,7 +244,7 @@ jobs:
     with:
       TEST_TARGET: "+test-no-qemu-group7"
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      RUNS_ON: "earthly-satellite#gha-earthly-1"
+      RUNS_ON: "earthly-satellite#gha-test-1"
       BINARY: "docker"
       SUDO: ""
       SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
@@ -258,7 +258,7 @@ jobs:
 #    with:
 #      TEST_TARGET: "+test-no-qemu-group7"
 #      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      RUNS_ON: "earthly-satellite#gha-earthly-1"
+#      RUNS_ON: "earthly-satellite#gha-test-1"
 #      BINARY: "docker"
 #      SUDO: ""
 #      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
@@ -272,7 +272,7 @@ jobs:
 #    with:
 #      TEST_TARGET: "+test-no-qemu-group8"
 #      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      RUNS_ON: "earthly-satellite#gha-earthly-1"
+#      RUNS_ON: "earthly-satellite#gha-test-1"
 #      BINARY: "docker"
 #      SUDO: ""
 #      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
@@ -286,7 +286,7 @@ jobs:
 #    with:
 #      TEST_TARGET: "+test-no-qemu-group8"
 #      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      RUNS_ON: "earthly-satellite#gha-earthly-1"
+#      RUNS_ON: "earthly-satellite#gha-test-1"
 #      BINARY: "docker"
 #      SUDO: ""
 #      EXTRA_ARGS: "--logstream=false --logstream-upload=false --auto-skip"
@@ -300,7 +300,7 @@ jobs:
 #    with:
 #      TEST_TARGET: "+test-no-qemu-group9"
 #      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-#      RUNS_ON: "earthly-satellite#gha-earthly-1"
+#      RUNS_ON: "earthly-satellite#gha-test-1"
 #      BINARY: "docker"
 #      SUDO: ""
 #      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
