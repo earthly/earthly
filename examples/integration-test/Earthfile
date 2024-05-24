@@ -1,5 +1,5 @@
 VERSION 0.8
-FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+FROM earthly/dind:alpine-3.19-docker-25.0.5-r0
 WORKDIR /scala-example
 RUN apk add openjdk11 bash wget postgresql-client
 
