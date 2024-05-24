@@ -4,6 +4,31 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.12 - 2024-05-23
+
+### Added
+- An experimental modification of the buildkit scheduler, which attempts to solve the `inconsistent graph state` error, which can be enabled locally with `earthly --ticktock ...`.
+
+### Changed
+- The BYOC (bring your own cloud) commands have been updated to reflect server-side API changes.
+
+### Fixed
+- The `--buildkit-container-name` flag was incorrectly being ignored when `--no-buildkit-update` was set.
+
+### Additional Info
+- This release includes changes to buildkit
+
+## v0.8.11 - 2024-05-16
+
+### Added
+- Support for using HTTP(S) proxies when connecting to satellites.
+
+### Fixed
+- Backwards compatability issue where `WITH DOCKER` would fail with `EARTHLY_DOCKERD_CACHE_DATA: parameter not set` when using an older version of the earthly in combination with a satellite running v0.8.10.
+
+### Additional Info
+- This release includes changes to buildkit
+
 ## v0.8.10 - 2024-05-14
 
 ### Added

@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+EARTHLY_DOCKERD_CACHE_DATA=${EARTHLY_DOCKERD_CACHE_DATA:-"false"}
+
 EARTHLY_DOCKER_WRAPPER_DEBUG=${EARTHLY_DOCKER_WRAPPER_DEBUG:-''}
 if [ "$EARTHLY_DOCKER_WRAPPER_DEBUG" = "1" ]; then
     echo "enabling docker wrapper debug mode"

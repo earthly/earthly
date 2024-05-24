@@ -89,7 +89,7 @@ func (s *progressCallback) Verbose(relPath string, status fsutil.VerboseProgress
 			}
 			s.console.Printf("sent %s (%s)%s\n", humanize.Bytes(uint64(s.bytesSent)), puralize(s.numSent, "file"), transferRate)
 		} else {
-			s.console.Printf("sent %s)\n", puralize(s.numStats, "file stat"))
+			s.console.Printf("sent %s\n", puralize(s.numStats, "file stat"))
 		}
 		if s.numReceived > 0 {
 			var transferRate string

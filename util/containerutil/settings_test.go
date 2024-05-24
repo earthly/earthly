@@ -36,7 +36,7 @@ func TestBuildArgMatrix(t *testing.T) {
 			},
 			noopArgs,
 			results{
-				buildkit:      "docker-container://test-buildkitd",
+				buildkit:      "docker-container://test",
 				localRegistry: "",
 			},
 		},
@@ -122,7 +122,7 @@ func TestBuildArgMatrix(t *testing.T) {
 		logger = logger.WithWriter(&logs)
 
 		frontend, err := NewStubFrontend(ctx, &FrontendConfig{
-			InstallationName: "test-stub",
+			LocalContainerName: "test-stub",
 		})
 		assert.NoError(t, err)
 
@@ -133,7 +133,7 @@ func TestBuildArgMatrix(t *testing.T) {
 			BuildkitHostCLIValue:       tt.args.buildkit,
 			BuildkitHostFileValue:      tt.config.BuildkitHost,
 			LocalRegistryHostFileValue: tt.config.LocalRegistryHost,
-			InstallationName:           "test",
+			LocalContainerName:         "test",
 			DefaultPort:                8372,
 			Console:                    logger,
 		})
@@ -189,7 +189,7 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 		logger = logger.WithWriter(&logs)
 
 		frontend, err := NewStubFrontend(ctx, &FrontendConfig{
-			InstallationName: "test-stub",
+			LocalContainerName: "test-stub",
 		})
 		assert.NoError(t, err)
 
@@ -200,7 +200,7 @@ func TestBuildArgMatrixValidationFailures(t *testing.T) {
 			BuildkitHostFileValue:      tt.config.BuildkitHost,
 			LocalRegistryHostFileValue: tt.config.LocalRegistryHost,
 			Console:                    logger,
-			InstallationName:           "test",
+			LocalContainerName:         "test",
 			DefaultPort:                8372,
 		})
 		assert.ErrorIs(t, err, tt.expected)
@@ -290,7 +290,7 @@ func TestBuildArgMatrixValidationNonIssues(t *testing.T) {
 		logger = logger.WithWriter(&logs)
 
 		frontend, err := NewStubFrontend(ctx, &FrontendConfig{
-			InstallationName: "test-stub",
+			LocalContainerName: "test-stub",
 		})
 		assert.NoError(t, err)
 
@@ -301,7 +301,7 @@ func TestBuildArgMatrixValidationNonIssues(t *testing.T) {
 			BuildkitHostFileValue:      tt.config.BuildkitHost,
 			LocalRegistryHostFileValue: tt.config.LocalRegistryHost,
 			Console:                    logger,
-			InstallationName:           "test",
+			LocalContainerName:         "test",
 			DefaultPort:                8372,
 		})
 		assert.NoError(t, err)

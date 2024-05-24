@@ -358,7 +358,7 @@ func (sf *shellFrontend) setupAndValidateAddresses(feType string, cfg *FrontendC
 			calculatedBuildkitHost = cfg.BuildkitHostFileValue
 		} else {
 			var err error
-			calculatedBuildkitHost, err = DefaultAddressForSetting(feType, cfg.InstallationName, cfg.DefaultPort)
+			calculatedBuildkitHost, err = DefaultAddressForSetting(feType, cfg.LocalContainerName, cfg.DefaultPort)
 			if err != nil {
 				return nil, errors.Wrap(err, "could not validate default address")
 			}
@@ -394,16 +394,16 @@ func (sf *shellFrontend) setupAndValidateAddresses(feType string, cfg *FrontendC
 }
 
 // DefaultAddressForSetting returns an address (signifying the desired/default transport) for a given frontend specified by setting.
-func DefaultAddressForSetting(setting string, installationName string, defaultPort int) (string, error) {
+func DefaultAddressForSetting(setting string, localContainerName string, defaultPort int) (string, error) {
 	switch setting {
 	case FrontendDockerShell:
-		return fmt.Sprintf(DockerAddressFmt, installationName), nil
+		return DockerSchemePrefix + localContainerName, nil
 
 	case FrontendPodmanShell:
 		return fmt.Sprintf(TCPAddressFmt, defaultPort), nil // Right now, podman only works over TCP. There are weird errors when trying to use the provided helper from buildkit.
 
 	case FrontendStub:
-		return fmt.Sprintf(DockerAddressFmt, installationName), nil // Maintain old behavior
+		return DockerSchemePrefix + localContainerName, nil // Maintain old behavior
 	}
 
 	return "", fmt.Errorf("no default buildkit address for %s", setting)
