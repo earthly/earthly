@@ -2,9 +2,9 @@ name: lint-docs
 
 on:
   push:
-    branches: [ main, next ]
+    branches: [ main, docs-0.8 ]
   pull_request:
-    branches: [ main, next ]
+    branches: [ main, docs-0.8 ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
