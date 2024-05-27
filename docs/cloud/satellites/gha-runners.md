@@ -51,7 +51,7 @@ earthly github add \
 earthly github add \
   --org <earthly_organization> \
   --gh-org <github_organization> \
-  --gh-repo <github_-repo> \
+  --gh-repo <github_repo> \
   --gh-token <github_token>
 ``` 
 
