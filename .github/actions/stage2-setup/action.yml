@@ -71,23 +71,26 @@ runs:
       shell: bash
     - run: |-
         echo "Extracting earthly binary from stage1 of build"
-        BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging TAG=${GITHUB_SHA}-ubuntu-latest-${{inputs.BINARY}}-${{inputs.USE_NEXT}} ${{inputs.SUDO}} ./earthly upgrade
+        export TAG=${GITHUB_SHA}-ubuntu-latest-${{inputs.BINARY}}
+        if [ "${{inputs.USE_NEXT}}" = "true" ]; then export TAG="$TAG-ticktock"; fi
+        BUILDKITD_IMAGE=docker.io/earthly/buildkitd-staging ${{inputs.SUDO}} ./earthly upgrade
         ${{inputs.SUDO}} chown -R $USER ~/.earthly # restore non-sudo user ownership
         test -n "${{inputs.BUILT_EARTHLY_PATH}}" || (echo "BUILT_EARTHLY_PATH is empty" && exit 1)
         mkdir -p $(dirname "${{inputs.BUILT_EARTHLY_PATH}}")
-        ${{inputs.SUDO}} mv ${HOME}/.earthly/earthly-${GITHUB_SHA}-ubuntu-latest-${{inputs.BINARY}}-${{inputs.USE_NEXT}} "${{inputs.BUILT_EARTHLY_PATH}}"
+        ${{inputs.SUDO}} ls "${HOME}/.earthly/"
+        ${{inputs.SUDO}} mv "${HOME}/.earthly/earthly-$TAG" "${{inputs.BUILT_EARTHLY_PATH}}"
         echo "extracted ${{inputs.BUILT_EARTHLY_PATH}}"
       shell: bash
     - if: ${{ inputs.USE_NEXT == 'true' }}
       run: |-
-        export expected_buildkit_client_sha=$(cat earthly-next | head -c 12)
+        export expected_buildkit_client_sha="$(cat earthly-next | head -c 12)"
         test -n "$expected_buildkit_client_sha" || ( echo "expected_buildkit_client_sha is empty" && exit 1)
         (strings ${{inputs.BUILT_EARTHLY_PATH}} | grep "$expected_buildkit_client_sha" ) || ( echo "expected to find $expected_buildkit_client_sha in earthly binary" && exit 1)
         echo "correctly found $expected_buildkit_client_sha in earthly binary; this confirms earthly-next was used"
       shell: bash
     - run: |-
         echo "Setting up mirror credentials in .arg and .secret"
-        export earthly=${{inputs.BUILT_EARTHLY_PATH}}
+        export earthly="${{inputs.BUILT_EARTHLY_PATH}}"
         # setup secrets
         echo "DOCKERHUB_MIRROR_USER=$($earthly secret --org earthly-technologies --project core get -n dockerhub-mirror/user || kill $$)" > .secret
         echo "DOCKERHUB_MIRROR_PASS=$($earthly secret --org earthly-technologies --project core get -n dockerhub-mirror/pass || kill $$)" >> .secret
