@@ -47,7 +47,6 @@ import (
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/inputgraph"
-	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/cliutil"
 	"github.com/earthly/earthly/util/containerutil"
@@ -537,17 +536,11 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		localRegistryAddr = u.Host
 	}
 
-	var logbusSM *solvermon.SolverMonitor
-	if a.cli.Flags().Logstream {
-		logbusSM = a.cli.LogbusSetup().SolverMonitor
-	} else if a.cli.Flags().DisplayExecStats || a.cli.Flags().ExecStatsSummary != "" {
-		return fmt.Errorf("the --exec-stats and --exec-stats-summary features are only available when --logstream is enabled")
-	}
+	logbusSM := a.cli.LogbusSetup().SolverMonitor
 
 	builderOpts := builder.Opt{
 		BkClient:                              bkClient,
 		LogBusSolverMonitor:                   logbusSM,
-		UseLogstream:                          a.cli.Flags().Logstream,
 		Console:                               a.cli.Console(),
 		Verbose:                               a.cli.Flags().Verbose,
 		Attachables:                           attachables,
@@ -640,11 +633,10 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		if a.cli.Flags().ProjectName != "" {
 			projectName = a.cli.Flags().ProjectName
 		}
+
 		a.cli.Console().WithPrefix("logbus").Printf("Setting organization %q and project %q", orgName, projectName)
 		analytics.AddEarthfileProject(orgName, projectName)
-		if !a.cli.Flags().Logstream {
-			return nil
-		}
+
 		setup := a.cli.LogbusSetup()
 		setup.SetOrgAndProject(orgName, projectName)
 		setup.SetGitAuthor(gitCommitAuthorEmail, gitConfigEmail)
@@ -656,7 +648,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return nil
 	}
 
-	if a.cli.Flags().Logstream && doLogstreamUpload && !a.cli.LogbusSetup().LogStreamerStarted() {
+	if doLogstreamUpload && !a.cli.LogbusSetup().LogStreamerStarted() {
 		a.cli.Console().ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
 	}
 
@@ -839,9 +831,7 @@ func (a *Build) platformResolver(ctx context.Context, bkClient *bkclient.Client,
 	if err != nil {
 		return nil, errors.Wrap(err, "get native platform via buildkit client")
 	}
-	if a.cli.Flags().Logstream {
-		a.cli.LogbusSetup().SetDefaultPlatform(platforms.Format(nativePlatform))
-	}
+	a.cli.LogbusSetup().SetDefaultPlatform(platforms.Format(nativePlatform))
 	platr := platutil.NewResolver(nativePlatform)
 	a.cli.SetAnaMetaBKPlatform(platforms.Format(nativePlatform))
 	a.cli.SetAnaMetaUserPlatform(platforms.Format(platr.LLBUser()))
@@ -956,29 +946,6 @@ func (a *Build) logShareLink(ctx context.Context, cloudClient *cloud.Client, tar
 				"🛰️ Reuse cache between CI runs with Earthly Satellites! " +
 					"2-20X faster than without cache. Generous free tier " +
 					"https://cloud.earthly.dev\n")
-		}
-		return "", false, printLinkFn
-	}
-
-	if !a.cli.Flags().LogstreamUpload {
-		// If you are logged in, then add the bundle builder code, and
-		// configure cleanup and post-build messages.
-		a.cli.SetConsole(a.cli.Console().WithLogBundleWriter(target.String(), clean))
-		printLinkFn := func() { // Defer this to keep log upload code together
-			logPath, err := a.cli.Console().WriteBundleToDisk()
-			if err != nil {
-				err := errors.Wrapf(err, "failed to write log to disk")
-				a.cli.Console().Warnf(err.Error())
-				return
-			}
-
-			id, err := cloudClient.UploadLog(ctx, logPath)
-			if err != nil {
-				err := errors.Wrapf(err, "failed to upload log")
-				a.cli.Console().Warnf(err.Error())
-				return
-			}
-			a.cli.Console().ColorPrintf(color.New(color.FgHiYellow), "Shareable link: %s\n", id)
 		}
 		return "", false, printLinkFn
 	}

@@ -51,6 +51,7 @@ import (
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
+	"github.com/google/uuid"
 	"github.com/moby/buildkit/client/llb"
 	dockerimage "github.com/moby/buildkit/exporter/containerimage/image"
 	"github.com/moby/buildkit/frontend/dockerfile/dockerfile2llb"
@@ -2306,6 +2307,10 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	// Shell and debugger wrap.
 	prependDebugger := !opts.Locally
 	finalArgs = opts.shellWrap(finalArgs, extraEnvVars, opts.WithShell, prependDebugger, isInteractive)
+	if opts.NoCache {
+		// llb.IgnoreCache is not always enough; we will force a different cache key as a work-around
+		finalArgs = append(finalArgs, "#"+uuid.NewString())
+	}
 	if opts.Locally {
 		// buildkit-hack in order to run locally, we prepend the command with a magic UUID.
 		finalArgs = append(

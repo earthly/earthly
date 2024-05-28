@@ -18,6 +18,7 @@ import (
 	"github.com/earthly/earthly/util/deltautil"
 	"github.com/earthly/earthly/util/execstatssummary"
 	"github.com/earthly/earthly/util/progressbar"
+	"github.com/earthly/earthly/util/stringutil"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
@@ -483,21 +484,23 @@ func (f *Formatter) printGHAFailure() {
 
 	// Extract the error from first line of the error message
 	lines := strings.Split(failure.GetErrorMessage(), "\n")
-	var message string
+	var singleLineMessage string
 	if len(lines) > 1 {
-		message = strings.Join(strings.Fields(strings.Join(lines[1:], " ")), " ")
+		singleLineMessage = strings.Join(strings.Fields(strings.Join(lines[1:], " ")), " ")
 	} else {
-		message = strings.Join(strings.Fields(lines[0]), " ")
+		singleLineMessage = strings.Join(strings.Fields(lines[0]), " ")
 	}
+	singleLineMessage = stringutil.ScrubANSICodes(singleLineMessage)
 
 	// Print GHA Error with line info if available
 	if cm != nil && cm.SourceLocation != nil &&
 		cm.SourceLocation.File != "" && cm.SourceLocation.StartLine > 0 {
-		c.PrintGHAError(message, conslogging.WithGHASourceLocation(cm.SourceLocation.File, cm.SourceLocation.StartLine, cm.SourceLocation.StartColumn))
+		c.PrintGHAError(singleLineMessage, conslogging.WithGHASourceLocation(cm.SourceLocation.File, cm.SourceLocation.StartLine, cm.SourceLocation.StartColumn))
 	} else {
-		c.PrintGHAError(message)
+		c.PrintGHAError(singleLineMessage)
 	}
-
+	fullErrorMessage := stringutil.ScrubANSICodes(failure.GetErrorMessage())
+	output := stringutil.ScrubANSICodes(string(failure.GetOutput()))
 	//GHA Summary markdown
 	markdown := fmt.Sprintf(`
 # ❌ Build Failure ❌
@@ -513,7 +516,7 @@ func (f *Formatter) printGHAFailure() {
 ~~~
 %s
 ~~~
-`, failure.GetErrorMessage(), string(failure.GetOutput()))
+`, fullErrorMessage, output)
 	c.PrintGHASummary(markdown)
 }
 

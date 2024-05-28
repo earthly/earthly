@@ -25,9 +25,6 @@ const (
 
 	DefaultSecretFile = ".secret"
 	SecretFileFlag    = "secret-file-path"
-
-	DefaultLogstream       = true
-	DefaultLogstreamUpload = true
 )
 
 // Put flags on Flags instead as there are other things in the CLI that are being called + set
@@ -58,8 +55,6 @@ type Global struct {
 	ArgFile                    string
 	SecretFile                 string
 	NoBuildkitUpdate           bool
-	Logstream                  bool
-	LogstreamUpload            bool
 	LogstreamDebugFile         string
 	LogstreamDebugManifestFile string
 	LogstreamAddressOverride   string
@@ -286,22 +281,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			Usage:       "Use values from this file as earthly secrets",
 			Value:       DefaultSecretFile,
 			Destination: &global.SecretFile,
-		},
-		&cli.BoolFlag{
-			Name:        "logstream",
-			EnvVars:     []string{"EARTHLY_LOGSTREAM"},
-			Usage:       "Enable log streaming only locally",
-			Destination: &global.Logstream,
-			Hidden:      true, // Internal.
-			Value:       DefaultLogstream,
-		},
-		&cli.BoolFlag{
-			Name:        "logstream-upload",
-			EnvVars:     []string{"EARTHLY_LOGSTREAM_UPLOAD"},
-			Usage:       "Enable log stream uploading",
-			Destination: &global.LogstreamUpload,
-			Hidden:      true, // Internal.
-			Value:       DefaultLogstreamUpload,
 		},
 		&cli.StringFlag{
 			Name:        "logstream-debug-file",

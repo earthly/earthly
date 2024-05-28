@@ -81,10 +81,10 @@ docker run --privileged \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v satellite-cache:/tmp/earthly:rw \
     -p 8372:8372 \
-    -e EARTHLY_TOKEN=<earthly-token> \ 
-    -e EARTHLY_ORG=<earthly-org-name>  \
-    -e SATELLITE_NAME=<satellite-name> \
-    -e SATELLITE_HOST=<satellite-host> \
+    -e EARTHLY_TOKEN=<earthly_token> \ 
+    -e EARTHLY_ORG=<earthly_org_name>  \
+    -e SATELLITE_NAME=<satellite_name> \
+    -e SATELLITE_HOST=<satellite_host> \
     -e RUNNER_GHA_ENABLED=true \
   earthly/satellite:v0.8.12
 ```
