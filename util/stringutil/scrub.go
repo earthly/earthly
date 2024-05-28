@@ -29,3 +29,10 @@ func ScrubCredentialsAll(s string) string {
 	}
 	return strings.Join(ret, " ")
 }
+
+// ScrubANSICodes removes ANSI escape codes from a string.
+func ScrubANSICodes(input string) string {
+	re := regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
+	cleanedString := re.ReplaceAllString(input, "")
+	return cleanedString
+}
