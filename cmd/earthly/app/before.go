@@ -23,59 +23,65 @@ import (
 )
 
 func (app *EarthlyApp) before(cliCtx *cli.Context) error {
-	if app.BaseCLI.Flags().EnableProfiler {
+	flags := app.BaseCLI.Flags()
+
+	if flags.EnableProfiler {
 		go profhandler()
 	}
 
-	if app.BaseCLI.Flags().InstallationName != "" {
+	if flags.InstallationName != "" {
 		if !cliCtx.IsSet("config") {
-			app.BaseCLI.Flags().ConfigPath = defaultConfigPath(app.BaseCLI.Flags().InstallationName)
+			flags.ConfigPath = defaultConfigPath(flags.InstallationName)
 		}
 		if !cliCtx.IsSet("buildkit-container-name") {
-			app.BaseCLI.Flags().ContainerName = fmt.Sprintf("%s-buildkitd", app.BaseCLI.Flags().InstallationName)
+			flags.ContainerName = fmt.Sprintf("%s-buildkitd", flags.InstallationName)
 		}
 		if !cliCtx.IsSet("buildkit-volume-name") {
-			app.BaseCLI.Flags().BuildkitdSettings.VolumeName = fmt.Sprintf("%s-cache", app.BaseCLI.Flags().InstallationName)
+			flags.BuildkitdSettings.VolumeName = fmt.Sprintf("%s-cache", flags.InstallationName)
 		}
 	}
-	if app.BaseCLI.Flags().Debug {
+	if flags.Debug {
 		app.BaseCLI.SetConsole(app.BaseCLI.Console().WithLogLevel(conslogging.Debug))
-	} else if app.BaseCLI.Flags().Verbose {
+	} else if flags.Verbose {
 		app.BaseCLI.SetConsole(app.BaseCLI.Console().WithLogLevel(conslogging.Verbose))
 	}
-	if app.BaseCLI.Flags().LogstreamUpload {
-		app.BaseCLI.Flags().Logstream = true
+
+	app.BaseCLI.SetConsole(app.BaseCLI.Console().WithPrefixWriter(app.BaseCLI.Logbus().Run().Generic()))
+	if flags.BuildID == "" {
+		flags.BuildID = uuid.NewString()
 	}
-	if app.BaseCLI.Flags().Logstream {
-		app.BaseCLI.SetConsole(app.BaseCLI.Console().WithPrefixWriter(app.BaseCLI.Logbus().Run().Generic()))
-		if app.BaseCLI.Flags().BuildID == "" {
-			app.BaseCLI.Flags().BuildID = uuid.NewString()
-		}
-		var execStatsTracker *execstatssummary.Tracker
-		if app.BaseCLI.Flags().ExecStatsSummary != "" {
-			execStatsTracker = execstatssummary.NewTracker(app.BaseCLI.Flags().ExecStatsSummary)
-		}
-		disableOngoingUpdates := !app.BaseCLI.Flags().Logstream || app.BaseCLI.Flags().InteractiveDebugging
-		forceColor := envutil.IsTrue("FORCE_COLOR")
-		noColor := envutil.IsTrue("NO_COLOR")
-		var err error
-		newSetup, err := logbussetup.New(
-			cliCtx.Context, app.BaseCLI.Logbus(), app.BaseCLI.Flags().Debug, app.BaseCLI.Flags().Verbose, app.BaseCLI.Flags().DisplayExecStats, forceColor, noColor,
-			disableOngoingUpdates, app.BaseCLI.Flags().LogstreamDebugFile, app.BaseCLI.Flags().BuildID, execStatsTracker, app.BaseCLI.Flags().GithubAnnotations)
-		app.BaseCLI.SetLogbusSetup(newSetup)
-		if err != nil {
-			return errors.Wrap(err, "logbus setup")
-		}
+	var execStatsTracker *execstatssummary.Tracker
+	if flags.ExecStatsSummary != "" {
+		execStatsTracker = execstatssummary.NewTracker(flags.ExecStatsSummary)
+	}
+	busSetup, err := logbussetup.New(
+		cliCtx.Context,
+		app.BaseCLI.Logbus(),
+		flags.Debug,
+		flags.Verbose,
+		flags.DisplayExecStats,
+		envutil.IsTrue("FORCE_COLOR"),
+		envutil.IsTrue("NO_COLOR"),
+		app.BaseCLI.Flags().InteractiveDebugging,
+		flags.LogstreamDebugFile,
+		flags.BuildID,
+		execStatsTracker,
+		flags.GithubAnnotations,
+	)
+	if err != nil {
+		return errors.Wrap(err, "logbus setup")
 	}
 
+	app.BaseCLI.SetLogbusSetup(busSetup)
+
 	if cliCtx.IsSet("config") {
-		app.BaseCLI.Console().Printf("loading config values from %q\n", app.BaseCLI.Flags().ConfigPath)
+		app.BaseCLI.Console().Printf("loading config values from %q\n", flags.ConfigPath)
 	}
 
 	var yamlData []byte
-	if app.BaseCLI.Flags().ConfigPath != "" {
+	if flags.ConfigPath != "" {
 		var err error
-		yamlData, err = config.ReadConfigFile(app.BaseCLI.Flags().ConfigPath)
+		yamlData, err = config.ReadConfigFile(flags.ConfigPath)
 		if err != nil {
 			if cliCtx.IsSet("config") || !errors.Is(err, os.ErrNotExist) {
 				return errors.Wrapf(err, "read config")
@@ -83,9 +89,9 @@ func (app *EarthlyApp) before(cliCtx *cli.Context) error {
 		}
 	}
 
-	cfg, err := config.ParseYAML(yamlData, app.BaseCLI.Flags().InstallationName)
+	cfg, err := config.ParseYAML(yamlData, flags.InstallationName)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse %s", app.BaseCLI.Flags().ConfigPath)
+		return errors.Wrapf(err, "failed to parse %s", flags.ConfigPath)
 	}
 	app.BaseCLI.SetCfg(&cfg)
 
@@ -109,7 +115,7 @@ func (app *EarthlyApp) before(cliCtx *cli.Context) error {
 		}
 	}
 
-	if !isBootstrapCmd && !cliutil.IsBootstrapped(app.BaseCLI.Flags().InstallationName) {
+	if !isBootstrapCmd && !cliutil.IsBootstrapped(flags.InstallationName) {
 		app.BaseCLI.Flags().BootstrapNoBuildkit = true // Docker may not be available, for instance... like our integration tests.
 		newBootstrap := subcmd.NewBootstrap(app.BaseCLI)
 		err = newBootstrap.Action(cliCtx)
@@ -119,7 +125,7 @@ func (app *EarthlyApp) before(cliCtx *cli.Context) error {
 	}
 
 	if !cliCtx.IsSet("org") {
-		app.BaseCLI.Flags().OrgName = app.BaseCLI.Cfg().Global.Org
+		flags.OrgName = app.BaseCLI.Cfg().Global.Org
 	}
 	return nil
 }
