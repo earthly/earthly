@@ -17,19 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # this job will output a boolean value to check whether files that require these tests to run
-  # since all jobs depend on `build-earthly` job, conditionally running it will either cause all jobs to run or skip,
-  # depending on the output value of this job
-#  check-essential-files:
-#    # only run on pull request since push to main is already checking files with paths-ignore
-#    if: ${{ github.event_name == 'pull_request' }}
-#    uses: ./.github/workflows/reusable-find-pr-changes.yaml
-#    permissions:
-#      pull-requests: read
-#    secrets: inherit
   build-earthly-with-next:
-#    needs: check-essential-files
-    # allow the job to execute even if check-essential-files is skipped
     uses: ./.github/workflows/build-earthly.yml
     with:
       BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
@@ -37,7 +25,6 @@ jobs:
       BINARY: "docker"
       USE_NEXT: true
       SUDO: ""
-#      SKIP_JOB: ${{ needs.check-essential-files.outputs.essential-files == 'false' }}
     secrets: inherit
 
   earthly-next-docker-tests-no-qemu-group1:
