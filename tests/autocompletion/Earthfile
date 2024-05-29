@@ -140,6 +140,18 @@ test-target-with-build-args-from-other-dir:
     RUN echo "--city=" > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly ./child/dir+othertargetwithargs --ci"
 
+test-target-with-build-args-via-tilde:
+    RUN cd ~ && acbtest "$(pwd)" = "/root" # make sure $HOME=/root
+    COPY fake.earth /root/testdir/Earthfile
+
+    RUN echo "--city=
+--country=" > expected
+    DO +COMPLETION_TEST --COMP_LINE="earthly ~/testdir+othertargetwithargs -"
+    DO +COMPLETION_TEST --COMP_LINE="earthly ~/testdir+othertargetwithargs --c"
+
+    RUN echo "--city=" > expected
+    DO +COMPLETION_TEST --COMP_LINE="earthly ~/testdir+othertargetwithargs --ci"
+
 test-target-with-required-arg:
     COPY fake.earth Earthfile
 
@@ -252,3 +264,4 @@ test-all:
     BUILD +test-targets-in-dir-and-subdir
     BUILD +test-targets-in-two-subdirs-that-are-similar
     BUILD +test-no-errors-are-displayed
+    BUILD +test-target-with-build-args-via-tilde
