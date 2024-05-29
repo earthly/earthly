@@ -1,0 +1,20 @@
+VERSION 0.8
+
+FROM alpine:3.18
+WORKDIR /work-der-work
+
+build:
+    COPY +dep2/out dep2
+    COPY +dep1/out dep1
+    RUN rm dep2
+    SAVE ARTIFACT dep1
+
+dep1:
+    COPY some-file . # required to trigger bug
+    COPY +dep2/out dep2
+    RUN cp dep2 out
+    SAVE ARTIFACT out
+
+dep2:
+    RUN --no-cache head -c 20 /dev/urandom | base64 > out
+    SAVE ARTIFACT out

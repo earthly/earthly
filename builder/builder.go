@@ -20,7 +20,6 @@ import (
 	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/logbus/solvermon"
-	"github.com/earthly/earthly/outmon"
 	"github.com/earthly/earthly/regproxy"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
@@ -61,7 +60,6 @@ const (
 type Opt struct {
 	BkClient                              *client.Client
 	LogBusSolverMonitor                   *solvermon.SolverMonitor
-	UseLogstream                          bool
 	Console                               conslogging.ConsoleLogger
 	Verbose                               bool
 	Attachables                           []session.Attachable
@@ -140,9 +138,7 @@ type Builder struct {
 func NewBuilder(ctx context.Context, opt Opt) (*Builder, error) {
 	b := &Builder{
 		s: &solver{
-			sm:              outmon.NewSolverMonitor(opt.Console, opt.Verbose, opt.DisableNoOutputUpdates || opt.UseLogstream),
 			logbusSM:        opt.LogBusSolverMonitor,
-			useLogstream:    opt.UseLogstream,
 			bkClient:        opt.BkClient,
 			cacheImports:    opt.CacheImports,
 			cacheExport:     opt.CacheExport,
@@ -284,8 +280,8 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				ImageResolveMode:                     b.opt.ImageResolveMode,
 				CleanCollection:                      b.opt.CleanCollection,
 				PlatformResolver:                     opt.PlatformResolver.SubResolver(opt.PlatformResolver.Current()),
-				DockerImageSolverTar:                 newTarImageSolver(b.opt, b.s.sm),
-				MultiImageSolver:                     newMultiImageSolver(b.opt, b.s.sm),
+				DockerImageSolverTar:                 newTarImageSolver(b.opt, b.s.logbusSM),
+				MultiImageSolver:                     newMultiImageSolver(b.opt, b.s.logbusSM),
 				OverridingVars:                       b.opt.OverridingVars,
 				BuildContextProvider:                 b.opt.BuildContextProvider,
 				CacheImports:                         b.opt.CacheImports,

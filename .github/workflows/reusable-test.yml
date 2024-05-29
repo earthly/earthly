@@ -38,6 +38,10 @@ on:
         required: false
         type: boolean
         default: false
+      USE_NEXT:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   test:
@@ -69,6 +73,7 @@ jobs:
           BUILT_EARTHLY_PATH: "${{ inputs.BUILT_EARTHLY_PATH }}"
           BINARY: "${{ inputs.BINARY }}"
           USE_QEMU: "${{ inputs.USE_QEMU }}"
+          USE_NEXT: "${{ inputs.USE_NEXT }}"
           SUDO: "${{ inputs.SUDO }}"
           USE_SATELLITE: "${{ inputs.USE_SATELLITE }}"
           SATELLITE_NAME: "${{ inputs.SATELLITE_NAME }}"
@@ -81,6 +86,12 @@ jobs:
         run: |-
           unset EARTHLY_SATELLITE
           ${{inputs.SUDO}} ${{ inputs.BUILT_EARTHLY_PATH }} ${{inputs.EXTRA_ARGS}} --ci -P ${{inputs.TEST_TARGET}}
+      - name: Display buildkit version
+        run: |-
+          ${{inputs.SUDO}} ${{inputs.BINARY}} ps -a
+          ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd |& grep 'starting earthly-buildkit'
+        shell: bash
+        if: ${{ ! inputs.USE_SATELLITE }}
       - name: Execute fail test
         run: |
           ! ${{inputs.SUDO}} GITHUB_ACTIONS="" ${{ inputs.BUILT_EARTHLY_PATH }} ${{inputs.EXTRA_ARGS}} --ci ./tests/fail+test-fail

@@ -4,6 +4,21 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.13 - 2024-05-28
+
+### Fixed
+- `RUN --no-cache` doesn't always work. [#2593](https://github.com/earthly/earthly/issues/2593)
+- ANSI escape codes are now removed from GitHub Action specific output. [#4131](https://github.com/earthly/earthly/issues/4131)
+- Specifying the `--ticktock` option will no longer show a buildkit version mismatch warning.
+- The `--ticktock` flag is now used when running the bootstrap command.
+- Caching issue when the experimental `--ticktock` buildkit scheduler is enabled.
+
+### Changed
+- Removed deprecated non-streaming log uploading mechanism; log sharing is now only supported by the streaming-upload mechanism. The hidden `--logstream` and `--logstream-upload` flags have been removed.
+
+### Additional Info
+- This release includes changes to buildkit
+
 ## v0.8.12 - 2024-05-23
 
 ### Added

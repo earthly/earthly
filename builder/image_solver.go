@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/earthly/earthly/outmon"
+	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/states/image"
 	"github.com/earthly/earthly/util/gatewaycrafter"
@@ -27,7 +27,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func newTarImageSolver(opt Opt, sm *outmon.SolverMonitor) *tarImageSolver {
+func newTarImageSolver(opt Opt, sm *solvermon.SolverMonitor) *tarImageSolver {
 	return &tarImageSolver{
 		sm:           sm,
 		bkClient:     opt.BkClient,
@@ -39,7 +39,7 @@ func newTarImageSolver(opt Opt, sm *outmon.SolverMonitor) *tarImageSolver {
 
 type tarImageSolver struct {
 	bkClient     *client.Client
-	sm           *outmon.SolverMonitor
+	sm           *solvermon.SolverMonitor
 	attachables  []session.Attachable
 	enttlmnts    []entitlements.Entitlement
 	cacheImports *states.CacheImports
@@ -99,12 +99,9 @@ func (s *tarImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget
 		}
 		return nil
 	})
-	var vertexFailureOutput string
 	eg.Go(func() error {
-		var err error
 		if printOutput {
-			vertexFailureOutput, err = s.sm.MonitorProgress(ctx, ch, "", true, s.bkClient)
-			return err
+			return s.sm.MonitorProgress(ctx, ch)
 		}
 		// Silent case.
 		for {
@@ -148,22 +145,18 @@ func (s *tarImageSolver) SolveImage(ctx context.Context, mts *states.MultiTarget
 		// Close read pipe on cancels, otherwise the whole thing hangs.
 		pipeR.Close()
 	}()
-	err = eg.Wait()
-	if err != nil {
-		return NewBuildError(err, vertexFailureOutput)
-	}
-	return nil
+	return eg.Wait()
 }
 
 type multiImageSolver struct {
 	bkClient     *client.Client
-	sm           *outmon.SolverMonitor
+	sm           *solvermon.SolverMonitor
 	attachables  []session.Attachable
 	enttlmnts    []entitlements.Entitlement
 	cacheImports *states.CacheImports
 }
 
-func newMultiImageSolver(opt Opt, sm *outmon.SolverMonitor) *multiImageSolver {
+func newMultiImageSolver(opt Opt, sm *solvermon.SolverMonitor) *multiImageSolver {
 	return &multiImageSolver{
 		sm:           sm,
 		bkClient:     opt.BkClient,
@@ -328,20 +321,18 @@ func (m *multiImageSolver) SolveImages(ctx context.Context, imageDefs []*states.
 		AllowedEntitlements: m.enttlmnts,
 	}
 
-	var vertexFailureOutput string
-
 	go func() {
 		_, err := m.bkClient.Build(ctx, *solveOpt, "", buildFn, statusChan)
 		if err != nil {
-			errChan <- NewBuildError(err, vertexFailureOutput)
+			errChan <- err
 		}
 		doneChan <- struct{}{}
 	}()
 
 	go func() {
-		vertexFailureOutput, err := m.sm.MonitorProgress(ctx, statusChan, "", true, m.bkClient)
+		err := m.sm.MonitorProgress(ctx, statusChan)
 		if err != nil {
-			errChan <- NewBuildError(err, vertexFailureOutput)
+			errChan <- err
 		}
 		doneChan <- struct{}{}
 	}()

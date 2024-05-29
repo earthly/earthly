@@ -8,7 +8,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -53,24 +52,6 @@ func withJSONBody(body proto.Message) requestOpt {
 
 		r.hasBody = true
 		r.body = encodedBody
-		return nil
-	}
-}
-
-func withFileBody(pathOnDisk string) requestOpt {
-	return func(r *request) error {
-		_, err := os.Stat(pathOnDisk)
-		if err != nil {
-			return errors.Wrapf(err, "could not stat file at %s", pathOnDisk)
-		}
-
-		contents, err := os.ReadFile(pathOnDisk)
-		if err != nil {
-			return errors.Wrapf(err, "could not add file %s to request body", pathOnDisk)
-		}
-
-		r.hasBody = true
-		r.body = contents
 		return nil
 	}
 }
