@@ -1,9 +1,9 @@
 # Satellites as GitHub Actions runners
 
 {% hint style='warning' %}
-This feature is experimental. 
+This feature is experimental.
 
-Not recommended for production usage since it might introduce breaking changes in the future. 
+Not recommended for production usage since it might introduce breaking changes in the future.
 
 Feedback is welcome and much appreciated!
 
@@ -24,7 +24,7 @@ The integration process requires you to provide us with a GitHub token, so we ca
 Follow the next steps to create such integrations:
 
 ### 1. Create a GitHub token
-Both GitHub classic and fine-grained tokens are supported, but depending on the type of installation (organization-wide or single-repository), the provided token requires different scopes: 
+Both GitHub classic and fine-grained tokens are supported, but depending on the type of installation (organization-wide or single-repository), the provided token requires different scopes:
 
 | Integration type | User type          | Classic token scopes          | Fine-grained token permissions                                       | 
 |------------------|--------------------|-------------------------------|----------------------------------------------------------------------|
@@ -32,11 +32,11 @@ Both GitHub classic and fine-grained tokens are supported, but depending on the 
 | Repository       | Repository admin   | `admin:repo_hook`, `repo`     | `repository_hooks:write`, `administration:write`                     |
 
 {% hint style='info' %}
-Follow the [official docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) for detailed information on how to create a GitHub token, and make sure to set an expiration long enough, since the integration won't work after the token expires. 
+Follow the [official docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) for detailed information on how to create a GitHub token, and make sure to set an expiration long enough, since the integration won't work after the token expires.
 {% endhint %}
 
 ### 2. Register the integration via CLI
-Create the integration using the `earthly github add` CLI command, passing the token created in the previous step. 
+Create the integration using the `earthly github add` CLI command, passing the token created in the previous step.
 
 #### Organization integration
 ``` 
@@ -51,11 +51,11 @@ earthly github add \
 earthly github add \
   --org <earthly_organization> \
   --gh-org <github_organization> \
-  --gh-repo <github_-repo> \
+  --gh-repo <github_repo> \
   --gh-token <github_token>
 ``` 
 
-### 3. Configure your satellites 
+### 3. Configure your satellites
 
 This feature needs to be enabled during satellite creation to be able to use it.
 
@@ -81,19 +81,19 @@ docker run --privileged \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v satellite-cache:/tmp/earthly:rw \
     -p 8372:8372 \
-    -e EARTHLY_TOKEN=<earthly-token> \ 
-    -e EARTHLY_ORG=<earthly-org-name>  \
-    -e SATELLITE_NAME=<satellite-name> \
-    -e SATELLITE_HOST=<satellite-host> \
+    -e EARTHLY_TOKEN=<earthly_token> \ 
+    -e EARTHLY_ORG=<earthly_org_name>  \
+    -e SATELLITE_NAME=<satellite_name> \
+    -e SATELLITE_HOST=<satellite_host> \
     -e RUNNER_GHA_ENABLED=true \
-  earthly/satellite:v0.8.11
+  earthly/satellite:v0.8.12
 ```
 {% hint style='info' %}
-**Required version:** Use at least `earthly/satellite:v0.8.11`
+**Required version:** Use at least `earthly/satellite:v0.8.12`
 {% endhint %}
 
 ##### Logs
-You should see a log message like this, when the GitHub Actions runner is enabled: 
+You should see a log message like this, when the GitHub Actions runner is enabled:
 ```
 {...,"msg":"starting GitHub Actions job polling loop",...}
 ```

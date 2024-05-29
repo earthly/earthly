@@ -16,7 +16,7 @@ docker:
   SAVE IMAGE --push earthly/examples:react
 
 run:
-  FROM earthly/dind:alpine-3.19-docker-25.0.2-r0
+  FROM earthly/dind:alpine-3.19-docker-25.0.5-r0
   WITH DOCKER --load app:test=+docker
     RUN docker run --rm -p 3000:80 app:test
   END

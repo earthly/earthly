@@ -1192,7 +1192,7 @@ This does not apply to Dockerfile's [RUN --security](https://docs.docker.com/ref
 #### Synopsis
 
 ```Dockerfile
-WITH DOCKER [--pull <image-name>] [--load <image-name>=<target-ref>] [--compose <compose-file>]
+WITH DOCKER [--pull <image-name>] [--load [<image-name>=]<target-ref>] [--compose <compose-file>]
             [--service <compose-service>] [--allow-privileged]
   <commands>
   ...
@@ -1212,7 +1212,7 @@ The `WITH DOCKER` clause only supports the command [`RUN`](#run). Other commands
 A typical example of a `WITH DOCKER` clause might be:
 
 ```Dockerfile
-FROM earthly/dind:alpine-3.19-docker-25.0.3-r2
+FROM earthly/dind:alpine-3.19-docker-25.0.5-r0
 WORKDIR /test
 COPY docker-compose.yml ./
 WITH DOCKER \
@@ -1234,7 +1234,7 @@ For information on using `WITH DOCKER` with podman see the [Podman guide](../gui
 ##### Note
 For performance reasons, it is recommended to use a Docker image that already contains `dockerd`. If `dockerd` is not found, Earthly will attempt to install it.
 
-Earthly provides officially supported images such as `earthly/dind:alpine-3.19-docker-25.0.3-r2` and `earthly/dind:ubuntu-23.04-docker-24.0.5-1` to be used together with `WITH DOCKER`.
+Earthly provides officially supported images such as `earthly/dind:alpine-3.19-docker-25.0.5-r0` and `earthly/dind:ubuntu-23.04-docker-25.0.2-1` to be used together with `WITH DOCKER`.
 {% endhint %}
 
 {% hint style='info' %}
@@ -1255,9 +1255,9 @@ This option may be repeated in order to provide multiple images to be pulled.
 It is recommended that you avoid issuing `RUN docker pull ...` and use `WITH DOCKER --pull ...` instead. The classical `docker pull` command does not take into account Earthly caching and so it would redownload the image much more frequently than necessary.
 {% endhint %}
 
-##### `--load <image-name>=<target-ref>`
+##### `--load [<image-name>=]<target-ref>`
 
-Builds the image referenced by `<target-ref>` and then loads it into the temporary Docker daemon created by `WITH DOCKER`. The image can be referenced as `<image-name>` within `WITH DOCKER`.
+Builds the image referenced by `<target-ref>` and then loads it into the temporary Docker daemon created by `WITH DOCKER`. Within `WITH DOCKER`, the image can be referenced as `<image-name>`, if specified, or otherwise by the name of the image specified in the referenced target's `SAVE IMAGE` command.
 
 `<target-ref>` may be a simple target reference (`+some-target`), or a target reference with a build arg `(+some-target --SOME_BUILD_ARG=value)`.
 
@@ -1324,12 +1324,48 @@ This option is deprecated. Please use `--load <image-name>=(<target-ref> --<buil
 
 The `IF` clause can perform varying commands depending on the outcome of one or more conditions. The expression passed as part of `<condition>` is evaluated by running it in the build environment. If the exit code of the expression is zero, then the block of that condition is executed. Otherwise, the control continues to the next `ELSE IF` condition (if any), or if no condition returns a non-zero exit code, the control continues to executing the `<else-block>`, if one is provided.
 
+#### Examples
+
 A very common pattern is to use the POSIX shell `[ ... ]` conditions. For example the following marks port `8080` as exposed if the file `./foo` exists.
 
 ```Dockerfile
 IF [ -f ./foo ]
   EXPOSE 8080
 END
+```
+
+It is also possible to call other commands, which can be useful for more comparisons such as semantic versioning. For example:
+
+```Dockerfile
+VERSION 0.8
+
+test:
+  FROM python:3
+  RUN pip3 install semver
+
+  # The following python script requires two arguments (v1 and v2)
+  # and will return an exit code of 0 when v1 is semantically greater than v2
+  # or an exit code of 1 in all other cases.
+  RUN echo "#!/usr/bin/env python3
+import sys
+import semver
+v1 = sys.argv[1]
+v2 = sys.argv[2]
+if semver.compare(v1, v2) > 0:
+  sys.exit(0)
+sys.exit(1)
+  " > ./semver-gt && chmod +x semver-gt
+
+  # Define two different versions
+  ARG A="0.3.2"
+  ARG B="0.10.1"
+
+  # and compare them
+  IF ./semver-gt "$A" "$B"
+    RUN echo "A ($A) is semantically greater than B ($B)"
+  ELSE
+    RUN echo "A ($A) is NOT semantically greater than B ($B)"
+  END
 ```
 
 {% hint style='info' %}

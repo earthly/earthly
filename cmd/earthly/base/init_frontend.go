@@ -1,6 +1,7 @@
 package base
 
 import (
+	"fmt"
 	"net/url"
 	"path/filepath"
 	"time"
@@ -15,6 +16,16 @@ func (cli *CLI) InitFrontend(cliCtx *cli.Context) error {
 	// command line option overrides the config which overrides the default value
 	if !cliCtx.IsSet("buildkit-image") && cli.Cfg().Global.BuildkitImage != "" {
 		cli.Flags().BuildkitdImage = cli.Cfg().Global.BuildkitImage
+	}
+
+	if cli.Flags().UseTickTockBuildkitImage {
+		if cliCtx.IsSet("buildkit-image") {
+			return fmt.Errorf("the --buildkit-image and --ticktock flags are mutually exclusive")
+		}
+		if cli.Cfg().Global.BuildkitImage != "" {
+			return fmt.Errorf("the --ticktock flags can not be used in combination with the buildkit_image config option")
+		}
+		cli.Flags().BuildkitdImage += "-ticktock"
 	}
 
 	bkURL, err := url.Parse(cli.Flags().BuildkitHost) // Not validated because we already did that when we calculated it.
