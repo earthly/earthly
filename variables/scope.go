@@ -15,6 +15,10 @@ type Variable struct {
 	Str    string
 }
 
+func NewStringVariable(s string) Variable {
+	return Variable{Str: s}
+}
+
 // Scope represents a variable scope.
 type Scope struct {
 	variables map[string]Variable
@@ -74,13 +78,13 @@ func (s *Scope) Get(name string, opts ...ScopeOpt) (Variable, bool) {
 
 // Add sets a variable to a value within this scope. It returns true if the
 // value was set.
-func (s *Scope) Add(name, value string, opts ...ScopeOpt) bool {
+func (s *Scope) Add(name string, value Variable, opts ...ScopeOpt) bool {
 	opt := applyOpts(opts...)
 	_, existed := s.variables[name]
 	if opt.noOverride && existed {
 		return false
 	}
-	s.variables[name] = Variable{Str: value}
+	s.variables[name] = value
 	if opt.active {
 		s.activeVariables[name] = true
 	}
@@ -163,7 +167,7 @@ func CombineScopes(scopes ...*Scope) *Scope {
 		addOpts := append(opts, NoOverride())
 		for _, scope := range scopes {
 			for k, v := range scope.Map(opts...) {
-				s.Add(k, v, addOpts...)
+				s.Add(k, NewStringVariable(v), addOpts...)
 			}
 		}
 	}
@@ -175,7 +179,7 @@ func CombineScopesInactive(scopes ...*Scope) *Scope {
 	s := NewScope()
 	for _, scope := range scopes {
 		for k, v := range scope.Map() {
-			s.Add(k, v, NoOverride())
+			s.Add(k, NewStringVariable(v), NoOverride())
 		}
 	}
 	return s

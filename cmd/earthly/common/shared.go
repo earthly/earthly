@@ -26,7 +26,7 @@ func Wrap(s ...string) string {
 func CombineVariables(dotEnvMap map[string]string, flagArgs []string, buildFlagArgs []string) (*variables.Scope, error) {
 	dotEnvVars := variables.NewScope()
 	for k, v := range dotEnvMap {
-		dotEnvVars.Add(k, v)
+		dotEnvVars.Add(k, variables.NewStringVariable(v))
 	}
 	buildArgs := append([]string{}, buildFlagArgs...)
 	buildArgs = append(buildArgs, flagArgs...)

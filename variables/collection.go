@@ -257,9 +257,9 @@ func (c *Collection) declareOldArg(name string, defaultValue string, global bool
 		finalDefaultValue = v
 	}
 	opts := []ScopeOpt{WithActive()}
-	c.args().Add(name, finalValue, opts...)
+	c.args().Add(name, NewStringVariable(finalValue), opts...)
 	if global {
-		c.globals().Add(name, finalValue, opts...)
+		c.globals().Add(name, NewStringVariable(finalValue), opts...)
 	}
 	c.effectiveCache = nil
 	return finalValue, finalDefaultValue, nil
@@ -332,7 +332,7 @@ func (c *Collection) DeclareVar(name string, opts ...DeclareOpt) (string, string
 	scope := []ScopeOpt{WithActive(), NoOverride()}
 
 	if !prefs.arg {
-		ok := c.vars().Add(name, prefs.val, scope...)
+		ok := c.vars().Add(name, NewStringVariable(prefs.val), scope...)
 		if !ok {
 			return "", "", hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', use 'SET %[1]v = %[2]q'", name, prefs.val)
 		}
@@ -353,13 +353,13 @@ func (c *Collection) DeclareVar(name string, opts ...DeclareOpt) (string, string
 			baseErr := errors.Wrap(ErrRedeclared, "could not override non-global ARG with global ARG")
 			return "", "", hint.Wrapf(baseErr, "'%[1]v' was already declared as a non-global ARG in this scope - did you mean to add '--global' to the original declaration?", name)
 		}
-		ok := c.globals().Add(name, v, scope...)
+		ok := c.globals().Add(name, NewStringVariable(v), scope...)
 		if !ok {
 			return "", "", hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', redeclare it as a non-argument variable with 'LET %[1]v = %[2]q'", name, prefs.val)
 		}
 		return v, v, nil
 	}
-	ok := c.args().Add(name, v, scope...)
+	ok := c.args().Add(name, NewStringVariable(v), scope...)
 	if !ok {
 		return "", "", hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', redeclare it as a non-argument variable with 'LET %[1]v = %[2]q'", name, prefs.val)
 	}
@@ -368,7 +368,7 @@ func (c *Collection) DeclareVar(name string, opts ...DeclareOpt) (string, string
 
 // SetArg sets the value of an arg.
 func (c *Collection) SetArg(name string, value string) {
-	c.args().Add(name, value, WithActive())
+	c.args().Add(name, NewStringVariable(value), WithActive())
 	c.effectiveCache = nil
 }
 
@@ -380,7 +380,7 @@ func (c *Collection) UnsetArg(name string) {
 
 // DeclareEnv declares an env var.
 func (c *Collection) DeclareEnv(name string, value string) {
-	c.envs.Add(name, value, WithActive())
+	c.envs.Add(name, NewStringVariable(value), WithActive())
 	c.effectiveCache = nil
 }
 
@@ -404,7 +404,7 @@ func (c *Collection) UpdateVar(name, value string, pncvf ProcessNonConstantVaria
 	if err != nil {
 		return errors.Wrap(err, "failed to parse SET value")
 	}
-	c.vars().Add(name, v, WithActive())
+	c.vars().Add(name, NewStringVariable(v), WithActive())
 	return nil
 }
 
