@@ -125,8 +125,11 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 		return errors.Wrap(err, "failed to create command")
 	}
 
+	endErrorExecution := true
 	defer func() {
-		cmd.SetEndError(retErr)
+		if endErrorExecution {
+			cmd.SetEndError(retErr)
+		}
 	}()
 
 	err = w.installDeps(ctx, opt)
@@ -254,9 +257,9 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 	// loads and pulls.
 	err = w.c.forceExecution(ctx, w.c.mts.Final.MainState, w.c.platr)
 	if err != nil && errors.Is(err, ErrUnlazyForceExecution) {
-		// The forced error will be returned elsewhere via magic I don't understand
-		// So swallowing the error here keeps error messages consistent.
-		return nil
+		// If error is ErrUnlazyForceExecution, Error is logged via SetEnd in
+		// solvermon.handleBuildkitStatus. So we don't setend we don't SetEndError here
+		endErrorExecution = false
 	}
 	return err
 }
