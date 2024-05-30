@@ -5,12 +5,19 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/variables/reserved"
 )
 
+type Variable struct {
+	// TODO type
+	Target domain.Target
+	Str    string
+}
+
 // Scope represents a variable scope.
 type Scope struct {
-	variables map[string]string
+	variables map[string]Variable
 	// activeVariables are variables that are active right now as we have passed the point of
 	// their declaration.
 	activeVariables map[string]bool
@@ -19,7 +26,7 @@ type Scope struct {
 // NewScope creates a new variable scope.
 func NewScope() *Scope {
 	return &Scope{
-		variables:       make(map[string]string),
+		variables:       make(map[string]Variable),
 		activeVariables: make(map[string]bool),
 	}
 }
@@ -53,14 +60,14 @@ func (s *Scope) Clone() *Scope {
 }
 
 // Get gets a variable by name.
-func (s *Scope) Get(name string, opts ...ScopeOpt) (string, bool) {
+func (s *Scope) Get(name string, opts ...ScopeOpt) (Variable, bool) {
 	opt := applyOpts(opts...)
 	v, ok := s.variables[name]
 	if !ok {
-		return "", false
+		return Variable{}, false
 	}
 	if opt.active && !s.activeVariables[name] {
-		return "", false
+		return Variable{}, false
 	}
 	return v, true
 }
@@ -73,7 +80,7 @@ func (s *Scope) Add(name, value string, opts ...ScopeOpt) bool {
 	if opt.noOverride && existed {
 		return false
 	}
-	s.variables[name] = value
+	s.variables[name] = Variable{Str: value}
 	if opt.active {
 		s.activeVariables[name] = true
 	}
@@ -94,7 +101,7 @@ func (s *Scope) Map(opts ...ScopeOpt) map[string]string {
 		if opt.active && !s.activeVariables[k] {
 			continue
 		}
-		m[k] = v
+		m[k] = v.Str
 	}
 	return m
 }

@@ -2,8 +2,9 @@ package states
 
 import (
 	"context"
-	"github.com/moby/buildkit/client/llb"
 	"sync"
+
+	"github.com/moby/buildkit/client/llb"
 
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/states/dedup"
@@ -306,7 +307,7 @@ func (sts *SingleTarget) addOverridingVarsAsBuildArgInputs(overridingVars *varia
 	for _, key := range overridingVars.Sorted() {
 		ovVar, _ := overridingVars.Get(key)
 		sts.targetInput = sts.targetInput.WithBuildArgInput(
-			dedup.BuildArgInput{ConstantValue: ovVar, Name: key})
+			dedup.BuildArgInput{ConstantValue: ovVar.Str, Name: key})
 	}
 }
 

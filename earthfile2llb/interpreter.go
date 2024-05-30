@@ -1328,10 +1328,11 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 
 		for _, platform := range platformsSlice {
 			if async {
-				err := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgs, buildCmd, nil, nil)
-				if err != nil {
-					return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
-				}
+				//TODO
+				//err := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgs, buildCmd, nil, nil)
+				//if err != nil {
+				//	return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
+				//}
 				continue
 			}
 			err := i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgs, onExecutionSuccess)

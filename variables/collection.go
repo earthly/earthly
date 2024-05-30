@@ -196,7 +196,8 @@ func (c *Collection) SetLocally(locally bool) {
 
 // Get returns a variable by name.
 func (c *Collection) Get(name string, opts ...ScopeOpt) (string, bool) {
-	return c.effective().Get(name, opts...)
+	v, ok := c.effective().Get(name, opts...)
+	return v.Str, ok
 }
 
 // SortedVariables returns the current variable names in a sorted slice.
@@ -232,10 +233,10 @@ func (c *Collection) Expand(word string, shellOut shell.EvalShellOutFn) (string,
 
 func (c *Collection) overridingOrDefault(name string, defaultValue string, pncvf ProcessNonConstantVariableFunc) (string, error) {
 	if v, ok := c.overriding().Get(name); ok {
-		return v, nil
+		return v.Str, nil
 	}
 	if v, ok := c.builtin.Get(name); ok {
-		return v, nil
+		return v.Str, nil
 	}
 	return parseArgValue(name, defaultValue, pncvf)
 }
@@ -246,7 +247,7 @@ func (c *Collection) declareOldArg(name string, defaultValue string, global bool
 	var finalValue string
 	existing, found := ef.Get(name)
 	if found {
-		finalValue = existing
+		finalValue = existing.Str
 	} else {
 		v, err := parseArgValue(name, defaultValue, pncvf)
 		if err != nil {

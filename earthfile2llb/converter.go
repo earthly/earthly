@@ -1417,6 +1417,9 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 	if opts.Required && len(effective) == 0 {
 		return fmt.Errorf("value not supplied for required ARG: %s", argKey)
 	}
+	if opts.TargetReference {
+		fmt.Printf("got a targetref for %s, %s, %s\n", argKey, effectiveDefault, effective)
+	}
 	if len(defaultArgValue) > 0 && reserved.IsBuiltIn(argKey) {
 		return fmt.Errorf("arg default value supplied for built-in ARG: %s", argKey)
 	}
@@ -1996,6 +1999,7 @@ func (c *Converter) prepBuildTarget(
 	// Recursion.
 	opt := c.opt
 	opt.OverridingVars = overriding
+	opt.CalledFrom = c.target
 	opt.GlobalImports = nil
 	opt.parentDepSub = c.mts.Final.NewDependencySubscription()
 	opt.PlatformResolver = c.platr.SubResolver(platform)
@@ -2070,7 +2074,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 					dedup.BuildArgInput{
 						Name:          k,
 						DefaultValue:  defaultArgValue,
-						ConstantValue: v,
+						ConstantValue: v.Str,
 					})
 			}
 			c.varCollection.SetGlobals(globals)
@@ -2611,7 +2615,7 @@ func (c *Converter) applyFromImage(state pllb.State, img *image.Image) (pllb.Sta
 	ev := variables.ParseEnvVars(img.Config.Env)
 	for _, name := range ev.Sorted(variables.WithActive()) {
 		v, _ := ev.Get(name, variables.WithActive())
-		state = state.AddEnv(name, v)
+		state = state.AddEnv(name, v.Str)
 	}
 	// Init config maps if not already initialized.
 	if img.Config.ExposedPorts == nil {

@@ -133,8 +133,9 @@ type ImportOpts struct {
 }
 
 type ArgOpts struct {
-	Required bool `long:"required" description:"Require argument to be non-empty"`
-	Global   bool `long:"global" description:"Global argument to make available to all other targets"`
+	Required        bool `long:"required" description:"Require argument to be non-empty"`
+	Global          bool `long:"global" description:"Global argument to make available to all other targets"`
+	TargetReference bool `long:"targetreference" description:"an earthfile target reference"`
 }
 
 type ProjectOpts struct{}
