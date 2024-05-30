@@ -130,7 +130,7 @@ func (w *withDockerRunLocalReg) Run(ctx context.Context, args []string, opt With
 	err = w.c.forceExecution(ctx, w.c.mts.Final.MainState, w.c.platr)
 	if err != nil && errors.Is(err, ErrUnlazyForceExecution) {
 		// If error is ErrUnlazyForceExecution, Error is logged via SetEnd in
-		// solvermon.handleBuildkitStatus. So we don't setend we don't SetEndError here
+		// solvermon.handleBuildkitStatus. So we don't SetEndError here
 		endErrorExecution = false
 	}
 	return err
