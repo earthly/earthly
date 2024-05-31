@@ -130,13 +130,20 @@ The provided token must have enough permissions to register webhooks and to crea
 	}
 }
 
-func (a *Github) actionAdd(cliCtx *cli.Context) error {
-	a.cli.SetCommandName("githubAdd")
+func (a *Github) resolveOrg() error {
 	if a.Org == "" {
 		if a.cli.OrgName() == "" {
 			return fmt.Errorf("coudn't determine Earthly organization")
 		}
 		a.Org = a.cli.OrgName()
+	}
+	return nil
+}
+
+func (a *Github) actionAdd(cliCtx *cli.Context) error {
+	a.cli.SetCommandName("githubAdd")
+	if err := a.resolveOrg(); err != nil {
+		return err
 	}
 	if a.GHToken == "" {
 		// Our signal handling under main() doesn't cause reading from stdin to cancel
@@ -162,11 +169,8 @@ func (a *Github) actionAdd(cliCtx *cli.Context) error {
 
 func (a *Github) actionRemove(cliCtx *cli.Context) error {
 	a.cli.SetCommandName("githubRemove")
-	if a.Org == "" {
-		if a.cli.OrgName() == "" {
-			return fmt.Errorf("coudn't determine Earthly organization")
-		}
-		a.Org = a.cli.OrgName()
+	if err := a.resolveOrg(); err != nil {
+		return err
 	}
 	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
@@ -182,11 +186,8 @@ func (a *Github) actionRemove(cliCtx *cli.Context) error {
 
 func (a *Github) actionList(cliCtx *cli.Context) error {
 	a.cli.SetCommandName("githubList")
-	if a.Org == "" {
-		if a.cli.OrgName() == "" {
-			return fmt.Errorf("coudn't determine Earthly organization")
-		}
-		a.Org = a.cli.OrgName()
+	if err := a.resolveOrg(); err != nil {
+		return err
 	}
 	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
@@ -222,7 +223,7 @@ func (a *Github) printIntegrationsJSON(integrations *pb.ListGHAIntegrationsRespo
 	if err != nil {
 		return fmt.Errorf("failed to marshal json: %w", err)
 	}
-	a.cli.Console().Printf(string(b))
+	a.cli.Console().Printf("%s\n", string(b))
 	return nil
 }
 
