@@ -227,7 +227,6 @@ func (a *Github) printIntegrationsJSON(integrations *pb.ListGHAIntegrationsRespo
 }
 
 func (a *Github) printIntegrationsTable(integrations *pb.ListGHAIntegrationsResponse) error {
-
 	t := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
 	headerRow := []string{"GH_ORG", "GH_REPO", "CREATED_BY", "CREATED_AT"}
 	printRow(t, []color.Attribute{color.Reset}, headerRow)
