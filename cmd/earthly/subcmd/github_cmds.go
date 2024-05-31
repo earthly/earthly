@@ -194,7 +194,7 @@ func (a *Github) actionList(cliCtx *cli.Context) error {
 	}
 	integrations, err := cloudClient.ListGHAIntegrations(cliCtx.Context, a.Org)
 	if err != nil {
-		return fmt.Errorf("error found running github list: %w", err)
+		return fmt.Errorf("github list failed: %w", err)
 	}
 	if a.printJSON {
 		if err := a.printIntegrationsJSON(integrations); err != nil {
