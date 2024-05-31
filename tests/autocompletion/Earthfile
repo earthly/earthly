@@ -34,10 +34,10 @@ build
 cloud 
 config 
 debug 
-doc 
+doc
 docker-build 
 docker2earthly 
-github 
+gha
 init 
 ls 
 org 
