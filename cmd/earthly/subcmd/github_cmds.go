@@ -174,7 +174,7 @@ func (a *Github) actionRemove(cliCtx *cli.Context) error {
 	}
 	err = cloudClient.RemoveGHAIntegration(cliCtx.Context, a.Org, a.GHOrg, a.GHRepo)
 	if err != nil {
-		return fmt.Errorf("error found running github remove: %w", err)
+		return fmt.Errorf("github remove failed: %w", err)
 	}
 	a.cli.Console().Printf("GitHub integration successfully removed")
 	return nil
