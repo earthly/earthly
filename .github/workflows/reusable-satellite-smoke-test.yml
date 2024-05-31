@@ -68,3 +68,4 @@ jobs:
           echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
       - name: Run satellite smoke test
         run: ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello
+
