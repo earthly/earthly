@@ -13,7 +13,7 @@ Earthly satellites are now bundled with a GitHub Actions runner, so they can dir
 
 These runners come with the Earthly CLI preinstalled and configured to use the satellite BuildKit instance, so GitHub Actions jobs will share the same satellite cache than the traditional satellite builds.
 
-## Getting started
+## Creating a GitHub Actions integration
 
 Satellite-based GitHub Actions runners can be enabled for a particular repository or for all repositories of a GitHub organization at once.
 
@@ -36,11 +36,11 @@ Follow the [official docs](https://docs.github.com/en/authentication/keeping-you
 {% endhint %}
 
 ### 2. Register the integration via CLI
-Create the integration using the `earthly github add` CLI command, passing the token created in the previous step.
+Create the integration using the `earthly gha add` CLI command, passing the token created in the previous step.
 
 #### Organization integration
 ``` 
-earthly github add \
+earthly gha add \
   --org <earthly_organization> \
   --gh-org <github_organization> \
   --gh-token <github_token>
@@ -48,7 +48,7 @@ earthly github add \
 
 #### Single repository integration
 ``` 
-earthly github add \
+earthly gha add \
   --org <earthly_organization> \
   --gh-org <github_organization> \
   --gh-repo <github_repo> \
@@ -123,3 +123,29 @@ earthly-job:
 For Earthly-Cloud satellites make sure you have an [EARTHLY_TOKEN](https://docs.earthly.dev/docs/earthly-command#earthly-account-create-token) available in your [GitHub Actions secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) store, and add it to the job environment, as shown in the previous example. Future versions will remove this requirement.
 
 {% endhint %}
+
+## Listing registered integrations
+List the integrations of your Earthly organization with the `earthly gha ls` CLI command.
+
+``` 
+earthly gha ls \
+  --org <earthly_organization> 
+``` 
+
+## Removing an integration
+Remove an integration using the `earthly gha remove` CLI command.
+
+### Organization integration
+``` 
+earthly gha remove \
+  --org <earthly_organization> \
+  --gh-org <github_organization> 
+``` 
+
+### Single repository integration
+``` 
+earthly gha remove \
+  --org <earthly_organization> \
+  --gh-org <github_organization> \
+  --gh-repo <github_repo>
+``` 
