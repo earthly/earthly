@@ -31,7 +31,7 @@ jobs:
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
-      EARTHLY_ORG: "${{inputs.EARTHLY_ORG}}"
+      EARTHLY_ORG: "${{ inputs.EARTHLY_ORG }}"
       EARTHLY_SATELLITE: ${{ inputs.SATELLITE_NAME }}
       EARTHLY_INSTALL_ID: "earthly-githubactions"
       DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
