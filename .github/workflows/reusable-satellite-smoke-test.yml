@@ -1,0 +1,70 @@
+name: Satellite Smoke Test
+
+on:
+  workflow_call:
+    inputs:
+      BUILT_EARTHLY_PATH:
+        required: true
+        type: string
+      RUNS_ON:
+        required: true
+        type: string
+      SUDO:
+        type: string
+        required: false
+      BINARY:
+        required: true
+        type: string
+      SATELLITE_NAME:
+        required: true
+        type: string
+      EARTHLY_ORG:
+        required: false
+        type: string
+      USE_VPN:
+        required: false
+        type: boolean
+
+jobs:
+  satellite-smoke-test:
+    runs-on: ${{inputs.RUNS_ON}}
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_ORG: "${{ inputs.EARTHLY_ORG }}"
+      EARTHLY_SATELLITE: ${{ inputs.SATELLITE_NAME }}
+      EARTHLY_INSTALL_ID: "earthly-githubactions"
+      DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
+      DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+      # Used in our github action as the token - TODO: look to change it into an input
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: ./.github/actions/stage2-setup
+        with:
+          DOCKERHUB_MIRROR_USERNAME: "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}"
+          DOCKERHUB_MIRROR_PASSWORD: "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+          DOCKERHUB_USERNAME: "${{ secrets.DOCKERHUB_USERNAME }}"
+          DOCKERHUB_PASSWORD: "${{ secrets.DOCKERHUB_TOKEN }}"
+          EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+          BINARY: "${{ inputs.BINARY }}"
+          SUDO: "${{ inputs.SUDO }}"
+          BUILT_EARTHLY_PATH: "${{ inputs.BUILT_EARTHLY_PATH }}"
+          SATELLITE_NAME: "${{ inputs.SATELLITE_NAME }}"
+          USE_SATELLITE: true
+      - name: Configure Tailscale
+        uses: tailscale/github-action@v2
+        if: ${{ inputs.USE_VPN }}
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+      - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
+        run: |-
+          set -euo pipefail
+          EARTHLY_VERSION_FLAG_OVERRIDES="$(tr -d '\n' < .earthly_version_flag_overrides)"
+          echo "EARTHLY_VERSION_FLAG_OVERRIDES=$EARTHLY_VERSION_FLAG_OVERRIDES" >> "$GITHUB_ENV"
+      - name: Run satellite smoke test
+        run: ${{inputs.BUILT_EARTHLY_PATH}} github.com/earthly/hello-world+hello
