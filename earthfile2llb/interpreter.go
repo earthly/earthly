@@ -25,6 +25,7 @@ import (
 	"github.com/earthly/earthly/util/oidcutil"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
+	"github.com/earthly/earthly/util/types/variable"
 	"github.com/earthly/earthly/variables"
 
 	"github.com/docker/go-connections/nat"
@@ -616,7 +617,7 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 	}
 
 	i.local = false // FIXME https://github.com/earthly/earthly/issues/2044
-	err = i.converter.From(ctx, imageName, platform, allowPrivileged, opts.PassArgs, expandedBuildArgs)
+	err = i.converter.From(ctx, imageName, platform, allowPrivileged, opts.PassArgs, buildArgsToKeyValues(expandedBuildArgs, i.target))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply FROM %s", imageName)
 	}
@@ -890,7 +891,7 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand target %s", opts.Target)
 	}
 	i.local = false
-	err = i.converter.FromDockerfile(ctx, path, expandedPath, expandedTarget, platform, allowPrivileged, expandedBuildArgs)
+	err = i.converter.FromDockerfile(ctx, path, expandedPath, expandedTarget, platform, allowPrivileged, buildArgsToKeyValues(expandedBuildArgs, i.target))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "from dockerfile")
 	}
@@ -1059,12 +1060,12 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			}
 			for _, expandedSrc := range expandedSrcs {
 				if i.local {
-					err = i.converter.CopyArtifactLocal(ctx, expandedSrc, dest, platform, allowPrivileged, opts.PassArgs, srcBuildArgs, opts.IsDirCopy)
+					err = i.converter.CopyArtifactLocal(ctx, expandedSrc, dest, platform, allowPrivileged, opts.PassArgs, buildArgsToKeyValues(srcBuildArgs, i.target), opts.IsDirCopy)
 					if err != nil {
 						return i.wrapError(err, cmd.SourceLocation, "copy artifact locally")
 					}
 				} else {
-					err = i.converter.CopyArtifact(ctx, expandedSrc, dest, platform, allowPrivileged, opts.PassArgs, srcBuildArgs, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, expandedChown, fileModeParsed, opts.IfExists, opts.SymlinkNoFollow)
+					err = i.converter.CopyArtifact(ctx, expandedSrc, dest, platform, allowPrivileged, opts.PassArgs, buildArgsToKeyValues(srcBuildArgs, i.target), opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, expandedChown, fileModeParsed, opts.IfExists, opts.SymlinkNoFollow)
 					if err != nil {
 						return i.wrapError(err, cmd.SourceLocation, "copy artifact")
 					}
@@ -1269,7 +1270,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 		}
 		platformsSlice = append(platformsSlice, platform)
 	}
-	asyncSafeArgs := isSafeAsyncBuildArgsKVStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])
+	asyncSafeArgs := isSafeAsyncBuildArgsKVStyle(buildArgsToKeyValues(opts.BuildArgs, i.target)) && isSafeAsyncBuildArgs(args[1:])
 	if async && (!asyncSafeArgs || opts.AutoSkip) {
 		return errCannotAsync
 	}
@@ -1280,10 +1281,12 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD args %v", opts.BuildArgs)
 	}
+	fmt.Printf("args are %v\n", args[1:])
 	expandedFlagArgs, err := i.expandArgsSlice(ctx, args[1:], true, async)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD flags %v", args[1:])
 	}
+	fmt.Printf("expandedFlagArgs are %v\n", expandedFlagArgs)
 	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
@@ -1292,6 +1295,12 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	if len(platformsSlice) == 0 {
 		platformsSlice = []platutil.Platform{platutil.DefaultPlatform}
 	}
+
+	// TODO all the expandArgsSlice functions need to get parsed into the Variable type.
+	//expandedBuildArgsAsVariables := []variables.Variable{}
+	//for _, x := range expandedBuildArgs {
+	//	expandedBuildArgsAsVariables = append(expandedBuildArgsAsVariables, variables.NewStringVariableWithLocation(x, i.target))
+	//}
 
 	crossProductBuildArgs, err := flagutil.BuildArgMatrix(expandedBuildArgs)
 	if err != nil {
@@ -1314,14 +1323,15 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	for _, buildArgs := range crossProductBuildArgs {
 		saveHashFn := func() {}
 		if opts.AutoSkip {
-			skip, fn, err := i.converter.checkAutoSkip(ctx, fullTargetName, allowPrivileged, opts.PassArgs, buildArgs)
-			if err != nil {
-				return i.wrapError(err, cmd.SourceLocation, "failed to determine whether target can be skipped")
-			}
-			if skip {
-				continue
-			}
-			saveHashFn = fn
+			//TODO
+			//skip, fn, err := i.converter.checkAutoSkip(ctx, fullTargetName, allowPrivileged, opts.PassArgs, buildArgs)
+			//if err != nil {
+			//	return i.wrapError(err, cmd.SourceLocation, "failed to determine whether target can be skipped")
+			//}
+			//if skip {
+			//	continue
+			//}
+			//saveHashFn = fn
 		}
 
 		onExecutionSuccess := newOnExecutionSuccess(len(platformsSlice), saveHashFn)
@@ -1335,7 +1345,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 				//}
 				continue
 			}
-			err := i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgs, onExecutionSuccess)
+			err := i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgsToKeyValues(buildArgs, i.target), onExecutionSuccess)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
 			}
@@ -1833,7 +1843,7 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 			Target:          loadTarget,
 			ImageName:       loadImg,
 			Platform:        platform,
-			BuildArgs:       loadBuildArgs,
+			BuildArgs:       buildArgsToKeyValues(loadBuildArgs, i.target),
 			AllowPrivileged: allowPrivileged,
 			PassArgs:        opts.PassArgs,
 		})
@@ -1922,7 +1932,7 @@ func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 	for _, uc := range bc.Earthfile.Functions {
 		if uc.Name == command.Command {
 			sourceFilePath := bc.Ref.ProjectCanonical() + "/Earthfile"
-			return i.handleDoFunction(ctx, command, relCommand, uc, cmd, parsedFlagArgs, allowPrivileged, opts.PassArgs, sourceFilePath, bc.Features.UseFunctionKeyword)
+			return i.handleDoFunction(ctx, command, relCommand, uc, cmd, buildArgsToKeyValues(parsedFlagArgs, i.target), allowPrivileged, opts.PassArgs, sourceFilePath, bc.Features.UseFunctionKeyword)
 		}
 	}
 	return i.errorf(cmd.SourceLocation, "user command %s not found", ucName)
@@ -2048,7 +2058,7 @@ func (i *Interpreter) handleHost(ctx context.Context, cmd spec.Command) error {
 
 // ----------------------------------------------------------------------------
 
-func (i *Interpreter) handleDoFunction(ctx context.Context, command domain.Command, relCommand domain.Command, uc spec.Function, do spec.Command, buildArgs []string, allowPrivileged, passArgs bool, sourceLocationFile string, useFunctionCmd bool) error {
+func (i *Interpreter) handleDoFunction(ctx context.Context, command domain.Command, relCommand domain.Command, uc spec.Function, do spec.Command, buildArgs []variable.KeyValue, allowPrivileged, passArgs bool, sourceLocationFile string, useFunctionCmd bool) error {
 	cmdName := "FUNCTION"
 	if !useFunctionCmd {
 		cmdName = "COMMAND"
@@ -2184,10 +2194,10 @@ func requiresShellOutOrCmdInvalid(s string) bool {
 }
 
 // isSafeAsyncBuildArgsKVStyle is used for "key=value" style buildargs
-func isSafeAsyncBuildArgsKVStyle(args []string) bool {
+func isSafeAsyncBuildArgsKVStyle(args []variable.KeyValue) bool {
 	for _, arg := range args {
-		_, v, _ := variables.ParseKeyValue(arg)
-		if requiresShellOutOrCmdInvalid(v) {
+		//_, v, _ := variables.ParseKeyValue(arg)
+		if arg.Value != nil && requiresShellOutOrCmdInvalid(arg.Value.Str) {
 			return false
 		}
 	}
@@ -2235,4 +2245,12 @@ func baseTarget(ref domain.Reference) domain.Target {
 		LocalPath: ref.GetLocalPath(),
 		Target:    "base",
 	}
+}
+
+func buildArgsToKeyValues(buildArgs []string, t domain.Target) []variable.KeyValue {
+	buildArgsNewType := []variable.KeyValue{}
+	for _, x := range buildArgs {
+		buildArgsNewType = append(buildArgsNewType, variable.ParseKeyValue(x, t))
+	}
+	return buildArgsNewType
 }

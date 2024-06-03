@@ -48,6 +48,7 @@ import (
 	"github.com/earthly/earthly/util/shell"
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
+	"github.com/earthly/earthly/util/types/variable"
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
@@ -186,7 +187,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 }
 
 // From applies the earthly FROM command.
-func (c *Converter) From(ctx context.Context, imageName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string) error {
+func (c *Converter) From(ctx context.Context, imageName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue) error {
 	err := c.checkAllowed(fromCmd)
 	if err != nil {
 		return err
@@ -240,7 +241,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	return nil
 }
 
-func (c *Converter) fromTarget(ctx context.Context, targetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string) (retErr error) {
+func (c *Converter) fromTarget(ctx context.Context, targetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue) (retErr error) {
 	cmdID, cmd, err := c.newLogbusCommand(ctx, fmt.Sprintf("FROM %s", targetName))
 	if err != nil {
 		return errors.Wrap(err, "failed to create command")
@@ -284,7 +285,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 }
 
 // FromDockerfile applies the earthly FROM DOCKERFILE command.
-func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform platutil.Platform, allowPrivileged bool, buildArgs []string) (retErr error) {
+func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform platutil.Platform, allowPrivileged bool, buildArgs []variable.KeyValue) (retErr error) {
 	var err error
 	ctx, err = c.ftrs.WithContext(ctx)
 	if err != nil {
@@ -417,7 +418,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	if !c.opt.Features.ShellOutAnywhere {
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
-	overriding, err := variables.ParseArgs(buildArgs, pncvf, c.varCollection)
+	overriding, err := variables.ParseArgs2(buildArgs, pncvf, c.varCollection)
 	if err != nil {
 		return err
 	}
@@ -486,7 +487,7 @@ func (c *Converter) Locally(ctx context.Context) error {
 }
 
 // CopyArtifactLocal applies the earthly COPY artifact command which are invoked under a LOCALLY target.
-func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, dest string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, isDir bool) error {
+func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, dest string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue, isDir bool) error {
 	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
@@ -537,7 +538,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 }
 
 // CopyArtifact applies the earthly COPY artifact command.
-func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, chmod *fs.FileMode, ifExists, symlinkNoFollow bool) error {
+func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue, isDir bool, keepTs bool, keepOwn bool, chown string, chmod *fs.FileMode, ifExists, symlinkNoFollow bool) error {
 	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
@@ -1216,7 +1217,7 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, hasPushF
 }
 
 // Build applies the earthly BUILD command.
-func (c *Converter) Build(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, onExecutionSuccess func(context.Context)) error {
+func (c *Converter) Build(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue, onExecutionSuccess func(context.Context)) error {
 	err := c.checkAllowed(buildCmd)
 	if err != nil {
 		return err
@@ -1239,7 +1240,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform p
 type afterParallelFunc func(context.Context, *states.MultiTarget) error
 
 // BuildAsync applies the earthly BUILD command asynchronously.
-func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, cmdT cmdType, apf afterParallelFunc, sem semutil.Semaphore) error {
+func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue, cmdT cmdType, apf afterParallelFunc, sem semutil.Semaphore) error {
 	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, true, cmdT, "", nil)
 	if err != nil {
 		return err
@@ -1744,10 +1745,10 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 }
 
 // EnterScopeDo introduces a new variable scope. Globals and imports are fetched from baseTarget.
-func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged, passArgs bool, scopeName string, buildArgs []string) error {
+func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged, passArgs bool, scopeName string, buildArgs []variable.KeyValue) error {
 	topArgs := buildArgs
 	if c.ftrs.ArgScopeSet {
-		tmpScope, err := variables.ParseArgs(buildArgs, nil, nil)
+		tmpScope, err := variables.ParseArgs2(buildArgs, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -1763,7 +1764,7 @@ func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, ba
 	if !c.opt.Features.ShellOutAnywhere {
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
-	overriding, err := variables.ParseArgs(buildArgs, pncvf, c.varCollection)
+	overriding, err := variables.ParseArgs2(buildArgs, pncvf, c.varCollection)
 	if err != nil {
 		return err
 	}
@@ -1891,7 +1892,7 @@ func (c *Converter) absolutizeTarget(fullTargetName string, allowPrivileged bool
 	return targetRef.(domain.Target), relTarget, allowPrivileged, nil
 }
 
-func (c *Converter) checkAutoSkip(ctx context.Context, fullTargetName string, allowPrivileged, passArgs bool, buildArgs []string) (bool, func(), error) {
+func (c *Converter) checkAutoSkip(ctx context.Context, fullTargetName string, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue) (bool, func(), error) {
 	console := c.opt.Console.WithPrefix("auto-skip")
 
 	nopFn := func() {}
@@ -1952,13 +1953,13 @@ func (c *Converter) checkAutoSkip(ctx context.Context, fullTargetName string, al
 	}, nil
 }
 
-func (c *Converter) prepOverridingVars(ctx context.Context, relTarget domain.Target, passArgs bool, buildArgs []string) (*variables.Scope, bool, error) {
+func (c *Converter) prepOverridingVars(ctx context.Context, relTarget domain.Target, passArgs bool, buildArgs []variable.KeyValue) (*variables.Scope, bool, error) {
 	var buildArgFunc variables.ProcessNonConstantVariableFunc
 	if !c.opt.Features.ShellOutAnywhere {
 		buildArgFunc = c.processNonConstantBuildArgFunc(ctx)
 	}
 
-	overriding, err := variables.ParseArgs(buildArgs, buildArgFunc, c.varCollection)
+	overriding, err := variables.ParseArgs2(buildArgs, buildArgFunc, c.varCollection)
 	if err != nil {
 		return nil, false, errors.Wrap(err, "parse build args")
 	}
@@ -1980,7 +1981,7 @@ func (c *Converter) prepBuildTarget(
 	fullTargetName string,
 	platform platutil.Platform,
 	allowPrivileged, passArgs bool,
-	buildArgs []string,
+	buildArgs []variable.KeyValue,
 	isDangling bool,
 	cmdT cmdType,
 	parentCmdID string,
@@ -2030,7 +2031,7 @@ func (c *Converter) prepBuildTarget(
 	return target, opt, propagateBuildArgs, nil
 }
 
-func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, isDangling bool, cmdT cmdType, parentCmdID string, onExecutionSuccess func(context.Context)) (*states.MultiTarget, error) {
+func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue, isDangling bool, cmdT cmdType, parentCmdID string, onExecutionSuccess func(context.Context)) (*states.MultiTarget, error) {
 	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, isDangling, cmdT, parentCmdID, onExecutionSuccess)
 	if err != nil {
 		return nil, err
@@ -2949,9 +2950,10 @@ func clonesWithExpandedTargets[T cloneable[T]](expandedTargets []string, c T, se
 	return clones, nil
 }
 
-func joinWrap(a []string, before string, sep string, after string) string {
+func joinWrap(a []variable.KeyValue, before string, sep string, after string) string {
 	if len(a) > 0 {
-		return fmt.Sprintf("%s%s%s", before, strings.Join(a, sep), after)
+		return fmt.Sprintf("TODO %s%v%s", before, a, after)
+		//return fmt.Sprintf("%s%s%s", before, strings.Join(a, sep), after)
 	}
 	return ""
 }

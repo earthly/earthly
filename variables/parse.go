@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/earthly/earthly/util/types/variable"
 	"github.com/earthly/earthly/variables/reserved"
 
 	"github.com/pkg/errors"
@@ -42,6 +43,47 @@ func ParseCommandLineArgs(args []string) (*Scope, error) {
 		ret.Add(key, NewStringVariable(value))
 	}
 	return ret, nil
+}
+
+// ParseArgs2 parses args passed as --build-arg to an Earthly command, such as BUILD or FROM.
+func ParseArgs2(args []variable.KeyValue, pncvf ProcessNonConstantVariableFunc, current *Collection) (*Scope, error) {
+	ret := NewScope()
+	for _, arg := range args {
+		arg, err := parseArg2(arg, pncvf, current)
+		if err != nil {
+			return nil, errors.Wrapf(err, "parse build arg %s", arg)
+		}
+		ret.Add(arg.Key, NewStringVariable(arg.Value.Str)) // TODO Add needs to take arg.Value only
+	}
+	return ret, nil
+}
+
+func parseArg2(arg variable.KeyValue, pncvf ProcessNonConstantVariableFunc, current *Collection) (variable.KeyValue, error) {
+	var name string
+	name = arg.Key
+	if arg.Value != nil {
+		if reserved.IsBuiltIn(name) {
+			return variable.KeyValue{}, errors.Errorf("value cannot be specified for built-in build arg %s", name)
+		}
+		if strings.Contains(arg.Value.Str, "$") {
+			panic("$ not supported")
+			// TODO perform a shell-out and replace the variable value with the contents of the string
+		}
+		//v, err := parseArgValue(name, arg.Value.Str, pncvf)
+		//if err != nil {
+		//	return "", "", err
+		//}
+		return arg, nil
+		//return name, v, nil
+	}
+	v, ok := current.Get(name, WithActive())
+	if !ok {
+		return variable.KeyValue{}, errors.Errorf("value not specified for build arg %s and no value can be inferred", name)
+	}
+	arg.Value = &variable.Value{
+		Str: v,
+	}
+	return arg, nil
 }
 
 // ParseArgs parses args passed as --build-arg to an Earthly command, such as BUILD or FROM.

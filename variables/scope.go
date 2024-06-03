@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/util/types/variable"
 	"github.com/earthly/earthly/variables/reserved"
 )
 
@@ -17,6 +18,13 @@ type Variable struct {
 
 func NewStringVariable(s string) Variable {
 	return Variable{Str: s}
+}
+
+func NewStringVariableWithLocation(s string, target domain.Target) Variable {
+	return Variable{
+		Str:    s,
+		Target: target,
+	}
 }
 
 // Scope represents a variable scope.
@@ -126,12 +134,15 @@ func (s *Scope) Sorted(opts ...ScopeOpt) []string {
 
 // BuildArgs returns s as a slice of build args, as they would have been passed
 // in originally at the CLI or in a BUILD command.
-func (s *Scope) BuildArgs(opts ...ScopeOpt) []string {
+func (s *Scope) BuildArgs(opts ...ScopeOpt) []variable.KeyValue {
 	vars := s.Sorted(opts...)
-	var args []string
+	var args []variable.KeyValue
 	for _, v := range vars {
 		val, _ := s.Get(v)
-		args = append(args, fmt.Sprintf("%v=%v", v, val))
+		args = append(args, variable.KeyValue{
+			Key:   v,
+			Value: &variable.Value{Str: val.Str}, // TODO FIXME s.Get should return a variable.Value
+		})
 	}
 	return args
 }

@@ -10,6 +10,7 @@ import (
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/util/llbutil"
 	"github.com/earthly/earthly/util/platutil"
+	"github.com/earthly/earthly/util/types/variable"
 	"github.com/moby/buildkit/client/llb"
 	gwclient "github.com/moby/buildkit/frontend/gateway/client"
 	"github.com/pkg/errors"
@@ -28,7 +29,7 @@ type DockerLoadOpt struct {
 	Target          string
 	ImageName       string
 	Platform        platutil.Platform
-	BuildArgs       []string
+	BuildArgs       []variable.KeyValue
 	AllowPrivileged bool
 	PassArgs        bool
 }
