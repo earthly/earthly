@@ -11,6 +11,7 @@ import (
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
+	"github.com/earthly/earthly/util/types/variable"
 	"github.com/pkg/errors"
 
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
@@ -231,42 +232,42 @@ func (c *Collection) Expand(word string, shellOut shell.EvalShellOutFn) (string,
 	return shlex.ProcessWordWithMap(word, varMap, ShellOutEnvs)
 }
 
-func (c *Collection) overridingOrDefault(name string, defaultValue string, pncvf ProcessNonConstantVariableFunc) (string, error) {
+func (c *Collection) overridingOrDefault(name string, defaultValue variable.Value, pncvf ProcessNonConstantVariableFunc) (variable.Value, error) {
 	if v, ok := c.overriding().Get(name); ok {
-		return v.Str, nil
+		return v, nil
 	}
 	if v, ok := c.builtin.Get(name); ok {
-		return v.Str, nil
+		return v, nil
 	}
-	return parseArgValue(name, defaultValue, pncvf)
+	return parseArgValue2(name, defaultValue, pncvf)
 }
 
-func (c *Collection) declareOldArg(name string, defaultValue string, global bool, pncvf ProcessNonConstantVariableFunc) (string, string, error) {
+func (c *Collection) declareOldArg(name string, defaultValue variable.Value, global bool, pncvf ProcessNonConstantVariableFunc) (variable.Value, variable.Value, error) {
 	ef := c.effective()
 	finalDefaultValue := defaultValue
-	var finalValue string
+	var finalValue variable.Value
 	existing, found := ef.Get(name)
 	if found {
-		finalValue = existing.Str
+		finalValue = existing
 	} else {
-		v, err := parseArgValue(name, defaultValue, pncvf)
+		v, err := parseArgValue2(name, defaultValue, pncvf)
 		if err != nil {
-			return "", "", err
+			return variable.Value{}, variable.Value{}, err
 		}
 		finalValue = v
 		finalDefaultValue = v
 	}
 	opts := []ScopeOpt{WithActive()}
-	c.args().Add(name, NewStringVariable(finalValue), opts...)
+	c.args().Add(name, finalValue, opts...)
 	if global {
-		c.globals().Add(name, NewStringVariable(finalValue), opts...)
+		c.globals().Add(name, finalValue, opts...)
 	}
 	c.effectiveCache = nil
 	return finalValue, finalDefaultValue, nil
 }
 
 type declarePrefs struct {
-	val    string
+	val    variable.Value
 	global bool
 	arg    bool
 	pncvf  ProcessNonConstantVariableFunc
@@ -278,7 +279,7 @@ type DeclareOpt func(declarePrefs) declarePrefs
 // WithValue is an option function for setting a variable's value. For ARGs,
 // this is only the default value - it can be overridden when calling a target
 // at the CLI.
-func WithValue(val string) DeclareOpt {
+func WithValue(val variable.Value) DeclareOpt {
 	return func(o declarePrefs) declarePrefs {
 		o.val = val
 		return o
@@ -313,55 +314,55 @@ func WithPNCVFunc(f ProcessNonConstantVariableFunc) DeclareOpt {
 
 // DeclareVar declares a variable. The effective value may be
 // different than the default, if the variable has been overridden.
-func (c *Collection) DeclareVar(name string, opts ...DeclareOpt) (string, string, error) {
+func (c *Collection) DeclareVar(name string, opts ...DeclareOpt) (variable.Value, variable.Value, error) {
 	var prefs declarePrefs
 	for _, o := range opts {
 		prefs = o(prefs)
 	}
 	if !c.errorOnRedeclare {
 		if !prefs.arg {
-			return "", "", errors.New("LET requires the --arg-scope-and-set feature")
+			return variable.Value{}, variable.Value{}, errors.New("LET requires the --arg-scope-and-set feature")
 		}
 		return c.declareOldArg(name, prefs.val, prefs.global, prefs.pncvf)
 	}
 	if !c.shelloutAnywhere {
-		return "", "", errors.New("the --arg-scope-and-set feature flag requires --shell-out-anywhere")
+		return variable.Value{}, variable.Value{}, errors.New("the --arg-scope-and-set feature flag requires --shell-out-anywhere")
 	}
 
 	c.effectiveCache = nil
 	scope := []ScopeOpt{WithActive(), NoOverride()}
 
 	if !prefs.arg {
-		ok := c.vars().Add(name, NewStringVariable(prefs.val), scope...)
+		ok := c.vars().Add(name, prefs.val, scope...)
 		if !ok {
-			return "", "", hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', use 'SET %[1]v = %[2]q'", name, prefs.val)
+			return variable.Value{}, variable.Value{}, hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', use 'SET %[1]v = %[2]q'", name, prefs.val)
 		}
 		return prefs.val, prefs.val, nil
 	}
 
 	if _, ok := c.vars().Get(name, WithActive()); ok {
-		return "", "", hint.Wrapf(ErrRedeclared, "'%v' was already declared with LET and cannot be redeclared as an ARG", name)
+		return variable.Value{}, variable.Value{}, hint.Wrapf(ErrRedeclared, "'%v' was already declared with LET and cannot be redeclared as an ARG", name)
 	}
 
 	v, err := c.overridingOrDefault(name, prefs.val, prefs.pncvf)
 	if err != nil {
-		return "", "", err
+		return variable.Value{}, variable.Value{}, err
 	}
 
 	if prefs.global {
 		if _, ok := c.args().Get(name); ok {
 			baseErr := errors.Wrap(ErrRedeclared, "could not override non-global ARG with global ARG")
-			return "", "", hint.Wrapf(baseErr, "'%[1]v' was already declared as a non-global ARG in this scope - did you mean to add '--global' to the original declaration?", name)
+			return variable.Value{}, variable.Value{}, hint.Wrapf(baseErr, "'%[1]v' was already declared as a non-global ARG in this scope - did you mean to add '--global' to the original declaration?", name)
 		}
-		ok := c.globals().Add(name, NewStringVariable(v), scope...)
+		ok := c.globals().Add(name, v, scope...)
 		if !ok {
-			return "", "", hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', redeclare it as a non-argument variable with 'LET %[1]v = %[2]q'", name, prefs.val)
+			return variable.Value{}, variable.Value{}, hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', redeclare it as a non-argument variable with 'LET %[1]v = %[2]q'", name, prefs.val)
 		}
 		return v, v, nil
 	}
-	ok := c.args().Add(name, NewStringVariable(v), scope...)
+	ok := c.args().Add(name, v, scope...)
 	if !ok {
-		return "", "", hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', redeclare it as a non-argument variable with 'LET %[1]v = %[2]q'", name, prefs.val)
+		return variable.Value{}, variable.Value{}, hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', redeclare it as a non-argument variable with 'LET %[1]v = %[2]q'", name, prefs.val)
 	}
 	return v, prefs.val, nil
 }

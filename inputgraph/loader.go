@@ -21,6 +21,7 @@ import (
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/buildkitskipper/hasher"
 	"github.com/earthly/earthly/util/flagutil"
+	"github.com/earthly/earthly/util/types/variable"
 	"github.com/earthly/earthly/variables"
 	"github.com/pkg/errors"
 )
@@ -441,7 +442,7 @@ func (l *loader) handleArg(ctx context.Context, cmd spec.Command, isBase bool) e
 		if err != nil {
 			return wrapError(err, cmd.SourceLocation, "failed to expand args")
 		}
-		declOpts = append(declOpts, variables.WithValue(expanded))
+		declOpts = append(declOpts, variables.WithValue(variable.Value{Str: expanded})) //FIXME
 	}
 
 	l.hasher.HashString(fmt.Sprintf("ARG %s=%s", key, expanded))
@@ -478,7 +479,7 @@ func (l *loader) handleLet(ctx context.Context, cmd spec.Command) error {
 
 	l.hasher.HashString(fmt.Sprintf("LET %s=%s", key, val))
 
-	_, _, err = l.varCollection.DeclareVar(key, variables.WithValue(val))
+	_, _, err = l.varCollection.DeclareVar(key, variables.WithValue(variable.Value{Str: val})) // FIXME
 	if err != nil {
 		return wrapError(err, cmd.SourceLocation, "failed to declare variable")
 	}

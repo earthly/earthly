@@ -129,6 +129,22 @@ func parseArg(arg string, pncvf ProcessNonConstantVariableFunc, current *Collect
 	return name, v, nil
 }
 
+func parseArgValue2(name string, value variable.Value, pncvf ProcessNonConstantVariableFunc) (variable.Value, error) {
+	if pncvf == nil {
+		return value, nil
+	}
+	if strings.HasPrefix(value.Str, "$(") {
+		// Variable build arg - resolve value.
+		var err error
+		value.Str, _, err = pncvf(name, value.Str) // TODO force type? or set ComeFrom to nil?
+		if err != nil {
+			return variable.Value{}, err
+		}
+		//value.ComeFrom = domain.Target{} // clear it out? TODO: should we set something else saying it must be a string in this case? or can it still work.... maybe it can.
+	}
+	return value, nil
+}
+
 func parseArgValue(name string, value string, pncvf ProcessNonConstantVariableFunc) (string, error) {
 	if pncvf == nil {
 		return value, nil

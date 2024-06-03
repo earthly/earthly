@@ -1405,17 +1405,18 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 
 	declOpts := []variables.DeclareOpt{
 		variables.AsArg(),
-		variables.WithValue(defaultArgValue),
+		variables.WithValue(variable.Value{Str: defaultArgValue, ComeFrom: c.target}),
 		variables.WithPNCVFunc(pncvf),
 	}
 	if opts.Global {
 		declOpts = append(declOpts, variables.AsGlobal())
 	}
+	fmt.Printf("calling DeclareVar key=%s; default=%s\n", argKey, defaultArgValue)
 	effective, effectiveDefault, err := c.varCollection.DeclareVar(argKey, declOpts...)
 	if err != nil {
 		return err
 	}
-	if opts.Required && len(effective) == 0 {
+	if opts.Required && len(effective.Str) == 0 {
 		return fmt.Errorf("value not supplied for required ARG: %s", argKey)
 	}
 	if opts.TargetReference {
@@ -1427,8 +1428,8 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 	if c.varCollection.IsStackAtBase() { // Only when outside of UDC.
 		c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
 			Name:          argKey,
-			DefaultValue:  effectiveDefault,
-			ConstantValue: effective,
+			DefaultValue:  effectiveDefault.Str, // TODO FIXME cast the value here based on the type
+			ConstantValue: effective.Str,        // TODO FIXME cast the value here based on the type
 		})
 	}
 	return nil
@@ -1446,15 +1447,15 @@ func (c *Converter) Let(ctx context.Context, key string, value string) error {
 		return fmt.Errorf("LET cannot override built-in variable %q", key)
 	}
 
-	effective, effectiveDefault, err := c.varCollection.DeclareVar(key, variables.WithValue(value))
+	effective, effectiveDefault, err := c.varCollection.DeclareVar(key, variables.WithValue(variable.Value{Str: value, ComeFrom: c.target}))
 	if err != nil {
 		return err
 	}
 	if c.varCollection.IsStackAtBase() {
 		c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
 			Name:          key,
-			DefaultValue:  effectiveDefault,
-			ConstantValue: effective,
+			DefaultValue:  effectiveDefault.Str, // FIXME cast the value based on the type
+			ConstantValue: effective.Str,        // FIXME cast the value based on the type
 		})
 	}
 	return nil
@@ -2063,10 +2064,11 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 					continue
 				}
 				v, _ := globals.Get(k, variables.WithActive())
-				// Look for the default arg value in the built target's TargetInput.
+				// Look for the default arg value in the built target's TargetInput. I think this is done simply because we no longer know if the value has been overridden or not. confusing!
 				defaultArgValue := ""
 				for _, childBai := range mts.Final.TargetInput().BuildArgs {
 					if childBai.Name == k {
+						fmt.Printf("what does this do? k=%s; default=%s\n", k, childBai.DefaultValue)
 						defaultArgValue = childBai.DefaultValue
 						break
 					}
