@@ -11,6 +11,7 @@ cloud
 config 
 doc 
 docker-build 
+gha 
 init 
 ls 
 org 
@@ -36,7 +37,7 @@ debug
 doc 
 docker-build 
 docker2earthly 
-github 
+gha 
 init 
 ls 
 org 
