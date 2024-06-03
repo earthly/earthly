@@ -202,12 +202,12 @@ func (c *Collection) Get(name string, opts ...ScopeOpt) (string, bool) {
 
 // SortedVariables returns the current variable names in a sorted slice.
 func (c *Collection) SortedVariables(opts ...ScopeOpt) []string {
-	return c.effective().Sorted(opts...)
+	return c.effective().SortedNames(opts...)
 }
 
 // SortedOverridingVariables returns the overriding variable names in a sorted slice.
 func (c *Collection) SortedOverridingVariables() []string {
-	return c.overriding().Sorted()
+	return c.overriding().SortedNames()
 }
 
 // ExpandOld expands variables within the given word, it does not perform shelling-out.
@@ -450,7 +450,7 @@ func (c *Collection) IsStackAtBase() bool {
 func (c *Collection) StackString() string {
 	builder := make([]string, 0, len(c.stack))
 	for i := len(c.stack) - 1; i >= 0; i-- {
-		activeNames := c.stack[i].args.Sorted(WithActive())
+		activeNames := c.stack[i].args.SortedNames(WithActive())
 		row := make([]string, 0, len(activeNames)+1)
 		row = append(row, c.stack[i].frameName)
 		for _, k := range activeNames {

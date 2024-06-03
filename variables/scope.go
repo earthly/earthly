@@ -5,31 +5,24 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/types/variable"
 	"github.com/earthly/earthly/variables/reserved"
 )
 
-type Variable struct {
-	// TODO type
-	Target domain.Target
-	Str    string
+func NewStringVariable(s string) variable.Value {
+	return variable.Value{Str: s}
 }
 
-func NewStringVariable(s string) Variable {
-	return Variable{Str: s}
-}
-
-func NewStringVariableWithLocation(s string, target domain.Target) Variable {
-	return Variable{
-		Str:    s,
-		Target: target,
-	}
-}
+//func NewStringVariableWithLocation(s string, target domain.Target) variable.Value {
+//	return variable.Value{
+//		Str:      s,
+//		ComeFrom: target,
+//	}
+//}
 
 // Scope represents a variable scope.
 type Scope struct {
-	variables map[string]Variable
+	variables map[string]variable.Value
 	// activeVariables are variables that are active right now as we have passed the point of
 	// their declaration.
 	activeVariables map[string]bool
@@ -38,7 +31,7 @@ type Scope struct {
 // NewScope creates a new variable scope.
 func NewScope() *Scope {
 	return &Scope{
-		variables:       make(map[string]Variable),
+		variables:       make(map[string]variable.Value),
 		activeVariables: make(map[string]bool),
 	}
 }
@@ -46,7 +39,7 @@ func NewScope() *Scope {
 // DebugString returns a string that can be printed while debugging
 func (s *Scope) DebugString() string {
 	var sb strings.Builder
-	for _, k := range s.Sorted() {
+	for _, k := range s.SortedNames() {
 		v := s.variables[k]
 		sb.WriteString(fmt.Sprintf("%s=%s", k, v))
 		if s.activeVariables[k] {
@@ -72,21 +65,21 @@ func (s *Scope) Clone() *Scope {
 }
 
 // Get gets a variable by name.
-func (s *Scope) Get(name string, opts ...ScopeOpt) (Variable, bool) {
+func (s *Scope) Get(name string, opts ...ScopeOpt) (variable.Value, bool) {
 	opt := applyOpts(opts...)
 	v, ok := s.variables[name]
 	if !ok {
-		return Variable{}, false
+		return variable.Value{}, false
 	}
 	if opt.active && !s.activeVariables[name] {
-		return Variable{}, false
+		return variable.Value{}, false
 	}
 	return v, true
 }
 
 // Add sets a variable to a value within this scope. It returns true if the
 // value was set.
-func (s *Scope) Add(name string, value Variable, opts ...ScopeOpt) bool {
+func (s *Scope) Add(name string, value variable.Value, opts ...ScopeOpt) bool {
 	opt := applyOpts(opts...)
 	_, existed := s.variables[name]
 	if opt.noOverride && existed {
@@ -119,7 +112,7 @@ func (s *Scope) Map(opts ...ScopeOpt) map[string]string {
 }
 
 // Keys returns a sorted list of variable names in this Scope.
-func (s *Scope) Sorted(opts ...ScopeOpt) []string {
+func (s *Scope) SortedNames(opts ...ScopeOpt) []string {
 	opt := applyOpts(opts...)
 	var sorted []string
 	for k := range s.variables {
@@ -135,7 +128,7 @@ func (s *Scope) Sorted(opts ...ScopeOpt) []string {
 // BuildArgs returns s as a slice of build args, as they would have been passed
 // in originally at the CLI or in a BUILD command.
 func (s *Scope) BuildArgs(opts ...ScopeOpt) []variable.KeyValue {
-	vars := s.Sorted(opts...)
+	vars := s.SortedNames(opts...)
 	var args []variable.KeyValue
 	for _, v := range vars {
 		val, _ := s.Get(v)

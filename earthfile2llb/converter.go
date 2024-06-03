@@ -141,7 +141,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		GlobalImports:    opt.GlobalImports,
 		Features:         opt.Features,
 	}
-	ovVarsKeysSorted := opt.OverridingVars.Sorted()
+	ovVarsKeysSorted := opt.OverridingVars.SortedNames()
 	ovVars := make([]string, 0, len(ovVarsKeysSorted))
 	for _, k := range ovVarsKeysSorted {
 		v, _ := opt.OverridingVars.Get(k)
@@ -2056,7 +2056,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		if cmdT == fromCmd {
 			// Propagate globals.
 			globals := mts.Final.VarCollection.Globals()
-			for _, k := range globals.Sorted(variables.WithActive()) {
+			for _, k := range globals.SortedNames(variables.WithActive()) {
 				_, alreadyActive := c.varCollection.Get(k, variables.WithActive())
 				if alreadyActive {
 					// Globals don't override any variables in current scope.
@@ -2614,7 +2614,7 @@ func (c *Converter) checkOldPlatformIncompatibility(platform platutil.Platform) 
 func (c *Converter) applyFromImage(state pllb.State, img *image.Image) (pllb.State, *image.Image, *variables.Scope) {
 	// Reset variables.
 	ev := variables.ParseEnvVars(img.Config.Env)
-	for _, name := range ev.Sorted(variables.WithActive()) {
+	for _, name := range ev.SortedNames(variables.WithActive()) {
 		v, _ := ev.Get(name, variables.WithActive())
 		state = state.AddEnv(name, v.Str)
 	}

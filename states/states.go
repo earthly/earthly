@@ -304,7 +304,7 @@ func (sts *SingleTarget) Done() chan struct{} {
 func (sts *SingleTarget) addOverridingVarsAsBuildArgInputs(overridingVars *variables.Scope) {
 	sts.tiMu.Lock()
 	defer sts.tiMu.Unlock()
-	for _, key := range overridingVars.Sorted() {
+	for _, key := range overridingVars.SortedNames() {
 		ovVar, _ := overridingVars.Get(key)
 		sts.targetInput = sts.targetInput.WithBuildArgInput(
 			dedup.BuildArgInput{ConstantValue: ovVar.Str, Name: key})

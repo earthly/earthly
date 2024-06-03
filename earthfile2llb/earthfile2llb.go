@@ -350,6 +350,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		opt.MainTargetDetailsFunc = nil
 	}
 
+	// TODO re-visit this once variable.Value is used everywhere? e.g. also display the ComeFrom value?
 	opt.Console.VerbosePrintf("earthfile2llb building %s with OverridingVars=%v",
 		targetWithMetadata.StringCanonical(), opt.OverridingVars.Map())
 
