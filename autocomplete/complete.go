@@ -411,7 +411,7 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 				return []string{}
 			}
 
-			satellites, err := cloudClient.ListSatellites(ctx, org, false)
+			satellites, err := cloudClient.ListSatellites(ctx, org)
 			if err != nil {
 				return []string{}
 			}

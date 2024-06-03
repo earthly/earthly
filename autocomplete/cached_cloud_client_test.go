@@ -68,7 +68,7 @@ func TestCachedCloudClient(topT *testing.T) {
 
 	o.Spec("caches satellites", func(tc testCtx) {
 		for i := 0; i < 3; i++ {
-			projects, err := tc.ccc.ListSatellites(context.Background(), "abba", false)
+			projects, err := tc.ccc.ListSatellites(context.Background(), "abba")
 			tc.expect(err).To(not(haveOccurred()))
 			tc.expect(len(projects)).To(equal(2))
 			tc.expect(projects[0].Name).To(equal("sat-one"))
@@ -76,7 +76,7 @@ func TestCachedCloudClient(topT *testing.T) {
 			tc.expect(tc.mclc.listSatellitesCallCount).To(equal(1))
 		}
 		for i := 0; i < 3; i++ {
-			projects, err := tc.ccc.ListSatellites(context.Background(), "abc", false)
+			projects, err := tc.ccc.ListSatellites(context.Background(), "abc")
 			tc.expect(err).To(not(haveOccurred()))
 			tc.expect(len(projects)).To(equal(1))
 			tc.expect(projects[0].Name).To(equal("xyz"))
