@@ -32,7 +32,7 @@ This command will prompt you to set a password, and to optionally register a pub
 
 ### Creating or joining an Earthly org
 
-An Earthly org allows you to share projects, secrets, satellites and pipelines with colleagues. To view the orgs you belong to, run:
+An Earthly org allows you to share projects, secrets, and satellites with colleagues. To view the orgs you belong to, run:
 
 ```bash
 earthly org ls

@@ -19,7 +19,6 @@ Earthly orgs may contain the following shared resources:
 Earthly projects, in turn, may contain the following resources:
 
 * Secrets
-* Pipelines
 * Build history, including build logs
 
 ## Earthly org access levels

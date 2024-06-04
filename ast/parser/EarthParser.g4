@@ -56,9 +56,7 @@ commandStmt:
 	| importStmt
 	| cacheStmt
 	| hostStmt
-	| projectStmt
-	| pipelineStmt
-	| triggerStmt;
+	| projectStmt;
 
 // version --------------------------------------------------------------------
 version: VERSION stmtWords NL+;
@@ -172,8 +170,6 @@ importStmt: IMPORT stmtWords?;
 cacheStmt: CACHE stmtWords?;
 hostStmt: HOST stmtWords?;
 projectStmt: PROJECT stmtWords?;
-pipelineStmt: PIPELINE stmtWords?;
-triggerStmt: TRIGGER stmtWords?;
 
 // expr, stmtWord* ------------------------------------------------------------
 

@@ -51,15 +51,15 @@ test-group3:
 
 test-files:
     RUN echo hello > my-file
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+mypipeline --output_contains="I was run"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+mytarget --output_contains="I was run"
     RUN if ! grep "SSB3YXMgcnVuCg" earthly.output >/dev/null; then echo "base64 encoded RUN echo command is missing from output" && exit 1; fi
 
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+mypipeline --output_does_not_contain="I was run"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+mytarget --output_does_not_contain="I was run"
     RUN if grep "SSB3YXMgcnVuCg" earthly.output >/dev/null; then echo "base64 encoded RUN echo command should not have been displayed" && exit 1; fi
 
     # change the input file, and validate it runs
     RUN echo world > my-file
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+mypipeline --output_contains="I was run"
+    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=simple.earth --target=+mytarget --output_contains="I was run"
     RUN if ! grep "SSB3YXMgcnVuCg" earthly.output >/dev/null; then echo "base64 encoded RUN echo command is missing from output" && exit 1; fi
 
 test-with-subdir:
@@ -67,12 +67,12 @@ test-with-subdir:
     RUN mkdir subdir
     COPY subdir/test.earth subdir/Earthfile
     RUN echo abc > subdir/a-test-file
-    DO --pass-args +RUN_EARTHLY_ARGS --target=+allpipe --output_contains="0bee89b07a248e27c83fc3d5951213c1"
-    DO --pass-args +RUN_EARTHLY_ARGS --target=+allpipe --output_does_not_contain="0bee89b07a248e27c83fc3d5951213c1" --output_contains="Target .* has already been run. Skipping."
+    DO --pass-args +RUN_EARTHLY_ARGS --target=+all --output_contains="0bee89b07a248e27c83fc3d5951213c1"
+    DO --pass-args +RUN_EARTHLY_ARGS --target=+all --output_does_not_contain="0bee89b07a248e27c83fc3d5951213c1" --output_contains="Target .* has already been run. Skipping."
 
     RUN echo 123 > subdir/a-test-file
-    DO --pass-args +RUN_EARTHLY_ARGS --target=+allpipe --output_contains="ba1f2511fc30423bdbb183fe33f3dd0f"
-    DO --pass-args +RUN_EARTHLY_ARGS --target=+allpipe --output_does_not_contain="ba1f2511fc30423bdbb183fe33f3dd0f" --output_contains="Target .* has already been run. Skipping."
+    DO --pass-args +RUN_EARTHLY_ARGS --target=+all --output_contains="ba1f2511fc30423bdbb183fe33f3dd0f"
+    DO --pass-args +RUN_EARTHLY_ARGS --target=+all --output_does_not_contain="ba1f2511fc30423bdbb183fe33f3dd0f" --output_contains="Target .* has already been run. Skipping."
 
 test-requires-project:
     RUN echo hello > my-file

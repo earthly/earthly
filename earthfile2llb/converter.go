@@ -93,8 +93,6 @@ const (
 	cacheCmd                             // "CACHE"
 	hostCmd                              // "HOST"
 	projectCmd                           // "PROJECT"
-	pipelineCmd                          // "PIPELINE"
-	triggerCmd                           // "TRIGGER"
 	setCmd                               // "SET"
 	letCmd                               // "LET"
 )
@@ -117,7 +115,6 @@ type Converter struct {
 	localWorkingDir     string
 	containerFrontend   containerutil.ContainerFrontend
 	waitBlockStack      []*waitBlock
-	isPipeline          bool
 	logbusTarget        *logbus.Target
 	nextCmdID           int
 }
@@ -1699,17 +1696,6 @@ func (c *Converter) Project(ctx context.Context, org, project string) error {
 	return nil
 }
 
-// Pipeline handles a "PIPELINE" command.
-func (c *Converter) Pipeline(ctx context.Context) error {
-	err := c.checkAllowed(pipelineCmd)
-	if err != nil {
-		return err
-	}
-	c.isPipeline = true
-	c.mts.Final.RanFromLike = true
-	return nil
-}
-
 // ExpandWildcardCmds expands a glob expression in the specified fullTargetName and returns copies(clones) of the specified cmd for each match of the expression
 func (c *Converter) ExpandWildcardCmds(ctx context.Context, fullTargetName string, cmd spec.Command) ([]spec.Command, error) {
 	targets, err := c.expandWildcardTargets(ctx, fullTargetName)
@@ -2836,21 +2822,13 @@ func (c *Converter) checkAllowed(command cmdType) error {
 		return errors.New("--use-project-secrets must be enabled in order to use PROJECT")
 	}
 
-	if (command == pipelineCmd || command == triggerCmd) && !c.ftrs.UsePipelines {
-		return errors.New("--use-pipelines must be enabled in order to use PIPELINE or TRIGGER")
-	}
-
 	if c.mts.Final.RanInteractive && !(command == saveImageCmd || command == saveArtifactCmd) {
 		return errors.New("If present, a single --interactive command must be the last command in a target")
 	}
 
-	if command == pipelineCmd && c.isPipeline {
-		return errors.New("only 1 PIPELINE command is allowed")
-	}
-
 	if !c.mts.Final.RanFromLike {
 		switch command {
-		case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, letCmd, setCmd, importCmd, projectCmd, pipelineCmd:
+		case fromCmd, fromDockerfileCmd, locallyCmd, buildCmd, argCmd, letCmd, setCmd, importCmd, projectCmd:
 			return nil
 		default:
 			return hint.Wrap(errors.New("requires a FROM, FROM DOCKERFILE, or LOCALLY"), "This command needs to run in a shell. You should be able to solve this by adding 'FROM <image>' on the line before this one.")

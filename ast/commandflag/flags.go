@@ -143,11 +143,6 @@ type SetOpts struct{}
 
 type LetOpts struct{}
 
-type PipelineOpts struct {
-	Push            bool `long:"push" description:"Trigger a build in Cloud CI"`
-	NoPipelineCache bool `long:"no-pipeline-cache" description:"Disable pipeline caching"`
-}
-
 type CacheOpts struct {
 	Sharing string `long:"sharing" description:"The cache sharing mode: locked (default), shared, private"`
 	Mode    string `long:"chmod" description:"Apply a mode to the cache folder" default:"0644"`

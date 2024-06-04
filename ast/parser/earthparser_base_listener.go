@@ -501,18 +501,6 @@ func (s *BaseEarthParserListener) EnterProjectStmt(ctx *ProjectStmtContext) {}
 // ExitProjectStmt is called when production projectStmt is exited.
 func (s *BaseEarthParserListener) ExitProjectStmt(ctx *ProjectStmtContext) {}
 
-// EnterPipelineStmt is called when production pipelineStmt is entered.
-func (s *BaseEarthParserListener) EnterPipelineStmt(ctx *PipelineStmtContext) {}
-
-// ExitPipelineStmt is called when production pipelineStmt is exited.
-func (s *BaseEarthParserListener) ExitPipelineStmt(ctx *PipelineStmtContext) {}
-
-// EnterTriggerStmt is called when production triggerStmt is entered.
-func (s *BaseEarthParserListener) EnterTriggerStmt(ctx *TriggerStmtContext) {}
-
-// ExitTriggerStmt is called when production triggerStmt is exited.
-func (s *BaseEarthParserListener) ExitTriggerStmt(ctx *TriggerStmtContext) {}
-
 // EnterExpr is called when production expr is entered.
 func (s *BaseEarthParserListener) EnterExpr(ctx *ExprContext) {}
 

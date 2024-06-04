@@ -272,7 +272,7 @@ Enables embedding inline cache in any pushed images. This cache can be used on o
 Also available as an env var setting: `EARTHLY_REMOTE_CACHE=<image-tag>[,<attr1>=<val1>,<attr2>=<val2>,...]`
 
 Enables use of explicit cache. The provided `<image-tag>` is used for storing and retrieving the cache to/from a Docker registry. Storing explicit cache is only enabled if the option `--push` is also passed in.
-Additional attributes can be optionally set for certain registry providers to be supported.  
+Additional attributes can be optionally set for certain registry providers to be supported.
 For more information see the [remote caching guide](../caching/caching-via-registry.md).
 
 ##### `--max-remote-cache`
@@ -461,7 +461,7 @@ $ earthly doc +build
 
 #### Description
 
-The command `earthly prune` eliminates the Earthly cache. 
+The command `earthly prune` eliminates the Earthly cache.
 
 In *standard form* (default) it issues a prune command to the BuildKit daemon.
 
@@ -560,8 +560,8 @@ Contains sub-commands for registering and administration an Earthly account.
 * ```
   # Register an account using your email
   earthly [options] account register --email <email>
-  
-  # Complete account registration 
+
+  # Complete account registration
   earthly [options] account register --email <email> --token <email-verification-token> [--password <password>] [--public-key <public-key>] [--accept-terms-conditions-privacy]
   ```
 
@@ -579,7 +579,7 @@ Pass in an email address for registering your Earthly account. An email will be 
 
 ##### `--token <token>`
 
-Pass in token for email verification. Retrieve the token from your email and register it with the `--email` option. 
+Pass in token for email verification. Retrieve the token from your email and register it with the `--email` option.
 
 ##### `--password <password>`
 
@@ -700,7 +700,7 @@ List account tokens associated with the current Earthly account. A token is usef
 #### Description
 
 Creates a new authentication token. A read-only token is created by default, If the `--write` flag is specified the token will have read+write access.
-The token will never expire unless a different date is supplied via the `--expiry` flag.  
+The token will never expire unless a different date is supplied via the `--expiry` flag.
 If the token by the same name already exists, it will not be overwritten unless the `--overwrite` flag is specified.
 
 {% hint style='info' %}
@@ -1010,13 +1010,13 @@ Output what the command will do without actually doing it.
 
 ### earthly secrets permission
 
-#### Synopsis 
+#### Synopsis
 
 * ```
   earthly [options] secrets permission (ls|set|rm)
   ```
 
-#### Description 
+#### Description
 
 Manage user-level secret permissions.
 
@@ -1040,7 +1040,7 @@ Create or update a user secret permission.
 
 * ```
   earthly [options] registry [--org <organization-name>, --project <project>] (setup|list|remove) [<flags>]
-  ``` 
+  ```
 
 #### Description
 
@@ -1083,7 +1083,7 @@ The `earthly registry ...` commands exist for convience; however, it is possible
 
 * ```
   earthly [options] registry setup --username <username> --password <password> [<host>]
-  
+
   earthly [options] registry --org <org> --project <project> setup --username <username> --password <password> [<host>]
   ```
 
@@ -1091,7 +1091,7 @@ The `earthly registry ...` commands exist for convience; however, it is possible
 
 * ```
   earthly registry setup --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>
-  
+
   earthly registry --org <org> --project <project> setup --cred-helper ecr-login --aws-access-key-id <key> --aws-secret-access-key <secret> <host>
   ```
 
@@ -1099,7 +1099,7 @@ The `earthly registry ...` commands exist for convience; however, it is possible
 
 * ```
   earthly registry setup --cred-helper gcloud --gcp-key <key> <host>
-  
+
   earthly registry --org <org> --project setup <project> --cred-helper gcloud --gcp-service-account-key <key> <host>
   ```
 
@@ -1193,7 +1193,7 @@ Remove a configured registry, and delete all stored credentials.
 
 #### Description
 
-Performs initialization tasks needed for `earthly` to function correctly. This command can be re-run to fix broken setups. It is recommended to run this with sudo. 
+Performs initialization tasks needed for `earthly` to function correctly. This command can be re-run to fix broken setups. It is recommended to run this with sudo.
 
 #### Options
 
@@ -1243,16 +1243,16 @@ The provider to use when logging into the web ui.
 
 * ```
   earthly [options] docker-build [--dockerfile <dockerfile-path>] [--tag=<image-tag>] [--target=<target-name>] [--platform <platform1[,platform2,...]>] <build-context-dir> [--arg1=arg-value]
-  ``` 
+  ```
 
 #### Description
 
-The command `earthly docker-build` builds a docker image from a Dockerfile instead of an Earthfile.  
+The command `earthly docker-build` builds a docker image from a Dockerfile instead of an Earthfile.
 The `<build-context-dir>` is the path where the Dockerfile build context exists. By default, it is assumed that a file named Dockerfile exists in that directory.
 
 Just like a regular build, `docker-build` can be used with a satellite. For example:
 ```shell
-earthly docker-build --sat my-satellite --tag my-image:latest . 
+earthly docker-build --sat my-satellite --tag my-image:latest .
 ```
 For more information see the [Using Satellites guide](../cloud/satellites/using.md).
 
@@ -1309,7 +1309,7 @@ Launch and use a Satellite runner as remote backend for Earthly builds.
 
 Satellites can be used to between multiple builds and users, as well as run builds in native architectures independent of where the Earthly client is invoked.
 
-Read more about satellites here: https://docs.earthly.dev/earthly-cloud/satellites 
+Read more about satellites here: https://docs.earthly.dev/earthly-cloud/satellites
 
 Sign up for satellites here: https://cloud.earthly.dev/login
 
@@ -1329,7 +1329,7 @@ The name of the organization the satellite belongs to.
   earthly [options] satellite [--org <organization-name>] launch <satellite-name>
   ```
 
-#### Description 
+#### Description
 
 Launch a new Earthly Satellite
 
@@ -1350,7 +1350,7 @@ One or more of experimental features to enable on a new Earthly Satellite.
 ##### `--maintenance-window`
 
 Sets a maintenance window for satellite auto-updates.
-						
+
 If there is a new satellite version available, the satellite will update within 2 hrs of the time specified. Format must be in HH:MM (24 hr) and will be automatically converted from your current local time to UTC. Default value is 02:00 in your local time.
 
 ##### `--maintenance-weekends-only`
@@ -1433,7 +1433,7 @@ Choose which Earthly Satellite to use to build your app.
 #### Synopsis
 
 * ```
-  earthly [options] satellite unselect 
+  earthly [options] satellite unselect
   ```
 
 #### Description
@@ -1445,9 +1445,9 @@ Remove any currently selected Earthly Satellite instance from your Earthly confi
 #### Synopsis
 
 * ```
-  earthly [options] satellite wake <satellite-name> 
+  earthly [options] satellite wake <satellite-name>
 
-  earthly [options] satellite [--org <organization-name>] wake <satellite-name> 
+  earthly [options] satellite [--org <organization-name>] wake <satellite-name>
   ```
 
 #### Description
@@ -1459,9 +1459,9 @@ Manually force an Earthly Satellite to wake up from a sleep state.
 #### Synopsis
 
 * ```
-  earthly [options] satellite sleep <satellite-name> 
+  earthly [options] satellite sleep <satellite-name>
 
-  earthly [options] satellite [--org <organization-name>] sleep <satellite-name> 
+  earthly [options] satellite [--org <organization-name>] sleep <satellite-name>
   ```
 
 #### Description
@@ -1473,9 +1473,9 @@ Manually force a Satellite to sleep from an operational state.
 #### Synopsis
 
 * ```
-  earthly [options] satellite update <satellite-name> 
+  earthly [options] satellite update <satellite-name>
 
-  earthly [options] satellite [--org <organization-name>] update <satellite-name> 
+  earthly [options] satellite [--org <organization-name>] update <satellite-name>
   ```
 
 #### Description
@@ -1513,7 +1513,7 @@ Launch a specific satellite version (disables auto-updates).
 #### Synopsis
 
 * ```
-  earthly [options] project (ls|rm|create|member) 
+  earthly [options] project (ls|rm|create|member)
   ```
 
 #### Description
@@ -1564,7 +1564,7 @@ Create a new project in the specified organization.
 
 #### Description
 
-Remove an existing project and all of its associated pipelines and secrets.
+Remove an existing project and all of its associated resources.
 
 #### Options
 

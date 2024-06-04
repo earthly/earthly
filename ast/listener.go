@@ -379,14 +379,6 @@ func (l *listener) EnterProjectStmt(c *parser.ProjectStmtContext) {
 	l.command.Name = "PROJECT"
 }
 
-func (l *listener) EnterPipelineStmt(c *parser.PipelineStmtContext) {
-	l.command.Name = "PIPELINE"
-}
-
-func (l *listener) EnterTriggerStmt(c *parser.TriggerStmtContext) {
-	l.command.Name = "TRIGGER"
-}
-
 // With -----------------------------------------------------------------------
 
 func (l *listener) EnterWithStmt(c *parser.WithStmtContext) {

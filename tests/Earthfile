@@ -127,7 +127,6 @@ ga-no-qemu-group5:
     BUILD +host-invalid
     BUILD +mtime
     BUILD +build-after-from
-    BUILD +pipelines
     BUILD +doc
     BUILD +doc-recipe-block
     BUILD +no-network
@@ -1577,28 +1576,6 @@ mtime:
 build-after-from:
     DO +RUN_EARTHLY --earthfile=build-after-from.earth --target=+all
     RUN test -f ./hello.txt
-
-pipelines:
-    DO +RUN_EARTHLY \
-        --earthfile=pipelines-no-flag.earth \
-        --target=+test \
-        --should_fail=true \
-        --output_contains="must be enabled in order to use PIPELINE or TRIGGER"
-    DO +RUN_EARTHLY \
-        --earthfile=pipelines.earth \
-        --target=+test-invalid-order \
-        --should_fail=true \
-        --output_contains="PIPELINE must be the first command"
-    DO +RUN_EARTHLY \
-        --earthfile=pipelines.earth \
-        --target=+test-invalid-pipeline-arg \
-        --should_fail=true \
-        --output_contains="invalid PIPELINE arguments"
-    DO +RUN_EARTHLY \
-        --earthfile=pipelines.earth \
-        --target=+test-invalid-trigger-type \
-        --should_fail=true \
-        --output_contains="valid triggers include"
 
 test-works-without-earthly-server:
     # first warm-up the cache
