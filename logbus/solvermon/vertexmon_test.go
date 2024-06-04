@@ -57,7 +57,7 @@ func TestDetermineFatalErrorType(t *testing.T) {
 			name:          "context canceled",
 			errString:     "context canceled",
 			exitCode:      0,
-			expectedType:  0,
+			expectedType:  logstream.FailureType_FAILURE_TYPE_UNKNOWN,
 			expectedFatal: false,
 		},
 		{
