@@ -11,7 +11,7 @@ func TestGetExitCode(t *testing.T) {
 	tests := []struct {
 		name         string
 		errString    string
-		expectedCode uint64
+		expectedCode uint32
 	}{
 		{
 			name:         "no match",
@@ -37,7 +37,7 @@ func TestGetExitCode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			code := getExitCode(tt.errString)
+			code, _ := getExitCode(tt.errString)
 			if code != tt.expectedCode {
 				t.Errorf("getExitCode(%q) = %d, want %d", tt.errString, code, tt.expectedCode)
 			}
@@ -49,7 +49,7 @@ func TestDetermineFatalErrorType(t *testing.T) {
 	tests := []struct {
 		name          string
 		errString     string
-		exitCode      uint64
+		exitCode      uint32
 		expectedType  logstream.FailureType
 		expectedFatal bool
 	}{

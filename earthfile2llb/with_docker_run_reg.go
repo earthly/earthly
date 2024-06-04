@@ -129,8 +129,10 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 	}
 
 	defer func() {
-		message := solvermon.FormatError("WITH DOCKER RUN", retErr.Error())
-		cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_FAILURE, message)
+		if retErr != nil {
+			message := solvermon.FormatError("WITH DOCKER RUN", retErr.Error())
+			cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_FAILURE, message)
+		}
 	}()
 
 	err = w.installDeps(ctx, opt)

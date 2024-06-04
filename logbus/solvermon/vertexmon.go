@@ -39,23 +39,24 @@ type vertexMonitor struct {
 
 var reErrExitCode = regexp.MustCompile(`(?:process ".*" did not complete successfully|error calling LocalhostExec): exit code: (?P<exit_code>[0-9]+)$`)
 
-func getExitCode(errString string) uint64 {
-	if reErrExitCode.MatchString(errString) {
-		matches, _ := stringutil.NamedGroupMatches(errString, reErrExitCode)
+func getExitCode(errString string) (uint32, bool) {
+	if matches, _ := stringutil.NamedGroupMatches(errString, reErrExitCode); len(matches["exit_code"]) == 1 {
 		exitCodeMatch := matches["exit_code"][0]
 		exitCode, err := strconv.ParseUint(exitCodeMatch, 10, 32)
 		if err != nil {
-			return 0
+			return 0, false
 		}
-		return exitCode
+		return uint32(exitCode), true
 	}
-	return 0
+	return 0, false
 }
 
 var reErrNotFound = regexp.MustCompile(`^failed to calculate checksum of ref ([^ ]*): (.*)$`)
 var reHint = regexp.MustCompile(`^(?P<msg>.+?):Hint: .+`)
 
-func determineFatalErrorType(errString string, exitCode uint64) (logstream.FailureType, bool) {
+// determineFatalErrorType returns logstream.FailureType
+// and whether or not its a Fatal Error
+func determineFatalErrorType(errString string, exitCode uint32) (logstream.FailureType, bool) {
 	if strings.Contains(errString, "context canceled") || errString == "no active sessions" {
 		return logstream.FailureType_FAILURE_TYPE_UNKNOWN, false
 	}
@@ -76,67 +77,68 @@ func determineFatalErrorType(errString string, exitCode uint64) (logstream.Failu
 	return logstream.FailureType_FAILURE_TYPE_UNKNOWN, false
 }
 
-func formatErrorMessage(errString, operation, internal string, fatalErrorType logstream.FailureType, exitCode uint64) string {
+func formatErrorMessage(errString, operation string, internal bool, fatalErrorType logstream.FailureType, exitCode uint32) string {
 	if matches, _ := stringutil.NamedGroupMatches(errString, reHint); len(matches["msg"]) == 1 {
 		errString = matches["msg"][0]
 	}
+
+	internalStr := ""
+	if internal {
+		internalStr = " internal"
+	}
+	errString = fmt.Sprintf("%s%s", internalStr, errString)
 
 	switch fatalErrorType {
 	case logstream.FailureType_FAILURE_TYPE_OOM_KILLED:
 		return fmt.Sprintf(
 			"      The%s command\n"+
 				"          %s\n"+
-				"      was terminated because the build system ran out of memory. If you are using a satellite or other remote buildkit, it is the remote system that ran out of memory.", internal, operation)
+				"      was terminated because the build system ran out of memory. If you are using a satellite or other remote buildkit, it is the remote system that ran out of memory.", internalStr, operation)
 	case logstream.FailureType_FAILURE_TYPE_NONZERO_EXIT:
 		return fmt.Sprintf(
 			"      The%s command\n"+
 				"          %s\n"+
-				"      did not complete successfully. Exit code %d", internal, operation, exitCode)
+				"      did not complete successfully. Exit code %d", internalStr, operation, exitCode)
 	case logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND:
 		m := reErrNotFound.FindStringSubmatch(errString)
 		return fmt.Sprintf(
 			"      The%s command\n"+
 				"          %s\n"+
-				"      failed: %s", internal, operation, m[2])
+				"      failed: %s", internalStr, operation, m[2])
 	case logstream.FailureType_FAILURE_TYPE_GIT:
 		gitStdErr, shorterErr, ok := errutil.ExtractEarthlyGitStdErr(errString)
 		if ok {
 			return fmt.Sprintf(
 				"The%s command\n"+
 					"          %s\n"+
-					"failed: %s\n\n%s", internal, operation, shorterErr, gitStdErr)
+					"failed: %s\n\n%s", internalStr, operation, shorterErr, gitStdErr)
 		}
 		return fmt.Sprintf(
 			"The%s command\n"+
 				"          %s\n"+
-				"failed: %s", internal, operation, errString)
+				"failed: %s", internalStr, operation, errString)
 	default:
 		return fmt.Sprintf(
 			"The%s command\n"+
 				"          %s\n"+
-				"failed: %s", internal, operation, errString)
+				"failed: %s", internalStr, operation, errString)
 	}
 }
 
 func FormatError(operation string, errString string) string {
-	exitCode := getExitCode(errString)
+	exitCode, _ := getExitCode(errString)
 	fatalErrorType, _ := determineFatalErrorType(errString, exitCode)
-	return formatErrorMessage(errString, operation, "", fatalErrorType, exitCode)
+	return formatErrorMessage(errString, operation, false, fatalErrorType, exitCode)
 }
 
 func (vm *vertexMonitor) parseError() {
 	errString := vm.vertex.Error
 
 	indentOp := strings.Join(strings.Split(vm.operation, "\n"), "\n          ")
-	internalStr := ""
-	if vm.meta.Internal {
-		internalStr = " internal"
-	}
-	errString = fmt.Sprintf("%s%s", internalStr, errString)
 
-	exitCode := getExitCode(errString)
+	exitCode, _ := getExitCode(errString)
 	fatalErrorType, isFatalError := determineFatalErrorType(errString, exitCode)
-	formattedError := formatErrorMessage(errString, indentOp, internalStr, fatalErrorType, exitCode)
+	formattedError := formatErrorMessage(errString, indentOp, vm.meta.Internal, fatalErrorType, exitCode)
 
 	// Add Error location
 	slString := ""
