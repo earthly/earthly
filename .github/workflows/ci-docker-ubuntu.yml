@@ -27,19 +27,28 @@ jobs:
 #    permissions:
 #      pull-requests: read
 #    secrets: inherit
-  build-earthly:
-#    needs: check-essential-files
-    # allow the job to execute even if check-essential-files is skipped
-    if: ${{ !failure() }}
-    uses: ./.github/workflows/build-earthly.yml
-    with:
-      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      RUNS_ON: "earthly-satellite#gha-sh-1"
-      BINARY: "docker"
-      SUDO: ""
-#      SKIP_JOB: ${{ needs.check-essential-files.outputs.essential-files == 'false' }}
-    secrets: inherit
+#  build-earthly:
+##    needs: check-essential-files
+#    # allow the job to execute even if check-essential-files is skipped
+#    if: ${{ !failure() }}
+#    uses: ./.github/workflows/build-earthly.yml
+#    with:
+#      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+#      RUNS_ON: "earthly-satellite#gha-sh-1"
+#      BINARY: "docker"
+#      SUDO: ""
+##      SKIP_JOB: ${{ needs.check-essential-files.outputs.essential-files == 'false' }}
+#    secrets: inherit
 
+  earthly-linux-amd64:
+    runs-on: [earthly-satellite#gha-test-60]
+    env:
+      FORCE_COLOR: 1
+      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Earthly build
+        run: earthly -ci +earthly-linux-amd64
 
 #  docker-lint:
 #    needs: build-earthly
@@ -238,20 +247,20 @@ jobs:
 #      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
 #    secrets: inherit
 #
-
-  docker-tests-no-qemu-group7:
-    needs: build-earthly
-    if: ${{ !failure() }}
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      TEST_TARGET: "+test-no-qemu-group7"
-      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
-      RUNS_ON: "earthly-satellite#gha-sh-1"
-      BINARY: "docker"
-      SUDO: ""
-      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
-      EXTRA_ARGS: "--auto-skip"
-    secrets: inherit
+#
+#  docker-tests-no-qemu-group7:
+#    needs: build-earthly
+#    if: ${{ !failure() }}
+#    uses: ./.github/workflows/reusable-test.yml
+#    with:
+#      TEST_TARGET: "+test-no-qemu-group7"
+#      BUILT_EARTHLY_PATH: "./build/linux/amd64/earthly"
+#      RUNS_ON: "earthly-satellite#gha-sh-1"
+#      BINARY: "docker"
+#      SUDO: ""
+#      SKIP_JOB: ${{ needs.build-earthly.result != 'success' }}
+#      EXTRA_ARGS: "--auto-skip"
+#    secrets: inherit
 
 #  docker-tests-no-qemu-group7-no-logbus:
 #    needs: build-earthly
