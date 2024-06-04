@@ -17,7 +17,7 @@ import (
 type cloudListClient interface {
 	ListOrgs(ctx context.Context) ([]*cloud.OrgDetail, error)
 	ListProjects(ctx context.Context, orgName string) ([]*cloud.Project, error)
-	ListSatellites(ctx context.Context, orgName string, includeHidden bool) ([]cloud.SatelliteInstance, error)
+	ListSatellites(ctx context.Context, orgName string) ([]cloud.SatelliteInstance, error)
 }
 
 type cachedCloudClient struct {
@@ -139,14 +139,13 @@ func (ccc *cachedCloudClient) ListProjects(ctx context.Context, orgName string) 
 	return projects, nil
 }
 
-func (ccc *cachedCloudClient) ListSatellites(ctx context.Context, orgName string, includeHidden bool) ([]cloud.SatelliteInstance, error) {
+func (ccc *cachedCloudClient) ListSatellites(ctx context.Context, orgName string) ([]cloud.SatelliteInstance, error) {
 	cached := struct {
-		Org           string
-		IncludeHidden bool
-		Satellites    []string `json:"satellites"`
+		Org        string
+		Satellites []string `json:"satellites"`
 	}{}
 	filename := ".autocomplete.satellites"
-	if err := readJSON(ccc.installationName, filename, &cached); err == nil && cached.Org == orgName && cached.IncludeHidden == includeHidden {
+	if err := readJSON(ccc.installationName, filename, &cached); err == nil && cached.Org == orgName {
 		res := []cloud.SatelliteInstance{}
 		for _, s := range cached.Satellites {
 			res = append(res, cloud.SatelliteInstance{
@@ -156,7 +155,7 @@ func (ccc *cachedCloudClient) ListSatellites(ctx context.Context, orgName string
 		return res, nil
 	}
 	cached.Satellites = nil
-	satellites, err := ccc.c.ListSatellites(ctx, orgName, includeHidden)
+	satellites, err := ccc.c.ListSatellites(ctx, orgName)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +163,6 @@ func (ccc *cachedCloudClient) ListSatellites(ctx context.Context, orgName string
 		cached.Satellites = append(cached.Satellites, sat.Name)
 	}
 	cached.Org = orgName
-	cached.IncludeHidden = includeHidden
 	_ = saveJSON(ccc.installationName, filename, &cached)
 	return satellites, nil
 }

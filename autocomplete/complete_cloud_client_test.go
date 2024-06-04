@@ -80,7 +80,7 @@ func (mclc *mockCloudListClient) ListProjects(ctx context.Context, orgName strin
 	return []*cloud.Project{}, nil
 }
 
-func (mclc *mockCloudListClient) ListSatellites(ctx context.Context, orgName string, includeHidden bool) ([]cloud.SatelliteInstance, error) {
+func (mclc *mockCloudListClient) ListSatellites(ctx context.Context, orgName string) ([]cloud.SatelliteInstance, error) {
 	mclc.listSatellitesCallCount += 1
 	if orgName == "abba" {
 		return []cloud.SatelliteInstance{

@@ -175,23 +175,13 @@ func (c *CLI) GetSatelliteOrg(ctx context.Context, cloudClient *cloud.Client) (o
 }
 
 func GetSatelliteName(ctx context.Context, orgName, satelliteName string, cloudClient *cloud.Client) (string, error) {
-	satellites, err := cloudClient.ListSatellites(ctx, orgName, true)
+	satellites, err := cloudClient.ListSatellites(ctx, orgName)
 	if err != nil {
 		return "", err
 	}
 	for _, s := range satellites {
 		if satelliteName == s.Name {
 			return s.Name, nil
-		}
-	}
-
-	pipelines, err := GetAllPipelinesForAllProjects(ctx, orgName, cloudClient)
-	if err != nil {
-		return "", err
-	}
-	for _, p := range pipelines {
-		if satelliteName == PipelineSatelliteName(&p) {
-			return p.SatelliteName, nil
 		}
 	}
 
@@ -207,27 +197,4 @@ func (cli *CLI) reserveSatellite(ctx context.Context, cloudClient *cloud.Client,
 		return errors.Wrap(err, "failed reserving satellite for build")
 	}
 	return nil
-}
-
-func GetAllPipelinesForAllProjects(ctx context.Context, orgName string, cloudClient *cloud.Client) ([]cloud.Pipeline, error) {
-	projects, err := cloudClient.ListProjects(ctx, orgName)
-	if err != nil {
-		return nil, err
-	}
-
-	allPipelines := make([]cloud.Pipeline, 0)
-	for _, pr := range projects {
-		pipelines, err := cloudClient.ListPipelines(ctx, pr.Name, orgName, "")
-		if err != nil {
-			return nil, err
-		}
-
-		allPipelines = append(allPipelines, pipelines...)
-	}
-
-	return allPipelines, nil
-}
-
-func PipelineSatelliteName(p *cloud.Pipeline) string {
-	return fmt.Sprintf("%s/%s", p.Project, p.Name)
 }

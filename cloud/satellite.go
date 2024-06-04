@@ -74,7 +74,6 @@ type SatelliteInstance struct {
 	MaintenanceWindowEnd    string
 	MaintenanceWeekendsOnly bool
 	RevisionID              int32
-	Hidden                  bool
 	LastUsed                time.Time
 	CacheRetention          time.Duration
 	Address                 string
@@ -83,14 +82,13 @@ type SatelliteInstance struct {
 	CloudName               string
 }
 
-func (c *Client) ListSatellites(ctx context.Context, orgName string, includeHidden bool) ([]SatelliteInstance, error) {
+func (c *Client) ListSatellites(ctx context.Context, orgName string) ([]SatelliteInstance, error) {
 	orgID, err := c.GetOrgID(ctx, orgName)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed listing satellites")
 	}
 	resp, err := c.compute.ListSatellites(c.withAuth(ctx), &pb.ListSatellitesRequest{
-		OrgId:         orgID,
-		IncludeHidden: includeHidden,
+		OrgId: orgID,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed listing satellites")
@@ -104,7 +102,6 @@ func (c *Client) ListSatellites(ctx context.Context, orgName string, includeHidd
 			Size:           s.Size,
 			State:          satelliteStatus(s.Status),
 			Version:        s.Version,
-			Hidden:         s.Hidden,
 			LastUsed:       s.LastUsed.AsTime(),
 			CacheRetention: s.CacheRetention.AsDuration(),
 			CloudName:      s.CloudName,
@@ -138,7 +135,6 @@ func (c *Client) GetSatellite(ctx context.Context, name, orgName string) (*Satel
 		MaintenanceWindowEnd:    resp.MaintenanceWindowEnd,
 		MaintenanceWeekendsOnly: resp.MaintenanceWeekendsOnly,
 		RevisionID:              resp.RevisionId,
-		Hidden:                  resp.Hidden,
 		LastUsed:                resp.LastUsed.AsTime(),
 		CacheRetention:          resp.CacheRetention.AsDuration(),
 		IsManaged:               resp.IsManaged,
