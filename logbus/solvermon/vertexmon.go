@@ -1,14 +1,12 @@
 package solvermon
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"math"
 	"regexp"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/earthly/cloud-api/logstream"
@@ -78,73 +76,52 @@ func determineFatalErrorType(errString string, exitCode uint64) (logstream.Failu
 	return logstream.FailureType_FAILURE_TYPE_UNKNOWN, false
 }
 
-func formatErrorTemplate(errString string, fatalErrorType logstream.FailureType) string {
+func formatErrorMessage(errString, operation, internal string, fatalErrorType logstream.FailureType, exitCode uint64) string {
 	if matches, _ := stringutil.NamedGroupMatches(errString, reHint); len(matches["msg"]) == 1 {
 		errString = matches["msg"][0]
 	}
-	var formattedError string
+
 	switch fatalErrorType {
 	case logstream.FailureType_FAILURE_TYPE_OOM_KILLED:
-		formattedError = "" +
-			"      The{{.Internal}} command\n" +
-			"          {{.Operation}}\n" +
-			"      was terminated because the build system ran out of memory. If you are using a satellite or other remote buildkit, it is the remote system that ran out of memory."
+		return fmt.Sprintf(
+			"      The%s command\n"+
+				"          %s\n"+
+				"      was terminated because the build system ran out of memory. If you are using a satellite or other remote buildkit, it is the remote system that ran out of memory.", internal, operation)
 	case logstream.FailureType_FAILURE_TYPE_NONZERO_EXIT:
-		formattedError = "" +
-			"      The{{.Internal}} command\n" +
-			"          {{.Operation}}\n" +
-			"      did not complete successfully. Exit code {{.ExitCode}}"
+		return fmt.Sprintf(
+			"      The%s command\n"+
+				"          %s\n"+
+				"      did not complete successfully. Exit code %d", internal, operation, exitCode)
 	case logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND:
 		m := reErrNotFound.FindStringSubmatch(errString)
-		formattedError = fmt.Sprintf(""+
-			"      The{{.Internal}} command\n"+
-			"          {{.Operation}}\n"+
-			"      failed: %s", m[2])
+		return fmt.Sprintf(
+			"      The%s command\n"+
+				"          %s\n"+
+				"      failed: %s", internal, operation, m[2])
 	case logstream.FailureType_FAILURE_TYPE_GIT:
 		gitStdErr, shorterErr, ok := errutil.ExtractEarthlyGitStdErr(errString)
 		if ok {
-			formattedError = fmt.Sprintf(""+
-				"The{{.Internal}} command\n"+
-				"          {{.Operation}}\n"+
-				"failed: %s\n\n%s", shorterErr, gitStdErr)
-		} else {
-			formattedError = "" +
-				"The{{.Internal}} command\n" +
-				"          {{.Operation}}\n" +
-				"failed: {{.Error}}"
+			return fmt.Sprintf(
+				"The%s command\n"+
+					"          %s\n"+
+					"failed: %s\n\n%s", internal, operation, shorterErr, gitStdErr)
 		}
+		return fmt.Sprintf(
+			"The%s command\n"+
+				"          %s\n"+
+				"failed: %s", internal, operation, errString)
 	default:
-		formattedError = "" +
-			"The{{.Internal}} command\n" +
-			"          {{.Operation}}\n" +
-			"failed: {{.Error}}"
+		return fmt.Sprintf(
+			"The%s command\n"+
+				"          %s\n"+
+				"failed: %s", internal, operation, errString)
 	}
-	return formattedError
 }
 
 func FormatError(operation string, errString string) string {
 	exitCode := getExitCode(errString)
 	fatalErrorType, _ := determineFatalErrorType(errString, exitCode)
-	templateStr := formatErrorTemplate(errString, fatalErrorType)
-
-	tmpl, err := template.New("error").Parse(templateStr)
-	if err != nil {
-		return fmt.Sprintf("Failed to parse template: %v", err)
-	}
-
-	data := map[string]interface{}{
-		"Internal":  "",
-		"Operation": operation,
-		"ExitCode":  exitCode,
-		"Error":     errString,
-	}
-
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return fmt.Sprintf("Failed to build error template: %v", err)
-	}
-
-	return buf.String()
+	return formatErrorMessage(errString, operation, "", fatalErrorType, exitCode)
 }
 
 func (vm *vertexMonitor) parseError() {
@@ -159,29 +136,7 @@ func (vm *vertexMonitor) parseError() {
 
 	exitCode := getExitCode(errString)
 	fatalErrorType, isFatalError := determineFatalErrorType(errString, exitCode)
-	templateStr := formatErrorTemplate(errString, fatalErrorType)
-
-	tmpl, err := template.New("error").Parse(templateStr)
-	if err != nil {
-		vm.errorStr = fmt.Sprintf("Failed to parse template: %v", err)
-		return
-	}
-
-	// Parameters to fill in the template
-	data := map[string]interface{}{
-		"Internal":  internalStr,
-		"Operation": indentOp,
-		"ExitCode":  exitCode,
-		"Error":     errString,
-	}
-
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
-		vm.errorStr = fmt.Sprintf("Failed to execute template: %v", err)
-		return
-	}
-
-	formattedError := buf.String()
+	formattedError := formatErrorMessage(errString, indentOp, internalStr, fatalErrorType, exitCode)
 
 	// Add Error location
 	slString := ""
