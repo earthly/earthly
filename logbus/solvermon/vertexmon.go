@@ -59,7 +59,7 @@ var reHint = regexp.MustCompile(`^(?P<msg>.+?):Hint: .+`)
 
 func determineFatalErrorType(errString string, exitCode uint64) (logstream.FailureType, bool) {
 	if strings.Contains(errString, "context canceled") || errString == "no active sessions" {
-		return 0, false
+		return logstream.FailureType_FAILURE_TYPE_UNKNOWN, false
 	}
 	if reErrExitCode.MatchString(errString) {
 		switch exitCode {
@@ -75,7 +75,7 @@ func determineFatalErrorType(errString string, exitCode uint64) (logstream.Failu
 	if strings.Contains(errString, errutil.EarthlyGitStdErrMagicString) {
 		return logstream.FailureType_FAILURE_TYPE_GIT, true
 	}
-	return logstream.FailureType(0), false
+	return logstream.FailureType_FAILURE_TYPE_UNKNOWN, false
 }
 
 func formatErrorTemplate(errString string, fatalErrorType logstream.FailureType) string {
@@ -150,7 +150,6 @@ func FormatError(operation string, errString string) string {
 func (vm *vertexMonitor) parseError() {
 	errString := vm.vertex.Error
 
-	// Add operation context to the error string
 	indentOp := strings.Join(strings.Split(vm.operation, "\n"), "\n          ")
 	internalStr := ""
 	if vm.meta.Internal {
@@ -184,7 +183,7 @@ func (vm *vertexMonitor) parseError() {
 
 	formattedError := buf.String()
 
-	// Add source location if available
+	// Add Error location
 	slString := ""
 	if vm.meta.SourceLocation != nil {
 		slString = fmt.Sprintf(

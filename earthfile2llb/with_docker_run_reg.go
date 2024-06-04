@@ -254,6 +254,8 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 		return err
 	}
 
+	// Force synchronous command execution if we're using the local registry for
+	// loads and pulls.
 	return w.c.forceExecution(ctx, w.c.mts.Final.MainState, w.c.platr)
 }
 

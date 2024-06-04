@@ -2514,8 +2514,6 @@ func (c *Converter) parseSecretFlag(secretKeyValue string) (secretID string, env
 	return "", "", errors.Errorf("secret definition %s not supported. Format must be either <env-var>=+secrets/<secret-id> or <secret-id>", secretKeyValue)
 }
 
-var ErrUnlazyForceExecution = errors.New("unlazy force execution")
-
 func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr *platutil.Resolver) error {
 	if state.Output() == nil {
 		// Scratch - no need to execute.
@@ -2534,7 +2532,7 @@ func (c *Converter) forceExecution(ctx context.Context, state pllb.State, platr 
 	// want to un-lazy the ref so that the commands have executed.
 	_, err = ref.ReadDir(ctx, gwclient.ReadDirRequest{Path: "/"})
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrUnlazyForceExecution, err)
+		return errors.Wrap(err, "unlazy force execution")
 	}
 	return nil
 }
