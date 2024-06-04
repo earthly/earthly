@@ -3,8 +3,11 @@ package earthfile2llb
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/containerutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
@@ -41,11 +44,9 @@ func (w *withDockerRunLocalReg) Run(ctx context.Context, args []string, opt With
 		return errors.Wrap(err, "failed to create command")
 	}
 
-	endErrorExecution := true
 	defer func() {
-		if endErrorExecution {
-			cmd.SetEndError(retErr)
-		}
+		message := solvermon.FormatError("WITH DOCKER RUN", retErr.Error())
+		cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_FAILURE, message)
 	}()
 
 	var imagesToBuild []*states.ImageDef
@@ -127,13 +128,7 @@ func (w *withDockerRunLocalReg) Run(ctx context.Context, args []string, opt With
 
 	// Force synchronous command execution if we're using the local registry for
 	// loads and pulls.
-	err = w.c.forceExecution(ctx, w.c.mts.Final.MainState, w.c.platr)
-	if err != nil && errors.Is(err, ErrUnlazyForceExecution) {
-		// If error is ErrUnlazyForceExecution, Error is logged via SetEnd in
-		// solvermon.handleBuildkitStatus. So we don't SetEndError here
-		endErrorExecution = false
-	}
-	return err
+	return w.c.forceExecution(ctx, w.c.mts.Final.MainState, w.c.platr)
 }
 
 func (w *withDockerRunLocalReg) load(ctx context.Context, cmdID string, opt DockerLoadOpt) (chan *states.ImageDef, error) {
