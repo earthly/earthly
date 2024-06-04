@@ -428,7 +428,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		MetaResolver: c.opt.MetaResolver,
 		LLBCaps:      c.opt.LLBCaps,
 		Config: dockerui.Config{
-			BuildArgs:        overriding.Map(),
+			BuildArgs:        overriding.MapWithStringValues(),
 			Target:           dfTarget,
 			ImageResolveMode: c.opt.ImageResolveMode,
 		},
@@ -1222,6 +1222,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform p
 	if err != nil {
 		return err
 	}
+	fmt.Printf("::: %s BUILD %s\n", c.target, fullTargetName)
 
 	c.nonSaveCommand()
 
@@ -1230,6 +1231,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform p
 		return errors.Wrap(err, "failed to create command")
 	}
 
+	fmt.Printf("converter build args are %v\n", variable.KeyValueSlice(buildArgs).DebugString())
 	_, err = c.buildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, true, buildCmd, cmdID, onExecutionSuccess)
 
 	cmd.SetEndError(err)
@@ -1383,7 +1385,10 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) err
 		return err
 	}
 	c.nonSaveCommand()
-	c.varCollection.DeclareEnv(envKey, envValue)
+
+	wrappedEnvValue := variable.Value{Str: envValue, ComeFrom: c.target}
+
+	c.varCollection.DeclareEnv(envKey, wrappedEnvValue)
 	c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
 	c.mts.Final.MainImage.Config.Env = variables.AddEnv(
 		c.mts.Final.MainImage.Config.Env, envKey, envValue)
@@ -1403,9 +1408,16 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
 
+	varValue := variable.Value{Str: defaultArgValue, ComeFrom: c.target}
+
+	if opts.TargetReference {
+		varValue.Type = variable.TypeArg
+		fmt.Printf("varValue is %s\n", varValue.String())
+	}
+
 	declOpts := []variables.DeclareOpt{
 		variables.AsArg(),
-		variables.WithValue(variable.Value{Str: defaultArgValue, ComeFrom: c.target}),
+		variables.WithValue(varValue),
 		variables.WithPNCVFunc(pncvf),
 	}
 	if opts.Global {
@@ -1419,17 +1431,51 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 	if opts.Required && len(effective.Str) == 0 {
 		return fmt.Errorf("value not supplied for required ARG: %s", argKey)
 	}
-	if opts.TargetReference {
-		fmt.Printf("got a targetref for %s, %s, %s\n", argKey, effectiveDefault, effective)
-	}
+
+	effectiveDefaultStr := effectiveDefault.Str
+	effectiveStr := effective.Str
+
+	// TODO this logic will need to end up in the varible value.String() method
+	//if opts.TargetReference {
+	//	fmt.Printf("-------------------\n")
+	//	fmt.Printf("got a targetref for %s, %s, %s\n", argKey, effectiveDefault, effective)
+	//	fmt.Printf("currently in %s, but came from: %s; gotta create a new reference to %s based on that context\n", c.target, effective.ComeFrom, effective.Str) // TODO create the new target reference here
+
+	//	fmt.Printf("varCollection AbsRef is %s\n", c.varCollection.AbsRef())
+
+	//	derefedComeFrom, _, _, err := c.varCollection.Imports().Deref(effective.ComeFrom)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	fmt.Printf("derefedComeFrom is %s\n", derefedComeFrom)
+
+	//	strValueAsTarget, err := domain.ParseTarget(effective.Str)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	fmt.Printf("parsed %s to %s\n", effective.Str, strValueAsTarget)
+
+	//	targetRef, err := domain.JoinReferences(derefedComeFrom, strValueAsTarget)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+
+	//	fmt.Printf("what I really want: %s\n", targetRef)
+	//	effectiveStr = fmt.Sprintf("%s", targetRef) // TODO make this relative rather than absolute
+
+	//	//return domain.JoinReferences(c.varCollection.AbsRef(), relRef)
+
+	//	//domain.JoinReferences(
+	//	fmt.Printf("-------------------\n")
+	//}
 	if len(defaultArgValue) > 0 && reserved.IsBuiltIn(argKey) {
 		return fmt.Errorf("arg default value supplied for built-in ARG: %s", argKey)
 	}
 	if c.varCollection.IsStackAtBase() { // Only when outside of UDC.
 		c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
 			Name:          argKey,
-			DefaultValue:  effectiveDefault.Str, // TODO FIXME cast the value here based on the type
-			ConstantValue: effective.Str,        // TODO FIXME cast the value here based on the type
+			DefaultValue:  effectiveDefaultStr, // TODO FIXME cast the value here based on the type
+			ConstantValue: effectiveStr,        // TODO FIXME cast the value here based on the type
 		})
 	}
 	return nil
@@ -1474,7 +1520,7 @@ func (c *Converter) UpdateArg(ctx context.Context, argKey string, argValue strin
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
 
-	err := c.varCollection.UpdateVar(argKey, argValue, pncvf)
+	err := c.varCollection.UpdateVar(argKey, variable.Value{Str: argValue, ComeFrom: c.target}, pncvf)
 	if err != nil {
 		return err
 	}
@@ -1488,7 +1534,7 @@ func (c *Converter) SetArg(ctx context.Context, argKey string, argValue string) 
 		return err
 	}
 	c.nonSaveCommand()
-	c.varCollection.SetArg(argKey, argValue)
+	c.varCollection.SetArg(argKey, variable.Value{Str: argValue, ComeFrom: c.target})
 	return nil
 }
 
@@ -1871,15 +1917,19 @@ func (c *Converter) ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word
 }
 
 func (c *Converter) absolutizeTarget(fullTargetName string, allowPrivileged bool) (domain.Target, domain.Target, bool, error) {
+	fmt.Printf("absolutizeTarget fullTargetName=%s\n", fullTargetName)
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return domain.Target{}, domain.Target{}, false, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
 	}
 
+	fmt.Printf("absolutizeTarget relTarget=%s\n", relTarget)
 	derefedTarget, allowPrivilegedImport, isImport, err := c.varCollection.Imports().Deref(relTarget)
 	if err != nil {
 		return domain.Target{}, domain.Target{}, false, err
 	}
+
+	fmt.Printf("absolutizeTarget derefedTarget=%s\n", derefedTarget)
 
 	if isImport {
 		allowPrivileged = allowPrivileged && allowPrivilegedImport
@@ -1959,11 +2009,13 @@ func (c *Converter) prepOverridingVars(ctx context.Context, relTarget domain.Tar
 	if !c.opt.Features.ShellOutAnywhere {
 		buildArgFunc = c.processNonConstantBuildArgFunc(ctx)
 	}
+	fmt.Printf("prepOverridingVars has buildArgs %s\n", variable.KeyValueSlice(buildArgs).DebugString())
 
 	overriding, err := variables.ParseArgs2(buildArgs, buildArgFunc, c.varCollection)
 	if err != nil {
 		return nil, false, errors.Wrap(err, "parse build args")
 	}
+	//fmt.Printf("prepOverridingVars set overriding to %s\n", variable.KeyValueSlice(overriding).DebugString())
 
 	// Don't allow transitive overriding variables to cross project boundaries (unless --pass-args is used).
 	propagateBuildArgs := !relTarget.IsExternal()
@@ -1992,6 +2044,7 @@ func (c *Converter) prepBuildTarget(
 	if err != nil {
 		return domain.Target{}, ConvertOpt{}, false, err
 	}
+	fmt.Printf("absolutizeTarget fullTargetName=%s; returned target=%s\n", fullTargetName, target)
 
 	overriding, propagateBuildArgs, err := c.prepOverridingVars(ctx, relTarget, passArgs, buildArgs)
 	if err != nil {
@@ -2033,10 +2086,12 @@ func (c *Converter) prepBuildTarget(
 }
 
 func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue, isDangling bool, cmdT cmdType, parentCmdID string, onExecutionSuccess func(context.Context)) (*states.MultiTarget, error) {
+	fmt.Printf("buildTarget fullTargetName=%s\n", fullTargetName)
 	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, isDangling, cmdT, parentCmdID, onExecutionSuccess)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("::: %s Earthfile2LLB on %s\n", c.target, target)
 	mts, err := Earthfile2LLB(ctx, target, opt, false)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
@@ -2190,6 +2245,7 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 
 	// Build args.
 	for _, buildArgName := range c.varCollection.SortedVariables(variables.WithActive()) {
+		fmt.Printf("adding build arg %s\n", buildArgName)
 		ba, _ := c.varCollection.Get(buildArgName, variables.WithActive())
 		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba)))
 	}

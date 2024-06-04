@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/types/variable"
 	"github.com/earthly/earthly/variables/reserved"
 
@@ -53,7 +54,7 @@ func ParseArgs2(args []variable.KeyValue, pncvf ProcessNonConstantVariableFunc, 
 		if err != nil {
 			return nil, errors.Wrapf(err, "parse build arg %s", arg)
 		}
-		ret.Add(arg.Key, NewStringVariable(arg.Value.Str)) // TODO Add needs to take arg.Value only
+		ret.Add(arg.Key, *arg.Value) // parseArg2 always sets the Value
 	}
 	return ret, nil
 }
@@ -136,11 +137,12 @@ func parseArgValue2(name string, value variable.Value, pncvf ProcessNonConstantV
 	if strings.HasPrefix(value.Str, "$(") {
 		// Variable build arg - resolve value.
 		var err error
-		value.Str, _, err = pncvf(name, value.Str) // TODO force type? or set ComeFrom to nil?
+		value.Str, _, err = pncvf(name, value.String())
 		if err != nil {
 			return variable.Value{}, err
 		}
-		//value.ComeFrom = domain.Target{} // clear it out? TODO: should we set something else saying it must be a string in this case? or can it still work.... maybe it can.
+		value.Type = variable.TypeUnknown // unsure what to do here
+		value.ComeFrom = domain.Target{}  // clear it out? TODO: should we set something else saying it must be a string in this case? or can it still work.... maybe it can.
 	}
 	return value, nil
 }

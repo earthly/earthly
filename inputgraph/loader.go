@@ -507,7 +507,7 @@ func (l *loader) handleSet(ctx context.Context, cmd spec.Command) error {
 
 	l.hasher.HashString(fmt.Sprintf("SET %s=%s", key, val))
 
-	err = l.varCollection.UpdateVar(key, val, nil)
+	err = l.varCollection.UpdateVar(key, variable.Value{Str: val}, nil) // FIXME
 	if err != nil {
 		if err != nil {
 			return wrapError(err, cmd.SourceLocation, "failed to declare variable")
@@ -766,7 +766,7 @@ func (l *loader) handleFor(ctx context.Context, forStmt spec.ForStatement) error
 
 	for _, val := range vals {
 		l.hasher.HashString(fmt.Sprintf("FOR %s=%s", name, val))
-		l.varCollection.SetArg(name, val)
+		l.varCollection.SetArg(name, variable.Value{Str: val}) // FIXME
 		err := l.loadBlock(ctx, forStmt.Body)
 		if err != nil {
 			return err

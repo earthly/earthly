@@ -1345,6 +1345,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 				//}
 				continue
 			}
+			fmt.Printf("interpreter got BUILD with buildArgs=%v, target=%v\n", buildArgs, i.target)
 			err := i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgsToKeyValues(buildArgs, i.target), onExecutionSuccess)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)

@@ -13,13 +13,6 @@ func NewStringVariable(s string) variable.Value {
 	return variable.Value{Str: s}
 }
 
-//func NewStringVariableWithLocation(s string, target domain.Target) variable.Value {
-//	return variable.Value{
-//		Str:      s,
-//		ComeFrom: target,
-//	}
-//}
-
 // Scope represents a variable scope.
 type Scope struct {
 	variables map[string]variable.Value
@@ -99,14 +92,22 @@ func (s *Scope) Remove(name string) {
 }
 
 // Map returns a name->value variable map of variables in this scope.
-func (s *Scope) Map(opts ...ScopeOpt) map[string]string {
+func (s *Scope) Map(opts ...ScopeOpt) map[string]variable.Value {
 	opt := applyOpts(opts...)
-	m := make(map[string]string)
+	m := map[string]variable.Value{}
 	for k, v := range s.variables {
 		if opt.active && !s.activeVariables[k] {
 			continue
 		}
-		m[k] = v.Str
+		m[k] = v
+	}
+	return m
+}
+
+func (s *Scope) MapWithStringValues(opts ...ScopeOpt) map[string]string {
+	m := map[string]string{}
+	for k, v := range s.Map(opts...) {
+		m[k] = v.String()
 	}
 	return m
 }
@@ -134,7 +135,7 @@ func (s *Scope) BuildArgs(opts ...ScopeOpt) []variable.KeyValue {
 		val, _ := s.Get(v)
 		args = append(args, variable.KeyValue{
 			Key:   v,
-			Value: &variable.Value{Str: val.Str}, // TODO FIXME s.Get should return a variable.Value
+			Value: &val,
 		})
 	}
 	return args
@@ -171,7 +172,7 @@ func CombineScopes(scopes ...*Scope) *Scope {
 		addOpts := append(opts, NoOverride())
 		for _, scope := range scopes {
 			for k, v := range scope.Map(opts...) {
-				s.Add(k, NewStringVariable(v), addOpts...)
+				s.Add(k, v, addOpts...)
 			}
 		}
 	}
@@ -183,7 +184,7 @@ func CombineScopesInactive(scopes ...*Scope) *Scope {
 	s := NewScope()
 	for _, scope := range scopes {
 		for k, v := range scope.Map() {
-			s.Add(k, NewStringVariable(v), NoOverride())
+			s.Add(k, v, NoOverride())
 		}
 	}
 	return s
