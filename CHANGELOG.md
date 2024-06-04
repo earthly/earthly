@@ -4,6 +4,10 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+### Removed
+
+- Removed `PIPELINE` & `TRIGGER` keywords and associated code relating to formerly deprecated Earthly CI.
+
 ## v0.8.13 - 2024-05-28
 
 ### Fixed

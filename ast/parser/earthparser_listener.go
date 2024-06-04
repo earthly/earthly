@@ -248,12 +248,6 @@ type EarthParserListener interface {
 	// EnterProjectStmt is called when entering the projectStmt production.
 	EnterProjectStmt(c *ProjectStmtContext)
 
-	// EnterPipelineStmt is called when entering the pipelineStmt production.
-	EnterPipelineStmt(c *PipelineStmtContext)
-
-	// EnterTriggerStmt is called when entering the triggerStmt production.
-	EnterTriggerStmt(c *TriggerStmtContext)
-
 	// EnterExpr is called when entering the expr production.
 	EnterExpr(c *ExprContext)
 
@@ -505,12 +499,6 @@ type EarthParserListener interface {
 
 	// ExitProjectStmt is called when exiting the projectStmt production.
 	ExitProjectStmt(c *ProjectStmtContext)
-
-	// ExitPipelineStmt is called when exiting the pipelineStmt production.
-	ExitPipelineStmt(c *PipelineStmtContext)
-
-	// ExitTriggerStmt is called when exiting the triggerStmt production.
-	ExitTriggerStmt(c *TriggerStmtContext)
 
 	// ExitExpr is called when exiting the expr production.
 	ExitExpr(c *ExprContext)

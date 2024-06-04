@@ -1,9 +1,0 @@
-VERSION 0.6 # testing old functionality
-
-foo:
-    RUN echo "run"
-
-test:
-    PIPELINE
-    TRIGGER manual
-    BUILD +foo

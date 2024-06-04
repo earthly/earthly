@@ -63,8 +63,8 @@ Within Earthly projects users can be invited and granted different access levels
 				},
 				{
 					Name:        "rm",
-					Usage:       "Remove an existing project and all of its associated pipelines and secrets",
-					Description: "Remove an existing project and all of its associated pipelines and secrets.",
+					Usage:       "Remove an existing project and all of its associated resources",
+					Description: "Remove an existing project and all of its associated resources.",
 					UsageText:   "earthly project [--org <organization-name>] rm <project-name>",
 					Action:      a.actionRemove,
 					Flags: []cli.Flag{
@@ -174,7 +174,7 @@ func (a *Project) actionRemove(cliCtx *cli.Context) error {
 
 	if !a.forceRemoveProject {
 		answer, err := common.PromptInput(cliCtx.Context,
-			"WARNING: you are about to permanently delete this project and all of its associated pipelines, build history and secrets.\n"+
+			"WARNING: you are about to permanently delete this project and all of its associated build history and secrets.\n"+
 				"Would you like to continue?\n"+
 				"Type 'y' or 'yes': ")
 		if err != nil {

@@ -11,7 +11,6 @@ import (
 	"github.com/earthly/cloud-api/billing"
 	"github.com/earthly/cloud-api/compute"
 	"github.com/earthly/cloud-api/logstream"
-	"github.com/earthly/cloud-api/pipelines"
 	"github.com/earthly/cloud-api/secrets"
 
 	"github.com/google/uuid"
@@ -63,7 +62,6 @@ type Client struct {
 	authDir                  string
 	disableSSHKeyGuessing    bool
 	jum                      *protojson.UnmarshalOptions
-	pipelines                pipelines.PipelinesClient
 	compute                  compute.ComputeClient
 	logstream                logstreamClient
 	logstreamBackoff         time.Duration
@@ -155,10 +153,9 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	dialOpts = append(dialOpts, grpc.WithTransportCredentials(transportCreds))
 	conn, err := grpc.DialContext(ctx, grpcAddr, dialOpts...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed dialing pipelines grpc")
+		return nil, errors.Wrap(err, "failed dialing gRPC endpoint")
 	}
 
-	c.pipelines = pipelines.NewPipelinesClient(conn)
 	c.compute = compute.NewComputeClient(conn)
 	c.analytics = analytics.NewAnalyticsClient(conn)
 	c.askv = askv.NewAskvClient(conn)

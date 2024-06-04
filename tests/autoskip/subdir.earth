@@ -20,7 +20,3 @@ all:
   BUILD +foo
   BUILD +bar
   BUILD +baz
-
-allpipe:
-  PIPELINE
-  BUILD +all

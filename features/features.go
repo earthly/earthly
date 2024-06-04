@@ -52,7 +52,6 @@ type Features struct {
 	UseCopyLink              bool `long:"use-copy-link" enabled_in_version:"0.7" description:"use the equivalent of COPY --link for all copy-like operations"`
 	UseHostCommand           bool `long:"use-host-command" enabled_in_version:"0.7" description:"allow use of HOST command in Earthfiles"`
 	UseNoManifestList        bool `long:"use-no-manifest-list" enabled_in_version:"0.7" description:"enable the SAVE IMAGE --no-manifest-list option"`
-	UsePipelines             bool `long:"use-pipelines" enabled_in_version:"0.7" description:"enable the PIPELINE and TRIGGER commands"`
 	UseProjectSecrets        bool `long:"use-project-secrets" enabled_in_version:"0.7" description:"enable project-based secret resolution"`
 	WaitBlock                bool `long:"wait-block" enabled_in_version:"0.7" description:"enable WITH/END feature, also allows RUN --push mixed with non-push commands"`
 
