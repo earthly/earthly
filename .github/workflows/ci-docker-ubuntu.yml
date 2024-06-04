@@ -40,6 +40,7 @@ jobs:
 ##      SKIP_JOB: ${{ needs.check-essential-files.outputs.essential-files == 'false' }}
 #    secrets: inherit
 
+
   earthly-linux-amd64:
     runs-on: [earthly-satellite#gha-test-1]
     env:
