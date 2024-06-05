@@ -22,7 +22,7 @@ func (kvs KeyValueSlice) DebugString() string {
 		if x.Value == nil {
 			sb.WriteString(fmt.Sprintf("%s: <undefined>", x.Key))
 		} else {
-			sb.WriteString(fmt.Sprintf("%s: %s (from %s)", x.Key, x.Value.Str, x.Value.ComeFrom))
+			sb.WriteString(fmt.Sprintf("%s: %s (from %s, type:%s)", x.Key, x.Value.Str, x.Value.ComeFrom, x.Value.Type))
 		}
 	}
 	sb.WriteString("]")

@@ -2009,7 +2009,7 @@ func (c *Converter) prepOverridingVars(ctx context.Context, relTarget domain.Tar
 	if !c.opt.Features.ShellOutAnywhere {
 		buildArgFunc = c.processNonConstantBuildArgFunc(ctx)
 	}
-	fmt.Printf("prepOverridingVars has buildArgs %s\n", variable.KeyValueSlice(buildArgs).DebugString())
+	fmt.Printf("%s prepOverridingVars has buildArgs %s\n", c.target, variable.KeyValueSlice(buildArgs).DebugString())
 
 	overriding, err := variables.ParseArgs2(buildArgs, buildArgFunc, c.varCollection)
 	if err != nil {
@@ -2044,7 +2044,7 @@ func (c *Converter) prepBuildTarget(
 	if err != nil {
 		return domain.Target{}, ConvertOpt{}, false, err
 	}
-	fmt.Printf("absolutizeTarget fullTargetName=%s; returned target=%s\n", fullTargetName, target)
+	//fmt.Printf("absolutizeTarget fullTargetName=%s; returned target=%s\n", fullTargetName, target)
 
 	overriding, propagateBuildArgs, err := c.prepOverridingVars(ctx, relTarget, passArgs, buildArgs)
 	if err != nil {
@@ -2245,8 +2245,8 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 
 	// Build args.
 	for _, buildArgName := range c.varCollection.SortedVariables(variables.WithActive()) {
-		fmt.Printf("adding build arg %s\n", buildArgName)
 		ba, _ := c.varCollection.Get(buildArgName, variables.WithActive())
+		fmt.Printf("adding build arg %s=%s\n", buildArgName, ba)
 		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba)))
 	}
 	// Secrets.

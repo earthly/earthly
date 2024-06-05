@@ -1277,16 +1277,18 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	if i.local && !asyncSafeArgs {
 		return i.errorf(cmd.SourceLocation, "BUILD args do not currently support shelling-out in combination with LOCALLY")
 	}
+	fmt.Printf("%s handleBuild old-style build args %v\n", i.target, opts.BuildArgs)
 	expandedBuildArgs, err := i.expandArgsSlice(ctx, opts.BuildArgs, true, async)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD args %v", opts.BuildArgs)
 	}
-	fmt.Printf("args are %v\n", args[1:])
+	fmt.Printf("%s handleBuild new-style build args %v\n", i.target, args[1:])
 	expandedFlagArgs, err := i.expandArgsSlice(ctx, args[1:], true, async)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD flags %v", args[1:])
 	}
-	fmt.Printf("expandedFlagArgs are %v\n", expandedFlagArgs)
+	fmt.Printf("%s handleBuild new-style expanded build args %v\n", i.target, expandedFlagArgs) // TODO this is the issue, these are all regular strings, and we loose the ARG types for cases like BUILD +TARGET --foo=$foo
+
 	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse flag args")

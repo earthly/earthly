@@ -15,6 +15,21 @@ const (
 	TypeString
 )
 
+func (vt ValueType) String() string {
+	switch vt {
+	case TypeUnknown:
+		return "unknown"
+	case TypeArg:
+		return "arg"
+	case TypePath:
+		return "path"
+	case TypeString:
+		return "string"
+	default:
+		return "corrupt"
+	}
+}
+
 type Value struct {
 	Str      string
 	ComeFrom domain.Target

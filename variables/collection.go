@@ -234,12 +234,10 @@ func (c *Collection) Expand(word string, shellOut shell.EvalShellOutFn) (string,
 
 func (c *Collection) overridingOrDefault(name string, defaultValue variable.Value, pncvf ProcessNonConstantVariableFunc) (variable.Value, error) {
 	if v, ok := c.overriding().Get(name); ok {
-		fmt.Printf("return1\n")
 		v.Type = defaultValue.Type
 		return v, nil
 	}
 	if v, ok := c.builtin.Get(name); ok {
-		fmt.Printf("return2\n")
 		v.Type = defaultValue.Type
 		return v, nil
 	}
