@@ -39,22 +39,27 @@ type vertexMonitor struct {
 
 var reErrExitCode = regexp.MustCompile(`(?:process ".*" did not complete successfully|error calling LocalhostExec): exit code: (?P<exit_code>[0-9]+)$`)
 
-func getExitCode(errString string) (int, bool) {
+var errNoExitCodeOMM = errors.New("no exit code, process was killed due to OOM")
+
+// getExitCode returns the exit code (int), whether one was found (bool), and an error if the exit code was invalid
+func getExitCode(errString string) (int, bool, error) {
 	if matches, _ := stringutil.NamedGroupMatches(errString, reErrExitCode); len(matches["exit_code"]) == 1 {
 		exitCodeMatch := matches["exit_code"][0]
-		// exit codes should be max 255 (8 bits) however determineFatalErrorType
-		// expects math.MaxUint32 to be a special case for OOM, so we allow it here
-		exitCode, err := strconv.ParseInt(exitCodeMatch, 10, 64)
+		exitCode, err := strconv.ParseUint(exitCodeMatch, 10, 32)
 		if err != nil {
-			return 0, false
+			return 0, false, err
 		}
-		// Check if the exit code can fit into an int
-		if exitCode > int64(^uint(0)>>1) {
-			return 0, false // Value is too large to fit into an int
+		// See https://github.com/earthly/buildkit/commit/9b0bdb600641f3dd1d96f54ac2d86581ab6433b2
+		if exitCode == math.MaxUint32 {
+			return 0, true, errNoExitCodeOMM
 		}
-		return int(exitCode), true
+		if exitCode > 255 {
+			return 0, false, fmt.Errorf("exit code %d out of expected range (0-255)", exitCode)
+		}
+		exitCodeByte := exitCode & 0xFF
+		return int(exitCodeByte), true, nil
 	}
-	return 0, false
+	return 0, false, nil
 }
 
 var reErrNotFound = regexp.MustCompile(`^failed to calculate checksum of ref ([^ ]*): (.*)$`)
@@ -62,17 +67,17 @@ var reHint = regexp.MustCompile(`^(?P<msg>.+?):Hint: .+`)
 
 // determineFatalErrorType returns logstream.FailureType
 // and whether or not its a Fatal Error
-func determineFatalErrorType(errString string, exitCode int) (logstream.FailureType, bool) {
+func determineFatalErrorType(errString string, exitCode int, exitParseErr error) (logstream.FailureType, bool) {
 	if strings.Contains(errString, "context canceled") || errString == "no active sessions" {
 		return logstream.FailureType_FAILURE_TYPE_UNKNOWN, false
 	}
-	if reErrExitCode.MatchString(errString) {
-		switch exitCode {
-		case math.MaxUint32:
-			return logstream.FailureType_FAILURE_TYPE_OOM_KILLED, true
-		default:
-			return logstream.FailureType_FAILURE_TYPE_NONZERO_EXIT, true
-		}
+	if exitParseErr == errNoExitCodeOMM {
+		return logstream.FailureType_FAILURE_TYPE_OOM_KILLED, true
+	} else if exitParseErr != nil {
+		return logstream.FailureType_FAILURE_TYPE_UNKNOWN, true
+	}
+	if exitCode > 0 {
+		return logstream.FailureType_FAILURE_TYPE_NONZERO_EXIT, true
 	}
 	if reErrNotFound.MatchString(errString) {
 		return logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND, true
@@ -132,8 +137,8 @@ func formatErrorMessage(errString, operation string, internal bool, fatalErrorTy
 }
 
 func FormatError(operation string, errString string) string {
-	exitCode, _ := getExitCode(errString)
-	fatalErrorType, _ := determineFatalErrorType(errString, exitCode)
+	exitCode, _, err := getExitCode(errString)
+	fatalErrorType, _ := determineFatalErrorType(errString, exitCode, err)
 	return formatErrorMessage(errString, operation, false, fatalErrorType, exitCode)
 }
 
@@ -142,8 +147,8 @@ func (vm *vertexMonitor) parseError() {
 
 	indentOp := strings.Join(strings.Split(vm.operation, "\n"), "\n          ")
 
-	exitCode, _ := getExitCode(errString)
-	fatalErrorType, isFatalError := determineFatalErrorType(errString, exitCode)
+	exitCode, _, err := getExitCode(errString)
+	fatalErrorType, isFatalError := determineFatalErrorType(errString, exitCode, err)
 	formattedError := formatErrorMessage(errString, indentOp, vm.meta.Internal, fatalErrorType, exitCode)
 
 	// Add Error location
