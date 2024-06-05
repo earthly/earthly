@@ -1838,7 +1838,7 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 		})
 	}
 	if opts.CacheID != "" {
-		if !i.converter.ftrs.PassArgs {
+		if !i.converter.ftrs.DockerCache {
 			return i.errorf(cmd.SourceLocation, "the WITH DOCKER --cache-id flag must be enabled with the VERSION --docker-cache feature flag.")
 		}
 		i.withDocker.CacheID = opts.CacheID
