@@ -11,7 +11,7 @@ func TestGetExitCode(t *testing.T) {
 	tests := []struct {
 		name         string
 		errString    string
-		expectedCode uint32
+		expectedCode int
 	}{
 		{
 			name:         "no match",
@@ -49,7 +49,7 @@ func TestDetermineFatalErrorType(t *testing.T) {
 	tests := []struct {
 		name          string
 		errString     string
-		exitCode      uint32
+		exitCode      int
 		expectedType  logstream.FailureType
 		expectedFatal bool
 	}{

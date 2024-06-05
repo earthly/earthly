@@ -39,14 +39,14 @@ type vertexMonitor struct {
 
 var reErrExitCode = regexp.MustCompile(`(?:process ".*" did not complete successfully|error calling LocalhostExec): exit code: (?P<exit_code>[0-9]+)$`)
 
-func getExitCode(errString string) (uint32, bool) {
+func getExitCode(errString string) (int, bool) {
 	if matches, _ := stringutil.NamedGroupMatches(errString, reErrExitCode); len(matches["exit_code"]) == 1 {
 		exitCodeMatch := matches["exit_code"][0]
 		exitCode, err := strconv.ParseUint(exitCodeMatch, 10, 32)
 		if err != nil {
 			return 0, false
 		}
-		return uint32(exitCode), true
+		return int(exitCode), true
 	}
 	return 0, false
 }
@@ -56,7 +56,7 @@ var reHint = regexp.MustCompile(`^(?P<msg>.+?):Hint: .+`)
 
 // determineFatalErrorType returns logstream.FailureType
 // and whether or not its a Fatal Error
-func determineFatalErrorType(errString string, exitCode uint32) (logstream.FailureType, bool) {
+func determineFatalErrorType(errString string, exitCode int) (logstream.FailureType, bool) {
 	if strings.Contains(errString, "context canceled") || errString == "no active sessions" {
 		return logstream.FailureType_FAILURE_TYPE_UNKNOWN, false
 	}
@@ -77,7 +77,7 @@ func determineFatalErrorType(errString string, exitCode uint32) (logstream.Failu
 	return logstream.FailureType_FAILURE_TYPE_UNKNOWN, false
 }
 
-func formatErrorMessage(errString, operation string, internal bool, fatalErrorType logstream.FailureType, exitCode uint32) string {
+func formatErrorMessage(errString, operation string, internal bool, fatalErrorType logstream.FailureType, exitCode int) string {
 	if matches, _ := stringutil.NamedGroupMatches(errString, reHint); len(matches["msg"]) == 1 {
 		errString = matches["msg"][0]
 	}
