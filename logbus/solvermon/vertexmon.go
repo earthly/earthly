@@ -42,14 +42,21 @@ var reErrExitCode = regexp.MustCompile(`(?:process ".*" did not complete success
 func getExitCode(errString string) (int, bool) {
 	if matches, _ := stringutil.NamedGroupMatches(errString, reErrExitCode); len(matches["exit_code"]) == 1 {
 		exitCodeMatch := matches["exit_code"][0]
-		exitCode, err := strconv.ParseUint(exitCodeMatch, 10, 32)
+		// exit codes should be max 255 (8 bits) however determineFatalErrorType
+		// expects math.MaxUint32 to be a special case for OOM, so we allow it here
+		exitCode, err := strconv.ParseInt(exitCodeMatch, 10, 64)
 		if err != nil {
 			return 0, false
+		}
+		// Check if the exit code can fit into an int
+		if exitCode > int64(^int(0)) {
+			return 0, false // Value is too large to fit into an int
 		}
 		return int(exitCode), true
 	}
 	return 0, false
 }
+
 
 var reErrNotFound = regexp.MustCompile(`^failed to calculate checksum of ref ([^ ]*): (.*)$`)
 var reHint = regexp.MustCompile(`^(?P<msg>.+?):Hint: .+`)
