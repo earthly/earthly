@@ -1304,7 +1304,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	//	expandedBuildArgsAsVariables = append(expandedBuildArgsAsVariables, variables.NewStringVariableWithLocation(x, i.target))
 	//}
 
-	crossProductBuildArgs, err := flagutil.BuildArgMatrix(expandedBuildArgs)
+	crossProductBuildArgs, err := flagutil.BuildArgMatrix2(buildArgsToKeyValues(expandedBuildArgs, i.target))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "build arg matrix")
 	}
@@ -1348,7 +1348,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 				continue
 			}
 			fmt.Printf("interpreter got BUILD with buildArgs=%v, target=%v\n", buildArgs, i.target)
-			err := i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgsToKeyValues(buildArgs, i.target), onExecutionSuccess)
+			err := i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgs, onExecutionSuccess)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
 			}

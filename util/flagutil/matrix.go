@@ -32,13 +32,30 @@ func BuildArgMatrix2(args []variable.KeyValue) ([][]variable.KeyValue, error) {
 			}
 		}
 		if !found {
-			groupedArgs = append(groupedArgs, argGroup{
-				key:    k,
-				values: []*string{v},
+			groupedArgs = append(groupedArgs, argGroup2{
+				key:    arg.Key,
+				values: []*variable.Value{arg.Value},
 			})
 		}
 	}
-	return crossProduct(groupedArgs, nil), nil
+	return crossProduct2(groupedArgs, nil), nil
+}
+
+func crossProduct2(ga []argGroup2, prefix []variable.KeyValue) [][]variable.KeyValue {
+	if len(ga) == 0 {
+		return [][]variable.KeyValue{prefix}
+	}
+	var ret [][]variable.KeyValue
+	for _, v := range ga[0].values {
+		newPrefix := prefix[:]
+		newPrefix = append(newPrefix, variable.KeyValue{
+			Key:   ga[0].key,
+			Value: v,
+		})
+		cp := crossProduct2(ga[1:], newPrefix)
+		ret = append(ret, cp...)
+	}
+	return ret
 }
 
 type argGroup struct {
