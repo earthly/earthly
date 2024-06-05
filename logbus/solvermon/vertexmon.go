@@ -49,14 +49,13 @@ func getExitCode(errString string) (int, bool) {
 			return 0, false
 		}
 		// Check if the exit code can fit into an int
-		if exitCode > int64(^int(0)) {
+		if exitCode > int64(^uint(0)>>1) {
 			return 0, false // Value is too large to fit into an int
 		}
 		return int(exitCode), true
 	}
 	return 0, false
 }
-
 
 var reErrNotFound = regexp.MustCompile(`^failed to calculate checksum of ref ([^ ]*): (.*)$`)
 var reHint = regexp.MustCompile(`^(?P<msg>.+?):Hint: .+`)
