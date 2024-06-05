@@ -66,6 +66,23 @@ func (vm *vertexMonitor) Write(dt []byte, ts time.Time, stream int) (int, error)
 	return len(dt), nil
 }
 
+var errNoExitCodeOMM = errors.New("no exit code, process was killed due to OOM")
+
+func parseExitCode(s string) (int, error) {
+	exitCode, err := strconv.ParseUint(s, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	if exitCode == math.MaxUint32 {
+		return 0, errNoExitCodeOMM
+	}
+	if exitCode > 255 {
+		return 0, fmt.Errorf("exit code %d out of expected range (0-255)", exitCode)
+	}
+	exitCodeByte := exitCode & 0xFF
+	return int(exitCodeByte), nil
+}
+
 func (vm *vertexMonitor) parseError() {
 	errString := vm.vertex.Error
 	indentOp := strings.Join(strings.Split(vm.operation, "\n"), "\n          ")
@@ -87,9 +104,9 @@ func (vm *vertexMonitor) parseError() {
 
 		// Ignore the parse error as default case will print it as a string using
 		// the source, so we won't miss any data.
-		exitCode, _ := strconv.ParseUint(exitCodeMatch, 10, 32)
-		switch exitCode {
-		case math.MaxUint32:
+		exitCode, err := parseExitCode(exitCodeMatch)
+		switch err {
+		case errNoExitCodeOMM:
 			errString = fmt.Sprintf(""+
 				"      The%s command\n"+
 				"          %s\n"+
@@ -97,13 +114,20 @@ func (vm *vertexMonitor) parseError() {
 				"      If you are using a satellite or other remote buildkit, it is the remote system that ran out of memory.",
 				internalStr, indentOp)
 			vm.fatalErrorType = logstream.FailureType_FAILURE_TYPE_OOM_KILLED
+		case nil:
+			errString = fmt.Sprintf(""+
+				"      The%s command\n"+
+				"          %s\n"+
+				"      did not complete successfully. Exit code %d",
+				internalStr, indentOp, exitCode)
+			vm.fatalErrorType = logstream.FailureType_FAILURE_TYPE_NONZERO_EXIT
 		default:
 			errString = fmt.Sprintf(""+
 				"      The%s command\n"+
 				"          %s\n"+
-				"      did not complete successfully. Exit code %s",
-				internalStr, indentOp, exitCodeMatch)
-			vm.fatalErrorType = logstream.FailureType_FAILURE_TYPE_NONZERO_EXIT
+				"      did not return a valid exit code. Parsing %s failed: %s"+
+				internalStr, indentOp, exitCodeMatch, err)
+			vm.fatalErrorType = logstream.FailureType_FAILURE_TYPE_OOM_KILLED
 		}
 		vm.isFatalError = true
 	case reErrNotFound.MatchString(errString):
