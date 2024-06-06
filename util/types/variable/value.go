@@ -2,6 +2,8 @@ package variable
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/earthly/earthly/domain"
 )
@@ -42,10 +44,29 @@ func (v *Value) String(currentTarget domain.Reference) string {
 	case TypeUnknown, TypeString:
 		return v.Str
 	case TypeArg:
-		return fmt.Sprintf("TYPE_ARG: %s came from %s\n", v.Str, v.ComeFrom.DebugString())
+		rel := getRelative(currentTarget, v.ComeFrom)
+		if rel == "" {
+			return v.Str
+		}
+		if strings.HasPrefix(v.Str, "+") {
+			return rel + v.Str
+		}
+		str := strings.TrimPrefix(v.Str, "./")
+		return rel + "/" + str
 	case TypePath:
 		return fmt.Sprintf("TYPE_PATH: %s\n", v.Str)
 	default:
 		panic(fmt.Sprintf("Value corrupt; unknown type %d", v.Type))
 	}
+}
+
+func getRelative(currentTarget, comeFrom domain.Reference) string {
+	rel, err := filepath.Rel(currentTarget.GetLocalPath(), comeFrom.GetLocalPath())
+	if err != nil {
+		panic(err)
+	}
+	if rel == "" || strings.HasPrefix(rel, "..") {
+		return rel
+	}
+	return "./" + rel
 }
