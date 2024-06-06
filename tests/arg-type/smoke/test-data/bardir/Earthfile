@@ -1,0 +1,6 @@
+VERSION 0.8
+
+bar:
+  FROM alpine
+  RUN echo "Nanaimo bar" > data
+  SAVE ARTIFACT data
