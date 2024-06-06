@@ -428,7 +428,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		MetaResolver: c.opt.MetaResolver,
 		LLBCaps:      c.opt.LLBCaps,
 		Config: dockerui.Config{
-			BuildArgs:        overriding.MapWithStringValues(),
+			BuildArgs:        overriding.MapWithStringValues(c.target),
 			Target:           dfTarget,
 			ImageResolveMode: c.opt.ImageResolveMode,
 		},
@@ -1222,7 +1222,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform p
 	if err != nil {
 		return err
 	}
-	fmt.Printf("::: %s BUILD %s\n", c.target, fullTargetName)
+	//fmt.Printf("::: %s BUILD %s\n", c.target, fullTargetName)
 
 	c.nonSaveCommand()
 
@@ -1231,7 +1231,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform p
 		return errors.Wrap(err, "failed to create command")
 	}
 
-	fmt.Printf("converter build args are %v\n", variable.KeyValueSlice(buildArgs).DebugString())
+	//fmt.Printf("converter build args are %v\n", variable.KeyValueSlice(buildArgs).DebugString())
 	_, err = c.buildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, true, buildCmd, cmdID, onExecutionSuccess)
 
 	cmd.SetEndError(err)
@@ -1412,7 +1412,7 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 
 	if opts.TargetReference {
 		varValue.Type = variable.TypeArg
-		fmt.Printf("varValue is %s\n", varValue.String())
+		//fmt.Printf("varValue is %s\n", varValue.String())
 	}
 
 	declOpts := []variables.DeclareOpt{
@@ -1423,7 +1423,7 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 	if opts.Global {
 		declOpts = append(declOpts, variables.AsGlobal())
 	}
-	fmt.Printf("calling DeclareVar key=%s; default=%s\n", argKey, defaultArgValue)
+	//fmt.Printf("calling DeclareVar key=%s; default=%s\n", argKey, defaultArgValue)
 	effective, effectiveDefault, err := c.varCollection.DeclareVar(argKey, declOpts...)
 	if err != nil {
 		return err
@@ -1917,19 +1917,19 @@ func (c *Converter) ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word
 }
 
 func (c *Converter) absolutizeTarget(fullTargetName string, allowPrivileged bool) (domain.Target, domain.Target, bool, error) {
-	fmt.Printf("absolutizeTarget fullTargetName=%s\n", fullTargetName)
+	//fmt.Printf("absolutizeTarget fullTargetName=%s\n", fullTargetName)
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return domain.Target{}, domain.Target{}, false, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
 	}
 
-	fmt.Printf("absolutizeTarget relTarget=%s\n", relTarget)
+	//fmt.Printf("absolutizeTarget relTarget=%s\n", relTarget)
 	derefedTarget, allowPrivilegedImport, isImport, err := c.varCollection.Imports().Deref(relTarget)
 	if err != nil {
 		return domain.Target{}, domain.Target{}, false, err
 	}
 
-	fmt.Printf("absolutizeTarget derefedTarget=%s\n", derefedTarget)
+	//fmt.Printf("absolutizeTarget derefedTarget=%s\n", derefedTarget)
 
 	if isImport {
 		allowPrivileged = allowPrivileged && allowPrivilegedImport
@@ -2086,12 +2086,12 @@ func (c *Converter) prepBuildTarget(
 }
 
 func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue, isDangling bool, cmdT cmdType, parentCmdID string, onExecutionSuccess func(context.Context)) (*states.MultiTarget, error) {
-	fmt.Printf("buildTarget fullTargetName=%s\n", fullTargetName)
+	//fmt.Printf("buildTarget fullTargetName=%s\n", fullTargetName)
 	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, isDangling, cmdT, parentCmdID, onExecutionSuccess)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("::: %s Earthfile2LLB on %s\n", c.target, target)
+	//fmt.Printf("::: %s Earthfile2LLB on %s\n", c.target, target)
 	mts, err := Earthfile2LLB(ctx, target, opt, false)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
@@ -2113,7 +2113,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 			// Propagate globals.
 			globals := mts.Final.VarCollection.Globals()
 			for _, k := range globals.SortedNames(variables.WithActive()) {
-				_, alreadyActive := c.varCollection.Get(k, variables.WithActive())
+				_, alreadyActive := c.varCollection.GetValue(k, variables.WithActive())
 				if alreadyActive {
 					// Globals don't override any variables in current scope.
 					continue
@@ -2123,7 +2123,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 				defaultArgValue := ""
 				for _, childBai := range mts.Final.TargetInput().BuildArgs {
 					if childBai.Name == k {
-						fmt.Printf("what does this do? k=%s; default=%s\n", k, childBai.DefaultValue)
+						//fmt.Printf("what does this do? k=%s; default=%s\n", k, childBai.DefaultValue)
 						defaultArgValue = childBai.DefaultValue
 						break
 					}
@@ -2245,9 +2245,9 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 
 	// Build args.
 	for _, buildArgName := range c.varCollection.SortedVariables(variables.WithActive()) {
-		ba, _ := c.varCollection.Get(buildArgName, variables.WithActive())
-		fmt.Printf("adding build arg %s=%s\n", buildArgName, ba)
-		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba)))
+		ba, _ := c.varCollection.GetValue(buildArgName, variables.WithActive())
+		//fmt.Printf("adding build arg %s=%s\n", buildArgName, ba)
+		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba.String(c.target))))
 	}
 	// Secrets.
 	for _, secretKeyValue := range opts.Secrets {
@@ -2759,9 +2759,9 @@ func (c *Converter) newLogbusCommand(ctx context.Context, name string) (string, 
 func (c *Converter) newVertexMeta(ctx context.Context, local, interactive, internal bool, secrets []string) (string, string, error) {
 	activeOverriding := make(map[string]string)
 	for _, arg := range c.varCollection.SortedOverridingVariables() {
-		v, ok := c.varCollection.Get(arg, variables.WithActive())
+		v, ok := c.varCollection.GetValue(arg, variables.WithActive())
 		if ok {
-			activeOverriding[arg] = v
+			activeOverriding[arg] = v.String(c.target)
 		}
 	}
 

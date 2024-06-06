@@ -36,13 +36,13 @@ type Value struct {
 	Type     ValueType
 }
 
-func (v *Value) String() string {
+func (v *Value) String(currentTarget domain.Reference) string {
 	//fmt.Printf("type is %d\n", v.Type)
 	switch v.Type {
 	case TypeUnknown, TypeString:
 		return v.Str
 	case TypeArg:
-		return fmt.Sprintf("TYPE_ARG: %s\n", v.Str)
+		return fmt.Sprintf("TYPE_ARG: %s came from %s\n", v.Str, v.ComeFrom.DebugString())
 	case TypePath:
 		return fmt.Sprintf("TYPE_PATH: %s\n", v.Str)
 	default:

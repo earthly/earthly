@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/earthly/earthly/analytics"
+	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/ast/command"
 	"github.com/earthly/earthly/ast/commandflag"
 	"github.com/earthly/earthly/ast/hint"
@@ -1277,34 +1278,26 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	if i.local && !asyncSafeArgs {
 		return i.errorf(cmd.SourceLocation, "BUILD args do not currently support shelling-out in combination with LOCALLY")
 	}
-	fmt.Printf("%s handleBuild old-style build args %v\n", i.target, opts.BuildArgs)
-	expandedBuildArgs, err := i.expandArgsSlice(ctx, opts.BuildArgs, true, async)
+
+	buildArgs, err := i.parseAndExpand(ctx, opts.BuildArgs, true, async)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD args %v", opts.BuildArgs)
 	}
-	fmt.Printf("%s handleBuild new-style build args %v\n", i.target, args[1:])
-	expandedFlagArgs, err := i.expandArgsSlice(ctx, args[1:], true, async)
-	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD flags %v", args[1:])
-	}
-	fmt.Printf("%s handleBuild new-style expanded build args %v\n", i.target, expandedFlagArgs) // TODO this is the issue, these are all regular strings, and we loose the ARG types for cases like BUILD +TARGET --foo=$foo
-
-	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
+	parsedFlagArgs, err := variables.ParseFlagArgs(args[1:])
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
 	}
-	expandedBuildArgs = append(parsedFlagArgs, expandedBuildArgs...)
+	flagArgs, err := i.parseAndExpand(ctx, parsedFlagArgs, true, async)
+	if err != nil {
+		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD flags %v", args[1:])
+	}
+	buildArgs = append(buildArgs, flagArgs...)
+
 	if len(platformsSlice) == 0 {
 		platformsSlice = []platutil.Platform{platutil.DefaultPlatform}
 	}
 
-	// TODO all the expandArgsSlice functions need to get parsed into the Variable type.
-	//expandedBuildArgsAsVariables := []variables.Variable{}
-	//for _, x := range expandedBuildArgs {
-	//	expandedBuildArgsAsVariables = append(expandedBuildArgsAsVariables, variables.NewStringVariableWithLocation(x, i.target))
-	//}
-
-	crossProductBuildArgs, err := flagutil.BuildArgMatrix2(buildArgsToKeyValues(expandedBuildArgs, i.target))
+	crossProductBuildArgs, err := flagutil.BuildArgMatrix2(buildArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "build arg matrix")
 	}
@@ -2104,6 +2097,64 @@ To start using the FUNCTION keyword now (experimental) please use VERSION --use-
 }
 
 // ----------------------------------------------------------------------------
+
+func extractSingleArgName(s string) string {
+	if len(s) < 2 {
+		return ""
+	}
+	if s[0] != '$' {
+		return ""
+	}
+	if ast.IsValidEnvVarName(s[1:]) {
+		return s[1:]
+	}
+	return ""
+}
+
+// words: --build-arg k or --build-arg k=v
+func (i *Interpreter) parseAndExpand(ctx context.Context, words []string, keepPlusEscape, async bool) ([]variable.KeyValue, error) {
+	ret := []variable.KeyValue{}
+
+	for _, w := range words {
+		key, value, hasValue := variables.ParseKeyValue(w)
+		expandedKey, err := i.expandArgs(ctx, key, keepPlusEscape, async)
+		if err != nil {
+			return nil, err
+		}
+		kv := variable.KeyValue{
+			Key: expandedKey,
+		}
+		if hasValue {
+			var found bool
+			if varName := extractSingleArgName(value); varName != "" {
+				var variableValue variable.Value
+				variableValue, found = i.converter.varCollection.GetValue(varName, variables.WithActive())
+				if found {
+					kv.Value = &variableValue
+				}
+				// else, fall back to regular expandArgs
+			}
+			if !found {
+				expandedValue, err := i.expandArgs(ctx, value, keepPlusEscape, async)
+				if err != nil {
+					return nil, err
+				}
+				kv.Value = &variable.Value{
+					Str:      expandedValue,
+					ComeFrom: i.target,
+				}
+			}
+		} else {
+			// no value for arg was given (e.g. --build-arg key)
+			variableValue, found := i.converter.varCollection.GetValue(expandedKey, variables.WithActive())
+			if found {
+				kv.Value = &variableValue
+			}
+		}
+		ret = append(ret, kv)
+	}
+	return ret, nil
+}
 
 func (i *Interpreter) expandArgsSlice(ctx context.Context, words []string, keepPlusEscape, async bool) ([]string, error) {
 	ret := make([]string, 0, len(words))

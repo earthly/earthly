@@ -77,67 +77,65 @@ func parseArg2(arg variable.KeyValue, pncvf ProcessNonConstantVariableFunc, curr
 		return arg, nil
 		//return name, v, nil
 	}
-	v, ok := current.Get(name, WithActive())
+	v, ok := current.GetValue(name, WithActive())
 	if !ok {
 		return variable.KeyValue{}, errors.Errorf("value not specified for build arg %s and no value can be inferred", name)
 	}
-	arg.Value = &variable.Value{
-		Str: v,
-	}
+	arg.Value = &v
 	return arg, nil
 }
 
 // ParseArgs parses args passed as --build-arg to an Earthly command, such as BUILD or FROM.
-func ParseArgs(args []string, pncvf ProcessNonConstantVariableFunc, current *Collection) (*Scope, error) {
-	ret := NewScope()
-	for _, arg := range args {
-		name, variable, err := parseArg(arg, pncvf, current)
-		if err != nil {
-			return nil, errors.Wrapf(err, "parse build arg %s", arg)
-		}
-		ret.Add(name, NewStringVariable(variable))
-	}
-	return ret, nil
-}
+//func ParseArgs(args []string, pncvf ProcessNonConstantVariableFunc, current *Collection) (*Scope, error) {
+//	ret := NewScope()
+//	for _, arg := range args {
+//		name, variable, err := parseArg(arg, pncvf, current)
+//		if err != nil {
+//			return nil, errors.Wrapf(err, "parse build arg %s", arg)
+//		}
+//		ret.Add(name, NewStringVariable(variable))
+//	}
+//	return ret, nil
+//}
 
-func parseArg(arg string, pncvf ProcessNonConstantVariableFunc, current *Collection) (string, string, error) {
-	var name string
-	splitArg := strings.SplitN(arg, "=", 2)
-	if len(splitArg) < 1 {
-		return "", "", errors.Errorf("invalid build arg %s", splitArg)
-	}
-	name = splitArg[0]
-	value := ""
-	hasValue := false
-	if len(splitArg) == 2 {
-		value = splitArg[1]
-		hasValue = true
-	}
-	if hasValue {
-		if reserved.IsBuiltIn(name) {
-			return "", "", errors.Errorf("value cannot be specified for built-in build arg %s", name)
-		}
-		v, err := parseArgValue(name, value, pncvf)
-		if err != nil {
-			return "", "", err
-		}
-		return name, v, nil
-	}
-	v, ok := current.Get(name, WithActive())
-	if !ok {
-		return "", "", errors.Errorf("value not specified for build arg %s and no value can be inferred", name)
-	}
-	return name, v, nil
-}
+//func parseArg(arg string, pncvf ProcessNonConstantVariableFunc, current *Collection) (string, string, error) {
+//	var name string
+//	splitArg := strings.SplitN(arg, "=", 2)
+//	if len(splitArg) < 1 {
+//		return "", "", errors.Errorf("invalid build arg %s", splitArg)
+//	}
+//	name = splitArg[0]
+//	value := ""
+//	hasValue := false
+//	if len(splitArg) == 2 {
+//		value = splitArg[1]
+//		hasValue = true
+//	}
+//	if hasValue {
+//		if reserved.IsBuiltIn(name) {
+//			return "", "", errors.Errorf("value cannot be specified for built-in build arg %s", name)
+//		}
+//		v, err := parseArgValue(name, value, pncvf)
+//		if err != nil {
+//			return "", "", err
+//		}
+//		return name, v, nil
+//	}
+//	v, ok := current.GetValue(name, WithActive())
+//	if !ok {
+//		return "", "", errors.Errorf("value not specified for build arg %s and no value can be inferred", name)
+//	}
+//	return name, v.String(), nil
+//}
 
-func parseArgValue2(name string, value variable.Value, pncvf ProcessNonConstantVariableFunc) (variable.Value, error) {
+func parseArgValue2(name string, value variable.Value, pncvf ProcessNonConstantVariableFunc, currentTarget domain.Reference) (variable.Value, error) {
 	if pncvf == nil {
 		return value, nil
 	}
 	if strings.HasPrefix(value.Str, "$(") {
 		// Variable build arg - resolve value.
 		var err error
-		value.Str, _, err = pncvf(name, value.String())
+		value.Str, _, err = pncvf(name, value.String(currentTarget))
 		if err != nil {
 			return variable.Value{}, err
 		}

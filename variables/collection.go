@@ -195,10 +195,16 @@ func (c *Collection) SetLocally(locally bool) {
 	c.effectiveCache = nil
 }
 
-// Get returns a variable by name.
-func (c *Collection) Get(name string, opts ...ScopeOpt) (string, bool) {
+// Get returns a variable by name. // TODO rename to GetValueAsString
+//func (c *Collection) Get(name string, opts ...ScopeOpt) (string, bool) {
+//	v, ok := c.effective().Get(name, opts...)
+//	return v.String(), ok
+//}
+
+// Get returns a variable by name. // TODO rename back to Get
+func (c *Collection) GetValue(name string, opts ...ScopeOpt) (variable.Value, bool) {
 	v, ok := c.effective().Get(name, opts...)
-	return v.String(), ok
+	return v, ok
 }
 
 // SortedVariables returns the current variable names in a sorted slice.
@@ -215,7 +221,7 @@ func (c *Collection) SortedOverridingVariables() []string {
 // it will eventually be removed when the ShellOutAnywhere feature is fully-adopted
 func (c *Collection) ExpandOld(word string) string {
 	shlex := dfShell.NewLex('\\')
-	varMap := c.effective().MapWithStringValues(WithActive())
+	varMap := c.effective().MapWithStringValues(c.AbsRef(), WithActive())
 	ret, err := shlex.ProcessWordWithMap(word, varMap)
 	if err != nil {
 		// No effect if there is an error.
@@ -228,7 +234,7 @@ func (c *Collection) ExpandOld(word string) string {
 func (c *Collection) Expand(word string, shellOut shell.EvalShellOutFn) (string, error) {
 	shlex := shell.NewLex('\\')
 	shlex.ShellOut = shellOut
-	varMap := c.effective().MapWithStringValues(WithActive())
+	varMap := c.effective().MapWithStringValues(c.AbsRef(), WithActive())
 	return shlex.ProcessWordWithMap(word, varMap, ShellOutEnvs)
 }
 
@@ -241,7 +247,7 @@ func (c *Collection) overridingOrDefault(name string, defaultValue variable.Valu
 		v.Type = defaultValue.Type
 		return v, nil
 	}
-	return parseArgValue2(name, defaultValue, pncvf)
+	return parseArgValue2(name, defaultValue, pncvf, c.AbsRef())
 }
 
 func (c *Collection) declareOldArg(name string, defaultValue variable.Value, global bool, pncvf ProcessNonConstantVariableFunc) (variable.Value, variable.Value, error) {
@@ -252,7 +258,7 @@ func (c *Collection) declareOldArg(name string, defaultValue variable.Value, glo
 	if found {
 		finalValue = existing
 	} else {
-		v, err := parseArgValue2(name, defaultValue, pncvf)
+		v, err := parseArgValue2(name, defaultValue, pncvf, c.AbsRef())
 		if err != nil {
 			return variable.Value{}, variable.Value{}, err
 		}
@@ -408,7 +414,7 @@ func (c *Collection) UpdateVar(name string, value variable.Value, pncvf ProcessN
 	if _, ok := c.vars().Get(name, WithActive()); !ok {
 		return hint.Wrapf(ErrSetArg, "'%[1]v' is an ARG and cannot be used with SET - try declaring 'LET %[1]v = $%[1]v' first", name)
 	}
-	v, err := parseArgValue2(name, value, pncvf)
+	v, err := parseArgValue2(name, value, pncvf, c.AbsRef())
 	if err != nil {
 		return errors.Wrap(err, "failed to parse SET value")
 	}

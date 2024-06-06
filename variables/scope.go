@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/util/types/variable"
 	"github.com/earthly/earthly/variables/reserved"
 )
@@ -104,10 +105,10 @@ func (s *Scope) Map(opts ...ScopeOpt) map[string]variable.Value {
 	return m
 }
 
-func (s *Scope) MapWithStringValues(opts ...ScopeOpt) map[string]string {
+func (s *Scope) MapWithStringValues(currentTarget domain.Reference, opts ...ScopeOpt) map[string]string {
 	m := map[string]string{}
 	for k, v := range s.Map(opts...) {
-		m[k] = v.String()
+		m[k] = v.String(currentTarget)
 	}
 	return m
 }
