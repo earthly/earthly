@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
+	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/earthly/domain"
+	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/llbutil/pllb"
 	"github.com/earthly/earthly/util/platutil"
@@ -126,7 +129,10 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 	}
 
 	defer func() {
-		cmd.SetEndError(retErr)
+		if retErr != nil {
+			message := solvermon.FormatError("WITH DOCKER RUN", retErr.Error())
+			cmd.SetEnd(time.Now(), logstream.RunStatus_RUN_STATUS_FAILURE, message)
+		}
 	}()
 
 	err = w.installDeps(ctx, opt)
