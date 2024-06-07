@@ -40,26 +40,27 @@ type vertexMonitor struct {
 var reErrExitCode = regexp.MustCompile(`(?:process ".*" did not complete successfully|error calling LocalhostExec): exit code: (?P<exit_code>[0-9]+)$`)
 
 var errNoExitCodeOMM = errors.New("no exit code, process was killed due to OOM")
+var errNoExitCode = errors.New("no exit code in error message")
 
 // getExitCode returns the exit code (int), whether one was found (bool), and an error if the exit code was invalid
-func getExitCode(errString string) (int, bool, error) {
+func getExitCode(errString string) (int, error) {
 	if matches, _ := stringutil.NamedGroupMatches(errString, reErrExitCode); len(matches["exit_code"]) == 1 {
 		exitCodeMatch := matches["exit_code"][0]
 		exitCode, err := strconv.ParseUint(exitCodeMatch, 10, 32)
 		if err != nil {
-			return 0, false, err
+			return 0, err
 		}
 		// See https://github.com/earthly/buildkit/commit/9b0bdb600641f3dd1d96f54ac2d86581ab6433b2
 		if exitCode == math.MaxUint32 {
-			return 0, true, errNoExitCodeOMM
+			return 0, errNoExitCodeOMM
 		}
 		if exitCode > 255 {
-			return 0, false, fmt.Errorf("exit code %d out of expected range (0-255)", exitCode)
+			return 0, fmt.Errorf("exit code %d out of expected range (0-255)", exitCode)
 		}
 		exitCodeByte := exitCode & 0xFF
-		return int(exitCodeByte), true, nil
+		return int(exitCodeByte), nil
 	}
-	return 0, false, nil
+	return 0, errNoExitCode
 }
 
 var reErrNotFound = regexp.MustCompile(`^failed to calculate checksum of ref ([^ ]*): (.*)$`)
@@ -73,7 +74,8 @@ func determineFatalErrorType(errString string, exitCode int, exitParseErr error)
 	}
 	if exitParseErr == errNoExitCodeOMM {
 		return logstream.FailureType_FAILURE_TYPE_OOM_KILLED, true
-	} else if exitParseErr != nil {
+	} else if exitParseErr != nil && exitParseErr != errNoExitCode {
+		// We have an exit code, and can't parse it
 		return logstream.FailureType_FAILURE_TYPE_UNKNOWN, true
 	}
 	if exitCode > 0 {
@@ -137,7 +139,7 @@ func formatErrorMessage(errString, operation string, internal bool, fatalErrorTy
 }
 
 func FormatError(operation string, errString string) string {
-	exitCode, _, err := getExitCode(errString)
+	exitCode, err := getExitCode(errString)
 	fatalErrorType, _ := determineFatalErrorType(errString, exitCode, err)
 	return formatErrorMessage(errString, operation, false, fatalErrorType, exitCode)
 }
@@ -147,7 +149,7 @@ func (vm *vertexMonitor) parseError() {
 
 	indentOp := strings.Join(strings.Split(vm.operation, "\n"), "\n          ")
 
-	exitCode, _, err := getExitCode(errString)
+	exitCode, err := getExitCode(errString)
 	fatalErrorType, isFatalError := determineFatalErrorType(errString, exitCode, err)
 	formattedError := formatErrorMessage(errString, indentOp, vm.meta.Internal, fatalErrorType, exitCode)
 

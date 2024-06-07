@@ -18,7 +18,7 @@ func TestGetExitCode(t *testing.T) {
 			name:          "no match",
 			errString:     "random error message",
 			expectedCode:  0,
-			expectedError: nil,
+			expectedError: errNoExitCode,
 		},
 		{
 			name:          "match with exit code",
@@ -42,7 +42,7 @@ func TestGetExitCode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			code, _, err := getExitCode(tt.errString)
+			code, err := getExitCode(tt.errString)
 			if code != tt.expectedCode {
 				t.Errorf("getExitCode(%q) = %d, want %d", tt.errString, code, tt.expectedCode)
 			}
