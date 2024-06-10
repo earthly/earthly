@@ -160,6 +160,7 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 	}()
 
 	err := app.BaseCLI.App().RunContext(ctx, args)
+	fmt.Printf("err is %s\n", err)
 	if err != nil {
 		ie, isInterpreterError := earthfile2llb.GetInterpreterError(err)
 		if app.BaseCLI.Flags().Debug {

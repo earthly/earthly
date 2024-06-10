@@ -331,7 +331,7 @@ func (c *Collection) DeclareVar(name string, opts ...DeclareOpt) (variable.Value
 		if !prefs.arg {
 			return variable.Value{}, variable.Value{}, errors.New("LET requires the --arg-scope-and-set feature")
 		}
-		fmt.Printf("adding old %s -> %+v\n", name, prefs.val)
+		//fmt.Printf("adding old %s -> %+v\n", name, prefs.val)
 		return c.declareOldArg(name, prefs.val, prefs.global, prefs.pncvf)
 	}
 	if !c.shelloutAnywhere {
@@ -342,7 +342,7 @@ func (c *Collection) DeclareVar(name string, opts ...DeclareOpt) (variable.Value
 	scope := []ScopeOpt{WithActive(), NoOverride()}
 
 	if !prefs.arg {
-		fmt.Printf("adding %s -> %+v\n", name, prefs.val)
+		//fmt.Printf("adding %s -> %+v\n", name, prefs.val)
 		ok := c.vars().Add(name, prefs.val, scope...)
 		if !ok {
 			return variable.Value{}, variable.Value{}, hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', use 'SET %[1]v = %[2]q'", name, prefs.val)
@@ -354,7 +354,7 @@ func (c *Collection) DeclareVar(name string, opts ...DeclareOpt) (variable.Value
 		return variable.Value{}, variable.Value{}, hint.Wrapf(ErrRedeclared, "'%v' was already declared with LET and cannot be redeclared as an ARG", name)
 	}
 
-	fmt.Printf("overridingOrDefault %s -> %+v\n", name, prefs.val)
+	//fmt.Printf("overridingOrDefault %s -> %+v\n", name, prefs.val)
 	v, err := c.overridingOrDefault(name, prefs.val, prefs.pncvf)
 	if err != nil {
 		return variable.Value{}, variable.Value{}, err
@@ -372,7 +372,7 @@ func (c *Collection) DeclareVar(name string, opts ...DeclareOpt) (variable.Value
 		}
 		return v, v, nil
 	}
-	fmt.Printf("adding new %s -> %+v\n", name, v)
+	//fmt.Printf("adding new %s -> %+v\n", name, v)
 	ok := c.args().Add(name, v, scope...)
 	if !ok {
 		return variable.Value{}, variable.Value{}, hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', redeclare it as a non-argument variable with 'LET %[1]v = %[2]q'", name, prefs.val)
@@ -469,7 +469,11 @@ func (c *Collection) StackString() string {
 		row = append(row, c.stack[i].frameName)
 		for _, k := range activeNames {
 			v, _ := c.stack[i].overriding.Get(k)
-			row = append(row, fmt.Sprintf("--%s=%s", k, v))
+			fmt.Printf("key: %s\n", k)
+			fmt.Printf("======= %+v\n", v)
+			fmt.Printf("======= %s\n", v)
+			fmt.Printf("======= %s\n", v.String(c.AbsRef()))
+			row = append(row, fmt.Sprintf("--%s=%s", k, v.String(c.AbsRef())))
 		}
 		builder = append(builder, strings.Join(row, " "))
 	}

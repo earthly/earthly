@@ -39,7 +39,6 @@ type Value struct {
 }
 
 func (v *Value) String(currentTarget domain.Reference) string {
-	//fmt.Printf("type is %d\n", v.Type)
 	switch v.Type {
 	case TypeUnknown, TypeString:
 		return v.Str
