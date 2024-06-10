@@ -2,7 +2,6 @@ package logbus
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -134,7 +133,6 @@ func (c *Command) SetCached(cached bool) {
 
 // SetEnd sets the end time of the command.
 func (c *Command) SetEnd(end time.Time, status logstream.RunStatus, errorStr string) {
-	fmt.Printf("1set ErrorMessage to %s\n", errorStr)
 	c.commandDelta(&logstream.DeltaCommandManifest{
 		Status:           status,
 		ErrorMessage:     errorStr,
@@ -149,7 +147,6 @@ func (c *Command) SetEndError(err error) {
 	now := time.Now()
 
 	if err != nil {
-		fmt.Printf("HERE with err=%s\n", err)
 		st := logstream.RunStatus_RUN_STATUS_FAILURE
 		if errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled {
 			st = logstream.RunStatus_RUN_STATUS_CANCELED

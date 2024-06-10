@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -155,7 +154,6 @@ func (run *Run) SetFatalError(end time.Time, targetID string, commandID string, 
 			tailOutput = cp.TailOutput()
 		}
 	}
-	fmt.Printf("2set ErrorMessage to %s called from %s\n", errorMsg, debug.Stack())
 	run.buildDelta(&logstream.DeltaManifest_FieldsDelta{
 		Status:           logstream.RunStatus_RUN_STATUS_FAILURE,
 		EndedAtUnixNanos: run.b.TsUnixNanos(end),

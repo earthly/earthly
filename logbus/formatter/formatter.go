@@ -464,7 +464,6 @@ func (f *Formatter) printBuildFailure() {
 			c.Printf("[no output]\n")
 		}
 	}
-	fmt.Printf("formatter got %s\n", failure.GetErrorMessage())
 	c.Printf("%s%s\n", msgPrefix, failure.GetErrorMessage())
 	f.lastOutputWasOngoingUpdate = false
 	f.lastOutputWasProgress = false
