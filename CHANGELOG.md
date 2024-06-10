@@ -4,9 +4,20 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
-### Removed
+## v0.8.14 - 2024-06-10
 
+### Fixed
+- Autocompletion failed to expand ARG names when referencing a target containing a `~`.
+- Improved `--ticktock` performance of cache key computation and GC; the improvement is most noticeable with many small RUN commands.
+
+### Changed
+- Renamed experimental `github` command to `gha`, and introduced new `ls` and `remove` subcommands.
+
+### Removed
 - Removed `PIPELINE` & `TRIGGER` keywords and associated code relating to formerly deprecated Earthly CI.
+
+### Additional Info
+- This release includes changes to buildkit
 
 ## v0.8.13 - 2024-05-28
 
