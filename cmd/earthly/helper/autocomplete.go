@@ -23,31 +23,38 @@ import (
 
 // to enable autocomplete, enter
 // complete -o nospace -C "/path/to/earthly" earthly
+//
+// alternatively, you can run earthly with COMP_LINE and COMP_POINT set; for example:
+// COMP_LINE="earthly ./buildkitd+buildkitd --" COMP_POINT="32" ./build/linux/amd64/earthly
+// COMP_LINE="earthly ~/test/simple+test -" COMP_POINT="28" ./build/linux/amd64/earthly
 func AutoComplete(ctx context.Context, cli *base.CLI) {
 	_, found := os.LookupEnv("COMP_LINE")
 	if !found {
 		return
 	}
 
-	cli.SetConsole(cli.Console().WithLogLevel(conslogging.Silent))
-
-	err := autoCompleteImp(ctx, cli)
-	if err != nil {
-		errToLog := err
+	_, debugEnabled := os.LookupEnv("EARTHLY_AUTOCOMPLETE_DEBUG")
+	if debugEnabled {
 		logDir, err := cliutil.GetOrCreateEarthlyDir(cli.Flags().InstallationName)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "GetOrCreateEarthlyDir failed: %v\n", err)
 			os.Exit(1)
 		}
 		logFile := filepath.Join(logDir, "autocomplete.log")
 		err = os.MkdirAll(logDir, 0755)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "MkdirAll %s failed: %v\n", logDir, err)
 			os.Exit(1)
 		}
-		f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
-		if err != nil {
-			os.Exit(1)
-		}
-		fmt.Fprintf(f, "error during autocomplete: %s\n", errToLog)
+		autocomplete.SetupLog(logFile)
+		autocomplete.Logf("COMP_LINE=%q COMP_POINT=%q", os.Getenv("COMP_LINE"), os.Getenv("COMP_POINT"))
+	}
+
+	cli.SetConsole(cli.Console().WithLogLevel(conslogging.Silent))
+
+	err := autoCompleteImp(ctx, cli)
+	if err != nil {
+		autocomplete.Logf("error during autocomplete: %s", err)
 		os.Exit(1)
 	}
 	os.Exit(0)

@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -181,10 +182,13 @@ func parseCommon(fullName string) (gitURL string, tag string, localPath string, 
 	if partsPlus[0] == "" {
 		// Local target.
 		return "", "", ".", "", partsPlus[1], nil
-	} else if strings.HasPrefix(partsPlus[0], ".") || filepath.IsAbs(partsPlus[0]) {
+	} else if strings.HasPrefix(partsPlus[0], ".") || strings.HasPrefix(partsPlus[0], "~/") || filepath.IsAbs(partsPlus[0]) {
 		// Local external target.
 		localPath := partsPlus[0]
-		if filepath.IsAbs(localPath) {
+		if strings.HasPrefix(localPath, "~/") {
+			homeDir := os.Getenv("HOME")
+			localPath = homeDir + "/" + localPath[2:]
+		} else if filepath.IsAbs(localPath) {
 			localPath = path.Clean(localPath)
 		} else {
 			localPath = path.Clean(localPath)
