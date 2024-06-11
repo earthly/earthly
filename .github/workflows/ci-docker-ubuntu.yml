@@ -41,7 +41,7 @@ jobs:
 #    secrets: inherit
 
   earthly-linux-amd64:
-    runs-on: [earthly-satellite#gha-sh-1]
+    runs-on: [earthly-satellite#gha-sh-test-nacho]
     env:
       FORCE_COLOR: 1
       EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
