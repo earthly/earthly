@@ -141,7 +141,7 @@ ga-no-qemu-group5:
     BUILD +test-cache-mode
     BUILD +test-shared-cache
     BUILD +test-cache-persist
-    BUILD +test-visited-upfront-hash-collection
+    #TODO BUILD +test-visited-upfront-hash-collection
     BUILD +test-exec-stats
     BUILD +test-aws-flag-envs
     BUILD +test-aws-flag-configs

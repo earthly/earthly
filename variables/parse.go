@@ -60,16 +60,17 @@ func ParseArgs2(args []variable.KeyValue, pncvf ProcessNonConstantVariableFunc, 
 }
 
 func parseArg2(arg variable.KeyValue, pncvf ProcessNonConstantVariableFunc, current *Collection, currentTarget domain.Reference) (variable.KeyValue, error) {
+	//fmt.Printf("in parseArg2 with %+v\n", arg)
 	var name string
 	name = arg.Key
 	if arg.Value != nil {
 		if reserved.IsBuiltIn(name) {
 			return variable.KeyValue{}, errors.Errorf("value cannot be specified for built-in build arg %s", name)
 		}
-		if !strings.Contains(arg.Value.Str, "$") {
-			// keep existing value
-			return arg, nil
-		}
+		//if !strings.Contains(arg.Value.Str, "$") {
+		//	// keep existing value
+		//	return arg, nil
+		//}
 		//val := arg.Value.String(currentTarget)
 		//expandedValue, err := parseArgValue(name, val, pncvf)
 		//if err != nil {
@@ -77,11 +78,11 @@ func parseArg2(arg variable.KeyValue, pncvf ProcessNonConstantVariableFunc, curr
 		//}
 		//return name, v, nil
 	}
-	v, ok := current.GetValue(name, WithActive())
-	if !ok {
-		return variable.KeyValue{}, errors.Errorf("value not specified for build arg %s and no value can be inferred", name)
-	}
-	arg.Value = &v
+	//v, ok := current.GetValue(name, WithActive())
+	//if !ok {
+	//	return variable.KeyValue{}, errors.Errorf("value not specified for build arg %s and no value can be inferred", name)
+	//}
+	//arg.Value = &v
 	return arg, nil
 }
 
