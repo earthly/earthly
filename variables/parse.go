@@ -47,10 +47,10 @@ func ParseCommandLineArgs(args []string) (*Scope, error) {
 }
 
 // ParseArgs2 parses args passed as --build-arg to an Earthly command, such as BUILD or FROM.
-func ParseArgs2(args []variable.KeyValue, pncvf ProcessNonConstantVariableFunc, current *Collection) (*Scope, error) {
+func ParseArgs2(args []variable.KeyValue, pncvf ProcessNonConstantVariableFunc, current *Collection, currentTarget domain.Reference) (*Scope, error) {
 	ret := NewScope()
 	for _, arg := range args {
-		arg, err := parseArg2(arg, pncvf, current)
+		arg, err := parseArg2(arg, pncvf, current, currentTarget)
 		if err != nil {
 			return nil, errors.Wrapf(err, "parse build arg %s", arg)
 		}
@@ -59,22 +59,22 @@ func ParseArgs2(args []variable.KeyValue, pncvf ProcessNonConstantVariableFunc, 
 	return ret, nil
 }
 
-func parseArg2(arg variable.KeyValue, pncvf ProcessNonConstantVariableFunc, current *Collection) (variable.KeyValue, error) {
+func parseArg2(arg variable.KeyValue, pncvf ProcessNonConstantVariableFunc, current *Collection, currentTarget domain.Reference) (variable.KeyValue, error) {
 	var name string
 	name = arg.Key
 	if arg.Value != nil {
 		if reserved.IsBuiltIn(name) {
 			return variable.KeyValue{}, errors.Errorf("value cannot be specified for built-in build arg %s", name)
 		}
-		if strings.Contains(arg.Value.Str, "$") {
-			panic("$ not supported")
-			// TODO perform a shell-out and replace the variable value with the contents of the string
+		if !strings.Contains(arg.Value.Str, "$") {
+			// keep existing value
+			return arg, nil
 		}
-		//v, err := parseArgValue(name, arg.Value.Str, pncvf)
+		//val := arg.Value.String(currentTarget)
+		//expandedValue, err := parseArgValue(name, val, pncvf)
 		//if err != nil {
-		//	return "", "", err
+		//	return variable.KeyValue{}, err
 		//}
-		return arg, nil
 		//return name, v, nil
 	}
 	v, ok := current.GetValue(name, WithActive())

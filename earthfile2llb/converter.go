@@ -418,7 +418,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	if !c.opt.Features.ShellOutAnywhere {
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
-	overriding, err := variables.ParseArgs2(buildArgs, pncvf, c.varCollection)
+	overriding, err := variables.ParseArgs2(buildArgs, pncvf, c.varCollection, c.target)
 	if err != nil {
 		return err
 	}
@@ -1795,7 +1795,7 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged, passArgs bool, scopeName string, buildArgs []variable.KeyValue) error {
 	topArgs := buildArgs
 	if c.ftrs.ArgScopeSet {
-		tmpScope, err := variables.ParseArgs2(buildArgs, nil, nil)
+		tmpScope, err := variables.ParseArgs2(buildArgs, nil, nil, c.target)
 		if err != nil {
 			return err
 		}
@@ -1811,7 +1811,7 @@ func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, ba
 	if !c.opt.Features.ShellOutAnywhere {
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
-	overriding, err := variables.ParseArgs2(buildArgs, pncvf, c.varCollection)
+	overriding, err := variables.ParseArgs2(buildArgs, pncvf, c.varCollection, c.target)
 	if err != nil {
 		return err
 	}
@@ -2006,16 +2006,14 @@ func (c *Converter) checkAutoSkip(ctx context.Context, fullTargetName string, al
 
 func (c *Converter) prepOverridingVars(ctx context.Context, relTarget domain.Target, passArgs bool, buildArgs []variable.KeyValue) (*variables.Scope, bool, error) {
 	var buildArgFunc variables.ProcessNonConstantVariableFunc
-	if !c.opt.Features.ShellOutAnywhere {
+	if !c.opt.Features.ShellOutAnywhere { // TODO need a pncvf when arg types are used; also TODO maybe this is needed in all other cases where ProcessNonConstantVariableFunc is potentially nil
 		buildArgFunc = c.processNonConstantBuildArgFunc(ctx)
 	}
-	fmt.Printf("%s prepOverridingVars has buildArgs %s\n", c.target, variable.KeyValueSlice(buildArgs).DebugString())
 
-	overriding, err := variables.ParseArgs2(buildArgs, buildArgFunc, c.varCollection)
+	overriding, err := variables.ParseArgs2(buildArgs, buildArgFunc, c.varCollection, c.target)
 	if err != nil {
 		return nil, false, errors.Wrap(err, "parse build args")
 	}
-	//fmt.Printf("prepOverridingVars set overriding to %s\n", variable.KeyValueSlice(overriding).DebugString())
 
 	// Don't allow transitive overriding variables to cross project boundaries (unless --pass-args is used).
 	propagateBuildArgs := !relTarget.IsExternal()
