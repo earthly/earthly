@@ -17,7 +17,7 @@ These runners come with the Earthly CLI preinstalled and configured to use the s
 
 Satellite-based GitHub Actions runners can be enabled for a particular repository or for all repositories of a GitHub organization at once.
 
-The integration process requires you to be an organization/repository admin, and to provide us with a GitHub token, so we can:
+The integration process requires you to be a GitHub organization or repository admin, and to provide us with a GitHub token, so we can:
 - register a webhook in your GitHub repository/organization to receive events associated to GitHub Actions jobs
 - create GitHub self-hosted runners on demand, to process your repository/organization jobs
 
