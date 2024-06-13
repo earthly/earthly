@@ -32,6 +32,7 @@ BYOC satellites are [available with an Enterprise plan](https://earthly.dev/pric
 | Automatic management and GCing of cache volumes                                    | ❌ No                | ✅ Yes        |
 | Users can launch and remove satellites via the `earthly sat` CLI                   | ❌ No                | ✅ Yes        |
 | Requires access to a set of limited AWS capabilities                               | ✅ No                | ❌ Yes        |
+
 ## Installation
 
 ### Step 1: Configure Your Cloud Provider

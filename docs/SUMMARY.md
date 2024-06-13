@@ -87,3 +87,4 @@
     * [Self-Hosted Satellites](cloud/satellites/self-hosted.md)
     * [GitHub runners](cloud/satellites/gha-runners.md)
     * [Best Practices](cloud/satellites/best-practices.md)
+    * [Bring Your Own Cloud (BYOC)](cloud/satellites/byoc/byoc.md)
