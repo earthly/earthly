@@ -25,7 +25,7 @@ Follow the next steps to create such integrations:
 
 ### 1. Create a GitHub token
 
-- Go to https://github.com/settings/tokens/new to create a new GitHub classic token.
+- Go to [GitHub's new token page](https://github.com/settings/tokens/new) to create a new GitHub classic token.
 
 - Give a name to your token that clearly shows its purpose, for example:
 
