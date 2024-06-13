@@ -4,24 +4,34 @@
 
 BYOC satellites are [available with an Enterprise plan](https://earthly.dev/pricing).
 
-### Earthly BYOC Satellites vs Earthly Cloud Satellites
+### BYOC vs Cloud
 
-| Similarities                                                                               | Differences                                                           |
-|--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
-| ✅ The ability to use `earthly satellite` commands to provision and decommission satellites | ❌ It is up to you to get traffic to and from the satellite            |
-| ✅ Earthly-provided monitoring and reliability                                              | ❌ Earthly cannot access the machines for debugging or troubleshooting |
-| ✅ Automatic updates                                                                        |                                                                       |
-| ✅ Automatic sleep/wake                                                                     |                                                                       |
+|                                                                                    | Earthly Cloud                     | Earthly BYOC                               |
+|------------------------------------------------------------------------------------|-----------------------------------|--------------------------------------------|
+| Who is responsible for monitoring and reliability of the Satellite                 | ✅ Earthly                         | ✅ Earthly                                  |
+| Satellites are deployed within your internal network                               | ❌ No                              | ✅ Yes                                      |
+| Earthly Cloud and Earthly staff are prevented from accessing your internal network | ✅ N/A                             | ✅ Yes                                      |
+| How is compute billed                                                              | ✅ Zero-margin compute via Earthly | ✅ Supported by you via your cloud provider |
+| Automatic updates                                                                  | ✅ Yes                             | ✅ Yes                                      |
+| Auto-sleep to drastically reduce compute cost                                      | ✅ Yes                             | ✅ Yes                                      |
+| Automatic management and GCing of cache volumes                                    | ✅ Yes                             | ✅ Yes                                      |
+| Users can launch and remove satellites via the `earthly sat` CLI                   | ✅ Yes                             | ✅ Yes                                      |
+| Requires access to a set of limited AWS capabilities                               | ✅ No                              | ❌ Yes                                      |
 
-### Earthly BYOC Satellites vs Earthly Self-Hosted Satellites
 
-| Similarities                                                     | Differences                                                                            |
-|------------------------------------------------------------------|----------------------------------------------------------------------------------------|
-| ✅ The satellite lives in your infrastructure, next to your tools | ❌ You cannot manually provision satellites                                             |
-| ✅ You pay for the usage the satellite incurs                     | ❌ You must allow Earthly access to at least some portion of an AWS account you control |
-|                                                                  | ❌ You pay the cloud provider, not Earthly, for the compute usage                       |
-|                                                                  | ❌ You are responsible for the Satellites monitoring and reliability                    |
+### BYOC vs Self-Hosted
 
+|                                                                                    | Earthly Self-Hosted | Earthly BYOC |
+|------------------------------------------------------------------------------------|---------------------|--------------|
+| Who is responsible for monitoring and reliability of the Satellite                 | ❌ You               | ✅ Earthly    |
+| Satellites are deployed within your internal network                               | ✅ Yes               | ✅ Yes        |
+| Earthly Cloud and Earthly staff are prevented from accessing your internal network | ✅ Yes               | ✅ Yes        |
+| Compute is billed directly to you from your cloud provider                         | ✅ Yes               | ✅ Yes        |
+| Automatic updates                                                                  | ❌ No                | ✅ Yes        |
+| Auto-sleep to drastically reduce compute cost                                      | ❌ No                | ✅ Yes        |
+| Automatic management and GCing of cache volumes                                    | ❌ No                | ✅ Yes        |
+| Users can launch and remove satellites via the `earthly sat` CLI                   | ❌ No                | ✅ Yes        |
+| Requires access to a set of limited AWS capabilities                               | ✅ No                | ❌ Yes        |
 ## Installation
 
 ### Step 1: Configure Your Cloud Provider
