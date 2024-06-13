@@ -78,6 +78,7 @@ type Features struct {
 	AllowWithoutEarthlyLabels     bool `long:"allow-without-earthly-labels" description:"Allow the usage of --without-earthly-labels in SAVE IMAGE"`
 	DockerCache                   bool `long:"docker-cache" description:"enable the WITH DOCKER --cache-id option"`
 	RunWithAWSOIDC                bool `long:"run-with-aws-oidc" description:"make AWS credentials via OIDC provider available to RUN commands"`
+	ArgTypes                      bool `long:"arg-types" description:"enable ARG --type support"`
 
 	// version numbers
 	Major int

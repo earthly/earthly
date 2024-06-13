@@ -1283,16 +1283,32 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD args %v", opts.BuildArgs)
 	}
-	parsedFlagArgs, err := variables.ParseFlagArgs(args[1:])
+
+	// when set, use these to recover from flag parsing errors related to processing VERSION 0.6 compatability
+	var legacyFlagArgFallback []variable.KeyValue
+
+	flagArgsToParse := args[1:]
+	parsedFlagArgs, err := variables.ParseFlagArgs(flagArgsToParse)
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
+		if i.converter.ftrs.ArgTypes {
+			return i.wrapError(err, cmd.SourceLocation, "parse flag args")
+		}
+		i.console.Warnf("failed to parse flag args %s: %v; this will become a non-recoverable error in the future. ARG --type will be lost", flagArgsToParse, err)
+		legacyFlagArgFallback, err = i.parseAndExpandLegacyFallback(ctx, flagArgsToParse)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "parse flag args")
+		}
 	}
-	fmt.Printf("parse %v to %v\n", args[1:], parsedFlagArgs) // no expansion expected
-	flagArgs, err := i.parseAndExpand(ctx, parsedFlagArgs, true, async)
-	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD flags %v", args[1:])
+	var flagArgs []variable.KeyValue
+	if legacyFlagArgFallback != nil {
+		flagArgs = legacyFlagArgFallback // TODO remove this when we drop support
+	} else {
+		flagArgs, err = i.parseAndExpand(ctx, parsedFlagArgs, true, async)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD flags %v", args[1:])
+		}
 	}
-	fmt.Printf("parseAndExpand %v to %v\n", parsedFlagArgs, variable.KeyValueSlice(flagArgs).DebugString()) // expansion expected I think...
+	//fmt.Printf("parseAndExpand %v to %v\n", parsedFlagArgs, variable.KeyValueSlice(flagArgs).DebugString()) // expansion expected I think...
 	buildArgs = append(buildArgs, flagArgs...)
 
 	if len(platformsSlice) == 0 {
@@ -1342,7 +1358,7 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 				//}
 				continue
 			}
-			fmt.Printf("interpreter got BUILD with buildArgs=%v, target=%v\n", buildArgs, i.target)
+			//fmt.Printf("interpreter got BUILD with buildArgs=%v, target=%v\n", buildArgs, i.target)
 			err := i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgs, onExecutionSuccess)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
@@ -2132,18 +2148,18 @@ func (i *Interpreter) parseAndExpand(ctx context.Context, words []string, keepPl
 				var variableValue variable.Value
 				variableValue, found = i.converter.varCollection.GetValue(varName, variables.WithActive())
 				if found {
-					fmt.Printf("found existing variable, short circuit on %s -> %+v\n", value, variableValue)
+					//fmt.Printf("found existing variable, short circuit on %s -> %+v\n", value, variableValue)
 					kv.Value = &variableValue
 				}
 				// else, fall back to regular expandArgs
 			}
 			if !found {
-				fmt.Printf("todo expand %s\n", value)
+				//fmt.Printf("todo expand %s\n", value)
 				expandedValue, err := i.expandArgs(ctx, value, keepPlusEscape, async)
 				if err != nil {
 					return nil, err
 				}
-				fmt.Printf("expand got %s\n", expandedValue)
+				//fmt.Printf("expand got %s\n", expandedValue)
 				kv.Value = &variable.Value{
 					Str:      expandedValue,
 					ComeFrom: i.target,
@@ -2159,6 +2175,35 @@ func (i *Interpreter) parseAndExpand(ctx context.Context, words []string, keepPl
 		ret = append(ret, kv)
 	}
 	return ret, nil
+}
+
+// parseAndExpandLegacyFallback is used to maintain VERSION 0.6 functionality which allowed commands like:
+// ARG value="hello"
+// ARG kv="--key=$value"
+// BUILD +foo "$kv"
+// note that this will not maintain ARG types
+func (i *Interpreter) parseAndExpandLegacyFallback(ctx context.Context, args []string) ([]variable.KeyValue, error) {
+	kvs := []variable.KeyValue{}
+	expanded, err := i.expandArgsSlice(ctx, args, true, false)
+	if err != nil {
+		return nil, err
+	}
+	for _, arg := range expanded {
+		if arg[:2] != "--" {
+			return nil, fmt.Errorf("failed to parse arg %s; expected -- prefix", arg)
+		}
+		k, v, hasValue := variables.ParseKeyValue(arg[2:])
+		kv := variable.KeyValue{
+			Key: k,
+		}
+		if hasValue {
+			kv.Value = &variable.Value{
+				Str: v,
+			}
+		}
+		kvs = append(kvs, kv)
+	}
+	return kvs, nil
 }
 
 func (i *Interpreter) expandArgsSlice(ctx context.Context, words []string, keepPlusEscape, async bool) ([]string, error) {
@@ -2200,7 +2245,7 @@ func (i *Interpreter) expandArgs(ctx context.Context, word string, keepPlusEscap
 		WithShell:   true,
 	}
 
-	fmt.Printf("i.expandArgs %s\n", word)
+	//fmt.Printf("i.expandArgs %s\n", word)
 	ret, err := i.converter.ExpandArgs(ctx, runOpts, escapeSlashPlus(word), !async)
 	if err != nil {
 		if async && errors.Is(err, errShellOutNotPermitted) {
@@ -2208,7 +2253,7 @@ func (i *Interpreter) expandArgs(ctx context.Context, word string, keepPlusEscap
 		}
 		return "", err
 	}
-	fmt.Printf("i.expandArgs returning %s\n", ret)
+	//fmt.Printf("i.expandArgs returning %s\n", ret)
 	if keepPlusEscape {
 		return ret, nil
 	}

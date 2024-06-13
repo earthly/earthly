@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/earthly/earthly/util/shell"
 	"github.com/pkg/errors"
 )
 
@@ -45,6 +46,9 @@ func ParseFlagArgsWithNonFlags(args []string) ([]string, []string, error) {
 			}
 			var hasValue bool
 			k, v, hasValue = ParseKeyValue(trimmedArg)
+			if !shell.IsValidEnvVarName(k) {
+				return nil, nil, errors.Errorf("invalid arg name: %s", arg)
+			}
 			if !hasValue {
 				keyFromPrev = k
 				continue
