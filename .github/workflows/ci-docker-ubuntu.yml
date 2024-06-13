@@ -45,7 +45,7 @@ jobs:
     runs-on: [earthly-satellite#gha-sh-1]
     env:
       FORCE_COLOR: 1
-  #    EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+      EARTHLY_TOKEN: "${{ secrets.STAGING_EARTHLY_TOKEN }}"
     steps:
       - uses: actions/checkout@v2
       - name: Earthly build
