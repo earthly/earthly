@@ -42,10 +42,10 @@ jobs:
 
 
   earthly-linux-amd64:
-    runs-on: [earthly-satellite#gha-sh-test-nacho]
+    runs-on: [earthly-satellite#gha-sh-1]
     env:
       FORCE_COLOR: 1
-      EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
+  #    EARTHLY_TOKEN: "${{ secrets.EARTHLY_TOKEN }}"
     steps:
       - uses: actions/checkout@v2
       - name: Earthly build
