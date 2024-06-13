@@ -17,23 +17,23 @@ These runners come with the Earthly CLI preinstalled and configured to use the s
 
 Satellite-based GitHub Actions runners can be enabled for a particular repository or for all repositories of a GitHub organization at once.
 
-The integration process requires you to provide us with a GitHub token, so we can:
+The integration process requires you to be an organization/repository admin, and to provide us with a GitHub token, so we can:
 - register a webhook in your GitHub repository/organization to receive events associated to GitHub Actions jobs
 - create GitHub self-hosted runners on demand, to process your repository/organization jobs
 
 Follow the next steps to create such integrations:
 
 ### 1. Create a GitHub token
-Both GitHub classic and fine-grained tokens are supported, but depending on the type of installation (organization-wide or single-repository), the provided token requires different scopes:
 
-| Integration type | User type          | Classic token scopes          | Fine-grained token permissions                                       | 
-|------------------|--------------------|-------------------------------|----------------------------------------------------------------------|
-| Organization     | Organization admin | `admin:org_hook`, `admin:org` | `organization_hooks:write`, `organization_self_hosted_runners:write` |
-| Repository       | Repository admin   | `admin:repo_hook`, `repo`     | `repository_hooks:write`, `administration:write`                     |
+- Go to https://github.com/settings/tokens/new to create a new GitHub classic token. 
+- Give a name to your token that clearly shows its purpose, for example: ![token name](gha/token-name.png") 
+- Set the token as non-expiring: ![token expiration](gha/token-expiration.png") (notice that the integration won't work after the token expires)
+- Check the following scopes:
+  - For organization integrations: `admin:org`,`admin:org_hook`
+  - Alternatively, for repository integrations: `repo`,`admin:repo_hook`
+- Click "generate token" and copy the token value to use it in the following step
 
-{% hint style='info' %}
-Follow the [official docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) for detailed information on how to create a GitHub token, and make sure to set an expiration long enough, since the integration won't work after the token expires.
-{% endhint %}
+_Alternatively, if you prefer creating a fine-grained tokens, make sure to set the following permissions for it: org: `organization_hooks:write`, `organization_self_hosted_runners:write`, repo: `repository_hooks:write`, `administration:write`_
 
 ### 2. Register the integration via CLI
 Create the integration using the `earthly gha add` CLI command, passing the token created in the previous step.
@@ -81,8 +81,8 @@ docker run --privileged \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v satellite-cache:/tmp/earthly:rw \
     -p 8372:8372 \
-    -e EARTHLY_TOKEN=<earthly_token> \ 
-    -e EARTHLY_ORG=<earthly_org_name>  \
+    -e EARTHLY_TOKEN=<earthly_token> \
+    -e EARTHLY_ORG=<earthly_org_name> \
     -e SATELLITE_NAME=<satellite_name> \
     -e SATELLITE_HOST=<satellite_host> \
     -e RUNNER_GHA_ENABLED=true \
