@@ -25,15 +25,31 @@ Follow the next steps to create such integrations:
 
 ### 1. Create a GitHub token
 
-- Go to https://github.com/settings/tokens/new to create a new GitHub classic token. 
-- Give a name to your token that clearly shows its purpose, for example: ![token name](./gha/token-name.png") 
-- Set the token as non-expiring: ![token expiration](./gha/token-expiration.png") (notice that the integration won't work after the token expires)
+- Go to https://github.com/settings/tokens/new to create a new GitHub classic token.
+
+- Give a name to your token that clearly shows its purpose, for example:
+
+  ![token name](./gha/token-name.png)
+
+- Set the token as non-expiring (notice that the integration won't work after the token expires)
+
+  ![token expiration](./gha/token-expiration.png)
+
 - Check the following scopes:
   - For organization integrations: `admin:org`,`admin:org_hook`
   - Alternatively, for repository integrations: `repo`,`admin:repo_hook`
-- Click "generate token" and copy the token value to use it in the following step
+  
+- Click "generate token"
 
-_Alternatively, if you prefer creating a fine-grained tokens, make sure to set the following permissions for it: org: `organization_hooks:write`, `organization_self_hosted_runners:write`, repo: `repository_hooks:write`, `administration:write`_
+  ![token generate](./gha/token-generate.png)
+
+- Copy the token value to use it in the following step
+
+  ![token copy](./gha/token-copy.png)
+
+{% hint style='info' %}
+Alternatively, if you prefer creating a fine-grained tokens, make sure to set the following permissions for it: org: `organization_hooks:write`, `organization_self_hosted_runners:write`, repo: `repository_hooks:write`, `administration:write`
+{% endhint %}
 
 ### 2. Register the integration via CLI
 Create the integration using the `earthly gha add` CLI command, passing the token created in the previous step.
