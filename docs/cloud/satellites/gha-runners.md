@@ -48,7 +48,8 @@ Follow the next steps to create such integrations:
   ![token copy](./gha/token-copy.png)
 
 {% hint style='info' %}
-Alternatively, if you prefer creating a fine-grained tokens, make sure to set the following permissions for it: org: `organization_hooks:write`, `organization_self_hosted_runners:write`, repo: `repository_hooks:write`, `administration:write`
+Alternatively, if you prefer creating a fine-grained token, make sure to set the following permissions for it: org: `organization_hooks:write`, `organization_self_hosted_runners:write`, repo: `repository_hooks:write`, `administration:write`
+and an expiration time long enough, since the integration won't work after the token expires.
 {% endhint %}
 
 ### 2. Register the integration via CLI
