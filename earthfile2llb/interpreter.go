@@ -1287,10 +1287,12 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
 	}
+	fmt.Printf("parse %v to %v\n", args[1:], parsedFlagArgs) // no expansion expected
 	flagArgs, err := i.parseAndExpand(ctx, parsedFlagArgs, true, async)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD flags %v", args[1:])
 	}
+	fmt.Printf("parseAndExpand %v to %v\n", parsedFlagArgs, variable.KeyValueSlice(flagArgs).DebugString()) // expansion expected I think...
 	buildArgs = append(buildArgs, flagArgs...)
 
 	if len(platformsSlice) == 0 {
@@ -2130,15 +2132,18 @@ func (i *Interpreter) parseAndExpand(ctx context.Context, words []string, keepPl
 				var variableValue variable.Value
 				variableValue, found = i.converter.varCollection.GetValue(varName, variables.WithActive())
 				if found {
+					fmt.Printf("found existing variable, short circuit on %s -> %+v\n", value, variableValue)
 					kv.Value = &variableValue
 				}
 				// else, fall back to regular expandArgs
 			}
 			if !found {
+				fmt.Printf("todo expand %s\n", value)
 				expandedValue, err := i.expandArgs(ctx, value, keepPlusEscape, async)
 				if err != nil {
 					return nil, err
 				}
+				fmt.Printf("expand got %s\n", expandedValue)
 				kv.Value = &variable.Value{
 					Str:      expandedValue,
 					ComeFrom: i.target,
@@ -2195,6 +2200,7 @@ func (i *Interpreter) expandArgs(ctx context.Context, word string, keepPlusEscap
 		WithShell:   true,
 	}
 
+	fmt.Printf("i.expandArgs %s\n", word)
 	ret, err := i.converter.ExpandArgs(ctx, runOpts, escapeSlashPlus(word), !async)
 	if err != nil {
 		if async && errors.Is(err, errShellOutNotPermitted) {
@@ -2202,6 +2208,7 @@ func (i *Interpreter) expandArgs(ctx context.Context, word string, keepPlusEscap
 		}
 		return "", err
 	}
+	fmt.Printf("i.expandArgs returning %s\n", ret)
 	if keepPlusEscape {
 		return ret, nil
 	}

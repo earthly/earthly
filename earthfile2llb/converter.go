@@ -1405,6 +1405,7 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 
 	var pncvf variables.ProcessNonConstantVariableFunc
 	if !c.opt.Features.ShellOutAnywhere {
+		fmt.Printf("Arg old version\n")
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
 
@@ -1517,6 +1518,7 @@ func (c *Converter) UpdateArg(ctx context.Context, argKey string, argValue strin
 
 	var pncvf variables.ProcessNonConstantVariableFunc
 	if !c.opt.Features.ShellOutAnywhere {
+		fmt.Printf("UpdateArg old version\n")
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
 
@@ -1810,6 +1812,7 @@ func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, ba
 
 	var pncvf variables.ProcessNonConstantVariableFunc
 	if !c.opt.Features.ShellOutAnywhere {
+		fmt.Printf("EnterScopeDo old version\n")
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
 	overriding, err := variables.ParseArgs2(buildArgs, pncvf, c.varCollection, c.target)
@@ -1906,6 +1909,17 @@ var errShellOutNotPermitted = errors.New("shell-out not permitted")
 // ExpandArgs expands args in the provided word.
 func (c *Converter) ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word string, allowShellOut bool) (string, error) {
 	if !c.opt.Features.ShellOutAnywhere {
+		if strings.HasPrefix(word, "$(") || strings.HasPrefix(word, "\"$(") {
+			fmt.Printf("ExpandArgs shelling out for %s, currently in %s\n", word, c.target)
+			pncvf := c.processNonConstantBuildArgFunc(ctx)
+			expanded, _, err := pncvf("FIXME", word)
+			if err != nil {
+				fmt.Printf("err here %v\n", err)
+				return "", errors.Wrap(err, "expand args")
+			}
+			fmt.Printf("ExpandArgs shelling out for %s; got %s\n", word, expanded)
+			return expanded, nil
+		}
 		return c.varCollection.ExpandOld(word), nil
 	}
 	return c.varCollection.Expand(word, func(cmd string) (string, error) {
@@ -2008,6 +2022,7 @@ func (c *Converter) checkAutoSkip(ctx context.Context, fullTargetName string, al
 func (c *Converter) prepOverridingVars(ctx context.Context, relTarget domain.Target, passArgs bool, buildArgs []variable.KeyValue) (*variables.Scope, bool, error) {
 	var buildArgFunc variables.ProcessNonConstantVariableFunc
 	if !c.opt.Features.ShellOutAnywhere { // TODO need a pncvf when arg types are used; also TODO maybe this is needed in all other cases where ProcessNonConstantVariableFunc is potentially nil
+		fmt.Printf("prepOverridingVars gotta work?\n")
 		buildArgFunc = c.processNonConstantBuildArgFunc(ctx)
 	}
 
@@ -2705,6 +2720,7 @@ func (c *Converter) nonSaveCommand() {
 
 func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variables.ProcessNonConstantVariableFunc {
 	return func(name string, expression string) (string, int, error) {
+		fmt.Printf("pncvf called with name=%s; expression=%s\n", name, expression)
 		opts := ConvertRunOpts{
 			CommandName: fmt.Sprintf("ARG %s = RUN", name),
 			Args:        strings.Split(expression, " "),

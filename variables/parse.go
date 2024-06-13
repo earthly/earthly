@@ -134,6 +134,7 @@ func parseArgValue2(name string, value variable.Value, pncvf ProcessNonConstantV
 		return value, nil
 	}
 	if strings.HasPrefix(value.Str, "$(") {
+		//panic("this feels wrong, what if it's somewhere else in the string? I think this is only here for VERSION 0.6 support")
 		// Variable build arg - resolve value.
 		var err error
 		value.Str, _, err = pncvf(name, value.String(currentTarget))
@@ -146,20 +147,20 @@ func parseArgValue2(name string, value variable.Value, pncvf ProcessNonConstantV
 	return value, nil
 }
 
-func parseArgValue(name string, value string, pncvf ProcessNonConstantVariableFunc) (string, error) {
-	if pncvf == nil {
-		return value, nil
-	}
-	if strings.HasPrefix(value, "$(") {
-		// Variable build arg - resolve value.
-		var err error
-		value, _, err = pncvf(name, value)
-		if err != nil {
-			return "", err
-		}
-	}
-	return value, nil
-}
+//func parseArgValue(name string, value string, pncvf ProcessNonConstantVariableFunc) (string, error) {
+//	if pncvf == nil {
+//		return value, nil
+//	}
+//	if strings.HasPrefix(value, "$(") {
+//		// Variable build arg - resolve value.
+//		var err error
+//		value, _, err = pncvf(name, value)
+//		if err != nil {
+//			return "", err
+//		}
+//	}
+//	return value, nil
+//}
 
 // ParseEnvVars parses env vars from a slice of strings of the form "key=value".
 func ParseEnvVars(envVars []string) *Scope {
