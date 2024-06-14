@@ -37,7 +37,7 @@ BYOC satellites are [available with an Enterprise plan](https://earthly.dev/pric
 
 ### Step 1: Configure Your Cloud Provider
 
-Follow the instructions on the [AWS CloudFormation](./aws.md) page to provision the required AWS resources. Right now, BYOC Satellites are only supported in AWS.
+Follow the instructions on the [AWS CloudFormation](./cloud-providers/aws.md) page to provision the required AWS resources. Right now, BYOC Satellites are only supported in AWS.
 
 
 ### Step 2: Install In Earthly
@@ -54,7 +54,7 @@ Where `<name>` is the name of the Installation, as specified by your cloud provi
 ### Step 3: Networking
 
 To use a satellite created by BYOC, you'll need to configure your networking (usually a VPN) to ensure access. We have guides to enable BYOC on VPNs for the following VPN providers:
-* [Tailscale](./tailscale.md)
+* [Tailscale](./vpn/tailscale.md)
 
 ### Step 4. Test Drive
 
