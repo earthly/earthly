@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr/v4"
@@ -68,6 +69,11 @@ func ParseOpts(ctx context.Context, from FromOpt, opts ...Opt) (spec.Earthfile, 
 	}
 	ef, walkErr := walkTree(newListener(ctx, stream, prefs.reader.Name(), prefs.enableSourceMap), tree)
 	if len(errorListener.Errs) > 0 {
+		firstErr := errorListener.Errs[0].Error()
+		if strings.Contains(firstErr, "token recognition error") {
+			unknownHint := fmt.Sprintf("'%s' is not a recognized keyword.", extractUnknownToken(firstErr))
+			return spec.Earthfile{}, hint.Wrap(errors.New(firstErr), unknownHint)
+		}
 		errString := []string{fmt.Sprintf("lexer error: %s", prefs.reader.Name())}
 		for _, err := range errorListener.Errs {
 			errString = append(errString, err.Error())
@@ -97,6 +103,16 @@ func ParseOpts(ctx context.Context, from FromOpt, opts ...Opt) (spec.Earthfile, 
 	}
 
 	return ef, nil
+}
+
+func extractUnknownToken(errMsg string) string {
+	// Extract the part between single quotes using regex
+	re := regexp.MustCompile(`'([^']+)'`)
+	matches := re.FindStringSubmatch(errMsg)
+	if len(matches) > 1 {
+		return matches[1]
+	}
+	return "unknown"
 }
 
 func walkTree(l *listener, tree parser.IEarthFileContext) (spec.Earthfile, error) {

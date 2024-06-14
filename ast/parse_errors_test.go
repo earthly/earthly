@@ -44,6 +44,18 @@ test:
   Hint: I got lost looking for '=' - did you define a key/value pair without a value?
 `,
 		},
+		{
+			name: "unrecognized keyword",
+			earthfile: `
+VERSION 0.7
+
+test:
+	RIN apk --update add build-base cmake bash
+`,
+			expectedHint: `
+Hint: 'RIN ' is not a recognized keyword.
+`,
+		},
 	}
 
 	for _, test := range tests {
@@ -54,7 +66,7 @@ test:
 			_, err := ast.ParseOpts(context.Background(), ast.FromReader(&namedReader))
 			r := require.New(t)
 			r.Error(err)
-			r.ErrorContains(err, test.expectedHint)
+			r.ErrorContains(err, strings.TrimSpace(test.expectedHint))
 		})
 	}
 }
