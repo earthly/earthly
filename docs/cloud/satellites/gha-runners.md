@@ -3,7 +3,7 @@
 {% hint style='warning' %}
 This feature is experimental.
 
-Not recommended for production usage since it might introduce breaking changes in the future.
+Not recommended for production usage yet, since it might introduce breaking changes in the future.
 
 Feedback is welcome and much appreciated!
 
@@ -44,8 +44,6 @@ Follow the next steps to create such integrations:
   ![token generate](./gha/token-generate.png)
 
 - Copy the token value to use it in the following step
-
-  ![token copy](./gha/token-copy.png)
 
 {% hint style='info' %}
 Alternatively, if you prefer creating a fine-grained token, make sure to set the following permissions for it: org: `organization_hooks:write`, `organization_self_hosted_runners:write`, repo: `repository_hooks:write`, `administration:write`
@@ -137,7 +135,7 @@ earthly-job:
 ```
 
 {% hint style='warning' %}
-For Earthly-Cloud satellites make sure you have an [EARTHLY_TOKEN](https://docs.earthly.dev/docs/earthly-command#earthly-account-create-token) available in your [GitHub Actions secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) store, and add it to the job environment, as shown in the previous example. Future versions will remove this requirement.
+Make sure you have an [EARTHLY_TOKEN](https://docs.earthly.dev/docs/earthly-command#earthly-account-create-token) available in your [GitHub Actions secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) store, and add it to the job environment, as shown in the previous example. Future versions will remove this requirement.
 
 {% endhint %}
 
