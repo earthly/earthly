@@ -88,3 +88,7 @@
     * [GitHub runners](cloud/satellites/gha-runners.md)
     * [Best Practices](cloud/satellites/best-practices.md)
     * [Bring Your Own Cloud (BYOC)](cloud/satellites/byoc/byoc.md)
+      * Cloud Providers
+        * [AWS](cloud/satellites/byoc/aws.md)
+      * VPN
+        * [Tailscale](cloud/satellites/byoc/tailscale.md)
