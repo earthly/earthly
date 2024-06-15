@@ -18,7 +18,7 @@ These runners come with the Earthly CLI preinstalled and configured to use the s
 Satellite-based GitHub Actions runners can be enabled for a particular repository or for all repositories of a GitHub organization at once.
 
 The integration process requires you to be a GitHub organization or repository admin, and to provide us with a GitHub token, so we can:
-- register a webhook in your GitHub repository/organization to receive events associated to GitHub Actions jobs
+- register a webhook in your GitHub repository/organization to receive the events generated from your GitHub Actions jobs
 - create GitHub self-hosted runners on demand, to process your repository/organization jobs
 
 Follow the next steps to create such integrations:
@@ -38,7 +38,7 @@ Follow the next steps to create such integrations:
 - Check the following scopes:
   - For organization integrations: `admin:org`,`admin:org_hook`
   - Alternatively, for repository integrations: `repo`,`admin:repo_hook`
-  
+
 - Click "generate token"
 
   ![token generate](./gha/token-generate.png)
@@ -104,7 +104,7 @@ docker run --privileged \
   earthly/satellite:v0.8.13
 ```
 {% hint style='info' %}
-**Required version:** Use at least `earthly/satellite:v0.8.13
+**Required version:** Use at least `earthly/satellite:v0.8.13`
 {% endhint %}
 
 ##### Logs
@@ -114,7 +114,7 @@ You should see a log message like this, when the GitHub Actions runner is enable
 ```
 
 ### 4. Configure your GitHub Actions jobs
-In order to make a job run into the satellite, you'll need to set its [runs-on](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idruns-on) label as follows:
+In order to make a job run into the satellite, you'll need to reference the satellite name in its [runs-on](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idruns-on) label as follows:
 
 ```
 runs-on: [earthly-satellite#<satellite-name>]
