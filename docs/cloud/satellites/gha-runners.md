@@ -140,7 +140,7 @@ Make sure you have an [EARTHLY_TOKEN](https://docs.earthly.dev/docs/earthly-comm
 {% endhint %}
 
 ## Listing registered integrations
-List the integrations of your Earthly organization with the `earthly gha ls` CLI command.
+List the integrations of your Earthly organization with the `earthly gha ls` CLI command:
 
 ``` 
 earthly gha ls \
@@ -148,7 +148,7 @@ earthly gha ls \
 ``` 
 
 ## Removing an integration
-Remove an integration using the `earthly gha remove` CLI command.
+Remove an integration using the `earthly gha remove` CLI command:
 
 ### Organization integration
 ``` 
