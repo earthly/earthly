@@ -942,10 +942,12 @@ func (a *Build) logShareLink(ctx context.Context, cloudClient *cloud.Client, tar
 
 	if !cloudClient.IsLoggedIn(ctx) {
 		printLinkFn := func() {
-			a.cli.Console().Printf(
-				"🛰️ Reuse cache between CI runs with Earthly Satellites! " +
-					"2-20X faster than without cache. Generous free tier " +
-					"https://cloud.earthly.dev\n")
+			if !a.cli.Cfg().Global.DisableUpsell {
+				a.cli.Console().Printf(
+					"🛰️ Reuse cache between CI runs with Earthly Satellites! " +
+						"2-20X faster than without cache. Generous free tier " +
+						"https://cloud.earthly.dev\n")
+			}
 		}
 		return "", false, printLinkFn
 	}

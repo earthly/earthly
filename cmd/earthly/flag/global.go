@@ -50,6 +50,7 @@ type Global struct {
 	AuthToken                  string
 	AuthJWT                    string
 	DisableAnalytics           bool
+	DisableUpsell              bool
 	FeatureFlagOverrides       string
 	EnvFile                    string
 	ArgFile                    string
@@ -253,6 +254,13 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			EnvVars:     []string{"EARTHLY_DISABLE_ANALYTICS", "DO_NOT_TRACK"},
 			Usage:       "Disable collection of analytics",
 			Destination: &global.DisableAnalytics,
+		},
+		&cli.BoolFlag{
+			Name:        "disable-upsell",
+			Hidden:      true,
+			EnvVars:     []string{"EARTHLY_DISABLE_UPSELL"},
+			Usage:       "Disable printing marketing/upselling messages",
+			Destination: &global.DisableUpsell,
 		},
 		&cli.StringFlag{
 			Name:        "version-flag-overrides",

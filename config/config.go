@@ -68,6 +68,7 @@ var (
 // GlobalConfig contains global config values
 type GlobalConfig struct {
 	DisableAnalytics           bool          `yaml:"disable_analytics"              help:"Controls Earthly telemetry."`
+	DisableUpsell              bool          `yaml:"disable_upsell"                 help:"Controls Earthly marketing/upsell message printing."`
 	BuildkitCacheSizeMb        int           `yaml:"cache_size_mb"                  help:"Size of the buildkit cache in Megabytes."`
 	BuildkitCacheSizePct       int           `yaml:"cache_size_pct"                 help:"Size of the buildkit cache, as percentage (0-100)."`
 	BuildkitCacheKeepDurationS int           `yaml:"buildkit_cache_keep_duration_s" help:"Max age of cache, in seconds. 0 disables age-based cache expiry."`
