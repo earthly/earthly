@@ -63,7 +63,7 @@ func getExitCode(errString string) (int, error) {
 	return 0, errNoExitCode
 }
 
-var reErrNotFound = regexp.MustCompile(`^failed to calculate checksum of ref ([^ ]*): (.*)$`)
+var reErrNotFound = regexp.MustCompile(`^\s*(internal)?failed to calculate checksum of ref ([^ ]::[^ ]*|[^ ]*): (.*)\s*$`)
 var reHint = regexp.MustCompile(`^(?P<msg>.+?):Hint: .+`)
 
 // determineFatalErrorType returns logstream.FailureType
@@ -114,10 +114,14 @@ func formatErrorMessage(errString, operation string, internal bool, fatalErrorTy
 				"      did not complete successfully. Exit code %d", internalStr, operation, exitCode)
 	case logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND:
 		m := reErrNotFound.FindStringSubmatch(errString)
+		reason := fmt.Sprintf("unable to parse file_not_found error:%s", errString)
+		if len(m) > 2 {
+			reason = m[3]
+		}
 		return fmt.Sprintf(
 			"      The%s command\n"+
 				"          %s\n"+
-				"      failed: %s", internalStr, operation, m[2])
+				"      failed: %s", internalStr, operation, reason)
 	case logstream.FailureType_FAILURE_TYPE_GIT:
 		gitStdErr, shorterErr, ok := errutil.ExtractEarthlyGitStdErr(errString)
 		if ok {
