@@ -11,7 +11,7 @@ Feedback is welcome and much appreciated!
 
 Earthly satellites are now bundled with a GitHub Actions runner, so they can directly pull jobs from GitHub Actions without the need of an intermediate runner.
 
-These runners come with the Earthly CLI preinstalled and configured to use the satellite BuildKit instance, so GitHub Actions jobs will share the same satellite cache than the traditional satellite builds.
+These runners come with the Earthly CLI preinstalled and configured to use the satellite BuildKit instance, so GitHub Actions jobs will share the same satellite cache as the traditional satellite builds.
 
 ## Creating a GitHub Actions integration
 
