@@ -138,7 +138,7 @@ echo "$EARTHLY_GIT_CONFIG" | base64 -d >/root/.gitconfig
 
 #Set up CNI
 if [ -z "$CNI_MTU" ]; then
-  device=$(ip route show | grep default | cut -d' ' -f5 | head -n 1)
+  device=$(ip route show | grep ^default | head -n 1 | sed 's|.* dev \(\w*\)\s.*|\1|')
   CNI_MTU=$(cat /sys/class/net/"$device"/mtu)
   export CNI_MTU
 fi
@@ -324,7 +324,7 @@ do
             if [ "$OOM_SCORE_ADJ" -ne "0" ]; then
                 ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) killed with OOM_SCORE_ADJ=$OOM_SCORE_ADJ" >> /var/log/oom_adj
                 kill -9 "$PID"
-            else 
+            else
                 ! "$BUILDKIT_DEBUG" || echo "$(date) | $PID($(cat /proc/"$PID"/cmdline)) was not killed because OOM_SCORE_ADJ was default or not set" >> /var/log/oom_adj
             fi
         fi
