@@ -18,7 +18,7 @@ test-function-in-sub-dir:
     RUN touch /this-file-exists-locally
     DO --pass-args +RUN_EARTHLY_ARGS --target=/the-test+test
     RUN test "$(cat /the-test/data)" = "I am running in /the-test"
-    DO --pass-args +RUN_EARTHLY_ARGS --target=/the-test+test --should-fail=true
+    DO --pass-args +RUN_EARTHLY_ARGS --target=/the-test+test --should_fail=true
 
     # cleanup
     RUN rm /the-test/data

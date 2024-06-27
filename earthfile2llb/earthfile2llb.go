@@ -56,6 +56,10 @@ type ConvertOpt struct {
 	PlatformResolver *platutil.Resolver
 	// OverridingVars is a collection of build args used for overriding args in the build.
 	OverridingVars *variables.Scope
+
+	// TODO this should be attached to each arg in the variables.Scope
+	CalledFrom domain.Target
+
 	// A cache for image solves. (maybe dockerTag +) depTargetInputHash -> context containing image.tar.
 	SolveCache *states.SolveCache
 	// BuildContextProvider is the provider used for local build context files.
@@ -346,6 +350,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		opt.MainTargetDetailsFunc = nil
 	}
 
+	// TODO re-visit this once variable.Value is used everywhere? e.g. also display the ComeFrom value?
 	opt.Console.VerbosePrintf("earthfile2llb building %s with OverridingVars=%v",
 		targetWithMetadata.StringCanonical(), opt.OverridingVars.Map())
 
