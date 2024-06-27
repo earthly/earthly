@@ -516,7 +516,7 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 			targetInteractiveSession := b.targetPhaseInteractiveSession(sts)
 			if targetInteractiveSession.Initialized && targetInteractiveSession.Kind == states.SessionEphemeral {
 				ref, err := b.stateToRef(ctx, gwClient, targetInteractiveSession.State, sts.PlatformResolver)
-				gwCrafter.AddRef("ephemeral", ref)
+				gwCrafter.AddRef("the-value-of-this-string-doesnt-matter", ref)
 				if err != nil {
 					return nil, err
 				}
