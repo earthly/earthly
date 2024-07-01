@@ -13,3 +13,20 @@ oidc:
     LET OIDC="role-arn=$ROLE_ARN,session-name=earthly-ci-test-session,region=us-west-2"
     RUN --aws --oidc=$OIDC export result=$(env |grep AWS_ |wc -l); \
     test $result -eq $expected || (echo "expected $expected env vars for AWS but got $result" && exit 1)
+
+oidc-with-docker:
+    FROM earthly/dind:alpine-3.20-docker-26.1.3-r1
+
+    # set baseline - expects no envs with AWS_ prefix
+    LET expected=0
+    RUN export result=$(env |grep AWS_ |wc -l); \
+    test $result -eq $expected || (echo "expected \$expected env vars for AWS but got $result" && exit 1)
+    SET expected=4
+
+    ARG --required ROLE_ARN
+    LET OIDC="role-arn=$ROLE_ARN,session-name=earthly-ci-test-session,region=us-west-2"
+    
+    WITH DOCKER
+        RUN --aws --oidc=$OIDC export result=$(env |grep AWS_ |wc -l); \
+        test $result -eq $expected || (echo "expected $expected env vars for AWS but got $result" && exit 1)
+    END

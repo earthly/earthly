@@ -10,3 +10,12 @@ basic:
 oidc:
     ARG OIDC=""
     RUN --aws --oidc=$OIDC echo this should not succeed
+
+oidc-with-docker:
+    FROM earthly/dind:alpine-3.20-docker-26.1.3-r1
+
+    ARG OIDC=""
+
+    WITH DOCKER
+        RUN --aws --oidc=$OIDC echo this should not succeed
+    END
