@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/earthly/cloud-api/logstream"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetExitCode(t *testing.T) {
@@ -95,6 +96,22 @@ func TestDetermineFatalErrorType(t *testing.T) {
 			expectedFatal: true,
 		},
 		{
+			name:          "file not found (internal)",
+			errString:     "internalfailed to calculate checksum of ref foo: bar",
+			exitCode:      0,
+			parseErr:      nil,
+			expectedType:  logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND,
+			expectedFatal: true,
+		},
+		{
+			name:          "file not found (internal with space)",
+			errString:     " internalfailed to calculate checksum of ref foo: bar",
+			exitCode:      0,
+			parseErr:      nil,
+			expectedType:  logstream.FailureType_FAILURE_TYPE_FILE_NOT_FOUND,
+			expectedFatal: true,
+		},
+		{
 			name:          "git error",
 			errString:     "EARTHLY_GIT_STDERR: Z2l0IC1jI...",
 			parseErr:      nil,
@@ -125,6 +142,50 @@ func TestDetermineFatalErrorType(t *testing.T) {
 			}
 			if fatal != tt.expectedFatal {
 				t.Errorf("determineFatalErrorType(%q, %d) = %v, want %v", tt.errString, tt.exitCode, fatal, tt.expectedFatal)
+			}
+		})
+	}
+}
+
+func TestReErrNotFound(t *testing.T) {
+	tests := []struct {
+		name      string
+		errString string
+		expected  []string
+	}{
+		{
+			name:      "simple",
+			errString: "failed to calculate checksum of ref foo: bar",
+			expected:  []string{"", "foo", "bar"},
+		},
+		{
+			name:      "simple (internal)",
+			errString: "internalfailed to calculate checksum of ref foo: bar",
+			expected:  []string{"internal", "foo", "bar"},
+		},
+		{
+			name:      "simple (internal with space)",
+			errString: " internalfailed to calculate checksum of ref foo: bar",
+			expected:  []string{"internal", "foo", "bar"},
+		},
+		{
+			name:      "complex",
+			errString: ` failed to calculate checksum of ref p4gz72iufvk3t1nsqq07p9sim::m4m7o7gui4zuuoy9vynbrzx8f: "/doesnotexist": not found`,
+			expected:  []string{"", "p4gz72iufvk3t1nsqq07p9sim::m4m7o7gui4zuuoy9vynbrzx8f", `"/doesnotexist": not found`},
+		},
+		{
+			name:      "complex (internal)",
+			errString: ` internalfailed to calculate checksum of ref p4gz72iufvk3t1nsqq07p9sim::m4m7o7gui4zuuoy9vynbrzx8f: "/doesnotexist": not found`,
+			expected:  []string{"internal", "p4gz72iufvk3t1nsqq07p9sim::m4m7o7gui4zuuoy9vynbrzx8f", `"/doesnotexist": not found`},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			match := reErrNotFound.FindStringSubmatch(tt.errString)
+
+			if len(match) == 0 || !assert.ElementsMatch(t, match[1:], tt.expected) {
+				t.Errorf("reErrNotFound.FindStringSubmatch(%s) = %v, want %v", tt.errString, match, tt.expected)
 			}
 		})
 	}
