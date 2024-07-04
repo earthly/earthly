@@ -203,6 +203,8 @@ func (w *withDockerRunRegistry) Run(ctx context.Context, args []string, opt With
 		Interactive:          opt.Interactive,
 		InteractiveKeep:      opt.interactiveKeep,
 		InteractiveSaveFiles: opt.TryCatchSaveArtifacts,
+		WithAWSCredentials:   opt.WithAWSCredentials,
+		OIDCInfo:             opt.OIDCInfo,
 	}
 
 	crOpts.extraRunOpts = append(crOpts.extraRunOpts, pllb.AddMount(

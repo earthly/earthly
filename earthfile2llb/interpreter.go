@@ -775,6 +775,8 @@ func (i *Interpreter) handleRun(ctx context.Context, cmd spec.Command) error {
 		i.withDocker.NoCache = opts.NoCache
 		i.withDocker.Interactive = opts.Interactive
 		i.withDocker.interactiveKeep = opts.InteractiveKeep
+		i.withDocker.WithAWSCredentials = opts.WithAWS
+		i.withDocker.OIDCInfo = awsOIDCInfo
 
 		// TODO: Could this be allowed in the future, if dynamic build args
 		//       are expanded ahead of time?
