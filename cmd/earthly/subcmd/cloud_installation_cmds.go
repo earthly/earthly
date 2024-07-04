@@ -106,12 +106,14 @@ func (a *CloudInstallation) Cmds() []*cli.Command {
 							Destination: &a.awsSubnetID,
 						},
 						&cli.StringFlag{
-							Name:  "aws-instance-profile-arn",
-							Usage: "The ARN of the IAM instance profile for the BYOC installation to use for new satellites.",
+							Name:        "aws-instance-profile-arn",
+							Usage:       "The ARN of the IAM instance profile for the BYOC installation to use for new satellites.",
+							Destination: &a.awsInstanceProfileARN,
 						},
 						&cli.StringFlag{
-							Name:  "aws-earthly-access-role-arn",
-							Usage: "The ARN of the IAM role for Earthly to use when orchestrating and managing the new BYOC satellites.",
+							Name:        "aws-earthly-access-role-arn",
+							Usage:       "The ARN of the IAM role for Earthly to use when orchestrating and managing the new BYOC satellites.",
+							Destination: &a.awsEarthlyRoleARN,
 						},
 					},
 				},
