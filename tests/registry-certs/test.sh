@@ -29,8 +29,11 @@ export REGISTRY="$REGISTRY_IP"
     --build-arg REGISTRY_IP \
      "$testdir/+certs"
 
+"$frontend" network create my-network
+
 # Run registry. This will use the same IP address as allocated above.
 "$frontend" run --rm -d \
+    --network my-network \
     --ip "$REGISTRY_IP" \
     -v "$testdir"/certs:/certs \
     -e REGISTRY_HTTP_ADDR=0.0.0.0:443 \
