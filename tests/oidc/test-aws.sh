@@ -13,4 +13,4 @@ echo "== it should access aws via oidc =="
 earthly --config "$earthly_config" +oidc --ROLE_ARN="$ROLE_ARN"
 
 echo "== it should access aws via oidc-with-docker =="
-earthly --config "$earthly_config" +oidc-with-docker --ROLE_ARN="$ROLE_ARN"
+earthly --config "$earthly_config" --allow-privileged +oidc-with-docker --ROLE_ARN="$ROLE_ARN"
