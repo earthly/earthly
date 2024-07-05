@@ -37,19 +37,19 @@ BYOC satellites are [available with an Enterprise plan](https://earthly.dev/pric
 
 ### Step 1: Configure Your Cloud Provider
 
-Follow the instructions on the [AWS CloudFormation](https://docs.earthly.dev/earthly-cloud/satellites/byoc/cloud-providers/aws) page to provision the required AWS resources. Right now, BYOC Satellites are only supported in AWS.
+There are multiple methods you can use to configure your cloud provider. Choose the one that works best for your organization:
 
+* [AWS CloudFormation](./aws/cloudformation.md)
+* [Terraform](./aws/terraform.md)
+* [Manual](./aws/manual.md)
+
+Follow the instructions for your selected installation method to provision the required resources. Right now, BYOC Satellites are only supported in AWS.
 
 ### Step 2: Install In Earthly
 
-After installing the required resources within your cloud provider; you must complete the installation by telling Earthly about your new configuration. Run:
+After installing the required resources within your cloud provider; you must complete the installation by telling Earthly about your new configuration. Run the command in the documentation for your selected installation method to proceed.
 
-```shell
-earthly cloud install <name>
-```
-
-Where `<name>` is the name of the Installation, as specified by your cloud provider. Assuming it reports the status as `Green`, you should be good to go!
-
+Assuming the installation reports the status as `Green`, you should be good to go!
 
 ### Step 3: Networking
 
@@ -82,7 +82,6 @@ To test-launch a new satellite within the cloud, run:
 earthly satellite launch --cloud <name> my-byoc-sat
 ```
 This will launch a new satellite using your newly created cloud. Assuming that works, kick the tires by trying to run one of your builds on it!
-
 
 ### Step 6. Use The Cloud
 
