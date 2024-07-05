@@ -98,3 +98,13 @@ If you prefer the CLI:
 
 #### Customization
 If you need/want to make changes to your installation, please see AWS' guide for [resolving drift in a CloudFormation stack via import](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resource-import-resolve-drift.html).
+
+## Installation Within Earthly
+
+Earthly is able to automatically install BYOC when provisioned via CloudFormation by running:
+
+```shell
+earthly cloud install --via terraform --name <stack-name>
+```
+
+Where `<stack-name>` is the name used for your stack within AWS. Earthly will also use this name to reference your installation. 
