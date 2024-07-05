@@ -96,7 +96,7 @@ func (a *CloudInstallation) Cmds() []*cli.Command {
 							Destination: &a.awsSecurityGroup,
 						},
 						&cli.StringFlag{
-							Name:        "aws-ssh-key-id",
+							Name:        "aws-ssh-key-name",
 							Usage:       "The name of the ssh key for BYOC to include on each newly launched satellite. Useful for debugging.",
 							Destination: &a.awsSSHKeyName,
 						},
