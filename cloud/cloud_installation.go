@@ -33,6 +33,7 @@ type CloudConfigurationOpt struct {
 	SecurityGroupId    string
 	Region             string
 	InstanceProfileArn string
+	AddressResolution  string
 }
 
 func (c *Client) ConfigureCloud(ctx context.Context, orgID string, configuration *CloudConfigurationOpt) (*Installation, error) {
@@ -47,6 +48,7 @@ func (c *Client) ConfigureCloud(ctx context.Context, orgID string, configuration
 		SecurityGroupId:    configuration.SecurityGroupId,
 		Region:             configuration.Region,
 		InstanceProfileArn: configuration.InstanceProfileArn,
+		//AddressResolution:  configuration.AddressResolution,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "error from ConfigureCloud API")

@@ -22,8 +22,9 @@ import (
 type CloudInstallation struct {
 	cli CLI
 
-	method    string
-	cloudName string
+	method            string
+	cloudName         string
+	addressResolution string
 
 	awsAccountID          string
 	awsRegion             string
@@ -79,6 +80,11 @@ func (a *CloudInstallation) Cmds() []*cli.Command {
 							Name:        "via",
 							Usage:       "The source to use for automatic cloud installation. Valid options are (cloudformation, terraform). See docs for details.",
 							Destination: &a.method,
+						},
+						&cli.StringFlag{
+							Name:        "resolution",
+							Usage:       "How to connect to the remote satellite in your cloud. Depends on your individual setup. Valid options are (private_dns, private_ip). See docs for details.",
+							Destination: &a.addressResolution,
 						},
 						&cli.StringFlag{
 							Name:        "aws-account-id",
@@ -151,6 +157,10 @@ func (c *CloudInstallation) install(cliCtx *cli.Context) error {
 
 	if cliCtx.NArg() > 0 {
 		return errors.New("invalid number of arguments provided")
+	}
+
+	if !cliCtx.IsSet("resolution") {
+		c.addressResolution = "private_ip"
 	}
 
 	cloudClient, err := helper.NewCloudClient(c.cli)
@@ -345,6 +355,7 @@ func (c *CloudInstallation) manualInstallation(_ context.Context, cloudName stri
 		SecurityGroupId:    c.awsSecurityGroup,
 		Region:             c.awsRegion,
 		InstanceProfileArn: c.awsInstanceProfileARN,
+		AddressResolution:  c.addressResolution,
 	}, nil
 }
 
@@ -367,7 +378,9 @@ func (c *CloudInstallation) getInstallationDataFromTerraform(ctx context.Context
 	// sanity check that the name provided at the CLI is the name in the TF module
 	// we use the cloud name to help name resources in the users' cloud; and we want to make sure we also are using the same name?
 
-	configOpt := &cloud.CloudConfigurationOpt{}
+	configOpt := &cloud.CloudConfigurationOpt{
+		AddressResolution: c.addressResolution,
+	}
 	for k, v := range tfOutputs {
 		switch k {
 		case "account_id":
@@ -412,7 +425,9 @@ func (c *CloudInstallation) getInstallationDataFromCloudFormation(ctx context.Co
 	}
 
 	stack := describeStacksOutput.Stacks[0]
-	params := &cloud.CloudConfigurationOpt{}
+	params := &cloud.CloudConfigurationOpt{
+		AddressResolution: c.addressResolution,
+	}
 
 	for _, output := range stack.Outputs {
 		if output.OutputKey == nil {
