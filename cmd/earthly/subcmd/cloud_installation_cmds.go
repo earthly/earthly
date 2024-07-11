@@ -4,14 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/fatih/color"
 	"os"
 	"os/exec"
 	"text/tabwriter"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
@@ -176,11 +176,11 @@ func (c *CloudInstallation) install(cliCtx *cli.Context) error {
 	var installationOpt *cloud.CloudConfigurationOpt
 	switch {
 	case c.method == cloudInstallationMethodCloudFormation:
-		installationOpt, err = c.getInstallationDataFromCloudFormation(ctx, c.cloudName)
+		installationOpt, err = c.getInstallationDataFromCloudFormation(ctx)
 	case c.method == cloudInstallationMethodTerraform:
 		installationOpt, err = c.getInstallationDataFromTerraform(ctx)
 	case c.isManualInstallation(cliCtx):
-		installationOpt, err = c.manualInstallation(ctx, c.cloudName)
+		installationOpt, err = c.manualInstallation(ctx)
 	default:
 		return errors.New("could not determine installation method")
 	}
@@ -345,9 +345,9 @@ func (c *CloudInstallation) printTable(installations []cloud.Installation) {
 	}
 }
 
-func (c *CloudInstallation) manualInstallation(_ context.Context, cloudName string) (*cloud.CloudConfigurationOpt, error) {
+func (c *CloudInstallation) manualInstallation(_ context.Context) (*cloud.CloudConfigurationOpt, error) {
 	return &cloud.CloudConfigurationOpt{
-		Name:               cloudName,
+		Name:               c.cloudName,
 		SshKeyName:         c.awsSSHKeyName,
 		ComputeRoleArn:     c.awsEarthlyRoleARN,
 		AccountId:          c.awsAccountID,
@@ -367,45 +367,53 @@ func (c *CloudInstallation) getInstallationDataFromTerraform(ctx context.Context
 		return nil, fmt.Errorf("could not get terraform outputs: %s: %w", string(cmdOutput), err)
 	}
 
-	tfOutputs := make(map[string]struct {
-		Value string `json:"value"`
-	})
+	tfOutputs := make(map[string]json.RawMessage)
 	err = json.Unmarshal(cmdOutput, &tfOutputs)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse terraform outputs: %w", err)
 	}
 
-	// sanity check that the name provided at the CLI is the name in the TF module
-	// we use the cloud name to help name resources in the users' cloud; and we want to make sure we also are using the same name?
+	data, ok := tfOutputs[c.cloudName]
+	if !ok {
+		return nil, fmt.Errorf("could not find output %s", c.cloudName)
+	}
+
+	installOutputs := struct {
+		Value map[string]string `json:"value"`
+	}{}
+	err = json.Unmarshal(data, &installOutputs)
+	if err != nil {
+		return nil, fmt.Errorf("could not find output value for key %s", c.cloudName)
+	}
 
 	configOpt := &cloud.CloudConfigurationOpt{
 		AddressResolution: c.addressResolution,
 	}
-	for k, v := range tfOutputs {
+	for k, v := range installOutputs.Value {
 		switch k {
 		case "account_id":
-			configOpt.AccountId = v.Value
-		case "allowed_subnet_ids":
-			configOpt.AllowedSubnetIds = []string{v.Value}
+			configOpt.AccountId = v
+		case "allowed_subnet_id":
+			configOpt.AllowedSubnetIds = []string{v}
 		case "compute_role_arn":
-			configOpt.ComputeRoleArn = v.Value
+			configOpt.ComputeRoleArn = v
 		case "installation_name":
-			configOpt.Name = v.Value
+			configOpt.Name = v
 		case "instance_profile_arn":
-			configOpt.InstanceProfileArn = v.Value
+			configOpt.InstanceProfileArn = v
 		case "region":
-			configOpt.Region = v.Value
+			configOpt.Region = v
 		case "security_group_id":
-			configOpt.SecurityGroupId = v.Value
+			configOpt.SecurityGroupId = v
 		case "ssh_key_name":
-			configOpt.SshKeyName = v.Value
+			configOpt.SshKeyName = v
 		}
 	}
 
 	return configOpt, nil
 }
 
-func (c *CloudInstallation) getInstallationDataFromCloudFormation(ctx context.Context, stackName string) (*cloud.CloudConfigurationOpt, error) {
+func (c *CloudInstallation) getInstallationDataFromCloudFormation(ctx context.Context) (*cloud.CloudConfigurationOpt, error) {
 	awsConfig, err := awsconfig.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not load aws config")
@@ -414,14 +422,14 @@ func (c *CloudInstallation) getInstallationDataFromCloudFormation(ctx context.Co
 	client := cloudformation.NewFromConfig(awsConfig)
 
 	describeStacksOutput, err := client.DescribeStacks(ctx, &cloudformation.DescribeStacksInput{
-		StackName: aws.String(stackName),
+		StackName: aws.String(c.cloudName),
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("could not describe stack %s", stackName))
+		return nil, errors.Wrap(err, fmt.Sprintf("could not describe stack %s", c.cloudName))
 	}
 
 	if len(describeStacksOutput.Stacks) != 1 {
-		return nil, fmt.Errorf("unexpected number of stacks(%v) found with name %q", len(describeStacksOutput.Stacks), stackName)
+		return nil, fmt.Errorf("unexpected number of stacks(%v) found with name %q", len(describeStacksOutput.Stacks), c.cloudName)
 	}
 
 	stack := describeStacksOutput.Stacks[0]
@@ -431,10 +439,10 @@ func (c *CloudInstallation) getInstallationDataFromCloudFormation(ctx context.Co
 
 	for _, output := range stack.Outputs {
 		if output.OutputKey == nil {
-			return nil, fmt.Errorf("specified stack %s has nil output key", stackName)
+			return nil, fmt.Errorf("specified stack %s has nil output key", c.cloudName)
 		}
 		if output.OutputValue == nil {
-			return nil, fmt.Errorf("specified stack %s has nil value for key %s", stackName, *output.OutputKey)
+			return nil, fmt.Errorf("specified stack %s has nil value for key %s", c.cloudName, *output.OutputKey)
 		}
 
 		switch *output.OutputKey {
