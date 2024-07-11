@@ -16,7 +16,7 @@ You can find the module in the [public Terraform Registry](https://registry.terr
 ```hcl
 module "byoc" {
   source  = "earthly/byoc/aws"
-  version = "0.0.7"
+  version = "0.0.8"
 
   cloud_name = "my-cloud"
   subnet = "subnet-0123456789abcde01"
@@ -36,11 +36,9 @@ module "byoc" {
 | Name                 | Description                                                                                                                              |
 |----------------------|------------------------------------------------------------------------------------------------------------------------------------------|
 | installation_name    | The name to use to identify the cloud installation. Used by Earthly during automatic installation, and to mark related resources in AWS. |
-| account_id           | The AWS account ID the module was installed into.                                                                                        |
-| region               | The AWS region the module was installed into.                                                                                            |
 | security_group_id    | The ID of the security group for new satellites.                                                                                         |
 | ssh_key_name         | The name of the SSH key in AWS that is included in new satellites.                                                                       |
-| allowed_subnet_id    | The ID of the subnet that satellites will be launched into.                                                                              |
+| ssh_private_key      | (Sensitive) The private key, if `ssh_public_key` is unspecified.                                                                         |
 | instance_profile_arn | The ARN of the instance profile satellite instances will use for logging.                                                                |
 | compute_role_arn     | The ARN of the role Earthly will assume to orchestrate satellites on your behalf.                                                        |
 
@@ -49,44 +47,18 @@ module "byoc" {
 Earthly is able to automatically install BYOC when provisioned via Terraform by running:
 
 ```shell
-earthly cloud install --via terraform
+earthly cloud install --via terraform --name <output-name>
 ```
 
 Automatic installation requires some conditions to be met. If both of these conditions cannot be met, you will need to use the [manual](./manual.md) installation method with the infrastructure provisioned by Terraform.
 
 1. The install command is run in the same directory as the module containing your BYOC block.
-2. All expected outputs are available via `terraform output --json`. The expected outputs are as follows. These work with the example provided above:
+2. The `automatic_installation` output is exported under the name specified by `<output-name>`. You could enable automatic installation for the example earlier by adding the following output:
 
 ```hcl
-output "installation_name" {
-  value = module.byoc.installation_name
-}
-
-output "account_id" {
-  value =  module.byoc.account_id
-}
-
-output "region" {
-  value =  module.byoc.region
-}
-
-output "security_group_id" {
-  value =  module.byoc.security_group_id
-}
-
-output "ssh_key_name" {
-  value =  module.byoc.ssh_key_name
-}
-
-output "allowed_subnet_id" {
-  value =  module.byoc.allowed_subnet_id
-}
-
-output "instance_profile_arn" {
-  value =  module.byoc.instance_profile_arn
-}
-
-output "compute_role_arn" {
-  value =  module.byoc.compute_role_arn
+output "my-cloud" {
+    values = module.byoc.automatic_installation
 }
 ```
+
+ We recommend that `<output-name>` match the name in the `cloud_name` of the module, to ensure that naming is consistent between AWS, your tooling, and Earthly.
