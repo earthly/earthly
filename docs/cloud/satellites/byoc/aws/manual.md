@@ -87,7 +87,7 @@ Start by creating a new IAM policy:
 }
 ```
 
-Follow [AWS' guide to create a new instance role](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#create-iam-role), associating this new policy with your role. 
+Follow the [AWS guide to create a new instance role](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#create-iam-role), associating this new policy with your role. 
 
 ### Compute Role
 
