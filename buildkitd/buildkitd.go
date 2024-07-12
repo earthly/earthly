@@ -82,7 +82,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 		return nil, errors.Wrap(err, "add required client opts")
 	}
 
-	isLocal := containerutil.IsLocal(settings.BuildkitAddress)
+	isLocal := isLocalBuildkit(settings)
 	if !isLocal {
 		remoteConsole := console
 		if settings.SatelliteName != "" {
@@ -97,7 +97,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 			remoteConsole.Printf("Connecting to %s...", settings.BuildkitAddress)
 		}
 
-		info, workerInfo, err := waitForConnection(ctx, containerName, settings.BuildkitAddress, settings.Timeout, fe, opts...)
+		info, workerInfo, err := waitForConnection(ctx, containerName, settings, fe, opts...)
 		if err != nil {
 			return nil, errors.Wrap(err, "connect provided buildkit")
 		}
@@ -131,7 +131,7 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 // ResetCache restarts the buildkitd daemon with the reset command.
 func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image, containerName, installationName string, fe containerutil.ContainerFrontend, settings Settings, opts ...client.ClientOpt) error {
 	// Prune by resetting container.
-	if !containerutil.IsLocal(settings.BuildkitAddress) {
+	if !isLocalBuildkit(settings) {
 		return errors.New("cannot reset cache of a provided buildkit-host setting")
 	}
 
@@ -166,7 +166,7 @@ func ResetCache(ctx context.Context, console conslogging.ConsoleLogger, image, c
 	if err != nil {
 		return err
 	}
-	_, _, err = WaitUntilStarted(ctx, console, containerName, settings.VolumeName, settings.BuildkitAddress, settings.Timeout, fe, opts...)
+	_, _, err = WaitUntilStarted(ctx, console, containerName, settings.VolumeName, settings, fe, opts...)
 	if err != nil {
 		return err
 	}
@@ -230,7 +230,7 @@ func maybeStart(ctx context.Context, console conslogging.ConsoleLogger, image, c
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "start")
 	}
-	info, workerInfo, err := WaitUntilStarted(ctx, console, containerName, settings.VolumeName, settings.BuildkitAddress, settings.Timeout, fe, opts...)
+	info, workerInfo, err := WaitUntilStarted(ctx, console, containerName, settings.VolumeName, settings, fe, opts...)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "wait until started")
 	}
@@ -334,7 +334,7 @@ func maybeRestart(ctx context.Context, console conslogging.ConsoleLogger, image,
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "could not start container %q", containerName)
 	}
-	info, workerInfo, err := WaitUntilStarted(ctx, console, containerName, settings.VolumeName, settings.BuildkitAddress, settings.Timeout, fe, opts...)
+	info, workerInfo, err := WaitUntilStarted(ctx, console, containerName, settings.VolumeName, settings, fe, opts...)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "could not wait for container %q to start", containerName)
 	}
@@ -561,7 +561,9 @@ func IsStarted(ctx context.Context, containerName string, fe containerutil.Conta
 }
 
 // WaitUntilStarted waits until the buildkitd daemon has started and is healthy.
-func WaitUntilStarted(ctx context.Context, console conslogging.ConsoleLogger, containerName, volumeName, address string, opTimeout time.Duration, fe containerutil.ContainerFrontend, opts ...client.ClientOpt) (*client.Info, *client.WorkerInfo, error) {
+func WaitUntilStarted(ctx context.Context, console conslogging.ConsoleLogger, containerName, volumeName string, settings Settings, fe containerutil.ContainerFrontend, opts ...client.ClientOpt) (*client.Info, *client.WorkerInfo, error) {
+	opTimeout := settings.Timeout
+	address := settings.BuildkitAddress
 	// Check that containerName and address match when address connects over the docker-container:// scheme
 	if strings.HasPrefix(address, containerutil.DockerSchemePrefix) {
 		expectedAddress := containerutil.DockerSchemePrefix + containerName
@@ -595,7 +597,7 @@ ContainerRunningLoop:
 	}
 
 	// Wait for the connection to be available.
-	info, workerInfo, err := waitForConnection(ctx, containerName, address, opTimeout, fe, opts...)
+	info, workerInfo, err := waitForConnection(ctx, containerName, settings, fe, opts...)
 	if err != nil {
 		if !errors.Is(err, ErrBuildkitConnectionFailure) {
 			return nil, nil, err
@@ -620,7 +622,7 @@ ContainerRunningLoop:
 					"\t\tearthly config 'global.cache_size_pct' <new-percent>\n" +
 					"These set the BuildKit GC target to a specific value. For more information see " +
 					"the Earthly config reference page: https://docs.earthly.dev/docs/earthly-config\n")
-			info, workerInfo, err := waitForConnection(ctx, containerName, address, opTimeout, fe, opts...)
+			info, workerInfo, err := waitForConnection(ctx, containerName, settings, fe, opts...)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -631,21 +633,24 @@ ContainerRunningLoop:
 	return info, workerInfo, nil
 }
 
-func waitForConnection(ctx context.Context, containerName, address string, opTimeout time.Duration, fe containerutil.ContainerFrontend, opts ...client.ClientOpt) (*client.Info, *client.WorkerInfo, error) {
+func waitForConnection(ctx context.Context, containerName string, settings Settings, fe containerutil.ContainerFrontend, opts ...client.ClientOpt) (*client.Info, *client.WorkerInfo, error) {
+	opTimeout := settings.Timeout
+	address := settings.BuildkitAddress
+	isLocal := isLocalBuildkit(settings)
 	retryInterval := 200 * time.Millisecond
-	if !containerutil.IsLocal(address) {
+	if !isLocal {
 		retryInterval = 1 * time.Second
 	}
 	ctxTimeout, cancel := context.WithTimeout(ctx, opTimeout)
 	defer cancel()
 	attemptTimeout := 500 * time.Millisecond
-	if !containerutil.IsLocal(address) {
+	if !isLocal {
 		attemptTimeout = 1 * time.Second
 	}
 	for {
 		select {
 		case <-time.After(retryInterval):
-			if containerutil.IsLocal(address) {
+			if isLocal {
 				// Make sure that our managed buildkit has not crashed on startup.
 				isRunning, err := isContainerRunning(ctxTimeout, containerName, fe)
 				if err != nil {
@@ -1059,7 +1064,7 @@ func PrintSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, 
 	if err != nil {
 		return errors.Wrap(err, "add required client opts")
 	}
-	info, workerInfo, err := waitForConnection(ctx, "", settings.BuildkitAddress, settings.Timeout, nil, opts...)
+	info, workerInfo, err := waitForConnection(ctx, "", settings, nil, opts...)
 	if err != nil {
 		return errors.Wrap(err, "connect provided buildkit")
 	}
@@ -1074,4 +1079,8 @@ func containsAny(hs string, needles ...string) bool {
 		}
 	}
 	return false
+}
+
+func isLocalBuildkit(settings Settings) bool {
+	return containerutil.IsLocal(settings.BuildkitAddress) && settings.SatelliteName == ""
 }

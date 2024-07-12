@@ -193,7 +193,7 @@ For unit tests, we copy in the source and run the tests.
 ``` Dockerfile
 
 unit-test:
-    FROM +project-file
+    FROM +project-files
     COPY src src
     RUN sbt test
 
@@ -206,7 +206,7 @@ We then build a Dockerfile.
 
 ``` Dockerfile
 docker:
-    FROM +project-file
+    FROM +project-files
     COPY src src
     RUN sbt assembly
     ENTRYPOINT ["java","-cp","target/scala-2.12/scala-example-assembly-1.0.jar","Main"]

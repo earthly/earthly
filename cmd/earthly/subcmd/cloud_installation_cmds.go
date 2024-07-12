@@ -2,14 +2,16 @@ package subcmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/fatih/color"
 	"os"
+	"os/exec"
 	"text/tabwriter"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
@@ -19,7 +21,24 @@ import (
 
 type CloudInstallation struct {
 	cli CLI
+
+	method            string
+	cloudName         string
+	addressResolution string
+
+	awsAccountID          string
+	awsRegion             string
+	awsSecurityGroup      string
+	awsSSHKeyName         string
+	awsSubnetID           string
+	awsInstanceProfileARN string
+	awsEarthlyRoleARN     string
 }
+
+const (
+	cloudInstallationMethodCloudFormation = "cloudformation"
+	cloudInstallationMethodTerraform      = "terraform"
+)
 
 func NewCloudInstallation(cli CLI) *CloudInstallation {
 	return &CloudInstallation{
@@ -51,6 +70,58 @@ func (a *CloudInstallation) Cmds() []*cli.Command {
 					Description: "Configure a new Cloud Installation.",
 					UsageText:   "earthly cloud install <cloud-name>",
 					Action:      a.install,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:        "name",
+							Usage:       "The name of the cloud installation",
+							Destination: &a.cloudName,
+						},
+						&cli.StringFlag{
+							Name:        "via",
+							Usage:       "The source to use for automatic cloud installation. Valid options are (cloudformation, terraform). See docs for details.",
+							Destination: &a.method,
+						},
+						&cli.StringFlag{
+							Name:        "resolution",
+							Usage:       "How to connect to the remote satellite in your cloud. Depends on your individual setup. Valid options are (private_dns, private_ip). See docs for details.",
+							Destination: &a.addressResolution,
+						},
+						&cli.StringFlag{
+							Name:        "aws-account-id",
+							Usage:       "The account ID for the AWS account the BYOC installation belongs to.",
+							Destination: &a.awsAccountID,
+						},
+						&cli.StringFlag{
+							Name:        "aws-region",
+							Usage:       "The region for the AWS account the BYOC installation belongs to.",
+							Destination: &a.awsRegion,
+						},
+						&cli.StringFlag{
+							Name:        "aws-security-group-id",
+							Usage:       "The ID for the security group the BYOC installation will launch new satellites into.",
+							Destination: &a.awsSecurityGroup,
+						},
+						&cli.StringFlag{
+							Name:        "aws-ssh-key-name",
+							Usage:       "The name of the ssh key for BYOC to include on each newly launched satellite. Useful for debugging.",
+							Destination: &a.awsSSHKeyName,
+						},
+						&cli.StringFlag{
+							Name:        "aws-subnet-id",
+							Usage:       "The ID of the subnet the BYOC installation will launch new satellites into.",
+							Destination: &a.awsSubnetID,
+						},
+						&cli.StringFlag{
+							Name:        "aws-instance-profile-arn",
+							Usage:       "The ARN of the IAM instance profile for the BYOC installation to use for new satellites.",
+							Destination: &a.awsInstanceProfileARN,
+						},
+						&cli.StringFlag{
+							Name:        "aws-earthly-access-role-arn",
+							Usage:       "The ARN of the IAM role for Earthly to use when orchestrating and managing the new BYOC satellites.",
+							Destination: &a.awsEarthlyRoleARN,
+						},
+					},
 				},
 				{
 					Name:        "use",
@@ -84,14 +155,17 @@ func (c *CloudInstallation) install(cliCtx *cli.Context) error {
 	c.cli.SetCommandName("installCloud")
 	ctx := cliCtx.Context
 
-	if cliCtx.NArg() == 0 {
-		return errors.New("cloud name is required")
-	}
-	if cliCtx.NArg() > 1 {
-		return errors.New("only a single cloud name is supported")
+	if cliCtx.NArg() > 0 {
+		return errors.New("invalid number of arguments provided")
 	}
 
-	cloudName := cliCtx.Args().Get(0)
+	if !cliCtx.IsSet("resolution") {
+		c.addressResolution = cloud.AddressResolutionPrivateIP
+	}
+	if c.addressResolution != cloud.AddressResolutionPrivateIP &&
+		c.addressResolution != cloud.AddressResolutionPrivateDNS {
+		return errors.Errorf("%q is not a valid value for --resolution", c.addressResolution)
+	}
 
 	cloudClient, err := helper.NewCloudClient(c.cli)
 	if err != nil {
@@ -103,14 +177,24 @@ func (c *CloudInstallation) install(cliCtx *cli.Context) error {
 		return err
 	}
 
-	installation, err := c.getInstallationDataFromCloudFormation(ctx, cloudName)
+	var installationOpt *cloud.CloudConfigurationOpt
+	switch {
+	case c.method == cloudInstallationMethodCloudFormation:
+		installationOpt, err = c.getInstallationDataFromCloudFormation(ctx)
+	case c.method == cloudInstallationMethodTerraform:
+		installationOpt, err = c.getInstallationDataFromTerraform(ctx)
+	case c.isManualInstallation(cliCtx):
+		installationOpt, err = c.manualInstallation(ctx)
+	default:
+		return errors.New("could not determine installation method")
+	}
 	if err != nil {
 		return err
 	}
 
-	c.cli.Console().Printf("Configuring new Cloud Installation: %s. Please wait...", cloudName)
+	c.cli.Console().Printf("Configuring new Cloud Installation: %s. Please wait...", installationOpt.Name)
 
-	install, err := cloudClient.ConfigureCloud(ctx, orgID, installation)
+	install, err := cloudClient.ConfigureCloud(ctx, orgID, installationOpt)
 	if err != nil {
 		return errors.Wrap(err, "failed installing cloud")
 	}
@@ -125,7 +209,7 @@ func (c *CloudInstallation) install(cliCtx *cli.Context) error {
 	c.cli.Console().Printf("Cloud Installation was successful. Current status of cloud is: %s", install.Status)
 	c.cli.Console().Printf("")
 	c.cli.Console().Printf("To make your new cloud the default destination for future satellite launches, run the following:")
-	c.cli.Console().Printf("  earthly cloud use %s", cloudName)
+	c.cli.Console().Printf("  earthly cloud use %s", installationOpt.Name)
 	c.cli.Console().Printf("")
 
 	return nil
@@ -265,7 +349,75 @@ func (c *CloudInstallation) printTable(installations []cloud.Installation) {
 	}
 }
 
-func (c *CloudInstallation) getInstallationDataFromCloudFormation(ctx context.Context, stackName string) (*cloud.CloudConfigurationOpt, error) {
+func (c *CloudInstallation) manualInstallation(_ context.Context) (*cloud.CloudConfigurationOpt, error) {
+	return &cloud.CloudConfigurationOpt{
+		Name:               c.cloudName,
+		SshKeyName:         c.awsSSHKeyName,
+		ComputeRoleArn:     c.awsEarthlyRoleARN,
+		AccountId:          c.awsAccountID,
+		AllowedSubnetIds:   []string{c.awsSubnetID},
+		SecurityGroupId:    c.awsSecurityGroup,
+		Region:             c.awsRegion,
+		InstanceProfileArn: c.awsInstanceProfileARN,
+		AddressResolution:  c.addressResolution,
+	}, nil
+}
+
+func (c *CloudInstallation) getInstallationDataFromTerraform(ctx context.Context) (*cloud.CloudConfigurationOpt, error) {
+	// assumes you are authed with aws however you need to be for terraform to work
+	cmd := exec.CommandContext(ctx, "terraform", "output", "-json")
+	cmdOutput, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("could not get terraform outputs: %s: %w", string(cmdOutput), err)
+	}
+
+	tfOutputs := make(map[string]json.RawMessage)
+	err = json.Unmarshal(cmdOutput, &tfOutputs)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse terraform outputs: %w", err)
+	}
+
+	data, ok := tfOutputs[c.cloudName]
+	if !ok {
+		return nil, fmt.Errorf("could not find output %s", c.cloudName)
+	}
+
+	installOutputs := struct {
+		Value map[string]string `json:"value"`
+	}{}
+	err = json.Unmarshal(data, &installOutputs)
+	if err != nil {
+		return nil, fmt.Errorf("could not find output value for key %s", c.cloudName)
+	}
+
+	configOpt := &cloud.CloudConfigurationOpt{
+		AddressResolution: c.addressResolution,
+	}
+	for k, v := range installOutputs.Value {
+		switch k {
+		case "account_id":
+			configOpt.AccountId = v
+		case "allowed_subnet_id":
+			configOpt.AllowedSubnetIds = []string{v}
+		case "compute_role_arn":
+			configOpt.ComputeRoleArn = v
+		case "installation_name":
+			configOpt.Name = v
+		case "instance_profile_arn":
+			configOpt.InstanceProfileArn = v
+		case "region":
+			configOpt.Region = v
+		case "security_group_id":
+			configOpt.SecurityGroupId = v
+		case "ssh_key_name":
+			configOpt.SshKeyName = v
+		}
+	}
+
+	return configOpt, nil
+}
+
+func (c *CloudInstallation) getInstallationDataFromCloudFormation(ctx context.Context) (*cloud.CloudConfigurationOpt, error) {
 	awsConfig, err := awsconfig.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not load aws config")
@@ -274,25 +426,27 @@ func (c *CloudInstallation) getInstallationDataFromCloudFormation(ctx context.Co
 	client := cloudformation.NewFromConfig(awsConfig)
 
 	describeStacksOutput, err := client.DescribeStacks(ctx, &cloudformation.DescribeStacksInput{
-		StackName: aws.String(stackName),
+		StackName: aws.String(c.cloudName),
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("could not describe stack %s", stackName))
+		return nil, errors.Wrap(err, fmt.Sprintf("could not describe stack %s", c.cloudName))
 	}
 
 	if len(describeStacksOutput.Stacks) != 1 {
-		return nil, fmt.Errorf("unexpected number of stacks(%v) found with name %q", len(describeStacksOutput.Stacks), stackName)
+		return nil, fmt.Errorf("unexpected number of stacks(%v) found with name %q", len(describeStacksOutput.Stacks), c.cloudName)
 	}
 
 	stack := describeStacksOutput.Stacks[0]
-	params := &cloud.CloudConfigurationOpt{}
+	params := &cloud.CloudConfigurationOpt{
+		AddressResolution: c.addressResolution,
+	}
 
 	for _, output := range stack.Outputs {
 		if output.OutputKey == nil {
-			return nil, fmt.Errorf("specified stack %s has nil output key", stackName)
+			return nil, fmt.Errorf("specified stack %s has nil output key", c.cloudName)
 		}
 		if output.OutputValue == nil {
-			return nil, fmt.Errorf("specified stack %s has nil value for key %s", stackName, *output.OutputKey)
+			return nil, fmt.Errorf("specified stack %s has nil value for key %s", c.cloudName, *output.OutputKey)
 		}
 
 		switch *output.OutputKey {
@@ -316,4 +470,17 @@ func (c *CloudInstallation) getInstallationDataFromCloudFormation(ctx context.Co
 	}
 
 	return params, nil
+}
+
+func (c *CloudInstallation) isManualInstallation(ctx *cli.Context) bool {
+	// If any aws arg is specified, then
+	// how to see if flag is set instead of value here
+
+	return ctx.IsSet("aws-account-id") &&
+		ctx.IsSet("aws-region") &&
+		ctx.IsSet("aws-security-group-id") &&
+		ctx.IsSet("aws-ssh-key-name") &&
+		ctx.IsSet("aws-subnet-id") &&
+		ctx.IsSet("aws-instance-profile-arn") &&
+		ctx.IsSet("aws-earthly-access-role-arn")
 }
