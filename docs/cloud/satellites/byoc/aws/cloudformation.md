@@ -107,4 +107,6 @@ Earthly is able to automatically install BYOC when provisioned via CloudFormatio
 earthly cloud install --via terraform --name <stack-name>
 ```
 
-Where `<stack-name>` is the name used for your stack within AWS. Earthly will also use this name to reference your installation. 
+Where `<stack-name>` is the name used for your stack within AWS. Earthly will also use this name to reference your installation.
+
+Assuming the installation reports the status as `Green`, you should be good to go!

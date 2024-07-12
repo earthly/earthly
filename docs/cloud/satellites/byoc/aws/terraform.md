@@ -52,7 +52,8 @@ earthly cloud install --via terraform --name <output-name>
 
 Automatic installation requires some conditions to be met. If both of these conditions cannot be met, you will need to use the [manual](./manual.md) installation method with the infrastructure provisioned by Terraform.
 
-1. The install command is run in the same directory as the module containing your BYOC block.
+1. Terraform is in your `$PATH`.
+2. The install command is run in the same directory as the module containing your BYOC block.
 2. The `automatic_installation` output is exported under the name specified by `<output-name>`. You could enable automatic installation for the example earlier by adding the following output:
 
 ```hcl
@@ -62,3 +63,5 @@ output "my-cloud" {
 ```
 
  We recommend that `<output-name>` match the name in the `cloud_name` of the module, to ensure that naming is consistent between AWS, your tooling, and Earthly.
+
+Assuming the installation reports the status as `Green`, you should be good to go!

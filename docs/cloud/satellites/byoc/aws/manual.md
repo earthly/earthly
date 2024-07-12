@@ -21,6 +21,9 @@ earthly cloud install \
   --aws-instance-profile-arn <aws-instance-profile-arn> \
   --aws-earthly-access-role-arn <aws-earthly-access-role-arn>
 ```
+
+Assuming the installation reports the status as `Green`, you should be good to go!
+
 ### Parameters
 
 | Name                                         | Description                                                                                                                                                   |
