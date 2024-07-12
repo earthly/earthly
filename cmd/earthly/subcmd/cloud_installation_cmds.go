@@ -475,7 +475,7 @@ func (c *CloudInstallation) isManualInstallation(ctx *cli.Context) bool {
 	return ctx.IsSet("aws-account-id") &&
 		ctx.IsSet("aws-region") &&
 		ctx.IsSet("aws-security-group-id") &&
-		ctx.IsSet("aws-ssh-key-id") &&
+		ctx.IsSet("aws-ssh-key-name") &&
 		ctx.IsSet("aws-subnet-id") &&
 		ctx.IsSet("aws-instance-profile-arn") &&
 		ctx.IsSet("aws-earthly-access-role-arn")
