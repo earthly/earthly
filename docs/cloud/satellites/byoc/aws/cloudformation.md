@@ -19,6 +19,8 @@ You can install our CloudFormation template by opening this link in a new tab an
 
 [<img src="img/cloudformation.png" alt="Launch Stack In us-west-2" title="Launch CloudFormation Stack Quick-Create link" />](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?templateURL=https://production-byoc-installation.s3.us-west-2.amazonaws.com/cloudformation-byoc-installation.yaml)
 
+f you're curious about what we're provisioning, you can look at our [template](https://production-byoc-installation.s3.us-west-2.amazonaws.com/cloudformation-byoc-installation.yaml) directly.
+
 If you need help, please reference the overview below:
 
 ### Template Overview
