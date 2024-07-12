@@ -1,41 +1,21 @@
-# Installing BYOC in AWS
+# Installing BYOC in AWS via Cloudformation
 
-This page documents the requirements and steps required to install [BYOC Satellites](byoc.md) in AWS.
+This page documents the requirements and steps required to install [BYOC Satellites](../byoc.md) in AWS using Earthly's CloudFormation template.
 
 ## Requirements
-Before you begin to provision your BYOC configuration within AWS, there are a few requirements you need to make sure you meet first:
+Before you begin to provision your BYOC configuration, ensure that you meet the [base requirements](./requirements.md) for installation within AWS.
 
-### Networking
-Because every configuration is different, using BYOC within your organization will require you to configure your networking to match your use case. You'll need to ensure that:
+There are also a few additional requirements you will need to make sure you meet:
 
-* Traffic from Earthly clients, including CI build runners and developer workstations, can reach the satellites directly. When installing the AWS CloudFormation template, a security group rule is created that should allow the correct ingress from the specified CIDR block.
-* Traffic to any required resources (e.g. private repositories, the internet, etc) are allowed. When installing the AWS CloudFormation template, the default egress rule allows any outbound traffic.
-* Internal AWS DNS names must resolve to an address reachable on the network. This is because invocations of Earthly that reference the BYOC satellite will use the AWS internal DNS address to connect to the satellite. 
-
-These can all be accomplished with most VPN technologies. We recommend and have direct experience with Tailscale. If you need help configuring other networking scenarios, [please reach out to us](https://earthly.dev/slack)!
-
-### Cloud
-Configuring BYOC in your AWS account is as simple as applying a CloudFormation template, and reading its outputs. You'll need:
-
-* An AWS account with permissions to:
+* An AWS account or role with permissions to:
   * create a new CloudFormation stack, and
   * describe the newly created CloudFormation stack after it has run.
-* Either:
-  * An AWS account with permissions to create all the resources specified in the CloudFormation template, or
-  * a role for CloudFormation to use that has the needed permissions.
-* A VPC, and chosen subnet that Earthly will place its satellites into. *Take note of the CIDR block, you will need it later.*
+* An AWS account or role that can create all the resources specified in the template.
+* You have [AWS Credentials configured](https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-files.html) on your machine, with permissions to describe the CloudFormation stack you created.
 
-Right now, BYOC is only supported in the `us-west-2` (Oregon) region.
+## Installing the CloudFormation Template
 
-### On Your Machine
-After installing the CloudFormation template, you'll need to finish the installation at the command line. To do this, you'll need to ensure that:
-
-* Earthly is installed.
-* You have [AWS Credentials configured](https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-files.html) with permissions to describe the CloudFormation stack you created.
-
-## Installing the BYOC CloudFormation Template
-
-You can install our CloudFormation Template, by opening this link in a new tab and following the prompts:
+You can install our CloudFormation template by opening this link in a new tab and following the prompts:
 
 [<img src="img/cloudformation.png" alt="Launch Stack In us-west-2" title="Launch CloudFormation Stack Quick-Create link" />](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?templateURL=https://production-byoc-installation.s3.us-west-2.amazonaws.com/cloudformation-byoc-installation.yaml)
 
@@ -52,7 +32,7 @@ Earthly will reuse this name as the name of the "installation" within Earthly, s
 
 #### Parameters
 <img src="img/cloudformation-stack-params.png" alt="The Parameters box for the CloudFormation template. It contains input fields for a Subnet ID, VPC ID, and an Ingress CIDR Block." title="Parameters" />
-
+```
 There are only a few parameters required to get up and moving with a BYOC setup, and they're mostly related to your networking configuration.
 
 | Parameter          | Description                                                                                                                                                                                                                    |
@@ -118,3 +98,15 @@ If you prefer the CLI:
 
 #### Customization
 If you need/want to make changes to your installation, please see AWS' guide for [resolving drift in a CloudFormation stack via import](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resource-import-resolve-drift.html).
+
+## Installation Within Earthly
+
+Earthly is able to automatically install BYOC when provisioned via CloudFormation by running:
+
+```shell
+earthly cloud install --via terraform --name <stack-name>
+```
+
+Where `<stack-name>` is the name used for your stack within AWS. Earthly will also use this name to reference your installation.
+
+Assuming the installation reports the status as `Green`, you should be good to go!
