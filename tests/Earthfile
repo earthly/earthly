@@ -336,7 +336,7 @@ copy-keep-own-test:
     DO +RUN_EARTHLY --target=+test-unknown-user --earthfile=copy-keep-own.earth
 
 copy-tilde-test:
-    RUN touch in
+    RUN touch intest-no-qemu-group2
     DO +RUN_EARTHLY --target=+copy-tilde-destination --earthfile=copy-tilde.earth --output_contains='destination path \"~/.\" contains a \"~\" which does not expand to a home directory'
     DO +RUN_EARTHLY --target=+copy-tilde-in-destination --earthfile=copy-tilde.earth --output_contains='destination path \"/some/dir/~/.\" contains a \"~\" which does not expand to a home directory'
     DO +RUN_EARTHLY --target=+copy-tilde-in-destination-prefix --earthfile=copy-tilde.earth --output_contains='destination path \"~some/dir.\" contains a \"~\" which does not expand to a home directory'
