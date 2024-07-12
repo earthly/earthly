@@ -14,6 +14,11 @@ const (
 	CloudStatusUnknown = "Unknown"
 )
 
+const (
+	AddressResolutionPrivateIP  = "private_ip"
+	AddressResolutionPrivateDNS = "private_dns"
+)
+
 type Installation struct {
 	Name          string
 	Org           string
@@ -37,6 +42,10 @@ type CloudConfigurationOpt struct {
 }
 
 func (c *Client) ConfigureCloud(ctx context.Context, orgID string, configuration *CloudConfigurationOpt) (*Installation, error) {
+	resolution := pb.AddressResolution_ADDRESS_RESOLUTION_PRIVATE_IP
+	if configuration.AddressResolution == AddressResolutionPrivateDNS {
+		resolution = pb.AddressResolution_ADDRESS_RESOLUTION_PRIVATE_DNS
+	}
 	resp, err := c.compute.ConfigureCloud(c.withAuth(ctx), &pb.ConfigureCloudRequest{
 		OrgId:              orgID,
 		Name:               configuration.Name,
@@ -48,7 +57,7 @@ func (c *Client) ConfigureCloud(ctx context.Context, orgID string, configuration
 		SecurityGroupId:    configuration.SecurityGroupId,
 		Region:             configuration.Region,
 		InstanceProfileArn: configuration.InstanceProfileArn,
-		//AddressResolution:  configuration.AddressResolution,
+		AddressResolution:  resolution,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "error from ConfigureCloud API")

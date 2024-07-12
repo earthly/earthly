@@ -160,7 +160,11 @@ func (c *CloudInstallation) install(cliCtx *cli.Context) error {
 	}
 
 	if !cliCtx.IsSet("resolution") {
-		c.addressResolution = "private_ip"
+		c.addressResolution = cloud.AddressResolutionPrivateIP
+	}
+	if c.addressResolution != cloud.AddressResolutionPrivateIP &&
+		c.addressResolution != cloud.AddressResolutionPrivateDNS {
+		return errors.Errorf("%q is not a valid value for --resolution", c.addressResolution)
 	}
 
 	cloudClient, err := helper.NewCloudClient(c.cli)
