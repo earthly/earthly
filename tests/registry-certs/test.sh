@@ -15,7 +15,7 @@ test -n "$frontend" || (>&2 echo "Error: frontend is empty" && exit 1)
 # Cleanup previous run.
 "$frontend" stop registry || true
 "$frontend" rm registry || true
-"$frontend" rm network || true
+"$frontend" rm network registry-certs || true
 rm -rf "$testdir/certs" || true
 
 # Create user defined network.
