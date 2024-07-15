@@ -122,11 +122,11 @@ Start by creating the policy needed:
             "Resource": [
                 "arn:aws:ec2:us-west-2::image/*",
                 "arn:aws:ec2:us-west-2:012345678901:volume/*",
-                "arn:aws:ec2:us-west-2:012345678901:security-group/sg-032c157ecdb6b593f",
+                "arn:aws:ec2:us-west-2:012345678901:security-group/sg-012345678901",
                 "arn:aws:ec2:us-west-2:012345678901:network-interface/*",
-                "arn:aws:ec2:us-west-2:012345678901:key-pair/test-iam-14-satellite-key",
+                "arn:aws:ec2:us-west-2:012345678901:key-pair/name-satellite-key",
                 "arn:aws:ec2:us-west-2:012345678901:instance/*",
-                "arn:aws:ec2:us-west-2:012345678901:subnet/subnet-04dd222e0ac875763"
+                "arn:aws:ec2:us-west-2:012345678901:subnet/subnet-012345678901"
             ],
             "Effect": "Allow"
         },
