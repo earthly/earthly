@@ -121,12 +121,12 @@ Start by creating the policy needed:
             ],
             "Resource": [
                 "arn:aws:ec2:us-west-2::image/*",
-                "arn:aws:ec2:us-west-2:767397660820:volume/*",
-                "arn:aws:ec2:us-west-2:767397660820:security-group/sg-032c157ecdb6b593f",
-                "arn:aws:ec2:us-west-2:767397660820:network-interface/*",
-                "arn:aws:ec2:us-west-2:767397660820:key-pair/test-iam-14-satellite-key",
-                "arn:aws:ec2:us-west-2:767397660820:instance/*",
-                "arn:aws:ec2:us-west-2:767397660820:subnet/subnet-04dd222e0ac875763"
+                "arn:aws:ec2:us-west-2:012345678901:volume/*",
+                "arn:aws:ec2:us-west-2:012345678901:security-group/sg-032c157ecdb6b593f",
+                "arn:aws:ec2:us-west-2:012345678901:network-interface/*",
+                "arn:aws:ec2:us-west-2:012345678901:key-pair/test-iam-14-satellite-key",
+                "arn:aws:ec2:us-west-2:012345678901:instance/*",
+                "arn:aws:ec2:us-west-2:012345678901:subnet/subnet-04dd222e0ac875763"
             ],
             "Effect": "Allow"
         },
@@ -141,9 +141,9 @@ Start by creating the policy needed:
                 "ec2:CreateVolume"
             ],
             "Resource": [
-                "arn:aws:ec2:us-west-2:767397660820:volume/*",
-                "arn:aws:ec2:us-west-2:767397660820:network-interface/*",
-                "arn:aws:ec2:us-west-2:767397660820:instance/*"
+                "arn:aws:ec2:us-west-2:012345678901:volume/*",
+                "arn:aws:ec2:us-west-2:012345678901:network-interface/*",
+                "arn:aws:ec2:us-west-2:012345678901:instance/*"
             ],
             "Effect": "Allow"
         },
@@ -158,7 +158,7 @@ Start by creating the policy needed:
                 "ec2:StopInstances",
                 "ec2:StartInstances"
             ],
-            "Resource": "arn:aws:ec2:us-west-2:767397660820:instance/*",
+            "Resource": "arn:aws:ec2:us-west-2:012345678901:instance/*",
             "Effect": "Allow"
         },
         {
@@ -173,8 +173,8 @@ Start by creating the policy needed:
                 "ec2:AttachVolume"
             ],
             "Resource": [
-                "arn:aws:ec2:us-west-2:767397660820:volume/*",
-                "arn:aws:ec2:us-west-2:767397660820:instance/*"
+                "arn:aws:ec2:us-west-2:012345678901:volume/*",
+                "arn:aws:ec2:us-west-2:012345678901:instance/*"
             ],
             "Effect": "Allow"
         },
@@ -191,9 +191,9 @@ Start by creating the policy needed:
                 "ec2:CreateTags"
             ],
             "Resource": [
-                "arn:aws:ec2:us-west-2:767397660820:volume/*",
-                "arn:aws:ec2:us-west-2:767397660820:instance/*",
-                "arn:aws:ec2:us-west-2:767397660820:network-interface/*"
+                "arn:aws:ec2:us-west-2:012345678901:volume/*",
+                "arn:aws:ec2:us-west-2:012345678901:instance/*",
+                "arn:aws:ec2:us-west-2:012345678901:network-interface/*"
             ],
             "Effect": "Allow"
         }
