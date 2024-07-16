@@ -1,6 +1,8 @@
 name: Check Docs for Broken Links
 
 on:
+  push:
+    branches: [docs-0.8]
   pull_request:
     branches: [docs-0.8]
 

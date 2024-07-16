@@ -12,7 +12,7 @@ Because every configuration is different, using BYOC within your organization wi
 These can all be accomplished with most VPN technologies. We recommend and have direct experience with [Tailscale](../vpn/tailscale.md). If you need help configuring other networking scenarios, [please reach out to us](https://earthly.dev/slack)!
 
 ## Cloud
-Configuring BYOC in your AWS account is as simple as applying a CloudFormation template, and reading its outputs. You'll need:
+Configuring BYOC in your AWS account requires:
 
 * A VPC, 
 * and a chosen subnet that Earthly will place its satellites into. *Take note of the CIDR block, you may need it later.*

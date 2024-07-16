@@ -4,6 +4,22 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.15 - 2024-07-12
+
+### Added
+- Ability to automatically install BYOC from a Terraform deployment, or manually.
+
+### Fixed
+- Link-scoped devices will now properly autodetect MTU settings. 
+- Better error reporting when cross-target copy references a file that does not exist. [#4221](https://github.com/earthly/earthly/issues/4221)
+- AWS credentials are propogated into `WITH DOCKER`. [#4241](https://github.com/earthly/earthly/issues/4241)
+
+### Changed
+- Allow using `localhost` as a remote address when using satellites.
+
+### Additional Info
+- This release has no changes to buildkit
+
 ## v0.8.14 - 2024-06-10
 
 ### Fixed
