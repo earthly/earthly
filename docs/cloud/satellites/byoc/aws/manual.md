@@ -131,6 +131,28 @@ Start by creating the policy needed:
             "Effect": "Allow"
         },
         {
+            "Condition": {
+                "StringEquals": {
+                    "aws:ResourceTag/earthly:application": "satellite"
+                }
+            },
+            "Action": [
+                "ec2:RunInstances",
+                "ec2:CreateVolume"
+            ],
+            "Resource": [
+                "arn:aws:ec2:us-west-2:012345678901:volume/*",
+                "arn:aws:ec2:us-west-2:012345678901:network-interface/*",
+                "arn:aws:ec2:us-west-2:012345678901:instance/*"
+            ],
+            "Effect": "Allow"
+        },
+        {
+            "Condition": {
+                "StringEquals": {
+                    "aws:ResourceTag/earthly:application": "satellite"
+                }
+            },
             "Action": [
                 "ec2:TerminateInstances",
                 "ec2:StopInstances",
@@ -140,15 +162,38 @@ Start by creating the policy needed:
             "Effect": "Allow"
         },
         {
+            "Condition": {
+                "StringEquals": {
+                    "aws:ResourceTag/earthly:application": "satellite"
+                }
+            },
             "Action": [
                 "ec2:DetachVolume",
                 "ec2:DeleteVolume",
-                "ec2:CreateTags",
                 "ec2:AttachVolume"
             ],
             "Resource": [
                 "arn:aws:ec2:us-west-2:012345678901:volume/*",
                 "arn:aws:ec2:us-west-2:012345678901:instance/*"
+            ],
+            "Effect": "Allow"
+        },
+        {
+            "Condition": {
+                "StringEquals": {
+                    "ec2:CreateAction": [
+                        "RunInstances",
+                        "CreateVolume"
+                    ]
+                }
+            },
+            "Action": [
+                "ec2:CreateTags"
+            ],
+            "Resource": [
+                "arn:aws:ec2:us-west-2:012345678901:volume/*",
+                "arn:aws:ec2:us-west-2:012345678901:instance/*",
+                "arn:aws:ec2:us-west-2:012345678901:network-interface/*"
             ],
             "Effect": "Allow"
         }
