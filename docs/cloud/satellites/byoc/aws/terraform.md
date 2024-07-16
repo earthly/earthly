@@ -22,7 +22,7 @@ Place the following code into a file named `byoc.tf`, in an empty directory:
 ```hcl
 module "byoc" {
   source  = "earthly/byoc/aws"
-  version = "0.0.8"
+  version = "0.0.10"
 
   cloud_name = "my-cloud"
   subnet = "subnet-0123456789abcde01"
