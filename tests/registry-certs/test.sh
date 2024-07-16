@@ -31,7 +31,6 @@ export REGISTRY="$REGISTRY_IP"
 
 # Run registry. This will use the same IP address as allocated above.
 "$frontend" run --rm -d \
-    --ip "$REGISTRY_IP" \
     -v "$testdir"/certs:/certs \
     -e REGISTRY_HTTP_ADDR=0.0.0.0:443 \
     -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
