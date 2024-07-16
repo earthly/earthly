@@ -16,7 +16,7 @@ You can find the module in the [public Terraform Registry](https://registry.terr
 ```hcl
 module "byoc" {
   source  = "earthly/byoc/aws"
-  version = "0.0.8"
+  version = "0.0.10"
 
   cloud_name = "my-cloud"
   subnet = "subnet-0123456789abcde01"
