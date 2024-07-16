@@ -1,52 +1,50 @@
 # Bring Your Own Cloud
 
-"Bring Your Own Cloud" (BYOC) satellites **Experimental** are a hybrid between [self hosted](../self-hosted.md) and [earthly-managed](../../satellites.md) satellites. These satellites are managed by Earthly; just like our managed offering, but within your infrastructure. This blends the ease-of-use of managed satellites with the security benefits that self hosting can bring.
+{% hint style='warning' %}
+This feature is experimental.
+
+Not recommended for production usage yet, since it might introduce breaking changes in the future.
+
+Feedback is welcome and much appreciated!
+
+{% endhint %}
+
+"Bring Your Own Cloud" (BYOC) satellites are a hybrid between [self hosted](../self-hosted.md) and [earthly-managed](../../satellites.md) satellites. These satellites are managed by Earthly; just like our managed offering, but within your infrastructure. This blends the ease-of-use of managed satellites with the security benefits that self hosting can bring.
 
 BYOC satellites are [available with an Enterprise plan](https://earthly.dev/pricing).
 
-### BYOC vs Cloud
+### Comparing Earthly Satellite Offerings
 
-|                                                                                    | Earthly Cloud                     | Earthly BYOC                               |
-|------------------------------------------------------------------------------------|-----------------------------------|--------------------------------------------|
-| Who is responsible for monitoring and reliability of the Satellite                 | ✅ Earthly                         | ✅ Earthly                                  |
-| Satellites are deployed within your internal network                               | ❌ No                              | ✅ Yes                                      |
-| Earthly Cloud and Earthly staff are prevented from accessing your internal network | ✅ N/A                             | ✅ Yes                                      |
-| How is compute billed                                                              | ✅ Zero-margin compute via Earthly | ✅ Supported by you via your cloud provider |
-| Automatic updates                                                                  | ✅ Yes                             | ✅ Yes                                      |
-| Auto-sleep to drastically reduce compute cost                                      | ✅ Yes                             | ✅ Yes                                      |
-| Automatic management and GCing of cache volumes                                    | ✅ Yes                             | ✅ Yes                                      |
-| Users can launch and remove satellites via the `earthly sat` CLI                   | ✅ Yes                             | ✅ Yes                                      |
-| Requires access to a set of limited AWS capabilities                               | ✅ No                              | ❌ Yes                                      |
+|                                                                                    | Earthly Cloud                     | Earthly BYOC                     | Earthly Self-Hosted              |
+|------------------------------------------------------------------------------------|-----------------------------------|----------------------------------|----------------------------------|
+| Who is responsible for monitoring and reliability of the Satellite                 | ✅ Earthly                         | ✅ Earthly                        | ❌ You                            |
+| Satellites are deployed within your internal network                               | ❌ No                              | ✅ Yes                            | ✅ Yes                            |
+| Earthly Cloud and Earthly staff are prevented from accessing your internal network | ✅ N/A                             | ✅ Yes                            | ✅ Yes                            |
+| How is compute billed                                                              | ✅ Zero-margin compute via Earthly | ✅ To you via your cloud provider | ✅ To you via your cloud provider |
+| Automatic updates                                                                  | ✅ Yes                             | ✅ Yes                            | ❌ No                             |
+| Auto-sleep to drastically reduce compute cost                                      | ✅ Yes                             | ✅ Yes                            | ❌ No                             |
+| Automatic management and GCing of cache volumes                                    | ✅ Yes                             | ✅ Yes                            | ❌ No                             |
+| Users can launch and remove satellites via the `earthly sat` CLI                   | ✅ Yes                             | ✅ Yes                            | ❌ No                             |
+| Requires access to a set of limited AWS capabilities                               | ✅ No                              | ❌ Yes                            | ✅ No                             |
 
-
-### BYOC vs Self-Hosted
-
-|                                                                                    | Earthly Self-Hosted | Earthly BYOC |
-|------------------------------------------------------------------------------------|---------------------|--------------|
-| Who is responsible for monitoring and reliability of the Satellite                 | ❌ You               | ✅ Earthly    |
-| Satellites are deployed within your internal network                               | ✅ Yes               | ✅ Yes        |
-| Earthly Cloud and Earthly staff are prevented from accessing your internal network | ✅ Yes               | ✅ Yes        |
-| Compute is billed directly to you from your cloud provider                         | ✅ Yes               | ✅ Yes        |
-| Automatic updates                                                                  | ❌ No                | ✅ Yes        |
-| Auto-sleep to drastically reduce compute cost                                      | ❌ No                | ✅ Yes        |
-| Automatic management and GCing of cache volumes                                    | ❌ No                | ✅ Yes        |
-| Users can launch and remove satellites via the `earthly sat` CLI                   | ❌ No                | ✅ Yes        |
-| Requires access to a set of limited AWS capabilities                               | ✅ No                | ❌ Yes        |
 
 ## Installation
 
 ### Step 1: Install Your Cloud Provider
 
-There are multiple methods you can use to configure your cloud provider. Choose the one that works best for your organization:
+Make sure that you meet the base requirements for your cloud provider:
+
+* [AWS](./aws/requirements.md)
+
+Assuming you meet these requirements, there are multiple methods you can use to provision resources required to operate BYOC. Choose the one that works best for your organization:
 
 * [AWS CloudFormation](./aws/cloudformation.md)
 * [Terraform](./aws/terraform.md)
 * [Manual](./aws/manual.md)
 
+To get a better idea of what will be provisioned, see this section about [configuring byoc manually](./aws/manual.md#configuring-byoc-manually). All installation methods create the same resources.
+
 Follow the instructions for your selected installation method to provision the required resources and install BYOC.
-
-Right now, BYOC Satellites are only supported in AWS.
-
 
 ### Step 2: Networking
 
@@ -55,9 +53,9 @@ To use a satellite created by BYOC, you'll need to configure your networking (us
 
 ### Step 3. Test Drive
 
-Now that you have your cloud installation configured in your cloud provider and Earthly, its time to take it for a test drive!
+Now that you have your cloud installation configured in your cloud provider and Earthly, it's time to take it for a test drive!
 
-First, make sure you can see the cloud you just installed by running `earthly cloud list`, which lists all the cloud installations within your organization. Your output should look something like this:
+First, make sure you can see your new cloud by running `earthly cloud list`, which lists all the cloud installations within your organization. Your output should look something like this:
 
 ```shell
 ❯ earthly cloud list
