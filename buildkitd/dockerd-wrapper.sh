@@ -116,7 +116,7 @@ execute() {
         for img in $(docker images -q); do
             docker tag "$img" "${earthly_cached_docker_image_prefix}${img}"
         done
-        docker images -a --format '{{.Repository}}:{{.Tag}}' | grep -v "^$earthly_cached_docker_image_prefix" | xargs --no-run-if-empty docker rmi
+        docker images -a --format '{{.Repository}}:{{.Tag}}' | grep -v "^$earthly_cached_docker_image_prefix" | xargs --no-run-if-empty docker rmi --force
     fi
 
     load_file_images
@@ -124,8 +124,8 @@ execute() {
 
     # delete cached images (which weren't re-tagged via the pull)
     if [ "$EARTHLY_DOCKERD_CACHE_DATA" = "true" ]; then
-        docker images -f reference=$earthly_cached_docker_image_prefix'*' --format '{{.Repository}}:{{.Tag}}' | xargs --no-run-if-empty docker rmi
-        docker images -f "dangling=true" -q | xargs --no-run-if-empty docker rmi
+        docker images -f reference=$earthly_cached_docker_image_prefix'*' --format '{{.Repository}}:{{.Tag}}' | xargs --no-run-if-empty docker rmi --force
+        docker images -f "dangling=true" -q | xargs --no-run-if-empty docker rmi --force
     fi
 
     if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
@@ -340,7 +340,7 @@ load_registry_images() {
             esac
             echo "Pulling $with_reg and retagging as $user_tag"
             # Download and tag images in parallel
-            (docker pull -q "$with_reg" && docker tag "$with_reg" "$user_tag" && docker rmi "$with_reg") &
+            (docker pull -q "$with_reg" && docker tag "$with_reg" "$user_tag" && docker rmi --force "$with_reg") &
 
             bg_processes="$bg_processes $!"
 
