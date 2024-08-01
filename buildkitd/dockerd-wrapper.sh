@@ -112,6 +112,8 @@ execute() {
     done
 
     if [ "$EARTHLY_DOCKERD_CACHE_DATA" = "true" ]; then
+        clean_leftover_docker_objects
+
         # rename existing tags, so we can track which ones get re-tagged
         for img in $(docker images -q); do
             docker tag "$img" "${earthly_cached_docker_image_prefix}${img}"
@@ -315,6 +317,15 @@ get_current_time_ns() {
     test -n "$current_time_ns" || (echo "current_time_ns is empty" && exit 1)
     current_time_combined="$((current_time*1000000000+current_time_ns))"
     echo "$current_time_combined"
+}
+
+clean_leftover_docker_objects() {
+        # Kill any existing containers, and prune any resources that may have
+        # been left behind from a previous execution.
+        docker container ls --quiet | xargs --no-run-if-empty docker container kill
+        docker container prune --force
+        docker volume prune --force
+        docker network prune --force
 }
 
 load_registry_images() {
