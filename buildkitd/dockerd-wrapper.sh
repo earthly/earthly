@@ -112,11 +112,13 @@ execute() {
     done
 
     if [ "$EARTHLY_DOCKERD_CACHE_DATA" = "true" ]; then
+        clean_leftover_docker_objects
+
         # rename existing tags, so we can track which ones get re-tagged
         for img in $(docker images -q); do
             docker tag "$img" "${earthly_cached_docker_image_prefix}${img}"
         done
-        docker images -a --format '{{.Repository}}:{{.Tag}}' | grep -v "^$earthly_cached_docker_image_prefix" | xargs --no-run-if-empty docker rmi
+        docker images -a --format '{{.Repository}}:{{.Tag}}' | grep -v "^$earthly_cached_docker_image_prefix" | xargs --no-run-if-empty docker rmi --force
     fi
 
     load_file_images
@@ -124,8 +126,8 @@ execute() {
 
     # delete cached images (which weren't re-tagged via the pull)
     if [ "$EARTHLY_DOCKERD_CACHE_DATA" = "true" ]; then
-        docker images -f reference=$earthly_cached_docker_image_prefix'*' --format '{{.Repository}}:{{.Tag}}' | xargs --no-run-if-empty docker rmi
-        docker images -f "dangling=true" -q | xargs --no-run-if-empty docker rmi
+        docker images -f reference=$earthly_cached_docker_image_prefix'*' --format '{{.Repository}}:{{.Tag}}' | xargs --no-run-if-empty docker rmi --force
+        docker images -f "dangling=true" -q | xargs --no-run-if-empty docker rmi --force
     fi
 
     if [ "$EARTHLY_START_COMPOSE" = "true" ]; then
@@ -317,6 +319,15 @@ get_current_time_ns() {
     echo "$current_time_combined"
 }
 
+clean_leftover_docker_objects() {
+        # Kill any existing containers, and prune any resources that may have
+        # been left behind from a previous execution.
+        docker container ls --quiet | xargs --no-run-if-empty docker container kill
+        docker container prune --force
+        docker volume prune --force
+        docker network prune --force
+}
+
 load_registry_images() {
     EARTHLY_DOCKER_LOAD_REGISTRY=${EARTHLY_DOCKER_LOAD_REGISTRY:-''}
     if [ -n "$EARTHLY_DOCKER_LOAD_REGISTRY" ]; then
@@ -340,7 +351,7 @@ load_registry_images() {
             esac
             echo "Pulling $with_reg and retagging as $user_tag"
             # Download and tag images in parallel
-            (docker pull -q "$with_reg" && docker tag "$with_reg" "$user_tag" && docker rmi "$with_reg") &
+            (docker pull -q "$with_reg" && docker tag "$with_reg" "$user_tag" && docker rmi --force "$with_reg") &
 
             bg_processes="$bg_processes $!"
 
