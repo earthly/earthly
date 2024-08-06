@@ -11,6 +11,7 @@ import (
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
+	"github.com/earthly/earthly/util/types/variable"
 	"github.com/pkg/errors"
 
 	dfShell "github.com/moby/buildkit/frontend/dockerfile/shell"
@@ -194,26 +195,33 @@ func (c *Collection) SetLocally(locally bool) {
 	c.effectiveCache = nil
 }
 
-// Get returns a variable by name.
-func (c *Collection) Get(name string, opts ...ScopeOpt) (string, bool) {
-	return c.effective().Get(name, opts...)
+// Get returns a variable by name. // TODO rename to GetValueAsString
+//func (c *Collection) Get(name string, opts ...ScopeOpt) (string, bool) {
+//	v, ok := c.effective().Get(name, opts...)
+//	return v.String(), ok
+//}
+
+// Get returns a variable by name. // TODO rename back to Get
+func (c *Collection) GetValue(name string, opts ...ScopeOpt) (variable.Value, bool) {
+	v, ok := c.effective().Get(name, opts...)
+	return v, ok
 }
 
 // SortedVariables returns the current variable names in a sorted slice.
 func (c *Collection) SortedVariables(opts ...ScopeOpt) []string {
-	return c.effective().Sorted(opts...)
+	return c.effective().SortedNames(opts...)
 }
 
 // SortedOverridingVariables returns the overriding variable names in a sorted slice.
 func (c *Collection) SortedOverridingVariables() []string {
-	return c.overriding().Sorted()
+	return c.overriding().SortedNames()
 }
 
 // ExpandOld expands variables within the given word, it does not perform shelling-out.
 // it will eventually be removed when the ShellOutAnywhere feature is fully-adopted
 func (c *Collection) ExpandOld(word string) string {
 	shlex := dfShell.NewLex('\\')
-	varMap := c.effective().Map(WithActive())
+	varMap := c.effective().MapWithStringValues(c.AbsRef(), WithActive())
 	ret, err := shlex.ProcessWordWithMap(word, varMap)
 	if err != nil {
 		// No effect if there is an error.
@@ -226,31 +234,33 @@ func (c *Collection) ExpandOld(word string) string {
 func (c *Collection) Expand(word string, shellOut shell.EvalShellOutFn) (string, error) {
 	shlex := shell.NewLex('\\')
 	shlex.ShellOut = shellOut
-	varMap := c.effective().Map(WithActive())
+	varMap := c.effective().MapWithStringValues(c.AbsRef(), WithActive())
 	return shlex.ProcessWordWithMap(word, varMap, ShellOutEnvs)
 }
 
-func (c *Collection) overridingOrDefault(name string, defaultValue string, pncvf ProcessNonConstantVariableFunc) (string, error) {
+func (c *Collection) overridingOrDefault(name string, defaultValue variable.Value, pncvf ProcessNonConstantVariableFunc) (variable.Value, error) {
 	if v, ok := c.overriding().Get(name); ok {
+		v.Type = defaultValue.Type
 		return v, nil
 	}
 	if v, ok := c.builtin.Get(name); ok {
+		v.Type = defaultValue.Type
 		return v, nil
 	}
-	return parseArgValue(name, defaultValue, pncvf)
+	return parseArgValue2(name, defaultValue, pncvf, c.AbsRef())
 }
 
-func (c *Collection) declareOldArg(name string, defaultValue string, global bool, pncvf ProcessNonConstantVariableFunc) (string, string, error) {
+func (c *Collection) declareOldArg(name string, defaultValue variable.Value, global bool, pncvf ProcessNonConstantVariableFunc) (variable.Value, variable.Value, error) {
 	ef := c.effective()
 	finalDefaultValue := defaultValue
-	var finalValue string
+	var finalValue variable.Value
 	existing, found := ef.Get(name)
 	if found {
 		finalValue = existing
 	} else {
-		v, err := parseArgValue(name, defaultValue, pncvf)
+		v, err := parseArgValue2(name, defaultValue, pncvf, c.AbsRef())
 		if err != nil {
-			return "", "", err
+			return variable.Value{}, variable.Value{}, err
 		}
 		finalValue = v
 		finalDefaultValue = v
@@ -265,7 +275,7 @@ func (c *Collection) declareOldArg(name string, defaultValue string, global bool
 }
 
 type declarePrefs struct {
-	val    string
+	val    variable.Value
 	global bool
 	arg    bool
 	pncvf  ProcessNonConstantVariableFunc
@@ -277,7 +287,7 @@ type DeclareOpt func(declarePrefs) declarePrefs
 // WithValue is an option function for setting a variable's value. For ARGs,
 // this is only the default value - it can be overridden when calling a target
 // at the CLI.
-func WithValue(val string) DeclareOpt {
+func WithValue(val variable.Value) DeclareOpt {
 	return func(o declarePrefs) declarePrefs {
 		o.val = val
 		return o
@@ -312,19 +322,19 @@ func WithPNCVFunc(f ProcessNonConstantVariableFunc) DeclareOpt {
 
 // DeclareVar declares a variable. The effective value may be
 // different than the default, if the variable has been overridden.
-func (c *Collection) DeclareVar(name string, opts ...DeclareOpt) (string, string, error) {
+func (c *Collection) DeclareVar(name string, opts ...DeclareOpt) (variable.Value, variable.Value, error) {
 	var prefs declarePrefs
 	for _, o := range opts {
 		prefs = o(prefs)
 	}
 	if !c.errorOnRedeclare {
 		if !prefs.arg {
-			return "", "", errors.New("LET requires the --arg-scope-and-set feature")
+			return variable.Value{}, variable.Value{}, errors.New("LET requires the --arg-scope-and-set feature")
 		}
 		return c.declareOldArg(name, prefs.val, prefs.global, prefs.pncvf)
 	}
 	if !c.shelloutAnywhere {
-		return "", "", errors.New("the --arg-scope-and-set feature flag requires --shell-out-anywhere")
+		return variable.Value{}, variable.Value{}, errors.New("the --arg-scope-and-set feature flag requires --shell-out-anywhere")
 	}
 
 	c.effectiveCache = nil
@@ -333,40 +343,41 @@ func (c *Collection) DeclareVar(name string, opts ...DeclareOpt) (string, string
 	if !prefs.arg {
 		ok := c.vars().Add(name, prefs.val, scope...)
 		if !ok {
-			return "", "", hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', use 'SET %[1]v = %[2]q'", name, prefs.val)
+			return variable.Value{}, variable.Value{}, hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', use 'SET %[1]v = %[2]q'", name, prefs.val)
 		}
 		return prefs.val, prefs.val, nil
 	}
 
 	if _, ok := c.vars().Get(name, WithActive()); ok {
-		return "", "", hint.Wrapf(ErrRedeclared, "'%v' was already declared with LET and cannot be redeclared as an ARG", name)
+		return variable.Value{}, variable.Value{}, hint.Wrapf(ErrRedeclared, "'%v' was already declared with LET and cannot be redeclared as an ARG", name)
 	}
 
 	v, err := c.overridingOrDefault(name, prefs.val, prefs.pncvf)
 	if err != nil {
-		return "", "", err
+		return variable.Value{}, variable.Value{}, err
 	}
+	v.Type = prefs.val.Type
 
 	if prefs.global {
 		if _, ok := c.args().Get(name); ok {
 			baseErr := errors.Wrap(ErrRedeclared, "could not override non-global ARG with global ARG")
-			return "", "", hint.Wrapf(baseErr, "'%[1]v' was already declared as a non-global ARG in this scope - did you mean to add '--global' to the original declaration?", name)
+			return variable.Value{}, variable.Value{}, hint.Wrapf(baseErr, "'%[1]v' was already declared as a non-global ARG in this scope - did you mean to add '--global' to the original declaration?", name)
 		}
 		ok := c.globals().Add(name, v, scope...)
 		if !ok {
-			return "", "", hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', redeclare it as a non-argument variable with 'LET %[1]v = %[2]q'", name, prefs.val)
+			return variable.Value{}, variable.Value{}, hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', redeclare it as a non-argument variable with 'LET %[1]v = %[2]q'", name, prefs.val)
 		}
 		return v, v, nil
 	}
 	ok := c.args().Add(name, v, scope...)
 	if !ok {
-		return "", "", hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', redeclare it as a non-argument variable with 'LET %[1]v = %[2]q'", name, prefs.val)
+		return variable.Value{}, variable.Value{}, hint.Wrapf(ErrRedeclared, "if you want to change the value of '%[1]v', redeclare it as a non-argument variable with 'LET %[1]v = %[2]q'", name, prefs.val)
 	}
 	return v, prefs.val, nil
 }
 
 // SetArg sets the value of an arg.
-func (c *Collection) SetArg(name string, value string) {
+func (c *Collection) SetArg(name string, value variable.Value) {
 	c.args().Add(name, value, WithActive())
 	c.effectiveCache = nil
 }
@@ -378,7 +389,7 @@ func (c *Collection) UnsetArg(name string) {
 }
 
 // DeclareEnv declares an env var.
-func (c *Collection) DeclareEnv(name string, value string) {
+func (c *Collection) DeclareEnv(name string, value variable.Value) {
 	c.envs.Add(name, value, WithActive())
 	c.effectiveCache = nil
 }
@@ -387,7 +398,7 @@ func (c *Collection) DeclareEnv(name string, value string) {
 // value of the variable, regardless of where the value was previously defined.
 //
 // It returns ErrVarNotFound if the variable was not found.
-func (c *Collection) UpdateVar(name, value string, pncvf ProcessNonConstantVariableFunc) (retErr error) {
+func (c *Collection) UpdateVar(name string, value variable.Value, pncvf ProcessNonConstantVariableFunc) (retErr error) {
 	defer func() {
 		if retErr == nil {
 			c.effectiveCache = nil
@@ -399,7 +410,7 @@ func (c *Collection) UpdateVar(name, value string, pncvf ProcessNonConstantVaria
 	if _, ok := c.vars().Get(name, WithActive()); !ok {
 		return hint.Wrapf(ErrSetArg, "'%[1]v' is an ARG and cannot be used with SET - try declaring 'LET %[1]v = $%[1]v' first", name)
 	}
-	v, err := parseArgValue(name, value, pncvf)
+	v, err := parseArgValue2(name, value, pncvf, c.AbsRef())
 	if err != nil {
 		return errors.Wrap(err, "failed to parse SET value")
 	}
@@ -449,12 +460,12 @@ func (c *Collection) IsStackAtBase() bool {
 func (c *Collection) StackString() string {
 	builder := make([]string, 0, len(c.stack))
 	for i := len(c.stack) - 1; i >= 0; i-- {
-		activeNames := c.stack[i].args.Sorted(WithActive())
+		activeNames := c.stack[i].args.SortedNames(WithActive())
 		row := make([]string, 0, len(activeNames)+1)
 		row = append(row, c.stack[i].frameName)
 		for _, k := range activeNames {
 			v, _ := c.stack[i].overriding.Get(k)
-			row = append(row, fmt.Sprintf("--%s=%s", k, v))
+			row = append(row, fmt.Sprintf("--%s=%s", k, v.String(c.AbsRef())))
 		}
 		builder = append(builder, strings.Join(row, " "))
 	}

@@ -1,0 +1,7 @@
+VERSION 0.8
+
+reallydeep:
+  FROM alpine
+  ARG othernamefortarget
+  RUN --no-cache echo "in reallydeep othernamefortarget=$othernamefortarget"
+  BUILD ./ultradeep/like-in-the-movie/the-abyss/by-james-cameron+argpasser --target=$othernamefortarget

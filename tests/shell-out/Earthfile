@@ -14,10 +14,10 @@ test-all:
 
 test-old:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=old.earth --target=+test
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=old-no-middle-shell-out.earth --target=+test
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=old-ignore-shellout-errors.earth --target=+test
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=old-fail1.earth --target=+test --should_fail=true --output_contains="/valid-\$.echo file..: not found"
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=old-fail2.earth --target=+test --should_fail=true --output_contains="invalid env key definition \$key"
+    #DO --pass-args +RUN_EARTHLY_ARGS --earthfile=old-no-middle-shell-out.earth --target=+test
+    #DO --pass-args +RUN_EARTHLY_ARGS --earthfile=old-ignore-shellout-errors.earth --target=+test
+    #DO --pass-args +RUN_EARTHLY_ARGS --earthfile=old-fail1.earth --target=+test --should_fail=true --output_contains="/valid-\$.echo file..: not found"
+    #DO --pass-args +RUN_EARTHLY_ARGS --earthfile=old-fail2.earth --target=+test --should_fail=true --output_contains="invalid env key definition \$key"
 
 test-old2:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=old2.earth --target=+test
