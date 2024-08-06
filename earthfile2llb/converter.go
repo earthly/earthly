@@ -109,6 +109,7 @@ type Converter struct {
 	cacheContext        pllb.State
 	persistentCacheDirs map[string]states.CacheMount // maps path->mount
 	varCollection       *variables.Collection
+	holdingLocallyLock  bool
 	ranSave             bool
 	cmdSet              bool
 	ftrs                *features.Features
@@ -199,6 +200,10 @@ func (c *Converter) From(ctx context.Context, imageName string, platform platuti
 	err = c.checkOldPlatformIncompatibility(platform)
 	if err != nil {
 		return err
+	}
+	if c.holdingLocallyLock {
+		c.opt.LocallyLock = c.opt.LocallyLock.Unlock()
+		c.holdingLocallyLock = false
 	}
 	c.varCollection.SetLocally(false) // FIXME this will have to change once https://github.com/earthly/earthly/issues/2044 is fixed
 	platform = c.setPlatform(platform)
@@ -482,6 +487,11 @@ func (c *Converter) Locally(ctx context.Context) error {
 	c.mts.Final.MainState = c.mts.Final.MainState.Dir(workingDir)
 	c.mts.Final.MainImage.Config.WorkingDir = workingDir
 	c.setPlatform(platutil.UserPlatform)
+	// Only one LOCALLY command is allowed in parallel.
+	if !c.opt.LocallyLock.HaveLease() {
+		c.opt.LocallyLock = c.opt.LocallyLock.Lock()
+		c.holdingLocallyLock = true
+	}
 	return nil
 }
 
@@ -1792,6 +1802,11 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	if !c.varCollection.IsStackAtBase() {
 		// Should never happen.
 		return nil, errors.New("internal error: stack not at base in FinalizeStates")
+	}
+
+	if c.holdingLocallyLock {
+		c.opt.LocallyLock = c.opt.LocallyLock.Unlock()
+		c.holdingLocallyLock = false
 	}
 
 	// Persists any cache directories created by using a `CACHE` command
