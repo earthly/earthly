@@ -206,8 +206,6 @@ Whenever possible, Earthly automatically executes targets in parallel.
 
 ### 💾 Caching that works the same as Docker builds
 
-Cut down build times in CI through [shared remote caching](https://docs.earthly.dev/docs/remote-caching).
-
 <div align="center"><a href="https://asciinema.org/a/351674?speed=2"><img src="img/demo-351674.gif" alt="Demonstration of Earthly's caching" title="View on asciinema.org" width="600px" /></a></div>
 
 ### 🛠 Multi-platform support

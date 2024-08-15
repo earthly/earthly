@@ -207,10 +207,6 @@ Watch out especially for ARGs that change often, such as the built-in ARG `EARTH
 
 Note that secrets, unlike ARGs, do NOT contribute to the cache state of a layer. This means that if you use a secret in a `RUN` command, and the secret changes, the `RUN` command will not be invalidated.
 
-### Remote caching via registry
-
-Please note that remote caching via registry tends to be very difficult to get right. When using explicit caching, by default, only the layers of the target being directly called are included (if any). From there, you need to add `SAVE IMAGE --cache-hint` across various other targets to add more layers to the remote cache. There is often a trade-off between the upload/download size vs the actual time saved. Significant experimentation is necessary to get this right. Note also that main branch builds might overlap with PR builds, and therefore, you might need to use different cache destinations for each. Usually, using [remote runners](caching-via-remote-runners.md) is a better alternative to remote caching via registry.
-
 ### Force a build step to always cache
 
 If you have already optimized your cache by maximizing its size, declaring arguments as late as possible, and implementing the other recommendations provided here, but you still encounter performance bottlenecks due to computationally intensive tasks being evicted from the cache, consider employing `SAVE IMAGE` commands at strategic points. These images can serve as manual caches and can improve efficiency at the cost of simplicity. For additional details, refer to the [Best Practices](../guides/best-practices.md#use-save-image-to-always-cache) section.
