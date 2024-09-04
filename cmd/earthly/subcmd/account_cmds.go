@@ -29,14 +29,12 @@ var (
 type Account struct {
 	cli CLI
 
-	email                  string
-	token                  string
-	password               string
-	termsConditionsPrivacy bool
-	registrationPublicKey  string
-	writePermission        bool
-	expiry                 string
-	overWrite              bool
+	email           string
+	token           string
+	password        string
+	writePermission bool
+	expiry          string
+	overWrite       bool
 }
 
 func NewAccount(cli CLI) *Account {
