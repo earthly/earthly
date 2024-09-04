@@ -14,8 +14,6 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/term"
 
 	"github.com/earthly/earthly/cloud"
@@ -54,55 +52,6 @@ func (a *Account) Cmds() []*cli.Command {
 			Usage:       "Create or manage an Earthly account",
 			Description: "Create or manage an Earthly account.",
 			Subcommands: []*cli.Command{
-				{
-					Name:        "register",
-					Usage:       "Register for an Earthly account",
-					Description: "Register for an Earthly account.",
-					UsageText: "You may register using GitHub OAuth, by visiting https://ci.earthly.dev\n" +
-						"   Once authenticated, a login token will be displayed which can be used to login:\n" +
-						"\n" +
-						"       earthly [options] account login --token <token>\n" +
-						"\n" +
-						"   Alternatively, you can register using an email:\n" +
-						"       first, request a token with:\n" +
-						"\n" +
-						"           earthly [options] account register --email <email>\n" +
-						"\n" +
-						"       then check your email to retrieve the token, then continue by running:\n" +
-						"\n" +
-						"           earthly [options] account register --token <token>\n",
-					Action: a.actionRegister,
-					Flags: []cli.Flag{
-						&cli.StringFlag{
-							Name:        "email",
-							Usage:       "Email address to use for register for your Earthly account",
-							Destination: &a.email,
-						},
-						&cli.StringFlag{
-							Name:        "token",
-							Usage:       "Email verification token, retreived from the email you used to register your account",
-							Destination: &a.token,
-						},
-						&cli.StringFlag{
-							Name:        "password",
-							EnvVars:     []string{"EARTHLY_PASSWORD"},
-							Usage:       "Specify password on the command line instead of interactively being asked",
-							Destination: &a.password,
-						},
-						&cli.StringFlag{
-							Name:        "public-key",
-							EnvVars:     []string{"EARTHLY_PUBLIC_KEY"},
-							Usage:       "Path to public key to register",
-							Destination: &a.registrationPublicKey,
-						},
-						&cli.BoolFlag{
-							Name:        "accept-terms-of-service-privacy",
-							EnvVars:     []string{"EARTHLY_ACCEPT_TERMS_OF_SERVICE_PRIVACY"},
-							Usage:       "Accept the Terms & Conditions, and Privacy Policy",
-							Destination: &a.termsConditionsPrivacy,
-						},
-					},
-				},
 				{
 					Name:        "login",
 					Usage:       "Login to an Earthly account",
@@ -222,129 +171,6 @@ func (a *Account) Cmds() []*cli.Command {
 			},
 		},
 	}
-}
-
-func (a *Account) actionRegister(cliCtx *cli.Context) error {
-	a.cli.SetCommandName("accountRegister")
-	if a.email == "" {
-		return errors.New("no email given")
-	}
-
-	if !strings.Contains(a.email, "@") {
-		return errors.New("email is invalid")
-	}
-
-	cloudClient, err := helper.NewCloudClient(a.cli)
-	if err != nil {
-		return err
-	}
-
-	if a.token == "" {
-		err := cloudClient.RegisterEmail(cliCtx.Context, a.email)
-		if err != nil {
-			return errors.Wrap(err, "failed to register email")
-		}
-		fmt.Printf("An email has been sent to %q containing a registration token\n", a.email)
-		return nil
-	}
-
-	var publicKeys []*agent.Key
-	if a.cli.Flags().SSHAuthSock != "" {
-		var err error
-		publicKeys, err = cloudClient.GetPublicKeys(cliCtx.Context)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Our signal handling under main() doesn't cause reading from stdin to cancel
-	// as there's no way to pass a.ctx to stdin read calls.
-	signal.Reset(syscall.SIGINT, syscall.SIGTERM)
-
-	pword := a.password
-	if pword == "" {
-		pword, err = promptNewPassword()
-		if err != nil {
-			return err
-		}
-	}
-
-	var interactiveAccept bool
-	if !a.termsConditionsPrivacy {
-		rawAccept, err := common.PromptInput(cliCtx.Context, "I acknowledge Earthly Technologies’ Privacy Policy (https://earthly.dev/privacy-policy) and agree to Earthly Technologies Terms of Service (https://earthly.dev/tos) [y/N]: ")
-		if err != nil {
-			return err
-		}
-		if rawAccept == "" {
-			rawAccept = "n"
-		}
-		accept := strings.ToLower(rawAccept)[0]
-		interactiveAccept = (accept == 'y')
-	}
-	termsConditionsPrivacy := a.termsConditionsPrivacy || interactiveAccept
-
-	var publicKey string
-	if a.registrationPublicKey == "" {
-		if len(publicKeys) > 0 {
-			rawIsRegisterSSHKey, err := common.PromptInput(cliCtx.Context, "Would you like to enable password-less login using public key authentication (https://earthly.dev/public-key-auth)? [Y/n]: ")
-			if err != nil {
-				return err
-			}
-			if rawIsRegisterSSHKey == "" {
-				rawIsRegisterSSHKey = "y"
-			}
-			isRegisterSSHKey := (strings.ToLower(rawIsRegisterSSHKey)[0] == 'y')
-			if isRegisterSSHKey {
-				fmt.Printf("Which of the following keys do you want to register?\n")
-				fmt.Printf("0) none\n")
-				for i, key := range publicKeys {
-					fmt.Printf("%d) %s\n", i+1, key.String())
-				}
-				keyNum, err := common.PromptInput(cliCtx.Context, "enter key number (1=default): ")
-				if err != nil {
-					return err
-				}
-				if keyNum == "" {
-					keyNum = "1"
-				}
-				i, err := strconv.Atoi(keyNum)
-				if err != nil {
-					return errors.Wrap(err, "invalid key number")
-				}
-				if i < 0 || i > len(publicKeys) {
-					return errors.Errorf("invalid key number")
-				}
-				if i > 0 {
-					publicKey = publicKeys[i-1].String()
-				}
-			}
-		}
-	} else {
-		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(a.registrationPublicKey))
-		if err == nil {
-			// supplied public key is valid
-			publicKey = a.registrationPublicKey
-		} else {
-			// otherwise see if it matches the name (Comment) of a key known by the ssh agent
-			for _, key := range publicKeys {
-				if key.Comment == a.registrationPublicKey {
-					publicKey = key.String()
-					break
-				}
-			}
-			if publicKey == "" {
-				return errors.Errorf("failed to find key in ssh agent's known keys")
-			}
-		}
-	}
-
-	err = cloudClient.CreateAccount(cliCtx.Context, a.email, a.token, pword, publicKey, termsConditionsPrivacy)
-	if err != nil {
-		return errors.Wrap(err, "failed to create account")
-	}
-
-	fmt.Println("Account registration complete")
-	return nil
 }
 
 // promptHiddenText prompts the user to enter a value without echoing it to stdout
