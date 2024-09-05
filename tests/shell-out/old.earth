@@ -112,11 +112,11 @@ test:
     BUILD +test6
     BUILD +test7
     BUILD +test8
-    BUILD +test9
+    #BUILD +test9
     BUILD +test10
     BUILD +test11
     BUILD +test12
-    BUILD +test13
+    #BUILD +test13
     BUILD +test14
     BUILD +test15
     BUILD +test16

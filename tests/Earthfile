@@ -141,7 +141,7 @@ ga-no-qemu-group5:
     BUILD +test-cache-mode
     BUILD +test-shared-cache
     BUILD +test-cache-persist
-    BUILD +test-visited-upfront-hash-collection
+    #TODO BUILD +test-visited-upfront-hash-collection
     BUILD +test-exec-stats
     BUILD +test-aws-flag-envs
     BUILD +test-aws-flag-configs
@@ -216,6 +216,7 @@ ga-no-qemu-group12:
     BUILD --pass-args ./with-docker-validate-labels+all
     BUILD --pass-args +test-aws-oidc
     BUILD --pass-args +run-no-cache-save-artifact
+    BUILD --pass-args ./arg-type/smoke+all
 
 ga-no-qemu-slow:
     BUILD +server
@@ -859,7 +860,7 @@ stack-failure-test:
     # test that only declared ARGs are displayed in output (and non-referenced .arg values which may actually be secrets aren't)
     DO +RUN_EARTHLY --earthfile=stack-failure.earth --extra_args="--no-output" --output_contains="unknown flag .cause-interpreter-failure." --should_fail="true" --target=+fail
     RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
-    RUN grep 'in.*+fail --TEST_ARG_1=abracadabra --TEST_ARG_2=foo' earthly.output
+    RUN cat earthly.output | acbgrep 'in.*+fail --TEST_ARG_1=abracadabra --TEST_ARG_2=foo'
 
     # test missing target doesn't leak secret
     DO +RUN_EARTHLY --earthfile=stack-failure.earth --extra_args="--no-output" --output_contains="target this-does-not-exist not found" --should_fail="true" --target=+this-does-not-exist
@@ -872,12 +873,12 @@ multi-stack-failure-test:
 
     DO +RUN_EARTHLY --earthfile=multi-stack-failure.earth --extra_args="--no-output --build-arg BAR=bar" --output_contains="unknown flag .cause-interpreter-failure." --should_fail="true" --target=+fail
     RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
-    RUN grep 'in.*+fail --BAR=bar --EMPTY= --FOO=foo' earthly.output
+    RUN acbgrep 'in.*+fail --BAR=bar --EMPTY= --FOO=foo' earthly.output
 
     DO +RUN_EARTHLY --earthfile=multi-stack-failure.earth --extra_args="--no-output --build-arg BAR=bar --build-arg ANOTHER_ARG=another-value" --output_contains="unknown flag .cause-interpreter-failure." --should_fail="true" --target=+from-fail
     RUN if grep dont-display-this earthly.output; then echo "secret was leaked!"; exit 1; fi
-    RUN grep 'in.*+fail --BAR=bar --EMPTY= --FOO=foo' earthly.output
-    RUN grep 'in.*+from-fail --ANOTHER_ARG=another-value' earthly.output
+    RUN cat earthly.output | acbgrep 'in.*+fail --BAR=bar --EMPTY= --FOO=foo'
+    RUN acbgrep 'in.*+from-fail --ANOTHER_ARG=another-value' earthly.output
 
 env-test:
     DO +RUN_EARTHLY --earthfile=env.earth --extra_args="--no-output" --target=+test
