@@ -10,8 +10,7 @@
   ```
 * Artifact form
   ```
-  earthly [options...] --artifact|-a <target-ref>/<artifact-path> [<dest-path>]
-  earthly [options...] --artifact|-a (<target-ref>/<artifact-path> [build-args...]) [<dest-path>]
+  earthly [options...] --artifact|-a <target-ref>/<artifact-path> [<dest-path>] [build-args...]
   ```
 * Image form
   ```
@@ -63,14 +62,14 @@ See the [importing guide](../guides/importing.md) for more details and examples.
 Synopsis:
 
   * Target form `earthly <target-ref> [--<build-arg-key>=<build-arg-value>...]`
-  * Artifact form `earthly --artifact (<target-ref>/<artifact-path> [--<build-arg-key>=<build-arg-value>...]) <dest-path>`
+  * Artifact form `earthly --artifact <target-ref>/<artifact-path> <dest-path> [--<build-arg-key>=<build-arg-value>...]`
   * Image form `earthly --image <target-ref> [--<build-arg-key>=<build-arg-value>...]`
 
 Also available as an env var setting: `EARTHLY_BUILD_ARGS="<build-arg-key>=<build-arg-value>,<build-arg-key>=<build-arg-value>,..."`.
 
 Build arg overrides may be specified as part of the Earthly command. The value of the build arg `<build-arg-key>` is set to `<build-arg-value>`.
 
-In the target and image forms the build args are passed after the target reference. For example `earthly +some-target --NAME=john --SPECIES=human`. In the artifact form, the build args are passed immediately after the artifact reference, however they are surrounded by parenthesis, similar to a [`COPY` command](../earthfile/earthfile.md#copy). For example `earthly --artifact (+some-target/some-artifact --NAME=john --SPECIES=human) ./dest/path/`.
+In the target and image forms the build args are passed after the target reference. For example `earthly +some-target --NAME=john --SPECIES=human`. In the artifact form, the build args are passed immediately after the artifact reference, however they are surrounded by parenthesis, similar to a [`COPY` command](../earthfile/earthfile.md#copy). For example `earthly --artifact +some-target/some-artifact ./dest/path --NAME=john --SPECIES=human`.
 
 The build arg overrides only apply to the target being called directly and any other target referenced as part of the same Earthfile. Build arg overrides, will not apply to targets referenced from other directories or other repositories.
 
