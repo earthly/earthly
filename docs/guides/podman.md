@@ -101,7 +101,7 @@ graphDriverName: overlay  # or something similar
 This error typically occurs when switching from docker desktop to podman without docker installed.
 There may be a lingering configuration file that will be read by the attachable used to authenticate calls to BuildKit.
 
-To fix this issue, try removing or renaming the `~/.docker/config.json` file.
+To fix this issue, try removing the line `"credsStore": "desktop",` from `~/.docker/config.json` file. You can also move or delete that file entirely if you wish.
 
 ### Earthly CLI - no frontend initialized
 Seeing the error on startup means the check for podman has failed.
