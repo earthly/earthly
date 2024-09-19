@@ -131,7 +131,7 @@ lint-scripts:
 earthly-script-no-stdout:
     # This validates the ./earthly script doesn't print anything to stdout (it should print to stderr)
     # This is to ensure commands such as: MYSECRET="$(./earthly secrets get -n /user/my-secret)" work
-    FROM earthly/dind:alpine-3.19-docker-25.0.5-r0
+    FROM earthly/dind:alpine-3.20-docker-26.1.5-r0
     RUN apk add --no-cache --update bash
     COPY earthly .earthly_version_flag_overrides .
 
