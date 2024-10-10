@@ -63,6 +63,7 @@ type Features struct {
 	GlobalCache                     bool `long:"global-cache" enabled_in_version:"0.8" description:"enable global caches (shared across different Earthfiles), for cache mounts and CACHEs having an ID"`
 	CachePersistOption              bool `long:"cache-persist-option" enabled_in_version:"0.8" description:"Adds option to persist caches, Changes default CACHE behaviour to not persist"`
 	GitRefs                         bool `long:"git-refs" enabled_in_version:"0.8" description:"includes EARTHLY_GIT_REFS ARG"`
+	GitMessages                     bool `long:"git-messages" enabled_in_version:"0.8" description:"includes EARTHLY_GIT_MESSAGE and EARTHLY_GIT_MESSAGE_FULL ARG"`
 	UseVisitedUpfrontHashCollection bool `long:"use-visited-upfront-hash-collection" enabled_in_version:"0.8" description:"Uses a new target visitor implementation that computes upfront the hash of the visited targets and adds support for running all targets with the same name but different args in parallel"`
 	UseFunctionKeyword              bool `long:"use-function-keyword" enabled_in_version:"0.8" description:"Use the FUNCTION key word instead of COMMAND"`
 
