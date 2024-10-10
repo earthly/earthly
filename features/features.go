@@ -63,7 +63,6 @@ type Features struct {
 	GlobalCache                     bool `long:"global-cache" enabled_in_version:"0.8" description:"enable global caches (shared across different Earthfiles), for cache mounts and CACHEs having an ID"`
 	CachePersistOption              bool `long:"cache-persist-option" enabled_in_version:"0.8" description:"Adds option to persist caches, Changes default CACHE behaviour to not persist"`
 	GitRefs                         bool `long:"git-refs" enabled_in_version:"0.8" description:"includes EARTHLY_GIT_REFS ARG"`
-	GitMessages                     bool `long:"git-messages" enabled_in_version:"0.8" description:"includes EARTHLY_GIT_MESSAGE and EARTHLY_GIT_MESSAGE_FULL ARG"`
 	UseVisitedUpfrontHashCollection bool `long:"use-visited-upfront-hash-collection" enabled_in_version:"0.8" description:"Uses a new target visitor implementation that computes upfront the hash of the visited targets and adds support for running all targets with the same name but different args in parallel"`
 	UseFunctionKeyword              bool `long:"use-function-keyword" enabled_in_version:"0.8" description:"Use the FUNCTION key word instead of COMMAND"`
 
@@ -76,6 +75,7 @@ type Features struct {
 	WildcardCopy                  bool `long:"wildcard-copy" description:"allow for the expansion of wildcard (glob) paths for COPY commands"`
 	RawOutput                     bool `long:"raw-output" description:"allow for --raw-output on RUN commands"`
 	GitAuthorEmailNameArgs        bool `long:"git-author-email-name-args" description:"includes EARTHLY_GIT_AUTHOR_EMAIL and EARTHLY_GIT_AUTHOR_NAME builtin ARGs"`
+	GitMessages                   bool `long:"git-messages" description:"includes EARTHLY_GIT_MESSAGE and EARTHLY_GIT_MESSAGE_FULL builtin ARGs"`
 	AllowWithoutEarthlyLabels     bool `long:"allow-without-earthly-labels" description:"Allow the usage of --without-earthly-labels in SAVE IMAGE"`
 	DockerCache                   bool `long:"docker-cache" description:"enable the WITH DOCKER --cache-id option"`
 	RunWithAWSOIDC                bool `long:"run-with-aws-oidc" description:"make AWS credentials via OIDC provider available to RUN commands"`
