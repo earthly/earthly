@@ -1289,6 +1289,10 @@ For more information see the [multi-platform guide](../guides/multi-platform.md)
 
 Same as [`FROM --allow-privileged`](#allow-privileged).
 
+##### `--pass-args`
+
+Same as [`FROM --pass-args`](#pass-args).
+
 ##### `--build-arg <key>=<value>` (**deprecated**)
 
 This option is deprecated. Please use `--load <image-name>=(<target-ref> --<build-arg-key>=<build-arg-value>)` instead.
