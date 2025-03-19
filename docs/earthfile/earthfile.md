@@ -808,14 +808,11 @@ For detailed examples demonstrating how other scenarios may function, please see
 
 #### Synopsis
 
-* `SAVE IMAGE [--cache-from=<cache-image>] [--push] <image-name>...` (output form)
-* `SAVE IMAGE --cache-hint` (cache hint form)
+* `SAVE IMAGE [--push] <image-name>...`
 
 #### Description
 
-In the *output form*, the command `SAVE IMAGE` marks the current build environment as the image of the target and assigns one or more output image names.
-
-In the *cache hint form*, it instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [remote caching guide](../caching/caching-via-registry.md).
+The command `SAVE IMAGE` marks the current build environment as the image of the target and assigns one or more output image names.
 
 {% hint style='info' %}
 ##### Assigning multiple image names
@@ -855,14 +852,6 @@ The actual push is not executed by default. Add the `--push` flag to the earthly
 ```bash
 earthly --push +docker-image
 ```
-
-##### `--cache-from=<cache-image>`
-
-Adds additional cache sources to be used when `--use-inline-cache` is enabled. For more information see the [remote caching guide](../caching/caching-via-registry.md).
-
-##### `--cache-hint`
-
-Instructs Earthly that the current target should be included as part of the explicit cache. For more information see the [remote caching guide](../caching/caching-via-registry.md).
 
 ##### `--no-manifest-list`
 

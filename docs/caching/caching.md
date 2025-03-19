@@ -49,25 +49,13 @@ There are three main ways in which Earthly performs caching of builds:
 
 ## Sharing Cache
 
-The above capabilities can make your builds very fast. However, if you are using ephemeral CI runners, all of that valuable context can be lost between runs, resulting in poor build performance. Earthly's remote runners and caching via a registry capabilities solve this problem.
+The above capabilities can make your builds very fast. However, if you are using ephemeral CI runners, all of that valuable context can be lost between runs, resulting in poor build performance. Earthly's remote runners solve this problem.
 
-Since most CI platforms do not allow reusing state between runs efficiently, passing Earthly's cache via traditional CI cache constructs that rely on an upload and a download is too inefficient to be practical. Earthly's remote caching via a registry helps by optimizing what is uploaded and downloaded for maximum efficiency, although it does require experimentation to get right, and there are a number of limitations.
+Since most CI platforms do not allow reusing state between runs efficiently, passing Earthly's cache via traditional CI cache constructs that rely on an upload and a download is too inefficient to be practical.
 
 The most effective means of sharing cache between runs is to execute the Earthly builds remotely. This allows Earthly maintain the cache close to where it executes, thus being able to access it instantly without the need for an upload/download step. Because all Earthly builds are containerized, you still get the ephemeral nature of the CI runner, allowing for build repeatability, but you also get the benefits of a fast cache that is local to the execution environment.
 
-Below is a comparison between remote runners, such as [Earthly Satellites](../cloud/satellites.md), and remote caching via a registry.
-
-| Cache characteristic | Remote runners (e.g. Satellite) | Remote Cache via registry |
-| --- | --- | --- |
-| Storage location | Runner (e.g. Satellite) | A container registry of your choice |
-| Proximity to compute | ✅ Same machine | ❌ Performing upload/download is required |
-| Just works, no configuration necessary | ✅ Yes | ❌ Requires experimentation with the various settings |
-| Concurrent access | ✅ Yes | 🟡 Concurrent read access only |
-| Retains entire cache of the build | ✅ Yes | ❌ Usually no, due to prohibitive upload time |
-| Retains cache for multiple historical builds | ✅ Yes | ❌ No, only one build retained |
-| Cache mounts (`RUN --mount type=cache` and `CACHE`) included | ✅ Yes | ❌ No |
-
-To read more, check out the [remote runners page](../remote-runners.md), and the [caching via a registry](./caching-via-registry.md).
+To read more, check out the [remote runners page](../remote-runners.md) and [Earthly Satellites](../cloud/satellites.md), remote runners offered by Earthly.
 
 ## Managing Cache
 

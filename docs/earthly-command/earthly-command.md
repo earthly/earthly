@@ -10,8 +10,7 @@
   ```
 * Artifact form
   ```
-  earthly [options...] --artifact|-a <target-ref>/<artifact-path> [<dest-path>]
-  earthly [options...] --artifact|-a (<target-ref>/<artifact-path> [build-args...]) [<dest-path>]
+  earthly [options...] --artifact|-a <target-ref>/<artifact-path> [<dest-path>] [build-args...]
   ```
 * Image form
   ```
@@ -63,14 +62,14 @@ See the [importing guide](../guides/importing.md) for more details and examples.
 Synopsis:
 
   * Target form `earthly <target-ref> [--<build-arg-key>=<build-arg-value>...]`
-  * Artifact form `earthly --artifact (<target-ref>/<artifact-path> [--<build-arg-key>=<build-arg-value>...]) <dest-path>`
+  * Artifact form `earthly --artifact <target-ref>/<artifact-path> <dest-path> [--<build-arg-key>=<build-arg-value>...]`
   * Image form `earthly --image <target-ref> [--<build-arg-key>=<build-arg-value>...]`
 
 Also available as an env var setting: `EARTHLY_BUILD_ARGS="<build-arg-key>=<build-arg-value>,<build-arg-key>=<build-arg-value>,..."`.
 
 Build arg overrides may be specified as part of the Earthly command. The value of the build arg `<build-arg-key>` is set to `<build-arg-value>`.
 
-In the target and image forms the build args are passed after the target reference. For example `earthly +some-target --NAME=john --SPECIES=human`. In the artifact form, the build args are passed immediately after the artifact reference, however they are surrounded by parenthesis, similar to a [`COPY` command](../earthfile/earthfile.md#copy). For example `earthly --artifact (+some-target/some-artifact --NAME=john --SPECIES=human) ./dest/path/`.
+In the target and image forms the build args are passed after the target reference. For example `earthly +some-target --NAME=john --SPECIES=human`. In the artifact form, the build args are passed immediately after the artifact reference, however they are surrounded by parenthesis, similar to a [`COPY` command](../earthfile/earthfile.md#copy). For example `earthly --artifact +some-target/some-artifact ./dest/path --NAME=john --SPECIES=human`.
 
 The build arg overrides only apply to the target being called directly and any other target referenced as part of the same Earthfile. Build arg overrides, will not apply to targets referenced from other directories or other repositories.
 
@@ -254,32 +253,6 @@ Instructs Earthly to skip any targets that have not changed from a previous buil
 Also available as an env var setting: `EARTHLY_ALLOW_PRIVILEGED=true`.
 
 Permits the build to use the --privileged flag in RUN commands. For more information see the [`RUN --privileged` command](../earthfile/earthfile.md#run).
-
-##### `--use-inline-cache`
-
-Also available as an env var setting: `EARTHLY_USE_INLINE_CACHE=true`
-
-Enables use of inline cache, if available. Any `SAVE IMAGE --push` command is used to inform the system of possible inline cache sources. For more information see the [remote caching guide](../caching/caching-via-registry.md).
-
-##### `--save-inline-cache`
-
-Also available as an env var setting: `EARTHLY_SAVE_INLINE_CACHE=true`
-
-Enables embedding inline cache in any pushed images. This cache can be used on other systems, if enabled via `--use-inline-cache`. For more information see the [remote caching guide](../caching/caching-via-registry.md).
-
-##### `--remote-cache <image-tag>[,<attr1>=<val1>,<attr2>=<val2>,...]`
-
-Also available as an env var setting: `EARTHLY_REMOTE_CACHE=<image-tag>[,<attr1>=<val1>,<attr2>=<val2>,...]`
-
-Enables use of explicit cache. The provided `<image-tag>` is used for storing and retrieving the cache to/from a Docker registry. Storing explicit cache is only enabled if the option `--push` is also passed in.
-Additional attributes can be optionally set for certain registry providers to be supported.
-For more information see the [remote caching guide](../caching/caching-via-registry.md).
-
-##### `--max-remote-cache`
-
-Also available as an env var setting: `EARTHLY_MAX_REMOTE_CACHE=true`
-
-Enables storing all intermediate layers as part of the explicit cache. Note that this setting is rarely effective due to the excessive upload overhead. For more information see the [remote caching guide](../caching/caching-via-registry.md).
 
 ##### `--ci`
 
