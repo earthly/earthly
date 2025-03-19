@@ -1808,7 +1808,11 @@ func (c *Converter) FinalizeStates(ctx context.Context) (*states.MultiTarget, er
 	}
 
 	if c.ftrs.WaitBlock {
-		c.waitBlock().AddItem(newStateWaitItem(&c.mts.Final.MainState, c))
+		if c.mts.Final.InteractiveSession.Initialized {
+			c.waitBlock().AddItem(newStateWaitItem(&c.mts.Final.InteractiveSession.State, c))
+		} else {
+			c.waitBlock().AddItem(newStateWaitItem(&c.mts.Final.MainState, c))
+		}
 	}
 	close(c.mts.Final.Done())
 
