@@ -9,7 +9,7 @@ test:
     COPY expected-*.yml .
 
     # Ensure earthly doesn't create overridden config files when they don't exist
-    RUN earthly --config config.yml config global.disable_analytics true 2>&1 | grep 'failed to read from config.yml: open config.yml: no such file or directory'
+    RUN earthly --config config.yml config global.disable_analytics true 2>&1 | acbgrep 'failed to read from config.yml: open config.yml: no such file or directory'
 
     RUN touch config.yml
 
@@ -97,7 +97,7 @@ test:
     # check permission error is correctly returned
     COPY hello.earth Earthfile
     RUN ! earthly --config=/tmp/config.yml --verbose +hello > output.txt 2>&1
-    RUN cat output.txt | grep 'Error: read config: failed to read from /tmp/config.yml: open /tmp/config.yml: permission denied'
+    RUN cat output.txt | acbgrep 'Error: read config: failed to read from /tmp/config.yml: open /tmp/config.yml: permission denied'
 
     # check permission error is correctly returned even when earthly attempts to read from the default location
     # to make this test work, a symbolic link is required (chown root:root /home/testuser/.earthly/config.yml doesnt work)
@@ -105,7 +105,7 @@ test:
     RUN ln -s /tmp/config.yml /home/testuser/.earthly/config.yml
 
     RUN ! earthly --verbose +hello > output.txt 2>&1
-    RUN cat output.txt | grep 'Error: read config: failed to read from /home/testuser/.earthly/config.yml: open /home/testuser/.earthly/config.yml: permission denied'
+    RUN cat output.txt | acbgrep 'Error: read config: failed to read from /home/testuser/.earthly/config.yml: open /home/testuser/.earthly/config.yml: permission denied'
 
     # make it obvious that this test passed, due to the previous grep displaying "Error: ..." when it passes
     RUN echo "config test passed"
