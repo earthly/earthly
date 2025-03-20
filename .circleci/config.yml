@@ -2,7 +2,8 @@ version: 2.1
 jobs:
   build:
     machine:
-      image: ubuntu-2204:2023.07.2
+      image: ubuntu-2204:2024.08.1
+    resource_class: large
     steps:
       - checkout
       - run:
@@ -26,7 +27,6 @@ jobs:
               ./build/linux/amd64/earthly --ci -P \
               +smoke-test --DOCKERHUB_MIRROR_AUTH_FROM_CLOUD_SECRETS=true && echo "circleci tests passed"
 workflows:
-  version: 2
   circle-ci:
     jobs:
       - build:
