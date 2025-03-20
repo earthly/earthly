@@ -50,6 +50,8 @@ type GitMetadata struct {
 	AuthorName           string
 	CoAuthors            []string
 	Refs                 []string
+	Message              string
+	FullMessage          string
 }
 
 // Metadata performs git metadata detection on the provided directory.
@@ -129,6 +131,16 @@ func Metadata(ctx context.Context, dir, gitBranchOverride string) (*GitMetadata,
 		retErr = err
 		// Keep going.
 	}
+	message, err := detectGitMessage(ctx, dir, oneline)
+	if err != nil {
+		retErr = err
+		// Keep going.
+	}
+	fullMessage, err := detectGitMessage(ctx, dir, full)
+	if err != nil {
+		retErr = err
+		// Keep going.
+	}
 
 	relDir, isRel, err := gitRelDir(baseDir, dir)
 	if err != nil {
@@ -154,6 +166,8 @@ func Metadata(ctx context.Context, dir, gitBranchOverride string) (*GitMetadata,
 		AuthorName:           authorName,
 		CoAuthors:            coAuthors,
 		Refs:                 refs,
+		Message:              message,
+		FullMessage:          fullMessage,
 	}, retErr
 }
 
@@ -175,6 +189,8 @@ func (gm *GitMetadata) Clone() *GitMetadata {
 		AuthorName:           gm.AuthorName,
 		CoAuthors:            gm.CoAuthors,
 		Refs:                 gm.Refs,
+		Message:              gm.Message,
+		FullMessage:          gm.FullMessage,
 	}
 }
 
@@ -328,6 +344,13 @@ const (
 	committer
 )
 
+type gitCommitMessageType int
+
+const (
+	oneline gitCommitMessageType = iota
+	full
+)
+
 func detectGitTimestamp(ctx context.Context, dir string, tsType gitTimestampType) (string, error) {
 	var format string
 	switch tsType {
@@ -371,6 +394,35 @@ func detectGitAuthor(ctx context.Context, dir string, format string) (string, er
 		return "", nil
 	}
 	return strings.SplitN(outStr, "\n", 2)[0], nil
+}
+
+func detectGitMessage(ctx context.Context, dir string, formatType gitCommitMessageType) (string, error) {
+	var format string
+	switch formatType {
+	case oneline:
+		format = "%s"
+	case full:
+		format = "%B"
+	}
+	cmd := exec.CommandContext(ctx, "git", "log", "-1", fmt.Sprintf("--format=%s", format))
+	cmd.Dir = dir
+	cmd.Stderr = nil // force capture of stderr on errors
+	out, err := cmd.Output()
+	if err != nil {
+		exitError, ok := err.(*exec.ExitError)
+		if ok && strings.Contains(string(exitError.Stderr), "does not have any commits yet") {
+			return "", nil
+		}
+		return "", errors.Wrap(err, "detect git comment")
+	}
+	outStr := string(out)
+	if outStr == "" {
+		return "", nil
+	}
+	if formatType == oneline {
+		return strings.SplitN(outStr, "\n", 2)[0], nil
+	}
+	return outStr, nil
 }
 
 // ConfigEmail returns the user's currently configured (global) email address

@@ -16,6 +16,8 @@ const (
 	EarthlyGitShortHash             = "EARTHLY_GIT_SHORT_HASH"
 	EarthlyGitTag                   = "EARTHLY_GIT_TAG"
 	EarthlyGitRefs                  = "EARTHLY_GIT_REFS"
+	EarthlyGitMessage               = "EARTHLY_GIT_MESSAGE"
+	EarthlyGitMessageFull           = "EARTHLY_GIT_MESSAGE_FULL"
 	EarthlyLocally                  = "EARTHLY_LOCALLY"
 	EarthlyPush                     = "EARTHLY_PUSH"
 	EarthlyCI                       = "EARTHLY_CI"
@@ -61,6 +63,8 @@ func init() {
 		EarthlyGitShortHash:             {},
 		EarthlyGitTag:                   {},
 		EarthlyGitRefs:                  {},
+		EarthlyGitMessage:               {},
+		EarthlyGitMessageFull:           {},
 		EarthlyLocally:                  {},
 		EarthlyPush:                     {},
 		EarthlyCI:                       {},
