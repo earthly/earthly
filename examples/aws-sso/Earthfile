@@ -4,34 +4,21 @@ FROM amazon/aws-cli
 target:
   BUILD +run --sso_region="us-east-2" --region="us-east-2" --args="sts get-caller-identity"
 
-python:
-  FROM python:3
-  WORKDIR /workspace
-
-ubuntu:
-  FROM ubuntu:jammy
-  WORKDIR /workspace
-  RUN apt update -y
-  RUN apt install -y curl unzip
-
 login:
   ARG EARTHLY_CI
   IF [ "$EARTHLY_CI" = "false" ]
     ARG --required sso_region
-    FROM +python
-    # https://github.com/benkehoe/aws-export-credentials
-    RUN pip install aws-export-credentials
     BUILD +dev.login.open --sso_region=$sso_region
     COPY +dev.login/aws /root/.aws
-    RUN aws-export-credentials --profile default --credentials-file-profile default
-    SAVE ARTIFACT /root/.aws/credentials /credentials
+    RUN aws configure export-credentials --format process --profile default > /root/.aws/credentials.process
+    SAVE ARTIFACT /root/.aws/credentials.process /credentials.process
   ELSE IF [ "$EARTHLY_CI" = "true" ]
     RUN mkdir -p /root/.aws/
     RUN --secret AWS_ACCESS_KEY_ID --secret AWS_SECRET_ACCESS_KEY --secret AWS_SESSION_TOKEN printf "[default]\naws_access_key_id=$AWS_ACCESS_KEY_ID\naws_secret_access_key=$AWS_SECRET_ACCESS_KEY\naws_session_token=$AWS_SESSION_TOKEN\n" >> /root/.aws/credentials
+    SAVE ARTIFACT /root/.aws/credentials /credentials
   ELSE
     RUN echo "bad value for EARTHLY_CI" && exit 1
   END
-  SAVE ARTIFACT /root/.aws/credentials /credentials
 
 dev.login.open:
   ARG --required sso_region
@@ -59,30 +46,13 @@ run:
   ARG --required sso_region
   ARG --required region
   ARG --required args
-  FROM +ubuntu
-  DO +INSTALL_CLI
   DO +LOGIN --sso_region=$sso_region
   ENV AWS_REGION=$region
   RUN --no-cache aws $args
-
-# Installs the AWS CLI
-INSTALL_CLI:
-  FUNCTION
-  ARG TARGETARCH
-  IF [ "$TARGETARCH" = "amd64" ]
-    ARG aws_architecture="x86_64"
-  ELSE IF [ "$TARGETARCH" = "arm64" ]
-    ARG aws_architecture="aarch64"
-  ELSE
-    RUN echo "unknown architecture $TARGETARCH" && exit 1
-  END
-  RUN curl --location --fail --silent --show-error "https://awscli.amazonaws.com/awscli-exe-linux-$aws_architecture.zip" --output "awscliv2.zip" && \
-    unzip -q awscliv2.zip && \
-    ./aws/install && \
-    rm -rf awscliv2.zip aws
 
 LOGIN:
   FUNCTION
   ARG --required sso_region
   BUILD +login --sso_region=$sso_region
-  COPY (+login/credentials --sso_region=$sso_region) /root/.aws/credentials
+  COPY (+login/credentials.process --sso_region=$sso_region) /root/.aws/credentials.process
+  RUN printf "[profile default]\ncredential_process = cat /root/.aws/credentials.process" > /root/.aws/config
