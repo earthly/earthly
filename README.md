@@ -1,5 +1,7 @@
 <h1>Earthly</h1>
 
+**Please note that Earthly is no longer actively maintained.** [Read more](https://earthly.dev/blog/shutting-down-earthfiles-cloud).
+
 <div align="center">
   <a href="https://earthly.dev"><img src="img/logo-banner-white-bg.png" alt="Earthly" width="700px" /></a>
   <br/>
