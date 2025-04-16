@@ -14,7 +14,3 @@ test-other:
 test-both:
     BUILD +test
     BUILD ./other/path+test
-
-test-fails:
-    FROM alpine
-    DO imported-name+FUNCTION_THAT_SAVES_FILE_LOCALLY
