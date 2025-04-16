@@ -6,6 +6,8 @@ import fcntl
 import time
 from contextlib import suppress
 
+# bust the cache 1
+
 host = '127.0.0.1'
 port = 443
 
@@ -21,7 +23,10 @@ ready_pipe_r, ready_pipe_w = os.pipe()
 
 # first fork
 pid = os.fork()
-if pid > 0:
+if pid < 0:
+    print(f'first fork failed', file=sys.stderr)
+    sys.exit(1)
+elif pid > 0:
     os.close(ready_pipe_w)
     fcntl.fcntl(ready_pipe_r, fcntl.F_SETFL, os.O_NONBLOCK)
     num_attemps_remaining = 10
@@ -53,7 +58,10 @@ try:
 
     # second fork
     pid = os.fork()
-    if pid > 0:
+    if pid < 0:
+        print(f'second fork failed', file=sys.stderr)
+        sys.exit(1)
+    elif pid > 0:
         sys.exit(0)
 
     # redirect stdio
@@ -77,6 +85,10 @@ try:
 
     with suppress(FileNotFoundError):
         os.remove(server_got_a_connection_path)
+
+    import uuid
+    with open(f'/tmp/i-was-here-{uuid.uuid4()}', 'w') as f:
+        f.write(f'hello from {os. getpid()}')
 
     print(f'creating socket', file=sys.stderr)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:

@@ -64,7 +64,7 @@ func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogge
 		displayErrors := app.BaseCLI.Flags().Verbose
 		cloudClient, err := helper.NewCloudClient(app.BaseCLI)
 		if err != nil && displayErrors {
-			app.BaseCLI.Console().Warnf("unable to start cloud app.BaseClient: %s", err)
+			app.BaseCLI.Console().Warnf("bust-the-cache1 unable to start cloud app.BaseClient: %s", err)
 		} else if err == nil {
 			analytics.AddCLIProject(app.BaseCLI.OrgName(), app.BaseCLI.Flags().ProjectName)
 			org, project := analytics.ProjectDetails()
