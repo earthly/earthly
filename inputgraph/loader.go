@@ -21,6 +21,7 @@ import (
 	"github.com/earthly/earthly/features"
 	"github.com/earthly/earthly/util/buildkitskipper/hasher"
 	"github.com/earthly/earthly/util/flagutil"
+	"github.com/earthly/earthly/util/types/variable"
 	"github.com/earthly/earthly/variables"
 	"github.com/pkg/errors"
 )
@@ -441,7 +442,7 @@ func (l *loader) handleArg(ctx context.Context, cmd spec.Command, isBase bool) e
 		if err != nil {
 			return wrapError(err, cmd.SourceLocation, "failed to expand args")
 		}
-		declOpts = append(declOpts, variables.WithValue(expanded))
+		declOpts = append(declOpts, variables.WithValue(variable.Value{Str: expanded})) //FIXME
 	}
 
 	l.hasher.HashString(fmt.Sprintf("ARG %s=%s", key, expanded))
@@ -478,7 +479,7 @@ func (l *loader) handleLet(ctx context.Context, cmd spec.Command) error {
 
 	l.hasher.HashString(fmt.Sprintf("LET %s=%s", key, val))
 
-	_, _, err = l.varCollection.DeclareVar(key, variables.WithValue(val))
+	_, _, err = l.varCollection.DeclareVar(key, variables.WithValue(variable.Value{Str: val})) // FIXME
 	if err != nil {
 		return wrapError(err, cmd.SourceLocation, "failed to declare variable")
 	}
@@ -506,7 +507,7 @@ func (l *loader) handleSet(ctx context.Context, cmd spec.Command) error {
 
 	l.hasher.HashString(fmt.Sprintf("SET %s=%s", key, val))
 
-	err = l.varCollection.UpdateVar(key, val, nil)
+	err = l.varCollection.UpdateVar(key, variable.Value{Str: val}, nil) // FIXME
 	if err != nil {
 		if err != nil {
 			return wrapError(err, cmd.SourceLocation, "failed to declare variable")
@@ -765,7 +766,7 @@ func (l *loader) handleFor(ctx context.Context, forStmt spec.ForStatement) error
 
 	for _, val := range vals {
 		l.hasher.HashString(fmt.Sprintf("FOR %s=%s", name, val))
-		l.varCollection.SetArg(name, val)
+		l.varCollection.SetArg(name, variable.Value{Str: val}) // FIXME
 		err := l.loadBlock(ctx, forStmt.Body)
 		if err != nil {
 			return err

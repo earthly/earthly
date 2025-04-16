@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/earthly/earthly/analytics"
+	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/ast/command"
 	"github.com/earthly/earthly/ast/commandflag"
 	"github.com/earthly/earthly/ast/hint"
@@ -25,6 +26,7 @@ import (
 	"github.com/earthly/earthly/util/oidcutil"
 	"github.com/earthly/earthly/util/platutil"
 	"github.com/earthly/earthly/util/shell"
+	"github.com/earthly/earthly/util/types/variable"
 	"github.com/earthly/earthly/variables"
 
 	"github.com/docker/go-connections/nat"
@@ -616,7 +618,7 @@ func (i *Interpreter) handleFrom(ctx context.Context, cmd spec.Command) error {
 	}
 
 	i.local = false // FIXME https://github.com/earthly/earthly/issues/2044
-	err = i.converter.From(ctx, imageName, platform, allowPrivileged, opts.PassArgs, expandedBuildArgs)
+	err = i.converter.From(ctx, imageName, platform, allowPrivileged, opts.PassArgs, buildArgsToKeyValues(expandedBuildArgs, i.target))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "apply FROM %s", imageName)
 	}
@@ -892,7 +894,7 @@ func (i *Interpreter) handleFromDockerfile(ctx context.Context, cmd spec.Command
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand target %s", opts.Target)
 	}
 	i.local = false
-	err = i.converter.FromDockerfile(ctx, path, expandedPath, expandedTarget, platform, allowPrivileged, expandedBuildArgs)
+	err = i.converter.FromDockerfile(ctx, path, expandedPath, expandedTarget, platform, allowPrivileged, buildArgsToKeyValues(expandedBuildArgs, i.target))
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "from dockerfile")
 	}
@@ -1061,12 +1063,12 @@ func (i *Interpreter) handleCopy(ctx context.Context, cmd spec.Command) error {
 			}
 			for _, expandedSrc := range expandedSrcs {
 				if i.local {
-					err = i.converter.CopyArtifactLocal(ctx, expandedSrc, dest, platform, allowPrivileged, opts.PassArgs, srcBuildArgs, opts.IsDirCopy)
+					err = i.converter.CopyArtifactLocal(ctx, expandedSrc, dest, platform, allowPrivileged, opts.PassArgs, buildArgsToKeyValues(srcBuildArgs, i.target), opts.IsDirCopy)
 					if err != nil {
 						return i.wrapError(err, cmd.SourceLocation, "copy artifact locally")
 					}
 				} else {
-					err = i.converter.CopyArtifact(ctx, expandedSrc, dest, platform, allowPrivileged, opts.PassArgs, srcBuildArgs, opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, expandedChown, fileModeParsed, opts.IfExists, opts.SymlinkNoFollow)
+					err = i.converter.CopyArtifact(ctx, expandedSrc, dest, platform, allowPrivileged, opts.PassArgs, buildArgsToKeyValues(srcBuildArgs, i.target), opts.IsDirCopy, opts.KeepTs, opts.KeepOwn, expandedChown, fileModeParsed, opts.IfExists, opts.SymlinkNoFollow)
 					if err != nil {
 						return i.wrapError(err, cmd.SourceLocation, "copy artifact")
 					}
@@ -1271,31 +1273,51 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 		}
 		platformsSlice = append(platformsSlice, platform)
 	}
-	asyncSafeArgs := isSafeAsyncBuildArgsKVStyle(opts.BuildArgs) && isSafeAsyncBuildArgs(args[1:])
+	asyncSafeArgs := isSafeAsyncBuildArgsKVStyle(buildArgsToKeyValues(opts.BuildArgs, i.target)) && isSafeAsyncBuildArgs(args[1:])
 	if async && (!asyncSafeArgs || opts.AutoSkip) {
 		return errCannotAsync
 	}
 	if i.local && !asyncSafeArgs {
 		return i.errorf(cmd.SourceLocation, "BUILD args do not currently support shelling-out in combination with LOCALLY")
 	}
-	expandedBuildArgs, err := i.expandArgsSlice(ctx, opts.BuildArgs, true, async)
+
+	buildArgs, err := i.parseAndExpand(ctx, opts.BuildArgs, true, async)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD args %v", opts.BuildArgs)
 	}
-	expandedFlagArgs, err := i.expandArgsSlice(ctx, args[1:], true, async)
+
+	// when set, use these to recover from flag parsing errors related to processing VERSION 0.6 compatability
+	var legacyFlagArgFallback []variable.KeyValue
+
+	flagArgsToParse := args[1:]
+	parsedFlagArgs, err := variables.ParseFlagArgs(flagArgsToParse)
 	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD flags %v", args[1:])
+		if i.converter.ftrs.ArgTypes {
+			return i.wrapError(err, cmd.SourceLocation, "parse flag args")
+		}
+		i.console.Warnf("failed to parse flag args %s: %v; this will become a non-recoverable error in the future. ARG --type will be lost", flagArgsToParse, err)
+		legacyFlagArgFallback, err = i.parseAndExpandLegacyFallback(ctx, flagArgsToParse)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "parse flag args")
+		}
 	}
-	parsedFlagArgs, err := variables.ParseFlagArgs(expandedFlagArgs)
-	if err != nil {
-		return i.wrapError(err, cmd.SourceLocation, "parse flag args")
+	var flagArgs []variable.KeyValue
+	if legacyFlagArgFallback != nil {
+		flagArgs = legacyFlagArgFallback // TODO remove this when we drop support
+	} else {
+		flagArgs, err = i.parseAndExpand(ctx, parsedFlagArgs, true, async)
+		if err != nil {
+			return i.wrapError(err, cmd.SourceLocation, "failed to expand BUILD flags %v", args[1:])
+		}
 	}
-	expandedBuildArgs = append(parsedFlagArgs, expandedBuildArgs...)
+	//fmt.Printf("parseAndExpand %v to %v\n", parsedFlagArgs, variable.KeyValueSlice(flagArgs).DebugString()) // expansion expected I think...
+	buildArgs = append(buildArgs, flagArgs...)
+
 	if len(platformsSlice) == 0 {
 		platformsSlice = []platutil.Platform{platutil.DefaultPlatform}
 	}
 
-	crossProductBuildArgs, err := flagutil.BuildArgMatrix(expandedBuildArgs)
+	crossProductBuildArgs, err := flagutil.BuildArgMatrix2(buildArgs)
 	if err != nil {
 		return i.wrapError(err, cmd.SourceLocation, "build arg matrix")
 	}
@@ -1316,26 +1338,29 @@ func (i *Interpreter) handleBuild(ctx context.Context, cmd spec.Command, async b
 	for _, buildArgs := range crossProductBuildArgs {
 		saveHashFn := func() {}
 		if opts.AutoSkip {
-			skip, fn, err := i.converter.checkAutoSkip(ctx, fullTargetName, allowPrivileged, opts.PassArgs, buildArgs)
-			if err != nil {
-				return i.wrapError(err, cmd.SourceLocation, "failed to determine whether target can be skipped")
-			}
-			if skip {
-				continue
-			}
-			saveHashFn = fn
+			//TODO
+			//skip, fn, err := i.converter.checkAutoSkip(ctx, fullTargetName, allowPrivileged, opts.PassArgs, buildArgs)
+			//if err != nil {
+			//	return i.wrapError(err, cmd.SourceLocation, "failed to determine whether target can be skipped")
+			//}
+			//if skip {
+			//	continue
+			//}
+			//saveHashFn = fn
 		}
 
 		onExecutionSuccess := newOnExecutionSuccess(len(platformsSlice), saveHashFn)
 
 		for _, platform := range platformsSlice {
 			if async {
-				err := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgs, buildCmd, nil, nil)
-				if err != nil {
-					return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
-				}
+				//TODO
+				//err := i.converter.BuildAsync(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgs, buildCmd, nil, nil)
+				//if err != nil {
+				//	return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
+				//}
 				continue
 			}
+			//fmt.Printf("interpreter got BUILD with buildArgs=%v, target=%v\n", buildArgs, i.target)
 			err := i.converter.Build(ctx, fullTargetName, platform, allowPrivileged, opts.PassArgs, buildArgs, onExecutionSuccess)
 			if err != nil {
 				return i.wrapError(err, cmd.SourceLocation, "apply BUILD %s", fullTargetName)
@@ -1834,7 +1859,7 @@ func (i *Interpreter) handleWithDocker(ctx context.Context, cmd spec.Command) er
 			Target:          loadTarget,
 			ImageName:       loadImg,
 			Platform:        platform,
-			BuildArgs:       loadBuildArgs,
+			BuildArgs:       buildArgsToKeyValues(loadBuildArgs, i.target),
 			AllowPrivileged: allowPrivileged,
 			PassArgs:        opts.PassArgs,
 		})
@@ -1923,7 +1948,7 @@ func (i *Interpreter) handleDo(ctx context.Context, cmd spec.Command) error {
 	for _, uc := range bc.Earthfile.Functions {
 		if uc.Name == command.Command {
 			sourceFilePath := bc.Ref.ProjectCanonical() + "/Earthfile"
-			return i.handleDoFunction(ctx, command, relCommand, uc, cmd, parsedFlagArgs, allowPrivileged, opts.PassArgs, sourceFilePath, bc.Features.UseFunctionKeyword)
+			return i.handleDoFunction(ctx, command, relCommand, uc, cmd, buildArgsToKeyValues(parsedFlagArgs, i.target), allowPrivileged, opts.PassArgs, sourceFilePath, bc.Features.UseFunctionKeyword)
 		}
 	}
 	return i.errorf(cmd.SourceLocation, "user command %s not found", ucName)
@@ -2049,7 +2074,7 @@ func (i *Interpreter) handleHost(ctx context.Context, cmd spec.Command) error {
 
 // ----------------------------------------------------------------------------
 
-func (i *Interpreter) handleDoFunction(ctx context.Context, command domain.Command, relCommand domain.Command, uc spec.Function, do spec.Command, buildArgs []string, allowPrivileged, passArgs bool, sourceLocationFile string, useFunctionCmd bool) error {
+func (i *Interpreter) handleDoFunction(ctx context.Context, command domain.Command, relCommand domain.Command, uc spec.Function, do spec.Command, buildArgs []variable.KeyValue, allowPrivileged, passArgs bool, sourceLocationFile string, useFunctionCmd bool) error {
 	cmdName := "FUNCTION"
 	if !useFunctionCmd {
 		cmdName = "COMMAND"
@@ -2093,6 +2118,96 @@ To start using the FUNCTION keyword now (experimental) please use VERSION --use-
 
 // ----------------------------------------------------------------------------
 
+func extractSingleArgName(s string) string {
+	if len(s) < 2 {
+		return ""
+	}
+	if s[0] != '$' {
+		return ""
+	}
+	if ast.IsValidEnvVarName(s[1:]) {
+		return s[1:]
+	}
+	return ""
+}
+
+// words: --build-arg k or --build-arg k=v
+func (i *Interpreter) parseAndExpand(ctx context.Context, words []string, keepPlusEscape, async bool) ([]variable.KeyValue, error) {
+	ret := []variable.KeyValue{}
+
+	for _, w := range words {
+		key, value, hasValue := variables.ParseKeyValue(w)
+		expandedKey, err := i.expandArgs(ctx, key, keepPlusEscape, async)
+		if err != nil {
+			return nil, err
+		}
+		kv := variable.KeyValue{
+			Key: expandedKey,
+		}
+		if hasValue {
+			var found bool
+			if varName := extractSingleArgName(value); varName != "" {
+				var variableValue variable.Value
+				variableValue, found = i.converter.varCollection.GetValue(varName, variables.WithActive())
+				if found {
+					//fmt.Printf("found existing variable, short circuit on %s -> %+v\n", value, variableValue)
+					kv.Value = &variableValue
+				}
+				// else, fall back to regular expandArgs
+			}
+			if !found {
+				//fmt.Printf("todo expand %s\n", value)
+				expandedValue, err := i.expandArgs(ctx, value, keepPlusEscape, async)
+				if err != nil {
+					return nil, err
+				}
+				//fmt.Printf("expand got %s\n", expandedValue)
+				kv.Value = &variable.Value{
+					Str:      expandedValue,
+					ComeFrom: i.target,
+				}
+			}
+		} else {
+			// no value for arg was given (e.g. --build-arg key)
+			variableValue, found := i.converter.varCollection.GetValue(expandedKey, variables.WithActive())
+			if found {
+				kv.Value = &variableValue
+			}
+		}
+		ret = append(ret, kv)
+	}
+	return ret, nil
+}
+
+// parseAndExpandLegacyFallback is used to maintain VERSION 0.6 functionality which allowed commands like:
+// ARG value="hello"
+// ARG kv="--key=$value"
+// BUILD +foo "$kv"
+// note that this will not maintain ARG types
+func (i *Interpreter) parseAndExpandLegacyFallback(ctx context.Context, args []string) ([]variable.KeyValue, error) {
+	kvs := []variable.KeyValue{}
+	expanded, err := i.expandArgsSlice(ctx, args, true, false)
+	if err != nil {
+		return nil, err
+	}
+	for _, arg := range expanded {
+		if arg[:2] != "--" {
+			return nil, fmt.Errorf("failed to parse arg %s; expected -- prefix", arg)
+		}
+		k, v, hasValue := variables.ParseKeyValue(arg[2:])
+		kv := variable.KeyValue{
+			Key: k,
+		}
+		if hasValue {
+			kv.Value = &variable.Value{
+				Str: v,
+			}
+		}
+		kvs = append(kvs, kv)
+	}
+	return kvs, nil
+}
+
 func (i *Interpreter) expandArgsSlice(ctx context.Context, words []string, keepPlusEscape, async bool) ([]string, error) {
 	ret := make([]string, 0, len(words))
 	for _, word := range words {
@@ -2132,6 +2247,7 @@ func (i *Interpreter) expandArgs(ctx context.Context, word string, keepPlusEscap
 		WithShell:   true,
 	}
 
+	//fmt.Printf("i.expandArgs %s\n", word)
 	ret, err := i.converter.ExpandArgs(ctx, runOpts, escapeSlashPlus(word), !async)
 	if err != nil {
 		if async && errors.Is(err, errShellOutNotPermitted) {
@@ -2139,6 +2255,7 @@ func (i *Interpreter) expandArgs(ctx context.Context, word string, keepPlusEscap
 		}
 		return "", err
 	}
+	//fmt.Printf("i.expandArgs returning %s\n", ret)
 	if keepPlusEscape {
 		return ret, nil
 	}
@@ -2185,10 +2302,10 @@ func requiresShellOutOrCmdInvalid(s string) bool {
 }
 
 // isSafeAsyncBuildArgsKVStyle is used for "key=value" style buildargs
-func isSafeAsyncBuildArgsKVStyle(args []string) bool {
+func isSafeAsyncBuildArgsKVStyle(args []variable.KeyValue) bool {
 	for _, arg := range args {
-		_, v, _ := variables.ParseKeyValue(arg)
-		if requiresShellOutOrCmdInvalid(v) {
+		//_, v, _ := variables.ParseKeyValue(arg)
+		if arg.Value != nil && requiresShellOutOrCmdInvalid(arg.Value.Str) {
 			return false
 		}
 	}
@@ -2236,4 +2353,12 @@ func baseTarget(ref domain.Reference) domain.Target {
 		LocalPath: ref.GetLocalPath(),
 		Target:    "base",
 	}
+}
+
+func buildArgsToKeyValues(buildArgs []string, t domain.Target) []variable.KeyValue {
+	buildArgsNewType := []variable.KeyValue{}
+	for _, x := range buildArgs {
+		buildArgsNewType = append(buildArgsNewType, variable.ParseKeyValue(x, t))
+	}
+	return buildArgsNewType
 }

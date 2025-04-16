@@ -1023,7 +1023,7 @@ func (a *Build) actionDockerBuild(cliCtx *cli.Context) error {
 	}
 
 	platforms := flagutil.SplitFlagString(a.platformsStr)
-	content, err := docker2earthly.GenerateEarthfile(buildContextPath, a.cli.Flags().DockerfilePath, a.dockerTags.Value(), buildArgs.Sorted(), platforms, a.dockerTarget)
+	content, err := docker2earthly.GenerateEarthfile(buildContextPath, a.cli.Flags().DockerfilePath, a.dockerTags.Value(), buildArgs.SortedNames(), platforms, a.dockerTarget)
 	if err != nil {
 		return errors.Wrap(err, "docker-build: failed to wrap Dockerfile with an Earthfile")
 	}

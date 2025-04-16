@@ -1,0 +1,9 @@
+VERSION 0.8
+
+foo:
+  FROM alpine
+  RUN echo foo > data
+  SAVE ARTIFACT data
+
+test:
+  BUILD ./subdir/deep/reallydeep+reallydeep --othernamefortarget=+foo --othernamefortarget=./bardir+bar

@@ -1,0 +1,6 @@
+VERSION 0.8
+
+argpasser:
+  FROM alpine
+  BUILD --pass-args ../../../../../..+subtest
+

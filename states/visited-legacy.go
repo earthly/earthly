@@ -146,7 +146,7 @@ func compareTargetInputs(target domain.Target, platr *platutil.Resolver, allowPr
 			baiVariable := dedup.BuildArgInput{
 				Name:          bai.Name,
 				DefaultValue:  bai.DefaultValue,
-				ConstantValue: variable,
+				ConstantValue: variable.Str,
 			}
 			if !baiVariable.Equals(bai) {
 				return false, nil

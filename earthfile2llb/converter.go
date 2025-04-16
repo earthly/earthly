@@ -48,6 +48,7 @@ import (
 	"github.com/earthly/earthly/util/shell"
 	"github.com/earthly/earthly/util/stringutil"
 	"github.com/earthly/earthly/util/syncutil/semutil"
+	"github.com/earthly/earthly/util/types/variable"
 	"github.com/earthly/earthly/util/vertexmeta"
 	"github.com/earthly/earthly/variables"
 	"github.com/earthly/earthly/variables/reserved"
@@ -140,7 +141,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 		GlobalImports:    opt.GlobalImports,
 		Features:         opt.Features,
 	}
-	ovVarsKeysSorted := opt.OverridingVars.Sorted()
+	ovVarsKeysSorted := opt.OverridingVars.SortedNames()
 	ovVars := make([]string, 0, len(ovVarsKeysSorted))
 	for _, k := range ovVarsKeysSorted {
 		v, _ := opt.OverridingVars.Get(k)
@@ -186,7 +187,7 @@ func NewConverter(ctx context.Context, target domain.Target, bc *buildcontext.Da
 }
 
 // From applies the earthly FROM command.
-func (c *Converter) From(ctx context.Context, imageName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string) error {
+func (c *Converter) From(ctx context.Context, imageName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue) error {
 	err := c.checkAllowed(fromCmd)
 	if err != nil {
 		return err
@@ -240,7 +241,7 @@ func (c *Converter) fromClassical(ctx context.Context, imageName string, platfor
 	return nil
 }
 
-func (c *Converter) fromTarget(ctx context.Context, targetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string) (retErr error) {
+func (c *Converter) fromTarget(ctx context.Context, targetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue) (retErr error) {
 	cmdID, cmd, err := c.newLogbusCommand(ctx, fmt.Sprintf("FROM %s", targetName))
 	if err != nil {
 		return errors.Wrap(err, "failed to create command")
@@ -284,7 +285,7 @@ func (c *Converter) fromTarget(ctx context.Context, targetName string, platform 
 }
 
 // FromDockerfile applies the earthly FROM DOCKERFILE command.
-func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform platutil.Platform, allowPrivileged bool, buildArgs []string) (retErr error) {
+func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPath string, dfTarget string, platform platutil.Platform, allowPrivileged bool, buildArgs []variable.KeyValue) (retErr error) {
 	var err error
 	ctx, err = c.ftrs.WithContext(ctx)
 	if err != nil {
@@ -417,7 +418,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 	if !c.opt.Features.ShellOutAnywhere {
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
-	overriding, err := variables.ParseArgs(buildArgs, pncvf, c.varCollection)
+	overriding, err := variables.ParseArgs2(buildArgs, pncvf, c.varCollection, c.target)
 	if err != nil {
 		return err
 	}
@@ -427,7 +428,7 @@ func (c *Converter) FromDockerfile(ctx context.Context, contextPath string, dfPa
 		MetaResolver: c.opt.MetaResolver,
 		LLBCaps:      c.opt.LLBCaps,
 		Config: dockerui.Config{
-			BuildArgs:        overriding.Map(),
+			BuildArgs:        overriding.MapWithStringValues(c.target),
 			Target:           dfTarget,
 			ImageResolveMode: c.opt.ImageResolveMode,
 		},
@@ -486,7 +487,7 @@ func (c *Converter) Locally(ctx context.Context) error {
 }
 
 // CopyArtifactLocal applies the earthly COPY artifact command which are invoked under a LOCALLY target.
-func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, dest string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, isDir bool) error {
+func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, dest string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue, isDir bool) error {
 	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
@@ -537,7 +538,7 @@ func (c *Converter) CopyArtifactLocal(ctx context.Context, artifactName string, 
 }
 
 // CopyArtifact applies the earthly COPY artifact command.
-func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, isDir bool, keepTs bool, keepOwn bool, chown string, chmod *fs.FileMode, ifExists, symlinkNoFollow bool) error {
+func (c *Converter) CopyArtifact(ctx context.Context, artifactName string, dest string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue, isDir bool, keepTs bool, keepOwn bool, chown string, chmod *fs.FileMode, ifExists, symlinkNoFollow bool) error {
 	err := c.checkAllowed(copyCmd)
 	if err != nil {
 		return err
@@ -1216,11 +1217,12 @@ func (c *Converter) SaveImage(ctx context.Context, imageNames []string, hasPushF
 }
 
 // Build applies the earthly BUILD command.
-func (c *Converter) Build(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, onExecutionSuccess func(context.Context)) error {
+func (c *Converter) Build(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue, onExecutionSuccess func(context.Context)) error {
 	err := c.checkAllowed(buildCmd)
 	if err != nil {
 		return err
 	}
+	//fmt.Printf("::: %s BUILD %s\n", c.target, fullTargetName)
 
 	c.nonSaveCommand()
 
@@ -1229,6 +1231,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform p
 		return errors.Wrap(err, "failed to create command")
 	}
 
+	//fmt.Printf("converter build args are %v\n", variable.KeyValueSlice(buildArgs).DebugString())
 	_, err = c.buildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, true, buildCmd, cmdID, onExecutionSuccess)
 
 	cmd.SetEndError(err)
@@ -1239,7 +1242,7 @@ func (c *Converter) Build(ctx context.Context, fullTargetName string, platform p
 type afterParallelFunc func(context.Context, *states.MultiTarget) error
 
 // BuildAsync applies the earthly BUILD command asynchronously.
-func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, cmdT cmdType, apf afterParallelFunc, sem semutil.Semaphore) error {
+func (c *Converter) BuildAsync(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue, cmdT cmdType, apf afterParallelFunc, sem semutil.Semaphore) error {
 	target, opt, _, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, true, cmdT, "", nil)
 	if err != nil {
 		return err
@@ -1382,7 +1385,10 @@ func (c *Converter) Env(ctx context.Context, envKey string, envValue string) err
 		return err
 	}
 	c.nonSaveCommand()
-	c.varCollection.DeclareEnv(envKey, envValue)
+
+	wrappedEnvValue := variable.Value{Str: envValue, ComeFrom: c.target}
+
+	c.varCollection.DeclareEnv(envKey, wrappedEnvValue)
 	c.mts.Final.MainState = c.mts.Final.MainState.AddEnv(envKey, envValue)
 	c.mts.Final.MainImage.Config.Env = variables.AddEnv(
 		c.mts.Final.MainImage.Config.Env, envKey, envValue)
@@ -1399,32 +1405,78 @@ func (c *Converter) Arg(ctx context.Context, argKey string, defaultArgValue stri
 
 	var pncvf variables.ProcessNonConstantVariableFunc
 	if !c.opt.Features.ShellOutAnywhere {
+		fmt.Printf("Arg old version\n")
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
+	}
+
+	varValue := variable.Value{Str: defaultArgValue, ComeFrom: c.target}
+
+	if opts.TargetReference {
+		varValue.Type = variable.TypeArg
+		//fmt.Printf("varValue is %s\n", varValue.String())
 	}
 
 	declOpts := []variables.DeclareOpt{
 		variables.AsArg(),
-		variables.WithValue(defaultArgValue),
+		variables.WithValue(varValue),
 		variables.WithPNCVFunc(pncvf),
 	}
 	if opts.Global {
 		declOpts = append(declOpts, variables.AsGlobal())
 	}
+	//fmt.Printf("calling DeclareVar key=%s; default=%s\n", argKey, defaultArgValue)
 	effective, effectiveDefault, err := c.varCollection.DeclareVar(argKey, declOpts...)
 	if err != nil {
 		return err
 	}
-	if opts.Required && len(effective) == 0 {
+	if opts.Required && len(effective.Str) == 0 {
 		return fmt.Errorf("value not supplied for required ARG: %s", argKey)
 	}
+
+	effectiveDefaultStr := effectiveDefault.Str
+	effectiveStr := effective.Str
+
+	// TODO this logic will need to end up in the varible value.String() method
+	//if opts.TargetReference {
+	//	fmt.Printf("-------------------\n")
+	//	fmt.Printf("got a targetref for %s, %s, %s\n", argKey, effectiveDefault, effective)
+	//	fmt.Printf("currently in %s, but came from: %s; gotta create a new reference to %s based on that context\n", c.target, effective.ComeFrom, effective.Str) // TODO create the new target reference here
+
+	//	fmt.Printf("varCollection AbsRef is %s\n", c.varCollection.AbsRef())
+
+	//	derefedComeFrom, _, _, err := c.varCollection.Imports().Deref(effective.ComeFrom)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	fmt.Printf("derefedComeFrom is %s\n", derefedComeFrom)
+
+	//	strValueAsTarget, err := domain.ParseTarget(effective.Str)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	fmt.Printf("parsed %s to %s\n", effective.Str, strValueAsTarget)
+
+	//	targetRef, err := domain.JoinReferences(derefedComeFrom, strValueAsTarget)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+
+	//	fmt.Printf("what I really want: %s\n", targetRef)
+	//	effectiveStr = fmt.Sprintf("%s", targetRef) // TODO make this relative rather than absolute
+
+	//	//return domain.JoinReferences(c.varCollection.AbsRef(), relRef)
+
+	//	//domain.JoinReferences(
+	//	fmt.Printf("-------------------\n")
+	//}
 	if len(defaultArgValue) > 0 && reserved.IsBuiltIn(argKey) {
 		return fmt.Errorf("arg default value supplied for built-in ARG: %s", argKey)
 	}
 	if c.varCollection.IsStackAtBase() { // Only when outside of UDC.
 		c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
 			Name:          argKey,
-			DefaultValue:  effectiveDefault,
-			ConstantValue: effective,
+			DefaultValue:  effectiveDefaultStr, // TODO FIXME cast the value here based on the type
+			ConstantValue: effectiveStr,        // TODO FIXME cast the value here based on the type
 		})
 	}
 	return nil
@@ -1442,15 +1494,15 @@ func (c *Converter) Let(ctx context.Context, key string, value string) error {
 		return fmt.Errorf("LET cannot override built-in variable %q", key)
 	}
 
-	effective, effectiveDefault, err := c.varCollection.DeclareVar(key, variables.WithValue(value))
+	effective, effectiveDefault, err := c.varCollection.DeclareVar(key, variables.WithValue(variable.Value{Str: value, ComeFrom: c.target}))
 	if err != nil {
 		return err
 	}
 	if c.varCollection.IsStackAtBase() {
 		c.mts.Final.AddBuildArgInput(dedup.BuildArgInput{
 			Name:          key,
-			DefaultValue:  effectiveDefault,
-			ConstantValue: effective,
+			DefaultValue:  effectiveDefault.Str, // FIXME cast the value based on the type
+			ConstantValue: effective.Str,        // FIXME cast the value based on the type
 		})
 	}
 	return nil
@@ -1466,10 +1518,11 @@ func (c *Converter) UpdateArg(ctx context.Context, argKey string, argValue strin
 
 	var pncvf variables.ProcessNonConstantVariableFunc
 	if !c.opt.Features.ShellOutAnywhere {
+		fmt.Printf("UpdateArg old version\n")
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
 
-	err := c.varCollection.UpdateVar(argKey, argValue, pncvf)
+	err := c.varCollection.UpdateVar(argKey, variable.Value{Str: argValue, ComeFrom: c.target}, pncvf)
 	if err != nil {
 		return err
 	}
@@ -1483,7 +1536,7 @@ func (c *Converter) SetArg(ctx context.Context, argKey string, argValue string) 
 		return err
 	}
 	c.nonSaveCommand()
-	c.varCollection.SetArg(argKey, argValue)
+	c.varCollection.SetArg(argKey, variable.Value{Str: argValue, ComeFrom: c.target})
 	return nil
 }
 
@@ -1741,10 +1794,11 @@ func (c *Converter) ResolveReference(ctx context.Context, ref domain.Reference) 
 }
 
 // EnterScopeDo introduces a new variable scope. Globals and imports are fetched from baseTarget.
-func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged, passArgs bool, scopeName string, buildArgs []string) error {
+func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, baseTarget domain.Target, allowPrivileged, passArgs bool, scopeName string, buildArgs []variable.KeyValue) error {
 	topArgs := buildArgs
 	if c.ftrs.ArgScopeSet {
-		tmpScope, err := variables.ParseArgs(buildArgs, nil, nil)
+		//fmt.Printf("calling ParseArgs2 with varCollection=nil\n")
+		tmpScope, err := variables.ParseArgs2(buildArgs, nil, nil, c.target)
 		if err != nil {
 			return err
 		}
@@ -1758,9 +1812,10 @@ func (c *Converter) EnterScopeDo(ctx context.Context, command domain.Command, ba
 
 	var pncvf variables.ProcessNonConstantVariableFunc
 	if !c.opt.Features.ShellOutAnywhere {
+		fmt.Printf("EnterScopeDo old version\n")
 		pncvf = c.processNonConstantBuildArgFunc(ctx)
 	}
-	overriding, err := variables.ParseArgs(buildArgs, pncvf, c.varCollection)
+	overriding, err := variables.ParseArgs2(buildArgs, pncvf, c.varCollection, c.target)
 	if err != nil {
 		return err
 	}
@@ -1854,6 +1909,17 @@ var errShellOutNotPermitted = errors.New("shell-out not permitted")
 // ExpandArgs expands args in the provided word.
 func (c *Converter) ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word string, allowShellOut bool) (string, error) {
 	if !c.opt.Features.ShellOutAnywhere {
+		if strings.HasPrefix(word, "$(") || strings.HasPrefix(word, "\"$(") {
+			fmt.Printf("ExpandArgs shelling out for %s, currently in %s\n", word, c.target)
+			pncvf := c.processNonConstantBuildArgFunc(ctx)
+			expanded, _, err := pncvf("FIXME", word)
+			if err != nil {
+				fmt.Printf("err here %v\n", err)
+				return "", errors.Wrap(err, "expand args")
+			}
+			fmt.Printf("ExpandArgs shelling out for %s; got %s\n", word, expanded)
+			return expanded, nil
+		}
 		return c.varCollection.ExpandOld(word), nil
 	}
 	return c.varCollection.Expand(word, func(cmd string) (string, error) {
@@ -1866,15 +1932,19 @@ func (c *Converter) ExpandArgs(ctx context.Context, runOpts ConvertRunOpts, word
 }
 
 func (c *Converter) absolutizeTarget(fullTargetName string, allowPrivileged bool) (domain.Target, domain.Target, bool, error) {
+	//fmt.Printf("absolutizeTarget fullTargetName=%s\n", fullTargetName)
 	relTarget, err := domain.ParseTarget(fullTargetName)
 	if err != nil {
 		return domain.Target{}, domain.Target{}, false, errors.Wrapf(err, "earthly target parse %s", fullTargetName)
 	}
 
+	//fmt.Printf("absolutizeTarget relTarget=%s\n", relTarget)
 	derefedTarget, allowPrivilegedImport, isImport, err := c.varCollection.Imports().Deref(relTarget)
 	if err != nil {
 		return domain.Target{}, domain.Target{}, false, err
 	}
+
+	//fmt.Printf("absolutizeTarget derefedTarget=%s\n", derefedTarget)
 
 	if isImport {
 		allowPrivileged = allowPrivileged && allowPrivilegedImport
@@ -1888,7 +1958,7 @@ func (c *Converter) absolutizeTarget(fullTargetName string, allowPrivileged bool
 	return targetRef.(domain.Target), relTarget, allowPrivileged, nil
 }
 
-func (c *Converter) checkAutoSkip(ctx context.Context, fullTargetName string, allowPrivileged, passArgs bool, buildArgs []string) (bool, func(), error) {
+func (c *Converter) checkAutoSkip(ctx context.Context, fullTargetName string, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue) (bool, func(), error) {
 	console := c.opt.Console.WithPrefix("auto-skip")
 
 	nopFn := func() {}
@@ -1949,13 +2019,14 @@ func (c *Converter) checkAutoSkip(ctx context.Context, fullTargetName string, al
 	}, nil
 }
 
-func (c *Converter) prepOverridingVars(ctx context.Context, relTarget domain.Target, passArgs bool, buildArgs []string) (*variables.Scope, bool, error) {
+func (c *Converter) prepOverridingVars(ctx context.Context, relTarget domain.Target, passArgs bool, buildArgs []variable.KeyValue) (*variables.Scope, bool, error) {
 	var buildArgFunc variables.ProcessNonConstantVariableFunc
-	if !c.opt.Features.ShellOutAnywhere {
+	if !c.opt.Features.ShellOutAnywhere { // TODO need a pncvf when arg types are used; also TODO maybe this is needed in all other cases where ProcessNonConstantVariableFunc is potentially nil
+		fmt.Printf("prepOverridingVars gotta work?\n")
 		buildArgFunc = c.processNonConstantBuildArgFunc(ctx)
 	}
 
-	overriding, err := variables.ParseArgs(buildArgs, buildArgFunc, c.varCollection)
+	overriding, err := variables.ParseArgs2(buildArgs, buildArgFunc, c.varCollection, c.target)
 	if err != nil {
 		return nil, false, errors.Wrap(err, "parse build args")
 	}
@@ -1977,7 +2048,7 @@ func (c *Converter) prepBuildTarget(
 	fullTargetName string,
 	platform platutil.Platform,
 	allowPrivileged, passArgs bool,
-	buildArgs []string,
+	buildArgs []variable.KeyValue,
 	isDangling bool,
 	cmdT cmdType,
 	parentCmdID string,
@@ -1987,6 +2058,7 @@ func (c *Converter) prepBuildTarget(
 	if err != nil {
 		return domain.Target{}, ConvertOpt{}, false, err
 	}
+	//fmt.Printf("absolutizeTarget fullTargetName=%s; returned target=%s\n", fullTargetName, target)
 
 	overriding, propagateBuildArgs, err := c.prepOverridingVars(ctx, relTarget, passArgs, buildArgs)
 	if err != nil {
@@ -1996,6 +2068,7 @@ func (c *Converter) prepBuildTarget(
 	// Recursion.
 	opt := c.opt
 	opt.OverridingVars = overriding
+	opt.CalledFrom = c.target
 	opt.GlobalImports = nil
 	opt.parentDepSub = c.mts.Final.NewDependencySubscription()
 	opt.PlatformResolver = c.platr.SubResolver(platform)
@@ -2026,11 +2099,13 @@ func (c *Converter) prepBuildTarget(
 	return target, opt, propagateBuildArgs, nil
 }
 
-func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []string, isDangling bool, cmdT cmdType, parentCmdID string, onExecutionSuccess func(context.Context)) (*states.MultiTarget, error) {
+func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, platform platutil.Platform, allowPrivileged, passArgs bool, buildArgs []variable.KeyValue, isDangling bool, cmdT cmdType, parentCmdID string, onExecutionSuccess func(context.Context)) (*states.MultiTarget, error) {
+	//fmt.Printf("buildTarget fullTargetName=%s\n", fullTargetName)
 	target, opt, propagateBuildArgs, err := c.prepBuildTarget(ctx, fullTargetName, platform, allowPrivileged, passArgs, buildArgs, isDangling, cmdT, parentCmdID, onExecutionSuccess)
 	if err != nil {
 		return nil, err
 	}
+	//fmt.Printf("::: %s Earthfile2LLB on %s\n", c.target, target)
 	mts, err := Earthfile2LLB(ctx, target, opt, false)
 	if err != nil {
 		return nil, errors.Wrapf(err, "earthfile2llb for %s", fullTargetName)
@@ -2051,17 +2126,18 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 		if cmdT == fromCmd {
 			// Propagate globals.
 			globals := mts.Final.VarCollection.Globals()
-			for _, k := range globals.Sorted(variables.WithActive()) {
-				_, alreadyActive := c.varCollection.Get(k, variables.WithActive())
+			for _, k := range globals.SortedNames(variables.WithActive()) {
+				_, alreadyActive := c.varCollection.GetValue(k, variables.WithActive())
 				if alreadyActive {
 					// Globals don't override any variables in current scope.
 					continue
 				}
 				v, _ := globals.Get(k, variables.WithActive())
-				// Look for the default arg value in the built target's TargetInput.
+				// Look for the default arg value in the built target's TargetInput. I think this is done simply because we no longer know if the value has been overridden or not. confusing!
 				defaultArgValue := ""
 				for _, childBai := range mts.Final.TargetInput().BuildArgs {
 					if childBai.Name == k {
+						//fmt.Printf("what does this do? k=%s; default=%s\n", k, childBai.DefaultValue)
 						defaultArgValue = childBai.DefaultValue
 						break
 					}
@@ -2070,7 +2146,7 @@ func (c *Converter) buildTarget(ctx context.Context, fullTargetName string, plat
 					dedup.BuildArgInput{
 						Name:          k,
 						DefaultValue:  defaultArgValue,
-						ConstantValue: v,
+						ConstantValue: v.Str,
 					})
 			}
 			c.varCollection.SetGlobals(globals)
@@ -2183,8 +2259,9 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 
 	// Build args.
 	for _, buildArgName := range c.varCollection.SortedVariables(variables.WithActive()) {
-		ba, _ := c.varCollection.Get(buildArgName, variables.WithActive())
-		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba)))
+		ba, _ := c.varCollection.GetValue(buildArgName, variables.WithActive())
+		//fmt.Printf("adding build arg %s=%s\n", buildArgName, ba)
+		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba.String(c.target))))
 	}
 	// Secrets.
 	for _, secretKeyValue := range opts.Secrets {
@@ -2609,9 +2686,9 @@ func (c *Converter) checkOldPlatformIncompatibility(platform platutil.Platform) 
 func (c *Converter) applyFromImage(state pllb.State, img *image.Image) (pllb.State, *image.Image, *variables.Scope) {
 	// Reset variables.
 	ev := variables.ParseEnvVars(img.Config.Env)
-	for _, name := range ev.Sorted(variables.WithActive()) {
+	for _, name := range ev.SortedNames(variables.WithActive()) {
 		v, _ := ev.Get(name, variables.WithActive())
-		state = state.AddEnv(name, v)
+		state = state.AddEnv(name, v.Str)
 	}
 	// Init config maps if not already initialized.
 	if img.Config.ExposedPorts == nil {
@@ -2643,6 +2720,7 @@ func (c *Converter) nonSaveCommand() {
 
 func (c *Converter) processNonConstantBuildArgFunc(ctx context.Context) variables.ProcessNonConstantVariableFunc {
 	return func(name string, expression string) (string, int, error) {
+		fmt.Printf("pncvf called with name=%s; expression=%s\n", name, expression)
 		opts := ConvertRunOpts{
 			CommandName: fmt.Sprintf("ARG %s = RUN", name),
 			Args:        strings.Split(expression, " "),
@@ -2696,9 +2774,9 @@ func (c *Converter) newLogbusCommand(ctx context.Context, name string) (string, 
 func (c *Converter) newVertexMeta(ctx context.Context, local, interactive, internal bool, secrets []string) (string, string, error) {
 	activeOverriding := make(map[string]string)
 	for _, arg := range c.varCollection.SortedOverridingVariables() {
-		v, ok := c.varCollection.Get(arg, variables.WithActive())
+		v, ok := c.varCollection.GetValue(arg, variables.WithActive())
 		if ok {
-			activeOverriding[arg] = v
+			activeOverriding[arg] = v.String(c.target)
 		}
 	}
 
@@ -2945,9 +3023,10 @@ func clonesWithExpandedTargets[T cloneable[T]](expandedTargets []string, c T, se
 	return clones, nil
 }
 
-func joinWrap(a []string, before string, sep string, after string) string {
+func joinWrap(a []variable.KeyValue, before string, sep string, after string) string {
 	if len(a) > 0 {
-		return fmt.Sprintf("%s%s%s", before, strings.Join(a, sep), after)
+		return fmt.Sprintf("TODO %s%v%s", before, a, after)
+		//return fmt.Sprintf("%s%s%s", before, strings.Join(a, sep), after)
 	}
 	return ""
 }

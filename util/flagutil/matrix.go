@@ -4,8 +4,59 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/earthly/earthly/util/types/variable"
 	"github.com/pkg/errors"
 )
+
+type argGroup2 struct {
+	key    string
+	values []*variable.Value
+}
+
+// BuildArgMatrix2 builds a 2-dimensional slice of arguments that contains all
+// combinations
+func BuildArgMatrix2(args []variable.KeyValue) ([][]variable.KeyValue, error) {
+	groupedArgs := make([]argGroup2, 0, len(args))
+	for _, arg := range args {
+		//k, v, err := parseKeyValue(arg)
+		//if err != nil {
+		//	return nil, err
+		//}
+
+		found := false
+		for i, g := range groupedArgs {
+			if g.key == arg.Key {
+				groupedArgs[i].values = append(groupedArgs[i].values, arg.Value)
+				found = true
+				break
+			}
+		}
+		if !found {
+			groupedArgs = append(groupedArgs, argGroup2{
+				key:    arg.Key,
+				values: []*variable.Value{arg.Value},
+			})
+		}
+	}
+	return crossProduct2(groupedArgs, nil), nil
+}
+
+func crossProduct2(ga []argGroup2, prefix []variable.KeyValue) [][]variable.KeyValue {
+	if len(ga) == 0 {
+		return [][]variable.KeyValue{prefix}
+	}
+	var ret [][]variable.KeyValue
+	for _, v := range ga[0].values {
+		newPrefix := prefix[:]
+		newPrefix = append(newPrefix, variable.KeyValue{
+			Key:   ga[0].key,
+			Value: v,
+		})
+		cp := crossProduct2(ga[1:], newPrefix)
+		ret = append(ret, cp...)
+	}
+	return ret
+}
 
 type argGroup struct {
 	key    string
@@ -21,6 +72,7 @@ func BuildArgMatrix(args []string) ([][]string, error) {
 		if err != nil {
 			return nil, err
 		}
+		fmt.Printf("parsed %s into %s -> %s\n", arg, k, v)
 
 		found := false
 		for i, g := range groupedArgs {

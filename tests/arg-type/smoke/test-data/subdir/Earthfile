@@ -1,0 +1,8 @@
+VERSION 0.8
+
+subtest:
+  FROM alpine
+  ARG --targetreference target="$(echo thedefault)"
+  RUN --no-cache echo "=========================================> in subtest target=$target"
+  COPY $target/data .
+  RUN --no-cache echo "The data is $(cat data); end transmission."
