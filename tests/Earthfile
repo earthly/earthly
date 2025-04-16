@@ -118,6 +118,7 @@ ga-no-qemu-group5:
     BUILD +true-false-flag-invalid
     BUILD +dont-save-indirect-remote-artifact
     BUILD +remote-earthfile-must-have-version
+    BUILD +sequential-locally-test
     BUILD +version-flag-test
     BUILD +implicit-ignores
     BUILD +help
@@ -1394,6 +1395,42 @@ true-false-flag-invalid:
     DO +RUN_EARTHLY --earthfile=true-false-flag-invalid.earth --verbose=0 --should_fail=true --target=+run-maybe --post_command="2>output3.txt"
     RUN cat output3.txt
     RUN cat output3.txt | grep 'invalid argument for flag .*--no-cache.*expected bool'
+
+sequential-locally-test:
+    DO +RUN_EARTHLY --earthfile=sequential-locally.earth --use_tmpfs=false --target="+run-lots" --post_command="2>output.txt"
+    RUN cat output.txt | grep -vw RUN | grep -vw char | grep -o '\(start\|mid\|end\)\s[a-d]$' > output-filtered.txt
+    RUN echo "set -e
+expectedmode=\"start\"
+expectedchar=\"?\"
+while read line; do
+    mode=\$(echo \"\$line\" | cut -d \" \" -f1)
+    char=\$(echo \"\$line\" | cut -d \" \" -f2)
+    echo \"mode=\$mode char=\$char\"
+    case \"\$mode\" in
+        start)
+            test \"\$expectedmode\" = \"start\" || (echo \"expected \$expectedmode; got \$mode\" && exit 1)
+            expectedmode=\"mid\"
+            expectedchar=\"$char\"
+            ;;
+        mid)
+            test \"\$expectedmode\" = \"mid\" || (echo \"expected \$expectedmode; got \$mode\" && exit 1)
+            test \"\$expectedchar\" = \"$char\" || (echo \"expected \$expectedchar; got \$char\" && exit 1)
+            # we don't change expectedmode to end, because we can have multiple 'mid's
+            ;;
+        end)
+            test \"\$expectedmode\" = \"mid\" || (echo \"expected \$expectedmode; got \$mode\" && exit 1)
+            test \"\$expectedchar\" = \"$char\" || (echo \"expected \$expectedchar; got \$char\" && exit 1)
+            expectedmode=\"start\"
+            expectedchar=\"?\"
+            ;;
+        *)
+            echo unhandled mode: $mode
+            exit 1
+    esac
+done
+echo test passed: RUNs were sequentially grouped
+" > test-output.sh && chmod +x test-output.sh
+    RUN cat output-filtered.txt | ./test-output.sh
 
 version-flag-test:
     # In addition to testing the --version flag works; this flag is critical for the homebrew deployment test, which
