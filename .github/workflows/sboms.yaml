@@ -1,0 +1,33 @@
+---
+name: Generate SBOMs
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  sbom:
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload SBOM
+        uses: sbomify/github-action@master
+        env:
+          TOKEN: ${{ secrets.SBOMIFY_TOKEN }}
+          COMPONENT_ID: 'XXXXX'
+          LOCK_FILE: 'go.mod'
+          SBOM_VERSION: ${{ github.ref_name }}
+          OUTPUT_FILE: 'cli.cdx.json'
+          AUGMENT: true
+          ENRICH: true
+
+      - name: Attest
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: '${{ github.workspace }}/cli.cdx.json'
