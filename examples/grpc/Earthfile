@@ -35,7 +35,7 @@ WORKDIR /example-grpc
 #      the returned value is "salmon".
 
 test:
-    FROM earthly/dind:alpine-3.19-docker-25.0.5-r0
+    FROM earthly/dind:alpine-3.20-docker-26.1.5-r0
     WITH DOCKER \
         --load kvserver:latest=github.com/earthly/earthly-example-proto-server:main+kvserver-docker \
         --load kv-py-client:latest=github.com/earthly/earthly-example-proto-python-client:main+kvclient-docker \
