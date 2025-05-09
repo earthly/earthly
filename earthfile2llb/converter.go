@@ -2182,8 +2182,14 @@ func (c *Converter) internalRun(ctx context.Context, opts ConvertRunOpts) (pllb.
 	var extraEnvVars []string
 
 	// Build args.
+	if opts.NoCache {
+		c.varCollection.DeclareEnv("EARTHLY_NO_CACHE_UUID", "")
+	}
 	for _, buildArgName := range c.varCollection.SortedVariables(variables.WithActive()) {
 		ba, _ := c.varCollection.Get(buildArgName, variables.WithActive())
+		if buildArgName == "EARTHLY_NO_CACHE_UUID" {
+			ba = uuid.NewString()
+		}
 		extraEnvVars = append(extraEnvVars, fmt.Sprintf("%s=%s", buildArgName, shellescape.Quote(ba)))
 	}
 	// Secrets.
