@@ -4,7 +4,6 @@ The Earthly [lib](https://github.com/earthly/lib) is a collection of reusable fu
 
 Earthly lib is split across multiple packages, each of which can be imported separately. The packages are:
 
-* [billing](https://github.com/earthly/lib/tree/main/billing) - functions for estimating billing
 * [rust](https://github.com/earthly/lib/tree/main/rust) - functions for working with Rust
 * [utils/dind](https://github.com/earthly/lib/tree/main/utils/dind) - functions for working with Docker-in-Docker
 * [utils/git](https://github.com/earthly/lib/tree/main/utils/git) - functions for working with Git

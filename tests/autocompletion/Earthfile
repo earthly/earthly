@@ -5,7 +5,6 @@ ENV EARTHLY_SHOW_HIDDEN=0
 
 test-root-commands:
     RUN echo "account 
-billing 
 bootstrap 
 cloud 
 config 
@@ -28,7 +27,6 @@ test-hidden-root-commands:
     ENV EARTHLY_SHOW_HIDDEN=1
     RUN echo "no-cache"
     RUN echo "account 
-billing 
 bootstrap 
 build 
 cloud 

@@ -37,7 +37,6 @@ func (a *Root) Cmds() []*cli.Command {
 		NewCloudInstallation(a.cli).Cmds(),
 		NewSecret(a.cli).Cmds(),
 		NewWeb(a.cli).Cmds(),
-		NewBilling(a.cli).Cmds(),
 		NewGithub(a.cli).Cmds(),
 	})
 

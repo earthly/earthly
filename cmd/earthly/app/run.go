@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	billingpb "github.com/earthly/cloud-api/billing"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/fatih/color"
 	"github.com/moby/buildkit/util/grpcerrors"
@@ -18,7 +17,6 @@ import (
 	"google.golang.org/grpc/codes"
 
 	"github.com/earthly/earthly/analytics"
-	"github.com/earthly/earthly/billing"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cmd/earthly/common"
 	"github.com/earthly/earthly/cmd/earthly/helper"
@@ -36,13 +34,11 @@ import (
 )
 
 var (
-	runExitCodeRegex   = regexp.MustCompile(`did not complete successfully: exit code: [^0][0-9]*($|[\n\t]+in\s+.*?\+.+)`)
-	notFoundRegex      = regexp.MustCompile(`("[^"]*"): not found`)
-	qemuExitCodeRegex  = regexp.MustCompile(`process "/dev/.buildkit_qemu_emulator.*?did not complete successfully: exit code: 255$`)
-	buildMinutesRegex  = regexp.MustCompile(`(?P<msg>used \d+ of \d+ allowed minutes in current plan) {reqID: .*?}`)
-	maxSatellitesRegex = regexp.MustCompile(`(?P<msg>plan only allows \d+ satellites in use at one time) {reqID: .*?}`)
-	maxExecTimeRegex   = regexp.MustCompile(`max execution time of .+ exceeded`)
-	requestIDRegex     = regexp.MustCompile(`(?P<msg>.*?) {reqID: .*?}`)
+	runExitCodeRegex  = regexp.MustCompile(`did not complete successfully: exit code: [^0][0-9]*($|[\n\t]+in\s+.*?\+.+)`)
+	notFoundRegex     = regexp.MustCompile(`("[^"]*"): not found`)
+	qemuExitCodeRegex = regexp.MustCompile(`process "/dev/.buildkit_qemu_emulator.*?did not complete successfully: exit code: 255$`)
+	maxExecTimeRegex  = regexp.MustCompile(`max execution time of .+ exceeded`)
+	requestIDRegex    = regexp.MustCompile(`(?P<msg>.*?) {reqID: .*?}`)
 )
 
 func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogger, startTime time.Time, lastSignal *syncutil.Signal) int {
@@ -310,59 +306,6 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 				helpMsg,
 				err.Error(),
 			)
-			return 1
-		case grpcErrOK && grpcErr.Code() == codes.PermissionDenied && buildMinutesRegex.MatchString(grpcErr.Message()):
-			errorMsg := grpcErr.Message()
-			matches, _ := stringutil.NamedGroupMatches(errorMsg, buildMinutesRegex)
-			if len(matches["msg"]) > 0 {
-				errorMsg = matches["msg"][0]
-			}
-			tier := billing.Plan().GetTier()
-			errorMsg = fmt.Sprintf("%s (%s)", errorMsg, stringutil.Title(tier))
-			app.BaseCLI.Console().VerboseWarnf(err.Error())
-			var helpMsg string
-			switch tier {
-			case billingpb.BillingPlan_TIER_UNKNOWN:
-				app.BaseCLI.Console().DebugPrintf("failed to get billing plan tier\n")
-			case billingpb.BillingPlan_TIER_LIMITED_FREE_TIER:
-				helpMsg = fmt.Sprintf("Visit your organization settings to verify your account\nand get 6000 free build minutes per month: %s\n", billing.GetBillingURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
-			case billingpb.BillingPlan_TIER_FREE_TIER:
-				helpMsg = fmt.Sprintf("Visit your organization settings to upgrade your account: %s\n", billing.GetUpgradeURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
-			}
-			if helpMsg != "" {
-				app.BaseCLI.Console().HelpPrintf(helpMsg)
-			}
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(
-				time.Now(),
-				logstream.FailureType_FAILURE_TYPE_OTHER,
-				helpMsg,
-				errorMsg,
-			)
-			return 1
-		case grpcErrOK && grpcErr.Code() == codes.PermissionDenied && maxSatellitesRegex.MatchString(grpcErr.Message()):
-			errorMsg := grpcErr.Message()
-			matches, _ := stringutil.NamedGroupMatches(errorMsg, maxSatellitesRegex)
-			if len(matches["msg"]) > 0 {
-				errorMsg = matches["msg"][0]
-			}
-			tier := billing.Plan().GetTier()
-			errorMsg = fmt.Sprintf("%s %s", stringutil.Title(tier), errorMsg)
-			app.BaseCLI.Console().VerboseWarnf(err.Error())
-			var helpMsg string
-			switch tier {
-			case billingpb.BillingPlan_TIER_UNKNOWN:
-				app.BaseCLI.Console().DebugPrintf("failed to get billing plan tier\n")
-			case billingpb.BillingPlan_TIER_LIMITED_FREE_TIER:
-				helpMsg = fmt.Sprintf("Visit your organization settings to verify your account\nfor an option to launch more satellites: %s\nor consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)", billing.GetBillingURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
-			case billingpb.BillingPlan_TIER_FREE_TIER:
-				helpMsg = fmt.Sprintf("Visit your organization settings to upgrade your account for an option to launch more satellites: %s.\nAlternatively consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)\nor contact support at support@earthly.dev to potentially increase your satellites' limit", billing.GetUpgradeURL(app.BaseCLI.CIHost(), app.BaseCLI.OrgName()))
-			default:
-				helpMsg = "Consider removing one of your existing satellites (`earthly sat rm <satellite-name>`)\nor contact support at support@earthly.dev to potentially increase your satellites' limit"
-			}
-			if helpMsg != "" {
-				app.BaseCLI.Console().HelpPrintf(helpMsg)
-			}
-			app.BaseCLI.Logbus().Run().SetGenericFatalError(time.Now(), logstream.FailureType_FAILURE_TYPE_OTHER, helpMsg, errorMsg)
 			return 1
 		case grpcErrOK && grpcErr.Code() == codes.PermissionDenied && requestIDRegex.MatchString(grpcErr.Message()):
 			errorMsg := grpcErr.Message()

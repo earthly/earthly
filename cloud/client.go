@@ -8,7 +8,6 @@ import (
 
 	"github.com/earthly/cloud-api/analytics"
 	"github.com/earthly/cloud-api/askv"
-	"github.com/earthly/cloud-api/billing"
 	"github.com/earthly/cloud-api/compute"
 	"github.com/earthly/cloud-api/logstream"
 	"github.com/earthly/cloud-api/secrets"
@@ -67,7 +66,6 @@ type Client struct {
 	logstreamBackoff         time.Duration
 	analytics                analytics.AnalyticsClient
 	askv                     askv.AskvClient
-	billing                  billing.BillingClient
 	secrets                  secrets.SecretsServiceClient
 	requestID                string
 	installationName         string
@@ -159,7 +157,6 @@ func NewClient(httpAddr, grpcAddr string, useInsecure bool, agentSockPath, authC
 	c.compute = compute.NewComputeClient(conn)
 	c.analytics = analytics.NewAnalyticsClient(conn)
 	c.askv = askv.NewAskvClient(conn)
-	c.billing = billing.NewBillingClient(conn)
 	c.secrets = secrets.NewSecretsServiceClient(conn)
 
 	logstreamAddr := grpcAddr
