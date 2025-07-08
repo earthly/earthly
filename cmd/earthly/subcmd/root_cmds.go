@@ -32,7 +32,6 @@ func (a *Root) Cmds() []*cli.Command {
 		NewPrune(a.cli).Cmds(),
 		NewRegistry(a.cli).Cmds(),
 		NewSatellite(a.cli).Cmds(),
-		NewCloudInstallation(a.cli).Cmds(),
 		NewSecret(a.cli).Cmds(),
 		NewWeb(a.cli).Cmds(),
 		NewGithub(a.cli).Cmds(),
