@@ -28,7 +28,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
-	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast"
 	"github.com/earthly/earthly/billing"
 	"github.com/earthly/earthly/buildcontext"
@@ -635,13 +634,11 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		}
 
 		a.cli.Console().WithPrefix("logbus").Printf("Setting organization %q and project %q", orgName, projectName)
-		analytics.AddEarthfileProject(orgName, projectName)
 
 		setup := a.cli.LogbusSetup()
 		setup.SetOrgAndProject(orgName, projectName)
 		setup.SetGitAuthor(gitCommitAuthorEmail, gitConfigEmail)
-		_, isCI := analytics.DetectCI(a.cli.Flags().EarthlyCIRunner)
-		setup.SetCI(isCI)
+		setup.SetCI(false)
 		if doLogstreamUpload {
 			setup.StartLogStreamer(cloudClient)
 		}

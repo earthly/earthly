@@ -22,7 +22,6 @@ import (
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/distribution/reference"
 	"github.com/earthly/cloud-api/logstream"
-	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast/commandflag"
 	"github.com/earthly/earthly/ast/hint"
 	"github.com/earthly/earthly/ast/spec"
@@ -968,7 +967,6 @@ func (c *Converter) SaveArtifact(ctx context.Context, saveFrom, saveTo, saveAsLo
 				if c.ftrs.RequireForceForUnsafeSaves {
 					return fmt.Errorf("unable to save to %s; path must be located under %s", saveAsLocalTo, c.target.LocalPath)
 				}
-				analytics.Count("breaking-change", "save-artifact-force-flag-required-warning")
 				c.opt.Console.Warnf("saving to path (%s) outside of current directory (%s) will require a --force flag in a future version", saveAsLocalTo, c.target.LocalPath)
 			}
 		}

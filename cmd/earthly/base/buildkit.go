@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
-	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cloud"
 )
@@ -190,8 +189,7 @@ func GetSatelliteName(ctx context.Context, orgName, satelliteName string, cloudC
 
 func (cli *CLI) reserveSatellite(ctx context.Context, cloudClient *cloud.Client, name, displayName, orgName, gitAuthor, gitConfigEmail string) error {
 	console := cli.Console().WithPrefix("satellite")
-	_, isCI := analytics.DetectCI(cli.Flags().EarthlyCIRunner)
-	out := cloudClient.ReserveSatellite(ctx, name, orgName, gitAuthor, gitConfigEmail, isCI)
+	out := cloudClient.ReserveSatellite(ctx, name, orgName, gitAuthor, gitConfigEmail, false)
 	err := ShowSatelliteLoading(console, displayName, out)
 	if err != nil {
 		return errors.Wrap(err, "failed reserving satellite for build")

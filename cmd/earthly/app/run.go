@@ -17,7 +17,6 @@ import (
 	"github.com/urfave/cli/v2"
 	"google.golang.org/grpc/codes"
 
-	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/billing"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cmd/earthly/common"
@@ -59,35 +58,12 @@ func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogge
 	// however in all other regular commands app.Cfg will be set in app.Before
 	if !app.BaseCLI.Flags().DisableAnalytics && app.BaseCLI.Cfg() != nil && !app.BaseCLI.Cfg().Global.DisableAnalytics {
 		// Use a new context, in case the original context is cancelled due to sigint.
-		ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second)
+		_, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		displayErrors := app.BaseCLI.Flags().Verbose
-		cloudClient, err := helper.NewCloudClient(app.BaseCLI)
+		_, err := helper.NewCloudClient(app.BaseCLI)
 		if err != nil && displayErrors {
 			app.BaseCLI.Console().Warnf("unable to start cloud app.BaseClient: %s", err)
-		} else if err == nil {
-			analytics.AddCLIProject(app.BaseCLI.OrgName(), app.BaseCLI.Flags().ProjectName)
-			org, project := analytics.ProjectDetails()
-			analytics.CollectAnalytics(
-				ctxTimeout, cloudClient, displayErrors, analytics.Meta{
-					Version:          app.BaseCLI.Version(),
-					Platform:         common.GetPlatform(),
-					BuildkitPlatform: app.BaseCLI.AnaMetaBKPlatform(),
-					UserPlatform:     app.BaseCLI.AnaMetaUserPlatform(),
-					GitSHA:           app.BaseCLI.GitSHA(),
-					CommandName:      app.BaseCLI.CommandName(),
-					ExitCode:         exitCode,
-					Target:           app.BaseCLI.AnaMetaTarget(),
-					IsSatellite:      app.BaseCLI.AnaMetaIsSat(),
-					SatelliteVersion: app.BaseCLI.AnaMetaSatCurrentVersion(),
-					IsRemoteBuildkit: app.BaseCLI.AnaMetaIsRemoteBK(),
-					Realtime:         time.Since(startTime),
-					OrgName:          org,
-					ProjectName:      project,
-					EarthlyCIRunner:  app.BaseCLI.Flags().EarthlyCIRunner,
-				},
-				app.BaseCLI.Flags().InstallationName,
-			)
 		}
 	}
 

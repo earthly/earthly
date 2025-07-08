@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/features"
@@ -26,7 +25,6 @@ type localResolver struct {
 }
 
 func (lr *localResolver) resolveLocal(ctx context.Context, gwClient gwclient.Client, platr *platutil.Resolver, ref domain.Reference, featureFlagOverrides string) (*Data, error) {
-	analytics.Count("localResolver.resolveLocal", "local-reference")
 	if ref.IsRemote() {
 		return nil, errors.Errorf("unexpected remote target %s", ref.String())
 	}
