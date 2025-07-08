@@ -22,7 +22,6 @@ func (a *Root) Cmds() []*cli.Command {
 		NewDebug(a.cli).Cmds(),
 		NewBootstrap(a.cli).Cmds(),
 		a.buildCmd.Cmds(),
-		NewAccount(a.cli).Cmds(),
 		NewConfig(a.cli).Cmds(),
 		NewDoc(a.cli).Cmds(),
 		NewDoc2Earth(a.cli).Cmds(),

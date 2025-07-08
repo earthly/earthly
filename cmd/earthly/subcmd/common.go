@@ -2,10 +2,13 @@ package subcmd
 
 import (
 	"context"
+	"fmt"
 	"strings"
+	"syscall"
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/term"
 
 	"github.com/earthly/earthly/cloud"
 )
@@ -103,4 +106,20 @@ func getOrgAndProject(ctx context.Context, orgFlag, projectFlag string, client o
 func isResponseYes(s string) bool {
 	s = strings.TrimSpace(strings.ToLower(s))
 	return s == "yes" || s == "y"
+}
+
+// promptHiddenText prompts the user to enter a value without echoing it to stdout
+// the hiddenTextPrompt is displayed to the user followed by a colon, as an interactive prompt.
+func promptHiddenText(hiddenTextPrompt string) (string, error) {
+	fmt.Printf("%s: ", hiddenTextPrompt)
+	password, err := term.ReadPassword(int(syscall.Stdin))
+	if err != nil {
+		return "", err
+	}
+	fmt.Println("")
+	return string(password), nil
+}
+
+func promptPassword() (string, error) {
+	return promptHiddenText("password")
 }
