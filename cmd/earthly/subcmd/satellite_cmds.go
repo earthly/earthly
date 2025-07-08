@@ -462,11 +462,6 @@ func (a *Satellite) actionLaunch(cliCtx *cli.Context) error {
 		a.cli.Flags().SatelliteName, localWindow, zone)
 	a.cli.Console().Printf("This may take a few minutes...\n")
 
-	// Collect info to help with printing a richer message in the beginning of the build or on failure to reserve satellite due to missing build minutes.
-	if err = a.cli.CollectBillingInfo(cliCtx.Context, cloudClient, orgName); err != nil {
-		a.cli.Console().DebugPrintf("failed to get billing plan info, error is %v\n", err)
-	}
-
 	err = cloudClient.LaunchSatellite(cliCtx.Context, cloud.LaunchSatelliteOpt{
 		Name:                    a.cli.Flags().SatelliteName,
 		OrgName:                 orgName,
