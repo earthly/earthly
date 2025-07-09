@@ -28,7 +28,6 @@ func (a *Root) Cmds() []*cli.Command {
 		NewInit(a.cli).Cmds(),
 		NewList(a.cli).Cmds(),
 		NewPrune(a.cli).Cmds(),
-		NewSatellite(a.cli).Cmds(),
 	})
 
 	return cmds
