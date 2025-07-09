@@ -29,7 +29,6 @@ func (a *Root) Cmds() []*cli.Command {
 		NewList(a.cli).Cmds(),
 		NewPrune(a.cli).Cmds(),
 		NewSatellite(a.cli).Cmds(),
-		NewSecret(a.cli).Cmds(),
 	})
 
 	return cmds
