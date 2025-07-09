@@ -8,7 +8,6 @@ test-root-commands:
 config 
 doc 
 docker-build 
-gha 
 init 
 ls 
 org 
@@ -30,7 +29,6 @@ debug
 doc 
 docker-build 
 docker2earthly 
-gha 
 init 
 ls 
 org 
