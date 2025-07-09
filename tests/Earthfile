@@ -162,7 +162,6 @@ ga-no-qemu-group5:
 
 ga-no-qemu-group6:
     BUILD +cache-test
-    BUILD --pass-args ./do-not-track+test-all
     BUILD --pass-args ./scrub-https-credentials+all
     BUILD --pass-args ./autocompletion/install+test-all
     BUILD +cache-cmd

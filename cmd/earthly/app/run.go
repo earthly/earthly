@@ -50,19 +50,6 @@ func (app *EarthlyApp) Run(ctx context.Context, console conslogging.ConsoleLogge
 
 	exitCode := app.run(ctx, os.Args, lastSignal)
 
-	// app.Cfg will be nil when a user runs `earthly --version`;
-	// however in all other regular commands app.Cfg will be set in app.Before
-	if !app.BaseCLI.Flags().DisableAnalytics && app.BaseCLI.Cfg() != nil && !app.BaseCLI.Cfg().Global.DisableAnalytics {
-		// Use a new context, in case the original context is cancelled due to sigint.
-		_, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-		displayErrors := app.BaseCLI.Flags().Verbose
-		_, err := helper.NewCloudClient(app.BaseCLI)
-		if err != nil && displayErrors {
-			app.BaseCLI.Console().Warnf("unable to start cloud app.BaseClient: %s", err)
-		}
-	}
-
 	return exitCode
 }
 

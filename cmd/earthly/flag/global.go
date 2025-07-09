@@ -49,7 +49,6 @@ type Global struct {
 	SatelliteAddress           string
 	AuthToken                  string
 	AuthJWT                    string
-	DisableAnalytics           bool
 	FeatureFlagOverrides       string
 	EnvFile                    string
 	ArgFile                    string
@@ -248,11 +247,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			Usage:       "Disable the automatic update of buildkitd",
 			Destination: &global.NoBuildkitUpdate,
 			Hidden:      true, // Internal.
-		},
-		&cli.BoolFlag{
-			EnvVars:     []string{"EARTHLY_DISABLE_ANALYTICS", "DO_NOT_TRACK"},
-			Usage:       "Disable collection of analytics",
-			Destination: &global.DisableAnalytics,
 		},
 		&cli.StringFlag{
 			Name:        "version-flag-overrides",

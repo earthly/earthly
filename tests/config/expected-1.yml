@@ -1,2 +1,2 @@
 global:
-    disable_analytics: true
+    cache_size_mb: 10

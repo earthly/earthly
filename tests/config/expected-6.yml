@@ -1,4 +1,3 @@
 global:
-    disable_analytics: true
-    cache_size_pct: 50
     cache_size_mb: 100
+    cache_size_pct: 50
