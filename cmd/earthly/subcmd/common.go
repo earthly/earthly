@@ -14,27 +14,6 @@ type orgLister interface {
 	ListOrgs(ctx context.Context) ([]*cloud.OrgDetail, error)
 }
 
-// projectOrgName returns the specified org or retrieves the default org from the API.
-func projectOrgName(cli CLI, ctx context.Context, cloudClient *cloud.Client) (string, error) {
-
-	if configuredOrg := cli.OrgName(); configuredOrg != "" {
-		return configuredOrg, nil
-	}
-
-	userOrgs, err := cloudClient.ListOrgs(ctx)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to list organizations")
-	}
-
-	if len(userOrgs) == 0 {
-		return "", errors.New("no organizations found, please specify with --org")
-	} else if len(userOrgs) > 1 {
-		return "", errors.New("multiple organizations found, please specify with --org")
-	}
-
-	return userOrgs[0].Name, nil
-}
-
 func concatCmds(slices [][]*cli.Command) []*cli.Command {
 	var totalLen int
 

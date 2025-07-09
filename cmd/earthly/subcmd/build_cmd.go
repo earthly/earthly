@@ -12,7 +12,6 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
-	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 	bkclient "github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
@@ -270,9 +269,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return err
 	}
 
-	// Determine if Logstream is enabled and create log sharing link in either case.
-	logstreamURL, doLogstreamUpload, printLinkFn := a.logShareLink(cliCtx.Context, cloudClient, target, cleanCollection)
-
 	a.cli.Console().PrintPhaseHeader(builder.PhaseInit, false, "")
 	a.warnIfArgContainsBuildArg(flagArgs)
 
@@ -341,9 +337,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	if doSkip {
 		return nil
 	}
-
-	// Output log sharing link after build. Invoked after auto-skip is checked (above).
-	a.cli.AddDeferredFunc(printLinkFn)
 
 	err = a.cli.InitFrontend(cliCtx)
 	if err != nil {
@@ -632,14 +625,8 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		setup.SetOrgAndProject(orgName, projectName)
 		setup.SetGitAuthor(gitCommitAuthorEmail, gitConfigEmail)
 		setup.SetCI(false)
-		if doLogstreamUpload {
-			setup.StartLogStreamer(cloudClient)
-		}
-		return nil
-	}
 
-	if doLogstreamUpload && !a.cli.LogbusSetup().LogStreamerStarted() {
-		a.cli.Console().ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
+		return nil
 	}
 
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
@@ -920,31 +907,6 @@ func (a *Build) initAutoSkip(ctx context.Context, skipDB bk.BuildkitSkipper, tar
 	}
 
 	return addHashFn, false, nil
-}
-
-func (a *Build) logShareLink(ctx context.Context, cloudClient *cloud.Client, target domain.Target, clean *cleanup.Collection) (string, bool, func()) {
-
-	if a.cli.Cfg().Global.DisableLogSharing {
-		return "", false, func() {}
-	}
-
-	if !cloudClient.IsLoggedIn(ctx) {
-		printLinkFn := func() {
-			a.cli.Console().Printf(
-				"🛰️ Reuse cache between CI runs with Earthly Satellites! " +
-					"2-20X faster than without cache. Generous free tier " +
-					"https://cloud.earthly.dev\n")
-		}
-		return "", false, printLinkFn
-	}
-
-	logstreamURL := fmt.Sprintf("%s/builds/%s", a.cli.CIHost(), a.cli.LogbusSetup().InitialManifest.GetBuildId())
-
-	printLinkFn := func() {
-		a.cli.Console().ColorPrintf(color.New(color.FgHiYellow), "View logs at %s\n", logstreamURL)
-	}
-
-	return logstreamURL, true, printLinkFn
 }
 
 func (a *Build) actionDockerBuild(cliCtx *cli.Context) error {
