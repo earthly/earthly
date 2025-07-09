@@ -10,8 +10,6 @@ doc
 docker-build 
 init 
 ls 
-org 
-project 
 prune 
 registry 
 satellite 
@@ -31,8 +29,6 @@ docker-build
 docker2earthly 
 init 
 ls 
-org 
-project 
 prune 
 registry 
 satellite 
