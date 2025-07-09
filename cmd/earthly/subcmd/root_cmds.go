@@ -34,7 +34,6 @@ func (a *Root) Cmds() []*cli.Command {
 		NewSatellite(a.cli).Cmds(),
 		NewSecret(a.cli).Cmds(),
 		NewWeb(a.cli).Cmds(),
-		NewGithub(a.cli).Cmds(),
 	})
 
 	return cmds
