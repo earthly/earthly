@@ -11,10 +11,8 @@ docker-build
 init 
 ls 
 prune 
-registry 
 satellite 
-secret 
-web " > expected
+secret " > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly "
 
 test-hidden-root-commands:
@@ -30,10 +28,8 @@ docker2earthly
 init 
 ls 
 prune 
-registry 
 satellite 
-secret 
-web " > expected
+secret " > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly "
 
 test-build-flags:

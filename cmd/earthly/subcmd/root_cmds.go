@@ -28,10 +28,8 @@ func (a *Root) Cmds() []*cli.Command {
 		NewInit(a.cli).Cmds(),
 		NewList(a.cli).Cmds(),
 		NewPrune(a.cli).Cmds(),
-		NewRegistry(a.cli).Cmds(),
 		NewSatellite(a.cli).Cmds(),
 		NewSecret(a.cli).Cmds(),
-		NewWeb(a.cli).Cmds(),
 	})
 
 	return cmds
