@@ -27,8 +27,6 @@ func (a *Root) Cmds() []*cli.Command {
 		NewDoc2Earth(a.cli).Cmds(),
 		NewInit(a.cli).Cmds(),
 		NewList(a.cli).Cmds(),
-		NewOrg(a.cli).Cmds(),
-		NewProject(a.cli).Cmds(),
 		NewPrune(a.cli).Cmds(),
 		NewRegistry(a.cli).Cmds(),
 		NewSatellite(a.cli).Cmds(),
