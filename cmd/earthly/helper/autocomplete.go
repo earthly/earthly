@@ -16,7 +16,6 @@ import (
 
 	"github.com/earthly/earthly/autocomplete"
 	"github.com/earthly/earthly/buildcontext"
-	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/util/cliutil"
 )
@@ -93,15 +92,4 @@ func autoCompleteImp(ctx context.Context, cli *base.CLI) (err error) {
 	}
 
 	return nil
-}
-
-func getCloudClientForAutoCompleter(ctx context.Context, cli *base.CLI) *cloud.Client {
-	// TODO these need to be set outside of urfave/cli; since the auto-competer happens without envoking it
-	// maybe we can half-parse them? or just set the defaults?
-	cli.Flags().CloudHTTPAddr = "https://api.earthly.dev"
-	cli.Flags().CloudGRPCAddr = "ci.earthly.dev:443"
-	cli.Flags().SSHAuthSock = os.Getenv("SSH_AUTH_SOCK")
-
-	cloudClient, _ := NewCloudClient(cli) // best effort
-	return cloudClient
 }
