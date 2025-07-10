@@ -84,7 +84,7 @@ func autoCompleteImp(ctx context.Context, cli *base.CLI) (err error) {
 	var gwClient gwclient.Client // TODO this is a nil pointer which causes a panic if we try to expand a remotely referenced earthfile
 	// it's expensive to create this gwclient, so we need to implement a lazy eval which returns it when required.
 
-	potentials, err := autocomplete.GetPotentials(ctx, resolver, gwClient, compLine, int(compPointInt), cli.App(), autocomplete.NewCachedCloudClient(cli.Flags().InstallationName, getCloudClientForAutoCompleter(ctx, cli)))
+	potentials, err := autocomplete.GetPotentials(ctx, resolver, gwClient, compLine, int(compPointInt), cli.App())
 	if err != nil {
 		return err
 	}

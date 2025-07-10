@@ -346,7 +346,7 @@ type FlagValuePotentialFn func(ctx context.Context, prefix string) []string
 // NOTE: you can cause earthly to run this command with:
 //
 //	COMP_LINE="earthly -" COMP_POINT=$(echo -n $COMP_LINE | wc -c) go run cmd/earthly/main.go
-func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, compLine string, compPoint int, app *cli.App, cloudClient cloudListClient) ([]string, error) {
+func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClient gwclient.Client, compLine string, compPoint int, app *cli.App) ([]string, error) {
 	if compPoint > len(compLine) {
 		return nil, errCompPointOutOfBounds
 	}
@@ -365,63 +365,7 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 	}
 
 	flagValues := map[string]string{}
-	flagValuePotentialFuncs := map[string]FlagValuePotentialFn{
-		"--org": func(ctx context.Context, prefix string) []string {
-			if cloudClient == nil {
-				return []string{}
-			}
-
-			orgs, err := cloudClient.ListOrgs(ctx)
-			if err != nil {
-				return []string{}
-			}
-			potentials := []string{}
-			for _, org := range orgs {
-				potentials = append(potentials, org.Name)
-			}
-			return potentials
-		},
-		"--project": func(ctx context.Context, prefix string) []string {
-			if cloudClient == nil {
-				return []string{}
-			}
-
-			org, ok := flagValues["--org"]
-			if !ok {
-				return []string{}
-			}
-
-			projects, err := cloudClient.ListProjects(ctx, org)
-			if err != nil {
-				return []string{}
-			}
-			potentials := []string{}
-			for _, project := range projects {
-				potentials = append(potentials, project.Name)
-			}
-			return potentials
-		},
-		"--satellite": func(ctx context.Context, prefix string) []string {
-			if cloudClient == nil {
-				return []string{}
-			}
-
-			org, ok := flagValues["--org"]
-			if !ok {
-				return []string{}
-			}
-
-			satellites, err := cloudClient.ListSatellites(ctx, org)
-			if err != nil {
-				return []string{}
-			}
-			potentials := []string{}
-			for _, sat := range satellites {
-				potentials = append(potentials, sat.Name)
-			}
-			return potentials
-		},
-	}
+	flagValuePotentialFuncs := map[string]FlagValuePotentialFn{}
 
 	// getWord returns the next word and a boolean if it is valid
 	// TODO this function does not handle escaped space, e.g.
