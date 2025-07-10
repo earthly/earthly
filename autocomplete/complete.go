@@ -356,13 +356,6 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 	// TODO all the urfave/cli commands need to be moved out of the main package
 	// so they could be directly referenced rather than storing a list of strings of seen commands
 	commandValues := []string{}
-	getPrevCommand := func() string {
-		n := len(commandValues) - 2
-		if n >= 0 {
-			return commandValues[n]
-		}
-		return ""
-	}
 
 	flagValues := map[string]string{}
 	flagValuePotentialFuncs := map[string]FlagValuePotentialFn{}
@@ -483,11 +476,6 @@ func GetPotentials(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 		if cmd != nil {
 			potentials = getVisibleCommands(cmd.Subcommands)
 			potentials = padStrings(potentials, "", " ")
-
-			// TODO this should be tied to the instance of the command (and not just command Name value); but that means moving lots out of the main package
-			if getPrevCommand() == "satellite" && (cmd.Name == "inspect" || cmd.Name == "rm" || cmd.Name == "select" || cmd.Name == "sleep" || cmd.Name == "update" || cmd.Name == "wake") {
-				potentials = append(potentials, flagValuePotentialFuncs["--satellite"](ctx, "")...)
-			}
 		} else {
 			potentials = getVisibleCommands(app.Commands)
 			potentials = padStrings(potentials, "", " ")

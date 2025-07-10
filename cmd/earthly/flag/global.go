@@ -444,7 +444,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			EnvVars:     []string{"EARTHLY_AUTO_SKIP_DB_PATH"},
 			Usage:       "use a local database instead of the cloud db",
 			Destination: &global.LocalSkipDB,
-			Hidden:      true,
 		},
 		&cli.StringFlag{
 			Name:        "org",

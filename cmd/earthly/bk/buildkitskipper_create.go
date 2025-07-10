@@ -15,18 +15,14 @@ type BuildkitSkipper interface {
 }
 
 // NewBuildkitSkipper returns a local buildkitskipper when localSkipDB is specified, or alternatively a cloud-based skipper
-func NewBuildkitSkipper(localSkipDB string, cloudClient buildkitskipper.ASKVClient) (BuildkitSkipper, error) {
-	if localSkipDB != "" {
-		skipDB, err := buildkitskipper.NewLocal(localSkipDB)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to open buildkit skipper database %s", localSkipDB)
-		}
-		return skipDB, nil
+func NewBuildkitSkipper(localSkipDB string) (BuildkitSkipper, error) {
+	if localSkipDB == "" {
+		return nil, nil // will disable autoskipper.
 	}
 
-	skipDB, err := buildkitskipper.NewCloud(cloudClient)
+	skipDB, err := buildkitskipper.NewLocal(localSkipDB)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create cloud-based buildkit skipper database")
+		return nil, errors.Wrapf(err, "failed to open buildkit skipper database %s", localSkipDB)
 	}
 
 	return skipDB, nil
