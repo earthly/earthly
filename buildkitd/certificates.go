@@ -14,11 +14,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
 	"github.com/earthly/earthly/ast/hint"
-	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/util/fileutil"
 )
@@ -249,67 +247,4 @@ func savePEM(path, typ string, bytes []byte) error {
 	}
 
 	return nil
-}
-
-// ConfigureSatelliteTLS uses the CA cert and key associate with the satellite
-// to generate a new certificate/key pair for use in client-side mTLS.
-// The certificates are configured in the settings for a new buildkit client.
-func ConfigureSatelliteTLS(settings *Settings, sat *cloud.SatelliteInstance) (cleanupFn func(), err error) {
-	dir := filepath.Join(os.TempDir(), "earthly", "certs", uuid.NewString())
-	caRootPath := filepath.Join(dir, "root_ca_cert.pem")
-	caCertPath := filepath.Join(dir, "ca_cert.pem")
-	caKeyPath := filepath.Join(dir, "ca_key.pem")
-	earthlyCertPath := filepath.Join(dir, "earthly_cert.pem")
-	earthlyKeyPath := filepath.Join(dir, "earthly_key.pem")
-
-	settings.TLSCA = caRootPath
-	settings.ClientTLSCert = earthlyCertPath
-	settings.ClientTLSKey = earthlyKeyPath
-	settings.ServerTLSCert = ""
-	settings.ServerTLSKey = ""
-
-	if err = os.MkdirAll(dir, 0755); err != nil {
-		return nil, errors.Wrap(err, "could not make temp tls dir")
-	}
-
-	cleanupFn = func() { _ = os.RemoveAll(dir) }
-
-	if err = os.WriteFile(caRootPath, sat.Certificate.RootCa, 0444); err != nil {
-		return nil, errors.Wrap(err, "failed saving ca cert")
-	}
-
-	defer func() {
-		if err != nil {
-			cleanupFn()
-		}
-	}()
-
-	if err = os.WriteFile(caCertPath, sat.Certificate.ClientCa, 0444); err != nil {
-		return nil, errors.Wrap(err, "failed saving ca cert")
-	}
-
-	if err = os.WriteFile(caKeyPath, sat.Certificate.ClientCaKey, 0444); err != nil {
-		return nil, errors.Wrap(err, "failed saving ca key")
-	}
-
-	caCert, err := parseTLSCert(caCertPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed parsing ca cert")
-	}
-
-	caKey, err := parseTLSKey(caKeyPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed parsing ca key")
-	}
-
-	ca := &certData{
-		Cert: caCert,
-		Key:  caKey,
-	}
-
-	if err = genCert(ca, earthly, sat.Address, earthlyKeyPath, earthlyCertPath); err != nil {
-		return nil, errors.Wrap(err, "could not generate client TLS key/cert pair")
-	}
-
-	return cleanupFn, nil
 }

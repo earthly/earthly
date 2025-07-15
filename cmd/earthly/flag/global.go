@@ -46,7 +46,6 @@ type Global struct {
 	CloudHTTPAddr              string
 	CloudGRPCAddr              string
 	CloudGRPCInsecure          bool
-	SatelliteAddress           string
 	AuthToken                  string
 	AuthJWT                    string
 	FeatureFlagOverrides       string
@@ -70,8 +69,6 @@ type Global struct {
 	ConversionParallelism      int
 	LocalRegistryHost          string
 	ContainerFrontend          containerutil.ContainerFrontend
-	SatelliteName              string
-	NoSatellite                bool
 	ProjectName                string
 	OrgName                    string
 	CloudName                  string
@@ -225,13 +222,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			EnvVars:     []string{"EARTHLY_GRPC_INSECURE"},
 			Usage:       "Makes gRPC connections insecure for dev purposes",
 			Destination: &global.CloudGRPCInsecure,
-			Hidden:      true, // Internal.
-		},
-		&cli.StringFlag{
-			Name:        "satellite-address",
-			EnvVars:     []string{"EARTHLY_SATELLITE_ADDRESS"},
-			Usage:       "Satellite address override for dev purposes",
-			Destination: &global.SatelliteAddress,
 			Hidden:      true, // Internal.
 		},
 		&cli.StringFlag{
@@ -448,7 +438,7 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 		&cli.StringFlag{
 			Name:        "org",
 			EnvVars:     []string{"EARTHLY_ORG"},
-			Usage:       common.Wrap("The name of the organization that the satellite belongs to. ", "Required when using --satellite and user is a member of multiple organizations."),
+			Usage:       common.Wrap("The name of the organization.", "Required when user is a member of multiple organizations."),
 			Required:    false,
 			Destination: &global.OrgName,
 			Hidden:      true,
@@ -460,22 +450,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			Required:    false,
 			Destination: &global.ProjectName,
 			Hidden:      true,
-		},
-		&cli.StringFlag{
-			Name:        "satellite",
-			Aliases:     []string{"sat"},
-			EnvVars:     []string{"EARTHLY_SATELLITE"},
-			Usage:       "The name of satellite to use for this build.",
-			Required:    false,
-			Destination: &global.SatelliteName,
-		},
-		&cli.BoolFlag{
-			Name:        "no-satellite",
-			Aliases:     []string{"no-sat"},
-			EnvVars:     []string{"EARTHLY_NO_SATELLITE"},
-			Usage:       "Disables the use of a selected satellite for this build.",
-			Required:    false,
-			Destination: &global.NoSatellite,
 		},
 		&cli.StringFlag{
 			Name:        "buildkit-image",
