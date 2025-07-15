@@ -10,7 +10,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/earthly/earthly/buildkitd"
-	"github.com/earthly/earthly/cmd/earthly/helper"
 	"github.com/earthly/earthly/util/flagutil"
 )
 
@@ -78,9 +77,6 @@ func (a *Prune) action(cliCtx *cli.Context) error {
 		return errors.New("invalid arguments")
 	}
 	if a.reset {
-		if a.cli.IsUsingSatellite(cliCtx) {
-			return errors.New("Cannot prune --reset when using a satellite. Try without --reset")
-		}
 		err := a.cli.InitFrontend(cliCtx)
 		if err != nil {
 			return err
@@ -92,17 +88,11 @@ func (a *Prune) action(cliCtx *cli.Context) error {
 		return nil
 	}
 
-	// Prune via API.
-	cloudClient, err := helper.NewCloudClient(a.cli)
-	if err != nil {
-		return err
-	}
-	bkClient, cleanupTLS, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
+	bkClient, err := a.cli.GetBuildkitClient(cliCtx)
 	if err != nil {
 		return errors.Wrap(err, "prune new buildkitd client")
 	}
 	defer bkClient.Close()
-	defer cleanupTLS()
 	var opts []client.PruneOption
 
 	if a.all {

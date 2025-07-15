@@ -341,12 +341,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return errors.Wrapf(err, "could not init frontend")
 	}
 
-	cleanupTLS, err := a.cli.ConfigureSatellite(cliCtx, cloudClient, gitCommitAuthorEmail, gitConfigEmail)
-	if err != nil {
-		return errors.Wrapf(err, "could not configure satellite")
-	}
-	defer cleanupTLS()
-
 	// After configuring frontend and satellites, buildkit address should not be empty.
 	// It should be set to a local container, remote address, or satellite address at this point.
 	if a.cli.Flags().BuildkitdSettings.BuildkitAddress == "" {

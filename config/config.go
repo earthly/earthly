@@ -115,17 +115,10 @@ type GitConfig struct {
 	SSHCommand            string `yaml:"ssh_command"                  help:"Set a value for the core.sshCommand git config option, which allows you to provide custom SSH configuration."`
 }
 
-// Satellite contains satellite config values
-type Satellite struct {
-	Name string `yaml:"name" help:"The name of the satellite to use"`
-	Org  string `yaml:"org"  help:"*Deprecated* The org name to whom the satellite belongs"`
-}
-
 // Config contains user's configuration values from ~/earthly/config.yml
 type Config struct {
-	Global    GlobalConfig         `yaml:"global"    help:"Global configuration object. Requires YAML literal to set directly."`
-	Git       map[string]GitConfig `yaml:"git"       help:"Git configuration object. Requires YAML literal to set directly."`
-	Satellite Satellite            `yaml:"satellite" help:"Satellite remote building configuration. Overrides some other remote buildkit settings when present. Requires YAML literal to set directly"`
+	Global GlobalConfig         `yaml:"global"    help:"Global configuration object. Requires YAML literal to set directly."`
+	Git    map[string]GitConfig `yaml:"git"       help:"Git configuration object. Requires YAML literal to set directly."`
 }
 
 // PortOffset is the offset to use for dev ports.

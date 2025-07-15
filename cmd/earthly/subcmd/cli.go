@@ -28,13 +28,11 @@ type CLI interface {
 	Cfg() *config.Config
 	SetCommandName(name string)
 
-	IsUsingSatellite(*cli.Context) bool
 	OrgName() string
 
-	GetBuildkitClient(*cli.Context, *cloud.Client) (client *client.Client, cleanupTLS func(), err error)
+	GetBuildkitClient(*cli.Context) (client *client.Client, err error)
 	GetSatelliteOrg(context.Context, *cloud.Client) (string, string, error)
 
-	ConfigureSatellite(*cli.Context, *cloud.Client, string, string) (cleanupTLS func(), err error)
 	CIHost() string
 	LogbusSetup() *setup.BusSetup
 	Logbus() *logbus.Bus

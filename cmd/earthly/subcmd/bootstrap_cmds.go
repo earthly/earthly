@@ -151,7 +151,7 @@ func (a *Bootstrap) bootstrap(cliCtx *cli.Context) error {
 		err = nil
 	}
 
-	if (!a.noBuildkit || a.genCerts) && !a.cli.IsUsingSatellite(cliCtx) {
+	if !a.noBuildkit || a.genCerts {
 		bkURL, err := url.Parse(a.cli.Flags().BuildkitHost)
 		if err != nil {
 			return errors.Wrapf(err, "invalid buildkit_host: %s", a.cli.Flags().BuildkitHost)
@@ -164,15 +164,14 @@ func (a *Bootstrap) bootstrap(cliCtx *cli.Context) error {
 		}
 	}
 
-	if !a.noBuildkit && !a.cli.IsUsingSatellite(cliCtx) {
+	if !a.noBuildkit {
 		// connect to local buildkit instance (to trigger pulling and running the earthly/buildkitd image)
-		bkClient, cleanupTLS, err := a.cli.GetBuildkitClient(cliCtx, nil)
+		bkClient, err := a.cli.GetBuildkitClient(cliCtx)
 		if err != nil {
 			console.Warnf("Warning: Bootstrapping buildkit failed: %v", err)
 			// Keep going.
 		} else {
 			defer bkClient.Close()
-			defer cleanupTLS()
 		}
 	}
 

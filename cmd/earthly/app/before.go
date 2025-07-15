@@ -202,19 +202,6 @@ func (app *EarthlyApp) processDeprecatedCommandOptions(cliCtx *cli.Context, cfg 
 		}
 	}
 
-	if cfg.Satellite.Org != "" {
-		if cfg.Global.Org != "" {
-			app.BaseCLI.Console().Warnf("Two default organizations were specified.\n" +
-				"You can remove the deprecated value by running 'earthly config satellite.org \"\"'\n" +
-				"Earthly will use the global value.")
-		} else {
-			app.BaseCLI.Console().Warnf("Auto-selecting the default org will no longer be supported in the future.\n" +
-				"You can select a default org using the command 'earthly org select',\n" +
-				"or otherwise specify an org using the --org flag or EARTHLY_ORG environment variable.")
-			cfg.Global.Org = cfg.Satellite.Org
-		}
-	}
-
 	return nil
 }
 

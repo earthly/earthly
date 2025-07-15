@@ -10,7 +10,6 @@ import (
 
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
-	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/logbus/setup"
 )
 
@@ -28,16 +27,6 @@ type CLI struct {
 	defaultInstallationName string
 	flags                   flag.Global
 	deferredFuncs           []func()
-	analyticsMetadata
-}
-
-type analyticsMetadata struct {
-	isSatellite             bool
-	isRemoteBuildkit        bool
-	satelliteCurrentVersion string
-	buildkitPlatform        string
-	userPlatform            string
-	target                  domain.Target
 }
 
 type CLIOpt func(CLI) CLI
