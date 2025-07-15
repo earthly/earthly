@@ -14,7 +14,7 @@ type BuildkitSkipper interface {
 	Exists(ctx context.Context, org string, key []byte) (bool, error)
 }
 
-// NewBuildkitSkipper returns a local buildkitskipper when localSkipDB is specified, or alternatively a cloud-based skipper
+// NewBuildkitSkipper returns a local buildkitskipper when localSkipDB is specified
 func NewBuildkitSkipper(localSkipDB string) (BuildkitSkipper, error) {
 	if localSkipDB == "" {
 		return nil, nil // will disable autoskipper.

@@ -1,8 +1,6 @@
 package base
 
 import (
-	"strings"
-
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cmd/earthly/flag"
 	"github.com/earthly/earthly/logbus"
@@ -175,15 +173,4 @@ func (c *CLI) ExecuteDeferredFuncs() {
 	for _, f := range c.deferredFuncs {
 		f()
 	}
-}
-
-// CIHost returns protocol://hostname
-func (c *CLI) CIHost() string {
-	switch {
-	case strings.Contains(c.Flags().CloudGRPCAddr, "staging"):
-		return "https://cloud.staging.earthly.dev"
-	case strings.Contains(c.Flags().CloudGRPCAddr, "earthly.local"):
-		return "http://earthly.local:3000"
-	}
-	return "https://cloud.earthly.dev"
 }

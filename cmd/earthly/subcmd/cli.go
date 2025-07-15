@@ -29,7 +29,6 @@ type CLI interface {
 
 	GetBuildkitClient(*cli.Context) (client *client.Client, err error)
 
-	CIHost() string
 	LogbusSetup() *setup.BusSetup
 	Logbus() *logbus.Bus
 

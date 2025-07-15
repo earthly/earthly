@@ -46,8 +46,6 @@ type Global struct {
 	CloudHTTPAddr              string
 	CloudGRPCAddr              string
 	CloudGRPCInsecure          bool
-	AuthToken                  string
-	AuthJWT                    string
 	FeatureFlagOverrides       string
 	EnvFile                    string
 	ArgFile                    string
@@ -56,8 +54,6 @@ type Global struct {
 	LogstreamDebugFile         string
 	LogstreamDebugManifestFile string
 	LogstreamAddressOverride   string
-	RequestID                  string
-	BuildID                    string
 	ServerConnTimeout          time.Duration
 	BuildkitHost               string
 	BuildkitdImage             string
@@ -124,19 +120,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			EnvVars:     []string{"EARTHLY_SSH_AUTH_SOCK"},
 			Usage:       "The SSH auth socket to use for ssh-agent forwarding",
 			Destination: &global.SSHAuthSock,
-		},
-		&cli.StringFlag{
-			Name:        "auth-token",
-			EnvVars:     []string{"EARTHLY_TOKEN"},
-			Usage:       "Force Earthly account login to authenticate with supplied token",
-			Destination: &global.AuthToken,
-		},
-		&cli.StringFlag{
-			Name:        "auth-jwt",
-			EnvVars:     []string{"EARTHLY_JWT"},
-			Usage:       "Force Earthly account to use supplied JWT token",
-			Destination: &global.AuthJWT,
-			Hidden:      true, // Internal.
 		},
 		&cli.StringFlag{
 			Name:        "git-username",
@@ -224,13 +207,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			Destination: &global.CloudGRPCInsecure,
 			Hidden:      true, // Internal.
 		},
-		&cli.StringFlag{
-			Name:        "request-id",
-			EnvVars:     []string{"EARTHLY_REQUEST_ID"},
-			Usage:       "Override a request ID to the backend API. Useful for debugging or manually retrying a request.",
-			Destination: &global.RequestID,
-			Hidden:      true, // Internal
-		},
 		&cli.BoolFlag{
 			Name:        "no-buildkit-update",
 			EnvVars:     []string{"EARTHLY_NO_BUILDKIT_UPDATE"},
@@ -285,13 +261,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			EnvVars:     []string{"EARTHLY_LOGSTREAM_ADDRESS"},
 			Usage:       "Override the Logstream address",
 			Destination: &global.LogstreamAddressOverride,
-			Hidden:      true, // Internal.
-		},
-		&cli.StringFlag{
-			Name:        "build-id",
-			EnvVars:     []string{"EARTHLY_BUILD_ID"},
-			Usage:       "The build ID to use for identifying the build in Earthly Cloud. If not specified, a random ID will be generated",
-			Destination: &global.BuildID,
 			Hidden:      true, // Internal.
 		},
 		&cli.DurationFlag{
@@ -432,7 +401,7 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 		&cli.StringFlag{
 			Name:        "auto-skip-db-path",
 			EnvVars:     []string{"EARTHLY_AUTO_SKIP_DB_PATH"},
-			Usage:       "use a local database instead of the cloud db",
+			Usage:       "use a local database for auto-skip",
 			Destination: &global.LocalSkipDB,
 		},
 		&cli.StringFlag{

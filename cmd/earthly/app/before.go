@@ -47,9 +47,6 @@ func (app *EarthlyApp) before(cliCtx *cli.Context) error {
 	}
 
 	app.BaseCLI.SetConsole(app.BaseCLI.Console().WithPrefixWriter(app.BaseCLI.Logbus().Run().Generic()))
-	if flags.BuildID == "" {
-		flags.BuildID = uuid.NewString()
-	}
 	var execStatsTracker *execstatssummary.Tracker
 	if flags.ExecStatsSummary != "" {
 		execStatsTracker = execstatssummary.NewTracker(flags.ExecStatsSummary)
@@ -64,7 +61,7 @@ func (app *EarthlyApp) before(cliCtx *cli.Context) error {
 		envutil.IsTrue("NO_COLOR"),
 		app.BaseCLI.Flags().InteractiveDebugging,
 		flags.LogstreamDebugFile,
-		flags.BuildID,
+		uuid.NewString(),
 		execStatsTracker,
 		flags.GithubAnnotations,
 	)
