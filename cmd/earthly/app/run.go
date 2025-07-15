@@ -175,13 +175,9 @@ func (app *EarthlyApp) run(ctx context.Context, args []string, lastSignal *syncu
 			return 1
 		case qemuExitCodeRegex.MatchString(err.Error()):
 			var helpMsg string
-			if app.BaseCLI.AnaMetaIsSat() {
-				app.BaseCLI.Console().DebugPrintf("Are you using --platform to target a different architecture? Please note that \"disable-emulation\" flag is set in your satellite.\n")
-			} else {
-				helpMsg = "Are you using --platform to target a different architecture? You may have to manually install QEMU.\n" +
-					"For more information see https://docs.earthly.dev/guides/multi-platform\n"
-				app.BaseCLI.Console().HelpPrintf(helpMsg)
-			}
+			helpMsg = "Are you using --platform to target a different architecture? You may have to manually install QEMU.\n" +
+				"For more information see https://docs.earthly.dev/guides/multi-platform\n"
+			app.BaseCLI.Console().HelpPrintf(helpMsg)
 			app.BaseCLI.Logbus().Run().SetGenericFatalError(
 				time.Now(),
 				logstream.FailureType_FAILURE_TYPE_OTHER,

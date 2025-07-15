@@ -10,7 +10,6 @@ import (
 	"github.com/earthly/earthly/cmd/earthly/flag"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
-	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/logbus/setup"
 )
@@ -29,10 +28,6 @@ type CLI interface {
 	Cfg() *config.Config
 	SetCommandName(name string)
 
-	SetAnaMetaTarget(domain.Target)
-	SetAnaMetaIsRemoteBK(bool)
-	SetAnaMetaBKPlatform(string)
-	SetAnaMetaUserPlatform(string)
 	IsUsingSatellite(*cli.Context) bool
 	OrgName() string
 

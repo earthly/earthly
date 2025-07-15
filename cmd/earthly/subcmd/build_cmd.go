@@ -245,8 +245,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return err
 	}
 
-	a.cli.SetAnaMetaTarget(target)
-
 	var (
 		gitCommitAuthorEmail string
 		gitConfigEmail       string
@@ -379,8 +377,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	if err != nil {
 		return err
 	}
-
-	a.cli.SetAnaMetaIsRemoteBK(!isLocal)
 
 	localhostProvider, err := localhostprovider.NewLocalhostProvider()
 	if err != nil {
@@ -808,8 +804,6 @@ func (a *Build) platformResolver(ctx context.Context, bkClient *bkclient.Client,
 	}
 	a.cli.LogbusSetup().SetDefaultPlatform(platforms.Format(nativePlatform))
 	platr := platutil.NewResolver(nativePlatform)
-	a.cli.SetAnaMetaBKPlatform(platforms.Format(nativePlatform))
-	a.cli.SetAnaMetaUserPlatform(platforms.Format(platr.LLBUser()))
 	platr.AllowNativeAndUser = true
 	platformsSlice := make([]platutil.Platform, 0, len(a.platformsStr.Value()))
 	for _, p := range a.platformsStr.Value() {

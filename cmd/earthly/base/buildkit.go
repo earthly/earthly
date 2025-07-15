@@ -97,9 +97,6 @@ func (cli *CLI) ConfigureSatellite(cliCtx *cli.Context, cloudClient *cloud.Clien
 	}
 	cli.Flags().BuildkitdSettings.BuildkitAddress = satelliteAddress
 
-	cli.SetAnaMetaIsSat(true)
-	cli.SetAnaMetaSatCurrentVersion(sat.Version)
-
 	if cli.Flags().FeatureFlagOverrides != "" {
 		cli.Flags().FeatureFlagOverrides += ","
 	}

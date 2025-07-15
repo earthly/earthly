@@ -178,43 +178,6 @@ func (c *CLI) Flags() *flag.Global {
 	return &c.flags
 }
 
-func (c *CLI) AnaMetaIsSat() bool {
-	return c.analyticsMetadata.isSatellite
-}
-func (c *CLI) AnaMetaIsRemoteBK() bool {
-	return c.analyticsMetadata.isRemoteBuildkit
-}
-func (c *CLI) AnaMetaSatCurrentVersion() string {
-	return c.analyticsMetadata.satelliteCurrentVersion
-}
-func (c *CLI) AnaMetaBKPlatform() string {
-	return c.analyticsMetadata.buildkitPlatform
-}
-func (c *CLI) AnaMetaUserPlatform() string {
-	return c.analyticsMetadata.userPlatform
-}
-func (c *CLI) AnaMetaTarget() domain.Target {
-	return c.analyticsMetadata.target
-}
-func (c *CLI) SetAnaMetaIsSat(isSat bool) {
-	c.analyticsMetadata.isSatellite = isSat
-}
-func (c *CLI) SetAnaMetaIsRemoteBK(isRBK bool) {
-	c.analyticsMetadata.isRemoteBuildkit = isRBK
-}
-func (c *CLI) SetAnaMetaSatCurrentVersion(currentVersion string) {
-	c.analyticsMetadata.satelliteCurrentVersion = currentVersion
-}
-func (c *CLI) SetAnaMetaBKPlatform(platform string) {
-	c.analyticsMetadata.buildkitPlatform = platform
-}
-func (c *CLI) SetAnaMetaUserPlatform(platform string) {
-	c.analyticsMetadata.userPlatform = platform
-}
-func (c *CLI) SetAnaMetaTarget(target domain.Target) {
-	c.analyticsMetadata.target = target
-}
-
 func (c *CLI) AddDeferredFunc(f func()) {
 	c.deferredFuncs = append([]func(){f}, c.deferredFuncs...)
 }
