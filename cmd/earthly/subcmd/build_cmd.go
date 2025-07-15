@@ -394,7 +394,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 
 	secretProvider := secretprovider.New(
 		internalSecretStore,
-		secretprovider.NewAWSCredentialProvider(cloudClient),
+		secretprovider.NewAWSCredentialProvider(),
 		secretprovider.NewMapStore(secretsMap),
 		customSecretProviderCmd,
 		secretprovider.NewCloudStore(cloudClient),
