@@ -49,10 +49,9 @@ func (a *Prune) Cmds() []*cli.Command {
 					Destination: &a.all,
 				},
 				&cli.BoolFlag{
-					Name:    "reset",
-					EnvVars: []string{"EARTHLY_PRUNE_RESET"},
-					Usage: `Reset cache entirely by restarting BuildKit daemon and wiping cache dir.
-				This option is not available when using satellites.`,
+					Name:        "reset",
+					EnvVars:     []string{"EARTHLY_PRUNE_RESET"},
+					Usage:       `Reset cache entirely by restarting BuildKit daemon and wiping cache dir.`,
 					Destination: &a.reset,
 				},
 				&cli.GenericFlag{

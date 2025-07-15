@@ -146,7 +146,7 @@ func (wb *waitBlock) saveImages(ctx context.Context, pushesAllowed, localExports
 
 	gwCrafter := gatewaycrafter.NewGatewayCrafter()
 
-	// these are used to pass manifest data to the onImage function in builder.go; this only applies to non-local-registry exports (e.g. satellites)
+	// these are used to pass manifest data to the onImage function in builder.go; this only applies to non-local-registry exports
 	var tarImagesInWaitBlockRefPrefixes []string
 	var tarImagesInWaitBlock []string
 

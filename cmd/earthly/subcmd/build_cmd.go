@@ -341,8 +341,8 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return errors.Wrapf(err, "could not init frontend")
 	}
 
-	// After configuring frontend and satellites, buildkit address should not be empty.
-	// It should be set to a local container, remote address, or satellite address at this point.
+	// After configuring frontend, buildkit address should not be empty.
+	// It should be set to a local container or remote address at this point.
 	if a.cli.Flags().BuildkitdSettings.BuildkitAddress == "" {
 		return errors.New("could not determine buildkit address - is Docker or Podman running?")
 	}
@@ -775,14 +775,10 @@ func (a *Build) runnerName(ctx context.Context) (string, bool, error) {
 		}
 		runnerName = fmt.Sprintf("local:%s", hostname)
 	} else {
-		if a.cli.Flags().SatelliteName != "" {
-			runnerName = fmt.Sprintf("sat:%s/%s", a.cli.OrgName(), a.cli.Flags().SatelliteName)
-		} else {
-			runnerName = fmt.Sprintf("bk:%s", a.cli.Flags().BuildkitdSettings.BuildkitAddress)
-		}
+		runnerName = fmt.Sprintf("bk:%s", a.cli.Flags().BuildkitdSettings.BuildkitAddress)
 	}
 	if !isLocal && (a.cli.Flags().UseInlineCache || a.cli.Flags().SaveInlineCache) {
-		a.cli.Console().Warnf("Note that inline cache (--use-inline-cache and --save-inline-cache) occasionally cause builds to get stuck at 100%% CPU on Satellites and remote Buildkit.")
+		a.cli.Console().Warnf("Note that inline cache (--use-inline-cache and --save-inline-cache) occasionally cause builds to get stuck at 100%% CPU on and remote Buildkit.")
 		a.cli.Console().Warnf("") // newline
 	}
 	if isLocal && !a.cli.Flags().ContainerFrontend.IsAvailable(ctx) {

@@ -175,7 +175,6 @@ type ConvertOpt struct {
 	// May be one of the following:
 	// * "local:<hostname>" - local builds
 	// * "bk:<buildkit-address>" - remote builds via buildkit
-	// * "sat:<org-name>/<sat-name>" - remote builds via satellite
 	Runner string
 
 	// ProjectAdder is a callback that is used to discover PROJECT <org>/<project> values

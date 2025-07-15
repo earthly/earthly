@@ -1,12 +1,9 @@
 package subcmd
 
 import (
-	"context"
-
 	"github.com/moby/buildkit/client"
 	"github.com/urfave/cli/v2"
 
-	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/cmd/earthly/flag"
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
@@ -31,7 +28,6 @@ type CLI interface {
 	OrgName() string
 
 	GetBuildkitClient(*cli.Context) (client *client.Client, err error)
-	GetSatelliteOrg(context.Context, *cloud.Client) (string, string, error)
 
 	CIHost() string
 	LogbusSetup() *setup.BusSetup
