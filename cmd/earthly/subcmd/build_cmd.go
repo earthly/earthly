@@ -50,7 +50,6 @@ import (
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil/authprovider"
-	"github.com/earthly/earthly/util/llbutil/authprovider/cloudauth"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/params"
 	"github.com/earthly/earthly/util/platutil"
@@ -408,13 +407,8 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	}
 
 	cfg := config.LoadDefaultConfigFile(os.Stderr)
-	cloudStoredAuthProvider := cloudauth.NewProvider(cfg, cloudClient, a.cli.Console())
 
 	var authChildren []authprovider.Child
-	if _, _, _, err := cloudClient.WhoAmI(cliCtx.Context); err == nil {
-		// only add cloud-based auth provider when logged in
-		authChildren = append(authChildren, cloudStoredAuthProvider.(auth.AuthServer))
-	}
 
 	switch a.cli.Flags().ContainerFrontend.Config().Setting {
 	case containerutil.FrontendPodman, containerutil.FrontendPodmanShell:
