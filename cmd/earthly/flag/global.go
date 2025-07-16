@@ -43,9 +43,6 @@ type Global struct {
 	Verbose                    bool
 	Debug                      bool
 	DisplayExecStats           bool
-	CloudHTTPAddr              string
-	CloudGRPCAddr              string
-	CloudGRPCInsecure          bool
 	FeatureFlagOverrides       string
 	EnvFile                    string
 	ArgFile                    string
@@ -66,7 +63,6 @@ type Global struct {
 	ContainerFrontend          containerutil.ContainerFrontend
 	ProjectName                string
 	OrgName                    string
-	CloudName                  string
 	ArtifactMode               bool
 	ImageMode                  bool
 	Pull                       bool
@@ -181,29 +177,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			Usage: `The URL to use for connecting to a buildkit host
 		If empty, earthly will attempt to start a buildkitd instance via docker run`,
 			Destination: &global.BuildkitHost,
-		},
-		&cli.StringFlag{
-			Name:        "server",
-			Value:       "https://api.earthly.dev",
-			EnvVars:     []string{"EARTHLY_SERVER_ADDRESS"},
-			Usage:       "API server override for dev purposes",
-			Destination: &global.CloudHTTPAddr,
-			Hidden:      true, // Internal.
-		},
-		&cli.StringFlag{
-			Name:        "grpc",
-			Value:       "ci.earthly.dev:443",
-			EnvVars:     []string{"EARTHLY_GRPC_ADDRESS"},
-			Usage:       "gRPC server override for dev purposes",
-			Destination: &global.CloudGRPCAddr,
-			Hidden:      true, // Internal.
-		},
-		&cli.BoolFlag{
-			Name:        "grpc-insecure",
-			EnvVars:     []string{"EARTHLY_GRPC_INSECURE"},
-			Usage:       "Makes gRPC connections insecure for dev purposes",
-			Destination: &global.CloudGRPCInsecure,
-			Hidden:      true, // Internal.
 		},
 		&cli.BoolFlag{
 			Name:        "no-buildkit-update",
