@@ -62,7 +62,7 @@ code:
         RUN go mod download
     END
     COPY ./ast/parser+parser/*.go ./ast/parser/
-    COPY --dir autocomplete buildcontext builder logbus cleanup cloud cmd config conslogging debugger \
+    COPY --dir autocomplete buildcontext builder logbus cleanup cmd config conslogging debugger \
         dockertar docker2earthly domain features internal slog states util variables regproxy ./
     COPY --dir buildkitd/buildkitd.go buildkitd/settings.go buildkitd/certificates.go buildkitd/
     COPY --dir earthfile2llb/*.go earthfile2llb/
