@@ -9,12 +9,12 @@ test:
     COPY expected-*.yml .
 
     # Ensure earthly doesn't create overridden config files when they don't exist
-    RUN earthly --config config.yml config global.disable_analytics true 2>&1 | grep 'failed to read from config.yml: open config.yml: no such file or directory'
+    RUN earthly --config config.yml config global.cache_size_mb 10 2>&1 | grep 'failed to read from config.yml: open config.yml: no such file or directory'
 
     RUN touch config.yml
 
     # Adding various configs of different types
-    RUN earthly --config config.yml config global.disable_analytics true
+    RUN earthly --config config.yml config global.cache_size_mb 10
     RUN test "$(cat config.yml)" = "$(cat expected-1.yml)"
 
     RUN earthly --config config.yml config 'git."example.com".password' hunter2
@@ -46,7 +46,7 @@ test:
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile="hello.earth" --target="+hello" --output_contains="greetings"
 
     # test earthly can write to default config location
-    RUN earthly config global.disable_analytics true
+    RUN earthly config global.cache_size_mb 10
     RUN test "$(cat /root/.earthly/config.yml)" = "$(cat expected-1.yml)"
 
     # test earthly fails when explicitly set to use a different config that doesn't exist
@@ -77,21 +77,21 @@ test:
     WORKDIR /home/testuser
 
     # test correct user location is used by default
-    RUN earthly config global.disable_analytics true
+    RUN earthly config global.cache_size_mb 10
     RUN test "$(cat /home/testuser/.earthly/config.yml)" = "$(cat /test/expected-1.yml)"
 
     # test correct user location is used when set elsewhere
     RUN touch ~/.earthly/other-config.yml
-    RUN EARTHLY_CONFIG=~/.earthly/other-config.yml earthly config global.disable_analytics true
+    RUN EARTHLY_CONFIG=~/.earthly/other-config.yml earthly config global.cache_size_mb 10
     RUN test "$(cat /home/testuser/.earthly/other-config.yml)" = "$(cat /test/expected-1.yml)"
 
     # test correct user location is used when set elsewhere with different installation dir
     RUN mkdir ~/.earthly-not-test && touch ~/.earthly-not-test/other-config.yml
-    RUN EARTHLY_INSTALLATION_NAME=earthly-test EARTHLY_CONFIG=~/.earthly-not-test/other-config.yml earthly config global.disable_analytics true
+    RUN EARTHLY_INSTALLATION_NAME=earthly-test EARTHLY_CONFIG=~/.earthly-not-test/other-config.yml earthly config global.cache_size_mb 10
     RUN test "$(cat /home/testuser/.earthly-not-test/other-config.yml)" = "$(cat /test/expected-1.yml)"
 
     # test correct user location is used when set with different installation dir
-    RUN EARTHLY_INSTALLATION_NAME=earthly-test2 earthly config global.disable_analytics true
+    RUN EARTHLY_INSTALLATION_NAME=earthly-test2 earthly config global.cache_size_mb 10
     RUN test "$(cat /home/testuser/.earthly-test2/config.yml)" = "$(cat /test/expected-1.yml)"
 
     # check permission error is correctly returned

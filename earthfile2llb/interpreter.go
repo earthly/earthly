@@ -11,7 +11,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast/command"
 	"github.com/earthly/earthly/ast/commandflag"
 	"github.com/earthly/earthly/ast/hint"
@@ -210,7 +209,6 @@ func (i *Interpreter) handleCommand(ctx context.Context, cmd spec.Command) (err 
 	}()
 
 	ctx = ContextWithSourceLocation(ctx, cmd.SourceLocation)
-	analytics.Count("cmd", cmd.Name)
 
 	if i.isWith {
 		switch cmd.Name {

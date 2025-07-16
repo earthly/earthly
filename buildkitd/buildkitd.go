@@ -85,17 +85,8 @@ func NewClient(ctx context.Context, console conslogging.ConsoleLogger, image, co
 	isLocal := isLocalBuildkit(settings)
 	if !isLocal {
 		remoteConsole := console
-		if settings.SatelliteName != "" {
-			remoteConsole = console.WithPrefix("satellite")
-			if settings.SatelliteIsManaged {
-				remoteConsole.Printf("Connecting to %s...", settings.SatelliteDisplayName)
-			} else {
-				remoteConsole.Printf("Connecting to %s (hosted at: %s)...", settings.SatelliteDisplayName, settings.BuildkitAddress)
-			}
-		} else {
-			remoteConsole = console.WithPrefix("buildkitd")
-			remoteConsole.Printf("Connecting to %s...", settings.BuildkitAddress)
-		}
+		remoteConsole = console.WithPrefix("buildkitd")
+		remoteConsole.Printf("Connecting to %s...", settings.BuildkitAddress)
 
 		info, workerInfo, err := waitForConnection(ctx, containerName, settings, fe, opts...)
 		if err != nil {
@@ -911,7 +902,7 @@ func isDockerAvailable(ctx context.Context, fe containerutil.ContainerFrontend) 
 }
 
 func printBuildkitInfo(bkCons conslogging.ConsoleLogger, info *client.Info, workerInfo *client.WorkerInfo, earthlyVersion string, isLocal, hasConfiguredCacheSize bool) {
-	// Print most of this stuff only for remote buildkits / satellites.
+	// Print most of this stuff only for remote buildkits
 	printFun := bkCons.Printf
 	if isLocal {
 		printFun = bkCons.VerbosePrintf
@@ -1030,16 +1021,6 @@ func addRequiredOpts(settings Settings, installationName string, isUsingPodman b
 		return []client.ClientOpt{}, errors.Wrapf(err, "failed to parse buildkit url %s", settings.BuildkitAddress)
 	}
 
-	if settings.SatelliteName != "" {
-		opts = append(opts,
-			client.WithDefaultGRPCDialer(),
-			client.WithAdditionalMetadataContext(
-				"satellite_name", settings.SatelliteName,
-				"satellite_org", settings.SatelliteOrgID,
-				"satellite_token", settings.SatelliteToken),
-		)
-	}
-
 	if !settings.UseTCP || !settings.UseTLS {
 		return opts, nil
 	}
@@ -1056,22 +1037,6 @@ func addRequiredOpts(settings Settings, installationName string, isUsingPodman b
 	return opts, nil
 }
 
-// PrintSatelliteInfo prints the instance's details,
-// including its Buildkit version, current workload, and garbage collection.
-func PrintSatelliteInfo(ctx context.Context, console conslogging.ConsoleLogger, earthlyVersion string, settings Settings, installationName string) error {
-	console.Printf("Connecting to %s...", settings.SatelliteDisplayName)
-	opts, err := addRequiredOpts(settings, installationName, false)
-	if err != nil {
-		return errors.Wrap(err, "add required client opts")
-	}
-	info, workerInfo, err := waitForConnection(ctx, "", settings, nil, opts...)
-	if err != nil {
-		return errors.Wrap(err, "connect provided buildkit")
-	}
-	printBuildkitInfo(console, info, workerInfo, earthlyVersion, false, false)
-	return nil
-}
-
 func containsAny(hs string, needles ...string) bool {
 	for _, n := range needles {
 		if strings.Contains(hs, n) {
@@ -1082,5 +1047,5 @@ func containsAny(hs string, needles ...string) bool {
 }
 
 func isLocalBuildkit(settings Settings) bool {
-	return containerutil.IsLocal(settings.BuildkitAddress) && settings.SatelliteName == ""
+	return containerutil.IsLocal(settings.BuildkitAddress)
 }

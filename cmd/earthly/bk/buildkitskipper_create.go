@@ -10,23 +10,19 @@ import (
 // BuildkitSkipper adds new auto-skip hashes to the backing datastore & allows
 // us to check for their existence.
 type BuildkitSkipper interface {
-	Add(ctx context.Context, org, target string, key []byte) error
-	Exists(ctx context.Context, org string, key []byte) (bool, error)
+	Add(ctx context.Context, target string, key []byte) error
+	Exists(ctx context.Context, key []byte) (bool, error)
 }
 
-// NewBuildkitSkipper returns a local buildkitskipper when localSkipDB is specified, or alternatively a cloud-based skipper
-func NewBuildkitSkipper(localSkipDB string, cloudClient buildkitskipper.ASKVClient) (BuildkitSkipper, error) {
-	if localSkipDB != "" {
-		skipDB, err := buildkitskipper.NewLocal(localSkipDB)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to open buildkit skipper database %s", localSkipDB)
-		}
-		return skipDB, nil
+// NewBuildkitSkipper returns a local buildkitskipper when localSkipDB is specified
+func NewBuildkitSkipper(localSkipDB string) (BuildkitSkipper, error) {
+	if localSkipDB == "" {
+		return nil, nil // will disable autoskipper.
 	}
 
-	skipDB, err := buildkitskipper.NewCloud(cloudClient)
+	skipDB, err := buildkitskipper.NewLocal(localSkipDB)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create cloud-based buildkit skipper database")
+		return nil, errors.Wrapf(err, "failed to open buildkit skipper database %s", localSkipDB)
 	}
 
 	return skipDB, nil

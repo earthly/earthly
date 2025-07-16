@@ -12,8 +12,6 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/docker/cli/cli/config"
-	billingpb "github.com/earthly/cloud-api/billing"
-	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 	bkclient "github.com/moby/buildkit/client"
 	"github.com/moby/buildkit/client/llb"
@@ -28,24 +26,19 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
-	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/ast"
-	"github.com/earthly/earthly/billing"
 	"github.com/earthly/earthly/buildcontext"
 	"github.com/earthly/earthly/buildcontext/provider"
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cleanup"
-	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/cmd/earthly/bk"
 	"github.com/earthly/earthly/cmd/earthly/common"
 	"github.com/earthly/earthly/cmd/earthly/flag"
-	"github.com/earthly/earthly/cmd/earthly/helper"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/docker2earthly"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/inputgraph"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/cliutil"
@@ -54,7 +47,6 @@ import (
 	"github.com/earthly/earthly/util/gatewaycrafter"
 	"github.com/earthly/earthly/util/gitutil"
 	"github.com/earthly/earthly/util/llbutil/authprovider"
-	"github.com/earthly/earthly/util/llbutil/authprovider/cloudauth"
 	"github.com/earthly/earthly/util/llbutil/secretprovider"
 	"github.com/earthly/earthly/util/params"
 	"github.com/earthly/earthly/util/platutil"
@@ -249,32 +241,8 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return err
 	}
 
-	a.cli.SetAnaMetaTarget(target)
-
-	var (
-		gitCommitAuthorEmail string
-		gitConfigEmail       string
-	)
-	if !target.IsRemote() {
-		meta, _ := gitutil.Metadata(cliCtx.Context, target.GetLocalPath(), a.cli.Flags().GitBranchOverride)
-		if meta != nil {
-			// Git commit detection here is best effort
-			gitCommitAuthorEmail = meta.AuthorEmail
-		}
-		if email, err := gitutil.ConfigEmail(cliCtx.Context); err == nil {
-			gitConfigEmail = email
-		}
-	}
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
-
-	cloudClient, err := helper.NewCloudClient(a.cli, cloud.WithLogstreamGRPCAddressOverride(a.cli.Flags().LogstreamAddressOverride))
-	if err != nil {
-		return err
-	}
-
-	// Determine if Logstream is enabled and create log sharing link in either case.
-	logstreamURL, doLogstreamUpload, printLinkFn := a.logShareLink(cliCtx.Context, cloudClient, target, cleanCollection)
 
 	a.cli.Console().PrintPhaseHeader(builder.PhaseInit, false, "")
 	a.warnIfArgContainsBuildArg(flagArgs)
@@ -331,7 +299,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return err
 	}
 
-	skipDB, err := bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB, cloudClient)
+	skipDB, err := bk.NewBuildkitSkipper(a.cli.Flags().LocalSkipDB)
 	if err != nil {
 		a.cli.Console().WithPrefix(autoSkipPrefix).Warnf("Failed to initialize auto-skip database: %v", err)
 	}
@@ -345,27 +313,13 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return nil
 	}
 
-	// Output log sharing link after build. Invoked after auto-skip is checked (above).
-	a.cli.AddDeferredFunc(printLinkFn)
-
 	err = a.cli.InitFrontend(cliCtx)
 	if err != nil {
 		return errors.Wrapf(err, "could not init frontend")
 	}
 
-	cleanupTLS, err := a.cli.ConfigureSatellite(cliCtx, cloudClient, gitCommitAuthorEmail, gitConfigEmail)
-	if err != nil {
-		return errors.Wrapf(err, "could not configure satellite")
-	}
-	defer cleanupTLS()
-
-	// Collect info to help with printing a richer message in the beginning of the build or on failure to reserve satellite due to missing build minutes.
-	if err = a.cli.CollectBillingInfo(cliCtx.Context, cloudClient, a.cli.OrgName()); err != nil {
-		a.cli.Console().DebugPrintf("failed to get billing plan info, error is %v\n", err)
-	}
-
-	// After configuring frontend and satellites, buildkit address should not be empty.
-	// It should be set to a local container, remote address, or satellite address at this point.
+	// After configuring frontend, buildkit address should not be empty.
+	// It should be set to a local container or remote address at this point.
 	if a.cli.Flags().BuildkitdSettings.BuildkitAddress == "" {
 		return errors.New("could not determine buildkit address - is Docker or Podman running?")
 	}
@@ -395,8 +349,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return err
 	}
 
-	a.cli.SetAnaMetaIsRemoteBK(!isLocal)
-
 	localhostProvider, err := localhostprovider.NewLocalhostProvider()
 	if err != nil {
 		return errors.Wrap(err, "failed to create localhostprovider")
@@ -420,10 +372,9 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 
 	secretProvider := secretprovider.New(
 		internalSecretStore,
-		secretprovider.NewAWSCredentialProvider(cloudClient),
+		secretprovider.NewAWSCredentialProvider(),
 		secretprovider.NewMapStore(secretsMap),
 		customSecretProviderCmd,
-		secretprovider.NewCloudStore(cloudClient),
 	)
 
 	attachables := []session.Attachable{
@@ -433,13 +384,8 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	}
 
 	cfg := config.LoadDefaultConfigFile(os.Stderr)
-	cloudStoredAuthProvider := cloudauth.NewProvider(cfg, cloudClient, a.cli.Console())
 
 	var authChildren []authprovider.Child
-	if _, _, _, err := cloudClient.WhoAmI(cliCtx.Context); err == nil {
-		// only add cloud-based auth provider when logged in
-		authChildren = append(authChildren, cloudStoredAuthProvider.(auth.AuthServer))
-	}
 
 	switch a.cli.Flags().ContainerFrontend.Config().Setting {
 	case containerutil.FrontendPodman, containerutil.FrontendPodmanShell:
@@ -593,7 +539,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		PrintPhases:                true,
 		Push:                       a.cli.Flags().Push,
 		CI:                         a.cli.Flags().CI,
-		EarthlyCIRunner:            a.cli.Flags().EarthlyCIRunner,
 		NoOutput:                   a.cli.Flags().NoOutput,
 		OnlyFinalTargetImages:      a.cli.Flags().ImageMode,
 		PlatformResolver:           platr,
@@ -618,41 +563,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		buildOpts.OnlyArtifact = &artifact
 		buildOpts.OnlyArtifactDestPath = destPath
 	}
-
-	// Kick off log streaming upload only when we've passed the necessary
-	// information to logbusSetup. This function will be called right at the
-	// beginning of the build within earthfile2llb.
-	buildOpts.MainTargetDetailsFunc = func(d earthfile2llb.TargetDetails) error {
-		// Use the flag/env values for org & project if specified, but fallback to
-		// the PROJECT command if provided.
-		orgName := d.EarthlyOrgName
-		if a.cli.OrgName() != "" {
-			orgName = a.cli.OrgName()
-		}
-		projectName := d.EarthlyProjectName
-		if a.cli.Flags().ProjectName != "" {
-			projectName = a.cli.Flags().ProjectName
-		}
-
-		a.cli.Console().WithPrefix("logbus").Printf("Setting organization %q and project %q", orgName, projectName)
-		analytics.AddEarthfileProject(orgName, projectName)
-
-		setup := a.cli.LogbusSetup()
-		setup.SetOrgAndProject(orgName, projectName)
-		setup.SetGitAuthor(gitCommitAuthorEmail, gitConfigEmail)
-		_, isCI := analytics.DetectCI(a.cli.Flags().EarthlyCIRunner)
-		setup.SetCI(isCI)
-		if doLogstreamUpload {
-			setup.StartLogStreamer(cloudClient)
-		}
-		return nil
-	}
-
-	if doLogstreamUpload && !a.cli.LogbusSetup().LogStreamerStarted() {
-		a.cli.Console().ColorPrintf(color.New(color.FgHiYellow), "Streaming logs to %s\n\n", logstreamURL)
-	}
-
-	a.maybePrintBuildMinutesInfo(cliCtx)
 
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
 	if err != nil {
@@ -810,14 +720,10 @@ func (a *Build) runnerName(ctx context.Context) (string, bool, error) {
 		}
 		runnerName = fmt.Sprintf("local:%s", hostname)
 	} else {
-		if a.cli.Flags().SatelliteName != "" {
-			runnerName = fmt.Sprintf("sat:%s/%s", a.cli.OrgName(), a.cli.Flags().SatelliteName)
-		} else {
-			runnerName = fmt.Sprintf("bk:%s", a.cli.Flags().BuildkitdSettings.BuildkitAddress)
-		}
+		runnerName = fmt.Sprintf("bk:%s", a.cli.Flags().BuildkitdSettings.BuildkitAddress)
 	}
 	if !isLocal && (a.cli.Flags().UseInlineCache || a.cli.Flags().SaveInlineCache) {
-		a.cli.Console().Warnf("Note that inline cache (--use-inline-cache and --save-inline-cache) occasionally cause builds to get stuck at 100%% CPU on Satellites and remote Buildkit.")
+		a.cli.Console().Warnf("Note that inline cache (--use-inline-cache and --save-inline-cache) occasionally cause builds to get stuck at 100%% CPU on remote Buildkit.")
 		a.cli.Console().Warnf("") // newline
 	}
 	if isLocal && !a.cli.Flags().ContainerFrontend.IsAvailable(ctx) {
@@ -833,8 +739,6 @@ func (a *Build) platformResolver(ctx context.Context, bkClient *bkclient.Client,
 	}
 	a.cli.LogbusSetup().SetDefaultPlatform(platforms.Format(nativePlatform))
 	platr := platutil.NewResolver(nativePlatform)
-	a.cli.SetAnaMetaBKPlatform(platforms.Format(nativePlatform))
-	a.cli.SetAnaMetaUserPlatform(platforms.Format(platr.LLBUser()))
 	platr.AllowNativeAndUser = true
 	platformsSlice := make([]platutil.Platform, 0, len(a.platformsStr.Value()))
 	for _, p := range a.platformsStr.Value() {
@@ -877,8 +781,6 @@ func (a *Build) initAutoSkip(ctx context.Context, skipDB bk.BuildkitSkipper, tar
 		return nil, false, errors.New("--no-auto-skip cannot be used with --auto-skip")
 	}
 
-	orgName := a.cli.Flags().OrgName
-
 	targetHash, stats, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
 		Target:         target,
 		Console:        a.cli.Console(),
@@ -893,13 +795,6 @@ func (a *Build) initAutoSkip(ctx context.Context, skipDB bk.BuildkitSkipper, tar
 	console.VerbosePrintf("targets visited: %d; targets hashed: %d; target cache hits: %d", stats.TargetsVisited, stats.TargetsHashed, stats.TargetCacheHits)
 	console.VerbosePrintf("hash calculation took %s", stats.Duration)
 
-	if a.cli.Flags().LocalSkipDB == "" && orgName == "" {
-		orgName, _, err = inputgraph.ParseProjectCommand(ctx, target, console)
-		if err != nil {
-			return nil, false, errors.New("organization not found in Earthfile, command flag or environmental variables")
-		}
-	}
-
 	if !target.IsRemote() {
 		meta, err := gitutil.Metadata(ctx, target.GetLocalPath(), a.cli.Flags().GitBranchOverride)
 		if err != nil {
@@ -912,7 +807,7 @@ func (a *Build) initAutoSkip(ctx context.Context, skipDB bk.BuildkitSkipper, tar
 	targetConsole := a.cli.Console().WithPrefix(target.String())
 	targetStr := targetConsole.PrefixColor().Sprintf("%s", target.StringCanonical())
 
-	exists, err := skipDB.Exists(ctx, orgName, targetHash)
+	exists, err := skipDB.Exists(ctx, targetHash)
 	if err != nil {
 		console.Warnf("Unable to check if target %s (hash %x) has already been run: %s", targetStr, targetHash, err.Error())
 		return nil, false, nil
@@ -925,63 +820,13 @@ func (a *Build) initAutoSkip(ctx context.Context, skipDB bk.BuildkitSkipper, tar
 	}
 
 	addHashFn := func() {
-		err := skipDB.Add(ctx, orgName, target.StringCanonical(), targetHash)
+		err := skipDB.Add(ctx, target.StringCanonical(), targetHash)
 		if err != nil {
 			a.cli.Console().WithPrefix(autoSkipPrefix).Warnf("failed to record %s (hash %x) as completed: %s", target.String(), target, err)
 		}
 	}
 
 	return addHashFn, false, nil
-}
-
-func (a *Build) logShareLink(ctx context.Context, cloudClient *cloud.Client, target domain.Target, clean *cleanup.Collection) (string, bool, func()) {
-
-	if a.cli.Cfg().Global.DisableLogSharing {
-		return "", false, func() {}
-	}
-
-	if !cloudClient.IsLoggedIn(ctx) {
-		printLinkFn := func() {
-			a.cli.Console().Printf(
-				"🛰️ Reuse cache between CI runs with Earthly Satellites! " +
-					"2-20X faster than without cache. Generous free tier " +
-					"https://cloud.earthly.dev\n")
-		}
-		return "", false, printLinkFn
-	}
-
-	logstreamURL := fmt.Sprintf("%s/builds/%s", a.cli.CIHost(), a.cli.LogbusSetup().InitialManifest.GetBuildId())
-
-	printLinkFn := func() {
-		a.cli.Console().ColorPrintf(color.New(color.FgHiYellow), "View logs at %s\n", logstreamURL)
-	}
-
-	return logstreamURL, true, printLinkFn
-}
-
-func (a *Build) maybePrintBuildMinutesInfo(cliCtx *cli.Context) {
-	orgName := a.cli.OrgName()
-	settings := a.cli.Flags().BuildkitdSettings
-	if !a.cli.IsUsingSatellite(cliCtx) || !settings.SatelliteIsManaged {
-		return
-	}
-
-	plan := billing.Plan()
-	if plan.GetMaxBuildMinutes() == 0 {
-		return
-	}
-
-	sb := strings.Builder{}
-	sb.WriteString(fmt.Sprintf("Build Minutes: %d out of %d used\n", int(billing.UsedBuildTime().Minutes()), plan.GetMaxBuildMinutes()))
-	if plan.GetTier() == billingpb.BillingPlan_TIER_LIMITED_FREE_TIER {
-		sb.WriteString(fmt.Sprintf("Visit your organization settings to verify your account\nand get 6000 free build minutes per month: %s\n", billing.GetBillingURL(a.cli.CIHost(), orgName)))
-	}
-	sb.WriteRune('\n')
-	if plan.GetType() == billingpb.BillingPlan_PLAN_TYPE_FREE {
-		a.cli.Console().ColorPrintf(color.New(color.FgGreen), sb.String())
-	} else {
-		a.cli.Console().VerbosePrintf(sb.String())
-	}
 }
 
 func (a *Build) actionDockerBuild(cliCtx *cli.Context) error {

@@ -196,9 +196,6 @@ const (
 
 	// DockerSchemePrefix is used to construct the buildkit address for local docker-based connections
 	DockerSchemePrefix = "docker-container://"
-
-	// SatelliteAddress is the remote address when using a Satellite to execute your builds remotely.
-	SatelliteAddress = "tcp://satellite.earthly.dev:8372"
 )
 
 var (

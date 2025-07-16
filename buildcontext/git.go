@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/earthly/earthly/analytics"
 	"github.com/earthly/earthly/cleanup"
 	"github.com/earthly/earthly/conslogging"
 	"github.com/earthly/earthly/domain"
@@ -222,7 +221,6 @@ func (gr *gitResolver) resolveGitProject(ctx context.Context, gwClient gwclient.
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "failed to get url for cloning")
 	}
-	analytics.Count("gitResolver.resolveEarthProject", "")
 
 	// Check the cache first.
 	scrubbedGITURL := stringutil.ScrubCredentials(gitURL)

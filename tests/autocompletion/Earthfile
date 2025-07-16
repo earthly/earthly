@@ -4,50 +4,28 @@ FROM --pass-args ..+base
 ENV EARTHLY_SHOW_HIDDEN=0
 
 test-root-commands:
-    RUN echo "account 
-billing 
-bootstrap 
-cloud 
+    RUN echo "bootstrap 
 config 
 doc 
 docker-build 
-gha 
 init 
 ls 
-org 
-project 
-prune 
-prune-auto-skip 
-registry 
-satellite 
-secret 
-web " > expected
+prune " > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly "
 
 test-hidden-root-commands:
     ENV EARTHLY_SHOW_HIDDEN=1
     RUN echo "no-cache"
-    RUN echo "account 
-billing 
-bootstrap 
+    RUN echo "bootstrap 
 build 
-cloud 
 config 
 debug 
 doc 
 docker-build 
 docker2earthly 
-gha 
 init 
 ls 
-org 
-project 
-prune 
-prune-auto-skip 
-registry 
-satellite 
-secret 
-web " > expected
+prune " > expected
     DO +COMPLETION_TEST --COMP_LINE="earthly "
 
 test-build-flags:

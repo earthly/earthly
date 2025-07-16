@@ -117,10 +117,8 @@ type BuildOpt struct {
 	GlobalWaitBlockFtr         bool
 	LocalArtifactWhiteList     *gatewaycrafter.LocalArtifactWhiteList
 	Logbus                     *logbus.Bus
-	MainTargetDetailsFunc      func(earthfile2llb.TargetDetails) error
 	Runner                     string
 	ProjectAdder               ProjectAdder
-	EarthlyCIRunner            bool
 }
 
 // Builder executes Earthly builds.
@@ -305,7 +303,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				OnlyFinalTargetImages:                opt.OnlyFinalTargetImages,
 				DoPushes:                             opt.Push,
 				IsCI:                                 opt.CI,
-				EarthlyCIRunner:                      opt.EarthlyCIRunner,
 				ExportCoordinator:                    exportCoordinator,
 				LocalArtifactWhiteList:               opt.LocalArtifactWhiteList,
 				InternalSecretStore:                  b.opt.InternalSecretStore,
@@ -315,7 +312,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				InteractiveDebuggerEnabled:           b.opt.InteractiveDebugging,
 				InteractiveDebuggerDebugLevelLogging: b.opt.InteractiveDebuggingDebugLevelLogging,
 				Logbus:                               opt.Logbus,
-				MainTargetDetailsFunc:                opt.MainTargetDetailsFunc,
 				Runner:                               opt.Runner,
 				ProjectAdder:                         opt.ProjectAdder,
 				FilesWithCommandRenameWarning:        make(map[string]bool),
