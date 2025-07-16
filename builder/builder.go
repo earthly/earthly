@@ -120,7 +120,6 @@ type BuildOpt struct {
 	MainTargetDetailsFunc      func(earthfile2llb.TargetDetails) error
 	Runner                     string
 	ProjectAdder               ProjectAdder
-	EarthlyCIRunner            bool
 }
 
 // Builder executes Earthly builds.
@@ -305,7 +304,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				OnlyFinalTargetImages:                opt.OnlyFinalTargetImages,
 				DoPushes:                             opt.Push,
 				IsCI:                                 opt.CI,
-				EarthlyCIRunner:                      opt.EarthlyCIRunner,
 				ExportCoordinator:                    exportCoordinator,
 				LocalArtifactWhiteList:               opt.LocalArtifactWhiteList,
 				InternalSecretStore:                  b.opt.InternalSecretStore,

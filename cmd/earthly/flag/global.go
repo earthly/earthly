@@ -53,7 +53,6 @@ type Global struct {
 	NoBuildkitUpdate           bool
 	LogstreamDebugFile         string
 	LogstreamDebugManifestFile string
-	LogstreamAddressOverride   string
 	ServerConnTimeout          time.Duration
 	BuildkitHost               string
 	BuildkitdImage             string
@@ -68,7 +67,6 @@ type Global struct {
 	ProjectName                string
 	OrgName                    string
 	CloudName                  string
-	EarthlyCIRunner            bool
 	ArtifactMode               bool
 	ImageMode                  bool
 	Pull                       bool
@@ -256,13 +254,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			Destination: &global.LogstreamDebugManifestFile,
 			Hidden:      true, // Internal.
 		},
-		&cli.StringFlag{
-			Name:        "logstream-address",
-			EnvVars:     []string{"EARTHLY_LOGSTREAM_ADDRESS"},
-			Usage:       "Override the Logstream address",
-			Destination: &global.LogstreamAddressOverride,
-			Hidden:      true, // Internal.
-		},
 		&cli.DurationFlag{
 			Name:        "server-conn-timeout",
 			Usage:       "Earthly API server connection timeout value",
@@ -390,13 +381,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			Usage:       "When referencing a remote target, perform a git lfs pull include prior to running the target. Note that this flag is (hopefully) temporary, see https://github.com/earthly/earthly/issues/2921 for details.",
 			Destination: &global.GitLFSPullInclude,
 			Hidden:      true, // Experimental
-		},
-		&cli.BoolFlag{
-			Name:        "earthly-ci-runner",
-			EnvVars:     []string{"EARTHLY_CI_RUNNER"},
-			Usage:       "Internal flag to indicate the build is running within Earthly CI",
-			Destination: &global.EarthlyCIRunner,
-			Hidden:      true,
 		},
 		&cli.StringFlag{
 			Name:        "auto-skip-db-path",

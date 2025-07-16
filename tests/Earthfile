@@ -365,7 +365,7 @@ builtin-args-test:
     RUN sed -i "1s/VERSION \(.*\)/VERSION --arg-scope-and-set \1/" Earthfile
     DO +RUN_EARTHLY --target=+builtin-args-test
     RUN sed -i "1s/VERSION \(.*\)/VERSION --earthly-ci-runner-arg \1/" Earthfile
-    DO +RUN_EARTHLY --target=+earthly-ci-runner-builtin-arg-test --extra_args="--build-arg EXPECTED_VALUE=true"
+    DO +RUN_EARTHLY --target=+earthly-ci-runner-builtin-arg-test --extra_args="--build-arg EXPECTED_VALUE=false"
     ENV EARTHLY_CI_RUNNER=""
     DO +RUN_EARTHLY --target=+earthly-ci-runner-builtin-arg-test --extra_args="--build-arg EXPECTED_VALUE=false"
     ENV EARTHLY_CI_RUNNER="false"

@@ -32,7 +32,6 @@ import (
 	"github.com/earthly/earthly/builder"
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cleanup"
-	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/cmd/earthly/bk"
 	"github.com/earthly/earthly/cmd/earthly/common"
 	"github.com/earthly/earthly/cmd/earthly/flag"
@@ -261,7 +260,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	cloudClient, err := helper.NewCloudClient(a.cli, cloud.WithLogstreamGRPCAddressOverride(a.cli.Flags().LogstreamAddressOverride))
+	cloudClient, err := helper.NewCloudClient(a.cli)
 	if err != nil {
 		return err
 	}
@@ -562,7 +561,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		PrintPhases:                true,
 		Push:                       a.cli.Flags().Push,
 		CI:                         a.cli.Flags().CI,
-		EarthlyCIRunner:            a.cli.Flags().EarthlyCIRunner,
 		NoOutput:                   a.cli.Flags().NoOutput,
 		OnlyFinalTargetImages:      a.cli.Flags().ImageMode,
 		PlatformResolver:           platr,

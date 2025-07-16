@@ -96,8 +96,6 @@ type ConvertOpt struct {
 	DoPushes bool
 	// IsCI determines whether it is running from a CI environment.
 	IsCI bool
-	// EarthlyCIRunner determines whether it is running from an Earthly CI environment.
-	EarthlyCIRunner bool
 	// ForceSaveImage is used to force all SAVE IMAGE commands are executed regardless of if they are
 	// for a local or remote target; this is to support the legacy behaviour that was first introduced in earthly (up to 0.5)
 	// When this is set to false, SAVE IMAGE commands are only executed when DoSaves is true.
