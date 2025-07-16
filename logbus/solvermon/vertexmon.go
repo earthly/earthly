@@ -106,7 +106,7 @@ func formatErrorMessage(errString, operation string, internal bool, fatalErrorTy
 		return fmt.Sprintf(
 			"      The%s command\n"+
 				"          %s\n"+
-				"      was terminated because the build system ran out of memory. If you are using a satellite or other remote buildkit, it is the remote system that ran out of memory.", internalStr, operation)
+				"      was terminated because the build system ran out of memory. If you are using remote buildkit, it is the remote system that ran out of memory.", internalStr, operation)
 	case logstream.FailureType_FAILURE_TYPE_NONZERO_EXIT:
 		return fmt.Sprintf(
 			"      The%s command\n"+

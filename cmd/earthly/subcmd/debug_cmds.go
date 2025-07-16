@@ -15,7 +15,6 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/earthly/earthly/ast"
-	"github.com/earthly/earthly/cmd/earthly/helper"
 )
 
 type Debug struct {
@@ -119,16 +118,11 @@ func (a *Debug) actionAst(cliCtx *cli.Context) error {
 func (a *Debug) actionBuildkitSessionHistory(cliCtx *cli.Context) error {
 	a.cli.SetCommandName("debugBuildkitSessions")
 
-	cloudClient, err := helper.NewCloudClient(a.cli)
-	if err != nil {
-		return err
-	}
-	bkClient, cleanupTLS, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
+	bkClient, err := a.cli.GetBuildkitClient(cliCtx)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
-	defer cleanupTLS()
 
 	history, err := bkClient.SessionHistory(cliCtx.Context)
 	if err != nil {
@@ -143,16 +137,11 @@ func (a *Debug) actionBuildkitSessionHistory(cliCtx *cli.Context) error {
 func (a *Debug) actionBuildkitInfo(cliCtx *cli.Context) error {
 	a.cli.SetCommandName("debugBuildkitInfo")
 
-	cloudClient, err := helper.NewCloudClient(a.cli)
-	if err != nil {
-		return err
-	}
-	bkClient, cleanupTLS, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
+	bkClient, err := a.cli.GetBuildkitClient(cliCtx)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
-	defer cleanupTLS()
 
 	info, err := bkClient.Info(cliCtx.Context)
 	if err != nil {
@@ -169,16 +158,11 @@ func (a *Debug) actionBuildkitInfo(cliCtx *cli.Context) error {
 func (a *Debug) actionBuildkitDiskUsage(cliCtx *cli.Context) error {
 	a.cli.SetCommandName("debugBuildkitDiskUsage")
 
-	cloudClient, err := helper.NewCloudClient(a.cli)
-	if err != nil {
-		return err
-	}
-	bkClient, cleanupTLS, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
+	bkClient, err := a.cli.GetBuildkitClient(cliCtx)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
-	defer cleanupTLS()
 
 	infos, err := bkClient.DiskUsage(cliCtx.Context)
 	if err != nil {
@@ -221,16 +205,11 @@ func (a *Debug) actionBuildkitDiskUsage(cliCtx *cli.Context) error {
 func (a *Debug) actionBuildkitWorkers(cliCtx *cli.Context) error {
 	a.cli.SetCommandName("debugBuildkitWorkers")
 
-	cloudClient, err := helper.NewCloudClient(a.cli)
-	if err != nil {
-		return err
-	}
-	bkClient, cleanupTLS, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
+	bkClient, err := a.cli.GetBuildkitClient(cliCtx)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
-	defer cleanupTLS()
 
 	workers, err := bkClient.ListWorkers(cliCtx.Context)
 	if err != nil {
@@ -295,16 +274,11 @@ func (a *Debug) actionBuildkitWorkers(cliCtx *cli.Context) error {
 func (a *Debug) actionBuildkitShutdownIfIdle(cliCtx *cli.Context) error {
 	a.cli.SetCommandName("debugBuildkitShutdownIfIdle")
 
-	cloudClient, err := helper.NewCloudClient(a.cli)
-	if err != nil {
-		return err
-	}
-	bkClient, cleanupTLS, err := a.cli.GetBuildkitClient(cliCtx, cloudClient)
+	bkClient, err := a.cli.GetBuildkitClient(cliCtx)
 	if err != nil {
 		return errors.Wrap(err, "build new buildkitd client")
 	}
 	defer bkClient.Close()
-	defer cleanupTLS()
 
 	ok, numSessions, err := bkClient.ShutdownIfIdle(cliCtx.Context)
 	if err != nil {

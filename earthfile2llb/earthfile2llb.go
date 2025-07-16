@@ -96,8 +96,6 @@ type ConvertOpt struct {
 	DoPushes bool
 	// IsCI determines whether it is running from a CI environment.
 	IsCI bool
-	// EarthlyCIRunner determines whether it is running from an Earthly CI environment.
-	EarthlyCIRunner bool
 	// ForceSaveImage is used to force all SAVE IMAGE commands are executed regardless of if they are
 	// for a local or remote target; this is to support the legacy behaviour that was first introduced in earthly (up to 0.5)
 	// When this is set to false, SAVE IMAGE commands are only executed when DoSaves is true.
@@ -165,9 +163,6 @@ type ConvertOpt struct {
 	// LLBCaps indicates that builder's capabilities
 	LLBCaps *apicaps.CapSet
 
-	// MainTargetDetailsFunc is a custom function used to handle the target details, once known.
-	MainTargetDetailsFunc func(TargetDetails) error
-
 	// Logbus is the bus used for logging and metadata reporting.
 	Logbus *logbus.Bus
 
@@ -175,7 +170,6 @@ type ConvertOpt struct {
 	// May be one of the following:
 	// * "local:<hostname>" - local builds
 	// * "bk:<buildkit-address>" - remote builds via buildkit
-	// * "sat:<org-name>/<sat-name>" - remote builds via satellite
 	Runner string
 
 	// ProjectAdder is a callback that is used to discover PROJECT <org>/<project> values
@@ -201,14 +195,6 @@ type ConvertOpt struct {
 
 	// OnExecutionSuccess is called after a forceExecution successfully runs; it is used to save auto-skip hashes
 	OnExecutionSuccess func(context.Context)
-}
-
-// TargetDetails contains details about the target being built.
-type TargetDetails struct {
-	// EarthlyOrgName is the name of the Earthly org.
-	EarthlyOrgName string
-	// EarthlyProjectName is the name of the Earthly project.
-	EarthlyProjectName string
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
@@ -335,17 +321,6 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		}, nil
 	}
 	opt.TargetInputHashStackSet[tiHash] = true
-	if opt.MainTargetDetailsFunc != nil {
-		err := opt.MainTargetDetailsFunc(TargetDetails{
-			EarthlyOrgName:     bc.EarthlyOrgName,
-			EarthlyProjectName: bc.EarthlyProjectName,
-		})
-		if err != nil {
-			return nil, errors.Wrapf(err, "target details handler error: %v", err)
-		}
-		opt.MainTargetDetailsFunc = nil
-	}
-
 	opt.Console.VerbosePrintf("earthfile2llb building %s with OverridingVars=%v",
 		targetWithMetadata.StringCanonical(), opt.OverridingVars.Map())
 

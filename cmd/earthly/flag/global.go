@@ -43,13 +43,6 @@ type Global struct {
 	Verbose                    bool
 	Debug                      bool
 	DisplayExecStats           bool
-	CloudHTTPAddr              string
-	CloudGRPCAddr              string
-	CloudGRPCInsecure          bool
-	SatelliteAddress           string
-	AuthToken                  string
-	AuthJWT                    string
-	DisableAnalytics           bool
 	FeatureFlagOverrides       string
 	EnvFile                    string
 	ArgFile                    string
@@ -57,9 +50,6 @@ type Global struct {
 	NoBuildkitUpdate           bool
 	LogstreamDebugFile         string
 	LogstreamDebugManifestFile string
-	LogstreamAddressOverride   string
-	RequestID                  string
-	BuildID                    string
 	ServerConnTimeout          time.Duration
 	BuildkitHost               string
 	BuildkitdImage             string
@@ -71,12 +61,6 @@ type Global struct {
 	ConversionParallelism      int
 	LocalRegistryHost          string
 	ContainerFrontend          containerutil.ContainerFrontend
-	SatelliteName              string
-	NoSatellite                bool
-	ProjectName                string
-	OrgName                    string
-	CloudName                  string
-	EarthlyCIRunner            bool
 	ArtifactMode               bool
 	ImageMode                  bool
 	Pull                       bool
@@ -128,19 +112,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			EnvVars:     []string{"EARTHLY_SSH_AUTH_SOCK"},
 			Usage:       "The SSH auth socket to use for ssh-agent forwarding",
 			Destination: &global.SSHAuthSock,
-		},
-		&cli.StringFlag{
-			Name:        "auth-token",
-			EnvVars:     []string{"EARTHLY_TOKEN"},
-			Usage:       "Force Earthly account login to authenticate with supplied token",
-			Destination: &global.AuthToken,
-		},
-		&cli.StringFlag{
-			Name:        "auth-jwt",
-			EnvVars:     []string{"EARTHLY_JWT"},
-			Usage:       "Force Earthly account to use supplied JWT token",
-			Destination: &global.AuthJWT,
-			Hidden:      true, // Internal.
 		},
 		&cli.StringFlag{
 			Name:        "git-username",
@@ -205,54 +176,12 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 		If empty, earthly will attempt to start a buildkitd instance via docker run`,
 			Destination: &global.BuildkitHost,
 		},
-		&cli.StringFlag{
-			Name:        "server",
-			Value:       "https://api.earthly.dev",
-			EnvVars:     []string{"EARTHLY_SERVER_ADDRESS"},
-			Usage:       "API server override for dev purposes",
-			Destination: &global.CloudHTTPAddr,
-			Hidden:      true, // Internal.
-		},
-		&cli.StringFlag{
-			Name:        "grpc",
-			Value:       "ci.earthly.dev:443",
-			EnvVars:     []string{"EARTHLY_GRPC_ADDRESS"},
-			Usage:       "gRPC server override for dev purposes",
-			Destination: &global.CloudGRPCAddr,
-			Hidden:      true, // Internal.
-		},
-		&cli.BoolFlag{
-			Name:        "grpc-insecure",
-			EnvVars:     []string{"EARTHLY_GRPC_INSECURE"},
-			Usage:       "Makes gRPC connections insecure for dev purposes",
-			Destination: &global.CloudGRPCInsecure,
-			Hidden:      true, // Internal.
-		},
-		&cli.StringFlag{
-			Name:        "satellite-address",
-			EnvVars:     []string{"EARTHLY_SATELLITE_ADDRESS"},
-			Usage:       "Satellite address override for dev purposes",
-			Destination: &global.SatelliteAddress,
-			Hidden:      true, // Internal.
-		},
-		&cli.StringFlag{
-			Name:        "request-id",
-			EnvVars:     []string{"EARTHLY_REQUEST_ID"},
-			Usage:       "Override a request ID to the backend API. Useful for debugging or manually retrying a request.",
-			Destination: &global.RequestID,
-			Hidden:      true, // Internal
-		},
 		&cli.BoolFlag{
 			Name:        "no-buildkit-update",
 			EnvVars:     []string{"EARTHLY_NO_BUILDKIT_UPDATE"},
 			Usage:       "Disable the automatic update of buildkitd",
 			Destination: &global.NoBuildkitUpdate,
 			Hidden:      true, // Internal.
-		},
-		&cli.BoolFlag{
-			EnvVars:     []string{"EARTHLY_DISABLE_ANALYTICS", "DO_NOT_TRACK"},
-			Usage:       "Disable collection of analytics",
-			Destination: &global.DisableAnalytics,
 		},
 		&cli.StringFlag{
 			Name:        "version-flag-overrides",
@@ -294,20 +223,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			EnvVars:     []string{"EARTHLY_LOGSTREAM_DEBUG_MANIFEST_FILE"},
 			Usage:       "Enable log streaming manifest debugging output to a file",
 			Destination: &global.LogstreamDebugManifestFile,
-			Hidden:      true, // Internal.
-		},
-		&cli.StringFlag{
-			Name:        "logstream-address",
-			EnvVars:     []string{"EARTHLY_LOGSTREAM_ADDRESS"},
-			Usage:       "Override the Logstream address",
-			Destination: &global.LogstreamAddressOverride,
-			Hidden:      true, // Internal.
-		},
-		&cli.StringFlag{
-			Name:        "build-id",
-			EnvVars:     []string{"EARTHLY_BUILD_ID"},
-			Usage:       "The build ID to use for identifying the build in Earthly Cloud. If not specified, a random ID will be generated",
-			Destination: &global.BuildID,
 			Hidden:      true, // Internal.
 		},
 		&cli.DurationFlag{
@@ -438,51 +353,11 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			Destination: &global.GitLFSPullInclude,
 			Hidden:      true, // Experimental
 		},
-		&cli.BoolFlag{
-			Name:        "earthly-ci-runner",
-			EnvVars:     []string{"EARTHLY_CI_RUNNER"},
-			Usage:       "Internal flag to indicate the build is running within Earthly CI",
-			Destination: &global.EarthlyCIRunner,
-			Hidden:      true,
-		},
 		&cli.StringFlag{
 			Name:        "auto-skip-db-path",
 			EnvVars:     []string{"EARTHLY_AUTO_SKIP_DB_PATH"},
-			Usage:       "use a local database instead of the cloud db",
+			Usage:       "use a local database for auto-skip",
 			Destination: &global.LocalSkipDB,
-			Hidden:      true,
-		},
-		&cli.StringFlag{
-			Name:        "org",
-			EnvVars:     []string{"EARTHLY_ORG"},
-			Usage:       common.Wrap("The name of the organization that the satellite belongs to. ", "Required when using --satellite and user is a member of multiple organizations."),
-			Required:    false,
-			Destination: &global.OrgName,
-			Hidden:      true,
-		},
-		&cli.StringFlag{
-			Name:        "project",
-			EnvVars:     []string{"EARTHLY_PROJECT"},
-			Usage:       "The name of the project that may be used during log streaming.",
-			Required:    false,
-			Destination: &global.ProjectName,
-			Hidden:      true,
-		},
-		&cli.StringFlag{
-			Name:        "satellite",
-			Aliases:     []string{"sat"},
-			EnvVars:     []string{"EARTHLY_SATELLITE"},
-			Usage:       "The name of satellite to use for this build.",
-			Required:    false,
-			Destination: &global.SatelliteName,
-		},
-		&cli.BoolFlag{
-			Name:        "no-satellite",
-			Aliases:     []string{"no-sat"},
-			EnvVars:     []string{"EARTHLY_NO_SATELLITE"},
-			Usage:       "Disables the use of a selected satellite for this build.",
-			Required:    false,
-			Destination: &global.NoSatellite,
 		},
 		&cli.StringFlag{
 			Name:        "buildkit-image",

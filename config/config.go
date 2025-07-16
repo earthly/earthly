@@ -67,7 +67,6 @@ var (
 
 // GlobalConfig contains global config values
 type GlobalConfig struct {
-	DisableAnalytics           bool          `yaml:"disable_analytics"              help:"Controls Earthly telemetry."`
 	BuildkitCacheSizeMb        int           `yaml:"cache_size_mb"                  help:"Size of the buildkit cache in Megabytes."`
 	BuildkitCacheSizePct       int           `yaml:"cache_size_pct"                 help:"Size of the buildkit cache, as percentage (0-100)."`
 	BuildkitCacheKeepDurationS int           `yaml:"buildkit_cache_keep_duration_s" help:"Max age of cache, in seconds. 0 disables age-based cache expiry."`
@@ -91,10 +90,8 @@ type GlobalConfig struct {
 	TLSEnabled                 bool          `yaml:"tls_enabled"                    help:"If TLS should be used to communicate with Buildkit. Only honored when BuildkitScheme is 'tcp'."`
 	ContainerFrontend          string        `yaml:"container_frontend"             help:"What program should be used to start and stop buildkitd, save images. Default is 'docker'. Valid options are 'docker' and 'podman' (experimental)."`
 	IPTables                   string        `yaml:"ip_tables"                      help:"Which iptables binary to use. Valid values are iptables-legacy or iptables-nft. Bypasses any autodetection."`
-	DisableLogSharing          bool          `yaml:"disable_log_sharing"            help:"Disable cloud log sharing when logged in with an Earthly account, see https://ci.earthly.dev for details."`
 	SecretProvider             string        `yaml:"secret_provider"                help:"Command to execute to retrieve secret."`
 	GitImage                   string        `yaml:"git_image"                      help:"Image used to resolve git repositories"`
-	Org                        string        `yaml:"org"                            help:"The currently selected argument. Overridden by the EARTHLY_ORG environment variable, or the CLI --org options, in that order."`
 
 	// Obsolete.
 	CachePath      string `yaml:"cache_path"         help:" *Deprecated* The path to keep Earthly's cache."`
@@ -117,17 +114,10 @@ type GitConfig struct {
 	SSHCommand            string `yaml:"ssh_command"                  help:"Set a value for the core.sshCommand git config option, which allows you to provide custom SSH configuration."`
 }
 
-// Satellite contains satellite config values
-type Satellite struct {
-	Name string `yaml:"name" help:"The name of the satellite to use"`
-	Org  string `yaml:"org"  help:"*Deprecated* The org name to whom the satellite belongs"`
-}
-
 // Config contains user's configuration values from ~/earthly/config.yml
 type Config struct {
-	Global    GlobalConfig         `yaml:"global"    help:"Global configuration object. Requires YAML literal to set directly."`
-	Git       map[string]GitConfig `yaml:"git"       help:"Git configuration object. Requires YAML literal to set directly."`
-	Satellite Satellite            `yaml:"satellite" help:"Satellite remote building configuration. Overrides some other remote buildkit settings when present. Requires YAML literal to set directly"`
+	Global GlobalConfig         `yaml:"global"    help:"Global configuration object. Requires YAML literal to set directly."`
+	Git    map[string]GitConfig `yaml:"git"       help:"Git configuration object. Requires YAML literal to set directly."`
 }
 
 // PortOffset is the offset to use for dev ports.

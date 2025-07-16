@@ -78,8 +78,6 @@ test-requires-project:
     RUN echo hello > my-file
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=no-project.earth --target=+no-project --output_contains="I was run"
 
-    DO --pass-args +RUN_EARTHLY_ARGS --earthfile=no-project.earth --target=+no-project --should_fail=true --extra_args="--auto-skip-db-path=" --output_contains="organization not found"
-
     DO --pass-args +RUN_EARTHLY_ARGS --earthfile=no-project.earth --target=+no-project --extra_args="--org earthly-technologies --auto-skip-db-path=" --output_contains="I was run"
 
 test-wait:

@@ -47,9 +47,6 @@ func (app *EarthlyApp) before(cliCtx *cli.Context) error {
 	}
 
 	app.BaseCLI.SetConsole(app.BaseCLI.Console().WithPrefixWriter(app.BaseCLI.Logbus().Run().Generic()))
-	if flags.BuildID == "" {
-		flags.BuildID = uuid.NewString()
-	}
 	var execStatsTracker *execstatssummary.Tracker
 	if flags.ExecStatsSummary != "" {
 		execStatsTracker = execstatssummary.NewTracker(flags.ExecStatsSummary)
@@ -64,7 +61,7 @@ func (app *EarthlyApp) before(cliCtx *cli.Context) error {
 		envutil.IsTrue("NO_COLOR"),
 		app.BaseCLI.Flags().InteractiveDebugging,
 		flags.LogstreamDebugFile,
-		flags.BuildID,
+		uuid.NewString(),
 		execStatsTracker,
 		flags.GithubAnnotations,
 	)
@@ -124,9 +121,6 @@ func (app *EarthlyApp) before(cliCtx *cli.Context) error {
 		}
 	}
 
-	if !cliCtx.IsSet("org") {
-		flags.OrgName = app.BaseCLI.Cfg().Global.Org
-	}
 	return nil
 }
 
@@ -199,19 +193,6 @@ func (app *EarthlyApp) processDeprecatedCommandOptions(cliCtx *cli.Context, cfg 
 				v.Password = app.BaseCLI.Flags().GitPasswordOverride
 			}
 			cfg.Git[k] = v
-		}
-	}
-
-	if cfg.Satellite.Org != "" {
-		if cfg.Global.Org != "" {
-			app.BaseCLI.Console().Warnf("Two default organizations were specified.\n" +
-				"You can remove the deprecated value by running 'earthly config satellite.org \"\"'\n" +
-				"Earthly will use the global value.")
-		} else {
-			app.BaseCLI.Console().Warnf("Auto-selecting the default org will no longer be supported in the future.\n" +
-				"You can select a default org using the command 'earthly org select',\n" +
-				"or otherwise specify an org using the --org flag or EARTHLY_ORG environment variable.")
-			cfg.Global.Org = cfg.Satellite.Org
 		}
 	}
 

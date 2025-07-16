@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/url"
 
-	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/util/hint"
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/secrets"
@@ -35,7 +34,7 @@ func (sp *secretProvider) GetSecret(ctx context.Context, req *secrets.GetSecretR
 	for _, store := range sp.stores {
 		data, err := store.GetSecret(ctx, req.ID)
 		if err != nil {
-			if errors.Is(err, secrets.ErrNotFound) || errors.Is(err, cloud.ErrNotFound) {
+			if errors.Is(err, secrets.ErrNotFound) {
 				continue
 			}
 			return nil, err

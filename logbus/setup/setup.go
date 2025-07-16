@@ -4,13 +4,10 @@ import (
 	"context"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/earthly/cloud-api/logstream"
-	"github.com/earthly/earthly/cloud"
 	"github.com/earthly/earthly/logbus"
 	"github.com/earthly/earthly/logbus/formatter"
-	"github.com/earthly/earthly/logbus/ship"
 	"github.com/earthly/earthly/logbus/solvermon"
 	"github.com/earthly/earthly/logbus/writersub"
 	"github.com/earthly/earthly/util/deltautil"
@@ -28,7 +25,6 @@ type BusSetup struct {
 	Formatter        *formatter.Formatter
 	SolverMonitor    *solvermon.SolverMonitor
 	BusDebugWriter   *writersub.RawWriterSub
-	LogStreamer      *ship.LogShipper
 	InitialManifest  *logstream.RunManifest
 	execStatsTracker *execstatssummary.Tracker
 
@@ -72,12 +68,6 @@ func (bs *BusSetup) SetDefaultPlatform(platform string) {
 	bs.Formatter.SetDefaultPlatform(platform)
 }
 
-// SetOrgAndProject sets the org and project for the manifest.
-func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
-	bs.InitialManifest.OrgName = orgName
-	bs.InitialManifest.ProjectName = projectName
-}
-
 // SetGitAuthor records the Git author information on the initial manifest.
 func (bs *BusSetup) SetGitAuthor(gitAuthor, gitCommitEmail string) {
 	bs.InitialManifest.GitAuthor = gitAuthor
@@ -87,23 +77,6 @@ func (bs *BusSetup) SetGitAuthor(gitAuthor, gitCommitEmail string) {
 // SetCI tracks whether this build is being run in a CI environment.
 func (bs *BusSetup) SetCI(isCI bool) {
 	bs.InitialManifest.IsCi = isCI
-}
-
-// LogStreamerStarted returns true if the log streamer has been started.
-func (bs *BusSetup) LogStreamerStarted() bool {
-	if bs == nil {
-		return false
-	}
-	return bs.logStreamerStarted
-}
-
-// StartLogStreamer starts a LogStreamer for the given build. The
-// LogStreamer streams logs to the cloud.
-func (bs *BusSetup) StartLogStreamer(c *cloud.Client) {
-	bs.LogStreamer = ship.NewLogShipper(c, bs.InitialManifest, bs.verbose)
-	bs.LogStreamer.Start()
-	bs.Bus.AddSubscriber(bs.LogStreamer)
-	bs.logStreamerStarted = true
 }
 
 // DumpManifestToFile dumps the manifest to the given file.
@@ -161,28 +134,6 @@ func (bs *BusSetup) Close(ctx context.Context) error {
 		if errs := bs.BusDebugWriter.Errors(); len(errs) > 0 {
 			multi := &multierror.Error{Errors: errs}
 			ret = multierror.Append(ret, errors.Wrap(multi, "bus debug writer"))
-		}
-	}
-
-	if bs.LogStreamer != nil {
-		// At the moment, it's very challenging to detect when all log writers
-		// are finished. Not all command & target writers are being reliably
-		// closed on cancellation. This short sleep gives all of the command &
-		// target writers a chance to finish sending messages. Perhaps this can
-		// be removed at some point in the future.
-		time.Sleep(20 * time.Millisecond)
-		bs.LogStreamer.Close()
-		if errs := bs.LogStreamer.Errs(); len(errs) > 0 {
-			multi := &multierror.Error{}
-			for _, err := range errs {
-				streamErr := &cloud.StreamError{}
-				if ok := errors.As(err, &streamErr); bs.verbose || !ok || (ok && !streamErr.Recoverable) {
-					multi = multierror.Append(multi, err)
-				}
-			}
-			if len(multi.Errors) > 0 {
-				ret = multierror.Append(ret, errors.Wrap(multi, "log streamer"))
-			}
 		}
 	}
 

@@ -1,8 +1,6 @@
 package base
 
 import (
-	"strings"
-
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cmd/earthly/flag"
 	"github.com/earthly/earthly/logbus"
@@ -10,7 +8,6 @@ import (
 
 	"github.com/earthly/earthly/config"
 	"github.com/earthly/earthly/conslogging"
-	"github.com/earthly/earthly/domain"
 	"github.com/earthly/earthly/logbus/setup"
 )
 
@@ -28,16 +25,6 @@ type CLI struct {
 	defaultInstallationName string
 	flags                   flag.Global
 	deferredFuncs           []func()
-	analyticsMetadata
-}
-
-type analyticsMetadata struct {
-	isSatellite             bool
-	isRemoteBuildkit        bool
-	satelliteCurrentVersion string
-	buildkitPlatform        string
-	userPlatform            string
-	target                  domain.Target
 }
 
 type CLIOpt func(CLI) CLI
@@ -178,43 +165,6 @@ func (c *CLI) Flags() *flag.Global {
 	return &c.flags
 }
 
-func (c *CLI) AnaMetaIsSat() bool {
-	return c.analyticsMetadata.isSatellite
-}
-func (c *CLI) AnaMetaIsRemoteBK() bool {
-	return c.analyticsMetadata.isRemoteBuildkit
-}
-func (c *CLI) AnaMetaSatCurrentVersion() string {
-	return c.analyticsMetadata.satelliteCurrentVersion
-}
-func (c *CLI) AnaMetaBKPlatform() string {
-	return c.analyticsMetadata.buildkitPlatform
-}
-func (c *CLI) AnaMetaUserPlatform() string {
-	return c.analyticsMetadata.userPlatform
-}
-func (c *CLI) AnaMetaTarget() domain.Target {
-	return c.analyticsMetadata.target
-}
-func (c *CLI) SetAnaMetaIsSat(isSat bool) {
-	c.analyticsMetadata.isSatellite = isSat
-}
-func (c *CLI) SetAnaMetaIsRemoteBK(isRBK bool) {
-	c.analyticsMetadata.isRemoteBuildkit = isRBK
-}
-func (c *CLI) SetAnaMetaSatCurrentVersion(currentVersion string) {
-	c.analyticsMetadata.satelliteCurrentVersion = currentVersion
-}
-func (c *CLI) SetAnaMetaBKPlatform(platform string) {
-	c.analyticsMetadata.buildkitPlatform = platform
-}
-func (c *CLI) SetAnaMetaUserPlatform(platform string) {
-	c.analyticsMetadata.userPlatform = platform
-}
-func (c *CLI) SetAnaMetaTarget(target domain.Target) {
-	c.analyticsMetadata.target = target
-}
-
 func (c *CLI) AddDeferredFunc(f func()) {
 	c.deferredFuncs = append([]func(){f}, c.deferredFuncs...)
 }
@@ -223,15 +173,4 @@ func (c *CLI) ExecuteDeferredFuncs() {
 	for _, f := range c.deferredFuncs {
 		f()
 	}
-}
-
-// CIHost returns protocol://hostname
-func (c *CLI) CIHost() string {
-	switch {
-	case strings.Contains(c.Flags().CloudGRPCAddr, "staging"):
-		return "https://cloud.staging.earthly.dev"
-	case strings.Contains(c.Flags().CloudGRPCAddr, "earthly.local"):
-		return "http://earthly.local:3000"
-	}
-	return "https://cloud.earthly.dev"
 }
