@@ -723,7 +723,7 @@ func (a *Build) runnerName(ctx context.Context) (string, bool, error) {
 		runnerName = fmt.Sprintf("bk:%s", a.cli.Flags().BuildkitdSettings.BuildkitAddress)
 	}
 	if !isLocal && (a.cli.Flags().UseInlineCache || a.cli.Flags().SaveInlineCache) {
-		a.cli.Console().Warnf("Note that inline cache (--use-inline-cache and --save-inline-cache) occasionally cause builds to get stuck at 100%% CPU on and remote Buildkit.")
+		a.cli.Console().Warnf("Note that inline cache (--use-inline-cache and --save-inline-cache) occasionally cause builds to get stuck at 100%% CPU on remote Buildkit.")
 		a.cli.Console().Warnf("") // newline
 	}
 	if isLocal && !a.cli.Flags().ContainerFrontend.IsAvailable(ctx) {
