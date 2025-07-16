@@ -1,7 +1,7 @@
 VERSION 0.8
 
 aws:
-    FROM amazon/aws-cli
+    FROM amazon/aws-cli:2.17.22
     RUN amazon-linux-extras install epel -y
     RUN yum -y install oathtool jq
     COPY assume-developer-role.sh /bin/assume-developer-role

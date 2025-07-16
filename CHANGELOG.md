@@ -11,9 +11,12 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 - `dockerd` wrapper cleans up after itself [#4267](https://github.com/earthly/earthly/pull/4267)/[#4268](https://github.com/earthly/earthly/pull/4268)
 - Removed all Cloud dependencies, commands, and flags as part of the [Earthly Cloud shutdown](https://earthly.dev/blog/shutting-down-earthfiles-cloud/) [#4235](https://github.com/earthly/earthly/pull/4325)
 
-### Additional Info
+### Changed
 - `v0.8.15` will continue working after the shutdown, but with some error messages interspersed in the output.
 - `v0.8.16` does not emit log messages after the cloud shutdown. However, it removes many cloud-based commands and flags. If you are using these in your scripts or CI, please remove them.
+
+### Additional Info
+- This release has no changes to buildkit
 
 ## v0.8.15 - 2024-07-12
 
