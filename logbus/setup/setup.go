@@ -68,12 +68,6 @@ func (bs *BusSetup) SetDefaultPlatform(platform string) {
 	bs.Formatter.SetDefaultPlatform(platform)
 }
 
-// SetOrgAndProject sets the org and project for the manifest.
-func (bs *BusSetup) SetOrgAndProject(orgName, projectName string) {
-	bs.InitialManifest.OrgName = orgName
-	bs.InitialManifest.ProjectName = projectName
-}
-
 // SetGitAuthor records the Git author information on the initial manifest.
 func (bs *BusSetup) SetGitAuthor(gitAuthor, gitCommitEmail string) {
 	bs.InitialManifest.GitAuthor = gitAuthor

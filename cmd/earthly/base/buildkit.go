@@ -19,10 +19,3 @@ func (cli *CLI) GetBuildkitClient(cliCtx *cli.Context) (c *client.Client, err er
 	}
 	return c, nil
 }
-
-func (c *CLI) OrgName() string {
-	if c.Flags().OrgName != "" {
-		return c.Flags().OrgName
-	}
-	return c.Cfg().Global.Org
-}

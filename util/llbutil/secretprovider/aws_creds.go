@@ -70,8 +70,6 @@ func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]b
 	}
 
 	secretName := q.Get("name")
-	orgName := q.Get("org")
-	projectName := q.Get("project")
 
 	// This provider only deals with secrets prefixed with "aws:".
 	if !strings.HasPrefix(secretName, "aws:") {
@@ -84,7 +82,7 @@ func (c *AWSCredentialProvider) GetSecret(ctx context.Context, name string) ([]b
 	}
 	creds, err := cfg.Credentials.Retrieve(ctx)
 
-	if err = handleError(err, cfg.Region, orgName, projectName); err != nil {
+	if err = handleError(err, cfg.Region); err != nil {
 		return nil, err
 	}
 
@@ -137,16 +135,13 @@ func SetURLValuesFunc(awsInfo *oidcutil.AWSOIDCInfo) func(values url.Values) {
 	}
 }
 
-func handleError(err error, region, orgName, projectName string) error {
+func handleError(err error, region string) error {
 	if err == nil {
 		return nil
 	}
 	if grpcErr, ok := grpcerrors.AsGRPCStatus(err); ok {
 		switch grpcErr.Code() {
 		case codes.InvalidArgument:
-			if strings.Contains(grpcErr.Message(), "could not be found") {
-				return hint.Wrapf(err, `do the org %q and project %q exist`, orgName, projectName)
-			}
 			return hint.Wrapf(err, `is %q a valid AWS region?`, region)
 		}
 	}

@@ -163,9 +163,6 @@ type ConvertOpt struct {
 	// LLBCaps indicates that builder's capabilities
 	LLBCaps *apicaps.CapSet
 
-	// MainTargetDetailsFunc is a custom function used to handle the target details, once known.
-	MainTargetDetailsFunc func(TargetDetails) error
-
 	// Logbus is the bus used for logging and metadata reporting.
 	Logbus *logbus.Bus
 
@@ -198,14 +195,6 @@ type ConvertOpt struct {
 
 	// OnExecutionSuccess is called after a forceExecution successfully runs; it is used to save auto-skip hashes
 	OnExecutionSuccess func(context.Context)
-}
-
-// TargetDetails contains details about the target being built.
-type TargetDetails struct {
-	// EarthlyOrgName is the name of the Earthly org.
-	EarthlyOrgName string
-	// EarthlyProjectName is the name of the Earthly project.
-	EarthlyProjectName string
 }
 
 // Earthfile2LLB parses a earthfile and executes the statements for a given target.
@@ -332,17 +321,6 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt, in
 		}, nil
 	}
 	opt.TargetInputHashStackSet[tiHash] = true
-	if opt.MainTargetDetailsFunc != nil {
-		err := opt.MainTargetDetailsFunc(TargetDetails{
-			EarthlyOrgName:     bc.EarthlyOrgName,
-			EarthlyProjectName: bc.EarthlyProjectName,
-		})
-		if err != nil {
-			return nil, errors.Wrapf(err, "target details handler error: %v", err)
-		}
-		opt.MainTargetDetailsFunc = nil
-	}
-
 	opt.Console.VerbosePrintf("earthfile2llb building %s with OverridingVars=%v",
 		targetWithMetadata.StringCanonical(), opt.OverridingVars.Map())
 

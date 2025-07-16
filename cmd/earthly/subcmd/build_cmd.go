@@ -39,7 +39,6 @@ import (
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/docker2earthly"
 	"github.com/earthly/earthly/domain"
-	"github.com/earthly/earthly/earthfile2llb"
 	"github.com/earthly/earthly/inputgraph"
 	"github.com/earthly/earthly/states"
 	"github.com/earthly/earthly/util/cliutil"
@@ -242,20 +241,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		return err
 	}
 
-	var (
-		gitCommitAuthorEmail string
-		gitConfigEmail       string
-	)
-	if !target.IsRemote() {
-		meta, _ := gitutil.Metadata(cliCtx.Context, target.GetLocalPath(), a.cli.Flags().GitBranchOverride)
-		if meta != nil {
-			// Git commit detection here is best effort
-			gitCommitAuthorEmail = meta.AuthorEmail
-		}
-		if email, err := gitutil.ConfigEmail(cliCtx.Context); err == nil {
-			gitConfigEmail = email
-		}
-	}
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
@@ -579,31 +564,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		buildOpts.OnlyArtifactDestPath = destPath
 	}
 
-	// Kick off log streaming upload only when we've passed the necessary
-	// information to logbusSetup. This function will be called right at the
-	// beginning of the build within earthfile2llb.
-	buildOpts.MainTargetDetailsFunc = func(d earthfile2llb.TargetDetails) error {
-		// Use the flag/env values for org & project if specified, but fallback to
-		// the PROJECT command if provided.
-		orgName := d.EarthlyOrgName
-		if a.cli.OrgName() != "" {
-			orgName = a.cli.OrgName()
-		}
-		projectName := d.EarthlyProjectName
-		if a.cli.Flags().ProjectName != "" {
-			projectName = a.cli.Flags().ProjectName
-		}
-
-		a.cli.Console().WithPrefix("logbus").Printf("Setting organization %q and project %q", orgName, projectName)
-
-		setup := a.cli.LogbusSetup()
-		setup.SetOrgAndProject(orgName, projectName)
-		setup.SetGitAuthor(gitCommitAuthorEmail, gitConfigEmail)
-		setup.SetCI(false)
-
-		return nil
-	}
-
 	_, err = b.BuildTarget(cliCtx.Context, target, buildOpts)
 	if err != nil {
 		return errors.Wrap(err, "build target")
@@ -821,8 +781,6 @@ func (a *Build) initAutoSkip(ctx context.Context, skipDB bk.BuildkitSkipper, tar
 		return nil, false, errors.New("--no-auto-skip cannot be used with --auto-skip")
 	}
 
-	orgName := a.cli.Flags().OrgName
-
 	targetHash, stats, err := inputgraph.HashTarget(ctx, inputgraph.HashOpt{
 		Target:         target,
 		Console:        a.cli.Console(),
@@ -837,13 +795,6 @@ func (a *Build) initAutoSkip(ctx context.Context, skipDB bk.BuildkitSkipper, tar
 	console.VerbosePrintf("targets visited: %d; targets hashed: %d; target cache hits: %d", stats.TargetsVisited, stats.TargetsHashed, stats.TargetCacheHits)
 	console.VerbosePrintf("hash calculation took %s", stats.Duration)
 
-	if a.cli.Flags().LocalSkipDB == "" && orgName == "" {
-		orgName, _, err = inputgraph.ParseProjectCommand(ctx, target, console)
-		if err != nil {
-			return nil, false, errors.New("organization not found in Earthfile, command flag or environmental variables")
-		}
-	}
-
 	if !target.IsRemote() {
 		meta, err := gitutil.Metadata(ctx, target.GetLocalPath(), a.cli.Flags().GitBranchOverride)
 		if err != nil {
@@ -856,7 +807,7 @@ func (a *Build) initAutoSkip(ctx context.Context, skipDB bk.BuildkitSkipper, tar
 	targetConsole := a.cli.Console().WithPrefix(target.String())
 	targetStr := targetConsole.PrefixColor().Sprintf("%s", target.StringCanonical())
 
-	exists, err := skipDB.Exists(ctx, orgName, targetHash)
+	exists, err := skipDB.Exists(ctx, targetHash)
 	if err != nil {
 		console.Warnf("Unable to check if target %s (hash %x) has already been run: %s", targetStr, targetHash, err.Error())
 		return nil, false, nil
@@ -869,7 +820,7 @@ func (a *Build) initAutoSkip(ctx context.Context, skipDB bk.BuildkitSkipper, tar
 	}
 
 	addHashFn := func() {
-		err := skipDB.Add(ctx, orgName, target.StringCanonical(), targetHash)
+		err := skipDB.Add(ctx, target.StringCanonical(), targetHash)
 		if err != nil {
 			a.cli.Console().WithPrefix(autoSkipPrefix).Warnf("failed to record %s (hash %x) as completed: %s", target.String(), target, err)
 		}

@@ -121,9 +121,6 @@ func (app *EarthlyApp) before(cliCtx *cli.Context) error {
 		}
 	}
 
-	if !cliCtx.IsSet("org") {
-		flags.OrgName = app.BaseCLI.Cfg().Global.Org
-	}
 	return nil
 }
 

@@ -25,8 +25,6 @@ type CLI interface {
 	Cfg() *config.Config
 	SetCommandName(name string)
 
-	OrgName() string
-
 	GetBuildkitClient(*cli.Context) (client *client.Client, err error)
 
 	LogbusSetup() *setup.BusSetup

@@ -92,7 +92,6 @@ type GlobalConfig struct {
 	IPTables                   string        `yaml:"ip_tables"                      help:"Which iptables binary to use. Valid values are iptables-legacy or iptables-nft. Bypasses any autodetection."`
 	SecretProvider             string        `yaml:"secret_provider"                help:"Command to execute to retrieve secret."`
 	GitImage                   string        `yaml:"git_image"                      help:"Image used to resolve git repositories"`
-	Org                        string        `yaml:"org"                            help:"The currently selected argument. Overridden by the EARTHLY_ORG environment variable, or the CLI --org options, in that order."`
 
 	// Obsolete.
 	CachePath      string `yaml:"cache_path"         help:" *Deprecated* The path to keep Earthly's cache."`

@@ -1925,9 +1925,7 @@ func (c *Converter) checkAutoSkip(ctx context.Context, fullTargetName string, al
 		return false, nil, errors.Wrapf(err, "auto-skip is unable to calculate hash for %s", target)
 	}
 
-	orgName := c.varCollection.Org()
-
-	exists, err := c.opt.BuildkitSkipper.Exists(ctx, orgName, targetHash)
+	exists, err := c.opt.BuildkitSkipper.Exists(ctx, targetHash)
 	if err != nil {
 		console.Warnf("Unable to check if target %s (hash %x) has already been run: %s", target.String(), targetHash, err.Error())
 		return false, nopFn, nil
@@ -1939,7 +1937,7 @@ func (c *Converter) checkAutoSkip(ctx context.Context, fullTargetName string, al
 	}
 
 	return exists, func() {
-		err := c.opt.BuildkitSkipper.Add(ctx, orgName, target.StringCanonical(), targetHash)
+		err := c.opt.BuildkitSkipper.Add(ctx, target.StringCanonical(), targetHash)
 		if err != nil {
 			console.Warnf("Failed to add target %s (hash %x) to the auto-skip DB.", target.String(), targetHash)
 		}

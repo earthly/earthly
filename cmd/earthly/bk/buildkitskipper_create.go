@@ -10,8 +10,8 @@ import (
 // BuildkitSkipper adds new auto-skip hashes to the backing datastore & allows
 // us to check for their existence.
 type BuildkitSkipper interface {
-	Add(ctx context.Context, org, target string, key []byte) error
-	Exists(ctx context.Context, org string, key []byte) (bool, error)
+	Add(ctx context.Context, target string, key []byte) error
+	Exists(ctx context.Context, key []byte) (bool, error)
 }
 
 // NewBuildkitSkipper returns a local buildkitskipper when localSkipDB is specified

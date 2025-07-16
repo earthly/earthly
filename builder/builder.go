@@ -117,7 +117,6 @@ type BuildOpt struct {
 	GlobalWaitBlockFtr         bool
 	LocalArtifactWhiteList     *gatewaycrafter.LocalArtifactWhiteList
 	Logbus                     *logbus.Bus
-	MainTargetDetailsFunc      func(earthfile2llb.TargetDetails) error
 	Runner                     string
 	ProjectAdder               ProjectAdder
 }
@@ -313,7 +312,6 @@ func (b *Builder) convertAndBuild(ctx context.Context, target domain.Target, opt
 				InteractiveDebuggerEnabled:           b.opt.InteractiveDebugging,
 				InteractiveDebuggerDebugLevelLogging: b.opt.InteractiveDebuggingDebugLevelLogging,
 				Logbus:                               opt.Logbus,
-				MainTargetDetailsFunc:                opt.MainTargetDetailsFunc,
 				Runner:                               opt.Runner,
 				ProjectAdder:                         opt.ProjectAdder,
 				FilesWithCommandRenameWarning:        make(map[string]bool),

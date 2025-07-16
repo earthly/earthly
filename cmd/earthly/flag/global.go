@@ -61,8 +61,6 @@ type Global struct {
 	ConversionParallelism      int
 	LocalRegistryHost          string
 	ContainerFrontend          containerutil.ContainerFrontend
-	ProjectName                string
-	OrgName                    string
 	ArtifactMode               bool
 	ImageMode                  bool
 	Pull                       bool
@@ -360,22 +358,6 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 			EnvVars:     []string{"EARTHLY_AUTO_SKIP_DB_PATH"},
 			Usage:       "use a local database for auto-skip",
 			Destination: &global.LocalSkipDB,
-		},
-		&cli.StringFlag{
-			Name:        "org",
-			EnvVars:     []string{"EARTHLY_ORG"},
-			Usage:       common.Wrap("The name of the organization.", "Required when user is a member of multiple organizations."),
-			Required:    false,
-			Destination: &global.OrgName,
-			Hidden:      true,
-		},
-		&cli.StringFlag{
-			Name:        "project",
-			EnvVars:     []string{"EARTHLY_PROJECT"},
-			Usage:       "The name of the project that may be used during log streaming.",
-			Required:    false,
-			Destination: &global.ProjectName,
-			Hidden:      true,
 		},
 		&cli.StringFlag{
 			Name:        "buildkit-image",
