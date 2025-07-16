@@ -4,6 +4,17 @@ All notable changes to [Earthly](https://github.com/earthly/earthly) will be doc
 
 ## Unreleased
 
+## v0.8.16 - 2025-07-16
+
+### Changed
+- Removed CLI based account creation [#4283](https://github.com/earthly/earthly/pull/4283)
+- `dockerd` wrapper cleans up after itself [#4267](https://github.com/earthly/earthly/pull/4267)/[#4268](https://github.com/earthly/earthly/pull/4268)
+- Removed all Cloud dependencies, commands, and flags as part of the [Earthly Cloud shutdown](https://earthly.dev/blog/shutting-down-earthfiles-cloud/) [#4235](https://github.com/earthly/earthly/pull/4325)
+
+### Additional Info
+- `v0.8.15` will continue working after the shutdown, but with some error messages interspersed in the output.
+- `v0.8.16` does not emit log messages after the cloud shutdown. However, it removes many cloud-based commands and flags. If you are using these in your scripts or CI, please remove them.
+
 ## v0.8.15 - 2024-07-12
 
 ### Added
