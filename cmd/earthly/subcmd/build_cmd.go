@@ -35,7 +35,6 @@ import (
 	"github.com/earthly/earthly/cmd/earthly/bk"
 	"github.com/earthly/earthly/cmd/earthly/common"
 	"github.com/earthly/earthly/cmd/earthly/flag"
-	"github.com/earthly/earthly/cmd/earthly/helper"
 	debuggercommon "github.com/earthly/earthly/debugger/common"
 	"github.com/earthly/earthly/debugger/terminal"
 	"github.com/earthly/earthly/docker2earthly"
@@ -260,11 +259,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	cleanCollection := cleanup.NewCollection()
 	defer cleanCollection.Close()
 
-	cloudClient, err := helper.NewCloudClient(a.cli)
-	if err != nil {
-		return err
-	}
-
 	a.cli.Console().PrintPhaseHeader(builder.PhaseInit, false, "")
 	a.warnIfArgContainsBuildArg(flagArgs)
 
@@ -396,7 +390,6 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 		secretprovider.NewAWSCredentialProvider(),
 		secretprovider.NewMapStore(secretsMap),
 		customSecretProviderCmd,
-		secretprovider.NewCloudStore(cloudClient),
 	)
 
 	attachables := []session.Attachable{
