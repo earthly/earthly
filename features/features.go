@@ -74,6 +74,7 @@ type Features struct {
 	WildcardCopy                  bool `long:"wildcard-copy" description:"allow for the expansion of wildcard (glob) paths for COPY commands"`
 	RawOutput                     bool `long:"raw-output" description:"allow for --raw-output on RUN commands"`
 	GitAuthorEmailNameArgs        bool `long:"git-author-email-name-args" description:"includes EARTHLY_GIT_AUTHOR_EMAIL and EARTHLY_GIT_AUTHOR_NAME builtin ARGs"`
+	GitMessages                   bool `long:"git-messages" description:"includes EARTHLY_GIT_MESSAGE and EARTHLY_GIT_MESSAGE_FULL builtin ARGs"`
 	AllowWithoutEarthlyLabels     bool `long:"allow-without-earthly-labels" description:"Allow the usage of --without-earthly-labels in SAVE IMAGE"`
 	DockerCache                   bool `long:"docker-cache" description:"enable the WITH DOCKER --cache-id option"`
 	RunWithAWSOIDC                bool `long:"run-with-aws-oidc" description:"make AWS credentials via OIDC provider available to RUN commands"`
