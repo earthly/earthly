@@ -9,7 +9,7 @@
   "author": "",
   "license": "MPL-2.0",
   "devDependencies": {
-    "webpack": "^5.76.0",
+    "webpack": "^5.94.0",
     "webpack-cli": "^5.0.1"
   },
   "dependencies": {
