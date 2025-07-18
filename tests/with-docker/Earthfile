@@ -1,6 +1,6 @@
 VERSION 0.8
 
-ARG --global DIND_IMAGE=earthly/dind:alpine-3.19-docker-25.0.5-r0
+ARG --global DIND_IMAGE=earthly/dind:alpine-3.20-docker-26.1.5-r0
 FROM $DIND_IMAGE
 
 all:

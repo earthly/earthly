@@ -6,7 +6,7 @@ img:
   SAVE IMAGE img
 
 debug-dind:
-  FROM earthly/dind:alpine-3.19-docker-25.0.5-r0
+  FROM earthly/dind:alpine-3.20-docker-26.1.5-r0
   RUN mkdir /etc/docker && echo '{"debug": true}' > /etc/docker/daemon.json
 
 wd:
