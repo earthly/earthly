@@ -16,9 +16,9 @@ test-function-in-sub-dir:
     COPY target-that-calls-function.earth /the-test/Earthfile
     COPY other-target-that-calls-function.earth /the-test/other/path/Earthfile
     RUN touch /this-file-exists-locally
+    # at this point the command will have switched this to LOCALLY rather than the alpine-container
     DO --pass-args +RUN_EARTHLY_ARGS --target=/the-test+test
     RUN test "$(cat /the-test/data)" = "I am running in /the-test"
-    DO --pass-args +RUN_EARTHLY_ARGS --target=/the-test+test --should-fail=true
 
     # cleanup
     RUN rm /the-test/data

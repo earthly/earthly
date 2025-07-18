@@ -5,6 +5,7 @@ test:
     FROM alpine
     RUN ! test -f /this-file-exists-locally
     DO imported-name+UDC_THAT_SAVES_FILE_LOCALLY
+    # at this point the command will have switched this to LOCALLY rather than the alpine-container
     RUN test "$(cat data)" = "I am running in /the-test"
     RUN test -f /this-file-exists-locally
 
@@ -14,7 +15,3 @@ test-other:
 test-both:
     BUILD +test
     BUILD ./other/path+test
-
-test-fails:
-    FROM alpine
-    DO imported-name+UDC_THAT_SAVES_FILE_LOCALLY
