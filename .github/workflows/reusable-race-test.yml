@@ -53,8 +53,6 @@ jobs:
           BUILT_EARTHLY_PATH: "${{ inputs.BUILT_EARTHLY_PATH }}"
           BINARY: "${{ inputs.BINARY }}"
           SUDO: "${{ inputs.SUDO }}"
-          USE_SATELLITE: "${{ inputs.USE_SATELLITE }}"
-          SATELLITE_NAME: "${{ inputs.SATELLITE_NAME }}"
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
@@ -67,5 +65,5 @@ jobs:
           GORACE="halt_on_error=1" go run -race ./cmd/earthly/*.go --buildkit-image earthly/buildkitd:race-test ${{inputs.EXTRA_ARGS}} -P --no-output \
             ${{inputs.TEST_TARGET}}
       - name: Buildkit logs (runs on failure)
-        run: docker logs earthly-buildkitd || true
         if: ${{ failure() }}
+        run: docker logs earthly-buildkitd || true

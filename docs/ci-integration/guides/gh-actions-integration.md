@@ -1,11 +1,6 @@
 
 # GitHub Actions integration
 
-{% hint style='info' %}
-##### News
-It is recommended to use [Satellites as GHA runners](../../cloud/satellites/gha-runners.md), since they don't require GitHub Actions workers.
-{% endhint %}
-
 Here is an example of a GitHub Actions build that uses the [earthly/actions-setup](https://github.com/earthly/actions-setup).
 
 This example assumes an [Earthfile](../../earthfile/earthfile.md) exists with a `+build` target:

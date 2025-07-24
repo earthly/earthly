@@ -22,13 +22,6 @@ on:
       RUNS_ON:
         required: true
         type: string
-      USE_SATELLITE:
-        required: false
-        type: boolean
-        default: false
-      SATELLITE_NAME:
-        required: false
-        type: string
       EARTHLY_ORG:
         required: false
         type: string
@@ -66,8 +59,6 @@ jobs:
           BUILT_EARTHLY_PATH: "${{ inputs.BUILT_EARTHLY_PATH }}"
           BINARY: "${{ inputs.BINARY }}"
           SUDO: "${{ inputs.SUDO }}"
-          USE_SATELLITE: "${{ inputs.USE_SATELLITE }}"
-          SATELLITE_NAME: "${{ inputs.SATELLITE_NAME }}"
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
@@ -80,5 +71,5 @@ jobs:
       - name: Run general local tests (TODO this is re-testing the +test-local target)
         run: "${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.RUN_EARTHLY_TEST_ARGS}} ./tests/local+all --FRONTEND=${{inputs.BINARY}} --FRONTEND_COMPOSE=${{inputs.BINARY_COMPOSE}}"
       - name: Buildkit logs (runs on failure)
+        if: ${{ failure() }}
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd || true
-        if: ${{ failure() && ! inputs.USE_SATELLITE }}

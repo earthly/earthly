@@ -51,8 +51,6 @@ jobs:
           BUILT_EARTHLY_PATH: "${{ inputs.BUILT_EARTHLY_PATH }}"
           BINARY: "${{ inputs.BINARY }}"
           SUDO: "${{ inputs.SUDO }}"
-          USE_SATELLITE: "${{ inputs.USE_SATELLITE }}"
-          SATELLITE_NAME: "${{ inputs.SATELLITE_NAME }}"
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
@@ -63,5 +61,5 @@ jobs:
           ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ${{inputs.EXTRA_ARGS}} --ci -P --global-wait-end \
            ${{inputs.TARGET_NAME}} --GLOBAL_WAIT_END=true
       - name: Buildkit logs (runs on failure)
+        if: ${{ failure() }}
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd || true
-        if: ${{ failure() && ! inputs.USE_SATELLITE }}

@@ -9,8 +9,7 @@ Once this issue is resolved, the configuration can be restored by reverting the 
 
 ### Motivation
 Some PR workflows (workflows triggered by PRs) in this repo might take substantial time to complete,  
-and it is not always necessary to run them all, especially in cases where the affected files are documents or any other file that don't affect our workflows or tests.  
-In addition, some of our tests use satellites and limiting the number of (concurrent) builds might help with their performance.
+and it is not always necessary to run them all, especially in cases where the affected files are documents or any other file that don't affect our workflows or tests.
 
 ### GitHub Builtin Support
 GitHub supports defining filters on workflows so that they won't get triggered, and there is a builtin filter that would do so according to affected files - [paths-ignore](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#onpushpull_requestpull_request_targetpathspaths-ignore).  

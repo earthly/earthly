@@ -15,13 +15,6 @@ on:
       RUNS_ON:
         required: true
         type: string
-      USE_SATELLITE:
-        required: false
-        type: boolean
-        default: false
-      SATELLITE_NAME:
-        required: false
-        type: string
       SKIP_JOB:
         required: false
         type: boolean
@@ -52,8 +45,6 @@ jobs:
           BUILT_EARTHLY_PATH: "${{ inputs.BUILT_EARTHLY_PATH }}"
           BINARY: "${{ inputs.BINARY }}"
           SUDO: "${{ inputs.SUDO }}"
-          USE_SATELLITE: "${{ inputs.USE_SATELLITE }}"
-          SATELLITE_NAME: "${{ inputs.SATELLITE_NAME }}"
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
@@ -62,5 +53,5 @@ jobs:
       - name: run export tests
         run: env earthly=${{inputs.BUILT_EARTHLY_PATH}} frontend=${{inputs.BINARY}} scripts/tests/export.sh
       - name: Buildkit logs (runs on failure)
-        run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd || true
         if: ${{ failure() }}
+        run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd || true

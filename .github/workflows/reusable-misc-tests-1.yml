@@ -45,8 +45,6 @@ jobs:
           BUILT_EARTHLY_PATH: "${{ inputs.BUILT_EARTHLY_PATH }}"
           BINARY: "${{ inputs.BINARY }}"
           SUDO: "${{ inputs.SUDO }}"
-          USE_SATELLITE: "${{ inputs.USE_SATELLITE }}"
-          SATELLITE_NAME: "${{ inputs.SATELLITE_NAME }}"
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
@@ -62,9 +60,6 @@ jobs:
           for pid in ${pids[*]}; do
               wait $pid
           done
-      - name: "Run the earthly satellites tests (Earthly only)" # TODO Move to seperate earthly-only workflow file
-        run: env earthly=${{inputs.BUILT_EARTHLY_PATH}} ./scripts/tests/satellites-integration.sh
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       - name: Execute interactive debugger test
         run: ./scripts/tests/interactive-debugger/test-interactive.py --earthly ${{inputs.BUILT_EARTHLY_PATH}} --timeout 180
       - name: "cloud-stored docker credential test (Earthly only)" # TODO Move to seperate earthly-only workflow file
@@ -81,5 +76,5 @@ jobs:
       - name: Execute try-catch test
         run: GITHUB_ACTIONS="" ./tests/try-catch/test.sh
       - name: Buildkit logs (runs on failure)
-        run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd || true
         if: ${{ failure() }}
+        run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd || true

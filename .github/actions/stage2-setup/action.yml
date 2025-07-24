@@ -14,17 +14,10 @@ inputs:
   USE_QEMU:
     required: false
     type: boolean
-  USE_SATELLITE:
-    required: false
-    type: boolean
-    default: false
   USE_NEXT:
     required: false
     type: boolean
     default: false
-  SATELLITE_NAME:
-    required: false
-    type: string
   EARTHLY_ORG:
     required: false
     type: string
@@ -105,16 +98,6 @@ runs:
       shell: bash
     - if: ${{ inputs.BINARY == 'podman' }}
       run: ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} bootstrap
-      shell: bash
-    - if: ${{ inputs.USE_SATELLITE == 'true' }}
-      run: |-
-        SATELLITE_NAME=${{inputs.SATELLITE_NAME}}
-        if [ "$SATELLITE_NAME" = "core-test" ]; then
-          SATELLITE_NAME="$SATELLITE_NAME-$(( $RANDOM % 4 ))"
-          echo "Using core-test satellite: $SATELLITE_NAME"
-        fi
-        ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} sat ls
-        ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} satellite select $SATELLITE_NAME
       shell: bash
     - run: echo "stage2-setup action complete"
       shell: bash

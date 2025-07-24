@@ -21,13 +21,6 @@ on:
       EXAMPLE_NAME:
         required: true
         type: string
-      USE_SATELLITE:
-        required: false
-        type: boolean
-        default: false
-      SATELLITE_NAME:
-        required: false
-        type: string
       EARTHLY_ORG:
         required: false
         type: string
@@ -66,8 +59,6 @@ jobs:
           BINARY: "${{ inputs.BINARY }}"
           USE_QEMU: "${{ inputs.USE_QEMU }}"
           SUDO: "${{ inputs.SUDO }}"
-          USE_SATELLITE: "${{ inputs.USE_SATELLITE }}"
-          SATELLITE_NAME: "${{ inputs.SATELLITE_NAME }}"
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
@@ -86,5 +77,5 @@ jobs:
           ${{inputs.SUDO}} ${{inputs.BUILT_EARTHLY_PATH}} ./examples/multiplatform+all
           ${{inputs.SUDO}} ${{inputs.BINARY}} run --rm earthly/examples:multiplatform_linux_arm64 | grep aarch64
       - name: Buildkit logs (runs on failure)
+        if: ${{ failure() }}
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd || true
-        if: ${{ failure() && ! inputs.USE_SATELLITE }}

@@ -21,13 +21,6 @@ on:
       USE_QEMU:
         required: false
         type: boolean
-      USE_SATELLITE:
-        required: false
-        type: boolean
-        default: false
-      SATELLITE_NAME:
-        required: false
-        type: string
       EARTHLY_ORG:
         required: false
         type: string
@@ -73,8 +66,6 @@ jobs:
           USE_QEMU: "${{ inputs.USE_QEMU }}"
           USE_NEXT: "${{ inputs.USE_NEXT }}"
           SUDO: "${{ inputs.SUDO }}"
-          USE_SATELLITE: "${{ inputs.USE_SATELLITE }}"
-          SATELLITE_NAME: "${{ inputs.SATELLITE_NAME }}"
       - name: Set EARTHLY_VERSION_FLAG_OVERRIDES env
         run: |-
           set -euo pipefail
@@ -88,10 +79,9 @@ jobs:
           ${{inputs.SUDO}} ${{inputs.BINARY}} ps -a
           ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd |& grep 'starting earthly-buildkit'
         shell: bash
-        if: ${{ ! inputs.USE_SATELLITE }}
       - name: Execute fail test
         run: |
           ! ${{inputs.SUDO}} GITHUB_ACTIONS="" ${{ inputs.BUILT_EARTHLY_PATH }} ${{inputs.EXTRA_ARGS}} --ci ./tests/fail+test-fail
       - name: Buildkit logs (runs on failure)
+        if: ${{ failure() }}
         run: ${{inputs.SUDO}} ${{inputs.BINARY}} logs earthly-buildkitd || true
-        if: ${{ failure() && ! inputs.USE_SATELLITE }}
