@@ -40,6 +40,38 @@ jobs:
 #      SKIP_JOB: ${{ needs.check-essential-files.outputs.essential-files == 'false' }}
     secrets: inherit
 
+  showmeiptables:
+    name: show me the tables
+    runs-on: "ubuntu-20.04"
+    steps:
+      - uses: earthly/actions-setup@v1
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: "Put back the git branch into git (Earthly uses it for tagging)"
+        run: |
+          branch=""
+          if [ -n "$GITHUB_HEAD_REF" ]; then
+            branch="$GITHUB_HEAD_REF"
+          else
+            branch="${GITHUB_REF##*/}"
+          fi
+          git checkout -b "$branch" || true
+      - name: Docker mirror login (Earthly Only)
+        run: docker login registry-1.docker.io.mirror.corp.earthly.dev --username "${{ secrets.DOCKERHUB_MIRROR_USERNAME }}" --password "${{ secrets.DOCKERHUB_MIRROR_PASSWORD }}"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Earthly bootstrap
+        run: $(which earthly) bootstrap
+      - name: Configure Earthly to use mirror (Earthly Only)
+        run: |-
+          $(which earthly) config global.buildkit_additional_config "'[registry.\"docker.io\"]
+          mirrors = [\"registry-1.docker.io.mirror.corp.earthly.dev\"]'"
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+      - name: Docker Login
+        run: docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password "${{ secrets.DOCKERHUB_TOKEN }}"
+      - name: Run a with docker test
+        run: $(which earthly) -P ./tests/with-docker+docker-load-shellout-test
+
   docker-lint:
     needs: build-earthly
     if: ${{ !failure() }}
