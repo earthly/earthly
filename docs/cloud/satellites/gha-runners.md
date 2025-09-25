@@ -101,10 +101,10 @@ docker run --privileged \
     -e SATELLITE_NAME=<satellite_name> \
     -e SATELLITE_HOST=<satellite_host> \
     -e RUNNER_GHA_ENABLED=true \
-  earthly/satellite:v0.8.13
+  earthly/satellite:v0.8.16
 ```
 {% hint style='info' %}
-**Required version:** Use at least `earthly/satellite:v0.8.13`
+**Required version:** Use at least `earthly/satellite:v0.8.16
 {% endhint %}
 
 ##### Logs
