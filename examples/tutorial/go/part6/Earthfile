@@ -29,7 +29,7 @@ test-setup:
     SAVE IMAGE test:latest
 
 integration-tests:
-    FROM earthly/dind:alpine-3.19-docker-25.0.5-r0
+    FROM earthly/dind:alpine-3.20-docker-26.1.5-r0
     COPY docker-compose.yml ./
     WITH DOCKER --compose docker-compose.yml --load tests:latest=+test-setup
         RUN docker run --network=default_go/part6_default tests:latest | grep "ok"
