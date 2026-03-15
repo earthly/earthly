@@ -85,6 +85,94 @@ func TestIdentityAgentNoConfig(t *testing.T) {
 	}
 }
 
+func TestIdentityAgentQuotedPath(t *testing.T) {
+	tmpDir := t.TempDir()
+	sshDir := filepath.Join(tmpDir, ".ssh")
+	if err := os.MkdirAll(sshDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	// IdentityAgent with quoted path (common for paths with spaces)
+	configContent := `Host *
+    IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+`
+	if err := os.WriteFile(filepath.Join(sshDir, "config"), []byte(configContent), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("SSH_AUTH_SOCK", "")
+
+	sock := GetSSHAuthSock()
+	expected := filepath.Join(tmpDir, "Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock")
+	if sock != expected {
+		t.Errorf("GetSSHAuthSock() with quoted path = %q, want %q", sock, expected)
+	}
+}
+
+func TestIdentityAgentMultiPatternHost(t *testing.T) {
+	tmpDir := t.TempDir()
+	sshDir := filepath.Join(tmpDir, ".ssh")
+	if err := os.MkdirAll(sshDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	// Host * !excluded pattern should still be treated as wildcard
+	configContent := `Host * !excluded.example.com
+    IdentityAgent /tmp/wildcard-agent.sock
+`
+	if err := os.WriteFile(filepath.Join(sshDir, "config"), []byte(configContent), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("SSH_AUTH_SOCK", "")
+
+	sock := GetSSHAuthSock()
+	if sock != "/tmp/wildcard-agent.sock" {
+		t.Errorf("GetSSHAuthSock() with multi-pattern Host = %q, want /tmp/wildcard-agent.sock", sock)
+	}
+}
+
+func TestStripQuotes(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{`"~/path/to/agent.sock"`, "~/path/to/agent.sock"},
+		{`'~/path/to/agent.sock'`, "~/path/to/agent.sock"},
+		{"~/path/to/agent.sock", "~/path/to/agent.sock"},
+		{`"mismatched'`, `"mismatched'`},
+		{"", ""},
+	}
+	for _, tt := range tests {
+		got := stripQuotes(tt.input)
+		if got != tt.expected {
+			t.Errorf("stripQuotes(%q) = %q, want %q", tt.input, got, tt.expected)
+		}
+	}
+}
+
+func TestIsWildcardHostPattern(t *testing.T) {
+	tests := []struct {
+		pattern  string
+		expected bool
+	}{
+		{"*", true},
+		{"* !excluded.example.com", true},
+		{"*.example.com", true},
+		{"github.com", false},
+		{"!excluded.example.com", false},
+		{"github.com bitbucket.org", false},
+	}
+	for _, tt := range tests {
+		got := isWildcardHostPattern(tt.pattern)
+		if got != tt.expected {
+			t.Errorf("isWildcardHostPattern(%q) = %v, want %v", tt.pattern, got, tt.expected)
+		}
+	}
+}
+
 func TestIdentityAgentGlobalScope(t *testing.T) {
 	tmpDir := t.TempDir()
 	sshDir := filepath.Join(tmpDir, ".ssh")

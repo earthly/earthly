@@ -7,9 +7,10 @@ import (
 	"strings"
 )
 
-// GetSSHAuthSock returns the SSH auth socket path by checking:
-// 1. The SSH_AUTH_SOCK environment variable
-// 2. The IdentityAgent directive from ~/.ssh/config (Host *)
+// GetSSHAuthSock returns the SSH auth socket path to use. It checks the
+// SSH_AUTH_SOCK environment variable first. If that is not set, it falls back
+// to reading the IdentityAgent directive from ~/.ssh/config (Host * or global
+// scope). Returns an empty string when no socket can be determined.
 func GetSSHAuthSock() string {
 	if sock := os.Getenv("SSH_AUTH_SOCK"); sock != "" {
 		return sock
@@ -18,8 +19,10 @@ func GetSSHAuthSock() string {
 }
 
 // identityAgentFromConfig reads ~/.ssh/config and returns the IdentityAgent
-// value from the Host * block (or the first IdentityAgent found outside any
-// host block), with ~ and environment variables expanded.
+// value from the first matching wildcard Host block (e.g. "Host *") or the
+// first IdentityAgent directive found outside any Host block. The returned path
+// has ~ and environment variables expanded. Returns empty string when nothing
+// is found or the config file cannot be read.
 func identityAgentFromConfig() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -44,8 +47,7 @@ func identityAgentFromConfig() string {
 
 		lower := strings.ToLower(line)
 		if strings.HasPrefix(lower, "host ") {
-			pattern := strings.TrimSpace(line[5:])
-			inWildcardHost = pattern == "*"
+			inWildcardHost = isWildcardHostPattern(strings.TrimSpace(line[5:]))
 			continue
 		}
 		if strings.HasPrefix(lower, "match ") {
@@ -55,9 +57,11 @@ func identityAgentFromConfig() string {
 
 		if strings.HasPrefix(lower, "identityagent ") {
 			value := strings.TrimSpace(line[len("identityagent "):])
-			// Also handle = syntax: IdentityAgent = /path
+			// Handle optional = syntax: IdentityAgent = /path
 			value = strings.TrimPrefix(value, "=")
 			value = strings.TrimSpace(value)
+			// Strip surrounding quotes that SSH config allows for paths with spaces
+			value = stripQuotes(value)
 			if value == "" {
 				continue
 			}
@@ -75,7 +79,36 @@ func identityAgentFromConfig() string {
 	return globalAgent
 }
 
-// expandPath expands ~ to the home directory and $VAR / ${VAR} environment variables.
+// isWildcardHostPattern reports whether a Host pattern string contains a
+// wildcard entry that would match all hosts. It handles multi-pattern lines
+// like "Host * !excluded.example.com" by checking if any token is or contains
+// "*" (ignoring negation tokens that start with "!").
+func isWildcardHostPattern(pattern string) bool {
+	for _, token := range strings.Fields(pattern) {
+		if strings.HasPrefix(token, "!") {
+			continue
+		}
+		if strings.Contains(token, "*") {
+			return true
+		}
+	}
+	return false
+}
+
+// stripQuotes removes a single pair of matching surrounding quotes (single or
+// double) from s if present. It does not remove mismatched or nested quotes.
+func stripQuotes(s string) string {
+	if len(s) >= 2 {
+		if (s[0] == '"' && s[len(s)-1] == '"') ||
+			(s[0] == '\'' && s[len(s)-1] == '\'') {
+			return s[1 : len(s)-1]
+		}
+	}
+	return s
+}
+
+// expandPath expands a leading ~ to the user home directory and replaces
+// $VAR and ${VAR} references using os.ExpandEnv.
 func expandPath(path string, home string) string {
 	if strings.HasPrefix(path, "~/") {
 		path = filepath.Join(home, path[2:])
