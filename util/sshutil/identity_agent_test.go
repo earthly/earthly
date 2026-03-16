@@ -153,23 +153,47 @@ func TestStripQuotes(t *testing.T) {
 	}
 }
 
-func TestIsWildcardHostPattern(t *testing.T) {
+func TestIsUniversalWildcard(t *testing.T) {
 	tests := []struct {
 		pattern  string
 		expected bool
 	}{
 		{"*", true},
 		{"* !excluded.example.com", true},
-		{"*.example.com", true},
+		// *.example.com is a domain-scoped pattern, NOT a universal wildcard
+		{"*.example.com", false},
 		{"github.com", false},
 		{"!excluded.example.com", false},
 		{"github.com bitbucket.org", false},
 	}
 	for _, tt := range tests {
-		got := isWildcardHostPattern(tt.pattern)
+		got := isUniversalWildcard(tt.pattern)
 		if got != tt.expected {
-			t.Errorf("isWildcardHostPattern(%q) = %v, want %v", tt.pattern, got, tt.expected)
+			t.Errorf("isUniversalWildcard(%q) = %v, want %v", tt.pattern, got, tt.expected)
 		}
+	}
+}
+
+func TestIdentityAgentHostSpecificIsIgnored(t *testing.T) {
+	tmpDir := t.TempDir()
+	sshDir := filepath.Join(tmpDir, ".ssh")
+	if err := os.MkdirAll(sshDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	// IdentityAgent scoped to a specific host should NOT be used as the default
+	configContent := `Host github.com
+    IdentityAgent /tmp/github-only.sock
+`
+	if err := os.WriteFile(filepath.Join(sshDir, "config"), []byte(configContent), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("SSH_AUTH_SOCK", "")
+
+	if got := GetSSHAuthSock(); got != "" {
+		t.Errorf("GetSSHAuthSock() = %q, want empty for host-specific-only config", got)
 	}
 }
 
