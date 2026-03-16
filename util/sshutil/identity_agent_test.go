@@ -157,6 +157,44 @@ func TestIdentityAgentHostSpecificIsIgnored(t *testing.T) {
 	}
 }
 
+func TestIdentityAgentTabSeparated(t *testing.T) {
+	// SSH config allows tabs between keyword and value
+	writeSSHConfig(t, "Host\t*\n\tIdentityAgent\t/tmp/tab-agent.sock\n")
+	if got := GetSSHAuthSock(); got != "/tmp/tab-agent.sock" {
+		t.Errorf("GetSSHAuthSock() with tab-separated config = %q, want /tmp/tab-agent.sock", got)
+	}
+}
+
+func TestIdentityAgentEqualsSyntax(t *testing.T) {
+	// SSH config allows key=value syntax
+	writeSSHConfig(t, "Host=*\nIdentityAgent=/tmp/equals-agent.sock\n")
+	if got := GetSSHAuthSock(); got != "/tmp/equals-agent.sock" {
+		t.Errorf("GetSSHAuthSock() with key=value config = %q, want /tmp/equals-agent.sock", got)
+	}
+}
+
+func TestSplitDirective(t *testing.T) {
+	tests := []struct {
+		line    string
+		keyword string
+		value   string
+	}{
+		{"Host *", "Host", "*"},
+		{"Host\t*", "Host", "*"},
+		{"Host=*", "Host", "*"},
+		{"IdentityAgent /tmp/agent.sock", "IdentityAgent", "/tmp/agent.sock"},
+		{"IdentityAgent=/tmp/agent.sock", "IdentityAgent", "/tmp/agent.sock"},
+		{"IdentityAgent = /tmp/agent.sock", "IdentityAgent", "/tmp/agent.sock"},
+		{"Host", "Host", ""},
+	}
+	for _, tt := range tests {
+		k, v := splitDirective(tt.line)
+		if k != tt.keyword || v != tt.value {
+			t.Errorf("splitDirective(%q) = (%q, %q), want (%q, %q)", tt.line, k, v, tt.keyword, tt.value)
+		}
+	}
+}
+
 func TestIdentityAgentMatchScopeIsIgnored(t *testing.T) {
 	writeSSHConfig(t, `Match host github.com
     IdentityAgent /tmp/match-only.sock

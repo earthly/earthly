@@ -51,23 +51,17 @@ func identityAgentFromConfig() string {
 			continue
 		}
 
-		lower := strings.ToLower(line)
-		if strings.HasPrefix(lower, "host ") {
+		// Extract keyword and value, handling both "keyword value" and
+		// "keyword=value" forms (both are valid per ssh_config(5)).
+		keyword, value := splitDirective(line)
+		switch strings.ToLower(keyword) {
+		case "host":
 			seenAnyHostBlock = true
-			inWildcardHost = isUniversalWildcard(strings.TrimSpace(line[5:]))
-			continue
-		}
-		if strings.HasPrefix(lower, "match ") {
+			inWildcardHost = isUniversalWildcard(value)
+		case "match":
 			seenAnyHostBlock = true
 			inWildcardHost = false
-			continue
-		}
-
-		if strings.HasPrefix(lower, "identityagent ") {
-			value := strings.TrimSpace(line[len("identityagent "):])
-			// Handle optional = syntax: IdentityAgent = /path
-			value = strings.TrimPrefix(value, "=")
-			value = strings.TrimSpace(value)
+		case "identityagent":
 			// Strip surrounding quotes that SSH config allows for paths with spaces
 			value = stripQuotes(value)
 			if value == "" {
@@ -87,6 +81,22 @@ func identityAgentFromConfig() string {
 	}
 
 	return globalAgent
+}
+
+// splitDirective splits an SSH config line into a keyword and its value.
+// It handles both space/tab-separated ("Host *") and equals-separated
+// ("IdentityAgent=/path") forms, stripping any surrounding whitespace from
+// both parts. Returns empty strings if the line has no separating whitespace
+// or '=' character.
+func splitDirective(line string) (keyword, value string) {
+	// Find the first whitespace or '=' separator
+	idx := strings.IndexAny(line, " \t=")
+	if idx < 0 {
+		return line, ""
+	}
+	keyword = line[:idx]
+	rest := strings.TrimLeft(line[idx:], " \t=")
+	return keyword, strings.TrimSpace(rest)
 }
 
 // isUniversalWildcard reports whether a Host pattern line represents a
