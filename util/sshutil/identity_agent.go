@@ -1,3 +1,6 @@
+// Package sshutil provides helpers for SSH configuration and authentication.
+// Currently it exposes GetSSHAuthSock to resolve the SSH agent socket path
+// from the environment or from ~/.ssh/config (IdentityAgent directive).
 package sshutil
 
 import (

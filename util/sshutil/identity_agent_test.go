@@ -6,6 +6,24 @@ import (
 	"testing"
 )
 
+// writeSSHConfig creates a temp HOME directory, writes configContent to
+// ~/.ssh/config, sets HOME and clears SSH_AUTH_SOCK for the test. Returns the
+// tmpDir path so callers can construct expected expanded paths.
+func writeSSHConfig(t *testing.T, configContent string) string {
+	t.Helper()
+	tmpDir := t.TempDir()
+	sshDir := filepath.Join(tmpDir, ".ssh")
+	if err := os.MkdirAll(sshDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sshDir, "config"), []byte(configContent), 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("SSH_AUTH_SOCK", "")
+	return tmpDir
+}
+
 func TestExpandPath(t *testing.T) {
 	home := "/home/testuser"
 	tests := []struct {
@@ -35,30 +53,14 @@ func TestExpandPathEnvVar(t *testing.T) {
 }
 
 func TestIdentityAgentFromConfig(t *testing.T) {
-	// Create a temp dir with a fake ssh config
-	tmpDir := t.TempDir()
-	sshDir := filepath.Join(tmpDir, ".ssh")
-	if err := os.MkdirAll(sshDir, 0700); err != nil {
-		t.Fatal(err)
-	}
-
-	configContent := `Host github.com
+	tmpDir := writeSSHConfig(t, `Host github.com
     HostName github.com
     User git
 
 Host *
     IdentityAgent ~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock
     AddKeysToAgent yes
-`
-	if err := os.WriteFile(filepath.Join(sshDir, "config"), []byte(configContent), 0600); err != nil {
-		t.Fatal(err)
-	}
-
-	// Override HOME so identityAgentFromConfig finds our temp config
-	t.Setenv("HOME", tmpDir)
-	// Clear SSH_AUTH_SOCK so GetSSHAuthSock falls through
-	t.Setenv("SSH_AUTH_SOCK", "")
-
+`)
 	sock := GetSSHAuthSock()
 	expected := filepath.Join(tmpDir, "Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock")
 	if sock != expected {
@@ -86,23 +88,9 @@ func TestIdentityAgentNoConfig(t *testing.T) {
 }
 
 func TestIdentityAgentQuotedPath(t *testing.T) {
-	tmpDir := t.TempDir()
-	sshDir := filepath.Join(tmpDir, ".ssh")
-	if err := os.MkdirAll(sshDir, 0700); err != nil {
-		t.Fatal(err)
-	}
-
-	// IdentityAgent with quoted path (common for paths with spaces)
-	configContent := `Host *
+	tmpDir := writeSSHConfig(t, `Host *
     IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
-`
-	if err := os.WriteFile(filepath.Join(sshDir, "config"), []byte(configContent), 0600); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Setenv("HOME", tmpDir)
-	t.Setenv("SSH_AUTH_SOCK", "")
-
+`)
 	sock := GetSSHAuthSock()
 	expected := filepath.Join(tmpDir, "Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock")
 	if sock != expected {
@@ -111,23 +99,9 @@ func TestIdentityAgentQuotedPath(t *testing.T) {
 }
 
 func TestIdentityAgentMultiPatternHost(t *testing.T) {
-	tmpDir := t.TempDir()
-	sshDir := filepath.Join(tmpDir, ".ssh")
-	if err := os.MkdirAll(sshDir, 0700); err != nil {
-		t.Fatal(err)
-	}
-
-	// Host * !excluded pattern should still be treated as wildcard
-	configContent := `Host * !excluded.example.com
+	writeSSHConfig(t, `Host * !excluded.example.com
     IdentityAgent /tmp/wildcard-agent.sock
-`
-	if err := os.WriteFile(filepath.Join(sshDir, "config"), []byte(configContent), 0600); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Setenv("HOME", tmpDir)
-	t.Setenv("SSH_AUTH_SOCK", "")
-
+`)
 	sock := GetSSHAuthSock()
 	if sock != "/tmp/wildcard-agent.sock" {
 		t.Errorf("GetSSHAuthSock() with multi-pattern Host = %q, want /tmp/wildcard-agent.sock", sock)
@@ -175,48 +149,29 @@ func TestIsUniversalWildcard(t *testing.T) {
 }
 
 func TestIdentityAgentHostSpecificIsIgnored(t *testing.T) {
-	tmpDir := t.TempDir()
-	sshDir := filepath.Join(tmpDir, ".ssh")
-	if err := os.MkdirAll(sshDir, 0700); err != nil {
-		t.Fatal(err)
-	}
-
-	// IdentityAgent scoped to a specific host should NOT be used as the default
-	configContent := `Host github.com
+	writeSSHConfig(t, `Host github.com
     IdentityAgent /tmp/github-only.sock
-`
-	if err := os.WriteFile(filepath.Join(sshDir, "config"), []byte(configContent), 0600); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Setenv("HOME", tmpDir)
-	t.Setenv("SSH_AUTH_SOCK", "")
-
+`)
 	if got := GetSSHAuthSock(); got != "" {
 		t.Errorf("GetSSHAuthSock() = %q, want empty for host-specific-only config", got)
 	}
 }
 
-func TestIdentityAgentGlobalScope(t *testing.T) {
-	tmpDir := t.TempDir()
-	sshDir := filepath.Join(tmpDir, ".ssh")
-	if err := os.MkdirAll(sshDir, 0700); err != nil {
-		t.Fatal(err)
+func TestIdentityAgentMatchScopeIsIgnored(t *testing.T) {
+	writeSSHConfig(t, `Match host github.com
+    IdentityAgent /tmp/match-only.sock
+`)
+	if got := GetSSHAuthSock(); got != "" {
+		t.Errorf("GetSSHAuthSock() = %q, want empty for match-scoped-only config", got)
 	}
+}
 
-	// IdentityAgent before any Host block
-	configContent := `IdentityAgent /tmp/global-agent.sock
+func TestIdentityAgentGlobalScope(t *testing.T) {
+	writeSSHConfig(t, `IdentityAgent /tmp/global-agent.sock
 
 Host github.com
     HostName github.com
-`
-	if err := os.WriteFile(filepath.Join(sshDir, "config"), []byte(configContent), 0600); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Setenv("HOME", tmpDir)
-	t.Setenv("SSH_AUTH_SOCK", "")
-
+`)
 	sock := GetSSHAuthSock()
 	if sock != "/tmp/global-agent.sock" {
 		t.Errorf("GetSSHAuthSock() = %q, want /tmp/global-agent.sock", sock)
