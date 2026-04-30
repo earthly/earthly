@@ -28,11 +28,13 @@ type BootstrapInterface interface {
 type Bootstrap struct {
 	cli CLI
 
-	homebrewSource   string
-	noBuildkit       bool
-	genCerts         bool
-	withAutocomplete bool
-	certsHostName    string
+	homebrewSource      string
+	noBuildkit          bool
+	genCerts            bool
+	withAutocomplete    bool
+	certsHostName       string
+	bashCompletionFile  string
+	zshCompletionFile   string
 }
 
 func NewBootstrap(cli CLI) *Bootstrap {
@@ -61,12 +63,22 @@ func (b *Bootstrap) Cmds() []*cli.Command {
 					Usage:       "Skips setting up the BuildKit container",
 					Destination: &b.noBuildkit,
 				},
-				&cli.BoolFlag{
-					Name:        "with-autocomplete",
-					Usage:       "Install shell autocompletions during bootstrap",
-					Destination: &b.withAutocomplete,
-				},
-				&cli.BoolFlag{
+			&cli.BoolFlag{
+				Name:        "with-autocomplete",
+				Usage:       "Install shell autocompletions during bootstrap",
+				Destination: &b.withAutocomplete,
+			},
+			&cli.StringFlag{
+				Name:        "bash-completion-file",
+				Usage:       "Path to write bash autocomplete file to (overrides default)",
+				Destination: &b.bashCompletionFile,
+			},
+			&cli.StringFlag{
+				Name:        "zsh-completion-file",
+				Usage:       "Path to write zsh autocomplete file to (overrides default)",
+				Destination: &b.zshCompletionFile,
+			},
+			&cli.BoolFlag{
 					Name:        "force-certificate-generation",
 					Usage:       "Force the generation of self-signed TLS certificates, even when no BuildKit container is started",
 					Destination: &b.genCerts,
@@ -132,15 +144,31 @@ func (a *Bootstrap) bootstrap(cliCtx *cli.Context) error {
 
 	if a.withAutocomplete {
 		// Because this requires sudo, it should warn and not fail the rest of it.
-		err = a.insertBashCompleteEntry()
-		if err != nil {
-			console.Warnf("Warning: %s\n", err.Error())
-			// Keep going.
+		if a.bashCompletionFile != "" {
+			_, err = a.insertBashCompleteEntryAt(a.bashCompletionFile)
+			if err != nil {
+				console.Warnf("Warning: %s\n", err.Error())
+			} else {
+				console.Printf("Bash autocomplete written to %s\n", a.bashCompletionFile)
+			}
+		} else {
+			err = a.insertBashCompleteEntry()
+			if err != nil {
+				console.Warnf("Warning: %s\n", err.Error())
+			}
 		}
-		err = a.insertZSHCompleteEntry()
-		if err != nil {
-			console.Warnf("Warning: %s\n", err.Error())
-			// Keep going.
+		if a.zshCompletionFile != "" {
+			_, err = a.insertZSHCompleteEntryUnderPath(filepath.Dir(a.zshCompletionFile))
+			if err != nil {
+				console.Warnf("Warning: %s\n", err.Error())
+			} else {
+				console.Printf("Zsh autocomplete written to %s\n", a.zshCompletionFile)
+			}
+		} else {
+			err = a.insertZSHCompleteEntry()
+			if err != nil {
+				console.Warnf("Warning: %s\n", err.Error())
+			}
 		}
 
 		console.Printf("You may have to restart your shell for autocomplete to get initialized (e.g. run \"exec $SHELL\")\n")
