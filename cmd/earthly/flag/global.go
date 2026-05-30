@@ -1,7 +1,6 @@
 package flag
 
 import (
-	"os"
 	"time"
 
 	"github.com/urfave/cli/v2"
@@ -9,6 +8,7 @@ import (
 	"github.com/earthly/earthly/buildkitd"
 	"github.com/earthly/earthly/cmd/earthly/common"
 	"github.com/earthly/earthly/util/containerutil"
+	"github.com/earthly/earthly/util/sshutil"
 )
 
 const (
@@ -108,7 +108,7 @@ func (global *Global) RootFlags(installName string, bkImage string) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        "ssh-auth-sock",
-			Value:       os.Getenv("SSH_AUTH_SOCK"),
+			Value:       sshutil.GetSSHAuthSock(),
 			EnvVars:     []string{"EARTHLY_SSH_AUTH_SOCK"},
 			Usage:       "The SSH auth socket to use for ssh-agent forwarding",
 			Destination: &global.SSHAuthSock,
