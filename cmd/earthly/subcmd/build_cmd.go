@@ -416,6 +416,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 	}
 
 	localArtifactWhiteList := gatewaycrafter.NewLocalArtifactWhiteList()
+	var interactiveSessionManager terminal.SessionManager
 
 	socketProvider, err := socketprovider.NewSocketProvider(map[string]socketprovider.SocketAcceptCb{
 		"earthly_save_file": getTryCatchSaveFileHandler(localArtifactWhiteList),
@@ -424,7 +425,7 @@ func (a *Build) ActionBuildImp(cliCtx *cli.Context, flagArgs, nonFlagArgs []stri
 				return fmt.Errorf("interactive mode unavailable due to terminal not being tty")
 			}
 			debugTermConsole := a.cli.Console().WithPrefix("internal-term")
-			err := terminal.ConnectTerm(cliCtx.Context, conn, debugTermConsole)
+			err := interactiveSessionManager.ConnectTerm(cliCtx.Context, conn, debugTermConsole)
 			if err != nil {
 				return errors.Wrap(err, "interactive terminal")
 			}
