@@ -1,6 +1,13 @@
-<h1>Earthly</h1>
+<h1 align="center">⚠️ Earthly is no longer actively maintained ⚠️</h1>
 
-**Please note that Earthly is no longer actively maintained.** [Read more](https://earthly.dev/blog/shutting-down-earthfiles-cloud).
+> [!WARNING]
+> **Earthly Technologies has ended active maintenance of the Earthly open-source project, and Earthly Cloud (including Satellites) was shut down on July 16th, 2025.** The source stays available under its license, but there are no further releases, fixes, or support from Earthly Technologies. The company is now building [Earthly Lunar](https://earthly.dev).
+>
+> ## 👉 [Read the full announcement](https://earthly.dev/blog/shutting-down-earthfiles-cloud)
+
+---------------------------------
+
+<h1>Earthly</h1>
 
 <div align="center">
   <a href="https://earthly.dev"><img src="img/logo-banner-white-bg.png" alt="Earthly" width="700px" /></a>
@@ -10,7 +17,6 @@
 <br/>
 
 [![GitHub Actions CI](https://github.com/earthly/earthly/workflows/staging%20release/badge.svg)](https://github.com/earthly/earthly/actions?query=workflow%3A%22staging%20release%22+branch%3Amain)
-[![Join the chat on Slack](https://img.shields.io/badge/slack-join%20chat-red.svg)](https://earthly.dev/slack)
 [![Docs](https://img.shields.io/badge/docs-git%20book-blue)](https://docs.earthly.dev)
 [![Website](https://img.shields.io/badge/website-earthly.dev-blue)](https://earthly.dev)
 [![Install Earthly](https://img.shields.io/github/v/release/earthly/earthly.svg?label=install&color=1f626c)](https://earthly.dev/get-earthly)
@@ -347,7 +353,6 @@ You may also optionally port your Dockerfiles to Earthly entirely. Translating D
 <h2 align="center">Contributing</h2>
 
 * Please report bugs as [GitHub issues](https://github.com/earthly/earthly/issues).
-* Join us on [Slack](https://earthly.dev/slack)!
 * Questions via GitHub issues are welcome!
 * PRs welcome! But please give a heads-up in a GitHub issue before starting work. If there is no GitHub issue for what you want to do, please create one.
 * To build from source, check the [contributing page](./CONTRIBUTING.md).
