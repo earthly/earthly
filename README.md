@@ -1,9 +1,9 @@
-<h1 align="center">⚠️ Earthly is no longer actively maintained ⚠️</h1>
+<h1 align="center">Earthly is no longer actively maintained</h1>
 
 > [!WARNING]
-> **Earthly Technologies has ended active maintenance of the Earthly open-source project, and Earthly Cloud (including Satellites) was shut down on July 16th, 2025.** The source stays available under its license, but there are no further releases, fixes, or support from Earthly Technologies. The company is now building [Earthly Lunar](https://earthly.dev).
+> **Earthly Technologies has ended active maintenance of the Earthly open-source project, and Earthly Cloud (including Satellites) was shut down on July 16th, 2025.** The source stays available under its license. The company is now building [Earthly Lunar](https://earthly.dev).
 >
-> ## 👉 [Read the full announcement](https://earthly.dev/blog/shutting-down-earthfiles-cloud)
+> ## [Read the full announcement](https://earthly.dev/blog/shutting-down-earthfiles-cloud)
 
 ---------------------------------
 
@@ -17,7 +17,7 @@
 <br/>
 
 [![GitHub Actions CI](https://github.com/earthly/earthly/workflows/staging%20release/badge.svg)](https://github.com/earthly/earthly/actions?query=workflow%3A%22staging%20release%22+branch%3Amain)
-[![Docs](https://img.shields.io/badge/docs-git%20book-blue)](https://docs.earthly.dev)
+[![Docs](https://img.shields.io/badge/docs-in%20repo-blue)](./docs/README.md)
 [![Website](https://img.shields.io/badge/website-earthly.dev-blue)](https://earthly.dev)
 [![Install Earthly](https://img.shields.io/github/v/release/earthly/earthly.svg?label=install&color=1f626c)](https://earthly.dev/get-earthly)
 [![Docker Hub](https://img.shields.io/badge/docker%20hub-earthly-blue)](https://hub.docker.com/u/earthly)
@@ -101,7 +101,7 @@ Never have to write the same code in multiple builds again. With Earthly, you ca
 
 <div align="center"><img src="docs/img/integration-diagram-v2.png" alt="Earthly fits between language-specific tooling and the CI" width="700px" /></div>
 
-Earthly is meant to be used both on your development machine and in CI. It runs on top of your CI/CD platform (such as [Jenkins](https://docs.earthly.dev/ci-integration/vendor-specific-guides/jenkins), [Circle CI](https://docs.earthly.dev/examples/circle-integration), [GitHub Actions](https://docs.earthly.dev/examples/gh-actions-integration), and [GitLab CI/CD](https://docs.earthly.dev/ci-integration/vendor-specific-guides/gitlab-integration)). Earthly provides the benefits of a modern build automation system wherever it runs – such as caching and parallelism. It is a glue layer between language-specific build tooling (like maven, gradle, npm, pip, go build) and CI, working like a wrapper around your build tooling and build logic that isolates build execution from the environments they run in.
+Earthly is meant to be used both on your development machine and in CI. It runs on top of your CI/CD platform (such as [Jenkins](./docs/ci-integration/guides/jenkins.md), [Circle CI](./docs/ci-integration/guides/circle-integration.md), [GitHub Actions](./docs/ci-integration/guides/gh-actions-integration.md), and [GitLab CI/CD](./docs/ci-integration/guides/gitlab-integration.md)). Earthly provides the benefits of a modern build automation system wherever it runs – such as caching and parallelism. It is a glue layer between language-specific build tooling (like maven, gradle, npm, pip, go build) and CI, working like a wrapper around your build tooling and build logic that isolates build execution from the environments they run in.
 
 
 <h2 align="center">How Does It Work?</h2>
@@ -127,7 +127,7 @@ To build from source, check the [contributing page](./CONTRIBUTING.md).
 
 Here are some resources to get you started with Earthly
 
-* 🏁 [Getting started guide](https://docs.earthly.dev/basics)
+* 🏁 [Getting started guide](./docs/basics/basics.md)
 * 👀 [Examples](./examples)
   * [Go](./examples/go)
   * [JavaScript](./examples/js)
@@ -146,16 +146,16 @@ Here are some resources to get you started with Earthly
   * [Multirepo](./examples/multirepo)
   * [Multiplatform Builds](./examples/multiplatform)
   * [Integration Tests](./examples/integration-test)
-* 🔍 Explore [Earthly's own build](https://docs.earthly.dev/docs/examples#earthlys-own-build)
-* ✔️ [Best practices](https://docs.earthly.dev/best-practices)
+* 🔍 Explore [Earthly's own build](./docs/examples/examples.md#earthlys-own-build)
+* ✔️ [Best practices](./docs/guides/best-practices.md)
 
-See also the [full documentation](https://docs.earthly.dev).
+See also the [full documentation](./docs/README.md).
 
 Reference pages
 
-* 📑 [Earthfile reference](https://docs.earthly.dev/docs/earthfile)
-* #️⃣ [Earthly command reference](https://docs.earthly.dev/docs/earthly-command)
-* ⚙️ [Configuration reference](https://docs.earthly.dev/docs/earthly-config)
+* 📑 [Earthfile reference](./docs/earthfile/earthfile.md)
+* #️⃣ [Earthly command reference](./docs/earthly-command/earthly-command.md)
+* ⚙️ [Configuration reference](./docs/earthly-config/earthly-config.md)
 
 ### A simple example (for Go)
 
@@ -277,7 +277,7 @@ docker run --rm earthly/examples:go
 
 Use `+` to reference other targets and create complex build inter-dependencies.
 
-<div align="center"><a href="https://docs.earthly.dev/guides/target-ref"><img src="docs/guides/img/ref-infographic-v2.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="600px" /></a></div>
+<div align="center"><a href="./docs/guides/importing.md"><img src="docs/guides/img/ref-infographic-v2.png" alt="Target and artifact reference syntax" title="Reference targets using +" width="600px" /></a></div>
 
 Examples
 
@@ -327,11 +327,11 @@ release:
 
 It is possible to use Dockerfiles in combination with other technologies (e.g., Makefiles or bash files) to solve such use cases. However, these combinations are difficult to parallelize, challenging to scale across repositories as they lack a robust import system, and often vary in style from one team to another. Earthly does not have these limitations as it was designed as a general-purpose build system.
 
-For example, Earthly introduces a richer target, artifact, and image [referencing system](https://docs.earthly.dev/docs/guides/target-ref), allowing for better reuse in complex builds spanning a single large repository or multiple repositories. Because Dockerfiles are only meant to describe one image at a time, such features are outside the scope of applicability of Dockerfiles.
+For example, Earthly introduces a richer target, artifact, and image [referencing system](./docs/guides/importing.md), allowing for better reuse in complex builds spanning a single large repository or multiple repositories. Because Dockerfiles are only meant to describe one image at a time, such features are outside the scope of applicability of Dockerfiles.
 
 ### How do I know if a command is a classic Dockerfile command or an Earthly command?
 
-Check out the [Earthfile reference doc page](https://docs.earthly.dev/docs/earthfile). It has all the commands there and specifies which commands are the same as Dockerfile commands and which are new.
+Check out the [Earthfile reference doc page](./docs/earthfile/earthfile.md). It has all the commands there and specifies which commands are the same as Dockerfile commands and which are new.
 
 ### Can Earthly build Dockerfiles?
 
@@ -343,7 +343,7 @@ build:
   SAVE IMAGE some-image:latest
 ```
 
-You may also optionally port your Dockerfiles to Earthly entirely. Translating Dockerfiles to Earthfiles is usually a matter of copy-pasting and making minor adjustments. See the [getting started page](https://docs.earthly.dev/basics) for some Earthfile examples.
+You may also optionally port your Dockerfiles to Earthly entirely. Translating Dockerfiles to Earthfiles is usually a matter of copy-pasting and making minor adjustments. See the [getting started page](./docs/basics/basics.md) for some Earthfile examples.
 
 ### How is Earthly different from Bazel?
 
