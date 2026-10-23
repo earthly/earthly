@@ -3,6 +3,8 @@
 > [!WARNING]
 > **Earthly Technologies has ended active maintenance of the Earthly open-source project, and Earthly Cloud (including Satellites) was shut down on July 16th, 2025.** The source stays available under its license. The company is now building [Earthly Lunar](https://earthly.dev).
 >
+> **A community-maintained fork is available at [EarthBuild](https://github.com/EarthBuild/earthbuild).**
+>
 > ## [Read the full announcement](https://earthly.dev/blog/shutting-down-earthfiles-cloud)
 
 ---------------------------------
